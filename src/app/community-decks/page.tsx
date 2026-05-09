@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
-import type { PublicDeck, VoteValue } from '@/types'
+import type { PublicDeck, VoteValue, Profile } from '@/types'
 
 export const metadata = { title: 'Viesos Decks' }
-export const revalidate = 30
+export const revalidate = 0
 
 type SearchParams = Promise<{ sort?: string; faction?: string }>
 
@@ -15,13 +15,12 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch public decks with author profile
+  // 1. Fetch public decks
   let query = supabase
     .from('decks')
     .select(`
-      id, name, description, faction_id, visibility, card_count, avg_gold_cost, score, created_at, updated_at,
-      faction:factions ( id, name, slug, color_hex, icon_url, description, sort_order ),
-      author:profiles!decks_user_id_fkey ( id, username, display_name, avatar_url, bio, is_public, created_at, updated_at )
+      id, name, description, faction_id, visibility, card_count, avg_gold_cost, score, user_id, created_at, updated_at,
+      faction:factions ( id, name, slug, color_hex, icon_url, description, sort_order )
     `)
     .eq('visibility', 'public')
 
@@ -37,9 +36,24 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
 
   query = query.limit(60)
 
-  const { data: rawDecks } = await query
+  const { data: rawDecks, error: decksError } = await query
+  if (decksError) console.error('decks error:', decksError)
 
-  // Fetch user's votes if logged in
+  // 2. Fetch profiles for those user IDs
+  const userIds = [...new Set((rawDecks ?? []).map((d: { user_id: string }) => d.user_id))]
+  let profileMap: Record<string, Profile> = {}
+  if (userIds.length > 0) {
+    const { data: profiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, bio, is_public, created_at, updated_at')
+      .in('id', userIds)
+    if (profErr) console.error('profiles error:', profErr)
+    if (profiles) {
+      profileMap = Object.fromEntries(profiles.map((p: Profile) => [p.id, p]))
+    }
+  }
+
+  // 3. Fetch user's votes if logged in
   let voteMap: Record<string, VoteValue> = {}
   if (user && rawDecks && rawDecks.length > 0) {
     const deckIds = rawDecks.map((d: { id: string }) => d.id)
@@ -53,16 +67,18 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
     }
   }
 
-  // Fetch factions for filter
+  // 4. Fetch factions for filter
   const { data: factions } = await supabase
     .from('factions')
     .select('id, name, color_hex')
     .order('sort_order')
 
+  // 5. Merge
   const decks: PublicDeck[] = ((rawDecks ?? []) as unknown[]).map((d) => {
     const deck = d as Record<string, unknown>
     return {
       ...(deck as unknown as PublicDeck),
+      author: profileMap[(deck.user_id as string)] ?? null,
       user_vote: (voteMap[(deck.id as string)] ?? 0) as VoteValue,
     }
   })
@@ -81,7 +97,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
             <h1 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-              Viesos Decks
+              Viešos Decks
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -110,7 +126,6 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
       <div className="max-w-screen-xl mx-auto px-4 py-6">
         {/* Filters */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
-          {/* Sort */}
           <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--bg-border)' }}>
             {(['score', 'new'] as const).map((s) => (
               <Link
@@ -127,7 +142,6 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             ))}
           </div>
 
-          {/* Faction filter */}
           <div className="flex gap-1 flex-wrap">
             <Link
               href={'?sort=' + sort}
@@ -140,7 +154,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             >
               Visos
             </Link>
-            {(factions ?? []).map((f) => (
+            {(factions ?? []).map((f: { id: number; name: string; color_hex: string }) => (
               <Link
                 key={f.id}
                 href={'?sort=' + sort + '&faction=' + f.id}
@@ -165,11 +179,11 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
         {decks.length === 0 ? (
           <div className="text-center py-24 opacity-50">
             <p style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
-              Dar nera viesu deck
+              Dar nėra viešų deck
             </p>
             {user && (
               <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Pakeisk savo deck matomuma i &quot;Viesas&quot; deck builder&apos;yje
+                Pakeisk savo deck matomumą į &quot;Public&quot; deck builder&apos;yje
               </p>
             )}
           </div>

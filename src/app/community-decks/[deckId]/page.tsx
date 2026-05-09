@@ -10,20 +10,19 @@ import type { CardWithRelations, DeckCardWithCard, VoteValue } from '@/types'
 
 type Props = { params: Promise<{ deckId: string }> }
 
-export const revalidate = 30
+export const revalidate = 0
 
 export default async function CommunityDeckDetailPage({ params }: Props) {
   const { deckId } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch deck
+  // Fetch deck (no profile join — fetch separately)
   const { data: rawDeck } = await supabase
     .from('decks')
     .select(`
       id, name, description, faction_id, visibility, card_count, avg_gold_cost, score, created_at, updated_at, user_id,
-      faction:factions ( id, name, slug, color_hex, icon_url, description, sort_order ),
-      author:profiles!decks_user_id_fkey ( id, username, display_name, avatar_url, bio, is_public, created_at, updated_at )
+      faction:factions ( id, name, slug, color_hex, icon_url, description, sort_order )
     `)
     .eq('id', deckId)
     .eq('visibility', 'public')
@@ -31,7 +30,19 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
 
   if (!rawDeck) return notFound()
 
-  const deck = rawDeck as unknown as {
+  const deckRaw = rawDeck as unknown as { user_id: string; [key: string]: unknown }
+
+  // Fetch author profile separately
+  const { data: authorProfile } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, bio, is_public, created_at, updated_at')
+    .eq('id', deckRaw.user_id)
+    .single()
+
+  const deck = {
+    ...deckRaw,
+    author: authorProfile ?? null,
+  } as unknown as {
     id: string; name: string; description: string | null; faction_id: number | null
     visibility: string; card_count: number; avg_gold_cost: number; score: number
     created_at: string; updated_at: string; user_id: string
@@ -61,7 +72,6 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
     return { quantity: r.quantity as number, card: r.card as CardWithRelations }
   })
 
-  // DeckEntry format needed for GoldCurveChart
   const deckEntries = cards.map((dc) => ({ card: dc.card, quantity: dc.quantity }))
 
   // User's vote
@@ -80,14 +90,13 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      {/* Header */}
       <header
         className="sticky top-0 z-20 border-b px-4 py-3"
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
       >
         <div className="max-w-screen-xl mx-auto flex items-center gap-3">
           <Link href="/community-decks" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            ← Viesos Decks
+            Viesos Decks
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-xs font-semibold truncate" style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}>
@@ -99,41 +108,29 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
       <div className="max-w-screen-xl mx-auto px-4 py-6">
         <div className="flex gap-6 flex-col lg:flex-row">
 
-          {/* Left: deck info */}
           <div className="flex-1 min-w-0 space-y-4">
-            {/* Hero card */}
-            <div
-              className="rounded-xl p-5"
-              style={{ background: 'var(--bg-surface)', border: '1px solid ' + fColor + '30' }}
-            >
+            <div className="rounded-xl p-5"
+              style={{ background: 'var(--bg-surface)', border: '1px solid ' + fColor + '30' }}>
               <div className="h-1 rounded-full mb-4" style={{ background: fColor, opacity: 0.5, maxWidth: '60px' }} />
 
               <div className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <h1
-                    className="text-xl font-bold leading-tight"
-                    style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}
-                  >
+                  <h1 className="text-xl font-bold leading-tight"
+                    style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>
                     {deck.name}
                   </h1>
 
                   <div className="flex flex-wrap items-center gap-2 mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                    <span
-                      className="px-2 py-0.5 rounded"
-                      style={{ background: fColor + '20', color: fColor }}
-                    >
+                    <span className="px-2 py-0.5 rounded" style={{ background: fColor + '20', color: fColor }}>
                       {deck.faction?.name ?? 'Nera frakcijos'}
                     </span>
-                    <span>{deck.card_count} kortų</span>
-                    {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost}⚜ avg</span>}
+                    <span>{deck.card_count} kortu</span>
+                    {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost} avg</span>}
                     {deck.author && (
                       <span>
                         {'by '}
-                        <Link
-                          href={'/users/' + deck.author.username}
-                          className="hover:underline"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
+                        <Link href={'/users/' + deck.author.username}
+                          className="hover:underline" style={{ color: 'var(--text-secondary)' }}>
                           {deck.author.display_name ?? deck.author.username}
                         </Link>
                       </span>
@@ -150,7 +147,6 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
                   )}
                 </div>
 
-                {/* Vote */}
                 <div className="flex-shrink-0">
                   <VoteWidget
                     deckId={deck.id}
@@ -162,7 +158,6 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
                 </div>
               </div>
 
-              {/* Copy button */}
               {user?.id !== deck.user_id && (
                 <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--bg-border)' }}>
                   <CopyToDeckButton
@@ -178,31 +173,23 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
               )}
               {user?.id === deck.user_id && (
                 <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--bg-border)' }}>
-                  <Link
-                    href={'/deck-builder/' + deck.id}
+                  <Link href={'/deck-builder/' + deck.id}
                     className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
-                  >
-                    ✏ Redaguoti savo deck
+                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
+                    Redaguoti savo deck
                   </Link>
                 </div>
               )}
             </div>
 
-            {/* Gold curve */}
-            <div
-              className="rounded-xl p-4"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
-            >
+            <div className="rounded-xl p-4"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
               <GoldCurveChart entries={deckEntries} />
             </div>
           </div>
 
-          {/* Right: card list */}
-          <div
-            className="lg:w-80 flex-shrink-0 rounded-xl p-4"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
-          >
+          <div className="lg:w-80 flex-shrink-0 rounded-xl p-4"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
             <ReadOnlyDeckList cards={cards} />
           </div>
         </div>
