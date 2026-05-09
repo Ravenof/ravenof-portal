@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState } from 'react'
+import Image from 'next/image'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { Sword, Heart, Coins } from 'lucide-react'
 import { getFactionColor, getRarityColor, truncate } from '@/lib/utils'
@@ -16,6 +17,7 @@ type CardItemProps = {
 export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
+  const [imgError, setImgError] = useState(false)
 
   const factionColor = getFactionColor(card.faction?.color_hex)
   const rarityColor  = getRarityColor(card.rarity?.name)
@@ -36,8 +38,7 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
     mx.set(0); my.set(0); setHovered(false)
   }
 
-  const isUnit  = card.card_type?.name === 'Unit' || card.card_type?.name === 'Champion'
-  const isSpell = card.card_type?.name === 'Spell'
+  const showImage = !!card.image_url && !imgError
 
   const borderColor = hovered ? rarityColor + '80' : 'var(--bg-border)'
   const cardShadow  = hovered
@@ -70,19 +71,45 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
         className="relative w-full overflow-hidden"
         style={{ aspectRatio: '3/4', background: factionColor + '12' }}
       >
-        <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-          <span
-            className="text-5xl font-bold opacity-20"
-            style={{ fontFamily: 'Cinzel, Georgia, serif', color: factionColor }}
-          >
-            {card.faction?.name?.[0] ?? '?'}
-          </span>
-          <span className="text-xs opacity-20" style={{ color: factionColor }}>
-            {card.faction?.name}
-          </span>
-        </div>
+        {showImage ? (
+          <>
+            <Image
+              src={card.image_url!}
+              alt={card.name}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
+              className="object-cover"
+              loading="lazy"
+              onError={() => setImgError(true)}
+              style={{
+                filter: hovered ? 'brightness(1.1)' : 'brightness(0.95)',
+                transition: 'filter 0.2s',
+              }}
+            />
+            {/* Dark overlay with faction gradient at bottom */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.75) 100%)',
+              }}
+            />
+          </>
+        ) : (
+          /* Placeholder */
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+            <span
+              className="text-5xl font-bold opacity-20"
+              style={{ fontFamily: 'Cinzel, Georgia, serif', color: factionColor }}
+            >
+              {card.faction?.name?.[0] ?? '?'}
+            </span>
+            <span className="text-xs opacity-20" style={{ color: factionColor }}>
+              {card.faction?.name}
+            </span>
+          </div>
+        )}
 
-        {hovered && (
+        {hovered && !showImage && (
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'radial-gradient(ellipse at 50% 30%, ' + rarityColor + '18 0%, transparent 70%)' }}
@@ -91,7 +118,7 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
 
         {card.gold_cost !== null && (
           <div
-            className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+            className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold z-10"
             style={{
               background: 'rgba(0,0,0,0.75)',
               color: 'var(--gold)',
@@ -106,14 +133,14 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
 
         {card.is_champion && (
           <div
-            className="absolute top-2 right-8 px-1.5 py-0.5 rounded text-xs font-bold"
+            className="absolute top-2 right-8 px-1.5 py-0.5 rounded text-xs font-bold z-10"
             style={{ background: 'rgba(0,0,0,0.75)', color: 'var(--gold)', border: '1px solid rgba(245,158,11,0.35)' }}
           >
             ♔
           </div>
         )}
 
-        <div className="absolute bottom-2 right-2">
+        <div className="absolute bottom-2 right-2 z-10">
           <OwnedToggle cardId={card.id} isAuthenticated={isAuthenticated} size="sm" />
         </div>
       </div>
@@ -145,7 +172,7 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
           <span className="text-xs" style={{ color: rarityColor }}>{card.rarity?.name ?? '—'}</span>
         </div>
 
-        {isUnit && (card.attack !== null || card.health !== null) && (
+        {(card.attack !== null || card.health !== null) && (
           <div className="flex items-center gap-3 pt-0.5">
             {card.attack !== null && (
               <span className="flex items-center gap-1 text-xs font-bold text-red-400">
@@ -158,10 +185,6 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
               </span>
             )}
           </div>
-        )}
-
-        {isSpell && (
-          <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Burtas</p>
         )}
       </div>
     </motion.div>
