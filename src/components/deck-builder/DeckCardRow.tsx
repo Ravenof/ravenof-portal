@@ -3,7 +3,7 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { getCopyLimit } from '@/lib/deck-validation'
-import { getRarityColor, getFactionColor } from '@/lib/utils'
+import { getRarityColor } from '@/lib/utils'
 import type { DeckEntry } from '@/types'
 
 type Props = { entry: DeckEntry }
@@ -13,7 +13,8 @@ export function DeckCardRow({ entry }: Props) {
   const { card, quantity } = entry
   const limit = getCopyLimit(card)
   const rarityColor = getRarityColor(card.rarity?.name)
-  const factionColor = getFactionColor(card.faction?.color_hex)
+
+  const qtyColor = quantity >= limit ? 'var(--gold)' : 'var(--text-primary)'
 
   return (
     <div
@@ -26,7 +27,7 @@ export function DeckCardRow({ entry }: Props) {
         style={{ background: rarityColor }}
       />
 
-      {/* Name */}
+      {/* Name + meta */}
       <div className="flex-1 min-w-0">
         <p
           className="text-xs font-semibold truncate leading-tight"
@@ -52,7 +53,7 @@ export function DeckCardRow({ entry }: Props) {
 
         <span
           className="w-5 text-center text-xs font-bold tabular-nums"
-          style={{ color: quantity >= limit ? 'var(--gold)' : 'var(--text-primary)' }}
+          style={{ color: qtyColor }}
         >
           {quantity}
         </span>
@@ -72,9 +73,9 @@ export function DeckCardRow({ entry }: Props) {
 
         <button
           onClick={() => removeCard(card.id)}
-          className="w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/20"
-          style={{ color: 'var(--text-muted)' }}
-          title="Išimti iš deck"
+          className="w-5 h-5 rounded flex items-center justify-center transition-all hover:bg-red-500/20"
+          style={{ color: '#ef4444', opacity: 0.6 }}
+          title="Isimti is deck"
         >
           <Trash2 className="w-3 h-3" />
         </button>

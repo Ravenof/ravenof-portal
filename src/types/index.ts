@@ -70,6 +70,7 @@ export type Deck = {
   visibility: DeckVisibility
   card_count: number
   avg_gold_cost: number
+  score: number
   created_at: string
   updated_at: string
 }
@@ -93,6 +94,7 @@ export type DeckEntry = {
   quantity: number
 }
 
+// ── PROFILES ───────────────────────────────────────────────────
 export type Profile = {
   id: string
   username: string
@@ -102,4 +104,28 @@ export type Profile = {
   is_public: boolean
   created_at: string
   updated_at: string
+}
+
+// ── COMMUNITY ─────────────────────────────────────────────────
+export type VoteValue = -1 | 0 | 1
+
+export type DeckVote = {
+  id: string
+  user_id: string
+  deck_id: string
+  vote: -1 | 1
+  created_at: string
+  updated_at: string
+}
+
+/** Public deck shown in community listing */
+export type PublicDeck = DeckWithRelations & {
+  author: Profile | null
+  user_vote: VoteValue   // -1 | 0 | 1 (0 = no vote)
+}
+
+/** Deck card row for read-only display */
+export type DeckCardWithCard = {
+  quantity: number
+  card: CardWithRelations
 }

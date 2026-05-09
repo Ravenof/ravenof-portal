@@ -7,9 +7,9 @@ export const DECK_MAX = 40
 /** Copy limit pagal rarity id */
 export const RARITY_COPY_LIMIT: Record<number, number> = {
   6:  2, // Paprastas
-  7:  2, // Magiškas
+  7:  2, // Magiskas
   8:  2, // Unikalus
-  9:  1, // Epiškas
+  9:  1, // Episkas
   10: 1, // Legendinis
 }
 
@@ -27,7 +27,7 @@ export function canAddCard(
   if (factionId !== null) {
     const cf = card.faction_id
     if (cf !== factionId && cf !== NEUTRAL_FACTION_ID) {
-      return { ok: false, reason: 'Korta nepriklauso šiai frakcijai' }
+      return { ok: false, reason: 'Korta nepriklauso siai frakcijai' }
     }
   }
 
@@ -36,12 +36,12 @@ export function canAddCard(
   const limit = getCopyLimit(card)
 
   if (currentQty >= limit) {
-    return { ok: false, reason: `Maksimumas ${limit} kopiją (-ų) šiai kortai` }
+    return { ok: false, reason: 'Maksimumas ' + limit + ' kopija (-u) siai kortai' }
   }
 
   const totalCards = entries.reduce((s, e) => s + e.quantity, 0)
   if (totalCards >= DECK_MAX) {
-    return { ok: false, reason: `Deck negali turėti daugiau nei ${DECK_MAX} kortų` }
+    return { ok: false, reason: 'Deck negali tureti daugiau nei ' + DECK_MAX + ' kortu' }
   }
 
   return { ok: true }
@@ -61,16 +61,16 @@ export function validateDeck(
   const total = entries.reduce((s, e) => s + e.quantity, 0)
 
   if (!name.trim()) {
-    warnings.push({ type: 'error', message: 'Deck turi turėti pavadinimą' })
+    warnings.push({ type: 'error', message: 'Deck turi tureti pavadinima' })
   }
   if (!factionId) {
-    warnings.push({ type: 'error', message: 'Pasirink deck frakciją' })
+    warnings.push({ type: 'error', message: 'Pasirink deck frakcija' })
   }
   if (total < DECK_MIN) {
-    warnings.push({ type: 'error', message: `Deck turi bent ${DECK_MIN} kortų (dabar: ${total})` })
+    warnings.push({ type: 'error', message: 'Deck turi bent ' + DECK_MIN + ' kortu (dabar: ' + total + ')' })
   }
   if (total > DECK_MAX) {
-    warnings.push({ type: 'error', message: `Deck negali turėti daugiau nei ${DECK_MAX} kortų (dabar: ${total})` })
+    warnings.push({ type: 'error', message: 'Deck negali tureti daugiau nei ' + DECK_MAX + ' kortu (dabar: ' + total + ')' })
   }
 
   // Copy limit violations
@@ -79,8 +79,21 @@ export function validateDeck(
     if (entry.quantity > limit) {
       warnings.push({
         type: 'error',
-        message: `"${entry.card.name}": per daug kopijų (${entry.quantity}/${limit})`,
+        message: '"' + entry.card.name + '": per daug kopiju (' + entry.quantity + '/' + limit + ')',
       })
+    }
+  }
+
+  // Wrong faction cards (safety check in case deck was edited externally)
+  if (factionId !== null) {
+    for (const entry of entries) {
+      const cf = entry.card.faction_id
+      if (cf !== null && cf !== factionId && cf !== NEUTRAL_FACTION_ID) {
+        warnings.push({
+          type: 'error',
+          message: '"' + entry.card.name + '" nepriklauso pasirinktai frakcijai',
+        })
+      }
     }
   }
 

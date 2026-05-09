@@ -16,7 +16,7 @@ type PageProps = {
   }>
 }
 
-export const metadata = { title: 'Kortų Duomenų Bazė' }
+export const metadata = { title: 'Kortu Duomenu Baze' }
 
 async function fetchCards(params: Awaited<PageProps['searchParams']>): Promise<{
   cards: CardWithRelations[]
@@ -40,7 +40,7 @@ async function fetchCards(params: Awaited<PageProps['searchParams']>): Promise<{
     if (s.length >= 3) {
       q = q.textSearch('search_vector', s, { type: 'websearch', config: 'simple' })
     } else {
-      q = q.ilike('name', `%${s}%`)
+      q = q.ilike('name', '%' + s + '%')
     }
   }
   if (params.faction_id)  q = q.eq('faction_id',   Number(params.faction_id))
@@ -113,15 +113,19 @@ export default async function CardsPage({ searchParams }: PageProps) {
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-              Kortų Duomenų Bazė
+              Kortu Duomenu Baze
             </h1>
             {!user && (
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                <a href="/login" style={{ color: 'var(--gold)' }}>Prisijunk</a>{' '}norėdamas pažymėti turimas kortas
+                <a href="/login" style={{ color: 'var(--gold)' }}>Prisijunk</a>{' '}noredamas pazymeti turimas kortas
               </p>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <a href="/community-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+              Viesos Decks
+            </a>
             {user && (
               <>
                 <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
@@ -168,7 +172,11 @@ export default async function CardsPage({ searchParams }: PageProps) {
               </Suspense>
             </div>
             <Suspense fallback={<CardGridSkeleton />}>
-              <CardGrid cards={cards} isAuthenticated={!!user} initialCollection={collection} />
+              <CardGrid
+                cards={cards}
+                initialCollection={collection}
+                isAuthenticated={!!user}
+              />
             </Suspense>
           </main>
         </div>

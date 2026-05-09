@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Edit2, Trash2, Lock, Globe, Link2, Plus } from 'lucide-react'
+import { Edit2, Trash2, Lock, Globe, Link2, Plus, Copy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getFactionColor } from '@/lib/utils'
 import type { DeckWithRelations } from '@/types'
@@ -21,14 +21,14 @@ const VISIBILITY_LABEL: Record<string, { label: string; Icon: React.ElementType 
 
 export function MyDecksList({ decks, userId }: Props) {
   const router = useRouter()
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [deleting, setDeleting]     = useState<string | null>(null)
+  const [confirmId, setConfirmId]   = useState<string | null>(null)
+  const [duplicating, setDuplicating] = useState<string | null>(null)
 
   const handleDelete = async (deckId: string) => {
     setDeleting(deckId)
     const supabase = createClient()
     try {
-      // deck_cards cascade deleted via FK or we delete manually
       await supabase.from('deck_cards').delete().eq('deck_id', deckId)
       const { error } = await supabase
         .from('decks')
@@ -43,6 +43,54 @@ export function MyDecksList({ decks, userId }: Props) {
     } finally {
       setDeleting(null)
       setConfirmId(null)
+    }
+  }
+
+  const handleDuplicate = async (deck: DeckWithRelations) => {
+    setDuplicating(deck.id)
+    const supabase = createClient()
+    try {
+      // Create new deck record
+      const { data: newDeck, error: deckErr } = await supabase
+        .from('decks')
+        .insert({
+          user_id:       userId,
+          name:          `Kopija — ${deck.name}`,
+          description:   deck.description ?? '',
+          faction_id:    deck.faction_id,
+          visibility:    'private',
+          card_count:    deck.card_count,
+          avg_gold_cost: deck.avg_gold_cost,
+        })
+        .select('id')
+        .single()
+
+      if (deckErr || !newDeck) throw deckErr ?? new Error('No deck returned')
+
+      // Fetch original deck_cards
+      const { data: deckCards, error: cardsErr } = await supabase
+        .from('deck_cards')
+        .select('card_id, quantity')
+        .eq('deck_id', deck.id)
+
+      if (cardsErr) throw cardsErr
+
+      if (deckCards && deckCards.length > 0) {
+        const rows = deckCards.map((dc) => ({
+          deck_id:  newDeck.id,
+          card_id:  dc.card_id,
+          quantity: dc.quantity,
+        }))
+        const { error: insertErr } = await supabase.from('deck_cards').insert(rows)
+        if (insertErr) throw insertErr
+      }
+
+      router.refresh()
+    } catch (err) {
+      console.error('Duplicate deck error:', err)
+      alert('Nepavyko nukopijuoti deck. Bandyk dar kartą.')
+    } finally {
+      setDuplicating(null)
     }
   }
 
@@ -67,11 +115,12 @@ export function MyDecksList({ decks, userId }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {decks.map((deck) => {
-        const fColor = getFactionColor(deck.faction?.color_hex)
-        const vis = VISIBILITY_LABEL[deck.visibility] ?? VISIBILITY_LABEL.private
-        const VisIcon = vis.Icon
-        const isConfirming = confirmId === deck.id
-        const isDeleting = deleting === deck.id
+        const fColor     = getFactionColor(deck.faction?.color_hex)
+        const vis        = VISIBILITY_LABEL[deck.visibility] ?? VISIBILITY_LABEL.private
+        const VisIcon    = vis.Icon
+        const isConfirming  = confirmId === deck.id
+        const isDeleting    = deleting === deck.id
+        const isDuplicating = duplicating === deck.id
 
         return (
           <div
@@ -79,13 +128,12 @@ export function MyDecksList({ decks, userId }: Props) {
             className="rounded-xl p-4 flex flex-col gap-3 transition-all"
             style={{
               background: 'var(--bg-surface)',
-              border: `1px solid ${fColor}30`,
-              boxShadow: `0 0 0 1px transparent`,
+              border: '1px solid ' + fColor + '30',
             }}
           >
-            {/* Faction bar */}
+            {/* Faction color bar */}
             <div
-              className="h-1 rounded-full -mt-1 mb-1"
+              className="h-1 rounded-full -mt-1 mb-0"
               style={{ background: fColor, opacity: 0.6 }}
             />
 
@@ -127,6 +175,7 @@ export function MyDecksList({ decks, userId }: Props) {
 
             {/* Actions */}
             <div className="flex gap-2 pt-1 border-t" style={{ borderColor: 'var(--bg-border)' }}>
+              {/* Edit */}
               <Link
                 href={`/deck-builder/${deck.id}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center transition-opacity hover:opacity-80"
@@ -136,11 +185,28 @@ export function MyDecksList({ decks, userId }: Props) {
                 Redaguoti
               </Link>
 
+              {/* Duplicate */}
+              <button
+                onClick={() => handleDuplicate(deck)}
+                disabled={isDuplicating}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
+                title="Kopijuoti deck"
+              >
+                {isDuplicating ? (
+                  <span className="text-xs">...</span>
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+
+              {/* Delete */}
               {!isConfirming ? (
                 <button
                   onClick={() => setConfirmId(deck.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
                   style={{ background: 'var(--bg-elevated)', color: '#ef4444' }}
+                  title="Ištrinti deck"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
@@ -149,17 +215,17 @@ export function MyDecksList({ decks, userId }: Props) {
                   <button
                     onClick={() => handleDelete(deck.id)}
                     disabled={isDeleting}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
                     style={{ background: '#ef4444', color: 'white' }}
                   >
                     {isDeleting ? '...' : 'Ištrinti'}
                   </button>
                   <button
                     onClick={() => setConfirmId(null)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
                     style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
                   >
-                    Atšaukti
+                    Ne
                   </button>
                 </div>
               )}
