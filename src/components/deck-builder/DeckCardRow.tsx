@@ -1,0 +1,84 @@
+'use client'
+
+import { Minus, Plus, Trash2 } from 'lucide-react'
+import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
+import { getCopyLimit } from '@/lib/deck-validation'
+import { getRarityColor, getFactionColor } from '@/lib/utils'
+import type { DeckEntry } from '@/types'
+
+type Props = { entry: DeckEntry }
+
+export function DeckCardRow({ entry }: Props) {
+  const { addCard, removeCard, setQuantity } = useDeckBuilderStore()
+  const { card, quantity } = entry
+  const limit = getCopyLimit(card)
+  const rarityColor = getRarityColor(card.rarity?.name)
+  const factionColor = getFactionColor(card.faction?.color_hex)
+
+  return (
+    <div
+      className="flex items-center gap-2 px-2 py-1.5 rounded-lg group transition-colors"
+      style={{ background: 'var(--bg-elevated)' }}
+    >
+      {/* Rarity dot */}
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ background: rarityColor }}
+      />
+
+      {/* Name */}
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-xs font-semibold truncate leading-tight"
+          style={{ color: 'var(--text-primary)' }}
+          title={card.name}
+        >
+          {card.name}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          {card.gold_cost}⚜ · {card.card_type?.name}
+        </p>
+      </div>
+
+      {/* Quantity controls */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          onClick={() => setQuantity(card.id, quantity - 1)}
+          className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-red-500/20"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <Minus className="w-3 h-3" />
+        </button>
+
+        <span
+          className="w-5 text-center text-xs font-bold tabular-nums"
+          style={{ color: quantity >= limit ? 'var(--gold)' : 'var(--text-primary)' }}
+        >
+          {quantity}
+        </span>
+
+        <button
+          onClick={() => addCard(card)}
+          disabled={quantity >= limit}
+          className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-green-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+
+        <span className="text-xs w-6 text-right" style={{ color: 'var(--text-muted)' }}>
+          /{limit}
+        </span>
+
+        <button
+          onClick={() => removeCard(card.id)}
+          className="w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/20"
+          style={{ color: 'var(--text-muted)' }}
+          title="Išimti iš deck"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  )
+}

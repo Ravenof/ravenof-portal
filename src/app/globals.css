@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base:     #0a0a0f;
+  --bg-surface:  #12121a;
+  --bg-elevated: #1a1a28;
+  --bg-border:   #2a2a3f;
+  --gold:        #f59e0b;
+  --gold-dim:    #b45309;
+  --gold-glow:   rgba(245, 158, 11, 0.3);
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* Gold text selection */
+::selection {
+  background-color: rgba(245, 158, 11, 0.25);
+  color: #fff;
+}
+
+/* Input / select base style */
+input, select, textarea {
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--gold) !important;
+}
