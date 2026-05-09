@@ -65,6 +65,11 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
             ADMIN
           </span>
           <div className="flex-1" />
+          <Link href="/admin/cards/import"
+            className="text-sm px-4 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+            style={{ border: '1px solid var(--bg-border)', color: 'var(--text-secondary)' }}>
+            Importuoti CSV
+          </Link>
           <Link href="/admin/cards/new"
             className="text-sm px-4 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-90"
             style={{ background: 'var(--gold)', color: '#0a0a0f' }}>

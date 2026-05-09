@@ -1,0 +1,4 @@
+card_number,name,faction,type,rarity,gold_cost,attack,health,description,effect_text,image_url,is_champion,status
+TEST-IMPORT-1,Import Padaras Draft,Mirties maršas,Padaras,Paprastas,200,3,4,Test draft korta importuota per CSV,,,,draft
+TEST-IMPORT-2,Import Burtas Active,Demonų orda,Burtas,Magiškas,400,,,Aktyvus burtas importuotas per CSV,,,,active
+TEST-001,Test Padaras Updated CSV,Mirties maršas,Padaras,Paprastas,300,4,6,Atnaujinta per CSV importą,,,,active
