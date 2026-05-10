@@ -22,7 +22,7 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
 
   // Admin check
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/')
 

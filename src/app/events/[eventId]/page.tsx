@@ -160,7 +160,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
                   Norėdami registruotis, prisijunkite prie savo paskyros.
                 </p>
-                <Link href="/auth/login"
+                <Link href="/login"
                   className="inline-block px-5 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
                   style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
                   Prisijungti

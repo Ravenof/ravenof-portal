@@ -23,7 +23,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/')
 
@@ -121,7 +121,6 @@ export default async function EditEventPage({ params }: { params: Params }) {
                       await updateRegistrationStatus(reg.id, s)
                     }}>
                       <select name="status" defaultValue={reg.status}
-                        onChange={() => {}}
                         className="text-xs px-2 py-1 rounded"
                         style={{
                           background: (REG_STATUS_COLORS[reg.status] ?? '#6b7280') + '20',
