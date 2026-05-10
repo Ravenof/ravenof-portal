@@ -34,6 +34,7 @@ export async function saveCard(
   const health = formData.get('health') !== '' && formData.get('health') !== null ? Number(formData.get('health')) : null
   const description = (formData.get('description') as string ?? '').trim() || null
   const effect_text = (formData.get('effect_text') as string ?? '').trim() || null
+  const lore_text = (formData.get('lore_text') as string ?? '').trim() || null
   const image_url = (formData.get('image_url') as string ?? '').trim() || null
   const is_champion = formData.get('is_champion') === 'on'
   const status = (formData.get('status') as string) ?? 'draft'
@@ -47,7 +48,7 @@ export async function saveCard(
 
   const payload = {
     name, card_number, faction_id, card_type_id, rarity_id,
-    gold_cost, attack, health, description, effect_text,
+    gold_cost, attack, health, description, effect_text, lore_text,
     image_url, is_champion, status,
   }
 
@@ -63,5 +64,6 @@ export async function saveCard(
 
   revalidatePath('/admin/cards')
   revalidatePath('/cards')
+  revalidatePath('/cards', 'layout')
   redirect('/admin/cards')
 }

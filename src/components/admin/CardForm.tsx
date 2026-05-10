@@ -18,6 +18,7 @@ type CardData = {
   health: number | null
   description: string | null
   effect_text: string | null
+  lore_text: string | null
   image_url: string | null
   is_champion: boolean
   status: string
@@ -181,6 +182,14 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
           <label style={labelStyle}>Efekto tekstas (nebut.)</label>
           <textarea name="effect_text" defaultValue={initialData?.effect_text ?? ''}
             rows={3} placeholder="Efekto aprasymas..."
+            style={{ ...inputStyle, resize: 'vertical' as const }} />
+        </div>
+
+        {/* Lore text */}
+        <div>
+          <label style={labelStyle}>Istorija / Lore (nebut.)</label>
+          <textarea name="lore_text" defaultValue={initialData?.lore_text ?? ''}
+            rows={3} placeholder="Kortos istorija, pasaulio kūrimas..."
             style={{ ...inputStyle, resize: 'vertical' as const }} />
         </div>
 

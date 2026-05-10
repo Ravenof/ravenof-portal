@@ -42,6 +42,7 @@ export type Card = {
   health: number | null
   description: string | null
   effect_text: string | null
+  lore_text: string | null
   image_url: string | null
   is_champion: boolean
   status: CardStatus

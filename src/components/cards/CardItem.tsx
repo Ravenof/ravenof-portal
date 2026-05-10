@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { Sword, Heart, Coins } from 'lucide-react'
@@ -55,7 +56,10 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
     transition: 'border-color 0.2s, box-shadow 0.2s',
   }
 
+  const href = `/cards/${encodeURIComponent(card.card_number ?? card.id)}`
+
   return (
+    <Link href={href} style={{ textDecoration: 'none', display: 'block' }}>
     <motion.div
       ref={cardRef}
       style={cardStyle as React.CSSProperties}
@@ -188,5 +192,6 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
         )}
       </div>
     </motion.div>
+    </Link>
   )
 }
