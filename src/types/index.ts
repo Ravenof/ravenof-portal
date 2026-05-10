@@ -266,3 +266,21 @@ export type MyOwnedCard = {
   rarity_name: string | null
   rarity_color: string | null
 }
+
+// -- DECK COMMENTS
+export type CommentStatus = 'active' | 'hidden' | 'deleted'
+
+export type DeckComment = {
+  id: string
+  deck_id: string
+  user_id: string
+  body: string
+  status: CommentStatus
+  created_at: string
+  updated_at: string
+  author?: {
+    username: string
+    display_name: string | null
+  } | null
+}
+

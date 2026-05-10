@@ -6,7 +6,8 @@ import { ReadOnlyDeckList } from '@/components/community/ReadOnlyDeckList'
 import { CopyToDeckButton } from '@/components/community/CopyToDeckButton'
 import { GoldCurveChart } from '@/components/deck-builder/GoldCurveChart'
 import { getFactionColor } from '@/lib/utils'
-import type { CardWithRelations, DeckCardWithCard, VoteValue } from '@/types'
+import type { CardWithRelations, DeckCardWithCard, VoteValue, DeckComment } from '@/types'
+import { CommentSection } from '@/components/community/CommentSection'
 
 type Props = { params: Promise<{ deckId: string }> }
 
@@ -84,6 +85,23 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
       .eq('user_id', user.id)
       .maybeSingle()
     if (voteRow) userVote = voteRow.vote as VoteValue
+  }
+
+  // Fetch comments
+  const { data: rawComments } = await supabase
+    .from('deck_comments')
+    .select('id, deck_id, user_id, body, status, created_at, updated_at, author:profiles ( username, display_name )')
+    .eq('deck_id', deckId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true })
+
+  const comments: DeckComment[] = (rawComments ?? []) as unknown as DeckComment[]
+
+  // Check if user is admin
+  let isAdmin = false
+  if (user) {
+    const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+    isAdmin = prof?.role === 'admin'
   }
 
   const fColor = getFactionColor(deck.faction?.color_hex)
@@ -193,7 +211,17 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
             <ReadOnlyDeckList cards={cards} />
           </div>
         </div>
+
+          {/* Comments */}
+          <div className="rounded-xl p-5" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
+            <CommentSection
+              deckId={deckId}
+              initialComments={comments}
+              userId={user?.id ?? null}
+              isAdmin={isAdmin}
+            />
+          </div>
+        </div>
       </div>
-    </div>
   )
 }
