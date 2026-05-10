@@ -29,8 +29,8 @@ export default async function EventDetailPage({ params }: { params: Params }) {
 
   const ev = event as RavenEvent
 
-  // Only show published events to public (admins can see all via admin panel)
-  if (false /* always published here */) notFound()
+  // Hide draft events from public; cancelled/completed remain visible with correct status
+  if (ev.status === 'draft') notFound()
 
   // Count registered+attended
   const { count: regCount } = await supabase
@@ -153,7 +153,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 eventId={eventId}
                 isRegistered={isRegistered}
                 isFull={isFull && !isRegistered}
-                isCancelled={false}
+                isCancelled={ev.status === 'cancelled'}
               />
             ) : (
               <div>

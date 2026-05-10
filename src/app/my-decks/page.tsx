@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MyDecksList } from '@/components/my-decks/MyDecksList'
 import type { DeckWithRelations } from '@/types'
 
-export const metadata = { title: 'Mano Decks | Ravenof' }
+export const metadata = { title: 'Mano kaladės | Ravenof' }
 
 export default async function MyDecksPage() {
   const supabase = await createClient()

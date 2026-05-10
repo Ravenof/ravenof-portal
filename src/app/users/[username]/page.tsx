@@ -206,7 +206,7 @@ export default async function UserProfilePage({ params }: Props) {
                   <span>{attendedCount} renginiai</span>
                 )}
                 {profile.show_badges && (
-                  <span>{userBadges.length} zenkleliai</span>
+                  <span>{userBadges.length} ženkleliai</span>
                 )}
                 {profile.show_owned_cards && (
                   <span>{ownedUnique} kortos ({completionPct}%)</span>
@@ -235,7 +235,7 @@ export default async function UserProfilePage({ params }: Props) {
               className="text-sm font-semibold uppercase tracking-wider mb-3"
               style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
             >
-              Zenkleliai
+              Ženkleliai
             </h2>
             <BadgeGrid badges={userBadges} />
           </section>
@@ -252,7 +252,7 @@ export default async function UserProfilePage({ params }: Props) {
             </h2>
             {decks.length === 0 ? (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Nera viesu kaladzriu.
+                Nėra viešų kaladžių.
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -296,7 +296,7 @@ export default async function UserProfilePage({ params }: Props) {
 
             {ownedCards.length === 0 ? (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Kolekcija tuscia.
+                Kolekcija tuščia.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">

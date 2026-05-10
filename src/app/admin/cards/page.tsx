@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 
@@ -13,6 +14,13 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function AdminCardsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
   const supabase = await createClient()
+
+  // Only full admins can manage cards; event_moderators are redirected
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'admin') redirect('/admin/events')
+  }
 
   let q = supabase
     .from('cards')

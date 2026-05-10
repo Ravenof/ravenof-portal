@@ -20,7 +20,9 @@ export default function LoginPage() {
     if (error) {
       setError('Neteisingas el. paštas arba slaptažodis.')
     } else {
-      router.push('/cards')
+      const sp = new URLSearchParams(window.location.search)
+      const next = sp.get('next') ?? sp.get('redirectTo') ?? '/cards'
+      router.push(next)
       router.refresh()
     }
     setLoading(false)
