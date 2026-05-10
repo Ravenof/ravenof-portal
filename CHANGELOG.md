@@ -1,5 +1,125 @@
 # Changelog
 
+## [Pre-production QA] - 2026-05-10
+
+### Pataisyta
+
+- **Events:** draft renginiai dabar grąžina 404 — nebepasiekiami tiesioginiu URL
+- **Events:** `isCancelled` props daugiau nėra hardcoded `false` — teisingai atspindi `ev.status`
+- **Login:** po prisijungimo respektuojamas `?next=` / `?redirectTo=` parametras (anksčiau visada siuntė į `/cards`)
+- **Admin:** `event_moderator` rolė dabar nukreipiama iš `/admin/cards` į `/admin/events`
+- **Vartotojo profilis:** pataisyti tekstai — `ženkleliai`, `Nėra viešų kaladžių.`, `Kolekcija tuščia.`
+- **Community decks:** metadata pavadinimas `'Viešos kaladės | Ravenof'`, pataisytas tuščios būsenos tekstas
+- **My decks:** metadata pavadinimas `'Mano kaladės | Ravenof'`
+
+---
+
+## [Mobile responsiveness] - 2026-05-09
+
+### Patobulinta
+
+- `/cards` — navigacijos mygtukai paslėpti mobiliuose (naudoja MobileNav)
+- `/leaderboards` — lentelė dabar horizontaliai slenkama mobiliuose
+- `/life-tracker` — visi mygtukai pataisyti iki minimalaus 44px tap target
+
+---
+
+## [ETAPAS 6] - 2026-05-09
+
+### Pridėta — Rolių sistema
+
+- `event_moderator` rolė — gali valdyti renginius, bet ne kortas
+- `/admin/users` — admin gali keisti vartotojų roles
+- Admin layout leidžia `admin` ir `event_moderator`
+
+---
+
+## [ETAPAS 5] - 2026-05-09
+
+### Pridėta — Community deck komentarai
+
+- Komentarų sistema `/community-decks/[id]`
+- `deck_comments` lentelė su RLS
+- Realaus laiko atnaujinimas
+
+---
+
+## [ETAPAS 4] - 2026-05-09
+
+### Pridėta — Kortų detalių puslapiai
+
+- `/cards/[id]` — pilna kortos informacija, lore tekstas, statistikos
+- Kortos hover preview deck builder'e
+
+---
+
+## [ETAPAS 3] - 2026-05-09
+
+### Patobulinta — Deck Builder filtrai
+
+- Papildomi filtrai kortų pool'e: tipas, retumas, aukso kaina
+- Universal/Neutral kortų toggle
+- Hover preview kortų pool'e
+
+---
+
+## [ETAPAS 2] - 2026-05-09
+
+### Pridėta — Kolekcijos valdymas
+
+- `/my-cards` — turimos kortos su kiekio valdymu
+- Galimybė pašalinti kortas iš kolekcijos
+
+---
+
+## [ETAPAS 1] - 2026-05-09
+
+### Pataisyta — Lietuviški deck pavadinimai
+
+- Deck builder ir my-decks UI tekstai pervadinti į lietuvių kalbą
+
+---
+
+## [MVP 5B / User Hub] - 2026-05-09
+
+### Pridėta
+
+- `/me` — nukreipimas į vartotojo profilį
+- `/my-events` — savo registracijų sąrašas
+- `/profile/settings` — privatumo nustatymai (kas matoma viešame profilyje)
+- Privacy toggle'ai: lygis, ženkleliai, renginiai, deckai, kortos, profiliai, lyderiai lentelė
+
+---
+
+## [MVP 4B / XP + Rangai + Ženkleliai] - 2026-05-09
+
+### Pridėta
+
+- XP sistema: veiksmai suteikia XP (registracija, renginiai, deck sukūrimas)
+- Lygiai ir rangai: `rank_rules` lentelė su lygių slenkstiais
+- Ženkleliai: `badges` + `user_badges` su automatiniais triggeriais
+- `UserRankCard` — rango kortelė su spalvomis
+- `XPProgressBar` — progreso juosta iki kito lygio
+- `BadgeGrid` + `BadgeItem` — ženklelių tinklelis
+- `/leaderboards` — top žaidėjai pagal XP ir lygį
+- Vartotojo profilis atnaujintas: lygis, rangas, ženkleliai, kolekcija
+
+---
+
+## [MVP 4A / Events] - 2026-05-09
+
+### Pridėta — Renginiai
+
+- `/events` — renginių sąrašas su statusų filtrais
+- `/events/[id]` — renginio detalės ir registracija
+- `EventRegisterButton` — registracija/atšaukimas su real-time atnaujinimu
+- `/admin/events` — renginių kūrimas, redagavimas, statusų valdymas
+- `events` + `event_registrations` lentelės su RLS
+- Statusai: draft / published / cancelled / completed
+- Talpos valdymas ir vietų skaičiavimas
+
+---
+
 ## [MVP 2] - 2026-05-09
 
 ### Pridėta — Community Decks
