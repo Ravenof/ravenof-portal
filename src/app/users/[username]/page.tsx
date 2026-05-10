@@ -11,12 +11,28 @@ type Props = { params: Promise<{ username: string }> }
 
 export const revalidate = 60
 
+type OwnedCardRow = {
+  card_id: string
+  quantity: number
+  card_name: string
+  faction_id: number | null
+  faction_name: string | null
+  faction_slug: string | null
+  faction_color: string | null
+  card_type_id: number | null
+  card_type_name: string | null
+  rarity_id: number | null
+  rarity_name: string | null
+  rarity_color: string | null
+  gold_cost: number | null
+  image_url: string | null
+}
+
 export default async function UserProfilePage({ params }: Props) {
   const { username } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Cast needed because Supabase doesn't know new columns yet
   const { data: rawProfile } = await supabase
     .from('profiles')
     .select('*')
@@ -27,7 +43,7 @@ export default async function UserProfilePage({ params }: Props) {
   if (!rawProfile) return notFound()
   const profile = rawProfile as unknown as Profile
 
-  // Rank rules for current + next rank
+  // Rank rules
   const { data: allRanks } = await supabase
     .from('rank_rules')
     .select('*')
@@ -39,7 +55,7 @@ export default async function UserProfilePage({ params }: Props) {
   const nextRank: RankRule | null =
     currentIdx >= 0 && currentIdx < ranks.length - 1 ? ranks[currentIdx + 1] : null
 
-  // Public decks (respecting show_public_decks)
+  // Public decks
   let decks: PublicDeck[] = []
   if (profile.show_public_decks) {
     const { data: rawDecks } = await supabase
@@ -78,7 +94,7 @@ export default async function UserProfilePage({ params }: Props) {
     })
   }
 
-  // Attended events count (respecting show_attended_events)
+  // Attended events count
   let attendedCount = 0
   if (profile.show_attended_events) {
     const { count } = await supabase
@@ -89,7 +105,7 @@ export default async function UserProfilePage({ params }: Props) {
     attendedCount = count ?? 0
   }
 
-  // Badges (respecting show_badges)
+  // Badges
   let userBadges: UserBadge[] = []
   if (profile.show_badges) {
     const { data: badgeRows } = await supabase
@@ -103,12 +119,33 @@ export default async function UserProfilePage({ params }: Props) {
     userBadges = (badgeRows ?? []) as unknown as UserBadge[]
   }
 
+  // Owned cards via SECURITY DEFINER RPC (respects show_owned_cards internally)
+  let ownedCards: OwnedCardRow[] = []
+  let totalActiveCards = 0
+  if (profile.show_owned_cards) {
+    const { data: rpcData } = await supabase.rpc('get_public_user_collection', {
+      p_username: username,
+    })
+    ownedCards = (rpcData ?? []) as OwnedCardRow[]
+
+    // Fetch total active cards count for completion %
+    const { count } = await supabase
+      .from('cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+    totalActiveCards = count ?? 0
+  }
+
   const displayName = profile.display_name ?? profile.username
   const memberSince = new Date(profile.created_at).toLocaleDateString('lt-LT', {
     year: 'numeric',
     month: 'long',
   })
   const isOwnProfile = user?.id === profile.id
+
+  const ownedUnique = ownedCards.length
+  const completionPct =
+    totalActiveCards > 0 ? Math.round((ownedUnique / totalActiveCards) * 100) : 0
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -117,11 +154,7 @@ export default async function UserProfilePage({ params }: Props) {
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-3">
-          <Link
-            href="/community-decks"
-            className="text-xs hover:opacity-70"
-            style={{ color: 'var(--text-muted)' }}
-          >
+          <Link href="/community-decks" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
             Viesios Decks
           </Link>
           {isOwnProfile && (
@@ -137,6 +170,7 @@ export default async function UserProfilePage({ params }: Props) {
       </header>
 
       <div className="max-w-screen-xl mx-auto px-4 py-8 space-y-6">
+        {/* Profile card */}
         <div
           className="rounded-xl p-6"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
@@ -174,6 +208,9 @@ export default async function UserProfilePage({ params }: Props) {
                 {profile.show_badges && (
                   <span>{userBadges.length} zenkleliai</span>
                 )}
+                {profile.show_owned_cards && (
+                  <span>{ownedUnique} kortos ({completionPct}%)</span>
+                )}
               </div>
             </div>
           </div>
@@ -191,6 +228,7 @@ export default async function UserProfilePage({ params }: Props) {
           )}
         </div>
 
+        {/* Badges */}
         {profile.show_badges && userBadges.length > 0 && (
           <section>
             <h2
@@ -203,6 +241,7 @@ export default async function UserProfilePage({ params }: Props) {
           </section>
         )}
 
+        {/* Public decks */}
         {profile.show_public_decks && (
           <section>
             <h2
@@ -222,6 +261,102 @@ export default async function UserProfilePage({ params }: Props) {
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {/* Owned cards collection */}
+        {profile.show_owned_cards ? (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2
+                className="text-sm font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
+              >
+                Turimos Kortos
+              </h2>
+              {totalActiveCards > 0 && (
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {ownedUnique} / {totalActiveCards} ({completionPct}%)
+                </span>
+              )}
+            </div>
+
+            {/* Completion bar */}
+            {totalActiveCards > 0 && (
+              <div
+                className="h-1.5 rounded-full mb-4 overflow-hidden"
+                style={{ background: 'var(--bg-elevated)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: completionPct + '%', background: 'var(--gold)' }}
+                />
+              </div>
+            )}
+
+            {ownedCards.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Kolekcija tuscia.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                {ownedCards.map((c) => (
+                  <div
+                    key={c.card_id}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+                  >
+                    {c.image_url ? (
+                      <img
+                        src={c.image_url}
+                        alt={c.card_name}
+                        className="w-8 h-8 rounded object-cover flex-shrink-0"
+                        style={{ border: '1px solid var(--bg-border)' }}
+                      />
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded flex-shrink-0"
+                        style={{
+                          background: c.faction_color ? c.faction_color + '30' : 'var(--bg-elevated)',
+                          border: '1px solid ' + (c.faction_color ? c.faction_color + '50' : 'var(--bg-border)'),
+                        }}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-xs font-medium truncate"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {c.card_name}
+                      </p>
+                      <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                        {[c.faction_name, c.rarity_name, c.gold_cost != null ? c.gold_cost + 'g' : null]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
+                    <span
+                      className="text-xs font-bold flex-shrink-0"
+                      style={{ color: 'var(--gold)' }}
+                    >
+                      x{c.quantity}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : (
+          <section>
+            <h2
+              className="text-sm font-semibold uppercase tracking-wider mb-2"
+              style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
+            >
+              Turimos Kortos
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
+              Kolekcija privati.
+            </p>
           </section>
         )}
       </div>
