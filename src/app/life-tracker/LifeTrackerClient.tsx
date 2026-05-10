@@ -12,11 +12,19 @@ import { SoundToggle } from '@/components/life-tracker/SoundToggle'
 
 type FlashState = { side: 0 | 1; type: ActionType; key: number }
 
+function calcGold(round: number): number {
+  return Math.min(round * 100, 1000)
+}
+
 export function LifeTrackerClient() {
   const [state, setState] = useState<GameState>(() => defaultState('1v1'))
   const [hydrated, setHydrated] = useState(false)
   const [flash, setFlash] = useState<FlashState | null>(null)
+
+  // Refs to avoid stale closures in callbacks
   const soundRef = useRef(true)
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
 
   // Hydrate from localStorage after mount
   useEffect(() => {
@@ -44,31 +52,40 @@ export function LifeTrackerClient() {
 
   const handleHpChange = useCallback(
     (sideIdx: 0 | 1, delta: number) => {
-      const actionType: ActionType = delta < 0 ? 'damage' : 'heal'
+      // Pre-check with current state to decide flash/sound
+      const cur = stateRef.current
+      const prevHp = cur.hp[sideIdx]
+      const rawNewHp = prevHp + delta
+      // Heal is capped at maxHp; damage can go below 0
+      const cappedHp = delta > 0 ? Math.min(rawNewHp, cur.maxHp) : rawNewHp
+      const actualDelta = cappedHp - prevHp
+      if (actualDelta === 0) return // no change — heal at max, skip everything
+
+      const actionType: ActionType = actualDelta < 0 ? 'damage' : 'heal'
 
       setState((prev) => {
-        const prevHp = prev.hp[sideIdx]
-        const newHp = prevHp + delta
-        const newHp2: [number, number] = [prev.hp[0], prev.hp[1]]
-        newHp2[sideIdx] = newHp
+        const prevHpInner = prev.hp[sideIdx]
+        const rawNew = prevHpInner + delta
+        const capped = delta > 0 ? Math.min(rawNew, prev.maxHp) : rawNew
+        const actual = capped - prevHpInner
+        if (actual === 0) return prev
+
+        const newHpArr: [number, number] = [prev.hp[0], prev.hp[1]]
+        newHpArr[sideIdx] = capped
 
         const entry: LogEntry = {
           id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-          turn: prev.turn,
+          round: prev.round,
           sideIdx,
           targetName: prev.names[sideIdx],
-          change: delta,
-          prevHp,
-          newHp,
-          actionType,
+          change: actual,
+          prevHp: prevHpInner,
+          newHp: capped,
+          actionType: actual < 0 ? 'damage' : 'heal',
           timestamp: Date.now(),
         }
 
-        return {
-          ...prev,
-          hp: newHp2,
-          log: [entry, ...prev.log].slice(0, 20),
-        }
+        return { ...prev, hp: newHpArr, log: [entry, ...prev.log].slice(0, 20) }
       })
 
       triggerFlash(sideIdx, actionType)
@@ -91,17 +108,18 @@ export function LifeTrackerClient() {
   }, [])
 
   const handleNextTurn = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      turn: prev.turn + 1,
-      activeSide: prev.activeSide === 0 ? 1 : 0,
-    }))
+    setState((prev) => {
+      const nextSide: 0 | 1 = prev.activeSide === 0 ? 1 : 0
+      // Round increments only when returning to side 0
+      const newRound = nextSide === 0 ? prev.round + 1 : prev.round
+      return { ...prev, round: newRound, activeSide: nextSide }
+    })
     if (soundRef.current) playTurnSound()
   }, [])
 
   const handleResetTurn = useCallback(() => {
-    if (!window.confirm('Atstatyti ejima i 1?')) return
-    setState((prev) => ({ ...prev, turn: 1, activeSide: 0 }))
+    if (!window.confirm('Atstatyti rata i 1?')) return
+    setState((prev) => ({ ...prev, round: 1, activeSide: 0 }))
   }, [])
 
   const handleReset = useCallback(() => {
@@ -149,6 +167,8 @@ export function LifeTrackerClient() {
     )
   }
 
+  const gold = calcGold(state.round)
+
   return (
     <>
       <style>{`
@@ -185,7 +205,7 @@ export function LifeTrackerClient() {
               className="text-xs hover:opacity-70 transition-opacity"
               style={{ color: 'var(--text-muted)' }}
             >
-              &larr; Kortų bazė
+              &larr; Kortu baze
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
             <h1
@@ -250,7 +270,8 @@ export function LifeTrackerClient() {
 
           {/* Turn Tracker */}
           <TurnTracker
-            turn={state.turn}
+            round={state.round}
+            gold={gold}
             activeName={state.names[state.activeSide]}
             onNextTurn={handleNextTurn}
             onResetTurn={handleResetTurn}

@@ -8,7 +8,7 @@ type Props = {
 
 function formatEntry(e: LogEntry): string {
   const sign = e.change > 0 ? '+' : ''
-  return `Turn ${e.turn} — ${e.targetName} ${sign}${e.change} HP: ${e.prevHp} → ${e.newHp}`
+  return `Round ${e.round} — ${e.targetName} ${sign}${e.change} HP: ${e.prevHp} → ${e.newHp}`
 }
 
 export function ActionLog({ log }: Props) {

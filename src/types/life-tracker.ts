@@ -3,7 +3,7 @@ export type ActionType = 'damage' | 'heal'
 
 export type LogEntry = {
   id: string
-  turn: number
+  round: number
   sideIdx: 0 | 1
   targetName: string
   change: number      // negative = damage, positive = heal
@@ -17,7 +17,8 @@ export type GameState = {
   mode: GameMode
   names: [string, string]
   hp: [number, number]
-  turn: number
+  maxHp: number
+  round: number
   activeSide: 0 | 1
   log: LogEntry[]
   soundEnabled: boolean

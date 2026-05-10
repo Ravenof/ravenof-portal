@@ -1,66 +1,86 @@
 'use client'
 
 type Props = {
-  turn: number
+  round: number
+  gold: number
   activeName: string
   onNextTurn: () => void
   onResetTurn: () => void
 }
 
-export function TurnTracker({ turn, activeName, onNextTurn, onResetTurn }: Props) {
+export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn }: Props) {
   return (
     <div
-      className="rounded-xl px-5 py-4 flex items-center gap-4"
+      className="rounded-xl px-5 py-4 space-y-3"
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
     >
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-xs uppercase tracking-wider"
-          style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
-        >
-          Ejimas
-        </p>
-        <p
-          className="text-3xl font-bold leading-tight"
-          style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
-        >
-          {turn}
-        </p>
+      {/* Top row: Round + Gold + Active */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-xs uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
+          >
+            Ratas
+          </p>
+          <p
+            className="text-3xl font-bold leading-tight"
+            style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+          >
+            {round}
+          </p>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-xs uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
+          >
+            Eile
+          </p>
+          <p
+            className="text-sm font-semibold truncate mt-0.5"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {activeName}
+          </p>
+        </div>
+
+        <div className="flex-1 min-w-0 text-right">
+          <p
+            className="text-xs uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
+          >
+            Auksas
+          </p>
+          <p
+            className="text-2xl font-bold leading-tight"
+            style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+          >
+            {gold}
+          </p>
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-xs uppercase tracking-wider"
-          style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
-        >
-          Aktyvus
-        </p>
-        <p
-          className="text-sm font-semibold truncate mt-0.5"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {activeName}
-        </p>
-      </div>
-
-      <div className="flex gap-2 flex-shrink-0">
+      {/* Bottom row: buttons */}
+      <div className="flex gap-2">
         <button
           onClick={onResetTurn}
-          className="px-3 py-2 rounded-lg text-xs transition hover:opacity-80"
+          className="px-3 py-2 rounded-lg text-xs transition hover:opacity-80 flex-shrink-0"
           style={{
             background: 'var(--bg-elevated)',
             color: 'var(--text-muted)',
             border: '1px solid var(--bg-border)',
           }}
         >
-          Reset
+          Reset rata
         </button>
         <button
           onClick={onNextTurn}
-          className="px-4 py-2 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95"
+          className="flex-1 py-2 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95"
           style={{ background: 'var(--gold)', color: '#0a0a0f' }}
         >
-          Next &rarr;
+          Kitas ejimas &rarr;
         </button>
       </div>
     </div>
