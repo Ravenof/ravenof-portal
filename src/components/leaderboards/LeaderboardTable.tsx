@@ -26,7 +26,7 @@ export function LeaderboardTable({ rows, primaryLabel, secondaryLabel }: Props) 
   }
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--bg-border)' }}>
+    <div className="rounded-xl overflow-x-auto" style={{ border: '1px solid var(--bg-border)' }}>
       {/* Podium — top 3 */}
       {rows.length >= 1 && (
         <div className="flex gap-2 p-4" style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--bg-border)' }}>

@@ -66,7 +66,7 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn }
       <div className="flex gap-2">
         <button
           onClick={onResetTurn}
-          className="px-3 py-2 rounded-lg text-xs transition hover:opacity-80 flex-shrink-0"
+          className="px-3 py-2.5 rounded-lg text-xs transition hover:opacity-80 flex-shrink-0 min-h-[44px]"
           style={{
             background: 'var(--bg-elevated)',
             color: 'var(--text-muted)',
@@ -77,7 +77,7 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn }
         </button>
         <button
           onClick={onNextTurn}
-          className="flex-1 py-2 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95"
+          className="flex-1 py-2.5 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95 min-h-[44px]"
           style={{ background: 'var(--gold)', color: '#0a0a0f' }}
         >
           Kitas ejimas &rarr;

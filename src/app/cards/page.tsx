@@ -121,45 +121,50 @@ export default async function CardsPage({ searchParams }: PageProps) {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <a href="/leaderboards" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-              Topai
-            </a>
-            <a href="/events" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-              Renginiai
-            </a>
-            <a href="/community-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-              Viešos kaladės
-            </a>
-            <a href="/life-tracker" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-              Life Tracker
-            </a>
-            {user && (
-              <>
-                <a href="/me" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                  Mano profilis
-                </a>
-                <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                  Mano kaladės
-                </a>
-                <a href="/deck-builder" className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
-                  + Deck Builder
-                </a>
-              </>
-            )}
-            {user ? (
-              <a href="/api/auth/signout" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
-                style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
-                Atsijungti
+          <div className="flex items-center gap-2">
+            {/* Nav links — hidden on mobile; MobileNav handles these */}
+            <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end">
+              <a href="/leaderboards" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                Topai
               </a>
-            ) : (
+              <a href="/events" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                Renginiai
+              </a>
+              <a href="/community-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                Viešos kaladės
+              </a>
+              <a href="/life-tracker" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                Life Tracker
+              </a>
+              {user && (
+                <>
+                  <a href="/me" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                    Mano profilis
+                  </a>
+                  <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                    Mano kaladės
+                  </a>
+                  <a href="/deck-builder" className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
+                    style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
+                    + Deck Builder
+                  </a>
+                </>
+              )}
+              {user && (
+                <a href="/api/auth/signout" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
+                  style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
+                  Atsijungti
+                </a>
+              )}
+            </div>
+            {/* Login button — always visible for guests */}
+            {!user && (
               <a href="/login" className="text-sm px-4 py-1.5 rounded-lg font-semibold"
                 style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
                 Prisijungti

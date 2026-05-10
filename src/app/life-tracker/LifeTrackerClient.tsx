@@ -225,7 +225,7 @@ export function LifeTrackerClient() {
               <button
                 key={m}
                 onClick={() => state.mode !== m && handleModeChange(m)}
-                className="px-5 py-1.5 rounded-lg text-sm font-bold transition"
+                className="px-5 py-2.5 rounded-lg text-sm font-bold transition min-h-[44px]"
                 style={{
                   background: state.mode === m ? 'var(--gold)' : 'var(--bg-surface)',
                   color: state.mode === m ? '#0a0a0f' : 'var(--text-muted)',
@@ -237,7 +237,7 @@ export function LifeTrackerClient() {
             ))}
             <button
               onClick={handleReset}
-              className="ml-auto px-3 py-1.5 rounded-lg text-xs transition hover:opacity-80"
+              className="ml-auto px-3 py-2.5 rounded-lg text-xs transition hover:opacity-80 min-h-[44px]"
               style={{
                 background: 'var(--bg-surface)',
                 color: 'var(--text-muted)',
