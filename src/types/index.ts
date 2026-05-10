@@ -112,6 +112,7 @@ export type Profile = {
   show_public_decks: boolean
   show_profile_details: boolean
   show_owned_cards: boolean
+  show_on_leaderboards: boolean
   created_at: string
   updated_at: string
 }
@@ -214,4 +215,53 @@ export type EventRegistration = {
   status: RegistrationStatus
   created_at: string
   updated_at: string
+}
+
+// -- LEADERBOARD ROW TYPES
+export type LevelLeaderboardRow = {
+  username: string
+  display_name: string | null
+  level: number
+  xp_total: number
+  rank_key: string
+  rank_title: string | null
+}
+
+export type CollectionLeaderboardRow = {
+  username: string
+  owned_count: number
+  total_active: number
+  completion_pct: number
+}
+
+export type DeckUpvotesLeaderboardRow = {
+  username: string
+  public_decks_count: number
+  total_upvotes: number
+}
+
+export type EventsLeaderboardRow = {
+  username: string
+  attended_count: number
+}
+
+export type BadgesLeaderboardRow = {
+  username: string
+  badges_count: number
+}
+
+export type MyOwnedCard = {
+  card_id: string
+  quantity: number
+  name: string
+  gold_cost: number | null
+  image_url: string | null
+  faction_id: number | null
+  faction_name: string | null
+  faction_color: string | null
+  card_type_id: number | null
+  card_type_name: string | null
+  rarity_id: number | null
+  rarity_name: string | null
+  rarity_color: string | null
 }

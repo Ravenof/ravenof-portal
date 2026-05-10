@@ -130,6 +130,13 @@ export default async function EventsPage() {
             </h1>
           </div>
           <Link
+              href="/leaderboards"
+              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
+            >
+              Topai
+            </Link>
+          <Link
               href="/life-tracker"
               className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}

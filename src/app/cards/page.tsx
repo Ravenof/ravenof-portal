@@ -122,6 +122,10 @@ export default async function CardsPage({ searchParams }: PageProps) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <a href="/leaderboards" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+              Topai
+            </a>
             <a href="/events" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
               Renginiai
@@ -136,9 +140,13 @@ export default async function CardsPage({ searchParams }: PageProps) {
             </a>
             {user && (
               <>
+                <a href="/me" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                  Mano profilis
+                </a>
                 <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                   style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                  Mano Decks
+                  Mano Deck'ai
                 </a>
                 <a href="/deck-builder" className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
                   style={{ background: 'var(--gold)', color: '#0a0a0f' }}>

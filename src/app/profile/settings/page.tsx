@@ -14,7 +14,7 @@ export default async function ProfileSettingsPage() {
       id, username, display_name, avatar_url, bio, is_public,
       xp_total, level, rank_key,
       show_level, show_badges, show_attended_events,
-      show_public_decks, show_profile_details, show_owned_cards
+      show_public_decks, show_profile_details, show_owned_cards, show_on_leaderboards
     `)
     .eq('id', user.id)
     .maybeSingle()

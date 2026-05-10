@@ -11,6 +11,7 @@ type Props = {
     show_public_decks: boolean
     show_profile_details: boolean
     show_owned_cards: boolean
+    show_on_leaderboards: boolean
     xp_total: number
     level: number
     rank_key: string
@@ -24,6 +25,7 @@ type ToggleKey =
   | 'show_public_decks'
   | 'show_profile_details'
   | 'show_owned_cards'
+  | 'show_on_leaderboards'
 
 const TOGGLES: { key: ToggleKey; label: string; desc: string }[] = [
   {
@@ -56,6 +58,11 @@ const TOGGLES: { key: ToggleKey; label: string; desc: string }[] = [
     label: 'Rodyti turimas korteles',
     desc: 'Kiti gales matyti tavo korteliu kolekcija (pagal numatyma: isjungta).',
   },
+  {
+    key: 'show_on_leaderboards',
+    label: 'Rodyti mane topose',
+    desc: 'Tavo rezultatai bus matomi Ravenof Topu lentelese.',
+  },
 ]
 
 export function ProfilePrivacyForm({ profile }: Props) {
@@ -66,6 +73,7 @@ export function ProfilePrivacyForm({ profile }: Props) {
     show_public_decks: profile.show_public_decks,
     show_profile_details: profile.show_profile_details,
     show_owned_cards: profile.show_owned_cards,
+    show_on_leaderboards: profile.show_on_leaderboards,
   })
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)

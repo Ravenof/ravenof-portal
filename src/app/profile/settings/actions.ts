@@ -10,6 +10,7 @@ export type PrivacySettings = {
   show_public_decks: boolean
   show_profile_details: boolean
   show_owned_cards: boolean
+  show_on_leaderboards: boolean
 }
 
 export async function updatePrivacySettings(settings: PrivacySettings) {
@@ -26,6 +27,7 @@ export async function updatePrivacySettings(settings: PrivacySettings) {
       show_public_decks: settings.show_public_decks,
       show_profile_details: settings.show_profile_details,
       show_owned_cards: settings.show_owned_cards,
+      show_on_leaderboards: settings.show_on_leaderboards,
     })
     .eq('id', user.id)
 
