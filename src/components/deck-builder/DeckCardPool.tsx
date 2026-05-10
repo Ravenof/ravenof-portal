@@ -93,6 +93,7 @@ export function DeckCardPool({ cards, collection }: Props) {
   const [goldRange, setGoldRange] = useState(0) // index into GOLD_OPTIONS
   const [showUniversal, setShowUniversal] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<CardWithRelations | null>(null)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
 
   // Unique card types for the selected faction (excl. universal)
   const cardTypes = useMemo(() => {
@@ -182,8 +183,8 @@ export function DeckCardPool({ cards, collection }: Props) {
   const totalShown = factionCards.length + universalCards.length
 
   return (
-    <div className="flex flex-col h-full gap-2">
-      <CardHoverPreview card={hoveredCard} />
+    <div className="flex flex-col h-full gap-2" onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
+      <CardHoverPreview card={hoveredCard} x={mousePos.x} y={mousePos.y} />
 
       {/* Row 1: Search */}
       <div className="relative">

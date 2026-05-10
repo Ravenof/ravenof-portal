@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { MobileNav } from '@/components/layout/MobileNav'
 
 export const metadata: Metadata = {
   title: {
@@ -16,7 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="lt" suppressHydrationWarning>
-      <body>{children}</body>
+      <body className="pb-16 lg:pb-0">
+        {children}
+        <MobileNav />
+      </body>
     </html>
   )
 }

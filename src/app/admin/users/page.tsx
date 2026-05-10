@@ -106,7 +106,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
 
         <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>{rows.length} vartotojų</div>
 
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--bg-border)' }}>
+        <div className="rounded-xl overflow-x-auto" style={{ border: '1px solid var(--bg-border)' }}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>

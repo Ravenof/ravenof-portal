@@ -210,7 +210,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 w-72 flex-shrink-0">
+          <div className="flex flex-col gap-3 w-72 flex-shrink-0" style={{ position: "sticky", top: "90px", alignSelf: "flex-start" }}>
             <div className="rounded-xl p-4 flex flex-col"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', height: '46vh', minHeight: '280px' }}>
               <DeckListPanel />

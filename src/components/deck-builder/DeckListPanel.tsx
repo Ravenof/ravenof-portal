@@ -19,6 +19,7 @@ export function DeckListPanel() {
   const { entries, totalCards, factionId, clearDeck } = useDeckBuilderStore()
   const [confirmClear, setConfirmClear] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<CardWithRelations | null>(null)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const total = totalCards()
 
   const pct = Math.min(100, (total / DECK_MIN) * 100)
@@ -54,8 +55,8 @@ export function DeckListPanel() {
   const countColor = overMax ? '#ef4444' : isComplete ? '#22c55e' : 'var(--text-muted)'
 
   return (
-    <div className="flex flex-col h-full">
-      <CardHoverPreview card={hoveredCard} />
+    <div className="flex flex-col h-full" onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
+      <CardHoverPreview card={hoveredCard} x={mousePos.x} y={mousePos.y} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
