@@ -101,7 +101,7 @@ export default async function MePage() {
 
   const QUICK_LINKS = [
     { href: '/my-cards', label: 'Mano kortos', icon: '🃏' },
-    { href: '/my-decks', label: 'Mano deck\'ai', icon: '📚' },
+    { href: '/my-decks', label: 'Mano kaladės', icon: '📚' },
     { href: '/my-events', label: 'Mano renginiai', icon: '🗓' },
     { href: `/users/${profile.username}`, label: 'Public profilis', icon: '👤' },
     { href: '/leaderboards', label: 'Topai', icon: '🏆' },
@@ -152,7 +152,7 @@ export default async function MePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: 'Turimos kortos', value: `${ownedCount} / ${totalCards}`, sub: `${completionPct}%` },
-            { label: 'Vieši deck\'ai', value: publicDecksCount },
+            { label: 'Viešos kaladės', value: publicDecksCount },
             { label: 'Upvotes gauta', value: upvotesCount },
             { label: 'Lankyti renginiai', value: attendedCount },
             { label: 'Artėjantys renginiai', value: upcomingCount },

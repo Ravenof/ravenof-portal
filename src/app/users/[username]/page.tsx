@@ -155,7 +155,7 @@ export default async function UserProfilePage({ params }: Props) {
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-3">
           <Link href="/community-decks" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Viesios Decks
+            Viešos kaladės
           </Link>
           {isOwnProfile && (
             <Link
@@ -200,7 +200,7 @@ export default async function UserProfilePage({ params }: Props) {
               )}
               <div className="flex flex-wrap gap-4 mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                 {profile.show_public_decks && (
-                  <span>{decks.length} deck{decks.length !== 1 ? 'ai' : 'as'}</span>
+                  <span>{decks.length} kaladė{decks.length !== 1 ? 's' : ''}</span>
                 )}
                 {profile.show_attended_events && (
                   <span>{attendedCount} renginiai</span>
@@ -248,7 +248,7 @@ export default async function UserProfilePage({ params }: Props) {
               className="text-sm font-semibold uppercase tracking-wider mb-3"
               style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
             >
-              Viesios Kalades
+              Viešos kaladės
             </h2>
             {decks.length === 0 ? (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>

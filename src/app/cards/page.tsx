@@ -132,7 +132,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
             </a>
             <a href="/community-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-              Viesos Decks
+              Viešos kaladės
             </a>
             <a href="/life-tracker" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
@@ -146,7 +146,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
                 </a>
                 <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                   style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                  Mano Deck'ai
+                  Mano kaladės
                 </a>
                 <a href="/deck-builder" className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
                   style={{ background: 'var(--gold)', color: '#0a0a0f' }}>

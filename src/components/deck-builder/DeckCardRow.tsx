@@ -75,7 +75,7 @@ export function DeckCardRow({ entry }: Props) {
           onClick={() => removeCard(card.id)}
           className="w-5 h-5 rounded flex items-center justify-center transition-all hover:bg-red-500/20"
           style={{ color: '#ef4444', opacity: 0.6 }}
-          title="Isimti is deck"
+          title="Išimti iš kaladės"
         >
           <Trash2 className="w-3 h-3" />
         </button>

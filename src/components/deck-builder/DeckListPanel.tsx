@@ -60,7 +60,7 @@ export function DeckListPanel() {
         <div className="flex items-center gap-2">
           <Swords className="w-4 h-4" style={{ color: 'var(--gold)' }} />
           <span className="font-semibold text-sm" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-            Deck sąrašas
+            Kaladės kortos
           </span>
         </div>
 
@@ -93,7 +93,7 @@ export function DeckListPanel() {
                 onClick={() => setConfirmClear(true)}
                 className="p-1 rounded transition-opacity hover:opacity-70"
                 style={{ color: 'var(--text-muted)' }}
-                title="Išvalyti deck"
+                title="Išvalyti kaladę"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

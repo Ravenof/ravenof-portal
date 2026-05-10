@@ -191,7 +191,7 @@ export function MyDecksList({ decks, userId }: Props) {
                 disabled={isDuplicating}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
-                title="Kopijuoti deck"
+                title="Kopijuoti kaladę"
               >
                 {isDuplicating ? (
                   <span className="text-xs">...</span>
@@ -206,7 +206,7 @@ export function MyDecksList({ decks, userId }: Props) {
                   onClick={() => setConfirmId(deck.id)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
                   style={{ background: 'var(--bg-elevated)', color: '#ef4444' }}
-                  title="Ištrinti deck"
+                  title="Ištrinti kaladę"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>

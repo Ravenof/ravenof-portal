@@ -97,7 +97,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
             <h1 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-              Viesios Decks
+              Viešos kaladės
             </h1>
           </div>
           <div className="flex items-center gap-2">

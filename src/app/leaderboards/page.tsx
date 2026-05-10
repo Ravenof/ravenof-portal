@@ -18,7 +18,7 @@ type SearchParams = Promise<{ tab?: string }>
 const TABS: { key: Tab; label: string }[] = [
   { key: 'level', label: 'Lygis / XP' },
   { key: 'cards', label: 'Kortos' },
-  { key: 'decks', label: 'Deck upvotes' },
+  { key: 'decks', label: 'Kaladžių upvotes' },
   { key: 'events', label: 'Renginiai' },
   { key: 'badges', label: 'Ženkleliai' },
 ]

@@ -42,7 +42,7 @@ function getDeckValidity(
   const errors = allWarnings.filter((w) => w.type === 'error')
   const total = entries.reduce((s, e) => s + e.quantity, 0)
 
-  if (errors.length === 0) return { state: 'valid', label: 'Deck galioja' }
+  if (errors.length === 0) return { state: 'valid', label: 'Kaladė galioja' }
 
   const hasName = name.trim().length > 0
   const hasFaction = factionId !== null
@@ -102,7 +102,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <Link href="/my-decks" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Mano decks
+            Mano kaladės
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <Link href="/community-decks" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
@@ -111,7 +111,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
 
           <h1 className="text-lg font-bold flex-1 text-center hidden sm:block"
             style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-            {deckId ? 'Redaguoti Deck' : 'Deck Builder'}
+            {deckId ? 'Redaguoti kaladę' : 'Deck Builder'}
           </h1>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -147,7 +147,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
         <div className="max-w-screen-2xl mx-auto flex flex-col sm:flex-row gap-2">
           <input
             type="text"
-            placeholder="Deck pavadinimas..."
+            placeholder="Kaladės pavadinimas..."
             value={store.name}
             onChange={(e) => store.setName(e.target.value)}
             className="flex-1 px-3 py-1.5 rounded-lg text-sm font-semibold"
