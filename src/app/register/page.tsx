@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [error, setError]           = useState<string | null>(null)
   const [loading, setLoading]       = useState(false)
   const [done, setDone]             = useState(false)
+  const [needsConfirm, setNeedsConfirm] = useState(false)
 
   const handleUsernameChange = (v: string) => {
     setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))
@@ -41,7 +42,7 @@ export default function RegisterPage() {
 
     setLoading(true)
 
-    // Check username uniqueness before signUp
+    // Check username uniqueness (visible profiles only — private profiles checked by trigger)
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
@@ -54,7 +55,7 @@ export default function RegisterPage() {
       return
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -62,16 +63,37 @@ export default function RegisterPage() {
       },
     })
 
-    if (signUpError) {
-      setError(signUpError.message)
-    } else {
-      setDone(true)
-      setTimeout(() => {
-        router.push('/cards')
-        router.refresh()
-      }, 1500)
-    }
     setLoading(false)
+
+    if (signUpError) {
+      // Map common Supabase error codes to Lithuanian messages
+      const msg = signUpError.message.toLowerCase()
+      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('email address is already')) {
+        setError('Šis el. paštas jau užregistruotas. Prisijunk arba naudok kitą.')
+      } else if (msg.includes('database error') || msg.includes('saving new user')) {
+        setError('Registracijos klaida (duomenų bazės problema). Bandyk dar kartą arba susisiek su administracija.')
+      } else if (msg.includes('password')) {
+        setError('Slaptažodis per silpnas. Naudok bent 8 simbolius.')
+      } else if (msg.includes('email')) {
+        setError('Neteisingas el. pašto formatas.')
+      } else {
+        setError(signUpError.message)
+      }
+      return
+    }
+
+    // If user has no session after signUp — email confirmation is required
+    if (data?.user && !data.session) {
+      setNeedsConfirm(true)
+      return
+    }
+
+    // Session exists — logged in immediately (email confirmation disabled)
+    setDone(true)
+    setTimeout(() => {
+      router.push('/cards')
+      router.refresh()
+    }, 1500)
   }
 
   const inputStyle = {
@@ -83,6 +105,28 @@ export default function RegisterPage() {
     border: '1px solid var(--bg-border)',
     color: 'var(--text-primary)',
     outline: 'none',
+  }
+
+  if (needsConfirm) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-base)' }}>
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="text-4xl">📧</div>
+          <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}>
+            Patvirtink el. paštą
+          </p>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Išsiuntėme patvirtinimo nuorodą į <strong style={{ color: 'var(--text-primary)' }}>{email}</strong>.
+            Spustelėk nuorodą laiške ir grįžk prisijungti.
+          </p>
+          <a href="/login"
+            className="inline-block mt-2 text-sm transition-opacity hover:opacity-80"
+            style={{ color: 'var(--gold)' }}>
+            Prisijungti →
+          </a>
+        </div>
+      </div>
+    )
   }
 
   if (done) {

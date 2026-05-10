@@ -58,6 +58,12 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
 
   const href = `/cards/${encodeURIComponent(card.card_number ?? card.id)}`
 
+  // Prevent OwnedToggle clicks from bubbling up to the Link wrapper
+  const stopBubble = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   return (
     <Link href={href} style={{ textDecoration: 'none', display: 'block' }}>
     <motion.div
@@ -144,7 +150,8 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
           </div>
         )}
 
-        <div className="absolute bottom-2 right-2 z-10">
+        {/* OwnedToggle wrapper: stopPropagation prevents click bubbling to Link */}
+        <div className="absolute bottom-2 right-2 z-10" onClick={stopBubble}>
           <OwnedToggle cardId={card.id} isAuthenticated={isAuthenticated} size="sm" />
         </div>
       </div>

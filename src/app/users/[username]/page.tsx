@@ -5,7 +5,7 @@ import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
 import { BadgeGrid } from '@/components/profile/BadgeGrid'
-import type { PublicDeck, VoteValue, RankRule, UserBadge, Profile } from '@/types'
+import type { PublicDeck, VoteValue, RankRule, UserBadge, Badge, Profile } from '@/types'
 
 type Props = { params: Promise<{ username: string }> }
 
@@ -119,6 +119,17 @@ export default async function UserProfilePage({ params }: Props) {
     userBadges = (badgeRows ?? []) as unknown as UserBadge[]
   }
 
+  // All badges (for showing locked badges in the grid)
+  let allBadges: Badge[] = []
+  if (profile.show_badges) {
+    const { data: badgeDefs } = await supabase
+      .from('badges')
+      .select('id, badge_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, is_active, sort_order, created_at')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+    allBadges = (badgeDefs ?? []) as Badge[]
+  }
+
   // Owned cards via SECURITY DEFINER RPC (respects show_owned_cards internally)
   let ownedCards: OwnedCardRow[] = []
   let totalActiveCards = 0
@@ -229,7 +240,7 @@ export default async function UserProfilePage({ params }: Props) {
         </div>
 
         {/* Badges */}
-        {profile.show_badges && userBadges.length > 0 && (
+        {profile.show_badges && allBadges.length > 0 && (
           <section>
             <h2
               className="text-sm font-semibold uppercase tracking-wider mb-3"
@@ -237,7 +248,7 @@ export default async function UserProfilePage({ params }: Props) {
             >
               Ženkleliai
             </h2>
-            <BadgeGrid badges={userBadges} />
+            <BadgeGrid allBadges={allBadges} earnedBadges={userBadges} />
           </section>
         )}
 

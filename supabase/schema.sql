@@ -252,18 +252,34 @@ declare
   final_username text;
   counter        int := 0;
 begin
-  base_username := lower(regexp_replace(split_part(new.email, '@', 1), '[^a-z0-9_]', '_', 'g'));
-  base_username := left(base_username, 16);
+  -- Use user-provided username from metadata if valid, otherwise derive from email
+  base_username := lower(coalesce(
+    nullif(trim(new.raw_user_meta_data->>'username'), ''),
+    regexp_replace(split_part(new.email, '@', 1), '[^a-z0-9_]', '_', 'g')
+  ));
+  -- Strip any remaining invalid chars, truncate to 16
+  base_username := left(regexp_replace(base_username, '[^a-z0-9_]', '_', 'g'), 16);
   if length(base_username) < 3 then base_username := 'user'; end if;
   final_username := base_username;
+  -- Ensure uniqueness
   while exists (select 1 from public.profiles where username = final_username) loop
     counter := counter + 1;
-    final_username := base_username || '_' || counter::text;
+    final_username := left(base_username, 16) || '_' || counter::text;
   end loop;
   insert into public.profiles (id, username, display_name)
-  values (new.id, final_username,
-    coalesce(new.raw_user_meta_data->>'full_name', final_username));
+  values (
+    new.id,
+    final_username,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'display_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      final_username
+    )
+  );
   return new;
+exception when others then
+  -- Log error details and re-raise so Supabase shows a meaningful message
+  raise exception 'handle_new_user failed: % (SQLSTATE: %)', sqlerrm, sqlstate;
 end;
 $$;
 
