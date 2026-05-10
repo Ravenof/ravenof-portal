@@ -87,6 +87,13 @@ export default function LoginPage() {
           >
             {loading ? 'Jungiamasi...' : 'Prisijungti'}
           </button>
+
+          <div className="text-center pt-1">
+            <a href="/forgot-password" className="text-xs transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}>
+              Pamiršai slaptažodį?
+            </a>
+          </div>
         </form>
 
         <div className="text-center space-y-2">

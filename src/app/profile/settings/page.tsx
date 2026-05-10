@@ -47,6 +47,17 @@ export default async function ProfileSettingsPage() {
         </h1>
 
         <ProfilePrivacyForm profile={profile} />
+
+        <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--bg-border)' }}>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Saugumas</h2>
+          <Link
+            href="/profile/change-password"
+            className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+            style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
+          >
+            Keisti slaptažodį →
+          </Link>
+        </div>
       </div>
     </div>
   )
