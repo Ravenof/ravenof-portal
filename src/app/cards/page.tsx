@@ -122,6 +122,10 @@ export default async function CardsPage({ searchParams }: PageProps) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <a href="/events" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+              Renginiai
+            </a>
             <a href="/community-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
               Viesos Decks

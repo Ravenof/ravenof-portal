@@ -101,6 +101,13 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/events"
+              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
+            >
+              Renginiai
+            </Link>
             {user && (
               <Link
                 href="/my-decks"

@@ -129,3 +129,32 @@ export type DeckCardWithCard = {
   quantity: number
   card: CardWithRelations
 }
+
+// ── Events ────────────────────────────────────────────────────────────────────
+
+export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed'
+export type RegistrationStatus = 'registered' | 'cancelled' | 'attended' | 'no_show'
+
+export type RavenEvent = {
+  id: string
+  title: string
+  description: string | null
+  location: string | null
+  starts_at: string
+  ends_at: string | null
+  capacity: number | null
+  status: EventStatus
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  registration_count?: number
+}
+
+export type EventRegistration = {
+  id: string
+  event_id: string
+  user_id: string
+  status: RegistrationStatus
+  created_at: string
+  updated_at: string
+}
