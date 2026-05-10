@@ -1,0 +1,53 @@
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import { ProfilePrivacyForm } from '@/components/profile/ProfilePrivacyForm'
+
+export default async function ProfileSettingsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select(`
+      id, username, display_name, avatar_url, bio, is_public,
+      xp_total, level, rank_key,
+      show_level, show_badges, show_attended_events,
+      show_public_decks, show_profile_details, show_owned_cards
+    `)
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!profile) redirect('/login')
+
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+      <header
+        className="sticky top-0 z-20 border-b px-4 py-3"
+        style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
+      >
+        <div className="max-w-screen-xl mx-auto flex items-center gap-3">
+          <Link
+            href={`/users/${profile.username}`}
+            className="text-xs hover:opacity-70"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            ← Mano profilis
+          </Link>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 py-10">
+        <h1
+          className="text-2xl font-bold mb-6"
+          style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}
+        >
+          Profilio nustatymai
+        </h1>
+
+        <ProfilePrivacyForm profile={profile} />
+      </div>
+    </div>
+  )
+}

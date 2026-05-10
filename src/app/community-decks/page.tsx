@@ -45,11 +45,11 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
   if (userIds.length > 0) {
     const { data: profiles, error: profErr } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, bio, is_public, created_at, updated_at')
+      .select('*')
       .in('id', userIds)
     if (profErr) console.error('profiles error:', profErr)
     if (profiles) {
-      profileMap = Object.fromEntries(profiles.map((p: Profile) => [p.id, p]))
+      profileMap = Object.fromEntries((profiles as unknown as Profile[]).map((p) => [p.id, p]))
     }
   }
 
@@ -93,11 +93,11 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
         <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <Link href="/cards" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-              ← Kortų bazė
+              &larr; Kortu baze
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
             <h1 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-              Viešos Decks
+              Viesios Decks
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -186,11 +186,11 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
         {decks.length === 0 ? (
           <div className="text-center py-24 opacity-50">
             <p style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
-              Dar nėra viešų deck
+              Dar nera viesu deck
             </p>
             {user && (
               <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Pakeisk savo deck matomumą į &quot;Public&quot; deck builder&apos;yje
+                Pakeisk savo deck matymuma i &quot;Public&quot; deck builder&apos;yje
               </p>
             )}
           </div>

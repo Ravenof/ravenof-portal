@@ -58,7 +58,7 @@ export type CardWithRelations = Card & {
 
 export type CollectionMap = Record<string, number>
 
-// ── DECK BUILDER ──────────────────────────────────────────────
+// -- DECK BUILDER
 export type DeckVisibility = 'private' | 'unlisted' | 'public'
 
 export type Deck = {
@@ -88,13 +88,12 @@ export type DeckCard = {
   updated_at: string
 }
 
-/** Korta su kiekiu deck builder'e (local state) */
 export type DeckEntry = {
   card: CardWithRelations
   quantity: number
 }
 
-// ── PROFILES ───────────────────────────────────────────────────
+// -- PROFILES
 export type Profile = {
   id: string
   username: string
@@ -102,11 +101,70 @@ export type Profile = {
   avatar_url: string | null
   bio: string | null
   is_public: boolean
+  // MVP 4B - XP / Rank
+  xp_total: number
+  level: number
+  rank_key: string
+  // MVP 4B - Privacy toggles
+  show_level: boolean
+  show_badges: boolean
+  show_attended_events: boolean
+  show_public_decks: boolean
+  show_profile_details: boolean
+  show_owned_cards: boolean
   created_at: string
   updated_at: string
 }
 
-// ── COMMUNITY ─────────────────────────────────────────────────
+// -- XP / RANKS / BADGES
+export type RankRule = {
+  id: number
+  rank_key: string
+  title: string
+  min_level: number
+  min_xp: number
+  icon: string | null
+  color_hex: string | null
+  sort_order: number | null
+}
+
+export type XpTransaction = {
+  id: string
+  user_id: string
+  amount: number
+  reason: string
+  source_type: string
+  source_id: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export type Badge = {
+  id: string
+  badge_key: string
+  title: string
+  description: string | null
+  icon: string | null
+  category: 'events' | 'decks' | 'community' | 'collection' | 'founder' | 'special'
+  requirement_type: string | null
+  requirement_value: number | null
+  xp_reward: number
+  is_active: boolean
+  sort_order: number | null
+  created_at: string
+}
+
+export type UserBadge = {
+  id: string
+  user_id: string
+  badge_id: string
+  earned_at: string
+  source_type: string | null
+  source_id: string | null
+  badge: Badge
+}
+
+// -- COMMUNITY
 export type VoteValue = -1 | 0 | 1
 
 export type DeckVote = {
@@ -121,7 +179,7 @@ export type DeckVote = {
 /** Public deck shown in community listing */
 export type PublicDeck = DeckWithRelations & {
   author: Profile | null
-  user_vote: VoteValue   // -1 | 0 | 1 (0 = no vote)
+  user_vote: VoteValue
 }
 
 /** Deck card row for read-only display */
@@ -130,8 +188,7 @@ export type DeckCardWithCard = {
   card: CardWithRelations
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
-
+// -- Events
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed'
 export type RegistrationStatus = 'registered' | 'cancelled' | 'attended' | 'no_show'
 
