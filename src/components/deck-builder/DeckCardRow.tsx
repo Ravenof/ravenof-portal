@@ -4,11 +4,14 @@ import { Minus, Plus, Trash2 } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { getCopyLimit } from '@/lib/deck-validation'
 import { getRarityColor } from '@/lib/utils'
-import type { DeckEntry } from '@/types'
+import type { DeckEntry, CardWithRelations } from '@/types'
 
-type Props = { entry: DeckEntry }
+type Props = {
+  entry: DeckEntry
+  onHover?: (card: CardWithRelations | null) => void
+}
 
-export function DeckCardRow({ entry }: Props) {
+export function DeckCardRow({ entry, onHover }: Props) {
   const { addCard, removeCard, setQuantity } = useDeckBuilderStore()
   const { card, quantity } = entry
   const limit = getCopyLimit(card)
@@ -20,20 +23,15 @@ export function DeckCardRow({ entry }: Props) {
     <div
       className="flex items-center gap-2 px-2 py-1.5 rounded-lg group transition-colors"
       style={{ background: 'var(--bg-elevated)' }}
+      onMouseEnter={() => onHover?.(card)}
+      onMouseLeave={() => onHover?.(null)}
     >
       {/* Rarity dot */}
-      <span
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{ background: rarityColor }}
-      />
+      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: rarityColor }} />
 
       {/* Name + meta */}
       <div className="flex-1 min-w-0">
-        <p
-          className="text-xs font-semibold truncate leading-tight"
-          style={{ color: 'var(--text-primary)' }}
-          title={card.name}
-        >
+        <p className="text-xs font-semibold truncate leading-tight" style={{ color: 'var(--text-primary)' }} title={card.name}>
           {card.name}
         </p>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -51,10 +49,7 @@ export function DeckCardRow({ entry }: Props) {
           <Minus className="w-3 h-3" />
         </button>
 
-        <span
-          className="w-5 text-center text-xs font-bold tabular-nums"
-          style={{ color: qtyColor }}
-        >
+        <span className="w-5 text-center text-xs font-bold tabular-nums" style={{ color: qtyColor }}>
           {quantity}
         </span>
 

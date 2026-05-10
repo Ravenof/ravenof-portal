@@ -106,7 +106,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <Link href="/community-decks" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Viesos decks
+            Viešos kaladės
           </Link>
 
           <h1 className="text-lg font-bold flex-1 text-center hidden sm:block"

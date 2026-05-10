@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { DeckCardRow } from './DeckCardRow'
+import { CardHoverPreview } from './CardHoverPreview'
 import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { Swords, Trash2 } from 'lucide-react'
+import type { CardWithRelations } from '@/types'
 
 const TYPE_ORDER = ['Champion', 'Unit', 'Spell', 'Structure', 'Token']
 
@@ -16,6 +18,7 @@ function getTypeOrder(typeName: string | undefined): number {
 export function DeckListPanel() {
   const { entries, totalCards, factionId, clearDeck } = useDeckBuilderStore()
   const [confirmClear, setConfirmClear] = useState(false)
+  const [hoveredCard, setHoveredCard] = useState<CardWithRelations | null>(null)
   const total = totalCards()
 
   const pct = Math.min(100, (total / DECK_MIN) * 100)
@@ -40,10 +43,7 @@ export function DeckListPanel() {
     })
   }
 
-  // Order groups
-  const groupKeys = Object.keys(groupMap).sort(
-    (a, b) => getTypeOrder(a) - getTypeOrder(b)
-  )
+  const groupKeys = Object.keys(groupMap).sort((a, b) => getTypeOrder(a) - getTypeOrder(b))
 
   const handleClear = () => {
     clearDeck()
@@ -55,6 +55,8 @@ export function DeckListPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      <CardHoverPreview card={hoveredCard} />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -69,32 +71,25 @@ export function DeckListPanel() {
             {total}/{DECK_MAX}
           </span>
 
-          {/* Clear deck */}
           {total > 0 && (
             confirmClear ? (
               <div className="flex items-center gap-1">
-                <button
-                  onClick={handleClear}
+                <button onClick={handleClear}
                   className="px-2 py-0.5 rounded text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{ background: '#ef4444', color: 'white' }}
-                >
+                  style={{ background: '#ef4444', color: 'white' }}>
                   Išvalyti
                 </button>
-                <button
-                  onClick={() => setConfirmClear(false)}
+                <button onClick={() => setConfirmClear(false)}
                   className="px-2 py-0.5 rounded text-xs transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
-                >
+                  style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
                   Ne
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setConfirmClear(true)}
+              <button onClick={() => setConfirmClear(true)}
                 className="p-1 rounded transition-opacity hover:opacity-70"
                 style={{ color: 'var(--text-muted)' }}
-                title="Išvalyti kaladę"
-              >
+                title="Išvalyti kaladę">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             )
@@ -104,10 +99,8 @@ export function DeckListPanel() {
 
       {/* Progress bar */}
       <div className="h-1 rounded-full mb-3 overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${pct}%`, background: barColor }}
-        />
+        <div className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${pct}%`, background: barColor }} />
       </div>
 
       {/* Cards list */}
@@ -116,7 +109,7 @@ export function DeckListPanel() {
           <div className="flex flex-col items-center justify-center py-10 gap-3 opacity-40">
             <Swords className="w-8 h-8" style={{ color: 'var(--text-muted)' }} />
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              {factionId ? 'Pridėk kortų į deck' : 'Pasirink frakciją'}
+              {factionId ? 'Pridėk kortų į kaladę' : 'Pasirink frakciją'}
             </p>
           </div>
         ) : (
@@ -125,22 +118,19 @@ export function DeckListPanel() {
             const groupTotal = group.reduce((s, e) => s + e.quantity, 0)
             return (
               <div key={type}>
-                {/* Group header */}
-                <div
-                  className="flex items-center justify-between px-1 mb-1"
-                  style={{ borderBottom: '1px solid var(--bg-border)', paddingBottom: '3px' }}
-                >
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                <div className="flex items-center justify-between px-1 mb-1"
+                  style={{ borderBottom: '1px solid var(--bg-border)', paddingBottom: '3px' }}>
+                  <span className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
                     {type}
                   </span>
                   <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
                     {groupTotal}
                   </span>
                 </div>
-                {/* Group rows */}
                 <div className="space-y-0.5">
                   {group.map((entry) => (
-                    <DeckCardRow key={entry.card.id} entry={entry} />
+                    <DeckCardRow key={entry.card.id} entry={entry} onHover={setHoveredCard} />
                   ))}
                 </div>
               </div>
