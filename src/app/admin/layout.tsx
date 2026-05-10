@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role)) {
     redirect('/cards?error=no_access')
   }
 

@@ -20,19 +20,22 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
   const params = await searchParams
   const supabase = await createClient()
 
-  // Admin check
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/')
+  const role = profile?.role ?? ''
+  if (!['admin', 'event_moderator'].includes(role)) redirect('/')
+
+  const isMod = role === 'event_moderator'
 
   let q = supabase.from('events').select('*').order('starts_at', { ascending: false })
+  // Moderators only see their own events
+  if (isMod) q = q.eq('created_by', user.id)
   if (params.status) q = q.eq('status', params.status)
 
   const { data: events, error } = await q
   const rows = (events ?? []) as RavenEvent[]
 
-  // Fetch registration counts
   const eventIds = rows.map(e => e.id)
   const countMap: Record<string, number> = {}
   if (eventIds.length > 0) {
@@ -51,14 +54,29 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
       <header className="sticky top-0 z-20 border-b px-6 py-3"
         style={{ background: 'rgba(10,10,15,0.97)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-xl mx-auto flex items-center gap-4">
-          <Link href="/admin/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            ← Kortos
-          </Link>
-          <span style={{ color: 'var(--bg-border)' }}>|</span>
+          {!isMod && (
+            <>
+              <Link href="/admin/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                ← Kortos
+              </Link>
+              <span style={{ color: 'var(--bg-border)' }}>|</span>
+            </>
+          )}
           <span className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
             Renginiai
           </span>
-          <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#ef444420', color: '#ef4444' }}>ADMIN</span>
+          {isMod ? (
+            <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#a78bfa20', color: '#a78bfa' }}>MODERATORIUS</span>
+          ) : (
+            <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#ef444420', color: '#ef4444' }}>ADMIN</span>
+          )}
+          {!isMod && (
+            <>
+              <Link href="/admin/users" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                Vartotojai
+              </Link>
+            </>
+          )}
           <div className="flex-1" />
           <Link href="/admin/events/new"
             className="text-sm px-4 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-90"
@@ -75,7 +93,6 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
           </div>
         )}
 
-        {/* Status filter */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {['', 'published', 'draft', 'cancelled', 'completed'].map(s => (
             <Link key={s} href={s ? `/admin/events?status=${s}` : '/admin/events'}
@@ -90,7 +107,9 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
           ))}
         </div>
 
-        <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>{rows.length} renginių</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+          {rows.length} renginių{isMod ? ' (tavo)' : ''}
+        </div>
 
         <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--bg-border)' }}>
           <table className="w-full text-sm">

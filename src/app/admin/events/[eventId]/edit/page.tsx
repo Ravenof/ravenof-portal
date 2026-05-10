@@ -25,7 +25,8 @@ export default async function EditEventPage({ params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/')
+  const role = profile?.role ?? ''
+  if (!['admin', 'event_moderator'].includes(role)) redirect('/')
 
   const { data: event, error } = await supabase
     .from('events')
@@ -34,7 +35,9 @@ export default async function EditEventPage({ params }: { params: Params }) {
     .single()
 
   if (error || !event) notFound()
-  const ev = event as RavenEvent
+  const ev = event as RavenEvent & { created_by: string }
+  // Moderator can only edit own events
+  if (role === 'event_moderator' && ev.created_by !== user.id) redirect('/admin/events')
 
   // Fetch registrations
   const { data: regs } = await supabase
@@ -72,7 +75,10 @@ export default async function EditEventPage({ params }: { params: Params }) {
           <span className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
             Redaguoti renginį
           </span>
-          <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#ef444420', color: '#ef4444' }}>ADMIN</span>
+          {role === 'event_moderator'
+            ? <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#a78bfa20', color: '#a78bfa' }}>MODERATORIUS</span>
+            : <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#ef444420', color: '#ef4444' }}>ADMIN</span>
+          }
         </div>
       </header>
 

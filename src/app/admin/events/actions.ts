@@ -17,7 +17,7 @@ export async function saveEvent(
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || profile.role !== 'admin') return { error: 'Ne admin' }
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role)) return { error: 'Ne admin' }
 
   const title     = (formData.get('title') as string)?.trim()
   const starts_at = (formData.get('starts_at') as string)?.trim()
@@ -61,7 +61,7 @@ export async function updateRegistrationStatus(
   if (!user) return { error: 'Not authenticated' }
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || profile.role !== 'admin') return { error: 'Not admin' }
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role)) return { error: 'Not admin' }
 
   const { data: reg } = await supabase
     .from('event_registrations')

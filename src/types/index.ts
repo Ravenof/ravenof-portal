@@ -114,6 +114,7 @@ export type Profile = {
   show_profile_details: boolean
   show_owned_cards: boolean
   show_on_leaderboards: boolean
+  role: string
   created_at: string
   updated_at: string
 }
