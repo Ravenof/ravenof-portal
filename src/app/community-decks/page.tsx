@@ -108,6 +108,13 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             >
               Renginiai
             </Link>
+            <Link
+              href="/life-tracker"
+              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
+            >
+              Life Tracker
+            </Link>
             {user && (
               <Link
                 href="/my-decks"

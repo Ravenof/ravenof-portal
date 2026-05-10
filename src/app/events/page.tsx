@@ -129,6 +129,13 @@ export default async function EventsPage() {
               Renginiai
             </h1>
           </div>
+          <Link
+              href="/life-tracker"
+              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
+            >
+              Life Tracker
+            </Link>
           {!user && (
             <Link href="/login" className="text-xs px-3 py-1.5 rounded-lg font-semibold"
               style={{ background: 'var(--gold)', color: '#0a0a0f' }}>

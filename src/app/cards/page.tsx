@@ -130,6 +130,10 @@ export default async function CardsPage({ searchParams }: PageProps) {
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
               Viesos Decks
             </a>
+            <a href="/life-tracker" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+              Life Tracker
+            </a>
             {user && (
               <>
                 <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
