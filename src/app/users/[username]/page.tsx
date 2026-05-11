@@ -125,14 +125,27 @@ export default async function UserProfilePage({ params }: Props) {
   }
 
   // All badges (for showing locked badges in the grid -- always for owner)
+  // 'requirement' column is added in achievement_expansion_v1.sql migration.
+  // Fallback gracefully if the migration has not yet been applied.
   let allBadges: Badge[] = []
   if (showBadges) {
-    const { data: badgeDefs } = await supabase
+    const { data: badgeDefs, error: badgeDefsError } = await supabase
       .from('badges')
       .select('id, badge_key, title, description, icon, category, requirement_type, requirement_value, requirement, xp_reward, is_active, sort_order, created_at')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
-    allBadges = (badgeDefs ?? []) as Badge[]
+
+    if (badgeDefsError) {
+      // Fallback: select without 'requirement' (pre-migration schema)
+      const { data: fallback } = await supabase
+        .from('badges')
+        .select('id, badge_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, is_active, sort_order, created_at')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+      allBadges = ((fallback ?? []).map((b: Record<string, unknown>) => ({ ...b, requirement: null }))) as Badge[]
+    } else {
+      allBadges = (badgeDefs ?? []) as Badge[]
+    }
   }
 
   // Owned cards via SECURITY DEFINER RPC (respects show_owned_cards internally)
