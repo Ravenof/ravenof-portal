@@ -114,7 +114,7 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
       >
         <div className="max-w-screen-xl mx-auto flex items-center gap-3">
           <Link href="/community-decks" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Viesos Decks
+            Viešos kaladės
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-xs font-semibold truncate" style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}>
@@ -140,9 +140,9 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
 
                   <div className="flex flex-wrap items-center gap-2 mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     <span className="px-2 py-0.5 rounded" style={{ background: fColor + '20', color: fColor }}>
-                      {deck.faction?.name ?? 'Nera frakcijos'}
+                      {deck.faction?.name ?? 'Nėra frakcijos'}
                     </span>
-                    <span>{deck.card_count} kortu</span>
+                    <span>{deck.card_count} kortų</span>
                     {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost} avg</span>}
                     {deck.author && (
                       <span>
@@ -194,7 +194,7 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
                   <Link href={'/deck-builder/' + deck.id}
                     className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                     style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
-                    Redaguoti savo deck
+                    Redaguoti savo kaladę
                   </Link>
                 </div>
               )}

@@ -16,7 +16,7 @@ type PageProps = {
   }>
 }
 
-export const metadata = { title: 'Kortu Duomenu Baze' }
+export const metadata = { title: 'Kortų duomenų bazė | Ravenof' }
 
 async function fetchCards(params: Awaited<PageProps['searchParams']>): Promise<{
   cards: CardWithRelations[]
@@ -152,7 +152,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
                   </a>
                   <a href="/deck-builder" className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
                     style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
-                    + Deck Builder
+                    + Kaladžių kūrimas
                   </a>
                 </>
               )}

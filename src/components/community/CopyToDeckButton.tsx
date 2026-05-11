@@ -36,7 +36,7 @@ export function CopyToDeckButton({ deckId, deckName, factionId, cardCount, avgGo
         .insert({
           user_id:       userId,
           name:          'Kopija — ' + deckName,
-          description:   'Nukopijuota is viesos kolekcijos',
+          description:   'Nukopijuota iš viešų kaladžių',
           faction_id:    factionId,
           visibility:    'private',
           card_count:    cardCount,
@@ -70,10 +70,10 @@ export function CopyToDeckButton({ deckId, deckName, factionId, cardCount, avgGo
   }
 
   const labels = {
-    idle:    'Kopijuoti i mano Decks',
+    idle:    'Kopijuoti į mano kaladės',
     copying: 'Kopijuojama...',
     done:    'Nukopijuota! Nukreipiama...',
-    error:   'Klaida. Bandyk dar karta',
+    error:   'Klaida. Bandyk dar kartą',
   }
 
   const colors = {

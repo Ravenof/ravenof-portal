@@ -39,7 +39,7 @@ export function MyDecksList({ decks, userId }: Props) {
       router.refresh()
     } catch (err) {
       console.error('Delete deck error:', err)
-      alert('Nepavyko ištrinti deck. Bandyk dar kartą.')
+      alert('Nepavyko ištrinti kaladę. Bandyk dar kartą.')
     } finally {
       setDeleting(null)
       setConfirmId(null)
@@ -88,7 +88,7 @@ export function MyDecksList({ decks, userId }: Props) {
       router.refresh()
     } catch (err) {
       console.error('Duplicate deck error:', err)
-      alert('Nepavyko nukopijuoti deck. Bandyk dar kartą.')
+      alert('Nepavyko nukopijuoti kaladę. Bandyk dar kartą.')
     } finally {
       setDuplicating(null)
     }
@@ -98,7 +98,7 @@ export function MyDecksList({ decks, userId }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4 opacity-60">
         <p className="text-lg" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-muted)' }}>
-          Dar neturi jokio deck
+          Dar neturi jokios kaladės
         </p>
         <Link
           href="/deck-builder"
@@ -106,7 +106,7 @@ export function MyDecksList({ decks, userId }: Props) {
           style={{ background: 'var(--gold)', color: '#0a0a0f' }}
         >
           <Plus className="w-4 h-4" />
-          Sukurti pirmą deck
+          Sukurti pirmą kaladę
         </Link>
       </div>
     )

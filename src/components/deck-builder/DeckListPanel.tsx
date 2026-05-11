@@ -148,7 +148,7 @@ export function DeckListPanel() {
       )}
       {isComplete && (
         <p className="text-xs text-center mt-2 pt-2 font-medium" style={{ color: '#22c55e', borderTop: '1px solid var(--bg-border)' }}>
-          ✓ Deck pilnas
+          ✓ Kaladė pilna
         </p>
       )}
     </div>

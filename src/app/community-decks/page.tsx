@@ -93,7 +93,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
         <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <Link href="/cards" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-              &larr; Kortu baze
+              &larr; Kortų bazė
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
             <h1 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
@@ -201,7 +201,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
           </div>
 
           <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
-            {decks.length} deck{decks.length !== 1 ? 'ai' : 'as'}
+            {decks.length} kaladė{decks.length !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -213,7 +213,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             </p>
             {user && (
               <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Pakeisk savo deck matymuma i &quot;Public&quot; deck builder&apos;yje
+                Pakeisk savo kaladės matomumą į &quot;Viešas&quot; kaladžių kūrimo įrankyje
               </p>
             )}
           </div>

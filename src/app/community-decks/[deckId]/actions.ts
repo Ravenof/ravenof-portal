@@ -35,9 +35,12 @@ export async function deleteComment(commentId: string, deckId: string): Promise<
     .maybeSingle()
   const isAdmin = profile?.role === 'admin'
 
+  // Admin: hide (soft-hide for moderation), owner: delete own comment
+  const newStatus = isAdmin ? 'hidden' : 'deleted'
+
   let query = supabase
     .from('deck_comments')
-    .update({ status: 'deleted', updated_at: new Date().toISOString() })
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
     .eq('id', commentId)
 
   if (!isAdmin) {

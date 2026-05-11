@@ -54,7 +54,7 @@ export default async function MyDecksPage() {
             style={{ background: 'var(--gold)', color: '#0a0a0f' }}
           >
             <Plus className="w-4 h-4" />
-            Naujas Deck
+            Nauja kaladė
           </Link>
         </div>
       </header>

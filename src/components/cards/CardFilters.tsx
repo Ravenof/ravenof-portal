@@ -97,8 +97,7 @@ export function CardFilters({
             clearTimeout((window as any).__st)
             ;(window as any).__st = setTimeout(() => update('search', v), 400)
           }}
-          className="pl-9 pr-8"
-          style={inputStyle}
+          style={{ ...inputStyle, paddingLeft: '2.25rem', paddingRight: '2rem' }}
         />
         {get('search') && (
           <button

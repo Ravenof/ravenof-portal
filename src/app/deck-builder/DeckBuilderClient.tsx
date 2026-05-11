@@ -111,7 +111,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
 
           <h1 className="text-lg font-bold flex-1 text-center hidden sm:block"
             style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-            {deckId ? 'Redaguoti kaladę' : 'Deck Builder'}
+            {deckId ? 'Redaguoti kaladę' : 'Kaladžių kūrimas'}
           </h1>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -161,7 +161,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
           />
           <input
             type="text"
-            placeholder="Aprasymas (neprivaloma)"
+            placeholder="Aprašymas (neprivaloma)"
             value={store.description}
             onChange={(e) => store.setDescription(e.target.value)}
             className="flex-1 px-3 py-1.5 rounded-lg text-sm"
@@ -184,9 +184,9 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
               minWidth: '120px',
             }}
           >
-            <option value="private">Lock Private</option>
-            <option value="unlisted">Link Unlisted</option>
-            <option value="public">Globe Public</option>
+            <option value="private">🔒 Privatus</option>
+            <option value="unlisted">🔗 Nuoroda</option>
+            <option value="public">🌐 Viešas</option>
           </select>
         </div>
       </div>
