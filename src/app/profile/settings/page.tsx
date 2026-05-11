@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ProfilePrivacyForm } from '@/components/profile/ProfilePrivacyForm'
+import { AvatarUpload } from '@/components/profile/AvatarUpload'
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient()
@@ -46,10 +47,29 @@ export default async function ProfileSettingsPage() {
           Profilio nustatymai
         </h1>
 
+        <div
+          className="mb-8 pb-8"
+          style={{ borderBottom: '1px solid var(--bg-border)' }}
+        >
+          <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>
+            Profilio nuotrauka
+          </h2>
+          <AvatarUpload
+            userId={profile.id}
+            currentAvatarUrl={profile.avatar_url ?? null}
+            displayName={profile.display_name ?? profile.username}
+          />
+        </div>
+
         <ProfilePrivacyForm profile={profile} />
 
-        <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--bg-border)' }}>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Saugumas</h2>
+        <div
+          className="mt-8 pt-6"
+          style={{ borderTop: '1px solid var(--bg-border)' }}
+        >
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
+            Saugumas
+          </h2>
           <Link
             href="/profile/change-password"
             className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg transition-opacity hover:opacity-80"

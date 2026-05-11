@@ -13,6 +13,30 @@ export type PrivacySettings = {
   show_on_leaderboards: boolean
 }
 
+export async function updateAvatarUrl(avatarUrl: string): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nesate prisijungę' }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', user.id)
+
+  if (error) return { error: error.message }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (profile?.username) revalidatePath(`/users/${profile.username}`)
+  revalidatePath('/profile/settings')
+
+  return { success: true }
+}
+
 export async function updatePrivacySettings(settings: PrivacySettings) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -33,7 +57,6 @@ export async function updatePrivacySettings(settings: PrivacySettings) {
 
   if (error) return { error: error.message }
 
-  // Get username to revalidate profile page
   const { data: profile } = await supabase
     .from('profiles')
     .select('username')

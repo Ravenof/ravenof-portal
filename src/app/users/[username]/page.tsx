@@ -37,10 +37,11 @@ export default async function UserProfilePage({ params }: Props) {
     .from('profiles')
     .select('*')
     .eq('username', username)
-    .eq('is_public', true)
     .maybeSingle()
 
   if (!rawProfile) return notFound()
+  // Allow owner to view their own profile even if set to private
+  if (!rawProfile.is_public && user?.id !== rawProfile.id) return notFound()
   const profile = rawProfile as unknown as Profile
 
   // Rank rules
@@ -54,6 +55,9 @@ export default async function UserProfilePage({ params }: Props) {
   const currentIdx = ranks.findIndex((r) => r.rank_key === profile.rank_key)
   const nextRank: RankRule | null =
     currentIdx >= 0 && currentIdx < ranks.length - 1 ? ranks[currentIdx + 1] : null
+
+  // Determine ownership early (needed for badge visibility logic below)
+  const isOwnProfile = user?.id === profile.id
 
   // Public decks
   let decks: PublicDeck[] = []
@@ -105,9 +109,10 @@ export default async function UserProfilePage({ params }: Props) {
     attendedCount = count ?? 0
   }
 
-  // Badges
+  // Badges: always fetch for owner (even if show_badges=false), otherwise respect privacy
+  const showBadges = profile.show_badges || isOwnProfile
   let userBadges: UserBadge[] = []
-  if (profile.show_badges) {
+  if (showBadges) {
     const { data: badgeRows } = await supabase
       .from('user_badges')
       .select(`
@@ -119,9 +124,9 @@ export default async function UserProfilePage({ params }: Props) {
     userBadges = (badgeRows ?? []) as unknown as UserBadge[]
   }
 
-  // All badges (for showing locked badges in the grid)
+  // All badges (for showing locked badges in the grid -- always for owner)
   let allBadges: Badge[] = []
-  if (profile.show_badges) {
+  if (showBadges) {
     const { data: badgeDefs } = await supabase
       .from('badges')
       .select('id, badge_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, is_active, sort_order, created_at')
@@ -139,7 +144,6 @@ export default async function UserProfilePage({ params }: Props) {
     })
     ownedCards = (rpcData ?? []) as OwnedCardRow[]
 
-    // Fetch total active cards count for completion %
     const { count } = await supabase
       .from('cards')
       .select('id', { count: 'exact', head: true })
@@ -152,7 +156,6 @@ export default async function UserProfilePage({ params }: Props) {
     year: 'numeric',
     month: 'long',
   })
-  const isOwnProfile = user?.id === profile.id
 
   const ownedUnique = ownedCards.length
   const completionPct =
@@ -188,10 +191,18 @@ export default async function UserProfilePage({ params }: Props) {
         >
           <div className="flex items-start gap-5">
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
-              style={{ background: 'var(--bg-elevated)', color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+              className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-2xl font-bold"
+              style={{ background: 'var(--bg-elevated)', border: '2px solid var(--bg-border)', color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
             >
-              {displayName[0]?.toUpperCase() ?? '?'}
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                displayName[0]?.toUpperCase() ?? '?'
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -216,7 +227,7 @@ export default async function UserProfilePage({ params }: Props) {
                 {profile.show_attended_events && (
                   <span>{attendedCount} renginiai</span>
                 )}
-                {profile.show_badges && (
+                {showBadges && (
                   <span>{userBadges.length} ženkleliai</span>
                 )}
                 {profile.show_owned_cards && (
@@ -239,8 +250,8 @@ export default async function UserProfilePage({ params }: Props) {
           )}
         </div>
 
-        {/* Badges */}
-        {profile.show_badges && allBadges.length > 0 && (
+        {/* Badges -- always visible for owner, public-only for others */}
+        {showBadges && allBadges.length > 0 && (
           <section>
             <h2
               className="text-sm font-semibold uppercase tracking-wider mb-3"
@@ -292,7 +303,6 @@ export default async function UserProfilePage({ params }: Props) {
               )}
             </div>
 
-            {/* Completion bar */}
             {totalActiveCards > 0 && (
               <div
                 className="h-1.5 rounded-full mb-4 overflow-hidden"
