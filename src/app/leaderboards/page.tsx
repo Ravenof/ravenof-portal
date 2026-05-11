@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getLevelTitleForXp } from '@/lib/gamification/levels'
 import { createClient } from '@/lib/supabase/server'
 import { LeaderboardTable } from '@/components/leaderboards/LeaderboardTable'
 import type {
@@ -42,7 +43,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       username: r.username,
       primary: r.xp_total.toLocaleString(),
       secondary: `Lv ${r.level}`,
-      badge: r.rank_title ?? r.rank_key,
+      badge: getLevelTitleForXp(r.xp_total),
     }))
   } else if (tab === 'cards') {
     const { data } = await supabase.rpc('get_collection_leaderboard', { p_limit: 50 })

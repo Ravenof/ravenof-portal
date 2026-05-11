@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
-import type { Profile, RankRule, UserBadge } from '@/types'
+import type { Profile, UserBadge } from '@/types'
 
 export const revalidate = 0
 
@@ -19,17 +19,6 @@ export default async function MePage() {
     .maybeSingle()
   if (!rawProfile) redirect('/login')
   const profile = rawProfile as unknown as Profile
-
-  // Rank rules
-  const { data: allRanks } = await supabase
-    .from('rank_rules')
-    .select('*')
-    .order('min_level', { ascending: true })
-  const ranks: RankRule[] = (allRanks ?? []) as RankRule[]
-  const currentRank = ranks.find((r) => r.rank_key === profile.rank_key) ?? ranks[0] ?? null
-  const currentIdx = ranks.findIndex((r) => r.rank_key === profile.rank_key)
-  const nextRank: RankRule | null =
-    currentIdx >= 0 && currentIdx < ranks.length - 1 ? ranks[currentIdx + 1] : null
 
   // Stats (parallel)
   const [
@@ -142,9 +131,9 @@ export default async function MePage() {
               )}
             </div>
           </div>
-          <UserRankCard profile={profile} rankRule={currentRank} />
+          <UserRankCard profile={profile} />
           <div className="mt-3">
-            <XPProgressBar xp={profile.xp_total} level={profile.level} currentRank={currentRank} nextRank={nextRank} />
+            <XPProgressBar xp={profile.xp_total} level={profile.level} />
           </div>
         </div>
 

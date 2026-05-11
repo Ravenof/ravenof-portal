@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { Info, X, Trophy } from 'lucide-react'
-import type { RankRule } from '@/types'
+import { getLevelProgress, MAX_LEVEL, MAX_XP } from '@/lib/gamification/levels'
 
 type Props = {
   xp: number
   level: number
-  currentRank: RankRule | null
-  nextRank: RankRule | null
 }
 
 const BASE_XP_SOURCES = [
@@ -21,33 +19,25 @@ const BASE_XP_SOURCES = [
 ]
 
 const ACHIEVEMENT_CATEGORIES = [
-  { icon: '👤', label: 'Paskyra',           count: 10,  xpRange: '50–750'  },
-  { icon: '📦', label: 'Kolekcija',          count: 10,  xpRange: '50–600'  },
-  { icon: '💎', label: 'Raritetai',           count: 5,   xpRange: '400–1 500'},
+  { icon: '👤', label: 'Paskyra',           count: 10,  xpRange: '50–750'   },
+  { icon: '📦', label: 'Kolekcija',          count: 10,  xpRange: '50–600'   },
+  { icon: '💎', label: 'Raritetai',           count: 5,   xpRange: '400–1 500'},
   { icon: '🏴', label: 'Frakcijos',           count: 9,   xpRange: '700–800'  },
-  { icon: '🏆', label: 'Čempionai',           count: 10,  xpRange: '300–1 000'},
-  { icon: '📋', label: 'Kaladžių Kūryba',     count: 10,  xpRange: '150–900'  },
-  { icon: '👥', label: 'Bendruomenė',         count: 7,   xpRange: '50–1 000' },
-  { icon: '🎪', label: 'Renginiai',           count: 6,   xpRange: '300–1 200'},
-  { icon: '⚔',     label: 'Turnyrai',            count: 3,   xpRange: '700–1 500'},
+  { icon: '🏆', label: 'Čempionai',      count: 10,  xpRange: '300–1 000'},
+  { icon: '📋', label: 'Kaladžių Kūryba', count: 10, xpRange: '150–900'},
+  { icon: '👥', label: 'Bendruomenė',   count: 7,   xpRange: '50–1 000'},
+  { icon: '🎪', label: 'Renginiai',           count: 6,   xpRange: '300–1 200'},
+  { icon: '⚔',     label: 'Turnyrai',            count: 3,   xpRange: '700–1 500'},
 ]
 
-export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
+export function XPProgressBar({ xp, level }: Props) {
   const [infoOpen, setInfoOpen] = useState(false)
+  const progress = getLevelProgress(xp)
+  const color = progress.rankGroup.color
 
-  const fromXp = currentRank?.min_xp ?? 0
-  const toXp   = nextRank?.min_xp ?? null
-  const color  = currentRank?.color_hex ?? '#6b7280'
-
-  let pct   = 100
-  let label = 'Max lygis pasiektas'
-
-  if (toXp !== null) {
-    const range    = toXp - fromXp
-    const progress = xp - fromXp
-    pct   = Math.min(100, Math.max(0, Math.round((progress / range) * 100)))
-    label = `${(toXp - xp).toLocaleString()} XP iki ${nextRank?.title ?? 'kito rango'}`
-  }
+  const label = progress.isMaxLevel
+    ? 'Maksimalus lygis'
+    : `${progress.xpNeededForNextLevel.toLocaleString()} XP iki ${progress.level + 1} lygio`
 
   return (
     <>
@@ -57,7 +47,7 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
             <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
               Lygis {level}
             </span>
-            <span className="text-xs font-semibold tabular-nums" style={{ color: color }}>
+            <span className="text-xs font-semibold tabular-nums" style={{ color }}>
               {xp.toLocaleString()} XP
             </span>
             <button
@@ -76,25 +66,24 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
-              width: pct + '%',
+              width: progress.progressPercent + '%',
               background: 'linear-gradient(90deg, ' + color + '99, ' + color + ')',
               boxShadow: '0 0 6px ' + color + '66',
             }}
           />
         </div>
-        {toXp !== null && (
+        {!progress.isMaxLevel && (
           <div className="flex justify-between mt-1">
             <span className="text-xs" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-              {fromXp.toLocaleString()} XP
+              {progress.currentLevelXp.toLocaleString()} XP
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-              {toXp.toLocaleString()} XP
+              {progress.nextLevelXp.toLocaleString()} XP
             </span>
           </div>
         )}
       </div>
 
-      {/* XP Info modal */}
       {infoOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -106,7 +95,6 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '90vh' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div
               className="flex items-center justify-between px-5 py-4 flex-shrink-0"
               style={{ borderBottom: '1px solid var(--bg-border)' }}
@@ -126,11 +114,12 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
               </button>
             </div>
 
-            {/* Current progress */}
             <div className="px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--bg-border)', background: 'var(--bg-surface)' }}>
               <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Tavo pažanga</p>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-bold" style={{ color: color }}>Lygis {level}</span>
+                <span className="text-sm font-bold" style={{ color }}>
+                  {progress.rankGroup.icon} Lygis {progress.level} — {progress.title}
+                </span>
                 <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                   {xp.toLocaleString()} XP
                 </span>
@@ -138,21 +127,31 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
               <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
                 <div
                   className="h-full rounded-full"
-                  style={{ width: pct + '%', background: 'linear-gradient(90deg, ' + color + '99, ' + color + ')' }}
+                  style={{ width: progress.progressPercent + '%', background: 'linear-gradient(90deg, ' + color + '99, ' + color + ')' }}
                 />
               </div>
-              {toXp !== null && (
+              {progress.isMaxLevel ? (
+                <p className="text-xs mt-1.5 text-center font-semibold" style={{ color }}>
+                  ✨ Maksimalus lygis pasiektas ({MAX_XP.toLocaleString()} XP)
+                </p>
+              ) : (
                 <p className="text-xs mt-1.5 text-right" style={{ color: 'var(--text-muted)' }}>
-                  {(toXp - xp).toLocaleString()} XP iki{' '}
-                  <span style={{ color: color }}>{nextRank?.title}</span>
+                  {progress.xpNeededForNextLevel.toLocaleString()} XP iki{' '}
+                  <span style={{ color }}>{progress.level + 1} lygio</span>
                 </p>
               )}
             </div>
 
-            {/* Scrollable content */}
             <div className="overflow-y-auto flex-1 px-5 py-3 space-y-5">
+              <div
+                className="rounded-lg px-3 py-2 text-xs leading-relaxed"
+                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)', color: 'var(--text-muted)' }}
+              >
+                {'📊'} Sistema turi <span style={{ color: 'var(--gold)' }}>{MAX_LEVEL} lygius</span>.
+                Maks. lygis ({MAX_LEVEL}) pasiekiamas nuo{' '}
+                <span style={{ color: 'var(--gold)' }}>{MAX_XP.toLocaleString()} XP</span>.
+              </div>
 
-              {/* Base XP sources */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>
                   Veiklos XP
@@ -172,20 +171,20 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
                 </div>
               </div>
 
-              {/* Achievement XP */}
               <div>
                 <div className="flex items-center gap-2 mb-2.5">
                   <Trophy className="w-3.5 h-3.5" style={{ color: 'var(--gold)' }} />
                   <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                    Pasiekimų XP (70 iš viso)
+                    Pasiekimių XP (70 iš viso)
                   </p>
                 </div>
                 <div
                   className="rounded-lg p-3 mb-3 text-xs leading-relaxed"
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}
                 >
-                  Kiekvienas pasiekimas suteikia XP tik <strong style={{ color: 'var(--text-secondary)' }}>vieną kartą</strong> atrakinus. Kartotinis
-                  patikrinimas XP nedubliuoja. Isviso galima uždirbti apie 33 875 XP is pasiekimų.
+                  Kiekvienas pasiekimas suteikia XP tik{' '}
+                  <strong style={{ color: 'var(--text-secondary)' }}>vieną kartą</strong> atrakinus.
+                  Iš viso galima uždirbti apie 33 875 XP iš pasiekimų.
                 </div>
                 <div className="space-y-1.5">
                   {ACHIEVEMENT_CATEGORIES.map((cat) => (
@@ -209,12 +208,11 @@ export function XPProgressBar({ xp, level, currentRank, nextRank }: Props) {
                 </div>
               </div>
 
-              {/* Note on tournament XP */}
               <div
                 className="rounded-lg px-3 py-2 text-xs leading-relaxed"
                 style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)', color: 'var(--text-muted)' }}
               >
-                ℹ️ Turnyro laimejimas suteikia ir{' '}
+                {'ℹ️'} Turnyro laimėjimas suteikia ir{' '}
                 <span style={{ color: 'var(--gold)' }}>dalyvavimo XP</span>{' '}
                 (iš renginio), ir{' '}
                 <span style={{ color: 'var(--gold)' }}>turnyro pasiekimo XP</span>{' '}

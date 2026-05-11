@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { UserRoleForm } from '@/components/admin/UserRoleForm'
+import { getLevelTitleForXp } from '@/lib/gamification/levels'
 
 type SearchParams = Promise<{ q?: string; role?: string }>
 
@@ -138,7 +139,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    Lv{u.level} · {u.xp_total} XP
+                    <span>Lv{u.level} · {u.xp_total.toLocaleString()} XP</span>
+                    <span className="block" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{getLevelTitleForXp(u.xp_total)}</span>
                   </td>
                   <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     {formatDate(u.created_at)}

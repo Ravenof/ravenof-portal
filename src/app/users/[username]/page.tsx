@@ -5,7 +5,7 @@ import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
 import { AchievementSection } from '@/components/profile/AchievementSection'
-import type { PublicDeck, VoteValue, RankRule, UserBadge, Badge, Profile } from '@/types'
+import type { PublicDeck, VoteValue, UserBadge, Badge, Profile } from '@/types'
 
 type Props = { params: Promise<{ username: string }> }
 
@@ -43,18 +43,6 @@ export default async function UserProfilePage({ params }: Props) {
   // Allow owner to view their own profile even if set to private
   if (!rawProfile.is_public && user?.id !== rawProfile.id) return notFound()
   const profile = rawProfile as unknown as Profile
-
-  // Rank rules
-  const { data: allRanks } = await supabase
-    .from('rank_rules')
-    .select('*')
-    .order('min_level', { ascending: true })
-
-  const ranks: RankRule[] = (allRanks ?? []) as RankRule[]
-  const currentRank = ranks.find((r) => r.rank_key === profile.rank_key) ?? ranks[0] ?? null
-  const currentIdx = ranks.findIndex((r) => r.rank_key === profile.rank_key)
-  const nextRank: RankRule | null =
-    currentIdx >= 0 && currentIdx < ranks.length - 1 ? ranks[currentIdx + 1] : null
 
   // Determine ownership early (needed for badge visibility logic below)
   const isOwnProfile = user?.id === profile.id
@@ -252,13 +240,8 @@ export default async function UserProfilePage({ params }: Props) {
 
           {profile.show_level && (
             <div className="mt-5 space-y-3">
-              <UserRankCard profile={profile} rankRule={currentRank} />
-              <XPProgressBar
-                xp={profile.xp_total}
-                level={profile.level}
-                currentRank={currentRank}
-                nextRank={nextRank}
-              />
+              <UserRankCard profile={profile} />
+              <XPProgressBar xp={profile.xp_total} level={profile.level} />
             </div>
           )}
         </div>
