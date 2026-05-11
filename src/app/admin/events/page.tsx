@@ -75,6 +75,9 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
               <Link href="/admin/users" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
                 Vartotojai
               </Link>
+              <Link href="/admin/achievements" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                Pasiekimai
+              </Link>
             </>
           )}
           <div className="flex-1" />

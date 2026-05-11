@@ -148,9 +148,22 @@ export type Badge = {
   title: string
   description: string | null
   icon: string | null
-  category: 'events' | 'decks' | 'community' | 'collection' | 'founder' | 'special'
+  category:
+    | 'events'
+    | 'decks'
+    | 'community'
+    | 'collection'
+    | 'founder'
+    | 'special'
+    | 'account'
+    | 'rarity_collection'
+    | 'faction_collection'
+    | 'champion_phases'
+    | 'deckbuilding'
+    | 'tournament_placement'
   requirement_type: string | null
   requirement_value: number | null
+  requirement: string | null
   xp_reward: number
   is_active: boolean
   sort_order: number | null
@@ -284,4 +297,3 @@ export type DeckComment = {
     display_name: string | null
   } | null
 }
-

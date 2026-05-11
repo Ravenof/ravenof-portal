@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
-import { BadgeGrid } from '@/components/profile/BadgeGrid'
+import { AchievementSection } from '@/components/profile/AchievementSection'
 import type { PublicDeck, VoteValue, RankRule, UserBadge, Badge, Profile } from '@/types'
 
 type Props = { params: Promise<{ username: string }> }
@@ -117,7 +117,7 @@ export default async function UserProfilePage({ params }: Props) {
       .from('user_badges')
       .select(`
         id, user_id, badge_id, earned_at, source_type, source_id,
-        badge:badges ( id, badge_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, is_active, sort_order, created_at )
+        badge:badges ( id, badge_key, title, description, icon, category, requirement_type, requirement_value, requirement, xp_reward, is_active, sort_order, created_at )
       `)
       .eq('user_id', profile.id)
       .order('earned_at', { ascending: false })
@@ -129,7 +129,7 @@ export default async function UserProfilePage({ params }: Props) {
   if (showBadges) {
     const { data: badgeDefs } = await supabase
       .from('badges')
-      .select('id, badge_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, is_active, sort_order, created_at')
+      .select('id, badge_key, title, description, icon, category, requirement_type, requirement_value, requirement, xp_reward, is_active, sort_order, created_at')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
     allBadges = (badgeDefs ?? []) as Badge[]
@@ -259,7 +259,7 @@ export default async function UserProfilePage({ params }: Props) {
             >
               Ženkleliai
             </h2>
-            <BadgeGrid allBadges={allBadges} earnedBadges={userBadges} />
+            <AchievementSection allBadges={allBadges} earnedBadges={userBadges} isOwner={isOwnProfile} />
           </section>
         )}
 

@@ -51,6 +51,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           <Link href="/admin/events" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
             Renginiai
           </Link>
+          <Link href="/admin/achievements" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+            Pasiekimai
+          </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
             Vartotojai

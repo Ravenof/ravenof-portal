@@ -78,6 +78,9 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
           <Link href="/admin/users" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
             Vartotojai
           </Link>
+          <Link href="/admin/achievements" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+            Pasiekimai
+          </Link>
           <div className="flex-1" />
           <Link href="/admin/cards/import"
             className="text-sm px-4 py-1.5 rounded-lg transition-opacity hover:opacity-80"
