@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ActionType } from '@/types/life-tracker'
+import { playWinSound } from '@/lib/life-tracker-sound'
 
 function calcGold(round: number): number {
   return Math.min(round * 100, 1000)
@@ -13,6 +14,7 @@ type Props = {
   round: number
   activeSide: 0 | 1
   logLength: number
+  soundEnabled: boolean
   onHpChange: (sideIdx: 0 | 1, delta: number) => void
   onUndo: () => void
   onNextTurn: () => void
@@ -31,7 +33,7 @@ function hpColor(hp: number): string {
 }
 
 export function BattleMode({
-  names, hp, round, activeSide, logLength,
+  names, hp, round, activeSide, logLength, soundEnabled,
   onHpChange, onUndo, onNextTurn, onNewGame, onExit,
   flashType0, flashKey0, flashType1, flashKey1,
 }: Props) {
@@ -39,6 +41,22 @@ export function BattleMode({
   const [confirmNewGame, setConfirmNewGame] = useState(false)
   const [gold, setGold] = useState<[number, number]>([calcGold(round), calcGold(round)])
   const prevRoundRef = useRef(round)
+  const winPlayedRef = useRef(false)
+
+  // Win detection: 0 = player 1 wins, 1 = player 2 wins, 'draw' = both <= 0, null = ongoing
+  const winner: 0 | 1 | 'draw' | null =
+    hp[0] <= 0 && hp[1] <= 0 ? 'draw'
+    : hp[0] <= 0 ? 1
+    : hp[1] <= 0 ? 0
+    : null
+
+  // Play win sound once per game
+  useEffect(() => {
+    if (winner !== null && !winPlayedRef.current && soundEnabled) {
+      winPlayedRef.current = true
+      playWinSound()
+    }
+  }, [winner, soundEnabled])
 
   // Reset gold for both players when round increments
   useEffect(() => {
@@ -78,10 +96,21 @@ export function BattleMode({
   const handleConfirmNewGame = useCallback(() => {
     setConfirmNewGame(false)
     setGold([calcGold(1), calcGold(1)])
+    winPlayedRef.current = false
     onNewGame()
   }, [onNewGame])
 
   const activeName = names[activeSide]
+
+  // Win message
+  const winMessage =
+    winner === 'draw'
+      ? 'Partija baigta.'
+      : winner === 0
+      ? `${names[0]} laimėjo!`
+      : winner === 1
+      ? `${names[1]} laimėjo!`
+      : null
 
   return (
     <div
@@ -114,13 +143,13 @@ export function BattleMode({
           borderBottom: '1px solid var(--bg-border)',
         }}
       >
-        {/* Ejimas + active player */}
+        {/* Ėjimas + active player */}
         <div className="flex items-center justify-between gap-3">
           <span
             className="text-xl font-bold"
             style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
           >
-            Ejimas {round}
+            Ėjimas {round}
           </span>
           <span
             className="text-sm font-semibold px-3 py-1 rounded-full"
@@ -130,7 +159,7 @@ export function BattleMode({
               border: '1px solid rgba(212,175,55,0.3)',
             }}
           >
-            Zaidzia: {activeName}
+            Žaidžia: {activeName}
           </span>
         </div>
 
@@ -179,16 +208,16 @@ export function BattleMode({
             disabled={logLength === 0}
             className="px-3 py-2.5 rounded-xl text-xs font-medium transition hover:opacity-80 disabled:opacity-30 min-h-[44px]"
             style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}
-            aria-label="Atsaukti paskutini veiksma"
+            aria-label="Atšaukti paskutinį veiksmą"
           >
-            &#8617; Atsaukti
+            &#8617; Atšaukti
           </button>
           <button
             onClick={onNextTurn}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95 min-h-[44px]"
             style={{ background: 'var(--gold)', color: '#0a0a0f' }}
           >
-            Kitas ejimas &rarr;
+            Kitas ėjimas &rarr;
           </button>
           <button
             onClick={() => setConfirmNewGame(true)}
@@ -202,7 +231,7 @@ export function BattleMode({
             className="px-3 py-2.5 rounded-xl text-xs font-medium transition hover:opacity-80 min-h-[44px]"
             style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
           >
-            Iseiti
+            Išeiti
           </button>
         </div>
       </div>
@@ -220,6 +249,43 @@ export function BattleMode({
         />
       </div>
 
+      {/* ===== Win Overlay ===== */}
+      {winner !== null && (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            className="rounded-2xl p-8 w-full max-w-xs space-y-5 text-center"
+            style={{ background: 'var(--bg-elevated)', border: '2px solid var(--gold)' }}
+          >
+            <div className="text-5xl" aria-hidden>🏆</div>
+            <p
+              className="text-2xl font-bold"
+              style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
+            >
+              {winMessage}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmNewGame(true)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95"
+                style={{ background: 'var(--gold)', color: '#0a0a0f' }}
+              >
+                Nauja partija
+              </button>
+              <button
+                onClick={handleExit}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
+                style={{ background: 'var(--bg-border)', color: 'var(--text-secondary)' }}
+              >
+                Išeiti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== Confirm: Nauja partija ===== */}
       {confirmNewGame && (
         <div
@@ -234,10 +300,10 @@ export function BattleMode({
               className="text-base font-semibold text-center"
               style={{ color: 'var(--text-primary)', fontFamily: 'Cinzel, Georgia, serif' }}
             >
-              Ar tikrai pradeti nauja partija?
+              Ar tikrai pradėti naują partiją?
             </p>
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              HP ir zurnalo duomenys bus issvalyti.
+              HP ir žurnalo duomenys bus išvalyti.
             </p>
             <div className="flex gap-3">
               <button
@@ -245,7 +311,7 @@ export function BattleMode({
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
                 style={{ background: 'var(--bg-border)', color: 'var(--text-secondary)' }}
               >
-                Atsaukti
+                Atšaukti
               </button>
               <button
                 onClick={handleConfirmNewGame}
@@ -325,7 +391,7 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
             className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444' }}
           >
-            PRALAIMEJO
+            PRALAIMĖJO
           </span>
         )}
         {isDanger && !isCritical && (
