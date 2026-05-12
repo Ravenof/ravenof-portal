@@ -9,6 +9,7 @@ import { LifePanel } from '@/components/life-tracker/LifePanel'
 import { TurnTracker } from '@/components/life-tracker/TurnTracker'
 import { ActionLog } from '@/components/life-tracker/ActionLog'
 import { SoundToggle } from '@/components/life-tracker/SoundToggle'
+import { BattleMode } from '@/components/life-tracker/BattleMode'
 
 type FlashState = { side: 0 | 1; type: ActionType; key: number }
 
@@ -20,6 +21,7 @@ export function LifeTrackerClient() {
   const [state, setState] = useState<GameState>(() => defaultState('1v1'))
   const [hydrated, setHydrated] = useState(false)
   const [flash, setFlash] = useState<FlashState | null>(null)
+  const [battleMode, setBattleMode] = useState(false)
 
   // Refs to avoid stale closures in callbacks
   const soundRef = useRef(true)
@@ -52,14 +54,12 @@ export function LifeTrackerClient() {
 
   const handleHpChange = useCallback(
     (sideIdx: 0 | 1, delta: number) => {
-      // Pre-check with current state to decide flash/sound
       const cur = stateRef.current
       const prevHp = cur.hp[sideIdx]
       const rawNewHp = prevHp + delta
-      // Heal is capped at maxHp; damage can go below 0
       const cappedHp = delta > 0 ? Math.min(rawNewHp, cur.maxHp) : rawNewHp
       const actualDelta = cappedHp - prevHp
-      if (actualDelta === 0) return // no change — heal at max, skip everything
+      if (actualDelta === 0) return
 
       const actionType: ActionType = actualDelta < 0 ? 'damage' : 'heal'
 
@@ -110,7 +110,6 @@ export function LifeTrackerClient() {
   const handleNextTurn = useCallback(() => {
     setState((prev) => {
       const nextSide: 0 | 1 = prev.activeSide === 0 ? 1 : 0
-      // Round increments only when returning to side 0
       const newRound = nextSide === 0 ? prev.round + 1 : prev.round
       return { ...prev, round: newRound, activeSide: nextSide }
     })
@@ -124,6 +123,15 @@ export function LifeTrackerClient() {
 
   const handleReset = useCallback(() => {
     if (!window.confirm('Pradedam is naujo? HP ir log bus issvalyti.')) return
+    setState((prev) => ({
+      ...defaultState(prev.mode),
+      names: prev.names,
+      soundEnabled: prev.soundEnabled,
+    }))
+  }, [])
+
+  // Silent reset for BattleMode (confirm dialog handled inside BattleMode)
+  const handleResetSilent = useCallback(() => {
     setState((prev) => ({
       ...defaultState(prev.mode),
       names: prev.names,
@@ -168,6 +176,9 @@ export function LifeTrackerClient() {
   }
 
   const gold = calcGold(state.round)
+  const { type: flash0, key: fk0 } = flashForSide(0)
+  const { type: flash1, key: fk1 } = flashForSide(1)
+  const is2v2 = state.mode === '2v2'
 
   return (
     <>
@@ -188,6 +199,26 @@ export function LifeTrackerClient() {
         }
         .lt-active-glow { animation: lt-glow 2.2s ease-in-out infinite; }
       `}</style>
+
+      {/* Battle Mode overlay */}
+      {battleMode && (
+        <BattleMode
+          names={state.names}
+          hp={state.hp}
+          round={state.round}
+          activeSide={state.activeSide}
+          logLength={state.log.length}
+          onHpChange={handleHpChange}
+          onUndo={handleUndo}
+          onNextTurn={handleNextTurn}
+          onNewGame={handleResetSilent}
+          onExit={() => setBattleMode(false)}
+          flashType0={flash0}
+          flashKey0={fk0}
+          flashType1={flash1}
+          flashKey1={fk1}
+        />
+      )}
 
       <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
         {/* Header */}
@@ -219,8 +250,8 @@ export function LifeTrackerClient() {
         </header>
 
         <div className="max-w-screen-xl mx-auto px-3 py-4 space-y-3">
-          {/* Mode selector + Reset */}
-          <div className="flex items-center gap-2">
+          {/* Mode selector + Reset + Kovos rezimas */}
+          <div className="flex items-center gap-2 flex-wrap">
             {(['1v1', '2v2'] as GameMode[]).map((m) => (
               <button
                 key={m}
@@ -235,9 +266,10 @@ export function LifeTrackerClient() {
                 {m}
               </button>
             ))}
+
             <button
               onClick={handleReset}
-              className="ml-auto px-3 py-2.5 rounded-lg text-xs transition hover:opacity-80 min-h-[44px]"
+              className="px-3 py-2.5 rounded-lg text-xs transition hover:opacity-80 min-h-[44px]"
               style={{
                 background: 'var(--bg-surface)',
                 color: 'var(--text-muted)',
@@ -246,6 +278,28 @@ export function LifeTrackerClient() {
             >
               Reset Game
             </button>
+
+            {/* Kovos rezimas button */}
+            <div className="ml-auto flex flex-col items-end gap-1">
+              <button
+                onClick={() => !is2v2 && setBattleMode(true)}
+                disabled={is2v2}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
+                style={{
+                  background: is2v2 ? 'var(--bg-surface)' : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                  color: is2v2 ? 'var(--text-muted)' : 'white',
+                  border: '1px solid ' + (is2v2 ? 'var(--bg-border)' : '#7c3aed'),
+                }}
+                aria-label="Ijungti Kovos rezima"
+              >
+                &#9876; Kovos rezimas
+              </button>
+              {is2v2 && (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Kovos rezimas pritaikytas 1 pries 1 partijai.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* HP Panels */}
