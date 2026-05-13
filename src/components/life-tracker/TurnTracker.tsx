@@ -16,51 +16,43 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
     <div
       className="rounded-xl px-5 py-4 space-y-3"
       style={{
-        background: 'linear-gradient(180deg,#13100a 0%,#0a0a0f 100%)',
-        border: '1px solid rgba(212,175,55,0.18)',
+        background: 'linear-gradient(180deg,#17120a 0%,#0a0800 100%)',
+        borderTop: '1.5px solid rgba(212,175,55,0.28)',
+        borderRight: '1.5px solid rgba(212,175,55,0.12)',
+        borderBottom: '1.5px solid rgba(90,62,8,0.6)',
+        borderLeft: '1.5px solid rgba(212,175,55,0.12)',
+        boxShadow: '0 4px 16px rgba(0,0,0,.6), inset 0 1px 0 rgba(232,200,74,.08)',
       }}
     >
-      {/* Top row: Round + Active + Gold */}
-      <div className="flex items-center gap-4">
-        {/* Round */}
-        <div className="flex-shrink-0 text-center">
-          <p
-            className="text-xs uppercase tracking-widest mb-0.5"
-            style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
-          >
+      {/* Top row: Ratas | Žaidžia | Auksas */}
+      <div className="flex items-center gap-3">
+        {/* Ratas */}
+        <div className="flex-shrink-0 text-center min-w-[3rem]">
+          <p className="text-xs uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
             Ratas
           </p>
-          <p
-            className="text-3xl font-bold leading-tight"
-            style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
-          >
+          <p className="text-3xl font-bold leading-tight" style={{ color: '#d4af37', fontFamily: 'Cinzel, Georgia, serif', textShadow: '0 0 12px rgba(212,175,55,.35)' }}>
             {round}
           </p>
         </div>
 
         {/* Divider */}
-        <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(212,175,55,0.12)' }} />
+        <div style={{ width: 1, alignSelf: 'stretch', background: 'linear-gradient(180deg, transparent, rgba(212,175,55,0.22), transparent)' }} />
 
-        {/* Active player */}
+        {/* Žaidžia */}
         <div className="flex-1 min-w-0">
-          <p
-            className="text-xs uppercase tracking-widest mb-0.5"
-            style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
-          >
-            Eile
+          <p className="text-xs uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
+            Žaidžia
           </p>
-          <p
-            className="text-sm font-semibold truncate"
-            style={{ color: 'var(--text-primary)', fontFamily: 'Cinzel, Georgia, serif' }}
-          >
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)', fontFamily: 'Cinzel, Georgia, serif' }}>
             {activeName}
           </p>
         </div>
 
         {/* Divider */}
-        <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(212,175,55,0.12)' }} />
+        <div style={{ width: 1, alignSelf: 'stretch', background: 'linear-gradient(180deg, transparent, rgba(212,175,55,0.22), transparent)' }} />
 
-        {/* Gold section */}
+        {/* Auksas */}
         <div className="flex-shrink-0 flex items-center gap-1.5">
           {onGoldAdjust && (
             <LTButton
@@ -68,22 +60,16 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
               size="xs"
               onClick={() => onGoldAdjust(-100)}
               aria-label="Atimti 100 aukso"
-              style={{ minWidth: 30, padding: '4px 8px' }}
+              style={{ minWidth: 28, padding: '3px 7px' }}
             >
               &minus;
             </LTButton>
           )}
           <div className="text-center min-w-[4rem]">
-            <p
-              className="text-xs uppercase tracking-widest mb-0.5"
-              style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
-            >
+            <p className="text-xs uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
               Auksas
             </p>
-            <p
-              className="text-2xl font-bold leading-tight tabular-nums"
-              style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
-            >
+            <p className="text-2xl font-bold leading-tight tabular-nums" style={{ color: '#d4af37', fontFamily: 'Cinzel, Georgia, serif', textShadow: '0 0 10px rgba(212,175,55,.3)' }}>
               {gold}
             </p>
           </div>
@@ -92,8 +78,8 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
               variant="heal"
               size="xs"
               onClick={() => onGoldAdjust(100)}
-              aria-label="Prideti 100 aukso"
-              style={{ minWidth: 30, padding: '4px 8px' }}
+              aria-label="Pridėti 100 aukso"
+              style={{ minWidth: 28, padding: '3px 7px' }}
             >
               +
             </LTButton>
@@ -107,9 +93,9 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
           variant="muted"
           size="sm"
           onClick={onResetTurn}
-          aria-label="Atstatyti rata i 1"
+          aria-label="Atstatyti ratą į 1"
         >
-          Atstatyti rata
+          Atstatyti ratą
         </LTButton>
         <LTButton
           variant="primary"
@@ -117,7 +103,7 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
           fullWidth
           onClick={onNextTurn}
         >
-          Kitas ejimas &rarr;
+          Kitas ėjimas &rarr;
         </LTButton>
       </div>
     </div>
