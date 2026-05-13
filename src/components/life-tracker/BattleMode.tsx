@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ActionType } from '@/types/life-tracker'
 import { playWinSound } from '@/lib/life-tracker-sound'
+import { LTButton } from './LTButton'
 
 function calcGold(round: number): number {
   return Math.min(round * 100, 1000)
@@ -121,10 +122,12 @@ export function BattleMode({
           sideIdx={1}
           name={names[1]}
           hp={hp[1]}
+          gold={gold[1]}
           isActive={activeSide === 1}
           flashType={flashType1}
           flashKey={flashKey1}
           onHpChange={onHpChange}
+          onGoldAdjust={(delta) => adjustGold(1, delta)}
         />
       </div>
 
@@ -132,9 +135,9 @@ export function BattleMode({
       <div
         className="flex-shrink-0 px-4 py-3 space-y-2.5"
         style={{
-          background: 'var(--bg-surface)',
-          borderTop: '1px solid var(--bg-border)',
-          borderBottom: '1px solid var(--bg-border)',
+          background: 'linear-gradient(180deg,#13100a,#0d0a0a)',
+          borderTop: '1px solid rgba(212,175,55,0.18)',
+          borderBottom: '1px solid rgba(212,175,55,0.18)',
         }}
       >
         {/* Ėjimas + active player */}
@@ -148,86 +151,50 @@ export function BattleMode({
           <span
             className="text-sm font-semibold px-3 py-1 rounded-full"
             style={{
-              background: 'rgba(212,175,55,0.15)',
+              background: 'rgba(212,175,55,0.12)',
               color: 'var(--gold)',
-              border: '1px solid rgba(212,175,55,0.3)',
+              border: '1px solid rgba(212,175,55,0.28)',
+              fontFamily: 'Cinzel, Georgia, serif',
             }}
           >
             Žaidžia: {activeName}
           </span>
         </div>
 
-        {/* Gold per player */}
-        <div className="grid grid-cols-2 gap-3">
-          {([0, 1] as const).map((sideIdx) => (
-            <div key={sideIdx} className="flex items-center gap-1.5">
-              <span
-                className="text-xs truncate flex-shrink min-w-0"
-                style={{ color: 'var(--text-muted)', maxWidth: '4rem' }}
-              >
-                {names[sideIdx]}
-              </span>
-              <div className="flex items-center gap-1 ml-auto">
-                <button
-                  onClick={() => adjustGold(sideIdx, -GOLD_STEP)}
-                  className="w-7 h-7 rounded-lg text-sm font-bold active:scale-95 transition-transform flex items-center justify-center"
-                  style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
-                  aria-label={`Atimti 100 aukso: ${names[sideIdx]}`}
-                >
-                  &minus;
-                </button>
-                <span
-                  className="text-sm font-bold tabular-nums w-14 text-center"
-                  style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
-                >
-                  {gold[sideIdx]}&thinsp;&#10052;
-                </span>
-                <button
-                  onClick={() => adjustGold(sideIdx, GOLD_STEP)}
-                  className="w-7 h-7 rounded-lg text-sm font-bold active:scale-95 transition-transform flex items-center justify-center"
-                  style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
-                  aria-label={`Pridėti 100 aukso: ${names[sideIdx]}`}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Action buttons */}
         <div className="flex gap-1.5">
-          <button
+          <LTButton
+            variant="muted"
+            size="sm"
             onClick={onUndo}
             disabled={logLength === 0}
-            className="px-3 py-2.5 rounded-xl text-xs font-medium transition hover:opacity-80 disabled:opacity-30 min-h-[44px]"
-            style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}
             aria-label="Atšaukti paskutinį veiksmą"
           >
             &#8617; Atšaukti
-          </button>
-          <button
+          </LTButton>
+          <LTButton
+            variant="primary"
+            size="sm"
+            fullWidth
             onClick={onNextTurn}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95 min-h-[44px]"
-            style={{ background: 'var(--gold)', color: '#0a0a0f' }}
           >
             Kitas ėjimas &rarr;
-          </button>
-          <button
+          </LTButton>
+          <LTButton
+            variant="secondary"
+            size="sm"
             onClick={() => setConfirmNewGame(true)}
-            className="px-3 py-2.5 rounded-xl text-xs font-medium transition hover:opacity-80 min-h-[44px]"
-            style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}
           >
             Nauja partija
-          </button>
-          <button
+          </LTButton>
+          <LTButton
+            variant="danger"
+            size="sm"
             onClick={handleExit}
-            className="px-3 py-2.5 rounded-xl text-xs font-medium transition hover:opacity-80 min-h-[44px]"
-            style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
             aria-label="Išeiti iš kovos režimo"
           >
             Išeiti
-          </button>
+          </LTButton>
         </div>
       </div>
 
@@ -237,10 +204,12 @@ export function BattleMode({
           sideIdx={0}
           name={names[0]}
           hp={hp[0]}
+          gold={gold[0]}
           isActive={activeSide === 0}
           flashType={flashType0}
           flashKey={flashKey0}
           onHpChange={onHpChange}
+          onGoldAdjust={(delta) => adjustGold(0, delta)}
         />
       </div>
 
@@ -248,11 +217,15 @@ export function BattleMode({
       {winner !== null && (
         <div
           className="absolute inset-0 z-10 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(6px)' }}
         >
           <div
             className="rounded-2xl p-8 w-full max-w-xs space-y-5 text-center"
-            style={{ background: 'var(--bg-elevated)', border: '2px solid var(--gold)' }}
+            style={{
+              background: 'linear-gradient(180deg,#1a1408,#0d0a0f)',
+              border: '2px solid rgba(212,175,55,0.6)',
+              boxShadow: '0 0 48px rgba(212,175,55,0.18)',
+            }}
           >
             <div className="text-5xl" aria-hidden>🏆</div>
             <p
@@ -262,20 +235,22 @@ export function BattleMode({
               {winMessage}
             </p>
             <div className="flex gap-3">
-              <button
+              <LTButton
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={() => setConfirmNewGame(true)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95"
-                style={{ background: 'var(--gold)', color: '#0a0a0f' }}
               >
                 Nauja partija
-              </button>
-              <button
+              </LTButton>
+              <LTButton
+                variant="muted"
+                size="md"
+                fullWidth
                 onClick={handleExit}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
-                style={{ background: 'var(--bg-border)', color: 'var(--text-secondary)' }}
               >
                 Išeiti
-              </button>
+              </LTButton>
             </div>
           </div>
         </div>
@@ -285,11 +260,14 @@ export function BattleMode({
       {confirmNewGame && (
         <div
           className="absolute inset-0 z-[11] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(4px)' }}
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }}
         >
           <div
             className="rounded-2xl p-6 w-full max-w-xs space-y-4"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)' }}
+            style={{
+              background: 'linear-gradient(180deg,#13100a,#0d0a0f)',
+              border: '1px solid rgba(212,175,55,0.22)',
+            }}
           >
             <p
               className="text-base font-semibold text-center"
@@ -301,20 +279,22 @@ export function BattleMode({
               HP ir žurnalo duomenys bus išvalyti.
             </p>
             <div className="flex gap-3">
-              <button
+              <LTButton
+                variant="muted"
+                size="sm"
+                fullWidth
                 onClick={() => setConfirmNewGame(false)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
-                style={{ background: 'var(--bg-border)', color: 'var(--text-secondary)' }}
               >
                 Atšaukti
-              </button>
-              <button
+              </LTButton>
+              <LTButton
+                variant="danger"
+                size="sm"
+                fullWidth
                 onClick={handleConfirmNewGame}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95"
-                style={{ background: '#ef4444', color: 'white' }}
               >
                 Taip
-              </button>
+              </LTButton>
             </div>
           </div>
         </div>
@@ -328,26 +308,40 @@ type PlayerZoneProps = {
   sideIdx: 0 | 1
   name: string
   hp: number
+  gold: number
   isActive: boolean
   flashType: ActionType | null
   flashKey: number
   onHpChange: (sideIdx: 0 | 1, delta: number) => void
+  onGoldAdjust: (delta: number) => void
 }
 
-function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChange }: PlayerZoneProps) {
+function PlayerZone({ sideIdx, name, hp, gold, isActive, flashType, flashKey, onHpChange, onGoldAdjust }: PlayerZoneProps) {
   const color = hpColor(hp)
   const isCritical = hp <= 0
   const isDanger = hp > 0 && hp <= 10
+
+  const borderColor = isActive
+    ? '#d4af37'
+    : isCritical
+    ? 'rgba(239,68,68,0.4)'
+    : 'rgba(255,255,255,0.07)'
+
+  const panelBg = isActive
+    ? 'linear-gradient(180deg,#17120a 0%,#0d0a0f 100%)'
+    : 'linear-gradient(180deg,#111118 0%,#0a0a0f 100%)'
 
   return (
     <div
       className={'relative rounded-2xl overflow-hidden w-full max-w-lg' + (isActive ? ' lt-active-glow' : '')}
       style={{
-        background: 'var(--bg-surface)',
-        border: '2px solid ' + (isActive ? 'var(--gold)' : 'var(--bg-border)'),
+        background: panelBg,
+        border: `2px solid ${borderColor}`,
+        boxShadow: isActive ? '0 0 0 1px rgba(212,175,55,0.12)' : 'none',
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
+        transition: 'border-color .25s ease',
       }}
     >
       {/* Flash overlay */}
@@ -358,18 +352,24 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
       />
 
       <div className="relative z-10 flex flex-col items-center justify-center gap-2 p-4 flex-1">
+        {/* Name */}
         <p
-          className="text-sm font-semibold"
-          style={{ color: 'var(--text-primary)', fontFamily: 'Cinzel, Georgia, serif' }}
+          className="text-sm font-semibold tracking-wide"
+          style={{
+            color: isActive ? 'var(--gold)' : 'var(--text-primary)',
+            fontFamily: 'Cinzel, Georgia, serif',
+          }}
         >
           {name}
         </p>
 
+        {/* HP */}
         <div
-          className="text-7xl font-bold leading-none"
+          className="font-bold leading-none"
           style={{
             color,
             fontFamily: 'Cinzel, Georgia, serif',
+            fontSize: 'clamp(3.5rem, 8vw, 5rem)',
             textShadow: isCritical ? '0 0 24px rgba(239,68,68,0.6)' : undefined,
           }}
         >
@@ -378,48 +378,87 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
 
         {isCritical && (
           <span
-            className="text-xs font-bold px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444' }}
+            className="text-xs font-bold px-2 py-0.5 rounded-full tracking-widest"
+            style={{
+              background: 'rgba(239,68,68,0.18)',
+              color: '#ef4444',
+              border: '1px solid rgba(239,68,68,0.35)',
+              fontFamily: 'Cinzel, Georgia, serif',
+            }}
           >
             PRALAIMĖJO
           </span>
         )}
         {isDanger && !isCritical && (
           <span
-            className="text-xs font-bold px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(249,115,22,0.2)', color: '#f97316' }}
+            className="text-xs font-bold px-2 py-0.5 rounded-full tracking-widest"
+            style={{
+              background: 'rgba(249,115,22,0.18)',
+              color: '#f97316',
+              border: '1px solid rgba(249,115,22,0.35)',
+              fontFamily: 'Cinzel, Georgia, serif',
+            }}
           >
             KRITINIS
           </span>
         )}
 
+        {/* HP buttons */}
         <div className="w-full space-y-1.5">
           <div className="flex gap-1.5">
             {[-10, -5, -1].map((v) => (
-              <button
+              <LTButton
                 key={v}
+                variant="damage"
+                size="sm"
+                style={{ flex: 1 }}
                 onClick={() => onHpChange(sideIdx, v)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
-                style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.35)' }}
                 aria-label={`${v} HP`}
               >
                 {v}
-              </button>
+              </LTButton>
             ))}
           </div>
           <div className="flex gap-1.5">
             {[1, 5, 10].map((v) => (
-              <button
+              <LTButton
                 key={v}
+                variant="heal"
+                size="sm"
+                style={{ flex: 1 }}
                 onClick={() => onHpChange(sideIdx, v)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
-                style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)' }}
                 aria-label={`+${v} HP`}
               >
                 +{v}
-              </button>
+              </LTButton>
             ))}
           </div>
+        </div>
+
+        {/* Gold row */}
+        <div className="flex items-center gap-2 mt-0.5">
+          <LTButton
+            variant="damage"
+            size="xs"
+            onClick={() => onGoldAdjust(-GOLD_STEP)}
+            aria-label={`Atimti ${GOLD_STEP} aukso`}
+          >
+            &minus;
+          </LTButton>
+          <span
+            className="text-sm font-bold tabular-nums min-w-[4.5rem] text-center"
+            style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+          >
+            {gold}&thinsp;&#10052;
+          </span>
+          <LTButton
+            variant="heal"
+            size="xs"
+            onClick={() => onGoldAdjust(GOLD_STEP)}
+            aria-label={`Pridėti ${GOLD_STEP} aukso`}
+          >
+            +
+          </LTButton>
         </div>
       </div>
     </div>

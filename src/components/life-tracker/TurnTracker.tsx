@@ -1,24 +1,31 @@
 'use client'
 
+import { LTButton } from './LTButton'
+
 type Props = {
   round: number
   gold: number
   activeName: string
   onNextTurn: () => void
   onResetTurn: () => void
+  onGoldAdjust?: (delta: number) => void
 }
 
-export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn }: Props) {
+export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, onGoldAdjust }: Props) {
   return (
     <div
       className="rounded-xl px-5 py-4 space-y-3"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+      style={{
+        background: 'linear-gradient(180deg,#13100a 0%,#0a0a0f 100%)',
+        border: '1px solid rgba(212,175,55,0.18)',
+      }}
     >
-      {/* Top row: Round + Gold + Active */}
+      {/* Top row: Round + Active + Gold */}
       <div className="flex items-center gap-4">
-        <div className="flex-1 min-w-0">
+        {/* Round */}
+        <div className="flex-shrink-0 text-center">
           <p
-            className="text-xs uppercase tracking-wider"
+            className="text-xs uppercase tracking-widest mb-0.5"
             style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
           >
             Ratas
@@ -31,58 +38,87 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn }
           </p>
         </div>
 
+        {/* Divider */}
+        <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(212,175,55,0.12)' }} />
+
+        {/* Active player */}
         <div className="flex-1 min-w-0">
           <p
-            className="text-xs uppercase tracking-wider"
+            className="text-xs uppercase tracking-widest mb-0.5"
             style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
           >
-            Eilė
+            Eile
           </p>
           <p
-            className="text-sm font-semibold truncate mt-0.5"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-sm font-semibold truncate"
+            style={{ color: 'var(--text-primary)', fontFamily: 'Cinzel, Georgia, serif' }}
           >
             {activeName}
           </p>
         </div>
 
-        <div className="flex-1 min-w-0 text-right">
-          <p
-            className="text-xs uppercase tracking-wider"
-            style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
-          >
-            Auksas
-          </p>
-          <p
-            className="text-2xl font-bold leading-tight"
-            style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
-          >
-            {gold}
-          </p>
+        {/* Divider */}
+        <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(212,175,55,0.12)' }} />
+
+        {/* Gold section */}
+        <div className="flex-shrink-0 flex items-center gap-1.5">
+          {onGoldAdjust && (
+            <LTButton
+              variant="damage"
+              size="xs"
+              onClick={() => onGoldAdjust(-100)}
+              aria-label="Atimti 100 aukso"
+              style={{ minWidth: 30, padding: '4px 8px' }}
+            >
+              &minus;
+            </LTButton>
+          )}
+          <div className="text-center min-w-[4rem]">
+            <p
+              className="text-xs uppercase tracking-widest mb-0.5"
+              style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
+            >
+              Auksas
+            </p>
+            <p
+              className="text-2xl font-bold leading-tight tabular-nums"
+              style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+            >
+              {gold}
+            </p>
+          </div>
+          {onGoldAdjust && (
+            <LTButton
+              variant="heal"
+              size="xs"
+              onClick={() => onGoldAdjust(100)}
+              aria-label="Prideti 100 aukso"
+              style={{ minWidth: 30, padding: '4px 8px' }}
+            >
+              +
+            </LTButton>
+          )}
         </div>
       </div>
 
-      {/* Bottom row: buttons */}
+      {/* Bottom row: action buttons */}
       <div className="flex gap-2">
-        <button
+        <LTButton
+          variant="muted"
+          size="sm"
           onClick={onResetTurn}
-          className="px-3 py-2.5 rounded-lg text-xs transition hover:opacity-80 flex-shrink-0 min-h-[44px]"
-          style={{
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-muted)',
-            border: '1px solid var(--bg-border)',
-          }}
-          aria-label="Atstatyti ratą į 1"
+          aria-label="Atstatyti rata i 1"
         >
-          Atstatyti ratą
-        </button>
-        <button
+          Atstatyti rata
+        </LTButton>
+        <LTButton
+          variant="primary"
+          size="sm"
+          fullWidth
           onClick={onNextTurn}
-          className="flex-1 py-2.5 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95 min-h-[44px]"
-          style={{ background: 'var(--gold)', color: '#0a0a0f' }}
         >
-          Kitas ėjimas &rarr;
-        </button>
+          Kitas ejimas &rarr;
+        </LTButton>
       </div>
     </div>
   )

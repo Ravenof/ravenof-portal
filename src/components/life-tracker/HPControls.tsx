@@ -1,5 +1,7 @@
 'use client'
 
+import { LTButton } from './LTButton'
+
 type Props = {
   sideIdx: 0 | 1
   onHpChange: (sideIdx: 0 | 1, delta: number) => void
@@ -11,36 +13,32 @@ const HEAL: readonly number[] = [1, 5, 10]
 export function HPControls({ sideIdx, onHpChange }: Props) {
   return (
     <div className="w-full space-y-2">
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         {DAMAGE.map((v) => (
-          <button
+          <LTButton
             key={v}
+            variant="damage"
+            size="sm"
+            style={{ flex: 1 }}
             onClick={() => onHpChange(sideIdx, v)}
-            className="flex-1 py-3 rounded-xl text-base font-bold transition-all active:scale-95"
-            style={{
-              background: 'rgba(239,68,68,0.15)',
-              color: '#f87171',
-              border: '1px solid rgba(239,68,68,0.35)',
-            }}
+            aria-label={`${v} HP`}
           >
             {v}
-          </button>
+          </LTButton>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         {HEAL.map((v) => (
-          <button
+          <LTButton
             key={v}
+            variant="heal"
+            size="sm"
+            style={{ flex: 1 }}
             onClick={() => onHpChange(sideIdx, v)}
-            className="flex-1 py-3 rounded-xl text-base font-bold transition-all active:scale-95"
-            style={{
-              background: 'rgba(34,197,94,0.15)',
-              color: '#4ade80',
-              border: '1px solid rgba(34,197,94,0.35)',
-            }}
+            aria-label={`+${v} HP`}
           >
             +{v}
-          </button>
+          </LTButton>
         ))}
       </div>
     </div>

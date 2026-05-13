@@ -11,6 +11,7 @@ import { ActionLog } from '@/components/life-tracker/ActionLog'
 import { SoundToggle } from '@/components/life-tracker/SoundToggle'
 import { BattleMode } from '@/components/life-tracker/BattleMode'
 import { BattleModeIntro } from '@/components/life-tracker/BattleModeIntro'
+import { LTButton } from '@/components/life-tracker/LTButton'
 
 type FlashState = { side: 0 | 1; type: ActionType; key: number }
 
@@ -25,6 +26,7 @@ export function LifeTrackerClient() {
   const [showIntro, setShowIntro] = useState(false)
   const [battleMode, setBattleMode] = useState(false)
   const [showWinModal, setShowWinModal] = useState(false)
+  const [normalGold, setNormalGold] = useState<number>(() => calcGold(1))
 
   const soundRef = useRef(true)
   const stateRef = useRef(state)
@@ -37,6 +39,7 @@ export function LifeTrackerClient() {
     if (saved) {
       setState(saved)
       soundRef.current = saved.soundEnabled
+      setNormalGold(calcGold(saved.round))
     }
     setHydrated(true)
   }, [])
@@ -48,6 +51,11 @@ export function LifeTrackerClient() {
   useEffect(() => {
     soundRef.current = state.soundEnabled
   }, [state.soundEnabled])
+
+  // Reset normalGold when round changes
+  useEffect(() => {
+    setNormalGold(calcGold(state.round))
+  }, [state.round])
 
   // Win detection for normal mode
   const winner: 0 | 1 | 'draw' | null =
@@ -143,9 +151,14 @@ export function LifeTrackerClient() {
     setState((prev) => ({ ...prev, round: 1, activeSide: 0 }))
   }, [])
 
+  const handleGoldAdjust = useCallback((delta: number) => {
+    setNormalGold((prev) => Math.max(0, prev + delta))
+  }, [])
+
   const resetGame = useCallback((mode: GameMode, keepNames: boolean) => {
     winPlayedRef.current = false
     setShowWinModal(false)
+    setNormalGold(calcGold(1))
     setState((prev) => ({
       ...defaultState(mode),
       names: keepNames ? prev.names : defaultState(mode).names,
@@ -197,7 +210,6 @@ export function LifeTrackerClient() {
     )
   }
 
-  const gold = calcGold(state.round)
   const { type: flash0, key: fk0 } = flashForSide(0)
   const { type: flash1, key: fk1 } = flashForSide(1)
 
@@ -256,11 +268,15 @@ export function LifeTrackerClient() {
       {showWinModal && winner !== null && (
         <div
           className="fixed inset-0 z-30 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)' }}
+          style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)' }}
         >
           <div
             className="rounded-2xl p-8 w-full max-w-sm space-y-5 text-center"
-            style={{ background: 'var(--bg-elevated)', border: '2px solid var(--gold)' }}
+            style={{
+              background: 'linear-gradient(180deg,#1a1408,#0d0a0f)',
+              border: '2px solid rgba(212,175,55,0.55)',
+              boxShadow: '0 0 48px rgba(212,175,55,0.15)',
+            }}
           >
             <div className="text-5xl" aria-hidden>🏆</div>
             <p
@@ -270,20 +286,22 @@ export function LifeTrackerClient() {
               {winMessage}
             </p>
             <div className="flex gap-3">
-              <button
+              <LTButton
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={() => resetGame(state.mode, true)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95"
-                style={{ background: 'var(--gold)', color: '#0a0a0f' }}
               >
                 Nauja partija
-              </button>
-              <button
+              </LTButton>
+              <LTButton
+                variant="muted"
+                size="md"
+                fullWidth
                 onClick={() => setShowWinModal(false)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
-                style={{ background: 'var(--bg-border)', color: 'var(--text-secondary)' }}
               >
                 Uždaryti
-              </button>
+              </LTButton>
             </div>
           </div>
         </div>
@@ -296,7 +314,7 @@ export function LifeTrackerClient() {
           style={{
             background: 'rgba(10,10,15,0.95)',
             backdropFilter: 'blur(12px)',
-            borderColor: 'var(--bg-border)',
+            borderColor: 'rgba(212,175,55,0.12)',
           }}
         >
           <div className="flex items-center gap-3">
@@ -322,47 +340,35 @@ export function LifeTrackerClient() {
           {/* Mode selector + Reset + Kovos režimas */}
           <div className="flex items-center gap-2 flex-wrap">
             {(['1v1', '2v2'] as GameMode[]).map((m) => (
-              <button
+              <LTButton
                 key={m}
+                variant={state.mode === m ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => state.mode !== m && handleModeChange(m)}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold transition min-h-[44px]"
-                style={{
-                  background: state.mode === m ? 'var(--gold)' : 'var(--bg-surface)',
-                  color: state.mode === m ? '#0a0a0f' : 'var(--text-muted)',
-                  border: '1px solid ' + (state.mode === m ? 'var(--gold)' : 'var(--bg-border)'),
-                }}
               >
                 {m}
-              </button>
+              </LTButton>
             ))}
 
-            <button
+            <LTButton
+              variant="muted"
+              size="sm"
               onClick={handleReset}
-              className="px-3 py-2.5 rounded-lg text-xs transition hover:opacity-80 min-h-[44px]"
-              style={{
-                background: 'var(--bg-surface)',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--bg-border)',
-              }}
               aria-label="Pradėti žaidimą iš naujo"
             >
               Naujas žaidimas
-            </button>
+            </LTButton>
 
             {/* Kovos režimas */}
             <div className="ml-auto">
-              <button
+              <LTButton
+                variant="battle"
+                size="sm"
                 onClick={handleEnterBattleMode}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95 min-h-[44px]"
-                style={{
-                  background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                  color: 'white',
-                  border: '1px solid #7c3aed',
-                }}
                 aria-label="Įjungti Kovos režimą"
               >
                 &#9876; Kovos režimas
-              </button>
+              </LTButton>
             </div>
           </div>
 
@@ -389,26 +395,24 @@ export function LifeTrackerClient() {
           {/* Turn Tracker */}
           <TurnTracker
             round={state.round}
-            gold={gold}
+            gold={normalGold}
             activeName={state.names[state.activeSide]}
             onNextTurn={handleNextTurn}
             onResetTurn={handleResetTurn}
+            onGoldAdjust={handleGoldAdjust}
           />
 
           {/* Undo */}
-          <button
+          <LTButton
+            variant="muted"
+            size="sm"
+            fullWidth
             onClick={handleUndo}
             disabled={state.log.length === 0}
-            className="w-full py-3 rounded-xl text-sm font-medium transition hover:opacity-80 disabled:opacity-30"
-            style={{
-              background: 'var(--bg-surface)',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--bg-border)',
-            }}
             aria-label="Atšaukti paskutinį veiksmą"
           >
             &#8617; Atšaukti paskutinį veiksmą
-          </button>
+          </LTButton>
 
           {/* Action Log */}
           <ActionLog log={state.log} />
