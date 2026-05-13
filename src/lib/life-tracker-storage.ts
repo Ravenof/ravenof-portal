@@ -6,7 +6,7 @@ export function defaultState(mode: GameMode = '1v1'): GameState {
   const maxHp = mode === '1v1' ? 40 : 60
   return {
     mode,
-    names: mode === '1v1' ? ['Player 1', 'Player 2'] : ['Team 1', 'Team 2'],
+    names: mode === '1v1' ? ['Žaidėjas 1', 'Žaidėjas 2'] : ['Komanda 1', 'Komanda 2'],
     hp: [maxHp, maxHp],
     maxHp,
     round: 1,

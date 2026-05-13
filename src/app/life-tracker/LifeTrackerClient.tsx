@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import type { GameMode, GameState, LogEntry, ActionType } from '@/types/life-tracker'
 import { defaultState, loadState, saveState } from '@/lib/life-tracker-storage'
-import { playDamageSound, playHealSound, playTurnSound, playSwordClashSound } from '@/lib/life-tracker-sound'
+import { playDamageSound, playHealSound, playTurnSound, playSwordClashSound, playWinSound } from '@/lib/life-tracker-sound'
 import { LifePanel } from '@/components/life-tracker/LifePanel'
 import { TurnTracker } from '@/components/life-tracker/TurnTracker'
 import { ActionLog } from '@/components/life-tracker/ActionLog'
@@ -24,13 +24,14 @@ export function LifeTrackerClient() {
   const [flash, setFlash] = useState<FlashState | null>(null)
   const [showIntro, setShowIntro] = useState(false)
   const [battleMode, setBattleMode] = useState(false)
+  const [showWinModal, setShowWinModal] = useState(false)
 
-  // Refs to avoid stale closures in callbacks
   const soundRef = useRef(true)
   const stateRef = useRef(state)
+  const winPlayedRef = useRef(false)
+
   useEffect(() => { stateRef.current = state }, [state])
 
-  // Hydrate from localStorage after mount
   useEffect(() => {
     const saved = loadState()
     if (saved) {
@@ -40,15 +41,34 @@ export function LifeTrackerClient() {
     setHydrated(true)
   }, [])
 
-  // Persist on every state change (after hydration)
   useEffect(() => {
     if (hydrated) saveState(state)
   }, [state, hydrated])
 
-  // Keep soundRef in sync
   useEffect(() => {
     soundRef.current = state.soundEnabled
   }, [state.soundEnabled])
+
+  // Win detection for normal mode
+  const winner: 0 | 1 | 'draw' | null =
+    state.hp[0] <= 0 && state.hp[1] <= 0 ? 'draw'
+    : state.hp[0] <= 0 ? 1
+    : state.hp[1] <= 0 ? 0
+    : null
+
+  const winMessage =
+    winner === 'draw' ? 'Partija baigta.'
+    : winner === 0    ? `${state.names[0]} laimėjo!`
+    : winner === 1    ? `${state.names[1]} laimėjo!`
+    : null
+
+  useEffect(() => {
+    if (winner !== null && !winPlayedRef.current && soundRef.current) {
+      winPlayedRef.current = true
+      playWinSound()
+      setShowWinModal(true)
+    }
+  }, [winner])
 
   const triggerFlash = useCallback((side: 0 | 1, type: ActionType) => {
     setFlash((prev) => ({ side, type, key: (prev?.key ?? 0) + 1 }))
@@ -123,31 +143,29 @@ export function LifeTrackerClient() {
     setState((prev) => ({ ...prev, round: 1, activeSide: 0 }))
   }, [])
 
-  const handleReset = useCallback(() => {
-    if (!window.confirm('Pradedame iš naujo? HP ir žurnalas bus išvalyti.')) return
+  const resetGame = useCallback((mode: GameMode, keepNames: boolean) => {
+    winPlayedRef.current = false
+    setShowWinModal(false)
     setState((prev) => ({
-      ...defaultState(prev.mode),
-      names: prev.names,
+      ...defaultState(mode),
+      names: keepNames ? prev.names : defaultState(mode).names,
       soundEnabled: prev.soundEnabled,
     }))
   }, [])
 
-  // Silent reset for BattleMode (confirm dialog handled inside BattleMode)
+  const handleReset = useCallback(() => {
+    if (!window.confirm('Pradedame iš naujo? HP ir žurnalas bus išvalyti.')) return
+    resetGame(stateRef.current.mode, true)
+  }, [resetGame])
+
   const handleResetSilent = useCallback(() => {
-    setState((prev) => ({
-      ...defaultState(prev.mode),
-      names: prev.names,
-      soundEnabled: prev.soundEnabled,
-    }))
-  }, [])
+    resetGame(stateRef.current.mode, true)
+  }, [resetGame])
 
   const handleModeChange = useCallback((newMode: GameMode) => {
     if (!window.confirm(`Pakeitus režimą į ${newMode}, žaidimas bus atstatytas. Tęsti?`)) return
-    setState((prev) => ({
-      ...defaultState(newMode),
-      soundEnabled: prev.soundEnabled,
-    }))
-  }, [])
+    resetGame(newMode, false)
+  }, [resetGame])
 
   const handleNameChange = useCallback((sideIdx: 0 | 1, name: string) => {
     setState((prev) => {
@@ -173,10 +191,7 @@ export function LifeTrackerClient() {
 
   if (!hydrated) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: 'var(--bg-base)' }}
-      >
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
         <p style={{ color: 'var(--text-muted)' }}>Kraunama...</p>
       </div>
     )
@@ -185,7 +200,6 @@ export function LifeTrackerClient() {
   const gold = calcGold(state.round)
   const { type: flash0, key: fk0 } = flashForSide(0)
   const { type: flash1, key: fk1 } = flashForSide(1)
-  const is2v2 = state.mode === '2v2'
 
   return (
     <>
@@ -207,7 +221,7 @@ export function LifeTrackerClient() {
         .lt-active-glow { animation: lt-glow 2.2s ease-in-out infinite; }
       `}</style>
 
-      {/* Sword crossing intro animation */}
+      {/* Sword crossing intro */}
       {showIntro && (
         <BattleModeIntro
           onComplete={() => {
@@ -236,6 +250,43 @@ export function LifeTrackerClient() {
           flashType1={flash1}
           flashKey1={fk1}
         />
+      )}
+
+      {/* Normal mode win overlay */}
+      {showWinModal && winner !== null && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            className="rounded-2xl p-8 w-full max-w-sm space-y-5 text-center"
+            style={{ background: 'var(--bg-elevated)', border: '2px solid var(--gold)' }}
+          >
+            <div className="text-5xl" aria-hidden>🏆</div>
+            <p
+              className="text-2xl font-bold"
+              style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
+            >
+              {winMessage}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => resetGame(state.mode, true)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-90 active:scale-95"
+                style={{ background: 'var(--gold)', color: '#0a0a0f' }}
+              >
+                Nauja partija
+              </button>
+              <button
+                onClick={() => setShowWinModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
+                style={{ background: 'var(--bg-border)', color: 'var(--text-secondary)' }}
+              >
+                Uždaryti
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -293,30 +344,25 @@ export function LifeTrackerClient() {
                 color: 'var(--text-muted)',
                 border: '1px solid var(--bg-border)',
               }}
+              aria-label="Pradėti žaidimą iš naujo"
             >
-              Reset Game
+              Naujas žaidimas
             </button>
 
-            {/* Kovos režimas button */}
-            <div className="ml-auto flex flex-col items-end gap-1">
+            {/* Kovos režimas */}
+            <div className="ml-auto">
               <button
-                onClick={() => !is2v2 && handleEnterBattleMode()}
-                disabled={is2v2}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
+                onClick={handleEnterBattleMode}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition hover:opacity-90 active:scale-95 min-h-[44px]"
                 style={{
-                  background: is2v2 ? 'var(--bg-surface)' : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                  color: is2v2 ? 'var(--text-muted)' : 'white',
-                  border: '1px solid ' + (is2v2 ? 'var(--bg-border)' : '#7c3aed'),
+                  background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                  color: 'white',
+                  border: '1px solid #7c3aed',
                 }}
                 aria-label="Įjungti Kovos režimą"
               >
                 &#9876; Kovos režimas
               </button>
-              {is2v2 && (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Kovos režimas šiuo metu pritaikytas 1 prieš 1 partijai.
-                </p>
-              )}
             </div>
           </div>
 
@@ -359,6 +405,7 @@ export function LifeTrackerClient() {
               color: 'var(--text-secondary)',
               border: '1px solid var(--bg-border)',
             }}
+            aria-label="Atšaukti paskutinį veiksmą"
           >
             &#8617; Atšaukti paskutinį veiksmą
           </button>

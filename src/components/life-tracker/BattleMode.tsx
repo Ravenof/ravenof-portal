@@ -32,6 +32,8 @@ function hpColor(hp: number): string {
   return 'var(--gold)'
 }
 
+const GOLD_STEP = 100
+
 export function BattleMode({
   names, hp, round, activeSide, logLength, soundEnabled,
   onHpChange, onUndo, onNextTurn, onNewGame, onExit,
@@ -43,11 +45,17 @@ export function BattleMode({
   const prevRoundRef = useRef(round)
   const winPlayedRef = useRef(false)
 
-  // Win detection: 0 = player 1 wins, 1 = player 2 wins, 'draw' = both <= 0, null = ongoing
+  // Win detection
   const winner: 0 | 1 | 'draw' | null =
     hp[0] <= 0 && hp[1] <= 0 ? 'draw'
     : hp[0] <= 0 ? 1
     : hp[1] <= 0 ? 0
+    : null
+
+  const winMessage =
+    winner === 'draw' ? 'Partija baigta.'
+    : winner === 0    ? `${names[0]} laimėjo!`
+    : winner === 1    ? `${names[1]} laimėjo!`
     : null
 
   // Play win sound once per game
@@ -58,7 +66,7 @@ export function BattleMode({
     }
   }, [winner, soundEnabled])
 
-  // Reset gold for both players when round increments
+  // Reset gold when round advances
   useEffect(() => {
     if (prevRoundRef.current !== round) {
       prevRoundRef.current = round
@@ -66,22 +74,18 @@ export function BattleMode({
     }
   }, [round])
 
-  // Try fullscreen on mount; clean up on unmount
+  // Fullscreen
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    el.requestFullscreen?.().catch(() => { /* silently ignore if not supported */ })
+    el.requestFullscreen?.().catch(() => {})
     return () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {})
-      }
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
     }
   }, [])
 
   const handleExit = useCallback(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {})
-    }
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
     onExit()
   }, [onExit])
 
@@ -102,23 +106,13 @@ export function BattleMode({
 
   const activeName = names[activeSide]
 
-  // Win message
-  const winMessage =
-    winner === 'draw'
-      ? 'Partija baigta.'
-      : winner === 0
-      ? `${names[0]} laimėjo!`
-      : winner === 1
-      ? `${names[1]} laimėjo!`
-      : null
-
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 z-50 flex flex-col overflow-hidden select-none"
       style={{ background: 'var(--bg-base)' }}
     >
-      {/* ===== PLAYER 2 — top, rotated 180deg ===== */}
+      {/* PLAYER 2 — top, rotated 180deg */}
       <div
         className="flex-1 flex flex-col items-center justify-center gap-2 px-4 py-3"
         style={{ transform: 'rotate(180deg)', minHeight: 0 }}
@@ -134,7 +128,7 @@ export function BattleMode({
         />
       </div>
 
-      {/* ===== MIDDLE ZONE ===== */}
+      {/* MIDDLE ZONE */}
       <div
         className="flex-shrink-0 px-4 py-3 space-y-2.5"
         style={{
@@ -175,10 +169,10 @@ export function BattleMode({
               </span>
               <div className="flex items-center gap-1 ml-auto">
                 <button
-                  onClick={() => adjustGold(sideIdx, -1)}
+                  onClick={() => adjustGold(sideIdx, -GOLD_STEP)}
                   className="w-7 h-7 rounded-lg text-sm font-bold active:scale-95 transition-transform flex items-center justify-center"
                   style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
-                  aria-label={`${names[sideIdx]} auksas minus 1`}
+                  aria-label={`Atimti 100 aukso: ${names[sideIdx]}`}
                 >
                   &minus;
                 </button>
@@ -189,10 +183,10 @@ export function BattleMode({
                   {gold[sideIdx]}&thinsp;&#10052;
                 </span>
                 <button
-                  onClick={() => adjustGold(sideIdx, 1)}
+                  onClick={() => adjustGold(sideIdx, GOLD_STEP)}
                   className="w-7 h-7 rounded-lg text-sm font-bold active:scale-95 transition-transform flex items-center justify-center"
                   style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
-                  aria-label={`${names[sideIdx]} auksas plius 1`}
+                  aria-label={`Pridėti 100 aukso: ${names[sideIdx]}`}
                 >
                   +
                 </button>
@@ -230,13 +224,14 @@ export function BattleMode({
             onClick={handleExit}
             className="px-3 py-2.5 rounded-xl text-xs font-medium transition hover:opacity-80 min-h-[44px]"
             style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+            aria-label="Išeiti iš kovos režimo"
           >
             Išeiti
           </button>
         </div>
       </div>
 
-      {/* ===== PLAYER 1 — bottom, normal orientation ===== */}
+      {/* PLAYER 1 — bottom */}
       <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 py-3" style={{ minHeight: 0 }}>
         <PlayerZone
           sideIdx={0}
@@ -249,7 +244,7 @@ export function BattleMode({
         />
       </div>
 
-      {/* ===== Win Overlay ===== */}
+      {/* Win Overlay */}
       {winner !== null && (
         <div
           className="absolute inset-0 z-10 flex items-center justify-center p-4"
@@ -286,10 +281,10 @@ export function BattleMode({
         </div>
       )}
 
-      {/* ===== Confirm: Nauja partija ===== */}
+      {/* Confirm: Nauja partija */}
       {confirmNewGame && (
         <div
-          className="absolute inset-0 z-10 flex items-center justify-center p-4"
+          className="absolute inset-0 z-[11] flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(4px)' }}
         >
           <div
@@ -328,9 +323,7 @@ export function BattleMode({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PlayerZone — compact HP panel for BattleMode
-// ─────────────────────────────────────────────────────────────────────────────
 type PlayerZoneProps = {
   sideIdx: 0 | 1
   name: string
@@ -365,7 +358,6 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
       />
 
       <div className="relative z-10 flex flex-col items-center justify-center gap-2 p-4 flex-1">
-        {/* Name */}
         <p
           className="text-sm font-semibold"
           style={{ color: 'var(--text-primary)', fontFamily: 'Cinzel, Georgia, serif' }}
@@ -373,7 +365,6 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
           {name}
         </p>
 
-        {/* HP */}
         <div
           className="text-7xl font-bold leading-none"
           style={{
@@ -385,7 +376,6 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
           {hp}
         </div>
 
-        {/* Status badges */}
         {isCritical && (
           <span
             className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -403,7 +393,6 @@ function PlayerZone({ sideIdx, name, hp, isActive, flashType, flashKey, onHpChan
           </span>
         )}
 
-        {/* HP buttons */}
         <div className="w-full space-y-1.5">
           <div className="flex gap-1.5">
             {[-10, -5, -1].map((v) => (

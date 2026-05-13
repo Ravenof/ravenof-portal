@@ -88,7 +88,7 @@ export function LifePanel({
             className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444' }}
           >
-            DEFEATED
+            PRALAIMĖJO
           </span>
         )}
         {isDanger && !isCritical && (
@@ -96,7 +96,7 @@ export function LifePanel({
             className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'rgba(249,115,22,0.2)', color: '#f97316' }}
           >
-            CRITICAL
+            KRITINIS
           </span>
         )}
 

@@ -8,7 +8,7 @@ type Props = {
 
 function formatEntry(e: LogEntry): string {
   const sign = e.change > 0 ? '+' : ''
-  return `Round ${e.round} — ${e.targetName} ${sign}${e.change} HP: ${e.prevHp} → ${e.newHp}`
+  return `Ratas ${e.round} — ${e.targetName} ${sign}${e.change} HP: ${e.prevHp} → ${e.newHp}`
 }
 
 export function ActionLog({ log }: Props) {
@@ -24,7 +24,7 @@ export function ActionLog({ log }: Props) {
           className="text-xs font-semibold uppercase tracking-wider"
           style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}
         >
-          Action Log
+          Veiksmų žurnalas
         </h3>
       </div>
       <div>
