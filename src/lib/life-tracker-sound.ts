@@ -10,13 +10,20 @@ function getCtx(): AudioContext | null {
       if (!Ctor) return null
       _audioCtx = new Ctor()
     }
-    // Resume if suspended (browser autoplay policy)
-    if (_audioCtx.state === 'suspended') {
-      _audioCtx.resume().catch(() => {})
-    }
     return _audioCtx
   } catch {
     return null
+  }
+}
+
+/** Unlock AudioContext if suspended, then run callback */
+function withCtx(fn: (ctx: AudioContext) => void): void {
+  const ctx = getCtx()
+  if (!ctx) return
+  if (ctx.state === 'running') {
+    fn(ctx)
+  } else {
+    ctx.resume().then(() => fn(ctx)).catch(() => {})
   }
 }
 
@@ -28,30 +35,29 @@ function beep(
   gainVal: number,
   startOffset = 0,
 ): void {
-  const ctx = getCtx()
-  if (!ctx) return
-  try {
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.type = type
-    osc.frequency.setValueAtTime(freq, ctx.currentTime + startOffset)
-    osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + startOffset + duration)
-    gain.gain.setValueAtTime(gainVal, ctx.currentTime + startOffset)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration)
-    osc.start(ctx.currentTime + startOffset)
-    osc.stop(ctx.currentTime + startOffset + duration)
-  } catch {
-    // ignore audio errors
-  }
+  withCtx((ctx) => {
+    try {
+      const osc  = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = type
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + startOffset)
+      osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + startOffset + duration)
+      gain.gain.setValueAtTime(gainVal, ctx.currentTime + startOffset)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration)
+      osc.start(ctx.currentTime + startOffset)
+      osc.stop(ctx.currentTime + startOffset + duration)
+    } catch {
+      // ignore audio errors
+    }
+  })
 }
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-// 5 damage synth variants
 const DAMAGE_SYNTHS: Array<() => void> = [
   () => beep(220, 80,  'sawtooth', 0.20, 0.30),
   () => beep(180, 55,  'sawtooth', 0.25, 0.35),
@@ -60,7 +66,6 @@ const DAMAGE_SYNTHS: Array<() => void> = [
   () => beep(200, 50,  'sawtooth', 0.22, 0.40),
 ]
 
-// 5 heal synth variants
 const HEAL_SYNTHS: Array<() => void> = [
   () => beep(440, 660, 'sine',     0.18, 0.20),
   () => beep(520, 780, 'sine',     0.16, 0.18),
@@ -92,12 +97,10 @@ function playMp3(src: string): void {
   }
 }
 
-/** Sword clash sound */
 export function playSwordClashSound(): void {
   playMp3('/sounds/sword-clash.mp3')
 }
 
-/** Victory applause */
 export function playWinSound(): void {
   playMp3('/sounds/applause.mp3')
 }
