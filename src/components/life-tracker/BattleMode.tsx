@@ -72,7 +72,7 @@ export function BattleMode({
     }
   }, [round])
 
-  // Fullscreen — not touching this logic
+  // Fullscreen
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -108,7 +108,7 @@ export function BattleMode({
       className="fixed inset-0 z-50 flex flex-col overflow-hidden select-none"
       style={{ background: 'var(--bg-base)' }}
     >
-      {/* PLAYER 2 — top, rotated 180deg */}
+      {/* PLAYER 2 -- top, rotated 180deg */}
       <div
         className="flex-1 flex flex-col items-center justify-center gap-2 px-3 py-2"
         style={{ transform: 'rotate(180deg)', minHeight: 0 }}
@@ -136,7 +136,7 @@ export function BattleMode({
           boxShadow: 'inset 0 1px 0 rgba(232,200,74,.08), 0 4px 12px rgba(0,0,0,.5)',
         }}
       >
-        {/* Ėjimas + žaidžia */}
+        {/* Ėjimas + zaidzia */}
         <div className="flex items-center justify-between gap-2">
           <span
             className="text-lg font-bold"
@@ -166,24 +166,26 @@ export function BattleMode({
           </span>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-1.5">
-          <LTButton variant="muted" size="sm" onClick={onUndo} disabled={logLength === 0} aria-label="Atšaukti paskutinį veiksmą">
-            &#8617; Atšaukti
-          </LTButton>
+        {/* Action buttons -- 2 rows for mobile */}
+        <div className="space-y-1.5">
           <LTButton variant="primary" size="sm" fullWidth onClick={onNextTurn}>
             Kitas ėjimas &rarr;
           </LTButton>
-          <LTButton variant="secondary" size="sm" onClick={() => setConfirmNewGame(true)}>
-            Nauja partija
-          </LTButton>
-          <LTButton variant="danger" size="sm" onClick={handleExit} aria-label="Išeiti iš kovos režimo">
-            Išeiti
-          </LTButton>
+          <div className="flex gap-1.5">
+            <LTButton variant="muted" size="sm" fullWidth onClick={onUndo} disabled={logLength === 0} aria-label="Atšaukti paskutinį veiksmą">
+              &#8617; Atšaukti
+            </LTButton>
+            <LTButton variant="secondary" size="sm" fullWidth onClick={() => setConfirmNewGame(true)}>
+              Nauja partija
+            </LTButton>
+            <LTButton variant="danger" size="sm" fullWidth onClick={handleExit} aria-label="Išeiti iš kovos režimo">
+              Išeiti
+            </LTButton>
+          </div>
         </div>
       </div>
 
-      {/* PLAYER 1 — bottom */}
+      {/* PLAYER 1 -- bottom */}
       <div className="flex-1 flex flex-col items-center justify-center gap-2 px-3 py-2" style={{ minHeight: 0 }}>
         <PlayerZone
           sideIdx={0}
@@ -215,7 +217,7 @@ export function BattleMode({
               boxShadow: '0 8px 40px rgba(0,0,0,.8), 0 0 48px rgba(212,175,55,.18)',
             }}
           >
-            <div className="text-5xl" aria-hidden>🏆</div>
+            <div className="text-5xl" aria-hidden>&#127942;</div>
             <p className="text-2xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#d4af37', textShadow: '0 0 16px rgba(212,175,55,.5)' }}>
               {winMessage}
             </p>
@@ -268,7 +270,7 @@ export function BattleMode({
   )
 }
 
-// ── PlayerZone ──────────────────────────────────────────────────────────────
+// PlayerZone
 type PlayerZoneProps = {
   sideIdx: 0 | 1
   name: string
@@ -421,13 +423,13 @@ function PlayerZone({ sideIdx, name, hp, gold, isActive, flashType, flashKey, on
 
         {/* Auksas */}
         <div className="flex items-center gap-2 mt-1">
-          <LTButton variant="damage" size="xs" onClick={() => onGoldAdjust(-GOLD_STEP)} aria-label={`Atimti ${GOLD_STEP} aukso`}>
+          <LTButton variant="damage" size="xs" onClick={() => onGoldAdjust(-GOLD_STEP)} aria-label="Atimti auksus">
             &minus;
           </LTButton>
           <span className="text-sm font-bold tabular-nums min-w-[4.5rem] text-center" style={{ color: '#d4af37', fontFamily: 'Cinzel, Georgia, serif', textShadow: '0 0 8px rgba(212,175,55,.3)' }}>
             {gold}&thinsp;&#10052;
           </span>
-          <LTButton variant="heal" size="xs" onClick={() => onGoldAdjust(GOLD_STEP)} aria-label={`Pridėti ${GOLD_STEP} aukso`}>
+          <LTButton variant="heal" size="xs" onClick={() => onGoldAdjust(GOLD_STEP)} aria-label="Prideti auksus">
             +
           </LTButton>
         </div>
