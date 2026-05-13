@@ -3,14 +3,14 @@
 import { ButtonHTMLAttributes, ReactNode, useState } from 'react'
 
 export type LTVariant =
-  | 'primary'    // Kitas ėjimas — gold
-  | 'battle'     // Kovos režimas — violet
-  | 'secondary'  // Nauja partija — silver-dark
-  | 'muted'      // Atšaukti — dim
-  | 'danger'     // Išeiti — crimson
-  | 'damage'     // -10 / -5 / -1 — dark red
-  | 'heal'       // +1 / +5 / +10 — dark green
-  | 'gold'       // ±100 auksas — coin gold
+  | 'primary'    // Kitas ejimas -- gold
+  | 'battle'     // Kovos rezimas -- violet
+  | 'secondary'  // Nauja partija -- silver-dark
+  | 'muted'      // Atsaukti -- dim
+  | 'danger'     // Iseiti -- crimson
+  | 'damage'     // -10 / -5 / -1 -- dark red
+  | 'heal'       // +1 / +5 / +10 -- dark green
+  | 'gold'       // +-100 auksas -- coin gold
 
 export type LTSize = 'xs' | 'sm' | 'md' | 'lg'
 
@@ -30,13 +30,11 @@ const SIZES: Record<LTSize, React.CSSProperties> = {
 
 type VDef = { base: React.CSSProperties; hover: React.CSSProperties; press: React.CSSProperties }
 
-// Bevel helper: top=highlight, right/left=mid, bottom=shadow
 function bevel(top: string, mid: string, bot: string, w = '1.5px'): React.CSSProperties {
   return { borderTop: `${w} solid ${top}`, borderRight: `${w} solid ${mid}`, borderBottom: `${w} solid ${bot}`, borderLeft: `${w} solid ${mid}` }
 }
 
 const V: Record<LTVariant, VDef> = {
-  // ── PRIMARY — gold ──────────────────────────────────────────────────────────
   primary: {
     base: {
       ...bevel('#e8c84a', '#a07820', '#5a3e08'),
@@ -56,8 +54,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: '0 1px 3px rgba(0,0,0,.6), 0 0 6px rgba(212,175,55,.18), inset 0 2px 7px rgba(0,0,0,.6)',
     },
   },
-
-  // ── BATTLE — violet ─────────────────────────────────────────────────────────
   battle: {
     base: {
       ...bevel('#a78bfa', '#6d28d9', '#3b0764'),
@@ -77,8 +73,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: '0 1px 3px rgba(0,0,0,.6), 0 0 8px rgba(124,58,237,.22), inset 0 2px 7px rgba(0,0,0,.6)',
     },
   },
-
-  // ── SECONDARY — silver metal ─────────────────────────────────────────────────
   secondary: {
     base: {
       ...bevel('#5a5a5a', '#2e2e2e', '#141414'),
@@ -97,8 +91,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: '0 1px 2px rgba(0,0,0,.55), inset 0 2px 6px rgba(0,0,0,.5)',
     },
   },
-
-  // ── MUTED — dim ─────────────────────────────────────────────────────────────
   muted: {
     base: {
       ...bevel('#2e2e2e', '#1c1c1c', '#0c0c0c', '1px'),
@@ -117,8 +109,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: 'inset 0 2px 5px rgba(0,0,0,.45)',
     },
   },
-
-  // ── DANGER — crimson ─────────────────────────────────────────────────────────
   danger: {
     base: {
       ...bevel('#f87171', '#9b1c1c', '#5a0a0a'),
@@ -138,8 +128,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: '0 1px 3px rgba(0,0,0,.6), 0 0 6px rgba(239,68,68,.18), inset 0 2px 7px rgba(0,0,0,.6)',
     },
   },
-
-  // ── DAMAGE — dark red ────────────────────────────────────────────────────────
   damage: {
     base: {
       ...bevel('rgba(248,113,113,.55)', 'rgba(239,68,68,.3)', 'rgba(127,29,29,.6)'),
@@ -158,8 +146,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: '0 1px 2px rgba(0,0,0,.55), inset 0 2px 6px rgba(0,0,0,.55)',
     },
   },
-
-  // ── HEAL — dark green ────────────────────────────────────────────────────────
   heal: {
     base: {
       ...bevel('rgba(74,222,128,.55)', 'rgba(34,197,94,.3)', 'rgba(20,83,45,.6)'),
@@ -178,8 +164,6 @@ const V: Record<LTVariant, VDef> = {
       boxShadow: '0 1px 2px rgba(0,0,0,.55), inset 0 2px 6px rgba(0,0,0,.55)',
     },
   },
-
-  // ── GOLD — coin ──────────────────────────────────────────────────────────────
   gold: {
     base: {
       ...bevel('#f0c040', 'rgba(196,154,40,.65)', 'rgba(90,62,16,.7)'),
@@ -208,10 +192,10 @@ export function LTButton({
   children,
   style,
   disabled,
-  onMouseEnter,
-  onMouseLeave,
-  onMouseDown,
-  onMouseUp,
+  onPointerEnter,
+  onPointerLeave,
+  onPointerDown,
+  onPointerUp,
   ...rest
 }: Props) {
   const [hov, setHov] = useState(false)
@@ -229,6 +213,8 @@ export function LTButton({
     fontWeight: 700,
     cursor: disabled ? 'not-allowed' : 'pointer',
     userSelect: 'none',
+    WebkitTapHighlightColor: 'transparent',
+    touchAction: 'manipulation',
     transition: 'box-shadow .15s ease, border-color .15s ease, background .15s ease, transform .08s ease, text-shadow .15s ease',
     width: fullWidth ? '100%' : undefined,
     textAlign: 'center' as const,
@@ -247,10 +233,10 @@ export function LTButton({
       {...rest}
       disabled={disabled}
       style={computed}
-      onMouseEnter={(e) => { setHov(true);                onMouseEnter?.(e) }}
-      onMouseLeave={(e) => { setHov(false); setPress(false); onMouseLeave?.(e) }}
-      onMouseDown={(e)  => { setPress(true);               onMouseDown?.(e) }}
-      onMouseUp={(e)    => { setPress(false);              onMouseUp?.(e) }}
+      onPointerEnter={(e) => { setHov(true);                  onPointerEnter?.(e) }}
+      onPointerLeave={(e) => { setHov(false); setPress(false); onPointerLeave?.(e) }}
+      onPointerDown={(e)  => { setPress(true);                onPointerDown?.(e) }}
+      onPointerUp={(e)    => { setPress(false);               onPointerUp?.(e) }}
     >
       {children}
     </button>

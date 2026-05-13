@@ -20,7 +20,7 @@ export function HPControls({ sideIdx, onHpChange }: Props) {
             variant="damage"
             size="sm"
             style={{ flex: 1 }}
-            onClick={() => onHpChange(sideIdx, v)}
+            onPointerDown={(e) => { e.preventDefault(); onHpChange(sideIdx, v) }}
             aria-label={`${v} HP`}
           >
             {v}
@@ -34,7 +34,7 @@ export function HPControls({ sideIdx, onHpChange }: Props) {
             variant="heal"
             size="sm"
             style={{ flex: 1 }}
-            onClick={() => onHpChange(sideIdx, v)}
+            onPointerDown={(e) => { e.preventDefault(); onHpChange(sideIdx, v) }}
             aria-label={`+${v} HP`}
           >
             +{v}

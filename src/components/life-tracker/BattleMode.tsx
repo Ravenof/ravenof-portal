@@ -407,14 +407,14 @@ function PlayerZone({ sideIdx, name, hp, gold, isActive, flashType, flashKey, on
         <div className="w-full space-y-1.5 mt-0.5">
           <div className="flex gap-1.5">
             {[-10, -5, -1].map((v) => (
-              <LTButton key={v} variant="damage" size="sm" style={{ flex: 1 }} onClick={() => onHpChange(sideIdx, v)} aria-label={`${v} HP`}>
+              <LTButton key={v} variant="damage" size="sm" style={{ flex: 1 }} onPointerDown={(e) => { e.preventDefault(); onHpChange(sideIdx, v) }} aria-label={`${v} HP`}>
                 {v}
               </LTButton>
             ))}
           </div>
           <div className="flex gap-1.5">
             {[1, 5, 10].map((v) => (
-              <LTButton key={v} variant="heal" size="sm" style={{ flex: 1 }} onClick={() => onHpChange(sideIdx, v)} aria-label={`+${v} HP`}>
+              <LTButton key={v} variant="heal" size="sm" style={{ flex: 1 }} onPointerDown={(e) => { e.preventDefault(); onHpChange(sideIdx, v) }} aria-label={`+${v} HP`}>
                 +{v}
               </LTButton>
             ))}
