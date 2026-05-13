@@ -13,8 +13,9 @@ type OwnedToggleProps = {
 
 export function OwnedToggle({ cardId, isAuthenticated, size = 'sm' }: OwnedToggleProps) {
   const [loading, setLoading] = useState(false)
-  const { collection, toggleOwned } = useCollectionStore()
-  const isOwned = (collection[cardId] ?? 0) > 0
+  // Tikslus selector -- re-render tik kai SIO kortos statusas keiciasi
+  const isOwned = useCollectionStore((state) => (state.collection[cardId] ?? 0) > 0)
+  const toggleOwned = useCollectionStore((state) => state.toggleOwned)
 
   if (!isAuthenticated) return null
 
@@ -33,7 +34,7 @@ export function OwnedToggle({ cardId, isAuthenticated, size = 'sm' }: OwnedToggl
     <button
       onClick={handleClick}
       disabled={loading}
-      title={isOwned ? 'Turiu — spausti norėdamas pašalinti' : 'Pažymėti kaip turimą'}
+      title={isOwned ? 'Turiu -- spausti noredamas pasalinti' : 'Pazymeti kaip turima'}
       className={cn(
         'flex items-center justify-center rounded-full border-2 transition-all duration-200 disabled:opacity-50',
         sz,

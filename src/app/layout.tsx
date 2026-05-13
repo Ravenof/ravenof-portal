@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: 'Ravenof Portal',
     template: '%s | Ravenof Portal',
   },
-  description: 'Ravenof fantasy kortų žaidimo companion portalas',
+  description: 'Ravenof fantasy kortu zaidimo companion portalas',
 }
 
 export default function RootLayout({
@@ -17,6 +17,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="lt" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        />
+      </head>
       <body className="pb-16 lg:pb-0">
         {children}
         <MobileNav />
