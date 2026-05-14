@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ActionType } from '@/types/life-tracker'
-import { playWinSound } from '@/lib/life-tracker-sound'
+import { playWinSound, playCoinSound } from '@/lib/life-tracker-sound'
 import { LTButton } from './LTButton'
 
 function calcGold(round: number): number {
@@ -91,7 +91,8 @@ export function BattleMode({
       next[sideIdx] = Math.max(0, next[sideIdx] + delta)
       return next
     })
-  }, [])
+    if (soundEnabled) playCoinSound()
+  }, [soundEnabled])
 
   const handleConfirmNewGame = useCallback(() => {
     setConfirmNewGame(false)

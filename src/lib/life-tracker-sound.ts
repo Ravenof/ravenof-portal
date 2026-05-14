@@ -1,3 +1,4 @@
+// ── Audio Context (Web Audio API fallback synths) ─────────────────────────────
 let _audioCtx: AudioContext | null = null
 
 function getCtx(): AudioContext | null {
@@ -16,7 +17,6 @@ function getCtx(): AudioContext | null {
   }
 }
 
-/** Unlock AudioContext if suspended, then run callback */
 function withCtx(fn: (ctx: AudioContext) => void): void {
   const ctx = getCtx()
   if (!ctx) return
@@ -27,14 +27,7 @@ function withCtx(fn: (ctx: AudioContext) => void): void {
   }
 }
 
-function beep(
-  freq: number,
-  endFreq: number,
-  type: OscillatorType,
-  duration: number,
-  gainVal: number,
-  startOffset = 0,
-): void {
+function beep(freq: number, endFreq: number, type: OscillatorType, duration: number, gainVal: number, startOffset = 0): void {
   withCtx((ctx) => {
     try {
       const osc  = ctx.createOscillator()
@@ -48,16 +41,61 @@ function beep(
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration)
       osc.start(ctx.currentTime + startOffset)
       osc.stop(ctx.currentTime + startOffset + duration)
-    } catch {
-      // ignore audio errors
-    }
+    } catch { /* ignore */ }
   })
 }
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+// ── MP3 Cache ─────────────────────────────────────────────────────────────────
+const audioCache = new Map<string, HTMLAudioElement>()
+
+function getCachedAudio(src: string, volume = 0.5): HTMLAudioElement | null {
+  if (typeof window === 'undefined') return null
+  try {
+    let audio = audioCache.get(src)
+    if (!audio) {
+      audio = new Audio(src)
+      audio.preload = 'auto'
+      audio.volume = volume
+      audioCache.set(src, audio)
+    }
+    return audio
+  } catch {
+    return null
+  }
 }
 
+function playCachedSound(src: string, volume = 0.5, fallback?: () => void): void {
+  const audio = getCachedAudio(src, volume)
+  if (!audio) { fallback?.(); return }
+  audio.volume = volume
+  audio.currentTime = 0
+  void audio.play().catch(() => { fallback?.() })
+}
+
+// ── Sound paths ───────────────────────────────────────────────────────────────
+const DAMAGE_SOUNDS = [
+  '/sounds/damage-1.mp3',
+  '/sounds/damage-2.mp3',
+  '/sounds/damage-3.mp3',
+  '/sounds/damage-4.mp3',
+  '/sounds/damage-5.mp3',
+]
+
+const HEAL_SOUNDS = [
+  '/sounds/heal-1.mp3',
+  '/sounds/heal-2.mp3',
+  '/sounds/heal-3.mp3',
+  '/sounds/heal-4.mp3',
+  '/sounds/heal-5.mp3',
+]
+
+const COIN_SOUNDS = [
+  '/sounds/coin-1.mp3',
+  '/sounds/coin-2.mp3',
+  '/sounds/coin-3.mp3',
+]
+
+// ── Synth fallbacks ───────────────────────────────────────────────────────────
 const DAMAGE_SYNTHS: Array<() => void> = [
   () => beep(220, 80,  'sawtooth', 0.20, 0.30),
   () => beep(180, 55,  'sawtooth', 0.25, 0.35),
@@ -74,33 +112,52 @@ const HEAL_SYNTHS: Array<() => void> = [
   () => beep(350, 700, 'triangle', 0.22, 0.20),
 ]
 
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+// ── Preload ───────────────────────────────────────────────────────────────────
+export function preloadLifeTrackerSounds(): void {
+  if (typeof window === 'undefined') return
+  const all = [...DAMAGE_SOUNDS, ...HEAL_SOUNDS, ...COIN_SOUNDS,
+                '/sounds/sword-clash.mp3', '/sounds/applause.mp3']
+  for (const src of all) {
+    getCachedAudio(src, 0.5)
+  }
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
 export function playDamageSound(): void {
-  pickRandom(DAMAGE_SYNTHS)()
+  const idx = Math.floor(Math.random() * DAMAGE_SOUNDS.length)
+  playCachedSound(DAMAGE_SOUNDS[idx], 0.6, DAMAGE_SYNTHS[idx])
 }
 
 export function playHealSound(): void {
-  pickRandom(HEAL_SYNTHS)()
+  const idx = Math.floor(Math.random() * HEAL_SOUNDS.length)
+  playCachedSound(HEAL_SOUNDS[idx], 0.6, HEAL_SYNTHS[idx])
+}
+
+export function playCoinSound(): void {
+  playCachedSound(pickRandom(COIN_SOUNDS), 0.45, () => {
+    beep(800, 1200, 'sine', 0.06, 0.12)
+  })
 }
 
 export function playTurnSound(): void {
   beep(350, 350, 'sine', 0.08, 0.1)
 }
 
-function playMp3(src: string): void {
-  if (typeof window === 'undefined') return
-  try {
-    const audio = new Audio(src)
-    audio.volume = 0.7
-    audio.play().catch(() => {})
-  } catch {
-    // ignore
-  }
-}
-
 export function playSwordClashSound(): void {
-  playMp3('/sounds/sword-clash.mp3')
+  playCachedSound('/sounds/sword-clash.mp3', 0.7, () => {
+    beep(300, 150, 'sawtooth', 0.12, 0.35)
+    beep(250, 100, 'square',   0.10, 0.28, 0.05)
+  })
 }
 
 export function playWinSound(): void {
-  playMp3('/sounds/applause.mp3')
+  playCachedSound('/sounds/applause.mp3', 0.7, () => {
+    beep(523, 659, 'sine', 0.15, 0.18)
+    beep(659, 784, 'sine', 0.15, 0.16, 0.18)
+    beep(784, 1047,'sine', 0.20, 0.20, 0.36)
+  })
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import type { GameMode, GameState, LogEntry, ActionType } from '@/types/life-tracker'
 import { defaultState, loadState, saveState } from '@/lib/life-tracker-storage'
-import { playDamageSound, playHealSound, playTurnSound, playSwordClashSound, playWinSound } from '@/lib/life-tracker-sound'
+import { playDamageSound, playHealSound, playTurnSound, playSwordClashSound, playWinSound, playCoinSound, preloadLifeTrackerSounds } from '@/lib/life-tracker-sound'
 import { LifePanel } from '@/components/life-tracker/LifePanel'
 import { TurnTracker } from '@/components/life-tracker/TurnTracker'
 import { ActionLog } from '@/components/life-tracker/ActionLog'
@@ -42,6 +42,7 @@ export function LifeTrackerClient() {
       setNormalGold(calcGold(saved.round))
     }
     setHydrated(true)
+    preloadLifeTrackerSounds()
   }, [])
 
   useEffect(() => {
@@ -153,6 +154,7 @@ export function LifeTrackerClient() {
 
   const handleGoldAdjust = useCallback((delta: number) => {
     setNormalGold((prev) => Math.max(0, prev + delta))
+    if (soundRef.current) playCoinSound()
   }, [])
 
   const resetGame = useCallback((mode: GameMode, keepNames: boolean) => {
