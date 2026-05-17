@@ -36,7 +36,7 @@ export async function saveEvent(
     ends_at:     ends_at_raw || null,
     capacity:    capacity_raw ? parseInt(capacity_raw, 10) : null,
     status:      (formData.get('status') as string) || 'draft',
-    event_type:  (formData.get('event_type') as string) || 'playtestas',
+    event_type:  (['playtestas','turnyras','kita'].includes(formData.get('event_type') as string) ? formData.get('event_type') as string : 'playtestas'),
     created_by:  user.id,
   }
 
@@ -193,5 +193,54 @@ export async function startTournament(eventId: string): Promise<{ error?: string
 
   revalidatePath('/admin/events/' + eventId + '/edit')
   revalidatePath('/events/' + eventId)
+  return {}
+}
+
+
+// ── TASK 5: resolveDisputedMatch ──────────────────────────────────────────────
+
+export async function resolveDisputedMatch(
+  matchId: string,
+  winnerPlayerId: string,
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprisijungęs' }
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role))
+    return { error: 'Neturi teisės' }
+
+  const { data: match } = await supabase
+    .from('tournament_matches')
+    .select('id, event_id, player1_id, player2_id, status')
+    .eq('id', matchId)
+    .single()
+
+  if (!match)                        return { error: 'Mačas nerastas' }
+  if (match.status !== 'disputed')   return { error: 'Mačas nėra ginčytinas' }
+  if (winnerPlayerId !== match.player1_id && winnerPlayerId !== match.player2_id)
+    return { error: 'Neteisingas žaidėjas' }
+
+  const loserId = winnerPlayerId === match.player1_id ? match.player2_id : match.player1_id
+
+  const { error: updErr } = await supabase
+    .from('tournament_matches')
+    .update({
+      status:       'admin_resolved',
+      winner_id:    winnerPlayerId,
+      loser_id:     loserId,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', matchId)
+
+  if (updErr) return { error: 'Klaida: ' + updErr.message }
+
+  // TODO: advanceTournamentAfterConfirmedMatch(matchId) — v3
+
+  revalidatePath('/admin/events/' + match.event_id + '/edit')
+  revalidatePath('/events/' + match.event_id)
   return {}
 }

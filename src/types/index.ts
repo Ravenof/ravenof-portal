@@ -247,6 +247,15 @@ export type TournamentPlayer = {
   created_at: string
 }
 
+export type TournamentMatchStatus =
+  | 'pending'
+  | 'active'
+  | 'reported_by_one'
+  | 'confirmed'
+  | 'disputed'
+  | 'admin_resolved'
+  | 'completed'
+
 export type TournamentMatch = {
   id: string
   event_id: string
@@ -255,9 +264,21 @@ export type TournamentMatch = {
   player1_id: string | null
   player2_id: string | null
   winner_id: string | null
+  loser_id: string | null
   is_bye: boolean
   bracket: 'winners' | 'losers' | 'grand_final'
-  status: 'pending' | 'active' | 'completed'
+  status: TournamentMatchStatus
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type TournamentMatchReport = {
+  id: string
+  match_id: string
+  reported_by_user_id: string
+  tournament_player_id: string
+  claimed_result: 'win' | 'loss'
   created_at: string
   updated_at: string
 }
