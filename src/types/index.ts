@@ -208,6 +208,10 @@ export type DeckCardWithCard = {
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed'
 export type RegistrationStatus = 'registered' | 'cancelled' | 'attended' | 'no_show'
 
+// TASK 13: Tournament types
+export type EventType = 'playtestas' | 'turnyras' | 'kita'
+export type TournamentStatus = 'pending' | 'active' | 'completed'
+
 export type RavenEvent = {
   id: string
   title: string
@@ -217,6 +221,8 @@ export type RavenEvent = {
   ends_at: string | null
   capacity: number | null
   status: EventStatus
+  event_type: EventType
+  tournament_status: TournamentStatus | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -228,6 +234,30 @@ export type EventRegistration = {
   event_id: string
   user_id: string
   status: RegistrationStatus
+  created_at: string
+  updated_at: string
+}
+
+export type TournamentPlayer = {
+  id: string
+  event_id: string
+  user_id: string
+  seed: number | null
+  placement: number | null
+  created_at: string
+}
+
+export type TournamentMatch = {
+  id: string
+  event_id: string
+  round: number
+  match_number: number
+  player1_id: string | null
+  player2_id: string | null
+  winner_id: string | null
+  is_bye: boolean
+  bracket: 'winners' | 'losers' | 'grand_final'
+  status: 'pending' | 'active' | 'completed'
   created_at: string
   updated_at: string
 }

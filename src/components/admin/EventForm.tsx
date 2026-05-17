@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveEvent, type EventFormState } from '@/app/admin/events/actions'
-import type { RavenEvent } from '@/types'
+import type { RavenEvent, EventType } from '@/types'
 
 type Props = {
   eventId: string | null
@@ -91,6 +91,16 @@ export function EventForm({ eventId, initialData }: Props) {
             defaultValue={initialData?.capacity ?? ''}
             placeholder="pvz. 32 (tuščia = neribota)"
             style={inputStyle} />
+        </div>
+
+        {/* Event Type — TASK 5 */}
+        <div>
+          <label style={labelStyle}>Renginio tipas *</label>
+          <select name="event_type" defaultValue={(initialData as Partial<RavenEvent>)?.event_type ?? 'playtestas'} style={inputStyle}>
+            <option value="playtestas">Playtestas</option>
+            <option value="turnyras">Turnyras</option>
+            <option value="kita">Kita</option>
+          </select>
         </div>
 
         {/* Status */}
