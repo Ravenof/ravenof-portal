@@ -245,6 +245,10 @@ export type TournamentPlayer = {
   seed: number | null
   placement: number | null
   created_at: string
+  // v3 additions
+  losses_count?: number
+  status?: 'active' | 'eliminated'
+  final_placement?: number | null
 }
 
 export type TournamentMatchStatus =
@@ -271,6 +275,8 @@ export type TournamentMatch = {
   completed_at: string | null
   created_at: string
   updated_at: string
+  // v3 additions
+  advanced_at?: string | null
 }
 
 export type TournamentMatchReport = {

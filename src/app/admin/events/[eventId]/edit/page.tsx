@@ -3,9 +3,12 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { EventForm } from '@/components/admin/EventForm'
 import { StartTournamentButton } from '@/components/admin/StartTournamentButton'
+import { RecalculateBracketButton } from '@/components/admin/RecalculateBracketButton'
+import { AwardRewardsButton } from '@/components/admin/AwardRewardsButton'
 import { DisputedMatchAdmin } from '@/components/tournament/DisputedMatchAdmin'
+import { AdminMatchOverride } from '@/components/admin/AdminMatchOverride'
 import { updateRegistrationStatus } from '@/app/admin/events/actions'
-import { formatMatchStatus, matchStatusColor } from '@/lib/tournament/helpers'
+import { formatMatchStatus, matchStatusColor, formatBracket } from '@/lib/tournament/helpers'
 import type { RavenEvent, EventRegistration, Profile, RegistrationStatus, TournamentPlayer, TournamentMatch } from '@/types'
 
 type Params = Promise<{ eventId: string }>
@@ -39,7 +42,6 @@ export default async function EditEventPage({ params }: { params: Params }) {
   const ev = event as RavenEvent & { created_by: string }
   if (role === 'event_moderator' && ev.created_by !== user.id) redirect('/admin/events')
 
-  // Registracijos
   const { data: regs } = await supabase
     .from('event_registrations').select('*').eq('event_id', eventId)
     .order('created_at', { ascending: true })
@@ -59,7 +61,6 @@ export default async function EditEventPage({ params }: { params: Params }) {
     r => r.status === 'registered' || r.status === 'attended'
   ).length
 
-  // Turnyro duomenys
   type PlayerWithProfile = TournamentPlayer & { username?: string; display_name?: string | null }
 
   let tPlayers: PlayerWithProfile[] = []
@@ -91,7 +92,6 @@ export default async function EditEventPage({ params }: { params: Params }) {
 
   const tPlayerMap = Object.fromEntries(tPlayers.map(p => [p.id, p]))
 
-  // Ginčytini mačai — DisputedMatchAdmin
   const disputedMatches = tMatches
     .filter(m => m.status === 'disputed')
     .map(m => ({
@@ -107,7 +107,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
         style={{ background: 'rgba(10,10,15,0.97)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-xl mx-auto flex items-center gap-4">
           <Link href="/admin/events" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            ← Renginiai
+            Renginiai
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
@@ -120,14 +120,13 @@ export default async function EditEventPage({ params }: { params: Params }) {
           {ev.event_type === 'turnyras' && (
             <span className="text-xs px-2 py-0.5 rounded"
               style={{ background: '#6d28d920', color: '#a78bfa', border: '1px solid #6d28d940' }}>
-              ⚔ TURNYRAS
+              TURNYRAS
             </span>
           )}
         </div>
       </header>
 
       <div className="max-w-screen-xl mx-auto px-6 py-8 space-y-8">
-        {/* Viršutinė eilutė: forma + dalyviai */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
           <div>
             <h1 className="text-2xl font-bold mb-6"
@@ -143,7 +142,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
               style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
               <h2 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Dalyviai</h2>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {registeredCount}{ev.capacity ? `/${ev.capacity}` : ''}
+                {registeredCount}{ev.capacity ? ('/' + ev.capacity) : ''}
               </span>
             </div>
             {registrations.length === 0 ? (
@@ -176,14 +175,14 @@ export default async function EditEventPage({ params }: { params: Params }) {
                             color: REG_STATUS_COLORS[reg.status] ?? '#6b7280',
                             border: '1px solid ' + (REG_STATUS_COLORS[reg.status] ?? '#6b7280') + '40',
                           }}>
-                          <option value="registered">registered</option>
-                          <option value="cancelled">cancelled</option>
-                          <option value="attended">attended</option>
-                          <option value="no_show">no_show</option>
+                          <option value="registered">Registruotas</option>
+                          <option value="cancelled">Atšaukta</option>
+                          <option value="attended">Dalyvavo</option>
+                          <option value="no_show">Neatvyko</option>
                         </select>
                         <button type="submit" className="ml-2 text-xs px-2 py-1 rounded transition-opacity hover:opacity-80"
                           style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
-                          ✓
+                          OK
                         </button>
                       </form>
                     </div>
@@ -194,7 +193,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
           </div>
         </div>
 
-        {/* ── Turnyro sekcija ─────────────────────────────────────────────────── */}
+        {/* Turnyro sekcija */}
         {ev.event_type === 'turnyras' && (
           <div className="rounded-2xl overflow-hidden"
             style={{ border: '1px solid #6d28d940', background: 'linear-gradient(135deg,rgba(45,27,105,.1),rgba(15,9,48,.2))' }}>
@@ -203,7 +202,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
               style={{ borderBottom: '1px solid #6d28d940', background: 'rgba(109,40,217,.08)' }}>
               <div>
                 <h2 className="text-base font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#ddd6fe' }}>
-                  ⚔ Turnyro valdymas
+                  Turnyro valdymas
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {registeredCount} registruotų dalyvių
@@ -218,60 +217,94 @@ export default async function EditEventPage({ params }: { params: Params }) {
                   )}
                 </p>
               </div>
-              <StartTournamentButton
-                eventId={eventId}
-                playerCount={registeredCount}
-                tournamentStatus={ev.tournament_status}
-              />
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {(ev.tournament_status === 'active' || ev.tournament_status === 'completed') && (
+                  <AwardRewardsButton eventId={eventId} />
+                )}
+                {ev.tournament_status === 'active' && (
+                  <RecalculateBracketButton eventId={eventId} />
+                )}
+                <StartTournamentButton
+                  eventId={eventId}
+                  playerCount={registeredCount}
+                  tournamentStatus={ev.tournament_status}
+                />
+              </div>
             </div>
 
             <div className="p-6 space-y-6">
-              {/* TASK 5: Ginčytini mačai */}
               {disputedMatches.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold mb-3 uppercase tracking-wider"
                     style={{ color: '#ef4444', fontFamily: 'Cinzel, Georgia, serif' }}>
-                    ⚠ Ginčai dėl rezultatų
+                    Ginčai dėl rezultatų
                   </h3>
                   <DisputedMatchAdmin matches={disputedMatches} />
                 </div>
               )}
 
-              {/* Mačų sąrašas */}
               {tMatches.length > 0 ? (
                 <div>
                   <h3 className="text-sm font-semibold mb-4 uppercase tracking-wider" style={{ color: '#a78bfa' }}>
-                    1 Raundas — Laimėtojų šaka
+                    Visi mačai
                   </h3>
                   <div className="space-y-2">
                     {tMatches.map(match => {
                       const p1   = match.player1_id ? tPlayerMap[match.player1_id] : null
                       const p2   = match.player2_id ? tPlayerMap[match.player2_id] : null
                       const sc   = matchStatusColor(match.status)
-                      const p1Name = p1 ? `[Poz.${p1.seed}] ${p1.display_name || p1.username || '???'}` : '—'
-                      const p2Name = match.is_bye ? 'Laisvas praėjimas' : p2 ? `[Poz.${p2.seed}] ${p2.display_name || p2.username || '???'}` : '—'
+                      const p1Name = p1 ? ('[Poz.' + p1.seed + '] ' + (p1.display_name || p1.username || '???')) : '—'
+                      const p2Name = match.is_bye ? 'Laisvas praėjimas' : p2 ? ('[Poz.' + p2.seed + '] ' + (p2.display_name || p2.username || '???')) : '—'
                       return (
-                        <div key={match.id} className="rounded-xl p-3 flex items-center gap-3"
+                        <div key={match.id} className="rounded-xl overflow-hidden"
                           style={{
                             background: match.status === 'disputed' ? '#ef444410' : 'var(--bg-elevated)',
                             border: match.status === 'disputed' ? '1px solid #ef444450' : '1px solid var(--bg-border)',
                           }}>
-                          <span className="text-xs font-mono w-6 shrink-0" style={{ color: 'var(--text-muted)' }}>
-                            #{match.match_number}
-                          </span>
-                          <span className="flex-1 text-sm truncate"
-                            style={{ color: match.winner_id === match.player1_id ? '#22c55e' : 'var(--text-primary)', fontWeight: match.winner_id === match.player1_id ? 700 : 400 }}>
-                            {p1Name}
-                          </span>
-                          <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>vs</span>
-                          <span className="flex-1 text-sm truncate text-right"
-                            style={{ color: match.is_bye ? '#6b7280' : match.winner_id === match.player2_id ? '#22c55e' : 'var(--text-primary)', fontWeight: match.winner_id === match.player2_id ? 700 : 400, fontStyle: match.is_bye ? 'italic' : undefined }}>
-                            {p2Name}
-                          </span>
-                          <span className="text-xs px-2 py-0.5 rounded shrink-0 font-medium"
-                            style={{ background: sc + '20', color: sc }}>
-                            {match.is_bye ? 'Laisvas praėjimas' : formatMatchStatus(match.status)}
-                          </span>
+                          <div className="p-3 flex items-center gap-3">
+                            <span className="text-xs font-mono w-6 shrink-0" style={{ color: 'var(--text-muted)' }}>
+                              {'#' + match.match_number}
+                            </span>
+                            <span className="text-xs font-mono shrink-0 px-1.5 py-0.5 rounded"
+                              style={{ background: '#6d28d920', color: '#a78bfa' }}>
+                              {formatBracket(match.bracket)}
+                            </span>
+                            <span className="flex-1 text-sm truncate"
+                              style={{ color: match.winner_id === match.player1_id ? '#22c55e' : 'var(--text-primary)', fontWeight: match.winner_id === match.player1_id ? 700 : 400 }}>
+                              {p1Name}
+                            </span>
+                            <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>vs</span>
+                            <span className="flex-1 text-sm truncate text-right"
+                              style={{ color: match.is_bye ? '#6b7280' : match.winner_id === match.player2_id ? '#22c55e' : 'var(--text-primary)', fontWeight: match.winner_id === match.player2_id ? 700 : 400, fontStyle: match.is_bye ? 'italic' : undefined }}>
+                              {p2Name}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded shrink-0 font-medium"
+                              style={{ background: sc + '20', color: sc }}>
+                              {match.is_bye ? 'Bye' : formatMatchStatus(match.status)}
+                            </span>
+                          </div>
+                          {!match.is_bye && match.player1_id && match.player2_id && (
+                            <div className="px-3 pb-3">
+                              <AdminMatchOverride
+                                matchId={match.id}
+                                matchNumber={match.match_number}
+                                player1={p1 ? {
+                                  id:           match.player1_id,
+                                  seed:         p1.seed,
+                                  display_name: p1.display_name,
+                                  username:     p1.username,
+                                } : null}
+                                player2={p2 ? {
+                                  id:           match.player2_id,
+                                  seed:         p2.seed,
+                                  display_name: p2.display_name,
+                                  username:     p2.username,
+                                } : null}
+                                currentWinnerId={match.winner_id ?? null}
+                                currentStatus={match.status}
+                              />
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -279,7 +312,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
                 </div>
               ) : (
                 <div className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-                  Turnyras dar nepradėtas. Kai bus bent 2 registruoti dalyviai, galėsi startuoti.
+                  Turnyras dar nepradėtas arba mačų nėra.
                 </div>
               )}
             </div>

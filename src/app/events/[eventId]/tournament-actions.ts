@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { advanceTournamentAfterConfirmedMatch } from '@/lib/tournament/advancement'
+import { awardTournamentRewards } from '@/lib/tournament/rewards'
 
-// ── TASK 4: submitTournamentMatchReport ────────────────────────────────────
+// -- TASK 4: submitTournamentMatchReport
 
 export async function submitTournamentMatchReport(
   matchId: string,
@@ -23,7 +25,7 @@ export async function submitTournamentMatchReport(
     .single()
 
   if (!match)                                          return { error: 'Mačas nerastas' }
-  if (match.is_bye)                                    return { error: 'Laisvo praėjimo mačas — rezultato nereikia' }
+  if (match.is_bye)                                    return { error: 'Laisvo praejimo mačas — rezultato nereikia' }
   if (['confirmed', 'admin_resolved'].includes(match.status))
     return { error: 'Šio mačo rezultato nebegalima keisti' }
   if (!match.player1_id || !match.player2_id)          return { error: 'Mačas dar neturi abiejų dalyvių' }
@@ -86,7 +88,7 @@ export async function submitTournamentMatchReport(
   const p2Wins = p2Report.claimed_result === 'win'
 
   if (p1Wins !== p2Wins) {
-    // Sutampa — vienas teigia laimėjimą, kitas pralaimėjimą
+    // Sutampa: vienas teigia laimejima, kitas pralaimejima
     const winnerId = p1Wins ? match.player1_id : match.player2_id
     const loserId  = p1Wins ? match.player2_id : match.player1_id
 
@@ -100,7 +102,20 @@ export async function submitTournamentMatchReport(
       })
       .eq('id', matchId)
 
-    // TODO: advanceTournamentAfterConfirmedMatch(matchId) — v3
+    // v3: pereiti prie kito raundo (gali nepavykti del RLS — tada admin naudoja recalculate)
+    try {
+      await advanceTournamentAfterConfirmedMatch(matchId, supabase)
+    } catch {
+      // Tyliai ignoruoti
+    }
+
+    // Skirti XP / ženkliukus
+    try {
+      await awardTournamentRewards(match.event_id, supabase)
+    } catch {
+      // Apdovanojimai niekada negali blokuoti
+    }
+
     revalidatePath('/events/' + match.event_id)
     return { success: 'Rezultatas patvirtintas!' }
   }

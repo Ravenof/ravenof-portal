@@ -103,7 +103,20 @@ CREATE POLICY "tmr admins manage all"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- ── 4. Patikrinimas ───────────────────────────────────────────────────────────
+-- ── 4. tournament_matches — žaidėjų UPDATE policy ────────────────────────────
+-- Leidžia server action atnaujinti mačo statusą (reported_by_one/confirmed/disputed)
+-- kaip paprastas vartotojas. Verslo logika tikrinama server action viduje.
+
+DROP POLICY IF EXISTS "tournament players update own match status" ON public.tournament_matches;
+
+CREATE POLICY "tournament players update own match status"
+  ON public.tournament_matches FOR UPDATE
+  USING (
+    player1_id IN (SELECT id FROM public.tournament_players WHERE user_id = auth.uid())
+    OR player2_id IN (SELECT id FROM public.tournament_players WHERE user_id = auth.uid())
+  );
+
+-- ── 5. Patikrinimas ───────────────────────────────────────────────────────────
 SELECT
   (SELECT COUNT(*) FROM information_schema.columns
    WHERE table_name = 'tournament_matches' AND column_name = 'loser_id'

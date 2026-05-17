@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { RegistrationStatus } from '@/types'
+import {
+  advanceTournamentAfterConfirmedMatch,
+  recalculateTournamentBracket as recalcHelper,
+} from '@/lib/tournament/advancement'
+import { awardTournamentRewards } from '@/lib/tournament/rewards'
 
 export type EventFormState = { error?: string }
 
@@ -82,12 +87,11 @@ export async function updateRegistrationStatus(
 }
 
 
-// ── TASK 6-8: startTournament ─────────────────────────────────────────────────
+// -- startTournament
 
 export async function startTournament(eventId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  // Auth + role check
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Neprisijungęs' }
 
@@ -97,7 +101,6 @@ export async function startTournament(eventId: string): Promise<{ error?: string
     return { error: 'Neturi teisės' }
   }
 
-  // Validate event
   const { data: event } = await supabase
     .from('events')
     .select('id, event_type, tournament_status, status')
@@ -109,7 +112,6 @@ export async function startTournament(eventId: string): Promise<{ error?: string
   if (event.tournament_status === 'active')    return { error: 'Turnyras jau vyksta' }
   if (event.tournament_status === 'completed') return { error: 'Turnyras jau baigtas' }
 
-  // Fetch registered players
   const { data: regs } = await supabase
     .from('event_registrations')
     .select('user_id')
@@ -123,11 +125,9 @@ export async function startTournament(eventId: string): Promise<{ error?: string
   const playerUserIds = regs.map((r: { user_id: string }) => r.user_id)
   const N = playerUserIds.length
 
-  // Idempotent: reset if restarting
   await supabase.from('tournament_matches').delete().eq('event_id', eventId)
   await supabase.from('tournament_players').delete().eq('event_id', eventId)
 
-  // Seed players (random order for v1)
   const shuffled = [...playerUserIds].sort(() => Math.random() - 0.5)
   const playerInserts = shuffled.map((userId: string, idx: number) => ({
     event_id: eventId,
@@ -144,20 +144,17 @@ export async function startTournament(eventId: string): Promise<{ error?: string
     return { error: 'Klaida kuriant žaidėjus: ' + (playerError?.message ?? 'unknown') }
   }
 
-  // Sort by seed ascending
   const players = [...insertedPlayers].sort(
     (a: { seed: number }, b: { seed: number }) => a.seed - b.seed
   )
 
-  // TASK 8: Generate round 1 matches — seed 1 vs N, seed 2 vs N-1, …
-  // Odd count: highest seed gets a bye (auto-wins)
   const matchCount = Math.ceil(N / 2)
   const matchInserts = []
 
   for (let i = 0; i < matchCount; i++) {
     const p1    = players[i]
     const p2Idx = N - 1 - i
-    const isBye = p2Idx <= i          // overlapping indices → bye
+    const isBye = p2Idx <= i
     const p2    = isBye ? null : players[p2Idx]
 
     matchInserts.push({
@@ -170,6 +167,7 @@ export async function startTournament(eventId: string): Promise<{ error?: string
       is_bye:       isBye,
       bracket:      'winners',
       status:       isBye ? 'completed' : 'pending',
+      advanced_at:  isBye ? new Date().toISOString() : null,
     })
   }
 
@@ -181,7 +179,6 @@ export async function startTournament(eventId: string): Promise<{ error?: string
     return { error: 'Klaida kuriant rungtynes: ' + matchError.message }
   }
 
-  // Update event tournament_status → active
   const { error: eventError } = await supabase
     .from('events')
     .update({ tournament_status: 'active' })
@@ -191,13 +188,85 @@ export async function startTournament(eventId: string): Promise<{ error?: string
     return { error: 'Klaida atnaujinant renginį: ' + eventError.message }
   }
 
+  // Skirti dalyvavimo XP visiems žaidėjams
+  try {
+    await awardTournamentRewards(eventId, supabase)
+  } catch {
+    // Apdovanojimai niekada negali blokuoti turnyro pradžios
+  }
+
   revalidatePath('/admin/events/' + eventId + '/edit')
   revalidatePath('/events/' + eventId)
   return {}
 }
 
 
-// ── TASK 5: resolveDisputedMatch ──────────────────────────────────────────────
+// -- adminResolveTournamentMatch
+
+export async function adminResolveTournamentMatch(
+  matchId: string,
+  winnerTournamentPlayerId: string,
+): Promise<{ error?: string; success?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprisijungęs' }
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role))
+    return { error: 'Neturite teisės atlikti šio veiksmo.' }
+
+  const { data: match } = await supabase
+    .from('tournament_matches')
+    .select('id, event_id, player1_id, player2_id, is_bye')
+    .eq('id', matchId)
+    .single()
+
+  if (!match)                          return { error: 'Mačas nerastas' }
+  if (match.is_bye)                    return { error: 'Laisvo praejimo mačui negalima skirti laimėtojo' }
+  if (!match.player1_id || !match.player2_id)
+    return { error: 'Mačas dar neturi abiejų dalyvių' }
+  if (winnerTournamentPlayerId !== match.player1_id && winnerTournamentPlayerId !== match.player2_id)
+    return { error: 'Neteisingas dalyvio ID' }
+
+  const loserId = winnerTournamentPlayerId === match.player1_id
+    ? match.player2_id
+    : match.player1_id
+
+  const { error: updErr } = await supabase
+    .from('tournament_matches')
+    .update({
+      status:       'admin_resolved',
+      winner_id:    winnerTournamentPlayerId,
+      loser_id:     loserId,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', matchId)
+
+  if (updErr) return { error: 'Klaida išsaugant: ' + updErr.message }
+
+  // v3: pereiti prie kito raundo
+  try {
+    await advanceTournamentAfterConfirmedMatch(matchId, supabase)
+  } catch {
+    // Tyliai ignoruoti
+  }
+
+  // Skirti XP / ženkliukus
+  try {
+    await awardTournamentRewards(match.event_id, supabase)
+  } catch {
+    // Apdovanojimai niekada negali blokuoti
+  }
+
+  revalidatePath('/admin/events/' + match.event_id + '/edit')
+  revalidatePath('/events/' + match.event_id)
+  return { success: 'Pergalė priskirta. Sprendimas įrašytas.' }
+}
+
+
+// -- resolveDisputedMatch
 
 export async function resolveDisputedMatch(
   matchId: string,
@@ -238,9 +307,89 @@ export async function resolveDisputedMatch(
 
   if (updErr) return { error: 'Klaida: ' + updErr.message }
 
-  // TODO: advanceTournamentAfterConfirmedMatch(matchId) — v3
+  // v3: pereiti prie kito raundo
+  try {
+    await advanceTournamentAfterConfirmedMatch(matchId, supabase)
+  } catch {
+    // Tyliai ignoruoti
+  }
 
   revalidatePath('/admin/events/' + match.event_id + '/edit')
   revalidatePath('/events/' + match.event_id)
   return {}
+}
+
+
+// -- v3: recalculateTournamentBracket — admin action
+
+export async function recalculateTournamentBracket(
+  eventId: string,
+): Promise<{ error?: string; success?: string; advanced?: number; grandFinalCreated?: boolean }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprisijungęs' }
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role))
+    return { error: 'Neturite teisės atlikti šio veiksmo.' }
+
+  const result = await recalcHelper(eventId, supabase)
+
+  if (result.error) return { error: result.error }
+
+  // Skirti XP / ženkliukus po perskaičiavimo
+  try {
+    await awardTournamentRewards(eventId, supabase)
+  } catch {
+    // Apdovanojimai niekada negali blokuoti
+  }
+
+  revalidatePath('/admin/events/' + eventId + '/edit')
+  revalidatePath('/events/' + eventId)
+
+  const nothingDone = (result.advanced ?? 0) === 0 && !result.grandFinalCreated
+
+  return {
+    success: nothingDone
+      ? 'Naujų mačų sugeneruoti nereikėjo.'
+      : result.grandFinalCreated
+        ? 'Didysis finalas sugeneruotas!'
+        : 'Turnyrinė lentelė atnaujinta. Apdorota mačų: ' + result.advanced + '.',
+    advanced: result.advanced,
+    grandFinalCreated: result.grandFinalCreated,
+  }
+}
+
+
+// -- awardTournamentRewardsAction — admin manual trigger
+
+export async function awardTournamentRewardsAction(
+  eventId: string,
+): Promise<{ error?: string; success?: string; xpAwarded?: number; badgesUnlocked?: number }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprisijungęs' }
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role))
+    return { error: 'Neturite teisės atlikti šio veiksmo.' }
+
+  const result = await awardTournamentRewards(eventId, supabase)
+
+  revalidatePath('/admin/events/' + eventId + '/edit')
+  revalidatePath('/events/' + eventId)
+
+  if (result.nothingNew) {
+    return { success: 'Visi apdovanojimai jau buvo skirti.' }
+  }
+
+  return {
+    success: 'Apdovanojimai skirti. XP: +' + result.xpAwarded + ', ženkliukai: +' + result.badgesUnlocked + '.',
+    xpAwarded:     result.xpAwarded,
+    badgesUnlocked: result.badgesUnlocked,
+  }
 }

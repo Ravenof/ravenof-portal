@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { EventRegisterButton } from '@/components/events/EventRegisterButton'
 import { MatchReportButtons } from '@/components/tournament/MatchReportButtons'
 import { TournamentBracketView } from '@/components/tournament/TournamentBracketView'
-import { formatMatchStatus } from '@/lib/tournament/helpers'
+import { formatMatchStatus, formatBracket } from '@/lib/tournament/helpers'
 import type { RavenEvent, EventRegistration, TournamentPlayer, TournamentMatch, TournamentMatchReport } from '@/types'
 
 type Params = Promise<{ eventId: string }>
@@ -45,7 +45,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
   const isRegistered = userRegistration?.status === 'registered' || userRegistration?.status === 'attended'
   const isPast       = ev.ends_at ? new Date(ev.ends_at) < new Date() : new Date(ev.starts_at) < new Date()
 
-  // ── Turnyro duomenys ──────────────────────────────────────────────────────
+  // -- Turnyro duomenys
   type PlayerWithProfile = TournamentPlayer & { username?: string; display_name?: string | null }
 
   let tPlayers: PlayerWithProfile[] = []
@@ -54,8 +54,12 @@ export default async function EventDetailPage({ params }: { params: Params }) {
   let myMatch: (TournamentMatch & { opponentName?: string }) | null = null
   let myReport: TournamentMatchReport | null = null
   let opponentReported = false
+  let tournamentWinner: PlayerWithProfile | null = null
 
-  if (ev.event_type === 'turnyras' && ev.tournament_status === 'active') {
+  const tournamentActive = ev.event_type === 'turnyras' &&
+    (ev.tournament_status === 'active' || ev.tournament_status === 'completed')
+
+  if (tournamentActive) {
     const { data: tp } = await supabase
       .from('tournament_players').select('*').eq('event_id', eventId).order('seed')
     tPlayers = (tp ?? []) as PlayerWithProfile[]
@@ -78,12 +82,19 @@ export default async function EventDetailPage({ params }: { params: Params }) {
       .order('round').order('match_number')
     tMatches = (tm ?? []) as TournamentMatch[]
 
+    // Rasti turnyro laimėtoją (jei turnyras baigtas)
+    if (ev.tournament_status === 'completed') {
+      tournamentWinner = tPlayers.find(p => p.final_placement === 1) ?? null
+    }
+
     if (user) {
       myTPlayer = tPlayers.find(p => p.user_id === user.id) ?? null
       if (myTPlayer) {
+        const activeStatuses = ['pending', 'active', 'reported_by_one', 'disputed']
         const m = tMatches.find(
           m => (m.player1_id === myTPlayer!.id || m.player2_id === myTPlayer!.id)
-            && !['confirmed', 'admin_resolved', 'completed'].includes(m.status)
+            && activeStatuses.includes(m.status)
+            && !m.is_bye
         ) ?? null
         if (m) {
           const oppId  = m.player1_id === myTPlayer.id ? m.player2_id : m.player1_id
@@ -95,7 +106,6 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               : m.is_bye ? 'Laisvas praėjimas' : '???',
           }
 
-          // Ataskaitų duomenys
           const { data: reports } = await supabase
             .from('tournament_match_reports').select('*').eq('match_id', m.id)
           for (const r of (reports ?? []) as TournamentMatchReport[]) {
@@ -109,28 +119,38 @@ export default async function EventDetailPage({ params }: { params: Params }) {
 
   const tPlayerMap = Object.fromEntries(tPlayers.map(p => [p.id, p]))
 
+  // -- Turnyro baigtis: pranešimas pagal žaidėjo poziciją
+  function getTournamentEndMessage(): string | null {
+    if (!myTPlayer || ev.tournament_status !== 'completed') return null
+    if (myTPlayer.final_placement === 1) return '🏆 Turnyras baigtas — jūs laimėjote!'
+    if (myTPlayer.final_placement === 2) return 'Turnyras baigtas — užėmėte 2 vietą.'
+    if (myTPlayer.status === 'eliminated') return 'Turnyras baigtas — jūs iškritote.'
+    return 'Turnyras baigtas.'
+  }
+
+  const tournamentEndMessage = getTournamentEndMessage()
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
       <header className="sticky top-0 z-20 border-b px-6 py-3"
         style={{ background: 'rgba(10,10,15,0.97)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-3xl mx-auto flex items-center gap-4">
           <Link href="/events" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            ← Renginiai
+            Renginiai
           </Link>
           <div className="flex-1" />
           <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Kortų bazė
+            Kortu baze
           </Link>
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-10">
-        {/* Turnyro ženkliukas */}
         {ev.event_type === 'turnyras' && (
           <div className="mb-3">
             <span className="text-xs px-3 py-1 rounded-full font-semibold"
               style={{ background: '#6d28d920', color: '#a78bfa', border: '1px solid #6d28d940' }}>
-              ⚔ TURNYRAS
+              TURNYRAS
             </span>
           </div>
         )}
@@ -148,7 +168,6 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           {ev.title}
         </h1>
 
-        {/* Meta kortelės */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
             <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>PRADŽIA</p>
@@ -178,11 +197,10 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </div>
         </div>
 
-        {/* Aprašymas */}
         {ev.description && (
           <div className="mb-8">
             <h2 className="text-sm font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Aprašymas
+              Aprašas
             </h2>
             <div className="rounded-xl p-5" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
               <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
@@ -192,7 +210,6 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </div>
         )}
 
-        {/* Registracija */}
         {!isPast && (
           <div className="rounded-xl p-6 mb-8" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
             <h2 className="text-sm font-semibold mb-4 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -220,22 +237,69 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </div>
         )}
 
-        {/* ── Turnyro sekcija ─────────────────────────────────────────────────── */}
-        {ev.event_type === 'turnyras' && ev.tournament_status === 'active' && (
+        {/* Turnyro sekcija */}
+        {tournamentActive && (
           <div className="space-y-6">
-            {/* Tavo dabartinis mačas — TASK 1 */}
-            {myTPlayer && myMatch && (
+
+            {/* Turnyras baigtas — laimėtojo juosta */}
+            {ev.tournament_status === 'completed' && tournamentWinner && (
+              <div className="rounded-2xl p-5 text-center"
+                style={{
+                  background: 'linear-gradient(135deg,rgba(251,191,36,.12),rgba(45,27,105,.2))',
+                  border: '1px solid rgba(251,191,36,.35)',
+                  boxShadow: '0 0 32px rgba(251,191,36,.1)',
+                }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#fbbf24' }}>
+                  Turnyras baigtas
+                </p>
+                <p className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#fde68a' }}>
+                  🏆 {tournamentWinner.display_name || tournamentWinner.username || '???'}
+                </p>
+              </div>
+            )}
+
+            {/* Mano turnyro žinutė (baigto turnyro atvejis) */}
+            {myTPlayer && ev.tournament_status === 'completed' && tournamentEndMessage && (
+              <div className="rounded-xl p-5 text-center"
+                style={{
+                  background: myTPlayer.final_placement === 1
+                    ? 'rgba(251,191,36,.1)'
+                    : myTPlayer.final_placement === 2
+                      ? 'rgba(167,139,250,.1)'
+                      : 'rgba(239,68,68,.06)',
+                  border: myTPlayer.final_placement === 1
+                    ? '1px solid rgba(251,191,36,.3)'
+                    : myTPlayer.final_placement === 2
+                      ? '1px solid rgba(167,139,250,.3)'
+                      : '1px solid rgba(239,68,68,.2)',
+                  color: myTPlayer.final_placement === 1
+                    ? '#fbbf24'
+                    : myTPlayer.final_placement === 2
+                      ? '#a78bfa'
+                      : '#ef4444',
+                }}>
+                {tournamentEndMessage}
+              </div>
+            )}
+
+            {/* Dabartinis mačas — tik kai turnyras aktyvus */}
+            {myTPlayer && myMatch && ev.tournament_status === 'active' && (
               <div className="rounded-2xl p-6 space-y-5"
                 style={{
                   background: 'linear-gradient(135deg,rgba(45,27,105,.3),rgba(15,9,48,.4))',
                   border: '1px solid #7c3aed60',
                   boxShadow: '0 0 24px rgba(124,58,237,.15)',
                 }}>
-                <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#a78bfa' }}>
-                  ⚔ Tavo dabartinis mačas
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#a78bfa' }}>
+                    Tavo dabartinis mačas
+                  </h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: myMatch.bracket === 'losers' ? '#f59e0b20' : '#a78bfa20', color: myMatch.bracket === 'losers' ? '#f59e0b' : '#a78bfa' }}>
+                    {formatBracket(myMatch.bracket)}
+                  </span>
+                </div>
 
-                {/* Žaidėjai */}
                 <div className="flex items-center gap-4">
                   <div className="flex-1 text-center">
                     <p className="text-xs mb-1" style={{ color: '#a78bfa' }}>TU</p>
@@ -244,7 +308,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                       {(myTPlayer as PlayerWithProfile).display_name || (myTPlayer as PlayerWithProfile).username || 'Tu'}
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      Pozicija #{myTPlayer.seed}
+                      Pozicija #{myTPlayer.seed ?? '—'}
                     </p>
                   </div>
                   <div className="text-2xl font-bold" style={{ color: '#6d28d9' }}>VS</div>
@@ -261,7 +325,6 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                   </div>
                 </div>
 
-                {/* Mačo statusas */}
                 {!myMatch.is_bye && (
                   <div className="pt-1 border-t" style={{ borderColor: 'rgba(124,58,237,.25)' }}>
                     <MatchReportButtons
@@ -277,41 +340,99 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 )}
                 {myMatch.is_bye && (
                   <p className="text-center text-sm" style={{ color: '#22c55e' }}>
-                    ✓ Laisvas praėjimas — automatiškai pereini į kitą raundą!
+                    Laisvas praėjimas — automatiškai pereinat į kitą raundą!
                   </p>
                 )}
               </div>
             )}
 
-            {/* Turnyro mačas baigtas */}
-            {myTPlayer && !myMatch && (
-              <div className="rounded-xl p-5 text-center"
-                style={{ background: '#22c55e10', border: '1px solid #22c55e30', color: '#22c55e' }}>
-                ✓ Šio raundo mačas baigtas — lauk kitų porų rezultatų
-              </div>
+            {/* Statusų žinutės kai turnyras aktyvus ir nėra aktyvaus mačo */}
+            {myTPlayer && !myMatch && ev.tournament_status === 'active' && (
+              <>
+                {myTPlayer.status === 'eliminated' ? (
+                  <div className="rounded-xl p-5 text-center"
+                    style={{ background: '#ef444410', border: '1px solid #ef444430', color: '#ef4444' }}>
+                    Turnyras baigtas — jūs iškritote.
+                  </div>
+                ) : (
+                  <div className="rounded-xl p-5 text-center"
+                    style={{ background: '#22c55e10', border: '1px solid #22c55e30', color: '#22c55e' }}>
+                    Šio raundo mačas baigtas — laukiama kitų rezultatų.
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Nesi turnyro dalyvis bet esi registruotas */}
+            {/* Nerastas turnyro dalyvių sąraše */}
             {!myTPlayer && user && isRegistered && (
               <div className="rounded-xl p-5 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
                 Esi užsiregistravęs, bet turnyro dalyvių sąraše nerastas — kreipkis į organizatorių.
               </div>
             )}
 
-            {/* Turnyrinė lentelė — TASK 6 */}
+            {/* XP apdovanojimų info (aktyvus turnyras) */}
+            {ev.tournament_status === 'active' && (
+              <div className="rounded-xl px-4 py-3 flex flex-wrap gap-x-5 gap-y-1 items-center"
+                style={{ background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.18)' }}>
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#fbbf24' }}>
+                  Turnyro XP
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Dalyvavimas <strong style={{ color: '#fbbf24' }}>+400</strong></span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pergalė mače <strong style={{ color: '#fbbf24' }}>+100</strong></span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥇 <strong style={{ color: '#fbbf24' }}>+1500</strong></span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥈 <strong style={{ color: '#a78bfa' }}>+1000</strong></span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥉 <strong style={{ color: '#f97316' }}>+700</strong></span>
+              </div>
+            )}
+
+            {/* Podiumo rodymas kai turnyras baigtas */}
+            {ev.tournament_status === 'completed' && (() => {
+              const p1 = tPlayers.find(p => p.final_placement === 1)
+              const p2 = tPlayers.find(p => p.final_placement === 2)
+              const p3 = tPlayers.find(p => p.final_placement === 3)
+              if (!p2 && !p3) return null
+              const rows = [
+                { player: p1, emoji: '🥇', color: '#fbbf24', xp: '+1500 XP' },
+                { player: p2, emoji: '🥈', color: '#a78bfa', xp: '+1000 XP' },
+                { player: p3, emoji: '🥉', color: '#f97316', xp: '+700 XP' },
+              ].filter(row => !!row.player) as Array<{ player: PlayerWithProfile; emoji: string; color: string; xp: string }>
+              return (
+                <div className="rounded-xl p-4"
+                  style={{ background: 'rgba(251,191,36,.05)', border: '1px solid rgba(251,191,36,.15)' }}>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-3 text-center" style={{ color: '#fbbf24' }}>
+                    Podiumo vietos
+                  </p>
+                  <div className="flex justify-center gap-4 flex-wrap">
+                    {rows.map(row => (
+                      <div key={row.emoji} className="text-center">
+                        <span className="text-xl">{row.emoji}</span>
+                        <p className="text-sm font-bold mt-0.5"
+                          style={{ fontFamily: 'Cinzel, Georgia, serif', color: row.color }}>
+                          {row.player.display_name || row.player.username || '???'}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: row.color, opacity: 0.7 }}>{row.xp}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Turnyrinė lentelė */}
             <TournamentBracketView
               matches={tMatches}
               playerMap={tPlayerMap}
               myPlayerId={myTPlayer?.id ?? null}
+              tournamentCompleted={ev.tournament_status === 'completed'}
+              tournamentWinnerId={tournamentWinner?.id ?? null}
             />
           </div>
         )}
 
-        {/* Turnyras dar nepradėtas */}
         {ev.event_type === 'turnyras' && !ev.tournament_status && (
           <div className="rounded-xl p-5 text-center text-sm"
             style={{ background: '#6d28d910', border: '1px solid #6d28d930', color: '#a78bfa' }}>
-            ⚔ Turnyras dar nepradėtas — turnyrinė lentelė bus matoma kai organizatorius startuos turnyrą
+            Turnyras dar nepradėtas — turnyrinė lentelė bus matoma kai organizatorius startuos turnyrą
           </div>
         )}
       </div>
