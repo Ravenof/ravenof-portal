@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ProfilePrivacyForm } from '@/components/profile/ProfilePrivacyForm'
 import { AvatarUpload } from '@/components/profile/AvatarUpload'
+import { UsernameChangeForm } from '@/components/profile/UsernameChangeForm'
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient()
@@ -15,7 +16,8 @@ export default async function ProfileSettingsPage() {
       id, username, display_name, avatar_url, bio, is_public,
       xp_total, level, rank_key,
       show_level, show_badges, show_attended_events,
-      show_public_decks, show_profile_details, show_owned_cards, show_on_leaderboards
+      show_public_decks, show_profile_details, show_owned_cards, show_on_leaderboards,
+      username_changed_at, previous_username, previous_username_visible_until
     `)
     .eq('id', user.id)
     .maybeSingle()
@@ -62,6 +64,14 @@ export default async function ProfileSettingsPage() {
         </div>
 
         <ProfilePrivacyForm profile={profile} />
+
+        {/* Username change */}
+        <div className="mt-8">
+          <UsernameChangeForm
+            currentUsername={profile.username}
+            usernameChangedAt={(profile as unknown as { username_changed_at: string | null }).username_changed_at ?? null}
+          />
+        </div>
 
         <div
           className="mt-8 pt-6"

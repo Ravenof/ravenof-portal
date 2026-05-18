@@ -193,7 +193,7 @@ export default async function UserProfilePage({ params }: Props) {
           <div className="flex items-start gap-5">
             <div
               className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-2xl font-bold"
-              style={{ background: 'var(--bg-elevated)', border: '2px solid var(--bg-border)', color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+              style={{ background: 'linear-gradient(135deg,#1e1b4b,#2d1b69)', border: '2px solid rgba(124,58,237,0.45)', boxShadow: '0 0 16px rgba(124,58,237,0.2)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}
             >
               {profile.avatar_url ? (
                 <img
@@ -216,6 +216,16 @@ export default async function UserProfilePage({ params }: Props) {
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 @{profile.username} &middot; narys nuo {memberSince}
               </p>
+              {/* Previous username — shown for 30 days after change */}
+              {profile.previous_username &&
+               profile.previous_username_visible_until &&
+               new Date(profile.previous_username_visible_until) > new Date() && (
+                <p className="text-xs mt-1 flex items-center gap-1.5">
+                  <span className="rvn-chip rvn-chip-muted" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                    Anksčiau: @{profile.previous_username}
+                  </span>
+                </p>
+              )}
               {profile.show_profile_details && profile.bio && (
                 <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
                   {profile.bio}

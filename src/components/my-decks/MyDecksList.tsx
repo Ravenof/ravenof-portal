@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Edit2, Trash2, Lock, Globe, Link2, Plus, Copy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getFactionColor } from '@/lib/utils'
+import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
 
 type Props = {
@@ -21,8 +22,8 @@ const VISIBILITY_LABEL: Record<string, { label: string; Icon: React.ElementType 
 
 export function MyDecksList({ decks, userId }: Props) {
   const router = useRouter()
-  const [deleting, setDeleting]     = useState<string | null>(null)
-  const [confirmId, setConfirmId]   = useState<string | null>(null)
+  const [deleting, setDeleting]       = useState<string | null>(null)
+  const [confirmId, setConfirmId]     = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
 
   const handleDelete = async (deckId: string) => {
@@ -50,7 +51,6 @@ export function MyDecksList({ decks, userId }: Props) {
     setDuplicating(deck.id)
     const supabase = createClient()
     try {
-      // Create new deck record
       const { data: newDeck, error: deckErr } = await supabase
         .from('decks')
         .insert({
@@ -67,7 +67,6 @@ export function MyDecksList({ decks, userId }: Props) {
 
       if (deckErr || !newDeck) throw deckErr ?? new Error('No deck returned')
 
-      // Fetch original deck_cards
       const { data: deckCards, error: cardsErr } = await supabase
         .from('deck_cards')
         .select('card_id, quantity')
@@ -96,17 +95,24 @@ export function MyDecksList({ decks, userId }: Props) {
 
   if (decks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4 opacity-60">
-        <p className="text-lg" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-muted)' }}>
-          Dar neturi jokios kaladės
-        </p>
-        <Link
-          href="/deck-builder"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
-          style={{ background: 'var(--gold)', color: '#0a0a0f' }}
-        >
-          <Plus className="w-4 h-4" />
-          Sukurti pirmą kaladę
+      <div className="rvn-panel-gold flex flex-col items-center justify-center py-16 gap-5 text-center max-w-sm mx-auto mt-12">
+        <div className="text-5xl">📚</div>
+        <div>
+          <p
+            className="text-base font-semibold mb-1"
+            style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}
+          >
+            Dar neturite kaladžių
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Sukurkite savo pirmą kaladę ir pradėkite žaisti.
+          </p>
+        </div>
+        <Link href="/deck-builder">
+          <RavenofButton variant="gold" size="md">
+            <Plus className="w-4 h-4" />
+            Sukurti pirmą kaladę
+          </RavenofButton>
         </Link>
       </div>
     )
@@ -115,9 +121,9 @@ export function MyDecksList({ decks, userId }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {decks.map((deck) => {
-        const fColor     = getFactionColor(deck.faction?.color_hex)
-        const vis        = VISIBILITY_LABEL[deck.visibility] ?? VISIBILITY_LABEL.private
-        const VisIcon    = vis.Icon
+        const fColor        = getFactionColor(deck.faction?.color_hex)
+        const vis           = VISIBILITY_LABEL[deck.visibility] ?? VISIBILITY_LABEL.private
+        const VisIcon       = vis.Icon
         const isConfirming  = confirmId === deck.id
         const isDeleting    = deleting === deck.id
         const isDuplicating = duplicating === deck.id
@@ -125,7 +131,7 @@ export function MyDecksList({ decks, userId }: Props) {
         return (
           <div
             key={deck.id}
-            className="rounded-xl p-4 flex flex-col gap-3 transition-all"
+            className="rounded-xl p-4 flex flex-col gap-3 transition-all hover:border-[rgba(240,180,41,0.2)]"
             style={{
               background: 'var(--bg-surface)',
               border: '1px solid ' + fColor + '30',
@@ -141,7 +147,7 @@ export function MyDecksList({ decks, userId }: Props) {
             <div className="flex-1">
               <h2
                 className="text-base font-bold leading-tight"
-                style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}
+                style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}
               >
                 {deck.name}
               </h2>
@@ -161,7 +167,7 @@ export function MyDecksList({ decks, userId }: Props) {
                 {deck.faction?.name ?? 'Nėra frakcijos'}
               </span>
               <span>{deck.card_count} kortų</span>
-              {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost}⚜ avg</span>}
+              {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost}⚜ vid.</span>}
               <span className="flex items-center gap-1">
                 <VisIcon className="w-3 h-3" />
                 {vis.label}
@@ -174,23 +180,21 @@ export function MyDecksList({ decks, userId }: Props) {
             </p>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1 border-t" style={{ borderColor: 'var(--bg-border)' }}>
+            <div className="flex gap-2 pt-2 border-t" style={{ borderColor: 'var(--bg-border)' }}>
               {/* Edit */}
-              <Link
-                href={`/deck-builder/${deck.id}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center transition-opacity hover:opacity-80"
-                style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
-              >
-                <Edit2 className="w-3 h-3" />
-                Redaguoti
+              <Link href={`/deck-builder/${deck.id}`} className="flex-1">
+                <RavenofButton variant="secondary" size="sm" fullWidth>
+                  <Edit2 className="w-3 h-3" />
+                  Redaguoti
+                </RavenofButton>
               </Link>
 
               {/* Duplicate */}
-              <button
+              <RavenofButton
+                variant="muted"
+                size="sm"
                 onClick={() => handleDuplicate(deck)}
                 disabled={isDuplicating}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
                 title="Kopijuoti kaladę"
               >
                 {isDuplicating ? (
@@ -198,35 +202,35 @@ export function MyDecksList({ decks, userId }: Props) {
                 ) : (
                   <Copy className="w-3 h-3" />
                 )}
-              </button>
+              </RavenofButton>
 
               {/* Delete */}
               {!isConfirming ? (
-                <button
+                <RavenofButton
+                  variant="danger"
+                  size="sm"
                   onClick={() => setConfirmId(deck.id)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--bg-elevated)', color: '#ef4444' }}
                   title="Ištrinti kaladę"
                 >
                   <Trash2 className="w-3 h-3" />
-                </button>
+                </RavenofButton>
               ) : (
                 <div className="flex gap-1">
-                  <button
+                  <RavenofButton
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleDelete(deck.id)}
                     disabled={isDeleting}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
-                    style={{ background: '#ef4444', color: 'white' }}
                   >
                     {isDeleting ? '...' : 'Ištrinti'}
-                  </button>
-                  <button
+                  </RavenofButton>
+                  <RavenofButton
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setConfirmId(null)}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
                   >
                     Ne
-                  </button>
+                  </RavenofButton>
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import { Save, Check, Loader2 } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { isDeckValid, validateDeck } from '@/lib/deck-validation'
 import { createClient } from '@/lib/supabase/client'
+import { RavenofButton } from '@/components/ui/RavenofButton'
 
 type Props = { userId: string }
 
@@ -30,7 +31,6 @@ export function SaveDeckButton({ userId }: Props) {
       let savedDeckId = deckId
 
       if (deckId) {
-        // Update existing
         const { error } = await supabase
           .from('decks')
           .update({
@@ -46,7 +46,6 @@ export function SaveDeckButton({ userId }: Props) {
           .eq('user_id', userId)
         if (error) throw error
       } else {
-        // Insert new
         const { data, error } = await supabase
           .from('decks')
           .insert({
@@ -64,14 +63,13 @@ export function SaveDeckButton({ userId }: Props) {
         savedDeckId = data.id
       }
 
-      // Sync deck_cards: delete all old, insert new
       if (savedDeckId) {
         await supabase.from('deck_cards').delete().eq('deck_id', savedDeckId)
 
         if (entries.length > 0) {
           const rows = entries.map((e) => ({
-            deck_id: savedDeckId!,
-            card_id: e.card.id,
+            deck_id:  savedDeckId!,
+            card_id:  e.card.id,
             quantity: e.quantity,
           }))
           const { error } = await supabase.from('deck_cards').insert(rows)
@@ -79,27 +77,27 @@ export function SaveDeckButton({ userId }: Props) {
         }
 
         markSaved(savedDeckId)
-        router.push(`/my-decks`)
+        router.push('/my-decks')
       }
     } catch (err) {
       console.error('Save deck error:', err)
-      alert('Nepavyko išsaugoti deck. Bandyk dar kartą.')
+      alert('Nepavyko išsaugoti kaladę. Bandyk dar kartą.')
     } finally {
       setIsSaving(false)
     }
   }
 
+  const title = hasErrors
+    ? warnings.filter((w) => w.type === 'error').map((w) => w.message).join('\n')
+    : 'Išsaugoti kaladę'
+
   return (
-    <button
+    <RavenofButton
+      variant={canSave ? 'gold' : 'secondary'}
+      size="md"
       onClick={handleSave}
       disabled={!canSave}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-      style={{
-        background: canSave ? 'var(--gold)' : 'var(--bg-elevated)',
-        color: canSave ? '#0a0a0f' : 'var(--text-muted)',
-        border: canSave ? 'none' : '1px solid var(--bg-border)',
-      }}
-      title={hasErrors ? warnings.filter((w) => w.type === 'error').map((w) => w.message).join('\n') : 'Išsaugoti deck'}
+      title={title}
     >
       {isSaving
         ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -108,6 +106,6 @@ export function SaveDeckButton({ userId }: Props) {
           : <Save className="w-4 h-4" />
       }
       {isSaving ? 'Saugoma...' : 'Išsaugoti'}
-    </button>
+    </RavenofButton>
   )
 }

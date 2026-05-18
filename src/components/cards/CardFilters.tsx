@@ -39,29 +39,17 @@ export function CardFilters({
     get('search') || get('faction_id') || get('type_id') ||
     get('rarity_id') || get('gold_min') || get('gold_max') || get('owned_only')
 
-  const inputStyle = {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--bg-border)',
-    color: 'var(--text-primary)',
-    borderRadius: '0.5rem',
-    width: '100%',
-    padding: '0.375rem 0.5rem',
-    fontSize: '0.875rem',
-    outline: 'none',
-  }
+  const ownedActive = get('owned_only') === '1'
 
   return (
-    <div
-      className="rounded-xl p-4 space-y-4"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
-    >
+    <div className="rvn-panel space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--gold)' }} />
           <span
             className="font-semibold text-sm"
-            style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
+            style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.04em' }}
           >
             Filtrai
           </span>
@@ -73,10 +61,10 @@ export function CardFilters({
           {hasFilters && (
             <button
               onClick={clearAll}
-              className="text-xs flex items-center gap-1 transition-colors hover:text-red-400"
+              className="text-xs flex items-center gap-1 transition-colors hover:text-[var(--gold)]"
               style={{ color: 'var(--text-muted)' }}
             >
-              <X className="w-3 h-3" /> Išvalyti
+              <X className="w-3 h-3" /> Valyti filtrus
             </button>
           )}
         </div>
@@ -85,7 +73,7 @@ export function CardFilters({
       {/* Search */}
       <div className="relative">
         <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
           style={{ color: 'var(--text-muted)' }}
         />
         <input
@@ -97,12 +85,13 @@ export function CardFilters({
             clearTimeout((window as any).__st)
             ;(window as any).__st = setTimeout(() => update('search', v), 400)
           }}
-          style={{ ...inputStyle, paddingLeft: '2.25rem', paddingRight: '2rem' }}
+          className="rvn-input w-full"
+          style={{ paddingLeft: '2.25rem', paddingRight: get('search') ? '2rem' : '0.75rem' }}
         />
         {get('search') && (
           <button
             onClick={() => update('search', '')}
-            className="absolute right-2 top-1/2 -translate-y-1/2"
+            className="absolute right-2 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-70"
             style={{ color: 'var(--text-muted)' }}
           >
             <X className="w-3 h-3" />
@@ -149,29 +138,56 @@ export function CardFilters({
         </div>
       </div>
 
-      {/* Owned only */}
+      {/* Owned only toggle */}
       {isAuthenticated && (
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div className="relative flex-shrink-0">
-            <input
-              type="checkbox"
-              checked={get('owned_only') === '1'}
-              onChange={(e) => update('owned_only', e.target.checked ? '1' : '')}
-              className="sr-only"
+        <button
+          type="button"
+          onClick={() => update('owned_only', ownedActive ? '' : '1')}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200"
+          style={{
+            background: ownedActive
+              ? 'linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(240,180,41,0.08) 100%)'
+              : 'var(--bg-elevated)',
+            border: ownedActive
+              ? '1px solid rgba(124,58,237,0.45)'
+              : '1px solid var(--bg-border)',
+            boxShadow: ownedActive ? '0 0 12px rgba(124,58,237,0.15)' : 'none',
+          }}
+        >
+          {/* Toggle pill */}
+          <div className="relative flex-shrink-0 w-10 h-5">
+            <div
+              className="w-10 h-5 rounded-full transition-all duration-200"
+              style={{
+                background: ownedActive
+                  ? 'linear-gradient(to right, var(--rvn-violet), var(--gold))'
+                  : 'var(--bg-border)',
+              }}
             />
             <div
-              className="w-10 h-6 rounded-full transition-colors duration-200"
-              style={{ background: get('owned_only') === '1' ? '#22c55e' : 'var(--bg-border)' }}
-            />
-            <div
-              className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: get('owned_only') === '1' ? 'translateX(16px)' : 'none' }}
+              className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm"
+              style={{ transform: ownedActive ? 'translateX(20px)' : 'none' }}
             />
           </div>
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Tik mano kortos
+          <span
+            className="text-sm font-semibold"
+            style={{
+              fontFamily: 'var(--rvn-font-display)',
+              letterSpacing: '0.03em',
+              color: ownedActive ? 'var(--gold)' : 'var(--text-secondary)',
+            }}
+          >
+            Mano kortos
           </span>
-        </label>
+          {ownedActive && (
+            <span
+              className="ml-auto text-xs rvn-chip rvn-chip-violet"
+              style={{ fontSize: '10px' }}
+            >
+              aktyvus
+            </span>
+          )}
+        </button>
       )}
 
       {pending && (
@@ -193,22 +209,13 @@ function Sel({
 }) {
   return (
     <div className="space-y-1">
-      <label className="block text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+      <label className="block text-xs font-medium" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
         {label}
       </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--bg-border)',
-          color: 'var(--text-primary)',
-          borderRadius: '0.5rem',
-          width: '100%',
-          padding: '0.375rem 0.5rem',
-          fontSize: '0.875rem',
-          outline: 'none',
-        }}
+        className="rvn-select w-full"
       >
         {children}
       </select>

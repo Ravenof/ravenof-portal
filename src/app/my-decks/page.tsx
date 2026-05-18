@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MyDecksList } from '@/components/my-decks/MyDecksList'
+import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
 
 export const metadata = { title: 'Mano kaladės | Ravenof' }
@@ -43,18 +44,15 @@ export default async function MyDecksPage() {
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <h1
-            className="text-lg font-bold flex-1"
-            style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
+            className="rvn-page-title text-lg flex-1"
           >
-            Mano Decks
+            Mano Kaladės
           </h1>
-          <Link
-            href="/deck-builder"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'var(--gold)', color: '#0a0a0f' }}
-          >
-            <Plus className="w-4 h-4" />
-            Nauja kaladė
+          <Link href="/deck-builder">
+            <RavenofButton variant="gold" size="md">
+              <Plus className="w-4 h-4" />
+              Nauja kaladė
+            </RavenofButton>
           </Link>
         </div>
       </header>

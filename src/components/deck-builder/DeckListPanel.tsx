@@ -7,6 +7,7 @@ import { CardHoverPreview } from './CardHoverPreview'
 import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { Swords, Trash2 } from 'lucide-react'
 import type { CardWithRelations } from '@/types'
+import { RavenofButton } from '@/components/ui/RavenofButton'
 
 const TYPE_ORDER = ['Champion', 'Unit', 'Spell', 'Structure', 'Token']
 
@@ -75,16 +76,12 @@ export function DeckListPanel() {
           {total > 0 && (
             confirmClear ? (
               <div className="flex items-center gap-1">
-                <button onClick={handleClear}
-                  className="px-2 py-0.5 rounded text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{ background: '#ef4444', color: 'white' }}>
+                <RavenofButton variant="danger" size="sm" onClick={handleClear}>
                   Išvalyti
-                </button>
-                <button onClick={() => setConfirmClear(false)}
-                  className="px-2 py-0.5 rounded text-xs transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
+                </RavenofButton>
+                <RavenofButton variant="secondary" size="sm" onClick={() => setConfirmClear(false)}>
                   Ne
-                </button>
+                </RavenofButton>
               </div>
             ) : (
               <button onClick={() => setConfirmClear(true)}

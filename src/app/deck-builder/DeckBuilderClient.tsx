@@ -98,7 +98,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
       >
         <div className="max-w-screen-2xl mx-auto flex items-center gap-3 flex-wrap">
           <Link href="/cards" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Kortu baze
+            Kortų bazė
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <Link href="/my-decks" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
@@ -120,16 +120,19 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
             <span className="hidden sm:inline">{validityLabel}</span>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
             <div className="relative">
               <input type="checkbox" className="sr-only" checked={store.ownedOnly}
                 onChange={(e) => store.setOwnedOnly(e.target.checked)} />
-              <div className="w-8 h-4 rounded-full transition-colors"
-                style={{ background: store.ownedOnly ? '#22c55e' : 'var(--bg-border)' }} />
-              <div className="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform"
+              <div className="w-9 h-5 rounded-full transition-all duration-200"
+                style={{ background: store.ownedOnly ? 'linear-gradient(to right, var(--rvn-violet), var(--gold))' : 'var(--bg-border)' }} />
+              <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm"
                 style={{ transform: store.ownedOnly ? 'translateX(16px)' : 'none' }} />
             </div>
-            <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>Tik mano</span>
+            <span className="text-xs hidden sm:inline font-semibold"
+              style={{ fontFamily: 'var(--rvn-font-display)', color: store.ownedOnly ? 'var(--gold)' : 'var(--text-muted)', letterSpacing: '0.03em' }}>
+              Tik mano
+            </span>
           </label>
 
           <button onClick={() => setShowStats((v) => !v)}
@@ -245,7 +248,6 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
               <DeckValidationWarnings warnings={allWarnings} />
             </div>
           )}
-
           {showStats && (
             <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
               <DeckStats />

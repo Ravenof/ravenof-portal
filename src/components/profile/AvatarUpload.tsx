@@ -98,8 +98,9 @@ export function AvatarUpload({ userId, currentAvatarUrl, displayName }: Props) {
         disabled={uploading}
         className="relative flex-shrink-0 w-20 h-20 rounded-full overflow-hidden group cursor-pointer"
         style={{
-          border: '2px solid var(--bg-border)',
-          background: 'var(--bg-elevated)',
+          border: '2px solid rgba(124,58,237,0.45)',
+          background: 'linear-gradient(135deg, #1e1b4b, #2d1b69)',
+          boxShadow: '0 0 16px rgba(124,58,237,0.2)',
         }}
         title="Keisti nuotrauką"
         aria-label="Keisti profilio nuotrauką"

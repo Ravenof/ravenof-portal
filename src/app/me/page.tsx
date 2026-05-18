@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
+import { AvatarUpload } from '@/components/profile/AvatarUpload'
 import type { Profile, UserBadge } from '@/types'
 
 export const revalidate = 0
@@ -76,25 +78,25 @@ export default async function MePage() {
       .limit(5),
   ])
 
-  const ownedCount = ownedRes.count ?? 0
-  const totalCards = totalCardsRes.count ?? 0
+  const ownedCount       = ownedRes.count ?? 0
+  const totalCards       = totalCardsRes.count ?? 0
   const publicDecksCount = publicDecksRes.count ?? 0
-  const upvotesCount = upvotesRes.count ?? 0
-  const attendedCount = attendedRes.count ?? 0
-  const upcomingCount = upcomingRes.count ?? 0
-  const badgesCount = badgesRes.count ?? 0
-  const recentBadges = (badgesRes.data ?? []) as unknown as UserBadge[]
-  const completionPct = totalCards > 0 ? Math.round((ownedCount / totalCards) * 100) : 0
+  const upvotesCount     = upvotesRes.count ?? 0
+  const attendedCount    = attendedRes.count ?? 0
+  const upcomingCount    = upcomingRes.count ?? 0
+  const badgesCount      = badgesRes.count ?? 0
+  const recentBadges     = (badgesRes.data ?? []) as unknown as UserBadge[]
+  const completionPct    = totalCards > 0 ? Math.round((ownedCount / totalCards) * 100) : 0
 
   const displayName = profile.display_name ?? profile.username
 
   const QUICK_LINKS = [
-    { href: '/my-cards', label: 'Mano kortos', icon: '🃏' },
-    { href: '/my-decks', label: 'Mano kaladės', icon: '📚' },
-    { href: '/my-events', label: 'Mano renginiai', icon: '🗓' },
-    { href: `/users/${profile.username}`, label: 'Public profilis', icon: '👤' },
-    { href: '/leaderboards', label: 'Topai', icon: '🏆' },
-    { href: '/profile/settings', label: 'Nustatymai', icon: '⚙️' },
+    { href: '/my-cards',  label: 'Mano kortos',    icon: '🃏' },
+    { href: '/my-decks',  label: 'Mano kaladės',   icon: '📚' },
+    { href: '/my-events', label: 'Mano renginiai',  icon: '🗓' },
+    { href: `/users/${profile.username}`, label: 'Viešas profilis', icon: '👤' },
+    { href: '/leaderboards',      label: 'Topai',       icon: '🏆' },
+    { href: '/profile/settings',  label: 'Nustatymai',  icon: '⚙️' },
   ]
 
   return (
@@ -109,15 +111,9 @@ export default async function MePage() {
         }}
       >
         <h1
-          className="text-lg font-bold"
-          style={{
-            fontFamily:    'var(--rvn-font-display)',
-            color:         'var(--gold)',
-            textShadow:    '0 0 16px rgba(240,180,41,0.3)',
-            letterSpacing: '0.06em',
-          }}
+          className="rvn-page-title text-lg"
         >
-          👤 Mano Profilis
+          Mano Profilis
         </h1>
         <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
           ← Kortų bazė
@@ -125,7 +121,8 @@ export default async function MePage() {
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">
-        {/* Profile summary */}
+
+        {/* ── Profile identity card ─────────────────────────────────── */}
         <div
           className="rounded-2xl p-6 relative overflow-hidden"
           style={{
@@ -134,23 +131,22 @@ export default async function MePage() {
             boxShadow:  '0 0 30px rgba(124,58,237,0.07)',
           }}
         >
-          {/* subtle violet glow orb */}
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }} />
+          {/* violet glow orb */}
+          <div
+            className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }}
+          />
 
           <div className="flex items-start gap-5 mb-5 relative">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
-              style={{
-                background: 'linear-gradient(135deg,#4c1d95,#1e1b4b)',
-                color:      'var(--gold)',
-                fontFamily: 'var(--rvn-font-display)',
-                border:     '2px solid rgba(124,58,237,0.4)',
-                boxShadow:  '0 0 16px rgba(124,58,237,0.2)',
-              }}
-            >
-              {displayName[0]?.toUpperCase() ?? '?'}
+            {/* Avatar block — inline upload */}
+            <div className="flex-shrink-0">
+              <AvatarUpload
+                userId={profile.id}
+                currentAvatarUrl={profile.avatar_url ?? null}
+                displayName={displayName}
+              />
             </div>
+
             <div className="flex-1 min-w-0">
               <h2
                 className="text-xl font-bold"
@@ -158,19 +154,54 @@ export default async function MePage() {
               >
                 {displayName}
               </h2>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>@{profile.username}</p>
-              {profile.bio && (
-                <p className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{profile.bio}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                @{profile.username}
+              </p>
+
+              {/* previous username if set */}
+              {'previous_username' in profile &&
+               (profile as unknown as { previous_username: string | null; previous_username_visible_until: string | null })
+                 .previous_username &&
+               new Date((profile as unknown as { previous_username_visible_until: string }).previous_username_visible_until) > new Date() && (
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Ankstesnis vardas viešai rodomas iki{' '}
+                  <span style={{ color: 'var(--gold)' }}>
+                    {new Date(
+                      (profile as unknown as { previous_username_visible_until: string }).previous_username_visible_until
+                    ).toLocaleDateString('lt-LT')}
+                  </span>
+                </p>
               )}
+
+              {profile.bio && (
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  {profile.bio}
+                </p>
+              )}
+
+              <Link
+                href="/profile/settings"
+                className="inline-block mt-2 text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  color:      'var(--text-muted)',
+                  border:     '1px solid var(--bg-border)',
+                  fontFamily: 'var(--rvn-font-display)',
+                  letterSpacing: '0.03em',
+                }}
+              >
+                ⚙️ Nustatymai
+              </Link>
             </div>
           </div>
+
           <UserRankCard profile={profile} />
           <div className="mt-3">
             <XPProgressBar xp={profile.xp_total} level={profile.level} />
           </div>
         </div>
 
-        {/* Stats grid */}
+        {/* ── Stats grid ────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-3 mb-4">
             <h3 className="rvn-section-title text-xs uppercase tracking-widest">Statistika</h3>
@@ -178,28 +209,22 @@ export default async function MePage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { label: 'Turimos kortos', value: `${ownedCount} / ${totalCards}`, sub: `${completionPct}%` },
-              { label: 'Viešos kaladės',      value: publicDecksCount },
-              { label: 'Upvotai gauti',        value: upvotesCount },
-              { label: 'Lankyti renginiai',    value: attendedCount },
-              { label: 'Artėjantys renginiai', value: upcomingCount },
-              { label: 'Ženkleliai',           value: badgesCount },
+              { label: 'Turimos kortos',       value: `${ownedCount} / ${totalCards}`, sub: `${completionPct}%` },
+              { label: 'Viešos kaladės',       value: publicDecksCount },
+              { label: 'Upvotai gauti',         value: upvotesCount },
+              { label: 'Lankyti renginiai',     value: attendedCount },
+              { label: 'Artėjantys renginiai',  value: upcomingCount },
+              { label: 'Ženkleliai',            value: badgesCount },
             ].map((stat) => (
               <div
                 key={stat.label}
                 className="rounded-xl p-4 transition-all hover:border-[rgba(240,180,41,0.2)]"
-                style={{
-                  background: 'var(--bg-surface)',
-                  border:     '1px solid var(--bg-border)',
-                }}
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
               >
                 <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
                   {stat.label}
                 </p>
-                <p
-                  className="text-2xl font-bold mt-1"
-                  style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}
-                >
+                <p className="text-2xl font-bold mt-1" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                   {stat.value}
                 </p>
                 {stat.sub && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{stat.sub}</p>}
@@ -208,7 +233,7 @@ export default async function MePage() {
           </div>
         </div>
 
-        {/* Quick links */}
+        {/* ── Quick links ───────────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-3 mb-4">
             <h3 className="rvn-section-title text-xs uppercase tracking-widest">Sparčiosios nuorodos</h3>
@@ -236,7 +261,7 @@ export default async function MePage() {
           </div>
         </div>
 
-        {/* Recent badges */}
+        {/* ── Recent badges ─────────────────────────────────────────── */}
         {recentBadges.length > 0 && (
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -245,10 +270,7 @@ export default async function MePage() {
             </div>
             <div className="flex gap-2 flex-wrap">
               {recentBadges.map((ub) => (
-                <div
-                  key={ub.id}
-                  className="rvn-chip-gold flex items-center gap-2"
-                >
+                <div key={ub.id} className="rvn-chip-gold flex items-center gap-2">
                   <span>{(ub.badge as unknown as { icon: string }).icon}</span>
                   <span>{(ub.badge as unknown as { title: string }).title}</span>
                 </div>

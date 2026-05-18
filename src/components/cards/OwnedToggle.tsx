@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Check, Plus } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useCollectionStore } from '@/stores/collectionStore'
 
 type OwnedToggleProps = {
@@ -40,16 +39,24 @@ export function OwnedToggle({ cardId, isAuthenticated, size = 'sm' }: OwnedToggl
       onMouseDown={stop}
       onClick={handleClick}
       disabled={loading}
-      title={isOwned ? 'Turiu - spausti noredamas pasalinti' : 'Pazymeti kaip turima'}
-      className={cn(
-        'flex items-center justify-center rounded-full border-2 transition-all duration-200 disabled:opacity-50',
-        sz,
-        isOwned
-          ? 'border-green-500 bg-green-500/20 text-green-400 hover:border-red-500 hover:bg-red-500/20 hover:text-red-400'
-          : 'border-gray-600 bg-black/40 text-gray-500 hover:border-green-500 hover:text-green-400'
-      )}
+      aria-label={isOwned ? 'Pašalinti iš turimų' : 'Pažymėti kaip turimą'}
+      title={isOwned ? 'Turima — spausti norint pašalinti' : 'Pažymėti kaip turimą'}
+      className={`flex items-center justify-center rounded-full border-2 transition-all duration-200 disabled:opacity-50 ${sz}`}
+      style={isOwned ? {
+        border: '2px solid rgba(124,58,237,0.7)',
+        background: 'rgba(124,58,237,0.2)',
+        color: '#c4b5fd',
+        boxShadow: '0 0 8px rgba(124,58,237,0.25)',
+      } : {
+        border: '2px solid rgba(100,116,139,0.4)',
+        background: 'rgba(15,15,26,0.7)',
+        color: 'var(--text-muted)',
+      }}
     >
-      {isOwned ? <Check className={iconSz} /> : <Plus className={iconSz} />}
+      {isOwned
+        ? <Check className={iconSz} />
+        : <Plus className={iconSz} />
+      }
     </button>
   )
 }

@@ -117,6 +117,10 @@ export type Profile = {
   role: string
   created_at: string
   updated_at: string
+  // Username history (profile_username_history_v1 migration)
+  username_changed_at: string | null
+  previous_username: string | null
+  previous_username_visible_until: string | null
 }
 
 // -- XP / RANKS / BADGES
