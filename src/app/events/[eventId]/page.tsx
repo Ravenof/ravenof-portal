@@ -168,7 +168,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </Link>
           <div className="flex-1" />
           <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Kortu baze
+            Kortų bazė
           </Link>
         </div>
       </header>
