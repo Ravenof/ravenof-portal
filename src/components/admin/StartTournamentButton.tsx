@@ -51,7 +51,7 @@ export function StartTournamentButton({ eventId, playerCount, tournamentStatus }
       <button
         onClick={() => { setShowConfirm(true); setError(null) }}
         disabled={playerCount < 2}
-        className="rounded-lg px-5 py-2 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="rounded-lg px-5 py-2 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
         style={{
           background: 'linear-gradient(135deg,#4c1d95,#6d28d9)',
           color: '#ede9fe',

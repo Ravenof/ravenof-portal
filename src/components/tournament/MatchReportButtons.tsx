@@ -91,7 +91,7 @@ export function MatchReportButtons({
         <button
           onClick={() => submit('win')}
           disabled={isPending}
-          className="flex-1 rounded-xl py-3 text-sm font-bold transition-all disabled:opacity-50 active:scale-95"
+          className="flex-1 rounded-xl py-4 text-base font-bold transition-all disabled:opacity-50 active:scale-95"
           style={{
             background: 'linear-gradient(135deg,#14532d,#166534)',
             color: '#86efac',
@@ -104,7 +104,7 @@ export function MatchReportButtons({
         <button
           onClick={() => submit('loss')}
           disabled={isPending}
-          className="flex-1 rounded-xl py-3 text-sm font-bold transition-all disabled:opacity-50 active:scale-95"
+          className="flex-1 rounded-xl py-4 text-base font-bold transition-all disabled:opacity-50 active:scale-95"
           style={{
             background: 'linear-gradient(135deg,#450a0a,#7f1d1d)',
             color: '#fca5a5',

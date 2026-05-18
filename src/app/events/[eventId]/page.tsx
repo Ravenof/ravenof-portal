@@ -290,7 +290,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                   border: '1px solid #7c3aed60',
                   boxShadow: '0 0 24px rgba(124,58,237,.15)',
                 }}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#a78bfa' }}>
                     Tavo dabartinis mačas
                   </h2>
@@ -298,23 +298,27 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                     style={{ background: myMatch.bracket === 'losers' ? '#f59e0b20' : '#a78bfa20', color: myMatch.bracket === 'losers' ? '#f59e0b' : '#a78bfa' }}>
                     {formatBracket(myMatch.bracket)}
                   </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: 'rgba(255,255,255,.06)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
+                    {myMatch.round}. raundas
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 text-center">
-                    <p className="text-xs mb-1" style={{ color: '#a78bfa' }}>TU</p>
-                    <p className="text-lg font-bold"
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <div className="flex-1 text-center min-w-0">
+                    <p className="text-xs mb-1 font-semibold uppercase tracking-wider" style={{ color: '#a78bfa' }}>Tu</p>
+                    <p className="text-base sm:text-lg font-bold truncate"
                       style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#ddd6fe' }}>
                       {(myTPlayer as PlayerWithProfile).display_name || (myTPlayer as PlayerWithProfile).username || 'Tu'}
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      Pozicija #{myTPlayer.seed ?? '—'}
+                      Poz. #{myTPlayer.seed ?? '—'}
                     </p>
                   </div>
-                  <div className="text-2xl font-bold" style={{ color: '#6d28d9' }}>VS</div>
-                  <div className="flex-1 text-center">
-                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>VARŽOVAS</p>
-                    <p className="text-lg font-bold"
+                  <div className="text-2xl sm:text-3xl font-bold shrink-0 px-2" style={{ color: '#6d28d9', letterSpacing: '0.05em' }}>VS</div>
+                  <div className="flex-1 text-center min-w-0">
+                    <p className="text-xs mb-1 font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Varžovas</p>
+                    <p className="text-base sm:text-lg font-bold truncate"
                       style={{
                         fontFamily: 'Cinzel, Georgia, serif',
                         color: myMatch.is_bye ? '#6b7280' : 'var(--text-primary)',
@@ -372,16 +376,18 @@ export default async function EventDetailPage({ params }: { params: Params }) {
 
             {/* XP apdovanojimų info (aktyvus turnyras) */}
             {ev.tournament_status === 'active' && (
-              <div className="rounded-xl px-4 py-3 flex flex-wrap gap-x-5 gap-y-1 items-center"
+              <div className="rounded-xl px-4 py-3"
                 style={{ background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.18)' }}>
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#fbbf24' }}>
-                  Turnyro XP
-                </span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Dalyvavimas <strong style={{ color: '#fbbf24' }}>+400</strong></span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pergalė mače <strong style={{ color: '#fbbf24' }}>+100</strong></span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥇 <strong style={{ color: '#fbbf24' }}>+1500</strong></span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥈 <strong style={{ color: '#a78bfa' }}>+1000</strong></span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥉 <strong style={{ color: '#f97316' }}>+700</strong></span>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#fbbf24' }}>
+                  Turnyro XP apdovanojimai
+                </p>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-5 gap-y-1">
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Dalyvavimas <strong style={{ color: '#fbbf24' }}>+400</strong></span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pergalė mače <strong style={{ color: '#fbbf24' }}>+100</strong></span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥇 1 vieta <strong style={{ color: '#fbbf24' }}>+1500</strong></span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥈 2 vieta <strong style={{ color: '#a78bfa' }}>+1000</strong></span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>🥉 3 vieta <strong style={{ color: '#f97316' }}>+700</strong></span>
+                </div>
               </div>
             )}
 

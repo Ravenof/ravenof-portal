@@ -217,7 +217,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {(ev.tournament_status === 'active' || ev.tournament_status === 'completed') && (
                   <AwardRewardsButton eventId={eventId} />
                 )}

@@ -24,11 +24,11 @@ export function AwardRewardsButton({ eventId }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-stretch sm:items-end gap-1">
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+        className="text-xs px-3 py-2 rounded-lg font-semibold transition-opacity hover:opacity-80 disabled:opacity-50 w-full sm:w-auto"
         style={{
           background: '#d97706' + '20',
           color: '#fbbf24',
