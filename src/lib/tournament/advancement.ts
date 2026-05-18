@@ -1,7 +1,9 @@
 'use server'
-// Tournament Module v3 — Advancement engine (grand final fix)
+// Tournament Module v3 — Advancement engine (BYE-safe losers bracket fix)
 // Handles: winners → losers dropout pairing, losers finalist detection, grand final creation,
 // tournament completion. Idempotent via advanced_at guard.
+// Fix v3.1: 3-player / BYE edge case — collects all un-matched first-loss players,
+//   pairs them together regardless of when they dropped from winners bracket.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -48,6 +50,39 @@ function pairPlayers(
   return matches
 }
 
+// ── Rasti žaidėjus su 1 pralaimėjimu, kurie neturi LR mačo ──────────────────
+// Tai yra WR dropout'ai, kurie dar laukia pirmojo LR mačo.
+async function getPlayersNeedingLRMatch(
+  eventId: string,
+  supabase: SupabaseClient,
+): Promise<string[]> {
+  // 1. Visi aktyvūs žaidėjai su losses_count = 1
+  const { data: oneLoss } = await supabase
+    .from('tournament_players')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('losses_count', 1)
+    .eq('status', 'active')
+
+  if (!oneLoss || oneLoss.length === 0) return []
+
+  // 2. Visi žaidėjai, kurie jau yra kokiame nors LR mače
+  const { data: lrMatches } = await supabase
+    .from('tournament_matches')
+    .select('player1_id, player2_id')
+    .eq('event_id', eventId)
+    .eq('bracket', 'losers')
+
+  const inLR = new Set<string>()
+  for (const m of (lrMatches ?? [])) {
+    if (m.player1_id) inLR.add(m.player1_id)
+    if (m.player2_id) inLR.add(m.player2_id)
+  }
+
+  // 3. Grąžinti tik tuos, kurių nėra LR mačuose
+  return oneLoss.map((p: { id: string }) => p.id).filter((id: string) => !inLR.has(id))
+}
+
 // ── Rasti pralaimėjusiųjų šakos žaidėją, kuris laimėjo paskutinį LR mačą
 // ── ir dar neturi tolesnio LR mačo (laukia varžovo) ─────────────────────────
 async function getUnmatchedLRWinners(
@@ -63,7 +98,6 @@ async function getUnmatchedLRWinners(
 
   if (!lrMatches || lrMatches.length === 0) return []
 
-  // Surinkti visus žaidėjus, kurie yra LR mačuose
   const allLRPlayerIds = new Set<string>()
   for (const m of lrMatches) {
     if (m.player1_id) allLRPlayerIds.add(m.player1_id)
@@ -73,15 +107,14 @@ async function getUnmatchedLRWinners(
   const waiters: string[] = []
 
   for (const playerId of allLRPlayerIds) {
-    // Rasti šio žaidėjo mačus LR šakoje, surikiuotus pagal raundą (mažėjančia tvarka)
     const playerMatches = lrMatches
-      .filter(m => m.player1_id === playerId || m.player2_id === playerId)
-      .sort((a, b) => b.round - a.round)
+      .filter((m: { player1_id: string | null; player2_id: string | null }) =>
+        m.player1_id === playerId || m.player2_id === playerId)
+      .sort((a: { round: number }, b: { round: number }) => b.round - a.round)
 
     const latestMatch = playerMatches[0]
     if (!latestMatch) continue
 
-    // Jei laimėjo paskutinį mačą ir jo statusas baigtas — jis laukia
     if (isFinished(latestMatch.status) && latestMatch.winner_id === playerId) {
       waiters.push(playerId)
     }
@@ -90,14 +123,52 @@ async function getUnmatchedLRWinners(
   return waiters
 }
 
+// ── Sukurti trūkstamus LR mačus (naudojama repair/recalculate kelyje) ────────
+// Idempotent: patikrina ar toks LR raundas jau yra.
+async function createMissingLosersMatches(
+  eventId: string,
+  supabase: SupabaseClient,
+): Promise<number> {
+  const playersNeedingLR = await getPlayersNeedingLRMatch(eventId, supabase)
+  if (playersNeedingLR.length < 2) return 0
+
+  // Rasti aukščiausią esamą LR raundą
+  const { data: existingLR } = await supabase
+    .from('tournament_matches')
+    .select('round')
+    .eq('event_id', eventId)
+    .eq('bracket', 'losers')
+    .order('round', { ascending: false })
+    .limit(1)
+
+  const nextLRRound = (existingLR && existingLR.length > 0)
+    ? existingLR[0].round + 1
+    : 1
+
+  // Patikrinti ar šis raundas jau yra (idempotency)
+  const { data: existingRound } = await supabase
+    .from('tournament_matches')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('bracket', 'losers')
+    .eq('round', nextLRRound)
+    .limit(1)
+
+  if (existingRound && existingRound.length > 0) return 0
+
+  const newMatches = pairPlayers(playersNeedingLR, eventId, 'losers', nextLRRound)
+  if (newMatches.length === 0) return 0
+
+  const { error } = await supabase.from('tournament_matches').insert(newMatches)
+  if (error) return 0
+  return newMatches.length
+}
+
 // ── Bandyti sukurti Didįjį finalą ────────────────────────────────────────────
-// Naudoja mačų duomenis (ne žaidėjų statusą) finalistams rasti.
-// Grąžina true jei finalas sukurtas.
 async function tryCreateGrandFinal(
   eventId: string,
   supabase: SupabaseClient,
 ): Promise<boolean> {
-  // 1. Patikrinti ar Didysis finalas jau egzistuoja
   const { data: existingGF } = await supabase
     .from('tournament_matches')
     .select('id')
@@ -107,8 +178,7 @@ async function tryCreateGrandFinal(
 
   if (existingGF && existingGF.length > 0) return false
 
-  // 2. Patikrinti ar nėra laukiančių WR arba LR mačų
-  //    (bye mačai neblokuoja — jie visada laikomi baigtais)
+  // Patikrinti ar nėra laukiančių WR arba LR mačų (bye neblokuoja)
   const { data: pendingMatches } = await supabase
     .from('tournament_matches')
     .select('id, status')
@@ -119,8 +189,11 @@ async function tryCreateGrandFinal(
 
   if (pendingMatches && pendingMatches.length > 0) return false
 
-  // 3. Rasti laimėtojų šakos finalistą
-  //    = paskutinio laimėtojų raundo laimėtojas (kai tame raunde tik 1 mačas ir jis baigtas)
+  // Patikrinti ar nėra žaidėjų, laukiančių LR mačo (stuck 3-player)
+  const needingLR = await getPlayersNeedingLRMatch(eventId, supabase)
+  if (needingLR.length >= 2) return false
+
+  // Rasti laimėtojų šakos finalistą
   const { data: winnerMatches } = await supabase
     .from('tournament_matches')
     .select('round, winner_id, status, is_bye')
@@ -131,18 +204,18 @@ async function tryCreateGrandFinal(
   if (!winnerMatches || winnerMatches.length === 0) return false
 
   const highestWR = winnerMatches[0].round
-  const lastWRRound = winnerMatches.filter(m => m.round === highestWR)
-  const allLastWRDone = lastWRRound.every(m => m.is_bye || isFinished(m.status))
+  const lastWRRound = winnerMatches.filter((m: { round: number }) => m.round === highestWR)
+  const allLastWRDone = lastWRRound.every((m: { is_bye: boolean; status: string }) =>
+    m.is_bye || isFinished(m.status))
   if (!allLastWRDone) return false
 
   const wFinalistIds = lastWRRound
-    .map(m => m.winner_id)
-    .filter((id): id is string => !!id)
+    .map((m: { winner_id: string | null }) => m.winner_id)
+    .filter((id: string | null): id is string => !!id)
   if (wFinalistIds.length !== 1) return false
   const winnersFinalId = wFinalistIds[0]
 
-  // 4. Rasti pralaimėjusiųjų šakos finalistą
-  //    = paskutinio pralaimėjusiųjų raundo laimėtojas (kai tame raunde tik 1 mačas ir jis baigtas)
+  // Rasti pralaimėjusiųjų šakos finalistą
   const { data: loserMatches } = await supabase
     .from('tournament_matches')
     .select('round, winner_id, status, is_bye')
@@ -153,20 +226,19 @@ async function tryCreateGrandFinal(
   if (!loserMatches || loserMatches.length === 0) return false
 
   const highestLR = loserMatches[0].round
-  const lastLRRound = loserMatches.filter(m => m.round === highestLR)
-  const allLastLRDone = lastLRRound.every(m => m.is_bye || isFinished(m.status))
+  const lastLRRound = loserMatches.filter((m: { round: number }) => m.round === highestLR)
+  const allLastLRDone = lastLRRound.every((m: { is_bye: boolean; status: string }) =>
+    m.is_bye || isFinished(m.status))
   if (!allLastLRDone) return false
 
   const lFinalistIds = lastLRRound
-    .map(m => m.winner_id)
-    .filter((id): id is string => !!id)
+    .map((m: { winner_id: string | null }) => m.winner_id)
+    .filter((id: string | null): id is string => !!id)
   if (lFinalistIds.length !== 1) return false
   const losersFinalId = lFinalistIds[0]
 
-  // 5. Saugumas: jie turi būti skirtingi žaidėjai
   if (winnersFinalId === losersFinalId) return false
 
-  // 6. Sukurti Didįjį finalą
   const { error: insertErr } = await supabase.from('tournament_matches').insert({
     event_id:     eventId,
     round:        1,
@@ -182,14 +254,13 @@ async function tryCreateGrandFinal(
   return true
 }
 
-// ── Užbaigti turnyrą (kai Didysis finalas patvirtintas) ─────────────────────
+// ── Užbaigti turnyrą ─────────────────────────────────────────────────────────
 async function finalizeTournament(
   eventId: string,
   winnerId: string,
   loserId: string,
   supabase: SupabaseClient,
 ): Promise<void> {
-  // Nustatyti galutines vietas
   await supabase
     .from('tournament_players')
     .update({ final_placement: 1 })
@@ -200,7 +271,6 @@ async function finalizeTournament(
     .update({ final_placement: 2 })
     .eq('id', loserId)
 
-  // Pažymėti turnyrą kaip baigtą
   await supabase
     .from('events')
     .update({ tournament_status: 'completed' })
@@ -208,10 +278,6 @@ async function finalizeTournament(
 }
 
 // ── advanceTournamentAfterConfirmedMatch ─────────────────────────────────────
-/**
- * Iškviečiama po to kai mačas patvirtintas/admin_resolved.
- * Idempotent — saugu kviesti kelis kartus (apsaugoja advanced_at).
- */
 export async function advanceTournamentAfterConfirmedMatch(
   matchId: string,
   supabase: SupabaseClient,
@@ -224,20 +290,16 @@ export async function advanceTournamentAfterConfirmedMatch(
     .single()
 
   if (matchErr || !match) return
-
-  // 2. Patikrinti statusą
   if (!isFinished(match.status)) return
-
-  // 3. Idempotency — jau apdorotas
   if (match.advanced_at !== null && match.advanced_at !== undefined) return
 
-  // 4. Pažymėti kaip apdorotą
+  // 2. Pažymėti kaip apdorotą
   await supabase
     .from('tournament_matches')
     .update({ advanced_at: new Date().toISOString() })
     .eq('id', matchId)
 
-  // 5. Atnaujinti pralaimėjusiojo losses_count (ne bye mačams)
+  // 3. Atnaujinti pralaimėjusiojo losses_count (ne bye mačams)
   if (match.loser_id && !match.is_bye) {
     const { data: loserRow } = await supabase
       .from('tournament_players')
@@ -252,7 +314,6 @@ export async function advanceTournamentAfterConfirmedMatch(
       .update({ losses_count: newLosses })
       .eq('id', match.loser_id)
 
-    // 6. Jei 2 pralaimėjimai — eliminavimas
     if (newLosses >= 2) {
       await supabase
         .from('tournament_players')
@@ -261,7 +322,7 @@ export async function advanceTournamentAfterConfirmedMatch(
     }
   }
 
-  // 7. Didžiojo finalo specialus atvejis
+  // 4. Didžiojo finalo specialus atvejis
   if (match.bracket === 'grand_final') {
     if (match.winner_id && match.loser_id) {
       await finalizeTournament(match.event_id, match.winner_id, match.loser_id, supabase)
@@ -269,8 +330,7 @@ export async function advanceTournamentAfterConfirmedMatch(
     return
   }
 
-  // 8. Patikrinti ar visi šio raundo mačai baigti
-  //    (bye mačai visada laikomi baigtais)
+  // 5. Patikrinti ar visi šio raundo mačai baigti
   const { data: roundMatches } = await supabase
     .from('tournament_matches')
     .select('id, status, is_bye, winner_id, loser_id, player1_id, player2_id, bracket, round')
@@ -280,23 +340,24 @@ export async function advanceTournamentAfterConfirmedMatch(
 
   if (!roundMatches) return
 
-  const allRoundDone = roundMatches.every(m => m.is_bye || isFinished(m.status))
+  const allRoundDone = roundMatches.every((m: { is_bye: boolean; status: string }) =>
+    m.is_bye || isFinished(m.status))
   if (!allRoundDone) return
 
-  // ── 9. LAIMĖTOJŲ ŠAKA ─────────────────────────────────────────────────────
+  // ── 6. LAIMĖTOJŲ ŠAKA ─────────────────────────────────────────────────────
   if (match.bracket === 'winners') {
-    const winnerIds = roundMatches
-      .map(m => m.winner_id)
-      .filter((id): id is string => !!id)
+    const winnerIds: string[] = roundMatches
+      .map((m: { winner_id: string | null }) => m.winner_id)
+      .filter((id: string | null): id is string => !!id)
 
-    const loserIds = roundMatches
-      .filter(m => !m.is_bye)
-      .map(m => m.loser_id)
-      .filter((id): id is string => !!id)
+    const loserIds: string[] = roundMatches
+      .filter((m: { is_bye: boolean }) => !m.is_bye)
+      .map((m: { loser_id: string | null }) => m.loser_id)
+      .filter((id: string | null): id is string => !!id)
 
     const nextRound = match.round + 1
 
-    // 9a. Generuoti kitą winners raundą (jei daugiau nei 1 laimėtojas)
+    // 6a. Generuoti kitą winners raundą (jei daugiau nei 1 laimėtojas)
     if (winnerIds.length > 1) {
       const { data: existingNextW } = await supabase
         .from('tournament_matches')
@@ -313,78 +374,90 @@ export async function advanceTournamentAfterConfirmedMatch(
         }
       }
     }
-    // Jei winnerIds.length === 1 — šis žaidėjas yra laimėtojų šakos finalistas
-    // Finalas bus sukurtas kai ir LR šaka baigs savo paskutinį raundą
 
-    // 9b. Generuoti / papildyti pralaimėjusiųjų šaką losers dropout'ais
+    // 6b. Sukurti / papildyti pralaimėjusiųjų šaką
+    // FIX v3.1: Surinkti VISUS žaidėjus su 1 loss be LR mačo
+    // (apima ankstesnių raundų dropout'us ir dabartinio raundo)
     if (loserIds.length > 0) {
-      // Rasti aukščiausią esamą LR raundą
-      const { data: existingLR } = await supabase
-        .from('tournament_matches')
-        .select('round')
-        .eq('event_id', match.event_id)
-        .eq('bracket', 'losers')
-        .order('round', { ascending: false })
-        .limit(1)
+      // Po losses_count atnaujinimo šiame raunde, getPlayersNeedingLRMatch
+      // grąžins visus žaidėjus su 1 loss ir be LR mačo
+      const allNeedingLR = await getPlayersNeedingLRMatch(match.event_id, supabase)
 
-      const nextLRRound = (existingLR && existingLR.length > 0)
-        ? existingLR[0].round + 1
-        : 1
+      if (allNeedingLR.length >= 2) {
+        // Rasti aukščiausią esamą LR raundą
+        const { data: existingLR } = await supabase
+          .from('tournament_matches')
+          .select('round')
+          .eq('event_id', match.event_id)
+          .eq('bracket', 'losers')
+          .order('round', { ascending: false })
+          .limit(1)
 
-      // Patikrinti ar šis LR raundas jau sukurtas
-      const { data: existingLRRound } = await supabase
-        .from('tournament_matches')
-        .select('id')
-        .eq('event_id', match.event_id)
-        .eq('bracket', 'losers')
-        .eq('round', nextLRRound)
-        .limit(1)
+        const nextLRRound = (existingLR && existingLR.length > 0)
+          ? existingLR[0].round + 1
+          : 1
 
-      if (!existingLRRound || existingLRRound.length === 0) {
-        if (loserIds.length >= 2) {
-          // Keli WR dropout'ai — suporuoti tarpusavyje
-          const lossersMatches = pairPlayers(loserIds, match.event_id, 'losers', nextLRRound)
+        const { data: existingLRRound } = await supabase
+          .from('tournament_matches')
+          .select('id')
+          .eq('event_id', match.event_id)
+          .eq('bracket', 'losers')
+          .eq('round', nextLRRound)
+          .limit(1)
+
+        if (!existingLRRound || existingLRRound.length === 0) {
+          const lossersMatches = pairPlayers(allNeedingLR, match.event_id, 'losers', nextLRRound)
           if (lossersMatches.length > 0) {
             await supabase.from('tournament_matches').insert(lossersMatches)
           }
-        } else if (loserIds.length === 1) {
-          // Vienas WR dropout — bandyti suporuoti su laukiančiu LR laimėtoju
-          const lrWaiters = await getUnmatchedLRWinners(match.event_id, supabase)
+        }
+      } else if (allNeedingLR.length === 1) {
+        // Tik vienas žaidėjas laukia — bandyti suporuoti su LR šakos laimėtoju
+        const lrWaiters = await getUnmatchedLRWinners(match.event_id, supabase)
+        const combined = Array.from(new Set([...allNeedingLR, ...lrWaiters]))
 
-          if (lrWaiters.length === 1 && lrWaiters[0] !== loserIds[0]) {
-            // Sukurti LR mačą: WR dropout vs LR waiter
-            const crossMatch = {
-              event_id:     match.event_id,
-              round:        nextLRRound,
-              match_number: 1,
-              player1_id:   lrWaiters[0],
-              player2_id:   loserIds[0],
-              winner_id:    null,
-              loser_id:     null,
-              is_bye:       false,
-              bracket:      'losers',
-              status:       'pending',
-              completed_at: null,
-              advanced_at:  null,
+        if (combined.length >= 2) {
+          const { data: existingLR } = await supabase
+            .from('tournament_matches')
+            .select('round')
+            .eq('event_id', match.event_id)
+            .eq('bracket', 'losers')
+            .order('round', { ascending: false })
+            .limit(1)
+
+          const nextLRRound = (existingLR && existingLR.length > 0)
+            ? existingLR[0].round + 1
+            : 1
+
+          const { data: existingLRRound } = await supabase
+            .from('tournament_matches')
+            .select('id')
+            .eq('event_id', match.event_id)
+            .eq('bracket', 'losers')
+            .eq('round', nextLRRound)
+            .limit(1)
+
+          if (!existingLRRound || existingLRRound.length === 0) {
+            const crossMatches = pairPlayers(combined, match.event_id, 'losers', nextLRRound)
+            if (crossMatches.length > 0) {
+              await supabase.from('tournament_matches').insert(crossMatches)
             }
-            await supabase.from('tournament_matches').insert(crossMatch)
           }
-          // Jei LR waiters nėra arba daugiau — palaukti kol LR raundas baigsis
         }
       }
     }
 
-    // 9c. Bandyti sukurti Grand Final (jei liko 1 WR winner ir nėra laukiančių mačų)
+    // 6c. Bandyti sukurti Grand Final
     if (winnerIds.length === 1) {
       await tryCreateGrandFinal(match.event_id, supabase)
     }
   }
 
-  // ── 10. PRALAIMĖJUSIŲJŲ ŠAKA ──────────────────────────────────────────────
+  // ── 7. PRALAIMĖJUSIŲJŲ ŠAKA ───────────────────────────────────────────────
   else if (match.bracket === 'losers') {
-    const winnerIds = roundMatches
-      .map(m => m.winner_id)
-      .filter((id): id is string => !!id)
+    const winnerIds: string[] = roundMatches
+      .map((m: { winner_id: string | null }) => m.winner_id)
+      .filter((id: string | null): id is string => !!id)
 
     if (winnerIds.length === 0) return
 
@@ -414,11 +487,6 @@ export async function advanceTournamentAfterConfirmedMatch(
 }
 
 // ── recalculateTournamentBracket ─────────────────────────────────────────────
-/**
- * Apdoroja visus neapdorotus baigtus mačus nuosekliai.
- * Idempotent — saugu paleisti kelis kartus.
- * Taip pat bando sukurti Didįjį finalą, jei sąlygos sutampa.
- */
 export async function recalculateTournamentBracket(
   eventId: string,
   supabase: SupabaseClient,
@@ -435,9 +503,10 @@ export async function recalculateTournamentBracket(
     return { advanced: 0, error: 'Klaida gaunant mačus: ' + (error?.message ?? 'unknown') }
   }
 
-  // Surasti visus baigtus ir neapdorotus mačus
+  // 1. Apdoroti neapdorotus baigtus mačus
   const toProcess = matches.filter(
-    m => isFinished(m.status) && !m.is_bye && (m.advanced_at === null || m.advanced_at === undefined)
+    (m: { status: string; is_bye: boolean; advanced_at: string | null | undefined }) =>
+      isFinished(m.status) && !m.is_bye && (m.advanced_at === null || m.advanced_at === undefined)
   )
 
   let advanced = 0
@@ -450,10 +519,15 @@ export async function recalculateTournamentBracket(
     }
   }
 
-  // Bandyti sukurti Didįjį finalą (jei dar nesukurtas ir sąlygos atitinka)
+  // 2. FIX v3.1: sukurti trūkstamus LR mačus (stuck 3-player repair)
+  //    Veikia net kai visi WR mačai jau apdoroti (advanced_at set)
+  const missingCreated = await createMissingLosersMatches(eventId, supabase)
+  if (missingCreated > 0) advanced += missingCreated
+
+  // 3. Bandyti sukurti Didįjį finalą
   const grandFinalCreated = await tryCreateGrandFinal(eventId, supabase)
 
-  // Jei Didysis finalas jau egzistuoja ir yra baigtas — užbaigti turnyrą
+  // 4. Jei Didysis finalas jau egzistuoja ir yra baigtas — užbaigti turnyrą
   if (!grandFinalCreated) {
     const { data: gfMatch } = await supabase
       .from('tournament_matches')

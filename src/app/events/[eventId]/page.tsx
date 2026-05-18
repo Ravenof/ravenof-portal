@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { EventRegisterButton } from '@/components/events/EventRegisterButton'
 import { MatchReportButtons } from '@/components/tournament/MatchReportButtons'
 import { TournamentBracketView } from '@/components/tournament/TournamentBracketView'
+import { TournamentRewardNotice } from '@/components/tournament/TournamentRewardNotice'
 import { formatMatchStatus, formatBracket } from '@/lib/tournament/helpers'
 import type { RavenEvent, EventRegistration, TournamentPlayer, TournamentMatch, TournamentMatchReport } from '@/types'
 
@@ -241,6 +242,16 @@ export default async function EventDetailPage({ params }: { params: Params }) {
         {tournamentActive && (
           <div className="space-y-6">
 
+            {/* Apdovanojimo popup — rodomas tik vieną kartą po turnyro pabaigos */}
+            {user && myTPlayer && ev.tournament_status === 'completed' && (
+              <TournamentRewardNotice
+                eventId={eventId}
+                userId={user.id}
+                finalPlacement={myTPlayer.final_placement ?? null}
+                tournamentStatus={ev.tournament_status}
+              />
+            )}
+
             {/* Turnyras baigtas — laimėtojo juosta */}
             {ev.tournament_status === 'completed' && tournamentWinner && (
               <div className="rounded-2xl p-5 text-center"
@@ -356,7 +367,19 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 {myTPlayer.status === 'eliminated' ? (
                   <div className="rounded-xl p-5 text-center"
                     style={{ background: '#ef444410', border: '1px solid #ef444430', color: '#ef4444' }}>
-                    Turnyras baigtas — jūs iškritote.
+                    ❌ Turnyras baigtas — jūs iškritote.
+                  </div>
+                ) : (myTPlayer.losses_count ?? 0) === 0 ? (
+                  // Nėra aktyvaus mačo, 0 pralaimėjimų — laimėtojų šakos finalistas laukia GF varžovo
+                  <div className="rounded-xl p-5 text-center"
+                    style={{ background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.3)', color: '#fbbf24' }}>
+                    ⚔ Laukiate Didžiojo finalo varžovo.
+                  </div>
+                ) : (myTPlayer.losses_count ?? 0) === 1 ? (
+                  // 1 pralaimėjimas, nėra aktyvaus mačo — pralaimėjusiųjų šakoje, laukia mačo
+                  <div className="rounded-xl p-5 text-center"
+                    style={{ background: '#f59e0b10', border: '1px solid #f59e0b30', color: '#f59e0b' }}>
+                    🔻 Jūs patekote į Pralaimėjusiųjų šaką — laukiama kito mačo.
                   </div>
                 ) : (
                   <div className="rounded-xl p-5 text-center"
