@@ -101,33 +101,66 @@ export default async function MePage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <header
         className="sticky top-0 z-20 border-b px-4 py-3 flex items-center justify-between gap-3"
-        style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
+        style={{
+          background:     'rgba(7,7,15,0.95)',
+          backdropFilter: 'blur(16px)',
+          borderColor:    'rgba(240,180,41,0.1)',
+          boxShadow:      '0 1px 0 rgba(240,180,41,0.06)',
+        }}
       >
-        <h1 className="text-lg font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-          Mano profilis
+        <h1
+          className="text-lg font-bold"
+          style={{
+            fontFamily:    'var(--rvn-font-display)',
+            color:         'var(--gold)',
+            textShadow:    '0 0 16px rgba(240,180,41,0.3)',
+            letterSpacing: '0.06em',
+          }}
+        >
+          👤 Mano Profilis
         </h1>
-        <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-          &larr; Kortų bazė
+        <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
+          ← Kortų bazė
         </Link>
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">
         {/* Profile summary */}
-        <div className="rounded-xl p-6" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
-          <div className="flex items-start gap-5 mb-5">
+        <div
+          className="rounded-2xl p-6 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, var(--bg-surface) 60%)',
+            border:     '1px solid rgba(124,58,237,0.2)',
+            boxShadow:  '0 0 30px rgba(124,58,237,0.07)',
+          }}
+        >
+          {/* subtle violet glow orb */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }} />
+
+          <div className="flex items-start gap-5 mb-5 relative">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
-              style={{ background: 'var(--bg-elevated)', color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}
+              style={{
+                background: 'linear-gradient(135deg,#4c1d95,#1e1b4b)',
+                color:      'var(--gold)',
+                fontFamily: 'var(--rvn-font-display)',
+                border:     '2px solid rgba(124,58,237,0.4)',
+                boxShadow:  '0 0 16px rgba(124,58,237,0.2)',
+              }}
             >
               {displayName[0]?.toUpperCase() ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>
+              <h2
+                className="text-xl font-bold"
+                style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)', letterSpacing: '0.04em' }}
+              >
                 {displayName}
               </h2>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>@{profile.username}</p>
               {profile.bio && (
-                <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>{profile.bio}</p>
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{profile.bio}</p>
               )}
             </div>
           </div>
@@ -138,44 +171,66 @@ export default async function MePage() {
         </div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[
-            { label: 'Turimos kortos', value: `${ownedCount} / ${totalCards}`, sub: `${completionPct}%` },
-            { label: 'Viešos kaladės', value: publicDecksCount },
-            { label: 'Upvotes gauta', value: upvotesCount },
-            { label: 'Lankyti renginiai', value: attendedCount },
-            { label: 'Artėjantys renginiai', value: upcomingCount },
-            { label: 'Ženkleliai', value: badgesCount },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl p-4"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
-            >
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
-              <p className="text-2xl font-bold mt-1" style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}>
-                {stat.value}
-              </p>
-              {stat.sub && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{stat.sub}</p>}
-            </div>
-          ))}
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <h3 className="rvn-section-title text-xs uppercase tracking-widest">Statistika</h3>
+            <div className="flex-1 rvn-divider-gold" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Turimos kortos', value: `${ownedCount} / ${totalCards}`, sub: `${completionPct}%` },
+              { label: 'Viešos kaladės',      value: publicDecksCount },
+              { label: 'Upvotai gauti',        value: upvotesCount },
+              { label: 'Lankyti renginiai',    value: attendedCount },
+              { label: 'Artėjantys renginiai', value: upcomingCount },
+              { label: 'Ženkleliai',           value: badgesCount },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-xl p-4 transition-all hover:border-[rgba(240,180,41,0.2)]"
+                style={{
+                  background: 'var(--bg-surface)',
+                  border:     '1px solid var(--bg-border)',
+                }}
+              >
+                <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
+                  {stat.label}
+                </p>
+                <p
+                  className="text-2xl font-bold mt-1"
+                  style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}
+                >
+                  {stat.value}
+                </p>
+                {stat.sub && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{stat.sub}</p>}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Quick links */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
-            Sparčiosios nuorodos
-          </h3>
+          <div className="flex items-center gap-3 mb-4">
+            <h3 className="rvn-section-title text-xs uppercase tracking-widest">Sparčiosios nuorodos</h3>
+            <div className="flex-1 rvn-divider" />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {QUICK_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl transition hover:opacity-80"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:border-[rgba(240,180,41,0.25)] hover:text-[var(--gold)] group"
+                style={{
+                  background:  'var(--bg-surface)',
+                  border:      '1px solid var(--bg-border)',
+                  color:       'var(--text-secondary)',
+                  fontFamily:  'var(--rvn-font-display)',
+                  fontSize:    '12px',
+                  letterSpacing: '0.03em',
+                }}
               >
-                <span>{link.icon}</span>
-                <span className="text-sm font-medium">{link.label}</span>
+                <span className="text-base">{link.icon}</span>
+                <span className="font-medium truncate">{link.label}</span>
               </Link>
             ))}
           </div>
@@ -184,15 +239,15 @@ export default async function MePage() {
         {/* Recent badges */}
         {recentBadges.length > 0 && (
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)', fontFamily: 'Cinzel, Georgia, serif' }}>
-              Paskutiniai ženkleliai
-            </h3>
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="rvn-section-title text-xs uppercase tracking-widest">Paskutiniai ženkleliai</h3>
+              <div className="flex-1 rvn-divider-gold" />
+            </div>
             <div className="flex gap-2 flex-wrap">
               {recentBadges.map((ub) => (
                 <div
                   key={ub.id}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}
+                  className="rvn-chip-gold flex items-center gap-2"
                 >
                   <span>{(ub.badge as unknown as { icon: string }).icon}</span>
                   <span>{(ub.badge as unknown as { title: string }).title}</span>

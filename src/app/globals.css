@@ -1,22 +1,62 @@
-/* fonts loaded via <link> in layout.tsx */
+/* Fonts loaded via next/font/google CSS variables: --font-cinzel, --font-inter */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════
+   RAVENOF DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+   ═══════════════════════════════════════════════════════════ */
 :root {
-  --bg-base:     #0a0a0f;
-  --bg-surface:  #12121a;
-  --bg-elevated: #1a1a28;
-  --bg-border:   #2a2a3f;
-  --gold:        #f59e0b;
-  --gold-dim:    #b45309;
-  --gold-glow:   rgba(245, 158, 11, 0.3);
+  /* --- Backgrounds --- */
+  --bg-base:     #07070f;
+  --bg-surface:  #0f0f1a;
+  --bg-elevated: #171724;
+  --bg-border:   #252538;
+
+  /* --- Legacy aliases (kept for existing components) --- */
+  --rvn-bg:        #07070f;
+  --rvn-surface:   #0f0f1a;
+  --rvn-elevated:  #171724;
+  --rvn-border:    #252538;
+
+  /* --- Gold palette --- */
+  --gold:         #f0b429;
+  --gold-dim:     #a37820;
+  --gold-bright:  #fcd34d;
+  --gold-glow:    rgba(240, 180, 41, 0.28);
+  --rvn-gold:     #f0b429;
+  --rvn-gold-dim: #a37820;
+
+  /* --- Violet / arcane palette --- */
+  --rvn-violet:      #7c3aed;
+  --rvn-violet-dim:  #4c1d95;
+  --rvn-violet-glow: rgba(124, 58, 237, 0.3);
+
+  /* --- Red / damage --- */
+  --rvn-red:     #dc2626;
+  --rvn-red-dim: #7f1d1d;
+
+  /* --- Green / healing --- */
+  --rvn-green:     #16a34a;
+  --rvn-green-dim: #14532d;
+
+  /* --- Text --- */
   --text-primary:   #e2e8f0;
   --text-secondary: #94a3b8;
   --text-muted:     #64748b;
+  --rvn-text:       #e2e8f0;
+  --rvn-text-dim:   #94a3b8;
+  --rvn-text-muted: #64748b;
+
+  /* --- Fonts --- */
+  --rvn-font-display: var(--font-cinzel, 'Cinzel', Georgia, serif);
+  --rvn-font-body:    var(--font-inter, 'Inter', system-ui, sans-serif);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   BASE / RESET
+   ═══════════════════════════════════════════════════════════ */
 * {
   box-sizing: border-box;
 }
@@ -27,8 +67,13 @@ html {
 
 body {
   background-color: var(--bg-base);
+  /* subtle radial gradient from center — gives depth without heavy GPU cost */
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(124,58,237,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 40% at 100% 100%, rgba(240,180,41,0.03) 0%, transparent 50%);
+  background-attachment: fixed;
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--rvn-font-body);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -42,14 +87,241 @@ body {
 
 /* Gold text selection */
 ::selection {
-  background-color: rgba(245, 158, 11, 0.25);
+  background-color: rgba(240, 180, 41, 0.22);
   color: #fff;
 }
 
-/* Input / select base style */
+/* Input / select base */
 input, select, textarea {
   outline: none;
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--gold) !important;
+  box-shadow: 0 0 0 2px rgba(240,180,41,0.15) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TYPOGRAPHY CLASSES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Page title — gold Cinzel with glow */
+.rvn-page-title {
+  font-family: var(--rvn-font-display);
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 0 24px rgba(240,180,41,0.35),
+    0 0 48px rgba(240,180,41,0.12);
+  line-height: 1.1;
+}
+
+/* Section title — violet Cinzel, smaller */
+.rvn-section-title {
+  font-family: var(--rvn-font-display);
+  font-weight: 600;
+  color: #c4b5fd;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+/* Display font helper */
+.font-cinzel {
+  font-family: var(--rvn-font-display);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PANEL / CARD CLASSES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Base panel */
+.rvn-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gold-accent panel */
+.rvn-panel-gold {
+  background: linear-gradient(135deg, rgba(240,180,41,0.06) 0%, var(--bg-surface) 60%);
+  border: 1px solid rgba(240,180,41,0.25);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(240,180,41,0.07);
+}
+
+/* Violet-accent panel */
+.rvn-panel-violet {
+  background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, var(--bg-surface) 60%);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(124,58,237,0.1);
+}
+
+/* Danger panel */
+.rvn-panel-danger {
+  background: linear-gradient(135deg, rgba(220,38,38,0.08) 0%, var(--bg-surface) 60%);
+  border: 1px solid rgba(220,38,38,0.3);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Success panel */
+.rvn-panel-success {
+  background: linear-gradient(135deg, rgba(22,163,74,0.08) 0%, var(--bg-surface) 60%);
+  border: 1px solid rgba(22,163,74,0.3);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DIVIDERS
+   ═══════════════════════════════════════════════════════════ */
+
+.rvn-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--bg-border), transparent);
+  border: none;
+  margin: 0.75rem 0;
+}
+
+.rvn-divider-gold {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(240,180,41,0.4), transparent);
+  border: none;
+  margin: 0.75rem 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUT / SELECT / TEXTAREA THEMED CLASSES
+   ═══════════════════════════════════════════════════════════ */
+
+.rvn-input,
+.rvn-select,
+.rvn-textarea {
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  border-radius: 0.625rem;
+  color: var(--text-primary);
+  font-family: var(--rvn-font-body);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.875rem;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.rvn-input::placeholder,
+.rvn-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.rvn-input:focus,
+.rvn-select:focus,
+.rvn-textarea:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 2px rgba(240,180,41,0.15) !important;
+}
+
+.rvn-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+.rvn-textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHIP / BADGE CLASSES
+   ═══════════════════════════════════════════════════════════ */
+
+.rvn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  color: var(--text-secondary);
+}
+
+.rvn-chip-gold {
+  background: rgba(240,180,41,0.12);
+  border: 1px solid rgba(240,180,41,0.35);
+  color: var(--gold);
+}
+
+.rvn-chip-violet {
+  background: rgba(124,58,237,0.12);
+  border: 1px solid rgba(124,58,237,0.35);
+  color: #c4b5fd;
+}
+
+.rvn-chip-success {
+  background: rgba(22,163,74,0.12);
+  border: 1px solid rgba(22,163,74,0.35);
+  color: #86efac;
+}
+
+.rvn-chip-danger {
+  background: rgba(220,38,38,0.12);
+  border: 1px solid rgba(220,38,38,0.35);
+  color: #fca5a5;
+}
+
+.rvn-chip-muted {
+  background: rgba(100,116,139,0.1);
+  border: 1px solid rgba(100,116,139,0.2);
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CORNER ORNAMENT — apply to .rvn-panel-gold to get corner lines
+   ═══════════════════════════════════════════════════════════ */
+
+.rvn-corner::before,
+.rvn-corner::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(240,180,41,0.35);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.rvn-corner::before {
+  top: 8px;
+  left: 8px;
+  border-width: 1px 0 0 1px;
+}
+
+.rvn-corner::after {
+  bottom: 8px;
+  right: 8px;
+  border-width: 0 1px 1px 0;
 }

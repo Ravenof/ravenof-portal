@@ -87,48 +87,54 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
       <header
-        className="sticky top-0 z-20 border-b px-4 py-4"
-        style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
+        className="sticky top-0 z-20 border-b px-4 py-3"
+        style={{
+          background:     'rgba(7,7,15,0.95)',
+          backdropFilter: 'blur(16px)',
+          borderColor:    'rgba(240,180,41,0.1)',
+          boxShadow:      '0 1px 0 rgba(240,180,41,0.06)',
+        }}
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <Link href="/cards" className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-              &larr; Kortų bazė
+            <Link href="/cards" className="text-xs transition-opacity hover:opacity-70 shrink-0" style={{ color: 'var(--text-muted)' }}>
+              ← Kortų bazė
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
-            <h1 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-              Viešos kaladės
+            <h1
+              className="text-lg font-bold"
+              style={{
+                fontFamily:    'var(--rvn-font-display)',
+                color:         'var(--gold)',
+                textShadow:    '0 0 16px rgba(240,180,41,0.3)',
+                letterSpacing: '0.06em',
+              }}
+            >
+              📚 Viešos Kaladės
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              href="/events"
-              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
-            >
-              Renginiai
-            </Link>
-            <Link
-              href="/leaderboards"
-              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
-            >
-              Topai
-            </Link>
-            <Link
-              href="/life-tracker"
-              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
-            >
-              Life Tracker
-            </Link>
+            {[
+              { href: '/events',      label: 'Renginiai'    },
+              { href: '/leaderboards',label: 'Topai'        },
+              { href: '/life-tracker',label: 'Life Tracker' },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}
+              >
+                {label}
+              </Link>
+            ))}
             {user && (
               <Link
                 href="/me"
-                className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
+                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}
               >
-                Mano profilis
+                Profilis
               </Link>
             )}
             {user && (

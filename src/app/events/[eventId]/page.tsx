@@ -6,7 +6,8 @@ import { MatchReportButtons } from '@/components/tournament/MatchReportButtons'
 import { TournamentBracketView } from '@/components/tournament/TournamentBracketView'
 import { TournamentRewardNotice } from '@/components/tournament/TournamentRewardNotice'
 import { formatMatchStatus, formatBracket } from '@/lib/tournament/helpers'
-import type { RavenEvent, EventRegistration, TournamentPlayer, TournamentMatch, TournamentMatchReport } from '@/types'
+import { ParticipantBubble } from '@/components/events/ParticipantBubble'
+import type { RavenEvent, EventRegistration, TournamentPlayer, TournamentMatch, TournamentMatchReport, EventParticipant, ParticipantProfile } from '@/types'
 
 type Params = Promise<{ eventId: string }>
 
@@ -40,6 +41,32 @@ export default async function EventDetailPage({ params }: { params: Params }) {
       .from('event_registrations').select('*')
       .eq('event_id', eventId).eq('user_id', user.id).maybeSingle()
     userRegistration = reg as EventRegistration | null
+  }
+
+  // Fetch participants list with profile data
+  const { data: participantsRaw } = await supabase
+    .from('event_registrations')
+    .select('id, user_id, status')
+    .eq('event_id', eventId)
+    .in('status', ['registered', 'attended'])
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  let participants: EventParticipant[] = []
+  if (participantsRaw && participantsRaw.length > 0) {
+    const pUids = participantsRaw.map((r: { user_id: string }) => r.user_id)
+    const { data: pProfiles } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .in('id', pUids)
+    const pMap: Record<string, ParticipantProfile> = {}
+    for (const p of (pProfiles ?? [])) pMap[p.id] = p as ParticipantProfile
+    participants = (participantsRaw as EventRegistration[]).map(r => ({
+      id:       r.id,
+      user_id:  r.user_id,
+      status:   r.status as 'registered' | 'attended',
+      profile:  pMap[r.user_id] ?? null,
+    }))
   }
 
   const isFull       = ev.capacity !== null && registrationCount >= ev.capacity
@@ -237,6 +264,32 @@ export default async function EventDetailPage({ params }: { params: Params }) {
             )}
           </div>
         )}
+
+        {/* Dalyviai */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <h2
+              className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}
+            >
+              Dalyviai
+            </h2>
+            <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(240,180,41,0.3), transparent)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{registrationCount}</span>
+          </div>
+
+          {participants.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Dar nėra užsiregistravusių dalyvių.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {participants.map((p) => (
+                <ParticipantBubble key={p.id} profile={p.profile} />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Turnyro sekcija */}
         {tournamentActive && (

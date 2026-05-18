@@ -17,11 +17,11 @@ type Tab = 'level' | 'cards' | 'decks' | 'events' | 'badges'
 type SearchParams = Promise<{ tab?: string }>
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'level', label: 'Lygis / XP' },
-  { key: 'cards', label: 'Kortos' },
-  { key: 'decks', label: 'Kaladžių upvotes' },
-  { key: 'events', label: 'Renginiai' },
-  { key: 'badges', label: 'Ženkleliai' },
+  { key: 'level',  label: 'Lygis / XP'       },
+  { key: 'cards',  label: 'Kortos'            },
+  { key: 'decks',  label: 'Kaladžių upvotes'  },
+  { key: 'events', label: 'Renginiai'         },
+  { key: 'badges', label: 'Ženkleliai'        },
 ]
 
 export default async function LeaderboardsPage({ searchParams }: { searchParams: SearchParams }) {
@@ -60,12 +60,10 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
     const { data } = await supabase.rpc('get_deck_upvotes_leaderboard', { p_limit: 50 })
     const items = (data ?? []) as DeckUpvotesLeaderboardRow[]
     primaryLabel = 'Upvotes'
-    secondaryLabel = 'Deck\'ai'
     rows = items.map((r, i) => ({
       rank: i + 1,
       username: r.username,
       primary: r.total_upvotes,
-      secondary: r.public_decks_count,
     }))
   } else if (tab === 'events') {
     const { data } = await supabase.rpc('get_events_leaderboard', { p_limit: 50 })
@@ -91,29 +89,50 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <header
         className="sticky top-0 z-20 border-b px-4 py-3 flex items-center justify-between gap-3"
-        style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
+        style={{
+          background:     'rgba(7,7,15,0.95)',
+          backdropFilter: 'blur(16px)',
+          borderColor:    'rgba(240,180,41,0.1)',
+          boxShadow:      '0 1px 0 rgba(240,180,41,0.06)',
+        }}
       >
         <div className="flex items-center gap-3">
-          <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>&larr; Kortų bazė</Link>
+          <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
+            Kortų bazė
+          </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
-          <h1 className="text-xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
+          <h1
+            className="text-lg font-bold"
+            style={{
+              fontFamily:    'var(--rvn-font-display)',
+              color:         'var(--gold)',
+              textShadow:    '0 0 16px rgba(240,180,41,0.3)',
+              letterSpacing: '0.06em',
+            }}
+          >
             Ravenof Topai
           </h1>
         </div>
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">
-        {/* Tab selector */}
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {TABS.map((t) => (
             <Link
               key={t.key}
               href={`?tab=${t.key}`}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+              className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
               style={{
-                background: tab === t.key ? 'var(--gold)' : 'var(--bg-surface)',
-                color: tab === t.key ? '#0a0a0f' : 'var(--text-muted)',
-                border: '1px solid ' + (tab === t.key ? 'var(--gold)' : 'var(--bg-border)'),
+                background:    tab === t.key
+                  ? 'linear-gradient(135deg,#92400e,#b45309)'
+                  : 'var(--bg-surface)',
+                color:         tab === t.key ? 'var(--gold)' : 'var(--text-muted)',
+                border:        tab === t.key
+                  ? '1px solid rgba(240,180,41,0.35)'
+                  : '1px solid var(--bg-border)',
+                boxShadow:     tab === t.key ? '0 0 10px rgba(240,180,41,0.15)' : 'none',
+                fontFamily:    'var(--rvn-font-display)',
+                letterSpacing: '0.04em',
               }}
             >
               {t.label}

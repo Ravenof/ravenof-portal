@@ -7,11 +7,11 @@ import { LayoutGrid, Swords, Users, Calendar, User } from 'lucide-react'
 const HIDE_PREFIXES = ['/admin', '/login', '/register', '/deck-builder', '/life-tracker']
 
 const NAV_ITEMS = [
-  { href: '/cards',            icon: LayoutGrid, label: 'Kortos' },
-  { href: '/my-decks',         icon: Swords,     label: 'Kaladės' },
-  { href: '/community-decks',  icon: Users,      label: 'Viešos' },
-  { href: '/events',           icon: Calendar,   label: 'Renginiai' },
-  { href: '/me',               icon: User,       label: 'Profilis' },
+  { href: '/cards',           icon: LayoutGrid, label: 'Kortos'    },
+  { href: '/my-decks',        icon: Swords,     label: 'Kaladės'   },
+  { href: '/community-decks', icon: Users,      label: 'Viešos'    },
+  { href: '/events',          icon: Calendar,   label: 'Renginiai' },
+  { href: '/me',              icon: User,       label: 'Profilis'  },
 ]
 
 export function MobileNav() {
@@ -21,13 +21,22 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden border-t"
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
       style={{
-        background: 'rgba(10,10,15,0.97)',
-        backdropFilter: 'blur(16px)',
-        borderColor: 'var(--bg-border)',
+        background:     'rgba(7,7,15,0.96)',
+        backdropFilter: 'blur(20px)',
+        borderTop:      '1px solid rgba(240,180,41,0.12)',
+        boxShadow:      '0 -4px 24px rgba(0,0,0,0.6)',
       }}
     >
+      {/* Gold top line accent */}
+      <div style={{
+        height: '1px',
+        background: 'linear-gradient(to right, transparent, rgba(240,180,41,0.25), transparent)',
+        position: 'absolute',
+        top: 0, left: 0, right: 0,
+      }} />
+
       <div className="flex items-stretch" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href + '/'))
@@ -35,11 +44,33 @@ export function MobileNav() {
             <Link
               key={href}
               href={href}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-opacity"
-              style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', minHeight: '52px' }}
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 transition-all duration-150 relative"
+              style={{
+                color:     active ? 'var(--gold)' : 'var(--text-muted)',
+                minHeight: '56px',
+              }}
             >
-              <Icon className="w-5 h-5" />
-              <span style={{ fontSize: '9px', letterSpacing: '0.02em' }}>{label}</span>
+              {active && (
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
+                  style={{ background: 'var(--gold)', boxShadow: '0 0 8px rgba(240,180,41,0.5)' }}
+                />
+              )}
+              <Icon
+                className="w-5 h-5 transition-transform"
+                style={{ transform: active ? 'scale(1.1)' : 'scale(1)' }}
+              />
+              <span
+                style={{
+                  fontSize:      '9px',
+                  letterSpacing: '0.06em',
+                  fontFamily:    'var(--rvn-font-display)',
+                  fontWeight:    active ? 600 : 400,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {label}
+              </span>
             </Link>
           )
         })}

@@ -238,6 +238,20 @@ export type EventRegistration = {
   updated_at: string
 }
 
+export type ParticipantProfile = {
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+}
+
+export type EventParticipant = {
+  id: string
+  user_id: string
+  status: 'registered' | 'attended'
+  profile: ParticipantProfile | null
+}
+
 export type TournamentPlayer = {
   id: string
   event_id: string

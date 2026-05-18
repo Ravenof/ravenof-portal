@@ -107,66 +107,103 @@ export default async function CardsPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <header
-        className="sticky top-0 z-20 border-b px-4 py-4"
-        style={{ background: 'rgba(10,10,15,0.92)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
+        className="sticky top-0 z-20 border-b px-4 py-3"
+        style={{
+          background:     'rgba(7,7,15,0.95)',
+          backdropFilter: 'blur(16px)',
+          borderColor:    'rgba(240,180,41,0.1)',
+          boxShadow:      '0 1px 0 rgba(240,180,41,0.06)',
+        }}
       >
-        <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-              Kortu Duomenu Baze
+        <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1
+              className="text-xl sm:text-2xl font-bold truncate"
+              style={{
+                fontFamily:    'var(--rvn-font-display)',
+                color:         'var(--gold)',
+                textShadow:    '0 0 16px rgba(240,180,41,0.3)',
+                letterSpacing: '0.06em',
+              }}
+            >
+              🃏 Kortų Duomenų Bazė
             </h1>
             {!user && (
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                <a href="/login" style={{ color: 'var(--gold)' }}>Prisijunk</a>{' '}noredamas pazymeti turimas kortas
+              <p className="text-xs mt-0.5 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
+                <a href="/login" style={{ color: 'var(--gold)' }}>Prisijunk</a>
+                {' '}norėdamas pažymėti turimas kortas
               </p>
             )}
           </div>
           <div className="flex items-center gap-2">
             {/* Nav links — hidden on mobile; MobileNav handles these */}
             <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end">
-              <a href="/leaderboards" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                Topai
-              </a>
-              <a href="/events" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                Renginiai
-              </a>
-              <a href="/community-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                Viešos kaladės
-              </a>
-              <a href="/life-tracker" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                Life Tracker
-              </a>
+              {[
+                { href: '/leaderboards',    label: 'Topai'           },
+                { href: '/events',          label: 'Renginiai'       },
+                { href: '/community-decks', label: 'Viešos kaladės'  },
+                { href: '/life-tracker',    label: 'Life Tracker'    },
+              ].map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px', letterSpacing: '0.04em' }}
+                >
+                  {label}
+                </a>
+              ))}
               {user && (
                 <>
-                  <a href="/me" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                    Mano profilis
+                  <a
+                    href="/me"
+                    className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px' }}
+                  >
+                    Profilis
                   </a>
-                  <a href="/my-decks" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                  <a
+                    href="/my-decks"
+                    className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px' }}
+                  >
                     Mano kaladės
                   </a>
-                  <a href="/deck-builder" className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
-                    style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
-                    + Kaladžių kūrimas
+                  <a
+                    href="/deck-builder"
+                    className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-all hover:shadow-[0_0_10px_rgba(240,180,41,0.2)]"
+                    style={{
+                      background:    'linear-gradient(135deg,#92400e,#b45309)',
+                      color:         'var(--gold)',
+                      border:        '1px solid rgba(240,180,41,0.3)',
+                      fontFamily:    'var(--rvn-font-display)',
+                      fontSize:      '11px',
+                    }}
+                  >
+                    + Kaladė
+                  </a>
+                  <a
+                    href="/api/auth/signout"
+                    className="text-sm px-3 py-1.5 rounded-lg transition-all hover:opacity-70"
+                    style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)', fontSize: '11px' }}
+                  >
+                    Atsijungti
                   </a>
                 </>
-              )}
-              {user && (
-                <a href="/api/auth/signout" className="text-sm px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
-                  Atsijungti
-                </a>
               )}
             </div>
             {/* Login button — always visible for guests */}
             {!user && (
-              <a href="/login" className="text-sm px-4 py-1.5 rounded-lg font-semibold"
-                style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
+              <a
+                href="/login"
+                className="text-sm px-4 py-1.5 rounded-lg font-semibold transition-all hover:shadow-[0_0_10px_rgba(240,180,41,0.2)]"
+                style={{
+                  background:  'linear-gradient(135deg,#92400e,#b45309)',
+                  color:       'var(--gold)',
+                  border:      '1px solid rgba(240,180,41,0.3)',
+                  fontFamily:  'var(--rvn-font-display)',
+                }}
+              >
                 Prisijungti
               </a>
             )}

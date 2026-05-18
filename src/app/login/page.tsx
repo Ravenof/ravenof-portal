@@ -28,90 +28,114 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  const inputStyle = {
-    width: '100%',
-    padding: '0.625rem 0.875rem',
-    borderRadius: '0.5rem',
-    fontSize: '0.875rem',
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--bg-border)',
-    color: 'var(--text-primary)',
-    outline: 'none',
-  }
-
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4"
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
       style={{ background: 'var(--bg-base)' }}
     >
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div style={{
+          position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)',
+          width: '500px', height: '500px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%)',
+        }} />
+      </div>
+
       <div
-        className="w-full max-w-sm rounded-xl p-8 space-y-6"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+        className="w-full max-w-sm rounded-2xl p-8 space-y-7 relative"
+        style={{
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.07) 0%, var(--bg-surface) 60%)',
+          border:     '1px solid rgba(124,58,237,0.2)',
+          boxShadow:  '0 0 40px rgba(124,58,237,0.1), 0 0 80px rgba(0,0,0,0.4)',
+        }}
       >
-        <div className="text-center space-y-1">
-          <h1
-            className="text-3xl font-bold tracking-widest"
-            style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
+        <div className="text-center space-y-1 pt-2">
+          <h1 className="rvn-page-title text-3xl tracking-widest">RAVENOF</h1>
+          <p
+            className="text-xs tracking-widest uppercase"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.2em' }}
           >
-            RAVENOF
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Prisijungti</p>
+            Prisijungimas
+          </p>
         </div>
 
+        <div className="rvn-divider-gold" />
+
         <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="El. paštas"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={inputStyle}
-          />
-          <input
-            type="password"
-            placeholder="Slaptažodis"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            style={inputStyle}
-          />
+          <div>
+            <label className="block text-xs mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>
+              El. paštas
+            </label>
+            <input
+              type="email"
+              placeholder="jusu@pastas.lt"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="rvn-input"
+            />
+          </div>
+          <div>
+            <label className="block text-xs mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>
+              Slaptažodis
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="rvn-input"
+            />
+          </div>
 
           {error && (
-            <p className="text-sm text-red-400 text-center">{error}</p>
+            <div
+              className="rounded-xl px-4 py-2.5 text-sm text-center"
+              style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#fca5a5' }}
+            >
+              {error}
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity disabled:opacity-50 hover:opacity-90"
-            style={{ background: 'var(--gold)', color: '#0a0a0f' }}
+            className="w-full py-3 rounded-xl font-bold text-sm transition-all hover:shadow-[0_0_20px_rgba(240,180,41,0.25)] active:scale-[0.98] disabled:opacity-50"
+            style={{
+              background:    'linear-gradient(135deg,#92400e,#b45309)',
+              color:         'var(--gold)',
+              border:        '1px solid rgba(240,180,41,0.35)',
+              fontFamily:    'var(--rvn-font-display)',
+              letterSpacing: '0.06em',
+            }}
           >
             {loading ? 'Jungiamasi...' : 'Prisijungti'}
           </button>
 
-          <div className="text-center pt-1">
+          <div className="text-center">
             <a href="/forgot-password" className="text-xs transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-muted)' }}>
-              Pamiršai slaptažodį?
+              Pamirštai slaptažodį?
             </a>
           </div>
         </form>
 
+        <div className="rvn-divider" />
+
         <div className="text-center space-y-2">
           <a
             href="/register"
-            className="block text-sm transition-opacity hover:opacity-80"
-            style={{ color: 'var(--text-secondary)' }}
+            className="block text-sm transition-opacity hover:opacity-90"
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', fontSize: '12px', letterSpacing: '0.04em' }}
           >
-            Neturi paskyros? <span style={{ color: 'var(--gold)' }}>Registruotis</span>
+            Neturi paskyros?{' '}
+            <span style={{ color: 'var(--gold)' }}>Registruotis</span>
           </a>
-          <a
-            href="/cards"
-            className="block text-sm transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ← Grįžti į kortų bazę
+          <a href="/cards" className="block text-sm transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+            Grižti į kortų bazę
           </a>
         </div>
       </div>
