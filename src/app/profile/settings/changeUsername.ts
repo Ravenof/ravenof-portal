@@ -52,7 +52,7 @@ export async function changeUsername(newUsername: string): Promise<ChangeUsernam
   // 5. Get current profile
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
-    .select('username, username_changed_at')
+    .select('username, display_name, username_changed_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -93,6 +93,8 @@ export async function changeUsername(newUsername: string): Promise<ChangeUsernam
   const visibleUntil = new Date(Date.now() + USERNAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
   // 9. Update profiles (user can UPDATE their own row via standard RLS)
+  // Also update display_name if the user never customised it (it still matches the old username)
+  const shouldUpdateDisplayName = (profile.display_name as string | null) === oldUsername
   const { error: updateErr } = await supabase
     .from('profiles')
     .update({
@@ -101,6 +103,7 @@ export async function changeUsername(newUsername: string): Promise<ChangeUsernam
       previous_username_visible_until: visibleUntil,
       username_changed_at:             now,
       updated_at:                      now,
+      ...(shouldUpdateDisplayName ? { display_name: normalized } : {}),
     })
     .eq('id', user.id)
 
