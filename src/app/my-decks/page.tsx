@@ -46,7 +46,7 @@ export default async function MyDecksPage() {
           <h1
             className="rvn-page-title text-lg flex-1"
           >
-            Mano Kaladės
+            Mano kaladės
           </h1>
           <Link href="/deck-builder">
             <RavenofButton variant="gold" size="md">

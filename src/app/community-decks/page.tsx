@@ -110,7 +110,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
                 letterSpacing: '0.06em',
               }}
             >
-              📚 Viešos Kaladės
+              📚 Viešos kaladės
             </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2">

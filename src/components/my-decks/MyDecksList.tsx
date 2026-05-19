@@ -167,7 +167,7 @@ export function MyDecksList({ decks, userId }: Props) {
                 {deck.faction?.name ?? 'Nėra frakcijos'}
               </span>
               <span>{deck.card_count} kortų</span>
-              {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost}⚜ vid.</span>}
+              {deck.avg_gold_cost > 0 && <span>vid. {deck.avg_gold_cost}⚜</span>}
               <span className="flex items-center gap-1">
                 <VisIcon className="w-3 h-3" />
                 {vis.label}
