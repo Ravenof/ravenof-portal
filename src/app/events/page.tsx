@@ -233,4 +233,3 @@ export default async function EventsPage() {
     </div>
   )
 }
-}
