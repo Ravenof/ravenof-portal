@@ -2,16 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, Swords, Users, Calendar, User } from 'lucide-react'
+import { LayoutGrid, Swords, BookOpen, Trophy, User } from 'lucide-react'
 
-const HIDE_PREFIXES = ['/admin', '/login', '/register', '/deck-builder', '/life-tracker']
+const HIDE_PREFIXES = ['/admin', '/login', '/register', '/deck-builder']
 
 const NAV_ITEMS = [
-  { href: '/cards',           icon: LayoutGrid, label: 'Kortos'    },
-  { href: '/my-decks',        icon: Swords,     label: 'Kaladės'   },
-  { href: '/community-decks', icon: Users,      label: 'Viešos'    },
-  { href: '/events',          icon: Calendar,   label: 'Renginiai' },
-  { href: '/me',              icon: User,       label: 'Profilis'  },
+  { href: '/cards',        icon: LayoutGrid, label: 'Kortos'   },
+  { href: '/life-tracker', icon: Swords,     label: 'Kova'     },
+  { href: '/my-decks',     icon: BookOpen,   label: 'Kaladės'  },
+  { href: '/arena',        icon: Trophy,     label: 'Arena'    },
+  { href: '/me',           icon: User,       label: 'Profilis' },
 ]
 
 export function MobileNav() {
@@ -39,7 +39,11 @@ export function MobileNav() {
 
       <div className="flex items-stretch" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href || (href !== '/' && pathname.startsWith(href + '/'))
+          const arenaRoutes = ['/community-decks', '/leaderboards', '/events']
+          const active =
+            pathname === href ||
+            (href !== '/' && pathname.startsWith(href + '/')) ||
+            (href === '/arena' && arenaRoutes.some((r) => pathname === r || pathname.startsWith(r + '/')))
           return (
             <Link
               key={href}

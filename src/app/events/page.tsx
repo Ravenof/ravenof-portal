@@ -163,7 +163,7 @@ export default async function EventsPage() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="hidden sm:flex items-center gap-2 flex-wrap">
             <Link href="/leaderboards"
               className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
@@ -172,7 +172,7 @@ export default async function EventsPage() {
             <Link href="/life-tracker"
               className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
               style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-              Life Tracker
+              Kova
             </Link>
             {!user && (
               <Link href="/login"
@@ -232,4 +232,5 @@ export default async function EventsPage() {
       </div>
     </div>
   )
+}
 }

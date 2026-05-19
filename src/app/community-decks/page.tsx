@@ -113,11 +113,11 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
               📚 Viešos Kaladės
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             {[
-              { href: '/events',      label: 'Renginiai'    },
-              { href: '/leaderboards',label: 'Topai'        },
-              { href: '/life-tracker',label: 'Life Tracker' },
+              { href: '/events',      label: 'Renginiai' },
+              { href: '/leaderboards',label: 'Topai'     },
+              { href: '/life-tracker',label: 'Kova'      },
             ].map(({ href, label }) => (
               <Link
                 key={href}
@@ -143,7 +143,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
                 className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                 style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
               >
-                Mano Kaladės
+                Mano kaladės
               </Link>
             )}
             {!user && (
