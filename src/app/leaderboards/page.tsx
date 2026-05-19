@@ -17,12 +17,30 @@ type Tab = 'level' | 'cards' | 'decks' | 'events' | 'badges'
 type SearchParams = Promise<{ tab?: string }>
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'level',  label: 'Lygis / XP'       },
-  { key: 'cards',  label: 'Kortos'            },
-  { key: 'decks',  label: 'Kaladžių upvotes'  },
-  { key: 'events', label: 'Renginiai'         },
-  { key: 'badges', label: 'Ženkleliai'        },
+  { key: 'level',  label: 'Lygis / XP'      },
+  { key: 'cards',  label: 'Kortos'           },
+  { key: 'decks',  label: 'Kaladžių upvotes' },
+  { key: 'events', label: 'Renginiai'        },
+  { key: 'badges', label: 'Ženkleliai'       },
 ]
+
+async function fetchAvatarMap(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  usernames: string[]
+): Promise<Record<string, { avatarUrl: string | null; displayName: string | null }>> {
+  if (!usernames.length) return {}
+  const { data } = await supabase
+    .from('profiles')
+    .select('username, display_name, avatar_url')
+    .in('username', usernames)
+  if (!data) return {}
+  return Object.fromEntries(
+    (data as { username: string; display_name: string | null; avatar_url: string | null }[]).map((p) => [
+      p.username,
+      { avatarUrl: p.avatar_url, displayName: p.display_name },
+    ])
+  )
+}
 
 export default async function LeaderboardsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
@@ -41,6 +59,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
     rows = items.map((r, i) => ({
       rank: i + 1,
       username: r.username,
+      displayName: r.display_name,
       primary: r.xp_total.toLocaleString(),
       secondary: `Lv ${r.level}`,
       badge: getLevelTitleForXp(r.xp_total),
@@ -84,6 +103,14 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       primary: r.badges_count,
     }))
   }
+
+  // Batch fetch avatar_url + display_name
+  const avatarMap = await fetchAvatarMap(supabase, rows.map((r) => r.username))
+  rows = rows.map((r) => ({
+    ...r,
+    avatarUrl:   avatarMap[r.username]?.avatarUrl  ?? null,
+    displayName: r.displayName ?? avatarMap[r.username]?.displayName ?? null,
+  }))
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
