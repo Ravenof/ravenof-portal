@@ -143,10 +143,10 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
                       {deck.faction?.name ?? 'Nėra frakcijos'}
                     </span>
                     <span>{deck.card_count} kortų</span>
-                    {deck.avg_gold_cost > 0 && <span>{deck.avg_gold_cost} avg</span>}
+                    {deck.avg_gold_cost > 0 && <span>vid. {deck.avg_gold_cost} aukso</span>}
                     {deck.author && (
                       <span>
-                        {'by '}
+                        {'aut. '}
                         <Link href={'/users/' + deck.author.username}
                           className="hover:underline" style={{ color: 'var(--text-secondary)' }}>
                           {deck.author.display_name ?? deck.author.username}
@@ -222,6 +222,6 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
             />
           </div>
         </div>
-      </div>
+    </div>
   )
 }

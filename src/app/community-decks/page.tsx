@@ -143,7 +143,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
                 className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                 style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}
               >
-                Mano Decks
+                Mano Kaladės
               </Link>
             )}
             {!user && (

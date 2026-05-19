@@ -70,7 +70,7 @@ export function CopyToDeckButton({ deckId, deckName, factionId, cardCount, avgGo
   }
 
   const labels = {
-    idle:    'Kopijuoti į mano kaladės',
+    idle:    'Kopijuoti į savo kaladę',
     copying: 'Kopijuojama...',
     done:    'Nukopijuota! Nukreipiama...',
     error:   'Klaida. Bandyk dar kartą',
