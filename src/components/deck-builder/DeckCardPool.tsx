@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Plus, Check, Eye, X, Sword, Heart, Coins } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { canAddCard, getCopyLimit, NEUTRAL_FACTION_ID } from '@/lib/deck-validation'
@@ -30,6 +31,9 @@ function CardMobilePreview({
   card: CardWithRelations
   onClose: () => void
 }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const rarityColor  = getRarityColor(card.rarity?.name)
   const factionColor = getFactionColor(card.faction?.color_hex)
   const { entries, addCard, factionId } = useDeckBuilderStore()
@@ -39,9 +43,11 @@ function CardMobilePreview({
   const result = canAddCard(card, entries, factionId)
   const atLimit = qty >= limit
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
       {/* Backdrop */}
@@ -164,7 +170,7 @@ function CardMobilePreview({
         </div>
       </div>
     </div>
-  )
+  , document.body)
 }
 
 // ─── Card row ─────────────────────────────────────────────────────────────────
