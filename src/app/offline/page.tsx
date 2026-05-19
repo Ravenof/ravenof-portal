@@ -1,4 +1,4 @@
-export const metadata = { title: 'Neprisijungę | Ravenof' }
+'use client'
 
 export default function OfflinePage() {
   return (
