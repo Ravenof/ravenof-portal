@@ -31,7 +31,7 @@ function CardPreviewModal({ card, onClose }: { card: CardWithRelations; onClose:
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-hidden"
+        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-y-auto"
         style={{ background: 'var(--bg-elevated)', border: '2px solid ' + rarityColor, maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -47,7 +47,7 @@ function CardPreviewModal({ card, onClose }: { card: CardWithRelations; onClose:
           <img
             src={card.image_url}
             alt={card.name}
-            style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', display: 'block' }}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
           />
         ) : (
           <div style={{
@@ -60,7 +60,7 @@ function CardPreviewModal({ card, onClose }: { card: CardWithRelations; onClose:
           </div>
         )}
 
-        <div className="p-4 overflow-y-auto" style={{ maxHeight: '320px' }}>
+        <div className="p-4">
           <div className="flex items-start justify-between gap-2 mb-2">
             <h3 className="text-base font-bold leading-tight" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>
               {card.name}
