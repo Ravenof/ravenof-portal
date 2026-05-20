@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, Plus, Check, Eye, X, Sword, Heart, Coins } from 'lucide-react'
+import { Search, Plus, Check, Eye, X, Sword, Heart, Coins, SlidersHorizontal } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { canAddCard, getCopyLimit, NEUTRAL_FACTION_ID } from '@/lib/deck-validation'
 import { getFactionColor, getRarityColor } from '@/lib/utils'
@@ -14,13 +14,58 @@ type Props = {
   collection: CollectionMap
 }
 
-const GOLD_OPTIONS = [
-  { label: 'Visi kainai', min: -1, max: -1 },
-  { label: '0–2 ⚜', min: 0, max: 2 },
-  { label: '3–4 ⚜', min: 3, max: 4 },
-  { label: '5–6 ⚜', min: 5, max: 6 },
-  { label: '7+ ⚜',  min: 7, max: 999 },
-]
+const GOLD_COSTS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
+// ─── Pill helpers ─────────────────────────────────────────────────────────────
+
+function Pill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium transition-all duration-150 whitespace-nowrap"
+      style={
+        active
+          ? {
+              background:
+                'linear-gradient(135deg, rgba(124,58,237,0.28) 0%, rgba(240,180,41,0.12) 100%)',
+              color: 'var(--gold)',
+              border: '1px solid rgba(240,180,41,0.5)',
+              boxShadow: '0 0 8px rgba(240,180,41,0.08)',
+              fontFamily: 'var(--rvn-font-display)',
+              letterSpacing: '0.03em',
+            }
+          : {
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--bg-border)',
+              fontFamily: 'var(--rvn-font-display)',
+              letterSpacing: '0.03em',
+            }
+      }
+    >
+      {children}
+    </button>
+  )
+}
+
+function PillRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="flex gap-1.5 overflow-x-auto"
+      style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingBottom: '2px' }}
+    >
+      {children}
+    </div>
+  )
+}
 
 // ─── Mobile card preview modal ───────────────────────────────────────────────
 
@@ -50,16 +95,13 @@ function CardMobilePreview({
       className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
-      {/* Sheet */}
       <div
         className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-y-auto"
         style={{ background: 'var(--bg-elevated)', border: '2px solid ' + rarityColor, maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center"
@@ -68,33 +110,22 @@ function CardMobilePreview({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Image */}
         {card.image_url ? (
-          <img
-            src={card.image_url}
-            alt={card.name}
-            style={{ width: '100%', height: 'auto', display: 'block' }}
-          />
+          <img src={card.image_url} alt={card.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
         ) : (
           <div
             style={{
-              width: '100%',
-              height: '140px',
+              width: '100%', height: '140px',
               background: 'linear-gradient(160deg, ' + factionColor + '22 0%, #0a0a1a 60%, ' + rarityColor + '18 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '52px',
-              opacity: 0.35,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '52px', opacity: 0.35,
             }}
           >
-            ⚔
+            &#9876;
           </div>
         )}
 
-        {/* Info */}
         <div className="p-4">
-          {/* Name + cost */}
           <div className="flex items-start justify-between gap-2 mb-2">
             <h3 className="text-base font-bold leading-tight" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>
               {card.name}
@@ -107,7 +138,6 @@ function CardMobilePreview({
             )}
           </div>
 
-          {/* Badges row */}
           <div className="flex flex-wrap gap-1.5 mb-3">
             {card.faction && (
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: factionColor + '25', color: factionColor, border: '1px solid ' + factionColor + '40' }}>
@@ -126,7 +156,6 @@ function CardMobilePreview({
             )}
           </div>
 
-          {/* Stats */}
           {(card.attack != null || card.health != null) && (
             <div className="flex gap-4 mb-3">
               {card.attack != null && (
@@ -142,14 +171,12 @@ function CardMobilePreview({
             </div>
           )}
 
-          {/* Effect text */}
           {card.effect_text && (
             <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
               {card.effect_text}
             </p>
           )}
 
-          {/* Description/lore */}
           {card.description && (
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               {card.description}
@@ -157,7 +184,6 @@ function CardMobilePreview({
           )}
         </div>
 
-        {/* Add to deck button */}
         <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
           <button
             onClick={() => { addCard(card); onClose() }}
@@ -165,7 +191,7 @@ function CardMobilePreview({
             className="w-full py-2.5 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-30"
             style={{ background: atLimit ? 'var(--bg-border)' : 'var(--gold)', color: '#0a0a0f' }}
           >
-            {atLimit ? `Kaladėje: ${qty}/${limit}` : result.ok ? `+ Pridėti į kaladę (${qty}/${limit})` : result.reason ?? 'Negalima pridėti'}
+            {atLimit ? `Kaladeje: ${qty}/${limit}` : result.ok ? `+ Prideti i kaladę (${qty}/${limit})` : result.reason ?? 'Negalima prideti'}
           </button>
         </div>
       </div>
@@ -226,12 +252,11 @@ function CardRow({
           </span>
         )}
 
-        {/* Mobile preview button – hidden on desktop (has hover preview) */}
         <button
           onClick={(e) => { e.stopPropagation(); onPreview(card) }}
           className="lg:hidden w-6 h-6 rounded flex items-center justify-center transition-colors"
           style={{ background: 'var(--bg-border)', color: 'var(--text-muted)' }}
-          title="Peržiūrėti kortą"
+          title="Perziureti korta"
         >
           <Eye className="w-3 h-3" />
         </button>
@@ -259,13 +284,13 @@ export function DeckCardPool({ cards, collection }: Props) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [rarityFilter, setRarityFilter] = useState('')
-  const [goldRange, setGoldRange] = useState(0)
+  const [goldCost, setGoldCost] = useState<number | null>(null)
   const [showUniversal, setShowUniversal] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<CardWithRelations | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [previewCard, setPreviewCard] = useState<CardWithRelations | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
-  // Unique card types for the selected faction
   const cardTypes = useMemo(() => {
     const pool = factionId
       ? cards.filter((c) => c.faction_id === factionId)
@@ -274,7 +299,6 @@ export function DeckCardPool({ cards, collection }: Props) {
     return [...types].sort()
   }, [cards, factionId])
 
-  // Unique rarities
   const rarities = useMemo(() => {
     const pool = factionId
       ? cards.filter((c) => c.faction_id === factionId || c.faction_id === NEUTRAL_FACTION_ID)
@@ -284,7 +308,7 @@ export function DeckCardPool({ cards, collection }: Props) {
     return [...map.keys()].sort()
   }, [cards, factionId])
 
-  const goldOpt = GOLD_OPTIONS[goldRange]
+  const hasActiveFilters = !!(search || typeFilter || rarityFilter || goldCost !== null)
 
   function applyFilters(pool: CardWithRelations[]) {
     let result = pool
@@ -303,13 +327,7 @@ export function DeckCardPool({ cards, collection }: Props) {
 
     if (typeFilter) result = result.filter((c) => c.card_type?.name === typeFilter)
     if (rarityFilter) result = result.filter((c) => c.rarity?.name === rarityFilter)
-
-    if (goldOpt.min >= 0) {
-      result = result.filter((c) => {
-        const g = c.gold_cost ?? 0
-        return g >= goldOpt.min && g <= goldOpt.max
-      })
-    }
+    if (goldCost !== null) result = result.filter((c) => (c.gold_cost ?? 0) === goldCost)
 
     return result
   }
@@ -325,26 +343,16 @@ export function DeckCardPool({ cards, collection }: Props) {
       universalCards: showUniversal ? applyFilters(uPool) : [],
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cards, factionId, ownedOnly, search, typeFilter, rarityFilter, goldRange, showUniversal, collection])
-
-  const inputStyle = {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--bg-border)',
-    color: 'var(--text-primary)',
-    borderRadius: '0.5rem',
-    fontSize: '0.75rem',
-    outline: 'none',
-    padding: '0.375rem 0.5rem',
-  }
+  }, [cards, factionId, ownedOnly, search, typeFilter, rarityFilter, goldCost, showUniversal, collection])
 
   if (!factionId) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 opacity-50">
         <p className="text-lg" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-muted)' }}>
-          Pasirink frakciją
+          Pasirink frakcija
         </p>
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Pasirink frakciją aukščiau, kad matytum kortų baseiną
+          Pasirink frakcija auksciau, kad matytu kortu baseiną
         </p>
       </div>
     )
@@ -356,73 +364,169 @@ export function DeckCardPool({ cards, collection }: Props) {
     <div className="flex flex-col h-full gap-2" onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
       <CardHoverPreview card={hoveredCard} x={mousePos.x} y={mousePos.y} />
 
-      {/* Mobile card preview modal */}
       {previewCard && (
         <CardMobilePreview card={previewCard} onClose={() => setPreviewCard(null)} />
       )}
 
-      {/* Row 1: Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-        <input
-          type="text"
-          placeholder="Ieškoti kortų (pavadinimas, efektas, aprašymas)..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm"
-          style={{ ...inputStyle, fontSize: '0.8rem' }}
-        />
+      {/* ── Search bar ──────────────────────────────────────────────── */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+            style={{ color: 'var(--text-muted)' }}
+          />
+          <input
+            type="text"
+            placeholder="Ieskoti kortu..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="rvn-input w-full"
+            style={{ paddingLeft: '2rem', paddingRight: search ? '2rem' : '0.75rem' }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-70"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter toggle button (mobile: show/hide; desktop: always open) */}
+        <button
+          onClick={() => setFiltersOpen((o) => !o)}
+          className="lg:hidden flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition-all"
+          style={{
+            background: (filtersOpen || hasActiveFilters)
+              ? 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(240,180,41,0.1))'
+              : 'var(--bg-elevated)',
+            color: (filtersOpen || hasActiveFilters) ? 'var(--gold)' : 'var(--text-muted)',
+            border: (filtersOpen || hasActiveFilters)
+              ? '1px solid rgba(240,180,41,0.4)'
+              : '1px solid var(--bg-border)',
+            fontFamily: 'var(--rvn-font-display)',
+          }}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          {hasActiveFilters && (
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: 'var(--gold)' }}
+            />
+          )}
+        </button>
       </div>
 
-      {/* Row 2: Filters */}
-      <div className="flex gap-1.5 flex-wrap">
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={inputStyle}>
-          <option value="">Visi tipai</option>
-          {cardTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={rarityFilter} onChange={(e) => setRarityFilter(e.target.value)} style={inputStyle}>
-          <option value="">Visos retybės</option>
-          {rarities.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select value={goldRange} onChange={(e) => setGoldRange(Number(e.target.value))} style={inputStyle}>
-          {GOLD_OPTIONS.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
-        </select>
+      {/* ── Filter pills ─────────────────────────────────────────────── */}
+      {/* Mobile: collapsible; Desktop (lg+): always visible */}
+      <div className={`${filtersOpen ? 'block' : 'hidden'} lg:block space-y-2.5`}>
 
-        {(search || typeFilter || rarityFilter || goldRange > 0) && (
-          <button
-            onClick={() => { setSearch(''); setTypeFilter(''); setRarityFilter(''); setGoldRange(0) }}
-            className="rounded hover:opacity-80 transition"
-            style={{ ...inputStyle, color: 'var(--text-muted)' }}
+        {/* Type */}
+        <div className="space-y-1">
+          <p
+            className="text-[10px] uppercase tracking-wider font-semibold px-0.5"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}
           >
-            ✕ Išvalyti
+            Tipas
+          </p>
+          <PillRow>
+            <Pill active={typeFilter === ''} onClick={() => setTypeFilter('')}>Visi</Pill>
+            {cardTypes.map((t) => (
+              <Pill key={t} active={typeFilter === t} onClick={() => setTypeFilter(typeFilter === (t as string) ? '' : (t as string))}>
+                {t}
+              </Pill>
+            ))}
+          </PillRow>
+        </div>
+
+        {/* Rarity */}
+        <div className="space-y-1">
+          <p
+            className="text-[10px] uppercase tracking-wider font-semibold px-0.5"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}
+          >
+            Retumas
+          </p>
+          <PillRow>
+            <Pill active={rarityFilter === ''} onClick={() => setRarityFilter('')}>Visi retumai</Pill>
+            {rarities.map((r) => (
+              <Pill key={r} active={rarityFilter === r} onClick={() => setRarityFilter(rarityFilter === r ? '' : r)}>
+                {r}
+              </Pill>
+            ))}
+          </PillRow>
+        </div>
+
+        {/* Gold cost */}
+        <div className="space-y-1">
+          <p
+            className="text-[10px] uppercase tracking-wider font-semibold px-0.5"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}
+          >
+            Kaina ⚜
+          </p>
+          <PillRow>
+            <Pill active={goldCost === null} onClick={() => setGoldCost(null)}>Visos</Pill>
+            {GOLD_COSTS.map((cost) => (
+              <Pill key={cost} active={goldCost === cost} onClick={() => setGoldCost(goldCost === cost ? null : cost)}>
+                {cost}
+              </Pill>
+            ))}
+          </PillRow>
+        </div>
+
+        {/* Clear filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={() => { setSearch(''); setTypeFilter(''); setRarityFilter(''); setGoldCost(null) }}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}
+          >
+            <X className="w-3 h-3" /> Isvalyti filtrus
           </button>
         )}
       </div>
 
-      {/* Row 3: Count + Universal toggle */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          {totalShown} kortų
+      {/* ── Count + Universal toggle ─────────────────────────────────── */}
+      <div
+        className="flex items-center justify-between py-1.5 px-0.5"
+        style={{ borderTop: '1px solid var(--bg-border)' }}
+      >
+        <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+          {totalShown} kortos
         </p>
-        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Universalios kortos
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+            Universalios
           </span>
           <div className="relative">
-            <input type="checkbox" className="sr-only" checked={showUniversal}
-              onChange={(e) => setShowUniversal(e.target.checked)} />
-            <div className="w-8 h-4 rounded-full transition-colors"
-              style={{ background: showUniversal ? 'var(--gold)' : 'var(--bg-border)' }} />
-            <div className="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform"
-              style={{ transform: showUniversal ? 'translateX(16px)' : 'none' }} />
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={showUniversal}
+              onChange={(e) => setShowUniversal(e.target.checked)}
+            />
+            <div
+              className="w-8 h-4 rounded-full transition-all duration-200"
+              style={{
+                background: showUniversal
+                  ? 'linear-gradient(to right, var(--rvn-violet), var(--gold))'
+                  : 'var(--bg-border)',
+              }}
+            />
+            <div
+              className="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform duration-200 shadow-sm"
+              style={{ transform: showUniversal ? 'translateX(16px)' : 'none' }}
+            />
           </div>
         </label>
       </div>
 
-      {/* Card list */}
+      {/* ── Card list ────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
         <div className="grid grid-cols-1 gap-1">
-          {/* Faction cards */}
           {factionCards.map((card) => (
             <CardRow
               key={card.id}
@@ -433,7 +537,6 @@ export function DeckCardPool({ cards, collection }: Props) {
             />
           ))}
 
-          {/* Universal section */}
           {showUniversal && (
             <>
               <div
@@ -442,7 +545,7 @@ export function DeckCardPool({ cards, collection }: Props) {
               >
                 <span
                   className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: 'var(--gold)', fontSize: '10px' }}
+                  style={{ color: 'var(--gold)', fontSize: '10px', fontFamily: 'var(--rvn-font-display)' }}
                 >
                   Universalios kortos
                 </span>
@@ -452,7 +555,7 @@ export function DeckCardPool({ cards, collection }: Props) {
               </div>
               {universalCards.length === 0 ? (
                 <p className="text-xs text-center py-3 opacity-40" style={{ color: 'var(--text-muted)' }}>
-                  Universalių kortų nerasta
+                  Universaliu kortu nerasta
                 </p>
               ) : (
                 universalCards.map((card) => (
@@ -470,7 +573,7 @@ export function DeckCardPool({ cards, collection }: Props) {
 
           {totalShown === 0 && (
             <div className="text-center py-8 opacity-40">
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kortu nerasta</p>
             </div>
           )}
         </div>
