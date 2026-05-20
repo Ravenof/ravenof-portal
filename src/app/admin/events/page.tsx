@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { DeleteEventButton } from '@/components/admin/DeleteEventButton'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { RavenEvent } from '@/types'
@@ -148,11 +149,14 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
                     </span>
                   </td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/events/${ev.id}/edit`}
-                      className="text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
-                      style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', whiteSpace: 'nowrap' }}>
-                      Redaguoti
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <Link href={`/admin/events/${ev.id}/edit`}
+                        className="text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
+                        style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', whiteSpace: 'nowrap' }}>
+                        Redaguoti
+                      </Link>
+                      <DeleteEventButton eventId={ev.id} />
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -393,3 +393,24 @@ export async function awardTournamentRewardsAction(
     badgesUnlocked: result.badgesUnlocked,
   }
 }
+
+export async function deleteEvent(eventId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprisijungęs' }
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'event_moderator'].includes(profile.role)) return { error: 'Neturi teisių' }
+
+  // Cascade delete related data
+  await supabase.from('tournament_matches').delete().eq('event_id', eventId)
+  await supabase.from('tournament_players').delete().eq('event_id', eventId)
+  await supabase.from('event_registrations').delete().eq('event_id', eventId)
+
+  const { error } = await supabase.from('events').delete().eq('id', eventId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
+  return {}
+}

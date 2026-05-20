@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { DeleteCardButton } from '@/components/admin/DeleteCardButton'
 import { createClient } from '@/lib/supabase/server'
 
 type SearchParams = Promise<{ search?: string; faction?: string; type?: string; rarity?: string; status?: string }>
@@ -159,7 +160,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                {['Nr.', 'Pavadinimas', 'Frakcija', 'Tipas', 'Retumas', 'Auksas', 'ATK', 'HP', 'Statusas', ''].map(h => (
+                {['Nr.', 'Pavadinimas', 'Frakcija', 'Tipas', 'Retumas', 'Auksas', 'ATK', 'HP', 'Statusas', '', ''].map(h => (
                   <th key={h} className="text-left px-3 py-2 text-xs font-semibold"
                     style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -212,6 +213,9 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
                       style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', whiteSpace: 'nowrap' }}>
                       Redaguoti
                     </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    <DeleteCardButton cardId={card.id} />
                   </td>
                 </tr>
               ))}

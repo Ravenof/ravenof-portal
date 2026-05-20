@@ -178,19 +178,36 @@ export default async function MePage() {
                 </p>
               )}
 
-              <Link
-                href="/profile/settings"
-                className="inline-block mt-2 text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
-                style={{
-                  background: 'var(--bg-elevated)',
-                  color:      'var(--text-muted)',
-                  border:     '1px solid var(--bg-border)',
-                  fontFamily: 'var(--rvn-font-display)',
-                  letterSpacing: '0.03em',
-                }}
-              >
-                ⚙️ Nustatymai
-              </Link>
+              <div className="flex gap-2 flex-wrap mt-2">
+                <Link
+                  href="/profile/settings"
+                  className="inline-block text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    color:      'var(--text-muted)',
+                    border:     '1px solid var(--bg-border)',
+                    fontFamily: 'var(--rvn-font-display)',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  ⚙️ Nustatymai
+                </Link>
+                {profile.role === 'admin' && (
+                  <Link
+                    href="/admin"
+                    className="inline-block text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
+                    style={{
+                      background:    'rgba(239,68,68,0.12)',
+                      color:         '#ef4444',
+                      border:        '1px solid rgba(239,68,68,0.3)',
+                      fontFamily:    'var(--rvn-font-display)',
+                      letterSpacing: '0.03em',
+                    }}
+                  >
+                    🛡 Admin panelė
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 

@@ -67,3 +67,23 @@ export async function saveCard(
   revalidatePath('/cards', 'layout')
   redirect('/admin/cards')
 }
+
+export async function deleteCard(cardId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprisijungęs' }
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') return { error: 'Neturi admin teisių' }
+
+  // Remove from deck_cards and user_collections first
+  await supabase.from('deck_cards').delete().eq('card_id', cardId)
+  await supabase.from('user_collections').delete().eq('card_id', cardId)
+
+  const { error } = await supabase.from('cards').delete().eq('id', cardId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/cards')
+  revalidatePath('/cards')
+  return {}
+}

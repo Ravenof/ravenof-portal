@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { UserRoleForm } from '@/components/admin/UserRoleForm'
+import { UserDangerButtons } from '@/components/admin/UserDangerButtons'
 import { getLevelTitleForXp } from '@/lib/gamification/levels'
 
 type SearchParams = Promise<{ q?: string; role?: string }>
@@ -10,6 +11,7 @@ const ROLE_COLORS: Record<string, string> = {
   admin:           '#ef4444',
   event_moderator: '#a78bfa',
   user:            '#6b7280',
+  banned:          '#ef4444',
 }
 
 function formatDate(d: string) {
@@ -94,7 +96,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           </form>
 
           <div className="flex gap-2">
-            {[['', 'Visi'], ['admin', 'Admin'], ['event_moderator', 'Moderatoriai'], ['user', 'Vartotojai']].map(([val, label]) => (
+            {[['', 'Visi'], ['admin', 'Admin'], ['event_moderator', 'Moderatoriai'], ['user', 'Vartotojai'], ['banned', 'Užblokuoti']].map(([val, label]) => (
               <Link key={val} href={val ? `/admin/users?role=${val}` : '/admin/users'}
                 className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                 style={{
@@ -114,7 +116,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                {['Vartotojas', 'Rolė', 'Lygis / XP', 'Registracija', 'Keisti rolę'].map(h => (
+                {['Vartotojas', 'Rolė', 'Lygis / XP', 'Registracija', 'Keisti rolę', 'Veiksmai'].map(h => (
                   <th key={h} className="text-left px-3 py-2 text-xs font-semibold"
                     style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -150,6 +152,11 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>— (tu)</span>
                     ) : (
                       <UserRoleForm userId={u.id} currentRole={u.role} />
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {u.id !== user?.id && (
+                      <UserDangerButtons userId={u.id} isBanned={u.role === 'banned'} />
                     )}
                   </td>
                 </tr>
