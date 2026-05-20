@@ -136,7 +136,7 @@ export default async function MePage() {
             style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }}
           />
 
-          <div className="flex items-start gap-5 mb-5 relative">
+          <div className="flex flex-col sm:flex-row items-start gap-4 mb-5 relative">
             {/* Avatar block — inline upload */}
             <div className="flex-shrink-0">
               <AvatarUpload
@@ -146,7 +146,7 @@ export default async function MePage() {
               />
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 w-full">
               <h2
                 className="text-xl font-bold"
                 style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)', letterSpacing: '0.04em' }}
