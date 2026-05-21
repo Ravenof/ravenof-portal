@@ -77,13 +77,21 @@ export default async function MyCardsPage() {
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
       >
         <div className="flex items-center gap-3">
-          <Link href="/me" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>&larr; Dashboard</Link>
+          <Link href="/me" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>← Profilis</Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
-          <h1 className="text-lg font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>Mano Kortos</h1>
+          <h1
+            className="text-lg font-bold"
+            style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.04em' }}
+          >
+            Mano Kortos
+          </h1>
         </div>
-        <Link href="/profile/settings" className="text-xs px-3 py-1.5 rounded-lg hover:opacity-80"
-          style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
-          Privacy
+        <Link
+          href="/profile/settings"
+          className="text-xs px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity"
+          style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}
+        >
+          Privatumas
         </Link>
       </header>
 

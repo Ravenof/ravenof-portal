@@ -25,6 +25,24 @@ export function MyDecksList({ decks, userId }: Props) {
   const [deleting, setDeleting]       = useState<string | null>(null)
   const [confirmId, setConfirmId]     = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
+  const [copied, setCopied]           = useState<string | null>(null)
+
+  const handleShare = async (deckId: string) => {
+    const url = `${window.location.origin}/community-decks/${deckId}`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // fallback
+      const el = document.createElement('textarea')
+      el.value = url
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    setCopied(deckId)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   const handleDelete = async (deckId: string) => {
     setDeleting(deckId)
@@ -189,6 +207,23 @@ export function MyDecksList({ decks, userId }: Props) {
                 </RavenofButton>
               </Link>
 
+              {/* Share link (public/unlisted only) */}
+              {(deck.visibility === 'public' || deck.visibility === 'unlisted') && (
+                <RavenofButton
+                  variant="muted"
+                  size="sm"
+                  onClick={() => handleShare(deck.id)}
+                  title="Kopijuoti nuorodą"
+                  style={copied === deck.id ? { color: '#4ade80', borderColor: 'rgba(74,222,128,0.4)' } : undefined}
+                >
+                  {copied === deck.id ? (
+                    <span className="text-xs font-semibold">✓</span>
+                  ) : (
+                    <Link2 className="w-3 h-3" />
+                  )}
+                </RavenofButton>
+              )}
+
               {/* Duplicate */}
               <RavenofButton
                 variant="muted"
@@ -240,3 +275,4 @@ export function MyDecksList({ decks, userId }: Props) {
     </div>
   )
 }
+        
