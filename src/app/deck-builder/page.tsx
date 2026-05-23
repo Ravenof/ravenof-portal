@@ -18,7 +18,7 @@ async function fetchBuilderData() {
         description, effect_text, image_url, is_champion, status,
         faction_id, card_type_id, rarity_id,
         faction:factions ( id, name, slug, color_hex ),
-        card_type:card_types ( id, name ),
+        card_type:card_types ( id, name, icon_url ),
         rarity:rarities ( id, name, copy_limit, color_hex ),
         card_keywords ( keyword:keywords ( id, name ) )
       `)

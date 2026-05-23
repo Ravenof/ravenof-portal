@@ -123,12 +123,32 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
 
             <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
                 style={{ background: factionColor + '20', color: factionColor, border: '1px solid ' + factionColor + '35' }}
               >
+                {card.faction?.icon_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={card.faction.icon_url}
+                    alt=""
+                    width={12}
+                    height={12}
+                    style={{ width: 12, height: 12, objectFit: 'contain', flexShrink: 0 }}
+                  />
+                )}
                 {card.faction?.name ?? '—'}
               </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                {card.card_type?.icon_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={card.card_type.icon_url}
+                    alt=""
+                    width={11}
+                    height={11}
+                    style={{ width: 11, height: 11, objectFit: 'contain', flexShrink: 0, opacity: 0.7 }}
+                  />
+                )}
                 {card.card_type?.name ?? '—'}
               </span>
               {deckCount > 0 && (

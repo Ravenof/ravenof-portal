@@ -36,7 +36,7 @@ async function fetchCards(
       id, card_number, name, gold_cost, attack, health,
       description, effect_text, image_url, is_champion, status,
       faction:factions ( id, name, slug, color_hex ),
-      card_type:card_types ( id, name ),
+      card_type:card_types ( id, name, icon_url ),
       rarity:rarities ( id, name, copy_limit, color_hex ),
       card_keywords ( keyword:keywords ( id, name ) )
     `, { count: 'exact' })
@@ -367,23 +367,6 @@ export default async function CardsPage({ searchParams }: PageProps) {
                     style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}
                   >
                     Toliau →
-                  </span>
-                )}
-              </div>
-            )}
-
-            {totalPages > 1 && (
-              <p className="text-center text-xs pb-4" style={{ color: 'var(--text-muted)' }}>
-                Puslapis {page} iš {totalPages} · Iš viso {totalFiltered} kortų
-              </p>
-            )}
-          </main>
-        </div>
-      </div>
-    </div>
-  )
-}
-
                   </span>
                 )}
               </div>

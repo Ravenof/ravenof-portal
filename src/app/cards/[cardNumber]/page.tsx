@@ -36,8 +36,8 @@ export default async function CardDetailPage({ params }: Props) {
     .select(`
       id, card_number, name, gold_cost, attack, health,
       description, effect_text, lore_text, image_url, is_champion, status,
-      faction:factions ( id, name, slug, color_hex ),
-      card_type:card_types ( id, name ),
+      faction:factions ( id, name, slug, color_hex, icon_url ),
+      card_type:card_types ( id, name, icon_url ),
       rarity:rarities ( id, name, copy_limit, color_hex ),
       card_keywords ( keyword:keywords ( id, name, description ) )
     `)
@@ -50,8 +50,8 @@ export default async function CardDetailPage({ params }: Props) {
       .select(`
         id, card_number, name, gold_cost, attack, health,
         description, effect_text, lore_text, image_url, is_champion, status,
-        faction:factions ( id, name, slug, color_hex ),
-        card_type:card_types ( id, name ),
+        faction:factions ( id, name, slug, color_hex, icon_url ),
+        card_type:card_types ( id, name, icon_url ),
         rarity:rarities ( id, name, copy_limit, color_hex ),
         card_keywords ( keyword:keywords ( id, name, description ) )
       `)

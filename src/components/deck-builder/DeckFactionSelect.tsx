@@ -28,7 +28,7 @@ export function DeckFactionSelect({ factions, selected, onChange, disabled }: Pr
               disabled={disabled}
               onClick={() => onChange(isSelected ? null : f.id)}
               title={f.name}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 disabled:opacity-40"
               style={{
                 background: isSelected ? `${f.color_hex}30` : 'var(--bg-elevated)',
                 border: `1.5px solid ${isSelected ? f.color_hex : 'var(--bg-border)'}`,
@@ -36,6 +36,19 @@ export function DeckFactionSelect({ factions, selected, onChange, disabled }: Pr
                 boxShadow: isSelected ? `0 0 10px ${f.color_hex}40` : 'none',
               }}
             >
+              {f.icon_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={f.icon_url}
+                  alt=""
+                  width={14}
+                  height={14}
+                  style={{
+                    width: 14, height: 14, objectFit: 'contain',
+                    filter: isSelected ? 'none' : 'grayscale(0.3) opacity(0.7)',
+                  }}
+                />
+              )}
               {f.name}
             </button>
           )

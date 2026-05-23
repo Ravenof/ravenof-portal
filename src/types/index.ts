@@ -12,6 +12,7 @@ export type CardType = {
   id: number
   name: string
   sort_order: number
+  icon_url: string | null
 }
 
 export type Rarity = {
@@ -389,5 +390,8 @@ export type Notification = {
   message: string | null
   link: string | null
   read: boolean
+  created_at: string
+}
+an
   created_at: string
 }

@@ -61,7 +61,7 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
         gold_cost, attack, health, description, effect_text, image_url, is_champion, status,
         created_at, updated_at,
         faction:factions ( id, name, slug, color_hex, icon_url, description, sort_order ),
-        card_type:card_types ( id, name, sort_order ),
+        card_type:card_types ( id, name, sort_order, icon_url ),
         rarity:rarities ( id, name, copy_limit, color_hex, sort_order ),
         card_keywords ( keyword:keywords ( id, name, description ) )
       )

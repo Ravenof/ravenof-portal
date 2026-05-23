@@ -119,21 +119,131 @@ export function CardFilters({
           )}
         </div>
 
-        {/* Selects */}
+        {/* Filters */}
         <div className="space-y-3">
-          <Sel label="Frakcija" value={get('faction_id')} onChange={(v) => update('faction_id', v)}>
-            <option value="">Visos frakcijos</option>
-            {factions.map((f) => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </Sel>
 
-          <Sel label="Tipas" value={get('type_id')} onChange={(v) => update('type_id', v)}>
-            <option value="">Visi tipai</option>
-            {cardTypes.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </Sel>
+          {/* Faction icon pills */}
+          <div className="space-y-1">
+            <label
+              className="block text-xs font-medium"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}
+            >
+              Frakcija
+            </label>
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => update('faction_id', '')}
+                className="text-xs px-2 py-1 rounded-lg transition-all"
+                style={{
+                  background: !get('faction_id') ? 'rgba(240,180,41,0.15)' : 'var(--bg-elevated)',
+                  color:      !get('faction_id') ? 'var(--gold)' : 'var(--text-muted)',
+                  border:     !get('faction_id') ? '1px solid rgba(240,180,41,0.4)' : '1px solid var(--bg-border)',
+                  fontFamily: 'var(--rvn-font-display)',
+                }}
+              >
+                Visos
+              </button>
+              {factions.map((f) => {
+                const active = get('faction_id') === String(f.id)
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => update('faction_id', active ? '' : String(f.id))}
+                    title={f.name}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all"
+                    style={{
+                      background: active ? f.color_hex + '22' : 'var(--bg-elevated)',
+                      color:      active ? f.color_hex : 'var(--text-muted)',
+                      border:     active ? '1px solid ' + f.color_hex + '55' : '1px solid var(--bg-border)',
+                    }}
+                  >
+                    {f.icon_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={f.icon_url}
+                        alt={f.name}
+                        width={14}
+                        height={14}
+                        style={{
+                          width: 14, height: 14, objectFit: 'contain', flexShrink: 0,
+                          filter: active ? 'none' : 'grayscale(0.4) opacity(0.7)',
+                        }}
+                      />
+                    ) : (
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ background: f.color_hex }}
+                      />
+                    )}
+                    <span style={{ fontFamily: 'var(--rvn-font-display)', fontSize: '10px', letterSpacing: '0.02em' }}>
+                      {f.name.split(' ')[0]}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Card type icon pills */}
+          <div className="space-y-1">
+            <label
+              className="block text-xs font-medium"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}
+            >
+              Tipas
+            </label>
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => update('type_id', '')}
+                className="text-xs px-2 py-1 rounded-lg transition-all"
+                style={{
+                  background: !get('type_id') ? 'rgba(240,180,41,0.15)' : 'var(--bg-elevated)',
+                  color:      !get('type_id') ? 'var(--gold)' : 'var(--text-muted)',
+                  border:     !get('type_id') ? '1px solid rgba(240,180,41,0.4)' : '1px solid var(--bg-border)',
+                  fontFamily: 'var(--rvn-font-display)',
+                }}
+              >
+                Visi
+              </button>
+              {cardTypes.map((t) => {
+                const active = get('type_id') === String(t.id)
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => update('type_id', active ? '' : String(t.id))}
+                    title={t.name}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all"
+                    style={{
+                      background: active ? 'rgba(240,180,41,0.12)' : 'var(--bg-elevated)',
+                      color:      active ? 'var(--gold)' : 'var(--text-muted)',
+                      border:     active ? '1px solid rgba(240,180,41,0.4)' : '1px solid var(--bg-border)',
+                    }}
+                  >
+                    {t.icon_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={t.icon_url}
+                        alt={t.name}
+                        width={13}
+                        height={13}
+                        style={{
+                          width: 13, height: 13, objectFit: 'contain', flexShrink: 0,
+                          filter: active ? 'none' : 'grayscale(0.3) opacity(0.7)',
+                        }}
+                      />
+                    )}
+                    <span style={{ fontFamily: 'var(--rvn-font-display)', fontSize: '10px', letterSpacing: '0.02em' }}>
+                      {t.name}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           <Sel label="Retumas" value={get('rarity_id')} onChange={(v) => update('rarity_id', v)}>
             <option value="">Visi</option>
