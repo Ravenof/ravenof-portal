@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
 import { AvatarUpload } from '@/components/profile/AvatarUpload'
+import { NotificationBell } from '@/components/ui/NotificationBell'
+import { fetchNotifications } from '@/lib/notifications'
 import type { Profile, UserBadge } from '@/types'
 
 export const revalidate = 0
@@ -87,6 +89,8 @@ export default async function MePage() {
   const recentBadges     = (badgesRes.data ?? []) as unknown as UserBadge[]
   const completionPct    = totalCards > 0 ? Math.round((ownedCount / totalCards) * 100) : 0
 
+  const { notifications, unreadCount } = await fetchNotifications(20)
+
   const displayName = profile.display_name ?? profile.username
 
   const QUICK_LINKS = [
@@ -109,14 +113,13 @@ export default async function MePage() {
           boxShadow:      '0 1px 0 rgba(240,180,41,0.06)',
         }}
       >
-        <h1
-          className="rvn-page-title text-lg"
-        >
-          Mano Profilis
-        </h1>
-        <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
-          ← Kortų bazė
-        </Link>
+        <h1 className="rvn-page-title text-lg">Mano Profilis</h1>
+        <div className="flex items-center gap-2">
+          <NotificationBell initialNotifications={notifications} initialUnread={unreadCount} />
+          <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
+            ← Kortų bazė
+          </Link>
+        </div>
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">
@@ -215,6 +218,41 @@ export default async function MePage() {
           <div className="mt-3">
             <XPProgressBar xp={profile.xp_total} level={profile.level} />
           </div>
+
+          {/* ── Collection progress bar ───────────────────────────── */}
+          {totalCards > 0 && (
+            <Link
+              href="/my-cards"
+              className="mt-3 flex flex-col gap-1.5 rounded-xl px-4 py-3 transition-all hover:border-[rgba(240,180,41,0.25)]"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none', display: 'block' }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
+                  🃏 Kolekcija
+                </span>
+                <span className="text-xs font-bold" style={{ color: completionPct === 100 ? 'var(--gold)' : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>
+                  {ownedCount} / {totalCards} kortų · {completionPct}%
+                </span>
+              </div>
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${completionPct}%`,
+                    background: completionPct === 100
+                      ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                      : 'linear-gradient(90deg, var(--rvn-violet), #a78bfa)',
+                    transition: 'width 0.4s ease',
+                  }}
+                />
+              </div>
+              {completionPct === 100 && (
+                <p className="text-xs text-center" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                  ✨ Pilna kolekcija!
+                </p>
+              )}
+            </Link>
+          )}
         </div>
 
         {/* ── Stats grid ────────────────────────────────────────────── */}
@@ -248,6 +286,7 @@ export default async function MePage() {
             ))}
           </div>
         </div>
+
 
         {/* ── Quick links ───────────────────────────────────────────── */}
         <div>

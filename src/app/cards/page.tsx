@@ -1,27 +1,34 @@
+import Link from 'next/link'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { CardGrid, CardGridSkeleton } from '@/components/cards/CardGrid'
 import { CardFilters } from '@/components/cards/CardFilters'
+import { NotificationBell } from '@/components/ui/NotificationBell'
+import { fetchNotifications } from '@/lib/notifications'
 import type { CardWithRelations, CollectionMap } from '@/types'
+
+const PAGE_SIZE = 48
 
 type PageProps = {
   searchParams: Promise<{
-    search?:    string
+    search?:     string
     faction_id?: string
-    type_id?:   string
-    rarity_id?: string
-    gold_min?:  string
-    gold_max?:  string
+    type_id?:    string
+    rarity_id?:  string
+    gold_min?:   string
+    gold_max?:   string
     owned_only?: string
+    page?:       string
   }>
 }
 
 export const metadata = { title: 'Kortų duomenų bazė | Ravenof' }
 
-async function fetchCards(params: Awaited<PageProps['searchParams']>): Promise<{
-  cards: CardWithRelations[]
-  filteredCount: number
-}> {
+async function fetchCards(
+  params: Awaited<PageProps['searchParams']>,
+  page: number,
+  ownedIds?: string[]
+): Promise<{ cards: CardWithRelations[]; totalFiltered: number }> {
   const supabase = await createClient()
   let q = supabase
     .from('cards')
@@ -48,13 +55,17 @@ async function fetchCards(params: Awaited<PageProps['searchParams']>): Promise<{
   if (params.rarity_id)   q = q.eq('rarity_id',    Number(params.rarity_id))
   if (params.gold_min)    q = q.gte('gold_cost',    Number(params.gold_min))
   if (params.gold_max)    q = q.lte('gold_cost',    Number(params.gold_max))
+  if (ownedIds)           q = q.in('id', ownedIds.length > 0 ? ownedIds : ['__none__'])
 
-  q = q.order('gold_cost', { ascending: true, nullsFirst: false }).order('name')
+  const from = (page - 1) * PAGE_SIZE
+  const to   = from + PAGE_SIZE - 1
+  q = q.order('gold_cost', { ascending: true, nullsFirst: false }).order('name').range(from, to)
+
   const { data, count, error } = await q
-  if (error) { console.error(error); return { cards: [], filteredCount: 0 } }
+  if (error) { console.error(error); return { cards: [], totalFiltered: 0 } }
   return {
-    cards: (data as unknown as CardWithRelations[]) ?? [],
-    filteredCount: count ?? 0,
+    cards:         (data as unknown as CardWithRelations[]) ?? [],
+    totalFiltered: count ?? 0,
   }
 }
 
@@ -84,10 +95,19 @@ async function fetchCollection(userId: string): Promise<CollectionMap> {
   return Object.fromEntries(data.map((r) => [r.card_id, r.quantity]))
 }
 
+async function fetchOwnedIds(userId: string): Promise<string[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('user_collections')
+    .select('card_id')
+    .eq('user_id', userId)
+    .gt('quantity', 0)
+  return (data ?? []).map((r) => r.card_id)
+}
+
 async function fetchDeckCounts(cardIds: string[]): Promise<Record<string, number>> {
   if (cardIds.length === 0) return {}
   const supabase = await createClient()
-  // Each row in deck_cards = one deck using that card (card_id is unique per deck)
   const { data } = await supabase
     .from('deck_cards')
     .select('card_id')
@@ -100,27 +120,51 @@ async function fetchDeckCounts(cardIds: string[]): Promise<Record<string, number
   return map
 }
 
+function buildQs(params: Record<string, string | undefined>, overrides: Record<string, string | undefined>) {
+  const merged = { ...params, ...overrides }
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(merged)) {
+    if (v !== undefined && v !== '') p.set(k, v)
+  }
+  const s = p.toString()
+  return '/cards' + (s ? '?' + s : '')
+}
+
 export default async function CardsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const page = Math.max(1, Number(params.page ?? '1'))
+  const useOwnedOnly = params.owned_only === '1' && !!user
+
   const [
-    { cards: allCards },
+    ownedIds,
     { factions, cardTypes, rarities, totalCount },
     collection,
+    { notifications, unreadCount },
   ] = await Promise.all([
-    fetchCards(params),
+    useOwnedOnly && user ? fetchOwnedIds(user.id) : Promise.resolve<string[] | undefined>(undefined),
     fetchFilterOptions(),
     user ? fetchCollection(user.id) : Promise.resolve<CollectionMap>({}),
+    user ? fetchNotifications(20) : Promise.resolve({ notifications: [], unreadCount: 0 }),
   ])
 
-  const cards = params.owned_only === '1' && user
-    ? allCards.filter((c) => (collection[c.id] ?? 0) > 0)
-    : allCards
-  const displayCount = cards.length
+  const { cards, totalFiltered } = await fetchCards(params, page, ownedIds ?? undefined)
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
 
   const deckCountMap = await fetchDeckCounts(cards.map((c) => c.id))
+
+  // Build clean params object for qs helper (exclude page)
+  const baseParams: Record<string, string | undefined> = {
+    ...(params.search    ? { search:     params.search    } : {}),
+    ...(params.faction_id ? { faction_id: params.faction_id } : {}),
+    ...(params.type_id   ? { type_id:    params.type_id   } : {}),
+    ...(params.rarity_id ? { rarity_id:  params.rarity_id } : {}),
+    ...(params.gold_min  ? { gold_min:   params.gold_min  } : {}),
+    ...(params.gold_max  ? { gold_max:   params.gold_max  } : {}),
+    ...(params.owned_only ? { owned_only: params.owned_only } : {}),
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -154,7 +198,6 @@ export default async function CardsPage({ searchParams }: PageProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* Nav links — hidden on mobile; MobileNav handles these */}
             <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end">
               {[
                 { href: '/leaderboards',    label: 'Topai'           },
@@ -210,7 +253,9 @@ export default async function CardsPage({ searchParams }: PageProps) {
                 </>
               )}
             </div>
-            {/* Login button — always visible for guests */}
+            {user && (
+              <NotificationBell initialNotifications={notifications} initialUnread={unreadCount} />
+            )}
             {!user && (
               <a
                 href="/login"
@@ -235,7 +280,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
             <div className="sticky top-24">
               <Suspense fallback={<div className="animate-pulse h-96 rounded-xl" style={{ background: 'var(--bg-surface)' }} />}>
                 <CardFilters factions={factions} cardTypes={cardTypes} rarities={rarities}
-                  isAuthenticated={!!user} totalCount={totalCount} filteredCount={displayCount} />
+                  isAuthenticated={!!user} totalCount={totalCount} filteredCount={totalFiltered} />
               </Suspense>
             </div>
           </aside>
@@ -244,9 +289,10 @@ export default async function CardsPage({ searchParams }: PageProps) {
             <div className="md:hidden">
               <Suspense fallback={null}>
                 <CardFilters factions={factions} cardTypes={cardTypes} rarities={rarities}
-                  isAuthenticated={!!user} totalCount={totalCount} filteredCount={displayCount} />
+                  isAuthenticated={!!user} totalCount={totalCount} filteredCount={totalFiltered} />
               </Suspense>
             </div>
+
             <Suspense fallback={<CardGridSkeleton />}>
               <CardGrid
                 cards={cards}
@@ -255,6 +301,99 @@ export default async function CardsPage({ searchParams }: PageProps) {
                 deckCountMap={deckCountMap}
               />
             </Suspense>
+
+            {/* ── Puslapiavimas ─────────────────────────────────── */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-4 pb-2">
+                {page > 1 ? (
+                  <Link
+                    href={buildQs(baseParams, { page: page > 2 ? String(page - 1) : undefined })}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}
+                  >
+                    ← Ankstesnis
+                  </Link>
+                ) : (
+                  <span
+                    className="px-4 py-2 rounded-lg text-sm opacity-30 cursor-not-allowed"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}
+                  >
+                    ← Ankstesnis
+                  </span>
+                )}
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let p: number
+                    if (totalPages <= 7) {
+                      p = i + 1
+                    } else if (page <= 4) {
+                      p = i + 1
+                    } else if (page >= totalPages - 3) {
+                      p = totalPages - 6 + i
+                    } else {
+                      p = page - 3 + i
+                    }
+                    const isCurrent = p === page
+                    return (
+                      <Link
+                        key={p}
+                        href={buildQs(baseParams, { page: p > 1 ? String(p) : undefined })}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-all"
+                        style={{
+                          background:  isCurrent ? 'var(--gold)' : 'var(--bg-surface)',
+                          border:      '1px solid ' + (isCurrent ? 'var(--gold)' : 'var(--bg-border)'),
+                          color:       isCurrent ? '#0a0a0f' : 'var(--text-muted)',
+                          fontFamily:  'var(--rvn-font-display)',
+                        }}
+                      >
+                        {p}
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                {page < totalPages ? (
+                  <Link
+                    href={buildQs(baseParams, { page: String(page + 1) })}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}
+                  >
+                    Toliau →
+                  </Link>
+                ) : (
+                  <span
+                    className="px-4 py-2 rounded-lg text-sm opacity-30 cursor-not-allowed"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}
+                  >
+                    Toliau →
+                  </span>
+                )}
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <p className="text-center text-xs pb-4" style={{ color: 'var(--text-muted)' }}>
+                Puslapis {page} iš {totalPages} · Iš viso {totalFiltered} kortų
+              </p>
+            )}
+          </main>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+                  </span>
+                )}
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <p className="text-center text-xs pb-4" style={{ color: 'var(--text-muted)' }}>
+                Puslapis {page} iš {totalPages} · Iš viso {totalFiltered} kortų
+              </p>
+            )}
           </main>
         </div>
       </div>

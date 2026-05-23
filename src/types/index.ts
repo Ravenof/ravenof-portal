@@ -372,3 +372,22 @@ export type DeckComment = {
     display_name: string | null
   } | null
 }
+
+// -- NOTIFICATIONS
+export type NotificationType =
+  | 'xp_gained'
+  | 'badge_earned'
+  | 'tournament_match'
+  | 'tournament_result'
+  | 'deck_upvote'
+
+export type Notification = {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  message: string | null
+  link: string | null
+  read: boolean
+  created_at: string
+}
