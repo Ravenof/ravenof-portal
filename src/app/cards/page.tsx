@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { CardGrid, CardGridSkeleton } from '@/components/cards/CardGrid'
 import { CardFilters } from '@/components/cards/CardFilters'
@@ -69,7 +70,7 @@ async function fetchCards(
   }
 }
 
-async function fetchFilterOptions() {
+async function _fetchFilterOptions() {
   const supabase = await createClient()
   const [
     { data: factions },
@@ -84,6 +85,13 @@ async function fetchFilterOptions() {
   ])
   return { factions: factions ?? [], cardTypes: cardTypes ?? [], rarities: rarities ?? [], totalCount: totalCount ?? 0 }
 }
+
+// Cache reference data for 5 minutes — factions/types/rarities change very rarely
+const fetchFilterOptions = unstable_cache(
+  _fetchFilterOptions,
+  ['cards-filter-options'],
+  { revalidate: 300, tags: ['filter-options'] }
+)
 
 async function fetchCollection(userId: string): Promise<CollectionMap> {
   const supabase = await createClient()
@@ -205,32 +213,32 @@ export default async function CardsPage({ searchParams }: PageProps) {
                 { href: '/community-decks', label: 'Viešos kaladės'  },
                 { href: '/life-tracker',    label: 'Kova'            },
               ].map(({ href, label }) => (
-                <a
+                <Link
                   key={href}
                   href={href}
                   className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
                   style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px', letterSpacing: '0.04em' }}
                 >
                   {label}
-                </a>
+                </Link>
               ))}
               {user && (
                 <>
-                  <a
+                  <Link
                     href="/me"
                     className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
                     style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px' }}
                   >
                     Profilis
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href="/my-decks"
                     className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
                     style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px' }}
                   >
                     Mano kaladės
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href="/deck-builder"
                     className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-all hover:shadow-[0_0_10px_rgba(240,180,41,0.2)]"
                     style={{
@@ -242,7 +250,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
                     }}
                   >
                     + Kaladė
-                  </a>
+                  </Link>
                   <a
                     href="/api/auth/signout"
                     className="text-sm px-3 py-1.5 rounded-lg transition-all hover:opacity-70"

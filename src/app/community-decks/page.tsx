@@ -4,7 +4,7 @@ import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import type { PublicDeck, VoteValue, Profile } from '@/types'
 
 export const metadata = { title: 'Viešos kaladės | Ravenof' }
-export const revalidate = 0
+export const revalidate = 30
 
 type SearchParams = Promise<{ sort?: string; faction?: string; q?: string }>
 

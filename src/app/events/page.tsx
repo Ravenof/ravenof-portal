@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { RavenEvent } from '@/types'
 
 export const metadata = { title: 'Renginiai | Ravenof' }
-export const revalidate = 0
+export const revalidate = 60
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; label: string }> = {
   published: { bg: 'rgba(34,197,94,0.1)',   color: '#4ade80', border: 'rgba(34,197,94,0.3)',   label: 'Aktyvus'    },

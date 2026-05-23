@@ -204,18 +204,11 @@ export function LifeTrackerClient() {
       ? { type: flash.type, key: flash.key }
       : { type: null, key: 0 }
 
-  if (!hydrated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Kraunama...</p>
-      </div>
-    )
-  }
-
   const { type: flash0, key: fk0 } = flashForSide(0)
   const { type: flash1, key: fk1 } = flashForSide(1)
 
   return (
+    <div style={{ opacity: hydrated ? 1 : 0, transition: 'opacity 0.15s ease' }}>
     <>
       <style>{`
         @keyframes lt-flash-dmg {
@@ -421,5 +414,6 @@ export function LifeTrackerClient() {
         </div>
       </div>
     </>
+    </div>
   )
 }
