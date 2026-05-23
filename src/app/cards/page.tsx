@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { CardGrid, CardGridSkeleton } from '@/components/cards/CardGrid'
 import { CardFilters } from '@/components/cards/CardFilters'
@@ -70,7 +69,7 @@ async function fetchCards(
   }
 }
 
-async function _fetchFilterOptions() {
+async function fetchFilterOptions() {
   const supabase = await createClient()
   const [
     { data: factions },
@@ -85,13 +84,6 @@ async function _fetchFilterOptions() {
   ])
   return { factions: factions ?? [], cardTypes: cardTypes ?? [], rarities: rarities ?? [], totalCount: totalCount ?? 0 }
 }
-
-// Cache reference data for 5 minutes — factions/types/rarities change very rarely
-const fetchFilterOptions = unstable_cache(
-  _fetchFilterOptions,
-  ['cards-filter-options'],
-  { revalidate: 300, tags: ['filter-options'] }
-)
 
 async function fetchCollection(userId: string): Promise<CollectionMap> {
   const supabase = await createClient()

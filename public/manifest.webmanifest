@@ -1,0 +1,56 @@
+{
+  "name": "Ravenof Portalas",
+  "short_name": "Ravenof",
+  "description": "Ravenof kortų duomenų bazė, kaladžių kūrimas, renginiai, turnyrai ir HP sekiklis.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070f",
+  "theme_color": "#f2a20c",
+  "orientation": "portrait-primary",
+  "lang": "lt",
+  "scope": "/",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "HP Sekiklis",
+      "short_name": "HP Sekiklis",
+      "description": "Kovos HP sekiklis su Battle Mode",
+      "url": "/life-tracker",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kortų bazė",
+      "short_name": "Kortos",
+      "description": "Ravenof kortų duomenų bazė",
+      "url": "/cards",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
