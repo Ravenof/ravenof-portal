@@ -343,6 +343,7 @@ export type BadgesLeaderboardRow = {
 
 export type MyOwnedCard = {
   card_id: string
+  card_number: string | null
   quantity: number
   name: string
   gold_cost: number | null

@@ -20,7 +20,7 @@ export default async function MyCardsPage() {
       .select(`
         card_id, quantity,
         card:cards (
-          name, gold_cost, image_url, faction_id, card_type_id, rarity_id,
+          card_number, name, gold_cost, image_url, faction_id, card_type_id, rarity_id,
           faction:factions ( name, color_hex ),
           card_type:card_types ( name ),
           rarity:rarities ( name, color_hex )
@@ -35,6 +35,7 @@ export default async function MyCardsPage() {
     card_id: string
     quantity: number
     card: {
+      card_number: string | null
       name: string
       gold_cost: number | null
       image_url: string | null
@@ -52,6 +53,7 @@ export default async function MyCardsPage() {
     .filter((r) => r.card != null)
     .map((r) => ({
       card_id: r.card_id,
+      card_number: r.card!.card_number,
       quantity: r.quantity,
       name: r.card!.name,
       gold_cost: r.card!.gold_cost,
