@@ -392,6 +392,3 @@ export type Notification = {
   read: boolean
   created_at: string
 }
-an
-  created_at: string
-}
