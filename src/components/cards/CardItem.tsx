@@ -131,13 +131,6 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {card.card_type?.name ?? '—'}
               </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: rarityColor }} />
-                <span className="text-xs" style={{ color: rarityColor }}>{card.rarity?.name ?? '—'}</span>
-              </div>
               {deckCount > 0 && (
                 <span
                   className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full"
@@ -152,6 +145,11 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
                   {'\u{1F4DA}'} {deckCount}
                 </span>
               )}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: rarityColor }} />
+              <span className="text-xs" style={{ color: rarityColor }}>{card.rarity?.name ?? '—'}</span>
             </div>
 
             {(card.attack !== null || card.health !== null) && (
