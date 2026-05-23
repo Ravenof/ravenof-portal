@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { OwnedToggle } from '@/components/cards/OwnedToggle'
-import { Sword, Heart, Coins } from 'lucide-react'
+import { Sword, Heart, Coins, BookOpen } from 'lucide-react'
 import type { CardWithRelations } from '@/types'
 
 type Props = { params: Promise<{ cardNumber: string }> }
@@ -13,6 +13,16 @@ export const revalidate = 60
 export async function generateMetadata({ params }: Props) {
   const { cardNumber } = await params
   return { title: `${decodeURIComponent(cardNumber)} | Ravenof` }
+}
+
+type DeckSnippet = {
+  id: string
+  name: string
+  score: number
+  card_count: number
+  avg_gold_cost: number
+  faction: { name: string; color_hex: string } | null
+  owner: { username: string; display_name: string | null } | null
 }
 
 export default async function CardDetailPage({ params }: Props) {
@@ -35,7 +45,6 @@ export default async function CardDetailPage({ params }: Props) {
     .maybeSingle()
 
   if (!raw) {
-    // fallback: try by UUID id
     const { data } = await supabase
       .from('cards')
       .select(`
@@ -55,13 +64,55 @@ export default async function CardDetailPage({ params }: Props) {
 
   const card = raw as unknown as CardWithRelations & { lore_text: string | null }
 
-  // Only public users see active cards; admin/hidden handled via auth
   const { data: { user } } = await supabase.auth.getUser()
   const isAdmin = user
     ? (await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle())?.data?.role === 'admin'
     : false
 
   if (card.status !== 'active' && !isAdmin) return notFound()
+
+  // Fetch public decks that use this card
+  const { data: deckCardRows } = await supabase
+    .from('deck_cards')
+    .select('deck_id')
+    .eq('card_id', card.id)
+
+  let decksUsingCard: DeckSnippet[] = []
+  if (deckCardRows && deckCardRows.length > 0) {
+    const deckIds = deckCardRows.map((r: { deck_id: string }) => r.deck_id)
+    const { data: deckRows } = await supabase
+      .from('decks')
+      .select('id, name, score, card_count, avg_gold_cost, faction_id, user_id')
+      .in('id', deckIds)
+      .eq('visibility', 'public')
+      .order('score', { ascending: false })
+      .limit(8)
+
+    if (deckRows && deckRows.length > 0) {
+      const factionIds = [...new Set(deckRows.map((d: { faction_id: number | null }) => d.faction_id).filter(Boolean))]
+      const ownerIds   = [...new Set(deckRows.map((d: { user_id: string }) => d.user_id))]
+
+      const [{ data: factions }, { data: owners }] = await Promise.all([
+        supabase.from('factions').select('id, name, color_hex').in('id', factionIds),
+        supabase.from('profiles').select('id, username, display_name').in('id', ownerIds),
+      ])
+
+      const fMap: Record<number, { name: string; color_hex: string }> = {}
+      for (const f of (factions ?? [])) fMap[f.id] = f
+      const oMap: Record<string, { username: string; display_name: string | null }> = {}
+      for (const o of (owners ?? [])) oMap[o.id] = o
+
+      decksUsingCard = deckRows.map((d: { id: string; name: string; score: number; card_count: number; avg_gold_cost: number; faction_id: number | null; user_id: string }) => ({
+        id:           d.id,
+        name:         d.name,
+        score:        d.score,
+        card_count:   d.card_count,
+        avg_gold_cost: d.avg_gold_cost,
+        faction:      d.faction_id ? (fMap[d.faction_id] ?? null) : null,
+        owner:        oMap[d.user_id] ?? null,
+      }))
+    }
+  }
 
   const factionColor = card.faction?.color_hex ? '#' + card.faction.color_hex.replace('#', '') : '#b8860b'
   const rarityColor = (() => {
@@ -93,7 +144,8 @@ export default async function CardDetailPage({ params }: Props) {
         )}
       </header>
 
-      <div className="max-w-screen-lg mx-auto px-4 py-8">
+      <div className="max-w-screen-lg mx-auto px-4 py-8 space-y-8">
+        {/* Main card layout */}
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left — Image */}
           <div className="flex-shrink-0 w-full md:w-72">
@@ -117,11 +169,10 @@ export default async function CardDetailPage({ params }: Props) {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-7xl opacity-20" style={{ color: factionColor }}>⚔</span>
+                  <span className="text-7xl opacity-20" style={{ color: factionColor }}>&#9876;</span>
                 </div>
               )}
 
-              {/* Gold cost badge */}
               {card.gold_cost !== null && (
                 <div
                   className="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-bold"
@@ -132,17 +183,15 @@ export default async function CardDetailPage({ params }: Props) {
                 </div>
               )}
 
-              {/* Champion badge */}
               {card.is_champion && (
                 <div
                   className="absolute top-3 right-3 px-2 py-1 rounded text-sm font-bold"
                   style={{ background: 'rgba(0,0,0,0.8)', color: 'var(--gold)', border: '1px solid rgba(212,175,55,0.4)' }}
                 >
-                  ♔ Čempionas
+                  &#9812; &Ccaron;empionas
                 </div>
               )}
 
-              {/* Owned toggle */}
               {user && (
                 <div className="absolute bottom-3 right-3">
                   <OwnedToggle cardId={card.id} isAuthenticated={true} size="md" />
@@ -153,7 +202,6 @@ export default async function CardDetailPage({ params }: Props) {
 
           {/* Right — Info */}
           <div className="flex-1 space-y-5">
-            {/* Name + faction */}
             <div>
               <h1
                 className="text-3xl font-bold"
@@ -200,42 +248,23 @@ export default async function CardDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Effect text */}
             {card.effect_text && (
-              <div
-                className="rounded-xl p-4"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Efektas
-                </p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-                  {card.effect_text}
-                </p>
+              <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Efektas</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{card.effect_text}</p>
               </div>
             )}
 
-            {/* Description */}
             {card.description && (
-              <div
-                className="rounded-xl p-4"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Aprašymas
-                </p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  {card.description}
-                </p>
+              <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Aprašymas</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{card.description}</p>
               </div>
             )}
 
-            {/* Keywords */}
             {keywords.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Raktažodžiai
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Rakt&#379;od&#382;iai</p>
                 <div className="flex flex-wrap gap-2">
                   {keywords.map(({ keyword }) => (
                     <span
@@ -251,7 +280,6 @@ export default async function CardDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Lore */}
             {card.lore_text && (
               <div
                 className="rounded-xl p-4"
@@ -260,26 +288,79 @@ export default async function CardDetailPage({ params }: Props) {
                   border: '1px solid ' + factionColor + '30',
                 }}
               >
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: factionColor, opacity: 0.8 }}>
-                  Istorija
-                </p>
-                <p
-                  className="text-sm leading-relaxed italic"
-                  style={{ color: 'var(--text-secondary)', fontFamily: 'Georgia, serif' }}
-                >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: factionColor, opacity: 0.8 }}>Istorija</p>
+                <p className="text-sm leading-relaxed italic" style={{ color: 'var(--text-secondary)', fontFamily: 'Georgia, serif' }}>
                   &ldquo;{card.lore_text}&rdquo;
                 </p>
               </div>
             )}
 
-            {/* Card number */}
             {card.card_number && (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                #{card.card_number}
-              </p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>#{card.card_number}</p>
             )}
           </div>
         </div>
+
+        {/* ── Naudojama kaladėse ─────────────────────────────────── */}
+        {decksUsingCard.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <BookOpen className="w-4 h-4" style={{ color: 'var(--gold)' }} />
+              <h2
+                className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}
+              >
+                Naudojama kaladėse
+              </h2>
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(240,180,41,0.3), transparent)' }} />
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{decksUsingCard.length}</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {decksUsingCard.map((deck) => {
+                const dc = deck.faction?.color_hex
+                  ? '#' + deck.faction.color_hex.replace('#', '')
+                  : '#b8860b'
+                return (
+                  <Link
+                    key={deck.id}
+                    href={'/community-decks/' + deck.id}
+                    className="block rounded-xl p-4 transition-all hover:border-[rgba(240,180,41,0.25)]"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid ' + dc + '30', textDecoration: 'none' }}
+                  >
+                    {/* faction bar */}
+                    <div className="h-0.5 rounded-full mb-3 -mt-1" style={{ background: dc, opacity: 0.5 }} />
+
+                    <p
+                      className="font-semibold text-sm leading-tight truncate mb-1"
+                      style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}
+                    >
+                      {deck.name}
+                    </p>
+
+                    <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-muted)' }}>
+                      {deck.owner ? (deck.owner.display_name ?? deck.owner.username) : '—'}
+                    </p>
+
+                    <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <span style={{ color: dc }}>{deck.faction?.name ?? '—'}</span>
+                      <span className="flex items-center gap-1">
+                        <span style={{ color: 'var(--gold)' }}>&#9650;</span>
+                        {deck.score}
+                      </span>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+
+            {deckCardRows && deckCardRows.length > 8 && (
+              <p className="text-xs mt-3 text-center" style={{ color: 'var(--text-muted)' }}>
+                Rodomi 8 populiariausi. Iš viso kaladžių: {deckCardRows.length}.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

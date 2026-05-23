@@ -10,9 +10,10 @@ type CardGridProps = {
   cards: CardWithRelations[]
   isAuthenticated: boolean
   initialCollection: CollectionMap
+  deckCountMap?: Record<string, number>
 }
 
-export function CardGrid({ cards, isAuthenticated, initialCollection }: CardGridProps) {
+export function CardGrid({ cards, isAuthenticated, initialCollection, deckCountMap }: CardGridProps) {
   const { init } = useCollectionStore()
 
   // Inicializuoti store iš server datos (tik pirmą kartą)
@@ -44,6 +45,7 @@ export function CardGrid({ cards, isAuthenticated, initialCollection }: CardGrid
           key={card.id}
           card={card}
           isAuthenticated={isAuthenticated}
+          deckCount={deckCountMap?.[card.id] ?? 0}
         />
       ))}
     </div>

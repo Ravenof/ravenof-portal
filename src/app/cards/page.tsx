@@ -84,6 +84,22 @@ async function fetchCollection(userId: string): Promise<CollectionMap> {
   return Object.fromEntries(data.map((r) => [r.card_id, r.quantity]))
 }
 
+async function fetchDeckCounts(cardIds: string[]): Promise<Record<string, number>> {
+  if (cardIds.length === 0) return {}
+  const supabase = await createClient()
+  // Each row in deck_cards = one deck using that card (card_id is unique per deck)
+  const { data } = await supabase
+    .from('deck_cards')
+    .select('card_id')
+    .in('card_id', cardIds)
+  if (!data) return {}
+  const map: Record<string, number> = {}
+  for (const row of data) {
+    map[row.card_id] = (map[row.card_id] ?? 0) + 1
+  }
+  return map
+}
+
 export default async function CardsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const supabase = await createClient()
@@ -103,6 +119,8 @@ export default async function CardsPage({ searchParams }: PageProps) {
     ? allCards.filter((c) => (collection[c.id] ?? 0) > 0)
     : allCards
   const displayCount = cards.length
+
+  const deckCountMap = await fetchDeckCounts(cards.map((c) => c.id))
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -234,6 +252,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
                 cards={cards}
                 initialCollection={collection}
                 isAuthenticated={!!user}
+                deckCountMap={deckCountMap}
               />
             </Suspense>
           </main>

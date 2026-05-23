@@ -12,9 +12,10 @@ type CardItemProps = {
   card: CardWithRelations
   isAuthenticated: boolean
   onClick?: (card: CardWithRelations) => void
+  deckCount?: number
 }
 
-export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
+export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: CardItemProps) {
   const [hovered, setHovered] = useState(false)
   const [imgError, setImgError] = useState(false)
 
@@ -125,16 +126,32 @@ export function CardItem({ card, isAuthenticated, onClick }: CardItemProps) {
                 className="text-xs px-2 py-0.5 rounded-full font-medium"
                 style={{ background: factionColor + '20', color: factionColor, border: '1px solid ' + factionColor + '35' }}
               >
-                {card.faction?.name ?? '\u2014'}
+                {card.faction?.name ?? '—'}
               </span>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {card.card_type?.name ?? '\u2014'}
+                {card.card_type?.name ?? '—'}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: rarityColor }} />
-              <span className="text-xs" style={{ color: rarityColor }}>{card.rarity?.name ?? '\u2014'}</span>
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: rarityColor }} />
+                <span className="text-xs" style={{ color: rarityColor }}>{card.rarity?.name ?? '—'}</span>
+              </div>
+              {deckCount > 0 && (
+                <span
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: 'rgba(124,58,237,0.12)',
+                    color: 'var(--rvn-violet)',
+                    border: '1px solid rgba(124,58,237,0.2)',
+                    fontSize: '10px',
+                  }}
+                  title={'Naudojama ' + deckCount + ' kaladese'}
+                >
+                  {'\u{1F4DA}'} {deckCount}
+                </span>
+              )}
             </div>
 
             {(card.attack !== null || card.health !== null) && (

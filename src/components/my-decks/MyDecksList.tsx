@@ -275,4 +275,3 @@ export function MyDecksList({ decks, userId }: Props) {
     </div>
   )
 }
-        
