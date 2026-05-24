@@ -9,6 +9,7 @@ const NAV = [
   { href: '/admin',          label: '📊 Dashboard'    },
   { href: '/admin/cards',    label: '🃏 Kortos'        },
   { href: '/admin/events',   label: '📅 Renginiai'     },
+  { href: '/admin/lore',     label: '📖 Atlasas'       },
   { href: '/admin/users',    label: '👥 Naudotojai'    },
   { href: '/admin/achievements', label: '🏅 Pasiekimai' },
 ]
@@ -250,6 +251,7 @@ export default async function AdminDashboard() {
               { href: '/admin/cards/new',    label: '+ Nauja korta',      color: 'var(--gold)'     },
               { href: '/admin/cards/import', label: '↑ Importuoti kortas', color: 'var(--text-secondary)' },
               { href: '/admin/events/new',   label: '+ Naujas renginys',  color: '#34d399'         },
+              { href: '/admin/lore',         label: '📖 Lore Atlasas',    color: '#818cf8'         },
               { href: '/admin/achievements', label: '🏅 Pasiekimai',       color: '#a78bfa'         },
               { href: '/admin/users',        label: '👥 Naudotojai',       color: 'var(--text-secondary)' },
             ].map(({ href, label, color }) => (
