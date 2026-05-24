@@ -26,7 +26,6 @@ async function getHomeData() {
   const supabase = createPublicClient()
   const now = new Date().toISOString()
 
-  // Single wave — faction + author embedded via JOIN, no sequential round-trips
   const [
     { count: totalCards },
     { count: totalUsers },
@@ -39,31 +38,30 @@ async function getHomeData() {
     supabase.from('decks').select('id', { count: 'exact', head: true }).eq('visibility', 'public'),
     supabase.from('events').select('id, title, starts_at, event_type, location, capacity')
       .gte('starts_at', now).neq('status', 'draft').order('starts_at').limit(3),
-    supabase
-      .from('decks')
-      .select('id, name, score, card_count, faction:factions(name, color_hex), owner:profiles!user_id(username, display_name)')
-      .eq('visibility', 'public')
-      .order('score', { ascending: false })
-      .limit(3),
+    supabase.from('decks').select('id, name, score, card_count, faction_id, user_id')
+      .eq('visibility', 'public').order('score', { ascending: false }).limit(3),
   ])
 
-  type RawDeck = {
-    id: string
-    name: string
-    score: number
-    card_count: number
-    faction: { name: string; color_hex: string } | null
-    owner: { username: string; display_name: string | null } | null
+  // Resolve factions + authors for top decks
+  const deckRows = (topDecksRaw ?? []) as { id: string; name: string; score: number; card_count: number; faction_id: number | null; user_id: string }[]
+  let topDecks: DeckRow[] = []
+  if (deckRows.length > 0) {
+    const fIds = [...new Set(deckRows.map((d) => d.faction_id).filter(Boolean))]
+    const uIds = [...new Set(deckRows.map((d) => d.user_id))]
+    const [{ data: facs }, { data: owners }] = await Promise.all([
+      fIds.length > 0 ? supabase.from('factions').select('id, name, color_hex').in('id', fIds) : Promise.resolve({ data: [] }),
+      supabase.from('profiles').select('id, username, display_name').in('id', uIds),
+    ])
+    const fMap: Record<number, { name: string; color_hex: string }> = {}
+    for (const f of (facs ?? [])) fMap[f.id] = f
+    const oMap: Record<string, string> = {}
+    for (const o of (owners ?? [])) oMap[o.id] = o.display_name ?? o.username
+    topDecks = deckRows.map((d) => ({
+      id: d.id, name: d.name, score: d.score, card_count: d.card_count,
+      faction: d.faction_id ? (fMap[d.faction_id] ?? null) : null,
+      author: oMap[d.user_id] ?? '—',
+    }))
   }
-
-  const topDecks: DeckRow[] = ((topDecksRaw ?? []) as unknown as RawDeck[]).map((d) => ({
-    id: d.id,
-    name: d.name,
-    score: d.score,
-    card_count: d.card_count,
-    faction: d.faction ?? null,
-    author: d.owner ? (d.owner.display_name ?? d.owner.username) : '—',
-  }))
 
   return {
     totalCards: totalCards ?? 0,

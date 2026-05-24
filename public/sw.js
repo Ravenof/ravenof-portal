@@ -1,29 +1,56 @@
-// Ravenof PWA Service Worker v2
+// Ravenof PWA Service Worker v3
 // Strategy:
 //   - Static assets (scripts, styles, images, fonts, audio) → Cache-first
 //   - Supabase / API requests → Network-only (never cache auth/live data)
 //   - Navigation (HTML pages) → Network-first, offline fallback /offline
-//   - Pre-cache: app shell only — sounds load lazily on first /life-tracker visit
+//   - Pre-cache: critical shell blocks install; sounds cached in background (non-blocking)
 
-const CACHE_NAME = 'ravenof-pwa-v2'
+const CACHE_NAME = 'ravenof-pwa-v3'
 
-const PRECACHE_URLS = [
+// Critical shell — SW install waits for these
+const SHELL_URLS = [
   '/offline',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ]
 
+// Life tracker sounds — cached in background after install, never blocks page load
+const SOUND_URLS = [
+  '/sounds/sword-clash.mp3',
+  '/sounds/applause.mp3',
+  '/sounds/damage-1.mp3',
+  '/sounds/damage-2.mp3',
+  '/sounds/damage-3.mp3',
+  '/sounds/damage-4.mp3',
+  '/sounds/damage-5.mp3',
+  '/sounds/heal-1.mp3',
+  '/sounds/heal-2.mp3',
+  '/sounds/heal-3.mp3',
+  '/sounds/heal-4.mp3',
+  '/sounds/heal-5.mp3',
+  '/sounds/coin-1.mp3',
+  '/sounds/coin-2.mp3',
+  '/sounds/coin-3.mp3',
+]
+
 // ─── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(
-        PRECACHE_URLS.map((url) => new Request(url, { credentials: 'same-origin' }))
-      ).catch(() => {
-        // Pre-cache failures are non-fatal — individual assets may 404 during dev
+    caches.open(CACHE_NAME)
+      .then((cache) =>
+        // Only shell blocks install — fast, no network competition with page load
+        cache.addAll(SHELL_URLS.map((url) => new Request(url, { credentials: 'same-origin' })))
+          .catch(() => {})
+      )
+      .then(() => {
+        // Sounds cached in background — non-blocking, won't delay install or page load
+        caches.open(CACHE_NAME).then((cache) =>
+          cache.addAll(SOUND_URLS.map((url) => new Request(url, { credentials: 'same-origin' })))
+            .catch(() => {})
+        )
+        return self.skipWaiting()
       })
-    ).then(() => self.skipWaiting())
   )
 })
 
