@@ -134,7 +134,7 @@ export function BadgeItem({ badge, userBadge }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div
             className="relative w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-5"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '80vh', overflowY: 'auto' }}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '70vh', overflowY: 'auto', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
