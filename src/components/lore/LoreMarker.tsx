@@ -1,0 +1,102 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import type { LoreLocation, LoreFaction } from '@/data/lore'
+
+const TYPE_ICONS: Record<LoreLocation['type'], string> = {
+  miestas:   '🏙️',
+  griuvėsiai:'🏚️',
+  miškas:    '🌲',
+  tvirtovė:  '🏰',
+  uostas:    '⚓',
+  plyšys:    '🌋',
+  slėnis:    '🏔️',
+}
+
+type Props = {
+  location: LoreLocation
+  faction?: LoreFaction
+  isSelected: boolean
+  onClick: () => void
+}
+
+export function LoreMarker({ location, faction, isSelected, onClick }: Props) {
+  const color = faction?.color ?? '#d4af37'
+  const icon  = TYPE_ICONS[location.type] ?? '📍'
+
+  return (
+    <motion.button
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      whileHover={{ scale: 1.25 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+      onClick={onClick}
+      aria-label={location.name}
+      title={location.name}
+      className="absolute -translate-x-1/2 -translate-y-1/2 group"
+      style={{ left: location.x + '%', top: location.y + '%', zIndex: isSelected ? 30 : 20 }}
+    >
+      {/* Pulse ring */}
+      {isSelected && (
+        <motion.span
+          className="absolute inset-0 rounded-full"
+          style={{ background: color + '40', border: '2px solid ' + color + '80' }}
+          animate={{ scale: [1, 1.8, 1], opacity: [0.8, 0, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+
+      {/* Outer glow */}
+      <span
+        className="absolute inset-0 rounded-full blur-sm transition-opacity duration-200"
+        style={{
+          background: color,
+          opacity: isSelected ? 0.5 : 0,
+        }}
+      />
+
+      {/* Marker body */}
+      <span
+        className="relative flex items-center justify-center w-8 h-8 rounded-full text-sm transition-all duration-200"
+        style={{
+          background:  isSelected ? color + '33' : 'rgba(7,7,15,0.85)',
+          border:      '2px solid ' + (isSelected ? color : color + '99'),
+          boxShadow:   isSelected
+            ? `0 0 12px ${color}66, 0 0 24px ${color}33`
+            : `0 0 6px ${color}33`,
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        {icon}
+      </span>
+
+      {/* Tooltip */}
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none
+                   opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        style={{
+          background:  'rgba(7,7,15,0.95)',
+          border:      '1px solid ' + color + '55',
+          color:       'var(--text-primary)',
+          fontFamily:  'var(--rvn-font-display)',
+          letterSpacing: '0.04em',
+          fontSize:    '10px',
+        }}
+      >
+        {location.name}
+      </span>
+
+      {/* Down pointer */}
+      <span
+        className="absolute top-full left-1/2 -translate-x-1/2 -mt-0.5"
+        style={{
+          width: 0, height: 0,
+          borderLeft:  '4px solid transparent',
+          borderRight: '4px solid transparent',
+          borderTop:   '5px solid ' + (isSelected ? color : color + '99'),
+        }}
+      />
+    </motion.button>
+  )
+}

@@ -15,6 +15,7 @@ const SECTIONS = [
   { href: '/events',          icon: '📅', label: 'Renginiai',         desc: 'Turnyrai, susitikimai ir kiti žaidėjų renginiai' },
   { href: '/leaderboards',    icon: '🏆', label: 'Topai',             desc: 'Geriausių žaidėjų ir kaladžių reitingai'         },
   { href: '/life-tracker',    icon: '⚔️',  label: 'Kova',             desc: 'Gyvenimo taškų skaičiuoklė porai ar komandai'   },
+  { href: '/lore',            icon: '📖', label: 'Lore Atlas',       desc: 'Interaktyvus pasaulio žemėlapis ir istorija'      },
 ]
 
 function hexColor(hex: string | undefined) {
