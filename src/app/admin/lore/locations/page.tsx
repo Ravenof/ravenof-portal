@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { LORE_STATUS_COLORS, formatCsvArray } from '@/lib/loreAdmin'
 import { saveLocation, deleteLocation } from '../actions'
 import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
+import { AdminMapPicker } from '@/components/admin/lore/AdminMapPicker'
 
 export const revalidate = 0
 export const metadata = { title: 'Vietovės | Lore Atlas Admin' }
@@ -22,7 +23,7 @@ type Loc = {
 
 const LOCATION_TYPES = ['unknown','city','ruins','dungeon','forest','mountain','coast','plains','island','fortress','temple','portal']
 
-function LocationForm({ loc, error }: { loc?: Loc; error?: string }) {
+function LocationForm({ loc, error, allLocations }: { loc?: Loc; error?: string; allLocations: Loc[] }) {
   return (
     <form action={saveLocation} className="space-y-5 p-5 rounded-xl"
       style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(240,180,41,0.2)' }}>
@@ -73,22 +74,13 @@ function LocationForm({ loc, error }: { loc?: Loc; error?: string }) {
         </div>
       </div>
 
-      {/* X/Y coordinates */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>X žemėlapyje (0–100 %)</label>
-          <input name="x" type="number" min={0} max={100} step={0.1} defaultValue={loc?.x ?? 50}
-            className="w-full px-3 py-2 rounded-lg text-sm"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>X/Y — žymeklio pozicija žemėlapyje procentais</p>
-        </div>
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Y žemėlapyje (0–100 %)</label>
-          <input name="y" type="number" min={0} max={100} step={0.1} defaultValue={loc?.y ?? 50}
-            className="w-full px-3 py-2 rounded-lg text-sm"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-        </div>
-      </div>
+      {/* Interactive map picker — sets hidden x/y inputs */}
+      <AdminMapPicker
+        initialX={loc?.x ?? 50}
+        initialY={loc?.y ?? 50}
+        currentId={loc?.id}
+        existingLocations={allLocations.map((l) => ({ id: l.id, name: l.name, x: l.x, y: l.y, slug: l.slug }))}
+      />
 
       {/* Short description */}
       <div>
@@ -215,8 +207,8 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
       </header>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-4">
-        {params.action === 'new' && !params.id && <LocationForm error={params.error} />}
-        {editLoc && <LocationForm loc={editLoc} error={params.error} />}
+        {params.action === 'new' && !params.id && <LocationForm error={params.error} allLocations={rows} />}
+        {editLoc && <LocationForm loc={editLoc} error={params.error} allLocations={rows} />}
 
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows.length} vietovių</p>
 
