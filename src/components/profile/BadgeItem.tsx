@@ -128,7 +128,7 @@ export function BadgeItem({ badge, userBadge }: Props) {
       {/* Mobile modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 lg:hidden"
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 lg:hidden"
           onClick={() => setModalOpen(false)}
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
