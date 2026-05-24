@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -65,6 +65,7 @@ export async function saveCard(
   revalidatePath('/admin/cards')
   revalidatePath('/cards')
   revalidatePath('/cards', 'layout')
+  revalidateTag('cards') // invalidates deck-builder card cache
   redirect('/admin/cards')
 }
 
@@ -85,5 +86,6 @@ export async function deleteCard(cardId: string): Promise<{ error?: string }> {
 
   revalidatePath('/admin/cards')
   revalidatePath('/cards')
+  revalidateTag('cards') // invalidates deck-builder card cache
   return {}
 }

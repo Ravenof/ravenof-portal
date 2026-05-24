@@ -1,37 +1,17 @@
-// Ravenof PWA Service Worker v1
+// Ravenof PWA Service Worker v2
 // Strategy:
 //   - Static assets (scripts, styles, images, fonts, audio) → Cache-first
 //   - Supabase / API requests → Network-only (never cache auth/live data)
 //   - Navigation (HTML pages) → Network-first, offline fallback /offline
-//   - Pre-cache: app shell + life-tracker + icons + sounds
+//   - Pre-cache: app shell only — sounds load lazily on first /life-tracker visit
 
-const CACHE_NAME = 'ravenof-pwa-v1'
+const CACHE_NAME = 'ravenof-pwa-v2'
 
 const PRECACHE_URLS = [
-  '/',
   '/offline',
   '/manifest.webmanifest',
-  '/life-tracker',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/icons/maskable-512.png',
-  '/icons/apple-touch-icon.png',
-  // Sounds for HP Tracker — cache so it works offline
-  '/sounds/sword-clash.mp3',
-  '/sounds/applause.mp3',
-  '/sounds/damage-1.mp3',
-  '/sounds/damage-2.mp3',
-  '/sounds/damage-3.mp3',
-  '/sounds/damage-4.mp3',
-  '/sounds/damage-5.mp3',
-  '/sounds/heal-1.mp3',
-  '/sounds/heal-2.mp3',
-  '/sounds/heal-3.mp3',
-  '/sounds/heal-4.mp3',
-  '/sounds/heal-5.mp3',
-  '/sounds/coin-1.mp3',
-  '/sounds/coin-2.mp3',
-  '/sounds/coin-3.mp3',
 ]
 
 // ─── Install ──────────────────────────────────────────────────────────────────
