@@ -129,12 +129,13 @@ export function BadgeItem({ badge, userBadge }: Props) {
       {modalOpen && (
         <div
           className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 lg:hidden"
+          style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
           onClick={() => setModalOpen(false)}
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div
             className="relative w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-5"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '70vh', overflowY: 'auto', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '75vh', overflowY: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
