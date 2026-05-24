@@ -314,7 +314,7 @@ function PlayerZone({ sideIdx, name, hp, gold, isActive, flashType, flashKey, on
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        transition: 'border-color .25s ease, box-shadow .25s ease',
+        transition: 'none',
       }}
     >
       {/* Flash overlay */}

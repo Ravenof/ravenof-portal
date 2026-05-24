@@ -28,9 +28,10 @@ export function LifeTrackerClient() {
   const [showWinModal, setShowWinModal] = useState(false)
   const [normalGold, setNormalGold] = useState<number>(() => calcGold(1))
 
-  const soundRef = useRef(true)
-  const stateRef = useRef(state)
+  const soundRef    = useRef(true)
+  const stateRef    = useRef(state)
   const winPlayedRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => { stateRef.current = state }, [state])
 
@@ -45,8 +46,15 @@ export function LifeTrackerClient() {
     preloadLifeTrackerSounds()
   }, [])
 
+  // Debounce saveState — localStorage write blokuoja main thread,
+  // tad rašome ne dažniau kaip kas 400ms
   useEffect(() => {
-    if (hydrated) saveState(state)
+    if (!hydrated) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => saveState(state), 400)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
   }, [state, hydrated])
 
   useEffect(() => {
@@ -221,11 +229,22 @@ export function LifeTrackerClient() {
         }
         .lt-flash-dmg { animation: lt-flash-dmg 0.5s ease-out forwards; }
         .lt-flash-heal { animation: lt-flash-heal 0.5s ease-out forwards; }
-        @keyframes lt-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.0); }
-          50% { box-shadow: 0 0 20px 3px rgba(212,175,55,0.22); }
+        /* Glow animuojame per opacity (GPU compositing, ne repaint) */
+        @keyframes lt-glow-opacity {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 1; }
         }
-        .lt-active-glow { animation: lt-glow 2.2s ease-in-out infinite; }
+        .lt-active-glow { position: relative; }
+        .lt-active-glow::after {
+          content: '';
+          position: absolute;
+          inset: -2px;
+          border-radius: inherit;
+          box-shadow: 0 0 22px 4px rgba(212,175,55,0.28);
+          animation: lt-glow-opacity 2.2s ease-in-out infinite;
+          pointer-events: none;
+          z-index: 0;
+        }
       `}</style>
 
       {/* Sword crossing intro */}
