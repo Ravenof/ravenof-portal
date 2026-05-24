@@ -1,18 +1,20 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
+import { HomeAuthNav, HomeAuthCTA } from '@/components/home/HomeAuthSection'
 
-export const revalidate = 60
+// ISR: 5 min cache — veikia nes nėra cookies() iškvietimo
+export const revalidate = 300
 
-type EventRow  = { id: string; title: string; starts_at: string; event_type: string; location: string | null; capacity: number | null }
-type DeckRow   = { id: string; name: string; score: number; card_count: number; faction: { name: string; color_hex: string } | null; author: string }
+type EventRow = { id: string; title: string; starts_at: string; event_type: string; location: string | null; capacity: number | null }
+type DeckRow  = { id: string; name: string; score: number; card_count: number; faction: { name: string; color_hex: string } | null; author: string }
 
 const SECTIONS = [
-  { href: '/cards',           icon: '🃏', label: 'Kortų bazė',       desc: 'Visa kortų kolekcija su filtrais ir statistika'     },
-  { href: '/deck-builder',    icon: '⚗️',  label: 'Kaladžių kūrėjas', desc: 'Kurkite ir dalinkitės savo kaladėmis'               },
-  { href: '/community-decks', icon: '📚', label: 'Viešos kaladės',   desc: 'Žiūrėkite ir balsuokite už geriausias kaladės'      },
-  { href: '/events',          icon: '📅', label: 'Renginiai',         desc: 'Turnybai, susitikimai ir kiti žaidėjų renginiai'    },
-  { href: '/leaderboards',    icon: '🏆', label: 'Topai',             desc: 'Geriausių žaidėjų ir kaladžių reitingai'            },
-  { href: '/life-tracker',    icon: '⚔️',  label: 'Kova',             desc: 'Gyvenimo taškų skaičiuoklė porai ar komandai'      },
+  { href: '/cards',           icon: '🃏', label: 'Kortų bazė',       desc: 'Visa kortų kolekcija su filtrais ir statistika'  },
+  { href: '/deck-builder',    icon: '⚗️',  label: 'Kaladžių kūrėjas', desc: 'Kurkite ir dalinkitės savo kaladėmis'            },
+  { href: '/community-decks', icon: '📚', label: 'Viešos kaladės',   desc: 'Žiūrėkite ir balsuokite už geriausias kaladės'   },
+  { href: '/events',          icon: '📅', label: 'Renginiai',         desc: 'Turnyrai, susitikimai ir kiti žaidėjų renginiai' },
+  { href: '/leaderboards',    icon: '🏆', label: 'Topai',             desc: 'Geriausių žaidėjų ir kaladžių reitingai'         },
+  { href: '/life-tracker',    icon: '⚔️',  label: 'Kova',             desc: 'Gyvenimo taškų skaičiuoklė porai ar komandai'   },
 ]
 
 function hexColor(hex: string | undefined) {
@@ -20,10 +22,8 @@ function hexColor(hex: string | undefined) {
   return '#' + hex.replace('#', '')
 }
 
-export default async function HomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
+async function getHomeData() {
+  const supabase = createPublicClient()
   const now = new Date().toISOString()
 
   const [
@@ -32,7 +32,6 @@ export default async function HomePage() {
     { count: totalDecks },
     { data: upcomingRaw },
     { data: topDecksRaw },
-    profileRes,
   ] = await Promise.all([
     supabase.from('cards').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -41,17 +40,14 @@ export default async function HomePage() {
       .gte('starts_at', now).neq('status', 'draft').order('starts_at').limit(3),
     supabase.from('decks').select('id, name, score, card_count, faction_id, user_id')
       .eq('visibility', 'public').order('score', { ascending: false }).limit(3),
-    user
-      ? supabase.from('profiles').select('username, display_name, level, xp_total').eq('id', user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
   ])
 
-  // Resolve deck factions + owners
+  // Resolve factions + authors for top decks
   const deckRows = (topDecksRaw ?? []) as { id: string; name: string; score: number; card_count: number; faction_id: number | null; user_id: string }[]
   let topDecks: DeckRow[] = []
   if (deckRows.length > 0) {
-    const fIds  = [...new Set(deckRows.map((d) => d.faction_id).filter(Boolean))]
-    const uIds  = [...new Set(deckRows.map((d) => d.user_id))]
+    const fIds = [...new Set(deckRows.map((d) => d.faction_id).filter(Boolean))]
+    const uIds = [...new Set(deckRows.map((d) => d.user_id))]
     const [{ data: facs }, { data: owners }] = await Promise.all([
       fIds.length > 0 ? supabase.from('factions').select('id, name, color_hex').in('id', fIds) : Promise.resolve({ data: [] }),
       supabase.from('profiles').select('id, username, display_name').in('id', uIds),
@@ -67,8 +63,17 @@ export default async function HomePage() {
     }))
   }
 
-  const upcomingEvents = (upcomingRaw ?? []) as EventRow[]
-  const profile = profileRes.data as { username: string; display_name: string | null; level: number; xp_total: number } | null
+  return {
+    totalCards: totalCards ?? 0,
+    totalUsers: totalUsers ?? 0,
+    totalDecks: totalDecks ?? 0,
+    upcomingEvents: (upcomingRaw ?? []) as EventRow[],
+    topDecks,
+  }
+}
+
+export default async function HomePage() {
+  const { totalCards, totalUsers, totalDecks, upcomingEvents, topDecks } = await getHomeData()
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -85,31 +90,8 @@ export default async function HomePage() {
           <span className="text-lg font-bold tracking-widest" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
             RAVENOF
           </span>
-          <div className="flex items-center gap-2">
-            {user && profile ? (
-              <>
-                <Link href="/me" className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-                  {profile.display_name ?? profile.username}
-                </Link>
-                <Link href="/cards" className="text-xs px-4 py-1.5 rounded-lg font-semibold"
-                  style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.3)', fontFamily: 'var(--rvn-font-display)' }}>
-                  Portalas
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-                  Prisijungti
-                </Link>
-                <Link href="/register" className="text-xs px-4 py-1.5 rounded-lg font-semibold"
-                  style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.3)', fontFamily: 'var(--rvn-font-display)' }}>
-                  Registruotis
-                </Link>
-              </>
-            )}
-          </div>
+          {/* User nav — client component, loads after hydration */}
+          <HomeAuthNav />
         </nav>
 
         {/* ── HERO ────────────────────────────────────────────── */}
@@ -129,12 +111,12 @@ export default async function HomePage() {
 
           <div style={{ height: '1px', width: '200px', background: 'linear-gradient(to right, transparent, var(--gold), transparent)', margin: '0 auto' }} />
 
-          {/* Stats */}
+          {/* Stats — ISR cached */}
           <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap">
             {[
-              { n: totalCards ?? 0,  label: 'kortos'    },
-              { n: totalUsers ?? 0,  label: 'žaidėjai'  },
-              { n: totalDecks ?? 0,  label: 'kaladės'   },
+              { n: totalCards, label: 'kortos'   },
+              { n: totalUsers, label: 'žaidėjai' },
+              { n: totalDecks, label: 'kaladės'  },
             ].map(({ n, label }) => (
               <div key={label} className="text-center">
                 <p className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{n}</p>
@@ -150,20 +132,8 @@ export default async function HomePage() {
               style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.35)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em', boxShadow: '0 0 20px rgba(240,180,41,0.12)' }}>
               🃏 Kortų bazė
             </Link>
-            {!user && (
-              <Link href="/register"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all active:scale-95 hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                style={{ background: 'transparent', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>
-                Prisijunk nemokamai
-              </Link>
-            )}
-            {user && (
-              <Link href="/deck-builder"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all active:scale-95 hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                style={{ background: 'transparent', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>
-                + Nauja kaladė
-              </Link>
-            )}
+            {/* Auth-dependent CTA — client side */}
+            <HomeAuthCTA />
           </div>
         </section>
 
