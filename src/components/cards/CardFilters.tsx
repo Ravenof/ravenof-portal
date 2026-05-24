@@ -177,8 +177,8 @@ export function CardFilters({
                         style={{ background: f.color_hex }}
                       />
                     )}
-                    <span style={{ fontFamily: 'var(--rvn-font-display)', fontSize: '10px', letterSpacing: '0.02em' }}>
-                      {f.name.split(' ')[0]}
+                    <span style={{ fontFamily: 'var(--rvn-font-display)', fontSize: '10px', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+                      {f.name}
                     </span>
                   </button>
                 )
