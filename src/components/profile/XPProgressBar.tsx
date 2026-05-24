@@ -235,5 +235,3 @@ export function XPProgressBar({ xp, level }: Props) {
     </>
   )
 }
-
-}

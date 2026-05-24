@@ -125,5 +125,3 @@ export default async function ArenaPage() {
     </div>
   )
 }
-
-}

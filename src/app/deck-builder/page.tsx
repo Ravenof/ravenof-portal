@@ -56,6 +56,3 @@ export default async function DeckBuilderPage() {
     />
   )
 }
->
-  )
-}
