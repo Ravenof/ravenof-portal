@@ -2,16 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, Swords, BookOpen, Trophy, User } from 'lucide-react'
+import { LayoutGrid, BookOpen, Trophy, User, Map } from 'lucide-react'
 
 const HIDE_PREFIXES = ['/admin', '/login', '/register', '/deck-builder']
 
 const NAV_ITEMS = [
-  { href: '/cards',        icon: LayoutGrid, label: 'Kortos'   },
-  { href: '/life-tracker', icon: Swords,     label: 'Kova'     },
-  { href: '/my-decks',     icon: BookOpen,   label: 'Kaladės'  },
-  { href: '/arena',        icon: Trophy,     label: 'Arena'    },
-  { href: '/me',           icon: User,       label: 'Profilis' },
+  { href: '/cards',    icon: LayoutGrid, label: 'Kortos'   },
+  { href: '/my-decks', icon: BookOpen,   label: 'Kaladės'  },
+  { href: '/arena',    icon: Trophy,     label: 'Arena'    },
+  { href: '/lore',     icon: Map,        label: 'Atlasas'  },
+  { href: '/me',       icon: User,       label: 'Profilis' },
 ]
 
 export function MobileNav() {
