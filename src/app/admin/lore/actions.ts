@@ -23,7 +23,7 @@ function revalidateLore() {
 // ════════════════════════════════════════
 // ERAS
 // ════════════════════════════════════════
-export async function saveEra(_prev: unknown, formData: FormData) {
+export async function saveEra(formData: FormData) {
   const supabase = await requireAdmin()
   const id   = (formData.get('_id') as string) || null
   const name = (formData.get('name') as string)?.trim()
@@ -61,7 +61,7 @@ export async function deleteEra(id: string): Promise<{ error?: string }> {
 // ════════════════════════════════════════
 // LOCATIONS
 // ════════════════════════════════════════
-export async function saveLocation(_prev: unknown, formData: FormData) {
+export async function saveLocation(formData: FormData) {
   const supabase = await requireAdmin()
   const id   = (formData.get('_id') as string) || null
   const name = (formData.get('name') as string)?.trim()
@@ -110,7 +110,7 @@ export async function deleteLocation(id: string): Promise<{ error?: string }> {
 // ════════════════════════════════════════
 // EVENTS
 // ════════════════════════════════════════
-export async function saveLoreEvent(_prev: unknown, formData: FormData) {
+export async function saveLoreEvent(formData: FormData) {
   const supabase = await requireAdmin()
   const id    = (formData.get('_id') as string) || null
   const title = (formData.get('title') as string)?.trim()
@@ -158,7 +158,7 @@ export async function deleteLoreEvent(id: string): Promise<{ error?: string }> {
 // ════════════════════════════════════════
 // CHARACTERS
 // ════════════════════════════════════════
-export async function saveCharacter(_prev: unknown, formData: FormData) {
+export async function saveCharacter(formData: FormData) {
   const supabase = await requireAdmin()
   const id   = (formData.get('_id') as string) || null
   const name = (formData.get('name') as string)?.trim()
@@ -202,7 +202,7 @@ export async function deleteCharacter(id: string): Promise<{ error?: string }> {
 // ════════════════════════════════════════
 // ARTIFACTS
 // ════════════════════════════════════════
-export async function saveArtifact(_prev: unknown, formData: FormData) {
+export async function saveArtifact(formData: FormData) {
   const supabase = await requireAdmin()
   const id   = (formData.get('_id') as string) || null
   const name = (formData.get('name') as string)?.trim()
