@@ -265,7 +265,7 @@ export default async function MePage() {
             {[
               { label: 'Turimos kortos',       value: `${ownedCount} / ${totalCards}`, sub: `${completionPct}%` },
               { label: 'Viešos kaladės',       value: publicDecksCount },
-              { label: 'Upvotai gauti',         value: upvotesCount },
+              { label: 'Patiktukai gauti',       value: upvotesCount },
               { label: 'Lankyti renginiai',     value: attendedCount },
               { label: 'Artėjantys renginiai',  value: upcomingCount },
               { label: 'Ženkleliai',            value: badgesCount },

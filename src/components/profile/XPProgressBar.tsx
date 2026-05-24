@@ -12,8 +12,8 @@ type Props = {
 const BASE_XP_SOURCES = [
   { label: 'Renginio dalyvavimas',          amount: '+150',     icon: '🎯' },
   { label: 'Kalade paskelbta viesai',        amount: '+50',      icon: '📢' },
-  { label: 'Upvote gautas uz kalade',        amount: '+10',      icon: '👍' },
-  { label: 'Downvote gautas uz kalade',      amount: '−3',  icon: '👎' },
+  { label: 'Patiktukas gautas už kaladę',    amount: '+10',      icon: '👍' },
+  { label: 'Nepatiktukas gautas už kaladę', amount: '−3',  icon: '👎' },
   { label: 'Kolekcijos prieaugis',           amount: '+25–350', icon: '🎴' },
   { label: 'Administratoriaus koregavimas',  amount: 'kintamas', icon: '⚙️' },
 ]
@@ -234,4 +234,6 @@ export function XPProgressBar({ xp, level }: Props) {
       )}
     </>
   )
+}
+
 }

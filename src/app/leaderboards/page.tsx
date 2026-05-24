@@ -17,11 +17,11 @@ type Tab = 'level' | 'cards' | 'decks' | 'events' | 'badges'
 type SearchParams = Promise<{ tab?: string }>
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'level',  label: 'Lygis / XP'      },
-  { key: 'cards',  label: 'Kortos'           },
-  { key: 'decks',  label: 'Kaladžių upvotes' },
-  { key: 'events', label: 'Renginiai'        },
-  { key: 'badges', label: 'Ženkleliai'       },
+  { key: 'level',  label: 'Lygis / XP'         },
+  { key: 'cards',  label: 'Kortos'              },
+  { key: 'decks',  label: 'Kaladžių patiktukai' },
+  { key: 'events', label: 'Renginiai'           },
+  { key: 'badges', label: 'Ženkleliai'          },
 ]
 
 async function fetchAvatarMap(
@@ -78,7 +78,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   } else if (tab === 'decks') {
     const { data } = await supabase.rpc('get_deck_upvotes_leaderboard', { p_limit: 50 })
     const items = (data ?? []) as DeckUpvotesLeaderboardRow[]
-    primaryLabel = 'Upvotes'
+    primaryLabel = 'Patiktukai'
     rows = items.map((r, i) => ({
       rank: i + 1,
       username: r.username,

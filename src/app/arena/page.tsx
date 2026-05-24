@@ -21,7 +21,7 @@ export default async function ArenaPage() {
       href:    '/leaderboards',
       emoji:   '🏆',
       title:   'Topai',
-      desc:    'Lygis, kortos, upvotai, renginiai — pamatyk, kas lyderiauja Ravenof pasaulyje.',
+      desc:    'Lygis, kortos, patiktukai, renginiai — pamatyk, kas lyderiauja Ravenof pasaulyje.',
       color:   '#d4af37',
       border:  'rgba(212,175,55,0.3)',
     },
@@ -124,4 +124,6 @@ export default async function ArenaPage() {
       </div>
     </div>
   )
+}
+
 }

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DeckBuilderClient } from './DeckBuilderClient'
 import type { CardWithRelations, CollectionMap } from '@/types'
 
-export const metadata = { title: 'Deck Builder | Ravenof' }
+export const metadata = { title: 'Kaladžių kūrėjas | Ravenof' }
 
 async function fetchBuilderData() {
   const supabase = await createClient()
@@ -54,5 +54,8 @@ export default async function DeckBuilderPage() {
       deckId={null}
       initialDeck={null}
     />
+  )
+}
+>
   )
 }

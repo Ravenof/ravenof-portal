@@ -19,9 +19,25 @@ export function BadgeItem({ badge, userBadge }: Props) {
       })
     : null
 
+  // Map DB field names to Lithuanian labels
+  const reqTypeLabels: Record<string, string> = {
+    cards_collected:   'Kortų surinkta',
+    decks_created:     'Kaladžių sukurta',
+    decks_published:   'Kaladžių paskelbta',
+    events_attended:   'Renginių aplankyta',
+    level_reached:     'Pasiektas lygis',
+    upvotes_received:  'Patiktukų gauta',
+    decks_upvoted:     'Kaladžių įvertinta',
+    badges_earned:     'Ženklelių uždirbta',
+    wins_count:        'Pergalių skaičius',
+    streak_days:       'Dienų iš eilės',
+  }
+  const reqLabel = badge.requirement_type
+    ? (reqTypeLabels[badge.requirement_type] ?? badge.requirement_type.replace(/_/g, ' '))
+    : null
   const requirementText = badge.requirement_value
-    ? badge.requirement_type
-      ? badge.requirement_type.replace('_', ' ') + ': ' + badge.requirement_value
+    ? reqLabel
+      ? `${reqLabel}: ${badge.requirement_value}`
       : String(badge.requirement_value)
     : null
 
@@ -118,7 +134,7 @@ export function BadgeItem({ badge, userBadge }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div
             className="relative w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-5"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)' }}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '80vh', overflowY: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -153,8 +169,8 @@ export function BadgeItem({ badge, userBadge }: Props) {
             )}
 
             {requirementText && (
-              <p className="text-xs py-2 px-3 rounded-lg mb-2" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
-                Sąlyga: {requirementText}
+              <p className="text-xs py-2 px-3 rounded-lg mb-2" style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
+                🎯 {requirementText}
               </p>
             )}
 
