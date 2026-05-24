@@ -10,7 +10,7 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 
-const MAP_IMAGE = '/maps/ravenof-world-map.jpg'
+const MAP_IMAGE = '/maps/ravenof-world-map.png'
 const MIN_SCALE = 1
 const MAX_SCALE = 8
 
