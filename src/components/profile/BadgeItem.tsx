@@ -125,61 +125,89 @@ export function BadgeItem({ badge, userBadge }: Props) {
         )}
       </div>
 
-      {/* Mobile modal */}
+      {/* Mobile modal — true full-screen overlay, flex-column panel */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 lg:hidden"
-          style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
           onClick={() => setModalOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          {/* Panel: flex column, height capped to dynamic viewport */}
           <div
-            className="relative w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-5"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', maxHeight: '75vh', overflowY: 'auto' }}
+            className="relative w-full max-w-sm flex flex-col rounded-2xl overflow-hidden"
+            style={{
+              background:  'var(--bg-elevated)',
+              border:      '1px solid var(--bg-border)',
+              boxShadow:   '0 24px 64px rgba(0,0,0,0.8)',
+              maxHeight:   'calc(100dvh - 6rem)',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center"
-              style={{ background: 'var(--bg-border)', color: 'var(--text-muted)' }}
+            {/* ── Fixed header ── */}
+            <div
+              className="shrink-0 flex items-center gap-3 px-5 py-4"
+              style={{ borderBottom: '1px solid var(--bg-border)' }}
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-3">
               <span
-                className="text-3xl leading-none"
+                className="text-3xl leading-none shrink-0"
                 style={{ filter: isEarned ? 'none' : 'grayscale(100%)', opacity: isEarned ? 1 : 0.5 }}
               >
                 {badge.icon ?? '🏅'}
               </span>
-              <div>
-                <p className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold leading-tight" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>
                   {badge.title}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: isEarned ? 'var(--gold)' : 'var(--text-muted)' }}>
-                  {isEarned ? 'Uždirbta' : '🔒 Neuždirbta'}
+                  {isEarned ? '✓ Pasiekimas uždirbtas' : '🔒 Dar neuždirbta'}
                 </p>
               </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: 'var(--bg-border)', color: 'var(--text-muted)' }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
 
-            {badge.description && (
-              <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--text-secondary)' }}>
-                {badge.description}
-              </p>
-            )}
+            {/* ── Scrollable body — THIS is the scroll container ── */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3"
+              style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+            >
+              {badge.description && (
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  {badge.description}
+                </p>
+              )}
 
-            {requirementText && (
-              <p className="text-xs py-2 px-3 rounded-lg mb-2" style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                🎯 {requirementText}
-              </p>
-            )}
+              {requirementText && (
+                <div
+                  className="rounded-lg px-3 py-2.5"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+                    Ką reikia padaryti
+                  </p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    🎯 {requirementText}
+                  </p>
+                </div>
+              )}
 
-            {isEarned && earnedDate && (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Gauta: <span style={{ color: 'var(--gold)' }}>{earnedDate}</span>
-              </p>
-            )}
+              {isEarned && earnedDate && (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Gauta: <span style={{ color: 'var(--gold)' }}>{earnedDate}</span>
+                </p>
+              )}
+
+              {!isEarned && !requirementText && (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Tęsk žaidimą ir atrakink šį pasiekimą!
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
