@@ -114,6 +114,23 @@ export default async function CardDetailPage({ params }: Props) {
     }
   }
 
+  // ── Lore ryšiai ────────────────────────────────────────────
+  const cn = card.card_number
+  const [loreLocsRes, loreCharsRes, loreArtsRes, loreEventsRes] = cn
+    ? await Promise.all([
+        supabase.from('lore_locations').select('slug, name').contains('related_card_numbers', [cn]).eq('status', 'published'),
+        supabase.from('lore_characters').select('slug, name, role').contains('related_card_numbers', [cn]).eq('status', 'published'),
+        supabase.from('lore_artifacts').select('slug, name').contains('related_card_numbers', [cn]).eq('status', 'published'),
+        supabase.from('lore_events').select('slug, title, era_slug').contains('related_card_numbers', [cn]).eq('status', 'published'),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }]
+
+  const loreLocs   = (loreLocsRes.data   ?? []) as { slug: string; name: string }[]
+  const loreChars  = (loreCharsRes.data  ?? []) as { slug: string; name: string; role: string | null }[]
+  const loreArts   = (loreArtsRes.data   ?? []) as { slug: string; name: string }[]
+  const loreEvents = (loreEventsRes.data ?? []) as { slug: string; title: string; era_slug: string | null }[]
+  const hasLore    = loreLocs.length > 0 || loreChars.length > 0 || loreArts.length > 0 || loreEvents.length > 0
+
   const factionColor = card.faction?.color_hex ? '#' + card.faction.color_hex.replace('#', '') : '#b8860b'
   const rarityColor = (() => {
     const n = card.rarity?.name?.toLowerCase() ?? ''
@@ -300,6 +317,74 @@ export default async function CardDetailPage({ params }: Props) {
             )}
           </div>
         </div>
+
+        {/* ── Lore ryšiai ──────────────────────────────────────── */}
+        {hasLore && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <BookOpen className="w-4 h-4" style={{ color: 'var(--gold)' }} />
+              <h2 className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
+                Lore ryšiai
+              </h2>
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(212,175,55,0.3), transparent)' }} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {loreLocs.length > 0 && (
+                <div className="rounded-xl p-4 space-y-2"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>📍 Vietovės</p>
+                  {loreLocs.map((l) => (
+                    <Link key={l.slug} href={`/lore/locations/${l.slug}`}
+                      className="block text-xs transition-opacity hover:opacity-70"
+                      style={{ color: 'var(--gold)', textDecoration: 'none', fontFamily: 'var(--rvn-font-display)' }}>
+                      {l.name} →
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {loreChars.length > 0 && (
+                <div className="rounded-xl p-4 space-y-2"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>👤 Veikėjai</p>
+                  {loreChars.map((c) => (
+                    <Link key={c.slug} href={`/lore/characters/${c.slug}`}
+                      className="block text-xs transition-opacity hover:opacity-70"
+                      style={{ color: 'var(--gold)', textDecoration: 'none', fontFamily: 'var(--rvn-font-display)' }}>
+                      {c.name}{c.role ? ` · ${c.role}` : ''} →
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {loreArts.length > 0 && (
+                <div className="rounded-xl p-4 space-y-2"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>✦ Artefaktai</p>
+                  {loreArts.map((a) => (
+                    <Link key={a.slug} href={`/lore/artifacts/${a.slug}`}
+                      className="block text-xs transition-opacity hover:opacity-70"
+                      style={{ color: 'var(--gold)', textDecoration: 'none', fontFamily: 'var(--rvn-font-display)' }}>
+                      {a.name} →
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {loreEvents.length > 0 && (
+                <div className="rounded-xl p-4 space-y-2"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>⚡ Įvykiai</p>
+                  {loreEvents.map((e) => (
+                    <Link key={e.slug} href={`/lore/events/${e.slug}`}
+                      className="block text-xs transition-opacity hover:opacity-70"
+                      style={{ color: 'var(--gold)', textDecoration: 'none', fontFamily: 'var(--rvn-font-display)' }}>
+                      {e.title} →
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Naudojama kaladėse ─────────────────────────────────── */}
         {decksUsingCard.length > 0 && (

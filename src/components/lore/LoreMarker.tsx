@@ -18,9 +18,10 @@ type Props = {
   faction?: LoreFaction
   isSelected: boolean
   onClick: () => void
+  eventCount?: number
 }
 
-export function LoreMarker({ location, faction, isSelected, onClick }: Props) {
+export function LoreMarker({ location, faction, isSelected, onClick, eventCount = 0 }: Props) {
   const color = faction?.color ?? '#d4af37'
   const icon  = TYPE_ICONS[location.type] ?? '📍'
 
@@ -86,6 +87,26 @@ export function LoreMarker({ location, faction, isSelected, onClick }: Props) {
       >
         {location.name}
       </span>
+
+      {/* Event count badge */}
+      {eventCount > 0 && (
+        <span
+          className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-xs font-bold pointer-events-none"
+          style={{
+            width: eventCount > 9 ? 18 : 15,
+            height: eventCount > 9 ? 18 : 15,
+            fontSize: 9,
+            background: '#ef4444',
+            color: '#fff',
+            border: '1.5px solid rgba(7,7,15,0.9)',
+            fontFamily: 'monospace',
+            lineHeight: 1,
+            zIndex: 10,
+          }}
+        >
+          {eventCount > 9 ? '9+' : eventCount}
+        </span>
+      )}
 
       {/* Down pointer */}
       <span

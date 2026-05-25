@@ -11,10 +11,11 @@ const MAP_H     = 1086   // natural map pixel height
 const MAX_SCALE = 6
 
 type Props = {
-  locations:  LoreLocation[]
-  factions:   LoreFaction[]
-  selectedId: string | null
-  onSelect:   (id: string) => void
+  locations:   LoreLocation[]
+  factions:    LoreFaction[]
+  selectedId:  string | null
+  onSelect:    (id: string) => void
+  eventCounts?: Record<string, number>
 }
 
 /**
@@ -34,7 +35,7 @@ function touchDist(t1: React.Touch, t2: React.Touch) {
   return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
 }
 
-export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
+export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts = {} }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const innerRef     = useRef<HTMLDivElement>(null)
   const tRef         = useRef({ scale: 1, tx: 0, ty: 0 })
@@ -221,6 +222,7 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
                 faction={getFaction(loc.factionId)}
                 isSelected={selectedId === loc.id}
                 onClick={() => onSelect(loc.id)}
+                eventCount={eventCounts[loc.id] ?? 0}
               />
             </motion.div>
           ))}

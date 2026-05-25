@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword } from 'lucide-react'
+import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword, Search, X as XIcon } from 'lucide-react'
 import { LoreMap }      from '@/components/lore/LoreMap'
 import { LorePanel }    from '@/components/lore/LorePanel'
 import { LoreTimeline } from '@/components/lore/LoreTimeline'
@@ -72,12 +72,22 @@ export function LoreAtlasClient({
   const [selectedId,     setSelectedId]     = useState<string | null>(null)
   const [activeEraIndex, setActiveEraIndex] = useState<number>(eras.length > 0 ? eras.length - 1 : 0)
   const [activeFaction,  setActiveFaction]  = useState<string | null>(null)
+  const [searchQuery,    setSearchQuery]    = useState('')
 
   const visibleLocations = useMemo(() => locations.filter((loc) =>
     loc.firstEraIndex <= activeEraIndex && (activeFaction === null || loc.factionId === activeFaction)
   ), [locations, activeEraIndex, activeFaction])
 
   const visibleLocationIds = useMemo(() => new Set(visibleLocations.map((l) => l.id)), [visibleLocations])
+
+  // Event count per location (only visible era events)
+  const eventCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    events.filter((e) => e.eraIndex <= activeEraIndex).forEach((e) => {
+      if (e.locationId) counts[e.locationId] = (counts[e.locationId] ?? 0) + 1
+    })
+    return counts
+  }, [events, activeEraIndex])
 
   const visibleEvents = useMemo(() => events.filter((e) =>
     e.eraIndex <= activeEraIndex && (activeFaction === null || !e.locationId || visibleLocationIds.has(e.locationId))
@@ -86,6 +96,13 @@ export function LoreAtlasClient({
   const visibleCharacters = useMemo(() =>
     activeFaction === null ? characters : characters.filter((c) => c.factionId === activeFaction)
   , [characters, activeFaction])
+
+  // ── Search filtering (list view only) ───────────────────────
+  const sq = searchQuery.trim().toLowerCase()
+  const searchedLocations  = useMemo(() => sq ? visibleLocations.filter( (l) => l.name.toLowerCase().includes(sq) || l.description?.toLowerCase().includes(sq)) : visibleLocations,  [visibleLocations,  sq])
+  const searchedEvents     = useMemo(() => sq ? visibleEvents.filter(    (e) => e.name.toLowerCase().includes(sq) || e.description?.toLowerCase().includes(sq)) : visibleEvents,      [visibleEvents,     sq])
+  const searchedCharacters = useMemo(() => sq ? visibleCharacters.filter((c) => c.name.toLowerCase().includes(sq) || c.description?.toLowerCase().includes(sq) || c.title?.toLowerCase().includes(sq)) : visibleCharacters, [visibleCharacters, sq])
+  const searchedArtifacts  = useMemo(() => sq ? artifacts.filter(        (a) => a.name.toLowerCase().includes(sq) || a.description?.toLowerCase().includes(sq)) : artifacts,          [artifacts,         sq])
 
   const selectedLocation = useMemo(() => locations.find((l) => l.id === selectedId) ?? null, [locations, selectedId])
   const panelFaction = selectedLocation?.factionId ? factions.find((f) => f.id === selectedLocation.factionId) : undefined
@@ -108,9 +125,10 @@ export function LoreAtlasClient({
     setActiveFaction(null)
     setActiveEraIndex(eras.length > 0 ? eras.length - 1 : 0)
     setSelectedId(null)
+    setSearchQuery('')
   }
 
-  const hasAnyFilter = activeFaction !== null || activeEraIndex < (eras.length > 0 ? eras.length - 1 : 0)
+  const hasAnyFilter = activeFaction !== null || activeEraIndex < (eras.length > 0 ? eras.length - 1 : 0) || sq !== ''
 
   // ── Shared header ─────────────────────────────────────────
   const header = (
@@ -189,6 +207,7 @@ export function LoreAtlasClient({
             factions={factions}
             selectedId={selectedId}
             onSelect={handleSelect}
+            eventCounts={eventCounts}
           />
 
           {/* ── Floating filters (top) ── */}
@@ -325,11 +344,51 @@ export function LoreAtlasClient({
           totalCount={locations.length}
         />
 
+        {/* ── Search bar ── */}
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+            style={{ color: 'var(--text-muted)' }}
+          />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Ieškoti vietovių, įvykių, veikėjų, artefaktų..."
+            className="w-full rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none transition-colors"
+            style={{
+              background:  'var(--bg-surface)',
+              border:      '1px solid ' + (sq ? 'rgba(212,175,55,0.35)' : 'var(--bg-border)'),
+              color:       'var(--text-primary)',
+              fontFamily:  'var(--rvn-font-body)',
+              caretColor:  'var(--gold)',
+            }}
+          />
+          {sq && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+              style={{ background: 'var(--bg-border)', color: 'var(--text-muted)' }}
+              aria-label="Išvalyti paiešką"
+            >
+              <XIcon className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Search result summary */}
+        {sq && (
+          <p className="text-xs -mt-2" style={{ color: 'var(--text-muted)' }}>
+            Rasta: {searchedLocations.length + searchedEvents.length + searchedCharacters.length + searchedArtifacts.length} rezultatai
+            {' '}— ieškota „{searchQuery.trim()}"
+          </p>
+        )}
+
         {/* Lokacijos */}
-        <ListSection icon={<MapPin className="w-3.5 h-3.5" />} title="Lokacijos" count={visibleLocations.length}>
-          {visibleLocations.length === 0 ? <EmptyState message="Nėra lokacijų pagal pasirinktus filtrus" onReset={resetFilters} /> : (
+        <ListSection icon={<MapPin className="w-3.5 h-3.5" />} title="Lokacijos" count={searchedLocations.length}>
+          {searchedLocations.length === 0 ? <EmptyState message={sq ? `Nerasta lokacijų pagal „${searchQuery.trim()}"` : 'Nėra lokacijų pagal pasirinktus filtrus'} onReset={resetFilters} /> : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {visibleLocations.map((loc) => {
+              {searchedLocations.map((loc) => {
                 const fac = loc.factionId ? factions.find((f) => f.id === loc.factionId) : undefined
                 return (
                   <div key={loc.id} className="rounded-xl p-4 flex flex-col gap-2"
@@ -350,10 +409,16 @@ export function LoreAtlasClient({
                         {loc.relatedCards.map((c) => <CardChip key={c.cardNumber} cardNumber={c.cardNumber} name={c.name} />)}
                       </div>
                     )}
-                    <button onClick={() => { setView('map'); setSelectedId(loc.id) }}
-                      className="self-start text-xs mt-auto transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-                      Žemėlapyje →
-                    </button>
+                    <div className="flex items-center gap-3 mt-auto">
+                      <button onClick={() => { setView('map'); setSelectedId(loc.id) }}
+                        className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                        🗺 Žemėlapyje
+                      </button>
+                      <Link href={`/lore/locations/${loc.id}`}
+                        className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--gold)', textDecoration: 'none' }}>
+                        Skaityti →
+                      </Link>
+                    </div>
                   </div>
                 )
               })}
@@ -362,10 +427,10 @@ export function LoreAtlasClient({
         </ListSection>
 
         {/* Įvykiai */}
-        <ListSection icon={<Scroll className="w-3.5 h-3.5" />} title="Įvykiai" count={visibleEvents.length}>
-          {visibleEvents.length === 0 ? <EmptyState message="Nėra įvykių pagal pasirinktus filtrus" onReset={resetFilters} /> : (
+        <ListSection icon={<Scroll className="w-3.5 h-3.5" />} title="Įvykiai" count={searchedEvents.length}>
+          {searchedEvents.length === 0 ? <EmptyState message={sq ? `Nerasta įvykių pagal „${searchQuery.trim()}"` : 'Nėra įvykių pagal pasirinktus filtrus'} onReset={resetFilters} /> : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {visibleEvents.map((ev) => {
+              {searchedEvents.map((ev) => {
                 const era = eras.find((e) => e.index === ev.eraIndex)
                 return (
                   <div key={ev.id} className="rounded-xl p-4 flex flex-col gap-2"
@@ -377,8 +442,12 @@ export function LoreAtlasClient({
                         {era.name}
                       </span>}
                     </div>
-                    {ev.description && <p className="text-xs leading-relaxed line-clamp-4" style={{ color: 'var(--text-secondary)' }}>{ev.description}</p>}
+                    {ev.description && <p className="text-xs leading-relaxed line-clamp-3" style={{ color: 'var(--text-secondary)' }}>{ev.description}</p>}
                     {ev.locationId && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>📍 {locations.find((l) => l.id === ev.locationId)?.name ?? ev.locationId}</p>}
+                    <Link href={`/lore/events/${ev.id}`}
+                      className="self-start text-xs mt-auto transition-opacity hover:opacity-70" style={{ color: 'var(--gold)', textDecoration: 'none' }}>
+                      Skaityti →
+                    </Link>
                   </div>
                 )
               })}
@@ -387,10 +456,10 @@ export function LoreAtlasClient({
         </ListSection>
 
         {/* Veikėjai */}
-        <ListSection icon={<User className="w-3.5 h-3.5" />} title="Veikėjai" count={visibleCharacters.length}>
-          {visibleCharacters.length === 0 ? <EmptyState message="Nėra veikėjų pagal pasirinktus filtrus" onReset={resetFilters} /> : (
+        <ListSection icon={<User className="w-3.5 h-3.5" />} title="Veikėjai" count={searchedCharacters.length}>
+          {searchedCharacters.length === 0 ? <EmptyState message={sq ? `Nerasta veikėjų pagal „${searchQuery.trim()}"` : 'Nėra veikėjų pagal pasirinktus filtrus'} onReset={resetFilters} /> : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-              {visibleCharacters.map((ch) => {
+              {searchedCharacters.map((ch) => {
                 const fac = ch.factionId ? factions.find((f) => f.id === ch.factionId) : undefined
                 return (
                   <div key={ch.id} className="rounded-xl p-3 flex flex-col gap-1.5"
@@ -403,7 +472,11 @@ export function LoreAtlasClient({
                       </div>
                     </div>
                     {fac && <span className="text-xs" style={{ color: fac.color }}>{fac.name}</span>}
-                    {ch.description && <p className="text-xs leading-relaxed line-clamp-3" style={{ color: 'var(--text-secondary)' }}>{ch.description}</p>}
+                    {ch.description && <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{ch.description}</p>}
+                    <Link href={`/lore/characters/${ch.id}`}
+                      className="self-start text-xs mt-auto transition-opacity hover:opacity-70" style={{ color: 'var(--gold)', textDecoration: 'none' }}>
+                      Skaityti →
+                    </Link>
                   </div>
                 )
               })}
@@ -412,14 +485,18 @@ export function LoreAtlasClient({
         </ListSection>
 
         {/* Artefaktai */}
-        <ListSection icon={<Sword className="w-3.5 h-3.5" />} title="Artefaktai" count={artifacts.length}>
-          {artifacts.length === 0 ? <EmptyState message="Artefaktų dar nėra" onReset={resetFilters} /> : (
+        <ListSection icon={<Sword className="w-3.5 h-3.5" />} title="Artefaktai" count={searchedArtifacts.length}>
+          {searchedArtifacts.length === 0 ? <EmptyState message={sq ? `Nerasta artefaktų pagal „${searchQuery.trim()}"` : 'Artefaktų dar nėra'} onReset={resetFilters} /> : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 pb-8">
-              {artifacts.map((art) => (
+              {searchedArtifacts.map((art) => (
                 <div key={art.id} className="rounded-xl p-4 flex flex-col gap-2"
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
                   <p className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>✦ {art.name}</p>
-                  {art.description && <p className="text-xs leading-relaxed line-clamp-4" style={{ color: 'var(--text-secondary)' }}>{art.description}</p>}
+                  {art.description && <p className="text-xs leading-relaxed line-clamp-3" style={{ color: 'var(--text-secondary)' }}>{art.description}</p>}
+                  <Link href={`/lore/artifacts/${art.id}`}
+                    className="self-start text-xs mt-auto transition-opacity hover:opacity-70" style={{ color: 'var(--gold)', textDecoration: 'none' }}>
+                    Skaityti →
+                  </Link>
                 </div>
               ))}
             </div>

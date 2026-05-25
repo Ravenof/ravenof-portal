@@ -151,6 +151,13 @@ function PanelContent({
               {faction.name}
             </p>
           )}
+          <Link
+            href={`/lore/locations/${location.id}`}
+            className="inline-flex items-center gap-1 text-xs mt-1 transition-opacity hover:opacity-70"
+            style={{ color: 'var(--gold)', textDecoration: 'none', fontFamily: 'var(--rvn-font-display)' }}
+          >
+            Skaityti istoriją →
+          </Link>
         </div>
 
         <button
@@ -179,10 +186,11 @@ function PanelContent({
           <Section icon={<Scroll className="w-3.5 h-3.5" />} title="Įvykiai">
             <div className="space-y-2">
               {events.map((ev) => (
-                <div
+                <Link
                   key={ev.id}
-                  className="rounded-lg px-3 py-2.5"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+                  href={`/lore/events/${ev.id}`}
+                  className="block rounded-lg px-3 py-2.5 transition-colors hover:border-[rgba(212,175,55,0.3)]"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
                 >
                   <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
                     {ev.name}
@@ -190,7 +198,7 @@ function PanelContent({
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {ev.description}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           </Section>
@@ -201,10 +209,11 @@ function PanelContent({
           <Section icon={<User className="w-3.5 h-3.5" />} title="Veikėjai">
             <div className="space-y-1.5">
               {characters.map((ch) => (
-                <div
+                <Link
                   key={ch.id}
-                  className="flex items-start gap-2 rounded-lg px-3 py-2"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+                  href={`/lore/characters/${ch.id}`}
+                  className="flex items-start gap-2 rounded-lg px-3 py-2 transition-colors hover:border-[rgba(212,175,55,0.25)]"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
                 >
                   <span className="text-base leading-none mt-0.5">👤</span>
                   <div className="min-w-0">
@@ -215,7 +224,7 @@ function PanelContent({
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{ch.title}</p>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </Section>
@@ -226,10 +235,11 @@ function PanelContent({
           <Section icon={<Sword className="w-3.5 h-3.5" />} title="Artefaktai">
             <div className="space-y-2">
               {artifacts.map((art) => (
-                <div
+                <Link
                   key={art.id}
-                  className="rounded-lg px-3 py-2.5"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
+                  href={`/lore/artifacts/${art.id}`}
+                  className="block rounded-lg px-3 py-2.5 transition-colors hover:border-[rgba(212,175,55,0.3)]"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
                 >
                   <p className="text-xs font-semibold mb-1" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                     ✦ {art.name}
@@ -237,7 +247,7 @@ function PanelContent({
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {art.description}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           </Section>
