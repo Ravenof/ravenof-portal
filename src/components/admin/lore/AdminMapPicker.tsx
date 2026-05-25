@@ -49,6 +49,28 @@ export function AdminMapPicker({ initialX = 50, initialY = 50, currentId, existi
   const [displayScale, setDisplayScale] = useState(1)
   const [isDragging,   setIsDragging]   = useState(false)
 
+  // Hover crosshair — updated via direct DOM manipulation (no re-render)
+  const hoverRef      = useRef<HTMLDivElement>(null)
+  const hoverLabelRef = useRef<HTMLSpanElement>(null)
+
+  const onContainerMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect || !hoverRef.current || !hoverLabelRef.current) return
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const { scale, tx, ty } = tRef.current
+    const mapX = Math.max(0, Math.min(100, (mx - tx) / (rect.width  * scale) * 100))
+    const mapY = Math.max(0, Math.min(100, (my - ty) / (rect.height * scale) * 100))
+    hoverRef.current.style.left    = mx + 'px'
+    hoverRef.current.style.top     = my + 'px'
+    hoverRef.current.style.opacity = '1'
+    hoverLabelRef.current.textContent = `X:${mapX.toFixed(1)}  Y:${mapY.toFixed(1)}`
+  }, [])
+
+  const onContainerMouseLeave = useCallback(() => {
+    if (hoverRef.current) hoverRef.current.style.opacity = '0'
+  }, [])
+
   // ── Core apply ────────────────────────────────────────────
   const apply = useCallback((scale: number, tx: number, ty: number) => {
     const W = containerRef.current?.offsetWidth  ?? 0
@@ -225,6 +247,8 @@ export function AdminMapPicker({ initialX = 50, initialY = 50, currentId, existi
         ref={containerRef}
         className="relative w-full overflow-hidden rounded-xl"
         style={{ aspectRatio: '4/3', minHeight: '240px', maxHeight: '480px', border: '1px solid rgba(212,175,55,0.2)' }}
+        onMouseMove={onContainerMouseMove}
+        onMouseLeave={onContainerMouseLeave}
       >
         {/* Zoomable inner */}
         <div
@@ -345,6 +369,19 @@ export function AdminMapPicker({ initialX = 50, initialY = 50, currentId, existi
           style={{ background: 'rgba(5,5,12,0.75)', color: 'var(--text-muted)', backdropFilter: 'blur(4px)', fontSize: '10px' }}
         >
           Scroll = zoom · Drag = pan · Click = pin
+        </div>
+
+        {/* Hover crosshair — direct DOM update, no re-render */}
+        <div
+          ref={hoverRef}
+          className="absolute pointer-events-none z-50"
+          style={{ opacity: 0, transform: 'translate(-50%,-50%)', transition: 'opacity 0.08s' }}
+        >
+          <div style={{ position: 'absolute', width: 22, height: 1, background: 'rgba(239,68,68,0.75)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+          <div style={{ position: 'absolute', width: 1, height: 22, background: 'rgba(239,68,68,0.75)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+          <div style={{ position: 'absolute', top: -22, left: 10, whiteSpace: 'nowrap', fontSize: 10, fontFamily: 'monospace', background: 'rgba(5,5,12,0.94)', color: '#ef4444', padding: '1px 5px', borderRadius: 3, border: '1px solid rgba(239,68,68,0.3)', pointerEvents: 'none' }}>
+            <span ref={hoverLabelRef} />
+          </div>
         </div>
       </div>
     </div>

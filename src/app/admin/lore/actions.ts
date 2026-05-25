@@ -241,3 +241,180 @@ export async function deleteArtifact(id: string): Promise<{ error?: string }> {
   revalidateLore()
   return {}
 }
+
+// ════════════════════════════════════════
+// XML BULK IMPORT
+// ════════════════════════════════════════
+
+type ImportResult = {
+  inserted: { eras: number; locations: number; events: number }
+  errors: string[]
+}
+
+/** Pull every attribute from one XML self-closing tag string */
+function xmlAttrs(tag: string): Record<string, string> {
+  const result: Record<string, string> = {}
+  const re = /(\w+)="([^"]*)"/g
+  let m
+  while ((m = re.exec(tag)) !== null) result[m[1]] = m[2]
+  return result
+}
+
+/** Return all self-closing <tagName .../> occurrences as attribute maps */
+function xmlFind(xml: string, tagName: string): Record<string, string>[] {
+  // Matches both <tag .../> and <tag ...></tag>
+  const re = new RegExp(`<${tagName}(?:\\s+([^>]*?))?\\s*/?>`, 'gsi')
+  const out: Record<string, string>[] = []
+  let m
+  while ((m = re.exec(xml)) !== null) out.push(xmlAttrs(m[0]))
+  return out
+}
+
+function csv(s?: string): string[] {
+  if (!s) return []
+  return s.split(',').map((x) => x.trim()).filter(Boolean)
+}
+
+export async function bulkImportLore(formData: FormData): Promise<ImportResult> {
+  const supabase = await requireAdmin()
+  const xml = (formData.get('xml') as string | null)?.trim() ?? ''
+  if (!xml) return { inserted: { eras: 0, locations: 0, events: 0 }, errors: ['XML laukas tuščias'] }
+
+  const errors: string[] = []
+  let erasOk = 0, locsOk = 0, eventsOk = 0
+
+  // ── Eras ──────────────────────────────────────
+  for (const a of xmlFind(xml, 'era')) {
+    if (!a.name || !a.slug) { errors.push(`Era: trūksta name arba slug`); continue }
+    const { error } = await supabase.from('lore_eras').upsert({
+      name:           a.name.trim(),
+      slug:           a.slug.trim(),
+      description:    a.description?.trim() || null,
+      timeline_index: parseInt(a.timeline_index ?? '0', 10),
+      sort_order:     parseInt(a.sort_order     ?? '0', 10),
+      status:         a.status ?? 'draft',
+    }, { onConflict: 'slug' })
+    if (error) errors.push(`Era "${a.name}": ${error.message}`)
+    else erasOk++
+  }
+
+  // ── Locations ─────────────────────────────────
+  for (const a of xmlFind(xml, 'location')) {
+    if (!a.name || !a.slug) { errors.push(`Location: trūksta name arba slug`); continue }
+    const { error } = await supabase.from('lore_locations').upsert({
+      name:                  a.name.trim(),
+      slug:                  a.slug.trim(),
+      type:                  a.type ?? 'miestas',
+      x:                     parseFloat(a.x ?? '50'),
+      y:                     parseFloat(a.y ?? '50'),
+      first_era_index:       parseInt(a.first_era_index ?? '0', 10),
+      region:                a.region?.trim() || null,
+      short_description:     a.short_description?.trim() || null,
+      description:           a.description?.trim() || null,
+      faction_ids:           csv(a.faction_ids),
+      related_card_numbers:  csv(a.related_card_numbers),
+      sort_order:            parseInt(a.sort_order ?? '0', 10),
+      status:                a.status ?? 'draft',
+    }, { onConflict: 'slug' })
+    if (error) errors.push(`Location "${a.name}": ${error.message}`)
+    else locsOk++
+  }
+
+  // ── Lore events ───────────────────────────────
+  for (const a of xmlFind(xml, 'event')) {
+    if (!a.title || !a.slug) { errors.push(`Event: trūksta title arba slug`); continue }
+    const { error } = await supabase.from('lore_events').upsert({
+      title:                a.title.trim(),
+      slug:                 a.slug.trim(),
+      summary:              a.summary?.trim() || null,
+      full_text:            a.full_text?.trim() || null,
+      era_slug:             a.era_slug?.trim() || null,
+      timeline_index:       parseInt(a.timeline_index ?? '0', 10),
+      location_slug:        a.location_slug?.trim() || null,
+      event_type:           a.event_type?.trim() || null,
+      related_card_numbers: csv(a.related_card_numbers),
+      sort_order:           parseInt(a.sort_order ?? '0', 10),
+      status:               a.status ?? 'draft',
+    }, { onConflict: 'slug' })
+    if (error) errors.push(`Event "${a.title}": ${error.message}`)
+    else eventsOk++
+  }
+
+  // ── Characters ────────────────────────────────
+  for (const a of xmlFind(xml, 'character')) {
+    if (!a.name || !a.slug) { errors.push(`Character: trūksta name arba slug`); continue }
+    const { error } = await supabase.from('lore_characters').upsert({
+      name:                  a.name.trim(),
+      slug:                  a.slug.trim(),
+      faction_id:            a.faction_id?.trim() || null,
+      role:                  a.role?.trim() || null,
+      status_value:          a.status_value?.trim() || 'unknown',
+      short_description:     a.short_description?.trim() || null,
+      description:           a.description?.trim() || null,
+      related_card_numbers:  csv(a.related_card_numbers),
+      sort_order:            parseInt(a.sort_order ?? '0', 10),
+      status:                a.status ?? 'draft',
+    }, { onConflict: 'slug' })
+    if (error) errors.push(`Character "${a.name}": ${error.message}`)
+    else locsOk++ // counted together for simplicity — display separately if needed
+  }
+
+  revalidateLore()
+  return { inserted: { eras: erasOk, locations: locsOk, events: eventsOk }, errors }
+}
+
+// ════════════════════════════════════════
+// CARD ↔ LORE LINKING
+// ════════════════════════════════════════
+
+export async function setCardLoreLinks(
+  cardNumber: string,
+  locationSlugs: string[],
+  characterSlugs: string[],
+  artifactSlugs: string[],
+): Promise<{ error?: string }> {
+  const supabase = await requireAdmin()
+
+  // 1. Remove card from all lore entities that currently reference it
+  const tables = [
+    { table: 'lore_locations',  col: 'related_card_numbers' },
+    { table: 'lore_characters', col: 'related_card_numbers' },
+    { table: 'lore_artifacts',  col: 'related_card_numbers' },
+  ] as const
+
+  for (const { table, col } of tables) {
+    const { data: rows } = await supabase
+      .from(table)
+      .select('id, slug, related_card_numbers')
+      .contains(col, [cardNumber])
+
+    for (const row of rows ?? []) {
+      const newArr = ((row as Record<string, string[]>)[col] ?? []).filter((n: string) => n !== cardNumber)
+      await supabase.from(table).update({ [col]: newArr }).eq('id', row.id)
+    }
+  }
+
+  // 2. Add card to newly selected entities
+  async function addToSlugs(table: string, slugs: string[]) {
+    for (const slug of slugs) {
+      const { data: row } = await supabase
+        .from(table)
+        .select('id, related_card_numbers')
+        .eq('slug', slug)
+        .single()
+      if (!row) continue
+      const existing: string[] = (row as Record<string, string[]>).related_card_numbers ?? []
+      if (!existing.includes(cardNumber)) {
+        await supabase.from(table).update({ related_card_numbers: [...existing, cardNumber] }).eq('id', row.id)
+      }
+    }
+  }
+
+  await addToSlugs('lore_locations',  locationSlugs)
+  await addToSlugs('lore_characters', characterSlugs)
+  await addToSlugs('lore_artifacts',  artifactSlugs)
+
+  revalidateLore()
+  revalidatePath('/admin/cards')
+  return {}
+}

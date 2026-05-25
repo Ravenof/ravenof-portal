@@ -53,6 +53,11 @@ export default async function AdminLoreDashboard() {
           </span>
           <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#ef444420', color: '#ef4444' }}>ADMIN</span>
           <div className="flex-1" />
+          <Link href="/admin/lore/import"
+            className="text-xs px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity"
+            style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: 'var(--gold)' }}>
+            📥 XML Import
+          </Link>
           <Link href="/lore" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
             Peržiūrėti Atlasą →
           </Link>
