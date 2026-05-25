@@ -11,6 +11,10 @@ import type { LoreEra, LoreFaction, LoreLocation, LoreEvent, LoreCharacter, Lore
 
 // ── Supabase row shapes ───────────────────────────────────────
 
+type DbFaction = {
+  id: string; name: string; slug: string; color: string; status: string
+}
+
 type DbEra = {
   id: string; name: string; slug: string; description: string | null
   timeline_index: number; status: string
@@ -45,6 +49,10 @@ type DbArtifact = {
 const ERA_PALETTE = ['#6b7280','#7c3aed','#dc2626','#1d4ed8','#15803d','#b45309']
 
 // ── Map DB rows → frontend types ─────────────────────────────
+
+function mapFaction(row: DbFaction): LoreFaction {
+  return { id: row.slug, name: row.name, color: row.color }
+}
 
 function mapEra(row: DbEra, idx: number): LoreEra {
   return {
@@ -118,7 +126,8 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
   try {
     const supabase = await createClient()
 
-    const [erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
+    const [factionsRes, erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
+      supabase.from('lore_factions').select('id,name,slug,color,status').eq('status','published').order('sort_order'),
       supabase.from('lore_eras').select('id,name,slug,description,timeline_index,status').eq('status','published').order('timeline_index'),
       supabase.from('lore_locations').select('id,name,slug,type,short_description,description,x,y,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,status').eq('status','published').order('sort_order'),
       supabase.from('lore_events').select('id,title,slug,summary,timeline_index,era_slug,location_slug,status').eq('status','published').order('timeline_index'),
@@ -126,6 +135,7 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
       supabase.from('lore_artifacts').select('id,name,slug,artifact_type,short_description,status').eq('status','published').order('sort_order'),
     ])
 
+    const dbFactions  = (factionsRes.data ?? []) as DbFaction[]
     const dbEras      = (erasRes.data  ?? []) as DbEra[]
     const dbLocations = (locsRes.data  ?? []) as DbLocation[]
     const dbEvents    = (eventsRes.data ?? []) as DbEvent[]
@@ -137,14 +147,20 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
       return useStaticData()
     }
 
-    // Derive factions from faction_ids in locations (simple string IDs)
-    const allFactionIds = new Set<string>()
-    dbLocations.forEach((l) => l.faction_ids?.forEach((f) => allFactionIds.add(f)))
-    const factions: LoreFaction[] = Array.from(allFactionIds).map((id, i) => ({
-      id,
-      name:  id,
-      color: ERA_PALETTE[i % ERA_PALETTE.length],
-    }))
+    // Build factions: prefer DB table; fall back to deriving from location faction_ids
+    let factions: LoreFaction[]
+    if (dbFactions.length > 0) {
+      factions = dbFactions.map(mapFaction)
+    } else {
+      // Legacy fallback — derive faction stubs from location faction_ids strings
+      const allFactionIds = new Set<string>()
+      dbLocations.forEach((l) => l.faction_ids?.forEach((f) => allFactionIds.add(f)))
+      factions = Array.from(allFactionIds).map((id, i) => ({
+        id,
+        name:  id,
+        color: ERA_PALETTE[i % ERA_PALETTE.length],
+      }))
+    }
 
     return {
       eras:       dbEras.map(mapEra),

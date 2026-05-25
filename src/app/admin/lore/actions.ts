@@ -364,6 +364,44 @@ export async function bulkImportLore(formData: FormData): Promise<ImportResult> 
 }
 
 // ════════════════════════════════════════
+// FACTIONS
+// ════════════════════════════════════════
+export async function saveFaction(formData: FormData) {
+  const supabase = await requireAdmin()
+  const id   = (formData.get('_id') as string) || null
+  const name = (formData.get('name') as string)?.trim()
+  const slug = (formData.get('slug') as string)?.trim()
+
+  if (!name) redirect('/admin/lore/factions?error=' + encodeURIComponent('Pavadinimas privalomas'))
+  if (!slug) redirect('/admin/lore/factions?error=' + encodeURIComponent('Slug privalomas'))
+
+  const payload = {
+    name,
+    slug,
+    color:       (formData.get('color') as string)?.trim() || '#d4af37',
+    description: (formData.get('description') as string)?.trim() || null,
+    status:      (formData.get('status') as string) || 'draft',
+    sort_order:  parseInt((formData.get('sort_order') as string) || '0', 10),
+  }
+
+  const { error } = id
+    ? await supabase.from('lore_factions').update(payload).eq('id', id)
+    : await supabase.from('lore_factions').insert(payload)
+
+  if (error) redirect('/admin/lore/factions?error=' + encodeURIComponent(error.message))
+  revalidateLore()
+  redirect('/admin/lore/factions')
+}
+
+export async function deleteFaction(id: string): Promise<{ error?: string }> {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('lore_factions').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidateLore()
+  return {}
+}
+
+// ════════════════════════════════════════
 // CARD ↔ LORE LINKING
 // ════════════════════════════════════════
 

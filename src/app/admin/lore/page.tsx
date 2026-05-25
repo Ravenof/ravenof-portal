@@ -6,11 +6,12 @@ export const revalidate = 0
 export const metadata = { title: 'Lore Atlas Admin | Ravenof' }
 
 const SECTIONS = [
-  { href: '/admin/lore/eras',       icon: '🕰️', label: 'Eros',      desc: 'Laiko eros ir periodai' },
-  { href: '/admin/lore/locations',  icon: '🗺️', label: 'Vietovės',  desc: 'Žemėlapio žymekliai ir aprašymai' },
-  { href: '/admin/lore/events',     icon: '⚡',  label: 'Įvykiai',   desc: 'Istoriniai ir siužeto įvykiai' },
-  { href: '/admin/lore/characters', icon: '👤',  label: 'Veikėjai',  desc: 'Personažai ir jų istorija' },
-  { href: '/admin/lore/artifacts',  icon: '🗡️', label: 'Artefaktai',desc: 'Galingi daiktai ir reliktos' },
+  { href: '/admin/lore/eras',       icon: '🕰️', label: 'Eros',       desc: 'Laiko eros ir periodai' },
+  { href: '/admin/lore/factions',   icon: '⚔️',  label: 'Frakcijos',  desc: 'Grupės ir organizacijos su spalvomis' },
+  { href: '/admin/lore/locations',  icon: '🗺️', label: 'Vietovės',   desc: 'Žemėlapio žymekliai ir aprašymai' },
+  { href: '/admin/lore/events',     icon: '⚡',  label: 'Įvykiai',    desc: 'Istoriniai ir siužeto įvykiai' },
+  { href: '/admin/lore/characters', icon: '👤',  label: 'Veikėjai',   desc: 'Personažai ir jų istorija' },
+  { href: '/admin/lore/artifacts',  icon: '🗡️', label: 'Artefaktai', desc: 'Galingi daiktai ir reliktos' },
 ]
 
 export default async function AdminLoreDashboard() {
@@ -21,8 +22,9 @@ export default async function AdminLoreDashboard() {
   if (!profile || profile.role !== 'admin') redirect('/cards?error=no_access')
 
   // Fetch counts in parallel
-  const [erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
+  const [erasRes, factionsRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
     supabase.from('lore_eras').select('id', { count: 'exact', head: true }),
+    supabase.from('lore_factions').select('id', { count: 'exact', head: true }),
     supabase.from('lore_locations').select('id', { count: 'exact', head: true }),
     supabase.from('lore_events').select('id', { count: 'exact', head: true }),
     supabase.from('lore_characters').select('id', { count: 'exact', head: true }),
@@ -30,11 +32,12 @@ export default async function AdminLoreDashboard() {
   ])
 
   const counts: Record<string, number> = {
-    '/admin/lore/eras':       erasRes.count ?? 0,
-    '/admin/lore/locations':  locsRes.count ?? 0,
-    '/admin/lore/events':     eventsRes.count ?? 0,
-    '/admin/lore/characters': charsRes.count ?? 0,
-    '/admin/lore/artifacts':  artsRes.count ?? 0,
+    '/admin/lore/eras':       erasRes.count     ?? 0,
+    '/admin/lore/factions':   factionsRes.count ?? 0,
+    '/admin/lore/locations':  locsRes.count     ?? 0,
+    '/admin/lore/events':     eventsRes.count   ?? 0,
+    '/admin/lore/characters': charsRes.count    ?? 0,
+    '/admin/lore/artifacts':  artsRes.count     ?? 0,
   }
 
   return (
