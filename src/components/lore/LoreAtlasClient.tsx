@@ -177,11 +177,11 @@ export function LoreAtlasClient({
   // ══════════════════════════════════════════════════════════
   if (view === 'map') {
     return (
-      <div style={{ minHeight: '100dvh', background: 'var(--bg-base)' }}>
+      <div style={{ height: '100dvh', overflow: 'hidden', background: '#0a0a0f', display: 'flex', flexDirection: 'column' }}>
         {header}
 
-        {/* Map section — natural aspect ratio, overlays float on top */}
-        <div className="relative">
+        {/* Map section — fills remaining height, LoreMap fills it via h-full */}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
 
           {/* ── Map ── */}
           <LoreMap

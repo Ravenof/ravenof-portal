@@ -6,7 +6,8 @@ import { LoreMarker } from './LoreMarker'
 import type { LoreLocation, LoreFaction } from '@/data/lore'
 
 const MAP_IMAGE = '/maps/ravenof-world-map.png'
-const MIN_SCALE = 1
+const MAP_W     = 1448   // natural map pixel width
+const MAP_H     = 1086   // natural map pixel height
 const MAX_SCALE = 6
 
 type Props = {
@@ -16,10 +17,16 @@ type Props = {
   onSelect:   (id: string) => void
 }
 
+/**
+ * Clamp translate so the map always covers the viewport.
+ * When the scaled map is narrower/shorter than the container, center it instead.
+ */
 function clampT(tx: number, ty: number, scale: number, W: number, H: number) {
+  const mw = MAP_W * scale
+  const mh = MAP_H * scale
   return {
-    tx: Math.min(0, Math.max(W * (1 - scale), tx)),
-    ty: Math.min(0, Math.max(H * (1 - scale), ty)),
+    tx: mw <= W ? (W - mw) / 2 : Math.min(0, Math.max(W - mw, tx)),
+    ty: mh <= H ? (H - mh) / 2 : Math.min(0, Math.max(H - mh, ty)),
   }
 }
 
@@ -31,9 +38,12 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const innerRef     = useRef<HTMLDivElement>(null)
   const tRef         = useRef({ scale: 1, tx: 0, ty: 0 })
+  const fitScaleRef  = useRef(1)            // cover-fit scale — computed on mount/resize
   const dragRef      = useRef<{ ox: number; oy: number } | null>(null)
   const touchesRef   = useRef<{ id: number; x: number; y: number }[]>([])
-  const pinchRef     = useRef<{ dist: number; cx: number; cy: number; s0: number; tx0: number; ty0: number } | null>(null)
+  const pinchRef     = useRef<{
+    dist: number; cx: number; cy: number; s0: number; tx0: number; ty0: number
+  } | null>(null)
   const [displayScale, setDisplayScale] = useState(1)
   const [isDragging,   setIsDragging]   = useState(false)
 
@@ -50,17 +60,41 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
     setDisplayScale(scale)
   }, [])
 
+  // Compute "cover" fit scale and center the map — runs on mount and on resize
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const init = () => {
+      const W = el.offsetWidth
+      const H = el.offsetHeight
+      if (!W || !H) return
+      // max() so at least one dimension fully covers the container (like object-fit: cover)
+      const s = Math.max(W / MAP_W, H / MAP_H)
+      fitScaleRef.current = s
+      apply(s, (W - MAP_W * s) / 2, (H - MAP_H * s) / 2)
+    }
+    init()
+    const ro = new ResizeObserver(init)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [apply])
+
   const zoomAround = useCallback((cx: number, cy: number, factor: number) => {
     const { scale, tx, ty } = tRef.current
-    const ns = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * factor))
+    const ns = Math.max(fitScaleRef.current, Math.min(MAX_SCALE, scale * factor))
     apply(ns, cx - (cx - tx) / scale * ns, cy - (cy - ty) / scale * ns)
   }, [apply])
 
-  function zoomIn()   { const el = containerRef.current; if (el) zoomAround(el.offsetWidth/2, el.offsetHeight/2, 1.4) }
-  function zoomOut()  { const el = containerRef.current; if (el) zoomAround(el.offsetWidth/2, el.offsetHeight/2, 1/1.4) }
-  function resetZoom(){ apply(1, 0, 0) }
+  function zoomIn()  { const el = containerRef.current; if (el) zoomAround(el.offsetWidth / 2, el.offsetHeight / 2, 1.4) }
+  function zoomOut() { const el = containerRef.current; if (el) zoomAround(el.offsetWidth / 2, el.offsetHeight / 2, 1 / 1.4) }
+  function resetZoom() {
+    const W = containerRef.current?.offsetWidth  ?? 0
+    const H = containerRef.current?.offsetHeight ?? 0
+    const s = fitScaleRef.current
+    apply(s, (W - MAP_W * s) / 2, (H - MAP_H * s) / 2)
+  }
 
-  // Non-passive wheel
+  // Non-passive wheel zoom
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -92,7 +126,7 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [apply])
 
-  // Touch
+  // Touch — pan always allowed (fitScale may leave horizontal overflow on portrait)
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     e.preventDefault()
     touchesRef.current = Array.from(e.touches).map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }))
@@ -101,8 +135,8 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
       const { scale, tx, ty } = tRef.current
       pinchRef.current = {
         dist: touchDist(e.touches[0], e.touches[1]),
-        cx: (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left,
-        cy: (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top,
+        cx:   (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left,
+        cy:   (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top,
         s0: scale, tx0: tx, ty0: ty,
       }
     } else pinchRef.current = null
@@ -112,12 +146,16 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
     e.preventDefault()
     if (e.touches.length === 2 && pinchRef.current) {
       const { dist, cx, cy, s0, tx0, ty0 } = pinchRef.current
-      const ns = Math.max(MIN_SCALE, Math.min(MAX_SCALE, s0 * touchDist(e.touches[0], e.touches[1]) / dist))
+      const ns = Math.max(fitScaleRef.current, Math.min(MAX_SCALE, s0 * touchDist(e.touches[0], e.touches[1]) / dist))
       apply(ns, cx - (cx - tx0) / s0 * ns, cy - (cy - ty0) / s0 * ns)
-    } else if (e.touches.length === 1 && tRef.current.scale > 1) {
+    } else if (e.touches.length === 1) {
       const prev = touchesRef.current.find(t => t.id === e.touches[0].identifier)
       if (!prev) return
-      apply(tRef.current.scale, tRef.current.tx + e.touches[0].clientX - prev.x, tRef.current.ty + e.touches[0].clientY - prev.y)
+      apply(
+        tRef.current.scale,
+        tRef.current.tx + e.touches[0].clientX - prev.x,
+        tRef.current.ty + e.touches[0].clientY - prev.y,
+      )
       touchesRef.current = touchesRef.current.map(t =>
         t.id === e.touches[0].identifier ? { ...t, x: e.touches[0].clientX, y: e.touches[0].clientY } : t
       )
@@ -129,35 +167,42 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
     touchesRef.current = Array.from(e.touches).map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }))
   }, [])
 
+  const isZoomed = displayScale > fitScaleRef.current * 1.05
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden select-none"
-      style={{ aspectRatio: '1448/1086' }}
+      className="relative w-full h-full overflow-hidden select-none"
+      style={{ background: '#0a0a0f' }}
     >
-      {/* ── Zoomable / pannable layer ── */}
+      {/* ── Pannable / zoomable layer — fixed map dimensions, transformed ── */}
       <div
         ref={innerRef}
-        className="absolute inset-0"
         style={{
+          position:        'absolute',
+          width:           MAP_W,
+          height:          MAP_H,
           transform:       'translate(0px,0px) scale(1)',
           transformOrigin: '0 0',
           willChange:      'transform',
           touchAction:     'none',
-          cursor: isDragging ? 'grabbing' : displayScale > 1 ? 'grab' : 'default',
+          cursor: isDragging ? 'grabbing' : isZoomed ? 'grab' : 'default',
         }}
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Map image — fills container completely */}
+        {/* Map image fills the 1448×1086 inner div exactly */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={MAP_IMAGE}
           alt="Ravenof žemėlapis"
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: 'fill', display: 'block', pointerEvents: 'none', userSelect: 'none' }}
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            display: 'block', pointerEvents: 'none', userSelect: 'none',
+          }}
           draggable={false}
         />
 
@@ -167,7 +212,7 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
           style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,5,12,0.55) 100%)' }}
         />
 
-        {/* Markers */}
+        {/* Markers — positioned at loc.x/loc.y percent of MAP_W×MAP_H */}
         <AnimatePresence>
           {locations.map((loc) => (
             <motion.div key={loc.id} layout>
@@ -181,12 +226,13 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
           ))}
         </AnimatePresence>
 
-        {/* Empty state */}
         {locations.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center px-6 py-4 rounded-xl" style={{ background: 'rgba(5,5,12,0.85)', border: '1px solid var(--bg-border)' }}>
+            <div className="text-center px-6 py-4 rounded-xl"
+              style={{ background: 'rgba(5,5,12,0.85)', border: '1px solid var(--bg-border)' }}>
               <p className="text-2xl mb-2">🗺️</p>
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+              <p className="text-sm font-semibold"
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
                 Nėra vietovių šioje eroje
               </p>
             </div>
@@ -194,15 +240,14 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
         )}
       </div>
 
-      {/* ── Fixed UI (outside transform) ── */}
+      {/* ── UI outside the transform layer ── */}
 
-      {/* Title */}
-      <div
-        className="absolute top-3 left-3 z-10 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-lg"
-        style={{ background: 'rgba(5,5,12,0.80)', border: '1px solid rgba(212,175,55,0.2)', backdropFilter: 'blur(10px)' }}
-      >
+      {/* Map title chip */}
+      <div className="absolute top-3 left-3 z-10 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-lg"
+        style={{ background: 'rgba(5,5,12,0.80)', border: '1px solid rgba(212,175,55,0.2)', backdropFilter: 'blur(10px)' }}>
         <span style={{ color: 'var(--gold)', fontSize: '12px' }}>🗺</span>
-        <span className="text-xs font-semibold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
+        <span className="text-xs font-semibold"
+          style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
           Ravenof Žemės
         </span>
       </div>
@@ -219,7 +264,7 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
           style={{ background: 'rgba(5,5,12,0.85)', border: '1px solid rgba(212,175,55,0.35)', color: 'var(--gold)', backdropFilter: 'blur(8px)' }}>
           −
         </button>
-        {displayScale > 1.05 && (
+        {isZoomed && (
           <button onClick={resetZoom}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all hover:scale-110"
             style={{ background: 'rgba(5,5,12,0.85)', border: '1px solid rgba(212,175,55,0.15)', color: 'var(--text-muted)', backdropFilter: 'blur(8px)' }}>
@@ -228,11 +273,11 @@ export function LoreMap({ locations, factions, selectedId, onSelect }: Props) {
         )}
       </div>
 
-      {/* Scale badge */}
-      {displayScale > 1.05 && (
+      {/* Zoom level badge */}
+      {isZoomed && (
         <div className="absolute bottom-3 left-3 z-10 pointer-events-none px-2 py-1 rounded-lg text-xs"
           style={{ background: 'rgba(5,5,12,0.75)', color: 'var(--text-muted)', fontFamily: 'monospace', backdropFilter: 'blur(4px)' }}>
-          {displayScale.toFixed(1)}×
+          {(displayScale / fitScaleRef.current).toFixed(1)}×
         </div>
       )}
     </div>
