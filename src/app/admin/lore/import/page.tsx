@@ -6,6 +6,18 @@ import { bulkImportLore } from '../actions'
 
 const EXAMPLE = `<lore>
 
+  <!-- Frakcijos -->
+  <factions>
+    <faction
+      name="Mirties Ordinas"
+      slug="mirties-ordinas"
+      color="#6b21a8"
+      description="Slaptoji nekromantų organizacija"
+      sort_order="0"
+      status="published"
+    />
+  </factions>
+
   <!-- Eros (laikotarpiai) -->
   <eras>
     <era
@@ -28,6 +40,7 @@ const EXAMPLE = `<lore>
       y="32.1"
       first_era_index="0"
       region="Šiaurė"
+      faction_ids="mirties-ordinas"
       short_description="Didžiausias miestas"
       description="Pilnas aprašymas čia..."
       related_card_numbers="R001,R002"
@@ -55,6 +68,7 @@ const EXAMPLE = `<lore>
     <character
       name="Vardenis Pavardenis"
       slug="vardenis-pavardenis"
+      faction_id="mirties-ordinas"
       role="Karvedys"
       status_value="alive"
       short_description="Trumpas aprašymas"
@@ -63,10 +77,23 @@ const EXAMPLE = `<lore>
     />
   </characters>
 
+  <!-- Artefaktai -->
+  <artifacts>
+    <artifact
+      name="Tamsos Kardas"
+      slug="tamsos-kardas"
+      artifact_type="ginklas"
+      short_description="Senovinis kardas iš tamsos metalo"
+      current_location_slug="ravenof"
+      related_card_numbers="R005"
+      status="published"
+    />
+  </artifacts>
+
 </lore>`
 
 type Result = {
-  inserted: { eras: number; locations: number; events: number }
+  inserted: { eras: number; locations: number; events: number; characters: number; artifacts: number; factions: number }
   errors: string[]
 }
 
@@ -83,7 +110,7 @@ export default function LoreImportPage() {
     })
   }
 
-  const total = result ? result.inserted.eras + result.inserted.locations + result.inserted.events : 0
+  const total = result ? result.inserted.eras + result.inserted.locations + result.inserted.events + result.inserted.characters + result.inserted.artifacts + result.inserted.factions : 0
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
@@ -137,9 +164,12 @@ export default function LoreImportPage() {
             <div className="flex flex-wrap gap-3 text-xs">
               {[
                 ['Eros',      result.inserted.eras],
-                ['Lokacijos + veikėjai', result.inserted.locations],
+                ['Vietovės',  result.inserted.locations],
                 ['Įvykiai',   result.inserted.events],
-              ].map(([label, n]) => (
+                ['Veikėjai',  result.inserted.characters],
+                ['Artefaktai',result.inserted.artifacts],
+                ['Frakcijos', result.inserted.factions],
+              ].filter(([, n]) => (n as number) > 0).map(([label, n]) => (
                 <span key={String(label)} className="px-2 py-0.5 rounded font-mono"
                   style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
                   {label}: {n}

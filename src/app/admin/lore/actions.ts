@@ -247,7 +247,7 @@ export async function deleteArtifact(id: string): Promise<{ error?: string }> {
 // ════════════════════════════════════════
 
 type ImportResult = {
-  inserted: { eras: number; locations: number; events: number }
+  inserted: { eras: number; locations: number; events: number; characters: number; artifacts: number; factions: number }
   errors: string[]
 }
 
@@ -278,10 +278,10 @@ function csv(s?: string): string[] {
 export async function bulkImportLore(formData: FormData): Promise<ImportResult> {
   const supabase = await requireAdmin()
   const xml = (formData.get('xml') as string | null)?.trim() ?? ''
-  if (!xml) return { inserted: { eras: 0, locations: 0, events: 0 }, errors: ['XML laukas tuščias'] }
+  if (!xml) return { inserted: { eras: 0, locations: 0, events: 0, characters: 0, artifacts: 0, factions: 0 }, errors: ['XML laukas tuščias'] }
 
   const errors: string[] = []
-  let erasOk = 0, locsOk = 0, eventsOk = 0
+  let erasOk = 0, locsOk = 0, eventsOk = 0, charsOk = 0, artsOk = 0, factionsOk = 0
 
   // ── Eras ──────────────────────────────────────
   for (const a of xmlFind(xml, 'era')) {
@@ -356,11 +356,45 @@ export async function bulkImportLore(formData: FormData): Promise<ImportResult> 
       status:                a.status ?? 'draft',
     }, { onConflict: 'slug' })
     if (error) errors.push(`Character "${a.name}": ${error.message}`)
-    else locsOk++ // counted together for simplicity — display separately if needed
+    else charsOk++
+  }
+
+  // ── Artifacts ─────────────────────────────────
+  for (const a of xmlFind(xml, 'artifact')) {
+    if (!a.name || !a.slug) { errors.push(`Artifact: trūksta name arba slug`); continue }
+    const { error } = await supabase.from('lore_artifacts').upsert({
+      name:                  a.name.trim(),
+      slug:                  a.slug.trim(),
+      artifact_type:         a.artifact_type?.trim() || null,
+      short_description:     a.short_description?.trim() || null,
+      description:           a.description?.trim() || null,
+      current_location_slug: a.current_location_slug?.trim() || null,
+      related_event_slugs:   csv(a.related_event_slugs),
+      related_card_numbers:  csv(a.related_card_numbers),
+      sort_order:            parseInt(a.sort_order ?? '0', 10),
+      status:                a.status ?? 'draft',
+    }, { onConflict: 'slug' })
+    if (error) errors.push(`Artifact "${a.name}": ${error.message}`)
+    else artsOk++
+  }
+
+  // ── Factions ──────────────────────────────────
+  for (const a of xmlFind(xml, 'faction')) {
+    if (!a.name || !a.slug) { errors.push(`Faction: trūksta name arba slug`); continue }
+    const { error } = await supabase.from('lore_factions').upsert({
+      name:        a.name.trim(),
+      slug:        a.slug.trim(),
+      color:       a.color?.trim() || '#d4af37',
+      description: a.description?.trim() || null,
+      sort_order:  parseInt(a.sort_order ?? '0', 10),
+      status:      a.status ?? 'draft',
+    }, { onConflict: 'slug' })
+    if (error) errors.push(`Faction "${a.name}": ${error.message}`)
+    else factionsOk++
   }
 
   revalidateLore()
-  return { inserted: { eras: erasOk, locations: locsOk, events: eventsOk }, errors }
+  return { inserted: { eras: erasOk, locations: locsOk, events: eventsOk, characters: charsOk, artifacts: artsOk, factions: factionsOk }, errors }
 }
 
 // ════════════════════════════════════════
