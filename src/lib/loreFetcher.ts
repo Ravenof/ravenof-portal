@@ -126,8 +126,8 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
   try {
     const supabase = await createClient()
 
-    const [factionsRes, erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
-      supabase.from('lore_factions').select('id,name,slug,color,status').eq('status','published').order('sort_order'),
+    // Fetch core lore tables — these must all succeed for Supabase mode
+    const [erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
       supabase.from('lore_eras').select('id,name,slug,description,timeline_index,status').eq('status','published').order('timeline_index'),
       supabase.from('lore_locations').select('id,name,slug,type,short_description,description,x,y,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,status').eq('status','published').order('sort_order'),
       supabase.from('lore_events').select('id,title,slug,summary,timeline_index,era_slug,location_slug,status').eq('status','published').order('timeline_index'),
@@ -135,12 +135,22 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
       supabase.from('lore_artifacts').select('id,name,slug,artifact_type,short_description,status').eq('status','published').order('sort_order'),
     ])
 
-    const dbFactions  = (factionsRes.data ?? []) as DbFaction[]
     const dbEras      = (erasRes.data  ?? []) as DbEra[]
     const dbLocations = (locsRes.data  ?? []) as DbLocation[]
     const dbEvents    = (eventsRes.data ?? []) as DbEvent[]
     const dbChars     = (charsRes.data ?? []) as DbCharacter[]
     const dbArts      = (artsRes.data  ?? []) as DbArtifact[]
+
+    // Factions are optional — table may not exist yet; never fail the whole fetch
+    let dbFactions: DbFaction[] = []
+    try {
+      const factionsRes = await supabase
+        .from('lore_factions')
+        .select('id,name,slug,color,status')
+        .eq('status', 'published')
+        .order('sort_order')
+      dbFactions = (factionsRes.data ?? []) as DbFaction[]
+    } catch { /* lore_factions table doesn't exist yet — continue without it */ }
 
     // If there are no published locations yet, fall through to static data
     if (dbLocations.length === 0 && dbEras.length === 0) {
