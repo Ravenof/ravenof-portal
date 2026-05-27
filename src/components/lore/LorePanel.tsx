@@ -147,16 +147,20 @@ function PanelContent({
           </h2>
 
           {faction && (
-            <p className="text-xs mt-0.5" style={{ color: faction.color }}>
-              {faction.name}
-            </p>
+            <Link
+              href={`/lore/factions/${faction.id}`}
+              className="text-xs mt-0.5 transition-opacity hover:opacity-70 inline-block"
+              style={{ color: faction.color, textDecoration: 'none' }}
+            >
+              &#x2694; {faction.name}
+            </Link>
           )}
           <Link
             href={`/lore/locations/${location.id}`}
             className="inline-flex items-center gap-1 text-xs mt-1 transition-opacity hover:opacity-70"
             style={{ color: 'var(--gold)', textDecoration: 'none', fontFamily: 'var(--rvn-font-display)' }}
           >
-            Skaityti istoriją →
+            Skaityti istorij&#x0105; &#x2192;
           </Link>
         </div>
 
@@ -183,7 +187,7 @@ function PanelContent({
 
         {/* Events */}
         {events.length > 0 && (
-          <Section icon={<Scroll className="w-3.5 h-3.5" />} title="Įvykiai">
+          <Section icon={<Scroll className="w-3.5 h-3.5" />} title="&#x012E;vykiai">
             <div className="space-y-2">
               {events.map((ev) => (
                 <Link
@@ -206,7 +210,7 @@ function PanelContent({
 
         {/* Characters */}
         {characters.length > 0 && (
-          <Section icon={<User className="w-3.5 h-3.5" />} title="Veikėjai">
+          <Section icon={<User className="w-3.5 h-3.5" />} title="Veik&#x0117;jai">
             <div className="space-y-1.5">
               {characters.map((ch) => (
                 <Link
@@ -215,7 +219,7 @@ function PanelContent({
                   className="flex items-start gap-2 rounded-lg px-3 py-2 transition-colors hover:border-[rgba(212,175,55,0.25)]"
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
                 >
-                  <span className="text-base leading-none mt-0.5">👤</span>
+                  <span className="text-base leading-none mt-0.5">&#x1F464;</span>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
                       {ch.name}
@@ -242,7 +246,7 @@ function PanelContent({
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
                 >
                   <p className="text-xs font-semibold mb-1" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                    ✦ {art.name}
+                    &#x2726; {art.name}
                   </p>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {art.description}
@@ -270,7 +274,7 @@ function PanelContent({
                     letterSpacing: '0.03em',
                   }}
                 >
-                  🃏 {card.name}
+                  &#x1F0CF; {card.name}
                 </Link>
               ))}
             </div>
@@ -280,7 +284,7 @@ function PanelContent({
         {/* Empty state */}
         {events.length === 0 && characters.length === 0 && artifacts.length === 0 && location.relatedCards.length === 0 && (
           <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>
-            Istorija dar neįrašyta...
+            Istorija dar ne&#x012F;ra&#x0161;yta...
           </p>
         )}
 
@@ -288,7 +292,7 @@ function PanelContent({
         <div className="flex items-center gap-1.5 mt-2">
           <MapPin className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
           <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-            {location.x.toFixed(0)}°V, {location.y.toFixed(0)}°Š
+            {location.x.toFixed(0)}&#xB0;V, {location.y.toFixed(0)}&#xB0;&#x0160;
           </span>
         </div>
       </div>

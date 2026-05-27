@@ -6,12 +6,13 @@ export const revalidate = 0
 export const metadata = { title: 'Admin Dashboard | Ravenof' }
 
 const NAV = [
-  { href: '/admin',          label: '📊 Dashboard'    },
-  { href: '/admin/cards',    label: '🃏 Kortos'        },
-  { href: '/admin/events',   label: '📅 Renginiai'     },
-  { href: '/admin/lore',     label: '📖 Atlasas'       },
-  { href: '/admin/users',    label: '👥 Naudotojai'    },
-  { href: '/admin/achievements', label: '🏅 Pasiekimai' },
+  { href: '/admin',               label: '📊 Dashboard'    },
+  { href: '/admin/cards',         label: '🃏 Kortos'        },
+  { href: '/admin/events',        label: '📅 Renginiai'     },
+  { href: '/admin/lore',          label: '📖 Atlasas'       },
+  { href: '/admin/announcements', label: '📰 Skelbimai'     },
+  { href: '/admin/users',         label: '👥 Naudotojai'    },
+  { href: '/admin/achievements',  label: '🏅 Pasiekimai'    },
 ]
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
@@ -40,7 +41,6 @@ export default async function AdminDashboard() {
   if (!profile || !['admin', 'event_moderator'].includes(profile.role ?? '')) redirect('/cards?error=no_access')
   if (profile.role === 'event_moderator') redirect('/admin/events')
 
-  // Parallel stats fetch
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const [
@@ -85,7 +85,6 @@ export default async function AdminDashboard() {
   const topDecks = (topDecksRes.data ?? []) as DeckRow[]
   const topUsers = (topUsersRes.data ?? []) as UserRow[]
 
-  // Fetch deck owner names
   const deckOwnerIds = [...new Set(topDecks.map((d) => d.user_id))]
   const { data: deckOwners } = deckOwnerIds.length > 0
     ? await supabase.from('profiles').select('id, username, display_name').in('id', deckOwnerIds)
@@ -130,7 +129,7 @@ export default async function AdminDashboard() {
 
       <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-8">
 
-        {/* ── Pagrindiniai skaičiai ────────────────────────────── */}
+        {/* Stats */}
         <div>
           <div className="flex items-center gap-3 mb-4">
             <h2 className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
@@ -147,10 +146,9 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Top kaladės + Top žaidėjai ────────────────────── */}
+        {/* Top kaladės + Top žaidėjai */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Top kaladės */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <h2 className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
@@ -191,7 +189,6 @@ export default async function AdminDashboard() {
             </Link>
           </div>
 
-          {/* Top žaidėjai */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <h2 className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
@@ -238,7 +235,7 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Greitos nuorodos ────────────────────────────────── */}
+        {/* Greitos nuorodos */}
         <div>
           <div className="flex items-center gap-3 mb-4">
             <h2 className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
@@ -248,12 +245,13 @@ export default async function AdminDashboard() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {[
-              { href: '/admin/cards/new',    label: '+ Nauja korta',      color: 'var(--gold)'     },
-              { href: '/admin/cards/import', label: '↑ Importuoti kortas', color: 'var(--text-secondary)' },
-              { href: '/admin/events/new',   label: '+ Naujas renginys',  color: '#34d399'         },
-              { href: '/admin/lore',         label: '📖 Lore Atlasas',    color: '#818cf8'         },
-              { href: '/admin/achievements', label: '🏅 Pasiekimai',       color: '#a78bfa'         },
-              { href: '/admin/users',        label: '👥 Naudotojai',       color: 'var(--text-secondary)' },
+              { href: '/admin/cards/new',                label: '+ Nauja korta',    color: 'var(--gold)'           },
+              { href: '/admin/cards/import',             label: '↑ Importuoti', color: 'var(--text-secondary)' },
+              { href: '/admin/events/new',               label: '+ Renginys',        color: '#34d399'               },
+              { href: '/admin/announcements?action=new', label: '+ Skelbimas',       color: '#38bdf8'               },
+              { href: '/admin/lore',                     label: '📖 Atlasas', color: '#818cf8'               },
+              { href: '/admin/achievements',             label: '🏅 Pasiekimai', color: '#a78bfa'            },
+              { href: '/admin/users',                    label: '👥 Naudotojai', color: 'var(--text-secondary)' },
             ].map(({ href, label, color }) => (
               <Link
                 key={href}

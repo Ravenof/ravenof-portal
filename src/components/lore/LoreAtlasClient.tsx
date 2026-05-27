@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword, Search, X as XIcon } from 'lucide-react'
+import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword, Search, X as XIcon, Shield } from 'lucide-react'
 import { LoreMap }      from '@/components/lore/LoreMap'
 import { LorePanel }    from '@/components/lore/LorePanel'
 import { LoreTimeline } from '@/components/lore/LoreTimeline'
@@ -487,7 +487,7 @@ export function LoreAtlasClient({
         {/* Artefaktai */}
         <ListSection icon={<Sword className="w-3.5 h-3.5" />} title="Artefaktai" count={searchedArtifacts.length}>
           {searchedArtifacts.length === 0 ? <EmptyState message={sq ? `Nerasta artefaktų pagal „${searchQuery.trim()}"` : 'Artefaktų dar nėra'} onReset={resetFilters} /> : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 pb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {searchedArtifacts.map((art) => (
                 <div key={art.id} className="rounded-xl p-4 flex flex-col gap-2"
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
@@ -502,6 +502,37 @@ export function LoreAtlasClient({
             </div>
           )}
         </ListSection>
+
+        {/* Frakcijos */}
+        {factions.length > 0 && (
+          <ListSection icon={<Shield className="w-3.5 h-3.5" />} title="Frakcijos" count={factions.length}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 pb-8">
+              {factions.map((f) => (
+                <div key={f.id} className="rounded-xl p-4 flex flex-col gap-2"
+                  style={{ background: 'var(--bg-surface)', border: `1px solid ${f.color}33` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex-shrink-0"
+                      style={{ background: f.color + '33', border: `1.5px solid ${f.color}88` }} />
+                    <p className="text-sm font-bold truncate"
+                      style={{ fontFamily: 'var(--rvn-font-display)', color: f.color }}>
+                      {f.name}
+                    </p>
+                  </div>
+                  {f.description && (
+                    <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                      {f.description}
+                    </p>
+                  )}
+                  <Link href={`/lore/factions/${f.id}`}
+                    className="self-start text-xs mt-auto transition-opacity hover:opacity-70"
+                    style={{ color: 'var(--gold)', textDecoration: 'none' }}>
+                    Skaityti &#x2192;
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </ListSection>
+        )}
       </div>
     </div>
   )

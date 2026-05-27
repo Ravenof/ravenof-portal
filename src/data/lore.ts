@@ -16,6 +16,7 @@ export type LoreFaction = {
   id: string
   name: string
   color: string        // hex
+  description?: string
 }
 
 export type LoreLocation = {
