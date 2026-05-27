@@ -204,6 +204,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
                 { href: '/events',          label: 'Renginiai'       },
                 { href: '/community-decks', label: 'Viešos kaladės'  },
                 { href: '/life-tracker',    label: 'Kova'            },
+                { href: '/packs',           label: 'Paketai'         },
                 { href: '/lore',            label: 'Atlasas'         },
               ].map(({ href, label }) => (
                 <Link
