@@ -293,11 +293,17 @@ export async function advanceTournamentAfterConfirmedMatch(
   if (!isFinished(match.status)) return
   if (match.advanced_at !== null && match.advanced_at !== undefined) return
 
-  // 2. Pažymėti kaip apdorotą
-  await supabase
+  // 2. Atomic claim — tik vienas concurrent kvietimas praeis toliau.
+  // UPDATE ... WHERE advanced_at IS NULL grazina 0 eiluciu jei kitas procesas
+  // jau pazymejo. Tai uzakerta kelia duplicate macu generavimui.
+  const { data: claimed } = await supabase
     .from('tournament_matches')
     .update({ advanced_at: new Date().toISOString() })
     .eq('id', matchId)
+    .is('advanced_at', null)
+    .select('id')
+
+  if (!claimed || claimed.length === 0) return  // kitas procesas jau pasieme
 
   // 3. Atnaujinti pralaimėjusiojo losses_count (ne bye mačams)
   if (match.loser_id && !match.is_bye) {
