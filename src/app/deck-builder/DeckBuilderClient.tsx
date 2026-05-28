@@ -49,7 +49,7 @@ function getDeckValidity(
   const onlyCountIssue = errors.length === 1 && total > 0 && total < DECK_MIN
 
   if (hasName && hasFaction && onlyCountIssue) {
-    return { state: 'almost', label: 'Dar ' + (DECK_MIN - total) + ' kortu' }
+    return { state: 'almost', label: 'Dar ' + (DECK_MIN - total) + ' kortų' }
   }
   if (hasName && hasFaction && total >= 15) {
     return { state: 'almost', label: 'Beveik paruostas' }

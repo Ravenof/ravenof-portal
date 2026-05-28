@@ -64,7 +64,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
         style={{ background: 'rgba(10,10,15,0.97)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-2xl mx-auto flex items-center gap-4">
           <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Kortu baze
+            Kortų bazė
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
@@ -152,7 +152,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
         </form>
 
         <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-          {rows.length} kortu
+          {rows.length} kortų
         </div>
 
         {/* Table */}
@@ -223,7 +223,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
           </table>
           {rows.length === 0 && (
             <div className="py-16 text-center" style={{ color: 'var(--text-muted)' }}>
-              Kortu nerasta
+              Kortų nerasta
             </div>
           )}
         </div>

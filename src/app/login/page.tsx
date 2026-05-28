@@ -135,7 +135,7 @@ export default function LoginPage() {
           </a>
           <a href="/cards" className="block text-sm transition-opacity hover:opacity-70"
             style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-            Grižti į kortų bazę
+            Grįžti į kortų bazę
           </a>
         </div>
       </div>

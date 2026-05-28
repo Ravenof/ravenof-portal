@@ -41,7 +41,7 @@ export function canAddCard(
 
   const totalCards = entries.reduce((s, e) => s + e.quantity, 0)
   if (totalCards >= DECK_MAX) {
-    return { ok: false, reason: 'Deck negali tureti daugiau nei ' + DECK_MAX + ' kortu' }
+    return { ok: false, reason: 'Deck negali turėti daugiau nei ' + DECK_MAX + ' kortų' }
   }
 
   return { ok: true }
@@ -61,16 +61,16 @@ export function validateDeck(
   const total = entries.reduce((s, e) => s + e.quantity, 0)
 
   if (!name.trim()) {
-    warnings.push({ type: 'error', message: 'Deck turi tureti pavadinima' })
+    warnings.push({ type: 'error', message: 'Deck turi turėti pavadinimą' })
   }
   if (!factionId) {
     warnings.push({ type: 'error', message: 'Pasirink deck frakcija' })
   }
   if (total < DECK_MIN) {
-    warnings.push({ type: 'error', message: 'Deck turi bent ' + DECK_MIN + ' kortu (dabar: ' + total + ')' })
+    warnings.push({ type: 'error', message: 'Deck turi bent ' + DECK_MIN + ' kortų (dabar: ' + total + ')' })
   }
   if (total > DECK_MAX) {
-    warnings.push({ type: 'error', message: 'Deck negali tureti daugiau nei ' + DECK_MAX + ' kortu (dabar: ' + total + ')' })
+    warnings.push({ type: 'error', message: 'Deck negali turėti daugiau nei ' + DECK_MAX + ' kortų (dabar: ' + total + ')' })
   }
 
   // Copy limit violations

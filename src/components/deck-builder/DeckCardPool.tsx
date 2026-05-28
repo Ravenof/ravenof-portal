@@ -352,7 +352,7 @@ export function DeckCardPool({ cards, collection }: Props) {
           Pasirink frakcija
         </p>
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Pasirink frakcija auksciau, kad matytu kortu baseiną
+          Pasirink frakciją aukščiau, kad matytų kortų baseiną
         </p>
       </div>
     )
@@ -377,7 +377,7 @@ export function DeckCardPool({ cards, collection }: Props) {
           />
           <input
             type="text"
-            placeholder="Ieskoti kortu..."
+            placeholder="Ieškoti kortų..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rvn-input w-full"
@@ -555,7 +555,7 @@ export function DeckCardPool({ cards, collection }: Props) {
               </div>
               {universalCards.length === 0 ? (
                 <p className="text-xs text-center py-3 opacity-40" style={{ color: 'var(--text-muted)' }}>
-                  Universaliu kortu nerasta
+                  Universaliųjų kortų nerasta
                 </p>
               ) : (
                 universalCards.map((card) => (
@@ -573,7 +573,7 @@ export function DeckCardPool({ cards, collection }: Props) {
 
           {totalShown === 0 && (
             <div className="text-center py-8 opacity-40">
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kortu nerasta</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta</p>
             </div>
           )}
         </div>
