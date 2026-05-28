@@ -12,6 +12,7 @@ import type { DeckWithRelations } from '@/types'
 type Props = {
   decks: DeckWithRelations[]
   userId: string
+  deckOwnership?: Record<string, { missing: number; total: number }>
 }
 
 const VISIBILITY_LABEL: Record<string, { label: string; Icon: React.ElementType }> = {
@@ -20,7 +21,7 @@ const VISIBILITY_LABEL: Record<string, { label: string; Icon: React.ElementType 
   public:   { label: 'Viešas',    Icon: Globe },
 }
 
-export function MyDecksList({ decks, userId }: Props) {
+export function MyDecksList({ decks, userId, deckOwnership = {} }: Props) {
   const router = useRouter()
   const [deleting, setDeleting]       = useState<string | null>(null)
   const [confirmId, setConfirmId]     = useState<string | null>(null)
@@ -145,6 +146,8 @@ export function MyDecksList({ decks, userId }: Props) {
         const isConfirming  = confirmId === deck.id
         const isDeleting    = deleting === deck.id
         const isDuplicating = duplicating === deck.id
+        const ownership     = deckOwnership[deck.id]
+        const missing       = ownership?.missing ?? null
 
         return (
           <div
@@ -191,6 +194,27 @@ export function MyDecksList({ decks, userId }: Props) {
                 {vis.label}
               </span>
             </div>
+
+            {/* Collection status */}
+            {missing !== null && (
+              <div className="flex items-center gap-1.5">
+                {missing === 0 ? (
+                  <span
+                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold"
+                    style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)' }}
+                  >
+                    ✓ Turiu visas kortas
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(240,180,41,0.08)', color: 'rgba(240,180,41,0.7)', border: '1px solid rgba(240,180,41,0.2)' }}
+                  >
+                    Trūksta {missing} {missing === 1 ? 'kortos' : 'kortų'}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Updated */}
             <p className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
