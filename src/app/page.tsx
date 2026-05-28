@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createPublicClient } from '@/lib/supabase/public'
-import { HomeAuthNav, HomeAuthCTA } from '@/components/home/HomeAuthSection'
+import { HomeAuthNav, HomeAuthCTA, HomeOnboardingSteps } from '@/components/home/HomeAuthSection'
 
 // ISR: 5 min cache
 export const revalidate = 300
@@ -9,15 +9,21 @@ type EventRow        = { id: string; title: string; starts_at: string; event_typ
 type DeckRow         = { id: string; name: string; score: number; card_count: number; faction: { name: string; color_hex: string } | null; author: string }
 type AnnouncementRow = { id: string; title: string; slug: string; summary: string | null; type: string; pinned: boolean; published_at: string }
 
-const SECTIONS = [
-  { href: '/cards',           icon: '🃏', label: 'Kortų bazė',       desc: 'Visa kortų kolekcija su filtrais ir statistika'  },
-  { href: '/deck-builder',    icon: '⚗️',  label: 'Kaladžių kūrėjas', desc: 'Kurkite ir dalinkites savo kaladmis'            },
-  { href: '/community-decks', icon: '📚', label: 'Viešos kaladės',   desc: 'Žiūrėkite ir balsuokite už geriausias kalades'   },
-  { href: '/events',          icon: '📅', label: 'Renginiai',         desc: 'Turnyrai, susitikimai ir kiti žaidjų renginiai' },
-  { href: '/leaderboards',    icon: '🏆', label: 'Topai',             desc: 'Geriausių žaidjų ir kaladžių reitingai'         },
-  { href: '/life-tracker',    icon: '⚔️',  label: 'Kova',             desc: 'Gyvenimo taškų skaičiuoklė porai ar komandai'   },
-  { href: '/arena',           icon: '🏟️', label: 'Arena',            desc: 'Viešos kaladės, topai ir renginiai'              },
-  { href: '/lore',            icon: '📖', label: 'Atlasas',          desc: 'Interaktyvus pasaulio žemėlapis ir istorija'      },
+const QUICK_LINKS = [
+  { href: '/cards',           icon: '🃏', label: 'Kortų bazė'       },
+  { href: '/deck-builder',    icon: '⚗️',  label: 'Kaladžių kūrėjas' },
+  { href: '/community-decks', icon: '📚', label: 'Viešos kaladės'   },
+  { href: '/events',          icon: '📅', label: 'Renginiai'         },
+  { href: '/leaderboards',    icon: '🏆', label: 'Topai'             },
+  { href: '/life-tracker',    icon: '⚔️',  label: 'Kova'             },
+  { href: '/lore',            icon: '📖', label: 'Atlasas'           },
+]
+
+const STEPS = [
+  { icon: '🃏', step: '01', title: 'Naršyk kortų bazę',       desc: 'Peržiūrėk visas korteles, filtruok pagal frakciją, retenybę ar vertę' },
+  { icon: '📦', step: '02', title: 'Pažymėk savo korteles',   desc: 'Pažymėk kurias korteles jau turi — portalas sekroja tavo kolekciją' },
+  { icon: '⚗️',  step: '03', title: 'Sukurk kaladę',           desc: 'Kaladžių kūrėjas neleis įdėti kortų kurių neturi ir patikrins taisykles' },
+  { icon: '📅', step: '04', title: 'Dalyvauk renginiuose',    desc: 'Registruokis į turnyrus, gauk XP ir klik į lyderių lentelę' },
 ]
 
 function hexColor(hex: string | undefined) {
@@ -50,7 +56,7 @@ async function getHomeData() {
       .or('expires_at.is.null,expires_at.gt.' + now)
       .order('pinned', { ascending: false })
       .order('published_at', { ascending: false })
-      .limit(5),
+      .limit(4),
   ])
 
   const deckRows = (topDecksRaw ?? []) as { id: string; name: string; score: number; card_count: number; faction_id: number | null; user_id: string }[]
@@ -97,8 +103,9 @@ export default async function HomePage() {
     <main className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* BG orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
-        <div style={{ position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)', width: '800px', height: '800px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 65%)' }} />
-        <div style={{ position: 'absolute', bottom: '5%', right: '5%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(240,180,41,0.04) 0%, transparent 70%)' }} />
+        <div style={{ position: 'absolute', top: '8%', left: '50%', transform: 'translateX(-50%)', width: '900px', height: '900px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 65%)' }} />
+        <div style={{ position: 'absolute', bottom: '10%', right: '5%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(240,180,41,0.04) 0%, transparent 70%)' }} />
+        <div style={{ position: 'absolute', top: '40%', left: '-5%', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(52,211,153,0.03) 0%, transparent 70%)' }} />
       </div>
 
       <div className="relative z-10 max-w-screen-xl mx-auto px-4">
@@ -112,26 +119,31 @@ export default async function HomePage() {
         </nav>
 
         {/* HERO */}
-        <section className="text-center py-16 sm:py-24 space-y-6">
-          <div className="flex items-center justify-center gap-3 mb-2">
+        <section className="text-center py-14 sm:py-20 space-y-5">
+          <div className="flex items-center justify-center gap-3 mb-1">
             <div style={{ height: '1px', width: '60px', background: 'linear-gradient(to right, transparent, rgba(240,180,41,0.4))' }} />
-            <span style={{ color: 'rgba(240,180,41,0.5)', fontSize: '10px', letterSpacing: '0.3em', fontFamily: 'var(--rvn-font-display)' }}>&#9633; &#9633; &#9633;</span>
+            <span style={{ color: 'rgba(240,180,41,0.45)', fontSize: '10px', letterSpacing: '0.3em', fontFamily: 'var(--rvn-font-display)' }}>&#9633; &#9633; &#9633;</span>
             <div style={{ height: '1px', width: '60px', background: 'linear-gradient(to left, transparent, rgba(240,180,41,0.4))' }} />
           </div>
 
           <h1 className="rvn-page-title text-5xl sm:text-7xl tracking-widest">RAVENOF</h1>
 
-          <p className="text-base sm:text-lg tracking-widest uppercase max-w-md mx-auto"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.2em' }}>
+          <p className="text-sm sm:text-base tracking-widest uppercase max-w-sm mx-auto"
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.18em' }}>
             Fantasy kortų žaidimas
           </p>
 
-          <div style={{ height: '1px', width: '200px', background: 'linear-gradient(to right, transparent, var(--gold), transparent)', margin: '0 auto' }} />
+          <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            Companion portalas: naršyk korteles, pažymėk kolekciją, kurkite kalades ir dalyvauk turnyruose.
+          </p>
 
-          <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap">
+          <div style={{ height: '1px', width: '160px', background: 'linear-gradient(to right, transparent, var(--gold), transparent)', margin: '0 auto' }} />
+
+          {/* STATS */}
+          <div className="flex items-center justify-center gap-8 sm:gap-14 flex-wrap">
             {[
-              { n: totalCards, label: 'kortos'   },
-              { n: totalUsers, label: 'žaidjai' },
+              { n: totalCards, label: 'kortos'  },
+              { n: totalUsers, label: 'žaidėjai' },
               { n: totalDecks, label: 'kaladės'  },
             ].map(({ n, label }) => (
               <div key={label} className="text-center">
@@ -141,7 +153,8 @@ export default async function HomePage() {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          {/* CTA buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-1">
             <Link href="/cards"
               className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
               style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.35)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em', boxShadow: '0 0 20px rgba(240,180,41,0.12)' }}>
@@ -150,6 +163,43 @@ export default async function HomePage() {
             <HomeAuthCTA />
           </div>
         </section>
+
+        {/* ANNOUNCEMENTS — pinned/important first */}
+        {announcements.length > 0 && (
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
+                Skelbimai
+              </h2>
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(240,180,41,0.3), transparent)' }} />
+            </div>
+            <div className="space-y-2">
+              {announcements.map((ann) => {
+                const s = ANN_COLORS[ann.type] ?? ANN_COLORS.news
+                return (
+                  <div key={ann.id} className="flex items-start gap-3 rounded-xl px-4 py-3"
+                    style={{ background: s.bg, border: '1px solid ' + s.border }}>
+                    {ann.pinned && <span className="shrink-0 text-xs mt-0.5" style={{ color: s.text }}>📌</span>}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
+                        <span className="mr-1.5">{s.icon}</span>{ann.title}
+                      </p>
+                      {ann.summary && (
+                        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{ann.summary}</p>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {new Date(ann.published_at).toLocaleDateString('lt-LT', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ONBOARDING STEPS — shows for guests, quick links for logged-in */}
+        <HomeOnboardingSteps steps={STEPS} />
 
         {/* UPCOMING EVENTS */}
         {upcomingEvents.length > 0 && (
@@ -164,14 +214,15 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {upcomingEvents.map((ev) => {
                 const d = new Date(ev.starts_at)
-                const isTourn = ev.event_type === 'tournament'
+                const isTourn = ev.event_type === 'turnyras'
                 return (
                   <Link key={ev.id} href={'/events/' + ev.id}
                     className="block rounded-xl p-4 transition-all hover:border-[rgba(240,180,41,0.25)]"
                     style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-base">{isTourn ? '🏆' : '📅'}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: isTourn ? 'rgba(240,180,41,0.1)' : 'rgba(52,211,153,0.1)', color: isTourn ? 'var(--gold)' : '#34d399', border: '1px solid ' + (isTourn ? 'rgba(240,180,41,0.2)' : 'rgba(52,211,153,0.2)'), fontSize: '10px', fontFamily: 'var(--rvn-font-display)' }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: isTourn ? 'rgba(240,180,41,0.1)' : 'rgba(52,211,153,0.1)', color: isTourn ? 'var(--gold)' : '#34d399', border: '1px solid ' + (isTourn ? 'rgba(240,180,41,0.2)' : 'rgba(52,211,153,0.2)'), fontSize: '10px', fontFamily: 'var(--rvn-font-display)' }}>
                         {isTourn ? 'Turnyras' : 'Renginys'}
                       </span>
                     </div>
@@ -226,61 +277,21 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* ANNOUNCEMENTS */}
-        {announcements.length > 0 && (
-          <section className="mb-10">
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
-                Skelbimai
-              </h2>
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(240,180,41,0.3), transparent)' }} />
-            </div>
-            <div className="space-y-2">
-              {announcements.map((ann) => {
-                const s = ANN_COLORS[ann.type] ?? ANN_COLORS.news
-                return (
-                  <div
-                    key={ann.id}
-                    className="flex items-start gap-3 rounded-xl px-4 py-3"
-                    style={{ background: s.bg, border: '1px solid ' + s.border }}
-                  >
-                    {ann.pinned && (
-                      <span className="shrink-0 text-xs mt-0.5" style={{ color: s.text }}>📌</span>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
-                        <span className="mr-1.5">{s.icon}</span>{ann.title}
-                      </p>
-                      {ann.summary && (
-                        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{ann.summary}</p>
-                      )}
-                    </div>
-                    <span className="shrink-0 text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {new Date(ann.published_at).toLocaleDateString('lt-LT', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* SECTIONS GRID */}
+        {/* QUICK NAV */}
         <section className="mb-16">
-          <div className="flex items-center gap-3 mb-5">
+          <div className="flex items-center gap-3 mb-4">
             <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
-              Portalo sekcijos
+              Visos sekcijos
             </h2>
             <div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }} />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {SECTIONS.map(({ href, icon, label, desc }) => (
+          <div className="flex flex-wrap gap-2">
+            {QUICK_LINKS.map(({ href, icon, label }) => (
               <Link key={href} href={href}
-                className="flex flex-col gap-2 p-4 rounded-xl transition-all hover:border-[rgba(240,180,41,0.25)] hover:bg-[var(--bg-elevated)] group"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}>
-                <span className="text-2xl">{icon}</span>
-                <span className="text-xs font-semibold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)', letterSpacing: '0.03em' }}>{label}</span>
-                <span className="text-xs leading-relaxed hidden lg:block" style={{ color: 'var(--text-muted)' }}>{desc}</span>
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', textDecoration: 'none' }}>
+                <span>{icon}</span>
+                <span>{label}</span>
               </Link>
             ))}
           </div>
