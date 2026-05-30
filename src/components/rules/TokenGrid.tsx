@@ -20,19 +20,19 @@ const KEYWORD_TOKENS = [
 ]
 
 const BUFF_TOKENS = [
-  { plus: '+1', minus: '−1', color: '#94a3b8' },
-  { plus: '+2', minus: '−2', color: '#94a3b8' },
-  { plus: '+3', minus: '−3', color: '#94a3b8' },
-  { plus: '+4', minus: '−4', color: '#94a3b8' },
-  { plus: '+5', minus: '−5', color: '#94a3b8' },
-  { plus: '+6', minus: '−6', color: '#94a3b8' },
+  { plus: '+1', minus: '−1' },
+  { plus: '+2', minus: '−2' },
+  { plus: '+3', minus: '−3' },
+  { plus: '+4', minus: '−4' },
+  { plus: '+5', minus: '−5' },
+  { plus: '+6', minus: '−6' },
 ]
 
 function TokenBubble({ symbol, label, effect, color, img }: { symbol: string; label: string; effect: string; color: string; img: string }) {
   return (
     <div className="flex flex-col items-center gap-1.5 text-center">
       <div
-        className="w-14 h-14 rounded-full flex items-center justify-center relative overflow-hidden"
+        className="w-14 h-14 rounded-full overflow-hidden relative flex items-center justify-center"
         style={{ background: `${color}15`, border: `2px solid ${color}40`, boxShadow: `0 0 10px ${color}20` }}
       >
         <Image
@@ -40,9 +40,17 @@ function TokenBubble({ symbol, label, effect, color, img }: { symbol: string; la
           alt={label}
           fill
           className="object-cover rounded-full"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+          onError={(e) => {
+            const el = e.currentTarget as HTMLImageElement
+            el.style.display = 'none'
+            const fb = el.parentElement?.querySelector('.tok-fallback') as HTMLElement | null
+            if (fb) fb.style.display = 'flex'
+          }}
         />
-        <span className="text-xl relative z-10">{symbol}</span>
+        {/* Fallback — tik kai nuotrauka neįsikelia */}
+        <span className="tok-fallback absolute inset-0 items-center justify-center text-xl" style={{ display: 'none' }}>
+          {symbol}
+        </span>
       </div>
       <p className="text-xs font-semibold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)', fontSize: 10 }}>
         {label}
@@ -54,7 +62,7 @@ function TokenBubble({ symbol, label, effect, color, img }: { symbol: string; la
   )
 }
 
-function DualToken({ plus, minus, color }: { plus: string; minus: string; color: string }) {
+function DualToken({ plus, minus }: { plus: string; minus: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="relative w-12 h-12">

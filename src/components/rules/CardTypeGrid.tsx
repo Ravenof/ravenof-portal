@@ -3,13 +3,13 @@
 import Image from 'next/image'
 
 const CARD_TYPES = [
-  { id: 'creature',  icon: '⚔', label: 'Padaras',     desc: 'Kovos lauko vienetas',               atk: true,  hp: true,  stays: true,  imgPath: '/rules/examples/type-creature.png'  },
-  { id: 'spell',     icon: '✨', label: 'Burtas',      desc: 'Vienkartinis efektas',               atk: false, hp: false, stays: false, imgPath: '/rules/examples/type-spell.png'     },
-  { id: 'artifact',  icon: '⚗', label: 'Artefaktas',  desc: 'Ilgalaikis efektas su HP',           atk: false, hp: true,  stays: true,  imgPath: '/rules/examples/type-artifact.png'  },
-  { id: 'curse',     icon: '💀', label: 'Prakeiksmas', desc: 'Įmaišomas į priešininko kaladę',     atk: false, hp: false, stays: false, imgPath: '/rules/examples/type-curse.png'     },
-  { id: 'reaction',  icon: '⚡', label: 'Reakcija',    desc: 'Užversta, aktyvuojasi sąlygiškai',  atk: false, hp: false, stays: true,  imgPath: '/rules/examples/type-reaction.png'  },
-  { id: 'field',     icon: '🌍', label: 'Laukas',      desc: 'Globalus aplinkos efektas',          atk: false, hp: false, stays: true,  imgPath: '/rules/examples/type-field.png'     },
-  { id: 'champion',  icon: '👑', label: 'Čempionas',   desc: 'Galingas su fazėmis ir gebėjimais',  atk: false, hp: true,  stays: true,  imgPath: '/rules/examples/type-champion.png'  },
+  { id: 'creature',  label: 'Padaras',     desc: 'Kovos lauko vienetas',               atk: true,  hp: true,  stays: true,  imgPath: '/rules/examples/type-creature.png'  },
+  { id: 'spell',     label: 'Burtas',      desc: 'Vienkartinis efektas',               atk: false, hp: false, stays: false, imgPath: '/rules/examples/type-spell.png'     },
+  { id: 'artifact',  label: 'Artefaktas',  desc: 'Ilgalaikis efektas su HP',           atk: false, hp: true,  stays: true,  imgPath: '/rules/examples/type-artifact.png'  },
+  { id: 'curse',     label: 'Prakeiksmas', desc: 'Įmaišomas į priešininko kaladę',     atk: false, hp: false, stays: false, imgPath: '/rules/examples/type-curse.png'     },
+  { id: 'reaction',  label: 'Reakcija',    desc: 'Užversta, aktyvuojasi sąlygiškai',   atk: false, hp: false, stays: true,  imgPath: '/rules/examples/type-reaction.png'  },
+  { id: 'field',     label: 'Laukas',      desc: 'Globalus aplinkos efektas',          atk: false, hp: false, stays: true,  imgPath: '/rules/examples/type-field.png'     },
+  { id: 'champion',  label: 'Čempionas',   desc: 'Galingas su fazėmis ir gebėjimais',  atk: false, hp: true,  stays: true,  imgPath: '/rules/examples/type-champion.png'  },
 ]
 
 type CardType = typeof CARD_TYPES[number]
@@ -21,16 +21,22 @@ function CardTypeItem({ ct }: { ct: CardType }) {
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
     >
       {/* Image slot */}
-      <div className="relative h-36 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#12121e,#1a1a2e)' }}>
+      <div className="relative h-36" style={{ background: '#0e0e1a' }}>
         <Image
           src={ct.imgPath}
           alt={`${ct.label} kortos pavyzdys`}
           fill
-          className="object-contain p-2"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+          className="object-contain"
+          onError={(e) => {
+            const el = e.currentTarget as HTMLImageElement
+            el.style.display = 'none'
+            const fb = el.parentElement?.querySelector('.img-fallback') as HTMLElement | null
+            if (fb) fb.style.display = 'flex'
+          }}
         />
-        {/* Fallback icon */}
-        <span className="text-4xl opacity-30 relative z-0">{ct.icon}</span>
+        <div className="img-fallback absolute inset-0 items-center justify-center" style={{ display: 'none' }}>
+          <span className="text-2xl font-bold" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>—</span>
+        </div>
       </div>
 
       {/* Info */}
