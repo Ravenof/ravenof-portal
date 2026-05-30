@@ -1,70 +1,69 @@
-function Zone({ label, icon, dim }: { label: string; icon: string; dim?: boolean }) {
+'use client'
+
+// Battlefield layout pagal doodle:
+// Priešininkas (viršus, apverstas):
+//   [Reakcijos x6] ..... [Lauko korta]
+//   [Padarai x5 + Čempionas]
+//   [Artefaktai x2]
+//   ─── KOVOS LAUKAS ───
+//   [Artefaktai x2]
+//   [Padarai x5 + Čempionas]
+//   [Kaladė][ŽMK][Kapinynas][ŽMK disc]  [Reakcijos x6]
+
+interface SlotProps {
+  label: string
+  icon: string
+  accent?: boolean
+  dim?: boolean
+  small?: boolean
+}
+
+function Slot({ label, icon, accent, dim, small }: SlotProps) {
   return (
     <div
-      className="rounded-lg flex flex-col items-center justify-center gap-1 p-2 text-center"
+      className={`rounded-lg flex flex-col items-center justify-center gap-1 ${small ? 'p-1.5' : 'p-2'}`}
       style={{
-        border: `1px dashed rgba(240,180,41,${dim ? '0.12' : '0.25'})`,
-        background: dim ? 'rgba(240,180,41,0.02)' : 'rgba(240,180,41,0.04)',
-        minHeight: 52,
+        border: `1px dashed rgba(240,180,41,${dim ? '0.12' : accent ? '0.4' : '0.22'})`,
+        background: accent ? 'rgba(240,180,41,0.05)' : dim ? 'rgba(255,255,255,0.01)' : 'rgba(240,180,41,0.02)',
+        minHeight: small ? 38 : 48,
       }}
     >
-      <span className="text-base">{icon}</span>
-      <span className="text-xs leading-tight" style={{ color: dim ? 'var(--text-muted)' : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', fontSize: '9px', letterSpacing: '0.04em' }}>
+      <span style={{ fontSize: small ? 14 : 18, lineHeight: 1 }}>{icon}</span>
+      <span
+        style={{
+          color: dim ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)',
+          fontFamily: 'var(--rvn-font-display)',
+          fontSize: 8,
+          letterSpacing: '0.04em',
+          textAlign: 'center',
+          lineHeight: 1.2,
+        }}
+      >
         {label}
       </span>
     </div>
   )
 }
 
-function PlayerZone({ label, flipped }: { label: string; flipped?: boolean }) {
-  const mainZones = (
-    <div className="grid grid-cols-4 gap-1.5">
-      <Zone label="Čempionas" icon="👑" />
-      <Zone label="Padaras 1" icon="⚔" />
-      <Zone label="Padaras 2" icon="⚔" />
-      <Zone label="Padaras 3" icon="⚔" />
-    </div>
-  )
-
-  const sideZones = (
-    <div className="grid grid-cols-4 gap-1.5">
-      <Zone label="Artefaktai" icon="⚗" dim />
-      <Zone label="Reakcijos" icon="⚡" dim />
-      <Zone label="Kaladė" icon="🂠" dim />
-      <Zone label="Kapinynas" icon="💀" dim />
-    </div>
-  )
-
-  const dmdZones = (
-    <div className="grid grid-cols-2 gap-1.5">
-      <Zone label="DMD" icon="🎴" dim />
-      <Zone label="DMD discard" icon="📤" dim />
-    </div>
-  )
-
+function Separator({ label }: { label: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      {/* Player label */}
-      <div className="flex items-center gap-2">
-        <div className="h-px flex-1" style={{ background: 'rgba(240,180,41,0.15)' }} />
-        <span className="text-xs font-semibold px-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-muted)', fontSize: '9px', letterSpacing: '0.1em' }}>
-          {label}
-        </span>
-        <div className="h-px flex-1" style={{ background: 'rgba(240,180,41,0.15)' }} />
-      </div>
-      {flipped ? (
-        <>
-          {dmdZones}
-          {sideZones}
-          {mainZones}
-        </>
-      ) : (
-        <>
-          {mainZones}
-          {sideZones}
-          {dmdZones}
-        </>
-      )}
+    <div className="flex items-center gap-2 my-1">
+      <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, rgba(240,180,41,0.35))' }} />
+      <span
+        className="text-xs px-3 py-1 rounded-full"
+        style={{
+          background: 'rgba(240,180,41,0.08)',
+          color: 'var(--gold)',
+          border: '1px solid rgba(240,180,41,0.25)',
+          fontFamily: 'var(--rvn-font-display)',
+          letterSpacing: '0.1em',
+          fontSize: 9,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </span>
+      <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, rgba(240,180,41,0.35))' }} />
     </div>
   )
 }
@@ -75,31 +74,107 @@ export function BattlefieldDiagram() {
       className="rounded-xl overflow-hidden"
       style={{ border: '1px solid rgba(240,180,41,0.2)', background: 'var(--bg-surface)' }}
     >
-      <div className="px-4 py-3 flex items-center gap-2" style={{ background: 'rgba(240,180,41,0.06)', borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
+      {/* Header */}
+      <div
+        className="px-4 py-3 flex items-center gap-2"
+        style={{ background: 'rgba(240,180,41,0.06)', borderBottom: '1px solid rgba(240,180,41,0.15)' }}
+      >
         <span>🗺</span>
         <p className="text-xs font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
           Kovos lauko schema
         </p>
       </div>
 
-      <div className="p-4 flex flex-col gap-2">
-        <PlayerZone label="PRIEŠININKAS" flipped />
+      <div className="p-3 flex flex-col gap-1.5">
 
-        {/* Battle separator */}
-        <div className="flex items-center gap-2 my-1">
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, rgba(240,180,41,0.4))' }} />
-          <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(240,180,41,0.1)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.3)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em', fontSize: '9px' }}>
-            ⚔ KOVOS LAUKAS ⚔
-          </span>
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, rgba(240,180,41,0.4))' }} />
+        {/* ── PRIEŠININKAS (viršus, apverstas) ─────────── */}
+        <p className="text-xs text-center font-semibold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-muted)', fontSize: 9, letterSpacing: '0.1em' }}>
+          PRIEŠININKAS
+        </p>
+
+        {/* Priešininko reakcijos */}
+        <div className="grid grid-cols-6 gap-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Slot key={i} label="Reakcija" icon="⚡" dim />
+          ))}
         </div>
 
-        {/* Shared field card zone */}
-        <div className="mx-auto w-1/2">
-          <Zone label="Lauko korta (bendra)" icon="🌍" />
+        {/* Priešininko padarai + čempionas */}
+        <div className="grid grid-cols-5 gap-1">
+          <Slot label="Čempionas" icon="👑" accent />
+          <Slot label="Padaras" icon="⚔" />
+          <Slot label="Padaras" icon="⚔" />
+          <Slot label="Padaras" icon="⚔" />
+          <Slot label="Padaras" icon="⚔" />
         </div>
 
-        <PlayerZone label="TU" />
+        {/* Priešininko artefaktai */}
+        <div className="grid grid-cols-2 gap-1">
+          <Slot label="Artefaktas" icon="⚗" dim />
+          <Slot label="Artefaktas" icon="⚗" dim />
+        </div>
+
+        <Separator label="⚔ KOVOS LAUKAS ⚔" />
+
+        {/* Bendra lauko korta */}
+        <div className="flex justify-center">
+          <div className="w-1/3">
+            <Slot label="Lauko korta (bendra)" icon="🌍" accent />
+          </div>
+        </div>
+
+        <Separator label="" />
+
+        {/* Mano artefaktai */}
+        <div className="grid grid-cols-2 gap-1">
+          <Slot label="Artefaktas" icon="⚗" dim />
+          <Slot label="Artefaktas" icon="⚗" dim />
+        </div>
+
+        {/* Mano padarai + čempionas */}
+        <div className="grid grid-cols-5 gap-1">
+          <Slot label="Čempionas" icon="👑" accent />
+          <Slot label="Padaras" icon="⚔" />
+          <Slot label="Padaras" icon="⚔" />
+          <Slot label="Padaras" icon="⚔" />
+          <Slot label="Padaras" icon="⚔" />
+        </div>
+
+        {/* Mano kaladė / ŽMK / kapinynas */}
+        <div className="grid grid-cols-4 gap-1">
+          <Slot label="Kaladė" icon="🂠" dim />
+          <Slot label="ŽMK" icon="🎴" dim />
+          <Slot label="Kapinynas" icon="💀" dim />
+          <Slot label="ŽMK discard" icon="📤" dim />
+        </div>
+
+        {/* Mano reakcijos */}
+        <div className="grid grid-cols-6 gap-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Slot key={i} label="Reakcija" icon="⚡" dim />
+          ))}
+        </div>
+
+        <p className="text-xs text-center font-semibold mt-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-muted)', fontSize: 9, letterSpacing: '0.1em' }}>
+          TU
+        </p>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {[
+            { icon: '👑', label: 'Čempionas' },
+            { icon: '⚔', label: 'Padaras (iki 5 su Čempion.)' },
+            { icon: '⚗', label: 'Artefaktas (maks. 2)' },
+            { icon: '⚡', label: 'Reakcija (neribota)' },
+            { icon: '🌍', label: 'Lauko korta (bendra, maks. 1)' },
+            { icon: '🎴', label: 'ŽMK – Žalos modifikatorių kaladė' },
+          ].map((l) => (
+            <div key={l.label} className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+              <span>{l.icon}</span>
+              <span>{l.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
