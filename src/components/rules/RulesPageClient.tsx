@@ -80,7 +80,7 @@ function RulesSearch({ query, onQuery }: { query: string; onQuery: (q: string) =
         type="search"
         value={query}
         onChange={(e) => onQuery(e.target.value)}
-        placeholder="Ieškoti taisyklėse, statusuose, kortų tipuose…"
+        placeholder="Ieškoti taisyklėse, ŽMK, raktažodžiuose, būsenose…"
         className="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl outline-none focus:ring-2"
         style={{
           background: 'var(--bg-surface)',
@@ -88,7 +88,7 @@ function RulesSearch({ query, onQuery }: { query: string; onQuery: (q: string) =
           color: 'var(--text-primary)',
           fontFamily: 'var(--rvn-font-body)',
         }}
-        aria-label="Ieškoti taisyklėse, statusuose, kortų tipuose"
+        aria-label="Ieškoti taisyklėse, ŽMK, raktažodžiuose, būsenose"
       />
       {query && (
         <button
@@ -205,17 +205,36 @@ export function RulesPageClient() {
   }, [])
 
   const filteredSections = useMemo(() => {
-    const q = query.toLowerCase().trim()
+    const rawQ = query.toLowerCase().trim()
+    // Synonym map — anglicizmai → lietuviški terminai paieškoje
+    const SYNONYMS: Record<string, string> = {
+      'dmd': 'žmk žalos modifikatorių',
+      'damage modifier': 'žalos modifikatorių',
+      'coinflip': 'monetos metimas',
+      'keyword': 'raktažodis',
+      'status': 'būsena',
+      'graveyard': 'panaudotų kortų krūva',
+      'discard': 'panaudotų kortų krūva',
+      'hand': 'ranka',
+      'summon': 'iškviesti',
+      'buff': 'pastiprinimas',
+      'aoe': 'masinis efektas',
+      'stack': 'efektų eilė',
+      'phase': 'fazė',
+      'tribute': 'tribute',
+      'mulligan': 'pradinės rankos keitimas',
+    }
+    const q = SYNONYMS[rawQ] ? `${rawQ} ${SYNONYMS[rawQ]}` : rawQ
     return RULES_SECTIONS.filter((s) => {
       const matchCat = category === 'viskas' || s.category === category
       if (!matchCat) return false
-      if (!q) return true
+      if (!rawQ) return true
       const haystack = [
         s.title, s.summary ?? '',
         ...(s.relatedTerms ?? []),
         ...s.content.flatMap((b) => [b.text ?? '', ...(b.items ?? []), ...(b.rows?.flat() ?? [])]),
       ].join(' ').toLowerCase()
-      return haystack.includes(q)
+      return q.split(' ').some(term => term && haystack.includes(term))
     })
   }, [query, category])
 
@@ -256,7 +275,7 @@ export function RulesPageClient() {
           <CategoryChips active={category} onSelect={setCategory} />
           {query && (
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Rasta: <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{filteredSections.length}</span>
+              Rasta skyrių: <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{filteredSections.length}</span>
             </p>
           )}
         </div>
@@ -294,7 +313,7 @@ export function RulesPageClient() {
                   Nieko nerasta
                 </p>
                 <p className="text-sm max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                  Pabandyk ieškoti pagal kortos tipą, statusą ar taisyklės terminą.
+                  Pabandyk ieškoti pagal kortų tipą, būseną, raktažodį ar taisyklės terminą.
                 </p>
                 <button
                   onClick={() => { setQuery(''); setCategory('viskas') }}

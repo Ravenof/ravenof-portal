@@ -50,12 +50,12 @@ function Block({ block }: { block: RuleBlock }) {
               {block.label}
             </p>
           )}
-          <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid var(--bg-border)' }}>
-            <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+          <div className="rounded-lg" style={{ border: '1px solid var(--bg-border)', overflowX: 'auto' }}>
+            <table className="min-w-full text-xs" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <thead>
                 <tr style={{ background: 'rgba(240,180,41,0.06)', borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
                   {block.headers?.map((h) => (
-                    <th key={h} className="px-3 py-2 text-left font-semibold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                    <th key={h} className="px-3 py-2 text-left font-semibold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.04em' }}>
                       {h}
                     </th>
                   ))}
@@ -65,7 +65,7 @@ function Block({ block }: { block: RuleBlock }) {
                 {block.rows?.map((row, ri) => (
                   <tr key={ri} style={{ borderBottom: ri < (block.rows?.length ?? 0) - 1 ? '1px solid rgba(255,255,255,0.04)' : undefined, background: ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
                     {row.map((cell, ci) => (
-                      <td key={ci} className="px-3 py-2" style={{ color: ci === 0 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: ci === 0 ? 600 : 400, verticalAlign: 'top' }}>
+                      <td key={ci} className="px-3 py-2" style={{ color: ci === 0 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: ci === 0 ? 600 : 400, verticalAlign: 'top', wordBreak: 'break-word' }}>
                         {cell}
                       </td>
                     ))}

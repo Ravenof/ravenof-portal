@@ -16,9 +16,9 @@ export function DamageModifierDeckBlock() {
         <span className="text-lg">🎴</span>
         <div>
           <p className="text-xs font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-            Damage Modifier Deck — sudėtis
+            Žalos modifikatorių kaladė (ŽMK)
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Žalos modifikatorių kaladė · 20 kortų</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>20 kortų · viena kiekvienam žaidėjui</p>
         </div>
       </div>
 
@@ -56,9 +56,11 @@ export function DamageModifierDeckBlock() {
       {/* Rules */}
       <div className="px-4 pb-4 flex flex-col gap-2">
         {[
-          'Traukiama kiekvieną kartą, kai daroma žala.',
-          'Jei efektas daro žalą keliems taikiniams, kiekvienam taikiniui traukiama atskira korta.',
-          'Ištraukus ×2 arba ×0 — DMD permaišoma su discard pila.',
+          'Žalos modifikatorių korta traukiama kiekvienam žalos šaltiniui arba kiekvienam taikiniui pagal taisykles.',
+          'Jei efektas daro žalą keliems taikiniams — kiekvienam taikiniui traukiama atskira korta.',
+          'Panaudotos ŽMK kortos keliauja į panaudotų ŽMK kortų krūvą.',
+          'Jei ŽMK kaladė tuščia — panaudotų ŽMK kortų krūva permaišoma ir suformuojama nauja ŽMK kaladė.',
+          'Ištraukus ×2 arba ×0 — ŽMK permaišoma su panaudotų kortų krūva nedelsiant po žalos išsprendimo.',
         ].map((t, i) => (
           <div key={i} className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
             <span style={{ color: 'var(--gold)', marginTop: 1 }}>▸</span>
