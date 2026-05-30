@@ -60,7 +60,7 @@ function MiniCard({ card, hasImage }: { card: CardEntry; hasImage: boolean }) {
 
 export function DamageModifierDeckBlock() {
   // hasImage: pakeisk į true kai įdėsi realias nuotraukas į public/rules/zmk/
-  const hasImage = true
+  const hasImage = false
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(240,180,41,0.2)', background: 'var(--bg-surface)' }}>
