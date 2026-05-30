@@ -1,3 +1,6 @@
+'use client'
+
+import React from 'react'
 import type { RuleSection, RuleBlock } from '@/data/rules'
 import { DamageModifierDeckBlock } from './DamageModifierDeckBlock'
 import { CardAnatomyBlock } from './CardAnatomyBlock'

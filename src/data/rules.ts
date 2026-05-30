@@ -104,7 +104,7 @@ export const RULES_SECTIONS: RuleSection[] = [
       },
       {
         type: 'paragraph',
-        text: 'Būsenų žetonai: naudojami gyvybės taškams, pastiprinimumsumsilpninimams ir būsenoms sekti. Kiekvienas žetonas turi dvi puses.',
+        text: 'Būsenų žetonai: naudojami gyvybės taškams, pastiprinimams ir susilpninimams ir būsenoms sekti. Kiekvienas žetonas turi dvi puses.',
       },
       { type: 'tokenGrid' },
     ],
