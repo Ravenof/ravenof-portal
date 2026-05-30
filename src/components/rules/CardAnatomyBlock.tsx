@@ -1,41 +1,47 @@
+'use client'
+
+import Image from 'next/image'
+
 const ANATOMY_ITEMS = [
-  { label: 'Iškvietimo kaina',  desc: 'Kiek aukso mokama. Viršuje dešinėje: aukso moneta.' },
-  { label: 'Pavadinimas',       desc: 'Kortos identifikatorius.' },
-  { label: 'Kortų tipas',       desc: 'Ikonėlė: Padaras, Burtas, Artefaktas ir kt.' },
-  { label: 'Frakcija',          desc: 'Kuriai frakcijai priklauso korta.' },
-  { label: 'Efekto tekstas',    desc: 'Kortų gebėjimai. Raktažodžiai paryškintu šriftu.' },
-  { label: 'ATK (⚔)',           desc: 'Puolimo taškai – žalos kiekis atakuojant.' },
-  { label: 'HP (♥)',            desc: 'Gyvybės taškai – kiek žalos atlaikoma.' },
-  { label: 'Retumas',           desc: 'Nurodo kopijų limitą kaladėje.' },
+  { label: 'Iškvietimo kaina',  desc: 'Kiek aukso mokama. Viršutinis dešinysis kampas.' },
+  { label: 'Pavadinimas',       desc: 'Kortos identifikatorius.'                         },
+  { label: 'Kortų tipas',       desc: 'Ikonėlė — Padaras, Burtas, Artefaktas ir kt.'    },
+  { label: 'Frakcija',          desc: 'Kuriai frakcijai priklauso korta.'                },
+  { label: 'Efekto tekstas',    desc: 'Kortos gebėjimai. Raktažodžiai paryškintu šriftu.'},
+  { label: 'ATK (⚔)',           desc: 'Puolimo taškai — žalos kiekis atakuojant.'        },
+  { label: 'HP (♥)',            desc: 'Gyvybės taškai — kiek žalos atlaikoma.'           },
+  { label: 'Retumas',           desc: 'Nurodo, kiek kopijų leidžiama turėti kaladėje.'  },
 ]
 
 export function CardAnatomyBlock() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(240,180,41,0.2)' }}>
-      {/* Left: card mock */}
+      {/* Left: real card image */}
       <div className="flex items-center justify-center p-6" style={{ background: 'var(--bg-surface)' }}>
         <div
-          className="w-36 aspect-[2.5/3.5] rounded-xl flex flex-col overflow-hidden relative"
-          style={{ border: '2px solid rgba(240,180,41,0.4)', background: 'var(--bg-elevated)', boxShadow: '0 0 24px rgba(240,180,41,0.12)' }}
+          className="w-40 aspect-[2.5/3.5] rounded-xl overflow-hidden relative"
+          style={{ border: '2px solid rgba(240,180,41,0.4)', boxShadow: '0 0 24px rgba(240,180,41,0.12)' }}
         >
-          {/* Cost */}
-          <div className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black" style={{ background: 'rgba(240,180,41,0.9)', color: '#0a0a0f', fontFamily: 'var(--rvn-font-display)' }}>
-            6
-          </div>
-          {/* Illustration area */}
-          <div className="flex-1 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#1a1030,#0d1a2e)', borderBottom: '1px solid rgba(240,180,41,0.2)' }}>
-            <span className="text-3xl opacity-40">🃏</span>
-          </div>
-          {/* Bottom info */}
-          <div className="p-2" style={{ background: 'rgba(0,0,0,0.6)' }}>
-            <p className="text-xs font-bold truncate mb-0.5" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: '9px' }}>
-              Elvira Melvija
-            </p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)', fontSize: '8px' }}>◆ PADARAS · Mistikos Melodija</p>
-            <div className="flex justify-between mt-1">
-              <span className="text-xs" style={{ color: '#f87171', fontSize: '9px' }}>⚔ 6</span>
-              <span className="text-xs" style={{ color: '#4ade80', fontSize: '9px' }}>♥ 3</span>
-            </div>
+          <Image
+            src="/rules/examples/card-example-creature.png"
+            alt="Kortos pavyzdys"
+            fill
+            className="object-cover"
+            onError={(e) => {
+              // Fallback: show placeholder
+              const parent = (e.currentTarget as HTMLImageElement).parentElement
+              if (parent) {
+                (e.currentTarget as HTMLImageElement).style.display = 'none'
+                const fb = parent.querySelector('.card-fallback') as HTMLElement
+                if (fb) fb.style.display = 'flex'
+              }
+            }}
+          />
+          {/* Fallback */}
+          <div className="card-fallback absolute inset-0 flex flex-col items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(135deg,#1a1030,#0d1a2e)', display: 'none' }}>
+            <span className="text-5xl opacity-30">🃏</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Kortos pavyzdys</span>
           </div>
         </div>
       </div>
@@ -47,7 +53,8 @@ export function CardAnatomyBlock() {
         </p>
         {ANATOMY_ITEMS.map((item, i) => (
           <div key={i} className="flex gap-2 text-xs">
-            <span className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(240,180,41,0.1)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+            <span className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold"
+              style={{ background: 'rgba(240,180,41,0.1)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
               {i + 1}
             </span>
             <div>
