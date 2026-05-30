@@ -12,7 +12,7 @@ const HERO_STATS = [
   { label: '1v1',    value: '40 HP'        },
   { label: '2v2',    value: '60 HP komandai' },
   { label: 'Kaladė', value: '30–40 kortų'  },
-  { label: 'DMD',    value: '20 kortų'     },
+  { label: 'ŽMK',    value: '20 kortų'     },
 ]
 
 function RulesHero({ onQuickLink }: { onQuickLink: (href: string) => void }) {
