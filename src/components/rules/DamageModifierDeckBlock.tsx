@@ -37,13 +37,15 @@ function MiniCard({ card, hasImage }: { card: CardEntry; hasImage: boolean }) {
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />
         ) : null}
-        {/* Fallback visada rodomas kaip overlay kai nėra nuotraukos */}
-        <span
-          className="text-base font-black z-10 relative"
-          style={{ color: card.color, fontFamily: 'var(--rvn-font-display)', textShadow: hasImage ? '0 1px 4px rgba(0,0,0,0.8)' : 'none' }}
-        >
-          {card.value}
-        </span>
+        {/* Vertės tekstas rodomas TIK kai nėra nuotraukos */}
+        {!hasImage && (
+          <span
+            className="text-base font-black z-10 relative"
+            style={{ color: card.color, fontFamily: 'var(--rvn-font-display)' }}
+          >
+            {card.value}
+          </span>
+        )}
         {card.special && (
           <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full z-10" style={{ background: 'var(--gold)' }} />
         )}
