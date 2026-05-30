@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, BookOpen, CalendarDays, Map, User } from 'lucide-react'
+import { LayoutGrid, BookOpen, CalendarDays, Map, User, Shield } from 'lucide-react'
 
 // Routes kuriuose nerodome bottom nav
 const HIDE_PREFIXES = [
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/my-decks', icon: BookOpen,     label: 'Kaladės'   },
   { href: '/events',   icon: CalendarDays, label: 'Renginiai' },
   { href: '/lore',     icon: Map,          label: 'Atlasas'   },
+  { href: '/rules',    icon: Shield,       label: 'Taisyklės' },
   { href: '/me',       icon: User,         label: 'Profilis'  },
 ]
 
@@ -31,6 +32,7 @@ const ROUTE_GROUPS: Record<string, string[]> = {
   '/my-decks': ['/my-decks'],
   '/events':   ['/events', '/community-decks', '/leaderboards', '/arena', '/life-tracker'],
   '/lore':     ['/lore'],
+  '/rules':    ['/rules'],
   '/me':       ['/me', '/users', '/profile'],
 }
 
