@@ -9,6 +9,7 @@ import { TokenGrid } from './TokenGrid'
 import { BattlefieldDiagram } from './BattlefieldDiagram'
 import { ChampionRulesBlock } from './ChampionRulesBlock'
 import { GoldProgressionBlock } from './GoldProgressionBlock'
+import { RarityBlock } from './RarityBlock'
 
 const CALLOUT_STYLES: Record<string, { border: string; bg: string; labelColor: string }> = {
   important: { border: 'rgba(240,180,41,0.4)',  bg: 'rgba(240,180,41,0.06)',  labelColor: 'var(--gold)'   },
@@ -107,6 +108,7 @@ function Block({ block }: { block: RuleBlock }) {
     case 'battlefieldDiagram': return <BattlefieldDiagram />
     case 'championBlock':      return <ChampionRulesBlock />
     case 'goldProgression':    return <GoldProgressionBlock />
+    case 'rarityBlock':        return <RarityBlock />
 
     default:
       return null

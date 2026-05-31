@@ -25,7 +25,7 @@ function RulesHero({ onQuickLink }: { onQuickLink: (href: string) => void }) {
           <BookOpen className="w-6 h-6 shrink-0 mt-0.5" style={{ color: 'var(--gold)' }} />
           <div>
             <h1 className="text-xl font-black leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
-              Ravenof: Second Edition
+              Ravenof: Antrasis leidimas
             </h1>
             <p className="text-sm font-semibold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
               Taisyklių knyga
@@ -206,7 +206,7 @@ export function RulesPageClient() {
 
   const filteredSections = useMemo(() => {
     const rawQ = query.toLowerCase().trim()
-    // Synonym map — anglicizmai → lietuviški terminai paieškoje
+    // Synonym map - anglicizmai → lietuviški terminai paieškoje
     const SYNONYMS: Record<string, string> = {
       'dmd': 'žmk žalos modifikatorių',
       'damage modifier': 'žalos modifikatorių',
@@ -283,7 +283,7 @@ export function RulesPageClient() {
         {/* Body: sidebar + content + quick ref */}
         <div className="flex gap-6 items-start">
 
-          {/* Sidebar — desktop sticky */}
+          {/* Sidebar - desktop sticky */}
           <aside className="hidden lg:block w-52 shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
             <RulesSidebar activeId={activeId} onNav={scrollTo} />
           </aside>
@@ -299,7 +299,7 @@ export function RulesPageClient() {
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}
                 aria-label="Pasirinkti skyrių"
               >
-                <option value="">— Pasirinkti skyrių —</option>
+                <option value=""> -  Pasirinkti skyrių  - </option>
                 {RULES_SECTIONS.map((s) => (
                   <option key={s.id} value={s.id}>{s.number}. {s.title}</option>
                 ))}
@@ -330,7 +330,7 @@ export function RulesPageClient() {
             )}
           </div>
 
-          {/* Right sidebar — quick reference, desktop xl+ */}
+          {/* Right sidebar - quick reference, desktop xl+ */}
           <aside className="hidden xl:block w-56 shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
             <RulesQuickReference />
           </aside>

@@ -20,7 +20,7 @@ const PHASES = [
 ]
 
 const RULES = [
-  'Čempionas yra atskiras kortų tipas — ne Padaras, nors dalijasi padarų zona.',
+  'Čempionas yra atskiras kortų tipas - ne Padaras, nors dalijasi padarų zona.',
   'Neturi ATK reikšmės. Negali atlikti įprastos atakos, nebent kortos tekstas nurodo kitaip.',
   'Turi gyvybės taškus ir 3 gebėjimus.',
   'Per vieną savo ėjimą galima naudoti tik vieną gebėjimą.',
@@ -28,8 +28,8 @@ const RULES = [
   'Kortos tekstas nurodo, nuo kurios fazės konkretūs gebėjimai yra pasiekiami.',
   'Negauna atgalinės žalos naudodamas gebėjimą (gebėjimas yra efektas, ne ataka).',
   'Nutildytas arba Apsvaigintas Čempionas negali naudoti gebėjimų.',
-  'To paties Čempiono kovos lauke negali būti daugiau nei vienas. Skirtingų — gali būti keli.',
-  'Dedamas į padarų zoną — įskaičiuojamas į 5 vietų ribą.',
+  'To paties Čempiono kovos lauke negali būti daugiau nei vienas. Skirtingų - gali būti keli.',
+  'Dedamas į padarų zoną - įskaičiuojamas į 5 vietų ribą.',
   'Gyvybės taškams nukritus iki 0, Čempionas keliauja į panaudotų kortų krūvą.',
 ]
 
@@ -60,7 +60,7 @@ export function ChampionRulesBlock() {
       {/* Aukojimas sources */}
       <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid rgba(240,180,41,0.15)' }}>
         <p className="text-xs font-bold mb-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-          AUKOJIMAS — IŠKVIETIMO MOKESTIS
+          AUKOJIMAS - IŠKVIETIMO MOKESTIS
         </p>
         <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
           Kiek aukojimo reikia, visada nurodo konkreti Čempiono korta. Aukojimą galima mokėti bet kokia kombinacija: padarais iš savo kovos lauko ir kortomis iš rankos.

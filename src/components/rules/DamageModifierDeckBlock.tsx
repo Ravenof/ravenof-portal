@@ -85,9 +85,9 @@ export function DamageModifierDeckBlock() {
       <div className="px-4 pb-4 flex flex-col gap-2">
         {[
           'Žalos modifikatorių korta traukiama kiekvienam žalos šaltiniui arba kiekvienam taikiniui pagal taisykles.',
-          'Jei efektas daro žalą keliems taikiniams — kiekvienam taikiniui traukiama atskira korta.',
-          'Panaudotos ŽMK kortos keliauja į panaudotų ŽMK kortų krūvą.',
-          'Ištraukus ×2 arba ×0 — ŽMK ir visa panaudotų kortų krūva (įskaitant ką tik ištrauktą ×2/×0 kortą) iš karto permaišoma. Nauja kaladė suformuojama prieš traukiant kortą kitam taikiniui.',
+          'Jei efektas daro žalą keliems taikiniams - kiekvienam taikiniui traukiama atskira korta.',
+          'Panaudotos ŽMK kortos keliauja į ŽMK kapinyną.',
+          'Ištraukus ×2 arba ×0 - ŽMK ir visa panaudotų kortų krūva (įskaitant ką tik ištrauktą ×2/×0 kortą) iš karto permaišoma. Nauja kaladė suformuojama prieš traukiant kortą kitam taikiniui.',
         ].map((t, i) => (
           <div key={i} className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
             <span style={{ color: 'var(--gold)', marginTop: 1 }}>▸</span>

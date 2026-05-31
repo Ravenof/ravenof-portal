@@ -139,10 +139,10 @@ export function BattlefieldDiagram() {
       <div className="p-3 flex flex-col gap-2">
         <PlayerBoard label="PRIEŠININKAS" flipped />
         <Separator label="⚔ KOVOS LAUKAS ⚔" />
-        {/* Shared field card — centre between players */}
+        {/* Shared field card - centre between players */}
         <div className="flex justify-center">
           <div className="w-40">
-            <Slot label="Lauko korta — bendra abiem (maks. 1)" icon="🌍" accent />
+            <Slot label="Lauko korta - bendra abiem (maks. 1)" icon="🌍" accent />
           </div>
         </div>
         <Separator label="" />
@@ -156,7 +156,7 @@ export function BattlefieldDiagram() {
             { icon: '⚗',  label: 'Artefaktas (maks. 2)' },
             { icon: '⚡',  label: 'Reakcija (maks. 3)' },
             { icon: '🌍',  label: 'Lauko korta (bendra, maks. 1)' },
-            { icon: '🎴',  label: 'ŽMK — Žalos modifikatorių kaladė' },
+            { icon: '🎴',  label: 'ŽMK - Žalos modifikatorių kaladė' },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-1" style={{ color: 'var(--text-muted)', fontSize: 10 }}>
               <span>{l.icon}</span><span>{l.label}</span>

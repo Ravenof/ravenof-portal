@@ -14,6 +14,7 @@ export type RuleBlockType =
   | 'championBlock'
   | 'goldProgression'
   | 'cardAnatomy'
+  | 'rarityBlock'
 
 export interface RuleBlock {
   type: RuleBlockType
@@ -59,13 +60,13 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'apie-zaidima',
     number: '1',
     title: 'Apie žaidimą ir tikslas',
-    summary: 'Ravenof: Second Edition – dviejų žaidėjų kolekcinis kortų žaidimas tamsiame fantastiniame pasaulyje.',
+    summary: 'Ravenof: Antrasis leidimas – dviejų žaidėjų kolekcinis kortų žaidimas tamsiame fantastiniame pasaulyje.',
     category: 'tikslas',
     relatedTerms: ['HP', 'gyvybės taškai', 'tikslas', '1v1', '2v2', 'laimėjimas'],
     content: [
       {
         type: 'paragraph',
-        text: 'Ravenof: Second Edition yra dviejų žaidėjų (arba dviejų komandų) kolekcinis kortų žaidimas, vykstantis tamsiame fantastiniame pasaulyje, kuriame susiduria skirtingos frakcijos. Žaidėjai sudaro savo kaladę, pasirenka frakciją ir kovoja prieš priešininką — naudodami padarus, burtus, artefaktus ir kitus efektus, siekia sumažinti priešininko gyvybės taškus iki nulio.',
+        text: 'Ravenof: Antrasis leidimas yra dviejų žaidėjų (arba dviejų komandų) kolekcinis kortų žaidimas, vykstantis tamsiame fantastiniame pasaulyje, kuriame susiduria skirtingos frakcijos. Žaidėjai sudaro savo kaladę, pasirenka frakciją ir kovoja prieš priešininką - naudodami padarus, burtus, artefaktus ir kitus efektus, siekia sumažinti priešininko gyvybės taškus iki nulio.',
       },
       {
         type: 'callout',
@@ -124,7 +125,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         items: [
           'Kaladę turi sudaryti nuo 30 iki 40 kortų.',
           'Leidžiama naudoti tik vienos frakcijos kortas ir neutralias arba universalias kortas.',
-          'Dviejų skirtingų frakcijų kortų viename denyje maišyti negalima.',
+          'Dviejų skirtingų frakcijų kortų vienoje kaladėje maišyti negalima.',
         ],
       },
       {
@@ -134,16 +135,35 @@ export const RULES_SECTIONS: RuleSection[] = [
         rows: [
           ['Paprasta',   'Iki 2'],
           ['Magiška',    'Iki 2'],
-          ['Reta',       'Iki 2'],
+          ['Unikalus',   'Iki 2'],
           ['Epiška',     '1'],
           ['Legendinė',  '1'],
-          ['Čempionas',  'Pagal kortos retumą'],
+          ['Čempionas unikalus',  'Iki 2'],
+          ['Čempionas legendinis', '1'],
         ],
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
-        text: 'Čempionai: epiška retumas = 1 kopija kaladėje, legendinis retumas = 1 kopija kaladėje. To paties Čempiono kovos lauke negali būti daugiau nei vienas — skirtingų Čempionų gali būti keli.',
+        text: 'Čempionai: unikalus retumas = iki 2 kopijų kaladėje, legendinis retumas = 1 kopija kaladėje. To paties Čempiono kovos lauke negali būti daugiau nei vienas - skirtingų Čempionų gali būti keli.',
+      },
+    ],
+  },
+
+
+  // ─── RETUMAI ─────────────────────────────────────────────────────────────
+  {
+    id: 'retumai',
+    number: '3b',
+    title: 'Retumų sistema',
+    summary: '5 retumų lygiai: Paprasta, Magiška, Unikalus, Epiškas, Legendinis. Kiekvienas žymimas deimanto simboliu.',
+    category: 'kaladė',
+    relatedTerms: ['retumas', 'paprasta', 'magiška', 'unikalus', 'epiškas', 'legendinis', 'deimantas', 'kopijų limitas'],
+    content: [
+      { type: 'rarityBlock' },
+      {
+        type: 'paragraph',
+        text: 'Kortos retumas nurodomas deimanto simboliu ant kortos. Kuo aukštesnis retumas, tuo galingesnis efektas ir mažesnis kopijų skaičius kaladėje.',
       },
     ],
   },
@@ -169,7 +189,7 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Demonų Orda',        'Sabotažas, prakeiksmai, priešininko kaladės ardymas. Psichologinis spaudimas ir tamsioji kontrolė.'],
           ['Mirties Maršas',     'Armijos plėtimas, panaudotų kortų krūvos naudojimas, negyvėlių nuolatinis spaudimas.'],
           ['Plėšikų Naktis',     'Iniciatyva, aukso vogimas, savos ekonomikos stiprinimas, greiti sprendimai.'],
-          ['Goblinų Gauja',      'Chaosas, greita agresija, didelė rizika — kortos dažnai naudoja Monetos metimą, kurio nesėkmė gali sukelti šalutinį poveikį pačiam žaidėjui.'],
+          ['Goblinų Gauja',      'Chaosas, greita agresija, didelė rizika - kortos dažnai naudoja Monetos metimą, kurio nesėkmė gali sukelti šalutinį poveikį pačiam žaidėjui.'],
           ['Mistikos Melodija',  'Burtai, kontrolė, masinis žalos padarymas, magiškos sinergijos ir reakcijos.'],
           ['Rytų Vėjas',         'Sėlinimas, tikslūs smūgiai, apėjimas Pasišaipymo, greitas žaidimo tempas.'],
           ['Šviesos Pulkas',     'Gynyba, Pasišaipymas, Magiškasis skydas, struktūruota kovos lauko pozicija ir kontrolė.'],
@@ -180,7 +200,7 @@ export const RULES_SECTIONS: RuleSection[] = [
       {
         type: 'callout',
         calloutVariant: 'example',
-        label: 'Goblinų Gauja — rizikos mechanika',
+        label: 'Goblinų Gauja - rizikos mechanika',
         text: 'Goblinų kortos dažnai remiasi rizika, greičiu ir Monetos metimu. Jos gali suteikti daugiau vertės nei įprastos kortos už tą pačią kainą, tačiau nesėkmės atveju gali sukelti šalutinį poveikį pačiam žaidėjui. Tai yra sąmoninga frakcijos identiteto dalis.',
       },
     ],
@@ -201,10 +221,10 @@ export const RULES_SECTIONS: RuleSection[] = [
         items: [
           'Aukso kaina: kiek aukso reikia sumokėti norint išžaisti kortą (nurodyta viršutiniame dešiniajame kampe).',
           'Pavadinimas: kortos identifikatorius.',
-          'Kortų tipas: ikonėlė rodo tipą — Padaras, Burtas, Artefaktas ir kt.',
+          'Kortų tipas: ikonėlė rodo tipą - Padaras, Burtas, Artefaktas ir kt.',
           'Frakcija: kuriai frakcijai priklauso korta.',
           'Efekto tekstas: kortos gebėjimai. Raktažodžiai paryškintu šriftu.',
-          'ATK (⚔): puolimo taškai — žalos kiekis atakuojant.',
+          'ATK (⚔): puolimo taškai - žalos kiekis atakuojant.',
           'Gyvybės taškai (♥): kiek žalos korta atlaikoma prieš žūdama.',
           'Retumas: nurodo, kiek kopijų leidžiama turėti kaladėje.',
         ],
@@ -232,13 +252,13 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Padaras',
-        text: 'Pagrindinis kovos lauko vienetas su ATK ir gyvybės taškais. Negali atakuoti tą patį ėjimą, kai buvo iškviestas — išskyrus padarus su Sprintu. Vienu metu kovos lauke gali būti iki 5 padarų (įskaitant Čempioną). Gyvybės taškams nukritusse iki 0, padaras keliauja į panaudotų kortų krūvą.',
+        text: 'Pagrindinis kovos lauko vienetas su ATK ir gyvybės taškais. Negali atakuoti tą patį ėjimą, kai buvo iškviestas - išskyrus padarus su Sprintu. Vienu metu kovos lauke gali būti iki 5 padarų (įskaitant Čempioną). Gyvybės taškams nukritusse iki 0, padaras keliauja į panaudotų kortų krūvą.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Burtas',
-        text: 'Vienkartinė korta su momentišku efektu. Žaidėjas sumoka aukso kainą, efektas aktyvuojamas, korta keliauja į panaudotų kortų krūvą, nebent kortos tekstas nurodo kitaip. Jei burtas padaro žalą — kiekvienam taikiniui traukiama atskira Žalos modifikatorių korta.',
+        text: 'Vienkartinė korta su momentišku efektu. Žaidėjas sumoka aukso kainą, efektas aktyvuojamas, korta keliauja į panaudotų kortų krūvą, nebent kortos tekstas nurodo kitaip. Jei burtas padaro žalą - kiekvienam taikiniui traukiama atskira Žalos modifikatorių korta.',
       },
       {
         type: 'callout',
@@ -250,19 +270,19 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'warning',
         label: 'Prakeiksmas',
-        text: 'Korta, kuri trukdo priešininkui — įmaišoma į jo kaladę. Žaidėjas sumoka aukso kainą, o priešininkas įsimaišo kortą į savo kaladę. Priešininkui ištraukus prakeiksmą — efektas iš karto aktyvuojamas, korta keliauja į panaudotų kortų krūvą. Prakeiksmo negalima žaisti tiesiai iš rankos. Pastaba: kai abi pusės žaidžia Demonų Ordą ir abi naudoja kortų įmautės — prakeiksmai dedami atversti.',
+        text: 'Korta, kuri trukdo priešininkui - įmaišoma į jo kaladę. Žaidėjas sumoka aukso kainą, o priešininkas įsimaišo kortą į savo kaladę. Priešininkui ištraukus prakeiksmą - efektas iš karto aktyvuojamas, korta keliauja į panaudotų kortų krūvą. Prakeiksmo negalima žaisti tiesiai iš rankos. Pastaba: kai abi pusės žaidžia Demonų Ordą ir abi naudoja kortų įmautės - prakeiksmai dedami atversti.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Reakcija',
-        text: 'Reakcija yra užversta korta, kuri aktyvuojasi tada, kai išsipildo jos sąlyga. Reakciją galima padėti tik savo pagrindinės fazės metu, sumokėjus aukso kainą. Ji lieka užversta su žalos sekimo žetonu viršuje — žetonas rodo REALIAI sumokėtą kainą (ne bazinę). Priešininkas mato, kiek kainavo, bet nežino efekto. Kai sąlyga išsipildoma, reakcija atverčiama, efektas išsprendžiamas, korta keliauja į panaudotų kortų krūvą. Reakcija gali aktyvuotis tiek žaidėjo, tiek priešininko ėjimo metu. Jei vienu metu gali aktyvuotis kelios reakcijos — pirmiausia sprendžiama ta, kuri aktyvavosi paskutinė. Vienu metu galima turėti iki 3 reakcijų.',
+        text: 'Reakcija yra užversta korta, kuri aktyvuojasi tada, kai išsipildo jos sąlyga. Reakciją galima padėti tik savo pagrindinės fazės metu, sumokėjus aukso kainą. Ji lieka užversta su žalos sekimo žetonu viršuje - žetonas rodo REALIAI sumokėtą kainą (ne bazinę). Priešininkas mato, kiek kainavo, bet nežino efekto. Kai sąlyga išsipildoma, reakcija atverčiama, efektas išsprendžiamas, korta keliauja į panaudotų kortų krūvą. Reakcija gali aktyvuotis tiek žaidėjo, tiek priešininko ėjimo metu. Jei vienu metu gali aktyvuotis kelios reakcijos - pirmiausia sprendžiama ta, kuri aktyvavosi paskutinė. Vienu metu galima turėti iki 3 reakcijų.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Laukas',
-        text: 'Globali korta, keičianti kovos sąlygas visam laukui. Neturi gyvybės taškų. Vienu metu gali būti aktyvios tik viena lauko korta — nauja pakeičia senąją. Efektas veikia abu žaidėjus, nebent kortos tekstas nurodo kitaip.',
+        text: 'Globali korta, keičianti kovos sąlygas visam laukui. Neturi gyvybės taškų. Vienu metu gali būti aktyvios tik viena lauko korta - nauja pakeičia senąją. Efektas veikia abu žaidėjus, nebent kortos tekstas nurodo kitaip.',
       },
     ],
   },
@@ -272,9 +292,9 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'zalos-modifikatoriaus-kalade',
     number: '7',
     title: 'Žalos modifikatorių kaladė (ŽMK)',
-    summary: 'ŽMK — 20 kortų kaladė, traukiama kiekvieną kartą kai daroma žala. Nustato, ar žala padidėja, sumažėja ar pasikeičia.',
+    summary: 'ŽMK - 20 kortų kaladė, traukiama kiekvieną kartą kai daroma žala. Nustato, ar žala padidėja, sumažėja ar pasikeičia.',
     category: 'zmk',
-    relatedTerms: ['ŽMK', 'Žalos modifikatorių kaladė', 'žala', 'modifikatorius', 'DMD', 'x2', 'x0', 'permaišymas', 'panaudotų ŽMK kortų krūva'],
+    relatedTerms: ['ŽMK', 'Žalos modifikatorių kaladė', 'žala', 'modifikatorius', 'DMD', 'x2', 'x0', 'permaišymas', 'ŽMK kapinynas'],
     content: [
       {
         type: 'paragraph',
@@ -285,17 +305,17 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'important',
         label: 'Keli taikiniai',
-        text: 'Jei vienas efektas daro žalą keliems taikiniams — kiekvienam taikiniui traukiama atskira Žalos modifikatorių korta.',
+        text: 'Jei vienas efektas daro žalą keliems taikiniams - kiekvienam taikiniui traukiama atskira Žalos modifikatorių korta.',
       },
       {
         type: 'list',
         items: [
-          'Panaudotos ŽMK kortos keliauja į panaudotų ŽMK kortų krūvą.',
-          'Jei reikia traukti ŽMK kortą, bet ŽMK kaladė tuščia — panaudotų ŽMK kortų krūva permaišoma ir suformuojama nauja ŽMK kaladė.',
-          'Ištraukus ×2 arba ×0 kortą — ŽMK permaišoma su panaudotų kortų krūva nedelsiant po žalos išsprendimo.',
+          'Panaudotos ŽMK kortos keliauja į ŽMK kapinyną.',
+          'Jei reikia traukti ŽMK kortą, bet ŽMK kaladė tuščia - ŽMK kapinynas permaišoma ir suformuojama nauja ŽMK kaladė.',
+          'Ištraukus ×2 arba ×0 kortą - ŽMK permaišoma su panaudotų kortų krūva nedelsiant po žalos išsprendimo.',
           'Žala negali nukristi žemiau 0. Nulinė žala negydo.',
-          'Magiškojo skydo atveju žala blokuojama — ŽMK korta netraukiama.',
-          'Jei žala = 0, bet efektas turi papildomų veiksmų (pvz., būsenos suteikimas) — jie vis tiek pritaikomi.',
+          'Magiškojo skydo atveju žala blokuojama - ŽMK korta netraukiama.',
+          'Jei žala = 0, bet efektas turi papildomų veiksmų (pvz., būsenos suteikimas) - jie vis tiek pritaikomi.',
         ],
       },
       {
@@ -329,21 +349,21 @@ export const RULES_SECTIONS: RuleSection[] = [
         label: 'Kovos lauko zonos',
         headers: ['Zona', 'Aprašymas', 'Maks. limitas'],
         rows: [
-          ['Pagrindinė kaladė',       'Žaidėjo kortų kaladė. Laikoma užversta.',                                        '—'],
-          ['Panaudotų kortų krūva',   'Panaudotos ir žuvusios kortos. Atvira — abu žaidėjai mato.',                      '—'],
+          ['Pagrindinė kaladė',       'Žaidėjo kortų kaladė. Laikoma užversta.',                                        ' - '],
+          ['Panaudotų kortų krūva',   'Panaudotos ir žuvusios kortos. Atvira - abu žaidėjai mato.',                      ' - '],
           ['Ranka',                   'Žaidėjo kortos. Priešininkas jų nematytoja.',                                      'Maks. 10'],
           ['Padarų zona',             'Padarai ir Čempionas.',                                                            'Maks. 5'],
           ['Artefaktų zona',          'Aktyvūs artefaktai.',                                                              'Maks. 2'],
-          ['Reakcijų zona',           'Reakcijų kortos — užverstos su aukojimo žetonu, rodančiu realiai sumokėtą kainą.', 'Maks. 3'],
+          ['Reakcijų zona',           'Reakcijų kortos - užverstos su aukojimo žetonu, rodančiu realiai sumokėtą kainą.', 'Maks. 3'],
           ['Lauko kortos zona',       'Aktyvi lauko korta. Bendra abiem žaidėjams.',                                     'Maks. 1'],
-          ['Žalos modifikatorių kaladė (ŽMK)', 'Atskira 20 kortų kaladė. Laikoma užversta.',                           '—'],
-          ['Panaudotų ŽMK kortų krūva', 'Panaudotos ŽMK kortos.',                                                       '—'],
+          ['Žalos modifikatorių kaladė (ŽMK)', 'Atskira 20 kortų kaladė. Laikoma užversta.',                           ' - '],
+          ['Panaudotų ŽMK kortų krūva', 'Panaudotos ŽMK kortos.',                                                       ' - '],
         ],
       },
       {
         type: 'callout',
         calloutVariant: 'warning',
-        text: 'Jei rankoje yra daugiau nei 10 kortų — perteklinės kortos (žaidėjo pasirinkimu) iš karto keliauja į panaudotų kortų krūvą.',
+        text: 'Jei rankoje yra daugiau nei 10 kortų - perteklinės kortos (žaidėjo pasirinkimu) iš karto keliauja į panaudotų kortų krūvą.',
       },
       { type: 'battlefieldDiagram' },
     ],
@@ -387,7 +407,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         headers: ['Fazė', 'Aprašymas'],
         rows: [
           ['1. Ėjimo pradžia',   'Aktyvuojasi ėjimo pradžios efektai: artefaktai, Degantis, Apnuodytas ir kt.'],
-          ['2. Kortos traukimas','Žaidėjas traukia 1 kortą. Rankos limitas: 10 kortų — perteklius keliauja į panaudotų kortų krūvą.'],
+          ['2. Kortos traukimas','Žaidėjas traukia 1 kortą. Rankos limitas: 10 kortų - perteklius keliauja į panaudotų kortų krūvą.'],
           ['3. Aukso gavimas',   'Gaunamas auksas pagal ėjimo numerį (žr. skyrių „Aukso sistema").'],
           ['4. Pagrindinė fazė', 'Veiksmai atliekami bet kokia tvarka, kol žaidėjui užtenka aukso.'],
           ['5. Ėjimo pabaiga',   'Aktyvuojasi ėjimo pabaigos efektai. Nepanaudotas auksas dingsta.'],
@@ -450,30 +470,30 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Galimi atakos taikiniai',
-        text: 'Priešininko padaras, priešininkas (žaidėjas), priešininko artefaktas arba Čempionas. Kiekvienas padaras gali atakuoti 1 kartą per ėjimą. padaras negali atakuoti tą patį ėjimą, kai buvo iškviestas — išskyrus padarus su Sprintu.',
+        text: 'Priešininko padaras, priešininkas (žaidėjas), priešininko artefaktas arba Čempionas. Kiekvienas padaras gali atakuoti 1 kartą per ėjimą. padaras negali atakuoti tą patį ėjimą, kai buvo iškviestas - išskyrus padarus su Sprintu.',
       },
       {
         type: 'callout',
         calloutVariant: 'important',
         label: 'Pasišaipymas ir prioritetas',
-        text: 'Jei kovos lauke yra priešininko padaras su Pasišaipymu — visos atakos privalo rinktis jį kaip taikinį. Ši taisyklė galioja atakoms į visus taikinius. Burtams ir kitiems efektams negalioja. Jei kovos lauke yra keli Pasišaipymo padarai — žaidėjas renkasi, kurį iš jų pulti.',
+        text: 'Jei kovos lauke yra priešininko padaras su Pasišaipymu - visos atakos privalo rinktis jį kaip taikinį. Ši taisyklė galioja atakoms į visus taikinius. Burtams ir kitiems efektams negalioja. Jei kovos lauke yra keli Pasišaipymo padarai - žaidėjas renkasi, kurį iš jų pulti.',
       },
       {
         type: 'callout',
         calloutVariant: 'example',
         label: 'Žalos skaičiavimas',
-        text: 'padaras atakuoja padarą: abu žaidėjai vienu metu daro žalą vienas kitam — kiekvienas traukia savo ŽMK kortą. padaras atakuoja žaidėją, artefaktą arba Čempioną: puolantysis daro žalą su savo ŽMK korta, atgalinės žalos negauna.',
+        text: 'padaras atakuoja padarą: abu žaidėjai vienu metu daro žalą vienas kitam - kiekvienas traukia savo ŽMK kortą. padaras atakuoja žaidėją, artefaktą arba Čempioną: puolantysis daro žalą su savo ŽMK korta, atgalinės žalos negauna.',
       },
       {
         type: 'callout',
         calloutVariant: 'example',
         label: 'Pavyzdys',
-        text: 'Padaras 3/5 atakuoja padarą 2/4. Puolantysis traukia ŽMK: +0 → daro 3 žalos. Ginantysis traukia ŽMK: +1 → daro 3 žalos. Po atakos: puolančiojo liko 5−3=2 gyvybės taškų, ginančiojo — 4−3=1. Abu išgyvena.',
+        text: 'Padaras 3/5 atakuoja padarą 2/4. Puolantysis traukia ŽMK: +0 → daro 3 žalos. Ginantysis traukia ŽMK: +1 → daro 3 žalos. Po atakos: puolančiojo liko 5−3=2 gyvybės taškų, ginančiojo - 4−3=1. Abu išgyvena.',
       },
       {
         type: 'list',
         items: [
-          'Jei žala = 0 arba ×0, bet efektas turi papildomų veiksmų (pvz., būsenos suteikimas) — jie vis tiek pritaikomi.',
+          'Jei žala = 0 arba ×0, bet efektas turi papildomų veiksmų (pvz., būsenos suteikimas) - jie vis tiek pritaikomi.',
           'Žaidėjo gyvybės taškai negali viršyti pradinio maksimumo.',
           'Padarų ATK ir gyvybės taškai gali būti didinti be viršutinės ribos.',
         ],
@@ -482,7 +502,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'important',
         label: 'Magiškasis skydas',
-        text: 'Magiškojo skydo atveju žala blokuojama — ŽMK korta netraukiama. Po blokavimo Magiškasis skydas pašalinamas. Atgalinę žalą puolantysis gauna TIKTAI jei ginantysis buvo padaras (ne žaidėjas, ne artefaktas). Atgalinė žala skaičiuojama pagal ginančiojo padarų ATK reikšmę ir GINANČIOJO ŽMK kortą.',
+        text: 'Magiškojo skydo atveju žala blokuojama - ŽMK korta netraukiama. Po blokavimo Magiškasis skydas pašalinamas. Atgalinę žalą puolantysis gauna TIKTAI jei ginantysis buvo padaras (ne žaidėjas, ne artefaktas). Atgalinė žala skaičiuojama pagal ginančiojo padarų ATK reikšmę ir GINANČIOJO ŽMK kortą.',
       },
     ],
   },
@@ -498,7 +518,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     content: [
       {
         type: 'paragraph',
-        text: 'Čempionas neturi ATK reikšmės — jis turi tik gyvybės taškus ir gebėjimus. Čempionas negali atlikti įprastos atakos, nebent kortos tekstas nurodo kitaip.',
+        text: 'Čempionas neturi ATK reikšmės - jis turi tik gyvybės taškus ir gebėjimus. Čempionas negali atlikti įprastos atakos, nebent kortos tekstas nurodo kitaip.',
       },
       {
         type: 'paragraph',
@@ -508,20 +528,20 @@ export const RULES_SECTIONS: RuleSection[] = [
       {
         type: 'callout',
         calloutVariant: 'important',
-        label: 'Evoliucija — reikalinga korta rankoje',
-        text: 'Norint evoliucionuoti Čempioną į 2 arba 3 fazę, žaidėjas turi rankoje turėti tos fazės Čempiono kortą. Čempionas evoliucionuoja tiesiogiai būdamas kovos lauke — jis negrįžta į ranką.',
+        label: 'Evoliucija - reikalinga korta rankoje',
+        text: 'Norint evoliucionuoti Čempioną į 2 arba 3 fazę, žaidėjas turi rankoje turėti tos fazės Čempiono kortą. Čempionas evoliucionuoja tiesiogiai būdamas kovos lauke - jis negrįžta į ranką.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Paaukotų kortų kelionė',
-        text: 'Paaukoti padarai iš kovos lauko ir paaukotos kortos iš rankos keliauja į panaudotų kortų krūvą — ne iš žaidimo.',
+        text: 'Paaukoti padarai iš kovos lauko ir paaukotos kortos iš rankos keliauja į panaudotų kortų krūvą - ne iš žaidimo.',
       },
       {
         type: 'callout',
         calloutVariant: 'example',
         label: 'Aukso realybė',
-        text: '1 fazė paprastai kainuoja 600 aukso + aukojimas, todėl realiai tai ~5 ėjimas. 2 fazė — 700, 3 fazė — 800. Aukso riba 10+ ėjime = 1000. Teoriškai galima evoliucionuoti kelis kartus per vieną ėjimą, tačiau praktiškai tai beveik neįmanoma.',
+        text: '1 fazė paprastai kainuoja 600 aukso + aukojimas, todėl realiai tai ~5 ėjimas. 2 fazė - 700, 3 fazė - 800. Aukso riba 10+ ėjime = 1000. Teoriškai galima evoliucionuoti kelis kartus per vieną ėjimą, tačiau praktiškai tai beveik neįmanoma.',
       },
     ],
   },
@@ -545,13 +565,13 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: '⊙ Pasišaipymas',
-        text: 'Visos priešininko atakos privalo rinktis šį padarą kaip taikinį. Burtams ir kitiems efektams negalioja. Jei kovos lauke yra keli Pasišaipymo padarai — priešininkas renkasi, kurį pulti.',
+        text: 'Visos priešininko atakos privalo rinktis šį padarą kaip taikinį. Burtams ir kitiems efektams negalioja. Jei kovos lauke yra keli Pasišaipymo padarai - priešininkas renkasi, kurį pulti.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: '✦★ Magiškasis skydas',
-        text: 'Pirmą kartą gavęs žalos — jos nepatiria, ŽMK korta netraukiama. Po blokavimo Magiškasis skydas pašalinamas. Puolantysis vis tiek gauna atgalinę žalą.',
+        text: 'Pirmą kartą gavęs žalos - jos nepatiria, ŽMK korta netraukiama. Po blokavimo Magiškasis skydas pašalinamas. Puolantysis vis tiek gauna atgalinę žalą.',
       },
       {
         type: 'callout',
@@ -563,7 +583,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Kovos šūksnis',
-        text: 'Aktyvuojasi iš karto, kai korta iškviečiama į kovos lauką. Jei daro žalą — traukiama ŽMK korta.',
+        text: 'Aktyvuojasi iš karto, kai korta iškviečiama į kovos lauką. Jei daro žalą - traukiama ŽMK korta.',
       },
       {
         type: 'callout',
@@ -575,7 +595,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Pasyvus (∞)',
-        text: 'Veikia nuolat kol korta yra kovos lauke. Kortai palikus kovos lauką — gebėjimas nustoja veikti iš karto.',
+        text: 'Veikia nuolat kol korta yra kovos lauke. Kortai palikus kovos lauką - gebėjimas nustoja veikti iš karto.',
       },
       {
         type: 'callout',
@@ -597,7 +617,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     content: [
       {
         type: 'paragraph',
-        text: 'Būsenų efektai yra laikini, žymimi žetonais ant kortos. Tos pačios būsenos žetonai nesikaupia — taikoma ta pati būsena. Padarui žūstant — visi būsenų žetonai pašalinami.',
+        text: 'Būsenų efektai yra laikini, žymimi žetonais ant kortos. Tos pačios būsenos žetonai nesikaupia - taikoma ta pati būsena. Padarui žūstant - visi būsenų žetonai pašalinami.',
       },
       {
         type: 'table',
@@ -614,7 +634,7 @@ export const RULES_SECTIONS: RuleSection[] = [
       {
         type: 'callout',
         calloutVariant: 'example',
-        text: 'Degantis ir Apnuodytas abu sukelia žalą kiekvieną ėjimą. Skirtumas — efektų sinergijose: tam tikros kortos reaguoja tik į Ugnies arba tik į Nuodų efektą.',
+        text: 'Degantis ir Apnuodytas abu sukelia žalą kiekvieną ėjimą. Skirtumas - efektų sinergijose: tam tikros kortos reaguoja tik į Ugnies arba tik į Nuodų efektą.',
       },
     ],
   },
@@ -651,14 +671,14 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Pagalbiniai',    'Pagalbiniai efektai: kortos traukimas, auksas, judėjimas.'],
           ['Apsvaiginimas',  'Efektai, suteikiantys Apsvaiginimo būseną.'],
           ['Nutildymas',     'Efektai, suteikiantys Nutildymo būseną.'],
-          ['Monetos metimas','Kai korta nurodo Monetos metimą — mesk žalos sekimo žetoną. Žalia pusė = sėkmingas efektas, raudona = nesėkmė arba šalutinis poveikis. Goblinų Gauja dažnai naudoja šią mechaniką.'],
+          ['Monetos metimas','Kai korta nurodo Monetos metimą - mesk žalos sekimo žetoną. Žalia pusė = sėkmingas efektas, raudona = nesėkmė arba šalutinis poveikis. Goblinų Gauja dažnai naudoja šią mechaniką.'],
         ],
       },
       {
         type: 'callout',
         calloutVariant: 'example',
         label: 'Monetos metimas',
-        text: 'Kai korta nurodo atlikti Monetos metimą, mesk žalos sekimo žetoną. Žalia pusė reiškia sėkmingą efektą, raudona — nesėkmę arba šalutinį poveikį. Konkretų rezultatą visada nurodo kortos tekstas. Goblinų Gauja dažnai naudoja šią mechaniką: jų kortos gali turėti labai stiprius efektus, tačiau nesėkmės atveju efektas gali atsisukti prieš patį žaidėją.',
+        text: 'Kai korta nurodo atlikti Monetos metimą, mesk žalos sekimo žetoną. Žalia pusė reiškia sėkmingą efektą, raudona - nesėkmę arba šalutinį poveikį. Konkretų rezultatą visada nurodo kortos tekstas. Goblinų Gauja dažnai naudoja šią mechaniką: jų kortos gali turėti labai stiprius efektus, tačiau nesėkmės atveju efektas gali atsisukti prieš patį žaidėją.',
       },
     ],
   },
@@ -668,22 +688,22 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'efektu-aktyvacija',
     number: '17',
     title: 'Efektų sprendimo eilė',
-    summary: 'Principas: „Paskutinis aktyvavęsis — išsprendžiamas pirmasis." Efektai sprendžiami eilės tvarka.',
+    summary: 'Principas: „Paskutinis aktyvavęsis - išsprendžiamas pirmasis." Efektai sprendžiami eilės tvarka.',
     category: 'kova',
     relatedTerms: ['efektų eilė', 'efektų tvarka', 'reakcija', 'aktyvacija', 'eilė', 'stack'],
     content: [
       {
         type: 'callout',
         calloutVariant: 'important',
-        text: 'Principas: „Paskutinis aktyvavęsis — išsprendžiamas pirmasis." Kai vienu metu aktyvuojasi keli efektai, paskutinis pridėtas išsprendžiamas pirmasis.',
+        text: 'Principas: „Paskutinis aktyvavęsis - išsprendžiamas pirmasis." Kai vienu metu aktyvuojasi keli efektai, paskutinis pridėtas išsprendžiamas pirmasis.',
       },
       {
         type: 'list',
         items: [
           'Žaidėjas aktyvuoja efektą (pvz., burtą).',
-          'Jei šis sukelia kitą efektą (pvz., reakciją) — naujasis pridedamas į eilės viršų.',
+          'Jei šis sukelia kitą efektą (pvz., reakciją) - naujasis pridedamas į eilės viršų.',
           'Sprendžiamas viršuje esantis efektas, tada kitas ir t. t.',
-          'ŽMK korta traukiama tuo metu, kai žala išsprendžiama — ne iš anksto.',
+          'ŽMK korta traukiama tuo metu, kai žala išsprendžiama - ne iš anksto.',
           'Korta keliauja į panaudotų kortų krūvą tik po to, kai visi jos efektai išsprendžiami.',
           'Paskutinis noras aktyvuojasi prieš kortai patenkant į panaudotų kortų krūvą.',
         ],
@@ -702,7 +722,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'taikiniai',
     number: '18',
     title: 'Taikinių sąvokos',
-    summary: 'Savo padarai, draugiški padarai, visi padarai, priešininko padarai — svarbūs skirtumai.',
+    summary: 'Savo padarai, draugiški padarai, visi padarai, priešininko padarai - svarbūs skirtumai.',
     category: 'taikiniai',
     relatedTerms: ['taikinys', 'draugiški', 'priešininko padarai', 'Sėlinimas', 'poveikis keliems taikiniams'],
     content: [
@@ -713,7 +733,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         rows: [
           ['Savo padarai',               'Tik to žaidėjo padarai. Neapima sąjungininko (2v2 režime).'],
           ['Draugiški padarai',           'To žaidėjo ir sąjungininko padarai. Neapima efektą turinčio padaro.'],
-          ['Visi padarai',               'Visi kovos lauke esantys padarai — savo, sąjungininko ir priešininkų.'],
+          ['Visi padarai',               'Visi kovos lauke esantys padarai - savo, sąjungininko ir priešininkų.'],
           ['Priešininko padarai',         'Visi priešininko (ar priešininkų komandos) padarai.'],
           ['Tam tikros frakcijos padarai','Tik nurodytos frakcijos padarai (pvz., Zombiai, Goblinai).'],
           ['Taikinys',                   'Vienas pasirinktas padaras, žaidėjas, artefaktas arba Čempionas.'],
@@ -762,13 +782,13 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'important',
         label: 'Tuščia pagrindinė kaladė',
-        text: 'Jei žaidėjas turi traukti kortą, bet jo pagrindinė kaladė tuščia — jis kortos netraukia. Tai savaime nepralaimi žaidimo, nebent kortos tekstas nurodo kitaip.',
+        text: 'Jei žaidėjas turi traukti kortą, bet jo pagrindinė kaladė tuščia - jis kortos netraukia. Tai savaime nepralaimi žaidimo, nebent kortos tekstas nurodo kitaip.',
       },
       {
         type: 'list',
         items: [
-          'Kaladė neatsinaujina automatiškai — kortos iš panaudotų kortų krūvos negrįžta, nebent specialus efektas tai leidžia.',
-          'Žala padarams išlieka visam laikui — padarų gyvybės taškai tarp ėjimų neatsinaujina. Žalą galima sumažinti tik gydymo efektais.',
+          'Kaladė neatsinaujina automatiškai - kortos iš panaudotų kortų krūvos negrįžta, nebent specialus efektas tai leidžia.',
+          'Žala padarams išlieka visam laikui - padarų gyvybės taškai tarp ėjimų neatsinaujina. Žalą galima sumažinti tik gydymo efektais.',
           'Žaidėjo gyvybės taškai negali viršyti pradinio maksimumo.',
           'Padarų ATK ir gyvybės taškai gali būti didinami be viršutinės ribos.',
           'Žala nesustoja ties 0: taikinys gali žūti ir efektas vis tiek baigti skaičiavimą.',

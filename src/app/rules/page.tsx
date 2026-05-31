@@ -3,7 +3,7 @@ import { RulesPageClient } from '@/components/rules/RulesPageClient'
 
 export const metadata: Metadata = {
   title: 'Ravenof SE taisyklės',
-  description: 'Interaktyvi Ravenof: Second Edition taisyklių knyga su paieška, kortų tipais, statusais, Damage Modifier Deck ir čempionų taisyklėmis.',
+  description: 'Interaktyvi Ravenof: Antrasis leidimas taisyklių knyga su paieška, kortų tipais, statusais, Damage Modifier Deck ir čempionų taisyklėmis.',
 }
 
 export default function RulesPage() {
