@@ -6,12 +6,10 @@ const EFFECTS = [
   { id: 'fire',     label: 'Ugnis',         desc: 'Šiluminė žala, Degimo būsena.',              img: '/rules/effects/fire.png'      },
   { id: 'ice',      label: 'Ledas',          desc: 'Šaltoji žala, Sušaldymo būsena.',             img: '/rules/effects/ice.png'       },
   { id: 'lightning',label: 'Žaibas',         desc: 'Elektros žala, grandinių efektai.',           img: '/rules/effects/lightning.png' },
-  { id: 'heal',     label: 'Gydymas',        desc: 'Gyvybės taškų atkūrimas.',                    img: ''                             },
   { id: 'buff',     label: 'Pastiprinimas',  desc: 'ATK, HP ar kitų reikšmių didinimas.',         img: '/rules/effects/buff.png'      },
   { id: 'necro',    label: 'Nekrotinis',      desc: 'Tamsioji žala, kapinyno sinergijos.',         img: '/rules/effects/necro.png'     },
   { id: 'debuff',   label: 'Susilpninimas',  desc: 'ATK, HP ar kitų reikšmių mažinimas.',         img: '/rules/effects/debuff.png'    },
   { id: 'poison',   label: 'Nuodai',         desc: 'Periodinė žala, Apnuodijimo būsena.',         img: '/rules/effects/poison.png'    },
-  { id: 'artifact', label: 'Artefaktas',     desc: 'Artefaktų kūrimas, sąveika ar stiprinimas.',  img: ''                             },
   { id: 'trigger',  label: 'Suaktyvinimas',  desc: 'Efektai, aktyvuojami išsipildžius sąlygai.',  img: '/rules/effects/trigger.png'   },
   { id: 'synergy',  label: 'Sinergija',       desc: 'Efektai, veikiantys kartu su kitomis kortomis.', img: '/rules/effects/synergy.png'},
   { id: 'utility',  label: 'Pagalbiniai',    desc: 'Kortų traukimas, auksas, judėjimas.',          img: '/rules/effects/utility.png'   },
@@ -20,9 +18,6 @@ const EFFECTS = [
   { id: 'coinflip', label: 'Monetos metimas','desc': 'Rizikos efektas, kurį nurodo kortos tekstas.', img: '/rules/effects/coinflip.png' },
 ]
 
-const FALLBACK: Record<string, string> = {
-  heal: '💚', artifact: '⭐',
-}
 
 export function EffectTypeGrid() {
   return (
@@ -32,12 +27,9 @@ export function EffectTypeGrid() {
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
           <div className="shrink-0 w-9 h-9 rounded-lg overflow-hidden relative flex items-center justify-center"
             style={{ background: 'rgba(240,180,41,0.06)', border: '1px solid rgba(240,180,41,0.12)' }}>
-            {e.img ? (
+            {e.img && (
               <Image src={e.img} alt={e.label} fill className="object-contain p-1"
                 onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }} />
-            ) : null}
-            {!e.img && (
-              <span style={{ fontSize: 16 }}>{FALLBACK[e.id] ?? '•'}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">

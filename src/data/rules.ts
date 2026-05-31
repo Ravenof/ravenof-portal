@@ -147,8 +147,6 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Unikalus',              'Iki 2'],
           ['Epiška',                '1'],
           ['Legendinė',             '1'],
-          ['Čempionas unikalus',    'Iki 2'],
-          ['Čempionas legendinis',  '1'],
         ],
       },
       {
