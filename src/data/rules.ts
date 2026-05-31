@@ -15,6 +15,8 @@ export type RuleBlockType =
   | 'goldProgression'
   | 'cardAnatomy'
   | 'rarityBlock'
+  | 'factionGrid'
+  | 'effectTypeGrid'
 
 export interface RuleBlock {
   type: RuleBlockType
@@ -187,22 +189,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'paragraph',
         text: 'Frakcija nustato kaladės žaidimo stilių, pagrindines mechanikas ir sinergijas. Kaladėje galima naudoti tik vienos pasirinktos frakcijos kortas ir neutralias / universalias kortas.',
       },
-      {
-        type: 'table',
-        label: 'Frakcijų stiliai ir mechanikos',
-        headers: ['', 'Frakcija', 'Stilius ir mechanikos'],
-        rows: [
-          ['🩸', 'Demonų Orda',           'Sabotažas, prakeiksmai, priešininko kaladės ardymas. Psichologinis spaudimas ir tamsioji kontrolė.'],
-          ['💀', 'Mirties Maršas',        'Armijos plėtimas, panaudotų kortų krūvos naudojimas, negyvėlių nuolatinis spaudimas.'],
-          ['🗡️', 'Plėšikų Naktis',        'Iniciatyva, aukso vogimas, savos ekonomikos stiprinimas, greiti sprendimai.'],
-          ['🎲', 'Goblinų Gauja',         'Chaosas, greita agresija, didelė rizika. Kortos dažnai naudoja Monetos metimą: nesėkmės atveju efektas gali atsisukti prieš patį žaidėją.'],
-          ['✨', 'Mistikos Melodija',     'Burtai, kontrolė, masinis žalos padarymas, magiškos sinergijos ir reakcijos.'],
-          ['💨', 'Rytų Vėjas',            'Sėlinimas, tikslūs smūgiai, Pasišaipymo apėjimas, greitas žaidimo tempas.'],
-          ['🛡️', 'Šviesos Pulkas',        'Gynyba, Pasišaipymas, Magiškasis skydas, struktūruota kovos lauko kontrolė.'],
-          ['✝️', 'Inkvizicijos Legionas', 'Gydymas, pastiprinimas, palaikymas, šviesos sinergijos.'],
-          ['⚖️', 'Neutralios / Universalios', 'Tinka su bet kuria frakcija. Universalūs efektai, mažiau sinergijų.'],
-        ],
-      },
+      { type: 'factionGrid' },
       {
         type: 'callout',
         calloutVariant: 'example',
@@ -733,6 +720,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'paragraph',
         text: 'Efektų tipai yra klasifikacija sinergijoms ir sąveikoms. Viena korta gali turėti kelis tipus.',
       },
+      { type: 'effectTypeGrid' },
       {
         type: 'table',
         label: 'Efektų tipai',
