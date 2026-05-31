@@ -1,9 +1,5 @@
 'use client'
 
-import Image from 'next/image'
-
-// Png failai: /rules/rarity/common.png, magic.png, unique.png, epic.png, legendary.png
-
 const RARITIES = [
   {
     id: 'common',
@@ -12,7 +8,6 @@ const RARITIES = [
     colorBg: 'rgba(148,163,184,0.12)',
     copies: 'iki 2 kopijų',
     desc: 'Pagrindinės kortos. Universalios ir dažnai naudojamos.',
-    img: '/rules/rarity/common.png',
   },
   {
     id: 'magic',
@@ -21,7 +16,6 @@ const RARITIES = [
     colorBg: 'rgba(74,222,128,0.12)',
     copies: 'iki 2 kopijų',
     desc: 'Patobulinti efektai. Geros sinergijoms.',
-    img: '/rules/rarity/magic.png',
   },
   {
     id: 'unique',
@@ -30,7 +24,6 @@ const RARITIES = [
     colorBg: 'rgba(96,165,250,0.12)',
     copies: 'iki 2 kopijų',
     desc: 'Stipresni efektai ir unikalios mechanikos.',
-    img: '/rules/rarity/unique.png',
   },
   {
     id: 'epic',
@@ -39,7 +32,6 @@ const RARITIES = [
     colorBg: 'rgba(192,132,252,0.12)',
     copies: '1 kopija',
     desc: 'Galingi efektai. Tik 1 kopija kaladėje.',
-    img: '/rules/rarity/epic.png',
   },
   {
     id: 'legendary',
@@ -48,14 +40,38 @@ const RARITIES = [
     colorBg: 'rgba(248,113,113,0.12)',
     copies: '1 kopija',
     desc: 'Patys galingiausi efektai. Tik 1 kopija kaladėje.',
-    img: '/rules/rarity/legendary.png',
   },
 ]
 
-function DiamondFallback({ color }: { color: string }) {
+function DiamondIcon({ color, size = 36 }: { color: string; size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={32} height={32} fill={color}>
-      <polygon points="12,2 22,9 18,22 6,22 2,9" opacity={0.9} />
+    <svg width={size} height={size} viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Diamond shape */}
+      <polygon
+        points="20,2 38,14 20,42 2,14"
+        fill={color}
+        fillOpacity="0.18"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      {/* Inner highlight */}
+      <polygon
+        points="20,8 32,16 20,36 8,16"
+        fill={color}
+        fillOpacity="0.08"
+      />
+      {/* Top facet */}
+      <polygon
+        points="20,2 38,14 20,16 2,14"
+        fill={color}
+        fillOpacity="0.25"
+      />
+      <polygon
+        points="20,2 38,14 20,14"
+        fill="white"
+        fillOpacity="0.12"
+      />
     </svg>
   )
 }
@@ -69,28 +85,18 @@ export function RarityBlock() {
           className="flex items-center gap-3 rounded-xl p-3"
           style={{ background: r.colorBg, border: `1px solid ${r.color}30` }}
         >
-          {/* Diamond icon */}
-          <div className="w-10 h-10 shrink-0 relative flex items-center justify-center">
-            <Image
-              src={r.img}
-              alt={`${r.label} deimantas`}
-              width={36}
-              height={36}
-              className="object-contain"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
-              <DiamondFallback color={r.color} />
-            </div>
+          <div className="shrink-0 flex items-center justify-center w-10 h-10">
+            <DiamondIcon color={r.color} size={36} />
           </div>
-
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: r.color }}>
                 {r.label}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${r.color}20`, color: r.color, fontFamily: 'var(--rvn-font-display)', fontSize: 10 }}>
+              <span
+                className="text-xs px-2 py-0.5 rounded-full"
+                style={{ background: `${r.color}20`, color: r.color, fontFamily: 'var(--rvn-font-display)', fontSize: 10 }}
+              >
                 {r.copies}
               </span>
             </div>
