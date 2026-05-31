@@ -1,19 +1,19 @@
 const PHASES = [
   {
     phase: '1 fazė',
-    cost: 'Aukso kaina + Tribute',
+    cost: 'Aukso kaina + aukojimas',
     heal: false,
     desc: 'Visi 3 gebėjimai iš karto pasiekiami. Gebėjimą galima naudoti tą patį ėjimą, kai Čempionas buvo iškviestas.',
   },
   {
     phase: '2 fazė',
-    cost: 'Aukso kaina + Tribute',
+    cost: 'Aukso kaina + aukojimas',
     heal: true,
     desc: 'Evoliucionavęs Čempionas pilnai pagyja. Visi gebėjimai toliau pasiekiami.',
   },
   {
     phase: '3 fazė',
-    cost: 'Aukso kaina + Tribute',
+    cost: 'Aukso kaina + aukojimas',
     heal: true,
     desc: 'Galutinė forma. Čempionas pilnai pagyja evoliucijoje.',
   },
@@ -29,14 +29,14 @@ const RULES = [
   'Negauna atgalinės žalos naudodamas gebėjimą (gebėjimas yra efektas, ne ataka).',
   'Nutildytas arba Apsvaigintas Čempionas negali naudoti gebėjimų.',
   'To paties Čempiono kovos lauke negali būti daugiau nei vienas. Skirtingų — gali būti keli.',
-  'Dedamas į padarų zoną — įskaičiuojamas į 5 vietų limitą.',
+  'Dedamas į padarų zoną — įskaičiuojamas į 5 vietų ribą.',
   'Gyvybės taškams nukritus iki 0, Čempionas keliauja į panaudotų kortų krūvą.',
 ]
 
 const TRIBUTE_SOURCES = [
-  { icon: '⚔', label: '1 padaras iš savo kovos lauko', value: '= 1 Tribute' },
-  { icon: '🃏', label: '2 kortos iš savo rankos',       value: '= 1 Tribute' },
-  { icon: '✂',  label: 'Kombinacija',                    value: 'pvz. 1 padaras + 2 kortos = 2 Tribute' },
+  { icon: '⚔', label: '1 padaras iš savo kovos lauko', value: '= 1 aukojimas' },
+  { icon: '🃏', label: '2 kortos iš savo rankos',       value: '= 1 aukojimas' },
+  { icon: '✂',  label: 'Kombinacija',                    value: 'pvz. 1 padaras + 2 kortos = 2 aukojimas' },
 ]
 
 export function ChampionRulesBlock() {
@@ -57,13 +57,13 @@ export function ChampionRulesBlock() {
         </div>
       </div>
 
-      {/* Tribute sources */}
+      {/* Aukojimas sources */}
       <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid rgba(240,180,41,0.15)' }}>
         <p className="text-xs font-bold mb-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-          TRIBUTE — AUKOJIMO KAINA
+          AUKOJIMAS — IŠKVIETIMO MOKESTIS
         </p>
         <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-          Kiek Tribute reikia, visada nurodo konkreti Čempiono korta. Tribute galima mokėti bet kokia kombinacija: padarais iš savo kovos lauko ir kortomis iš rankos.
+          Kiek aukojimo reikia, visada nurodo konkreti Čempiono korta. Aukojimą galima mokėti bet kokia kombinacija: padarais iš savo kovos lauko ir kortomis iš rankos.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {TRIBUTE_SOURCES.map((t) => (

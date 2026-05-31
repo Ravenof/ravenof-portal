@@ -80,7 +80,7 @@ function RulesSearch({ query, onQuery }: { query: string; onQuery: (q: string) =
         type="search"
         value={query}
         onChange={(e) => onQuery(e.target.value)}
-        placeholder="Ieškoti taisyklėse, ŽMK, raktažodžiuose, būsenose…"
+        placeholder="Ieškoti taisyklėse, ŽMK, raktažodžiuose, būsenose, aukojime…"
         className="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl outline-none focus:ring-2"
         style={{
           background: 'var(--bg-surface)',
@@ -212,7 +212,7 @@ export function RulesPageClient() {
       'damage modifier': 'žalos modifikatorių',
       'coinflip': 'monetos metimas',
       'keyword': 'raktažodis',
-      'status': 'būsena',
+      'statusas': 'būsena',
       'graveyard': 'panaudotų kortų krūva',
       'discard': 'panaudotų kortų krūva',
       'hand': 'ranka',
@@ -221,7 +221,7 @@ export function RulesPageClient() {
       'aoe': 'masinis efektas',
       'stack': 'efektų eilė',
       'phase': 'fazė',
-      'tribute': 'tribute',
+      'tribute': 'aukojimas',
       'mulligan': 'pradinės rankos keitimas',
     }
     const q = SYNONYMS[rawQ] ? `${rawQ} ${SYNONYMS[rawQ]}` : rawQ

@@ -172,7 +172,7 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Goblinų Gauja',      'Chaosas, greita agresija, didelė rizika — kortos dažnai naudoja Monetos metimą, kurio nesėkmė gali sukelti šalutinį poveikį pačiam žaidėjui.'],
           ['Mistikos Melodija',  'Burtai, kontrolė, masinis žalos padarymas, magiškos sinergijos ir reakcijos.'],
           ['Rytų Vėjas',         'Sėlinimas, tikslūs smūgiai, apėjimas Pasišaipymo, greitas žaidimo tempas.'],
-          ['Šviesos Pulkas',     'Gynyba, Pasišaipymas, Magiškasis skydas, struktūruota kovos lauko kontrolė.'],
+          ['Šviesos Pulkas',     'Gynyba, Pasišaipymas, Magiškasis skydas, struktūruota kovos lauko pozicija ir kontrolė.'],
           ['Inkvizicijos Legionas', 'Gydymas, pastiprinimas, palaikymas, šviesos sinergijos.'],
           ['Neutralios / Universalios', 'Tinka su bet kuria frakcija. Universalūs efektai, mažiau sinergijų.'],
         ],
@@ -404,8 +404,8 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Padėti reakciją',                'Sumokama aukso kaina → reakcija padedama užversta į reakcijų zoną su kainos žetonu.'],
           ['Panaudoti prakeiksmą',           'Sumokama aukso kaina → priešininkas įsimaišo kortą į savo kaladę.'],
           ['Žaisti lauko kortą',             'Sumokama aukso kaina → nauja lauko korta pakeičia esamą.'],
-          ['Iškviesti Čempioną (1 fazė)',    'Sumokama aukso kaina ir Tribute.'],
-          ['Evoliucionuoti Čempioną (2/3 f.)', 'Sumokama aukso kaina ir Tribute → Čempionas pilnai pagyja.'],
+          ['Iškviesti Čempioną (1 fazė)',    'Sumokama aukso kaina ir aukojimas.'],
+          ['Evoliucionuoti Čempioną (2/3 f.)', 'Sumokama aukso kaina ir aukojimas → Čempionas pilnai pagyja.'],
           ['Naudoti Čempiono gebėjimą',      '1 kartą per ėjimą.'],
           ['Atakuoti padaru',                'Kiekvienas padaras gali atakuoti 1 kartą per ėjimą.'],
           ['Išmesti kortą dėl aukso',        '+100 aukso už 1 iš rankos išmestą kortą. Galima 1 kartą per ėjimą.'],
@@ -449,7 +449,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Galimi atakos taikiniai',
-        text: 'Priešininko padaras, priešininkas (žaidėjas), priešininko artefaktas arba Čempionas. Kiekvienas padaras gali atakuoti 1 kartą per ėjimą. Padaras negali atakuoti tą patį ėjimą, kai buvo iškviestas — išskyrus padarus su Sprintu.',
+        text: 'Priešininko padaras, priešininkas (žaidėjas), priešininko artefaktas arba Čempionas. Kiekvienas padaras gali atakuoti 1 kartą per ėjimą. padaras negali atakuoti tą patį ėjimą, kai buvo iškviestas — išskyrus padarus su Sprintu.',
       },
       {
         type: 'callout',
@@ -461,7 +461,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'example',
         label: 'Žalos skaičiavimas',
-        text: 'Padaras atakuoja padarą: abu žaidėjai vienu metu daro žalą vienas kitam — kiekvienas traukia savo ŽMK kortą. Padaras atakuoja žaidėją, artefaktą arba Čempioną: puolantysis daro žalą su savo ŽMK korta, atgalinės žalos negauna.',
+        text: 'padaras atakuoja padarą: abu žaidėjai vienu metu daro žalą vienas kitam — kiekvienas traukia savo ŽMK kortą. padaras atakuoja žaidėją, artefaktą arba Čempioną: puolantysis daro žalą su savo ŽMK korta, atgalinės žalos negauna.',
       },
       {
         type: 'callout',
@@ -491,9 +491,9 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'cempionai',
     number: '13',
     title: 'Čempionai',
-    summary: 'Galingiausias kortų tipas su 3 fazėmis ir gebėjimais. Neturi ATK. Naudoja Tribute iškvietimui.',
+    summary: 'Galingiausias kortų tipas su 3 fazėmis ir gebėjimais. Neturi ATK. Naudoja aukojimą iškvietimui.',
     category: 'čempionai',
-    relatedTerms: ['Čempionas', '1 fazė', '2 fazė', '3 fazė', 'Tribute', 'gebėjimai', 'fazės'],
+    relatedTerms: ['Čempionas', '1 fazė', '2 fazė', '3 fazė', 'aukojimas', 'gebėjimai', 'fazės'],
     content: [
       {
         type: 'paragraph',
@@ -520,7 +520,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: '▶ Sprintas',
-        text: 'Padaras gali atakuoti tą patį ėjimą, kai buvo iškviestas.',
+        text: 'padaras gali atakuoti tą patį ėjimą, kai buvo iškviestas.',
       },
       {
         type: 'callout',
@@ -538,7 +538,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: '◑ Sėlinimas',
-        text: 'Šis padaras negali būti pasirinktas kaip konkretus taikinys, kol pats neatakuoja arba kol kortos tekstas nenurodo kitaip. Sėlinimas pašalinamas po pirmos atakos. Sėlinimas neapsaugo nuo masinių efektų, kurie neprašo pasirinkti konkretaus taikinio, pvz.: „visi priešininko padarai gauna 1 žalos".',
+        text: 'šis padaras negali būti pasirinktas kaip konkretus taikinys, kol pats neatakuoja arba kol kortos tekstas nenurodo kitaip. Sėlinimas pašalinamas po pirmos atakos. Sėlinimas neapsaugo nuo masinių efektų, kurie neprašo pasirinkti konkretaus taikinio, pvz.: „visi priešininko padarai gauna 1 žalos".',
       },
       {
         type: 'callout',
@@ -562,7 +562,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: '🕊 Palaiminimas',
-        text: 'Padaras traukia 2 ŽMK kortas ir pasirenka geresnį rezultatą kitai atakai. Po atakos Palaiminimas pašalinamas.',
+        text: 'padaras traukia 2 ŽMK kortas ir pasirenka geresnį rezultatą kitai atakai. Po atakos Palaiminimas pašalinamas.',
       },
     ],
   },
@@ -574,7 +574,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     title: 'Būsenų efektai',
     summary: 'Laikini efektai: Sušaldytas ❄, Degantis 🔥, Apnuodytas ☠, Apsvaigintas ✦, Nutildytas 🔇.',
     category: 'būsenos',
-    relatedTerms: ['Sušaldytas', 'Degantis', 'Apnuodytas', 'Apsvaigintas', 'Nutildytas', 'būsena', 'žetonas', 'statusas'],
+    relatedTerms: ['Sušaldytas', 'Degantis', 'Apnuodytas', 'Apsvaigintas', 'Nutildytas', 'būsena', 'žetonas', 'būsena'],
     content: [
       {
         type: 'paragraph',
@@ -607,7 +607,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     title: 'Efektų ir magijos tipai',
     summary: 'Ugnis, Ledas, Žaibas, Gydymas, Pastiprinimas, Nekrotinis, Susilpninimas, Nuodai, Monetos metimas ir kt.',
     category: 'kortų-tipai',
-    relatedTerms: ['Ugnis', 'Ledas', 'Žaibas', 'Gydymas', 'Nekrotinis', 'Nuodai', 'Monetos metimas', 'Coinflip', 'magija', 'efektas', 'masinis efektas'],
+    relatedTerms: ['Ugnis', 'Ledas', 'Žaibas', 'Gydymas', 'Nekrotinis', 'Nuodai', 'Monetos metimas', 'Coinflip', 'magija', 'efektas', 'poveikis keliems taikiniams'],
     content: [
       {
         type: 'paragraph',
@@ -685,7 +685,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     title: 'Taikinių sąvokos',
     summary: 'Savo padarai, draugiški padarai, visi padarai, priešininko padarai — svarbūs skirtumai.',
     category: 'taikiniai',
-    relatedTerms: ['taikinys', 'draugiški', 'priešininko padarai', 'Sėlinimas', 'masinis efektas'],
+    relatedTerms: ['taikinys', 'draugiški', 'priešininko padarai', 'Sėlinimas', 'poveikis keliems taikiniams'],
     content: [
       {
         type: 'table',
@@ -703,7 +703,7 @@ export const RULES_SECTIONS: RuleSection[] = [
       {
         type: 'callout',
         calloutVariant: 'warning',
-        text: 'Sėlinimo padarai negali būti pasirenkami kaip konkretūs taikiniai, tačiau juos paveikia masiniai efektai, kurie taikomi visai grupei (pvz.: „visi priešininko padarai gauna 1 žalos").',
+        text: 'Sėlinimo padarai negali būti pasirenkami kaip konkretūs taikiniai, tačiau juos paveikia efektai, kurie taikomi keliems taikiniams vienu metu (pvz.: „visi priešininko padarai gauna 1 žalos").',
       },
     ],
   },

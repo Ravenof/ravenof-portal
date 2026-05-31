@@ -3,7 +3,7 @@ const QR_ITEMS = [
   { icon: '♥♥', label: '2v2 pradžia',         value: '60 HP komandai'     },
   { icon: '🂠',  label: 'Kaladė',              value: '30–40 kortų'        },
   { icon: '🃏',  label: 'Ranka',               value: 'maks. 10 kortų'     },
-  { icon: '🎴',  label: 'DMD',                 value: '20 kortų'           },
+  { icon: '🎴',  label: 'ŽMK',                 value: '20 kortų'           },
   { icon: '⚔',  label: 'Padarų zona',          value: 'maks. 5'            },
   { icon: '⚗',  label: 'Artefaktų zona',       value: 'maks. 2'            },
   { icon: '🌍',  label: 'Lauko korta',          value: 'maks. 1'            },
@@ -20,7 +20,7 @@ export function RulesQuickReference() {
       <div className="px-4 py-3 flex items-center gap-2" style={{ background: 'rgba(240,180,41,0.06)', borderBottom: '1px solid rgba(240,180,41,0.12)' }}>
         <span className="text-base">⚡</span>
         <p className="text-xs font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-          GREITA ATMINTINĖ
+          GREITA TAISYKLIŲ ATMINTINĖ
         </p>
       </div>
       <div className="p-3 flex flex-col gap-1">
