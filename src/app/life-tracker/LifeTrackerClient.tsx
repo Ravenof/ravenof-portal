@@ -46,6 +46,36 @@ export function LifeTrackerClient() {
     preloadLifeTrackerSounds()
   }, [])
 
+  // ── Screen Wake Lock — ekranas neužmiega žaidimo metu ───────────────────
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen')
+        }
+      } catch {
+        // Wake Lock nepalaikomas arba atsisakyta — tyliai ignoruojame
+      }
+    }
+
+    requestWakeLock()
+
+    // Jei puslapis grįžta į priekį (pvz., po ekrano užrakinimo), vėl prašome
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      wakeLock?.release()
+    }
+  }, [])
+
+
+
   // Debounce saveState — localStorage write blokuoja main thread,
   // tad rašome ne dažniau kaip kas 400ms
   useEffect(() => {
