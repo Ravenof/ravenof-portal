@@ -363,7 +363,7 @@ export function MyCardsClient({ cards: initialCards, ownedCount, totalCards, com
                         className="text-xs px-1.5 py-0.5 rounded hover:opacity-80 disabled:opacity-40 transition font-semibold"
                         style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)' }}
                       >
-                        &#10003;
+                        ✓
                       </button>
                       <button
                         onClick={() => setConfirmRemove(null)}
@@ -381,7 +381,7 @@ export function MyCardsClient({ cards: initialCards, ownedCount, totalCards, com
                       style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}
                       title="Pa\u0161alinti i\u0161 kolekcijos"
                     >
-                      &#128465;
+                      🗑
                     </button>
                   )}
                 </div>

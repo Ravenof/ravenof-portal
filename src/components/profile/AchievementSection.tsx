@@ -398,7 +398,7 @@ export function AchievementSection({ allBadges, earnedBadges, isOwner, progressM
           <div>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>XP iš pasiekimų</p>
             <p className="text-base font-bold" style={{ color: 'var(--gold)', fontFamily: 'Cinzel, Georgia, serif' }}>
-              {earnedActiveXP.toLocaleString()} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ {totalActiveXP.toLocaleString()}</span>
+              {earnedActiveXP.toLocaleString('lt-LT')} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ {totalActiveXP.toLocaleString('lt-LT')}</span>
             </p>
           </div>
         </div>

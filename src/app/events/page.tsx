@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { RavenEvent } from '@/types'
 
-export const metadata = { title: 'Renginiai | Ravenof' }
+export const metadata = { title: 'Renginiai' }
 export const revalidate = 60
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; label: string }> = {

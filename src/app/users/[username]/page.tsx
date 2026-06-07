@@ -6,6 +6,7 @@ import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
 import { AchievementSection } from '@/components/profile/AchievementSection'
 import type { PublicDeck, VoteValue, UserBadge, Badge, Profile } from '@/types'
+import { pluralLt } from '@/lib/lt-plural'
 
 type Props = { params: Promise<{ username: string }> }
 
@@ -214,7 +215,7 @@ export default async function UserProfilePage({ params }: Props) {
                 {displayName}
               </h1>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                @{profile.username} &middot; narys nuo {memberSince}
+                @{profile.username} · narys nuo {memberSince}
               </p>
               {/* Previous username — shown for 30 days after change */}
               {profile.previous_username &&
@@ -233,7 +234,7 @@ export default async function UserProfilePage({ params }: Props) {
               )}
               <div className="flex flex-wrap gap-4 mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                 {profile.show_public_decks && (
-                  <span>{decks.length} kaladė{decks.length !== 1 ? 's' : ''}</span>
+                  <span>{decks.length} {pluralLt(decks.length, ['kaladė', 'kaladės', 'kaladžių'])}</span>
                 )}
                 {profile.show_attended_events && (
                   <span>{attendedCount} renginiai</span>

@@ -38,7 +38,7 @@ type DeckBuilderStore = {
 
 export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
   deckId:      null,
-  name:        'Naujas deck',
+  name:        'Nauja kaladė',
   description: '',
   factionId:   null,
   visibility:  'private',
@@ -58,7 +58,7 @@ export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
   },
 
   initNew: () => set({
-    deckId: null, name: 'Naujas deck', description: '',
+    deckId: null, name: 'Nauja kaladė', description: '',
     factionId: null, visibility: 'private',
     entries: [], ownedOnly: false, isDirty: false, isSaving: false,
   }),

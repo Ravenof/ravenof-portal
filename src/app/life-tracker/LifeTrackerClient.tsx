@@ -367,14 +367,14 @@ export function LifeTrackerClient() {
               className="text-xs hover:opacity-70 transition-opacity"
               style={{ color: 'var(--text-muted)' }}
             >
-              &larr; Kortų bazė
+              ← Kortų bazė
             </Link>
             <span style={{ color: 'var(--bg-border)' }}>|</span>
             <h1
               className="text-lg font-bold"
               style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}
             >
-              Life Tracker
+              Kova
             </h1>
           </div>
           <SoundToggle enabled={state.soundEnabled} onToggle={handleSoundToggle} />
@@ -411,7 +411,7 @@ export function LifeTrackerClient() {
                 onClick={handleEnterBattleMode}
                 aria-label="Įjungti Kovos režimą"
               >
-                &#9876; Kovos režimas
+                ⚔ Kovos režimas
               </LTButton>
             </div>
           </div>
@@ -455,7 +455,7 @@ export function LifeTrackerClient() {
             disabled={state.log.length === 0}
             aria-label="Atšaukti paskutinį veiksmą"
           >
-            &#8617; Atšaukti paskutinį veiksmą
+            ↩ Atšaukti paskutinį veiksmą
           </LTButton>
 
           {/* Action Log */}

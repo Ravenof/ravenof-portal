@@ -11,6 +11,7 @@ import { DeckStats } from '@/components/deck-builder/DeckStats'
 import { DeckValidationWarnings } from '@/components/deck-builder/DeckValidationWarnings'
 import { SaveDeckButton } from '@/components/deck-builder/SaveDeckButton'
 import { validateDeck, DECK_MIN } from '@/lib/deck-validation'
+import { pluralLt } from '@/lib/lt-plural'
 import type { CardWithRelations, CollectionMap, Faction, DeckEntry, DeckVisibility } from '@/types'
 
 type InitialDeck = {
@@ -49,7 +50,7 @@ function getDeckValidity(
   const onlyCountIssue = errors.length === 1 && total > 0 && total < DECK_MIN
 
   if (hasName && hasFaction && onlyCountIssue) {
-    return { state: 'almost', label: 'Dar ' + (DECK_MIN - total) + ' kortų' }
+    return { state: 'almost', label: 'Dar ' + (DECK_MIN - total) + ' ' + pluralLt(DECK_MIN - total, ['kortos', 'kortų', 'kortų']) }
   }
   if (hasName && hasFaction && total >= 15) {
     return { state: 'almost', label: 'Beveik paruostas' }
@@ -111,7 +112,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
 
           <h1 className="text-lg font-bold flex-1 text-center hidden sm:block"
             style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
-            {deckId ? 'Redaguoti kaladę' : 'Kaladžių kūrimas'}
+            {deckId ? 'Redaguoti kaladę' : 'Kaladžių kūrėjas'}
           </h1>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"

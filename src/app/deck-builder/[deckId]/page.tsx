@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DeckBuilderClient } from '../DeckBuilderClient'
 import type { CardWithRelations, CollectionMap, DeckEntry, DeckVisibility } from '@/types'
 
-export const metadata = { title: 'Redaguoti kaladę | Ravenof' }
+export const metadata = { title: 'Redaguoti kaladę' }
 
 async function fetchEditData(deckId: string) {
   const supabase = await createClient()

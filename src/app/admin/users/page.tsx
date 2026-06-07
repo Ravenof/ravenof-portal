@@ -141,7 +141,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <span>Lv{u.level} · {u.xp_total.toLocaleString()} XP</span>
+                    <span>Lv{u.level} · {u.xp_total.toLocaleString('lt-LT')} XP</span>
                     <span className="block" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{getLevelTitleForXp(u.xp_total)}</span>
                   </td>
                   <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>

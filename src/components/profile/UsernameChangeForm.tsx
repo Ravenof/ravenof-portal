@@ -80,7 +80,7 @@ export function UsernameChangeForm({ currentUsername, usernameChangedAt }: Props
             style={!allowed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           />
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Galimi simboliai: a–z, 0–9, _ &nbsp;·&nbsp; Min. 3, max. 24
+            Galimi simboliai: a–z, 0–9, _  ·  Min. 3, max. 24
           </p>
         </div>
 

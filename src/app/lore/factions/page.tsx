@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ArrowLeft, Shield } from 'lucide-react'
 
 export const revalidate = 60
-export const metadata = { title: 'Frakcijos | Ravenof Atlasas' }
+export const metadata = { title: 'Frakcijos — Atlasas' }
 
 type Faction = {
   id: string; name: string; slug: string; color: string

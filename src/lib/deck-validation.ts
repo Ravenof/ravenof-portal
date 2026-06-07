@@ -1,4 +1,5 @@
 import type { DeckEntry, CardWithRelations } from '@/types'
+import { containsProfanity } from '@/lib/profanity'
 
 export const NEUTRAL_FACTION_ID = 14   // "Universalus"
 export const DECK_MIN = 30
@@ -41,7 +42,7 @@ export function canAddCard(
 
   const totalCards = entries.reduce((s, e) => s + e.quantity, 0)
   if (totalCards >= DECK_MAX) {
-    return { ok: false, reason: 'Deck negali turėti daugiau nei ' + DECK_MAX + ' kortų' }
+    return { ok: false, reason: 'Kaladė negali turėti daugiau nei ' + DECK_MAX + ' kortų' }
   }
 
   return { ok: true }
@@ -61,16 +62,18 @@ export function validateDeck(
   const total = entries.reduce((s, e) => s + e.quantity, 0)
 
   if (!name.trim()) {
-    warnings.push({ type: 'error', message: 'Deck turi turėti pavadinimą' })
+    warnings.push({ type: 'error', message: 'Kaladė turi turėti pavadinimą' })
+  } else if (containsProfanity(name)) {
+    warnings.push({ type: 'error', message: 'Pavadinime yra netinkamų žodžių' })
   }
   if (!factionId) {
-    warnings.push({ type: 'error', message: 'Pasirink deck frakcija' })
+    warnings.push({ type: 'error', message: 'Pasirink kaladės frakciją' })
   }
   if (total < DECK_MIN) {
-    warnings.push({ type: 'error', message: 'Deck turi bent ' + DECK_MIN + ' kortų (dabar: ' + total + ')' })
+    warnings.push({ type: 'error', message: 'Kaladė turi bent ' + DECK_MIN + ' kortų (dabar: ' + total + ')' })
   }
   if (total > DECK_MAX) {
-    warnings.push({ type: 'error', message: 'Deck negali turėti daugiau nei ' + DECK_MAX + ' kortų (dabar: ' + total + ')' })
+    warnings.push({ type: 'error', message: 'Kaladė negali turėti daugiau nei ' + DECK_MAX + ' kortų (dabar: ' + total + ')' })
   }
 
   // Copy limit violations

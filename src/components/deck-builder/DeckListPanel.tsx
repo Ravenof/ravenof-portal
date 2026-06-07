@@ -5,6 +5,7 @@ import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { DeckCardRow } from './DeckCardRow'
 import { CardHoverPreview } from './CardHoverPreview'
 import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
+import { pluralLt } from '@/lib/lt-plural'
 import { Swords, Trash2 } from 'lucide-react'
 import type { CardWithRelations } from '@/types'
 import { RavenofButton } from '@/components/ui/RavenofButton'
@@ -70,7 +71,7 @@ export function DeckListPanel() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold tabular-nums" style={{ color: countColor }}>
-            {total}/{DECK_MAX}
+            {total}/{DECK_MAX} <span style={{ fontWeight: 400, opacity: 0.55 }}>(min. {DECK_MIN})</span>
           </span>
 
           {total > 0 && (
@@ -140,7 +141,7 @@ export function DeckListPanel() {
       {/* Footer hint */}
       {total > 0 && total < DECK_MIN && (
         <p className="text-xs text-center mt-2 pt-2" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--bg-border)' }}>
-          Dar reikia {DECK_MIN - total} kortų
+          Dar reikia {DECK_MIN - total} {pluralLt(DECK_MIN - total, ['kortos', 'kortų', 'kortų'])}
         </p>
       )}
       {isComplete && (

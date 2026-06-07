@@ -7,7 +7,7 @@ import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
 import { AdminMapPicker } from '@/components/admin/lore/AdminMapPicker'
 
 export const revalidate = 0
-export const metadata = { title: 'Vietovės | Lore Atlas Admin' }
+export const metadata = { title: 'Vietovės — Atlaso valdymas' }
 
 type SearchParams = Promise<{ action?: string; id?: string; error?: string }>
 

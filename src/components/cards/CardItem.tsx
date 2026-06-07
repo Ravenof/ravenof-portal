@@ -106,7 +106,7 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
                 className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-xs font-bold z-10"
                 style={{ background: 'rgba(0,0,0,0.75)', color: 'var(--gold)', border: '1px solid rgba(245,158,11,0.35)' }}
               >
-                &#9812;
+                ♔
               </div>
             )}
           </div>

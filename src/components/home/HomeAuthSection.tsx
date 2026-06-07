@@ -44,7 +44,7 @@ export function HomeAuthNav() {
         <Link href="/cards"
           className="text-xs px-4 py-1.5 rounded-lg font-semibold"
           style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.3)', fontFamily: 'var(--rvn-font-display)' }}>
-          Portalas
+          Kortų bazė
         </Link>
       </div>
     )
@@ -110,6 +110,11 @@ export function HomeOnboardingSteps({ steps }: { steps: Step[] }) {
       setIsLoggedIn(!!user)
     })
   }, [])
+
+  // Kol auth kraunasi - rezervuojame vieta, kad nemirgetu sveciu vaizdas
+  if (isLoggedIn === null) {
+    return <section className="mb-12" style={{ minHeight: 320 }} aria-hidden />
+  }
 
   // Guest: show full onboarding guide
   if (!isLoggedIn) {

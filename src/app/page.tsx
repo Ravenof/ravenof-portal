@@ -122,7 +122,7 @@ export default async function HomePage() {
         <section className="text-center py-14 sm:py-20 space-y-5">
           <div className="flex items-center justify-center gap-3 mb-1">
             <div style={{ height: '1px', width: '60px', background: 'linear-gradient(to right, transparent, rgba(240,180,41,0.4))' }} />
-            <span style={{ color: 'rgba(240,180,41,0.45)', fontSize: '10px', letterSpacing: '0.3em', fontFamily: 'var(--rvn-font-display)' }}>&#9633; &#9633; &#9633;</span>
+            <span style={{ color: 'rgba(240,180,41,0.45)', fontSize: '10px', letterSpacing: '0.3em', fontFamily: 'var(--rvn-font-display)' }}>□ □ □</span>
             <div style={{ height: '1px', width: '60px', background: 'linear-gradient(to left, transparent, rgba(240,180,41,0.4))' }} />
           </div>
 

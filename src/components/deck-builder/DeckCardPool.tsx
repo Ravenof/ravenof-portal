@@ -121,7 +121,7 @@ function CardMobilePreview({
               fontSize: '52px', opacity: 0.35,
             }}
           >
-            &#9876;
+            ⚔
           </div>
         )}
 
@@ -349,7 +349,7 @@ export function DeckCardPool({ cards, collection }: Props) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 opacity-50">
         <p className="text-lg" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-muted)' }}>
-          Pasirink frakcija
+          Pasirink frakciją
         </p>
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Pasirink frakciją aukščiau, kad matytų kortų baseiną

@@ -69,7 +69,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
             }}
           />
           <div className="absolute inset-0 flex items-center justify-center text-5xl">
-            &#x1F0CF;
+            🃏
           </div>
         </div>
         <p className="text-sm" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
@@ -86,14 +86,14 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-            &#x2728; {activePack?.name} &mdash; atvertos kortos
+            ✨ {activePack?.name} — atvertos kortos
           </h2>
           {phase === 'done' && (
             <button
               onClick={handleReset}
               className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-muted)' }}>
-              &#x2190; Atgal
+              ← Atgal
             </button>
           )}
         </div>
@@ -125,7 +125,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 40,
                     }}>
-                    &#x1F0CF;
+                    🃏
                   </div>
                   {/* Card front */}
                   <div
@@ -148,7 +148,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
                         sizes="140px"
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-4xl">&#x1F0CF;</div>
+                      <div className="absolute inset-0 flex items-center justify-center text-4xl">🃏</div>
                     )}
                     {/* Overlay */}
                     <div
@@ -197,7 +197,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
           <div
             className="text-center py-3 rounded-xl text-sm"
             style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', color: '#34d399', fontFamily: 'var(--rvn-font-display)' }}>
-            +{revealedCards.filter((c) => c.is_new).length} nauj&#x0173; kort&#x0173; kolekcijoje!
+            +{revealedCards.filter((c) => c.is_new).length} naujų kortų kolekcijoje!
           </div>
         )}
 
@@ -207,7 +207,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
               onClick={handleReset}
               className="text-sm px-6 py-2 rounded-xl font-semibold transition-opacity hover:opacity-90"
               style={{ background: 'var(--gold)', color: '#0a0a0f', fontFamily: 'var(--rvn-font-display)' }}>
-              &#x2190; Atgal prie paket&#x0173;
+              ← Atgal prie paketų
             </button>
           </div>
         )}
@@ -226,7 +226,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
 
       {packs.length === 0 && (
         <div className="py-16 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-          &#x1F4E6; Aktyvių paketų kol kas nėra
+          📦 Aktyvių paketų kol kas nėra
         </div>
       )}
 
@@ -247,13 +247,13 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
                 {pack.image_url ? (
                   <Image src={pack.image_url} alt={pack.name} fill style={{ objectFit: 'cover', opacity: 0.7 }} />
                 ) : (
-                  <span style={{ fontSize: 64 }}>&#x1F0CF;</span>
+                  <span style={{ fontSize: 64 }}>🃏</span>
                 )}
                 {!canOpen && (
                   <div
                     className="absolute inset-0 flex items-center justify-center"
                     style={{ background: 'rgba(7,7,15,0.6)' }}>
-                    <span className="text-2xl">&#x23F0;</span>
+                    <span className="text-2xl">⏰</span>
                   </div>
                 )}
               </div>
@@ -274,7 +274,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
                   <span
                     className="text-xs px-2 py-0.5 rounded-full"
                     style={{ background: 'rgba(240,180,41,0.1)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.2)' }}>
-                    {pack.cards_per_pack} kort&#x0173;
+                    {pack.cards_per_pack} kortų
                   </span>
                   {pack.daily_limit > 0 && (
                     <span
@@ -300,7 +300,7 @@ export function PackOpeningClient({ packs }: { packs: Pack[] }) {
                     border: canOpen ? 'none' : '1px solid var(--bg-border)',
                     fontFamily: 'var(--rvn-font-display)',
                   }}>
-                  {canOpen ? '&#x2728; Atidaryti' : '&#x23F0; Rytoj'}
+                  {canOpen ? '✨ Atidaryti' : '⏰ Rytoj'}
                 </button>
               </div>
             </div>

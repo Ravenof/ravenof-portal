@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { updatePrivacySettings } from '@/app/profile/settings/actions'
+import { getRankGroupForLevel } from '@/lib/gamification/levels'
 
 type Props = {
   profile: {
@@ -30,38 +31,38 @@ type ToggleKey =
 const TOGGLES: { key: ToggleKey; label: string; desc: string }[] = [
   {
     key: 'show_level',
-    label: 'Rodyti lygi ir ranga',
-    desc: 'Viesame profilyje matomas XP, lygis ir rangas.',
+    label: 'Rodyti lygį ir rangą',
+    desc: 'Viešame profilyje matomas XP, lygis ir rangas.',
   },
   {
     key: 'show_badges',
-    label: 'Rodyti zenklelius',
-    desc: 'Kiti gali matyti tavo gautus zenklelius.',
+    label: 'Rodyti ženklelius',
+    desc: 'Kiti naudotojai mato gautus ženklelius.',
   },
   {
     key: 'show_attended_events',
-    label: 'Rodyti renginiu dalyvavima',
-    desc: 'Rodomas lankytų renginiu skaicius profilyje.',
+    label: 'Rodyti renginių dalyvavimą',
+    desc: 'Rodomas lankytų renginių skaičius profilyje.',
   },
   {
     key: 'show_public_decks',
-    label: 'Rodyti viesasias kalades',
-    desc: 'Tavo viesios kalades matomos profilyje ir bendruomeneje.',
+    label: 'Rodyti viešąsias kaladės',
+    desc: 'Viešos kaladės matomos profilyje ir bendruomenėje.',
   },
   {
     key: 'show_profile_details',
     label: 'Rodyti profilio detales',
-    desc: 'Rodomas aprasymas ir kita profilio informacija.',
+    desc: 'Rodomas aprašymas ir kita profilio informacija.',
   },
   {
     key: 'show_owned_cards',
     label: 'Rodyti turimas korteles',
-    desc: 'Kiti gales matyti tavo korteliu kolekcija (pagal numatyma: isjungta).',
+    desc: 'Kiti naudotojai mato kortelių kolekciją (numatytai išjungta).',
   },
   {
     key: 'show_on_leaderboards',
     label: 'Rodyti mane topose',
-    desc: 'Tavo rezultatai bus matomi Ravenof Topu lentelese.',
+    desc: 'Rezultatai matomi Ravenof topų lentelėse.',
   },
 ]
 
@@ -106,10 +107,10 @@ export function ProfilePrivacyForm({ profile }: Props) {
         <p style={{ color: 'var(--text-muted)' }}>
           Lygis{' '}
           <strong style={{ color: 'var(--text-primary)' }}>{profile.level}</strong>
-          {' '}&middot;{' '}
-          <strong style={{ color: 'var(--gold)' }}>{profile.xp_total.toLocaleString()} XP</strong>
-          {' '}&middot;{' '}
-          Rangas: <strong style={{ color: 'var(--text-primary)' }}>{profile.rank_key}</strong>
+          {' '}·{' '}
+          <strong style={{ color: 'var(--gold)' }}>{profile.xp_total.toLocaleString('lt-LT')} XP</strong>
+          {' '}·{' '}
+          Rangas: <strong style={{ color: 'var(--text-primary)' }}>{getRankGroupForLevel(profile.level).name}</strong>
         </p>
       </div>
 
@@ -167,11 +168,11 @@ export function ProfilePrivacyForm({ profile }: Props) {
           className="px-6 py-2.5 rounded-lg text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
           style={{ background: 'var(--gold)', color: '#000' }}
         >
-          {isPending ? 'Saugoma...' : 'Issaugoti'}
+          {isPending ? 'Saugoma...' : 'Išsaugoti'}
         </button>
         {saved && (
           <span className="text-sm" style={{ color: '#22c55e' }}>
-            Issaugota
+            Išsaugota
           </span>
         )}
         {error && (

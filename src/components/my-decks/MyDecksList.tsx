@@ -210,7 +210,7 @@ export function MyDecksList({ decks, userId, deckOwnership = {} }: Props) {
                     className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
                     style={{ background: 'rgba(240,180,41,0.08)', color: 'rgba(240,180,41,0.7)', border: '1px solid rgba(240,180,41,0.2)' }}
                   >
-                    Trūksta {missing} {missing === 1 ? 'kortos' : 'kortų'}
+                    Kolekcijoje trūksta {missing} {missing === 1 ? 'kortos' : 'kortų'}
                   </span>
                 )}
               </div>

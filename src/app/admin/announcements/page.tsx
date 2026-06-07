@@ -60,10 +60,10 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
       <header className="sticky top-0 z-20 border-b px-6 py-3"
         style={{ background: 'rgba(10,10,15,0.97)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-xl mx-auto flex items-center gap-4">
-          <Link href="/admin" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>&#x2190; Admin</Link>
+          <Link href="/admin" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>← Admin</Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-            &#x1F4F0; Skelbimai
+            📰 Skelbimai
           </span>
           <div className="flex-1" />
           <Link href="/admin/announcements?action=new"
@@ -78,7 +78,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
         {params.action === 'new' && !params.id && <AnnouncementFormClient error={params.error} />}
         {editAnn && <AnnouncementFormClient ann={editAnn} error={params.error} />}
 
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows.length} skelbim&#x0173;</p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows.length} skelbimų</p>
 
         <div className="rounded-xl overflow-x-auto" style={{ border: '1px solid var(--bg-border)' }}>
           <table className="w-full text-sm">
@@ -98,7 +98,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                     style={{ background: i % 2 === 0 ? 'var(--bg-base)' : 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1.5">
-                        {ann.pinned && <span title="Prisegtas">&#x1F4CC;</span>}
+                        {ann.pinned && <span title="Prisegtas">📌</span>}
                         <div>
                           <span className="block font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{ann.title}</span>
                           <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{ann.slug}</span>
@@ -140,7 +140,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
             </tbody>
           </table>
           {rows.length === 0 && (
-            <div className="py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Skelbim&#x0173; dar nesukurta</div>
+            <div className="py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Skelbimų dar nesukurta</div>
           )}
         </div>
       </div>

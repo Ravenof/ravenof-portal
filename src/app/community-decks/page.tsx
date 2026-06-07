@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import type { PublicDeck, VoteValue, Profile } from '@/types'
 
-export const metadata = { title: 'Viešos kaladės | Ravenof' }
+export const metadata = { title: 'Viešos kaladės' }
 export const revalidate = 30
 
 type SearchParams = Promise<{ sort?: string; faction?: string; q?: string }>
@@ -203,7 +203,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             </p>
             {!search && user && (
               <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Pakeisk kaladės matomumą į &ldquo;Viešas&rdquo; kaladžių kūrimo įrankyje
+                Pakeisk kaladės matomumą į “Viešas” kaladžių kūrimo įrankyje
               </p>
             )}
           </div>

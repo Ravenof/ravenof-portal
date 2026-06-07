@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PackOpeningClient } from './PackOpeningClient'
 
 export const revalidate = 0
-export const metadata = { title: 'Kortelių paketai | Ravenof' }
+export const metadata = { title: 'Kortelių paketai' }
 
 export default async function PacksPage() {
   const supabase = await createClient()
@@ -44,13 +44,13 @@ export default async function PacksPage() {
         style={{ background: 'rgba(7,7,15,0.97)', backdropFilter: 'blur(16px)', borderColor: 'rgba(240,180,41,0.1)' }}>
         <div className="max-w-screen-lg mx-auto flex items-center gap-3">
           <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            &#x2190; Kortos
+            ← Kortos
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <h1
             className="text-lg font-bold"
             style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>
-            &#x1F4E6; Kortel&#x0173; paketai
+            📦 Kortelų paketai
           </h1>
         </div>
       </header>
@@ -59,7 +59,7 @@ export default async function PacksPage() {
         {/* Hero */}
         <div className="mb-8 text-center space-y-2">
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Atidaryk paketus ir pildyk savo kortel&#x0173; kolekcij&#x0105;
+            Atidaryk paketus ir pildyk savo kortelų kolekciją
           </p>
         </div>
 

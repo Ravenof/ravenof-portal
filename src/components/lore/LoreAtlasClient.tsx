@@ -144,7 +144,7 @@ export function LoreAtlasClient({
         <BookOpen className="w-4 h-4 shrink-0" style={{ color: 'var(--gold)' }} />
         <h1 className="text-sm font-bold tracking-widest"
           style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em', textShadow: '0 0 12px rgba(212,175,55,0.4)' }}>
-          Lore Atlas
+          Atlasas
         </h1>
         <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full"
           style={{
@@ -153,7 +153,7 @@ export function LoreAtlasClient({
             border:     source === 'supabase' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(212,175,55,0.12)',
             fontFamily: 'var(--rvn-font-display)', fontSize: '10px',
           }}>
-          {source === 'supabase' ? 'live' : 'v1 · static'}
+          {source === 'supabase' ? 'tiesiogiai' : 'v1 · statinis'}
         </span>
       </div>
 
@@ -526,7 +526,7 @@ export function LoreAtlasClient({
                   <Link href={`/lore/factions/${f.id}`}
                     className="self-start text-xs mt-auto transition-opacity hover:opacity-70"
                     style={{ color: 'var(--gold)', textDecoration: 'none' }}>
-                    Skaityti &#x2192;
+                    Skaityti →
                   </Link>
                 </div>
               ))}

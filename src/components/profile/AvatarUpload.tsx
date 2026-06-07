@@ -87,7 +87,7 @@ export function AvatarUpload({ userId, currentAvatarUrl, displayName }: Props) {
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  const initials = (displayName[0] ?? '?').toUpperCase()
+  const initials = (displayName ?? '?').slice(0, 2).toUpperCase()
 
   return (
     <div className="flex items-center gap-5">

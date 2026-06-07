@@ -56,7 +56,7 @@ function CardPreviewModal({ card, onClose }: { card: CardWithRelations; onClose:
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '52px', opacity: 0.35,
           }}>
-            &#9876;
+            ⚔
           </div>
         )}
 

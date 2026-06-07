@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   const supabase = await createClient()
   const { data } = await supabase.from('lore_factions').select('name').eq('slug', slug).single()
-  return { title: data ? `${data.name} | Ravenof Atlasas` : 'Frakcija | Ravenof' }
+  return { title: data ? `${data.name} — Atlasas` : 'Frakcija' }
 }
 
 function Section({ icon, title, color, children }: {

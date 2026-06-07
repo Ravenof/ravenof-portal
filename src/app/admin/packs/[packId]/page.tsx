@@ -90,14 +90,14 @@ export default async function PackDetailPage({ params }: { params: Params }) {
       >
         <div className="max-w-screen-xl mx-auto flex items-center gap-4">
           <Link href="/admin/packs" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            &#x2190; Paketai
+            ← Paketai
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span
             className="text-sm font-bold"
             style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}
           >
-            &#x1F0CF; {pack.name} &mdash; Kort&#x0173; baseinas
+            🃏 {pack.name} — Kortų baseinas
           </span>
         </div>
       </header>
@@ -111,10 +111,10 @@ export default async function PackDetailPage({ params }: { params: Params }) {
         >
           <div className="flex items-center gap-3 mb-1">
             <p className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-              Prid&#279;ti kort&#x0173; &#x012F; basein&#x0105;
+              Pridėti kortų į baseiną
             </p>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              ({allCards.length} aktyvi&#x0173; kort&#x0173;)
+              ({allCards.length} aktyvių kortų)
             </span>
           </div>
           <CardPoolPicker
@@ -131,7 +131,7 @@ export default async function PackDetailPage({ params }: { params: Params }) {
               className="text-xs uppercase tracking-widest font-semibold"
               style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}
             >
-              Kort&#x0173; baseinas ({pool.length} korteli&#x0173;)
+              Kortų baseinas ({pool.length} kortelių)
             </h2>
             <div
               className="flex-1 h-px"
@@ -143,7 +143,7 @@ export default async function PackDetailPage({ params }: { params: Params }) {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                  {['Korta', 'Retenyb&#279;', 'Frakcija', 'Svoris', ''].map((h) => (
+                  {['Korta', 'Retenybė', 'Frakcija', 'Svoris', ''].map((h) => (
                     <th
                       key={h}
                       className="text-left px-3 py-2 text-xs font-semibold"
@@ -204,7 +204,7 @@ export default async function PackDetailPage({ params }: { params: Params }) {
             </table>
             {pool.length === 0 && (
               <div className="py-10 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-                Baseinas tu&#x0161;&#x010D;ias. Prid&#279;k korteli&#x0173;!
+                Baseinas tuščias. Pridėk kortelių!
               </div>
             )}
           </div>

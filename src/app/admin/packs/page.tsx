@@ -43,10 +43,10 @@ export default async function AdminPacksPage({ searchParams }: { searchParams: S
       <header className="sticky top-0 z-20 border-b px-6 py-3"
         style={{ background: 'rgba(10,10,15,0.97)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-xl mx-auto flex items-center gap-4">
-          <Link href="/admin" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>&#x2190; Admin</Link>
+          <Link href="/admin" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>← Admin</Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-            &#x1F4E6; Kortel&#x0173; paketai
+            📦 Kortelų paketai
           </span>
           <div className="flex-1" />
           <Link href="/admin/packs?action=new"
@@ -61,7 +61,7 @@ export default async function AdminPacksPage({ searchParams }: { searchParams: S
         {params.action === 'new' && !params.id && <PackForm />}
         {editPack && <PackForm pack={editPack} />}
 
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{packs.length} paket&#x0173;</p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{packs.length} paketų</p>
 
         <div className="rounded-xl overflow-x-auto" style={{ border: '1px solid var(--bg-border)' }}>
           <table className="w-full text-sm">
@@ -94,7 +94,7 @@ export default async function AdminPacksPage({ searchParams }: { searchParams: S
                         background: pack.is_active ? 'rgba(52,211,153,0.12)' : 'rgba(107,114,128,0.15)',
                         color: pack.is_active ? '#34d399' : '#9ca3af',
                       }}>
-                      {pack.is_active ? 'Aktyvus' : 'Pasl&#0279;ptas'}
+                      {pack.is_active ? 'Aktyvus' : 'Paslėptas'}
                     </span>
                   </td>
                   <td className="px-3 py-2">
@@ -117,7 +117,7 @@ export default async function AdminPacksPage({ searchParams }: { searchParams: S
             </tbody>
           </table>
           {packs.length === 0 && (
-            <div className="py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Paket&#x0173; dar n&#0279;ra</div>
+            <div className="py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Paketų dar nėra</div>
           )}
         </div>
       </div>

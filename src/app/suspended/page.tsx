@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Paskyra užblokuota | Ravenof' }
+export const metadata = { title: 'Paskyra užblokuota' }
 
 export default function SuspendedPage() {
   return (

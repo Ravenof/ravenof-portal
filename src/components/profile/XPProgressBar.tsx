@@ -37,7 +37,7 @@ export function XPProgressBar({ xp, level }: Props) {
 
   const label = progress.isMaxLevel
     ? 'Maksimalus lygis'
-    : `${progress.xpNeededForNextLevel.toLocaleString()} XP iki ${progress.level + 1} lygio`
+    : `${progress.xpNeededForNextLevel.toLocaleString('lt-LT')} XP iki ${progress.level + 1} lygio`
 
   return (
     <>
@@ -48,7 +48,7 @@ export function XPProgressBar({ xp, level }: Props) {
               Lygis {level}
             </span>
             <span className="text-xs font-semibold tabular-nums" style={{ color }}>
-              {xp.toLocaleString()} XP
+              {xp.toLocaleString('lt-LT')} XP
             </span>
             <button
               onClick={() => setInfoOpen(true)}
@@ -75,10 +75,10 @@ export function XPProgressBar({ xp, level }: Props) {
         {!progress.isMaxLevel && (
           <div className="flex justify-between mt-1">
             <span className="text-xs" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-              {progress.currentLevelXp.toLocaleString()} XP
+              {progress.currentLevelXp.toLocaleString('lt-LT')} XP
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-              {progress.nextLevelXp.toLocaleString()} XP
+              {progress.nextLevelXp.toLocaleString('lt-LT')} XP
             </span>
           </div>
         )}
@@ -121,7 +121,7 @@ export function XPProgressBar({ xp, level }: Props) {
                   {progress.rankGroup.icon} Lygis {progress.level} — {progress.title}
                 </span>
                 <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {xp.toLocaleString()} XP
+                  {xp.toLocaleString('lt-LT')} XP
                 </span>
               </div>
               <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
@@ -132,11 +132,11 @@ export function XPProgressBar({ xp, level }: Props) {
               </div>
               {progress.isMaxLevel ? (
                 <p className="text-xs mt-1.5 text-center font-semibold" style={{ color }}>
-                  ✨ Maksimalus lygis pasiektas ({MAX_XP.toLocaleString()} XP)
+                  ✨ Maksimalus lygis pasiektas ({MAX_XP.toLocaleString('lt-LT')} XP)
                 </p>
               ) : (
                 <p className="text-xs mt-1.5 text-right" style={{ color: 'var(--text-muted)' }}>
-                  {progress.xpNeededForNextLevel.toLocaleString()} XP iki{' '}
+                  {progress.xpNeededForNextLevel.toLocaleString('lt-LT')} XP iki{' '}
                   <span style={{ color }}>{progress.level + 1} lygio</span>
                 </p>
               )}
@@ -149,7 +149,7 @@ export function XPProgressBar({ xp, level }: Props) {
               >
                 {'📊'} Sistema turi <span style={{ color: 'var(--gold)' }}>{MAX_LEVEL} lygius</span>.
                 Maks. lygis ({MAX_LEVEL}) pasiekiamas nuo{' '}
-                <span style={{ color: 'var(--gold)' }}>{MAX_XP.toLocaleString()} XP</span>.
+                <span style={{ color: 'var(--gold)' }}>{MAX_XP.toLocaleString('lt-LT')} XP</span>.
               </div>
 
               <div>

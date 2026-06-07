@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 export const revalidate = 0
-export const metadata = { title: 'Lore Atlas Admin | Ravenof' }
+export const metadata = { title: 'Atlaso valdymas' }
 
 const SECTIONS = [
   { href: '/admin/lore/eras',       icon: '🕰️', label: 'Eros',       desc: 'Laiko eros ir periodai' },
@@ -52,7 +52,7 @@ export default async function AdminLoreDashboard() {
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-            📖 Lore Atlas
+            📖 Atlasas
           </span>
           <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#ef444420', color: '#ef4444' }}>ADMIN</span>
           <div className="flex-1" />

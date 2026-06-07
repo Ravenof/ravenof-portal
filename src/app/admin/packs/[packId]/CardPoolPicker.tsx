@@ -102,7 +102,7 @@ export function CardPoolPicker({ cards, poolCardIds, addCardsAction }: Props) {
           className="px-3 py-1.5 rounded-lg text-sm"
           style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}
         >
-          <option value="">Visi retenyb&#279;</option>
+          <option value="">Visi retenybė</option>
           {rarities.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
       </div>
@@ -125,11 +125,11 @@ export function CardPoolPicker({ cards, poolCardIds, addCardsAction }: Props) {
               className="text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
               style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
             >
-              I&#353;valyti ({selected.size})
+              Išvalyti ({selected.size})
             </button>
           )}
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {filtered.length} rodoma &bull; {selected.size} pasirinkta
+            {filtered.length} rodoma • {selected.size} pasirinkta
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export function CardPoolPicker({ cards, poolCardIds, addCardsAction }: Props) {
             className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{ background: 'var(--gold)', color: '#0a0a0f' }}
           >
-            {pending ? '...'  : `Prid&#279;ti (${selected.size})`}
+            {pending ? '...'  : `Pridėti (${selected.size})`}
           </button>
         </div>
       </div>
@@ -167,7 +167,7 @@ export function CardPoolPicker({ cards, poolCardIds, addCardsAction }: Props) {
             <tr>
               <th className="w-8 px-3 py-2" />
               <th className="text-left px-3 py-2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Korta</th>
-              <th className="text-left px-3 py-2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Retenyb&#279;</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Retenybė</th>
               <th className="text-left px-3 py-2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Frakcija</th>
               <th className="w-24 px-3 py-2" />
             </tr>
@@ -232,7 +232,7 @@ export function CardPoolPicker({ cards, poolCardIds, addCardsAction }: Props) {
                         className="text-xs px-1.5 py-0.5 rounded"
                         style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}
                       >
-                        &#x2713; Baseinas
+                        ✓ Baseinas
                       </span>
                     )}
                   </td>
@@ -243,7 +243,7 @@ export function CardPoolPicker({ cards, poolCardIds, addCardsAction }: Props) {
         </table>
         {filtered.length === 0 && (
           <div className="py-10 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-            Kart&#x0173; nerasta
+            Kartų nerasta
           </div>
         )}
       </div>

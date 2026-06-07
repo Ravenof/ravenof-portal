@@ -24,7 +24,7 @@ export function UserRankCard({ profile }: Props) {
           {progress.title}
         </p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          Lygis {profile.level} · {groupName} · {profile.xp_total.toLocaleString()} XP
+          Lygis {profile.level} · {groupName} · {profile.xp_total.toLocaleString('lt-LT')} XP
         </p>
       </div>
       {progress.isMaxLevel && (

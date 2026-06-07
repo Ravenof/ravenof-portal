@@ -6,7 +6,7 @@ import { MyDecksList } from '@/components/my-decks/MyDecksList'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
 
-export const metadata = { title: 'Mano kaladės | Ravenof' }
+export const metadata = { title: 'Mano kaladės' }
 
 export default async function MyDecksPage() {
   const supabase = await createClient()

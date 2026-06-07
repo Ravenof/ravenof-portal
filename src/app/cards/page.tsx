@@ -22,7 +22,7 @@ type PageProps = {
   }>
 }
 
-export const metadata = { title: 'Kortų duomenų bazė | Ravenof' }
+export const metadata = { title: 'Kortų duomenų bazė' }
 
 async function fetchCards(
   params: Awaited<PageProps['searchParams']>,

@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   const supabase = await createClient()
   const { data } = await supabase.from('lore_locations').select('name').eq('slug', slug).single()
-  return { title: data ? `${data.name} | Ravenof Atlasas` : 'Vietovė | Ravenof' }
+  return { title: data ? `${data.name} — Atlasas` : 'Vietovė' }
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -201,7 +201,7 @@ export default async function LoreLocationPage({ params }: Props) {
             className="inline-flex items-center gap-2 text-sm hover:opacity-70 transition-opacity"
             style={{ color: 'var(--text-muted)' }}>
             <ArrowLeft className="w-4 h-4" />
-            Grįžti į Lore Atlasą
+            Grįžti į Atlasą
           </Link>
         </div>
       </div>

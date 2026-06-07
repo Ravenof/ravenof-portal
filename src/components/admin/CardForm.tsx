@@ -97,7 +97,7 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
           <div>
             <label style={labelStyle}>Frakcija *</label>
             <select name="faction_id" defaultValue={initialData?.faction_id ?? ''} required style={inputStyle}>
-              <option value="">-- Pasirink frakcija --</option>
+              <option value="">-- Pasirink frakciją --</option>
               {factions.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>

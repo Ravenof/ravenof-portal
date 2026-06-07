@@ -62,7 +62,7 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
               aria-label="Atimti 100 aukso"
               style={{ minWidth: 28, padding: '3px 7px' }}
             >
-              &minus;
+              −
             </LTButton>
           )}
           <div className="text-center min-w-[4rem]">
@@ -103,7 +103,7 @@ export function TurnTracker({ round, gold, activeName, onNextTurn, onResetTurn, 
           fullWidth
           onClick={onNextTurn}
         >
-          Kitas ėjimas &rarr;
+          Kitas ėjimas →
         </LTButton>
       </div>
     </div>

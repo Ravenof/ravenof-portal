@@ -90,7 +90,7 @@ export default async function MyEventsPage() {
         className="sticky top-0 z-20 border-b px-4 py-3 flex items-center gap-3"
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
       >
-        <Link href="/me" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>&larr; Dashboard</Link>
+        <Link href="/me" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>← Profilis</Link>
         <span style={{ color: 'var(--bg-border)' }}>|</span>
         <h1 className="text-lg font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>Mano Renginiai</h1>
       </header>

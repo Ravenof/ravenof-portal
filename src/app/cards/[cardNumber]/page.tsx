@@ -12,7 +12,7 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: Props) {
   const { cardNumber } = await params
-  return { title: `${decodeURIComponent(cardNumber)} | Ravenof` }
+  return { title: `${decodeURIComponent(cardNumber)}` }
 }
 
 type DeckSnippet = {
@@ -151,7 +151,7 @@ export default async function CardDetailPage({ params }: Props) {
         style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}
       >
         <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-          &larr; Kortų bazė
+          ← Kortų bazė
         </Link>
         {card.card_number && (
           <>
@@ -186,7 +186,7 @@ export default async function CardDetailPage({ params }: Props) {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-7xl opacity-20" style={{ color: factionColor }}>&#9876;</span>
+                  <span className="text-7xl opacity-20" style={{ color: factionColor }}>⚔</span>
                 </div>
               )}
 
@@ -205,7 +205,7 @@ export default async function CardDetailPage({ params }: Props) {
                   className="absolute top-3 right-3 px-2 py-1 rounded text-sm font-bold"
                   style={{ background: 'rgba(0,0,0,0.8)', color: 'var(--gold)', border: '1px solid rgba(212,175,55,0.4)' }}
                 >
-                  &#9812; &Ccaron;empionas
+                  ♔ Čempionas
                 </div>
               )}
 
@@ -281,7 +281,7 @@ export default async function CardDetailPage({ params }: Props) {
 
             {keywords.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Rakt&#379;od&#382;iai</p>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>RaktŻodžiai</p>
                 <div className="flex flex-wrap gap-2">
                   {keywords.map(({ keyword }) => (
                     <span
@@ -307,7 +307,7 @@ export default async function CardDetailPage({ params }: Props) {
               >
                 <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: factionColor, opacity: 0.8 }}>Istorija</p>
                 <p className="text-sm leading-relaxed italic" style={{ color: 'var(--text-secondary)', fontFamily: 'Georgia, serif' }}>
-                  &ldquo;{card.lore_text}&rdquo;
+                  “{card.lore_text}”
                 </p>
               </div>
             )}
@@ -430,7 +430,7 @@ export default async function CardDetailPage({ params }: Props) {
                     <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
                       <span style={{ color: dc }}>{deck.faction?.name ?? '—'}</span>
                       <span className="flex items-center gap-1">
-                        <span style={{ color: 'var(--gold)' }}>&#9650;</span>
+                        <span style={{ color: 'var(--gold)' }}>▲</span>
                         {deck.score}
                       </span>
                     </div>

@@ -5,7 +5,7 @@ import { createPublicClient } from '@/lib/supabase/public'
 import { DeckBuilderClient } from './DeckBuilderClient'
 import type { CardWithRelations, CollectionMap } from '@/types'
 
-export const metadata = { title: 'Kaladžių kūrėjas | Ravenof' }
+export const metadata = { title: 'Kaladžių kūrėjas' }
 
 // Cards + factions — shared across all users, invalidated via 'cards' tag when admin updates
 const getCachedBuilderCards = unstable_cache(

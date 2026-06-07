@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata = { title: 'Arena | Ravenof' }
+export const metadata = { title: 'Arena' }
 export const revalidate = 60
 
 export default async function ArenaPage() {

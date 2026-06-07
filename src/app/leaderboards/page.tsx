@@ -60,7 +60,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       rank: i + 1,
       username: r.username,
       displayName: r.display_name,
-      primary: r.xp_total.toLocaleString(),
+      primary: r.xp_total.toLocaleString('lt-LT'),
       secondary: `Lv ${r.level}`,
       badge: getLevelTitleForXp(r.xp_total),
     }))

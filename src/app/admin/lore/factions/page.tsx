@@ -7,7 +7,7 @@ import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
 import { FactionFormClient } from './FactionFormClient'
 
 export const revalidate = 0
-export const metadata = { title: 'Frakcijos | Lore Atlas Admin' }
+export const metadata = { title: 'Frakcijos — Atlaso valdymas' }
 
 type SearchParams = Promise<{ action?: string; id?: string; error?: string }>
 

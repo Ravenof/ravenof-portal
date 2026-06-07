@@ -170,11 +170,11 @@ export function BattleMode({
         {/* Action buttons -- 2 rows for mobile */}
         <div className="space-y-1.5">
           <LTButton variant="primary" size="sm" fullWidth onClick={onNextTurn}>
-            Kitas ėjimas &rarr;
+            Kitas ėjimas →
           </LTButton>
           <div className="flex gap-1.5">
             <LTButton variant="muted" size="sm" fullWidth onClick={onUndo} disabled={logLength === 0} aria-label="Atšaukti paskutinį veiksmą">
-              &#8617; Atšaukti
+              ↩ Atšaukti
             </LTButton>
             <LTButton variant="secondary" size="sm" fullWidth onClick={() => setConfirmNewGame(true)}>
               Nauja partija
@@ -218,7 +218,7 @@ export function BattleMode({
               boxShadow: '0 8px 40px rgba(0,0,0,.8), 0 0 48px rgba(212,175,55,.18)',
             }}
           >
-            <div className="text-5xl" aria-hidden>&#127942;</div>
+            <div className="text-5xl" aria-hidden>🏆</div>
             <p className="text-2xl font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#d4af37', textShadow: '0 0 16px rgba(212,175,55,.5)' }}>
               {winMessage}
             </p>
@@ -425,10 +425,10 @@ function PlayerZone({ sideIdx, name, hp, gold, isActive, flashType, flashKey, on
         {/* Auksas */}
         <div className="flex items-center gap-2 mt-1">
           <LTButton variant="damage" size="xs" onClick={() => onGoldAdjust(-GOLD_STEP)} aria-label="Atimti auksus">
-            &minus;
+            −
           </LTButton>
           <span className="text-sm font-bold tabular-nums min-w-[4.5rem] text-center" style={{ color: '#d4af37', fontFamily: 'Cinzel, Georgia, serif', textShadow: '0 0 8px rgba(212,175,55,.3)' }}>
-            {gold}&thinsp;&#10052;
+            {gold} ❄
           </span>
           <LTButton variant="heal" size="xs" onClick={() => onGoldAdjust(GOLD_STEP)} aria-label="Prideti auksus">
             +

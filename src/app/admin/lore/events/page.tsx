@@ -6,7 +6,7 @@ import { saveLoreEvent, deleteLoreEvent } from '../actions'
 import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
 
 export const revalidate = 0
-export const metadata = { title: 'Įvykiai | Lore Atlas Admin' }
+export const metadata = { title: 'Įvykiai — Atlaso valdymas' }
 
 type SearchParams = Promise<{ action?: string; id?: string; error?: string }>
 
