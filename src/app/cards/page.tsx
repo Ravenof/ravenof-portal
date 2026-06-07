@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CardGrid, CardGridSkeleton } from '@/components/cards/CardGrid'
 import { CardFilters } from '@/components/cards/CardFilters'
 import { NotificationBell } from '@/components/ui/NotificationBell'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { fetchNotifications } from '@/lib/notifications'
 import type { CardWithRelations, CollectionMap } from '@/types'
 
@@ -198,70 +199,14 @@ export default async function CardsPage({ searchParams }: PageProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end">
-              {[
-                { href: '/leaderboards',    label: 'Topai'           },
-                { href: '/events',          label: 'Renginiai'       },
-                { href: '/community-decks', label: 'Viešos kaladės'  },
-                { href: '/life-tracker',    label: 'Kova'            },
-                { href: '/lore',            label: 'Atlasas'         },
-                { href: '/rules',           label: 'Taisyklės'       },
-              ].map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px', letterSpacing: '0.04em' }}
-                >
-                  {label}
-                </Link>
-              ))}
-              {user && (
-                <>
-                  <Link
-                    href="/me"
-                    className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px' }}
-                  >
-                    Profilis
-                  </Link>
-                  <Link
-                    href="/my-decks"
-                    className="text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)', fontSize: '11px' }}
-                  >
-                    Mano kaladės
-                  </Link>
-                  <Link
-                    href="/deck-builder"
-                    className="text-sm px-3 py-1.5 rounded-lg font-semibold transition-all hover:shadow-[0_0_10px_rgba(240,180,41,0.2)]"
-                    style={{
-                      background:    'linear-gradient(135deg,#92400e,#b45309)',
-                      color:         'var(--gold)',
-                      border:        '1px solid rgba(240,180,41,0.3)',
-                      fontFamily:    'var(--rvn-font-display)',
-                      fontSize:      '11px',
-                    }}
-                  >
-                    + Kaladė
-                  </Link>
-                  <a
-                    href="/api/auth/signout"
-                    className="text-sm px-3 py-1.5 rounded-lg transition-all hover:opacity-70"
-                    style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)', fontSize: '11px' }}
-                  >
-                    Atsijungti
-                  </a>
-                </>
-              )}
-            </div>
+            <HeaderNav />
             {user && (
               <NotificationBell initialNotifications={notifications} initialUnread={unreadCount} />
             )}
             {!user && (
               <a
                 href="/login"
-                className="text-sm px-4 py-1.5 rounded-lg font-semibold transition-all hover:shadow-[0_0_10px_rgba(240,180,41,0.2)]"
+                className="lg:hidden text-sm px-4 py-1.5 rounded-lg font-semibold transition-all hover:shadow-[0_0_10px_rgba(240,180,41,0.2)]"
                 style={{
                   background:  'linear-gradient(135deg,#92400e,#b45309)',
                   color:       'var(--gold)',

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata = { title: 'Arena' }
@@ -57,20 +58,7 @@ export default async function ArenaPage() {
         >
           🏟️ Arena
         </h1>
-        <div className="hidden sm:flex items-center gap-2">
-          <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
-            Kortų bazė
-          </Link>
-          {!user && (
-            <Link
-              href="/login"
-              className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-              style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.3)' }}
-            >
-              Prisijungti
-            </Link>
-          )}
-        </div>
+        <HeaderNav />
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-8 space-y-4">

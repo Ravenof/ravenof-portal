@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -73,6 +74,7 @@ export default async function MyDecksPage() {
           >
             Mano kaladės
           </h1>
+          <HeaderNav />
           <Link href="/deck-builder">
             <RavenofButton variant="gold" size="md">
               <Plus className="w-4 h-4" />

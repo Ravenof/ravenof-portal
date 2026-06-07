@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { getLevelTitleForXp } from '@/lib/gamification/levels'
 import { createClient } from '@/lib/supabase/server'
 import { LeaderboardTable } from '@/components/leaderboards/LeaderboardTable'
@@ -140,6 +141,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
             Ravenof Topai
           </h1>
         </div>
+        <HeaderNav />
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">

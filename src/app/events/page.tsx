@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { createClient } from '@/lib/supabase/server'
 import type { RavenEvent } from '@/types'
 
@@ -163,30 +164,7 @@ export default async function EventsPage() {
             </h1>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 flex-wrap">
-            <Link href="/leaderboards"
-              className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-              Topai
-            </Link>
-            <Link href="/life-tracker"
-              className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-              Kova
-            </Link>
-            {!user && (
-              <Link href="/login"
-                className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                style={{
-                  background:    'linear-gradient(135deg,#92400e,#b45309)',
-                  color:         'var(--gold)',
-                  border:        '1px solid rgba(240,180,41,0.3)',
-                  fontFamily:    'var(--rvn-font-display)',
-                }}>
-                Prisijungti
-              </Link>
-            )}
-          </div>
+          <HeaderNav />
         </div>
       </header>
 

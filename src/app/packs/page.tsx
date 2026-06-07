@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PackOpeningClient } from './PackOpeningClient'
@@ -50,8 +51,9 @@ export default async function PacksPage() {
           <h1
             className="text-lg font-bold"
             style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>
-            📦 Kortelų paketai
+            📦 Kortelių paketai
           </h1>
+          <div className="ml-auto"><HeaderNav /></div>
         </div>
       </header>
 
@@ -59,7 +61,7 @@ export default async function PacksPage() {
         {/* Hero */}
         <div className="mb-8 text-center space-y-2">
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Atidaryk paketus ir pildyk savo kortelų kolekciją
+            Atidaryk paketus ir pildyk savo kortelių kolekciją
           </p>
         </div>
 

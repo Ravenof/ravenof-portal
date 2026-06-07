@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { UserRankCard } from '@/components/profile/UserRankCard'
@@ -115,6 +116,7 @@ export default async function MePage() {
       >
         <h1 className="rvn-page-title text-lg">Mano Profilis</h1>
         <div className="flex items-center gap-2">
+          <HeaderNav />
           <NotificationBell initialNotifications={notifications} initialUnread={unreadCount} />
           <Link href="/cards" className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}>
             ← Kortų bazė
@@ -194,6 +196,32 @@ export default async function MePage() {
                   }}
                 >
                   ⚙️ Nustatymai
+                </Link>
+                <Link
+                  href="/packs"
+                  className="inline-block text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    color:      'var(--text-muted)',
+                    border:     '1px solid var(--bg-border)',
+                    fontFamily: 'var(--rvn-font-display)',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  📦 Paketai
+                </Link>
+                <Link
+                  href="/rules"
+                  className="inline-block text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    color:      'var(--text-muted)',
+                    border:     '1px solid var(--bg-border)',
+                    fontFamily: 'var(--rvn-font-display)',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  🛡️ Taisyklės
                 </Link>
                 {profile.role === 'admin' && (
                   <Link

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { createClient } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import type { PublicDeck, VoteValue, Profile } from '@/types'
@@ -102,32 +103,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
               📚 Viešos kaladės
             </h1>
           </div>
-          <div className="hidden sm:flex items-center gap-2">
-            {[{ href: '/events', label: 'Renginiai' }, { href: '/leaderboards', label: 'Topai' }, { href: '/life-tracker', label: 'Kova' }].map(({ href, label }) => (
-              <Link key={href} href={href} className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-                {label}
-              </Link>
-            ))}
-            {user && (
-              <>
-                <Link href="/me" className="text-xs px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}>
-                  Profilis
-                </Link>
-                <Link href="/my-decks" className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
-                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--bg-border)' }}>
-                  Mano kaladės
-                </Link>
-              </>
-            )}
-            {!user && (
-              <Link href="/login" className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                style={{ background: 'var(--gold)', color: '#0a0a0f' }}>
-                Prisijungti
-              </Link>
-            )}
-          </div>
+          <HeaderNav />
         </div>
       </header>
 

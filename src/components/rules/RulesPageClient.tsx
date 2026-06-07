@@ -6,6 +6,7 @@ import { BookOpen, X } from 'lucide-react'
 import { RULES_SECTIONS, RULE_CATEGORIES, QUICK_LINKS, type RuleCategory } from '@/data/rules'
 import { RuleSectionCard } from './RuleSectionCard'
 import { RulesQuickReference } from './RulesQuickReference'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 const HERO_STATS = [
@@ -262,6 +263,7 @@ export function RulesPageClient() {
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <h1 className="rvn-page-title text-lg flex-1">Taisyklės</h1>
+          <HeaderNav />
         </div>
       </header>
 
