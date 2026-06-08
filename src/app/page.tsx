@@ -23,9 +23,9 @@ const QUICK_LINKS = [
 
 const STEPS = [
   { icon: '🃏', step: '01', title: 'Naršyk kortų bazę',       desc: 'Peržiūrėk visas korteles, filtruok pagal frakciją, retenybę ar vertę' },
-  { icon: '📦', step: '02', title: 'Pažymėk savo korteles',   desc: 'Pažymėk kurias korteles jau turi — portalas sekroja tavo kolekciją' },
+  { icon: '📦', step: '02', title: 'Pažymėk savo korteles',   desc: 'Pažymėk kurias korteles jau turi — portalas seka tavo kolekciją' },
   { icon: '⚗️',  step: '03', title: 'Sukurk kaladę',           desc: 'Kaladžių kūrėjas neleis įdėti kortų kurių neturi ir patikrins taisykles' },
-  { icon: '📅', step: '04', title: 'Dalyvauk renginiuose',    desc: 'Registruokis į turnyrus, gauk XP ir klik į lyderių lentelę' },
+  { icon: '📅', step: '04', title: 'Dalyvauk renginiuose',    desc: 'Registruokis į turnyrus, gauk XP ir kilk lyderių lentelėje' },
 ]
 
 function hexColor(hex: string | undefined) {
@@ -132,11 +132,11 @@ export default async function HomePage() {
 
           <p className="text-sm sm:text-base tracking-widest uppercase max-w-sm mx-auto"
             style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.18em' }}>
-            Fantasy kortų žaidimas
+            Fantastinis kortų žaidimas
           </p>
 
           <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Companion portalas: naršyk korteles, pažymėk kolekciją, kurkite kalades ir dalyvauk turnyruose.
+            Žaidimo palydovas: naršyk korteles, pažymėk kolekciją, kurk kaladės ir dalyvauk turnyruose.
           </p>
 
           <div style={{ height: '1px', width: '160px', background: 'linear-gradient(to right, transparent, var(--gold), transparent)', margin: '0 auto' }} />
@@ -155,14 +155,26 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-1">
-            <Link href="/cards"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'linear-gradient(135deg,#92400e,#b45309)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.35)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em', boxShadow: '0 0 20px rgba(240,180,41,0.12)' }}>
-              🃏 Kortų bazė
-            </Link>
-            <HomeAuthCTA />
+          {/* PAGRINDINIAI VEIKSMAI */}
+          <div className="max-w-2xl mx-auto pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { href: '/cards',        icon: '🃏', title: 'Kortų bazė', desc: 'Naršyk ir filtruok visas korteles' },
+                { href: '/life-tracker', icon: '⚔️',  title: 'Kova',       desc: 'HP skaitiklis žaidimui' },
+                { href: '/rules',        icon: '🛡️',  title: 'Taisyklės',  desc: 'Greita žaidimo nuoroda' },
+              ].map(({ href, icon, title, desc }) => (
+                <Link key={href} href={href}
+                  className="flex flex-col items-start gap-1 rounded-xl p-4 text-left transition-all hover:scale-[1.03] active:scale-95"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid rgba(240,180,41,0.35)', textDecoration: 'none', boxShadow: '0 0 18px rgba(240,180,41,0.08)' }}>
+                  <span className="text-2xl">{icon}</span>
+                  <span className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{title}</span>
+                  <span className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{desc}</span>
+                </Link>
+              ))}
+            </div>
+            <div className="flex justify-center pt-3">
+              <HomeAuthCTA />
+            </div>
           </div>
         </section>
 
@@ -302,7 +314,7 @@ export default async function HomePage() {
         {/* FOOTER */}
         <footer className="border-t py-6 text-center" style={{ borderColor: 'var(--bg-border)' }}>
           <p className="text-xs tracking-widest" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.15em' }}>
-            RAVENOF · COMPANION PORTALAS
+            RAVENOF · ŽAIDIMO PALYDOVAS
           </p>
         </footer>
 
