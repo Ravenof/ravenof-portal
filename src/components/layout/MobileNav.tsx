@@ -23,7 +23,6 @@ const HIDE_PREFIXES = [
   '/register',
   '/suspended',
   '/offline',
-  '/packs',
   '/deck-builder',
 ]
 

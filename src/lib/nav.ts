@@ -15,7 +15,7 @@ export type NavSection = {
 
 /** Mobiliojo apatinio meniu skiltys (6 fiksuoti mygtukai). */
 export const NAV_SECTIONS: NavSection[] = [
-  { key: 'cards',   href: '/cards',        label: 'Kortos',   group: ['/cards', '/my-cards', '/packs'] },
+  { key: 'cards',   href: '/cards',        label: 'Kortos',   group: ['/cards', '/my-cards'] },
   { key: 'decks',   href: '/my-decks',     label: 'Kaladės',  group: ['/my-decks', '/deck-builder', '/community-decks'] },
   { key: 'kova',    href: '/life-tracker', label: 'Kova',     group: ['/life-tracker'] },
   { key: 'arena',   href: '/arena',        label: 'Arena',    group: ['/arena', '/events', '/my-events', '/leaderboards'] },
@@ -25,7 +25,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
 /** Desktop viršutinės juostos nuorodos (turi vietos – Taisyklės atskirai). */
 export const DESKTOP_LINKS: { href: string; label: string; group: string[] }[] = [
-  { href: '/cards',        label: 'Kortos',    group: ['/cards', '/my-cards', '/packs'] },
+  { href: '/cards',        label: 'Kortos',    group: ['/cards', '/my-cards'] },
   { href: '/my-decks',     label: 'Kaladės',   group: ['/my-decks', '/deck-builder', '/community-decks'] },
   { href: '/life-tracker', label: 'Kova',      group: ['/life-tracker'] },
   { href: '/arena',        label: 'Arena',     group: ['/arena', '/events', '/my-events', '/leaderboards'] },

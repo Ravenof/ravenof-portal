@@ -18,7 +18,6 @@ const QUICK_LINKS = [
   { href: '/life-tracker',    icon: '⚔️',  label: 'Kova'             },
   { href: '/lore',            icon: '📖', label: 'Atlasas'           },
   { href: '/rules',           icon: '🛡️',  label: 'Taisyklės'         },
-  { href: '/packs',           icon: '📦', label: 'Paketai'           },
 ]
 
 const STEPS = [

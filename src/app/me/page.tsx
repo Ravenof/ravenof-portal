@@ -198,19 +198,6 @@ export default async function MePage() {
                   ⚙️ Nustatymai
                 </Link>
                 <Link
-                  href="/packs"
-                  className="inline-block text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    color:      'var(--text-muted)',
-                    border:     '1px solid var(--bg-border)',
-                    fontFamily: 'var(--rvn-font-display)',
-                    letterSpacing: '0.03em',
-                  }}
-                >
-                  📦 Paketai
-                </Link>
-                <Link
                   href="/rules"
                   className="inline-block text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-80"
                   style={{

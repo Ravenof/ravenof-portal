@@ -11,7 +11,6 @@ const NAV = [
   { href: '/admin/events',        label: '📅 Renginiai'     },
   { href: '/admin/lore',          label: '📖 Atlasas'       },
   { href: '/admin/announcements', label: '📰 Skelbimai'     },
-  { href: '/admin/packs',         label: '📦 Paketai'       },
   { href: '/admin/users',         label: '👥 Naudotojai'    },
   { href: '/admin/achievements',  label: '🏅 Pasiekimai'    },
 ]
@@ -249,7 +248,6 @@ export default async function AdminDashboard() {
               { href: '/admin/cards/import',             label: '↑ Importuoti', color: 'var(--text-secondary)' },
               { href: '/admin/events/new',               label: '+ Renginys',        color: '#34d399'               },
               { href: '/admin/announcements?action=new', label: '+ Skelbimas',       color: '#38bdf8'               },
-              { href: '/admin/packs',                    label: '📦 Paketai', color: '#fb923c'               },
               { href: '/admin/lore',                     label: '📖 Atlasas', color: '#818cf8'               },
               { href: '/admin/achievements',             label: '🏅 Pasiekimai', color: '#a78bfa'            },
               { href: '/admin/users',                    label: '👥 Naudotojai', color: 'var(--text-secondary)' },
