@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { EventBannerUpload } from './EventBannerUpload'
 import { saveEvent, type EventFormState } from '@/app/admin/events/actions'
 import type { RavenEvent, EventType } from '@/types'
 
@@ -41,6 +42,7 @@ export function EventForm({ eventId, initialData }: Props) {
   const router = useRouter()
   const boundSave = saveEvent.bind(null, eventId)
   const [state, formAction, isPending] = useActionState<EventFormState, FormData>(boundSave, {})
+  const [bannerUrl, setBannerUrl] = useState<string>((initialData as Partial<RavenEvent>)?.banner_url ?? '')
 
   return (
     <form action={formAction} className="space-y-6 max-w-2xl">
@@ -97,7 +99,7 @@ export function EventForm({ eventId, initialData }: Props) {
         <div>
           <label style={labelStyle}>Renginio tipas *</label>
           <select name="event_type" defaultValue={(initialData as Partial<RavenEvent>)?.event_type ?? 'playtestas'} style={inputStyle}>
-            <option value="playtestas">Playtestas</option>
+            <option value="playtestas">Bandymas</option>
             <option value="turnyras">Turnyras</option>
             <option value="kita">Kita</option>
           </select>
@@ -107,10 +109,10 @@ export function EventForm({ eventId, initialData }: Props) {
         <div>
           <label style={labelStyle}>Statusas *</label>
           <select name="status" defaultValue={initialData?.status ?? 'draft'} style={inputStyle}>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="completed">Completed</option>
+            <option value="draft">Juodraštis</option>
+            <option value="published">Paskelbtas</option>
+            <option value="cancelled">Atšauktas</option>
+            <option value="completed">Baigtas</option>
           </select>
         </div>
       </div>
@@ -121,6 +123,13 @@ export function EventForm({ eventId, initialData }: Props) {
         <textarea name="description" defaultValue={initialData?.description ?? ''}
           rows={5} placeholder="Renginio aprašymas..."
           style={{ ...inputStyle, resize: 'vertical' as const }} />
+      </div>
+
+      {/* Banner */}
+      <div>
+        <label style={labelStyle}>Renginio baneris (nebut.)</label>
+        <EventBannerUpload currentUrl={bannerUrl} onUpload={setBannerUrl} />
+        <input type="hidden" name="banner_url" value={bannerUrl} />
       </div>
 
       {/* Buttons */}

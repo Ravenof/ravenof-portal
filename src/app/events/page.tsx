@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { HeaderNav } from '@/components/layout/HeaderNav'
 import { createClient } from '@/lib/supabase/server'
 import type { RavenEvent } from '@/types'
@@ -28,14 +29,14 @@ export default async function EventsPage() {
   const [{ data: upcoming }, { data: past }] = await Promise.all([
     supabase
       .from('events')
-      .select('id,title,description,location,starts_at,ends_at,capacity,status')
+      .select('id,title,description,location,starts_at,ends_at,capacity,status,event_type,banner_url')
       .eq('status', 'published')
       .gte('starts_at', now)
       .order('starts_at', { ascending: true })
       .limit(20),
     supabase
       .from('events')
-      .select('id,title,description,location,starts_at,ends_at,capacity,status')
+      .select('id,title,description,location,starts_at,ends_at,capacity,status,event_type,banner_url')
       .in('status', ['published', 'completed'])
       .lt('starts_at', now)
       .order('starts_at', { ascending: false })
@@ -60,77 +61,99 @@ export default async function EventsPage() {
   const upcomingEvents = (upcoming ?? []) as RavenEvent[]
   const pastEvents     = (past ?? [])    as RavenEvent[]
 
+  const TYPE_LABEL: Record<string, string> = { turnyras: 'Turnyras', playtestas: 'Bandymas', kita: 'Kita' }
+
   function EventCard({ event, dimmed }: { event: RavenEvent; dimmed?: boolean }) {
-    const ss = STATUS_STYLE[event.status] ?? STATUS_STYLE.draft
+    const isCancelled = event.status === 'cancelled'
+    const ss = isCancelled
+      ? STATUS_STYLE.cancelled
+      : dimmed
+        ? { bg: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: 'rgba(96,165,250,0.3)', label: 'Pasibaigęs' }
+        : (STATUS_STYLE[event.status] ?? STATUS_STYLE.draft)
     const regCount = countMap[event.id] ?? 0
     const isFull   = event.capacity !== null && regCount >= event.capacity
+    const typeLabel = TYPE_LABEL[event.event_type] ?? null
     return (
-      <div
-        className="rounded-2xl flex flex-col gap-4 transition-all duration-200 hover:scale-[1.01] group relative overflow-hidden"
+      <Link
+        href={'/events/' + event.id}
+        className="rounded-2xl flex flex-col transition-all duration-200 hover:scale-[1.01] group relative overflow-hidden"
         style={{
           background: dimmed
             ? 'rgba(15,15,26,0.7)'
             : 'linear-gradient(135deg, rgba(240,180,41,0.04) 0%, var(--bg-surface) 50%)',
           border:  dimmed ? '1px solid var(--bg-border)' : '1px solid rgba(240,180,41,0.15)',
-          padding: '1.25rem',
-          opacity: dimmed ? 0.75 : 1,
+          opacity: dimmed ? 0.8 : 1,
+          textDecoration: 'none',
         }}
       >
-        {!dimmed && (
-          <div
-            className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            style={{ background: 'linear-gradient(to right, transparent, rgba(240,180,41,0.4), transparent)' }}
-          />
+        {event.banner_url && (
+          <div className="relative w-full" style={{ aspectRatio: '16 / 6', background: '#0e0e1a' }}>
+            <Image
+              src={event.banner_url}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 400px"
+              style={{ opacity: dimmed ? 0.7 : 1 }}
+            />
+          </div>
         )}
 
-        <div className="flex items-start justify-between gap-3">
-          <h2
-            className="text-base font-bold leading-snug min-w-0"
-            style={{
-              fontFamily: 'var(--rvn-font-display)',
-              color:      dimmed ? 'var(--text-secondary)' : 'var(--text-primary)',
-            }}
-          >
-            {event.title}
-          </h2>
+        <div className="flex flex-col gap-4 flex-1" style={{ padding: '1.25rem' }}>
+          <div className="flex items-start justify-between gap-3">
+            <h2
+              className="text-base font-bold leading-snug min-w-0"
+              style={{
+                fontFamily: 'var(--rvn-font-display)',
+                color:      dimmed ? 'var(--text-secondary)' : 'var(--text-primary)',
+              }}
+            >
+              {event.title}
+            </h2>
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                style={{ background: ss.bg, color: ss.color, border: '1px solid ' + ss.border }}
+              >
+                {ss.label}
+              </span>
+              {typeLabel && (
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  style={{
+                    background: event.event_type === 'turnyras' ? 'rgba(167,139,250,0.12)' : 'var(--bg-elevated)',
+                    color:      event.event_type === 'turnyras' ? '#a78bfa' : 'var(--text-muted)',
+                    border:     '1px solid var(--bg-border)',
+                  }}
+                >
+                  {typeLabel}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <span>📅 {formatDate(event.starts_at)}</span>
+            {event.location && <span>📍 {event.location}</span>}
+            <span style={{ color: isFull ? '#f87171' : 'var(--text-muted)' }}>
+              👥 {regCount}{event.capacity ? '/' + event.capacity : ''} dalyvių
+            </span>
+          </div>
+
+          {event.description && (
+            <p className="text-sm line-clamp-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              {event.description}
+            </p>
+          )}
+
           <span
-            className="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold"
-            style={{ background: ss.bg, color: ss.color, border: '1px solid ' + ss.border }}
+            className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold"
+            style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}
           >
-            {ss.label}
+            Peržiūrėti →
           </span>
         </div>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <span>📅 {formatDate(event.starts_at)}</span>
-          {event.location && <span>📍 {event.location}</span>}
-          <span style={{ color: isFull ? '#f87171' : 'var(--text-muted)' }}>
-            👥 {regCount}{event.capacity ? '/' + event.capacity : ''} dalyvių
-          </span>
-        </div>
-
-        {event.description && (
-          <p className="text-sm line-clamp-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            {event.description}
-          </p>
-        )}
-
-        <div className="mt-auto">
-          <Link
-            href={'/events/' + event.id}
-            className="inline-flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
-            style={{
-              background:    'linear-gradient(135deg, #92400e, #b45309)',
-              color:         'var(--gold)',
-              border:        '1px solid rgba(240,180,41,0.3)',
-              fontFamily:    'var(--rvn-font-display)',
-              letterSpacing: '0.04em',
-            }}
-          >
-            Peržiūrėti
-          </Link>
-        </div>
-      </div>
+      </Link>
     )
   }
 

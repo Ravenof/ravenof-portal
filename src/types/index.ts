@@ -227,6 +227,7 @@ export type RavenEvent = {
   capacity: number | null
   status: EventStatus
   event_type: EventType
+  banner_url: string | null
   tournament_status: TournamentStatus | null
   created_by: string | null
   created_at: string

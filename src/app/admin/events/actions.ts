@@ -42,6 +42,7 @@ export async function saveEvent(
     capacity:    capacity_raw ? parseInt(capacity_raw, 10) : null,
     status:      (formData.get('status') as string) || 'draft',
     event_type:  (['playtestas','turnyras','kita'].includes(formData.get('event_type') as string) ? formData.get('event_type') as string : 'playtestas'),
+    banner_url:  (formData.get('banner_url') as string)?.trim() || null,
     created_by:  user.id,
   }
 

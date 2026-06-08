@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { HeaderNav } from '@/components/layout/HeaderNav'
 import { createClient } from '@/lib/supabase/server'
 import { EventRegisterButton } from '@/components/events/EventRegisterButton'
 import { MatchReportButtons } from '@/components/tournament/MatchReportButtons'
@@ -167,13 +169,17 @@ export default async function EventDetailPage({ params }: { params: Params }) {
             Renginiai
           </Link>
           <div className="flex-1" />
-          <Link href="/cards" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-            Kortų bazė
-          </Link>
+          <HeaderNav />
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-10">
+        {ev.banner_url && (
+          <div className="relative w-full rounded-2xl overflow-hidden mb-6"
+            style={{ aspectRatio: '16 / 6', background: '#0e0e1a', border: '1px solid var(--bg-border)' }}>
+            <Image src={ev.banner_url} alt="" fill className="object-cover" sizes="768px" priority />
+          </div>
+        )}
         {ev.event_type === 'turnyras' && (
           <div className="mb-3">
             <span className="text-xs px-3 py-1 rounded-full font-semibold"
