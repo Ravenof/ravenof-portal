@@ -15,7 +15,7 @@ export function DeckFactionSelect({ factions, selected, onChange, disabled }: Pr
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-        Deck frakcija
+        Kaladės frakcija
       </p>
       <div className="flex flex-wrap gap-2">
         {factions.map((f) => {

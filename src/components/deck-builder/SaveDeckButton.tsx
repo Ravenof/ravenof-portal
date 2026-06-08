@@ -81,7 +81,7 @@ export function SaveDeckButton({ userId }: Props) {
       }
     } catch (err) {
       console.error('Save deck error:', err)
-      alert('Nepavyko išsaugoti kaladę. Bandyk dar kartą.')
+      alert('Nepavyko išsaugoti kaladės. Bandyk dar kartą.')
     } finally {
       setIsSaving(false)
     }

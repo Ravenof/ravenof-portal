@@ -10,7 +10,7 @@ import { Swords, Trash2 } from 'lucide-react'
 import type { CardWithRelations } from '@/types'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 
-const TYPE_ORDER = ['Champion', 'Unit', 'Spell', 'Structure', 'Token']
+const TYPE_ORDER = ['Čempionas', 'Padaras', 'Burtas', 'Artefaktas', 'Prakeiksmas', 'Reakcija', 'Laukas']
 
 function getTypeOrder(typeName: string | undefined): number {
   const idx = TYPE_ORDER.indexOf(typeName ?? '')

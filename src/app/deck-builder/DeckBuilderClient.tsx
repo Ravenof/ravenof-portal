@@ -53,7 +53,7 @@ function getDeckValidity(
     return { state: 'almost', label: 'Dar ' + (DECK_MIN - total) + ' ' + pluralLt(DECK_MIN - total, ['kortos', 'kortų', 'kortų']) }
   }
   if (hasName && hasFaction && total >= 15) {
-    return { state: 'almost', label: 'Beveik paruostas' }
+    return { state: 'almost', label: 'Beveik paruošta' }
   }
   return { state: 'invalid', label: 'Negalioja' }
 }
@@ -89,6 +89,15 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
   const { state: validityState, label: validityLabel } = getDeckValidity(store.entries, store.factionId, store.name)
   const vstyle = VALIDITY_STYLES[validityState]
   const VIcon = VALIDITY_ICONS[validityState]
+
+  // Apsauga: keičiant frakciją, kai kaladėje jau yra kortų, paklausti patvirtinimo
+  const handleFactionChange = (id: number | null) => {
+    if (id !== store.factionId && store.entries.length > 0) {
+      const ok = window.confirm('Pakeitus frakciją, dabartinės kaladės kortos bus pašalintos. Tęsti?')
+      if (!ok) return
+    }
+    store.setFaction(id)
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-base)' }}>
@@ -198,7 +207,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
       {/* FACTION SELECT */}
       <div className="border-b px-4 py-3" style={{ borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-2xl mx-auto">
-          <DeckFactionSelect factions={factions} selected={store.factionId} onChange={store.setFaction} />
+          <DeckFactionSelect factions={factions} selected={store.factionId} onChange={handleFactionChange} />
         </div>
       </div>
 
