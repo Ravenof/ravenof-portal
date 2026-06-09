@@ -25,7 +25,7 @@ export function DeckStats() {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-2">
         <StatBox label="Kortų" value={total} gold={total >= 30} />
-        <StatBox label="Avg. auksas" value={avg ? `${avg}⚜` : '—'} />
+        <StatBox label="Vid. auksas" value={avg ? `${avg}⚜` : '—'} />
       </div>
 
       {/* Gold curve */}

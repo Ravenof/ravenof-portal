@@ -1,6 +1,7 @@
 'use client'
 
 import type { DeckEntry } from '@/types'
+import { pluralLt } from '@/lib/lt-plural'
 
 const GOLD_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 const BAR_MAX_H = 72
@@ -35,7 +36,7 @@ export function GoldCurveChart({ entries }: Props) {
     const cnt = buckets[step] ?? 0
     const isActive = cnt > 0
     const barH = cnt === 0 ? 3 : Math.max(8, (cnt / max) * BAR_MAX_H)
-    const suffix = cnt === 1 ? 'korta' : 'kortų'
+    const suffix = pluralLt(cnt, ['korta', 'kortos', 'kortų'])
     return {
       step,
       cnt,
@@ -58,7 +59,7 @@ export function GoldCurveChart({ entries }: Props) {
         </p>
         {totalCards > 0 && (
           <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-            {totalCards} kortų
+            {totalCards} {pluralLt(totalCards, ['korta', 'kortos', 'kortų'])}
           </span>
         )}
       </div>

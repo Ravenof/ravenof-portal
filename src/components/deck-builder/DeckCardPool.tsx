@@ -6,6 +6,7 @@ import { Search, Plus, Check, Eye, X, Sword, Heart, Coins, SlidersHorizontal } f
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { canAddCard, getCopyLimit, NEUTRAL_FACTION_ID } from '@/lib/deck-validation'
 import { getFactionColor, getRarityColor } from '@/lib/utils'
+import { pluralLt } from '@/lib/lt-plural'
 import { CardHoverPreview } from './CardHoverPreview'
 import type { CardWithRelations, CollectionMap } from '@/types'
 
@@ -15,6 +16,8 @@ type Props = {
 }
 
 const GOLD_COSTS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+const TYPE_ORDER = ['Čempionas', 'Padaras', 'Burtas', 'Artefaktas', 'Prakeiksmas', 'Reakcija', 'Laukas']
+function typeRank(t: string | undefined) { const i = TYPE_ORDER.indexOf(t ?? ''); return i >= 0 ? i : TYPE_ORDER.length }
 
 // ─── Pill helpers ─────────────────────────────────────────────────────────────
 
@@ -191,7 +194,7 @@ function CardMobilePreview({
             className="w-full py-2.5 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-30"
             style={{ background: atLimit ? 'var(--bg-border)' : 'var(--gold)', color: '#0a0a0f' }}
           >
-            {atLimit ? `Kaladeje: ${qty}/${limit}` : result.ok ? `+ Prideti i kaladę (${qty}/${limit})` : result.reason ?? 'Negalima prideti'}
+            {atLimit ? `Kaladėje: ${qty}/${limit}` : result.ok ? `+ Pridėti į kaladę (${qty}/${limit})` : result.reason ?? 'Negalima pridėti'}
           </button>
         </div>
       </div>
@@ -256,7 +259,7 @@ function CardRow({
           onClick={(e) => { e.stopPropagation(); onPreview(card) }}
           className="lg:hidden w-6 h-6 rounded flex items-center justify-center transition-colors"
           style={{ background: 'var(--bg-border)', color: 'var(--text-muted)' }}
-          title="Perziureti korta"
+          title="Peržiūrėti kortą"
         >
           <Eye className="w-3 h-3" />
         </button>
@@ -296,7 +299,7 @@ export function DeckCardPool({ cards, collection }: Props) {
       ? cards.filter((c) => c.faction_id === factionId)
       : cards
     const types = new Set(pool.map((c) => c.card_type?.name).filter(Boolean))
-    return [...types].sort()
+    return [...types].sort((a, b) => typeRank(a as string) - typeRank(b as string))
   }, [cards, factionId])
 
   const rarities = useMemo(() => {
@@ -484,7 +487,7 @@ export function DeckCardPool({ cards, collection }: Props) {
             className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-opacity hover:opacity-70"
             style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)', fontFamily: 'var(--rvn-font-display)' }}
           >
-            <X className="w-3 h-3" /> Isvalyti filtrus
+            <X className="w-3 h-3" /> Išvalyti filtrus
           </button>
         )}
       </div>
@@ -495,7 +498,7 @@ export function DeckCardPool({ cards, collection }: Props) {
         style={{ borderTop: '1px solid var(--bg-border)' }}
       >
         <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
-          {totalShown} kortos
+          {totalShown} {pluralLt(totalShown, ['korta', 'kortos', 'kortų'])}
         </p>
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
