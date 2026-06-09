@@ -19,6 +19,7 @@ type PageProps = {
     gold_min?:   string
     gold_max?:   string
     owned_only?: string
+    sort?:       string
     page?:       string
   }>
 }
@@ -60,7 +61,13 @@ async function fetchCards(
 
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
-  q = q.order('gold_cost', { ascending: true, nullsFirst: false }).order('name').range(from, to)
+  const sort = params.sort ?? 'gold_asc'
+  if (sort === 'gold_desc')      q = q.order('gold_cost', { ascending: false, nullsFirst: false }).order('name')
+  else if (sort === 'name')      q = q.order('name', { ascending: true })
+  else if (sort === 'attack')    q = q.order('attack', { ascending: false, nullsFirst: false }).order('name')
+  else if (sort === 'health')    q = q.order('health', { ascending: false, nullsFirst: false }).order('name')
+  else                           q = q.order('gold_cost', { ascending: true, nullsFirst: false }).order('name')
+  q = q.range(from, to)
 
   const { data, count, error } = await q
   if (error) { console.error(error); return { cards: [], totalFiltered: 0 } }
@@ -165,6 +172,7 @@ export default async function CardsPage({ searchParams }: PageProps) {
     ...(params.gold_min  ? { gold_min:   params.gold_min  } : {}),
     ...(params.gold_max  ? { gold_max:   params.gold_max  } : {}),
     ...(params.owned_only ? { owned_only: params.owned_only } : {}),
+    ...(params.sort ? { sort: params.sort } : {}),
   }
 
   return (

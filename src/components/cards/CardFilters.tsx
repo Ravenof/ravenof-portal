@@ -119,6 +119,15 @@ export function CardFilters({
           )}
         </div>
 
+        {/* Sort */}
+        <Sel label="Rūšiuoti" value={get('sort') || 'gold_asc'} onChange={(v) => update('sort', v)}>
+          <option value="gold_asc">Pigiausios pirma</option>
+          <option value="gold_desc">Brangiausios pirma</option>
+          <option value="name">Pavadinimas A–Z</option>
+          <option value="attack">Stipriausios (ATK)</option>
+          <option value="health">Atspariausios (HP)</option>
+        </Sel>
+
         {/* Filters */}
         <div className="space-y-3">
 

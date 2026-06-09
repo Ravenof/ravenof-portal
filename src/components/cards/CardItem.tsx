@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Sword, Heart, Coins } from 'lucide-react'
 import { getFactionColor, getRarityColor, truncate } from '@/lib/utils'
+import { pluralLt } from '@/lib/lt-plural'
 import { OwnedToggle } from './OwnedToggle'
 import type { CardWithRelations } from '@/types'
 
@@ -140,7 +141,7 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
                     border: '1px solid rgba(124,58,237,0.2)',
                     fontSize: '10px',
                   }}
-                  title={'Naudojama ' + deckCount + ' kaladese'}
+                  title={'Naudojama ' + deckCount + ' ' + pluralLt(deckCount, ['kaladėje', 'kaladėse', 'kaladėse'])}
                 >
                   {'\u{1F4DA}'} {deckCount}
                 </span>
