@@ -3,14 +3,16 @@
 import { motion } from 'framer-motion'
 import type { LoreLocation, LoreFaction } from '@/data/lore'
 
-const TYPE_ICONS: Record<LoreLocation['type'], string> = {
-  miestas:   '🏙️',
-  griuvėsiai:'🏚️',
-  miškas:    '🌲',
-  tvirtovė:  '🏰',
-  uostas:    '⚓',
-  plyšys:    '🌋',
-  slėnis:    '🏔️',
+// Ikonos pagal vietovės tipą. Palaikomos ir lietuviškos (statiniai duomenys),
+// ir angliškos (DB / admin forma) reikšmės.
+const TYPE_ICONS: Record<string, string> = {
+  // angliškos (DB)
+  city: '🏙️', ruins: '🏚️', dungeon: '🕳️', forest: '🌲', mountain: '🏔️',
+  coast: '⚓', plains: '🌾', island: '🏝️', fortress: '🏰', temple: '🏛️',
+  portal: '🌀', unknown: '📍',
+  // lietuviškos (statiniai duomenys)
+  miestas: '🏙️', 'griuvėsiai': '🏚️', 'miškas': '🌲', 'tvirtovė': '🏰',
+  uostas: '⚓', 'plyšys': '🌋', 'slėnis': '🏔️',
 }
 
 type Props = {
@@ -23,7 +25,7 @@ type Props = {
 
 export function LoreMarker({ location, faction, isSelected, onClick, eventCount = 0 }: Props) {
   const color = faction?.color ?? '#d4af37'
-  const icon  = TYPE_ICONS[location.type] ?? '📍'
+  const icon  = TYPE_ICONS[String(location.type ?? '').toLowerCase()] ?? '📍'
 
   return (
     <motion.button

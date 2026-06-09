@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword, Search, X as XIcon, Shield } from 'lucide-react'
+import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword, Search, X as XIcon, Shield, Eye, EyeOff } from 'lucide-react'
 import { LoreMap }      from '@/components/lore/LoreMap'
 import { LorePanel }    from '@/components/lore/LorePanel'
 import { LoreTimeline } from '@/components/lore/LoreTimeline'
@@ -73,6 +73,7 @@ export function LoreAtlasClient({
   const [activeEraIndex, setActiveEraIndex] = useState<number>(eras.length > 0 ? eras.length - 1 : 0)
   const [activeFaction,  setActiveFaction]  = useState<string | null>(null)
   const [searchQuery,    setSearchQuery]    = useState('')
+  const [uiHidden,       setUiHidden]       = useState(false)
 
   const visibleLocations = useMemo(() => locations.filter((loc) =>
     loc.firstEraIndex <= activeEraIndex && (activeFaction === null || loc.factionId === activeFaction)
@@ -91,6 +92,11 @@ export function LoreAtlasClient({
 
   const visibleEvents = useMemo(() => events.filter((e) =>
     e.eraIndex <= activeEraIndex && (activeFaction === null || !e.locationId || visibleLocationIds.has(e.locationId))
+  ), [events, activeEraIndex, activeFaction, visibleLocationIds])
+
+  // Pasirinkto laikotarpio (didelio) įvykiai chronologiškai
+  const activeEraEvents = useMemo(() => events.filter((e) =>
+    e.eraIndex === activeEraIndex && (activeFaction === null || !e.locationId || visibleLocationIds.has(e.locationId))
   ), [events, activeEraIndex, activeFaction, visibleLocationIds])
 
   const visibleCharacters = useMemo(() =>
@@ -210,8 +216,19 @@ export function LoreAtlasClient({
             eventCounts={eventCounts}
           />
 
+          {/* ── Slėpti / rodyti valdiklius ── */}
+          <button
+            onClick={() => setUiHidden((v) => !v)}
+            className="absolute top-3 right-3 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all hover:opacity-90"
+            style={{ background: 'rgba(5,5,12,0.8)', border: '1px solid rgba(212,175,55,0.2)', color: 'var(--text-muted)', backdropFilter: 'blur(8px)', fontFamily: 'var(--rvn-font-display)' }}
+            title={uiHidden ? 'Rodyti valdiklius' : 'Slėpti valdiklius'}
+          >
+            {uiHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{uiHidden ? 'Rodyti' : 'Slėpti'}</span>
+          </button>
+
           {/* ── Floating filters (top) ── */}
-          <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none">
+          <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none" style={{ display: uiHidden ? 'none' : undefined }}>
             <div className="pointer-events-auto max-w-xl">
               <LoreFilters
                 factions={factions}
@@ -256,7 +273,7 @@ export function LoreAtlasClient({
 
           {/* ── Floating timeline (bottom) ── */}
           <div className="absolute bottom-3 left-3 z-20"
-            style={{ right: selectedLocation ? '25rem' : '3rem' }}>
+            style={{ right: selectedLocation ? '25rem' : '3rem', display: uiHidden ? 'none' : undefined }}>
             <LoreTimeline
               eras={eras}
               activeIndex={activeEraIndex}
@@ -264,13 +281,15 @@ export function LoreAtlasClient({
                 setActiveEraIndex(idx)
                 if (selectedLocation && selectedLocation.firstEraIndex > idx) setSelectedId(null)
               }}
+              eraEvents={activeEraEvents}
+              onSelectEvent={(ev) => { if (ev.locationId) setSelectedId(ev.locationId) }}
             />
           </div>
 
           {/* ── Stats badge (bottom-right) ── */}
           <div
             className="absolute bottom-3 right-3 z-20 hidden sm:flex items-center gap-4 px-3 py-2 rounded-xl"
-            style={{ background: 'rgba(5,5,12,0.75)', border: '1px solid rgba(212,175,55,0.12)', backdropFilter: 'blur(12px)' }}
+            style={{ background: 'rgba(5,5,12,0.75)', border: '1px solid rgba(212,175,55,0.12)', backdropFilter: 'blur(12px)', display: uiHidden ? 'none' : undefined }}
           >
             {[
               { n: locations.length,  label: 'Vietovių'  },
@@ -286,7 +305,7 @@ export function LoreAtlasClient({
           </div>
 
           {/* ── Hint (no selection) ── */}
-          {!selectedId && visibleLocations.length > 0 && (
+          {!uiHidden && !selectedId && visibleLocations.length > 0 && (
             <p className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10 text-xs px-3 py-1.5 rounded-full pointer-events-none"
               style={{ background: 'rgba(5,5,12,0.6)', color: 'var(--text-muted)', backdropFilter: 'blur(8px)', whiteSpace: 'nowrap' }}>
               Spustelėk žymeklį, kad pamatytum vietovės istoriją

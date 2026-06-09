@@ -1,14 +1,16 @@
 'use client'
 
-import type { LoreEra } from '@/data/lore'
+import type { LoreEra, LoreEvent } from '@/data/lore'
 
 type Props = {
   eras: LoreEra[]
   activeIndex: number
   onChange: (index: number) => void
+  eraEvents?: LoreEvent[]
+  onSelectEvent?: (e: LoreEvent) => void
 }
 
-export function LoreTimeline({ eras, activeIndex, onChange }: Props) {
+export function LoreTimeline({ eras, activeIndex, onChange, eraEvents, onSelectEvent }: Props) {
   const active = eras.find((e) => e.index === activeIndex) ?? eras[eras.length - 1]
 
   return (
@@ -75,6 +77,29 @@ export function LoreTimeline({ eras, activeIndex, onChange }: Props) {
           }}
         />
       </div>
+
+      {/* Šio laikotarpio įvykiai chronologiškai */}
+      {eraEvents && eraEvents.length > 0 && (
+        <div className="flex flex-col gap-1 pt-2 max-h-32 overflow-y-auto" style={{ borderTop: '1px solid var(--bg-border)' }}>
+          <p className="text-[10px] uppercase tracking-wider font-semibold"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+            Įvykiai chronologiškai
+          </p>
+          {eraEvents.map((ev, i) => (
+            <button
+              key={ev.id}
+              onClick={() => onSelectEvent?.(ev)}
+              className="flex items-start gap-2 text-left rounded-md px-1.5 py-1 transition-colors hover:bg-white/5"
+            >
+              <span className="text-xs font-bold tabular-nums shrink-0"
+                style={{ color: active?.color ?? 'var(--gold)' }}>{i + 1}.</span>
+              <span className="text-xs leading-tight truncate" style={{ color: 'var(--text-secondary)' }}>
+                {ev.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
