@@ -8,6 +8,7 @@ import { canAddCard, getCopyLimit, NEUTRAL_FACTION_ID } from '@/lib/deck-validat
 import { getFactionColor, getRarityColor } from '@/lib/utils'
 import { pluralLt } from '@/lib/lt-plural'
 import { CardHoverPreview } from './CardHoverPreview'
+import { playCardFlip } from '@/lib/ui-sound'
 import type { CardWithRelations, CollectionMap } from '@/types'
 
 type Props = {
@@ -256,7 +257,7 @@ function CardRow({
         )}
 
         <button
-          onClick={(e) => { e.stopPropagation(); onPreview(card) }}
+          onClick={(e) => { e.stopPropagation(); playCardFlip(); onPreview(card) }}
           className="lg:hidden w-6 h-6 rounded flex items-center justify-center transition-colors"
           style={{ background: 'var(--bg-border)', color: 'var(--text-muted)' }}
           title="Peržiūrėti kortą"

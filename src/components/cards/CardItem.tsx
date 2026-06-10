@@ -7,6 +7,7 @@ import { Sword, Heart, Coins } from 'lucide-react'
 import { getFactionColor, getRarityColor, truncate } from '@/lib/utils'
 import { pluralLt } from '@/lib/lt-plural'
 import { OwnedToggle } from './OwnedToggle'
+import { GameCard } from '@/components/ui/GameCard'
 import type { CardWithRelations } from '@/types'
 
 type CardItemProps = {
@@ -33,6 +34,7 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
         style={{ textDecoration: 'none', display: 'block' }}
         onClick={() => { if (onClick) onClick(card) }}
       >
+        <GameCard glowColor={rarityColor} className="rounded-xl">
         <div
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -40,12 +42,7 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid ' + (hovered ? rarityColor + '80' : 'var(--bg-border)'),
-            boxShadow: hovered
-              ? '0 0 24px ' + rarityColor + '35, 0 8px 32px rgba(0,0,0,0.6)'
-              : '0 2px 8px rgba(0,0,0,0.4)',
-            transform: hovered ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
-            transition: 'border-color 0.18s, box-shadow 0.18s, transform 0.18s',
-            willChange: 'transform',
+            transition: 'border-color 0.18s',
           }}
         >
           {/* IMAGE AREA */}
@@ -169,6 +166,7 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
             )}
           </div>
         </div>
+        </GameCard>
       </Link>
 
       {/* OwnedToggle is OUTSIDE <Link> — no click propagation to navigation */}

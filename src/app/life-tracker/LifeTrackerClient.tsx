@@ -12,6 +12,7 @@ import { SoundToggle } from '@/components/life-tracker/SoundToggle'
 import { BattleMode } from '@/components/life-tracker/BattleMode'
 import { BattleModeIntro } from '@/components/life-tracker/BattleModeIntro'
 import { LTButton } from '@/components/life-tracker/LTButton'
+import { isUiSoundEnabled, setUiSoundEnabled, subscribeUiSound } from '@/lib/ui-sound'
 
 type FlashState = { side: 0 | 1; type: ActionType; key: number }
 
@@ -37,13 +38,21 @@ export function LifeTrackerClient() {
 
   useEffect(() => {
     const saved = loadState()
+    const globalSound = isUiSoundEnabled()
     if (saved) {
-      setState(saved)
-      soundRef.current = saved.soundEnabled
+      setState({ ...saved, soundEnabled: globalSound })
       setNormalGold(calcGold(saved.round))
+    } else {
+      setState((prev) => ({ ...prev, soundEnabled: globalSound }))
     }
+    soundRef.current = globalSound
     setHydrated(true)
     preloadLifeTrackerSounds()
+    // Sinchronizacija su globaliu jungikliu (pvz., pakeitus kitame tabe/puslapyje)
+    return subscribeUiSound((enabled) => {
+      soundRef.current = enabled
+      setState((prev) => ({ ...prev, soundEnabled: enabled }))
+    })
   }, [])
 
   // ── Screen Wake Lock — ekranas neužmiega žaidimo metu ───────────────────
@@ -229,7 +238,8 @@ export function LifeTrackerClient() {
   }, [])
 
   const handleSoundToggle = useCallback(() => {
-    setState((prev) => ({ ...prev, soundEnabled: !prev.soundEnabled }))
+    const next = !soundRef.current
+    setUiSoundEnabled(next) // subscribeUiSound atnaujins state
   }, [])
 
   const handleEnterBattleMode = useCallback(() => {

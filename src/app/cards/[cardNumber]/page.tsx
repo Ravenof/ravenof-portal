@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { GameCard } from '@/components/ui/GameCard'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { OwnedToggle } from '@/components/cards/OwnedToggle'
@@ -166,6 +167,7 @@ export default async function CardDetailPage({ params }: Props) {
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left — Image */}
           <div className="flex-shrink-0 w-full md:w-72">
+            <GameCard glowColor={rarityColor} intensity={12} liftPx={6} className="rounded-2xl">
             <div
               className="relative rounded-2xl overflow-hidden"
               style={{
@@ -215,6 +217,7 @@ export default async function CardDetailPage({ params }: Props) {
                 </div>
               )}
             </div>
+            </GameCard>
           </div>
 
           {/* Right — Info */}

@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import type { DeckEntry, CardWithRelations, DeckVisibility } from '@/types'
 import { canAddCard, getCopyLimit, DECK_MAX } from '@/lib/deck-validation'
+import { playCardPlace, playCardPick, playError, playUiClick } from '@/lib/ui-sound'
 
 type DeckBuilderStore = {
   // State
@@ -76,7 +77,7 @@ export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
   addCard: (card) => {
     const { entries, factionId } = get()
     const result = canAddCard(card, entries, factionId)
-    if (!result.ok) return result
+    if (!result.ok) { playError(); return result }
 
     const idx = entries.findIndex((e) => e.card.id === card.id)
     if (idx >= 0) {
@@ -87,10 +88,12 @@ export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
     } else {
       set({ entries: [...entries, { card, quantity: 1 }], isDirty: true })
     }
+    playCardPlace()
     return { ok: true }
   },
 
   removeCard: (cardId) => {
+    playCardPick()
     set((s) => ({
       entries: s.entries.filter((e) => e.card.id !== cardId),
       isDirty: true,
@@ -104,6 +107,7 @@ export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
     }
     const limit = getCopyLimit(get().entries.find((e) => e.card.id === cardId)!.card)
     const capped = Math.min(qty, limit, DECK_MAX)
+    playUiClick()
     set((s) => ({
       entries: s.entries.map((e) => e.card.id === cardId ? { ...e, quantity: capped } : e),
       isDirty: true,

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DESKTOP_LINKS, isNavActive } from '@/lib/nav'
+import { GlobalSoundToggle } from '@/components/ui/GlobalSoundToggle'
 
 const linkBase =
   'text-sm px-3 py-1.5 rounded-lg transition-all hover:border-[rgba(240,180,41,0.3)] hover:text-[var(--gold)]'
@@ -43,6 +44,8 @@ export function HeaderNav() {
           </Link>
         )
       })}
+
+      <GlobalSoundToggle />
 
       {/* Auth dalis */}
       {loggedIn === null ? (
