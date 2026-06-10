@@ -153,7 +153,9 @@ export function GameCard({
         ref={innerRef}
         className="relative"
         style={{
-          transformStyle: 'preserve-3d',
+          // PASTABA: be preserve-3d — WebKit (iOS Safari) turi 3D hit-testing
+          // bugu, kai pakreipta plokštuma perima paspaudimus virš overlay
+          // elementų (pvz., OwnedToggle). Tilt veikia per perspective() transformą.
           willChange: 'transform',
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
           borderRadius: 'inherit',

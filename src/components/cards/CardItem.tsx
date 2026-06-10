@@ -171,7 +171,7 @@ export function CardItem({ card, isAuthenticated, onClick, deckCount = 0 }: Card
 
       {/* OwnedToggle is OUTSIDE <Link> — no click propagation to navigation */}
       {isAuthenticated && (
-        <div className="absolute bottom-11 right-2 z-20">
+        <div className="absolute bottom-11 right-2 z-20" style={{ transform: 'translateZ(0)' }}>
           <OwnedToggle cardId={card.id} isAuthenticated={isAuthenticated} size="sm" />
         </div>
       )}

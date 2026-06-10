@@ -22,8 +22,15 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
 
   toggleOwned: async (cardId) => {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    // getSession() — lokalus skaitymas (be tinklo užklausos i Auth serverį).
+    // getUser() galėdavo grąžinti null (pvz., token refresh race) ir mygtukas
+    // tyliai nieko nedarydavo.
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      console.warn('toggleOwned: nėra sesijos — vartotojas neprisijungęs?')
+      return
+    }
+    const user = session.user
 
     const currentQty = get().collection[cardId] ?? 0
     const newQty = currentQty > 0 ? 0 : 1
