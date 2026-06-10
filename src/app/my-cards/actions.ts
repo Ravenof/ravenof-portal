@@ -1,11 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 export async function updateCardQuantity(cardId: string, delta: number): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   // Fetch current quantity
@@ -44,7 +44,7 @@ export async function updateCardQuantity(cardId: string, delta: number): Promise
 
 export async function removeCard(cardId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { error } = await supabase

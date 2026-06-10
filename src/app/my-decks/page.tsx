@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { HeaderNav } from '@/components/layout/HeaderNav'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { MyDecksList } from '@/components/my-decks/MyDecksList'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
@@ -11,7 +11,7 @@ export const metadata = { title: 'Mano kaladės' }
 
 export default async function MyDecksPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login?next=/my-decks')
 
   const { data: decks } = await supabase

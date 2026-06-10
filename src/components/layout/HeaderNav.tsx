@@ -20,7 +20,8 @@ export function HeaderNav() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => setLoggedIn(!!user))
+    // getSession() skaito iš localStorage — be tinklo užklausos (getUser eidavo į Auth serverį)
+    createClient().auth.getSession().then(({ data: { session } }) => setLoggedIn(!!session))
   }, [])
 
   return (

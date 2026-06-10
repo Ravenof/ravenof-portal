@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { CardGrid, CardGridSkeleton } from '@/components/cards/CardGrid'
 import { CardFilters } from '@/components/cards/CardFilters'
 import { NotificationBell } from '@/components/ui/NotificationBell'
@@ -140,27 +140,30 @@ function buildQs(params: Record<string, string | undefined>, overrides: Record<s
 
 export default async function CardsPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
   const page = Math.max(1, Number(params.page ?? '1'))
   const useOwnedOnly = params.owned_only === '1' && !!user
 
+  // Kortų užklausa lygiagrečiai su visomis kitomis (kai nereikia ownedIds);
+  // su owned_only — pirmiausia ownedIds, tada kortos (priklausomybė neišvengiama)
+  const cardsPromise = useOwnedOnly && user
+    ? fetchOwnedIds(user.id).then((ids) => fetchCards(params, page, ids))
+    : fetchCards(params, page, undefined)
+
   const [
-    ownedIds,
+    { cards, totalFiltered },
     { factions, cardTypes, rarities, totalCount },
     collection,
     { notifications, unreadCount },
   ] = await Promise.all([
-    useOwnedOnly && user ? fetchOwnedIds(user.id) : Promise.resolve<string[] | undefined>(undefined),
+    cardsPromise,
     fetchFilterOptions(),
     user ? fetchCollection(user.id) : Promise.resolve<CollectionMap>({}),
     user ? fetchNotifications(20) : Promise.resolve({ notifications: [], unreadCount: 0 }),
   ])
 
-  const { cards, totalFiltered } = await fetchCards(params, page, ownedIds ?? undefined)
   const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
-
   const deckCountMap = await fetchDeckCounts(cards.map((c) => c.id))
 
   // Build clean params object for qs helper (exclude page)

@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { ProfilePrivacyForm } from '@/components/profile/ProfilePrivacyForm'
 import { AvatarUpload } from '@/components/profile/AvatarUpload'
 import { UsernameChangeForm } from '@/components/profile/UsernameChangeForm'
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

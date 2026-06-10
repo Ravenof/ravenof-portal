@@ -13,12 +13,13 @@ export function HomeAuthNav() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { setUserInfo(null); return }
+    // getSession() — lokalus skaitymas be tinklo užklausos
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { setUserInfo(null); return }
       const { data } = await supabase
         .from('profiles')
         .select('username, display_name')
-        .eq('id', user.id)
+        .eq('id', session.user.id)
         .maybeSingle()
       setUserInfo(data ?? null)
     })
@@ -72,8 +73,8 @@ export function HomeAuthCTA() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user)
+    createClient().auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session)
     })
   }, [])
 
@@ -106,8 +107,8 @@ export function HomeOnboardingSteps({ steps }: { steps: Step[] }) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user)
+    createClient().auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session)
     })
   }, [])
 

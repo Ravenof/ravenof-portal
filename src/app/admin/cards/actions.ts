@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 export type CardFormState = {
   error?: string
@@ -17,7 +17,7 @@ export async function saveCard(
   const supabase = await createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijunges' }
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
@@ -71,7 +71,7 @@ export async function saveCard(
 
 export async function deleteCard(cardId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()

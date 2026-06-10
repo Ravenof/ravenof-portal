@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { createPublicClient } from '@/lib/supabase/public'
 import { DeckBuilderClient } from './DeckBuilderClient'
 import type { CardWithRelations, CollectionMap } from '@/types'
@@ -39,7 +39,7 @@ const getCachedBuilderCards = unstable_cache(
 
 async function fetchBuilderData() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { user: null, cards: [], factions: [], collection: {} }
 
   // Parallel: cached card pool + fresh user collection

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { triggerAchievementCheck, awardAchievement } from '@/lib/achievements'
 
 export type PrivacySettings = {
@@ -19,7 +19,7 @@ export type PrivacySettings = {
 
 export async function updateAvatarUrl(avatarUrl: string): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Nesate prisijunge' }
 
   const { error } = await supabase
@@ -46,7 +46,7 @@ export async function updateAvatarUrl(avatarUrl: string): Promise<{ error?: stri
 
 export async function updatePrivacySettings(settings: PrivacySettings) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Nesate prisijunge' }
 
   const updatePayload: Record<string, unknown> = {

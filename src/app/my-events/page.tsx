@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import type { RegistrationStatus } from '@/types'
 
 export const revalidate = 0
@@ -38,7 +38,7 @@ const STATUS_COLOR: Record<RegistrationStatus, string> = {
 
 export default async function MyEventsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: rawRegs } = await supabase

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
@@ -32,7 +32,7 @@ type OwnedCardRow = {
 export default async function UserProfilePage({ params }: Props) {
   const { username } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
   const { data: rawProfile } = await supabase
     .from('profiles')

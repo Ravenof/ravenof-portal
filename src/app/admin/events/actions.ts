@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import type { RegistrationStatus } from '@/types'
 import {
   advanceTournamentAfterConfirmedMatch,
@@ -18,7 +18,7 @@ export async function saveEvent(
   formData: FormData,
 ): Promise<EventFormState> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
@@ -64,7 +64,7 @@ export async function updateRegistrationStatus(
   status: RegistrationStatus,
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
@@ -93,7 +93,7 @@ export async function updateRegistrationStatus(
 export async function startTournament(eventId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase
@@ -210,7 +210,7 @@ export async function adminResolveTournamentMatch(
 ): Promise<{ error?: string; success?: string }> {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase
@@ -275,7 +275,7 @@ export async function resolveDisputedMatch(
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase
@@ -328,7 +328,7 @@ export async function recalculateTournamentBracket(
 ): Promise<{ error?: string; success?: string; advanced?: number; grandFinalCreated?: boolean }> {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase
@@ -371,7 +371,7 @@ export async function awardTournamentRewardsAction(
 ): Promise<{ error?: string; success?: string; xpAwarded?: number; badgesUnlocked?: number }> {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase
@@ -397,7 +397,7 @@ export async function awardTournamentRewardsAction(
 
 export async function deleteEvent(eventId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()

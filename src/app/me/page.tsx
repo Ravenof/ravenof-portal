@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { HeaderNav } from '@/components/layout/HeaderNav'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { UserRankCard } from '@/components/profile/UserRankCard'
 import { XPProgressBar } from '@/components/profile/XPProgressBar'
 import { AvatarUpload } from '@/components/profile/AvatarUpload'
@@ -13,7 +13,7 @@ export const revalidate = 0
 
 export default async function MePage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: rawProfile } = await supabase

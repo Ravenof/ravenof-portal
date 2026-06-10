@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { EventForm } from '@/components/admin/EventForm'
 import { StartTournamentButton } from '@/components/admin/StartTournamentButton'
 import { RecalculateBracketButton } from '@/components/admin/RecalculateBracketButton'
@@ -31,7 +31,7 @@ export default async function EditEventPage({ params }: { params: Params }) {
   const { eventId } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const role = profile?.role ?? ''

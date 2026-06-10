@@ -1,13 +1,12 @@
 import Link from 'next/link'
 import { HeaderNav } from '@/components/layout/HeaderNav'
-import { createClient } from '@/lib/supabase/server'
+import { getCachedUser } from '@/lib/supabase/server'
 
 export const metadata = { title: 'Arena' }
 export const revalidate = 60
 
 export default async function ArenaPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
   const SECTIONS = [
     {

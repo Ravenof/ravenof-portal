@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import type { Notification } from '@/types'
 
 /** Fetch unread count + last N notifications for the current user */
@@ -9,7 +9,7 @@ export async function fetchNotifications(limit = 20): Promise<{
   unreadCount: number
 }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { notifications: [], unreadCount: 0 }
 
   const [notifRes, countRes] = await Promise.all([
@@ -41,7 +41,7 @@ export async function markNotificationRead(id: string): Promise<void> {
 /** Mark all notifications as read */
 export async function markAllNotificationsRead(): Promise<void> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return
   await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
 }

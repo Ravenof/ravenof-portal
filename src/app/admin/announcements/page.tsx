@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { deleteAnnouncement } from './actions'
 import { AnnouncementFormClient } from './AnnouncementFormClient'
 import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
@@ -42,7 +42,7 @@ function isPublished(ann: Ann): boolean {
 export default async function AnnouncementsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (!profile || profile.role !== 'admin') redirect('/cards?error=no_access')

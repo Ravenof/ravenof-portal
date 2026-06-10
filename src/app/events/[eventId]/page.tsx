@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { HeaderNav } from '@/components/layout/HeaderNav'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { EventRegisterButton } from '@/components/events/EventRegisterButton'
 import { MatchReportButtons } from '@/components/tournament/MatchReportButtons'
 import { TournamentBracketView } from '@/components/tournament/TournamentBracketView'
@@ -36,7 +36,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
     .eq('event_id', eventId).in('status', ['registered', 'attended'])
   const registrationCount = regCount ?? 0
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   let userRegistration: EventRegistration | null = null
   if (user) {
     const { data: reg } = await supabase

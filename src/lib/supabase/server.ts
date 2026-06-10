@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
+import type { User } from '@supabase/supabase-js'
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 
 export async function createClient() {
@@ -26,3 +28,15 @@ export async function createClient() {
     }
   )
 }
+
+/**
+ * Per-request memoizuotas vartotojas (React cache).
+ * auth.getUser() daro tinklo užklausą į Supabase Auth — be cache kiekvienas
+ * puslapis + fetchNotifications + helper'iai darydavo po 2-3 tokias užklausas
+ * per vieną page load. Su cache — tik viena per requestą.
+ */
+export const getCachedUser = cache(async (): Promise<User | null> => {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+})

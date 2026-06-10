@@ -1,13 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 export type RegisterResult = { error?: string; success?: string }
 
 export async function registerForEvent(eventId: string): Promise<RegisterResult> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Reikia prisijungti' }
 
   // Check capacity
@@ -41,7 +41,7 @@ export async function registerForEvent(eventId: string): Promise<RegisterResult>
 
 export async function cancelRegistration(eventId: string): Promise<RegisterResult> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Reikia prisijungti' }
 
   const { error } = await supabase

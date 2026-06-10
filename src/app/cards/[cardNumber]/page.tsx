@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { GameCard } from '@/components/ui/GameCard'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { OwnedToggle } from '@/components/cards/OwnedToggle'
 import { Sword, Heart, Coins, BookOpen } from 'lucide-react'
 import type { CardWithRelations } from '@/types'
@@ -65,7 +65,7 @@ export default async function CardDetailPage({ params }: Props) {
 
   const card = raw as unknown as CardWithRelations & { lore_text: string | null }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   const isAdmin = user
     ? (await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle())?.data?.role === 'admin'
     : false

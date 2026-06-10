@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { MyCardsClient } from './MyCardsClient'
 import type { MyOwnedCard, Profile } from '@/types'
 
@@ -8,7 +8,7 @@ export const revalidate = 0
 
 export default async function MyCardsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: rawProfile } = await supabase.from('profiles').select('show_owned_cards').eq('id', user.id).maybeSingle()

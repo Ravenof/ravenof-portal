@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { HeaderNav } from '@/components/layout/HeaderNav'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import type { PublicDeck, VoteValue, Profile } from '@/types'
 
@@ -15,7 +15,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
   const search  = params.q?.trim() ?? ''
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
   // 1. Fetch public decks
   let query = supabase
@@ -42,26 +42,27 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
   const { data: rawDecks, error: decksError } = await query
   if (decksError) console.error('decks error:', decksError)
 
-  // 2. Profiles
+  // 2-4. Profiles + votes + factions — lygiagrečiai (anksčiau buvo 3 nuoseklios užklausos)
   const userIds = [...new Set((rawDecks ?? []).map((d: { user_id: string }) => d.user_id))]
+  const deckIds = (rawDecks ?? []).map((d: { id: string }) => d.id)
+
+  const [profilesRes, votesRes, factionsRes] = await Promise.all([
+    userIds.length > 0
+      ? supabase.from('profiles').select('*').in('id', userIds)
+      : Promise.resolve({ data: null }),
+    user && deckIds.length > 0
+      ? supabase.from('deck_votes').select('deck_id, vote').eq('user_id', user.id).in('deck_id', deckIds)
+      : Promise.resolve({ data: null }),
+    supabase.from('factions').select('id, name, color_hex').order('sort_order'),
+  ])
+
   let profileMap: Record<string, Profile> = {}
-  if (userIds.length > 0) {
-    const { data: profiles } = await supabase.from('profiles').select('*').in('id', userIds)
-    if (profiles) profileMap = Object.fromEntries((profiles as unknown as Profile[]).map((p) => [p.id, p]))
-  }
+  if (profilesRes.data) profileMap = Object.fromEntries((profilesRes.data as unknown as Profile[]).map((p) => [p.id, p]))
 
-  // 3. User votes
   let voteMap: Record<string, VoteValue> = {}
-  if (user && rawDecks && rawDecks.length > 0) {
-    const deckIds = rawDecks.map((d: { id: string }) => d.id)
-    const { data: votes } = await supabase
-      .from('deck_votes').select('deck_id, vote')
-      .eq('user_id', user.id).in('deck_id', deckIds)
-    if (votes) voteMap = Object.fromEntries(votes.map((v: { deck_id: string; vote: -1 | 1 }) => [v.deck_id, v.vote as VoteValue]))
-  }
+  if (votesRes.data) voteMap = Object.fromEntries((votesRes.data as { deck_id: string; vote: -1 | 1 }[]).map((v) => [v.deck_id, v.vote as VoteValue]))
 
-  // 4. Factions for filter
-  const { data: factions } = await supabase.from('factions').select('id, name, color_hex').order('sort_order')
+  const factions = factionsRes.data
 
   // 5. Merge
   const decks: PublicDeck[] = ((rawDecks ?? []) as unknown[]).map((d) => {

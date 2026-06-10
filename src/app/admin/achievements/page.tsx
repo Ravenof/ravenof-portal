@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { BackfillClient } from './BackfillClient'
 
 export const metadata = { title: 'Admin – Pasiekimai' }
 
 export default async function AdminAchievementsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

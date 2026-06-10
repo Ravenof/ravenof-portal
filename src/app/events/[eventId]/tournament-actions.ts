@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { advanceTournamentAfterConfirmedMatch } from '@/lib/tournament/advancement'
 import { awardTournamentRewards } from '@/lib/tournament/rewards'
 
@@ -14,7 +14,7 @@ export async function submitTournamentMatchReport(
   const supabase = await createClient()
 
   // 1. Auth
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Neprisijungęs' }
 
   // 2. Gauti mačą

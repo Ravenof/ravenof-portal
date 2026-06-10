@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { LORE_STATUS_COLORS } from '@/lib/loreAdmin'
 import { saveEra, deleteEra } from '../actions'
 import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
@@ -99,7 +99,7 @@ function EraForm({ era, error }: { era?: Era; error?: string }) {
 export default async function ErasPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (!profile || profile.role !== 'admin') redirect('/cards?error=no_access')

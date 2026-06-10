@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { HeaderNav } from '@/components/layout/HeaderNav'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import type { RavenEvent } from '@/types'
 
 export const metadata = { title: 'Renginiai' }
@@ -23,7 +23,7 @@ function formatDate(iso: string) {
 
 export default async function EventsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   const now = new Date().toISOString()
 
   const [{ data: upcoming }, { data: past }] = await Promise.all([

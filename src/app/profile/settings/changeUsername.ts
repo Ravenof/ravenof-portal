@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 // ── Validation constants ──────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ export type ChangeUsernameResult =
 export async function changeUsername(newUsername: string): Promise<ChangeUsernameResult> {
   // 1. Auth check
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Nesate prisijungę.' }
 
   // 2. Normalize

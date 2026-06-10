@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { DeleteEventButton } from '@/components/admin/DeleteEventButton'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { RavenEvent } from '@/types'
 
@@ -21,7 +21,7 @@ export default async function AdminEventsPage({ searchParams }: { searchParams: 
   const params = await searchParams
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const role = profile?.role ?? ''

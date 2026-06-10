@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DeleteCardButton } from '@/components/admin/DeleteCardButton'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 type SearchParams = Promise<{ search?: string; faction?: string; type?: string; rarity?: string; status?: string }>
 
@@ -17,7 +17,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
   const supabase = await createClient()
 
   // Only full admins can manage cards; event_moderators are redirected
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (user) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (profile?.role !== 'admin') redirect('/admin/events')

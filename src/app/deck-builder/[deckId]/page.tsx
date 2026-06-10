@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { DeckBuilderClient } from '../DeckBuilderClient'
 import type { CardWithRelations, CollectionMap, DeckEntry, DeckVisibility } from '@/types'
 
@@ -7,7 +7,7 @@ export const metadata = { title: 'Redaguoti kaladę' }
 
 async function fetchEditData(deckId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { user: null, deck: null, cards: [], factions: [], collection: {} }
 
   const [

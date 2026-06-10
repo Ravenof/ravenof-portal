@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 export type ImportRowInput = {
   card_number: string
@@ -41,7 +41,7 @@ function parseIntOrNull(s: string): number | null {
 export async function importCards(rows: ImportRowInput[]): Promise<ImportResult> {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

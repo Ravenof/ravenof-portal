@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { UserRoleForm } from '@/components/admin/UserRoleForm'
 import { UserDangerButtons } from '@/components/admin/UserDangerButtons'
 import { getLevelTitleForXp } from '@/lib/gamification/levels'
@@ -22,7 +22,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const params = await searchParams
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()

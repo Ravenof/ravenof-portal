@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 export async function addComment(deckId: string, body: string): Promise<{ error?: string }> {
   const trimmed = body.trim()
@@ -9,7 +9,7 @@ export async function addComment(deckId: string, body: string): Promise<{ error?
   if (trimmed.length > 1000) return { error: 'Komentaras per ilgas (max 1000 simboliu)' }
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Reikia prisijungti' }
 
   const { error } = await supabase
@@ -24,7 +24,7 @@ export async function addComment(deckId: string, body: string): Promise<{ error?
 
 export async function deleteComment(commentId: string, deckId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Reikia prisijungti' }
 
   const { data: profile } = await supabase

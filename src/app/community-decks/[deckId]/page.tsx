@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { VoteWidget } from '@/components/community/VoteWidget'
 import { ReadOnlyDeckList } from '@/components/community/ReadOnlyDeckList'
 import { CopyToDeckButton } from '@/components/community/CopyToDeckButton'
@@ -16,7 +16,7 @@ export const revalidate = 0
 export default async function CommunityDeckDetailPage({ params }: Props) {
   const { deckId } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
   // Fetch deck (no profile join — fetch separately)
   const { data: rawDeck } = await supabase
