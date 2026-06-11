@@ -29,6 +29,49 @@ type CardLite = {
 type PlayCard = { uid: string; c: CardLite }
 type TableCard = { pc: PlayCard; left: number; top: number; rot: number; z: number }
 
+// Long-press (mobile): apžiūra atidaroma palaikius pirštą ~450ms ant kortos.
+// Pele (desktop) — paprastas click. Tap'as po drag'o ant touch nebeatidaro popup'o.
+const LONG_PRESS_MS = 450
+const MOVE_CANCEL_PX = 12
+
+function useLongPress(onTrigger: () => void) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startRef = useRef<{ x: number; y: number } | null>(null)
+
+  const clear = useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
+    startRef.current = null
+  }, [])
+
+  useEffect(() => clear, [clear])
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      startRef.current = { x: e.clientX, y: e.clientY }
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        try { navigator.vibrate?.(15) } catch { /* tyliai */ }
+        onTrigger()
+      }, LONG_PRESS_MS)
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!startRef.current || !timerRef.current) return
+      if (Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y) > MOVE_CANCEL_PX) clear()
+    },
+    onPointerUp: clear,
+    onPointerCancel: clear,
+    onPointerLeave: clear,
+  }
+}
+
+/** onTap tik pelei — touch naudoja long-press */
+function mouseOnlyTap(cb: () => void) {
+  return (e: MouseEvent | TouchEvent | PointerEvent) => {
+    if ((e as PointerEvent).pointerType === 'mouse') cb()
+  }
+}
+
 function fisherYates<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -303,32 +346,25 @@ export function DeckPlaytest({ deckId, deckName, onClose }: {
         {!loading && !errorMsg && table.length === 0 && (
           <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs text-center px-4 pointer-events-none"
             style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
-            Trauk kortą iš kaladės (arba spausk D),<br />tempk kortas iš rankos ant stalo
+            Trauk kortą iš kaladės (arba spausk D),<br />
+            tempk kortas iš rankos ant stalo.<br />
+            Apžiūra: palaikyk pirštą / spustelk pele.
           </p>
         )}
 
         {/* Stalo kortos */}
         {table.map((tc) => (
-          <motion.div
+          <TableCardItem
             key={tc.pc.uid}
-            drag
-            dragMomentum={false}
-            dragConstraints={tableRef}
-            onDragStart={() => {
+            tc={tc}
+            cardW={cardW}
+            tableRef={tableRef}
+            onBringToFront={(uid) => {
               playCardPick()
-              setTable((prev) => prev.map((t) => t.pc.uid === tc.pc.uid ? { ...t, z: ++zRef.current } : t))
+              setTable((prev) => prev.map((t) => t.pc.uid === uid ? { ...t, z: ++zRef.current } : t))
             }}
-            onDragEnd={() => playCardPlace()}
-            onTap={() => { playCardFlip(); setInspect({ pc: tc.pc, from: 'table' }) }}
-            whileDrag={{ scale: 1.08, rotate: 0, boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}
-            whileHover={{ scale: 1.04 }}
-            initial={{ scale: 0.6, opacity: 0, rotate: tc.rot }}
-            animate={{ scale: 1, opacity: 1, rotate: tc.rot }}
-            className="absolute cursor-grab active:cursor-grabbing"
-            style={{ left: tc.left, top: tc.top, zIndex: tc.z, touchAction: 'none' }}
-          >
-            <CardFace c={tc.pc.c} width={cardW} />
-          </motion.div>
+            onInspect={(pc) => { playCardFlip(); setInspect({ pc, from: 'table' }) }}
+          />
         ))}
       </div>
 
@@ -341,37 +377,17 @@ export function DeckPlaytest({ deckId, deckName, onClose }: {
           <div className="flex items-end justify-center px-4" style={{ minHeight: cardW * 4 / 3 + 26, minWidth: 'max-content', margin: '0 auto' }}>
             <AnimatePresence>
               {fan.map(({ pc, rot, lift }, i) => (
-                <motion.div
+                <HandCardItem
                   key={pc.uid}
-                  layout
-                  drag
-                  dragSnapToOrigin
-                  dragElastic={0.2}
-                  onDragStart={() => playCardPick()}
-                  onDragEnd={(_, info) => {
-                    const rect = tableRef.current?.getBoundingClientRect()
-                    if (rect && info.point.y < rect.bottom - 10) {
-                      playToTable(pc.uid, info.point.x, info.point.y)
-                    } else {
-                      playUiClick()
-                    }
-                  }}
-                  onTap={() => { playCardFlip(); setInspect({ pc, from: 'hand' }) }}
-                  initial={{ y: 90, opacity: 0, rotate: 0 }}
-                  animate={{ y: lift, opacity: 1, rotate: rot }}
-                  exit={{ y: -40, opacity: 0, transition: { duration: 0.15 } }}
-                  whileDrag={{ scale: 1.12, rotate: 0, zIndex: 90 }}
-                  whileHover={{ y: lift - 14, scale: 1.06, zIndex: 50 }}
-                  className="relative cursor-grab active:cursor-grabbing"
-                  style={{
-                    marginLeft: i === 0 ? 0 : -(cardW * 0.35),
-                    zIndex: i,
-                    touchAction: 'none',
-                    transformOrigin: 'bottom center',
-                  }}
-                >
-                  <CardFace c={pc.c} width={cardW} />
-                </motion.div>
+                  pc={pc}
+                  rot={rot}
+                  lift={lift}
+                  index={i}
+                  cardW={cardW}
+                  tableRef={tableRef}
+                  onPlay={playToTable}
+                  onInspect={(p) => { playCardFlip(); setInspect({ pc: p, from: 'hand' }) }}
+                />
               ))}
             </AnimatePresence>
             {hand.length === 0 && !loading && (
@@ -473,4 +489,82 @@ export function DeckPlaytest({ deckId, deckName, onClose }: {
   )
 
   return createPortal(body, document.body)
+}
+
+
+// ── Stalo korta: drag + long-press apžiūra (touch) / click (pelė) ────────────
+function TableCardItem({ tc, cardW, tableRef, onBringToFront, onInspect }: {
+  tc: TableCard
+  cardW: number
+  tableRef: React.RefObject<HTMLDivElement | null>
+  onBringToFront: (uid: string) => void
+  onInspect: (pc: PlayCard) => void
+}) {
+  const longPress = useLongPress(() => onInspect(tc.pc))
+  return (
+    <motion.div
+      drag
+      dragMomentum={false}
+      dragConstraints={tableRef}
+      onDragStart={() => onBringToFront(tc.pc.uid)}
+      onDragEnd={() => playCardPlace()}
+      onTap={mouseOnlyTap(() => onInspect(tc.pc))}
+      whileDrag={{ scale: 1.08, rotate: 0, boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}
+      whileHover={{ scale: 1.04 }}
+      initial={{ scale: 0.6, opacity: 0, rotate: tc.rot }}
+      animate={{ scale: 1, opacity: 1, rotate: tc.rot }}
+      className="absolute cursor-grab active:cursor-grabbing"
+      style={{ left: tc.left, top: tc.top, zIndex: tc.z, touchAction: 'none' }}
+      {...longPress}
+    >
+      <CardFace c={tc.pc.c} width={cardW} />
+    </motion.div>
+  )
+}
+
+// ── Rankos korta: drag į stalą + long-press apžiūra (touch) / click (pelė) ───
+function HandCardItem({ pc, rot, lift, index, cardW, tableRef, onPlay, onInspect }: {
+  pc: PlayCard
+  rot: number
+  lift: number
+  index: number
+  cardW: number
+  tableRef: React.RefObject<HTMLDivElement | null>
+  onPlay: (uid: string, x?: number, y?: number) => void
+  onInspect: (pc: PlayCard) => void
+}) {
+  const longPress = useLongPress(() => onInspect(pc))
+  return (
+    <motion.div
+      layout
+      drag
+      dragSnapToOrigin
+      dragElastic={0.2}
+      onDragStart={() => playCardPick()}
+      onDragEnd={(_, info) => {
+        const rect = tableRef.current?.getBoundingClientRect()
+        if (rect && info.point.y < rect.bottom - 10) {
+          onPlay(pc.uid, info.point.x, info.point.y)
+        } else {
+          playUiClick()
+        }
+      }}
+      onTap={mouseOnlyTap(() => onInspect(pc))}
+      initial={{ y: 90, opacity: 0, rotate: 0 }}
+      animate={{ y: lift, opacity: 1, rotate: rot }}
+      exit={{ y: -40, opacity: 0, transition: { duration: 0.15 } }}
+      whileDrag={{ scale: 1.12, rotate: 0, zIndex: 90 }}
+      whileHover={{ y: lift - 14, scale: 1.06, zIndex: 50 }}
+      className="relative cursor-grab active:cursor-grabbing"
+      style={{
+        marginLeft: index === 0 ? 0 : -(cardW * 0.35),
+        zIndex: index,
+        touchAction: 'none',
+        transformOrigin: 'bottom center',
+      }}
+      {...longPress}
+    >
+      <CardFace c={pc.c} width={cardW} />
+    </motion.div>
+  )
 }
