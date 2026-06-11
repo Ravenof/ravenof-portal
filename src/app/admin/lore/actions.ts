@@ -96,6 +96,26 @@ export async function saveLocation(formData: FormData) {
     : await supabase.from('lore_locations').insert(payload)
 
   if (error) redirect('/admin/lore/locations?error=' + encodeURIComponent(error.message))
+
+  // ── Periodiniai aprašymai (lore_location_states) ──
+  // Laukai: state_desc_<periodSlug>, state_img_<periodSlug>.
+  // Tuščias aprašymas + nuotrauka → įrašas trinamas (carry-forward iš ankstesnio periodo).
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith('state_desc_')) continue
+    const periodSlug = key.slice('state_desc_'.length)
+    const desc = (value as string)?.trim() || null
+    const img  = ((formData.get('state_img_' + periodSlug) as string) ?? '').trim() || null
+    if (desc || img) {
+      await supabase.from('lore_location_states').upsert(
+        { location_slug: slug, period_slug: periodSlug, description: desc, image_url: img },
+        { onConflict: 'location_slug,period_slug' }
+      )
+    } else {
+      await supabase.from('lore_location_states')
+        .delete().eq('location_slug', slug).eq('period_slug', periodSlug)
+    }
+  }
+
   revalidateLore()
   redirect('/admin/lore/locations')
 }
@@ -103,6 +123,47 @@ export async function saveLocation(formData: FormData) {
 export async function deleteLocation(id: string): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
   const { error } = await supabase.from('lore_locations').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidateLore()
+  return {}
+}
+
+// ════════════════════════════════════════
+// PERIODS (mažesni laikotarpiai eros viduje)
+// ════════════════════════════════════════
+export async function savePeriod(formData: FormData) {
+  const supabase = await requireAdmin()
+  const id   = (formData.get('_id') as string) || null
+  const name = (formData.get('name') as string)?.trim()
+  const slug = (formData.get('slug') as string)?.trim()
+  const era  = (formData.get('era_slug') as string)?.trim()
+
+  if (!name) redirect('/admin/lore/periods?error=' + encodeURIComponent('Pavadinimas privalomas'))
+  if (!slug) redirect('/admin/lore/periods?error=' + encodeURIComponent('Slug privalomas'))
+  if (!era)  redirect('/admin/lore/periods?error=' + encodeURIComponent('Era privaloma'))
+
+  const payload = {
+    name,
+    slug,
+    era_slug:       era,
+    description:    (formData.get('description') as string)?.trim() || null,
+    timeline_index: parseInt((formData.get('timeline_index') as string) || '0', 10),
+    status:         (formData.get('status') as string) || 'published',
+    sort_order:     parseInt((formData.get('sort_order') as string) || '0', 10),
+  }
+
+  const { error } = id
+    ? await supabase.from('lore_periods').update(payload).eq('id', id)
+    : await supabase.from('lore_periods').insert(payload)
+
+  if (error) redirect('/admin/lore/periods?error=' + encodeURIComponent(error.message))
+  revalidateLore()
+  redirect('/admin/lore/periods')
+}
+
+export async function deletePeriod(id: string): Promise<{ error?: string }> {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('lore_periods').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidateLore()
   return {}
@@ -137,6 +198,8 @@ export async function saveLoreEvent(formData: FormData) {
     event_type:          (formData.get('event_type') as string)?.trim() || null,
     image_url:           (formData.get('image_url') as string)?.trim() || null,
     audio_url:           (formData.get('audio_url') as string)?.trim() || null,
+    period_slug:         (formData.get('period_slug') as string)?.trim() || null,
+    previous_event_slug: (formData.get('previous_event_slug') as string)?.trim() || null,
     status:              (formData.get('status') as string) || 'draft',
     sort_order:          parseInt((formData.get('sort_order') as string) || '0', 10),
   }

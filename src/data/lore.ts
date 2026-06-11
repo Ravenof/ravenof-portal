@@ -19,6 +19,21 @@ export type LoreFaction = {
   description?: string
 }
 
+export type LorePeriod = {
+  id: string           // period slug
+  eraId: string        // era slug
+  name: string
+  index: number        // timeline_index eros viduje
+  description?: string
+}
+
+export type LoreLocationState = {
+  periodId: string
+  order: number        // globali chronologinė pozicija
+  description: string
+  imageUrl?: string
+}
+
 export type LoreLocation = {
   id: string
   name: string
@@ -34,6 +49,8 @@ export type LoreLocation = {
   relatedCards: { name: string; cardNumber: string }[]
   imageUrl?: string
   ambientUrl?: string   // aplinkos garsas pasirinkus lokaciją
+  factionIds?: string[] // visos frakcijos (filtras tikrina visas, ne tik pirmą)
+  states?: LoreLocationState[]  // aprašymai pagal periodą (chronologine tvarka)
 }
 
 export type LoreEvent = {
@@ -44,6 +61,10 @@ export type LoreEvent = {
   description: string
   imageUrl?: string
   audioUrl?: string    // event soundtrack
+  periodId?: string        // mažesnis laikotarpis eros viduje
+  prevEventId?: string     // grandinė: po kurio įvykio seka šis
+  characterIds?: string[]  // dalyvaujantys veikėjai (slug)
+  order?: number           // globali chronologinė pozicija (era→periodas→įvykis)
 }
 
 export type LoreCharacter = {

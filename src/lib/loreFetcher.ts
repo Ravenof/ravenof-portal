@@ -7,7 +7,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
-import type { LoreEra, LoreFaction, LoreLocation, LoreEvent, LoreCharacter, LoreArtifact } from '@/data/lore'
+import type { LoreEra, LoreFaction, LoreLocation, LoreEvent, LoreCharacter, LoreArtifact, LorePeriod } from '@/data/lore'
 
 // ── Supabase row shapes ───────────────────────────────────────
 
@@ -35,6 +35,18 @@ type DbEvent = {
   timeline_index: number; era_slug: string | null; location_slug: string | null
   status: string
   image_url: string | null; audio_url: string | null
+  period_slug: string | null; previous_event_slug: string | null
+  character_slugs: string[] | null
+}
+
+type DbPeriod = {
+  id: string; era_slug: string; name: string; slug: string
+  description: string | null; timeline_index: number; status: string
+}
+
+type DbLocationState = {
+  location_slug: string; period_slug: string
+  description: string | null; image_url: string | null
 }
 
 type DbCharacter = {
@@ -75,6 +87,7 @@ function mapLocation(row: DbLocation): LoreLocation {
     y:             row.y,
     description:   row.description ?? row.short_description ?? '',
     factionId:     row.faction_ids?.[0] ?? undefined,
+    factionIds:    row.faction_ids ?? [],
     firstEraIndex: row.first_era_index,
     eventIds:      row.related_event_ids ?? [],
     characterIds:  row.related_character_ids ?? [],
@@ -86,15 +99,37 @@ function mapLocation(row: DbLocation): LoreLocation {
   }
 }
 
-function mapEvent(row: DbEvent): LoreEvent {
+function mapEvent(
+  row: DbEvent,
+  eraIndexBySlug: Record<string, number>,
+  periodOrderBySlug: Record<string, number>
+): LoreEvent {
+  // SVARBU: eraIndex = EROS timeline_index (per era_slug lookup), NE įvykio
+  // timeline_index. Globalus order = era*1e6 + periodas*1e3 + įvykio indeksas.
+  const eraIdx = row.era_slug ? (eraIndexBySlug[row.era_slug] ?? 0) : 0
+  const periodIdx = row.period_slug ? (periodOrderBySlug[row.period_slug] ?? 0) : 0
   return {
     id:          row.slug,
     name:        row.title,
     description: row.summary ?? '',
-    eraIndex:    row.timeline_index,
+    eraIndex:    eraIdx,
     locationId:  row.location_slug ?? '',
     imageUrl:    row.image_url ?? undefined,
     audioUrl:    row.audio_url ?? undefined,
+    periodId:    row.period_slug ?? undefined,
+    prevEventId: row.previous_event_slug ?? undefined,
+    characterIds: row.character_slugs ?? [],
+    order:       eraIdx * 1_000_000 + periodIdx * 1_000 + (row.timeline_index ?? 0),
+  }
+}
+
+function mapPeriod(row: DbPeriod): LorePeriod {
+  return {
+    id:          row.slug,
+    eraId:       row.era_slug,
+    name:        row.name,
+    index:       row.timeline_index,
+    description: row.description ?? undefined,
   }
 }
 
@@ -120,6 +155,7 @@ function mapArtifact(row: DbArtifact): LoreArtifact {
 
 export type LoreAtlasData = {
   eras:       LoreEra[]
+  periods:    LorePeriod[]
   locations:  LoreLocation[]
   events:     LoreEvent[]
   characters: LoreCharacter[]
@@ -136,7 +172,7 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
     const [erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
       supabase.from('lore_eras').select('id,name,slug,description,timeline_index,status').eq('status','published').order('timeline_index'),
       supabase.from('lore_locations').select('id,name,slug,type,short_description,description,x,y,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,status,image_url,ambient_url').eq('status','published').order('sort_order'),
-      supabase.from('lore_events').select('id,title,slug,summary,timeline_index,era_slug,location_slug,status,image_url,audio_url').eq('status','published').order('timeline_index'),
+      supabase.from('lore_events').select('id,title,slug,summary,timeline_index,era_slug,location_slug,status,image_url,audio_url,period_slug,previous_event_slug,character_slugs').eq('status','published').order('timeline_index'),
       supabase.from('lore_characters').select('id,name,slug,faction_id,role,short_description,status').eq('status','published').order('sort_order'),
       supabase.from('lore_artifacts').select('id,name,slug,artifact_type,short_description,status').eq('status','published').order('sort_order'),
     ])
@@ -146,6 +182,21 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
     const dbEvents    = (eventsRes.data ?? []) as DbEvent[]
     const dbChars     = (charsRes.data ?? []) as DbCharacter[]
     const dbArts      = (artsRes.data  ?? []) as DbArtifact[]
+
+    // Periodai ir lokacijų būsenos — optional (lentelės gali dar neegzistuoti)
+    let dbPeriods: DbPeriod[] = []
+    let dbStates: DbLocationState[] = []
+    try {
+      const [periodsRes, statesRes] = await Promise.all([
+        supabase.from('lore_periods')
+          .select('id,era_slug,name,slug,description,timeline_index,status')
+          .eq('status', 'published').order('timeline_index'),
+        supabase.from('lore_location_states')
+          .select('location_slug,period_slug,description,image_url'),
+      ])
+      dbPeriods = (periodsRes.data ?? []) as DbPeriod[]
+      dbStates  = (statesRes.data ?? []) as DbLocationState[]
+    } catch { /* v2 lentelių dar nėra — atlasas veikia be periodų */ }
 
     // Factions are optional — table may not exist yet; never fail the whole fetch
     let dbFactions: DbFaction[] = []
@@ -178,10 +229,45 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
       }))
     }
 
+    const eraIndexBySlug: Record<string, number> = {}
+    for (const e of dbEras) eraIndexBySlug[e.slug] = e.timeline_index
+
+    // Globali periodo pozicija: era*1e6 + period.timeline_index*1e3
+    const periodOrderBySlug: Record<string, number> = {}
+    const periodGlobalOrder: Record<string, number> = {}
+    for (const p of dbPeriods) {
+      periodOrderBySlug[p.slug] = p.timeline_index
+      periodGlobalOrder[p.slug] = (eraIndexBySlug[p.era_slug] ?? 0) * 1_000_000 + p.timeline_index * 1_000
+    }
+
+    const events = dbEvents
+      .map((row) => mapEvent(row, eraIndexBySlug, periodOrderBySlug))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+
+    // Lokacijų būsenos pagal periodą (chronologine tvarka)
+    const statesByLocation: Record<string, { periodId: string; order: number; description: string; imageUrl?: string }[]> = {}
+    for (const s of dbStates) {
+      if (!(s.period_slug in periodGlobalOrder)) continue
+      const arr = statesByLocation[s.location_slug] ?? (statesByLocation[s.location_slug] = [])
+      arr.push({
+        periodId:    s.period_slug,
+        order:       periodGlobalOrder[s.period_slug],
+        description: s.description ?? '',
+        imageUrl:    s.image_url ?? undefined,
+      })
+    }
+    for (const k of Object.keys(statesByLocation)) statesByLocation[k].sort((a, b) => a.order - b.order)
+
+    const locations = dbLocations.map((row) => ({
+      ...mapLocation(row),
+      states: statesByLocation[row.slug] ?? [],
+    }))
+
     return {
       eras:       dbEras.map(mapEra),
-      locations:  dbLocations.map(mapLocation),
-      events:     dbEvents.map(mapEvent),
+      periods:    dbPeriods.map(mapPeriod),
+      locations,
+      events,
       characters: dbChars.map(mapCharacter),
       artifacts:  dbArts.map(mapArtifact),
       factions,
@@ -203,6 +289,7 @@ function useStaticData(): LoreAtlasData {
 
   return {
     eras:       loreEras,
+    periods:    [],
     locations:  loreLocations,
     events:     loreEvents,
     characters: loreCharacters,

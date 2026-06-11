@@ -23,7 +23,17 @@ type Loc = {
 
 const LOCATION_TYPES = ['unknown','city','ruins','dungeon','forest','mountain','coast','plains','island','fortress','temple','portal']
 
-function LocationForm({ loc, error, allLocations }: { loc?: Loc; error?: string; allLocations: Loc[] }) {
+type PeriodOpt = { slug: string; name: string; eraName: string }
+type LocState = { period_slug: string; description: string | null; image_url: string | null }
+
+function LocationForm({ loc, error, allLocations, periods = [], states = [] }: {
+  loc?: Loc; error?: string; allLocations: Loc[]
+  periods?: PeriodOpt[]
+  states?: LocState[]
+}) {
+  const stateBySlug: Record<string, LocState> = {}
+  for (const s of states) stateBySlug[s.period_slug] = s
+
   return (
     <form action={saveLocation} className="space-y-5 p-5 rounded-xl"
       style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(240,180,41,0.2)' }}>
@@ -144,6 +154,41 @@ function LocationForm({ loc, error, allLocations }: { loc?: Loc; error?: string;
         </div>
       </div>
 
+      {/* ── Periodiniai aprašymai (carry-forward) ── */}
+      {periods.length > 0 && (
+        <div className="space-y-3 p-4 rounded-xl" style={{ background: 'var(--bg-base)', border: '1px dashed rgba(240,180,41,0.25)' }}>
+          <p className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>
+            ⏳ Aprašymai pagal periodą
+          </p>
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            Palik lauką tuščią, jei aprašymas nesikeitė — atlasas automatiškai rodys paskutinį
+            užpildytą įrašą iš ankstesnių periodų (carry-forward). Užpildyk tik tuos periodus,
+            kuriuose vietovė pasikeitė.
+          </p>
+          {periods.map((pp) => (
+            <div key={pp.slug} className="grid grid-cols-1 sm:grid-cols-[1fr_240px] gap-2">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  {pp.eraName} → <b>{pp.name}</b>
+                </label>
+                <textarea name={'state_desc_' + pp.slug} rows={2}
+                  defaultValue={stateBySlug[pp.slug]?.description ?? ''}
+                  placeholder="(tuščia = rodomas ankstesnis aprašymas)"
+                  className="w-full px-3 py-2 rounded-lg text-sm resize-none"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Nuotraukos URL (šiam periodui)</label>
+                <input name={'state_img_' + pp.slug}
+                  defaultValue={stateBySlug[pp.slug]?.image_url ?? ''}
+                  className="w-full px-3 py-2 rounded-lg text-sm font-mono"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Status + sort */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
@@ -195,6 +240,20 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
   const rows = (data ?? []) as Loc[]
   const editLoc = params.id ? rows.find((l) => l.id === params.id) : undefined
 
+  // Periodai + redaguojamos lokacijos periodinės būsenos
+  const [periodsR, erasR, statesR] = await Promise.all([
+    supabase.from('lore_periods').select('slug,name,era_slug').order('era_slug').order('timeline_index').then((r) => r, () => ({ data: null })),
+    supabase.from('lore_eras').select('slug,name'),
+    editLoc
+      ? supabase.from('lore_location_states').select('period_slug,description,image_url').eq('location_slug', editLoc.slug).then((r) => r, () => ({ data: null }))
+      : Promise.resolve({ data: null }),
+  ])
+  const eraNm: Record<string, string> = {}
+  for (const e of ((erasR.data ?? []) as { slug: string; name: string }[])) eraNm[e.slug] = e.name
+  const periodOpts = (((periodsR.data ?? []) as { slug: string; name: string; era_slug: string }[]))
+    .map((pp) => ({ slug: pp.slug, name: pp.name, eraName: eraNm[pp.era_slug] ?? pp.era_slug }))
+  const locStates = ((statesR.data ?? []) as { period_slug: string; description: string | null; image_url: string | null }[])
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
       <header className="sticky top-0 z-20 border-b px-6 py-3"
@@ -213,8 +272,8 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
       </header>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-4">
-        {params.action === 'new' && !params.id && <LocationForm error={params.error} allLocations={rows} />}
-        {editLoc && <LocationForm loc={editLoc} error={params.error} allLocations={rows} />}
+        {params.action === 'new' && !params.id && <LocationForm error={params.error} allLocations={rows} periods={periodOpts} />}
+        {editLoc && <LocationForm loc={editLoc} error={params.error} allLocations={rows} periods={periodOpts} states={locStates} />}
 
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows.length} vietovių</p>
 

@@ -14,6 +14,12 @@ type Props = {
   characters: LoreCharacter[]
   artifacts: LoreArtifact[]
   onClose: () => void
+  /** Periodinis aprašymas (carry-forward) — jei yra, rodomas vietoj bendrojo */
+  stateDescription?: string
+  stateImage?: string
+  statePeriodName?: string
+  /** „Sekti veikėją žemėlapyje" mygtukas */
+  onFollowCharacter?: (charId: string) => void
 }
 
 const TYPE_LABELS: Record<LoreLocation['type'], string> = {
@@ -119,6 +125,7 @@ export function LorePanel({ location, faction, events, characters, artifacts, on
 
 function PanelContent({
   location, faction, color, events, characters, artifacts, onClose,
+  stateDescription, stateImage, statePeriodName, onFollowCharacter,
 }: Props & { color: string }) {
   if (!location) return null
 
@@ -179,11 +186,11 @@ function PanelContent({
       {/* ── Scrollable body ── */}
       <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
 
-        {/* Lokacijos nuotrauka */}
-        {location.imageUrl && (
+        {/* Lokacijos nuotrauka (periodinė turi pirmenybę) */}
+        {(stateImage ?? location.imageUrl) && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={location.imageUrl}
+            src={stateImage ?? location.imageUrl}
             alt={location.name}
             loading="lazy"
             className="w-full rounded-xl object-cover"
@@ -191,9 +198,15 @@ function PanelContent({
           />
         )}
 
-        {/* Description */}
+        {/* Periodinis aprašymas (carry-forward) arba bendrasis */}
+        {statePeriodName && stateDescription && (
+          <span className="inline-block text-[10px] px-2 py-0.5 rounded-full"
+            style={{ background: color + '15', color, border: '1px solid ' + color + '33', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>
+            🕰️ {statePeriodName}
+          </span>
+        )}
         <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {location.description}
+          {stateDescription || location.description}
         </p>
 
         {/* Gold divider */}
@@ -238,22 +251,43 @@ function PanelContent({
           <Section icon={<User className="w-3.5 h-3.5" />} title="Veikėjai">
             <div className="space-y-1.5">
               {characters.map((ch) => (
-                <Link
+                <div
                   key={ch.id}
-                  href={`/lore/characters/${ch.id}`}
-                  className="flex items-start gap-2 rounded-lg px-3 py-2 transition-colors hover:border-[rgba(212,175,55,0.25)]"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
+                  className="relative flex items-start gap-2 rounded-lg px-3 py-2 transition-colors hover:border-[rgba(212,175,55,0.25)]"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
                 >
-                  <span className="text-base leading-none mt-0.5">👤</span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {ch.name}
-                    </p>
-                    {ch.title && (
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{ch.title}</p>
-                    )}
-                  </div>
-                </Link>
+                  <Link
+                    href={`/lore/characters/${ch.id}`}
+                    className="flex items-start gap-2 flex-1 min-w-0"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <span className="text-base leading-none mt-0.5">👤</span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
+                        {ch.name}
+                      </p>
+                      {ch.title && (
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{ch.title}</p>
+                      )}
+                    </div>
+                  </Link>
+                  {onFollowCharacter && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFollowCharacter(ch.id) }}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] transition-all hover:scale-105"
+                      style={{
+                        background: 'rgba(240,180,41,0.08)',
+                        border: '1px solid rgba(240,180,41,0.3)',
+                        color: 'var(--gold)',
+                        fontFamily: 'var(--rvn-font-display)',
+                        letterSpacing: '0.04em',
+                      }}
+                      title="Sekti veikėjo kelią žemėlapyje"
+                    >
+                      🧭 Sekti
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </Section>

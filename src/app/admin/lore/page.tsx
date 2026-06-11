@@ -6,7 +6,8 @@ export const revalidate = 0
 export const metadata = { title: 'Atlaso valdymas' }
 
 const SECTIONS = [
-  { href: '/admin/lore/eras',       icon: '🕰️', label: 'Eros',       desc: 'Laiko eros ir periodai' },
+  { href: '/admin/lore/eras',       icon: '🕰️', label: 'Eros',       desc: 'Dideli laiko tarpsniai' },
+  { href: '/admin/lore/periods',    icon: '⏳',  label: 'Periodai',   desc: 'Mažesni laikotarpiai erų viduje' },
   { href: '/admin/lore/factions',   icon: '⚔️',  label: 'Frakcijos',  desc: 'Grupės ir organizacijos su spalvomis' },
   { href: '/admin/lore/locations',  icon: '🗺️', label: 'Vietovės',   desc: 'Žemėlapio žymekliai ir aprašymai' },
   { href: '/admin/lore/events',     icon: '⚡',  label: 'Įvykiai',    desc: 'Istoriniai ir siužeto įvykiai' },

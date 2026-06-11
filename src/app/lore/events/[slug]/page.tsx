@@ -66,6 +66,38 @@ export default async function LoreEventPage({ params }: Props) {
       : Promise.resolve({ data: null }),
   ])
 
+  // Chronologinė navigacija: visi publikuoti įvykiai (mažas sąrašas) globalia tvarka
+  const [allEventsRes, erasRes, periodsRes, chainNextRes] = await Promise.all([
+    supabase.from('lore_events')
+      .select('slug, title, era_slug, period_slug, timeline_index')
+      .eq('status', 'published'),
+    supabase.from('lore_eras').select('slug, timeline_index').eq('status', 'published'),
+    supabase.from('lore_periods').select('slug, era_slug, timeline_index').eq('status', 'published')
+      .then((r) => r, () => ({ data: null })),
+    supabase.from('lore_events').select('slug, title').eq('previous_event_slug', slug).eq('status', 'published'),
+  ])
+
+  const eraIdx: Record<string, number> = {}
+  for (const e of (erasRes.data ?? []) as { slug: string; timeline_index: number }[]) eraIdx[e.slug] = e.timeline_index
+  const perIdx: Record<string, number> = {}
+  for (const pp of ((periodsRes.data ?? []) as { slug: string; era_slug: string; timeline_index: number }[])) perIdx[pp.slug] = pp.timeline_index
+
+  type EvRow = { slug: string; title: string; era_slug: string | null; period_slug: string | null; timeline_index: number }
+  const orderOf = (e: EvRow) =>
+    (e.era_slug ? (eraIdx[e.era_slug] ?? 0) : 0) * 1_000_000 +
+    (e.period_slug ? (perIdx[e.period_slug] ?? 0) : 0) * 1_000 +
+    (e.timeline_index ?? 0)
+
+  const ordered = ((allEventsRes.data ?? []) as EvRow[]).sort((a, b) => orderOf(a) - orderOf(b))
+  const idx = ordered.findIndex((e) => e.slug === slug)
+  const prevEvent = idx > 0 ? ordered[idx - 1] : null
+  const nextEvent = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null
+
+  // Grandinė: aiškiai susieti įvykiai (previous_event_slug)
+  const chainPrevSlug: string | null = ev.previous_event_slug ?? null
+  const chainPrev = chainPrevSlug ? ordered.find((e) => e.slug === chainPrevSlug) ?? null : null
+  const chainNext = ((chainNextRes.data ?? []) as { slug: string; title: string }[])
+
   const cards    = (cardsRes as { data: { card_number: string; name: string }[] | null }).data ?? []
   const location = (locationRes as { data: { slug: string; name: string; type: string } | null }).data
   const era      = (eraRes as { data: { name: string; slug: string } | null }).data
@@ -205,6 +237,55 @@ export default async function LoreEventPage({ params }: Props) {
             </div>
           </Section>
         )}
+
+        {/* Įvykių grandinė (aiškiai susieti) */}
+        {(chainPrev || chainNext.length > 0) && (
+          <div className="rounded-2xl p-4 space-y-2"
+            style={{ background: 'rgba(240,180,41,0.04)', border: '1px solid rgba(240,180,41,0.15)' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
+              ⛓️ Įvykių grandinė
+            </p>
+            {chainPrev && (
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Sekė po:{' '}
+                <Link href={`/lore/events/${chainPrev.slug}`} className="hover:opacity-75 transition-opacity"
+                  style={{ color: 'var(--gold)' }}>
+                  {chainPrev.title}
+                </Link>
+              </p>
+            )}
+            {chainNext.map((cn) => (
+              <p key={cn.slug} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Veda į:{' '}
+                <Link href={`/lore/events/${cn.slug}`} className="hover:opacity-75 transition-opacity"
+                  style={{ color: 'var(--gold)' }}>
+                  {cn.title}
+                </Link>
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Chronologinė navigacija */}
+        <div className="flex items-stretch gap-3">
+          {prevEvent ? (
+            <Link href={`/lore/events/${prevEvent.slug}`}
+              className="flex-1 rounded-xl px-4 py-3 transition-all hover:scale-[1.01] hover:border-[rgba(240,180,41,0.35)]"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}>
+              <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>← Ankstesnis įvykis</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{prevEvent.title}</p>
+            </Link>
+          ) : <div className="flex-1" />}
+          {nextEvent ? (
+            <Link href={`/lore/events/${nextEvent.slug}`}
+              className="flex-1 rounded-xl px-4 py-3 text-right transition-all hover:scale-[1.01] hover:border-[rgba(240,180,41,0.35)]"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}>
+              <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Kitas įvykis →</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{nextEvent.title}</p>
+            </Link>
+          ) : <div className="flex-1" />}
+        </div>
 
         {/* Back */}
         <div className="pt-4 border-t" style={{ borderColor: 'var(--bg-border)' }}>

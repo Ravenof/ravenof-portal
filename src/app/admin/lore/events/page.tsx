@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
-import { LORE_STATUS_COLORS, formatCsvArray } from '@/lib/loreAdmin'
+import { LORE_STATUS_COLORS } from '@/lib/loreAdmin'
 import { saveLoreEvent, deleteLoreEvent } from '../actions'
 import { LoreDeleteButton } from '@/components/admin/lore/LoreDeleteButton'
+import { RelationPicker } from '@/components/admin/lore/RelationPicker'
 
 export const revalidate = 0
 export const metadata = { title: 'Įvykiai — Atlaso valdymas' }
@@ -18,9 +19,22 @@ type LoreEv = {
   source_type: string | null; source_title: string | null
   event_type: string | null; status: string; sort_order: number
   image_url: string | null; audio_url: string | null
+  period_slug: string | null; previous_event_slug: string | null
 }
 
-function EventForm({ ev, error }: { ev?: LoreEv; error?: string }) {
+type Opt = { value: string; label: string; hint?: string }
+type FormOpts = {
+  eras:       Opt[]
+  periods:    { value: string; label: string; era: string }[]
+  locations:  Opt[]
+  characters: Opt[]
+  artifacts:  Opt[]
+  factions:   Opt[]
+  cards:      Opt[]
+  events:     Opt[]
+}
+
+function EventForm({ ev, error, opts }: { ev?: LoreEv; error?: string; opts: FormOpts }) {
   return (
     <form action={saveLoreEvent} className="space-y-4 p-5 rounded-xl"
       style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(240,180,41,0.2)' }}>
@@ -48,22 +62,46 @@ function EventForm({ ev, error }: { ev?: LoreEv; error?: string }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Eros slug</label>
-          <input name="era_slug" defaultValue={ev?.era_slug ?? ''}
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Era</label>
+          <select name="era_slug" defaultValue={ev?.era_slug ?? ''}
+            className="w-full px-3 py-2 rounded-lg text-sm"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}>
+            <option value="">— be eros —</option>
+            {opts.eras.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Timeline indeksas</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Periodas (eros viduje)</label>
+          <select name="period_slug" defaultValue={ev?.period_slug ?? ''}
+            className="w-full px-3 py-2 rounded-lg text-sm"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}>
+            <option value="">— be periodo —</option>
+            {opts.periods.map((o) => <option key={o.value} value={o.value}>{o.era} → {o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Timeline indeksas (tvarka periode)</label>
           <input name="timeline_index" type="number" defaultValue={ev?.timeline_index ?? 0}
             className="w-full px-3 py-2 rounded-lg text-sm"
             style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Vietovės slug</label>
-          <input name="location_slug" defaultValue={ev?.location_slug ?? ''}
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Vietovė</label>
+          <select name="location_slug" defaultValue={ev?.location_slug ?? ''}
+            className="w-full px-3 py-2 rounded-lg text-sm"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}>
+            <option value="">— be vietovės —</option>
+            {opts.locations.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>⛓️ Sekė po įvykio (grandinė: one event leads to another)</label>
+          <select name="previous_event_slug" defaultValue={ev?.previous_event_slug ?? ''}
+            className="w-full px-3 py-2 rounded-lg text-sm"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}>
+            <option value="">— grandinės pradžia / nesusieta —</option>
+            {opts.events.filter((o) => o.value !== ev?.slug).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </div>
       </div>
 
@@ -81,30 +119,10 @@ function EventForm({ ev, error }: { ev?: LoreEv; error?: string }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Frakcijų ID (per kablelį)</label>
-          <input name="faction_ids" defaultValue={formatCsvArray(ev?.faction_ids ?? [])}
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-        </div>
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Veikėjų slugai (per kablelį)</label>
-          <input name="character_slugs" defaultValue={formatCsvArray(ev?.character_slugs ?? [])}
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-        </div>
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Artefaktų slugai (per kablelį)</label>
-          <input name="artifact_slugs" defaultValue={formatCsvArray(ev?.artifact_slugs ?? [])}
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-        </div>
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Susijusios kortos (per kablelį)</label>
-          <input name="related_card_numbers" defaultValue={formatCsvArray(ev?.related_card_numbers ?? [])}
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-        </div>
+        <RelationPicker name="faction_ids" label="Frakcijos" options={opts.factions} defaultValue={ev?.faction_ids ?? []} />
+        <RelationPicker name="character_slugs" label="Veikėjai" options={opts.characters} defaultValue={ev?.character_slugs ?? []} />
+        <RelationPicker name="artifact_slugs" label="Artefaktai" options={opts.artifacts} defaultValue={ev?.artifact_slugs ?? []} />
+        <RelationPicker name="related_card_numbers" label="Susijusios kortos" options={opts.cards} defaultValue={ev?.related_card_numbers ?? []} />
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Šaltinio tipas</label>
           <input name="source_type" defaultValue={ev?.source_type ?? ''}
@@ -182,10 +200,36 @@ export default async function LoreEventsPage({ searchParams }: { searchParams: S
 
   const { data } = await supabase
     .from('lore_events')
-    .select('id,title,slug,summary,full_text,era_slug,timeline_index,location_slug,faction_ids,character_slugs,artifact_slugs,related_card_numbers,source_type,source_title,event_type,image_url,audio_url,status,sort_order')
+    .select('id,title,slug,summary,full_text,era_slug,timeline_index,location_slug,faction_ids,character_slugs,artifact_slugs,related_card_numbers,source_type,source_title,event_type,image_url,audio_url,period_slug,previous_event_slug,status,sort_order')
     .order('timeline_index', { ascending: true })
   const rows = (data ?? []) as LoreEv[]
   const editEv = params.id ? rows.find((e) => e.id === params.id) : undefined
+
+  // Opcijos formos ryšiams (bendra mapinimo sistema)
+  const [erasR, periodsR, locsR, charsR, artsR, factsR, cardsR] = await Promise.all([
+    supabase.from('lore_eras').select('slug,name').order('timeline_index'),
+    supabase.from('lore_periods').select('slug,name,era_slug').order('era_slug').order('timeline_index').then((r) => r, () => ({ data: null })),
+    supabase.from('lore_locations').select('slug,name').order('name'),
+    supabase.from('lore_characters').select('slug,name').order('name'),
+    supabase.from('lore_artifacts').select('slug,name').order('name'),
+    supabase.from('lore_factions').select('slug,name').order('sort_order').then((r) => r, () => ({ data: null })),
+    supabase.from('cards').select('card_number,name').eq('status', 'active').order('name'),
+  ])
+
+  const eraNameBySlug: Record<string, string> = {}
+  for (const e of ((erasR.data ?? []) as { slug: string; name: string }[])) eraNameBySlug[e.slug] = e.name
+
+  const opts: FormOpts = {
+    eras:       ((erasR.data ?? []) as { slug: string; name: string }[]).map((e) => ({ value: e.slug, label: e.name })),
+    periods:    (((periodsR.data ?? []) as { slug: string; name: string; era_slug: string }[]))
+                  .map((pp) => ({ value: pp.slug, label: pp.name, era: eraNameBySlug[pp.era_slug] ?? pp.era_slug })),
+    locations:  ((locsR.data ?? []) as { slug: string; name: string }[]).map((l) => ({ value: l.slug, label: l.name })),
+    characters: ((charsR.data ?? []) as { slug: string; name: string }[]).map((c) => ({ value: c.slug, label: c.name })),
+    artifacts:  ((artsR.data ?? []) as { slug: string; name: string }[]).map((a) => ({ value: a.slug, label: a.name })),
+    factions:   ((factsR.data ?? []) as { slug: string; name: string }[]).map((f) => ({ value: f.slug, label: f.name })),
+    cards:      ((cardsR.data ?? []) as { card_number: string; name: string }[]).map((c) => ({ value: c.card_number, label: c.name, hint: c.card_number })),
+    events:     rows.filter((e) => e.status !== 'archived').map((e) => ({ value: e.slug, label: e.title })),
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
@@ -205,8 +249,8 @@ export default async function LoreEventsPage({ searchParams }: { searchParams: S
       </header>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-4">
-        {params.action === 'new' && !params.id && <EventForm error={params.error} />}
-        {editEv && <EventForm ev={editEv} error={params.error} />}
+        {params.action === 'new' && !params.id && <EventForm error={params.error} opts={opts} />}
+        {editEv && <EventForm ev={editEv} error={params.error} opts={opts} />}
 
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows.length} įvykių</p>
 

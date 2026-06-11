@@ -21,6 +21,8 @@ type Props = {
   discoveredIds?: Set<string>
   /** Kelionių linija: aktyvios eros įvykių koordinatės (x/y %) chronologine tvarka */
   routePoints?: { x: number; y: number }[]
+  /** Sklandus priartėjimas prie lokacijos (nonce keičiasi kiekvienam skrydžiui) */
+  focus?: { id: string; nonce: number } | null
 }
 
 /**
@@ -40,7 +42,7 @@ function touchDist(t1: React.Touch, t2: React.Touch) {
   return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
 }
 
-export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts = {}, discoveredIds, routePoints = [] }: Props) {
+export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts = {}, discoveredIds, routePoints = [], focus = null }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const innerRef     = useRef<HTMLDivElement>(null)
   const cloudsRef    = useRef<HTMLDivElement>(null)
@@ -98,6 +100,29 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
     apply(ns, cx - (cx - tx) / scale * ns, cy - (cy - ty) / scale * ns)
   }, [apply])
 
+  // Sklandus „skrydis" prie taško (xPct/yPct — % žemėlapio)
+  const flyTo = useCallback((xPct: number, yPct: number) => {
+    const el = containerRef.current
+    if (!el) return
+    const W = el.offsetWidth, H = el.offsetHeight
+    const s = Math.max(tRef.current.scale, fitScaleRef.current * 1.9)
+    const ease = 'transform 0.85s cubic-bezier(0.22, 1, 0.36, 1)'
+    if (innerRef.current)  innerRef.current.style.transition = ease
+    if (cloudsRef.current) cloudsRef.current.style.transition = ease
+    apply(s, W / 2 - (xPct / 100) * MAP_W * s, H / 2 - (yPct / 100) * MAP_H * s)
+    window.setTimeout(() => {
+      if (innerRef.current)  innerRef.current.style.transition = ''
+      if (cloudsRef.current) cloudsRef.current.style.transition = ''
+    }, 900)
+  }, [apply])
+
+  useEffect(() => {
+    if (!focus) return
+    const loc = locations.find((l) => l.id === focus.id)
+    if (loc) flyTo(loc.x, loc.y)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.nonce])
+
   function zoomIn()  { const el = containerRef.current; if (el) zoomAround(el.offsetWidth / 2, el.offsetHeight / 2, 1.4) }
   function zoomOut() { const el = containerRef.current; if (el) zoomAround(el.offsetWidth / 2, el.offsetHeight / 2, 1 / 1.4) }
   function resetZoom() {
@@ -124,6 +149,8 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return
     e.preventDefault()
+    if (innerRef.current)  innerRef.current.style.transition = ''
+    if (cloudsRef.current) cloudsRef.current.style.transition = ''
     dragRef.current = { ox: e.clientX - tRef.current.tx, oy: e.clientY - tRef.current.ty }
     setIsDragging(true)
   }, [])
@@ -142,6 +169,8 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
   // Touch — pan always allowed (fitScale may leave horizontal overflow on portrait)
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     e.preventDefault()
+    if (innerRef.current)  innerRef.current.style.transition = ''
+    if (cloudsRef.current) cloudsRef.current.style.transition = ''
     touchesRef.current = Array.from(e.touches).map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }))
     if (e.touches.length === 2) {
       const rect = containerRef.current!.getBoundingClientRect()

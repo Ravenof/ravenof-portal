@@ -1,17 +1,29 @@
 'use client'
 
-import type { LoreEra, LoreEvent } from '@/data/lore'
+import { motion } from 'framer-motion'
+import type { LoreEra, LoreEvent, LorePeriod } from '@/data/lore'
 
 type Props = {
   eras: LoreEra[]
   activeIndex: number
   onChange: (index: number) => void
+  periods?: LorePeriod[]
+  activePeriodId?: string | null
+  onChangePeriod?: (id: string | null) => void
   eraEvents?: LoreEvent[]
   onSelectEvent?: (e: LoreEvent) => void
 }
 
-export function LoreTimeline({ eras, activeIndex, onChange, eraEvents, onSelectEvent }: Props) {
+export function LoreTimeline({
+  eras, activeIndex, onChange,
+  periods = [], activePeriodId = null, onChangePeriod,
+  eraEvents, onSelectEvent,
+}: Props) {
   const active = eras.find((e) => e.index === activeIndex) ?? eras[eras.length - 1]
+  const eraPeriods = periods
+    .filter((p) => p.eraId === active?.id)
+    .sort((a, b) => a.index - b.index)
+  const activePeriod = eraPeriods.find((p) => p.id === activePeriodId) ?? null
 
   return (
     <div
@@ -34,10 +46,15 @@ export function LoreTimeline({ eras, activeIndex, onChange, eraEvents, onSelectE
             style={{ fontFamily: 'var(--rvn-font-display)', color: active?.color ?? 'var(--gold)', letterSpacing: '0.04em' }}
           >
             {active?.name ?? '—'}
+            {activePeriod && (
+              <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
+                · {activePeriod.name}
+              </span>
+            )}
           </p>
         </div>
         <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)', maxWidth: '50%' }}>
-          {active?.description}
+          {activePeriod?.description ?? active?.description}
         </p>
       </div>
 
@@ -66,12 +83,55 @@ export function LoreTimeline({ eras, activeIndex, onChange, eraEvents, onSelectE
         })}
       </div>
 
+      {/* Periodų eilutė (mažesni laikotarpiai eros viduje) */}
+      {eraPeriods.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex gap-1 flex-wrap items-center"
+        >
+          <span className="text-[10px] uppercase tracking-wider shrink-0 mr-1"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+            Laikotarpis:
+          </span>
+          <button
+            onClick={() => onChangePeriod?.(null)}
+            className="px-2 py-1 rounded-md text-[11px] transition-all duration-200"
+            style={{
+              background: activePeriodId === null ? (active?.color ?? '#d4af37') + '22' : 'transparent',
+              border: '1px solid ' + (activePeriodId === null ? (active?.color ?? '#d4af37') + '66' : 'var(--bg-border)'),
+              color: activePeriodId === null ? (active?.color ?? '#d4af37') : 'var(--text-muted)',
+            }}
+          >
+            Visa era
+          </button>
+          {eraPeriods.map((p) => {
+            const isActive = p.id === activePeriodId
+            return (
+              <button
+                key={p.id}
+                onClick={() => onChangePeriod?.(p.id)}
+                className="px-2 py-1 rounded-md text-[11px] transition-all duration-200 hover:opacity-90"
+                style={{
+                  background: isActive ? (active?.color ?? '#d4af37') + '22' : 'transparent',
+                  border: '1px solid ' + (isActive ? (active?.color ?? '#d4af37') + '66' : 'var(--bg-border)'),
+                  color: isActive ? (active?.color ?? '#d4af37') : 'var(--text-muted)',
+                  boxShadow: isActive ? `0 0 6px ${(active?.color ?? '#d4af37')}33` : 'none',
+                }}
+              >
+                {p.name}
+              </button>
+            )
+          })}
+        </motion.div>
+      )}
+
       {/* Progress bar */}
       <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-border)' }}>
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
-            width: ((activeIndex / (eras.length - 1)) * 100) + '%',
+            width: ((activeIndex / Math.max(1, eras.length - 1)) * 100) + '%',
             background: `linear-gradient(90deg, ${eras[0]?.color ?? '#6366f1'}, ${active?.color ?? '#d4af37'})`,
             boxShadow:  `0 0 6px ${active?.color ?? '#d4af37'}66`,
           }}
