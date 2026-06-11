@@ -340,7 +340,7 @@ function EventAudioButton({ url }: { url: string }) {
         if (playing) stopLoreTrack()
         else playLoreTrack(url)
       }}
-      className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
+      className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
       style={{
         background: playing ? 'rgba(240,180,41,0.25)' : 'rgba(7,7,15,0.8)',
         border: '1px solid ' + (playing ? 'var(--gold)' : 'rgba(240,180,41,0.3)'),

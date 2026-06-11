@@ -7,6 +7,7 @@ import { LoreMap }      from '@/components/lore/LoreMap'
 import { LorePanel }    from '@/components/lore/LorePanel'
 import { getDiscovered, markDiscovered } from '@/lib/lore-discovery'
 import { playDiscovery, playPanelOpen } from '@/lib/ui-sound'
+import { GlobalSoundToggle } from '@/components/ui/GlobalSoundToggle'
 import { playLoreTrack, stopLoreTrack } from '@/lib/lore-audio'
 import { LoreTimeline } from '@/components/lore/LoreTimeline'
 import { LoreFilters }  from '@/components/lore/LoreFilters'
@@ -151,24 +152,24 @@ export function LoreAtlasClient({
   , [artifacts, selectedLocation])
 
   function handleSelect(id: string) {
-    setSelectedId((prev) => {
-      const next = prev === id ? null : id
-      if (next) {
-        const newly = markDiscovered(next)
-        if (newly) {
-          setDiscoveredIds(getDiscovered())
-          playDiscovery()
-        } else {
-          playPanelOpen()
-        }
-        const loc = locations.find((l) => l.id === next)
-        if (loc?.ambientUrl) playLoreTrack(loc.ambientUrl, { loop: true })
-        else stopLoreTrack()
+    // Side effects SVARBU laikyti čia (ne setState updater'yje) — taip audio.play()
+    // lieka user-gesture call stack'e (iOS Safari autoplay) ir StrictMode jų nedubliuoja.
+    const next = selectedId === id ? null : id
+    if (next) {
+      const newly = markDiscovered(next)
+      if (newly) {
+        setDiscoveredIds(getDiscovered())
+        playDiscovery()
       } else {
-        stopLoreTrack()
+        playPanelOpen()
       }
-      return next
-    })
+      const loc = locations.find((l) => l.id === next)
+      if (loc?.ambientUrl) playLoreTrack(loc.ambientUrl, { loop: true })
+      else stopLoreTrack()
+    } else {
+      stopLoreTrack()
+    }
+    setSelectedId(next)
   }
 
   function resetFilters() {
@@ -208,6 +209,7 @@ export function LoreAtlasClient({
       </div>
 
       <div className="flex items-center gap-2">
+        <GlobalSoundToggle />
         {/* View toggle */}
         <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.2)', background: 'rgba(5,5,12,0.6)' }}>
           <button onClick={() => setView('map')}

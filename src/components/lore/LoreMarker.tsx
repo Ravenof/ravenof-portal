@@ -38,7 +38,7 @@ export function LoreMarker({ location, faction, isSelected, onClick, eventCount 
       whileTap={{ scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       onClick={onClick}
-      onMouseEnter={() => playCardHover()}
+      onPointerEnter={(e) => { if (e.pointerType !== 'touch') playCardHover() }}
       aria-label={location.name}
       title={location.name}
       className="absolute -translate-x-1/2 -translate-y-1/2 group"
