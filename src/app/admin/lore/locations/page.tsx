@@ -18,7 +18,7 @@ type Loc = {
   faction_ids: string[]; related_event_ids: string[]
   related_character_ids: string[]; related_artifact_ids: string[]
   related_card_numbers: string[]; first_era_index: number
-  image_url: string | null; status: string; sort_order: number
+  image_url: string | null; ambient_url: string | null; status: string; sort_order: number
 }
 
 const LOCATION_TYPES = ['unknown','city','ruins','dungeon','forest','mountain','coast','plains','island','fortress','temple','portal']
@@ -136,6 +136,12 @@ function LocationForm({ loc, error, allLocations }: { loc?: Loc; error?: string;
             className="w-full px-3 py-2 rounded-lg text-sm"
             style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
         </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Ambient garso URL (mp3/ogg)</label>
+          <input name="ambient_url" defaultValue={loc?.ambient_url ?? ''} placeholder="https://..."
+            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+        </div>
       </div>
 
       {/* Status + sort */}
@@ -184,7 +190,7 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
 
   const { data } = await supabase
     .from('lore_locations')
-    .select('id,name,slug,type,short_description,description,x,y,region,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,image_url,status,sort_order')
+    .select('id,name,slug,type,short_description,description,x,y,region,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,image_url,ambient_url,status,sort_order')
     .order('sort_order', { ascending: true })
   const rows = (data ?? []) as Loc[]
   const editLoc = params.id ? rows.find((l) => l.id === params.id) : undefined

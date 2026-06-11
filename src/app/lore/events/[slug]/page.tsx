@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { CreditCard, ArrowLeft, MapPin, Clock } from 'lucide-react'
+import { EventSoundtrack } from '@/components/lore/EventSoundtrack'
 
 export const revalidate = 60
 
@@ -135,6 +136,21 @@ export default async function LoreEventPage({ params }: Props) {
             style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
             {ev.title}
           </h1>
+
+          {/* Nuotrauka */}
+          {ev.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={ev.image_url}
+              alt={ev.title}
+              loading="lazy"
+              className="w-full rounded-xl object-cover"
+              style={{ maxHeight: 320, border: `1px solid ${typeMeta ? typeMeta.color + '33' : 'rgba(212,175,55,0.2)'}` }}
+            />
+          )}
+
+          {/* Soundtrack */}
+          {ev.audio_url && <div><EventSoundtrack url={ev.audio_url} /></div>}
 
           {/* Summary */}
           {ev.summary && (

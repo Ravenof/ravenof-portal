@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { playCardHover } from '@/lib/ui-sound'
 import type { LoreLocation, LoreFaction } from '@/data/lore'
 
 // Ikonos pagal vietovės tipą. Palaikomos ir lietuviškos (statiniai duomenys),
@@ -21,9 +22,11 @@ type Props = {
   isSelected: boolean
   onClick: () => void
   eventCount?: number
+  /** Fog-of-war: ar lokacija jau aplankyta. Default true (jokio pritemdymo). */
+  discovered?: boolean
 }
 
-export function LoreMarker({ location, faction, isSelected, onClick, eventCount = 0 }: Props) {
+export function LoreMarker({ location, faction, isSelected, onClick, eventCount = 0, discovered = true }: Props) {
   const color = faction?.color ?? '#d4af37'
   const icon  = TYPE_ICONS[String(location.type ?? '').toLowerCase()] ?? '📍'
 
@@ -35,11 +38,27 @@ export function LoreMarker({ location, faction, isSelected, onClick, eventCount 
       whileTap={{ scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       onClick={onClick}
+      onMouseEnter={() => playCardHover()}
       aria-label={location.name}
       title={location.name}
       className="absolute -translate-x-1/2 -translate-y-1/2 group"
-      style={{ left: location.x + '%', top: location.y + '%', zIndex: isSelected ? 30 : 20 }}
+      style={{
+        left: location.x + '%',
+        top: location.y + '%',
+        zIndex: isSelected ? 30 : 20,
+        filter: discovered ? 'none' : 'grayscale(0.85) brightness(0.6)',
+        transition: 'filter 0.6s ease',
+      }}
     >
+      {/* Kvėpuojantis švytėjimas (tik atrastiems, kai nepasirinkta) */}
+      {discovered && !isSelected && (
+        <motion.span
+          className="absolute inset-0 rounded-full blur-md pointer-events-none"
+          style={{ background: color }}
+          animate={{ opacity: [0.12, 0.3, 0.12] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
       {/* Pulse ring */}
       {isSelected && (
         <motion.span
@@ -87,7 +106,7 @@ export function LoreMarker({ location, faction, isSelected, onClick, eventCount 
           fontSize:    '10px',
         }}
       >
-        {location.name}
+        {discovered ? location.name : '??? — neatrasta'}
       </span>
 
       {/* Event count badge */}

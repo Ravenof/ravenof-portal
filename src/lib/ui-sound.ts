@@ -188,3 +188,27 @@ export function playSuccess(): void {
 export function playError(): void {
   tone(180, 110, 'sawtooth', 0.16, 0.16)
 }
+
+// ── Atlaso garsai ─────────────────────────────────────────────────────────────
+
+let _lastZoom = 0
+
+/** Žemėlapio zoom — labai tylus whoosh (throttled). */
+export function playMapZoom(): void {
+  const now = Date.now()
+  if (now - _lastZoom < 160) return
+  _lastZoom = now
+  swish(0.1, 400, 900, 0.06)
+}
+
+/** Panelės/markerio atidarymas — švelnus swish. */
+export function playPanelOpen(): void {
+  swish(0.14, 700, 2200, 0.12)
+}
+
+/** Lokacijos atradimas — magiškas varpelis. */
+export function playDiscovery(): void {
+  tone(523, 784, 'sine', 0.18, 0.14)
+  tone(784, 1047, 'sine', 0.22, 0.12, 0.14)
+  swish(0.3, 1500, 4000, 0.08, 0.05)
+}

@@ -27,12 +27,14 @@ type DbLocation = {
   related_event_ids: string[]; related_character_ids: string[]
   related_artifact_ids: string[]; related_card_numbers: string[]
   first_era_index: number; status: string
+  image_url: string | null; ambient_url: string | null
 }
 
 type DbEvent = {
   id: string; title: string; slug: string; summary: string | null
   timeline_index: number; era_slug: string | null; location_slug: string | null
   status: string
+  image_url: string | null; audio_url: string | null
 }
 
 type DbCharacter = {
@@ -79,6 +81,8 @@ function mapLocation(row: DbLocation): LoreLocation {
     artifactIds:   row.related_artifact_ids ?? [],
     // Map plain card numbers to the expected { name, cardNumber } shape
     relatedCards:  (row.related_card_numbers ?? []).map((n) => ({ name: n, cardNumber: n })),
+    imageUrl:      row.image_url ?? undefined,
+    ambientUrl:    row.ambient_url ?? undefined,
   }
 }
 
@@ -89,6 +93,8 @@ function mapEvent(row: DbEvent): LoreEvent {
     description: row.summary ?? '',
     eraIndex:    row.timeline_index,
     locationId:  row.location_slug ?? '',
+    imageUrl:    row.image_url ?? undefined,
+    audioUrl:    row.audio_url ?? undefined,
   }
 }
 
@@ -129,8 +135,8 @@ export async function fetchLoreAtlasData(): Promise<LoreAtlasData> {
     // Fetch core lore tables — these must all succeed for Supabase mode
     const [erasRes, locsRes, eventsRes, charsRes, artsRes] = await Promise.all([
       supabase.from('lore_eras').select('id,name,slug,description,timeline_index,status').eq('status','published').order('timeline_index'),
-      supabase.from('lore_locations').select('id,name,slug,type,short_description,description,x,y,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,status').eq('status','published').order('sort_order'),
-      supabase.from('lore_events').select('id,title,slug,summary,timeline_index,era_slug,location_slug,status').eq('status','published').order('timeline_index'),
+      supabase.from('lore_locations').select('id,name,slug,type,short_description,description,x,y,faction_ids,related_event_ids,related_character_ids,related_artifact_ids,related_card_numbers,first_era_index,status,image_url,ambient_url').eq('status','published').order('sort_order'),
+      supabase.from('lore_events').select('id,title,slug,summary,timeline_index,era_slug,location_slug,status,image_url,audio_url').eq('status','published').order('timeline_index'),
       supabase.from('lore_characters').select('id,name,slug,faction_id,role,short_description,status').eq('status','published').order('sort_order'),
       supabase.from('lore_artifacts').select('id,name,slug,artifact_type,short_description,status').eq('status','published').order('sort_order'),
     ])

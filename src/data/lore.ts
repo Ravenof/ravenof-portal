@@ -32,6 +32,8 @@ export type LoreLocation = {
   characterIds: string[]
   artifactIds: string[]
   relatedCards: { name: string; cardNumber: string }[]
+  imageUrl?: string
+  ambientUrl?: string   // aplinkos garsas pasirinkus lokaciją
 }
 
 export type LoreEvent = {
@@ -40,6 +42,8 @@ export type LoreEvent = {
   eraIndex: number     // which era this happened in
   locationId: string
   description: string
+  imageUrl?: string
+  audioUrl?: string    // event soundtrack
 }
 
 export type LoreCharacter = {

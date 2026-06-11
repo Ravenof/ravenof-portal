@@ -2,7 +2,9 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { X, MapPin, Scroll, User, Sword, CreditCard } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, MapPin, Scroll, User, Sword, CreditCard, Music, Square } from 'lucide-react'
+import { playLoreTrack, stopLoreTrack, subscribeLoreTrack } from '@/lib/lore-audio'
 import type { LoreLocation, LoreFaction, LoreEvent, LoreCharacter, LoreArtifact } from '@/data/lore'
 
 type Props = {
@@ -177,6 +179,18 @@ function PanelContent({
       {/* ── Scrollable body ── */}
       <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
 
+        {/* Lokacijos nuotrauka */}
+        {location.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={location.imageUrl}
+            alt={location.name}
+            loading="lazy"
+            className="w-full rounded-xl object-cover"
+            style={{ maxHeight: 180, border: '1px solid ' + color + '33' }}
+          />
+        )}
+
         {/* Description */}
         <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           {location.description}
@@ -190,19 +204,30 @@ function PanelContent({
           <Section icon={<Scroll className="w-3.5 h-3.5" />} title="Įvykiai">
             <div className="space-y-2">
               {events.map((ev) => (
-                <Link
+                <div
                   key={ev.id}
-                  href={`/lore/events/${ev.id}`}
-                  className="block rounded-lg px-3 py-2.5 transition-colors hover:border-[rgba(212,175,55,0.3)]"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', textDecoration: 'none' }}
+                  className="relative rounded-lg overflow-hidden transition-colors hover:border-[rgba(212,175,55,0.3)]"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}
                 >
-                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
-                    {ev.name}
-                  </p>
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    {ev.description}
-                  </p>
-                </Link>
+                  {ev.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={ev.imageUrl} alt="" loading="lazy"
+                      className="w-full object-cover" style={{ height: 72, opacity: 0.85 }} />
+                  )}
+                  <Link
+                    href={`/lore/events/${ev.id}`}
+                    className="block px-3 py-2.5"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <p className="text-xs font-semibold mb-1 pr-7" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
+                      {ev.name}
+                    </p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                      {ev.description}
+                    </p>
+                  </Link>
+                  {ev.audioUrl && <EventAudioButton url={ev.audioUrl} />}
+                </div>
               ))}
             </div>
           </Section>
@@ -297,5 +322,34 @@ function PanelContent({
         </div>
       </div>
     </>
+  )
+}
+
+
+// ── Mažas soundtrack mygtukas įvykio kortelėje ────────────────────────────────
+function EventAudioButton({ url }: { url: string }) {
+  const [playing, setPlaying] = useState(false)
+
+  useEffect(() => subscribeLoreTrack((now) => setPlaying(now?.url === url)), [url])
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (playing) stopLoreTrack()
+        else playLoreTrack(url)
+      }}
+      className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
+      style={{
+        background: playing ? 'rgba(240,180,41,0.25)' : 'rgba(7,7,15,0.8)',
+        border: '1px solid ' + (playing ? 'var(--gold)' : 'rgba(240,180,41,0.3)'),
+        color: 'var(--gold)',
+      }}
+      title={playing ? 'Stabdyti muziką' : 'Groti įvykio muziką'}
+      aria-label={playing ? 'Stabdyti muziką' : 'Groti įvykio muziką'}
+    >
+      {playing ? <Square className="w-3 h-3" /> : <Music className="w-3.5 h-3.5" />}
+    </button>
   )
 }

@@ -17,6 +17,7 @@ type LoreEv = {
   artifact_slugs: string[]; related_card_numbers: string[]
   source_type: string | null; source_title: string | null
   event_type: string | null; status: string; sort_order: number
+  image_url: string | null; audio_url: string | null
 }
 
 function EventForm({ ev, error }: { ev?: LoreEv; error?: string }) {
@@ -116,6 +117,18 @@ function EventForm({ ev, error }: { ev?: LoreEv; error?: string }) {
             className="w-full px-3 py-2 rounded-lg text-sm"
             style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
         </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Nuotraukos URL</label>
+          <input name="image_url" defaultValue={ev?.image_url ?? ''} placeholder="https://..."
+            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+        </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Soundtrack URL (mp3/ogg)</label>
+          <input name="audio_url" defaultValue={ev?.audio_url ?? ''} placeholder="https://..."
+            className="w-full px-3 py-2 rounded-lg text-sm font-mono"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -169,7 +182,7 @@ export default async function LoreEventsPage({ searchParams }: { searchParams: S
 
   const { data } = await supabase
     .from('lore_events')
-    .select('id,title,slug,summary,full_text,era_slug,timeline_index,location_slug,faction_ids,character_slugs,artifact_slugs,related_card_numbers,source_type,source_title,event_type,status,sort_order')
+    .select('id,title,slug,summary,full_text,era_slug,timeline_index,location_slug,faction_ids,character_slugs,artifact_slugs,related_card_numbers,source_type,source_title,event_type,image_url,audio_url,status,sort_order')
     .order('timeline_index', { ascending: true })
   const rows = (data ?? []) as LoreEv[]
   const editEv = params.id ? rows.find((e) => e.id === params.id) : undefined

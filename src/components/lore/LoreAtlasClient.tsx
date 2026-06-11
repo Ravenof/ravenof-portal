@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { BookOpen, Map, List, CreditCard, RotateCcw, MapPin, Scroll, User, Sword, Search, X as XIcon, Shield, Eye, EyeOff } from 'lucide-react'
 import { LoreMap }      from '@/components/lore/LoreMap'
 import { LorePanel }    from '@/components/lore/LorePanel'
+import { getDiscovered, markDiscovered } from '@/lib/lore-discovery'
+import { playDiscovery, playPanelOpen } from '@/lib/ui-sound'
+import { playLoreTrack, stopLoreTrack } from '@/lib/lore-audio'
 import { LoreTimeline } from '@/components/lore/LoreTimeline'
 import { LoreFilters }  from '@/components/lore/LoreFilters'
 import type { LoreAtlasData } from '@/lib/loreFetcher'
@@ -74,6 +77,13 @@ export function LoreAtlasClient({
   const [activeFaction,  setActiveFaction]  = useState<string | null>(null)
   const [searchQuery,    setSearchQuery]    = useState('')
   const [uiHidden,       setUiHidden]       = useState(false)
+  const [discoveredIds,  setDiscoveredIds]  = useState<Set<string> | undefined>(undefined)
+
+  // Fog-of-war: užkraunama tik kliente (localStorage)
+  useEffect(() => { setDiscoveredIds(getDiscovered()) }, [])
+
+  // Išeinant iš atlaso — sustabdyti ambient/soundtrack
+  useEffect(() => () => stopLoreTrack(), [])
 
   const visibleLocations = useMemo(() => locations.filter((loc) =>
     loc.firstEraIndex <= activeEraIndex && (activeFaction === null || loc.factionId === activeFaction)
@@ -110,6 +120,21 @@ export function LoreAtlasClient({
   const searchedCharacters = useMemo(() => sq ? visibleCharacters.filter((c) => c.name.toLowerCase().includes(sq) || c.description?.toLowerCase().includes(sq) || c.title?.toLowerCase().includes(sq)) : visibleCharacters, [visibleCharacters, sq])
   const searchedArtifacts  = useMemo(() => sq ? artifacts.filter(        (a) => a.name.toLowerCase().includes(sq) || a.description?.toLowerCase().includes(sq)) : artifacts,          [artifacts,         sq])
 
+  // Kelionių linija: aktyvios eros įvykių lokacijos chronologine tvarka
+  const routePoints = useMemo(() => {
+    const pts: { x: number; y: number }[] = []
+    let lastId: string | null = null
+    for (const e of activeEraEvents) {
+      if (!e.locationId || e.locationId === lastId) continue
+      const loc = locations.find((l) => l.id === e.locationId)
+      if (loc && visibleLocationIds.has(loc.id)) {
+        pts.push({ x: loc.x, y: loc.y })
+        lastId = e.locationId
+      }
+    }
+    return pts
+  }, [activeEraEvents, locations, visibleLocationIds])
+
   const selectedLocation = useMemo(() => locations.find((l) => l.id === selectedId) ?? null, [locations, selectedId])
   const panelFaction = selectedLocation?.factionId ? factions.find((f) => f.id === selectedLocation.factionId) : undefined
 
@@ -125,7 +150,26 @@ export function LoreAtlasClient({
     (selectedLocation?.artifactIds ?? []).map((id) => artifacts.find((a) => a.id === id)).filter(Boolean) as LoreArtifact[]
   , [artifacts, selectedLocation])
 
-  function handleSelect(id: string) { setSelectedId((prev) => (prev === id ? null : id)) }
+  function handleSelect(id: string) {
+    setSelectedId((prev) => {
+      const next = prev === id ? null : id
+      if (next) {
+        const newly = markDiscovered(next)
+        if (newly) {
+          setDiscoveredIds(getDiscovered())
+          playDiscovery()
+        } else {
+          playPanelOpen()
+        }
+        const loc = locations.find((l) => l.id === next)
+        if (loc?.ambientUrl) playLoreTrack(loc.ambientUrl, { loop: true })
+        else stopLoreTrack()
+      } else {
+        stopLoreTrack()
+      }
+      return next
+    })
+  }
 
   function resetFilters() {
     setActiveFaction(null)
@@ -214,6 +258,8 @@ export function LoreAtlasClient({
             selectedId={selectedId}
             onSelect={handleSelect}
             eventCounts={eventCounts}
+            discoveredIds={discoveredIds}
+            routePoints={routePoints}
           />
 
           {/* ── Slėpti / rodyti valdiklius ── */}

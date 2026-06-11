@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LoreMarker } from './LoreMarker'
+import { playMapZoom } from '@/lib/ui-sound'
 import type { LoreLocation, LoreFaction } from '@/data/lore'
 
 const MAP_IMAGE = '/maps/ravenof-world-map.png'
@@ -16,6 +17,10 @@ type Props = {
   selectedId:  string | null
   onSelect:    (id: string) => void
   eventCounts?: Record<string, number>
+  /** Fog-of-war: aplankytų lokacijų id */
+  discoveredIds?: Set<string>
+  /** Kelionių linija: aktyvios eros įvykių koordinatės (x/y %) chronologine tvarka */
+  routePoints?: { x: number; y: number }[]
 }
 
 /**
@@ -35,9 +40,10 @@ function touchDist(t1: React.Touch, t2: React.Touch) {
   return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
 }
 
-export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts = {} }: Props) {
+export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts = {}, discoveredIds, routePoints = [] }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const innerRef     = useRef<HTMLDivElement>(null)
+  const cloudsRef    = useRef<HTMLDivElement>(null)
   const tRef         = useRef({ scale: 1, tx: 0, ty: 0 })
   const fitScaleRef  = useRef(1)            // cover-fit scale — computed on mount/resize
   const dragRef      = useRef<{ ox: number; oy: number } | null>(null)
@@ -57,6 +63,11 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
     tRef.current = { scale, tx: c.tx, ty: c.ty }
     if (innerRef.current) {
       innerRef.current.style.transform = `translate(${c.tx}px,${c.ty}px) scale(${scale})`
+    }
+    if (cloudsRef.current) {
+      // Parallax: debesys juda ~8% greičiau už žemėlapį — gylio iliuzija
+      cloudsRef.current.style.transform =
+        `translate(${c.tx * 1.08}px,${c.ty * 1.08}px) scale(${scale * 1.1})`
     }
     setDisplayScale(scale)
   }, [])
@@ -83,6 +94,7 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
   const zoomAround = useCallback((cx: number, cy: number, factor: number) => {
     const { scale, tx, ty } = tRef.current
     const ns = Math.max(fitScaleRef.current, Math.min(MAX_SCALE, scale * factor))
+    if (Math.abs(ns - scale) > 0.001) playMapZoom()
     apply(ns, cx - (cx - tx) / scale * ns, cy - (cy - ty) / scale * ns)
   }, [apply])
 
@@ -213,6 +225,29 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
           style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,5,12,0.55) 100%)' }}
         />
 
+        {/* Kelionių linijos — aktyvios eros įvykių kelias chronologine tvarka */}
+        {routePoints.length > 1 && (
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+            preserveAspectRatio="none"
+            style={{ width: '100%', height: '100%', zIndex: 10 }}
+          >
+            <style>{`@keyframes rvn-route-dash { to { stroke-dashoffset: -24; } }`}</style>
+            <polyline
+              points={routePoints.map((p) => `${(p.x / 100) * MAP_W},${(p.y / 100) * MAP_H}`).join(' ')}
+              fill="none"
+              stroke="rgba(240,180,41,0.55)"
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeDasharray="8 16"
+              vectorEffect="non-scaling-stroke"
+              style={{ animation: 'rvn-route-dash 1.6s linear infinite', filter: 'drop-shadow(0 0 3px rgba(240,180,41,0.5))' }}
+            />
+          </svg>
+        )}
+
         {/* Markers — positioned at loc.x/loc.y percent of MAP_W×MAP_H */}
         <AnimatePresence>
           {locations.map((loc) => (
@@ -223,6 +258,7 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
                 isSelected={selectedId === loc.id}
                 onClick={() => onSelect(loc.id)}
                 eventCount={eventCounts[loc.id] ?? 0}
+                discovered={discoveredIds ? discoveredIds.has(loc.id) : true}
               />
             </motion.div>
           ))}
@@ -240,6 +276,36 @@ export function LoreMap({ locations, factions, selectedId, onSelect, eventCounts
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Parallax rūko/debesų sluoksnis ── */}
+      <div
+        ref={cloudsRef}
+        aria-hidden
+        className="absolute pointer-events-none"
+        style={{
+          width: MAP_W,
+          height: MAP_H,
+          transformOrigin: '0 0',
+          zIndex: 5,
+          opacity: 0.38,
+          overflow: 'hidden',
+        }}
+      >
+        <style>{`@keyframes rvn-clouds-drift { from { transform: translate(0,0); } to { transform: translate(-724px,-543px); } }`}</style>
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-543px 0 0 -724px',
+            width: MAP_W + 724 * 2,
+            height: MAP_H + 543 * 2,
+            backgroundImage: 'url(/maps/clouds.png)',
+            backgroundRepeat: 'repeat',
+            backgroundSize: '724px 543px',
+            animation: 'rvn-clouds-drift 180s linear infinite',
+            willChange: 'transform',
+          }}
+        />
       </div>
 
       {/* ── UI outside the transform layer ── */}

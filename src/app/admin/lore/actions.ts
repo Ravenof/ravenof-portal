@@ -86,6 +86,7 @@ export async function saveLocation(formData: FormData) {
     related_card_numbers:  parseCsvArray((formData.get('related_card_numbers') as string) || ''),
     first_era_index:       parseInt((formData.get('first_era_index') as string) || '0', 10),
     image_url:             (formData.get('image_url') as string)?.trim() || null,
+    ambient_url:           (formData.get('ambient_url') as string)?.trim() || null,
     status:                (formData.get('status') as string) || 'draft',
     sort_order:            parseInt((formData.get('sort_order') as string) || '0', 10),
   }
@@ -134,6 +135,8 @@ export async function saveLoreEvent(formData: FormData) {
     source_type:         (formData.get('source_type') as string)?.trim() || null,
     source_title:        (formData.get('source_title') as string)?.trim() || null,
     event_type:          (formData.get('event_type') as string)?.trim() || null,
+    image_url:           (formData.get('image_url') as string)?.trim() || null,
+    audio_url:           (formData.get('audio_url') as string)?.trim() || null,
     status:              (formData.get('status') as string) || 'draft',
     sort_order:          parseInt((formData.get('sort_order') as string) || '0', 10),
   }
