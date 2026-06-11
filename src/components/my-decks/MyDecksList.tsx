@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getFactionColor } from '@/lib/utils'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
+import { PlaytestButton } from '@/components/decks/PlaytestButton'
 
 type Props = {
   decks: DeckWithRelations[]
@@ -223,6 +224,10 @@ export function MyDecksList({ decks, userId, deckOwnership = {} }: Props) {
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 border-t" style={{ borderColor: 'var(--bg-border)' }}>
+              {/* Playtest */}
+              <div className="flex-1">
+                <PlaytestButton deckId={deck.id} deckName={deck.name} variant="compact" />
+              </div>
               {/* Edit */}
               <Link href={`/deck-builder/${deck.id}`} className="flex-1">
                 <RavenofButton variant="secondary" size="sm" fullWidth>

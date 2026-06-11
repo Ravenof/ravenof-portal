@@ -212,3 +212,18 @@ export function playDiscovery(): void {
   tone(784, 1047, 'sine', 0.22, 0.12, 0.14)
   swish(0.3, 1500, 4000, 0.08, 0.05)
 }
+
+/** Kaladės maišymas — greitų popieriaus švilpesių serija. */
+export function playShuffle(): void {
+  swish(0.07, 900, 2200, 0.14)
+  swish(0.07, 700, 1900, 0.13, 0.08)
+  swish(0.07, 1000, 2400, 0.14, 0.16)
+  swish(0.07, 800, 2000, 0.12, 0.24)
+  swish(0.12, 600, 1600, 0.16, 0.34)
+}
+
+/** Kortos traukimas iš kaladės. */
+export function playCardDraw(): void {
+  swish(0.13, 800, 3000, 0.2)
+  tone(1200, 1600, 'triangle', 0.04, 0.05, 0.06)
+}
