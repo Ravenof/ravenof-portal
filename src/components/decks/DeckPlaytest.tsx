@@ -32,37 +32,44 @@ type TableCard = { pc: PlayCard; left: number; top: number; rot: number; z: numb
 // Long-press (mobile): apžiūra atidaroma palaikius pirštą ~450ms ant kortos.
 // Pele (desktop) — paprastas click. Tap'as po drag'o ant touch nebeatidaro popup'o.
 const LONG_PRESS_MS = 450
-const MOVE_CANCEL_PX = 12
+const MOVE_CANCEL_PX = 8
 
 function useLongPress(onTrigger: () => void) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startRef = useRef<{ x: number; y: number } | null>(null)
+  // Kai long-press suveikė — vėlesnis dragEnd ignoruojamas (kad korta
+  // nenukristų ant stalo, kol atidaryta apžiūra)
+  const firedRef = useRef(false)
 
-  const clear = useCallback(() => {
+  const cancel = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
     startRef.current = null
   }, [])
 
-  useEffect(() => clear, [clear])
+  useEffect(() => cancel, [cancel])
 
-  return {
+  const handlers = {
     onPointerDown: (e: React.PointerEvent) => {
       if (e.pointerType !== 'touch') return
+      firedRef.current = false
       startRef.current = { x: e.clientX, y: e.clientY }
       timerRef.current = setTimeout(() => {
         timerRef.current = null
+        firedRef.current = true
         try { navigator.vibrate?.(15) } catch { /* tyliai */ }
         onTrigger()
       }, LONG_PRESS_MS)
     },
     onPointerMove: (e: React.PointerEvent) => {
       if (!startRef.current || !timerRef.current) return
-      if (Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y) > MOVE_CANCEL_PX) clear()
+      if (Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y) > MOVE_CANCEL_PX) cancel()
     },
-    onPointerUp: clear,
-    onPointerCancel: clear,
-    onPointerLeave: clear,
+    onPointerUp: cancel,
+    onPointerCancel: cancel,
+    onPointerLeave: cancel,
   }
+
+  return { handlers, cancel, firedRef }
 }
 
 /** onTap tik pelei — touch naudoja long-press */
@@ -295,7 +302,14 @@ export function DeckPlaytest({ deckId, deckName, onClose }: {
   const body = (
     <div className="fixed inset-0 z-[100] flex flex-col"
       style={{
-        background: 'radial-gradient(ellipse at 50% 30%, #14101f 0%, #0a0810 70%)',
+        background: [
+          // Šilta „žvakės" šviesa stalo centre
+          'radial-gradient(ellipse 75% 55% at 50% 38%, rgba(255,176,84,0.14) 0%, rgba(255,150,60,0.05) 45%, transparent 70%)',
+          // Vinjetė kraštuose
+          'radial-gradient(ellipse at center, transparent 35%, rgba(5,3,2,0.72) 100%)',
+          // Medinis taverno stalas
+          'url(/playtest/table-wood.jpg) center / cover no-repeat',
+        ].join(', '),
         touchAction: 'none',
       }}>
 
@@ -345,7 +359,7 @@ export function DeckPlaytest({ deckId, deckName, onClose }: {
         )}
         {!loading && !errorMsg && table.length === 0 && (
           <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs text-center px-4 pointer-events-none"
-            style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
+            style={{ color: '#e8d9b8', opacity: 0.55, textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
             Trauk kortą iš kaladės (arba spausk D),<br />
             tempk kortas iš rankos ant stalo.<br />
             Apžiūra: palaikyk pirštą / spustelk pele.
@@ -370,7 +384,7 @@ export function DeckPlaytest({ deckId, deckName, onClose }: {
 
       {/* ── Ranka + kaladė ── */}
       <div className="shrink-0 flex items-end gap-2 px-2 pb-2 pt-1"
-        style={{ background: 'linear-gradient(to top, rgba(5,5,12,0.95), transparent)' }}>
+        style={{ background: 'linear-gradient(to top, rgba(12,7,3,0.92) 30%, transparent)' }}>
 
         {/* Ranka (fan) */}
         <div className="flex-1 min-w-0 overflow-x-auto overflow-y-visible" style={{ touchAction: 'pan-x' }}>
@@ -500,14 +514,14 @@ function TableCardItem({ tc, cardW, tableRef, onBringToFront, onInspect }: {
   onBringToFront: (uid: string) => void
   onInspect: (pc: PlayCard) => void
 }) {
-  const longPress = useLongPress(() => onInspect(tc.pc))
+  const { handlers: longPress, cancel: cancelLP, firedRef } = useLongPress(() => onInspect(tc.pc))
   return (
     <motion.div
       drag
       dragMomentum={false}
       dragConstraints={tableRef}
-      onDragStart={() => onBringToFront(tc.pc.uid)}
-      onDragEnd={() => playCardPlace()}
+      onDragStart={() => { cancelLP(); onBringToFront(tc.pc.uid) }}
+      onDragEnd={() => { if (!firedRef.current) playCardPlace() }}
       onTap={mouseOnlyTap(() => onInspect(tc.pc))}
       whileDrag={{ scale: 1.08, rotate: 0, boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}
       whileHover={{ scale: 1.04 }}
@@ -533,15 +547,16 @@ function HandCardItem({ pc, rot, lift, index, cardW, tableRef, onPlay, onInspect
   onPlay: (uid: string, x?: number, y?: number) => void
   onInspect: (pc: PlayCard) => void
 }) {
-  const longPress = useLongPress(() => onInspect(pc))
+  const { handlers: longPress, cancel: cancelLP, firedRef } = useLongPress(() => onInspect(pc))
   return (
     <motion.div
       layout
       drag
       dragSnapToOrigin
       dragElastic={0.2}
-      onDragStart={() => playCardPick()}
+      onDragStart={() => { cancelLP(); playCardPick() }}
       onDragEnd={(_, info) => {
+        if (firedRef.current) return // apžiūra atidaryta long-press'u — nieko nedarom
         const rect = tableRef.current?.getBoundingClientRect()
         if (rect && info.point.y < rect.bottom - 10) {
           onPlay(pc.uid, info.point.x, info.point.y)
