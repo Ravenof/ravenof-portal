@@ -9,7 +9,7 @@ const FACTIONS = [
   { id: 'goblinu-gauja',        label: 'Goblinų Gauja',          desc: 'Chaosas, agresija, Monetos metimas - didelė rizika ir atlygis.',   img: '/rules/factions/goblinu-gauja.png'        },
   { id: 'mistikos-melodija',    label: 'Mistikos Melodija',      desc: 'Burtai, kontrolė, masinis žalos padarymas, reakcijos.',            img: '/rules/factions/mistikos-melodija.png'    },
   { id: 'rytu-vezas',           label: 'Rytų Vėjas',             desc: 'Sėlinimas, tikslūs smūgiai, greitas tempas.',                      img: '/rules/factions/rytu-vezas.png'           },
-  { id: 'sviesos-pulkas',       label: 'Šviesos Pulkas',         desc: 'Gynyba, Pasišaipymas, Magiškasis skydas, board kontrolė.',         img: '/rules/factions/sviesos-pulkas.png'       },
+  { id: 'sviesos-pulkas',       label: 'Šviesos Pulkas',         desc: 'Gynyba, Pasišaipymas, Magiškasis skydas, kovos lauko kontrolė.',         img: '/rules/factions/sviesos-pulkas.png'       },
   { id: 'inkvizicijos-legionas',label: 'Inkvizicijos Legionas',  desc: 'Gydymas, pastiprinimas, palaikymas, šviesos sinergijos.',          img: '/rules/factions/inkvizicijos-legionas.png'},
   { id: 'neutralios',           label: 'Neutralios / Universalios', desc: 'Tinka su bet kuria frakcija. Universalūs efektai.',             img: '/rules/factions/neutralios.png'           },
 ]

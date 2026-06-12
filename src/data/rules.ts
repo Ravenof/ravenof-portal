@@ -41,7 +41,6 @@ export type RuleCategory =
   | 'čempionai'
   | 'raktažodžiai'
   | 'būsenos'
-  | 'reakcijos'
   | 'taikiniai'
   | '2v2'
   | 'duk'
@@ -99,13 +98,13 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'komponentai',
     number: '2',
     title: 'Komponentai',
-    summary: 'Kortų kaladės, Žalos modifikatorių kaladė (ŽMK), aukso monetos ir būsenų žetonai.',
+    summary: 'Kortų kaladės, Žalos modifikatorių kaladė (ŽMK), prakeiksmų kaladė, aukso monetos ir būsenų žetonai.',
     category: 'pasiruosimas',
-    relatedTerms: ['kaladė', 'ŽMK', 'Žalos modifikatorių kaladė', 'monetos', 'žetonai', 'DMD'],
+    relatedTerms: ['kaladė', 'ŽMK', 'Žalos modifikatorių kaladė', 'prakeiksmų kaladė', 'monetos', 'žetonai', 'DMD'],
     content: [
       {
         type: 'paragraph',
-        text: 'Kiekvienas žaidėjas turi savo kortų kaladę (30-40 kortų) ir atskirą Žalos modifikatorių kaladę (ŽMK) iš 20 kortų. Žalos modifikatorių kaladė (ŽMK) - 20 kortų kaladė, naudojama žalai modifikuoti. Pilnos ŽMK taisyklės pateiktos ŽMK skyriuje.',
+        text: 'Kiekvienas žaidėjas turi savo kortų kaladę (30-40 kortų) ir atskirą Žalos modifikatorių kaladę (ŽMK) iš 20 kortų, naudojamą žalai modifikuoti. Pilnos ŽMK taisyklės pateiktos ŽMK skyriuje. Papildomai žaidėjas gali turėti atskirą prakeiksmų kaladę (10-20 kortų) - žr. skyrių „Kaladės sudarymas“.',
       },
       { type: 'dmdBlock' },
       {
@@ -127,7 +126,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     title: 'Kaladės sudarymas',
     summary: 'Kaladę sudaro 30-40 kortų. Leidžiama naudoti tik vienos frakcijos kortas ir neutralias kortas. Kopijų kiekiai priklauso nuo retumo.',
     category: 'kaladė',
-    relatedTerms: ['kaladė', 'frakcija', 'neutralios', 'universalios', 'retumas', 'kopijų limitas'],
+    relatedTerms: ['kaladė', 'frakcija', 'neutralios', 'universalios', 'retumas', 'kopijų limitas', 'prakeiksmų kaladė', 'prakeiksmas'],
     content: [
       {
         type: 'list',
@@ -135,6 +134,7 @@ export const RULES_SECTIONS: RuleSection[] = [
           'Kaladę turi sudaryti nuo 30 iki 40 kortų.',
           'Leidžiama naudoti tik vienos frakcijos kortas ir neutralias arba universalias kortas.',
           'Dviejų skirtingų frakcijų kortų vienoje kaladėje maišyti negalima.',
+          'Prakeiksmai į pagrindinę kaladę nededami - jie sudaro atskirą prakeiksmų kaladę.',
         ],
       },
       {
@@ -142,12 +142,18 @@ export const RULES_SECTIONS: RuleSection[] = [
         label: 'Kortų kopijų kiekiai kaladėje',
         headers: ['Retumas', 'Maks. kopijų skaičius'],
         rows: [
-          ['Paprasta',              'Iki 2'],
-          ['Magiška',               'Iki 2'],
+          ['Paprastas',             'Iki 2'],
+          ['Magiškas',              'Iki 2'],
           ['Unikalus',              'Iki 2'],
-          ['Epiška',                '1'],
-          ['Legendinė',             '1'],
+          ['Epiškas',               '1'],
+          ['Legendinis',            '1'],
         ],
+      },
+      {
+        type: 'callout',
+        calloutVariant: 'important',
+        label: 'Prakeiksmų kaladė (neprivaloma)',
+        text: 'Žaidėjas gali turėti atskirą prakeiksmų kaladę iš 10-20 prakeiksmų kortų. Ji neįskaičiuojama į pagrindinės kaladės 30-40 kortų limitą. Prakeiksmai neturi aukso kainos ir į priešininko kaladę įmaišomi nemokamai - tik tada, kai tai nurodo kortos efektas.',
       },
       {
         type: 'callout',
@@ -162,9 +168,9 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'retumai',
     number: '3b',
     title: 'Retumų sistema',
-    summary: '5 retumų lygiai: Paprasta, Magiška, Unikalus, Epiškas, Legendinis. Žymimi deimanto simboliu.',
+    summary: '5 retumų lygiai: Paprastas, Magiškas, Unikalus, Epiškas, Legendinis. Žymimi deimanto simboliu.',
     category: 'kaladė',
-    relatedTerms: ['retumas', 'paprasta', 'magiška', 'unikalus', 'epiškas', 'legendinis', 'deimantas', 'kopijų limitas'],
+    relatedTerms: ['retumas', 'paprastas', 'magiškas', 'unikalus', 'epiškas', 'legendinis', 'deimantas', 'kopijų limitas'],
     content: [
       { type: 'rarityBlock' },
       {
@@ -181,19 +187,13 @@ export const RULES_SECTIONS: RuleSection[] = [
     title: 'Frakcijos',
     summary: 'Frakcija nustato kaladės žaidimo stilių ir sinergijas. 8 unikalios frakcijos ir neutralios kortos.',
     category: 'frakcijos',
-    relatedTerms: ['frakcija', 'Demonų Orda', 'Mirties Maršas', 'Goblinų Gauja', 'Mistikos Melodija', 'neutralios', 'negyvėliai', 'Monetos metimas'],
+    relatedTerms: ['frakcija', 'Demonų Orda', 'Mirties Maršas', 'Goblinų Gauja', 'Mistikos Melodija', 'neutralios', 'negyvėliai'],
     content: [
       {
         type: 'paragraph',
         text: 'Frakcija nustato kaladės žaidimo stilių, pagrindines mechanikas ir sinergijas. Kaladėje galima naudoti tik vienos pasirinktos frakcijos kortas ir neutralias / universalias kortas.',
       },
       { type: 'factionGrid' },
-      {
-        type: 'callout',
-        calloutVariant: 'example',
-        label: 'Goblinų Gauja - Monetos metimas',
-        text: 'Goblinų Gaujos kortos gali suteikti daugiau vertės nei įprastos kortos už tą pačią kainą, tačiau nesėkmės atveju gali sukelti šalutinį poveikį pačiam žaidėjui. Tai yra sąmoninga frakcijos identiteto dalis.',
-      },
     ],
   },
 
@@ -211,7 +211,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'example',
         label: 'Efektų moduliatorių formatas',
-        text: 'Efektuose įrašas +X/+Y reiškia puolimo ir gyvybės taškų pokytį. Pirmas skaičius keičia puolimą, antras - gyvybės taškus. Pvz.: +1/0 reiškia +1 ATK ir 0 gyvybės taškų pokytis.',
+        text: 'Efektuose įrašas +X/+Y reiškia puolimo ir gyvybės taškų pokytį. Pirmas skaičius keičia puolimą, antras - gyvybės taškus. Pvz.: +1/0 reiškia +1 ATK, o gyvybės taškai nesikeičia.',
       },
     ],
   },
@@ -254,7 +254,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'warning',
         label: 'Prakeiksmas',
-        text: 'Korta, kuri trukdo priešininkui - įmaišoma į jo kaladę. Priešininkui ištraukus prakeiksmą - efektas iš karto aktyvuojamas, korta keliauja į panaudotų kortų krūvą. Prakeiksmo negalima žaisti tiesiai iš rankos. Jei abu žaidėjai žaidžia Demonų Ordos kaladėmis, prakeiksmai įmaišomi atversti - taip lengviau atskirti, kuri korta priklauso kuriam žaidėjui. Kai prakeiksmas ištraukiamas, jis išsprendžiamas pagal įprastas taisykles.',
+        text: 'Korta, kuri trukdo priešininkui - įmaišoma į jo kaladę. Prakeiksmai neturi aukso kainos ir laikomi atskiroje prakeiksmų kaladėje (10-20 kortų) - į pagrindinę kaladę jie nededami. Prakeiksmas į priešininko kaladę įmaišomas nemokamai tik tada, kai tai nurodo kortos efektas - savo nuožiūra jo įmaišyti negalima. Priešininkui ištraukus prakeiksmą - efektas iš karto aktyvuojamas, korta keliauja į panaudotų kortų krūvą. Jei abu žaidėjai naudoja prakeiksmus, jie įmaišomi atversti - taip lengviau atskirti, kuri korta priklauso kuriam žaidėjui.',
       },
       {
         type: 'callout',
@@ -295,7 +295,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'list',
         items: [
           'Panaudotos ŽMK kortos keliauja į ŽMK kapinyną.',
-          'Jei ištraukiama ×2 arba ×0 korta, pirmiausia iki galo išsprendžiama ta žala. Tada ši korta kartu su ŽMK kapilyno kortomis permaišoma ir suformuojama nauja ŽMK kaladė prieš kitą ŽMK traukimą.',
+          'Jei ištraukiama ×2 arba ×0 korta, pirmiausia iki galo išsprendžiama ta žala. Tada ši korta kartu su ŽMK kapinyno kortomis permaišoma ir suformuojama nauja ŽMK kaladė prieš kitą ŽMK traukimą.',
           'Žalos reikšmė niekada negali būti mažesnė nei 0. Jei ŽMK ar kitas efektas sumažintų žalą žemiau 0, ji laikoma 0. Neigiama žala negydo.',
           'Magiškojo skydo atveju žala blokuojama - ŽMK korta netraukiama.',
           'Jei žala = 0, bet efektas turi papildomų veiksmų (pvz., būsenos suteikimas) - jie vis tiek pritaikomi.',
@@ -326,7 +326,7 @@ export const RULES_SECTIONS: RuleSection[] = [
     title: 'Žaidimo zonos',
     summary: 'Pagrindinė kaladė, panaudotų kortų krūva, ranka (maks. 10), padarų zona (maks. 5), artefaktai (maks. 2), reakcijos (maks. 3), lauko korta, ŽMK.',
     category: 'zonos',
-    relatedTerms: ['kovos laukas', 'panaudotų kortų krūva', 'ranka', 'padarų zona', 'artefaktai', 'reakcijos', 'lauko korta', 'ŽMK', 'pagrindinė kaladė'],
+    relatedTerms: ['kovos laukas', 'panaudotų kortų krūva', 'ranka', 'padarų zona', 'artefaktai', 'reakcijos', 'lauko korta', 'ŽMK', 'pagrindinė kaladė', 'prakeiksmų kaladė'],
     content: [
       {
         type: 'table',
@@ -334,6 +334,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         headers: ['Zona', 'Aprašymas', 'Maks.'],
         rows: [
           ['Pagrindinė kaladė',      'Žaidėjo kortų kaladė. Laikoma užversta.',                                       '-'],
+          ['Prakeiksmų kaladė',      'Atskira prakeiksmų kaladė (jei naudojama). Laikoma užversta.',                  '10-20'],
           ['Panaudotų kortų krūva',  'Panaudotos ir žuvusios kortos. Atvira - abu žaidėjai mato.',                     '-'],
           ['Ranka',                  'Žaidėjo kortos. Priešininkas jų nemato.',                                        '10'],
           ['Padarų zona',            'Padarai ir Čempionas.',                                                          '5'],
@@ -373,7 +374,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         items: [
           '1. Sumaišykite kaladę. Kiekvienas žaidėjas sumaišo savo kaladę ir duoda priešininkui ją perkirsti.',
           '2. Sumaišykite ŽMK. Kiekvienas žaidėjas sumaišo savo 20 kortų Žalos modifikatorių kaladę.',
-          '3. Nuspręskite, kas pradeda. Metant monetą, žaidžiant žirkles-popierių-akmenį arba: pralaimėjęs paskutinį žaidimą renkasi pradžią.',
+          '3. Nuspręskite, kas pradeda. Meskite monetą, žaiskite akmenį-popierių-žirkles arba leiskite pralaimėjusiam paskutinį žaidimą pasirinkti, kas pradeda.',
           '4. Ištraukite pradinę ranką. Pirmasis žaidėjas traukia 4 kortas. Antrasis žaidėjas traukia 5 kortas. Antrasis žaidėjas turi vieną papildomą kortą kaip kompensaciją už tai, kad žaidžia antras.',
           '5. Pradinės rankos keitimas (neprivalomas). Visos kortos gali būti įmaišytos atgal ir ištraukta nauja ranka. Galima tik 1 kartą.',
           '6. Nustatykite gyvybės taškus. 1v1: 40 gyvybės taškų. 2v2: 60 bendrų gyvybės taškų komandai.',
@@ -448,7 +449,6 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Panaudoti burtą',                  'Sumokama aukso kaina - efektas aktyvuojamas - korta keliauja į panaudotų kortų krūvą.'],
           ['Padėti artefaktą',                 'Sumokama aukso kaina - artefaktas perkeliamas į artefaktų zoną (maks. 2).'],
           ['Padėti reakciją',                  'Sumokama aukso kaina - reakcija padedama užversta į reakcijų zoną su aukso / kainos žetonu.'],
-          ['Panaudoti prakeiksmą',             'Sumokama aukso kaina - priešininkas įsimaišo kortą į savo kaladę.'],
           ['Žaisti lauko kortą',               'Sumokama aukso kaina - nauja lauko korta pakeičia esamą.'],
           ['Iškviesti Čempioną (1 fazė)',      'Sumokama aukso kaina ir aukojimas.'],
           ['Evoliucionuoti Čempioną (2/3 f.)', 'Sumokama aukso kaina ir aukojimas. Čempionas pilnai pagyja.'],
@@ -745,7 +745,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'example',
         label: 'Monetos metimas',
-        text: 'Kai korta nurodo atlikti Monetos metimą, mesk žalos sekimo žetoną. Žalia pusė reiškia sėkmingą efektą, raudona - nesėkmę arba šalutinį poveikį. Konkretų rezultatą nurodo kortos tekstas. Goblinų Gauja dažnai naudoja šią mechaniką.',
+        text: 'Kai korta nurodo atlikti Monetos metimą, mesk žalos sekimo žetoną. Žalia pusė reiškia sėkmingą efektą, raudona - nesėkmę arba šalutinį poveikį. Konkretų rezultatą nurodo kortos tekstas. Monetos metimo efektų gali turėti bet kurios frakcijos kortos.',
       },
       {
         type: 'callout',
@@ -837,7 +837,7 @@ export const RULES_SECTIONS: RuleSection[] = [
           'Ėjimų eilė: Komanda A (1 žaidėjas) - Komanda B (1 žaidėjas) - Komanda A (2 žaidėjas) - Komanda B (2 žaidėjas).',
           '"Draugiški padarai" apima abiejų komandos žaidėjų padarus, išskyrus patį efektą turintį padarą.',
           '"Savo padarai" reiškia tik to konkretaus žaidėjo padarus.',
-          'Prakeiksmas įmaišomas į pasirinktą priešininko kaladę.',
+          'Kai kortos efektas nurodo įmaišyti prakeiksmą, žaidėjas pasirenka, į kurio priešininko kaladę jį įmaišyti.',
         ],
       },
     ],
@@ -893,7 +893,6 @@ export const RULE_CATEGORIES: { id: RuleCategory | 'viskas'; label: string }[] =
   { id: 'čempionai',    label: 'Čempionai'                 },
   { id: 'raktažodžiai', label: 'Raktažodžiai'              },
   { id: 'būsenos',      label: 'Būsenų efektai'            },
-  { id: 'reakcijos',    label: 'Reakcijos'                 },
   { id: 'taikiniai',    label: 'Taikiniai'                 },
   { id: '2v2',          label: '2v2'                       },
   { id: 'duk',          label: 'DUK'                       },

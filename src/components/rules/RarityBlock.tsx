@@ -3,7 +3,7 @@
 const RARITIES = [
   {
     id: 'common',
-    label: 'Paprasta',
+    label: 'Paprastas',
     color: '#94a3b8',
     colorBg: 'rgba(148,163,184,0.12)',
     copies: 'iki 2 kopijų',
@@ -11,7 +11,7 @@ const RARITIES = [
   },
   {
     id: 'magic',
-    label: 'Magiška',
+    label: 'Magiškas',
     color: '#4ade80',
     colorBg: 'rgba(74,222,128,0.12)',
     copies: 'iki 2 kopijų',
