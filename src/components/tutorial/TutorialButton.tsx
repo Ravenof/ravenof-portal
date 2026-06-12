@@ -7,6 +7,9 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { playUiClick } from '@/lib/ui-sound'
 
+/** Demo kaladės ID – TutorialGame susikuria kaladę iš aktyvių DB kortų. */
+export const DEMO_DECK_TUTORIAL = '__demo__'
+
 const TutorialGame = dynamic(
   () => import('./TutorialGame').then((m) => m.TutorialGame),
   { ssr: false }

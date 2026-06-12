@@ -44,30 +44,48 @@ type DbRow = {
   } | null
 }
 
+function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
+  const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
+  const text = [c.effect_text, c.description].filter(Boolean).join(' ')
+  return {
+    id: c.id,
+    name: c.name,
+    image: c.image_url,
+    gold: c.gold_cost ?? 100,
+    attack: c.attack,
+    health: c.health,
+    type: mapCardType(c.card_type?.name, !!c.is_champion),
+    keywords: detectKeywords(kwNames, text),
+    effectText: text,
+    rarityColor: c.rarity?.color_hex ?? '#d4af37',
+    factionColor: c.faction?.color_hex ?? '#d4af37',
+    effect: parseEffect(text),
+  }
+}
+
 function rowsToDeck(rows: DbRow[], suffix: string): TutCard[] {
   const out: TutCard[] = []
   for (const r of rows) {
-    const c = r.card
-    if (!c) continue
-    const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
-    const text = [c.effect_text, c.description].filter(Boolean).join(' ')
-    const base: Omit<TutCard, 'uid'> = {
-      id: c.id,
-      name: c.name,
-      image: c.image_url,
-      gold: c.gold_cost ?? 100,
-      attack: c.attack,
-      health: c.health,
-      type: mapCardType(c.card_type?.name, !!c.is_champion),
-      keywords: detectKeywords(kwNames, text),
-      effectText: text,
-      rarityColor: c.rarity?.color_hex ?? '#d4af37',
-      factionColor: c.faction?.color_hex ?? '#d4af37',
-      effect: parseEffect(text),
-    }
-    for (let i = 0; i < r.quantity; i++) out.push({ ...base, uid: `${c.id}-${suffix}-${i}` })
+    if (!r.card) continue
+    const base = mapDbCard(r.card)
+    for (let i = 0; i < r.quantity; i++) out.push({ ...base, uid: `${base.id}-${suffix}-${i}` })
   }
   return out
+}
+
+/** Demo kaladė taisyklių puslapiui: subalansuota iš aktyvių DB kortų. */
+export const DEMO_DECK_ID = '__demo__'
+
+function buildDemoDeck(cards: Omit<TutCard, 'uid'>[]): TutCard[] {
+  const shuffled = [...cards].sort(() => Math.random() - 0.5)
+  const units = shuffled.filter((c) => c.type === 'unit')
+  const others = shuffled.filter((c) => c.type !== 'unit' && c.type !== 'curse')
+  const picked: Omit<TutCard, 'uid'>[] = []
+  // ~60% padarų, kad kova būtų gyva
+  for (let i = 0; picked.length < 22 && units.length > 0; i++) picked.push(units[i % units.length])
+  for (let i = 0; picked.length < 35 && others.length > 0 && i < others.length; i++) picked.push(others[i])
+  while (picked.length < 30 && picked.length > 0) picked.push(picked[picked.length % Math.max(1, units.length)])
+  return picked.map((c, i) => ({ ...c, uid: `${c.id}-demo-${i}` }))
 }
 
 // ── Maža kortos „veido" reprezentacija ───────────────────────────────────────
@@ -233,11 +251,46 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 58 : 78
   const unitW = isTouch ? 56 : 72
+  // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    setIsMobile(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener?.('change', onChange)
+    return () => mq.removeEventListener?.('change', onChange)
+  }, [])
 
   // ── Užkrovimas ──
   useEffect(() => {
     let alive = true
     const supabase = createClient()
+    if (deckId === DEMO_DECK_ID) {
+      supabase
+        .from('cards')
+        .select(`
+          id, name, image_url, gold_cost, attack, health,
+          effect_text, description, is_champion,
+          card_type:card_types ( name ),
+          rarity:rarities ( color_hex ),
+          faction:factions ( color_hex ),
+          card_keywords ( keyword:keywords ( name ) )
+        `)
+        .eq('status', 'active')
+        .limit(120)
+        .then(({ data, error }) => {
+          if (!alive) return
+          if (error || !data || data.length === 0) {
+            setErrorMsg('Nepavyko užkrauti mokomosios kaladės kortų')
+            setLoading(false)
+            return
+          }
+          const mapped = (data as unknown as NonNullable<DbRow['card']>[]).map(mapDbCard)
+          setDeckCards(buildDemoDeck(mapped))
+          setLoading(false)
+        })
+      return () => { alive = false }
+    }
     supabase
       .from('deck_cards')
       .select(`
@@ -842,7 +895,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       <AnimatePresence>
         {select && select.kind !== 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[125] px-3 py-1.5 rounded-full text-[11px] font-semibold pointer-events-none"
+            className="fixed bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
             {select.kind === 'attacker' && '⚔ Pasirink taikinį (raudonas apvadas) arba spausk Esc'}
             {select.kind === 'spell' && '✨ Pasirink burto taikinį arba spausk Esc'}
@@ -851,7 +904,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         )}
         {select?.kind === 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[125] px-3 py-1.5 rounded-full text-[11px] font-semibold pointer-events-none"
+            className="fixed bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
             🗑 Pasirink kortą rankoje, kurią išmesi už +100 aukso
           </motion.div>
@@ -887,12 +940,16 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
             )}
             <motion.div
               initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-              className="absolute left-1/2 -translate-x-1/2 w-[min(420px,92vw)] rounded-2xl p-4"
+              className="absolute left-1/2 -translate-x-1/2 w-[min(420px,94vw)] rounded-2xl p-4"
               style={{
                 pointerEvents: 'auto',
-                top: anchorRect ? (anchorRect.top > window.innerHeight / 2 ? '18%' : undefined) : '50%',
-                bottom: anchorRect && anchorRect.top <= window.innerHeight / 2 ? '22%' : undefined,
-                transform: anchorRect ? 'translateX(-50%)' : 'translate(-50%, -50%)',
+                maxHeight: isMobile ? '55vh' : '70vh',
+                overflowY: 'auto',
+                top: isMobile ? undefined : anchorRect ? (anchorRect.top > window.innerHeight / 2 ? '18%' : undefined) : '50%',
+                bottom: isMobile
+                  ? 'calc(env(safe-area-inset-bottom, 0px) + 8px)'
+                  : anchorRect && anchorRect.top <= window.innerHeight / 2 ? '22%' : undefined,
+                transform: !isMobile && !anchorRect ? 'translate(-50%, -50%)' : 'translateX(-50%)',
                 background: 'linear-gradient(145deg, #1e1729, #120d1c)',
                 border: '1px solid rgba(240,180,41,0.45)',
                 boxShadow: '0 12px 40px rgba(0,0,0,0.8), 0 0 24px rgba(240,180,41,0.12)',
@@ -933,8 +990,10 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       <AnimatePresence>
         {activeTip && (
           <motion.div key={activeTip} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-36 left-1/2 -translate-x-1/2 z-[127] w-[min(380px,92vw)] rounded-2xl p-3.5"
+            className="fixed left-1/2 -translate-x-1/2 z-[127] w-[min(380px,94vw)] rounded-2xl p-3.5 bottom-2 sm:bottom-36"
             style={{
+              maxHeight: '50vh',
+              overflowY: 'auto',
               background: 'linear-gradient(145deg, #1e1729, #120d1c)',
               border: '1px solid rgba(139,92,246,0.5)',
               boxShadow: '0 10px 32px rgba(0,0,0,0.8), 0 0 20px rgba(139,92,246,0.15)',

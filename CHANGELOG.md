@@ -4,6 +4,9 @@
 
 ### Pridėta
 
+- **Taisyklių puslapis:** „Išmokyk mane žaisti" blokas su demo kalade, sugeneruota iš aktyvių DB kortų (`DEMO_DECK_TUTORIAL`)
+- **Mobile:** tutorial pop-up'ai mažuose ekranuose rodomi kaip bottom sheet su max-height ir scroll'u
+
 - **Mokomoji kova:** mygtukas „🎓 Išmokyk mane žaisti" prie kaladžių (Mano kaladės + bendruomenės kaladės puslapis)
 - **Žaidimo varikliukas** (`src/lib/tutorial/engine.ts`): pilnos taisyklės — ėjimo fazės, aukso progresija (100→1000), ŽMK (20 kortų, ×2/×0 permaišymas, „nepalankiai"), zonos su limitais (padarai 5, artefaktai 2, reakcijos 3, ranka 10), raktažodžiai (Sprintas, Pasišaipymas, Magiškasis skydas, Sėlinimas, Kovos šūksnis, Paskutinis noras), būsenos (Sušaldytas, Apsvaigintas, Degantis, Apnuodytas, Nutildytas), čempionai (aukojimas, fazės, evoliucija, gebėjimai), reakcijos, lauko kortos, prakeiksmai, monetos metimas, kortų tekstų atpažinimas (žala/gydymas/traukimas/auksas/būsenos)
 - **AI oponentas** (`ai.ts`): žaidžia pagal taisykles — iškvietimai, burtai su taikiniais, atakų prekybos, Pasišaipymo gerbimas, kortos išmetimas dėl aukso

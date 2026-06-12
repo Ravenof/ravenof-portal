@@ -7,6 +7,7 @@ import { RULES_SECTIONS, RULE_CATEGORIES, QUICK_LINKS, type RuleCategory } from 
 import { RuleSectionCard } from './RuleSectionCard'
 import { RulesQuickReference } from './RulesQuickReference'
 import { HeaderNav } from '@/components/layout/HeaderNav'
+import { TutorialButton, DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
@@ -386,6 +387,23 @@ export function RulesPageClient() {
       <main className="max-w-screen-xl mx-auto px-4 py-6">
         {/* Hero */}
         <RulesHero onQuickLink={handleQuickLink} />
+
+        {/* Mokomoji kova */}
+        <div className="mb-6 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3"
+          style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(139,92,246,0.03))',
+            border: '1px solid rgba(139,92,246,0.3)',
+          }}>
+          <div className="flex-1">
+            <p className="text-sm font-bold mb-0.5" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>
+              Geriausia mokytis žaidžiant!
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Mokomoji kova prieš AI: kovos laukas, auksas, ŽMK ir patarimai žingsnis po žingsnio.
+            </p>
+          </div>
+          <TutorialButton deckId={DEMO_DECK_TUTORIAL} deckName="Mokomoji kaladė" />
+        </div>
 
         {/* Search + category */}
         <div className="flex flex-col gap-3 mb-6">
