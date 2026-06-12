@@ -17,6 +17,8 @@ export type RuleBlockType =
   | 'rarityBlock'
   | 'factionGrid'
   | 'effectTypeGrid'
+  | 'zmkSimulator'
+  | 'coinFlipDemo'
 
 export interface RuleBlock {
   type: RuleBlockType
@@ -316,6 +318,7 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['Kovos ataka',                'Abu traukia savo ŽMK', '2 ŽMK kortos iš viso'],
         ],
       },
+      { type: 'zmkSimulator' },
     ],
   },
 
@@ -747,6 +750,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         label: 'Monetos metimas',
         text: 'Kai korta nurodo atlikti Monetos metimą, mesk žalos sekimo žetoną. Žalia pusė reiškia sėkmingą efektą, raudona - nesėkmę arba šalutinį poveikį. Konkretų rezultatą nurodo kortos tekstas. Monetos metimo efektų gali turėti bet kurios frakcijos kortos.',
       },
+      { type: 'coinFlipDemo' },
       {
         type: 'callout',
         calloutVariant: 'example',

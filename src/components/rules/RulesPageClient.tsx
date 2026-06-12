@@ -7,6 +7,7 @@ import { RULES_SECTIONS, RULE_CATEGORIES, QUICK_LINKS, type RuleCategory } from 
 import { RuleSectionCard } from './RuleSectionCard'
 import { RulesQuickReference } from './RulesQuickReference'
 import { HeaderNav } from '@/components/layout/HeaderNav'
+import { playUiClick, playSuccess } from '@/lib/ui-sound'
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 const HERO_STATS = [
@@ -34,7 +35,7 @@ function RulesHero({ onQuickLink }: { onQuickLink: (href: string) => void }) {
           </div>
         </div>
         <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--text-muted)', maxWidth: 480 }}>
-          Interaktyvi taisyklių knyga su paieška, kortų tipų aprašymais, Damage Modifier Deck, čempionų fazėmis ir greitos atmintinės.
+          Interaktyvi taisyklių knyga: paieška, kortų apžiūra iš arti, ŽMK ir Monetos metimo bandymai, skaitymo progresas ir greitos atmintinės.
         </p>
 
         {/* Quick stats */}
@@ -106,14 +107,29 @@ function RulesSearch({ query, onQuery }: { query: string; onQuery: (q: string) =
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
-function RulesSidebar({ activeId, onNav }: { activeId: string | null; onNav: (id: string) => void }) {
+function RulesSidebar({ activeId, readIds, onNav }: { activeId: string | null; readIds: Set<string>; onNav: (id: string) => void }) {
+  const total = RULES_SECTIONS.length
+  const read = RULES_SECTIONS.filter((s) => readIds.has(s.id)).length
   return (
     <nav aria-label="Taisyklių turinys" className="flex flex-col gap-0.5">
       <p className="text-xs font-bold mb-2 px-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
         TURINYS
       </p>
+      {/* Skaitymo progresas */}
+      <div className="px-2 mb-2">
+        <div className="flex items-center justify-between mb-1" style={{ fontSize: 11 }}>
+          <span style={{ color: 'var(--text-muted)' }}>{read === total ? '🏆 Perskaityta viskas!' : 'Perskaityta'}</span>
+          <span style={{ color: read === total ? 'var(--gold)' : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', fontWeight: 700 }}>
+            {read}/{total}
+          </span>
+        </div>
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }} role="progressbar" aria-valuenow={read} aria-valuemax={total} aria-label="Skaitymo progresas">
+          <div className="h-full rounded-full" style={{ width: `${(read / total) * 100}%`, background: 'linear-gradient(90deg,#f0b429,#ffd970)', transition: 'width 0.4s ease', boxShadow: '0 0 6px rgba(240,180,41,0.5)' }} />
+        </div>
+      </div>
       {RULES_SECTIONS.map((s) => {
         const active = activeId === s.id
+        const isRead = readIds.has(s.id)
         return (
           <button
             key={s.id}
@@ -131,7 +147,10 @@ function RulesSidebar({ activeId, onNav }: { activeId: string | null; onNav: (id
             <span className="w-5 shrink-0 text-center" style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', opacity: active ? 1 : 0.5, fontSize: '10px', fontFamily: 'var(--rvn-font-display)' }}>
               {s.number}
             </span>
-            <span className="leading-tight truncate">{s.title}</span>
+            <span className="leading-tight truncate flex-1">{s.title}</span>
+            {isRead && (
+              <span className="shrink-0" style={{ color: 'rgba(240,180,41,0.55)', fontSize: 9 }} aria-label="Perskaityta">✓</span>
+            )}
           </button>
         )
       })}
@@ -168,12 +187,85 @@ function CategoryChips({ active, onSelect }: { active: RuleCategory | 'viskas'; 
   )
 }
 
+// ── Scroll progress bar ───────────────────────────────────────────────────────
+function ScrollProgressBar() {
+  const [p, setP] = useState(0)
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement
+      const max = doc.scrollHeight - window.innerHeight
+      setP(max > 0 ? Math.min(1, window.scrollY / max) : 0)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none" style={{ height: 3 }} aria-hidden>
+      <div
+        style={{
+          width: `${p * 100}%`,
+          height: '100%',
+          background: 'linear-gradient(90deg, #f0b429, #ffd970)',
+          boxShadow: '0 0 8px rgba(240,180,41,0.6)',
+          borderRadius: '0 2px 2px 0',
+          transition: 'width 0.08s linear',
+        }}
+      />
+    </div>
+  )
+}
+
+// ── Back to top ───────────────────────────────────────────────────────────────
+function BackToTopButton() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 600)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  if (!show) return null
+  return (
+    <button
+      onClick={() => { playUiClick(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+      className="fixed bottom-24 lg:bottom-6 right-4 z-40 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
+      style={{
+        background: 'rgba(12,12,24,0.92)',
+        border: '1px solid rgba(240,180,41,0.4)',
+        color: 'var(--gold)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(240,180,41,0.15)',
+        backdropFilter: 'blur(8px)',
+      }}
+      aria-label="Grįžti į viršų"
+    >
+      ↑
+    </button>
+  )
+}
+
 // ── Main Client ───────────────────────────────────────────────────────────────
 export function RulesPageClient() {
   const [query, setQuery]       = useState('')
   const [category, setCategory] = useState<RuleCategory | 'viskas'>('viskas')
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [readIds, setReadIds]   = useState<Set<string>>(new Set())
+  const [showTrophy, setShowTrophy] = useState(false)
+  const trophyShownRef = useRef(false)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // Skaitymo progresas iš localStorage
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('rvn-rules-read-v1') ?? '[]') as string[]
+      setReadIds(new Set(saved.filter((id) => RULES_SECTIONS.some((s) => s.id === id))))
+      trophyShownRef.current = localStorage.getItem('rvn-rules-master') === '1'
+    } catch { /* ignore */ }
+  }, [])
 
   // Scroll to hash on mount
   useEffect(() => {
@@ -185,24 +277,6 @@ export function RulesPageClient() {
         setActiveId(hash)
       }
     }
-  }, [])
-
-  // Intersection observer for sidebar highlight
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting)
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id)
-        }
-      },
-      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
-    )
-    RULES_SECTIONS.forEach((s) => {
-      const el = document.getElementById(s.id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
   }, [])
 
   const filteredSections = useMemo(() => {
@@ -239,7 +313,48 @@ export function RulesPageClient() {
     })
   }, [query, category])
 
+  // Intersection observer: sidebar highlight + skaitymo žymėjimas.
+  // Priklauso nuo filteredSections, kad po filtravimo skyriai būtų stebimi iš naujo.
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting)
+        if (visible.length > 0) {
+          const id = visible[0].target.id
+          setActiveId(id)
+          setReadIds((prev) => {
+            if (prev.has(id)) return prev
+            const next = new Set(prev)
+            next.add(id)
+            try { localStorage.setItem('rvn-rules-read-v1', JSON.stringify([...next])) } catch { /* ignore */ }
+            return next
+          })
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+    )
+    RULES_SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [filteredSections])
+
+  // Visi skyriai perskaityti -> apdovanojimas (vieną kartą)
+  useEffect(() => {
+    if (trophyShownRef.current || RULES_SECTIONS.length === 0) return
+    if (readIds.size >= RULES_SECTIONS.length) {
+      trophyShownRef.current = true
+      try { localStorage.setItem('rvn-rules-master', '1') } catch { /* ignore */ }
+      playSuccess()
+      setShowTrophy(true)
+      const t = setTimeout(() => setShowTrophy(false), 6000)
+      return () => clearTimeout(t)
+    }
+  }, [readIds])
+
   const scrollTo = (id: string) => {
+    playUiClick()
     const el = document.getElementById(id)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -255,6 +370,7 @@ export function RulesPageClient() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+      <ScrollProgressBar />
       {/* Page header */}
       <header className="sticky top-0 z-20 border-b px-4 py-3" style={{ background: 'rgba(7,7,15,0.96)', backdropFilter: 'blur(12px)', borderColor: 'var(--bg-border)' }}>
         <div className="max-w-screen-xl mx-auto flex items-center gap-3 flex-wrap">
@@ -287,7 +403,7 @@ export function RulesPageClient() {
 
           {/* Sidebar - desktop sticky */}
           <aside className="hidden lg:block w-52 shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-            <RulesSidebar activeId={activeId} onNav={scrollTo} />
+            <RulesSidebar activeId={activeId} readIds={readIds} onNav={scrollTo} />
           </aside>
 
           {/* Main content */}
@@ -338,6 +454,28 @@ export function RulesPageClient() {
           </aside>
         </div>
       </main>
+
+      <BackToTopButton />
+
+      {/* Apdovanojimo pranešimas */}
+      {showTrophy && (
+        <div
+          className="fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl flex items-center gap-3"
+          style={{
+            background: 'rgba(12,12,24,0.97)',
+            border: '1px solid rgba(240,180,41,0.5)',
+            boxShadow: '0 0 30px rgba(240,180,41,0.25)',
+            backdropFilter: 'blur(8px)',
+          }}
+          role="status"
+        >
+          <span className="text-2xl">🏆</span>
+          <div>
+            <p className="text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>Taisyklių žinovas!</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Perskaitei visus taisyklių skyrius.</p>
+          </div>
+        </div>
+      )}
 
       {/* Mobile bottom padding for nav */}
       <div className="h-20 lg:hidden" />

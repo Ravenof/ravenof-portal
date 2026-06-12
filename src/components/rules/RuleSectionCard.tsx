@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
+import { playUiClick } from '@/lib/ui-sound'
 import type { RuleSection, RuleBlock } from '@/data/rules'
 import { DamageModifierDeckBlock } from './DamageModifierDeckBlock'
 import { CardAnatomyBlock } from './CardAnatomyBlock'
@@ -12,6 +13,8 @@ import { GoldProgressionBlock } from './GoldProgressionBlock'
 import { RarityBlock } from './RarityBlock'
 import { FactionGrid } from './FactionGrid'
 import { EffectTypeGrid } from './EffectTypeGrid'
+import { ZmkSimulator } from './ZmkSimulator'
+import { CoinFlipDemo } from './CoinFlipDemo'
 
 const CALLOUT_STYLES: Record<string, { border: string; bg: string; labelColor: string }> = {
   important: { border: 'rgba(240,180,41,0.4)',  bg: 'rgba(240,180,41,0.06)',  labelColor: 'var(--gold)'   },
@@ -113,6 +116,8 @@ function Block({ block }: { block: RuleBlock }) {
     case 'rarityBlock':        return <RarityBlock />
     case 'factionGrid':        return <FactionGrid />
     case 'effectTypeGrid':     return <EffectTypeGrid />
+    case 'zmkSimulator':       return <ZmkSimulator />
+    case 'coinFlipDemo':       return <CoinFlipDemo />
 
     default:
       return null
@@ -137,10 +142,14 @@ function highlight(text: string, query: string): React.ReactNode {
 
 export function RuleSectionCard({ section, searchQuery }: Props) {
   const id = section.id
+  const [copied, setCopied] = useState(false)
 
   const copyLink = () => {
+    playUiClick()
     const url = `${window.location.origin}/rules#${id}`
     navigator.clipboard.writeText(url).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -174,12 +183,12 @@ export function RuleSectionCard({ section, searchQuery }: Props) {
         {/* Anchor link */}
         <button
           onClick={copyLink}
-          className="shrink-0 w-6 h-6 rounded flex items-center justify-center opacity-40 hover:opacity-100 transition-opacity"
-          style={{ color: 'var(--text-muted)' }}
-          title="Kopijuoti nuorodą"
+          className="shrink-0 w-6 h-6 rounded flex items-center justify-center transition-opacity"
+          style={{ color: copied ? 'var(--gold)' : 'var(--text-muted)', opacity: copied ? 1 : undefined }}
+          title={copied ? 'Nukopijuota!' : 'Kopijuoti nuorodą'}
           aria-label="Kopijuoti nuorodą į skyrių"
         >
-          🔗
+          <span className={copied ? '' : 'opacity-40 hover:opacity-100 transition-opacity'}>{copied ? '✓' : '🔗'}</span>
         </button>
       </div>
 
