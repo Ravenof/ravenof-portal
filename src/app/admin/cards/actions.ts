@@ -89,3 +89,69 @@ export async function deleteCard(cardId: string): Promise<{ error?: string }> {
   revalidateTag('cards') // invalidates deck-builder card cache
   return {}
 }
+
+// ── Bulk actions ──────────────────────────────────────────────────────────────
+
+export type BulkChanges = {
+  status?: string
+  faction_id?: number
+  card_type_id?: number
+  rarity_id?: number
+}
+
+async function requireAdmin() {
+  const supabase = await createClient()
+  const user = await getCachedUser()
+  if (!user) return { supabase, error: 'Neprisijungęs' }
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') return { supabase, error: 'Neturi admin teisių' }
+  return { supabase, error: null }
+}
+
+function revalidateCards() {
+  revalidatePath('/admin/cards')
+  revalidatePath('/cards')
+  revalidateTag('cards')
+}
+
+export async function bulkUpdateCards(
+  cardIds: string[],
+  changes: BulkChanges,
+): Promise<{ error?: string; updated?: number }> {
+  if (cardIds.length === 0) return { error: 'Nepažymėta nė viena korta' }
+
+  const payload: Record<string, unknown> = {}
+  if (changes.status) payload.status = changes.status
+  if (changes.faction_id) payload.faction_id = changes.faction_id
+  if (changes.card_type_id) payload.card_type_id = changes.card_type_id
+  if (changes.rarity_id) payload.rarity_id = changes.rarity_id
+  if (Object.keys(payload).length === 0) return { error: 'Nepasirinktas nė vienas keičiamas laukas' }
+
+  const { supabase, error: authError } = await requireAdmin()
+  if (authError) return { error: authError }
+
+  const { error } = await supabase.from('cards').update(payload).in('id', cardIds)
+  if (error) return { error: error.message }
+
+  revalidateCards()
+  return { updated: cardIds.length }
+}
+
+export async function bulkDeleteCards(
+  cardIds: string[],
+): Promise<{ error?: string; deleted?: number }> {
+  if (cardIds.length === 0) return { error: 'Nepažymėta nė viena korta' }
+
+  const { supabase, error: authError } = await requireAdmin()
+  if (authError) return { error: authError }
+
+  // Pirma išvalome susijusius įrašus (kaip ir vienos kortos trynime)
+  await supabase.from('deck_cards').delete().in('card_id', cardIds)
+  await supabase.from('user_collections').delete().in('card_id', cardIds)
+
+  const { error } = await supabase.from('cards').delete().in('id', cardIds)
+  if (error) return { error: error.message }
+
+  revalidateCards()
+  return { deleted: cardIds.length }
+}

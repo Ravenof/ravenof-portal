@@ -1,0 +1,17 @@
+[
+  {"file":"CURSE-00.webp","name":"Šnabždėjimas po oda","effect_text":"Aukos CREATURE, turintis daugiausiai ATT, patiria -1 ATT; jei jų keli, po -1 ATT patiria visi."},
+  {"file":"CURSE-01.webp","name":"Didysis suvaržymas","effect_text":"Prakeikėjas pasirenka aukos CREATURE, kuriam padaro STUN."},
+  {"file":"CURSE-02.webp","name":"Siela ant kabliuko","effect_text":"Prakeikėjas iš kaladės, rankos arba kapinyno iškviečia „Impas“."},
+  {"file":"CURSE-03.webp","name":"Klykianti siela","effect_text":"Aukos PLAYER patiria -1 HP. Jei auka turi 3 arba daugiau kortų rankoje, prakeikėjas iš kaladės, rankos arba kapinyno iškviečia 1 „Impas“."},
+  {"file":"CURSE-04.webp","name":"Kraujo skola","effect_text":"Aukos PLAYER patiria -1 HP."},
+  {"file":"CURSE-05.webp","name":"Kraujo duoklė","effect_text":"Jeigu auka šį ėjimą išleidžia visą savo auksą, aukos PLAYER patiria -2 HP."},
+  {"file":"CURSE-06.webp","name":"Ritualinis paaukojimas","effect_text":"Auka renkasi savo CREATURE, kuris patiria -2 HP. Jei CREATURE nėra, aukos PLAYER patiria -3 HP."},
+  {"file":"CURSE-07.webp","name":"Besiklausanti žaizda","effect_text":"Aukos CREATURE su mažiausiai HP patiria -1 HP. Jei jų keli, taikinį renkasi auka."},
+  {"file":"CURSE-08.webp","name":"Belzatoro akis","effect_text":"Auka parodo savo rankos kortas."},
+  {"file":"CURSE-09.webp","name":"Pragaro sutartis","effect_text":"Kita aukos korta kainuoja +100 aukso."},
+  {"file":"CURSE-10.webp","name":"Pikti liežuviai","effect_text":"Aukos CHAMPION patiria -1 HP. Jei jo nėra, tada -1 HP patiria aukos PLAYER."},
+  {"file":"CURSE-11.webp","name":"Juodieji pirštai","effect_text":"Auka renkasi parodyti ranką, arba aukos PLAYER patiria po -1 HP už kiekvieną rankoje turimą kortą."},
+  {"file":"CURSE-12.webp","name":"Gazzaros žymė","effect_text":"Panaikina visų aukos CREATURE ATT; jei tokių nėra, prakeikėjas pasirenka 1 CREATURE, kuris patiria -1 HP."},
+  {"file":"CURSE-13.webp","name":"Apsėstas įsakymas","effect_text":"Pirmos šio ėjimo atakos taikinį renkasi prakeikėjas."},
+  {"file":"CURSE-14.webp","name":"Pelenų liežuvis","effect_text":"Kitas aukos SPELL korta kainuoja +100 aukso."}
+]

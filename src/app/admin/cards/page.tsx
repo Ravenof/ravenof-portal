@@ -1,16 +1,9 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { DeleteCardButton } from '@/components/admin/DeleteCardButton'
+import { AdminCardsTable } from '@/components/admin/AdminCardsTable'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 type SearchParams = Promise<{ search?: string; faction?: string; type?: string; rarity?: string; status?: string }>
-
-const STATUS_COLORS: Record<string, string> = {
-  active:  '#22c55e',
-  hidden:  '#f59e0b',
-  draft:   '#6b7280',
-  banned:  '#ef4444',
-}
 
 export default async function AdminCardsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
@@ -155,78 +148,12 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
           {rows.length} kortų
         </div>
 
-        {/* Table */}
-        <div className="rounded-xl overflow-x-auto" style={{ border: '1px solid var(--bg-border)' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                {['Nr.', 'Pavadinimas', 'Frakcija', 'Tipas', 'Retumas', 'Auksas', 'ATK', 'HP', 'Statusas', '', ''].map(h => (
-                  <th key={h} className="text-left px-3 py-2 text-xs font-semibold"
-                    style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((card, i) => (
-                <tr key={card.id}
-                  style={{ background: i % 2 === 0 ? 'var(--bg-base)' : 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                  <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                    {card.card_number ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-primary)', maxWidth: '180px' }}>
-                    <span className="truncate block">
-                      {card.is_champion && <span className="text-yellow-400 mr-1">★</span>}
-                      {card.name}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {card.faction
-                      ? <span className="px-1.5 py-0.5 rounded" style={{ background: card.faction.color_hex + '20', color: card.faction.color_hex }}>{card.faction.name}</span>
-                      : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                  </td>
-                  <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                    {card.card_type?.name ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {card.rarity
-                      ? <span style={{ color: card.rarity.color_hex }}>{card.rarity.name}</span>
-                      : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-center" style={{ color: 'var(--gold)' }}>
-                    {card.gold_cost ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-center" style={{ color: '#ef4444' }}>
-                    {card.attack ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-center" style={{ color: '#22c55e' }}>
-                    {card.health ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    <span className="px-2 py-0.5 rounded font-medium"
-                      style={{ background: (STATUS_COLORS[card.status] ?? '#6b7280') + '20', color: STATUS_COLORS[card.status] ?? '#6b7280' }}>
-                      {card.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link href={'/admin/cards/' + card.id}
-                      className="text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
-                      style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', whiteSpace: 'nowrap' }}>
-                      Redaguoti
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2">
-                    <DeleteCardButton cardId={card.id} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length === 0 && (
-            <div className="py-16 text-center" style={{ color: 'var(--text-muted)' }}>
-              Kortų nerasta
-            </div>
-          )}
-        </div>
+        <AdminCardsTable
+          rows={rows}
+          factions={(factions ?? []) as { id: number; name: string }[]}
+          cardTypes={(cardTypes ?? []) as { id: number; name: string }[]}
+          rarities={(rarities ?? []) as { id: number; name: string }[]}
+        />
       </div>
     </div>
   )
