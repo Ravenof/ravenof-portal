@@ -794,7 +794,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                   initial={{ scale: 0.3, opacity: 0, rotateY: 90 }}
                   animate={{ scale: 1, opacity: 1, rotateY: 0 }}
                   exit={{ scale: 0.6, opacity: 0 }}
-                  className="absolute left-1/2 -translate-x-1/2 -top-7 z-10 px-3 py-1.5 rounded-lg font-black text-lg"
+                  className="absolute left-0 right-0 mx-auto w-fit -top-7 z-10 px-3 py-1.5 rounded-lg font-black text-lg"
                   style={{
                     background: 'linear-gradient(145deg, #2a2138, #14101e)',
                     border: '2px solid var(--gold)',
@@ -895,7 +895,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       <AnimatePresence>
         {select && select.kind !== 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
+            className="fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
             {select.kind === 'attacker' && '⚔ Pasirink taikinį (raudonas apvadas) arba spausk Esc'}
             {select.kind === 'spell' && '✨ Pasirink burto taikinį arba spausk Esc'}
@@ -904,7 +904,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         )}
         {select?.kind === 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
+            className="fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
             🗑 Pasirink kortą rankoje, kurią išmesi už +100 aukso
           </motion.div>
@@ -915,7 +915,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed top-14 left-1/2 -translate-x-1/2 z-[130] px-4 py-2 rounded-xl text-xs font-semibold max-w-[90vw] text-center"
+            className="fixed top-14 left-0 right-0 mx-auto w-fit z-[130] px-4 py-2 rounded-xl text-xs font-semibold max-w-[90vw] text-center"
             style={{ background: 'rgba(40,10,10,0.95)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>
             {toast}
           </motion.div>
@@ -940,16 +940,15 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
             )}
             <motion.div
               initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-              className="absolute left-1/2 -translate-x-1/2 w-[min(420px,94vw)] rounded-2xl p-4"
+              className="absolute left-0 right-0 mx-auto w-[min(420px,94vw)] rounded-2xl p-4"
               style={{
                 pointerEvents: 'auto',
                 maxHeight: isMobile ? '55vh' : '70vh',
                 overflowY: 'auto',
-                top: isMobile ? undefined : anchorRect ? (anchorRect.top > window.innerHeight / 2 ? '18%' : undefined) : '50%',
+                top: isMobile ? undefined : anchorRect ? (anchorRect.top > window.innerHeight / 2 ? '18%' : undefined) : '30%',
                 bottom: isMobile
                   ? 'calc(env(safe-area-inset-bottom, 0px) + 8px)'
                   : anchorRect && anchorRect.top <= window.innerHeight / 2 ? '22%' : undefined,
-                transform: !isMobile && !anchorRect ? 'translate(-50%, -50%)' : 'translateX(-50%)',
                 background: 'linear-gradient(145deg, #1e1729, #120d1c)',
                 border: '1px solid rgba(240,180,41,0.45)',
                 boxShadow: '0 12px 40px rgba(0,0,0,0.8), 0 0 24px rgba(240,180,41,0.12)',
@@ -990,7 +989,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       <AnimatePresence>
         {activeTip && (
           <motion.div key={activeTip} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-            className="fixed left-1/2 -translate-x-1/2 z-[127] w-[min(380px,94vw)] rounded-2xl p-3.5 bottom-2 sm:bottom-36"
+            className="fixed left-0 right-0 mx-auto z-[127] w-[min(380px,94vw)] rounded-2xl p-3.5 bottom-2 sm:bottom-36"
             style={{
               maxHeight: '50vh',
               overflowY: 'auto',
