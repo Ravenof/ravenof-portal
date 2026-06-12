@@ -9,6 +9,7 @@ import { getFactionColor } from '@/lib/utils'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
 import { PlaytestButton } from '@/components/decks/PlaytestButton'
+import { TutorialButton } from '@/components/tutorial/TutorialButton'
 
 type Props = {
   decks: DeckWithRelations[]
@@ -227,6 +228,10 @@ export function MyDecksList({ decks, userId, deckOwnership = {} }: Props) {
               {/* Playtest */}
               <div className="flex-1">
                 <PlaytestButton deckId={deck.id} deckName={deck.name} variant="compact" />
+              </div>
+              {/* Tutorial */}
+              <div className="flex-1">
+                <TutorialButton deckId={deck.id} deckName={deck.name} variant="compact" />
               </div>
               {/* Edit */}
               <Link href={`/deck-builder/${deck.id}`} className="flex-1">

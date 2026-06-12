@@ -1,5 +1,18 @@
 # Changelog
 
+## [Tutorial: Išmokyk mane žaisti] - 2026-06-12
+
+### Pridėta
+
+- **Mokomoji kova:** mygtukas „🎓 Išmokyk mane žaisti" prie kaladžių (Mano kaladės + bendruomenės kaladės puslapis)
+- **Žaidimo varikliukas** (`src/lib/tutorial/engine.ts`): pilnos taisyklės — ėjimo fazės, aukso progresija (100→1000), ŽMK (20 kortų, ×2/×0 permaišymas, „nepalankiai"), zonos su limitais (padarai 5, artefaktai 2, reakcijos 3, ranka 10), raktažodžiai (Sprintas, Pasišaipymas, Magiškasis skydas, Sėlinimas, Kovos šūksnis, Paskutinis noras), būsenos (Sušaldytas, Apsvaigintas, Degantis, Apnuodytas, Nutildytas), čempionai (aukojimas, fazės, evoliucija, gebėjimai), reakcijos, lauko kortos, prakeiksmai, monetos metimas, kortų tekstų atpažinimas (žala/gydymas/traukimas/auksas/būsenos)
+- **AI oponentas** (`ai.ts`): žaidžia pagal taisykles — iškvietimai, burtai su taikiniais, atakų prekybos, Pasišaipymo gerbimas, kortos išmetimas dėl aukso
+- **Tutorial scenarijus** (`script.ts`): 12 vedamų žingsnių (pirmi 2 ėjimai) + 21 vienkartinis mechanikos patarimas, pasirodantis pirmąkart sutikus mechaniką
+- **Dark fantasy ambient** (`ambient.ts`): sintezuota Web Audio (dronas + minoriniai pad'ai + varpai + vėjas), paiso globalaus garso jungiklio
+- **UI** (`TutorialGame.tsx`): pilnas kovos laukas su zonomis, HP/auksas/žetonai, ŽMK traukimo animacija, įvykių žurnalas, kortų apžiūra (dešinys pelės klavišas), pergalės/pralaimėjimo ekranas su „Žaisti dar kartą"
+
+---
+
 ## [Pre-production QA] - 2026-05-10
 
 ### Pataisyta

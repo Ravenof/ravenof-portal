@@ -5,6 +5,7 @@ import { VoteWidget } from '@/components/community/VoteWidget'
 import { ReadOnlyDeckList } from '@/components/community/ReadOnlyDeckList'
 import { CopyToDeckButton } from '@/components/community/CopyToDeckButton'
 import { PlaytestButton } from '@/components/decks/PlaytestButton'
+import { TutorialButton } from '@/components/tutorial/TutorialButton'
 import { GoldCurveChart } from '@/components/deck-builder/GoldCurveChart'
 import { getFactionColor } from '@/lib/utils'
 import type { CardWithRelations, DeckCardWithCard, VoteValue, DeckComment } from '@/types'
@@ -180,6 +181,7 @@ export default async function CommunityDeckDetailPage({ params }: Props) {
               {user?.id !== deck.user_id && (
                 <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--bg-border)' }}>
                   <PlaytestButton deckId={deck.id} deckName={deck.name} />
+                  <TutorialButton deckId={deck.id} deckName={deck.name} />
                   <CopyToDeckButton
                     deckId={deck.id}
                     deckName={deck.name}
