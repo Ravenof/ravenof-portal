@@ -50,9 +50,9 @@ type DbRow = {
 }
 
 const ZMK_IMG: Record<string, string> = {
-  '+0': '/rules/zmk/card-plus0.png', '+1': '/rules/zmk/card-plus1.png', '-1': '/rules/zmk/card-minus1.png',
-  '+2': '/rules/zmk/card-plus2.png', '-2': '/rules/zmk/card-minus2.png',
-  'x2': '/rules/zmk/card-x2.png', 'x0': '/rules/zmk/card-x0.png',
+  '+0': '/rules/zmk/card-plus0-sm.webp', '+1': '/rules/zmk/card-plus1-sm.webp', '-1': '/rules/zmk/card-minus1-sm.webp',
+  '+2': '/rules/zmk/card-plus2-sm.webp', '-2': '/rules/zmk/card-minus2-sm.webp',
+  'x2': '/rules/zmk/card-x2-sm.webp', 'x0': '/rules/zmk/card-x0-sm.webp',
 }
 /** ŽMK kortos nuotrauka: admin zmk_cards.image_url > taisyklių numatytoji. */
 function zmkImg(g: GameState | null, v: string): string | null {
