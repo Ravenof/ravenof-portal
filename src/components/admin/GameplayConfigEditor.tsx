@@ -184,6 +184,27 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
                         </select>
                       </>
                     )}
+                    {m.effect === 'removeZmkCard' && (
+                      <>
+                        <label className="flex items-center gap-1">
+                          ŽMK reikšmė:
+                          <select value={m.zmkValue ?? '-2'}
+                            onChange={(e) => setMapping(i, { zmkValue: e.target.value as EffectMapping['zmkValue'] })}
+                            style={{ ...inputStyle, width: 70 }} title="Kuri ŽMK korta šalinama">
+                            {['+0', '+1', '-1', '+2', '-2', 'x2', 'x0'].map((z) => <option key={z} value={z}>{z}</option>)}
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1">
+                          Kieno:
+                          <select value={m.zmkAppliesTo ?? 'caster'}
+                            onChange={(e) => setMapping(i, { zmkAppliesTo: e.target.value as 'caster' | 'opponent' })}
+                            style={{ ...inputStyle, width: 120 }}>
+                            <option value="caster">Sava kaladė</option>
+                            <option value="opponent">Priešo kaladė</option>
+                          </select>
+                        </label>
+                      </>
+                    )}
                     <button type="button" onClick={() => update({ ...cfg, effectMappings: mappings.filter((_, j) => j !== i) })}
                       className="ml-auto text-[11px]" style={{ color: '#ef4444' }}>✕ Šalinti</button>
                   </div>

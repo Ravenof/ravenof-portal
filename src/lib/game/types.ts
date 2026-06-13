@@ -56,7 +56,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -86,6 +86,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true },
   { value: 'triggerCurse',        label: 'Aktyvuoti prakeiksmą',       needsValue: true },
   { value: 'triggerZmk',          label: 'Traukti ŽMK',                needsValue: false },
+  { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
@@ -164,6 +165,8 @@ export type EffectMapping = {
   allowRandomTarget?: boolean   // jei reikia taikinio, bet leidžiam auto/random
   triggersCurse?: CurseTriggerConfig
   triggersZmk?: boolean         // ar žalai traukiamas ŽMK (default true damage tipo efektams)
+  zmkValue?: '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'  // removeZmkCard: kuri ŽMK korta šalinama
+  zmkAppliesTo?: 'caster' | 'opponent'                      // removeZmkCard: kieno kaladė (default caster)
   animation?: string
   sound?: BattleSoundType
   projectile?: ProjectileType

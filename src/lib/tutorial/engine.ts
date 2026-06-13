@@ -617,6 +617,24 @@ function drawZmkVisualPrim(g: GameState, s: Side) {
   zmkAfter(g, s, v)
 }
 
+function removeZmkCardPrim(g: GameState, s: Side, value: string, count: number) {
+  const p = P(g, s)
+  const target = value as ZmkValue
+  let removed = 0
+  for (let i = p.zmk.length - 1; i >= 0 && removed < count; i--) {
+    if (p.zmk[i] === target) { p.zmk.splice(i, 1); removed++ }
+  }
+  for (let i = p.zmkGrave.length - 1; i >= 0 && removed < count; i--) {
+    if (p.zmkGrave[i] === target) { p.zmkGrave.splice(i, 1); removed++ }
+  }
+  log(g, {
+    t: 'zmkReshuffle', side: s,
+    msg: removed > 0
+      ? `${sideName(s)} ŽMK kaladėje pašalinta ${removed}× „${target}" korta (iki žaidimo pabaigos).`
+      : `ŽMK kaladėje nebėra „${target}" kortų – nieko nepašalinta.`,
+  })
+}
+
 export const gameApi: GameApi = {
   dealToUnit, dealToPlayer, dealToArtifact,
   healUnit: healUnitPrim,
@@ -633,6 +651,7 @@ export const gameApi: GameApi = {
   summonFromZone: summonFromZonePrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   drawZmkVisual: drawZmkVisualPrim,
+  removeZmkCard: removeZmkCardPrim,
   log,
 }
 

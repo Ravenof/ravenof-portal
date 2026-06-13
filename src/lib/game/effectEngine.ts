@@ -25,6 +25,7 @@ export type GameApi = {
   summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard'): void
   activateCurses(g: GameState, target: Side, count: number, srcName: string, depth: number): void
   drawZmkVisual(g: GameState, s: Side): void
+  removeZmkCard(g: GameState, s: Side, value: string, count: number): void
   log(g: GameState, e: GameEvent): void
 }
 
@@ -82,7 +83,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       targets = picked ? [picked] : []
     }
   }
-  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -165,6 +166,11 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       break
     }
     case 'triggerZmk': api.drawZmkVisual(g, caster); break
+    case 'removeZmkCard': {
+      const who: Side = m.zmkAppliesTo === 'opponent' ? foe : caster
+      api.removeZmkCard(g, who, m.zmkValue ?? '-2', v)
+      break
+    }
     default:
       api.log(g, { t: 'blocked', side: caster, msg: `⚠ Nepalaikomas efektas „${m.effect}" („${ctx.sourceName}") – praleidžiama.` })
       applied = false
