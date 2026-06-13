@@ -35,6 +35,7 @@ type Props = { deckId: string; deckName: string; onClose: () => void }
 
 type DbRow = {
   quantity: number
+  is_side_deck?: boolean | null
   card: {
     id: string; name: string; image_url: string | null
     gold_cost: number | null; attack: number | null; health: number | null
@@ -344,6 +345,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       .from('deck_cards')
       .select(`
         quantity,
+        is_side_deck,
         card:cards (
           id, name, image_url, gold_cost, attack, health,
           effect_text, description, is_champion, gameplay,
@@ -362,7 +364,11 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           return
         }
         const rows = data as unknown as DbRow[]
-        setDeckCards(rowsToDeck(rows, 'p'))
+        const mainRows = rows.filter((r) => !r.is_side_deck)
+        const sideRows = rows.filter((r) => r.is_side_deck)
+        setDeckCards(rowsToDeck(mainRows, 'p'))
+        // Prakeiksmų side deck – tik tos kortos, kurias žaidėjas pasirinko (Demonai)
+        setCurseCards(rowsToDeck(sideRows, 'cu'))
         setLoading(false)
       })
     return () => { alive = false }
@@ -388,7 +394,9 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       if (!zmkRes.error && zmkRes.data && zmkRes.data.length > 0) {
         setZmkDefs(zmkRes.data as unknown as ZmkCardDef[])
       }
-      if (!cardsRes.error && cardsRes.data) {
+      // Tik DEMO kaladei prakeiksmai imami iš visų curse kortų; tikros kaladės
+      // naudoja žaidėjo išsaugotą side deck'ą (užkraunamas viršuje su deck_cards).
+      if (deckId === DEMO_DECK_ID && !cardsRes.error && cardsRes.data) {
         const all = (cardsRes.data as unknown as NonNullable<DbRow['card']>[]).map(mapDbCard)
         const curses = all.filter((c) => c.type === 'curse').map((c, i) => ({ ...c, uid: c.id + '-cu' + i }))
         setCurseCards(curses)
@@ -396,7 +404,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       setExtrasLoaded(true)
     }).catch(() => { if (alive) setExtrasLoaded(true) })
     return () => { alive = false }
-  }, [])
+  }, [deckId])
 
   // ── Žaidimo (per)kūrimas ──
   const initGame = useCallback((cards: TutCard[]) => {
