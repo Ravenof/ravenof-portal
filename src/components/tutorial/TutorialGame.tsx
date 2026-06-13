@@ -994,34 +994,6 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
             <div className="flex-1 max-w-md text-center px-2">
               <p className="text-[10px] sm:text-[11px] leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
             </div>
-            <AnimatePresence>
-              {zmkFlash && (
-                <motion.div
-                  key={zmkFlash.n + zmkFlash.v}
-                  initial={{ scale: 0.3, opacity: 0, rotateY: 90 }}
-                  animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-                  exit={{ scale: 0.6, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                  className="absolute left-0 right-0 mx-auto w-fit -top-24 z-20 flex flex-col items-center gap-1"
-                  style={{ transformStyle: 'preserve-3d' }}>
-                  {zmkImg(game, zmkFlash.v) ? (
-                    <div className="rounded-lg overflow-hidden" style={{ width: 60, aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 22px rgba(240,180,41,0.55)' }}>
-                      <img src={zmkImg(game, zmkFlash.v)!} alt={`ŽMK ${zmkFlash.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                    </div>
-                  ) : null}
-                  <span className="px-2.5 py-1 rounded-lg font-black text-base"
-                    style={{
-                      background: 'linear-gradient(145deg, #2a2138, #14101e)',
-                      border: '2px solid var(--gold)',
-                      color: zmkFlash.v.startsWith('+') && zmkFlash.v !== '+0' ? '#4ade80' : zmkFlash.v.startsWith('-') ? '#f87171' : 'var(--gold)',
-                      boxShadow: '0 0 14px rgba(240,180,41,0.35)',
-                      fontFamily: 'var(--rvn-font-display)',
-                    }}>
-                    ŽMK {zmkFlash.v.replace('x', '×')}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
           {/* ── Tavo pusė ── */}
@@ -1382,6 +1354,34 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           ))}
         </AnimatePresence>
       </div>
+
+      {/* ── ŽMK auto-traukimo flash (fiksuotas, centruotas – matomas ir mobile) ── */}
+      <AnimatePresence>
+        {zmkFlash && (
+          <motion.div key={zmkFlash.n + zmkFlash.v} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[130] flex items-center justify-center pointer-events-none">
+            <motion.div initial={{ scale: 0.4, opacity: 0.3, rotateY: 90 }} animate={{ scale: 1, opacity: 1, rotateY: 0 }} exit={{ scale: 0.7, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+              className="flex flex-col items-center gap-2" style={{ transformStyle: 'preserve-3d' }}>
+              {zmkImg(game, zmkFlash.v) ? (
+                <div className="rounded-xl overflow-hidden" style={{ width: 'min(120px, 30vw)', aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 30px rgba(240,180,41,0.6)' }}>
+                  <img src={zmkImg(game, zmkFlash.v)!} alt={`ŽMK ${zmkFlash.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                </div>
+              ) : null}
+              <span className="px-3 py-1 rounded-lg font-black text-lg"
+                style={{
+                  background: 'linear-gradient(145deg, #2a2138, #14101e)',
+                  border: '2px solid var(--gold)',
+                  color: zmkFlash.v.startsWith('+') && zmkFlash.v !== '+0' ? '#4ade80' : zmkFlash.v.startsWith('-') ? '#f87171' : 'var(--gold)',
+                  boxShadow: '0 0 16px rgba(240,180,41,0.4)',
+                  fontFamily: 'var(--rvn-font-display)',
+                }}>
+                ŽMK {zmkFlash.v.replace('x', '×')}
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── ŽMK 'draw' režimo modalas: žaidėjas pats atverčia kortą ── */}
       <AnimatePresence>
