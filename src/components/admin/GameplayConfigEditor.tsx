@@ -93,6 +93,16 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
         </label>
       </div>
 
+      <div className="flex items-center gap-2">
+        <input type="checkbox" id="auraEnemyDmgHeal"
+          checked={cfg.passiveAura?.enemyUnitDamageHealsOwner ?? false}
+          onChange={(e) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, enemyUnitDamageHealsOwner: e.target.checked || undefined } })}
+          className="w-4 h-4 accent-yellow-400" />
+        <label htmlFor="auraEnemyDmgHeal" className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          🩸 Pasyvas: visa žala priešo padarams pridedama prie tavo HP
+        </label>
+      </div>
+
       {rawMode ? (
         <div className="space-y-2">
           <textarea value={rawText} onChange={(e) => setRawText(e.target.value)} rows={12}

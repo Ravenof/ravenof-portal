@@ -397,7 +397,24 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   target.hp -= dmg
   log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, msg: `„${target.card.name}" gauna ${dmg} žalos (${Math.max(0, target.hp)}/${target.maxHp}).` })
+  applyEnemyDamageLeech(g, owner, dmg)
   if (target.hp <= 0) killUnit(g, owner, target)
+}
+
+// Pasyvi aura: jei priešininkas turi žaidime kortą su passiveAura.enemyUnitDamageHealsOwner,
+// visa žala jo PRIEŠO padarams pridedama prie to žaidėjo HP.
+function applyEnemyDamageLeech(g: GameState, damagedOwner: Side, dmg: number) {
+  if (dmg <= 0) return
+  const beneficiary: Side = damagedOwner === 'you' ? 'ai' : 'you'
+  const p = P(g, beneficiary)
+  const unitAura = p.units.some((u) => u && !u.statuses.silenced && u.card.gameplay?.passiveAura?.enemyUnitDamageHealsOwner)
+  const artAura = p.artifacts.some((a) => a && a.card.gameplay?.passiveAura?.enemyUnitDamageHealsOwner)
+  if (!unitAura && !artAura) return
+  const before = p.hp
+  p.hp = Math.min(p.maxHp, p.hp + dmg)
+  if (p.hp > before) {
+    log(g, { t: 'heal', side: beneficiary, value: p.hp - before, msg: `🩸 Pasyvas: priešo padaro patirta žala (${dmg}) atitenka ${sideName(beneficiary)} – +${p.hp - before} HP.`, sound: 'heal' })
+  }
 }
 
 function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: number, actor: Side) {

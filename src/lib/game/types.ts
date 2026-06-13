@@ -190,6 +190,11 @@ export type FieldEffectConfig = {
   note?: string
 }
 
+// ── Pasyvi aura (veikia kol korta žaidime, be trigerio) ──────────────────────
+export type PassiveAuraConfig = {
+  enemyUnitDamageHealsOwner?: boolean  // visa žala priešo padarams pridedama prie savininko HP
+}
+
 // ── Pilna kortos gameplay konfigūracija (cards.gameplay JSONB) ────────────────
 export type GameplayConfig = {
   virtualEnabled?: boolean        // default true
@@ -198,6 +203,7 @@ export type GameplayConfig = {
   fieldEffectConfig?: FieldEffectConfig      // jei type = Laukas
   championSkillConfig?: { mappings: EffectMapping[] }  // jei Čempionas
   artifactEffectConfig?: { mappings: EffectMapping[] } // jei Artefaktas
+  passiveAura?: PassiveAuraConfig
   canTriggerCurse?: boolean
   canTriggerZmk?: boolean
   animationType?: string
