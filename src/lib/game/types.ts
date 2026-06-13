@@ -154,6 +154,61 @@ export type CurseTriggerConfig = {
   allowRandomTarget?: boolean   // random tik jei admin aiškiai leido
 }
 
+// ── Generiniai primityvai: metrikos, sąlygos, dinaminės reikšmės, selektoriai ─
+export type MetricSource =
+  | 'ownUnits' | 'enemyUnits' | 'allUnits'
+  | 'ownWoundedUnits' | 'enemyWoundedUnits'
+  | 'ownArtifacts' | 'enemyArtifacts'
+  | 'ownHandCards' | 'enemyHandCards'
+  | 'ownGraveyard' | 'enemyGraveyard'
+  | 'ownDeck' | 'enemyDeck'
+  | 'ownHp' | 'enemyHp' | 'ownGold' | 'enemyGold' | 'turnNumber'
+
+export const METRIC_SOURCES: { value: MetricSource; label: string }[] = [
+  { value: 'ownUnits',          label: 'Tavo padarų sk.' },
+  { value: 'enemyUnits',        label: 'Priešo padarų sk.' },
+  { value: 'allUnits',          label: 'Visų padarų sk.' },
+  { value: 'ownWoundedUnits',   label: 'Tavo sužeistų padarų sk.' },
+  { value: 'enemyWoundedUnits', label: 'Priešo sužeistų padarų sk.' },
+  { value: 'ownArtifacts',      label: 'Tavo artefaktų sk.' },
+  { value: 'enemyArtifacts',    label: 'Priešo artefaktų sk.' },
+  { value: 'ownHandCards',      label: 'Tavo rankos kortų sk.' },
+  { value: 'enemyHandCards',    label: 'Priešo rankos kortų sk.' },
+  { value: 'ownGraveyard',      label: 'Tavo kapinyno sk.' },
+  { value: 'enemyGraveyard',    label: 'Priešo kapinyno sk.' },
+  { value: 'ownDeck',           label: 'Tavo kaladės sk.' },
+  { value: 'enemyDeck',         label: 'Priešo kaladės sk.' },
+  { value: 'ownHp',             label: 'Tavo HP' },
+  { value: 'enemyHp',           label: 'Priešo HP' },
+  { value: 'ownGold',           label: 'Tavo auksas' },
+  { value: 'enemyGold',         label: 'Priešo auksas' },
+  { value: 'turnNumber',        label: 'Ėjimo nr.' },
+]
+
+export type CompareOp = 'gte' | 'lte' | 'gt' | 'lt' | 'eq' | 'ne'
+export const COMPARE_OPS: { value: CompareOp; label: string }[] = [
+  { value: 'gte', label: '≥' }, { value: 'lte', label: '≤' },
+  { value: 'gt', label: '>' }, { value: 'lt', label: '<' },
+  { value: 'eq', label: '=' }, { value: 'ne', label: '≠' },
+]
+
+/** Sąlyga: efektas vyksta tik jei metrika op value (kitaip mapping praleidžiamas). */
+export type EffectCondition = { source: MetricSource; op: CompareOp; value: number }
+
+/** Dinaminė reikšmė: value = base + perEach * metrika (pvz. +3 už kiekvieną draugišką padarą). */
+export type DynamicValue = { base: number; perEach: number; source: MetricSource }
+
+/** Pavienio taikinio parinkimas pagal statą (vietoj auto „silpniausias"). */
+export type TargetSelect = 'highestHp' | 'lowestHp' | 'highestAtk' | 'lowestAtk' | 'highestCost' | 'lowestCost'
+export const TARGET_SELECTS: { value: TargetSelect; label: string }[] = [
+  { value: 'highestHp',   label: 'Daugiausiai HP' },
+  { value: 'lowestHp',    label: 'Mažiausiai HP' },
+  { value: 'highestAtk',  label: 'Daugiausiai ATT' },
+  { value: 'lowestAtk',   label: 'Mažiausiai ATT' },
+  { value: 'highestCost', label: 'Brangiausias' },
+  { value: 'lowestCost',  label: 'Pigiausias' },
+]
+
 // ── Vienas efekto mapping'as ──────────────────────────────────────────────────
 export type EffectMapping = {
   trigger: TriggerType
@@ -170,6 +225,10 @@ export type EffectMapping = {
   animation?: string
   sound?: BattleSoundType
   projectile?: ProjectileType
+  condition?: EffectCondition       // efektas vyksta tik jei sąlyga tenkinama
+  dynamicValue?: DynamicValue       // value = base + perEach * metrika
+  targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą
+  targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
   note?: string
 }
 

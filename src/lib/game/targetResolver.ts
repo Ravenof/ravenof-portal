@@ -3,7 +3,7 @@
 // Be random pagal default: kai reikia automatinio pasirinkimo, imamas
 // deterministinis "geriausias" taikinys; random tik kai allowRandomTarget=true.
 
-import type { TargetType } from './types'
+import type { TargetType, MetricSource, EffectCondition, TargetSelect } from './types'
 import type { GameState, Side, BoardUnit } from '@/lib/tutorial/engine'
 
 export type ResolvedTarget =
@@ -117,4 +117,81 @@ export function autoPickTarget(
     return intent === 'harm' ? hp : (maxHp - hp) > 0 ? -(maxHp - hp) : 998
   }
   return [...candidates].sort((a, b) => score(a) - score(b))[0]
+}
+
+
+// ── Metrikos / sąlygos / selektoriai (generiniai primityvai) ─────────────────
+function countNonNull<T>(arr: (T | null)[]): number { return arr.filter((x) => x != null).length }
+function woundedCount(p: { units: (BoardUnit | null)[] }): number {
+  return p.units.filter((u): u is BoardUnit => !!u && u.hp < u.maxHp).length
+}
+
+/** Apskaičiuoja skaitinę metriką žaidimo būsenoje (caster perspektyva). */
+export function metric(g: GameState, caster: Side, src: MetricSource): number {
+  const me = P(g, caster)
+  const foe = P(g, other(caster))
+  switch (src) {
+    case 'ownUnits':          return countNonNull(me.units)
+    case 'enemyUnits':        return countNonNull(foe.units)
+    case 'allUnits':          return countNonNull(me.units) + countNonNull(foe.units)
+    case 'ownWoundedUnits':   return woundedCount(me)
+    case 'enemyWoundedUnits': return woundedCount(foe)
+    case 'ownArtifacts':      return countNonNull(me.artifacts)
+    case 'enemyArtifacts':    return countNonNull(foe.artifacts)
+    case 'ownHandCards':      return me.hand.length
+    case 'enemyHandCards':    return foe.hand.length
+    case 'ownGraveyard':      return me.discard.length
+    case 'enemyGraveyard':    return foe.discard.length
+    case 'ownDeck':           return me.deck.length
+    case 'enemyDeck':         return foe.deck.length
+    case 'ownHp':             return me.hp
+    case 'enemyHp':           return foe.hp
+    case 'ownGold':           return me.gold
+    case 'enemyGold':         return foe.gold
+    case 'turnNumber':        return me.turnNumber
+  }
+}
+
+export function evalCondition(g: GameState, caster: Side, c: EffectCondition): boolean {
+  const m = metric(g, caster, c.source)
+  switch (c.op) {
+    case 'gte': return m >= c.value
+    case 'lte': return m <= c.value
+    case 'gt':  return m > c.value
+    case 'lt':  return m < c.value
+    case 'eq':  return m === c.value
+    case 'ne':  return m !== c.value
+  }
+}
+
+function unitStat(g: GameState, t: ResolvedTarget, sel: TargetSelect): number | null {
+  if (t.kind !== 'unit') return null
+  const p = P(g, t.side)
+  const u = p.units.find((x) => x?.uid === t.uid)
+  if (!u) return null
+  switch (sel) {
+    case 'highestHp': case 'lowestHp':     return u.hp
+    case 'highestAtk': case 'lowestAtk':   return u.atk
+    case 'highestCost': case 'lowestCost': return u.card.gold
+  }
+}
+
+/** Pavienio taikinio parinkimas pagal statą (tik unit kandidatams). */
+export function pickBySelect(g: GameState, candidates: ResolvedTarget[], sel: TargetSelect): ResolvedTarget | null {
+  const scored = candidates
+    .map((t) => ({ t, v: unitStat(g, t, sel) }))
+    .filter((x): x is { t: ResolvedTarget; v: number } => x.v != null)
+  if (scored.length === 0) return null
+  const highest = sel.startsWith('highest')
+  scored.sort((a, b) => (highest ? b.v - a.v : a.v - b.v))
+  return scored[0].t
+}
+
+/** Filtruoja kandidatus iki sužeistų padarų (hp < maxHp). */
+export function filterWounded(g: GameState, candidates: ResolvedTarget[]): ResolvedTarget[] {
+  return candidates.filter((t) => {
+    if (t.kind !== 'unit') return false
+    const u = P(g, t.side).units.find((x) => x?.uid === t.uid)
+    return !!u && u.hp < u.maxHp
+  })
 }

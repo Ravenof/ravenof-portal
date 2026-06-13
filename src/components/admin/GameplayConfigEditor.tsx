@@ -7,7 +7,8 @@
 import { useMemo, useState } from 'react'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
-  type GameplayConfig, type EffectMapping,
+  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS,
+  type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect,
 } from '@/lib/game/types'
 
 const inputStyle: React.CSSProperties = {
@@ -213,6 +214,67 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
                             <option value="opponent">Priešo kaladė</option>
                           </select>
                         </label>
+                      </>
+                    )}
+                    {/* Selektorius + sužeisti */}
+                    <label className="flex items-center gap-1">
+                      Taikinys:
+                      <select value={m.targetSelect ?? ''}
+                        onChange={(e) => setMapping(i, { targetSelect: (e.target.value || undefined) as TargetSelect | undefined })}
+                        style={{ ...inputStyle, width: 130 }} title="Pavienio taikinio parinkimas pagal statą">
+                        <option value="">auto (silpniausias)</option>
+                        {TARGET_SELECTS.map((ts) => <option key={ts.value} value={ts.value}>{ts.label}</option>)}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" checked={m.targetWoundedOnly ?? false}
+                        onChange={(e) => setMapping(i, { targetWoundedOnly: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                      Tik sužeisti
+                    </label>
+                    {/* Sąlyga */}
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" checked={!!m.condition}
+                        onChange={(e) => setMapping(i, { condition: e.target.checked ? { source: 'enemyUnits', op: 'gte', value: 1 } : undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                      Sąlyga
+                    </label>
+                    {m.condition && (
+                      <>
+                        <select value={m.condition.source}
+                          onChange={(e) => setMapping(i, { condition: { ...m.condition!, source: e.target.value as MetricSource } })}
+                          style={{ ...inputStyle, width: 150 }}>
+                          {METRIC_SOURCES.map((ms) => <option key={ms.value} value={ms.value}>{ms.label}</option>)}
+                        </select>
+                        <select value={m.condition.op}
+                          onChange={(e) => setMapping(i, { condition: { ...m.condition!, op: e.target.value as CompareOp } })}
+                          style={{ ...inputStyle, width: 50 }}>
+                          {COMPARE_OPS.map((co) => <option key={co.value} value={co.value}>{co.label}</option>)}
+                        </select>
+                        <input type="number" value={m.condition.value}
+                          onChange={(e) => setMapping(i, { condition: { ...m.condition!, value: Number(e.target.value) } })}
+                          style={{ ...inputStyle, width: 56 }} />
+                      </>
+                    )}
+                    {/* Dinaminė reikšmė */}
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" checked={!!m.dynamicValue}
+                        onChange={(e) => setMapping(i, { dynamicValue: e.target.checked ? { base: 0, perEach: 1, source: 'ownUnits' } : undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                      Dinaminė reikšmė
+                    </label>
+                    {m.dynamicValue && (
+                      <>
+                        <span style={{ fontSize: '10px' }}>bazė</span>
+                        <input type="number" value={m.dynamicValue.base}
+                          onChange={(e) => setMapping(i, { dynamicValue: { ...m.dynamicValue!, base: Number(e.target.value) } })}
+                          style={{ ...inputStyle, width: 50 }} />
+                        <span style={{ fontSize: '10px' }}>+ už kiekv.</span>
+                        <input type="number" value={m.dynamicValue.perEach}
+                          onChange={(e) => setMapping(i, { dynamicValue: { ...m.dynamicValue!, perEach: Number(e.target.value) } })}
+                          style={{ ...inputStyle, width: 50 }} />
+                        <select value={m.dynamicValue.source}
+                          onChange={(e) => setMapping(i, { dynamicValue: { ...m.dynamicValue!, source: e.target.value as MetricSource } })}
+                          style={{ ...inputStyle, width: 150 }}>
+                          {METRIC_SOURCES.map((ms) => <option key={ms.value} value={ms.value}>{ms.label}</option>)}
+                        </select>
                       </>
                     )}
                     <button type="button" onClick={() => update({ ...cfg, effectMappings: mappings.filter((_, j) => j !== i) })}

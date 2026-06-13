@@ -4,7 +4,7 @@
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
 import type { EffectMapping, EffectType } from './types'
-import { resolveTargets, autoPickTarget, isMultiTarget, type ResolvedTarget } from './targetResolver'
+import { resolveTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, filterWounded, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 
 export type GameApi = {
@@ -69,16 +69,26 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     api.log(g, { t: 'blocked', side: caster, msg: `⚠ Efektų grandinė per gili – „${ctx.sourceName}" follow-up praleistas.` })
     return false
   }
-  const v = m.value ?? 1
+  // Sąlyga: jei netenkinama – mapping praleidžiamas tyliai (naudojama fallback porai).
+  if (m.condition && !evalCondition(g, caster, m.condition)) return false
+
+  // Reikšmė: dinaminė (base + perEach * metrika) arba fiksuota.
+  const v = m.dynamicValue
+    ? Math.max(0, Math.round(m.dynamicValue.base + m.dynamicValue.perEach * metric(g, caster, m.dynamicValue.source)))
+    : (m.value ?? 1)
 
   // taikinių parinkimas
   let targets: ResolvedTarget[]
   if (ctx.chosenTarget && !isMultiTarget(m.target)) {
     targets = [ctx.chosenTarget]
   } else {
-    const all = resolveTargets(g, caster, m.target)
+    let all = resolveTargets(g, caster, m.target)
+    if (m.targetWoundedOnly) all = filterWounded(g, all)
     if (isMultiTarget(m.target)) targets = all
-    else {
+    else if (m.targetSelect) {
+      const picked = pickBySelect(g, all, m.targetSelect)
+      targets = picked ? [picked] : []
+    } else {
       const picked = autoPickTarget(g, caster, all, effectIntent(m.effect), m.allowRandomTarget)
       targets = picked ? [picked] : []
     }
