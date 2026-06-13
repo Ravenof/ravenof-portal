@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, Plus, Check, Eye, X, Sword, Heart, Coins, SlidersHorizontal } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
-import { canAddCard, getCopyLimit, NEUTRAL_FACTION_ID } from '@/lib/deck-validation'
+import { canAddCard, canAddSideCard, isCurseCard, getCopyLimit, NEUTRAL_FACTION_ID } from '@/lib/deck-validation'
 import { getFactionColor, getRarityColor } from '@/lib/utils'
 import { pluralLt } from '@/lib/lt-plural'
 import { CardHoverPreview } from './CardHoverPreview'
@@ -85,12 +85,15 @@ function CardMobilePreview({
 
   const rarityColor  = getRarityColor(card.rarity?.name)
   const factionColor = getFactionColor(card.faction?.color_hex)
-  const { entries, addCard, factionId } = useDeckBuilderStore()
-  const existing = entries.find((e) => e.card.id === card.id)
+  const { entries, sideEntries, addCard, addSideCard, factionId } = useDeckBuilderStore()
+  const isCurse = isCurseCard(card)
+  const pool = isCurse ? sideEntries : entries
+  const existing = pool.find((e) => e.card.id === card.id)
   const qty = existing?.quantity ?? 0
   const limit = getCopyLimit(card)
-  const result = canAddCard(card, entries, factionId)
+  const result = isCurse ? canAddSideCard(card, sideEntries) : canAddCard(card, entries, factionId)
   const atLimit = qty >= limit
+  const addToDeck = () => (isCurse ? addSideCard(card) : addCard(card))
 
   if (!mounted) return null
 
@@ -190,12 +193,12 @@ function CardMobilePreview({
 
         <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
           <button
-            onClick={() => { addCard(card); onClose() }}
+            onClick={() => { addToDeck(); onClose() }}
             disabled={atLimit || !result.ok}
             className="w-full py-2.5 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-30"
             style={{ background: atLimit ? 'var(--bg-border)' : 'var(--gold)', color: '#0a0a0f' }}
           >
-            {atLimit ? `Kaladėje: ${qty}/${limit}` : result.ok ? `+ Pridėti į kaladę (${qty}/${limit})` : result.reason ?? 'Negalima pridėti'}
+            {atLimit ? `${isCurse ? 'Side deck' : 'Kaladėje'}: ${qty}/${limit}` : result.ok ? `+ Pridėti į ${isCurse ? 'prakeiksmų side deck' : 'kaladę'} (${qty}/${limit})` : result.reason ?? 'Negalima pridėti'}
           </button>
         </div>
       </div>
@@ -216,12 +219,15 @@ function CardRow({
   onHover: (c: CardWithRelations | null) => void
   onPreview: (c: CardWithRelations) => void
 }) {
-  const { entries, addCard, factionId } = useDeckBuilderStore()
-  const existing = entries.find((e) => e.card.id === card.id)
+  const { entries, sideEntries, addCard, addSideCard, factionId } = useDeckBuilderStore()
+  const isCurse = isCurseCard(card)
+  const pool = isCurse ? sideEntries : entries
+  const existing = pool.find((e) => e.card.id === card.id)
   const qty = existing?.quantity ?? 0
   const limit = getCopyLimit(card)
-  const result = canAddCard(card, entries, factionId)
+  const result = isCurse ? canAddSideCard(card, sideEntries) : canAddCard(card, entries, factionId)
   const atLimit = qty >= limit
+  const addToDeck = () => (isCurse ? addSideCard(card) : addCard(card))
   const fColor = getFactionColor(card.faction?.color_hex)
   const rColor = getRarityColor(card.rarity?.name)
   const owned = collection[card.id] ?? 0
@@ -234,7 +240,7 @@ function CardRow({
         background: qty > 0 ? fColor + '10' : 'var(--bg-elevated)',
         border: '1px solid ' + (qty > 0 ? fColor + '30' : isUniversal ? 'rgba(212,175,55,0.15)' : 'transparent'),
       }}
-      onClick={() => addCard(card)}
+      onClick={() => addToDeck()}
       onMouseEnter={() => onHover(card)}
       onMouseLeave={() => onHover(null)}
     >
@@ -266,7 +272,7 @@ function CardRow({
         </button>
 
         <button
-          onClick={(e) => { e.stopPropagation(); addCard(card) }}
+          onClick={(e) => { e.stopPropagation(); addToDeck() }}
           disabled={atLimit || !result.ok}
           className="w-6 h-6 rounded flex items-center justify-center transition-colors disabled:opacity-20"
           style={{ background: atLimit ? 'transparent' : 'var(--bg-border)', color: 'var(--text-muted)' }}

@@ -4,6 +4,7 @@ import { containsProfanity } from '@/lib/profanity'
 export const NEUTRAL_FACTION_ID = 14   // "Universalus"
 export const DECK_MIN = 30
 export const DECK_MAX = 40
+export const SIDE_DECK_MAX = 20   // Demonų prakeiksmų side deck
 
 /** Copy limit pagal rarity id */
 export const RARITY_COPY_LIMIT: Record<number, number> = {
@@ -19,11 +20,42 @@ export function getCopyLimit(card: CardWithRelations): number {
   return RARITY_COPY_LIMIT[card.rarity_id] ?? 2
 }
 
+/** Ar korta yra prakeiksmas (deda į side deck, ne į pagrindinę kaladę). */
+export function isCurseCard(card: CardWithRelations): boolean {
+  return /prakeik|curse/i.test(card.card_type?.name ?? '')
+}
+
+/** Ar galima pridėti prakeiksmą į side deck'ą. */
+export function canAddSideCard(
+  card: CardWithRelations,
+  sideEntries: DeckEntry[],
+): { ok: boolean; reason?: string } {
+  if (!isCurseCard(card)) {
+    return { ok: false, reason: 'Į side deck galima dėti tik prakeiksmus' }
+  }
+  const existing = sideEntries.find((e) => e.card.id === card.id)
+  const currentQty = existing?.quantity ?? 0
+  const limit = getCopyLimit(card)
+  if (currentQty >= limit) {
+    return { ok: false, reason: 'Maksimumas ' + limit + ' kopija (-u) šiai kortai' }
+  }
+  const total = sideEntries.reduce((s, e) => s + e.quantity, 0)
+  if (total >= SIDE_DECK_MAX) {
+    return { ok: false, reason: 'Side deck negali turėti daugiau nei ' + SIDE_DECK_MAX + ' prakeiksmų' }
+  }
+  return { ok: true }
+}
+
 export function canAddCard(
   card: CardWithRelations,
   entries: DeckEntry[],
   factionId: number | null,
 ): { ok: boolean; reason?: string } {
+  // Prakeiksmai į pagrindinę kaladę nededami – jie eina į atskirą side deck'ą
+  if (isCurseCard(card)) {
+    return { ok: false, reason: 'Prakeiksmai dedami į prakeiksmų side deck (apačioje)' }
+  }
+
   // Faction lock
   if (factionId !== null) {
     const cf = card.faction_id

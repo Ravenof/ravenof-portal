@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { DeckCardRow } from './DeckCardRow'
 import { CardHoverPreview } from './CardHoverPreview'
-import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
+import { DECK_MIN, DECK_MAX, SIDE_DECK_MAX } from '@/lib/deck-validation'
 import { pluralLt } from '@/lib/lt-plural'
 import { Swords, Trash2 } from 'lucide-react'
 import type { CardWithRelations } from '@/types'
@@ -18,7 +18,7 @@ function getTypeOrder(typeName: string | undefined): number {
 }
 
 export function DeckListPanel() {
-  const { entries, totalCards, factionId, clearDeck } = useDeckBuilderStore()
+  const { entries, sideEntries, totalCards, factionId, clearDeck } = useDeckBuilderStore()
   const [confirmClear, setConfirmClear] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<CardWithRelations | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -137,6 +137,29 @@ export function DeckListPanel() {
           })
         )}
       </div>
+
+      {/* Prakeiksmų side deck (Demonai) */}
+      {sideEntries.length > 0 && (
+        <div className="mt-3 pt-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
+          <div className="flex items-center justify-between px-1 mb-1">
+            <span className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: '#a855f7', fontSize: '10px' }}>
+              🕸 Prakeiksmų side deck
+            </span>
+            <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+              {sideEntries.reduce((s, e) => s + e.quantity, 0)}/{SIDE_DECK_MAX}
+            </span>
+          </div>
+          <div className="space-y-0.5">
+            {sideEntries
+              .slice()
+              .sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name))
+              .map((entry) => (
+                <DeckCardRow key={entry.card.id} entry={entry} onHover={setHoveredCard} isSide />
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Footer hint */}
       {total > 0 && total < DECK_MIN && (

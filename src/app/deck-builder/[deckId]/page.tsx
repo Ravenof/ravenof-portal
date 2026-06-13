@@ -41,7 +41,7 @@ async function fetchEditData(deckId: string) {
     supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
     supabase
       .from('deck_cards')
-      .select('card_id, quantity')
+      .select('card_id, quantity, is_side_deck')
       .eq('deck_id', deckId),
   ])
 
@@ -55,14 +55,21 @@ async function fetchEditData(deckId: string) {
   const allCards = (cards as unknown as CardWithRelations[]) ?? []
   const cardMap = Object.fromEntries(allCards.map((c) => [c.id, c]))
 
-  const entries: DeckEntry[] = (deckCards ?? [])
-    .filter((dc) => cardMap[dc.card_id])
+  const sortFn = (a: DeckEntry, b: DeckEntry) => {
+    const gc = (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0)
+    if (gc !== 0) return gc
+    return a.card.name.localeCompare(b.card.name)
+  }
+
+  const rows = (deckCards ?? []).filter((dc) => cardMap[dc.card_id])
+  const entries: DeckEntry[] = rows
+    .filter((dc) => !(dc as { is_side_deck?: boolean }).is_side_deck)
     .map((dc) => ({ card: cardMap[dc.card_id], quantity: dc.quantity }))
-    .sort((a, b) => {
-      const gc = (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0)
-      if (gc !== 0) return gc
-      return a.card.name.localeCompare(b.card.name)
-    })
+    .sort(sortFn)
+  const sideEntries: DeckEntry[] = rows
+    .filter((dc) => (dc as { is_side_deck?: boolean }).is_side_deck)
+    .map((dc) => ({ card: cardMap[dc.card_id], quantity: dc.quantity }))
+    .sort(sortFn)
 
   return {
     user,
@@ -73,6 +80,7 @@ async function fetchEditData(deckId: string) {
       factionId: deck.faction_id as number | null,
       visibility: deck.visibility as DeckVisibility,
       entries,
+      sideEntries,
     },
     cards: allCards,
     factions: factions ?? [],
@@ -101,6 +109,7 @@ export default async function EditDeckPage({ params }: { params: Promise<{ deckI
         factionId: deck.factionId,
         visibility: deck.visibility,
         entries: deck.entries,
+        sideEntries: deck.sideEntries,
       }}
     />
   )

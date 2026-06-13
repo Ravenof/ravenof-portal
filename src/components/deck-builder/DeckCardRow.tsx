@@ -9,10 +9,14 @@ import type { DeckEntry, CardWithRelations } from '@/types'
 type Props = {
   entry: DeckEntry
   onHover?: (card: CardWithRelations | null) => void
+  isSide?: boolean   // prakeiksmų side deck eilutė
 }
 
-export function DeckCardRow({ entry, onHover }: Props) {
-  const { addCard, removeCard, setQuantity } = useDeckBuilderStore()
+export function DeckCardRow({ entry, onHover, isSide = false }: Props) {
+  const store = useDeckBuilderStore()
+  const addFn = isSide ? store.addSideCard : store.addCard
+  const removeFn = isSide ? store.removeSideCard : store.removeCard
+  const setQtyFn = isSide ? store.setSideQuantity : store.setQuantity
   const { card, quantity } = entry
   const limit = getCopyLimit(card)
   const rarityColor = getRarityColor(card.rarity?.name)
@@ -42,7 +46,7 @@ export function DeckCardRow({ entry, onHover }: Props) {
       {/* Quantity controls */}
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
-          onClick={() => setQuantity(card.id, quantity - 1)}
+          onClick={() => setQtyFn(card.id, quantity - 1)}
           className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-red-500/20"
           style={{ color: 'var(--text-muted)' }}
         >
@@ -54,7 +58,7 @@ export function DeckCardRow({ entry, onHover }: Props) {
         </span>
 
         <button
-          onClick={() => addCard(card)}
+          onClick={() => addFn(card)}
           disabled={quantity >= limit}
           className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-green-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
           style={{ color: 'var(--text-muted)' }}
@@ -67,7 +71,7 @@ export function DeckCardRow({ entry, onHover }: Props) {
         </span>
 
         <button
-          onClick={() => removeCard(card.id)}
+          onClick={() => removeFn(card.id)}
           className="w-5 h-5 rounded flex items-center justify-center transition-all hover:bg-red-500/20"
           style={{ color: '#ef4444', opacity: 0.6 }}
           title="Išimti iš kaladės"

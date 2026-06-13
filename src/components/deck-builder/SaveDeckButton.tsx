@@ -12,7 +12,7 @@ type Props = { userId: string }
 export function SaveDeckButton({ userId }: Props) {
   const store = useDeckBuilderStore()
   const router = useRouter()
-  const { deckId, name, description, factionId, visibility, entries, isSaving, setIsSaving, markSaved, isDirty } = store
+  const { deckId, name, description, factionId, visibility, entries, sideEntries, isSaving, setIsSaving, markSaved, isDirty } = store
 
   const warnings = validateDeck(entries, factionId, name)
   const hasErrors = warnings.some((w) => w.type === 'error')
@@ -66,12 +66,21 @@ export function SaveDeckButton({ userId }: Props) {
       if (savedDeckId) {
         await supabase.from('deck_cards').delete().eq('deck_id', savedDeckId)
 
-        if (entries.length > 0) {
-          const rows = entries.map((e) => ({
+        const rows = [
+          ...entries.map((e) => ({
             deck_id:  savedDeckId!,
             card_id:  e.card.id,
             quantity: e.quantity,
-          }))
+            is_side_deck: false,
+          })),
+          ...sideEntries.map((e) => ({
+            deck_id:  savedDeckId!,
+            card_id:  e.card.id,
+            quantity: e.quantity,
+            is_side_deck: true,
+          })),
+        ]
+        if (rows.length > 0) {
           const { error } = await supabase.from('deck_cards').insert(rows)
           if (error) throw error
         }

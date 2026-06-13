@@ -21,6 +21,7 @@ type InitialDeck = {
   factionId: number | null
   visibility: DeckVisibility
   entries: DeckEntry[]
+  sideEntries: DeckEntry[]
 } | null
 
 type Props = {
@@ -78,7 +79,8 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
     if (initialDeck) {
       store.loadExisting(
         initialDeck.id, initialDeck.name, initialDeck.description,
-        initialDeck.factionId, initialDeck.visibility, initialDeck.entries
+        initialDeck.factionId, initialDeck.visibility, initialDeck.entries,
+        initialDeck.sideEntries ?? []
       )
     } else if (!deckId) {
       store.initNew()
