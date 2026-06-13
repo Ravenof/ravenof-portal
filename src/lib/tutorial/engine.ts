@@ -458,6 +458,7 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
   p.units[idx] = null
   p.discard.push(u.card)
   log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death' })
+  fireGlobalListeners(g, 'onAnyDeath')
 }
 
 function checkWin(g: GameState) {
@@ -608,23 +609,84 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
   }
 }
 
-function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard') {
+function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; count?: number }) {
   const p = P(g, s)
-  const slot = p.units.findIndex((u) => u === null)
-  if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
   const src = zone === 'hand' ? p.hand : zone === 'deck' ? p.deck : p.discard
-  const idx = src.findIndex((c) => c.type === 'unit')
-  if (idx === -1) { log(g, { t: 'blocked', side: s, msg: `Nėra padaro ${zone === 'hand' ? 'rankoje' : zone === 'deck' ? 'kaladėje' : 'krūvoje'} – iškvietimas neįvyksta.` }); return }
-  const [card] = src.splice(idx, 1)
-  p.units[slot] = {
-    uid: card.uid + '-s' + g.globalTurn, card,
-    atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
-    shield: card.keywords.includes('shield'),
-    stealth: card.keywords.includes('stealth'),
-    statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
-    isChampion: false, phase: 0, abilityUsed: false,
+  const zoneName = zone === 'hand' ? 'rankoje' : zone === 'deck' ? 'kaladėje' : 'krūvoje'
+  const want = (opts?.subtype ?? '').trim().toLowerCase()
+  const eligible = (c: TutCard) =>
+    c.type === 'unit' &&
+    (opts?.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
+    (!want || (c.subtype ?? '').toLowerCase() === want)
+  const count = Math.max(1, opts?.count ?? 1)
+  for (let n = 0; n < count; n++) {
+    const slot = p.units.findIndex((u) => u === null)
+    if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
+    const idx = src.findIndex(eligible)
+    if (idx === -1) { log(g, { t: 'blocked', side: s, msg: `Nėra tinkamo padaro ${zoneName} – iškvietimas neįvyksta.` }); return }
+    const [card] = src.splice(idx, 1)
+    p.units[slot] = {
+      uid: card.uid + '-s' + g.globalTurn + '-' + n, card,
+      atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
+      shield: card.keywords.includes('shield'),
+      stealth: card.keywords.includes('stealth'),
+      statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
+      isChampion: false, phase: 0, abilityUsed: false,
+    }
+    log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
   }
-  log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
+}
+
+function millDeckPrim(g: GameState, s: Side, n: number) {
+  const p = P(g, s)
+  let moved = 0
+  for (let i = 0; i < n; i++) {
+    const c = p.deck.pop()
+    if (!c) break
+    p.discard.push(c)
+    moved++
+  }
+  log(g, { t: 'discardGold', side: s, value: moved, msg: `${sideName(s)} kaladės ${moved} kort(os) keliauja į kapinyną (mill).` })
+}
+
+function returnGraveyardToDeckPrim(g: GameState, s: Side, n: number) {
+  const p = P(g, s)
+  let moved = 0
+  for (let i = 0; i < n; i++) {
+    const c = p.discard.pop()
+    if (!c) break
+    p.deck.push(c)
+    moved++
+  }
+  if (moved > 0) p.deck = shuffle(p.deck)
+  log(g, { t: 'zmkReshuffle', side: s, msg: `${sideName(s)} ${moved} kort(os) grąžinama iš kapinyno į kaladę ir permaišoma.` })
+}
+
+// ── Globalūs įvykių pasyvai (onAnyDeath / onAnyAttack) ───────────────────────
+// Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
+// atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
+let firingGlobal = false
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack') {
+  if (firingGlobal || g.winner) return
+  firingGlobal = true
+  try {
+    for (const sd of ['you', 'ai'] as Side[]) {
+      const pp = P(g, sd)
+      const cards = [
+        ...pp.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+        ...pp.artifacts.filter((a): a is BoardArtifact => !!a),
+      ]
+      for (const c of cards) {
+        const ms = (c.card.mappings ?? []).filter((m) => m.trigger === trigger)
+        for (const m of ms) {
+          applyMapping(gameApi, g, sd, m, { sourceName: c.card.name, sourceUid: c.uid, depth: 2 })
+          if (g.winner) return
+        }
+      }
+    }
+  } finally {
+    firingGlobal = false
+  }
 }
 
 function gainGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
@@ -676,6 +738,8 @@ export const gameApi: GameApi = {
   loseGold: loseGoldPrim,
   returnUnitToHand: returnUnitToHandPrim,
   summonFromZone: summonFromZonePrim,
+  millDeck: millDeckPrim,
+  returnGraveyardToDeck: returnGraveyardToDeckPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
@@ -1072,6 +1136,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   if ((u.card.mappings ?? []).some((m) => m.trigger === 'onAttack')) {
     applyMappings(gameApi, g, s, u.card.mappings ?? [], 'onAttack', { sourceName: u.card.name, sourceUid: u.uid, depth: 1 })
   }
+  fireGlobalListeners(g, 'onAnyAttack')
 
   // Gynėjo reakcija (jei turi) – „paskutinis aktyvavęsis sprendžiamas pirmas"
   maybeTriggerReaction(g, foe, u, s)

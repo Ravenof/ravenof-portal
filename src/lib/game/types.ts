@@ -5,6 +5,7 @@
 // ── Taikinių tipai ────────────────────────────────────────────────────────────
 export type TargetType =
   | 'self'              // be taikinio / pats šaltinis / globalu
+  | 'selfUnit'          // pati ši korta kovos lauke (šaltinio padaras)
   | 'ownPlayer'
   | 'enemyPlayer'
   | 'anyPlayer'
@@ -26,6 +27,7 @@ export type TargetType =
 
 export const TARGET_TYPES: { value: TargetType; label: string }[] = [
   { value: 'self',            label: 'Be taikinio / globalu' },
+  { value: 'selfUnit',        label: 'Ši korta (savęs padaras)' },
   { value: 'ownPlayer',       label: 'Tavo žaidėjas' },
   { value: 'enemyPlayer',     label: 'Priešo žaidėjas' },
   { value: 'anyPlayer',       label: 'Bet kuris žaidėjas' },
@@ -56,7 +58,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -87,6 +89,8 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'triggerCurse',        label: 'Aktyvuoti prakeiksmą',       needsValue: true },
   { value: 'triggerZmk',          label: 'Traukti ŽMK',                needsValue: false },
   { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true },
+  { value: 'mill',                label: 'Mill (kortos iš kaladės į kapinyną)', needsValue: true },
+  { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
@@ -99,6 +103,7 @@ export type TriggerType =
   | 'onTurnStart' | 'onTurnEnd'
   | 'onFieldEnter' | 'onFieldLeave'
   | 'onChampionSkill' | 'onArtifactActivated'
+  | 'onAnyDeath' | 'onAnyAttack'
   | 'custom'
 
 export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
@@ -120,6 +125,8 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onFieldLeave',        label: 'Laukui dingstant' },
   { value: 'onChampionSkill',     label: 'Čempiono gebėjimas' },
   { value: 'onArtifactActivated', label: 'Artefakto aktyvacija' },
+  { value: 'onAnyDeath',          label: 'Kai sunaikinamas BET KURIS padaras (globalu)' },
+  { value: 'onAnyAttack',         label: 'Kai BET KURIS padaras puola (globalu)' },
   { value: 'custom',              label: 'Custom (kodas)' },
 ]
 
@@ -230,6 +237,9 @@ export type EffectMapping = {
   targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą
   targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
   targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
+  summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
+  summonSubtype?: string            // summon*: tik šio potipio padarai
+  summonCount?: number              // summon*: kiek iškviesti (default 1)
   note?: string
 }
 

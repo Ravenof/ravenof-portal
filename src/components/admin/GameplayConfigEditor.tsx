@@ -216,6 +216,29 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
                         </label>
                       </>
                     )}
+                    {/* Summon parametrai */}
+                    {(m.effect === 'summonFromHand' || m.effect === 'summonFromDeck' || m.effect === 'summonFromGraveyard' || m.effect === 'revive') && (
+                      <>
+                        <label className="flex items-center gap-1">
+                          Kaina ≤
+                          <input type="number" value={m.summonCostMax ?? ''} placeholder="—"
+                            onChange={(e) => setMapping(i, { summonCostMax: e.target.value === '' ? undefined : Number(e.target.value) })}
+                            style={{ ...inputStyle, width: 64 }} title="Tik kortos su kaina <= reikšmė" />
+                        </label>
+                        <label className="flex items-center gap-1">
+                          Potipis
+                          <input type="text" value={m.summonSubtype ?? ''} placeholder="ZOMBIE..."
+                            onChange={(e) => setMapping(i, { summonSubtype: e.target.value || undefined })}
+                            style={{ ...inputStyle, width: 100 }} />
+                        </label>
+                        <label className="flex items-center gap-1">
+                          Kiek
+                          <input type="number" min={1} value={m.summonCount ?? 1}
+                            onChange={(e) => setMapping(i, { summonCount: Number(e.target.value) })}
+                            style={{ ...inputStyle, width: 50 }} />
+                        </label>
+                      </>
+                    )}
                     {/* Selektorius + sužeisti */}
                     <label className="flex items-center gap-1">
                       Taikinys:

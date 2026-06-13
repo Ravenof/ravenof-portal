@@ -37,6 +37,7 @@ export function resolveTargets(g: GameState, casterSide: Side, target: TargetTyp
   const single = (arr: ResolvedTarget[]) => arr
   switch (target) {
     case 'self':           return [{ kind: 'player', side: casterSide }]
+    case 'selfUnit':       return []  // sprendžiama effectEngine pagal ctx.sourceUid
     case 'ownPlayer':      return [{ kind: 'player', side: casterSide }]
     case 'enemyPlayer':    return [{ kind: 'player', side: foe }]
     case 'anyPlayer':      return [{ kind: 'player', side: casterSide }, { kind: 'player', side: foe }]
