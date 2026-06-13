@@ -958,10 +958,14 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   }, [select, game, PROJ_EMOJI])
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex flex-col"
+    <div className="fixed inset-0 z-[120] flex flex-col select-none"
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, #1a1325 0%, #0a0810 60%, #060409 100%)',
         cursor: targetingCursor,
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        userSelect: 'none',
+        overflowX: 'hidden',
       }}>
       {/* viršutinė juosta */}
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
@@ -1114,7 +1118,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                     <motion.div
                       key={c.uid}
                       layout
-                      initial={{ x: 90, y: 40, opacity: 0, scale: 0.7 }}
+                      initial={{ y: 55, opacity: 0, scale: 0.85 }}
                       animate={{ y: 0, opacity: 1, rotate: handExpanded ? 0 : Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
                       whileHover={handExpanded ? { y: -6, zIndex: 30 } : { y: -14, zIndex: 30, rotate: 0 }}
