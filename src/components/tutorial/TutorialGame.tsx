@@ -264,6 +264,28 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
   const [showLog, setShowLog] = useState(false)
+  const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
+  const lpRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sužaistų kortų log: vardas -> korta (iš kaladės + prakeiksmų)
+  const cardByName = useMemo(() => {
+    const m: Record<string, TutCard> = {}
+    for (const c of deckCards ?? []) m[c.name] = c
+    for (const c of curseCards) m[c.name] = c
+    return m
+  }, [deckCards, curseCards])
+
+  const playedCards = useMemo(() => {
+    if (!game) return [] as { card: TutCard; side: Side; key: string }[]
+    const PLAY_TYPES = new Set(['play', 'spell', 'artifact', 'field', 'champion'])
+    const out: { card: TutCard; side: Side; key: string }[] = []
+    game.log.forEach((e, i) => {
+      if (!e.cardName || !PLAY_TYPES.has(e.t)) return
+      const card = cardByName[e.cardName]
+      if (card) out.push({ card, side: e.side, key: e.cardName + '-' + i })
+    })
+    return out.slice(-40)
+  }, [game, cardByName])
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
   const shownTipsRef = useRef<Set<string>>(new Set())
@@ -1211,6 +1233,28 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
             className="fixed right-2 top-12 bottom-2 z-[124] w-[min(300px,80vw)] rounded-xl p-3 overflow-y-auto"
             style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)' }}>
+            {playedCards.length > 0 && (
+              <div className="mb-3 pb-2" style={{ borderBottom: '1px solid rgba(240,180,41,0.2)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--gold)' }}>Sužaistos kortos</p>
+                <div className="flex flex-wrap gap-1">
+                  {playedCards.map(({ card, side, key }) => (
+                    <div key={key}
+                      onClick={() => { playCardFlip(); setInspect(card) }}
+                      onMouseEnter={(e) => setHoverCard({ card, x: e.clientX, y: e.clientY })}
+                      onMouseMove={(e) => setHoverCard((h) => h ? { ...h, x: e.clientX, y: e.clientY } : h)}
+                      onMouseLeave={() => setHoverCard(null)}
+                      onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(card) }, 450) }}
+                      onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+                      onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+                      className="cursor-pointer rounded overflow-hidden"
+                      style={{ outline: '1.5px solid ' + (side === 'you' ? 'rgba(96,165,250,0.7)' : 'rgba(167,139,250,0.7)') }}
+                      title={card.name}>
+                      <MiniCard c={card} w={38} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--gold)' }}>Įvykių žurnalas</p>
             {game.log.slice(-60).map((e, i) => (
               <p key={i} className="text-[10px] leading-relaxed mb-1"
@@ -1221,6 +1265,26 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── sužaistos kortos hover peržiūra (PC) ── */}
+      {hoverCard && typeof document !== 'undefined' && createPortal(
+        <div className="fixed z-[200] pointer-events-none"
+          style={{
+            left: Math.min(hoverCard.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 800) - 200),
+            top: Math.min(hoverCard.y + 16, (typeof window !== 'undefined' ? window.innerHeight : 600) - 300),
+          }}>
+          <div className="rounded-xl overflow-hidden" style={{ width: 180, background: 'var(--bg-surface)', border: '2px solid ' + hoverCard.card.rarityColor, boxShadow: '0 8px 30px rgba(0,0,0,0.7)' }}>
+            <MiniCard c={hoverCard.card} w={180} />
+            <div className="p-2">
+              <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{hoverCard.card.name}</p>
+              {hoverCard.card.effectText && (
+                <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── kortos apžiūra ── */}
       <AnimatePresence>
