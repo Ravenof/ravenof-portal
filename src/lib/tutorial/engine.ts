@@ -3,6 +3,14 @@
 // (src/data/rules.ts). Jokio UI – tik būsena, veiksmai ir įvykių log'as.
 // Naudoja mokomasis režimas „Išmokyk mane žaisti" (TutorialGame.tsx).
 
+import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType } from '@/lib/game/types'
+import { buildZmkDeck } from '@/lib/game/zmkEngine'
+import { applyMappings, applyMapping, type GameApi } from '@/lib/game/effectEngine'
+import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
+import * as fieldEngine from '@/lib/game/fieldEngine'
+import { fireTrigger } from '@/lib/game/triggerSystem'
+import type { ResolvedTarget } from '@/lib/game/targetResolver'
+
 export type Side = 'you' | 'ai'
 export type TutCardType = 'unit' | 'spell' | 'artifact' | 'reaction' | 'field' | 'champion' | 'curse'
 export type TutKeyword = 'sprint' | 'taunt' | 'shield' | 'stealth' | 'battlecry' | 'lastwish'
@@ -53,6 +61,12 @@ export type TutCard = {
   rarityColor: string
   factionColor: string
   effect: ParsedEffect | null
+  /** Admin gameplay konfigūracija (cards.gameplay JSONB) */
+  gameplay?: GameplayConfig | null
+  /** Aktyvūs mapping'ai (iš gameplay; tuščia = legacy teksto parserio kelias) */
+  mappings?: EffectMapping[]
+  /** Adminui: kortai reikia suvesti efektų mapping'ą */
+  needsMapping?: boolean
 }
 
 export const PERMANENT = 9999
@@ -78,9 +92,6 @@ export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: num
 export type ReactionSlot = { uid: string; card: TutCard; paid: number }
 
 export type ZmkValue = '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'
-const ZMK_COMPOSITION: [ZmkValue, number][] = [
-  ['+0', 6], ['+1', 5], ['-1', 5], ['+2', 1], ['-2', 1], ['x2', 1], ['x0', 1],
-]
 
 export type PlayerState = {
   side: Side
@@ -97,6 +108,12 @@ export type PlayerState = {
   gold: number
   turnNumber: number               // kelintas ŠIO žaidėjo ėjimas
   discardedForGold: boolean
+  /** Prakeiksmų side deck (Demonų mechanika) */
+  curses: TutCard[]
+  /** Atakų skaičius šį ėjimą (lauko limitui) */
+  attacksThisTurn: number
+  /** Ar šio ėjimo pirmos žalos sumažinimas (field pasyvas) jau panaudotas */
+  fieldDamageReducedThisTurn: boolean
 }
 
 export type GameEventType =
@@ -115,6 +132,12 @@ export type GameEvent = {
   zmk?: ZmkValue
   status?: TutStatus
   coin?: 'green' | 'red'
+  /** Animacijoms: šaltinis (kortos uid arba žaidėjas) */
+  src?: { side: Side; uid?: string }
+  /** Animacijoms: taikinys */
+  tgt?: { kind: 'player' | 'unit' | 'artifact' | 'field'; side?: Side; uid?: string }
+  projectile?: ProjectileType
+  sound?: BattleSoundType
 }
 
 export type TargetRef =
@@ -130,6 +153,10 @@ export type GameState = {
   globalTurn: number
   winner: Side | null
   log: GameEvent[]
+  /** ŽMK režimas: 'auto' – automatinis, 'draw' – žaidėjas atverčia pats */
+  zmkMode: ZmkMode
+  /** ŽMK kortų definicijos (value -> pavadinimas/aprašymas, iš zmk_cards) */
+  zmkDefs: Record<string, ZmkCardDef>
 }
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
@@ -145,12 +172,6 @@ function shuffle<T>(arr: T[]): T[] {
 
 export function other(s: Side): Side { return s === 'you' ? 'ai' : 'you' }
 export function P(g: GameState, s: Side): PlayerState { return s === 'you' ? g.you : g.ai }
-
-function freshZmk(): ZmkValue[] {
-  const all: ZmkValue[] = []
-  for (const [v, n] of ZMK_COMPOSITION) for (let i = 0; i < n; i++) all.push(v)
-  return shuffle(all)
-}
 
 function log(g: GameState, e: GameEvent) { g.log.push(e) }
 const sideName = (s: Side) => (s === 'you' ? 'Tu' : 'Priešininkas')
@@ -220,28 +241,41 @@ export function mapCardType(typeName: string | null | undefined, isChampion: boo
 
 // ── Žaidimo kūrimas ───────────────────────────────────────────────────────────
 
-function mkPlayer(side: Side, deck: TutCard[]): PlayerState {
+function mkPlayer(side: Side, deck: TutCard[], zmkPile: ZmkValue[], curses: TutCard[]): PlayerState {
   return {
     side, hp: 40, maxHp: 40,
     deck: shuffle(deck), hand: [], discard: [],
     units: [null, null, null, null, null],
     artifacts: [null, null],
     reactions: [null, null, null],
-    zmk: freshZmk(), zmkGrave: [],
+    zmk: zmkPile, zmkGrave: [],
     gold: 0, turnNumber: 0, discardedForGold: false,
+    curses, attacksThisTurn: 0, fieldDamageReducedThisTurn: false,
   }
 }
 
+export type CreateGameOpts = {
+  /** ŽMK kortos iš zmk_cards lentelės (admin). Nenurodyta – oficiali sudėtis. */
+  zmkDefs?: ZmkCardDef[] | null
+  /** Prakeiksmų side deck kortos (curse tipo kortos iš DB) */
+  curseCards?: TutCard[]
+}
+
 /** Sukuria žaidimą: tu prieš AI su ta pačia (veidrodine) kalade. */
-export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side): GameState {
+export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, opts?: CreateGameOpts): GameState {
+  const zmkYou = buildZmkDeck(opts?.zmkDefs)
+  const zmkAi = buildZmkDeck(opts?.zmkDefs)
+  const curseCards = opts?.curseCards ?? []
   const g: GameState = {
-    you: mkPlayer('you', deckYou),
-    ai: mkPlayer('ai', deckAi),
+    you: mkPlayer('you', deckYou, zmkYou.pile, buildCurseDeck(curseCards, 'y')),
+    ai: mkPlayer('ai', deckAi, zmkAi.pile, buildCurseDeck(curseCards, 'a')),
     active: first,
     field: null,
     globalTurn: 0,
     winner: null,
     log: [],
+    zmkMode: zmkYou.mode,
+    zmkDefs: zmkYou.defs,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
   drawCards(g, first, 4, true)
@@ -271,7 +305,13 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
       continue
     }
     p.hand.push(c)
-    if (!silent) log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.` })
+    if (!silent) log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.`, sound: 'draw' })
+    // onDraw mapping'ai (pvz. „ištraukus šią kortą – aktyvuojamas prakeiksmas")
+    const onDraw = (c.mappings ?? []).filter((m) => m.trigger === 'onDraw')
+    if (onDraw.length > 0 && !silent) {
+      applyMappings(gameApi, g, s, c.mappings ?? [], 'onDraw', { sourceName: c.name, depth: 0 })
+      if (g.winner) return
+    }
   }
 }
 
@@ -332,7 +372,9 @@ function rollDamage(g: GameState, actor: Side, base: number, unfavorable: boolea
 // ── Žalos taikymas / mirtys ───────────────────────────────────────────────────
 
 function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, useZmk = true) {
-  const dmg = useZmk ? rollDamage(g, actor, base, false) : base
+  let dmg = useZmk ? rollDamage(g, actor, base, false) : base
+  const fr = fieldEngine.applyFirstDamageReduction(g, target, dmg)
+  if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: target, msg: `🌍 Laukas sumažina pirmą žalą iki ${dmg}.` }) }
   if (dmg <= 0) return
   const p = P(g, target)
   p.hp -= dmg
@@ -346,7 +388,9 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
     log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja žalą „${target.card.name}" – ŽMK netraukiama.` })
     return
   }
-  const dmg = useZmk ? rollDamage(g, actor, base, false) : base
+  let dmg = useZmk ? rollDamage(g, actor, base, false) : base
+  const fr = fieldEngine.applyFirstDamageReduction(g, owner, dmg)
+  if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: owner, msg: `🌍 Laukas sumažina pirmą žalą iki ${dmg}.` }) }
   if (dmg <= 0) {
     log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, msg: `„${target.card.name}" žalos negauna (0).` })
     return
@@ -373,14 +417,20 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
   const p = P(g, owner)
   const idx = p.units.findIndex((x) => x?.uid === u.uid)
   if (idx === -1) return
-  // Paskutinis noras – prieš kortai keliaujant į krūvą (jei nenutildytas)
-  if (u.card.keywords.includes('lastwish') && !u.statuses.silenced && u.card.effect) {
-    log(g, { t: 'lastwish', side: owner, cardName: u.card.name, msg: `🕯 „${u.card.name}" Paskutinis noras aktyvuojasi!` })
-    applyAutoEffect(g, owner, u.card.effect, u.card.name)
+  // Paskutinis noras / onDeath mapping'ai – prieš kortai keliaujant į krūvą
+  if (!u.statuses.silenced) {
+    const deathMappings = (u.card.mappings ?? []).filter((m) => m.trigger === 'onDeath')
+    if (deathMappings.length > 0) {
+      log(g, { t: 'lastwish', side: owner, cardName: u.card.name, msg: `🕯 „${u.card.name}" Paskutinis noras aktyvuojasi!`, src: { side: owner, uid: u.uid } })
+      applyMappings(gameApi, g, owner, u.card.mappings ?? [], 'onDeath', { sourceName: u.card.name, sourceUid: u.uid, depth: 0 })
+    } else if (u.card.keywords.includes('lastwish') && u.card.effect) {
+      log(g, { t: 'lastwish', side: owner, cardName: u.card.name, msg: `🕯 „${u.card.name}" Paskutinis noras aktyvuojasi!`, src: { side: owner, uid: u.uid } })
+      applyAutoEffect(g, owner, u.card.effect, u.card.name)
+    }
   }
   p.units[idx] = null
   p.discard.push(u.card)
-  log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.` })
+  log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death' })
 }
 
 function checkWin(g: GameState) {
@@ -466,6 +516,159 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
 }
 
+// ── Nauji primityvai + GameApi (effect engine integracijai) ─────────────────
+
+function healUnitPrim(g: GameState, owner: Side, u: BoardUnit, n: number) {
+  const b = u.hp
+  u.hp = Math.min(u.maxHp, u.hp + n)
+  if (u.hp > b) log(g, { t: 'heal', side: owner, cardName: u.card.name, value: u.hp - b, msg: `„${u.card.name}" pagydomas ${u.hp - b} HP.`, sound: 'heal' })
+}
+
+function healPlayerPrim(g: GameState, s: Side, n: number) {
+  const p = P(g, s)
+  const b = p.hp
+  p.hp = Math.min(p.maxHp, p.hp + n)
+  if (p.hp > b) log(g, { t: 'heal', side: s, value: p.hp - b, msg: `${sideName(s)} ${s === 'you' ? 'atgauni' : 'atgauna'} ${p.hp - b} HP.`, sound: 'heal' })
+}
+
+function buffUnitPrim(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number) {
+  if (atk !== 0) {
+    u.atk = Math.max(0, u.atk + atk)
+    log(g, { t: 'buff', side: owner, cardName: u.card.name, msg: `„${u.card.name}" ${atk > 0 ? 'gauna +' + atk : 'praranda ' + Math.abs(atk)} ATK.` })
+  }
+  if (hp > 0) {
+    u.hp += hp; u.maxHp += hp
+    log(g, { t: 'buff', side: owner, cardName: u.card.name, msg: `„${u.card.name}" gauna +${hp} HP.` })
+  } else if (hp < 0) {
+    u.maxHp = Math.max(1, u.maxHp + hp)
+    u.hp += hp
+    log(g, { t: 'buff', side: owner, cardName: u.card.name, msg: `„${u.card.name}" praranda ${Math.abs(hp)} HP.` })
+    if (u.hp <= 0) killUnit(g, owner, u)
+  }
+}
+
+function discardCardsPrim(g: GameState, s: Side, n: number) {
+  const p = P(g, s)
+  for (let i = 0; i < n && p.hand.length > 0; i++) {
+    // be random: metama pigiausia korta (deterministinis pasirinkimas)
+    const idx = p.hand.reduce((best, c, ci) => (c.gold < p.hand[best].gold ? ci : best), 0)
+    const [c] = p.hand.splice(idx, 1)
+    p.discard.push(c)
+    log(g, { t: 'discardGold', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'išmeti' : 'išmeta'} „${c.name}".` })
+  }
+}
+
+function destroyArtifactPrim(g: GameState, owner: Side, uid: string) {
+  const p = P(g, owner)
+  const a = p.artifacts.find((x) => x?.uid === uid)
+  if (!a) return
+  p.artifacts = p.artifacts.map((x) => (x?.uid === uid ? null : x))
+  p.discard.push(a.card)
+  log(g, { t: 'death', side: owner, cardName: a.card.name, msg: `Artefaktas „${a.card.name}" sunaikintas.`, sound: 'death' })
+}
+
+function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
+  const p = P(g, owner)
+  const idx = p.units.findIndex((x) => x?.uid === u.uid)
+  if (idx === -1) return
+  p.units[idx] = null
+  if (p.hand.length >= 10) {
+    p.discard.push(u.card)
+    log(g, { t: 'handBurn', side: owner, cardName: u.card.name, msg: `Ranka pilna – „${u.card.name}" keliauja į krūvą.` })
+  } else {
+    p.hand.push(u.card)
+    log(g, { t: 'play', side: owner, cardName: u.card.name, msg: `„${u.card.name}" grąžinamas į ranką.` })
+  }
+}
+
+function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard') {
+  const p = P(g, s)
+  const slot = p.units.findIndex((u) => u === null)
+  if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
+  const src = zone === 'hand' ? p.hand : zone === 'deck' ? p.deck : p.discard
+  const idx = src.findIndex((c) => c.type === 'unit')
+  if (idx === -1) { log(g, { t: 'blocked', side: s, msg: `Nėra padaro ${zone === 'hand' ? 'rankoje' : zone === 'deck' ? 'kaladėje' : 'krūvoje'} – iškvietimas neįvyksta.` }); return }
+  const [card] = src.splice(idx, 1)
+  p.units[slot] = {
+    uid: card.uid + '-s' + g.globalTurn, card,
+    atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
+    shield: card.keywords.includes('shield'),
+    stealth: card.keywords.includes('stealth'),
+    statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
+    isChampion: false, phase: 0, abilityUsed: false,
+  }
+  log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
+}
+
+function gainGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
+  P(g, s).gold += n
+  log(g, { t: 'gold', side: s, value: n, msg: `${sideName(s)} ${s === 'you' ? 'gauni' : 'gauna'} +${n} aukso („${srcName}").` })
+}
+
+function loseGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
+  const p = P(g, s)
+  p.gold = Math.max(0, p.gold - n)
+  log(g, { t: 'gold', side: s, value: -n, msg: `${sideName(s)} praranda ${n} aukso („${srcName}").` })
+}
+
+function drawZmkVisualPrim(g: GameState, s: Side) {
+  const v = drawZmkCard(g, s)
+  log(g, { t: 'zmk', side: s, zmk: v, msg: `ŽMK traukimas: ${v}.`, sound: 'zmkFlip' })
+  zmkAfter(g, s, v)
+}
+
+export const gameApi: GameApi = {
+  dealToUnit, dealToPlayer, dealToArtifact,
+  healUnit: healUnitPrim,
+  healPlayer: healPlayerPrim,
+  drawCards: (g, s, n) => drawCards(g, s, n),
+  discardCards: discardCardsPrim,
+  killUnit,
+  destroyArtifact: destroyArtifactPrim,
+  applyStatus,
+  buffUnit: buffUnitPrim,
+  gainGold: gainGoldPrim,
+  loseGold: loseGoldPrim,
+  returnUnitToHand: returnUnitToHandPrim,
+  summonFromZone: summonFromZonePrim,
+  activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
+  drawZmkVisual: drawZmkVisualPrim,
+  log,
+}
+
+/** Reali kortos kaina su lauko pasyvais (burtai/padarai gali kainuoti kitaip). */
+export function effectiveCost(g: GameState, s: Side, card: TutCard): number {
+  let cost = card.gold
+  if (card.type === 'spell') cost += fieldEngine.spellCostDelta(g, s)
+  if (card.type === 'unit') cost += fieldEngine.unitCostDelta(g, s)
+  return Math.max(0, cost)
+}
+
+/** Numatytasis projectile pagal kortos efektą (kai admin nenurodė). */
+export function projectileForCard(card: TutCard): ProjectileType {
+  const m = card.mappings?.[0]
+  const eff = m?.effect
+  if (eff === 'damage') return 'fireball'
+  if (eff === 'heal') return 'healingGlow'
+  if (eff === 'freeze') return 'freezeBurst'
+  if (eff === 'stun') return 'stunBurst'
+  if (eff === 'destroy') return 'destroyStrike'
+  if (eff === 'poison' || eff === 'burn') return 'poisonGlob'
+  if (eff === 'triggerCurse') return 'darkCurse'
+  const e = card.effect
+  if (e?.status === 'frozen') return 'freezeBurst'
+  if (e?.status === 'stunned') return 'stunBurst'
+  if (e?.status === 'poisoned' || e?.status === 'burning') return 'poisonGlob'
+  if (e?.damage) return 'fireball'
+  if (e?.heal) return 'healingGlow'
+  return 'none'
+}
+
+/** TargetRef (UI) -> ResolvedTarget (effect engine) */
+export function toResolved(t: TargetRef): ResolvedTarget {
+  return t as ResolvedTarget
+}
+
 // ── Ėjimo pradžia / pabaiga ───────────────────────────────────────────────────
 
 export function beginTurn(g: GameState): GameState {
@@ -475,6 +678,8 @@ export function beginTurn(g: GameState): GameState {
   g.globalTurn += 1
   p.turnNumber += 1
   p.discardedForGold = false
+  p.attacksThisTurn = 0
+  p.fieldDamageReducedThisTurn = false
   log(g, { t: 'startTurn', side: s, msg: `— ${sideName(s)} ${s === 'you' ? 'pradedi' : 'pradeda'} ${p.turnNumber}-ą ėjimą —` })
 
   // 1. Ėjimo pradžios efektai: Degantis / Apnuodytas (1 bazinė žala + ŽMK)
@@ -507,11 +712,18 @@ export function beginTurn(g: GameState): GameState {
   }
   if (g.winner) return g
 
+  // 1b. onTurnStart mapping'ai (padarai, artefaktai, laukas)
+  fireTrigger(gameApi, g, s, 'onTurnStart')
+  if (g.winner) return g
+
   // 2. Kortos traukimas
   drawCards(g, s, 1)
-  // 3. Aukso gavimas pagal ėjimo numerį
-  p.gold = Math.min(p.turnNumber, 10) * 100
-  log(g, { t: 'gold', side: s, value: p.gold, msg: `${sideName(s)} ${s === 'you' ? 'gauni' : 'gauna'} ${p.gold} aukso (${p.turnNumber}${p.turnNumber >= 10 ? '+' : ''} ėjimas).` })
+  if (g.winner) return g
+  // 3. Aukso gavimas pagal ėjimo numerį (+ lauko bonusas)
+  const fieldBonus = fieldEngine.fieldGoldBonus(g, s)
+  // += (ne =): ėjimo pradžios trigger'ių duotas auksas išsaugomas
+  p.gold += Math.min(p.turnNumber, 10) * 100 + fieldBonus
+  log(g, { t: 'gold', side: s, value: p.gold, msg: `${sideName(s)} ${s === 'you' ? 'gauni' : 'gauna'} ${p.gold} aukso (${p.turnNumber}${p.turnNumber >= 10 ? '+' : ''} ėjimas${fieldBonus ? `, +${fieldBonus} iš lauko` : ''}).` })
   return g
 }
 
@@ -530,6 +742,8 @@ export function endTurn(g: GameState): GameState {
       }
     }
   }
+  // onTurnEnd mapping'ai (padarai, artefaktai, laukas)
+  fireTrigger(gameApi, g, s, 'onTurnEnd')
   p.gold = 0
   log(g, { t: 'endTurn', side: s, msg: `${sideName(s)} ${s === 'you' ? 'baigi' : 'baigia'} ėjimą. Nepanaudotas auksas dingsta.` })
   g.active = other(s)
@@ -541,7 +755,7 @@ export function endTurn(g: GameState): GameState {
 export type PlayResult = { ok: true } | { ok: false; reason: string }
 
 export function canAfford(g: GameState, s: Side, card: TutCard): boolean {
-  return P(g, s).gold >= card.gold
+  return P(g, s).gold >= effectiveCost(g, s, card)
 }
 
 export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
@@ -564,14 +778,15 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
   const i = p.hand.findIndex((c) => c.uid === uid)
   if (i === -1) return { ok: false, reason: 'Kortos nėra rankoje.' }
   const card = p.hand[i]
-  if (p.gold < card.gold) return { ok: false, reason: `Trūksta aukso: kaina ${card.gold}, turi ${p.gold}.` }
+  const cost = effectiveCost(g, s, card)
+  if (p.gold < cost) return { ok: false, reason: `Trūksta aukso: kaina ${cost}${cost !== card.gold ? ' (laukas keičia kainą)' : ''}, turi ${p.gold}.` }
 
   switch (card.type) {
     case 'unit': {
       const slot = p.units.findIndex((u) => u === null)
       if (slot === -1) return { ok: false, reason: 'Padarų zona pilna (maks. 5).' }
       p.hand.splice(i, 1)
-      p.gold -= card.gold
+      p.gold -= cost
       const u: BoardUnit = {
         uid: card.uid, card,
         atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
@@ -581,23 +796,46 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         isChampion: false, phase: 0, abilityUsed: false,
       }
       p.units[slot] = u
-      log(g, { t: 'play', side: s, cardName: card.name, value: card.gold, msg: `${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} „${card.name}" (${card.gold} aukso).${card.keywords.includes('sprint') ? ' ▶ Sprintas – gali atakuoti iš karto!' : ''}` })
-      if (card.keywords.includes('battlecry') && card.effect) {
-        log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis!` })
+      log(g, { t: 'play', side: s, cardName: card.name, value: cost, msg: `${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} „${card.name}" (${cost} aukso).${card.keywords.includes('sprint') ? ' ▶ Sprintas – gali atakuoti iš karto!' : ''}`, src: { side: s, uid: u.uid }, sound: 'summon' })
+      const summonMappings = (card.mappings ?? []).filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay')
+      if (summonMappings.length > 0) {
+        log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis!`, src: { side: s, uid: u.uid } })
+        for (const m of summonMappings) {
+          applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+          if (g.winner) break
+        }
+      } else if (card.keywords.includes('battlecry') && card.effect) {
+        log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis!`, src: { side: s, uid: u.uid } })
         if (card.effect.targeted && opts?.target) applyTargetedEffect(g, s, card.effect, opts.target, card.name)
         else applyAutoEffect(g, s, card.effect, card.name)
       }
+      // lauko onSummon trigger'iai
+      fireTrigger(gameApi, g, s, 'onSummon', 1)
       return { ok: true }
     }
     case 'spell': {
       p.hand.splice(i, 1)
-      p.gold -= card.gold
-      log(g, { t: 'spell', side: s, cardName: card.name, value: card.gold, msg: `${sideName(s)} ${s === 'you' ? 'panaudoji' : 'panaudoja'} burtą „${card.name}" (${card.gold} aukso).` })
-      if (card.effect) {
+      p.gold -= cost
+      const spellMappings = (card.mappings ?? []).filter((m) => m.trigger === 'onCast' || m.trigger === 'onPlay')
+      const proj = spellMappings[0]?.projectile ?? card.gameplay?.projectileType ?? projectileForCard(card)
+      log(g, {
+        t: 'spell', side: s, cardName: card.name, value: cost,
+        msg: `${sideName(s)} ${s === 'you' ? 'panaudoji' : 'panaudoja'} burtą „${card.name}" (${cost} aukso).`,
+        src: { side: s }, tgt: opts?.target ? { ...opts.target } : undefined,
+        projectile: proj, sound: spellMappings[0]?.sound ?? card.gameplay?.soundType ?? 'spellCast',
+      })
+      if (spellMappings.length > 0) {
+        for (const m of spellMappings) {
+          applyMapping(gameApi, g, s, m, { sourceName: card.name, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+          if (g.winner) break
+        }
+      } else if (card.effect) {
         if (card.effect.targeted && opts?.target) applyTargetedEffect(g, s, card.effect, opts.target, card.name)
         else applyAutoEffect(g, s, card.effect, card.name)
       }
       p.discard.push(card)
+      // lauko onCast trigger'iai
+      fireTrigger(gameApi, g, s, 'onCast', 1)
       return { ok: true }
     }
     case 'artifact': {
@@ -620,14 +858,17 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
     }
     case 'field': {
       p.hand.splice(i, 1)
-      p.gold -= card.gold
+      p.gold -= cost
       if (g.field) {
+        // onFieldLeave trigger'iai prieš pakeičiant
+        fireTrigger(gameApi, g, s, 'onFieldLeave', 1)
         const oldOwner = P(g, g.field.owner)
         oldOwner.discard.push(g.field.card)
-        log(g, { t: 'field', side: s, cardName: g.field.card.name, msg: `Sena lauko korta „${g.field.card.name}" pakeičiama.` })
+        log(g, { t: 'field', side: s, cardName: g.field.card.name, msg: `Sena lauko korta „${g.field.card.name}" keliauja į panaudotų krūvą.` })
       }
       g.field = { card, owner: s }
-      log(g, { t: 'field', side: s, cardName: card.name, msg: `${sideName(s)} ${s === 'you' ? 'žaidi' : 'žaidžia'} lauko kortą „${card.name}" – veikia abu žaidėjus.` })
+      log(g, { t: 'field', side: s, cardName: card.name, msg: `🌍 ${sideName(s)} ${s === 'you' ? 'žaidi' : 'žaidžia'} lauko kortą „${card.name}" – veikia abu žaidėjus.`, sound: 'field' })
+      fireTrigger(gameApi, g, s, 'onFieldEnter', 1)
       return { ok: true }
     }
     case 'champion': {
@@ -686,27 +927,43 @@ export function useChampionAbility(g: GameState, s: Side, opts?: { target?: Targ
   if (ch.statuses.frozen || ch.statuses.stunned) return { ok: false, reason: `Čempionas ${ch.statuses.frozen ? 'sušaldytas' : 'apsvaigintas'} – gebėjimas negalimas.` }
   if (ch.statuses.silenced) return { ok: false, reason: 'Čempionas nutildytas – gebėjimai blokuojami.' }
   ch.abilityUsed = true
-  const e = ch.card.effect ?? { damage: ch.phase, targeted: true }
-  // gebėjimo galia auga su faze
-  const boosted: ParsedEffect = { ...e }
-  if (boosted.damage) boosted.damage += ch.phase - 1
-  if (boosted.heal) boosted.heal += ch.phase - 1
-  log(g, { t: 'ability', side: s, cardName: ch.card.name, msg: `⚜ „${ch.card.name}" naudoja gebėjimą (${ch.phase} fazė).` })
-  if (boosted.targeted && opts?.target) applyTargetedEffect(g, s, boosted, opts.target, ch.card.name)
-  else applyAutoEffect(g, s, boosted, ch.card.name)
+  const skillMappings = (ch.card.gameplay?.championSkillConfig?.mappings ?? ch.card.mappings ?? []).filter((m) => m.trigger === 'onChampionSkill' || m.trigger === 'onCast' || m.trigger === 'onPlay')
+  log(g, {
+    t: 'ability', side: s, cardName: ch.card.name, msg: `⚜ „${ch.card.name}" naudoja gebėjimą (${ch.phase} fazė).`,
+    src: { side: s, uid: ch.uid }, tgt: opts?.target ? { ...opts.target } : undefined,
+    projectile: skillMappings[0]?.projectile ?? projectileForCard(ch.card), sound: 'championSkill',
+  })
+  if (skillMappings.length > 0) {
+    for (const m of skillMappings) {
+      // gebėjimo galia auga su faze
+      const boosted = { ...m, value: (m.value ?? 1) + ch.phase - 1 }
+      applyMapping(gameApi, g, s, boosted, { sourceName: ch.card.name, sourceUid: ch.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+      if (g.winner) break
+    }
+  } else {
+    const e = ch.card.effect ?? { damage: ch.phase, targeted: true }
+    const boosted: ParsedEffect = { ...e }
+    if (boosted.damage) boosted.damage += ch.phase - 1
+    if (boosted.heal) boosted.heal += ch.phase - 1
+    if (boosted.targeted && opts?.target) applyTargetedEffect(g, s, boosted, opts.target, ch.card.name)
+    else applyAutoEffect(g, s, boosted, ch.card.name)
+  }
+  fireTrigger(gameApi, g, s, 'onChampionSkill', 1)
   return { ok: true }
 }
 
 // ── Atakos ────────────────────────────────────────────────────────────────────
 
 export function effectiveAtk(g: GameState, u: BoardUnit): number {
-  let atk = u.atk
-  if (g.field?.card.effect?.buffAtk) atk += g.field.card.effect.buffAtk
-  return atk
+  // lauko pasyvas (admin config arba legacy parsed buffAtk)
+  const owner: Side = g.you.units.some((x) => x?.uid === u.uid) ? 'you' : 'ai'
+  return Math.max(0, u.atk + fieldEngine.fieldAtkDelta(g, owner))
 }
 
 export function canUnitAttack(g: GameState, s: Side, u: BoardUnit): { ok: boolean; reason?: string } {
   if (u.isChampion) return { ok: false, reason: 'Čempionas neturi ATK ir negali atakuoti – naudok gebėjimą.' }
+  const limit = fieldEngine.attackLimit(g, s)
+  if (P(g, s).attacksThisTurn >= limit) return { ok: false, reason: `🌍 Laukas riboja atakas: maks. ${limit} per ėjimą.` }
   if (u.attacksUsed >= 1) return { ok: false, reason: 'Šis padaras jau atakavo šį ėjimą.' }
   if (u.statuses.frozen) return { ok: false, reason: '❄ Padaras sušaldytas – praleidžia veikimo galimybę.' }
   if (u.statuses.stunned) return { ok: false, reason: '✦ Padaras apsvaigintas – negali atakuoti.' }
@@ -760,10 +1017,15 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   if (!isLegal) return { ok: false, reason: '⊙ Pasišaipymas! Privalai pulti padarą su Pasišaipymu.' }
 
   u.attacksUsed += 1
+  p.attacksThisTurn += 1
   if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `◑ „${u.card.name}" Sėlinimas baigiasi po atakos.` }) }
   const foe = other(s)
   const atk = effectiveAtk(g, u)
   const unfav = !!u.statuses.poisoned // Apnuodytas puola nepalankiai
+  // onAttack mapping'ai (puolančiojo)
+  if ((u.card.mappings ?? []).some((m) => m.trigger === 'onAttack')) {
+    applyMappings(gameApi, g, s, u.card.mappings ?? [], 'onAttack', { sourceName: u.card.name, sourceUid: u.uid, depth: 1 })
+  }
 
   // Gynėjo reakcija (jei turi) – „paskutinis aktyvavęsis sprendžiamas pirmas"
   maybeTriggerReaction(g, foe, u, s)
@@ -772,7 +1034,12 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   if (target.kind === 'unit') {
     const def = P(g, foe).units.find((x) => x?.uid === target.uid)
     if (!def) { log(g, { t: 'blocked', side: s, msg: 'Taikinys nebegalioja.' }); return { ok: true } }
-    log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" (${atk} ATK) atakuoja „${def.card.name}" – abu traukia po ŽMK!` })
+    log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" (${atk} ATK) atakuoja „${def.card.name}" – abu traukia po ŽMK!`, src: { side: s, uid: u.uid }, tgt: { kind: 'unit', side: foe, uid: def.uid }, sound: 'attack' })
+    // onAttacked mapping'ai (gynėjo)
+    if (!def.statuses.silenced && (def.card.mappings ?? []).some((m) => m.trigger === 'onAttacked')) {
+      applyMappings(gameApi, g, foe, def.card.mappings ?? [], 'onAttacked', { sourceName: def.card.name, sourceUid: def.uid, depth: 1 })
+      if (!p.units.some((x) => x?.uid === u.uid)) return { ok: true }
+    }
     const defAtk = def.isChampion ? 0 : effectiveAtk(g, def)
     const defRetaliates = !def.statuses.frozen && defAtk > 0 // Sušaldytas nedaro atgalinės žalos
     // abu žalą daro vienu metu: puolančiojo žala gynėjui
@@ -802,10 +1069,10 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   } else if (target.kind === 'artifact') {
     const a = P(g, foe).artifacts.find((x) => x?.uid === target.uid)
     if (!a) return { ok: true }
-    log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" atakuoja artefaktą „${a.card.name}" – atgalinės žalos negauna.` })
+    log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" atakuoja artefaktą „${a.card.name}" – atgalinės žalos negauna.`, src: { side: s, uid: u.uid }, tgt: { kind: 'artifact', side: foe, uid: a.uid }, sound: 'attack' })
     dealToArtifact(g, a, foe, atk, s)
   } else {
-    log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" atakuoja ${foe === 'ai' ? 'priešininką' : 'tave'} tiesiogiai!` })
+    log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" atakuoja ${foe === 'ai' ? 'priešininką' : 'tave'} tiesiogiai!`, src: { side: s, uid: u.uid }, tgt: { kind: 'player', side: foe }, sound: 'attack' })
     if (unfav) { const dmg = rollDamage(g, s, atk, true); if (dmg > 0) { P(g, foe).hp -= dmg; log(g, { t: 'damage', side: foe, value: dmg, msg: `${sideName(foe)} ${foe === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, P(g, foe).hp)} HP.` }); checkWin(g) } }
     else dealToPlayer(g, foe, atk, s)
   }

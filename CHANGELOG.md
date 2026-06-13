@@ -1,5 +1,17 @@
 # Changelog
 
+## [Virtualus žaidimas v1: effect engine] - 2026-06-13
+
+### Pridėta
+
+- **Effect engine** (`src/lib/game/`): admin mapinami kortų efektai (27 tipai, 19 taikinių tipų, 19 trigger'ių), target/trigger resolveriai, curse side deck, ŽMK iš DB (auto/draw režimai), field pasyvai ir trigger'iai, battle sound manager (mp3 → synth fallback), nesumapinti efektai praleidžiami su warning
+- **DB migracija** `supabase/gameplay_v1.sql`: `cards.gameplay` JSONB + `zmk_cards` lentelė (BŪTINA paleisti)
+- **Admin**: `/admin/zmk` ŽMK CRUD; kortos redagavime „🎮 Virtualaus žaidimo efektai" editorius (dropdown + JSON), `needsEffectMapping` žymė
+- **UI**: projectile animacijos (🔥❄️✨⚔️…) + impact + garsai, targeting kursorius, negalimi taikiniai pritemdomi, curse aktyvacijos overlay, ŽMK draw modalas, hand zoom (🔍), desktop scale padidintas, tutorial fallback (auksas/skip) + „− Sutraukti" popup, mobile popup viršuje
+- **Testai**: `scripts/simulate-virtual-game.ts` – 29 scenarijai, visi ✓. Dokumentacija: `VIRTUAL-GAME-NOTES.md`
+
+---
+
 ## [Tutorial: Išmokyk mane žaisti] - 2026-06-12
 
 ### Pridėta

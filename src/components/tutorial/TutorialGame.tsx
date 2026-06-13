@@ -20,10 +20,12 @@ import {
   GameState, GameEvent, TutCard, BoardUnit, TargetRef, Side,
   createGame, beginTurn, endTurn, playCard, attack, discardForGold,
   useChampionAbility, canUnitAttack, legalTargets, cloneState, P,
-  parseEffect, detectKeywords, mapCardType, effectiveAtk,
+  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
   STATUS_META, TutStatus,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
+import { parseGameplayConfig, type ZmkCardDef } from '@/lib/game/types'
+import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
@@ -37,6 +39,7 @@ type DbRow = {
     id: string; name: string; image_url: string | null
     gold_cost: number | null; attack: number | null; health: number | null
     effect_text: string | null; description: string | null; is_champion: boolean | null
+    gameplay?: unknown
     card_type: { name: string } | null
     rarity: { color_hex: string | null } | null
     faction: { color_hex: string | null } | null
@@ -47,6 +50,7 @@ type DbRow = {
 function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
   const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
   const text = [c.effect_text, c.description].filter(Boolean).join(' ')
+  const gameplay = parseGameplayConfig(c.gameplay)
   return {
     id: c.id,
     name: c.name,
@@ -60,6 +64,10 @@ function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
     rarityColor: c.rarity?.color_hex ?? '#d4af37',
     factionColor: c.faction?.color_hex ?? '#d4af37',
     effect: parseEffect(text),
+    gameplay,
+    // Admin mapping > legacy teksto parseris (mappings tušti = legacy kelias)
+    mappings: gameplay?.virtualEnabled === false ? [] : gameplay?.effectMappings ?? [],
+    needsMapping: !gameplay?.effectMappings?.length && !!text,
   }
 }
 
@@ -141,9 +149,9 @@ function MiniCard({ c, w, dim, faceDown }: { c: TutCard; w: number; dim?: boolea
 
 // ── Padaro plytelė kovos lauke ───────────────────────────────────────────────
 
-function UnitTile({ g, u, w, selected, targetable, canAct, onClick }: {
+function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick }: {
   g: GameState; u: BoardUnit; w: number
-  selected?: boolean; targetable?: boolean; canAct?: boolean
+  selected?: boolean; targetable?: boolean; canAct?: boolean; dimmed?: boolean
   onClick?: () => void
 }) {
   const h = Math.round(w * 4 / 3)
@@ -157,7 +165,7 @@ function UnitTile({ g, u, w, selected, targetable, canAct, onClick }: {
       exit={{ scale: 0.6, opacity: 0 }}
       onClick={onClick}
       className="relative rounded-lg overflow-visible select-none"
-      style={{ width: w, height: h, cursor: onClick ? 'pointer' : 'default' }}
+      style={{ width: w, height: h, cursor: onClick ? 'pointer' : 'default', opacity: dimmed ? 0.4 : 1, filter: dimmed ? 'grayscale(0.7)' : undefined, transition: 'opacity 0.2s, filter 0.2s' }}
     >
       <div className="absolute inset-0 rounded-lg overflow-hidden"
         style={{
@@ -232,11 +240,28 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [deckCards, setDeckCards] = useState<TutCard[] | null>(null)
+  const [zmkDefs, setZmkDefs] = useState<ZmkCardDef[] | null>(null)
+  const [curseCards, setCurseCards] = useState<TutCard[]>([])
+  const [extrasLoaded, setExtrasLoaded] = useState(false)
   const [stepIdx, setStepIdx] = useState(0)
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [zmkFlash, setZmkFlash] = useState<{ v: string; side: Side; n: number } | null>(null)
+  // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
+  const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
+  // Prakeiksmo aktyvacijos overlay
+  const [curseShow, setCurseShow] = useState<{ name: string; msg: string; image: string | null } | null>(null)
+  // Projectile animacijos
+  const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
+  const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
+  const projIdRef = useRef(0)
+  // Rankos padidinimas
+  const [handExpanded, setHandExpanded] = useState(false)
+  // Sutrauktas tutorial popup
+  const [popupCollapsed, setPopupCollapsed] = useState(false)
+  // Tutorial pagalbos auksas suteiktas tik kartą
+  const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
   const [showLog, setShowLog] = useState(false)
   const [soundOn, setSoundOn] = useState(true)
@@ -246,11 +271,13 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
 
   const step: TutStep | null = stepIdx < GUIDED_STEPS.length ? GUIDED_STEPS[stepIdx] : null
   const activeTip: TipKey | null = !step && tipQueue.length > 0 ? tipQueue[0] : null
-  // Pop-up be reikalaujamo veiksmo (arba patarimas) – pristabdo AI ir veiksmus
-  const popupBlocks = (!!step && !step.require) || !!activeTip
+  // Pop-up be reikalaujamo veiksmo (arba patarimas) – pristabdo AI ir veiksmus.
+  // Sutrauktas popup nebeblokuoja. ŽMK 'draw' eilė irgi pristabdo AI.
+  const popupBlocks = ((!!step && !step.require) || !!activeTip) && !popupCollapsed
+  const zmkBlocks = zmkPending.length > 0
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-  const handW = isTouch ? 58 : 78
-  const unitW = isTouch ? 56 : 72
+  const handW = isTouch ? 58 : 96
+  const unitW = isTouch ? 58 : 90
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -270,7 +297,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         .from('cards')
         .select(`
           id, name, image_url, gold_cost, attack, health,
-          effect_text, description, is_champion,
+          effect_text, description, is_champion, gameplay,
           card_type:card_types ( name ),
           rarity:rarities ( color_hex ),
           faction:factions ( color_hex ),
@@ -297,7 +324,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         quantity,
         card:cards (
           id, name, image_url, gold_cost, attack, health,
-          effect_text, description, is_champion,
+          effect_text, description, is_champion, gameplay,
           card_type:card_types ( name ),
           rarity:rarities ( color_hex ),
           faction:factions ( color_hex ),
@@ -319,20 +346,54 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     return () => { alive = false }
   }, [deckId])
 
+  // ── ŽMK definicijos (zmk_cards) + prakeiksmų side deck (curse tipo kortos) ──
+  useEffect(() => {
+    let alive = true
+    const supabase = createClient()
+    Promise.all([
+      supabase.from('zmk_cards').select('*').eq('active', true).order('sort_order'),
+      supabase.from('cards').select(`
+        id, name, image_url, gold_cost, attack, health,
+        effect_text, description, is_champion, gameplay,
+        card_type:card_types ( name ),
+        rarity:rarities ( color_hex ),
+        faction:factions ( color_hex ),
+        card_keywords ( keyword:keywords ( name ) )
+      `).eq('status', 'active').limit(300),
+    ]).then(([zmkRes, cardsRes]) => {
+      if (!alive) return
+      // zmk_cards lentelės gali nebūti (migracija nepaleista) – fallback default
+      if (!zmkRes.error && zmkRes.data && zmkRes.data.length > 0) {
+        setZmkDefs(zmkRes.data as unknown as ZmkCardDef[])
+      }
+      if (!cardsRes.error && cardsRes.data) {
+        const all = (cardsRes.data as unknown as NonNullable<DbRow['card']>[]).map(mapDbCard)
+        const curses = all.filter((c) => c.type === 'curse').map((c, i) => ({ ...c, uid: c.id + '-cu' + i }))
+        setCurseCards(curses)
+      }
+      setExtrasLoaded(true)
+    }).catch(() => { if (alive) setExtrasLoaded(true) })
+    return () => { alive = false }
+  }, [])
+
   // ── Žaidimo (per)kūrimas ──
   const initGame = useCallback((cards: TutCard[]) => {
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       cards.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       'you',
+      { zmkDefs, curseCards },
     )
     beginTurn(g)
     seenRef.current = g.log.length
     setGame(g)
     playShuffle()
-  }, [])
+  }, [zmkDefs, curseCards])
 
-  useEffect(() => { if (deckCards) initGame(deckCards) }, [deckCards, initGame])
+  useEffect(() => {
+    if (deckCards && extrasLoaded && !game) initGame(deckCards)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckCards, extrasLoaded, initGame])
 
   // ── Ambient muzika + garso būsenos sekimas ──
   useEffect(() => {
@@ -360,6 +421,32 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     }
   }, [inspect, select, onClose])
 
+  const rectFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number } | null => {
+    if (!ref) return null
+    let el: Element | null = null
+    if (ref.uid) el = document.querySelector(`[data-unit-uid="${ref.uid}"]`) ?? document.querySelector(`[data-artifact-uid="${ref.uid}"]`)
+    if (!el && ref.side) el = document.querySelector(`[data-player="${ref.side}"]`)
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  }, [])
+
+  const PROJ_EMOJI: Record<string, string> = useMemo(() => ({
+    fireball: '🔥', darkCurse: '🟣', healingGlow: '✨', freezeBurst: '❄️',
+    stunBurst: '💫', destroyStrike: '⚔️', arrow: '🏹', lightning: '⚡', poisonGlob: '☣️',
+  }), [])
+
+  const spawnProjectile = useCallback((from: { x: number; y: number }, to: { x: number; y: number }, emoji: string) => {
+    const id = ++projIdRef.current
+    setProjectiles((ps) => [...ps, { id, emoji, from, to }])
+    setTimeout(() => {
+      setProjectiles((ps) => ps.filter((x) => x.id !== id))
+      setImpacts((im) => [...im, { id, x: to.x, y: to.y, emoji }])
+      playBattleSound('impact', 0.35)
+      setTimeout(() => setImpacts((im) => im.filter((x) => x.id !== id)), 500)
+    }, 420)
+  }, [])
+
   const pushToast = useCallback((msg: string) => {
     playError()
     setToast(msg)
@@ -380,25 +467,38 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     seenRef.current = game.log.length
     let zmkN = 0
     for (const e of fresh) {
+      // garsai: engine pateiktas sound hint > numatytasis pagal tipą
+      if (e.sound) playBattleSound(e.sound)
       switch (e.t) {
-        case 'draw': playCardDraw(); break
-        case 'play': case 'artifact': case 'champion': playCardPlace(); break
-        case 'spell': case 'ability': playCardFlip(); break
-        case 'attack': playCardPick(); break
+        case 'draw': if (!e.sound) playCardDraw(); break
+        case 'play': case 'artifact': case 'champion': if (!e.sound) playBattleSound('summon'); break
+        case 'spell': case 'ability': if (!e.sound) playBattleSound('spellCast'); break
+        case 'attack': if (!e.sound) playBattleSound('attack'); break
         case 'zmk':
           zmkN += 1
-          setZmkFlash({ v: e.zmk ?? '?', side: e.side, n: zmkN })
-          playCardFlip()
+          if (game.zmkMode === 'draw') {
+            setZmkPending((q) => [...q, { v: e.zmk ?? '?', side: e.side, revealed: false }])
+          } else {
+            setZmkFlash({ v: e.zmk ?? '?', side: e.side, n: zmkN })
+          }
+          if (!e.sound) playBattleSound('zmkFlip')
           if (e.zmk === 'x2' || e.zmk === 'x0') queueTip('zmk-special')
           break
         case 'win': if (e.side === 'you') playSuccess(); else playError(); break
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
         case 'reactionTrigger': queueTip('reaction'); break
-        case 'field': queueTip('field'); break
+        case 'field': queueTip('field'); if (!e.sound) playBattleSound('field'); break
         case 'evolve': queueTip('evolve'); playSuccess(); break
         case 'handBurn': queueTip('hand-burn'); break
-        case 'curse': queueTip('curse'); break
+        case 'curse': {
+          queueTip('curse')
+          playBattleSound('curse')
+          const cc = [...game.you.discard, ...game.ai.discard].find((c) => c.name === e.cardName)
+          setCurseShow({ name: e.cardName ?? 'Prakeiksmas', msg: e.msg, image: cc?.image ?? null })
+          setTimeout(() => setCurseShow(null), 2600)
+          break
+        }
         case 'coin': queueTip('coin'); break
         case 'status': if (e.status) queueTip(('status-' + e.status) as TipKey); break
         default: break
@@ -406,6 +506,19 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       if (e.t === 'champion') queueTip('champion')
       if (e.t === 'artifact') queueTip('artifact')
       if (e.t === 'play' && /Sprintas/.test(e.msg)) queueTip('sprint')
+      // projectile animacija (spell / ability / attack su src+tgt)
+      if (e.src && e.tgt && (e.t === 'spell' || e.t === 'ability' || e.t === 'attack')) {
+        const emoji = e.t === 'attack' ? '⚔️' : PROJ_EMOJI[e.projectile ?? ''] ?? (e.projectile && e.projectile !== 'none' ? '✨' : '')
+        if (emoji) {
+          // setTimeout – kad DOM jau būtų atnaujintas
+          const src = e.src, tgt = e.tgt
+          setTimeout(() => {
+            const from = rectFor(src)
+            const to = rectFor(tgt)
+            if (from && to) spawnProjectile(from, to, emoji)
+          }, 30)
+        }
+      }
     }
     // lentos skenavimas raktažodžių patarimams
     for (const s of ['you', 'ai'] as Side[]) {
@@ -426,7 +539,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         (step.require === 'any-play' && e.side === 'you' && ['play', 'spell', 'artifact'].includes(e.t)))
       if (done) setStepIdx((i) => i + 1)
     }
-  }, [game, step, queueTip])
+  }, [game, step, queueTip, PROJ_EMOJI, rectFor, spawnProjectile])
 
   // ŽMK flash dingsta
   useEffect(() => {
@@ -435,9 +548,41 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     return () => clearTimeout(t)
   }, [zmkFlash])
 
+  // ── Tutorial fallback: žingsnis niekada neprašo neįmanomo veiksmo ──
+  useEffect(() => {
+    if (!game || !step?.require || game.active !== 'you' || game.winner) return
+    if (step.require === 'play-unit' || step.require === 'any-play') {
+      const playable = game.you.hand.some((c) =>
+        c.type !== 'curse' && game.you.gold >= c.gold &&
+        (c.type !== 'unit' || game.you.units.some((u) => u === null)) &&
+        (c.type !== 'champion'))
+      if (!playable) {
+        if (!grantedGoldRef.current && game.you.hand.some((c) => c.type !== 'curse' && c.type !== 'champion')) {
+          // suteikiam mokymo aukso, kad žingsnis būtų įvykdomas
+          grantedGoldRef.current = true
+          setGame((prev) => {
+            if (!prev) return prev
+            const g2 = cloneState(prev)
+            const cheapest = Math.min(...g2.you.hand.filter((c) => c.type !== 'curse' && c.type !== 'champion').map((c) => c.gold))
+            const need = Math.max(0, cheapest - g2.you.gold)
+            g2.you.gold += Math.max(need, 100)
+            g2.log.push({ t: 'gold', side: 'you', value: need, msg: `🎓 Mokymui pridedama aukso – dabar gali sužaisti kortą.` })
+            return g2
+          })
+        } else {
+          // vis tiek neįmanoma (pvz. tuščia ranka) – praleidžiam žingsnį
+          setStepIdx((i) => i + 1)
+        }
+      }
+    } else if (step.require === 'attack') {
+      const canAttack = game.you.units.some((u) => u && canUnitAttack(game, 'you', u).ok)
+      if (!canAttack) setStepIdx((i) => i + 1)
+    }
+  }, [game, step])
+
   // ── AI ėjimo ciklas ──
   useEffect(() => {
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -451,7 +596,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks])
+  }, [game, popupBlocks, zmkBlocks])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -586,7 +731,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     <div data-tut={tut} className="flex flex-col items-center gap-0.5">
       <div className="relative rounded-md flex items-center justify-center"
         style={{
-          width: 34, height: 46,
+          width: isTouch ? 34 : 44, height: isTouch ? 46 : 60,
           background: faceUp ? 'rgba(240,180,41,0.08)' : 'linear-gradient(145deg, #1a1325, #0d0a14)',
           border: '1px solid rgba(240,180,41,0.3)',
         }}>
@@ -600,15 +745,19 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     if (!game) return null
     const p = P(game, side)
     return (
-      <div data-tut={tut} className="flex justify-center gap-1.5 sm:gap-2 min-h-[80px] items-center">
+      <div data-tut={tut} className="flex justify-center gap-1.5 sm:gap-2 min-h-[80px] sm:min-h-[124px] items-center">
         <AnimatePresence>
           {p.units.map((u, i) => u ? (
-            <div key={u.uid} onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}>
+            <div key={u.uid} data-unit-uid={u.uid} onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}>
               <UnitTile
                 g={game} u={u} w={unitW}
                 selected={select?.kind === 'attacker' && select.uid === u.uid}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}
+                dimmed={
+                  (select?.kind === 'attacker' || select?.kind === 'spell') && side === 'ai' && !targetSet.has('unit:' + u.uid) ||
+                  select?.kind === 'sacrifice' && side === 'you' && u.isChampion
+                }
                 onClick={() => side === 'you' ? onMyUnitClick(u) : onTargetClick({ kind: 'unit', side: 'ai', uid: u.uid })}
               />
             </div>
@@ -632,12 +781,12 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       <div data-tut={side === 'you' ? 'artifacts' : undefined} className="flex justify-center gap-3 items-center">
         <div className="flex gap-1">
           {p.artifacts.map((a, i) => a ? (
-            <button key={a.uid}
+            <button key={a.uid} data-artifact-uid={a.uid}
               onClick={() => side === 'ai' && onTargetClick({ kind: 'artifact', side: 'ai', uid: a.uid })}
               onContextMenu={(e) => { e.preventDefault(); setInspect(a.card) }}
               className="relative rounded-md overflow-hidden"
               style={{
-                width: 40, height: 54,
+                width: isTouch ? 40 : 50, height: isTouch ? 54 : 68,
                 border: targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
               {a.card.image
@@ -649,20 +798,20 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
-              style={{ width: 40, height: 54, border: '1px dashed rgba(240,180,41,0.25)' }}>⭐</div>
+              style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, border: '1px dashed rgba(240,180,41,0.25)' }}>⭐</div>
           ))}
         </div>
         <div data-tut={side === 'you' ? 'reactions' : undefined} className="flex gap-1">
           {p.reactions.map((r, i) => r ? (
             <div key={r.uid} className="relative rounded-md"
-              style={{ width: 40, height: 54, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
+              style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
               <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
               <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
                 style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
             </div>
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
-              style={{ width: 40, height: 54, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
+              style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
           ))}
         </div>
       </div>
@@ -676,6 +825,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     return (
       <button
         data-tut={side === 'you' ? 'hp' : undefined}
+        data-player={side}
         onClick={() => side === 'ai' && onTargetClick({ kind: 'player', side: 'ai' })}
         disabled={!targetable}
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
@@ -685,8 +835,8 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           boxShadow: targetable ? '0 0 12px rgba(239,68,68,0.6)' : 'none',
           cursor: targetable ? 'pointer' : 'default',
         }}>
-        <span className="text-sm">❤️</span>
-        <span className="text-sm font-bold" style={{ color: p.hp <= 10 ? '#ef4444' : 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
+        <span className="text-sm sm:text-lg">❤️</span>
+        <span className="text-sm sm:text-lg font-bold" style={{ color: p.hp <= 10 ? '#ef4444' : 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
           {Math.max(0, p.hp)}
         </span>
       </button>
@@ -699,18 +849,33 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     return (
       <div data-tut={side === 'you' ? 'gold' : undefined} className="flex items-center gap-1 px-2.5 py-1 rounded-full"
         style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)' }}>
-        <span className="text-sm">⚜</span>
-        <span className="text-sm font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{p.gold}</span>
+        <span className="text-sm sm:text-lg">⚜</span>
+        <span className="text-sm sm:text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{p.gold}</span>
       </div>
     )
   }
 
   const lastMsg = game?.log[game.log.length - 1]?.msg ?? ''
 
+  // Targeting kursorius: spell – projectile emoji, ataka – kardai
+  const targetingCursor = useMemo(() => {
+    if (!select || select.kind === 'discard' || select.kind === 'sacrifice') return undefined
+    const emoji = select.kind === 'attacker'
+      ? '⚔️'
+      : PROJ_EMOJI[
+          (game?.you.hand.find((c) => select.kind === 'spell' && c.uid === select.uid)
+            ? projectileForCard(game.you.hand.find((c) => c.uid === (select as { uid: string }).uid)!)
+            : 'fireball')
+        ] ?? '🔥'
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text x='2' y='24' font-size='22'>${emoji}</text></svg>`
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 16 16, crosshair`
+  }, [select, game, PROJ_EMOJI])
+
   return createPortal(
     <div className="fixed inset-0 z-[120] flex flex-col"
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, #1a1325 0%, #0a0810 60%, #060409 100%)',
+        cursor: targetingCursor,
       }}>
       {/* viršutinė juosta */}
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
@@ -776,11 +941,11 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
               {game.field ? (
                 <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }}
                   onClick={() => setInspect(game.field!.card)}>
-                  <MiniCard c={game.field.card} w={36} />
+                  <MiniCard c={game.field.card} w={isTouch ? 36 : 48} />
                 </button>
               ) : (
                 <div className="rounded-md flex items-center justify-center text-xs opacity-25"
-                  style={{ width: 36, height: 48, border: '1px dashed rgba(240,180,41,0.3)' }}>🌍</div>
+                  style={{ width: isTouch ? 36 : 48, height: isTouch ? 48 : 64, border: '1px dashed rgba(240,180,41,0.3)' }}>🌍</div>
               )}
               <span className="text-[8px] uppercase tracking-wide hidden sm:block" style={{ color: 'var(--text-muted)' }}>Laukas</span>
             </div>
@@ -840,6 +1005,17 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                 +100⚜
               </button>
               <button
+                onClick={() => { playUiClick(); setHandExpanded((v) => !v) }}
+                className="px-2.5 py-1 rounded-full text-[11px] font-bold transition-all"
+                style={{
+                  background: handExpanded ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)',
+                  border: '1px solid rgba(240,180,41,0.4)',
+                  color: 'var(--gold)',
+                }}
+                title={handExpanded ? 'Sumažinti ranką' : 'Padidinti ranką – kortos aiškiai matomos ir žaidžiamos'}>
+                {handExpanded ? '🔍−' : '🔍+'}
+              </button>
+              <button
                 data-tut="end-turn"
                 onClick={onEndTurn}
                 disabled={!myTurn}
@@ -855,28 +1031,33 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
               </button>
             </div>
 
-            {/* ranka */}
-            <div data-tut="hand" className="flex justify-center items-end gap-0 min-h-[110px] pb-1 overflow-x-auto">
+            {/* ranka: normali (vėduoklė) arba padidinta (wrap + scroll) */}
+            <div data-tut="hand"
+              className={handExpanded
+                ? 'flex flex-wrap justify-center items-start gap-2 max-h-[46vh] overflow-y-auto p-2 rounded-xl'
+                : 'flex justify-center items-end gap-0 min-h-[110px] sm:min-h-[150px] pb-1 overflow-x-auto'}
+              style={handExpanded ? { background: 'rgba(10,8,16,0.92)', border: '1px solid rgba(240,180,41,0.25)' } : undefined}>
               <AnimatePresence>
                 {game.you.hand.map((c, i) => {
                   const n = game.you.hand.length
                   const off = i - (n - 1) / 2
                   const afford = game.you.gold >= c.gold
+                  const w = handExpanded ? (isTouch ? 104 : 140) : handW
                   return (
                     <motion.div
                       key={c.uid}
                       layout
                       initial={{ y: 60, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
+                      animate={{ y: 0, opacity: 1, rotate: handExpanded ? 0 : Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
-                      whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
-                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
+                      whileHover={handExpanded ? { y: -6, zIndex: 30 } : { y: -14, zIndex: 30, rotate: 0 }}
+                      style={{ marginLeft: handExpanded || i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
                       onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
                     >
                       <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
                         <button onClick={() => onHandCardClick(c)} className="block"
                           style={{ filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined }}>
-                          <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
+                          <MiniCard c={c} w={w} dim={!afford && select?.kind !== 'discard'} />
                         </button>
                       </GameCard>
                     </motion.div>
@@ -924,7 +1105,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
 
       {/* ── vedamo žingsnio pop-up ── */}
       <AnimatePresence>
-        {step && (
+        {step && !popupCollapsed && (
           <motion.div key={step.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[126]"
             style={{ pointerEvents: step.require ? 'none' : 'auto', background: step.require ? 'transparent' : 'rgba(0,0,0,0.55)' }}>
@@ -943,12 +1124,11 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
               className="absolute left-0 right-0 mx-auto w-[min(420px,94vw)] rounded-2xl p-4"
               style={{
                 pointerEvents: 'auto',
-                maxHeight: isMobile ? '55vh' : '70vh',
+                maxHeight: isMobile ? '42vh' : '70vh',
                 overflowY: 'auto',
-                top: isMobile ? undefined : anchorRect ? (anchorRect.top > window.innerHeight / 2 ? '18%' : undefined) : '30%',
-                bottom: isMobile
-                  ? 'calc(env(safe-area-inset-bottom, 0px) + 8px)'
-                  : anchorRect && anchorRect.top <= window.innerHeight / 2 ? '22%' : undefined,
+                // Mobile: popup VIRŠUJE, kad neuždengtų rankos ir kortų
+                top: isMobile ? 52 : anchorRect ? (anchorRect.top > window.innerHeight / 2 ? '18%' : undefined) : '30%',
+                bottom: !isMobile && anchorRect && anchorRect.top <= window.innerHeight / 2 ? '22%' : undefined,
                 background: 'linear-gradient(145deg, #1e1729, #120d1c)',
                 border: '1px solid rgba(240,180,41,0.45)',
                 boxShadow: '0 12px 40px rgba(0,0,0,0.8), 0 0 24px rgba(240,180,41,0.12)',
@@ -956,10 +1136,17 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
               <p className="text-sm font-bold mb-1.5" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{step.title}</p>
               <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>{step.text}</p>
               <div className="flex items-center justify-between">
-                <button onClick={() => { playUiClick(); setStepIdx(GUIDED_STEPS.length) }}
-                  className="text-[10px] underline opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
-                  Praleisti mokymą
-                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => { playUiClick(); setStepIdx(GUIDED_STEPS.length) }}
+                    className="text-[10px] underline opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
+                    Praleisti mokymą
+                  </button>
+                  <button onClick={() => { playUiClick(); setPopupCollapsed(true) }}
+                    className="text-[10px] underline opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }}
+                    title="Sutraukti – galėsi žaisti, patarimas lauks">
+                    − Sutraukti
+                  </button>
+                </div>
                 {!step.require ? (
                   <button onClick={() => { playUiClick(); setStepIdx((i) => i + 1) }}
                     className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-[1.03] active:scale-95"
@@ -987,7 +1174,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
 
       {/* ── mechanikos patarimas ── */}
       <AnimatePresence>
-        {activeTip && (
+        {activeTip && !popupCollapsed && (
           <motion.div key={activeTip} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
             className="fixed left-0 right-0 mx-auto z-[127] w-[min(380px,94vw)] rounded-2xl p-3.5 bottom-2 sm:bottom-36"
             style={{
@@ -1003,7 +1190,11 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
             <p className="text-[11px] leading-relaxed mb-2.5" style={{ color: 'var(--text-secondary)' }}>
               {MECHANIC_TIPS[activeTip].text}
             </p>
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <button onClick={() => { playUiClick(); setPopupCollapsed(true) }}
+                className="text-[10px] underline opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
+                − Sutraukti
+              </button>
               <button onClick={() => { playUiClick(); setTipQueue((q) => q.slice(1)) }}
                 className="px-3.5 py-1 rounded-lg text-[11px] font-bold transition-all hover:scale-[1.03] active:scale-95"
                 style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd' }}>
@@ -1055,6 +1246,114 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                   </div>
                 </div>
               </GameCard>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── sutraukto popup atstatymo mygtukas ── */}
+      <AnimatePresence>
+        {popupCollapsed && (step || activeTip) && (
+          <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+            onClick={() => { playUiClick(); setPopupCollapsed(false) }}
+            className="fixed right-2 top-1/3 z-[126] px-2.5 py-2 rounded-full text-base"
+            style={{ background: 'linear-gradient(145deg, #1e1729, #120d1c)', border: '1px solid rgba(240,180,41,0.5)', boxShadow: '0 4px 16px rgba(0,0,0,0.7)' }}
+            title="Rodyti mokymo patarimą">
+            🎓
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* ── projectile / impact sluoksnis ── */}
+      <div className="fixed inset-0 z-[128] pointer-events-none">
+        <AnimatePresence>
+          {projectiles.map((pr) => (
+            <motion.div key={pr.id}
+              initial={{ left: pr.from.x - 16, top: pr.from.y - 16, scale: 0.6, opacity: 0.9 }}
+              animate={{ left: pr.to.x - 16, top: pr.to.y - 16, scale: 1.15, opacity: 1 }}
+              transition={{ duration: 0.42, ease: 'easeIn' }}
+              className="absolute text-3xl"
+              style={{ textShadow: '0 0 14px rgba(240,180,41,0.8)' }}>
+              {pr.emoji}
+            </motion.div>
+          ))}
+          {impacts.map((im) => (
+            <motion.div key={'imp' + im.id}
+              initial={{ scale: 0.4, opacity: 1 }}
+              animate={{ scale: 2.2, opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="absolute text-3xl"
+              style={{ left: im.x - 18, top: im.y - 18 }}>
+              💥
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* ── ŽMK 'draw' režimo modalas: žaidėjas pats atverčia kortą ── */}
+      <AnimatePresence>
+        {zmkPending.length > 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[129] flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.6)' }}>
+            <motion.div initial={{ scale: 0.7, y: 12 }} animate={{ scale: 1, y: 0 }}
+              className="rounded-2xl p-5 text-center w-[min(300px,86vw)]"
+              style={{ background: 'linear-gradient(145deg, #1e1729, #120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-xs font-bold mb-3" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
+                ŽMK traukimas ({zmkPending[0].side === 'you' ? 'tavo' : 'priešininko'} žala)
+              </p>
+              {!zmkPending[0].revealed ? (
+                <button
+                  onClick={() => { playBattleSound('zmkFlip'); setZmkPending((q) => [{ ...q[0], revealed: true }, ...q.slice(1)]) }}
+                  className="mx-auto block rounded-xl transition-transform hover:scale-105 active:scale-95"
+                  style={{ width: 90, height: 120, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '2px solid rgba(240,180,41,0.4)' }}>
+                  <span className="text-3xl opacity-40">🐦‍⬛</span>
+                  <p className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>Spausk atversti</p>
+                </button>
+              ) : (
+                <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} className="space-y-2">
+                  <div className="mx-auto rounded-xl flex flex-col items-center justify-center"
+                    style={{ width: 90, height: 120, background: 'rgba(240,180,41,0.08)', border: '2px solid var(--gold)' }}>
+                    <span className="text-2xl font-black" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                      {zmkPending[0].v.replace('x', '×')}
+                    </span>
+                    <span className="text-[9px] px-1 text-center" style={{ color: 'var(--text-secondary)' }}>
+                      {game?.zmkDefs[zmkPending[0].v]?.name ?? ''}
+                    </span>
+                  </div>
+                  <button onClick={() => { playUiClick(); setZmkPending((q) => q.slice(1)) }}
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold"
+                    style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+                    Toliau
+                  </button>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── prakeiksmo aktyvacijos overlay ── */}
+      <AnimatePresence>
+        {curseShow && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[131] flex items-center justify-center pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(80,20,120,0.35), rgba(0,0,0,0.7))' }}>
+            <motion.div
+              initial={{ scale: 0.4, rotate: -8, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: 'spring', damping: 14 }}
+              className="rounded-2xl p-5 text-center w-[min(320px,88vw)]"
+              style={{ background: 'linear-gradient(145deg, #241430, #130a1c)', border: '2px solid rgba(168,85,247,0.7)', boxShadow: '0 0 40px rgba(168,85,247,0.5)' }}>
+              <p className="text-3xl mb-1">🕸</p>
+              {curseShow.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={curseShow.image} alt={curseShow.name} className="mx-auto mb-2 rounded-lg" style={{ width: 100 }} />
+              )}
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>
+                Prakeiksmas: {curseShow.name}
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{curseShow.msg}</p>
             </motion.div>
           </motion.div>
         )}

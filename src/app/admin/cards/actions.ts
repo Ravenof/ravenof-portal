@@ -38,6 +38,12 @@ export async function saveCard(
   const image_url = (formData.get('image_url') as string ?? '').trim() || null
   const is_champion = formData.get('is_champion') === 'on'
   const status = (formData.get('status') as string) ?? 'draft'
+  // virtualaus žaidimo konfigūracija (GameplayConfigEditor hidden input)
+  let gameplay: unknown = null
+  const gameplayRaw = (formData.get('gameplay') as string ?? '').trim()
+  if (gameplayRaw) {
+    try { gameplay = JSON.parse(gameplayRaw) } catch { gameplay = null }
+  }
 
   // Validation
   if (!name) return { error: 'Pavadinimas privalomas' }
@@ -48,7 +54,7 @@ export async function saveCard(
 
   const payload = {
     name, card_number, faction_id, card_type_id, rarity_id,
-    gold_cost, attack, health, description, effect_text, lore_text,
+    gold_cost, attack, health, description, effect_text, lore_text, gameplay,
     image_url, is_champion, status,
   }
 

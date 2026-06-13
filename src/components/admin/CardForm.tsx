@@ -4,6 +4,7 @@ import { useState, useActionState } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveCard, type CardFormState } from '@/app/admin/cards/actions'
 import { CardImageUpload } from './CardImageUpload'
+import { GameplayConfigEditor } from './GameplayConfigEditor'
 import type { Faction, CardType, Rarity } from '@/types'
 
 type CardData = {
@@ -22,6 +23,7 @@ type CardData = {
   image_url: string | null
   is_champion: boolean
   status: string
+  gameplay?: unknown
 }
 
 type Props = {
@@ -60,6 +62,8 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
 
   const [imageUrl, setImageUrl] = useState(initialData?.image_url ?? '')
   const [cardNumber, setCardNumber] = useState(initialData?.card_number ?? '')
+  const [typeId, setTypeId] = useState<number | null>(initialData?.card_type_id ?? null)
+  const isFieldType = /lauk|field/i.test(cardTypes.find((t) => t.id === typeId)?.name ?? '')
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-8 items-start">
@@ -105,7 +109,7 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
           {/* Type */}
           <div>
             <label style={labelStyle}>Tipas *</label>
-            <select name="card_type_id" defaultValue={initialData?.card_type_id ?? ''} required style={inputStyle}>
+            <select name="card_type_id" defaultValue={initialData?.card_type_id ?? ''} required style={inputStyle} onChange={e => setTypeId(e.target.value ? Number(e.target.value) : null)}>
               <option value="">-- Pasirink tipa --</option>
               {cardTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -184,6 +188,13 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
             rows={3} placeholder="Efekto aprasymas..."
             style={{ ...inputStyle, resize: 'vertical' as const }} />
         </div>
+
+        {/* Virtualaus žaidimo gameplay konfigūracija */}
+        <GameplayConfigEditor
+          initial={initialData?.gameplay ?? null}
+          isField={isFieldType}
+          hasEffectText={!!(initialData?.effect_text ?? '').trim()}
+        />
 
         {/* Lore text */}
         <div>
