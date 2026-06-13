@@ -58,7 +58,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -91,6 +91,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true },
   { value: 'mill',                label: 'Mill (kortos iš kaladės į kapinyną)', needsValue: true },
   { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true },
+  { value: 'peekDiscard',         label: 'Peržiūrėk N → pasirink K išmesti', needsValue: true },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
@@ -240,6 +241,7 @@ export type EffectMapping = {
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
   summonSubtype?: string            // summon*: tik šio potipio padarai
   summonCount?: number              // summon*: kiek iškviesti (default 1)
+  peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   note?: string
 }
 

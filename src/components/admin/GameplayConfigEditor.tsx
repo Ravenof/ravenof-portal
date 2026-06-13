@@ -239,6 +239,14 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
                         </label>
                       </>
                     )}
+                    {m.effect === 'peekDiscard' && (
+                      <label className="flex items-center gap-1">
+                        Peržiūrėti N
+                        <input type="number" min={1} value={m.peekCount ?? ''} placeholder="6"
+                          onChange={(e) => setMapping(i, { peekCount: e.target.value === '' ? undefined : Number(e.target.value) })}
+                          style={{ ...inputStyle, width: 56 }} title="Kiek kortų peržiūrėti (Reikšmė = kiek išmesti)" />
+                      </label>
+                    )}
                     {/* Selektorius + sužeisti */}
                     <label className="flex items-center gap-1">
                       Taikinys:

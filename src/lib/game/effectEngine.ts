@@ -28,6 +28,7 @@ export type GameApi = {
   removeZmkCard(g: GameState, s: Side, value: string, count: number): void
   millDeck(g: GameState, s: Side, n: number): void
   returnGraveyardToDeck(g: GameState, s: Side, n: number): void
+  peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
   log(g: GameState, e: GameEvent): void
 }
 
@@ -105,7 +106,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       targets = picked ? [picked] : []
     }
   }
-  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -177,6 +178,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     case 'summonFromGraveyard': case 'revive': api.summonFromZone(g, caster, 'discard', { costMax: m.summonCostMax, subtype: m.summonSubtype, count: m.summonCount }); break
     case 'mill': api.millDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
     case 'returnGraveyardToDeck': api.returnGraveyardToDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
+    case 'peekDiscard': api.peekDiscard(g, targets[0]?.kind === 'player' ? targets[0].side : foe, m.peekCount ?? v * 2, v, caster); break
     case 'returnToHand':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.returnUnitToHand(g, f.owner, f.u) }
       break

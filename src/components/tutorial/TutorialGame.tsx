@@ -20,7 +20,7 @@ import {
   GameState, GameEvent, TutCard, BoardUnit, TargetRef, Side,
   createGame, beginTurn, endTurn, playCard, attack, discardForGold,
   useChampionAbility, canUnitAttack, legalTargets, cloneState, P,
-  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
+  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, resolvePeekDiscard,
   STATUS_META, TutStatus,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
@@ -279,6 +279,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const [showLog, setShowLog] = useState(false)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
+  const [peekSel, setPeekSel] = useState<string[]>([])
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
@@ -303,6 +304,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   // Sutrauktas popup nebeblokuoja. ŽMK 'draw' eilė irgi pristabdo AI.
   const popupBlocks = ((!!step && !step.require) || !!activeTip) && !popupCollapsed
   const zmkBlocks = zmkPending.length > 0
+  const peekBlocks = !!game?.pendingPeek
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 58 : 96
   const unitW = isTouch ? 58 : 90
@@ -646,7 +648,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -660,7 +662,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -1452,6 +1454,53 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                 )
               })}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── peržiūrėk N → pasirink K išmesti (peekDiscard) ── */}
+      <AnimatePresence>
+        {game?.pendingPeek && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="rounded-2xl p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center"
+              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
+                Priešininko kaladės peržiūra
+              </p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+                Pažymėk {game.pendingPeek.choose} kortą(-as), kurią(-ias) išmesti į kapinyną ({peekSel.length}/{game.pendingPeek.choose})
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                {game.pendingPeek.cards.map((c) => {
+                  const sel = peekSel.includes(c.uid)
+                  const full = peekSel.length >= game!.pendingPeek!.choose
+                  return (
+                    <button key={c.uid} onClick={() => {
+                      playUiClick()
+                      setPeekSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : (q.length >= game!.pendingPeek!.choose ? q : [...q, c.uid]))
+                    }}
+                      className="relative transition-transform"
+                      style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined, opacity: !sel && full ? 0.5 : 1 }}
+                      title={c.name}>
+                      <div style={{ outline: sel ? '2px solid #ef4444' : '2px solid transparent', borderRadius: 10 }}>
+                        <MiniCard c={c} w={isTouch ? 64 : 78} />
+                      </div>
+                      {sel && <span className="absolute -top-2 -right-2 text-xs px-1.5 rounded-full font-bold" style={{ background: '#ef4444', color: '#fff' }}>✕</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              <button
+                disabled={peekSel.length !== game.pendingPeek.choose}
+                onClick={() => { playSuccess(); const sel = peekSel; setPeekSel([]); update((g) => resolvePeekDiscard(g, sel)) }}
+                className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                style={{ background: 'rgba(240,180,41,0.22)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                Išmesti pažymėtas
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

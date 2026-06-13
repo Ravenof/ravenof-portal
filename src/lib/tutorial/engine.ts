@@ -158,7 +158,11 @@ export type GameState = {
   zmkMode: ZmkMode
   /** ŽMK kortų definicijos (value -> pavadinimas/aprašymas, iš zmk_cards) */
   zmkDefs: Record<string, ZmkCardDef>
+  /** Laukiantis „peržiūrėk N → pasirink K" pasirinkimas (žaidėjui) */
+  pendingPeek?: PendingPeek | null
 }
+
+export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
 
@@ -277,6 +281,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     log: [],
     zmkMode: zmkYou.mode,
     zmkDefs: zmkYou.defs,
+    pendingPeek: null,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
   drawCards(g, first, 4, true)
@@ -662,6 +667,39 @@ function returnGraveyardToDeckPrim(g: GameState, s: Side, n: number) {
   log(g, { t: 'zmkReshuffle', side: s, msg: `${sideName(s)} ${moved} kort(os) grąžinama iš kapinyno į kaladę ir permaišoma.` })
 }
 
+// „Peržiūrėk N viršutines aukos kaladės → pasirink K išmesti į kapinyną".
+// Žmogus-kerėtojas: nustatomas pendingPeek (UI rodo pasirinkimą). AI: auto-renka brangiausias.
+function peekDiscardPrim(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side) {
+  const vp = P(g, victim)
+  const n = Math.min(peekCount, vp.deck.length)
+  if (n === 0) { log(g, { t: 'blocked', side: caster, msg: `${sideName(victim)} kaladė tuščia – nėra ką peržiūrėti.` }); return }
+  const peeked = vp.deck.splice(vp.deck.length - n, n) // viršutinės n (deck galas = viršus)
+  const k = Math.min(choose, peeked.length)
+  if (caster === 'you') {
+    g.pendingPeek = { caster, victim, choose: k, cards: peeked }
+    log(g, { t: 'play', side: caster, msg: `Peržiūri ${n} ${sideName(victim)} kaladės kortas – pasirink ${k} išmesti.` })
+  } else {
+    const sorted = [...peeked].sort((a, b) => (b.gold ?? 0) - (a.gold ?? 0))
+    const toDiscard = new Set(sorted.slice(0, k).map((c) => c.uid))
+    for (const c of peeked) if (toDiscard.has(c.uid)) vp.discard.push(c)
+    for (const c of peeked) if (!toDiscard.has(c.uid)) vp.deck.push(c)
+    log(g, { t: 'play', side: caster, msg: `${sideName(caster)} peržiūri ${n} ${sideName(victim)} kaladės kortas ir ${k} išmeta į kapinyną.` })
+  }
+}
+
+/** Žaidėjo pasirinkimo užbaigimas: pažymėtos kortos → kapinynas, likusios → atgal ant kaladės. */
+export function resolvePeekDiscard(g: GameState, chosenUids: string[]): { ok: boolean; reason?: string } {
+  const pk = g.pendingPeek
+  if (!pk) return { ok: true }
+  const vp = P(g, pk.victim)
+  const chosen = new Set(chosenUids.slice(0, pk.choose))
+  for (const c of pk.cards) if (chosen.has(c.uid)) vp.discard.push(c)
+  for (const c of pk.cards) if (!chosen.has(c.uid)) vp.deck.push(c)
+  log(g, { t: 'play', side: pk.caster, msg: `${chosen.size} korta(-os) išmesta į ${sideName(pk.victim)} kapinyną; likusios grąžintos ant kaladės.` })
+  g.pendingPeek = null
+  return { ok: true }
+}
+
 // ── Globalūs įvykių pasyvai (onAnyDeath / onAnyAttack) ───────────────────────
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
@@ -740,6 +778,7 @@ export const gameApi: GameApi = {
   summonFromZone: summonFromZonePrim,
   millDeck: millDeckPrim,
   returnGraveyardToDeck: returnGraveyardToDeckPrim,
+  peekDiscard: peekDiscardPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
