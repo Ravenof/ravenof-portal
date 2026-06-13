@@ -260,7 +260,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [zmkFlash, setZmkFlash] = useState<{ v: string; side: Side; n: number } | null>(null)
+  const [zmkFlash, setZmkFlash] = useState<{ cards: { v: string; side: Side }[]; n: number } | null>(null)
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
   // Prakeiksmo aktyvacijos overlay
@@ -288,17 +288,6 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     return m
   }, [deckCards, curseCards])
 
-  const playedCards = useMemo(() => {
-    if (!game) return [] as { card: TutCard; side: Side; key: string }[]
-    const PLAY_TYPES = new Set(['play', 'spell', 'artifact', 'field', 'champion'])
-    const out: { card: TutCard; side: Side; key: string }[] = []
-    game.log.forEach((e, i) => {
-      if (!e.cardName || !PLAY_TYPES.has(e.t)) return
-      const card = cardByName[e.cardName]
-      if (card) out.push({ card, side: e.side, key: e.cardName + '-' + i })
-    })
-    return out.slice(-40)
-  }, [game, cardByName])
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
   const shownTipsRef = useRef<Set<string>>(new Set())
@@ -508,6 +497,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     const fresh = game.log.slice(seenRef.current)
     seenRef.current = game.log.length
     let zmkN = 0
+    const zmkBatch: { v: string; side: Side }[] = []
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
@@ -521,7 +511,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           if (game.zmkMode === 'draw') {
             setZmkPending((q) => [...q, { v: e.zmk ?? '?', side: e.side, revealed: false }])
           } else {
-            setZmkFlash({ v: e.zmk ?? '?', side: e.side, n: zmkN })
+            zmkBatch.push({ v: e.zmk ?? '?', side: e.side })
           }
           if (!e.sound) playBattleSound('zmkFlip')
           if (e.zmk === 'x2' || e.zmk === 'x0') queueTip('zmk-special')
@@ -562,6 +552,8 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         }
       }
     }
+    if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current })
+
     // lentos skenavimas raktažodžių patarimams
     for (const s of ['you', 'ai'] as Side[]) {
       for (const u of P(game, s).units) {
@@ -586,7 +578,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   // ŽMK flash dingsta
   useEffect(() => {
     if (!zmkFlash) return
-    const t = setTimeout(() => setZmkFlash(null), 1500)
+    const t = setTimeout(() => setZmkFlash(null), 2000)
     return () => clearTimeout(t)
   }, [zmkFlash])
 
@@ -1234,35 +1226,45 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
             className="fixed right-2 top-12 bottom-2 z-[124] w-[min(300px,80vw)] rounded-xl p-3 overflow-y-auto"
             style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)' }}>
-            {playedCards.length > 0 && (
-              <div className="mb-3 pb-2" style={{ borderBottom: '1px solid rgba(240,180,41,0.2)' }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--gold)' }}>Sužaistos kortos</p>
-                <div className="flex flex-wrap gap-1">
-                  {playedCards.map(({ card, side, key }) => (
-                    <div key={key}
-                      onClick={() => { playCardFlip(); setInspect(card) }}
-                      onMouseEnter={(e) => setHoverCard({ card, x: e.clientX, y: e.clientY })}
-                      onMouseMove={(e) => setHoverCard((h) => h ? { ...h, x: e.clientX, y: e.clientY } : h)}
-                      onMouseLeave={() => setHoverCard(null)}
-                      onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(card) }, 450) }}
-                      onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
-                      onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
-                      className="cursor-pointer rounded overflow-hidden"
-                      style={{ outline: '1.5px solid ' + (side === 'you' ? 'rgba(96,165,250,0.7)' : 'rgba(167,139,250,0.7)') }}
-                      title={card.name}>
-                      <MiniCard c={card} w={38} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--gold)' }}>Įvykių žurnalas</p>
-            {game.log.slice(-60).map((e, i) => (
-              <p key={i} className="text-[10px] leading-relaxed mb-1"
-                style={{ color: e.side === 'you' ? 'var(--text-secondary)' : '#a78bfa', opacity: e.t === 'startTurn' ? 1 : 0.85, fontWeight: e.t === 'startTurn' ? 700 : 400 }}>
-                {e.msg}
-              </p>
-            ))}
+            <div className="space-y-1">
+              {game.log.slice(-80).map((e, i) => {
+                const card = e.cardName ? cardByName[e.cardName] : null
+                const zImg = e.t === 'zmk' && e.zmk ? zmkImg(game, e.zmk) : null
+                const sideColor = e.side === 'you' ? 'rgba(96,165,250,0.7)' : 'rgba(167,139,250,0.7)'
+                return (
+                  <div key={i} className="flex items-start gap-1.5">
+                    {card ? (
+                      <div
+                        onClick={() => { playCardFlip(); setInspect(card) }}
+                        onMouseEnter={(ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY })}
+                        onMouseMove={(ev) => setHoverCard((h) => h ? { ...h, x: ev.clientX, y: ev.clientY } : h)}
+                        onMouseLeave={() => setHoverCard(null)}
+                        onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(card) }, 450) }}
+                        onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+                        onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+                        className="shrink-0 cursor-pointer rounded overflow-hidden"
+                        style={{ outline: '1.5px solid ' + sideColor }}
+                        title={`${card.name} (spausk/laikyk – apžiūrėti)`}>
+                        <MiniCard c={card} w={28} />
+                      </div>
+                    ) : zImg ? (
+                      <div className="shrink-0 rounded overflow-hidden" style={{ width: 20, aspectRatio: '2.5 / 3.5', border: '1px solid var(--gold)' }}>
+                        <img src={zImg} alt={e.zmk ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                      </div>
+                    ) : null}
+                    <p className="text-[10px] leading-snug" style={{
+                      color: e.side === 'you' ? 'var(--text-secondary)' : '#a78bfa',
+                      opacity: e.t === 'startTurn' ? 1 : 0.9,
+                      fontWeight: e.t === 'startTurn' ? 700 : 400,
+                      paddingTop: (card || zImg) ? 2 : 0,
+                    }}>
+                      {e.msg}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1355,30 +1357,35 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* ── ŽMK auto-traukimo flash (fiksuotas, centruotas – matomas ir mobile) ── */}
+      {/* ── ŽMK auto-traukimo flash (fiksuotas, centruotas; rodo VISAS traukimo kortas – pvz. puolančio ir gynėjo) ── */}
       <AnimatePresence>
         {zmkFlash && (
-          <motion.div key={zmkFlash.n + zmkFlash.v} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div key={zmkFlash.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[130] flex items-center justify-center pointer-events-none">
-            <motion.div initial={{ scale: 0.4, opacity: 0.3, rotateY: 90 }} animate={{ scale: 1, opacity: 1, rotateY: 0 }} exit={{ scale: 0.7, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 18 }}
-              className="flex flex-col items-center gap-2" style={{ transformStyle: 'preserve-3d' }}>
-              {zmkImg(game, zmkFlash.v) ? (
-                <div className="rounded-xl overflow-hidden" style={{ width: 'min(120px, 30vw)', aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 30px rgba(240,180,41,0.6)' }}>
-                  <img src={zmkImg(game, zmkFlash.v)!} alt={`ŽMK ${zmkFlash.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                </div>
-              ) : null}
-              <span className="px-3 py-1 rounded-lg font-black text-lg"
-                style={{
-                  background: 'linear-gradient(145deg, #2a2138, #14101e)',
-                  border: '2px solid var(--gold)',
-                  color: zmkFlash.v.startsWith('+') && zmkFlash.v !== '+0' ? '#4ade80' : zmkFlash.v.startsWith('-') ? '#f87171' : 'var(--gold)',
-                  boxShadow: '0 0 16px rgba(240,180,41,0.4)',
-                  fontFamily: 'var(--rvn-font-display)',
-                }}>
-                ŽMK {zmkFlash.v.replace('x', '×')}
-              </span>
-            </motion.div>
+            <div className="flex items-end justify-center gap-3 flex-wrap">
+              {zmkFlash.cards.map((zc, idx) => {
+                const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
+                return (
+                  <motion.div key={idx} initial={{ scale: 0.4, opacity: 0.3, rotateY: 90 }} animate={{ scale: 1, opacity: 1, rotateY: 0 }} exit={{ scale: 0.7, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 240, damping: 18, delay: idx * 0.12 }}
+                    className="flex flex-col items-center gap-1.5" style={{ transformStyle: 'preserve-3d' }}>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: '#14101e', border: `1px solid ${zc.side === 'you' ? 'rgba(96,165,250,0.8)' : 'rgba(167,139,250,0.8)'}`, color: zc.side === 'you' ? '#93c5fd' : '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>
+                      {zc.side === 'you' ? 'Tavo ŽMK' : 'Priešo ŽMK'}
+                    </span>
+                    {zmkImg(game, zc.v) ? (
+                      <div className="rounded-xl overflow-hidden" style={{ width: 'min(110px, 26vw)', aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 28px rgba(240,180,41,0.55)' }}>
+                        <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                      </div>
+                    ) : null}
+                    <span className="px-3 py-1 rounded-lg font-black text-base"
+                      style={{ background: 'linear-gradient(145deg, #2a2138, #14101e)', border: '2px solid var(--gold)', color: col, boxShadow: '0 0 14px rgba(240,180,41,0.35)', fontFamily: 'var(--rvn-font-display)' }}>
+                      ŽMK {zc.v.replace('x', '×')}
+                    </span>
+                  </motion.div>
+                )
+              })}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
