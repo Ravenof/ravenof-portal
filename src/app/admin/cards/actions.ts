@@ -50,7 +50,7 @@ export async function saveCard(
   if (!faction_id) return { error: 'Frakcija privaloma' }
   if (!card_type_id) return { error: 'Tipas privalomas' }
   if (!rarity_id) return { error: 'Retumas privalomas' }
-  if (!gold_cost) return { error: 'Aukso kaina privaloma' }
+  if (gold_cost === null) return { error: 'Aukso kaina privaloma' }
 
   const payload = {
     name, card_number, faction_id, card_type_id, rarity_id,

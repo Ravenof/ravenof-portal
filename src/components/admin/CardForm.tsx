@@ -64,6 +64,8 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
   const [cardNumber, setCardNumber] = useState(initialData?.card_number ?? '')
   const [typeId, setTypeId] = useState<number | null>(initialData?.card_type_id ?? null)
   const isFieldType = /lauk|field/i.test(cardTypes.find((t) => t.id === typeId)?.name ?? '')
+  const isCurseType = /prakeik|curse/i.test(cardTypes.find((t) => t.id === typeId)?.name ?? '')
+  const [goldCost, setGoldCost] = useState<string>(initialData?.gold_cost != null ? String(initialData.gold_cost) : '')
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-8 items-start">
@@ -109,7 +111,12 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
           {/* Type */}
           <div>
             <label style={labelStyle}>Tipas *</label>
-            <select name="card_type_id" defaultValue={initialData?.card_type_id ?? ''} required style={inputStyle} onChange={e => setTypeId(e.target.value ? Number(e.target.value) : null)}>
+            <select name="card_type_id" defaultValue={initialData?.card_type_id ?? ''} required style={inputStyle} onChange={e => {
+              const v = e.target.value ? Number(e.target.value) : null
+              setTypeId(v)
+              const tn = cardTypes.find(t => t.id === v)?.name ?? ''
+              if (/prakeik|curse/i.test(tn)) setGoldCost('0')
+            }}>
               <option value="">-- Pasirink tipa --</option>
               {cardTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -126,9 +133,10 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
 
           {/* Gold cost */}
           <div>
-            <label style={labelStyle}>Aukso kaina *</label>
-            <select name="gold_cost" defaultValue={initialData?.gold_cost ?? ''} required style={inputStyle}>
+            <label style={labelStyle}>Aukso kaina{isCurseType ? '' : ' *'}</label>
+            <select name="gold_cost" value={goldCost} onChange={e => setGoldCost(e.target.value)} required={!isCurseType} style={inputStyle}>
               <option value="">-- Pasirink --</option>
+              <option value="0">0 (Prakeiksmas)</option>
               {[100,200,300,400,500,600,700,800,900,1000].map(v => (
                 <option key={v} value={v}>{v}</option>
               ))}
