@@ -1,11 +1,12 @@
 // ── Curse engine — Demonų prakeiksmų side deck ───────────────────────────────
-// Atskira kortų krūva (ne pagrindinė kaladė). Prakeiksmai aktyvuojami TIK nuo
-// kortų efektų (triggersCurse mapping'as) arba ištraukus prakeiksmą, kuris buvo
-// įmaišytas į pagrindinę kaladę. Aktyvavus: parodoma korta, garsas, efektas
-// pritaikomas iš karto pagal jos mapping'ą / tekstą.
+// Prakeiksmai NĖRA pagrindinėje kaladėje. Demonai turi atskirą side deck'ą.
+// Kai efektas (triggersCurse mapping'as) leidžia "įmaišyti" prakeiksmą:
+//   1) prakeiksmas imamas iš CASTER (kerėtojo) side deck'o,
+//   2) įmaišomas į PRIEŠININKO (victim) pagrindinę kaladę atsitiktinėje vietoje,
+//   3) kai priešininkas tą prakeiksmą ИŠTRAUKIA — aktyvuojasi jo efektas (žr.
+//      drawCards engine.ts: curse tipo korta paleidžia savo mapping'us aukai).
 
 import type { GameApi } from './effectEngine'
-import { applyMapping } from './effectEngine'
 import type { GameState, Side, TutCard } from '@/lib/tutorial/engine'
 
 function shuffle<T>(arr: T[]): T[] {
@@ -17,40 +18,34 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-/** Side deck statyba iš curse tipo kortų (10-20 pagal taisykles, imam kiek yra). */
+/** Side deck statyba iš curse tipo kortų (imam kiek yra, maks. 20). */
 export function buildCurseDeck(curseCards: TutCard[], suffix: string): TutCard[] {
   return shuffle(curseCards.slice(0, 20).map((c, i) => ({ ...c, uid: `${c.id}-curse-${suffix}-${i}` })))
 }
 
 /**
- * Aktyvuoja `count` prakeiksmų iš AUKOS (victim) side deck'o.
- * Caster efektų atžvilgiu – priešinga pusė (prakeiksmas kenkia aukai).
- * Tuščias side deck → warning log, žaidimas tęsiasi.
+ * "Įmaišo" `count` prakeiksmų: ima iš CASTER side deck'o ir įdeda į VICTIM
+ * pagrindinę kaladę atsitiktinėje vietoje. Efektas NEaktyvuojamas iškart –
+ * jis suveiks tada, kai auka prakeiksmą ištrauks (engine.drawCards).
+ * Tuščias caster side deck → warning log, žaidimas tęsiasi.
+ *
+ * `victim` – kam įmaišomas prakeiksmas (priešininkui). Caster = priešinga pusė.
  */
-export function activateCurses(api: GameApi, g: GameState, victim: Side, count: number, srcName: string, depth: number): void {
-  const p = victim === 'you' ? g.you : g.ai
+export function activateCurses(api: GameApi, g: GameState, victim: Side, count: number, srcName: string, _depth: number): void {
   const caster: Side = victim === 'you' ? 'ai' : 'you'
+  const casterP = caster === 'you' ? g.you : g.ai
+  const victimP = victim === 'you' ? g.you : g.ai
   for (let i = 0; i < count; i++) {
-    const curse = p.curses.pop()
+    const curse = casterP.curses.pop()
     if (!curse) {
-      api.log(g, { t: 'blocked', side: victim, msg: `Prakeiksmų krūva tuščia – „${srcName}" prakeiksmo neaktyvuoja.` })
+      api.log(g, { t: 'blocked', side: caster, msg: `Prakeiksmų side deck tuščias – „${srcName}" prakeiksmo neįmaišo.` })
       return
     }
-    p.discard.push(curse)
+    const idx = Math.floor(Math.random() * (victimP.deck.length + 1))
+    victimP.deck.splice(idx, 0, curse)
     api.log(g, {
       t: 'curse', side: victim, cardName: curse.name,
-      msg: `🕸 Prakeiksmas „${curse.name}" aktyvuojamas ${victim === 'you' ? 'tau' : 'priešininkui'}! ${curse.effectText || ''}`.trim(),
+      msg: `🕸 „${srcName}" įmaišo prakeiksmą „${curse.name}" į ${victim === 'you' ? 'tavo' : 'priešininko'} kaladę.`,
     })
-    if (curse.mappings && curse.mappings.length > 0) {
-      for (const m of curse.mappings) {
-        applyMapping(api, g, caster, m, { sourceName: curse.name, depth })
-        if (g.winner) return
-      }
-    } else {
-      // fallback: parsed tekstas arba 1 bazinė žala aukai
-      const dmg = curse.effect?.damage ?? 1
-      api.dealToPlayer(g, victim, dmg, caster, true)
-    }
-    if (g.winner) return
   }
 }

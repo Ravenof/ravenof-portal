@@ -291,12 +291,21 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
   for (let i = 0; i < n; i++) {
     const c = p.deck.pop()
     if (!c) { log(g, { t: 'deckEmpty', side: s, msg: `${sideName(s)} ${s === 'you' ? 'nebeturi' : 'nebeturi'} kortų kaladėje.` }); return }
-    // Prakeiksmas aktyvuojasi iš karto kai ištraukiamas
+    // Prakeiksmas (įmaišytas priešo) aktyvuojasi kai jį ištrauki – efektas tenka tau.
     if (c.type === 'curse') {
       p.discard.push(c)
-      const dmg = c.effect?.damage ?? 1
-      log(g, { t: 'curse', side: s, cardName: c.name, value: dmg, msg: `${sideName(s)} ${s === 'you' ? 'ištraukei' : 'ištraukė'} prakeiksmą „${c.name}" – efektas aktyvuojasi iš karto!` })
-      dealToPlayer(g, s, dmg, s, false)
+      log(g, { t: 'curse', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'ištraukei' : 'ištraukė'} įmaišytą prakeiksmą „${c.name}" – efektas aktyvuojasi!`, sound: 'curse' })
+      const curseCaster: Side = other(s)
+      if (c.mappings && c.mappings.length > 0) {
+        for (const m of c.mappings) {
+          applyMapping(gameApi, g, curseCaster, m, { sourceName: c.name, depth: 1 })
+          if (g.winner) return
+        }
+      } else {
+        const dmg = c.effect?.damage ?? 1
+        dealToPlayer(g, s, dmg, curseCaster, false)
+      }
+      if (g.winner) return
       continue
     }
     if (p.hand.length >= 10) {
