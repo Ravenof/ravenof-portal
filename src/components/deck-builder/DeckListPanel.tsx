@@ -102,9 +102,9 @@ export function DeckListPanel() {
           style={{ width: `${pct}%`, background: barColor }} />
       </div>
 
-      {/* Cards list */}
-      <div className="flex-1 overflow-y-auto pr-0.5 space-y-3">
-        {entries.length === 0 ? (
+      {/* Cards list (main + side deck both scroll together) */}
+      <div className="flex-1 overflow-y-auto pr-0.5 space-y-3 min-h-0">
+        {entries.length === 0 && sideEntries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-3 opacity-40">
             <Swords className="w-8 h-8" style={{ color: 'var(--text-muted)' }} />
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
@@ -112,54 +112,56 @@ export function DeckListPanel() {
             </p>
           </div>
         ) : (
-          groupKeys.map((type) => {
-            const group = groupMap[type]
-            const groupTotal = group.reduce((s, e) => s + e.quantity, 0)
-            return (
-              <div key={type}>
-                <div className="flex items-center justify-between px-1 mb-1"
-                  style={{ borderBottom: '1px solid var(--bg-border)', paddingBottom: '3px' }}>
+          <>
+            {groupKeys.map((type) => {
+              const group = groupMap[type]
+              const groupTotal = group.reduce((s, e) => s + e.quantity, 0)
+              return (
+                <div key={type}>
+                  <div className="flex items-center justify-between px-1 mb-1"
+                    style={{ borderBottom: '1px solid var(--bg-border)', paddingBottom: '3px' }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider"
+                      style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                      {type}
+                    </span>
+                    <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                      {groupTotal}
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.map((entry) => (
+                      <DeckCardRow key={entry.card.id} entry={entry} onHover={setHoveredCard} />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Prakeiksmų side deck (Demonai) */}
+            {sideEntries.length > 0 && (
+              <div className="pt-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
+                <div className="flex items-center justify-between px-1 mb-1">
                   <span className="text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-                    {type}
+                    style={{ color: '#a855f7', fontSize: '10px' }}>
+                    🕸 Prakeiksmų side deck
                   </span>
                   <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-                    {groupTotal}
+                    {sideEntries.reduce((s, e) => s + e.quantity, 0)}/{SIDE_DECK_MAX}
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  {group.map((entry) => (
-                    <DeckCardRow key={entry.card.id} entry={entry} onHover={setHoveredCard} />
-                  ))}
+                  {sideEntries
+                    .slice()
+                    .sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name))
+                    .map((entry) => (
+                      <DeckCardRow key={entry.card.id} entry={entry} onHover={setHoveredCard} isSide />
+                    ))}
                 </div>
               </div>
-            )
-          })
+            )}
+          </>
         )}
       </div>
-
-      {/* Prakeiksmų side deck (Demonai) */}
-      {sideEntries.length > 0 && (
-        <div className="mt-3 pt-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
-          <div className="flex items-center justify-between px-1 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider"
-              style={{ color: '#a855f7', fontSize: '10px' }}>
-              🕸 Prakeiksmų side deck
-            </span>
-            <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-              {sideEntries.reduce((s, e) => s + e.quantity, 0)}/{SIDE_DECK_MAX}
-            </span>
-          </div>
-          <div className="space-y-0.5">
-            {sideEntries
-              .slice()
-              .sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name))
-              .map((entry) => (
-                <DeckCardRow key={entry.card.id} entry={entry} onHover={setHoveredCard} isSide />
-              ))}
-          </div>
-        </div>
-      )}
 
       {/* Footer hint */}
       {total > 0 && total < DECK_MIN && (

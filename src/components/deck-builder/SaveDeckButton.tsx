@@ -90,7 +90,12 @@ export function SaveDeckButton({ userId }: Props) {
       }
     } catch (err) {
       console.error('Save deck error:', err)
-      alert('Nepavyko išsaugoti kaladės. Bandyk dar kartą.')
+      const msg = (err as { message?: string })?.message ?? String(err)
+      if (/is_side_deck|column .* does not exist|schema cache/i.test(msg)) {
+        alert('Nepavyko išsaugoti: duomenų bazėje dar nėra „is_side_deck" stulpelio. Paleisk migraciją supabase/migrations/20260613_deck_side_deck.sql Supabase SQL editoriuje.')
+      } else {
+        alert('Nepavyko išsaugoti kaladės: ' + msg)
+      }
     } finally {
       setIsSaving(false)
     }
