@@ -56,6 +56,7 @@ export type TutCard = {
   attack: number | null
   health: number | null
   type: TutCardType
+  subtype?: string | null   // ZOMBIE / GOBLIN / DEMON ir pan.
   keywords: TutKeyword[]
   effectText: string
   rarityColor: string

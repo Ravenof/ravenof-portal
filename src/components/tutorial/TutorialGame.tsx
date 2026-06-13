@@ -40,6 +40,7 @@ type DbRow = {
     id: string; name: string; image_url: string | null
     gold_cost: number | null; attack: number | null; health: number | null
     effect_text: string | null; description: string | null; is_champion: boolean | null
+    subtype?: string | null
     gameplay?: unknown
     card_type: { name: string } | null
     rarity: { color_hex: string | null } | null
@@ -60,6 +61,7 @@ function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
     attack: c.attack,
     health: c.health,
     type: mapCardType(c.card_type?.name, !!c.is_champion),
+    subtype: c.subtype ?? null,
     keywords: detectKeywords(kwNames, text),
     effectText: text,
     rarityColor: c.rarity?.color_hex ?? '#d4af37',
@@ -320,7 +322,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         .from('cards')
         .select(`
           id, name, image_url, gold_cost, attack, health,
-          effect_text, description, is_champion, gameplay,
+          effect_text, description, is_champion, subtype, gameplay,
           card_type:card_types ( name ),
           rarity:rarities ( color_hex ),
           faction:factions ( color_hex ),
@@ -348,7 +350,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         is_side_deck,
         card:cards (
           id, name, image_url, gold_cost, attack, health,
-          effect_text, description, is_champion, gameplay,
+          effect_text, description, is_champion, subtype, gameplay,
           card_type:card_types ( name ),
           rarity:rarities ( color_hex ),
           faction:factions ( color_hex ),
@@ -382,7 +384,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       supabase.from('zmk_cards').select('*').eq('active', true).order('sort_order'),
       supabase.from('cards').select(`
         id, name, image_url, gold_cost, attack, health,
-        effect_text, description, is_champion, gameplay,
+        effect_text, description, is_champion, subtype, gameplay,
         card_type:card_types ( name ),
         rarity:rarities ( color_hex ),
         faction:factions ( color_hex ),

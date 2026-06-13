@@ -229,6 +229,7 @@ export type EffectMapping = {
   dynamicValue?: DynamicValue       // value = base + perEach * metrika
   targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą
   targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
+  targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
   note?: string
 }
 

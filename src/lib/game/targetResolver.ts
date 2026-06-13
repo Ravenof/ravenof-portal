@@ -187,6 +187,17 @@ export function pickBySelect(g: GameState, candidates: ResolvedTarget[], sel: Ta
   return scored[0].t
 }
 
+/** Filtruoja kandidatus iki nurodyto potipio padarų (case-insensitive). */
+export function filterSubtype(g: GameState, candidates: ResolvedTarget[], subtype: string): ResolvedTarget[] {
+  const want = subtype.trim().toLowerCase()
+  if (!want) return candidates
+  return candidates.filter((t) => {
+    if (t.kind !== 'unit') return false
+    const u = P(g, t.side).units.find((x) => x?.uid === t.uid)
+    return !!u && (u.card.subtype ?? '').toLowerCase() === want
+  })
+}
+
 /** Filtruoja kandidatus iki sužeistų padarų (hp < maxHp). */
 export function filterWounded(g: GameState, candidates: ResolvedTarget[]): ResolvedTarget[] {
   return candidates.filter((t) => {

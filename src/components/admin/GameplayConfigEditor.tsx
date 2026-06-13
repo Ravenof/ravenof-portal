@@ -227,6 +227,12 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
                       </select>
                     </label>
                     <label className="flex items-center gap-1">
+                      Potipis:
+                      <input type="text" value={m.targetSubtype ?? ''} placeholder="ZOMBIE/GOBLIN/DEMON"
+                        onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}
+                        style={{ ...inputStyle, width: 120 }} title="Tik šio potipio padarai" />
+                    </label>
+                    <label className="flex items-center gap-1">
                       <input type="checkbox" checked={m.targetWoundedOnly ?? false}
                         onChange={(e) => setMapping(i, { targetWoundedOnly: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                       Tik sužeisti

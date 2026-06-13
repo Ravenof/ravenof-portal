@@ -4,7 +4,7 @@
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
 import type { EffectMapping, EffectType } from './types'
-import { resolveTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, filterWounded, type ResolvedTarget } from './targetResolver'
+import { resolveTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, filterWounded, filterSubtype, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 
 export type GameApi = {
@@ -84,6 +84,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   } else {
     let all = resolveTargets(g, caster, m.target)
     if (m.targetWoundedOnly) all = filterWounded(g, all)
+    if (m.targetSubtype) all = filterSubtype(g, all, m.targetSubtype)
     if (isMultiTarget(m.target)) targets = all
     else if (m.targetSelect) {
       const picked = pickBySelect(g, all, m.targetSelect)

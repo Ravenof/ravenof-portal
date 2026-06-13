@@ -14,6 +14,7 @@ type CardData = {
   faction_id: number | null
   card_type_id: number | null
   rarity_id: number | null
+  subtype: string | null
   gold_cost: number | null
   attack: number | null
   health: number | null
@@ -129,6 +130,14 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
               <option value="">-- Pasirink retuma --</option>
               {rarities.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
+          </div>
+
+          {/* Subtype */}
+          <div>
+            <label style={labelStyle}>Potipis (nebut.)</label>
+            <input name="subtype" defaultValue={initialData?.subtype ?? ''}
+              placeholder="ZOMBIE / GOBLIN / DEMON..."
+              style={inputStyle} />
           </div>
 
           {/* Gold cost */}
