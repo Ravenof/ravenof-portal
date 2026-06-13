@@ -436,7 +436,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
     const p = P(g, owner)
     p.artifacts = p.artifacts.map((a) => (a?.uid === target.uid ? null : a))
     p.discard.push(target.card)
-    log(g, { t: 'death', side: owner, cardName: target.card.name, msg: `Artefaktas „${target.card.name}" sunaikintas.` })
+    log(g, { t: 'death', side: owner, cardName: target.card.name, msg: `Artefaktas „${target.card.name}" sunaikintas.`, src: { side: owner, uid: target.uid } })
   }
 }
 
@@ -457,7 +457,7 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
   }
   p.units[idx] = null
   p.discard.push(u.card)
-  log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death' })
+  log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death', src: { side: owner, uid: u.uid } })
   fireGlobalListeners(g, 'onAnyDeath')
 }
 

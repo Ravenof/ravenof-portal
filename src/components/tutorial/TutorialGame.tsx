@@ -278,6 +278,10 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const [inspect, setInspect] = useState<TutCard | null>(null)
   const [showLog, setShowLog] = useState(false)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
+  const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
+  const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
+  const flyIdRef = useRef(0)
+  const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const lpRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Sužaistų kortų log: vardas -> korta (iš kaladės + prakeiksmų)
@@ -516,6 +520,20 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
           if (!e.sound) playBattleSound('zmkFlip')
           if (e.zmk === 'x2' || e.zmk === 'x0') queueTip('zmk-special')
           break
+        case 'death': {
+          const uid = e.src?.uid
+          const card = e.cardName ? cardByName[e.cardName] : null
+          const from = uid ? unitRectsRef.current.get(uid) : null
+          const pileEl = document.querySelector(`[data-pile="discard-${e.side}"]`)
+          if (card && from && pileEl) {
+            const r = pileEl.getBoundingClientRect()
+            const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+            const id = ++flyIdRef.current
+            setFlyingCards((f) => [...f, { id, card, from, to }])
+            setTimeout(() => setFlyingCards((f) => f.filter((x) => x.id !== id)), 650)
+          }
+          break
+        }
         case 'win': if (e.side === 'you') playSuccess(); else playError(); break
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
@@ -573,7 +591,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         (step.require === 'any-play' && e.side === 'you' && ['play', 'spell', 'artifact'].includes(e.t)))
       if (done) setStepIdx((i) => i + 1)
     }
-  }, [game, step, queueTip, PROJ_EMOJI, rectFor, spawnProjectile])
+  }, [game, step, queueTip, PROJ_EMOJI, rectFor, spawnProjectile, cardByName])
 
   // ŽMK flash dingsta
   useEffect(() => {
@@ -581,6 +599,18 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     const t = setTimeout(() => setZmkFlash(null), 2000)
     return () => clearTimeout(t)
   }, [zmkFlash])
+
+  // Padarų pozicijų momentinė nuotrauka (sunaikinimo skrydžio animacijai). Be deps – po kiekvieno render'io.
+  useEffect(() => {
+    const m = new Map<string, { x: number; y: number }>()
+    document.querySelectorAll('[data-unit-uid]').forEach((el) => {
+      const id = el.getAttribute('data-unit-uid')
+      if (!id) return
+      const r = el.getBoundingClientRect()
+      m.set(id, { x: r.left + r.width / 2, y: r.top + r.height / 2 })
+    })
+    unitRectsRef.current = m
+  })
 
   // ── Tutorial fallback: žingsnis niekada neprašo neįmanomo veiksmo ──
   useEffect(() => {
@@ -761,19 +791,31 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   if (typeof document === 'undefined') return null
 
   // ── Pagalbiniai render gabalai ──
-  const renderPile = (label: string, count: number, tut?: string, faceUp = false) => (
-    <div data-tut={tut} className="flex flex-col items-center gap-0.5">
-      <div className="relative rounded-md flex items-center justify-center"
-        style={{
-          width: isTouch ? 34 : 44, height: isTouch ? 46 : 60,
-          background: faceUp ? 'rgba(240,180,41,0.08)' : 'linear-gradient(145deg, #1a1325, #0d0a14)',
-          border: '1px solid rgba(240,180,41,0.3)',
-        }}>
-        <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{count}</span>
+  const renderPile = (label: string, count: number, opts?: { tut?: string; faceUp?: boolean; cards?: TutCard[]; pileKey?: string }) => {
+    const interactive = !!opts?.cards && count > 0
+    const open = () => opts?.cards && setPileView({ title: label, cards: opts.cards })
+    return (
+      <div data-tut={opts?.tut} data-pile={opts?.pileKey} className="flex flex-col items-center gap-0.5">
+        <div
+          className={'relative rounded-md flex items-center justify-center ' + (interactive ? 'cursor-pointer' : '')}
+          style={{
+            width: isTouch ? 34 : 44, height: isTouch ? 46 : 60,
+            background: opts?.faceUp ? 'rgba(240,180,41,0.08)' : 'linear-gradient(145deg, #1a1325, #0d0a14)',
+            border: '1px solid rgba(240,180,41,0.3)',
+          }}
+          onMouseEnter={interactive ? open : undefined}
+          onMouseLeave={interactive ? () => setPileView(null) : undefined}
+          onTouchStart={interactive ? () => { lpRef.current = setTimeout(open, 320) } : undefined}
+          onTouchEnd={interactive ? () => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } } : undefined}
+          onTouchMove={interactive ? () => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } } : undefined}
+          title={interactive ? `Peržiūrėti (${count}) – vesk pele / palaikyk pirštą` : undefined}>
+          <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{count}</span>
+          {interactive && <span className="absolute -top-1.5 -right-1.5 text-[9px]">👁</span>}
+        </div>
+        <span className="text-[8px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</span>
       </div>
-      <span className="text-[8px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</span>
-    </div>
-  )
+    )
+  }
 
   const renderUnitsRow = (side: Side, tut: string) => {
     if (!game) return null
@@ -881,10 +923,18 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     if (!game) return null
     const p = P(game, side)
     return (
-      <div data-tut={side === 'you' ? 'gold' : undefined} className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+      <div data-tut={side === 'you' ? 'gold' : undefined} className="flex items-center gap-1.5 px-2 py-1 rounded-full"
         style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)' }}>
-        <span className="text-sm sm:text-lg">⚜</span>
-        <span className="text-sm sm:text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{p.gold}</span>
+        <span className="inline-flex items-center justify-center rounded-full shrink-0"
+          style={{
+            width: 22, height: 22,
+            background: 'radial-gradient(circle at 35% 30%, #fff4c2 0%, #f5c542 38%, #d49a1e 70%, #9c6b12 100%)',
+            border: '1.5px solid #fff1b0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.6), inset 0 0 3px rgba(255,255,255,0.6), inset 0 -2px 3px rgba(120,80,10,0.6)',
+            color: '#7a5210', fontSize: 11, fontWeight: 900, fontFamily: 'var(--rvn-font-display)',
+            textShadow: '0 1px 0 rgba(255,255,255,0.35)',
+          }}>⚜</span>
+        <span className="text-sm sm:text-lg font-bold tabular-nums" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{p.gold}</span>
       </div>
     )
   }
@@ -960,7 +1010,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
               <div className="flex items-end gap-2">
                 {renderPile('Ranka', game.ai.hand.length)}
                 {renderPile('Kaladė', game.ai.deck.length)}
-                {renderPile('Krūva', game.ai.discard.length, undefined, true)}
+                {renderPile('Krūva', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
                 {renderPile('ŽMK', game.ai.zmk.length)}
               </div>
             </div>
@@ -998,9 +1048,9 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
               {hpBar('you')}
               {goldBar('you')}
               <div className="flex items-end gap-2">
-                {renderPile('Kaladė', game.you.deck.length, 'deck')}
-                {renderPile('Krūva', game.you.discard.length, 'discard', true)}
-                {renderPile('ŽMK', game.you.zmk.length, 'zmk')}
+                {renderPile('Kaladė', game.you.deck.length, { tut: 'deck' })}
+                {renderPile('Krūva', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
+                {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk' })}
               </div>
               <button
                 data-tut="discard-gold"
@@ -1062,7 +1112,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                     <motion.div
                       key={c.uid}
                       layout
-                      initial={{ y: 60, opacity: 0 }}
+                      initial={{ x: 90, y: 40, opacity: 0, scale: 0.7 }}
                       animate={{ y: 0, opacity: 1, rotate: handExpanded ? 0 : Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
                       whileHover={handExpanded ? { y: -6, zIndex: 30 } : { y: -14, zIndex: 30, rotate: 0 }}
@@ -1357,6 +1407,22 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         </AnimatePresence>
       </div>
 
+      {/* ── skrendančios kortos (sunaikinta/panaudota → kapinynas) ── */}
+      <div className="fixed inset-0 z-[129] pointer-events-none">
+        <AnimatePresence>
+          {flyingCards.map((fc) => (
+            <motion.div key={fc.id}
+              initial={{ left: fc.from.x - 18, top: fc.from.y - 24, opacity: 1, scale: 1, rotate: 0 }}
+              animate={{ left: fc.to.x - 12, top: fc.to.y - 16, opacity: 0.15, scale: 0.4, rotate: 35 }}
+              transition={{ duration: 0.6, ease: 'easeIn' }}
+              className="absolute"
+              style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))' }}>
+              <MiniCard c={fc.card} w={36} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* ── ŽMK auto-traukimo flash (fiksuotas, centruotas; rodo VISAS traukimo kortas – pvz. puolančio ir gynėjo) ── */}
       <AnimatePresence>
         {zmkFlash && (
@@ -1386,6 +1452,38 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                 )
               })}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── kapinyno (ar kitos pilės) peržiūra – hover (PC) / palaikius pirštą (mobile) ── */}
+      <AnimatePresence>
+        {pileView && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[132] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.62)' }}
+            onClick={() => setPileView(null)}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
+              className="rounded-2xl p-4 w-[min(460px,93vw)] max-h-[82vh] overflow-y-auto"
+              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.4)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                  {pileView.title} ({pileView.cards.length})
+                </p>
+                <button onClick={() => setPileView(null)} className="text-sm px-2" style={{ color: 'var(--text-muted)' }}>✕</button>
+              </div>
+              {pileView.cards.length === 0 ? (
+                <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Tuščia</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {pileView.cards.map((c, i) => (
+                    <button key={c.uid + '-pv-' + i} onClick={() => { playCardFlip(); setInspect(c) }} title={c.name} className="transition-transform hover:scale-105">
+                      <MiniCard c={c} w={isTouch ? 58 : 66} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
