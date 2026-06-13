@@ -49,6 +49,16 @@ type DbRow = {
   } | null
 }
 
+const ZMK_IMG: Record<string, string> = {
+  '+0': '/rules/zmk/card-plus0.png', '+1': '/rules/zmk/card-plus1.png', '-1': '/rules/zmk/card-minus1.png',
+  '+2': '/rules/zmk/card-plus2.png', '-2': '/rules/zmk/card-minus2.png',
+  'x2': '/rules/zmk/card-x2.png', 'x0': '/rules/zmk/card-x0.png',
+}
+/** ŽMK kortos nuotrauka: admin zmk_cards.image_url > taisyklių numatytoji. */
+function zmkImg(g: GameState | null, v: string): string | null {
+  return g?.zmkDefs?.[v]?.image_url || ZMK_IMG[v] || null
+}
+
 function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
   const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
   const text = [c.effect_text, c.description].filter(Boolean).join(' ')
@@ -991,15 +1001,24 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                   initial={{ scale: 0.3, opacity: 0, rotateY: 90 }}
                   animate={{ scale: 1, opacity: 1, rotateY: 0 }}
                   exit={{ scale: 0.6, opacity: 0 }}
-                  className="absolute left-0 right-0 mx-auto w-fit -top-7 z-10 px-3 py-1.5 rounded-lg font-black text-lg"
-                  style={{
-                    background: 'linear-gradient(145deg, #2a2138, #14101e)',
-                    border: '2px solid var(--gold)',
-                    color: zmkFlash.v.startsWith('+') && zmkFlash.v !== '+0' ? '#4ade80' : zmkFlash.v.startsWith('-') ? '#f87171' : 'var(--gold)',
-                    boxShadow: '0 0 20px rgba(240,180,41,0.4)',
-                    fontFamily: 'var(--rvn-font-display)',
-                  }}>
-                  ŽMK {zmkFlash.v.replace('x', '×')}
+                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                  className="absolute left-0 right-0 mx-auto w-fit -top-24 z-20 flex flex-col items-center gap-1"
+                  style={{ transformStyle: 'preserve-3d' }}>
+                  {zmkImg(game, zmkFlash.v) ? (
+                    <div className="rounded-lg overflow-hidden" style={{ width: 60, aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 22px rgba(240,180,41,0.55)' }}>
+                      <img src={zmkImg(game, zmkFlash.v)!} alt={`ŽMK ${zmkFlash.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                    </div>
+                  ) : null}
+                  <span className="px-2.5 py-1 rounded-lg font-black text-base"
+                    style={{
+                      background: 'linear-gradient(145deg, #2a2138, #14101e)',
+                      border: '2px solid var(--gold)',
+                      color: zmkFlash.v.startsWith('+') && zmkFlash.v !== '+0' ? '#4ade80' : zmkFlash.v.startsWith('-') ? '#f87171' : 'var(--gold)',
+                      boxShadow: '0 0 14px rgba(240,180,41,0.35)',
+                      fontFamily: 'var(--rvn-font-display)',
+                    }}>
+                    ŽMK {zmkFlash.v.replace('x', '×')}
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1385,16 +1404,23 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                   <p className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>Spausk atversti</p>
                 </button>
               ) : (
-                <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} className="space-y-2">
-                  <div className="mx-auto rounded-xl flex flex-col items-center justify-center"
-                    style={{ width: 90, height: 120, background: 'rgba(240,180,41,0.08)', border: '2px solid var(--gold)' }}>
-                    <span className="text-2xl font-black" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {zmkPending[0].v.replace('x', '×')}
-                    </span>
-                    <span className="text-[9px] px-1 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      {game?.zmkDefs[zmkPending[0].v]?.name ?? ''}
-                    </span>
-                  </div>
+                <motion.div initial={{ rotateY: 90, opacity: 0.3 }} animate={{ rotateY: 0, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 240, damping: 18 }} className="space-y-2" style={{ transformStyle: 'preserve-3d' }}>
+                  {zmkImg(game, zmkPending[0].v) ? (
+                    <div className="mx-auto rounded-xl overflow-hidden" style={{ width: 100, aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 20px rgba(240,180,41,0.45)' }}>
+                      <img src={zmkImg(game, zmkPending[0].v)!} alt={`ŽMK ${zmkPending[0].v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                    </div>
+                  ) : (
+                    <div className="mx-auto rounded-xl flex flex-col items-center justify-center"
+                      style={{ width: 100, height: 140, background: 'rgba(240,180,41,0.08)', border: '2px solid var(--gold)' }}>
+                      <span className="text-2xl font-black" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                        {zmkPending[0].v.replace('x', '×')}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-xs font-black" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                    {zmkPending[0].v.replace('x', '×')}<span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}> · {game?.zmkDefs[zmkPending[0].v]?.name ?? ''}</span>
+                  </p>
                   <button onClick={() => { playUiClick(); setZmkPending((q) => q.slice(1)) }}
                     className="px-4 py-1.5 rounded-lg text-xs font-bold"
                     style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
