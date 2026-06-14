@@ -178,6 +178,15 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
           <div className="space-y-2">
             {mappings.map((m, i) => {
               const effectDef = EFFECT_TYPES.find((e) => e.value === m.effect)
+              const eff = m.effect
+              const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
+              const isPlayerEff = ['discard', 'gainGold', 'loseGold'].includes(eff)
+              const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
+              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'revealOwnDeck', 'revealEnemyDeck'].includes(eff)
+              const isTargeted = !isSummon && !isPlayerEff && !isDeckEff && !isFixedNoTarget
+              const showTarget = isTargeted || isPlayerEff || isDeckEff
+              const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
+              const targetOpts = isTargeted ? TARGET_TYPES : TARGET_TYPES.filter((t) => playerOnly.includes(t.value))
               return (
                 <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-lg"
                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)' }}>
@@ -193,12 +202,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                       {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label style={labelStyle}>Taikinys</label>
-                    <select value={m.target} onChange={(e) => setMapping(i, { target: e.target.value as EffectMapping['target'] })} style={inputStyle}>
-                      {TARGET_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </div>
+                  {showTarget && (
+                    <div>
+                      <label style={labelStyle}>{isPlayerEff || isDeckEff ? 'Kam / kieno' : 'Taikinys'}</label>
+                      <select value={m.target} onChange={(e) => setMapping(i, { target: e.target.value as EffectMapping['target'] })} style={inputStyle}>
+                        {targetOpts.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                    </div>
+                  )}
                   {effectDef?.needsValue && (
                     <div>
                       <label style={labelStyle}>Reikšmė</label>
@@ -206,33 +217,41 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                         onChange={(e) => setMapping(i, { value: Number(e.target.value) })} style={inputStyle} />
                     </div>
                   )}
-                  <div>
-                    <label style={labelStyle}>Projectile</label>
-                    <select value={m.projectile ?? 'none'} onChange={(e) => setMapping(i, { projectile: e.target.value as EffectMapping['projectile'] })} style={inputStyle}>
-                      {PROJECTILE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Garsas</label>
-                    <select value={m.sound ?? ''} onChange={(e) => setMapping(i, { sound: (e.target.value || undefined) as EffectMapping['sound'] })} style={inputStyle}>
-                      {SOUND_OPTIONS.map((sd) => <option key={sd} value={sd}>{sd || '(auto)'}</option>)}
-                    </select>
-                  </div>
+                  {isTargeted && (
+                    <>
+                      <div>
+                        <label style={labelStyle}>Projectile</label>
+                        <select value={m.projectile ?? 'none'} onChange={(e) => setMapping(i, { projectile: e.target.value as EffectMapping['projectile'] })} style={inputStyle}>
+                          {PROJECTILE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Garsas</label>
+                        <select value={m.sound ?? ''} onChange={(e) => setMapping(i, { sound: (e.target.value || undefined) as EffectMapping['sound'] })} style={inputStyle}>
+                          {SOUND_OPTIONS.map((sd) => <option key={sd} value={sd}>{sd || '(auto)'}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
                   <div className="col-span-2 flex flex-wrap items-center gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    <label className="flex items-center gap-1">
-                      <input type="checkbox" checked={m.requiresSelection ?? false}
-                        onChange={(e) => setMapping(i, { requiresSelection: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
-                      Žaidėjas renkasi taikinį
-                    </label>
+                    {isTargeted && (
+                      <>
+                        <label className="flex items-center gap-1">
+                          <input type="checkbox" checked={m.requiresSelection ?? false}
+                            onChange={(e) => setMapping(i, { requiresSelection: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
+                          Žaidėjas renkasi taikinį
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input type="checkbox" checked={m.allowRandomTarget ?? false}
+                            onChange={(e) => setMapping(i, { allowRandomTarget: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
+                          allowRandomTarget
+                        </label>
+                      </>
+                    )}
                     <label className="flex items-center gap-1">
                       <input type="checkbox" checked={m.optional ?? false}
                         onChange={(e) => setMapping(i, { optional: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
                       Neprivalomas
-                    </label>
-                    <label className="flex items-center gap-1">
-                      <input type="checkbox" checked={m.allowRandomTarget ?? false}
-                        onChange={(e) => setMapping(i, { allowRandomTarget: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
-                      allowRandomTarget
                     </label>
                     <label className="flex items-center gap-1">
                       <input type="checkbox" checked={!!m.triggersCurse}
@@ -332,27 +351,31 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                           style={{ ...inputStyle, width: 56 }} title="Kiek kortų peržiūrėti (Reikšmė = kiek išmesti)" />
                       </label>
                     )}
-                    {/* Selektorius + sužeisti */}
-                    <label className="flex items-center gap-1">
-                      Taikinys:
-                      <select value={m.targetSelect ?? ''}
-                        onChange={(e) => setMapping(i, { targetSelect: (e.target.value || undefined) as TargetSelect | undefined })}
-                        style={{ ...inputStyle, width: 130 }} title="Pavienio taikinio parinkimas pagal statą">
-                        <option value="">auto (silpniausias)</option>
-                        {TARGET_SELECTS.map((ts) => <option key={ts.value} value={ts.value}>{ts.label}</option>)}
-                      </select>
-                    </label>
-                    <label className="flex items-center gap-1">
-                      Potipis:
-                      <input type="text" value={m.targetSubtype ?? ''} placeholder="ZOMBIE/GOBLIN/DEMON"
-                        onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}
-                        style={{ ...inputStyle, width: 120 }} title="Tik šio potipio padarai" />
-                    </label>
-                    <label className="flex items-center gap-1">
-                      <input type="checkbox" checked={m.targetWoundedOnly ?? false}
-                        onChange={(e) => setMapping(i, { targetWoundedOnly: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
-                      Tik sužeisti
-                    </label>
+                    {/* Selektorius + sužeisti (tik combat/target efektams) */}
+                    {isTargeted && (
+                      <>
+                        <label className="flex items-center gap-1">
+                          Taikinys:
+                          <select value={m.targetSelect ?? ''}
+                            onChange={(e) => setMapping(i, { targetSelect: (e.target.value || undefined) as TargetSelect | undefined })}
+                            style={{ ...inputStyle, width: 130 }} title="Pavienio taikinio parinkimas pagal statą">
+                            <option value="">auto (silpniausias)</option>
+                            {TARGET_SELECTS.map((ts) => <option key={ts.value} value={ts.value}>{ts.label}</option>)}
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1">
+                          Potipis:
+                          <input type="text" value={m.targetSubtype ?? ''} placeholder="ZOMBIE/GOBLIN/DEMON"
+                            onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}
+                            style={{ ...inputStyle, width: 120 }} title="Tik šio potipio padarai" />
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input type="checkbox" checked={m.targetWoundedOnly ?? false}
+                            onChange={(e) => setMapping(i, { targetWoundedOnly: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                          Tik sužeisti
+                        </label>
+                      </>
+                    )}
                     {/* Sąlyga */}
                     <label className="flex items-center gap-1">
                       <input type="checkbox" checked={!!m.condition}
