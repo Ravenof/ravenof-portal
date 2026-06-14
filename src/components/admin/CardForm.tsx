@@ -15,6 +15,8 @@ type CardData = {
   card_type_id: number | null
   rarity_id: number | null
   subtype: string | null
+  champion_group: string | null
+  champion_phase: number | null
   gold_cost: number | null
   attack: number | null
   health: number | null
@@ -140,6 +142,26 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
               placeholder="ZOMBIE / GOBLIN / DEMON..."
               style={inputStyle} />
           </div>
+
+          {/* Champion family + phase (tik čempionams) */}
+          {isChampType && (
+            <>
+              <div>
+                <label style={labelStyle}>Čempiono šeima (group)</label>
+                <input name="champion_group" defaultValue={initialData?.champion_group ?? ''}
+                  placeholder="pvz. elys-matviga (vienoda visoms 3 fazėms)" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Čempiono fazė</label>
+                <select name="champion_phase" defaultValue={initialData?.champion_phase ?? ''} style={inputStyle}>
+                  <option value="">—</option>
+                  <option value="1">1 fazė</option>
+                  <option value="2">2 fazė</option>
+                  <option value="3">3 fazė</option>
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Gold cost */}
           <div>

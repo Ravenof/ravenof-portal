@@ -14,7 +14,7 @@ export default async function EditCardPage({ params }: Props) {
 
   const { data: card } = await supabase
     .from('cards')
-    .select('id, card_number, name, faction_id, card_type_id, rarity_id, gold_cost, attack, health, description, effect_text, lore_text, image_url, is_champion, status, gameplay, subtype')
+    .select('id, card_number, name, faction_id, card_type_id, rarity_id, gold_cost, attack, health, description, effect_text, lore_text, image_url, is_champion, status, gameplay, subtype, champion_group, champion_phase')
     .eq('id', cardId)
     .single()
 

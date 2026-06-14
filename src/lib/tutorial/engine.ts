@@ -57,6 +57,8 @@ export type TutCard = {
   health: number | null
   type: TutCardType
   subtype?: string | null   // ZOMBIE / GOBLIN / DEMON ir pan.
+  championGroup?: string | null  // čempiono šeima (3 fazės dalinasi)
+  championPhase?: number | null  // kuri fazė (1/2/3) yra ši korta
   keywords: TutKeyword[]
   effectText: string
   rarityColor: string
@@ -1042,19 +1044,29 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         }
         return { ok: false, reason: 'Reikia tribute: paaukok 1 padarą iš lauko arba 1 kortą iš rankos.' }
       }
-      const existing = p.units.find((u) => u?.isChampion)
+      const fam = card.championGroup ?? null
+      const cardPhase = card.championPhase ?? null
+      const existing = p.units.find((u) => u?.isChampion && (fam ? u.card.championGroup === fam : true))
       if (existing) {
+        // Evoliucija. Griežta, jei nustatyta fazė: ši korta turi būti būtent +1 fazė.
+        if (cardPhase != null && cardPhase !== existing.phase + 1) {
+          return { ok: false, reason: `Ši korta – ${cardPhase} fazė; reikia, kad Čempionas būtų ${cardPhase - 1} fazėje (dabar ${existing.phase}).` }
+        }
         const t = doTribute()
         if (!t.ok) return t
         const ci = p.hand.findIndex((c) => c.uid === uid)
         if (ci >= 0) p.hand.splice(ci, 1)
         p.gold -= cost
-        existing.phase += 1
+        existing.phase = cardPhase ?? existing.phase + 1
         existing.card = card
         existing.maxHp = card.health ?? existing.maxHp + 2
         existing.hp = existing.maxHp
         log(g, { t: 'evolve', side: s, cardName: card.name, msg: `⚜ Čempionas evoliucionuoja į ${existing.phase} fazę ir pilnai pagyja! Atrakintas ${existing.phase}-as skill.` })
         return { ok: true }
+      }
+      // Iškvietimas (nėra šios šeimos čempiono lauke). Griežta: tik 1 fazės kortą.
+      if (cardPhase != null && cardPhase !== 1) {
+        return { ok: false, reason: `Pirma iškviesk 1 fazės Čempioną (ši korta – ${cardPhase} fazė).` }
       }
       const slot = p.units.findIndex((u) => u === null)
       if (slot === -1) return { ok: false, reason: 'Padarų zona pilna (maks. 5, įskaitant Čempioną).' }
