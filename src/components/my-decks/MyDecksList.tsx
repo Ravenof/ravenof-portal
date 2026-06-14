@@ -10,6 +10,7 @@ import { RavenofButton } from '@/components/ui/RavenofButton'
 import type { DeckWithRelations } from '@/types'
 import { PlaytestButton } from '@/components/decks/PlaytestButton'
 import { TutorialButton } from '@/components/tutorial/TutorialButton'
+import { PracticeButton } from '@/components/tutorial/PracticeButton'
 
 type Props = {
   decks: DeckWithRelations[]
@@ -232,6 +233,7 @@ export function MyDecksList({ decks, userId, deckOwnership = {} }: Props) {
               {/* Tutorial */}
               <div className="flex-1">
                 <TutorialButton deckId={deck.id} deckName={deck.name} variant="compact" />
+                <PracticeButton deckId={deck.id} deckName={deck.name} variant="compact" />
               </div>
               {/* Edit */}
               <Link href={`/deck-builder/${deck.id}`} className="flex-1">

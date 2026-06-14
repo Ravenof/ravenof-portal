@@ -29,7 +29,7 @@ import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
-type Props = { deckId: string; deckName: string; onClose: () => void }
+type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -252,15 +252,16 @@ type SelectMode =
   | { kind: 'discard' }
   | null
 
-export function TutorialGame({ deckId, deckName, onClose }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [deckCards, setDeckCards] = useState<TutCard[] | null>(null)
+  const [oppCards, setOppCards] = useState<TutCard[] | null>(null)
   const [zmkDefs, setZmkDefs] = useState<ZmkCardDef[] | null>(null)
   const [curseCards, setCurseCards] = useState<TutCard[]>([])
   const [extrasLoaded, setExtrasLoaded] = useState(false)
-  const [stepIdx, setStepIdx] = useState(0)
+  const [stepIdx, setStepIdx] = useState(practice ? GUIDED_STEPS.length : 0)
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -420,10 +421,11 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   }, [deckId])
 
   // ── Žaidimo (per)kūrimas ──
-  const initGame = useCallback((cards: TutCard[]) => {
+  const initGame = useCallback((cards: TutCard[], opp?: TutCard[] | null) => {
+    const aiSource = opp && opp.length > 0 ? opp : cards
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
-      cards.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
+      aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       'you',
       { zmkDefs, curseCards },
     )
@@ -433,10 +435,35 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
     playShuffle()
   }, [zmkDefs, curseCards])
 
+  // Praktikos režimas: priešo kaladė (public deck arba random iš frakcijos)
   useEffect(() => {
-    if (deckCards && extrasLoaded && !game) initGame(deckCards)
+    if (!practice) return
+    let alive = true
+    const supabase = createClient()
+    const sel = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( color_hex ), faction:factions ( color_hex ), card_keywords ( keyword:keywords ( name ) )`
+    if (opponentDeckId) {
+      supabase.from('deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('deck_id', opponentDeckId).then(({ data }) => {
+        if (!alive) return
+        const rows = ((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)
+        setOppCards(rowsToDeck(rows, 'o'))
+      })
+    } else if (opponentFaction) {
+      supabase.from('cards').select(sel).eq('status', 'active').or(`faction_id.eq.${opponentFaction},faction_id.eq.14`).limit(250).then(({ data }) => {
+        if (!alive) return
+        const mapped = (data as unknown as NonNullable<DbRow['card']>[] ?? []).map(mapDbCard)
+        setOppCards(buildDemoDeck(mapped))
+      })
+    } else {
+      setOppCards([])
+    }
+    return () => { alive = false }
+  }, [practice, opponentDeckId, opponentFaction])
+
+  const practiceReady = !practice || oppCards !== null
+  useEffect(() => {
+    if (deckCards && extrasLoaded && practiceReady && !game) initGame(deckCards, oppCards)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckCards, extrasLoaded, initGame])
+  }, [deckCards, extrasLoaded, practiceReady, initGame])
 
   // ── Ambient muzika + garso būsenos sekimas ──
   useEffect(() => {
@@ -629,7 +656,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         (c.type !== 'unit' || game.you.units.some((u) => u === null)) &&
         (c.type !== 'champion'))
       if (!playable) {
-        if (!grantedGoldRef.current && game.you.hand.some((c) => c.type !== 'curse' && c.type !== 'champion')) {
+        if (!practice && !grantedGoldRef.current && game.you.hand.some((c) => c.type !== 'curse' && c.type !== 'champion')) {
           // suteikiam mokymo aukso, kad žingsnis būtų įvykdomas
           grantedGoldRef.current = true
           setGame((prev) => {
