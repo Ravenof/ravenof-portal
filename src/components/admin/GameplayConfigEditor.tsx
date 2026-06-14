@@ -362,6 +362,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                             onChange={(e) => setMapping(i, { summonChoose: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                           Žaidėjas pasirenka kortą (popup)
                         </label>
+                        <label className="flex items-center gap-1">
+                          Tik kortos (vardai, kableliais)
+                          <input type="text" value={m.summonNames ?? ''} placeholder="pvz. Zombis, Skeletas"
+                            onChange={(e) => setMapping(i, { summonNames: e.target.value || undefined })}
+                            style={{ ...inputStyle, width: 200 }} title="Apriboti iškvietimą iki konkrečių kortų (1 ar kelios). Su 'Žaidėjas pasirenka' – renkasi iš šio sąrašo." />
+                        </label>
                       </>
                     )}
                     {m.effect === 'peekDiscard' && (

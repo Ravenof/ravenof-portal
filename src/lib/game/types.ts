@@ -252,6 +252,7 @@ export type EffectMapping = {
   summonZones?: ('hand' | 'deck' | 'discard')[]  // summonAdvanced: iš kurių zonų (eilės tvarka)
   summonCostMin?: number            // summonAdvanced: kaina >= reikšmė
   summonChoose?: boolean            // summonAdvanced: žaidėjas pats renkasi kortą (popup)
+  summonNames?: string              // summonAdvanced: tik šios kortos (vardai per kablelį)
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   note?: string
 }

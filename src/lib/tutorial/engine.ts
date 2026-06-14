@@ -700,15 +700,17 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
   return { ok: true }
 }
 
-function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number; choose?: boolean }) {
+function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number; choose?: boolean; names?: string }) {
   const p = P(g, s)
   const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
   const want = (opts.subtype ?? '').trim().toLowerCase()
+  const nameWhitelist = (opts.names ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
   const eligible = (c: TutCard) =>
     c.type === 'unit' &&
     (opts.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
     (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
-    (!want || (c.subtype ?? '').toLowerCase() === want)
+    (!want || (c.subtype ?? '').toLowerCase() === want) &&
+    (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
   const count = Math.max(1, opts.count ?? 1)
   if (opts.choose && s === 'you') {
     const options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] = []
