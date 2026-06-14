@@ -190,36 +190,17 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
           </div>
         </div>
 
-        {/* Description */}
-        <div>
-          <label style={labelStyle}>Aprasymas (nebut.)</label>
-          <textarea name="description" defaultValue={initialData?.description ?? ''}
-            rows={2} placeholder="Kortos aprasymas..."
-            style={{ ...inputStyle, resize: 'vertical' as const }} />
-        </div>
+        {/* Tekstas matomas kortos paveiksle – nebeeditinamas, bet išsaugomas (paslėpti laukai) */}
+        <input type="hidden" name="description" defaultValue={initialData?.description ?? ''} />
+        <input type="hidden" name="effect_text" defaultValue={initialData?.effect_text ?? ''} />
+        <input type="hidden" name="lore_text" defaultValue={initialData?.lore_text ?? ''} />
 
-        {/* Effect text */}
-        <div>
-          <label style={labelStyle}>Efekto tekstas (nebut.)</label>
-          <textarea name="effect_text" defaultValue={initialData?.effect_text ?? ''}
-            rows={3} placeholder="Efekto aprasymas..."
-            style={{ ...inputStyle, resize: 'vertical' as const }} />
-        </div>
-
-        {/* Virtualaus žaidimo gameplay konfigūracija */}
+        {/* Virtualaus žaidimo gameplay konfigūracija (mapinimas) */}
         <GameplayConfigEditor
           initial={initialData?.gameplay ?? null}
           isField={isFieldType}
           hasEffectText={!!(initialData?.effect_text ?? '').trim()}
         />
-
-        {/* Lore text */}
-        <div>
-          <label style={labelStyle}>Istorija / Lore (nebut.)</label>
-          <textarea name="lore_text" defaultValue={initialData?.lore_text ?? ''}
-            rows={3} placeholder="Kortos istorija, pasaulio kūrimas..."
-            style={{ ...inputStyle, resize: 'vertical' as const }} />
-        </div>
 
         {/* Champion */}
         <div className="flex items-center gap-3">
