@@ -281,6 +281,12 @@ export type FieldEffectConfig = {
 // ── Pasyvi aura (veikia kol korta žaidime, be trigerio) ──────────────────────
 export type PassiveAuraConfig = {
   enemyUnitDamageHealsOwner?: boolean  // visa žala priešo padarams pridedama prie savininko HP
+  // Statų aura: kol korta (padaras/artefaktas) kovos lauke, nuolat buffina padarus
+  auraAttack?: number                  // +ATK paveiktiems padarams
+  auraHealth?: number                  // +HP (ir maxHP) paveiktiems padarams
+  auraScope?: 'friendly' | 'enemy' | 'all'  // kuriuos padarus veikia (default: savus)
+  auraSubtype?: string                 // tik šio potipio padarus (ZOMBIE/GOBLIN/…)
+  auraIncludesSelf?: boolean           // ar veikia ir pačią auros kortą (default: ne)
 }
 
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──

@@ -89,6 +89,8 @@ export type BoardUnit = {
   isChampion: boolean
   phase: number            // čempiono fazė (1-3)
   abilityUsed: boolean
+  auraAtk?: number         // šiuo metu pritaikytas auros ATK priedas (perskaičiuojamas)
+  auraHp?: number          // šiuo metu pritaikytas auros HP priedas (perskaičiuojamas)
 }
 
 export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: number }
@@ -297,6 +299,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
   drawCards(g, first, 4, true)
   drawCards(g, other(first), 5, true)
   log(g, { t: 'start', side: first, msg: `Pradeda ${first === 'you' ? 'tu' : 'priešininkas'}. ${first === 'you' ? 'Tu trauki 4, jis 5.' : 'Jis traukia 4, tu 5 (kompensacija už antrą ėjimą).'}` })
+  recomputeAuras(g)
   return g
 }
 
@@ -426,6 +429,67 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   if (target.hp <= 0) killUnit(g, owner, target)
 }
 
+// Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,
+// tada iš naujo prideda visų lauke esančių auros šaltinių (padarų/artefaktų) poveikį.
+// Kviečiamas po bet kokio kovos lauko pasikeitimo (iškvietimas / žūtis / nutildymas / ėjimo pab.).
+let recomputingAuras = false
+function recomputeAuras(g: GameState) {
+  if (recomputingAuras) return
+  recomputingAuras = true
+  try {
+  // 1) Nuimam dabartinį auros priedą nuo visų padarų
+  for (const sd of ['you', 'ai'] as Side[]) {
+    for (const u of P(g, sd).units) {
+      if (!u) continue
+      if (u.auraAtk) { u.atk = Math.max(0, u.atk - u.auraAtk) }
+      if (u.auraHp) { u.maxHp = Math.max(1, u.maxHp - u.auraHp); if (u.hp > u.maxHp) u.hp = u.maxHp }
+      u.auraAtk = 0; u.auraHp = 0
+    }
+  }
+  // 2) Surenkam auros šaltinius (nenutildyti padarai + artefaktai)
+  type Src = { side: Side; cfg: NonNullable<TutCard['gameplay']>['passiveAura']; selfUid: string }
+  const sources: Src[] = []
+  for (const sd of ['you', 'ai'] as Side[]) {
+    const p = P(g, sd)
+    for (const u of p.units) {
+      if (!u || u.statuses.silenced) continue
+      const cfg = u.card.gameplay?.passiveAura
+      if (cfg && ((cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0)) sources.push({ side: sd, cfg, selfUid: u.uid })
+    }
+    for (const a of p.artifacts) {
+      if (!a) continue
+      const cfg = a.card.gameplay?.passiveAura
+      if (cfg && ((cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0)) sources.push({ side: sd, cfg, selfUid: a.uid })
+    }
+  }
+  // 3) Pritaikom kiekvieno šaltinio poveikį
+  for (const src of sources) {
+    const cfg = src.cfg!
+    const aAtk = cfg.auraAttack ?? 0
+    const aHp = cfg.auraHealth ?? 0
+    const scope = cfg.auraScope ?? 'friendly'
+    const want = (cfg.auraSubtype ?? '').trim().toLowerCase()
+    for (const sd of ['you', 'ai'] as Side[]) {
+      if (scope === 'friendly' && sd !== src.side) continue
+      if (scope === 'enemy' && sd === src.side) continue
+      for (const u of P(g, sd).units) {
+        if (!u) continue
+        if (u.uid === src.selfUid && !cfg.auraIncludesSelf) continue
+        if (want && (u.card.subtype ?? '').toLowerCase() !== want) continue
+        if (aAtk) { u.atk = Math.max(0, u.atk + aAtk); u.auraAtk = (u.auraAtk ?? 0) + aAtk }
+        if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
+      }
+    }
+  }
+  // 4) Jei debuff aura nuvarė HP iki 0 – žūtis
+  for (const sd of ['you', 'ai'] as Side[]) {
+    for (const u of [...P(g, sd).units]) {
+      if (u && u.hp <= 0) killUnit(g, sd, u)
+    }
+  }
+  } finally { recomputingAuras = false }
+}
+
 // Pasyvi aura: jei priešininkas turi žaidime kortą su passiveAura.enemyUnitDamageHealsOwner,
 // visa žala jo PRIEŠO padarams pridedama prie to žaidėjo HP.
 function applyEnemyDamageLeech(g: GameState, damagedOwner: Side, dmg: number) {
@@ -452,6 +516,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
     p.artifacts = p.artifacts.map((a) => (a?.uid === target.uid ? null : a))
     p.discard.push(target.card)
     log(g, { t: 'death', side: owner, cardName: target.card.name, msg: `Artefaktas „${target.card.name}" sunaikintas.`, src: { side: owner, uid: target.uid } })
+    recomputeAuras(g)
   }
 }
 
@@ -489,6 +554,7 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
     log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death', src: { side: owner, uid: u.uid } })
   }
   fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype })
+  recomputeAuras(g)
 }
 
 function checkWin(g: GameState) {
@@ -572,6 +638,7 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
   const until = st === 'burning' || st === 'poisoned' ? PERMANENT : p.turnNumber + 1
   u.statuses[st] = until
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
+  if (st === 'silenced') recomputeAuras(g)
 }
 
 // ── Nauji primityvai + GameApi (effect engine integracijai) ─────────────────
@@ -622,6 +689,7 @@ function destroyArtifactPrim(g: GameState, owner: Side, uid: string) {
   if (!a) return
   p.artifacts = p.artifacts.map((x) => (x?.uid === uid ? null : x))
   p.discard.push(a.card)
+  recomputeAuras(g)
   log(g, { t: 'death', side: owner, cardName: a.card.name, msg: `Artefaktas „${a.card.name}" sunaikintas.`, sound: 'death' })
 }
 
@@ -856,10 +924,12 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
 
 /** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. */
 function afterSummon(g: GameState, s: Side, card: TutCard) {
+  recomputeAuras(g)
   fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype })
 }
 /** Kortos sužaidimo globalus trigeris. */
 function afterPlay(g: GameState, s: Side, card: TutCard) {
+  recomputeAuras(g)
   fireGlobalListeners(g, 'onAnyPlay', { side: s, subtype: card.subtype })
 }
 
@@ -1029,6 +1099,7 @@ export function endTurn(g: GameState): GameState {
       }
     }
   }
+  recomputeAuras(g)
   // onTurnEnd mapping'ai (padarai, artefaktai, laukas)
   fireTrigger(gameApi, g, s, 'onTurnEnd')
   p.gold = 0

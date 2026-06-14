@@ -130,6 +130,58 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
         </label>
       </div>
 
+      <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <input type="checkbox" id="auraStatsOn"
+            checked={(cfg.passiveAura?.auraAttack ?? 0) !== 0 || (cfg.passiveAura?.auraHealth ?? 0) !== 0}
+            onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
+              ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraHealth: cfg.passiveAura?.auraHealth || 0, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
+              : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined } })}
+            className="w-4 h-4 accent-green-400" />
+          <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            ✨ Pasyvi statų aura (galioja kol korta kovos lauke)
+          </label>
+        </div>
+        {((cfg.passiveAura?.auraAttack ?? 0) !== 0 || (cfg.passiveAura?.auraHealth ?? 0) !== 0) && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div>
+              <label style={labelStyle}>+ATK</label>
+              <input type="number" value={cfg.passiveAura?.auraAttack ?? 0}
+                onChange={(e) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, auraAttack: Number(e.target.value) || undefined } })} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>+HP</label>
+              <input type="number" value={cfg.passiveAura?.auraHealth ?? 0}
+                onChange={(e) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, auraHealth: Number(e.target.value) || undefined } })} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Kam galioja</label>
+              <select value={cfg.passiveAura?.auraScope ?? 'friendly'}
+                onChange={(e) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, auraScope: e.target.value as 'friendly' | 'enemy' | 'all' } })} style={inputStyle}>
+                <option value="friendly">Savo padarams</option>
+                <option value="enemy">Priešo padarams</option>
+                <option value="all">Visiems padarams</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Tik potipis</label>
+              <select value={cfg.passiveAura?.auraSubtype ?? ''}
+                onChange={(e) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, auraSubtype: e.target.value || undefined } })} style={inputStyle}>
+                {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <input type="checkbox" checked={!!cfg.passiveAura?.auraIncludesSelf}
+                  onChange={(e) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, auraIncludesSelf: e.target.checked || undefined } })}
+                  className="w-3.5 h-3.5 accent-green-400" />
+                Veikia ir pačią kortą
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div>
         <p style={{ ...labelStyle, marginBottom: 4 }}>Padaro raktažodžiai (statiniai)</p>
         <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
