@@ -444,15 +444,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (opponentDeckId) {
       supabase.from('deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('deck_id', opponentDeckId).then(({ data }) => {
         if (!alive) return
-        const rows = ((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)
-        setOppCards(rowsToDeck(rows, 'o'))
-      })
+        try {
+          const rows = ((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)
+          const built = rowsToDeck(rows, 'o')
+          setOppCards(built.length > 0 ? built : [])
+        } catch { setOppCards([]) }
+      }, () => { if (alive) setOppCards([]) })
     } else if (opponentFaction) {
       supabase.from('cards').select(sel).eq('status', 'active').or(`faction_id.eq.${opponentFaction},faction_id.eq.14`).limit(250).then(({ data }) => {
         if (!alive) return
-        const mapped = (data as unknown as NonNullable<DbRow['card']>[] ?? []).map(mapDbCard)
-        setOppCards(buildDemoDeck(mapped))
-      })
+        try {
+          const mapped = ((data as unknown as NonNullable<DbRow['card']>[]) ?? []).map(mapDbCard)
+          setOppCards(buildDemoDeck(mapped))
+        } catch { setOppCards([]) }
+      }, () => { if (alive) setOppCards([]) })
     } else {
       setOppCards([])
     }
@@ -1044,6 +1049,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         </div>
       )}
 
+      {!loading && !errorMsg && !game && (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-sm animate-pulse" style={{ color: 'var(--gold)' }}>Ruošiama kova…</span>
+        </div>
+      )}
       {game && !loading && (
         <div className="flex-1 flex flex-col overflow-hidden px-2 py-1.5 gap-1">
           {/* ── AI pusė ── */}
