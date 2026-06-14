@@ -260,8 +260,33 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                       </>
                     )}
                     {/* Summon parametrai */}
-                    {(m.effect === 'summonFromHand' || m.effect === 'summonFromDeck' || m.effect === 'summonFromGraveyard' || m.effect === 'revive') && (
+                    {(m.effect === 'summonFromHand' || m.effect === 'summonFromDeck' || m.effect === 'summonFromGraveyard' || m.effect === 'revive' || m.effect === 'summonAdvanced') && (
                       <>
+                        {m.effect === 'summonAdvanced' && (
+                          <>
+                            {(['hand', 'deck', 'discard'] as const).map((z) => {
+                              const zl = z === 'hand' ? 'Ranka' : z === 'deck' ? 'Kaladė' : 'Kapinynas'
+                              const cur = m.summonZones ?? ['hand', 'deck', 'discard']
+                              const on = cur.includes(z)
+                              return (
+                                <label key={z} className="flex items-center gap-1">
+                                  <input type="checkbox" checked={on} className="w-3.5 h-3.5 accent-yellow-400"
+                                    onChange={(e) => {
+                                      const next = e.target.checked ? [...cur, z] : cur.filter((x) => x !== z)
+                                      setMapping(i, { summonZones: next })
+                                    }} />
+                                  {zl}
+                                </label>
+                              )
+                            })}
+                            <label className="flex items-center gap-1">
+                              Kaina ≥
+                              <input type="number" value={m.summonCostMin ?? ''} placeholder="—"
+                                onChange={(e) => setMapping(i, { summonCostMin: e.target.value === '' ? undefined : Number(e.target.value) })}
+                                style={{ ...inputStyle, width: 64 }} />
+                            </label>
+                          </>
+                        )}
                         <label className="flex items-center gap-1">
                           Kaina ≤
                           <input type="number" value={m.summonCostMax ?? ''} placeholder="—"

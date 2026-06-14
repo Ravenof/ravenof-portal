@@ -663,6 +663,38 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
   }
 }
 
+function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number }) {
+  const p = P(g, s)
+  const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
+  const want = (opts.subtype ?? '').trim().toLowerCase()
+  const eligible = (c: TutCard) =>
+    c.type === 'unit' &&
+    (opts.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
+    (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
+    (!want || (c.subtype ?? '').toLowerCase() === want)
+  const count = Math.max(1, opts.count ?? 1)
+  for (let n = 0; n < count; n++) {
+    const slot = p.units.findIndex((u) => u === null)
+    if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
+    let src: TutCard[] | null = null
+    let idx = -1
+    for (const z of zones) {
+      const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
+      const j = arr.findIndex(eligible)
+      if (j !== -1) { src = arr; idx = j; break }
+    }
+    if (!src || idx === -1) { log(g, { t: 'blocked', side: s, msg: 'Nėra tinkamo padaro iškvietimui.' }); return }
+    const [card] = src.splice(idx, 1)
+    p.units[slot] = {
+      uid: card.uid + '-sa' + g.globalTurn + '-' + n, card,
+      atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
+      shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
+      statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
+    }
+    log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
+  }
+}
+
 function millDeckPrim(g: GameState, s: Side, n: number) {
   const p = P(g, s)
   let moved = 0
@@ -814,6 +846,7 @@ export const gameApi: GameApi = {
   returnGraveyardToDeck: returnGraveyardToDeckPrim,
   peekDiscard: peekDiscardPrim,
   revealDeck: revealDeckPrim,
+  summonAdvanced: summonAdvancedPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,

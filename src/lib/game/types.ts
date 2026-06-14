@@ -58,7 +58,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -96,6 +96,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true },
   { value: 'selfToEnemyHand',     label: 'Ši korta → priešo ranka (Paskutinis noras)', needsValue: false },
   { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false },
+  { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
@@ -245,6 +246,8 @@ export type EffectMapping = {
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
   summonSubtype?: string            // summon*: tik šio potipio padarai
   summonCount?: number              // summon*: kiek iškviesti (default 1)
+  summonZones?: ('hand' | 'deck' | 'discard')[]  // summonAdvanced: iš kurių zonų (eilės tvarka)
+  summonCostMin?: number            // summonAdvanced: kaina >= reikšmė
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   note?: string
 }
