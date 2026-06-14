@@ -162,3 +162,21 @@ export async function bulkDeleteCards(
   revalidateCards()
   return { deleted: cardIds.length }
 }
+
+// Greitas vieno lauko / kelių statų atnaujinimas (stats tinkleliui)
+export async function quickUpdateCardStats(
+  cardId: string,
+  fields: { gold_cost?: number | null; rarity_id?: number | null; attack?: number | null; health?: number | null; card_type_id?: number | null },
+): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, error } = await requireAdmin()
+  if (error) return { error }
+  const payload: Record<string, unknown> = {}
+  for (const k of ['gold_cost', 'rarity_id', 'attack', 'health', 'card_type_id'] as const) {
+    if (k in fields) payload[k] = fields[k]
+  }
+  if (Object.keys(payload).length === 0) return { ok: true }
+  const { error: e } = await supabase.from('cards').update(payload).eq('id', cardId)
+  if (e) return { error: e.message }
+  revalidateCards()
+  return { ok: true }
+}

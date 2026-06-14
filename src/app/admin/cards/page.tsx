@@ -76,6 +76,11 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
             Pasiekimai
           </Link>
           <div className="flex-1" />
+          <Link href="/admin/cards/stats"
+            className="text-sm px-4 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+            style={{ border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+            🖼 Greitas statų suvedimas
+          </Link>
           <Link href="/admin/cards/import"
             className="text-sm px-4 py-1.5 rounded-lg transition-opacity hover:opacity-80"
             style={{ border: '1px solid var(--bg-border)', color: 'var(--text-secondary)' }}>
