@@ -287,6 +287,10 @@ export type PassiveAuraConfig = {
   auraScope?: 'friendly' | 'enemy' | 'all'  // kuriuos padarus veikia (default: savus)
   auraSubtype?: string                 // tik šio potipio padarus (ZOMBIE/GOBLIN/…)
   auraIncludesSelf?: boolean           // ar veikia ir pačią auros kortą (default: ne)
+  auraSilence?: boolean                // paveikti padarai nutildomi (efektai/raktažodžiai blokuojami)
+  auraCantAttack?: boolean             // paveikti padarai negali atakuoti
+  auraKeywords?: ('taunt' | 'shield' | 'stealth' | 'sprint')[]  // suteikiami raktažodžiai
+  auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
 }
 
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──

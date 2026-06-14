@@ -91,6 +91,11 @@ export type BoardUnit = {
   abilityUsed: boolean
   auraAtk?: number         // šiuo metu pritaikytas auros ATK priedas (perskaičiuojamas)
   auraHp?: number          // šiuo metu pritaikytas auros HP priedas (perskaičiuojamas)
+  auraKw?: TutKeyword[]     // auros suteikti raktažodžiai (taunt/sprint; perskaičiuojami)
+  auraSilence?: boolean     // ar nutildymą suteikė aura (kad strip jį nuimtų)
+  auraCantAttack?: boolean  // aura blokuoja atakas
+  auraShield?: boolean      // skydą suteikė aura
+  auraStealth?: boolean     // sėlinimą suteikė aura
 }
 
 export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: number }
@@ -432,6 +437,11 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
 // Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,
 // tada iš naujo prideda visų lauke esančių auros šaltinių (padarų/artefaktų) poveikį.
 // Kviečiamas po bet kokio kovos lauko pasikeitimo (iškvietimas / žūtis / nutildymas / ėjimo pab.).
+function auraIsActive(cfg: NonNullable<TutCard['gameplay']>['passiveAura']): boolean {
+  if (!cfg) return false
+  return (cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0
+    || !!cfg.auraSilence || !!cfg.auraCantAttack || (cfg.auraKeywords?.length ?? 0) > 0
+}
 let recomputingAuras = false
 function recomputeAuras(g: GameState) {
   if (recomputingAuras) return
@@ -443,7 +453,10 @@ function recomputeAuras(g: GameState) {
       if (!u) continue
       if (u.auraAtk) { u.atk = Math.max(0, u.atk - u.auraAtk) }
       if (u.auraHp) { u.maxHp = Math.max(1, u.maxHp - u.auraHp); if (u.hp > u.maxHp) u.hp = u.maxHp }
-      u.auraAtk = 0; u.auraHp = 0
+      if (u.auraSilence) { delete u.statuses.silenced; u.auraSilence = false }
+      if (u.auraShield) { u.shield = false; u.auraShield = false }
+      if (u.auraStealth) { u.stealth = false; u.auraStealth = false }
+      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false
     }
   }
   // 2) Surenkam auros šaltinius (nenutildyti padarai + artefaktai)
@@ -454,12 +467,12 @@ function recomputeAuras(g: GameState) {
     for (const u of p.units) {
       if (!u || u.statuses.silenced) continue
       const cfg = u.card.gameplay?.passiveAura
-      if (cfg && ((cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0)) sources.push({ side: sd, cfg, selfUid: u.uid })
+      if (cfg && auraIsActive(cfg)) sources.push({ side: sd, cfg, selfUid: u.uid })
     }
     for (const a of p.artifacts) {
       if (!a) continue
       const cfg = a.card.gameplay?.passiveAura
-      if (cfg && ((cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0)) sources.push({ side: sd, cfg, selfUid: a.uid })
+      if (cfg && auraIsActive(cfg)) sources.push({ side: sd, cfg, selfUid: a.uid })
     }
   }
   // 3) Pritaikom kiekvieno šaltinio poveikį
@@ -478,6 +491,13 @@ function recomputeAuras(g: GameState) {
         if (want && (u.card.subtype ?? '').toLowerCase() !== want) continue
         if (aAtk) { u.atk = Math.max(0, u.atk + aAtk); u.auraAtk = (u.auraAtk ?? 0) + aAtk }
         if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
+        if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
+        if (cfg.auraCantAttack) u.auraCantAttack = true
+        for (const kw of (cfg.auraKeywords ?? [])) {
+          if (kw === 'shield') { if (!u.shield) { u.shield = true; u.auraShield = true } }
+          else if (kw === 'stealth') { if (!u.stealth) { u.stealth = true; u.auraStealth = true } }
+          else { (u.auraKw ??= []).push(kw) }
+        }
       }
     }
   }
@@ -998,7 +1018,31 @@ export function effectiveCost(g: GameState, s: Side, card: TutCard): number {
   let cost = card.gold
   if (card.type === 'spell') cost += fieldEngine.spellCostDelta(g, s)
   if (card.type === 'unit') cost += fieldEngine.unitCostDelta(g, s)
+  cost -= auraCostReductionFor(g, s, card)
   return Math.max(0, cost)
+}
+
+/** Suskaičiuoja kainos sumažinimą iš pasyvių aurų (padarų/artefaktų kovos lauke). */
+function auraCostReductionFor(g: GameState, s: Side, card: TutCard): number {
+  let red = 0
+  const want = (st?: string) => (st ?? '').trim().toLowerCase()
+  for (const sd of ['you', 'ai'] as Side[]) {
+    const p = P(g, sd)
+    const srcs = [
+      ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+      ...p.artifacts.filter((a): a is BoardArtifact => !!a),
+    ]
+    for (const c of srcs) {
+      const cfg = c.card.gameplay?.passiveAura
+      if (!cfg?.auraCostReduction) continue
+      const scope = cfg.auraScope ?? 'friendly'
+      const sideMatch = scope === 'all' || (scope === 'friendly' ? sd === s : sd !== s)
+      if (!sideMatch) continue
+      if (cfg.auraSubtype && want(card.subtype ?? undefined) !== want(cfg.auraSubtype)) continue
+      red += cfg.auraCostReduction
+    }
+  }
+  return red
 }
 
 /** Numatytasis projectile pagal kortos efektą (kai admin nenurodė). */
@@ -1367,7 +1411,8 @@ export function canUnitAttack(g: GameState, s: Side, u: BoardUnit): { ok: boolea
   if (u.attacksUsed >= 1) return { ok: false, reason: 'Šis padaras jau atakavo šį ėjimą.' }
   if (u.statuses.frozen) return { ok: false, reason: '❄ Padaras sušaldytas – praleidžia veikimo galimybę.' }
   if (u.statuses.stunned) return { ok: false, reason: '✦ Padaras apsvaigintas – negali atakuoti.' }
-  if (u.summonedOnTurn === g.globalTurn && !u.card.keywords.includes('sprint'))
+  if (u.auraCantAttack) return { ok: false, reason: '🔗 Aura blokuoja šio padaro atakas.' }
+  if (u.summonedOnTurn === g.globalTurn && !(u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')))
     return { ok: false, reason: 'Padaras iškviestas šį ėjimą – atakuoti galės kitą ėjimą (nebent turėtų ▶ Sprintą).' }
   if (effectiveAtk(g, u) <= 0) return { ok: false, reason: 'Padaro ATK = 0.' }
   return { ok: true }
@@ -1377,7 +1422,7 @@ export function canUnitAttack(g: GameState, s: Side, u: BoardUnit): { ok: boolea
 export function legalTargets(g: GameState, attackerSide: Side): TargetRef[] {
   const foe = other(attackerSide)
   const fp = P(g, foe)
-  const taunts = fp.units.filter((u): u is BoardUnit => !!u && u.card.keywords.includes('taunt') && !u.stealth)
+  const taunts = fp.units.filter((u): u is BoardUnit => !!u && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) && !u.stealth)
   if (taunts.length > 0) return taunts.map((u) => ({ kind: 'unit', side: foe, uid: u.uid }))
   const out: TargetRef[] = []
   for (const u of fp.units) if (u && !u.stealth) out.push({ kind: 'unit', side: foe, uid: u.uid })
