@@ -27,7 +27,8 @@ export function aiNextAction(g: GameState): AiAction {
   const champ = me.units.find((u) => u?.isChampion && !u.abilityUsed && !u.statuses.silenced && !u.statuses.frozen && !u.statuses.stunned)
   if (champ) {
     const target = bestAbilityTarget(g)
-    const r = useChampionAbility(g, 'ai', { target })
+    // AI naudoja aukščiausią atrakintą skill (pagal fazę)
+    const r = useChampionAbility(g, 'ai', Math.max(0, champ.phase - 1), { target })
     if (r.ok) return { kind: 'ability' }
   }
 

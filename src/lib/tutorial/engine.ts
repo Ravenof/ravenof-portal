@@ -920,7 +920,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
   return { ok: true }
 }
 
-export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; sacrificeUid?: string }): PlayResult {
+export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; sacrificeUid?: string; tributeHandUid?: string }): PlayResult {
   if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
   const p = P(g, s)
@@ -1021,36 +1021,48 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       return { ok: true }
     }
     case 'champion': {
+      // Tribute: 1 padaras iš lauko (1 tšk) ARBA 1 korta iš rankos (2 tšk). Reikia ≥1 tšk.
+      const doTribute = (): PlayResult => {
+        if (opts?.sacrificeUid) {
+          const sIdx = p.units.findIndex((u) => !!u && u.uid === opts.sacrificeUid && !u.isChampion)
+          if (sIdx === -1) return { ok: false, reason: 'Aukai pasirink savo padarą (ne Čempioną).' }
+          const sac = p.units[sIdx] as BoardUnit
+          p.units[sIdx] = null
+          p.discard.push(sac.card)
+          log(g, { t: 'death', side: s, cardName: sac.card.name, msg: `„${sac.card.name}" paaukojamas Čempionui.`, src: { side: s, uid: sac.uid } })
+          return { ok: true }
+        }
+        if (opts?.tributeHandUid) {
+          const hIdx = p.hand.findIndex((c) => c.uid === opts.tributeHandUid && c.uid !== uid)
+          if (hIdx === -1) return { ok: false, reason: 'Tribute korta rankoje nerasta.' }
+          const [hc] = p.hand.splice(hIdx, 1)
+          p.discard.push(hc)
+          log(g, { t: 'death', side: s, cardName: hc.name, msg: `„${hc.name}" paaukojama iš rankos (×2 tribute).` })
+          return { ok: true }
+        }
+        return { ok: false, reason: 'Reikia tribute: paaukok 1 padarą iš lauko arba 1 kortą iš rankos.' }
+      }
       const existing = p.units.find((u) => u?.isChampion)
       if (existing) {
-        // Evoliucija: reikia kortos rankoje + aukos
-        if (!opts?.sacrificeUid) return { ok: false, reason: 'Evoliucijai reikia paaukoti padarą.' }
-        const sacIdx = p.units.findIndex((u) => !!u && u.uid === opts.sacrificeUid && !u.isChampion)
-        if (sacIdx === -1) return { ok: false, reason: 'Aukai pasirink savo padarą.' }
-        p.hand.splice(i, 1)
-        p.gold -= card.gold
-        const sac = p.units[sacIdx] as BoardUnit
-        p.units[sacIdx] = null
-        p.discard.push(sac.card)
-        log(g, { t: 'death', side: s, cardName: sac.card.name, msg: `„${sac.card.name}" paaukojamas.` })
+        const t = doTribute()
+        if (!t.ok) return t
+        const ci = p.hand.findIndex((c) => c.uid === uid)
+        if (ci >= 0) p.hand.splice(ci, 1)
+        p.gold -= cost
         existing.phase += 1
         existing.card = card
         existing.maxHp = card.health ?? existing.maxHp + 2
-        existing.hp = existing.maxHp // evoliucionavęs pilnai pagyja
-        log(g, { t: 'evolve', side: s, cardName: card.name, msg: `⚜ Čempionas evoliucionuoja į ${existing.phase}-ą fazę ir pilnai pagyja!` })
+        existing.hp = existing.maxHp
+        log(g, { t: 'evolve', side: s, cardName: card.name, msg: `⚜ Čempionas evoliucionuoja į ${existing.phase} fazę ir pilnai pagyja! Atrakintas ${existing.phase}-as skill.` })
         return { ok: true }
       }
       const slot = p.units.findIndex((u) => u === null)
       if (slot === -1) return { ok: false, reason: 'Padarų zona pilna (maks. 5, įskaitant Čempioną).' }
-      if (!opts?.sacrificeUid) return { ok: false, reason: 'Čempiono iškvietimui reikia paaukoti padarą.' }
-      const sacIdx = p.units.findIndex((u) => !!u && u.uid === opts.sacrificeUid && !u.isChampion)
-      if (sacIdx === -1) return { ok: false, reason: 'Aukai pasirink savo padarą.' }
-      p.hand.splice(i, 1)
-      p.gold -= card.gold
-      const sac = p.units[sacIdx] as BoardUnit
-      p.units[sacIdx] = null
-      p.discard.push(sac.card)
-      log(g, { t: 'death', side: s, cardName: sac.card.name, msg: `„${sac.card.name}" paaukojamas Čempionui.` })
+      const t = doTribute()
+      if (!t.ok) return t
+      const ci = p.hand.findIndex((c) => c.uid === uid)
+      if (ci >= 0) p.hand.splice(ci, 1)
+      p.gold -= cost
       const freeSlot = p.units.findIndex((u) => u === null)
       p.units[freeSlot] = {
         uid: card.uid, card, atk: 0,
@@ -1059,7 +1071,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         summonedOnTurn: g.globalTurn, attacksUsed: 0,
         isChampion: true, phase: 1, abilityUsed: false,
       }
-      log(g, { t: 'champion', side: s, cardName: card.name, value: card.gold, msg: `⚜ ${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} Čempioną „${card.name}" (1 fazė)! Čempionas nėra padaras ir neatakuoja – naudoja gebėjimus.` })
+      log(g, { t: 'champion', side: s, cardName: card.name, value: card.gold, msg: `⚜ ${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} Čempioną „${card.name}" (1 fazė)! Naudoja gebėjimus (skills), neatakuoja.` })
       return { ok: true }
     }
     case 'curse':
@@ -1067,35 +1079,47 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
   }
 }
 
-export function useChampionAbility(g: GameState, s: Side, opts?: { target?: TargetRef }): PlayResult {
+/** Grąžina čempiono skill sąrašą (su atrakinimu pagal fazę). */
+export function championSkills(ch: BoardUnit): { name: string; mappings: EffectMapping[]; unlocked: boolean }[] {
+  const cfg = ch.card.gameplay?.championSkillConfig
+  let raw = cfg?.skills
+  if ((!raw || raw.length === 0) && (cfg?.mappings?.length || ch.card.mappings?.length)) {
+    raw = [{ name: 'Gebėjimas', mappings: cfg?.mappings ?? ch.card.mappings ?? [] }]
+  }
+  return (raw ?? []).slice(0, 3).map((sk, i) => ({
+    name: sk.name || `Skill ${i + 1}`,
+    mappings: sk.mappings ?? [],
+    unlocked: ch.phase >= i + 1,
+  }))
+}
+
+export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?: { target?: TargetRef }): PlayResult {
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
   const p = P(g, s)
   const ch = p.units.find((u) => u?.isChampion)
   if (!ch) return { ok: false, reason: 'Neturi Čempiono kovos lauke.' }
-  if (ch.abilityUsed) return { ok: false, reason: 'Gebėjimas – tik 1 kartą per ėjimą.' }
-  if (ch.statuses.frozen || ch.statuses.stunned) return { ok: false, reason: `Čempionas ${ch.statuses.frozen ? 'sušaldytas' : 'apsvaigintas'} – gebėjimas negalimas.` }
-  if (ch.statuses.silenced) return { ok: false, reason: 'Čempionas nutildytas – gebėjimai blokuojami.' }
+  if (ch.abilityUsed) return { ok: false, reason: 'Skill – tik 1 kartą per ėjimą.' }
+  if (ch.statuses.frozen || ch.statuses.stunned) return { ok: false, reason: `Čempionas ${ch.statuses.frozen ? 'sušaldytas' : 'apsvaigintas'} – skill negalimas.` }
+  if (ch.statuses.silenced) return { ok: false, reason: 'Čempionas nutildytas – skills blokuojami.' }
+  const skills = championSkills(ch)
+  if (skillIndex < 0 || skillIndex >= skills.length) return { ok: false, reason: 'Šis skill nesukonfigūruotas.' }
+  if (!skills[skillIndex].unlocked) return { ok: false, reason: `Skill ${skillIndex + 1} užrakintas – reikia ${skillIndex + 1} fazės.` }
+  const skill = skills[skillIndex]
   ch.abilityUsed = true
-  const skillMappings = (ch.card.gameplay?.championSkillConfig?.mappings ?? ch.card.mappings ?? []).filter((m) => m.trigger === 'onChampionSkill' || m.trigger === 'onCast' || m.trigger === 'onPlay')
   log(g, {
-    t: 'ability', side: s, cardName: ch.card.name, msg: `⚜ „${ch.card.name}" naudoja gebėjimą (${ch.phase} fazė).`,
+    t: 'ability', side: s, cardName: ch.card.name, msg: `⚜ „${ch.card.name}" naudoja „${skill.name}" (${ch.phase} fazė).`,
     src: { side: s, uid: ch.uid }, tgt: opts?.target ? { ...opts.target } : undefined,
-    projectile: skillMappings[0]?.projectile ?? projectileForCard(ch.card), sound: 'championSkill',
+    projectile: skill.mappings[0]?.projectile ?? projectileForCard(ch.card), sound: 'championSkill',
   })
-  if (skillMappings.length > 0) {
-    for (const m of skillMappings) {
-      // gebėjimo galia auga su faze
-      const boosted = { ...m, value: (m.value ?? 1) + ch.phase - 1 }
-      applyMapping(gameApi, g, s, boosted, { sourceName: ch.card.name, sourceUid: ch.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+  if (skill.mappings.length > 0) {
+    for (const m of skill.mappings) {
+      applyMapping(gameApi, g, s, m, { sourceName: ch.card.name, sourceUid: ch.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
       if (g.winner) break
     }
   } else {
     const e = ch.card.effect ?? { damage: ch.phase, targeted: true }
-    const boosted: ParsedEffect = { ...e }
-    if (boosted.damage) boosted.damage += ch.phase - 1
-    if (boosted.heal) boosted.heal += ch.phase - 1
-    if (boosted.targeted && opts?.target) applyTargetedEffect(g, s, boosted, opts.target, ch.card.name)
-    else applyAutoEffect(g, s, boosted, ch.card.name)
+    if (e.targeted && opts?.target) applyTargetedEffect(g, s, e, opts.target, ch.card.name)
+    else applyAutoEffect(g, s, e, ch.card.name)
   }
   fireTrigger(gameApi, g, s, 'onChampionSkill', 1)
   return { ok: true }

@@ -267,13 +267,16 @@ export type PassiveAuraConfig = {
   enemyUnitDamageHealsOwner?: boolean  // visa žala priešo padarams pridedama prie savininko HP
 }
 
+// ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──
+export type ChampionSkill = { name?: string; mappings: EffectMapping[] }
+
 // ── Pilna kortos gameplay konfigūracija (cards.gameplay JSONB) ────────────────
 export type GameplayConfig = {
   virtualEnabled?: boolean        // default true
   needsEffectMapping?: boolean    // adminui: kortai reikia suvesti efektus
   effectMappings?: EffectMapping[]
   fieldEffectConfig?: FieldEffectConfig      // jei type = Laukas
-  championSkillConfig?: { mappings: EffectMapping[] }  // jei Čempionas
+  championSkillConfig?: { skills?: ChampionSkill[]; mappings?: EffectMapping[] }  // jei Čempionas (3 skills; mappings = legacy 1 skill)
   artifactEffectConfig?: { mappings: EffectMapping[] } // jei Artefaktas
   passiveAura?: PassiveAuraConfig
   canTriggerCurse?: boolean

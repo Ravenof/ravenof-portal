@@ -24,9 +24,10 @@ const SOUND_OPTIONS = ['', 'attack', 'spellCast', 'impact', 'draw', 'curse', 'fi
 
 const EMPTY_MAPPING: EffectMapping = { trigger: 'onPlay', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true }
 
-export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
+export function GameplayConfigEditor({ initial, isField, isChampion = false, hasEffectText }: {
   initial: unknown
   isField: boolean
+  isChampion?: boolean
   hasEffectText: boolean
 }) {
   const initialCfg = useMemo<GameplayConfig>(() => {
@@ -39,19 +40,43 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
   const [rawText, setRawText] = useState('')
   const [rawError, setRawError] = useState<string | null>(null)
 
-  const mappings = cfg.effectMappings ?? []
-  const needsMapping = mappings.length === 0 && hasEffectText
-
+  const [activeSkill, setActiveSkill] = useState(0)
   const update = (next: GameplayConfig) => setCfg(next)
+
+  const champSkills = cfg.championSkillConfig?.skills ?? []
+  const mappings = isChampion ? (champSkills[activeSkill]?.mappings ?? []) : (cfg.effectMappings ?? [])
+  const needsMapping = !isChampion && mappings.length === 0 && hasEffectText
+
+  const writeMappings = (arr: EffectMapping[]) => {
+    if (isChampion) {
+      const skills = [0, 1, 2].map((idx) => ({
+        name: champSkills[idx]?.name ?? '',
+        mappings: idx === activeSkill ? arr : (champSkills[idx]?.mappings ?? []),
+      }))
+      update({ ...cfg, championSkillConfig: { skills } })
+    } else {
+      update({ ...cfg, effectMappings: arr })
+    }
+  }
+  const setSkillName = (idx: number, name: string) => {
+    const skills = [0, 1, 2].map((j) => ({
+      name: j === idx ? name : (champSkills[j]?.name ?? ''),
+      mappings: champSkills[j]?.mappings ?? [],
+    }))
+    update({ ...cfg, championSkillConfig: { skills } })
+  }
   const setMapping = (i: number, m: Partial<EffectMapping>) => {
     const arr = [...mappings]
     arr[i] = { ...arr[i], ...m }
-    update({ ...cfg, effectMappings: arr })
+    writeMappings(arr)
   }
 
   const serialized = useMemo(() => {
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
+    if (isChampion && out.championSkillConfig?.skills) {
+      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [] })) }
+    }
     return JSON.stringify(out)
   }, [cfg, needsMapping])
 
@@ -114,6 +139,24 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
         </div>
       ) : (
         <>
+          {isChampion && (
+            <div className="rounded-lg p-2" style={{ background: 'rgba(240,180,41,0.06)', border: '1px solid rgba(240,180,41,0.3)' }}>
+              <p style={{ ...labelStyle, marginBottom: 6 }}>⚜ Čempiono 3 skills (atrakinami pagal fazę)</p>
+              <div className="flex gap-1 mb-2">
+                {[0, 1, 2].map((i) => (
+                  <button type="button" key={i} onClick={() => setActiveSkill(i)}
+                    className="px-2 py-1 rounded text-[11px] font-semibold"
+                    style={{ background: activeSkill === i ? 'var(--gold)' : 'var(--bg-elevated)', color: activeSkill === i ? '#0a0a0f' : 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>
+                    Skill {i + 1} (fazė {i + 1})
+                  </button>
+                ))}
+              </div>
+              <input type="text" placeholder={`Skill ${activeSkill + 1} pavadinimas`} value={champSkills[activeSkill]?.name ?? ''}
+                onChange={(e) => setSkillName(activeSkill, e.target.value)} style={inputStyle} />
+              <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>Žemiau – šio skill efektai. Trigger paprastai „Čempiono gebėjimas".</p>
+            </div>
+          )}
+
           {/* Effect mappings */}
           <div className="space-y-2">
             {mappings.map((m, i) => {
@@ -314,13 +357,13 @@ export function GameplayConfigEditor({ initial, isField, hasEffectText }: {
                         </select>
                       </>
                     )}
-                    <button type="button" onClick={() => update({ ...cfg, effectMappings: mappings.filter((_, j) => j !== i) })}
+                    <button type="button" onClick={() => writeMappings(mappings.filter((_, j) => j !== i))}
                       className="ml-auto text-[11px]" style={{ color: '#ef4444' }}>✕ Šalinti</button>
                   </div>
                 </div>
               )
             })}
-            <button type="button" onClick={() => update({ ...cfg, effectMappings: [...mappings, { ...EMPTY_MAPPING }] })}
+            <button type="button" onClick={() => writeMappings([...mappings, { ...EMPTY_MAPPING }])}
               className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
               style={{ background: 'rgba(240,180,41,0.12)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>
               + Pridėti efekto mapping'ą

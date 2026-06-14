@@ -66,6 +66,7 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
   const [typeId, setTypeId] = useState<number | null>(initialData?.card_type_id ?? null)
   const isFieldType = /lauk|field/i.test(cardTypes.find((t) => t.id === typeId)?.name ?? '')
   const isCurseType = /prakeik|curse/i.test(cardTypes.find((t) => t.id === typeId)?.name ?? '')
+  const isChampType = /čempion|champion/i.test(cardTypes.find((t) => t.id === typeId)?.name ?? '')
   const [goldCost, setGoldCost] = useState<string>(initialData?.gold_cost != null ? String(initialData.gold_cost) : '')
 
   return (
@@ -199,6 +200,7 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
         <GameplayConfigEditor
           initial={initialData?.gameplay ?? null}
           isField={isFieldType}
+          isChampion={isChampType}
           hasEffectText={!!(initialData?.effect_text ?? '').trim()}
         />
 

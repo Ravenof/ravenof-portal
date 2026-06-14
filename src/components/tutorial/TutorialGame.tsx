@@ -19,7 +19,7 @@ import {
 import {
   GameState, GameEvent, TutCard, BoardUnit, TargetRef, Side,
   createGame, beginTurn, endTurn, playCard, attack, discardForGold,
-  useChampionAbility, canUnitAttack, legalTargets, cloneState, P,
+  useChampionAbility, championSkills, canUnitAttack, legalTargets, cloneState, P,
   parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, resolvePeekDiscard,
   STATUS_META, TutStatus,
 } from '@/lib/tutorial/engine'
@@ -280,6 +280,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
   const [peekSel, setPeekSel] = useState<string[]>([])
+  const [champPopup, setChampPopup] = useState<string | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
@@ -689,12 +690,21 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       setSelect(null)
       return
     }
+    if (select?.kind === 'sacrifice') {
+      if (c.uid === select.cardUid) { pushToast('Negali paaukoti paties Čempiono.'); return }
+      const champUid = select.cardUid
+      update((g) => playCard(g, 'you', champUid, { tributeHandUid: c.uid }))
+      setSelect(null)
+      return
+    }
     if (c.type === 'champion') {
-      const hasSac = game!.you.units.some((u) => u && !u.isChampion)
-      if (!hasSac) { pushToast('Čempionui reikia paaukoti padarą – pirmiausia turėk padarą lauke.'); return }
+      const hasBoardSac = game!.you.units.some((u) => u && !u.isChampion)
+      const hasHandSac = game!.you.hand.some((h) => h.uid !== c.uid)
+      if (!hasBoardSac && !hasHandSac) { pushToast('Čempionui reikia tribute – padaro lauke arba kitos kortos rankoje.'); return }
       if (game!.you.gold < c.gold) { pushToast(`Trūksta aukso: kaina ${c.gold}, turi ${game!.you.gold}.`); return }
       playUiClick()
       setSelect({ kind: 'sacrifice', cardUid: c.uid })
+      pushToast('Tribute: paspausk padarą lauke (1 tšk) arba kitą kortą rankoje (2 tšk).')
       return
     }
     const needsTarget = (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && c.effect?.targeted
@@ -724,7 +734,8 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       return
     }
     if (u.isChampion) {
-      update((g) => useChampionAbility(g, 'you'))
+      playUiClick()
+      setChampPopup(u.uid)
       return
     }
     const can = canUnitAttack(game!, 'you', u)
@@ -1344,6 +1355,49 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
         </div>,
         document.body
       )}
+
+      {/* ── Čempiono skills popup ── */}
+      <AnimatePresence>
+        {champPopup && game && (() => {
+          const ch = game.you.units.find((u) => u?.uid === champPopup) as BoardUnit | undefined
+          if (!ch) return null
+          const skills = championSkills(ch)
+          return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[134] flex items-center justify-center p-4"
+              style={{ background: 'rgba(0,0,0,0.68)' }} onClick={() => setChampPopup(null)}>
+              <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
+                className="rounded-2xl p-4 w-[min(380px,92vw)]"
+                style={{ background: 'linear-gradient(145deg, #1e1729, #120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
+                <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
+                  ⚜ {ch.card.name} — {ch.phase} fazė
+                </p>
+                <p className="text-[11px] mb-3" style={{ color: ch.abilityUsed ? '#f87171' : 'var(--text-muted)' }}>
+                  {ch.abilityUsed ? 'Šį ėjimą skill jau panaudotas.' : 'Pasirink skill (tik 1 per ėjimą)'}
+                </p>
+                <div className="space-y-2">
+                  {skills.length === 0 && (
+                    <p className="text-xs text-center py-3" style={{ color: 'var(--text-muted)' }}>Šis Čempionas neturi sukonfigūruotų skills.</p>
+                  )}
+                  {skills.map((sk, i) => {
+                    const disabled = !sk.unlocked || ch.abilityUsed
+                    return (
+                      <button key={i} disabled={disabled}
+                        onClick={() => { setChampPopup(null); update((g) => useChampionAbility(g, 'you', i)) }}
+                        className="w-full text-left px-3 py-2 rounded-xl transition-all disabled:opacity-40"
+                        style={{ background: sk.unlocked ? 'rgba(240,180,41,0.12)' : 'var(--bg-elevated)', border: '1px solid ' + (sk.unlocked ? 'rgba(240,180,41,0.4)' : 'var(--bg-border)') }}>
+                        <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>
+                          {i + 1}. {sk.name} {!sk.unlocked && `🔒 (reikia ${i + 1} fazės)`}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </motion.div>
+            </motion.div>
+          )
+        })()}
+      </AnimatePresence>
 
       {/* ── kortos apžiūra ── */}
       <AnimatePresence>
