@@ -129,6 +129,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
         </label>
       </div>
 
+      <div>
+        <p style={{ ...labelStyle, marginBottom: 4 }}>Padaro raktažodžiai (statiniai)</p>
+        <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          {([['sprint', '▶ Sprintas'], ['taunt', '⊙ Pasišaipymas'], ['shield', '✦★ Magiškasis skydas'], ['stealth', '◑ Sėlinimas']] as const).map(([kw, lbl]) => {
+            const cur = cfg.keywords ?? []
+            const on = cur.includes(kw)
+            return (
+              <label key={kw} className="flex items-center gap-1">
+                <input type="checkbox" checked={on} className="w-3.5 h-3.5 accent-yellow-400"
+                  onChange={(e) => update({ ...cfg, keywords: e.target.checked ? [...cur, kw] : cur.filter((x) => x !== kw) })} />
+                {lbl}
+              </label>
+            )
+          })}
+        </div>
+      </div>
+
       {rawMode ? (
         <div className="space-y-2">
           <textarea value={rawText} onChange={(e) => setRawText(e.target.value)} rows={12}

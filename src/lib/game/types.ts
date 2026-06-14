@@ -286,6 +286,7 @@ export type GameplayConfig = {
   championSkillConfig?: { skills?: ChampionSkill[]; mappings?: EffectMapping[] }  // jei Čempionas (3 skills; mappings = legacy 1 skill)
   artifactEffectConfig?: { mappings: EffectMapping[] } // jei Artefaktas
   passiveAura?: PassiveAuraConfig
+  keywords?: ('sprint' | 'taunt' | 'shield' | 'stealth')[]  // statiniai padaro raktažodžiai
   canTriggerCurse?: boolean
   canTriggerZmk?: boolean
   animationType?: string

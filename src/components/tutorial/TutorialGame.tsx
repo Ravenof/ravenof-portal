@@ -76,7 +76,7 @@ function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
     subtype: c.subtype ?? null,
     championGroup: c.champion_group ?? null,
     championPhase: c.champion_phase ?? null,
-    keywords: detectKeywords(kwNames, text),
+    keywords: Array.from(new Set([...detectKeywords(kwNames, text), ...((gameplay?.keywords ?? []) as ReturnType<typeof detectKeywords>)])),
     effectText: text,
     rarityColor: c.rarity?.color_hex ?? '#d4af37',
     factionColor: c.faction?.color_hex ?? '#d4af37',
