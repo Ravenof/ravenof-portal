@@ -28,6 +28,7 @@ export const DESKTOP_LINKS: { href: string; label: string; group: string[] }[] =
   { href: '/cards',        label: 'Kortos',    group: ['/cards', '/my-cards'] },
   { href: '/my-decks',     label: 'Kaladės',   group: ['/my-decks', '/deck-builder', '/community-decks'] },
   { href: '/life-tracker', label: 'Kova',      group: ['/life-tracker'] },
+  { href: '/digital',      label: 'Digital',   group: ['/digital'] },
   { href: '/arena',        label: 'Arena',     group: ['/arena', '/events', '/my-events', '/leaderboards'] },
   { href: '/lore',         label: 'Atlasas',   group: ['/lore'] },
   { href: '/rules',        label: 'Taisyklės', group: ['/rules'] },

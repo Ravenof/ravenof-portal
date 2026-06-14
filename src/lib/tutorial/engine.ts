@@ -1535,3 +1535,61 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
 export function cloneState(g: GameState): GameState {
   return JSON.parse(JSON.stringify(g)) as GameState
 }
+
+// ── PvP tinklas: perspektyvos apvertimas + struktūruoti veiksmai ─────────────
+/** Apverčia būseną svečio perspektyvai (jo padarai = 'you', host'o = 'ai'). */
+export function swapPerspective(g: GameState): GameState {
+  const c = cloneState(g)
+  const tmp = c.you; c.you = c.ai; c.ai = tmp
+  c.you.side = 'you'; c.ai.side = 'ai'
+  c.active = other(c.active)
+  if (c.winner) c.winner = other(c.winner)
+  if (c.field) c.field.owner = other(c.field.owner)
+  for (const e of c.log) {
+    e.side = other(e.side)
+    if (e.src) e.src.side = other(e.src.side)
+    if (e.tgt && e.tgt.side) e.tgt.side = other(e.tgt.side)
+  }
+  if (c.pendingPeek) { c.pendingPeek.caster = other(c.pendingPeek.caster); c.pendingPeek.victim = other(c.pendingPeek.victim) }
+  if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)
+  if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
+  return c
+}
+
+export type NetAction =
+  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; sacrificeUid?: string; tributeHandUid?: string }
+  | { t: 'attack'; actor: Side; uid: string; target: TargetRef }
+  | { t: 'discardForGold'; actor: Side; uid: string }
+  | { t: 'champ'; actor: Side; skillIndex: number; target?: TargetRef }
+  | { t: 'endTurn'; actor: Side }
+  | { t: 'resolveSummon'; uids: string[] }
+  | { t: 'resolvePeek'; uids: string[] }
+  | { t: 'clearReveal' }
+
+/** Pritaiko struktūruotą veiksmą (host'o autoritetinei būsenai). */
+export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reason?: string } {
+  switch (a.t) {
+    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid })
+    case 'attack': return attack(g, a.actor, a.uid, a.target)
+    case 'discardForGold': return discardForGold(g, a.actor, a.uid)
+    case 'champ': return useChampionAbility(g, a.actor, a.skillIndex, { target: a.target })
+    case 'endTurn': { endTurn(g); if (!g.winner) beginTurn(g); return { ok: true } }
+    case 'resolveSummon': return resolveSummonChoice(g, a.uids)
+    case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
+    case 'clearReveal': g.pendingReveal = null; return { ok: true }
+  }
+}
+
+/** Apverčia veiksmo puses (svečio 'you'-koordinatės -> host'o koordinatės). */
+export function swapAction(a: NetAction): NetAction {
+  const sw = <T extends TargetRef | undefined>(t: T): T =>
+    (t ? ({ ...t, side: other(t.side) } as T) : t)
+  switch (a.t) {
+    case 'play': return { ...a, actor: other(a.actor), target: sw(a.target) }
+    case 'attack': return { ...a, actor: other(a.actor), target: sw(a.target) }
+    case 'discardForGold': return { ...a, actor: other(a.actor) }
+    case 'champ': return { ...a, actor: other(a.actor), target: sw(a.target) }
+    case 'endTurn': return { ...a, actor: other(a.actor) }
+    default: return a
+  }
+}

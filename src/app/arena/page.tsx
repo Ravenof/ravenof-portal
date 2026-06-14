@@ -10,6 +10,14 @@ export default async function ArenaPage() {
 
   const SECTIONS = [
     {
+      href:    '/digital',
+      emoji:   '🎮',
+      title:   'Ravenof Digital',
+      desc:    'Mokymasis, praktika prieš AI ir PvP kovos realiu laiku su savo kaladėmis.',
+      color:   '#ef4444',
+      border:  'rgba(239,68,68,0.3)',
+    },
+    {
       href:    '/community-decks',
       emoji:   '📚',
       title:   'Viešos kaladės',

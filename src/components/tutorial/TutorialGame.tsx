@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Swords, Music, VolumeX } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { GameCard } from '@/components/ui/GameCard'
 import {
   playShuffle, playCardDraw, playCardPlace, playCardFlip,
@@ -18,9 +19,10 @@ import {
 } from '@/lib/ui-sound'
 import {
   GameState, GameEvent, TutCard, BoardUnit, TargetRef, Side,
-  createGame, beginTurn, endTurn, playCard, attack, discardForGold,
-  useChampionAbility, championSkills, canUnitAttack, legalTargets, cloneState, P,
-  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, resolvePeekDiscard, resolveSummonChoice,
+  createGame, beginTurn, endTurn,
+  championSkills, canUnitAttack, legalTargets, cloneState, P,
+  swapPerspective, applyNetAction, swapAction, type NetAction,
+  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
   STATUS_META, TutStatus,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
@@ -31,7 +33,8 @@ import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
-type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string }
+export type PvPNet = { isHost: boolean; mySide: Side; matchId: string }
+type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; net?: PvPNet }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -264,8 +267,12 @@ function selectionMappingFor(c: TutCard): EffectMapping | null {
   return null
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, net }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
+  const isHost = !!net?.isHost
+  const isGuest = !!net && !net.isHost
+  const vsRemote = !!net
+  const loadOpp = practice || isHost          // host kraują priešo (svečio) kaladę
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [deckCards, setDeckCards] = useState<TutCard[] | null>(null)
@@ -449,9 +456,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     playShuffle()
   }, [zmkDefs, curseCards])
 
-  // Praktikos režimas: priešo kaladė (public deck arba random iš frakcijos)
+  // Praktika / PvP host: priešo (svečio) kaladė
   useEffect(() => {
-    if (!practice) return
+    if (!loadOpp) return
     let alive = true
     const supabase = createClient()
     const sel = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( color_hex ), faction:factions ( color_hex ), card_keywords ( keyword:keywords ( name ) )`
@@ -476,13 +483,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       setOppCards([])
     }
     return () => { alive = false }
-  }, [practice, opponentDeckId, opponentFaction])
+  }, [loadOpp, opponentDeckId, opponentFaction])
 
-  const practiceReady = !practice || oppCards !== null
+  const oppReady = !loadOpp || oppCards !== null
   useEffect(() => {
-    if (deckCards && extrasLoaded && practiceReady && !game) initGame(deckCards, oppCards)
+    // Svečias žaidimo nekuria – laukia būsenos iš host'o.
+    if (isGuest) return
+    if (deckCards && extrasLoaded && oppReady && !game) initGame(deckCards, oppCards)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckCards, extrasLoaded, practiceReady, initGame])
+  }, [deckCards, extrasLoaded, oppReady, initGame, isGuest])
 
   // ── Ambient muzika + garso būsenos sekimas ──
   useEffect(() => {
@@ -701,6 +710,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {
+    if (vsRemote) return  // PvP – jokio AI
     if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
@@ -720,32 +730,68 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
 
-  const update = useCallback((fn: (g: GameState) => { ok: boolean; reason?: string } | void) => {
+  // ── PvP realtime: kanalas + veiksmų dispečeris ──
+  const channelRef = useRef<RealtimeChannel | null>(null)
+  useEffect(() => {
+    if (!net) return
+    const supabase = createClient()
+    const ch = supabase.channel('pvp-' + net.matchId, { config: { broadcast: { self: false } } })
+    if (net.isHost) {
+      ch.on('broadcast', { event: 'action' }, ({ payload }) => {
+        const a = payload as NetAction
+        setGame((prev) => { if (!prev) return prev; const g = cloneState(prev); applyNetAction(g, a); return g })
+      })
+      ch.on('broadcast', { event: 'hello' }, () => {
+        setGame((prev) => { if (prev) ch.send({ type: 'broadcast', event: 'state', payload: prev }); return prev })
+      })
+    } else {
+      ch.on('broadcast', { event: 'state' }, ({ payload }) => {
+        setGame(swapPerspective(payload as GameState))
+      })
+    }
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED' && !net.isHost) ch.send({ type: 'broadcast', event: 'hello', payload: {} })
+    })
+    channelRef.current = ch
+    return () => { supabase.removeChannel(ch); channelRef.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [net?.matchId])
+
+  // Host transliuoja autoritetinę būseną po kiekvieno pasikeitimo
+  useEffect(() => {
+    if (isHost && game && channelRef.current) {
+      channelRef.current.send({ type: 'broadcast', event: 'state', payload: game })
+    }
+  }, [game, isHost])
+
+  /** Struktūruotas veiksmas: svečias siunčia host'ui, host/lokalus – taiko vietoje. */
+  const doAction = useCallback((a: NetAction) => {
+    if (isGuest) {
+      channelRef.current?.send({ type: 'broadcast', event: 'action', payload: swapAction(a) })
+      return
+    }
     setGame((prev) => {
       if (!prev) return prev
       const g = cloneState(prev)
-      const r = fn(g)
-      if (r && !r.ok) {
-        pushToast(r.reason ?? 'Veiksmas negalimas')
-        return prev
-      }
+      const r = applyNetAction(g, a)
+      if (r && !r.ok) { pushToast(r.reason ?? 'Veiksmas negalimas'); return prev }
       return g
     })
-  }, [pushToast])
+  }, [isGuest, pushToast])
 
   const onHandCardClick = (c: TutCard) => {
     if (!myTurn) { pushToast('Palauk savo ėjimo.'); return }
     if (popupBlocks) return
     if (step?.require === 'end-turn') { pushToast('Dabar spausk „Baigti ėjimą".'); return }
     if (select?.kind === 'discard') {
-      update((g) => discardForGold(g, 'you', c.uid))
+      doAction({ t: 'discardForGold', actor: 'you', uid: c.uid })
       setSelect(null)
       return
     }
     if (select?.kind === 'sacrifice') {
       if (c.uid === select.cardUid) { pushToast('Negali paaukoti paties Čempiono.'); return }
       const champUid = select.cardUid
-      update((g) => playCard(g, 'you', champUid, { tributeHandUid: c.uid }))
+      doAction({ t: 'play', actor: 'you', uid: champUid, tributeHandUid: c.uid })
       setSelect(null)
       return
     }
@@ -765,14 +811,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (game!.you.gold < c.gold) { pushToast(`Trūksta aukso: kaina ${c.gold}, turi ${game!.you.gold}.`); return }
       // Jei mapping reikalauja taikinio, bet lauke nėra galimų taikinių – tiesiog sužaidžiam (auto).
       if (selMap && resolveTargets(game!, 'you', selMap.target).length === 0) {
-        update((g) => playCard(g, 'you', c.uid)); setSelect(null); return
+        doAction({ t: 'play', actor: 'you', uid: c.uid }); setSelect(null); return
       }
       playUiClick()
       setSelect({ kind: 'spell', uid: c.uid })
       pushToast('Pasirink taikinį efektui (pažymėti padarai).')
       return
     }
-    update((g) => playCard(g, 'you', c.uid))
+    doAction({ t: 'play', actor: 'you', uid: c.uid })
     setSelect(null)
   }
 
@@ -781,13 +827,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (select?.kind === 'sacrifice') {
       if (u.isChampion) { pushToast('Čempiono paaukoti negalima.'); return }
       const cardUid = select.cardUid
-      update((g) => playCard(g, 'you', cardUid, { sacrificeUid: u.uid }))
+      doAction({ t: 'play', actor: 'you', uid: cardUid, sacrificeUid: u.uid })
       setSelect(null)
       return
     }
     if (select?.kind === 'spell') {
       const uid = select.uid
-      update((g) => playCard(g, 'you', uid, { target: { kind: 'unit', side: 'you', uid: u.uid } }))
+      doAction({ t: 'play', actor: 'you', uid, target: { kind: 'unit', side: 'you', uid: u.uid } })
       setSelect(null)
       return
     }
@@ -806,11 +852,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!myTurn || popupBlocks) return
     if (select?.kind === 'attacker') {
       const uid = select.uid
-      update((g) => attack(g, 'you', uid, t))
+      doAction({ t: 'attack', actor: 'you', uid, target: t })
       setSelect(null)
     } else if (select?.kind === 'spell') {
       const uid = select.uid
-      update((g) => playCard(g, 'you', uid, { target: t }))
+      doAction({ t: 'play', actor: 'you', uid, target: t })
       setSelect(null)
     }
   }
@@ -820,10 +866,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (step && step.require && step.require !== 'end-turn') { pushToast('Pirmiausia atlik užduotį iš patarimo.'); return }
     playUiClick()
     setSelect(null)
-    update((g) => {
-      endTurn(g)
-      if (!g.winner) beginTurn(g)
-    })
+doAction({ t: 'endTurn', actor: 'you' })
   }
 
   // teisėti taikiniai pažymėjimui
@@ -1457,7 +1500,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
                     const disabled = !sk.unlocked || ch.abilityUsed
                     return (
                       <button key={i} disabled={disabled}
-                        onClick={() => { setChampPopup(null); update((g) => useChampionAbility(g, 'you', i)) }}
+                        onClick={() => { setChampPopup(null); doAction({ t: 'champ', actor: 'you', skillIndex: i }) }}
                         className="w-full text-left px-3 py-2 rounded-xl transition-all disabled:opacity-40"
                         style={{ background: sk.unlocked ? 'rgba(240,180,41,0.12)' : 'var(--bg-elevated)', border: '1px solid ' + (sk.unlocked ? 'rgba(240,180,41,0.4)' : 'var(--bg-border)') }}>
                         <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>
@@ -1620,7 +1663,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
                 })}
               </div>
               <button disabled={summonSel.length !== game.pendingSummon.choose}
-                onClick={() => { playSuccess(); const sel = summonSel; setSummonSel([]); update((g) => resolveSummonChoice(g, sel)) }}
+                onClick={() => { playSuccess(); const sel = summonSel; setSummonSel([]); doAction({ t: 'resolveSummon', uids: sel }) }}
                 className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
                 style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>
                 Iškviesti pažymėtas
@@ -1635,7 +1678,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         {game?.pendingReveal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => update((g) => { g.pendingReveal = null })}>
+            style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => doAction({ t: 'clearReveal' })}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
               className="rounded-2xl p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center"
               style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
@@ -1651,7 +1694,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
                   </div>
                 ))}
               </div>
-              <button onClick={() => update((g) => { g.pendingReveal = null })}
+              <button onClick={() => doAction({ t: 'clearReveal' })}
                 className="px-5 py-2 rounded-xl text-sm font-bold"
                 style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                 Gerai
@@ -1698,7 +1741,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               </div>
               <button
                 disabled={peekSel.length !== game.pendingPeek.choose}
-                onClick={() => { playSuccess(); const sel = peekSel; setPeekSel([]); update((g) => resolvePeekDiscard(g, sel)) }}
+                onClick={() => { playSuccess(); const sel = peekSel; setPeekSel([]); doAction({ t: 'resolvePeek', uids: sel }) }}
                 className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
                 style={{ background: 'rgba(240,180,41,0.22)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                 Išmesti pažymėtas
