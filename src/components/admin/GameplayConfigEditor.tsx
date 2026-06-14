@@ -584,6 +584,54 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                     <button type="button" onClick={() => writeMappings(mappings.filter((_, j) => j !== i))}
                       className="ml-auto text-[11px]" style={{ color: '#ef4444' }}>✕ Šalinti</button>
                   </div>
+                  {/* Follow-up grandinė: „tada padaryk ir…" */}
+                  <div className="col-span-2 md:col-span-4 mt-1 pl-2" style={{ borderLeft: '2px solid rgba(240,180,41,0.4)' }}>
+                    {(m.then ?? []).map((fm, fi) => {
+                      const setThen = (patch: Partial<EffectMapping>) => {
+                        const arr = [...(m.then ?? [])]; arr[fi] = { ...arr[fi], ...patch }; setMapping(i, { then: arr })
+                      }
+                      const fEffDef = EFFECT_TYPES.find((e) => e.value === fm.effect)
+                      const fPlayerOnly = ['discard', 'gainGold', 'loseGold'].includes(fm.effect)
+                      const fNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand'].includes(fm.effect)
+                      return (
+                        <div key={fi} className="flex flex-wrap items-end gap-2 mb-1">
+                          <span className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>↳ tada</span>
+                          <div>
+                            <label style={labelStyle}>Efektas</label>
+                            <select value={fm.effect} onChange={(e) => setThen({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 150 }}>
+                              {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                            </select>
+                          </div>
+                          {!fNoTarget && (
+                            <div>
+                              <label style={labelStyle}>Taikinys</label>
+                              <select value={fm.target} onChange={(e) => setThen({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 150 }}>
+                                {(fPlayerOnly ? TARGET_TYPES.filter((t) => ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer'].includes(t.value)) : TARGET_TYPES).map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                              </select>
+                            </div>
+                          )}
+                          {fEffDef?.needsValue && (
+                            <div>
+                              <label style={labelStyle}>Reikšmė</label>
+                              <input type="number" value={fm.value ?? 1} min={0} onChange={(e) => setThen({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 64 }} />
+                            </div>
+                          )}
+                          <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }}>
+                            <input type="checkbox" checked={fm.requiresSelection === true}
+                              onChange={(e) => setThen({ requiresSelection: e.target.checked ? true : false })} className="w-3.5 h-3.5 accent-yellow-400" />
+                            Renkasi
+                          </label>
+                          <button type="button" onClick={() => { const arr = (m.then ?? []).filter((_, j) => j !== fi); setMapping(i, { then: arr.length ? arr : undefined }) }}
+                            className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
+                        </div>
+                      )
+                    })}
+                    <button type="button"
+                      onClick={() => setMapping(i, { then: [...(m.then ?? []), { trigger: m.trigger, effect: 'heal', target: 'selfUnit', value: 2, requiresSelection: false } as EffectMapping] })}
+                      className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>
+                      + Tada padaryk dar…
+                    </button>
+                  </div>
                 </div>
               )
             })}

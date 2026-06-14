@@ -212,6 +212,14 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     const who = resolveCurseTarget(g, caster, tc.appliesTo, ctx.chosenTarget, tc.allowRandomTarget)
     api.activateCurses(g, who, tc.count, ctx.sourceName, ctx.depth + 1)
   }
+  // follow-up grandinė: „tada padaryk ir X" – po pagrindinio efekto įvykdom kiekvieną „then" mapping'ą.
+  // Konteksto chosenTarget nebeperduodam (kad self-heal ar kitas taikinys atsirinktų savarankiškai).
+  if (applied && m.then && m.then.length > 0 && !g.winner) {
+    for (const next of m.then) {
+      applyMapping(api, g, caster, next, { ...ctx, chosenTarget: undefined, depth: ctx.depth + 1 })
+      if (g.winner) break
+    }
+  }
   return applied
 }
 

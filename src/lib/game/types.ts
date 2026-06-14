@@ -258,6 +258,7 @@ export type EffectMapping = {
   summonChoose?: boolean            // summonAdvanced: žaidėjas pats renkasi kortą (popup)
   summonNames?: string              // summonAdvanced: tik šios kortos (vardai per kablelį)
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
+  then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   note?: string
 }
 
