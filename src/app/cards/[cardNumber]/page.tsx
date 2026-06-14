@@ -268,20 +268,6 @@ export default async function CardDetailPage({ params }: Props) {
               )}
             </div>
 
-            {card.effect_text && (
-              <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Efektas</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{card.effect_text}</p>
-              </div>
-            )}
-
-            {card.description && (
-              <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Aprašymas</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{card.description}</p>
-              </div>
-            )}
-
             {keywords.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>RaktŻodžiai</p>

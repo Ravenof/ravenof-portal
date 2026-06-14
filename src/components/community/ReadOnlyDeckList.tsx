@@ -106,17 +106,6 @@ function CardPreviewModal({ card, onClose }: { card: CardWithRelations; onClose:
             </div>
           )}
 
-          {card.effect_text && (
-            <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-              {card.effect_text}
-            </p>
-          )}
-
-          {card.description && (
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              {card.description}
-            </p>
-          )}
         </div>
       </div>
     </div>,
