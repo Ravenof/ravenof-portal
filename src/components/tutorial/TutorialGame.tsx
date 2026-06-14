@@ -451,7 +451,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         } catch { setOppCards([]) }
       }, () => { if (alive) setOppCards([]) })
     } else if (opponentFaction) {
-      supabase.from('cards').select(sel).eq('status', 'active').or(`faction_id.eq.${opponentFaction},faction_id.eq.14`).limit(250).then(({ data }) => {
+      supabase.from('cards').select(sel).eq('status', 'active').in('faction_id', [opponentFaction, 14]).limit(250).then(({ data }) => {
         if (!alive) return
         try {
           const mapped = ((data as unknown as NonNullable<DbRow['card']>[]) ?? []).map(mapDbCard)
@@ -530,10 +530,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [])
 
   const queueTip = useCallback((k: TipKey) => {
+    if (practice) return
     if (shownTipsRef.current.has(k)) return
     shownTipsRef.current.add(k)
     setTipQueue((q) => [...q, k])
-  }, [])
+  }, [practice])
 
   // ── Naujų įvykių apdorojimas: garsai, ŽMK, patarimai, žingsnių progresas ──
   useEffect(() => {
