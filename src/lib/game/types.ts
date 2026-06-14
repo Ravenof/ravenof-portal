@@ -109,7 +109,7 @@ export type TriggerType =
   | 'onTurnStart' | 'onTurnEnd'
   | 'onFieldEnter' | 'onFieldLeave'
   | 'onChampionSkill' | 'onArtifactActivated'
-  | 'onAnyDeath' | 'onAnyAttack'
+  | 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay'
   | 'custom'
 
 export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
@@ -133,6 +133,8 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onArtifactActivated', label: 'Artefakto aktyvacija' },
   { value: 'onAnyDeath',          label: 'Kai sunaikinamas BET KURIS padaras (globalu)' },
   { value: 'onAnyAttack',         label: 'Kai BET KURIS padaras puola (globalu)' },
+  { value: 'onAnySummon',         label: 'Kai iškviečiamas/prikeliamas BET KURIS padaras (globalu)' },
+  { value: 'onAnyPlay',           label: 'Kai sužaidžiama BET KURI korta (globalu)' },
   { value: 'custom',              label: 'Custom (kodas)' },
 ]
 
@@ -246,6 +248,8 @@ export type EffectMapping = {
   hitCount?: number                 // kiek atskirų taikinių paveikti (auto/atsitiktinis; default 1)
   targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
   targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
+  triggerSide?: 'own' | 'enemy' | 'any'  // globalus trigger: kieno įvykis aktyvuoja (savo/priešo/bet kuris)
+  triggerSubtype?: string           // globalus trigger: tik šio potipio padaro įvykis aktyvuoja
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
   summonSubtype?: string            // summon*: tik šio potipio padarai
   summonCount?: number              // summon*: kiek iškviesti (default 1)

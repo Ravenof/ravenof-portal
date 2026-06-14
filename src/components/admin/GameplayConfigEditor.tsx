@@ -180,6 +180,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
             {mappings.map((m, i) => {
               const effectDef = EFFECT_TYPES.find((e) => e.value === m.effect)
               const eff = m.effect
+              const isGlobalTrigger = ['onAnySummon', 'onAnyDeath', 'onAnyAttack', 'onAnyPlay'].includes(m.trigger)
               const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
               const isPlayerEff = ['discard', 'gainGold', 'loseGold'].includes(eff)
               const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
@@ -207,6 +208,30 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                       {TRIGGER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
+                  {isGlobalTrigger && (
+                    <div className="col-span-2 md:col-span-4 grid grid-cols-2 gap-2 p-2 rounded"
+                      style={{ background: 'rgba(120,160,255,0.06)', border: '1px solid rgba(120,160,255,0.3)' }}>
+                      <div className="col-span-2">
+                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          🌐 Globalus trigger – efektas suveikia, kai įvykis nutinka {m.trigger === 'onAnySummon' ? 'bet kuriam iškviestam/prikeltam padarui' : m.trigger === 'onAnyDeath' ? 'bet kuriam sunaikintam padarui' : m.trigger === 'onAnyAttack' ? 'bet kuriam puolančiam padarui' : 'bet kuriai sužaistai kortai'} (ne tik šiai kortai). Filtruok žemiau.
+                        </p>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Kieno įvykis</label>
+                        <select value={m.triggerSide ?? 'any'} onChange={(e) => setMapping(i, { triggerSide: e.target.value as 'own' | 'enemy' | 'any' })} style={inputStyle}>
+                          <option value="any">Bet kurio (savo ir priešo)</option>
+                          <option value="own">Tik savo</option>
+                          <option value="enemy">Tik priešo</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Tik potipis</label>
+                        <select value={m.triggerSubtype ?? ''} onChange={(e) => setMapping(i, { triggerSubtype: e.target.value || undefined })} style={inputStyle}>
+                          {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label style={labelStyle}>Efektas</label>
                     <select value={m.effect} onChange={(e) => setMapping(i, { effect: e.target.value as EffectMapping['effect'] })} style={inputStyle}>
