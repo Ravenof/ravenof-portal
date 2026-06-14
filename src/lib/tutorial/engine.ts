@@ -466,9 +466,24 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
       applyAutoEffect(g, owner, u.card.effect, u.card.name)
     }
   }
+  // Paskutinio noro „reroute": korta keliauja į ranką (priešo/savo), o ne į kapinyną
+  let reroute: Side | null = null
+  if (!u.statuses.silenced) {
+    for (const m of (u.card.mappings ?? [])) {
+      if (m.trigger !== 'onDeath') continue
+      if (m.effect === 'selfToEnemyHand') reroute = other(owner)
+      else if (m.effect === 'selfToOwnHand') reroute = owner
+    }
+  }
   p.units[idx] = null
-  p.discard.push(u.card)
-  log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death', src: { side: owner, uid: u.uid } })
+  if (reroute) {
+    const rp = P(g, reroute)
+    rp.hand.push(u.card)
+    log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja ${reroute === owner ? 'tau' : 'priešininkui'} į ranką (Paskutinis noras).`, sound: 'death', src: { side: owner, uid: u.uid } })
+  } else {
+    p.discard.push(u.card)
+    log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death', src: { side: owner, uid: u.uid } })
+  }
   fireGlobalListeners(g, 'onAnyDeath')
 }
 

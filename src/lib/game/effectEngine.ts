@@ -107,7 +107,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       targets = picked ? [picked] : []
     }
   }
-  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -182,6 +182,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     case 'peekDiscard': api.peekDiscard(g, targets[0]?.kind === 'player' ? targets[0].side : foe, m.peekCount ?? v * 2, v, caster); break
     case 'revealOwnDeck': api.revealDeck(g, caster, v, caster); break
     case 'revealEnemyDeck': api.revealDeck(g, foe, v, caster); break
+    case 'selfToEnemyHand': case 'selfToOwnHand': break  // apdorojama killUnit (onDeath reroute)
     case 'returnToHand':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.returnUnitToHand(g, f.owner, f.u) }
       break

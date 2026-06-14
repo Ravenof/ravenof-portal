@@ -58,7 +58,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -94,6 +94,8 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'peekDiscard',         label: 'Peržiūrėk N → pasirink K išmesti', needsValue: true },
   { value: 'revealOwnDeck',       label: 'Parodyk N savo kaladės viršaus', needsValue: true },
   { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true },
+  { value: 'selfToEnemyHand',     label: 'Ši korta → priešo ranka (Paskutinis noras)', needsValue: false },
+  { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
