@@ -212,6 +212,8 @@ export type EffectCondition = { source: MetricSource; op: CompareOp; value: numb
 export type DynamicValue = { base: number; perEach: number; source: MetricSource }
 
 /** Pavienio taikinio parinkimas pagal statą (vietoj auto „silpniausias"). */
+export const SUBTYPE_OPTIONS: string[] = ['', 'ZOMBIE', 'GOBLIN', 'DEMON', 'ANGEL', 'INKVIZITORIUS', 'MISTIKAS', 'PLĖŠIKAS']
+
 export type TargetSelect = 'highestHp' | 'lowestHp' | 'highestAtk' | 'lowestAtk' | 'highestCost' | 'lowestCost'
 export const TARGET_SELECTS: { value: TargetSelect; label: string }[] = [
   { value: 'highestHp',   label: 'Daugiausiai HP' },
@@ -248,6 +250,7 @@ export type EffectMapping = {
   summonCount?: number              // summon*: kiek iškviesti (default 1)
   summonZones?: ('hand' | 'deck' | 'discard')[]  // summonAdvanced: iš kurių zonų (eilės tvarka)
   summonCostMin?: number            // summonAdvanced: kaina >= reikšmė
+  summonChoose?: boolean            // summonAdvanced: žaidėjas pats renkasi kortą (popup)
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   note?: string
 }

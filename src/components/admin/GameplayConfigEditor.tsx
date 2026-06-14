@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
-  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS,
+  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SUBTYPE_OPTIONS,
   type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect,
 } from '@/lib/game/types'
 
@@ -331,15 +331,20 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                         </label>
                         <label className="flex items-center gap-1">
                           Potipis
-                          <input type="text" value={m.summonSubtype ?? ''} placeholder="ZOMBIE..."
-                            onChange={(e) => setMapping(i, { summonSubtype: e.target.value || undefined })}
-                            style={{ ...inputStyle, width: 100 }} />
+                          <select value={m.summonSubtype ?? ''} onChange={(e) => setMapping(i, { summonSubtype: e.target.value || undefined })} style={{ ...inputStyle, width: 120 }}>
+                            {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                          </select>
                         </label>
                         <label className="flex items-center gap-1">
                           Kiek
                           <input type="number" min={1} value={m.summonCount ?? 1}
                             onChange={(e) => setMapping(i, { summonCount: Number(e.target.value) })}
                             style={{ ...inputStyle, width: 50 }} />
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input type="checkbox" checked={m.summonChoose ?? false}
+                            onChange={(e) => setMapping(i, { summonChoose: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                          Žaidėjas pasirenka kortą (popup)
                         </label>
                       </>
                     )}
@@ -365,9 +370,10 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                         </label>
                         <label className="flex items-center gap-1">
                           Potipis:
-                          <input type="text" value={m.targetSubtype ?? ''} placeholder="ZOMBIE/GOBLIN/DEMON"
-                            onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}
-                            style={{ ...inputStyle, width: 120 }} title="Tik šio potipio padarai" />
+                          <select value={m.targetSubtype ?? ''} onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}
+                            style={{ ...inputStyle, width: 120 }} title="Tik šio potipio padarai">
+                            {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                          </select>
                         </label>
                         <label className="flex items-center gap-1">
                           <input type="checkbox" checked={m.targetWoundedOnly ?? false}

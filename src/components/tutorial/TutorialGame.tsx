@@ -20,7 +20,7 @@ import {
   GameState, GameEvent, TutCard, BoardUnit, TargetRef, Side,
   createGame, beginTurn, endTurn, playCard, attack, discardForGold,
   useChampionAbility, championSkills, canUnitAttack, legalTargets, cloneState, P,
-  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, resolvePeekDiscard,
+  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, resolvePeekDiscard, resolveSummonChoice,
   STATUS_META, TutStatus,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
@@ -285,6 +285,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
   const [peekSel, setPeekSel] = useState<string[]>([])
+  const [summonSel, setSummonSel] = useState<string[]>([])
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
@@ -312,6 +313,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const zmkBlocks = zmkPending.length > 0
   const peekBlocks = !!game?.pendingPeek
   const revealBlocks = !!game?.pendingReveal
+  const summonBlocks = !!game?.pendingSummon
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 58 : 96
   const unitW = isTouch ? 58 : 90
@@ -687,7 +689,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -701,7 +703,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -1555,6 +1557,46 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
                 )
               })}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── iškvietimo pasirinkimas (summonChoose) ── */}
+      <AnimatePresence>
+        {game?.pendingSummon && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="rounded-2xl p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center"
+              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>Pasirink iškvietimui</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+                Pažymėk {game.pendingSummon.choose} ({summonSel.length}/{game.pendingSummon.choose})
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                {game.pendingSummon.options.map((o) => {
+                  const sel = summonSel.includes(o.card.uid)
+                  const full = summonSel.length >= game!.pendingSummon!.choose
+                  const zl = o.zone === 'hand' ? 'Ranka' : o.zone === 'deck' ? 'Kaladė' : 'Kapinynas'
+                  return (
+                    <button key={o.card.uid} onClick={() => { playUiClick(); setSummonSel((q) => q.includes(o.card.uid) ? q.filter((x) => x !== o.card.uid) : (q.length >= game!.pendingSummon!.choose ? q : [...q, o.card.uid])) }}
+                      className="relative transition-transform" style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined, opacity: !sel && full ? 0.5 : 1 }} title={o.card.name}>
+                      <div style={{ outline: sel ? '2px solid #22c55e' : '2px solid transparent', borderRadius: 10 }}>
+                        <MiniCard c={o.card} w={isTouch ? 60 : 74} />
+                      </div>
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] px-1 rounded-full" style={{ background: '#14101e', color: 'var(--text-muted)' }}>{zl}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <button disabled={summonSel.length !== game.pendingSummon.choose}
+                onClick={() => { playSuccess(); const sel = summonSel; setSummonSel([]); update((g) => resolveSummonChoice(g, sel)) }}
+                className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>
+                Iškviesti pažymėtas
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

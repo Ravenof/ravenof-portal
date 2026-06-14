@@ -164,10 +164,13 @@ export type GameState = {
   pendingPeek?: PendingPeek | null
   /** Laukianti kaladės viršaus peržiūra (tik skaitymui) */
   pendingReveal?: PendingReveal | null
+  /** Laukiantis iškvietimo pasirinkimas (žaidėjas renkasi kortą) */
+  pendingSummon?: PendingSummon | null
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
 export type PendingReveal = { whoseDeck: Side; title: string; cards: TutCard[] }
+export type PendingSummon = { caster: Side; choose: number; options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] }
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
 
@@ -288,6 +291,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     zmkDefs: zmkYou.defs,
     pendingPeek: null,
     pendingReveal: null,
+    pendingSummon: null,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
   drawCards(g, first, 4, true)
@@ -663,7 +667,40 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
   }
 }
 
-function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number }) {
+function placeUnit(g: GameState, p: PlayerState, card: TutCard, suffix: string) {
+  const slot = p.units.findIndex((u) => u === null)
+  if (slot === -1) return false
+  p.units[slot] = {
+    uid: card.uid + suffix, card,
+    atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
+    shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
+    statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
+  }
+  return true
+}
+
+/** Žaidėjo iškvietimo pasirinkimo užbaigimas. */
+export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: boolean; reason?: string } {
+  const ps = g.pendingSummon
+  if (!ps) return { ok: true }
+  const p = P(g, ps.caster)
+  for (const uid of chosenUids.slice(0, ps.choose)) {
+    const opt = ps.options.find((o) => o.card.uid === uid)
+    if (!opt) continue
+    const arr = opt.zone === 'hand' ? p.hand : opt.zone === 'deck' ? p.deck : p.discard
+    const idx = arr.findIndex((c) => c.uid === uid)
+    if (idx === -1) continue
+    const slotFree = p.units.findIndex((u) => u === null)
+    if (slotFree === -1) { log(g, { t: 'blocked', side: ps.caster, msg: 'Padarų zona pilna.' }); break }
+    const [card] = arr.splice(idx, 1)
+    placeUnit(g, p, card, '-sc' + g.globalTurn)
+    log(g, { t: 'play', side: ps.caster, cardName: card.name, msg: `„${card.name}" iškviečiamas (pasirinkta)!`, sound: 'summon' })
+  }
+  g.pendingSummon = null
+  return { ok: true }
+}
+
+function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number; choose?: boolean }) {
   const p = P(g, s)
   const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
   const want = (opts.subtype ?? '').trim().toLowerCase()
@@ -673,6 +710,17 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
     (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
     (!want || (c.subtype ?? '').toLowerCase() === want)
   const count = Math.max(1, opts.count ?? 1)
+  if (opts.choose && s === 'you') {
+    const options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] = []
+    for (const z of zones) {
+      const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
+      for (const c of arr) if (eligible(c)) options.push({ card: c, zone: z })
+    }
+    if (options.length === 0) { log(g, { t: 'blocked', side: s, msg: 'Nėra tinkamo padaro iškvietimui.' }); return }
+    g.pendingSummon = { caster: s, choose: Math.min(count, options.length), options }
+    log(g, { t: 'play', side: s, msg: `Pasirink ${Math.min(count, options.length)} kortą(-as) iškvietimui.` })
+    return
+  }
   for (let n = 0; n < count; n++) {
     const slot = p.units.findIndex((u) => u === null)
     if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
