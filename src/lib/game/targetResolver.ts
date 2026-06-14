@@ -188,6 +188,38 @@ export function pickBySelect(g: GameState, candidates: ResolvedTarget[], sel: Ta
   return scored[0].t
 }
 
+/** Parenka iki N taikinių pagal statą (selektorių). */
+export function pickNBySelect(g: GameState, candidates: ResolvedTarget[], sel: TargetSelect, n: number): ResolvedTarget[] {
+  const scored = candidates
+    .map((t) => ({ t, v: unitStat(g, t, sel) }))
+    .filter((x): x is { t: ResolvedTarget; v: number } => x.v != null)
+  const highest = sel.startsWith('highest')
+  scored.sort((a, b) => (highest ? b.v - a.v : a.v - b.v))
+  return scored.slice(0, Math.max(1, n)).map((x) => x.t)
+}
+
+/** Parenka iki N taikinių automatiškai (pagal intent) arba atsitiktinai. */
+export function autoPickN(g: GameState, casterSide: Side, candidates: ResolvedTarget[], intent: 'harm' | 'help', n: number, allowRandom?: boolean): ResolvedTarget[] {
+  if (candidates.length === 0) return []
+  const k = Math.max(1, n)
+  if (allowRandom) {
+    const a = [...candidates]
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
+    return a.slice(0, k)
+  }
+  const score = (t: ResolvedTarget): number => {
+    if (t.kind === 'player') return intent === 'harm' ? 1000 : 999
+    if (t.kind === 'field') return 500
+    const p = t.side === 'you' ? g.you : g.ai
+    const u = p.units.find((x) => x?.uid === t.uid)
+    const a = p.artifacts.find((x) => x?.uid === t.uid)
+    const hp = u?.hp ?? a?.hp ?? 99
+    const maxHp = u?.maxHp ?? a?.maxHp ?? 99
+    return intent === 'harm' ? hp : (maxHp - hp) > 0 ? -(maxHp - hp) : 998
+  }
+  return [...candidates].sort((a, b) => score(a) - score(b)).slice(0, k)
+}
+
 /** Filtruoja kandidatus iki nurodyto potipio padarų (case-insensitive). */
 export function filterSubtype(g: GameState, candidates: ResolvedTarget[], subtype: string): ResolvedTarget[] {
   const want = subtype.trim().toLowerCase()

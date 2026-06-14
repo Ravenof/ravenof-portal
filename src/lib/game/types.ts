@@ -243,6 +243,7 @@ export type EffectMapping = {
   condition?: EffectCondition       // efektas vyksta tik jei sąlyga tenkinama
   dynamicValue?: DynamicValue       // value = base + perEach * metrika
   targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą
+  hitCount?: number                 // kiek atskirų taikinių paveikti (auto/atsitiktinis; default 1)
   targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
   targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė

@@ -187,6 +187,16 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
               const showTarget = isTargeted || isPlayerEff || isDeckEff
               const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
               const targetOpts = isTargeted ? TARGET_TYPES : TARGET_TYPES.filter((t) => playerOnly.includes(t.value))
+              const isSinglePick = ['enemyUnit', 'ownUnit', 'anyUnit', 'enemyChampion', 'ownChampion', 'anyChampion', 'enemyArtifact', 'ownArtifact', 'anyArtifact'].includes(m.target)
+              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', gainGold: 'Auksas +', loseGold: 'Auksas −', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
+              // dabartinė parinkimo reikšmė vienam dropdownui
+              const pickMode = m.requiresSelection ? 'player' : m.allowRandomTarget ? 'random' : (m.targetSelect ?? 'auto')
+              const setPickMode = (v: string) => {
+                if (v === 'player') setMapping(i, { requiresSelection: true, allowRandomTarget: undefined, targetSelect: undefined })
+                else if (v === 'random') setMapping(i, { requiresSelection: false, allowRandomTarget: true, targetSelect: undefined })
+                else if (v === 'auto') setMapping(i, { requiresSelection: false, allowRandomTarget: undefined, targetSelect: undefined })
+                else setMapping(i, { requiresSelection: false, allowRandomTarget: undefined, targetSelect: v as TargetSelect })
+              }
               return (
                 <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-lg"
                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)' }}>
@@ -212,7 +222,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                   )}
                   {effectDef?.needsValue && (
                     <div>
-                      <label style={labelStyle}>Reikšmė</label>
+                      <label style={labelStyle}>{valueLabel}</label>
                       <input type="number" value={m.value ?? 1} min={0}
                         onChange={(e) => setMapping(i, { value: Number(e.target.value) })} style={inputStyle} />
                     </div>
@@ -234,17 +244,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                     </>
                   )}
                   <div className="col-span-2 flex flex-wrap items-center gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    {isTargeted && (
+                    {isTargeted && isSinglePick && (
                       <>
                         <label className="flex items-center gap-1">
-                          <input type="checkbox" checked={m.requiresSelection ?? false}
-                            onChange={(e) => setMapping(i, { requiresSelection: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
-                          Žaidėjas renkasi taikinį
+                          Parinkimas:
+                          <select value={pickMode} onChange={(e) => setPickMode(e.target.value)} style={{ ...inputStyle, width: 150 }}>
+                            <option value="player">Žaidėjas renkasi</option>
+                            <option value="auto">Auto: silpniausias</option>
+                            {TARGET_SELECTS.map((ts) => <option key={ts.value} value={ts.value}>Auto: {ts.label}</option>)}
+                            <option value="random">Atsitiktinis</option>
+                          </select>
                         </label>
                         <label className="flex items-center gap-1">
-                          <input type="checkbox" checked={m.allowRandomTarget ?? false}
-                            onChange={(e) => setMapping(i, { allowRandomTarget: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
-                          allowRandomTarget
+                          Taikinių sk.
+                          <input type="number" min={1} value={m.hitCount ?? 1} disabled={pickMode === 'player'}
+                            onChange={(e) => setMapping(i, { hitCount: Math.max(1, Number(e.target.value)) })}
+                            style={{ ...inputStyle, width: 50, opacity: pickMode === 'player' ? 0.5 : 1 }}
+                            title={pickMode === 'player' ? 'Žaidėjo pasirinkimui kol kas 1 taikinys' : 'Kiek atskirų taikinių paveikti'} />
                         </label>
                       </>
                     )}
@@ -359,15 +375,6 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                     {/* Selektorius + sužeisti (tik combat/target efektams) */}
                     {isTargeted && (
                       <>
-                        <label className="flex items-center gap-1">
-                          Taikinys:
-                          <select value={m.targetSelect ?? ''}
-                            onChange={(e) => setMapping(i, { targetSelect: (e.target.value || undefined) as TargetSelect | undefined })}
-                            style={{ ...inputStyle, width: 130 }} title="Pavienio taikinio parinkimas pagal statą">
-                            <option value="">auto (silpniausias)</option>
-                            {TARGET_SELECTS.map((ts) => <option key={ts.value} value={ts.value}>{ts.label}</option>)}
-                          </select>
-                        </label>
                         <label className="flex items-center gap-1">
                           Potipis:
                           <select value={m.targetSubtype ?? ''} onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}

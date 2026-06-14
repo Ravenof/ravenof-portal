@@ -4,7 +4,7 @@
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
 import type { EffectMapping, EffectType } from './types'
-import { resolveTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, filterWounded, filterSubtype, type ResolvedTarget } from './targetResolver'
+import { resolveTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 
 export type GameApi = {
@@ -100,12 +100,10 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     if (m.targetWoundedOnly) all = filterWounded(g, all)
     if (m.targetSubtype) all = filterSubtype(g, all, m.targetSubtype)
     if (isMultiTarget(m.target)) targets = all
-    else if (m.targetSelect) {
-      const picked = pickBySelect(g, all, m.targetSelect)
-      targets = picked ? [picked] : []
-    } else {
-      const picked = autoPickTarget(g, caster, all, effectIntent(m.effect), m.allowRandomTarget)
-      targets = picked ? [picked] : []
+    else {
+      const n = Math.max(1, m.hitCount ?? 1)
+      if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
+      else targets = autoPickN(g, caster, all, effectIntent(m.effect), n, m.allowRandomTarget)
     }
   }
   if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
