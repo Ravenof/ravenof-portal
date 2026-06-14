@@ -250,6 +250,7 @@ export type EffectMapping = {
   targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
   triggerSide?: 'own' | 'enemy' | 'any'  // globalus trigger: kieno įvykis aktyvuoja (savo/priešo/bet kuris)
   triggerSubtype?: string           // globalus trigger: tik šio potipio padaro įvykis aktyvuoja
+  triggerSummonSource?: 'any' | 'graveyard' | 'deck' | 'hand' | 'play'  // onAnySummon: iš kur padaras atsirado
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
   summonSubtype?: string            // summon*: tik šio potipio padarai
   summonCount?: number              // summon*: kiek iškviesti (default 1)

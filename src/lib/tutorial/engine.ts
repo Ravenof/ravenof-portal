@@ -752,7 +752,7 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
       isChampion: false, phase: 0, abilityUsed: false,
     }
     log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
-    afterSummon(g, s, card)
+    afterSummon(g, s, card, zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand')
   }
 }
 
@@ -784,7 +784,7 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
     const [card] = arr.splice(idx, 1)
     placeUnit(g, p, card, '-sc' + g.globalTurn)
     log(g, { t: 'play', side: ps.caster, cardName: card.name, msg: `„${card.name}" iškviečiamas (pasirinkta)!`, sound: 'summon' })
-    afterSummon(g, ps.caster, card)
+    afterSummon(g, ps.caster, card, opt.zone === 'discard' ? 'graveyard' : opt.zone === 'deck' ? 'deck' : 'hand')
   }
   g.pendingSummon = null
   return { ok: true }
@@ -818,10 +818,11 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
     if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
     let src: TutCard[] | null = null
     let idx = -1
+    let foundZone: 'hand' | 'deck' | 'discard' = 'deck'
     for (const z of zones) {
       const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
       const j = arr.findIndex(eligible)
-      if (j !== -1) { src = arr; idx = j; break }
+      if (j !== -1) { src = arr; idx = j; foundZone = z; break }
     }
     if (!src || idx === -1) { log(g, { t: 'blocked', side: s, msg: 'Nėra tinkamo padaro iškvietimui.' }); return }
     const [card] = src.splice(idx, 1)
@@ -832,7 +833,7 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
       statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
     }
     log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
-    afterSummon(g, s, card)
+    afterSummon(g, s, card, foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand')
   }
 }
 
@@ -911,7 +912,7 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
 let firingGlobal = false
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay', ctx?: { side?: Side; subtype?: string | null }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   try {
@@ -932,6 +933,8 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
           }
           // Filtras: tik nurodyto potipio padaras
           if (m.triggerSubtype && (ctx?.subtype ?? '').toLowerCase() !== m.triggerSubtype.trim().toLowerCase()) continue
+          // Filtras: iškvietimo šaltinis (tik onAnySummon) – pvz. tik iš kapinyno
+          if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) continue
           applyMapping(gameApi, g, sd, m, { sourceName: c.card.name, sourceUid: c.uid, depth: 2 })
           if (g.winner) return
         }
@@ -942,10 +945,11 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
   }
 }
 
-/** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. */
-function afterSummon(g: GameState, s: Side, card: TutCard) {
+type SummonSource = 'graveyard' | 'deck' | 'hand' | 'play'
+/** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. source = iš kur atsirado. */
+function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource = 'play') {
   recomputeAuras(g)
-  fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype })
+  fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype, source })
 }
 /** Kortos sužaidimo globalus trigeris. */
 function afterPlay(g: GameState, s: Side, card: TutCard) {
@@ -1199,7 +1203,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       }
       p.units[slot] = u
       log(g, { t: 'play', side: s, cardName: card.name, value: cost, msg: `${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} „${card.name}" (${cost} aukso).${card.keywords.includes('sprint') ? ' ▶ Sprintas – gali atakuoti iš karto!' : ''}`, src: { side: s, uid: u.uid }, sound: 'summon' })
-      afterSummon(g, s, card)
+      afterSummon(g, s, card, 'play')
       afterPlay(g, s, card)
       const summonMappings = (card.mappings ?? []).filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay')
       if (summonMappings.length > 0) {
@@ -1341,7 +1345,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         isChampion: true, phase: 1, abilityUsed: false,
       }
       log(g, { t: 'champion', side: s, cardName: card.name, value: card.gold, msg: `⚜ ${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} Čempioną „${card.name}" (1 fazė)! Naudoja gebėjimus (skills), neatakuoja.` })
-      afterSummon(g, s, card)
+      afterSummon(g, s, card, 'play')
       afterPlay(g, s, card)
       return { ok: true }
     }

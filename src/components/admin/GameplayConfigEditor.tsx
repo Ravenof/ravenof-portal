@@ -319,6 +319,18 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                           {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
                         </select>
                       </div>
+                      {m.trigger === 'onAnySummon' && (
+                        <div className="col-span-2">
+                          <label style={labelStyle}>Iškvietimo šaltinis</label>
+                          <select value={m.triggerSummonSource ?? 'any'} onChange={(e) => setMapping(i, { triggerSummonSource: e.target.value === 'any' ? undefined : e.target.value as 'graveyard' | 'deck' | 'hand' | 'play' })} style={inputStyle}>
+                            <option value="any">Bet koks (iškvietimas/prikėlimas)</option>
+                            <option value="graveyard">🪦 Tik prikeltas iš kapinyno</option>
+                            <option value="deck">Tik iškviestas iš kaladės</option>
+                            <option value="hand">Tik sužaistas iš rankos (efektu)</option>
+                            <option value="play">Tik įprastai sužaistas (iš rankos už auksą)</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div>
