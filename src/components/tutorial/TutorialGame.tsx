@@ -24,7 +24,9 @@ import {
   STATUS_META, TutStatus,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
-import { parseGameplayConfig, type ZmkCardDef } from '@/lib/game/types'
+import { parseGameplayConfig, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
+import { mappingNeedsSelection } from '@/lib/game/effectEngine'
+import { resolveTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
@@ -251,6 +253,16 @@ type SelectMode =
   | { kind: 'sacrifice'; cardUid: string }
   | { kind: 'discard' }
   | null
+
+/** Grąžina sužaidimo/iškvietimo mapping'ą, kuriam žaidėjas turi pasirinkti taikinį (arba null). */
+function selectionMappingFor(c: TutCard): EffectMapping | null {
+  for (const m of (c.mappings ?? [])) {
+    const t = m.trigger
+    const isEntry = c.type === 'spell' ? (t === 'onCast' || t === 'onPlay') : (t === 'onSummon' || t === 'onPlay')
+    if (isEntry && mappingNeedsSelection(m)) return m
+  }
+  return null
+}
 
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
@@ -747,11 +759,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       pushToast('Tribute: paspausk padarą lauke (1 tšk) arba kitą kortą rankoje (2 tšk).')
       return
     }
-    const needsTarget = (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && c.effect?.targeted
-    if (needsTarget) {
+    const selMap = selectionMappingFor(c)
+    const legacyNeedsTarget = (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
+    if (selMap || legacyNeedsTarget) {
       if (game!.you.gold < c.gold) { pushToast(`Trūksta aukso: kaina ${c.gold}, turi ${game!.you.gold}.`); return }
+      // Jei mapping reikalauja taikinio, bet lauke nėra galimų taikinių – tiesiog sužaidžiam (auto).
+      if (selMap && resolveTargets(game!, 'you', selMap.target).length === 0) {
+        update((g) => playCard(g, 'you', c.uid)); setSelect(null); return
+      }
       playUiClick()
       setSelect({ kind: 'spell', uid: c.uid })
+      pushToast('Pasirink taikinį efektui (pažymėti padarai).')
       return
     }
     update((g) => playCard(g, 'you', c.uid))
@@ -816,6 +834,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       return new Set(ts.map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
     }
     if (select.kind === 'spell') {
+      const card = game.you.hand.find((c) => c.uid === select.uid)
+      const sm = card ? selectionMappingFor(card) : null
+      if (sm) {
+        const s = new Set<string>()
+        for (const t of resolveTargets(game, 'you', sm.target)) {
+          if (t.kind === 'field') continue
+          if (t.kind === 'unit' && t.side === 'ai') { const u = game.ai.units.find((x) => x?.uid === t.uid); if (u?.stealth) continue }
+          s.add(t.kind + ':' + ('uid' in t ? t.uid : t.side))
+        }
+        return s
+      }
       const s = new Set<string>()
       for (const u of game.ai.units) if (u && !u.stealth) s.add('unit:' + u.uid)
       for (const u of game.you.units) if (u) s.add('unit:' + u.uid)
