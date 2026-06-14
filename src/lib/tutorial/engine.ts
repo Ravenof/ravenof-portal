@@ -162,9 +162,12 @@ export type GameState = {
   zmkDefs: Record<string, ZmkCardDef>
   /** Laukiantis „peržiūrėk N → pasirink K" pasirinkimas (žaidėjui) */
   pendingPeek?: PendingPeek | null
+  /** Laukianti kaladės viršaus peržiūra (tik skaitymui) */
+  pendingReveal?: PendingReveal | null
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
+export type PendingReveal = { whoseDeck: Side; title: string; cards: TutCard[] }
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
 
@@ -284,6 +287,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     zmkMode: zmkYou.mode,
     zmkDefs: zmkYou.defs,
     pendingPeek: null,
+    pendingReveal: null,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
   drawCards(g, first, 4, true)
@@ -702,6 +706,19 @@ export function resolvePeekDiscard(g: GameState, chosenUids: string[]): { ok: bo
   return { ok: true }
 }
 
+// Parodo kaladės viršutines `count` kortas (tik skaitymui, nepašalina).
+function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Side) {
+  const vp = P(g, whoseDeck)
+  const n = Math.min(count, vp.deck.length)
+  if (n === 0) { log(g, { t: 'blocked', side: caster, msg: `${sideName(whoseDeck)} kaladė tuščia – nėra ką parodyti.` }); return }
+  const top = vp.deck.slice(vp.deck.length - n).reverse() // viršus pirmas
+  const title = whoseDeck === caster ? 'Tavo kaladės viršus' : `${sideName(whoseDeck)} kaladės viršus`
+  if (caster === 'you') {
+    g.pendingReveal = { whoseDeck, title, cards: top }
+  }
+  log(g, { t: 'play', side: caster, msg: `${sideName(caster)} pažiūri ${n} ${whoseDeck === caster ? 'savo' : sideName(whoseDeck) + ' '}kaladės viršutines kortas.` })
+}
+
 // ── Globalūs įvykių pasyvai (onAnyDeath / onAnyAttack) ───────────────────────
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
@@ -781,6 +798,7 @@ export const gameApi: GameApi = {
   millDeck: millDeckPrim,
   returnGraveyardToDeck: returnGraveyardToDeckPrim,
   peekDiscard: peekDiscardPrim,
+  revealDeck: revealDeckPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,

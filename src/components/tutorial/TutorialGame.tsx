@@ -310,6 +310,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
   const popupBlocks = ((!!step && !step.require) || !!activeTip) && !popupCollapsed
   const zmkBlocks = zmkPending.length > 0
   const peekBlocks = !!game?.pendingPeek
+  const revealBlocks = !!game?.pendingReveal
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 58 : 96
   const unitW = isTouch ? 58 : 90
@@ -653,7 +654,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -667,7 +668,7 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -1516,6 +1517,37 @@ export function TutorialGame({ deckId, deckName, onClose }: Props) {
                 )
               })}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── kaladės viršaus peržiūra (tik skaitymui) ── */}
+      <AnimatePresence>
+        {game?.pendingReveal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => update((g) => { g.pendingReveal = null })}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
+              className="rounded-2xl p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center"
+              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
+                {game.pendingReveal.title}
+              </p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Viršutinės kortos (kairė = viršus). Lieka kaladėje.</p>
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                {game.pendingReveal.cards.map((c, i) => (
+                  <div key={c.uid + '-rv-' + i} className="relative" title={c.name}>
+                    <span className="absolute -top-1 -left-1 z-10 text-[9px] px-1 rounded-full font-bold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>{i + 1}</span>
+                    <MiniCard c={c} w={isTouch ? 60 : 74} />
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => update((g) => { g.pendingReveal = null })}
+                className="px-5 py-2 rounded-xl text-sm font-bold"
+                style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                Gerai
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

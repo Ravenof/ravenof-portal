@@ -58,7 +58,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -92,6 +92,8 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'mill',                label: 'Mill (kortos iš kaladės į kapinyną)', needsValue: true },
   { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true },
   { value: 'peekDiscard',         label: 'Peržiūrėk N → pasirink K išmesti', needsValue: true },
+  { value: 'revealOwnDeck',       label: 'Parodyk N savo kaladės viršaus', needsValue: true },
+  { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
