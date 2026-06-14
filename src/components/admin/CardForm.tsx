@@ -35,6 +35,7 @@ type Props = {
   factions: Faction[]
   cardTypes: CardType[]
   rarities: Rarity[]
+  cardNames?: string[]
 }
 
 const inputStyle = {
@@ -58,7 +59,7 @@ const labelStyle = {
   letterSpacing: '0.05em',
 }
 
-export function CardForm({ cardId, initialData, factions, cardTypes, rarities }: Props) {
+export function CardForm({ cardId, initialData, factions, cardTypes, rarities, cardNames = [] }: Props) {
   const router = useRouter()
   const boundSave = saveCard.bind(null, cardId)
   const [state, formAction, isPending] = useActionState<CardFormState, FormData>(boundSave, {})
@@ -223,6 +224,7 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities }:
           initial={initialData?.gameplay ?? null}
           isField={isFieldType}
           isChampion={isChampType}
+          cardNames={cardNames}
           hasEffectText={!!(initialData?.effect_text ?? '').trim()}
         />
 

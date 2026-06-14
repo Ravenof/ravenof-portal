@@ -25,6 +25,7 @@ export default async function EditCardPage({ params }: Props) {
   const [
     { data: factions }, { data: cardTypes }, { data: rarities },
     { data: loreLocations }, { data: loreCharacters }, { data: loreArtifacts },
+    { data: cardList },
   ] = await Promise.all([
     supabase.from('factions').select('*').order('sort_order'),
     supabase.from('card_types').select('*').order('sort_order'),
@@ -32,7 +33,9 @@ export default async function EditCardPage({ params }: Props) {
     supabase.from('lore_locations').select('slug, name, related_card_numbers').order('name'),
     supabase.from('lore_characters').select('slug, name, related_card_numbers').order('name'),
     supabase.from('lore_artifacts').select('slug, name, related_card_numbers').order('name'),
+    supabase.from('cards').select('name').eq('status', 'active').order('name').limit(1000),
   ])
+  const cardNames = Array.from(new Set(((cardList ?? []) as { name: string }[]).map((c) => c.name))).sort()
 
   type Row = { slug: string; name: string; related_card_numbers: string[] | null }
   function toEntities(rows: Row[] | null) {
@@ -64,6 +67,7 @@ export default async function EditCardPage({ params }: Props) {
           factions={factions ?? []}
           cardTypes={cardTypes ?? []}
           rarities={rarities ?? []}
+          cardNames={cardNames}
         />
         <CardLoreLinks
           cardNumber={cardNum}

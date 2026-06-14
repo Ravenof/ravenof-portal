@@ -6,11 +6,13 @@ export const metadata = { title: 'Nauja korta | Admin' }
 
 export default async function NewCardPage() {
   const supabase = await createClient()
-  const [{ data: factions }, { data: cardTypes }, { data: rarities }] = await Promise.all([
+  const [{ data: factions }, { data: cardTypes }, { data: rarities }, { data: cardList }] = await Promise.all([
     supabase.from('factions').select('*').order('sort_order'),
     supabase.from('card_types').select('*').order('sort_order'),
     supabase.from('rarities').select('*').order('sort_order'),
+    supabase.from('cards').select('name').eq('status', 'active').order('name').limit(1000),
   ])
+  const cardNames = Array.from(new Set(((cardList ?? []) as { name: string }[]).map((c) => c.name))).sort()
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
@@ -32,6 +34,7 @@ export default async function NewCardPage() {
           factions={factions ?? []}
           cardTypes={cardTypes ?? []}
           rarities={rarities ?? []}
+          cardNames={cardNames}
         />
       </div>
     </div>

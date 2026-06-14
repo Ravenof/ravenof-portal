@@ -24,10 +24,11 @@ const SOUND_OPTIONS = ['', 'attack', 'spellCast', 'impact', 'draw', 'curse', 'fi
 
 const EMPTY_MAPPING: EffectMapping = { trigger: 'onPlay', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true }
 
-export function GameplayConfigEditor({ initial, isField, isChampion = false, hasEffectText }: {
+export function GameplayConfigEditor({ initial, isField, isChampion = false, cardNames = [], hasEffectText }: {
   initial: unknown
   isField: boolean
   isChampion?: boolean
+  cardNames?: string[]
   hasEffectText: boolean
 }) {
   const initialCfg = useMemo<GameplayConfig>(() => {
@@ -362,12 +363,37 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, has
                             onChange={(e) => setMapping(i, { summonChoose: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                           Žaidėjas pasirenka kortą (popup)
                         </label>
-                        <label className="flex items-center gap-1">
-                          Tik kortos (vardai, kableliais)
-                          <input type="text" value={m.summonNames ?? ''} placeholder="pvz. Zombis, Skeletas"
-                            onChange={(e) => setMapping(i, { summonNames: e.target.value || undefined })}
-                            style={{ ...inputStyle, width: 200 }} title="Apriboti iškvietimą iki konkrečių kortų (1 ar kelios). Su 'Žaidėjas pasirenka' – renkasi iš šio sąrašo." />
-                        </label>
+                        <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Tik konkrečios kortos (nebūt.)</span>
+                          {cardNames.length > 0 ? (
+                            <>
+                              <select value="" onChange={(e) => {
+                                const v = e.target.value; if (!v) return
+                                const cur = (m.summonNames ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+                                if (!cur.includes(v)) setMapping(i, { summonNames: [...cur, v].join(', ') })
+                              }} style={inputStyle}>
+                                <option value="">+ pridėti kortą…</option>
+                                {cardNames.filter((n) => !(m.summonNames ?? '').split(',').map((x) => x.trim()).includes(n)).map((n) => <option key={n} value={n}>{n}</option>)}
+                              </select>
+                              <div className="flex flex-wrap gap-1">
+                                {(m.summonNames ?? '').split(',').map((x) => x.trim()).filter(Boolean).map((n) => (
+                                  <span key={n} className="px-1.5 py-0.5 rounded text-[10px] cursor-pointer"
+                                    style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}
+                                    onClick={() => {
+                                      const cur = (m.summonNames ?? '').split(',').map((x) => x.trim()).filter(Boolean).filter((x) => x !== n)
+                                      setMapping(i, { summonNames: cur.length ? cur.join(', ') : undefined })
+                                    }}>
+                                    {n} ✕
+                                  </span>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <input type="text" value={m.summonNames ?? ''} placeholder="pvz. Zombis, Skeletas"
+                              onChange={(e) => setMapping(i, { summonNames: e.target.value || undefined })}
+                              style={{ ...inputStyle, width: 200 }} />
+                          )}
+                        </div>
                       </>
                     )}
                     {m.effect === 'peekDiscard' && (
