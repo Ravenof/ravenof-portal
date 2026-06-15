@@ -160,28 +160,22 @@ function MiniCard({ c, w, dim, faceDown, readable }: { c: TutCard; w: number; di
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1 text-center"
           style={{ background: c.factionColor + '18' }}>
           <span className="text-base opacity-40" style={{ color: c.factionColor }}>⚜</span>
-          {!readable && <span className="text-[8px] leading-tight font-semibold" style={{ color: 'var(--text-secondary)' }}>{c.name}</span>}
+          <span className="leading-tight font-semibold px-0.5" style={{ fontSize: nameSize, color: 'var(--text-secondary)' }}>{c.name}</span>
+          {readable && c.effectText && <span className="leading-snug px-0.5 mt-0.5" style={{ fontSize: textSize, color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.effectText}</span>}
         </div>
       )}
-      {readable && (
-        <div className="absolute inset-x-0 bottom-0 px-1.5 pt-4 pb-3.5"
-          style={{ background: 'linear-gradient(to top, rgba(7,5,11,0.97) 62%, rgba(7,5,11,0.0))' }}>
-          <p className="font-bold leading-tight" style={{ fontSize: nameSize, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{c.name}</p>
-          {c.effectText && (
-            <p className="leading-snug mt-0.5" style={{ fontSize: textSize, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.effectText}</p>
-          )}
-        </div>
-      )}
-      <span className="absolute top-0.5 left-0.5 rounded-full font-bold"
-        style={{ background: 'rgba(0,0,0,0.85)', color: 'var(--gold)', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.gold}</span>
-      {c.attack !== null && c.type === 'unit' && (
-        <span className="absolute bottom-0.5 left-0.5 rounded font-bold"
-          style={{ background: 'rgba(0,0,0,0.85)', color: '#f87171', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.attack}</span>
-      )}
-      {c.health !== null && c.type !== 'spell' && (
-        <span className="absolute bottom-0.5 right-0.5 rounded font-bold"
-          style={{ background: 'rgba(0,0,0,0.85)', color: '#4ade80', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.health}</span>
-      )}
+      {(!readable || !c.image) && (<>
+        <span className="absolute top-0.5 left-0.5 rounded-full font-bold"
+          style={{ background: 'rgba(0,0,0,0.85)', color: 'var(--gold)', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.gold}</span>
+        {c.attack !== null && c.type === 'unit' && (
+          <span className="absolute bottom-0.5 left-0.5 rounded font-bold"
+            style={{ background: 'rgba(0,0,0,0.85)', color: '#f87171', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.attack}</span>
+        )}
+        {c.health !== null && c.type !== 'spell' && (
+          <span className="absolute bottom-0.5 right-0.5 rounded font-bold"
+            style={{ background: 'rgba(0,0,0,0.85)', color: '#4ade80', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.health}</span>
+        )}
+      </>)}
     </div>
   )
 }
@@ -408,6 +402,40 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener?.('change', onChange)
     return () => mq.removeEventListener?.('change', onChange)
+  }, [])
+
+  // Pradėjus žaidimą: pilnas ekranas + neleisti ekranui užmigti (kiek naršyklė leidžia)
+  useEffect(() => {
+    let wakeLock: { release?: () => Promise<void> } | null = null
+    let dead = false
+    const reqWake = async () => {
+      try {
+        const nav = navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<{ release?: () => Promise<void> }> } }
+        if (nav.wakeLock && !dead) wakeLock = await nav.wakeLock.request('screen')
+      } catch { /* nesvarbu */ }
+    }
+    const reqFs = async () => {
+      try {
+        const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }
+        if (document.fullscreenElement) return
+        if (el.requestFullscreen) await el.requestFullscreen()
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen()
+      } catch { /* iPhone Safari nepalaiko – ignoruojam */ }
+    }
+    reqWake()
+    reqFs()
+    // jei auto fullscreen neleido (reikia gesto) – pirmas palietimas įjungs
+    const onFirstTap = () => { reqFs(); reqWake() }
+    window.addEventListener('pointerdown', onFirstTap, { once: true })
+    const onVis = () => { if (document.visibilityState === 'visible' && !dead) reqWake() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      dead = true
+      window.removeEventListener('pointerdown', onFirstTap)
+      document.removeEventListener('visibilitychange', onVis)
+      try { wakeLock?.release?.() } catch { /* */ }
+      try { if (document.fullscreenElement) document.exitFullscreen() } catch { /* */ }
+    }
   }, [])
 
   // ── Užkrovimas ──
