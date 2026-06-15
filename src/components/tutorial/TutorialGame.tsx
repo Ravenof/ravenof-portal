@@ -1057,56 +1057,72 @@ doAction({ t: 'endTurn', actor: 'you' })
     return null
   }
 
-  const beginDrag = (card: TutCard, e: React.PointerEvent) => {
+  // Vienas pirštas: tempimas Į ŠONUS = ranka scrollinama (native pan-x), tempimas AUKŠTYN = žaidžiama korta.
+  const beginHandPointer = (card: TutCard, e: React.PointerEvent) => {
     if (!myTurn || popupBlocks) return
-    const d: DragState = { card, uid: card.uid, targeted: !!game && cardNeedsTarget(game, card), origin: { x: e.clientX, y: e.clientY }, x: e.clientX, y: e.clientY, mode: 'card' }
-    dragRef.current = d; dragMovedRef.current = false; setDrag(d)
-  }
-
-  useEffect(() => {
-    if (!drag) return
+    const sx = e.clientX, sy = e.clientY
+    const selKind = select?.kind
+    const wasExpanded = handExpanded
+    let started = false
+    dragMovedRef.current = false
     const handTop = () => handRef.current?.getBoundingClientRect().top ?? Infinity
-    const move = (e: PointerEvent) => {
-      const d = dragRef.current; if (!d) return
-      if (Math.hypot(e.clientX - d.origin.x, e.clientY - d.origin.y) > 8) dragMovedRef.current = true
-      const onBoard = e.clientY < handTop() - 10
-      const nd: DragState = { ...d, x: e.clientX, y: e.clientY, mode: d.targeted && onBoard && dragMovedRef.current ? 'arrow' : 'card' }
-      dragRef.current = nd; setDrag(nd)
-    }
-    const up = (e: PointerEvent) => {
-      const d = dragRef.current; dragRef.current = null; setDrag(null)
-      if (!d) return
-      if (selectAtDrag === 'discard') { onHandCardClick(d.card); return }
-      if (!dragMovedRef.current) {
-        if (isTouch && !handExpanded) { playUiClick(); setHandExpanded(true) }
-        else if (isTouch && handExpanded) { /* išskleistoj vėduoklėj palietimas = skaitymas (peek), žaidžiama tempimu */ }
-        else onHandCardClick(d.card)
-        return
-      }
-      const onBoard = e.clientY < handTop() - 10
-      if (!onBoard) { playCardPick(); return }
-      const tgt = elToTargetRef(document.elementFromPoint(e.clientX, e.clientY))
-      const sm = selectionMappingFor(d.card)
-      const multi = !!sm && (sm.hitCount ?? 1) > 1 && sm.requiresSelection !== false
-      if (d.targeted && !multi && tgt && targetSet.has(tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side))) {
-        // tiesioginis tempimas ant taikinio (1 taikinys)
-        doAction({ t: 'play', actor: 'you', uid: d.uid, target: tgt }); setSelect(null)
-      } else {
-        // daugiataikis ar be tikslaus taikinio – įprastas tap-target kelias
-        onHandCardClick(d.card)
-      }
-    }
-    const selectAtDrag = select?.kind
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', up)
-    return () => {
+    let lp: ReturnType<typeof setTimeout> | null = null
+    function cleanup() {
+      if (lp) { clearTimeout(lp); lp = null }
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag?.uid])
+    function move(ev: PointerEvent) {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy
+      if (!started) {
+        if (dy < -14 && Math.abs(dy) > Math.abs(dx)) {
+          started = true; dragMovedRef.current = true
+          if (lp) { clearTimeout(lp); lp = null }
+          if (wasExpanded) setHandExpanded(false)
+          const d: DragState = { card, uid: card.uid, targeted: !!game && cardNeedsTarget(game, card), origin: { x: sx, y: sy }, x: ev.clientX, y: ev.clientY, mode: 'card' }
+          dragRef.current = d; setDrag(d)
+        } else if (Math.abs(dx) > 10) { cleanup(); return } else return
+      }
+      const d = dragRef.current; if (!d) return
+      const onBoard = ev.clientY < handTop() - 10
+      const nd: DragState = { ...d, x: ev.clientX, y: ev.clientY, mode: d.targeted && onBoard ? 'arrow' : 'card' }
+      dragRef.current = nd; setDrag(nd)
+    }
+    function up(ev: PointerEvent) {
+      cleanup()
+      if (!started) {
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) {
+          if (selKind === 'discard') { onHandCardClick(card); return }
+          if (!handExpanded) { playUiClick(); setHandExpanded(true) }
+          else onHandCardClick(card)
+        }
+        return
+      }
+      const d = dragRef.current; dragRef.current = null; setDrag(null)
+      if (!d) return
+      if (selKind === 'discard') { onHandCardClick(d.card); return }
+      const onBoard = ev.clientY < handTop() - 10
+      if (!onBoard) { playCardPick(); return }
+      const tgt = elToTargetRef(document.elementFromPoint(ev.clientX, ev.clientY))
+      const sm = selectionMappingFor(d.card)
+      const multi = !!sm && (sm.hitCount ?? 1) > 1 && sm.requiresSelection !== false
+      const valid = new Set<string>()
+      if (game) {
+        if (sm) for (const t of spellTargetRefs(game, 'you', sm)) valid.add(t.kind + ':' + ('uid' in t ? t.uid : t.side))
+        else { for (const u of game.ai.units) if (u && !u.stealth) valid.add('unit:' + u.uid); valid.add('player:ai') }
+      }
+      if (d.targeted && !multi && tgt && valid.has(tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side))) {
+        doAction({ t: 'play', actor: 'you', uid: d.uid, target: tgt }); setSelect(null)
+      } else {
+        onHandCardClick(d.card)
+      }
+    }
+    lp = setTimeout(() => { if (!started) setInspect(card) }, 480)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
 
   // ── Pop-up inkaro matavimas ──
   const anchorKey = step?.anchor ?? (activeTip ? null : null)
@@ -1511,61 +1527,59 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             </div>
 
-            {/* ranka: vėduoklė (collapsed) arba didelė, skaitoma vėduoklė (expanded) */}
+            {/* ranka: didelė skaitoma vėduoklė; tempk Į ŠONUS = scroll, tempk kortą AUKŠTYN = žaidi */}
             <div data-tut="hand" ref={handRef}
               className={handExpanded
-                ? 'relative w-full flex justify-center items-end'
+                ? 'relative w-full overflow-x-auto overflow-y-hidden flex items-end hand-strip'
                 : 'flex justify-center items-end gap-0 min-h-[110px] sm:min-h-[150px] pb-1 overflow-x-auto'}
               style={handExpanded
-                ? { height: 'min(42vh, ' + (Math.round((isTouch ? 152 : 178) * 4 / 3) + 90) + 'px)', background: 'linear-gradient(to top, rgba(10,8,16,0.97), rgba(10,8,16,0))', paddingBottom: 'env(safe-area-inset-bottom)' }
+                ? { height: Math.round((isTouch ? 150 : 176) * 4 / 3) + 34, background: 'linear-gradient(to top, rgba(10,8,16,0.99), rgba(10,8,16,0.82))', touchAction: 'pan-x', paddingBottom: 'env(safe-area-inset-bottom)' }
                 : undefined}>
-              <AnimatePresence>
-                {game.you.hand.map((c, i) => {
-                  const n = game.you.hand.length
-                  const off = i - (n - 1) / 2
-                  const afford = game.you.gold >= c.gold
-                  const isPeek = drag?.uid === c.uid && !dragMovedRef.current
-                  const isDragging = drag?.uid === c.uid && dragMovedRef.current
-                  if (handExpanded) {
-                    const W = n > 7 ? (isTouch ? 122 : 146) : (isTouch ? 152 : 178)
-                    const availW = Math.min((typeof window !== 'undefined' ? window.innerWidth : 420) - 24, 900)
-                    const step = n > 1 ? Math.min(W * 0.82, (availW - W) / (n - 1)) : 0
+              {handExpanded ? (
+                <div className="flex items-end mx-auto px-3 pt-2" style={{ minWidth: 'min-content' }}>
+                  {game.you.hand.map((c, i) => {
+                    const afford = game.you.gold >= c.gold
+                    const W = isTouch ? 150 : 176
+                    const isDragging = drag?.uid === c.uid && dragMovedRef.current
                     return (
-                      <motion.div key={c.uid}
-                        initial={{ opacity: 0, y: 60 }}
-                        animate={{ opacity: isDragging ? 0 : 1, x: off * step, y: isPeek ? -66 : Math.abs(off) * 7, rotate: isPeek ? 0 : off * 3.0, scale: isPeek ? 1.34 : 1 }}
-                        exit={{ opacity: 0, y: 40 }}
-                        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                        whileHover={!isTouch && !isPeek ? { y: -52, scale: 1.3, rotate: 0, zIndex: 60 } : undefined}
-                        style={{ position: 'absolute', bottom: 10, left: '50%', marginLeft: -W / 2, transformOrigin: 'bottom center', zIndex: isPeek ? 70 : i }}
+                      <div key={c.uid}
+                        onPointerDown={(e) => beginHandPointer(c, e)}
+                        onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
+                        className="shrink-0 cursor-grab active:cursor-grabbing transition-transform hover:-translate-y-3"
+                        style={{ marginLeft: i === 0 ? 0 : -(W * 0.18), zIndex: i, touchAction: 'pan-x', opacity: isDragging ? 0.15 : 1, filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined }}>
+                        <MiniCard c={c} w={W} readable dim={!afford && select?.kind !== 'discard'} />
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <AnimatePresence>
+                  {game.you.hand.map((c, i) => {
+                    const n = game.you.hand.length
+                    const off = i - (n - 1) / 2
+                    const afford = game.you.gold >= c.gold
+                    const isDragging = drag?.uid === c.uid && dragMovedRef.current
+                    return (
+                      <motion.div key={c.uid} layout
+                        initial={{ y: 55, opacity: 0, scale: 0.85 }}
+                        animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
+                        exit={{ y: -40, opacity: 0, scale: 0.8 }}
+                        whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
+                        style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
                         onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
-                        <div onPointerDown={(e) => beginDrag(c, e)} className="cursor-grab active:cursor-grabbing"
-                          style={{ touchAction: 'none', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined }}>
-                          <MiniCard c={c} w={W} readable dim={!afford && select?.kind !== 'discard'} />
-                        </div>
+                        <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                          <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
+                            style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
+                            <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
+                          </div>
+                        </GameCard>
                       </motion.div>
                     )
-                  }
-                  return (
-                    <motion.div key={c.uid} layout
-                      initial={{ y: 55, opacity: 0, scale: 0.85 }}
-                      animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
-                      exit={{ y: -40, opacity: 0, scale: 0.8 }}
-                      whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
-                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
-                      onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
-                      <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
-                        <div onPointerDown={(e) => beginDrag(c, e)} className="block cursor-grab active:cursor-grabbing"
-                          style={{ touchAction: 'none', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
-                          <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
-                        </div>
-                      </GameCard>
-                    </motion.div>
-                  )
-                })}
-              </AnimatePresence>
+                  })}
+                </AnimatePresence>
+              )}
               {game.you.hand.length === 0 && (
-                <span className="text-[10px] self-center" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>
+                <span className="text-[10px] self-center mx-auto" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>
               )}
             </div>
           </div>
