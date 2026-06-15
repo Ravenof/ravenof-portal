@@ -33,7 +33,7 @@ import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
-export type PvPNet = { isHost: boolean; mySide: Side; matchId: string }
+export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string }
 type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; net?: PvPNet }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
@@ -280,7 +280,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [zmkDefs, setZmkDefs] = useState<ZmkCardDef[] | null>(null)
   const [curseCards, setCurseCards] = useState<TutCard[]>([])
   const [extrasLoaded, setExtrasLoaded] = useState(false)
-  const [stepIdx, setStepIdx] = useState(practice ? GUIDED_STEPS.length : 0)
+  const [stepIdx, setStepIdx] = useState((practice || !!net) ? GUIDED_STEPS.length : 0)
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -305,6 +305,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
   const [peekSel, setPeekSel] = useState<string[]>([])
   const [summonSel, setSummonSel] = useState<string[]>([])
+  // PvP: varžovo profilis + ėjimo laikmatis
+  const [oppProfile, setOppProfile] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null; level: number | null; is_public: boolean } | null>(null)
+  const [oppDecks, setOppDecks] = useState<{ id: string; name: string }[]>([])
+  const [oppOpen, setOppOpen] = useState(false)
+  const [turnLeft, setTurnLeft] = useState(60)
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
@@ -553,7 +558,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [])
 
   const queueTip = useCallback((k: TipKey) => {
-    if (practice) return
+    if (practice || vsRemote) return
     if (shownTipsRef.current.has(k)) return
     shownTipsRef.current.add(k)
     setTipQueue((q) => [...q, k])
@@ -685,7 +690,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         (c.type !== 'unit' || game.you.units.some((u) => u === null)) &&
         (c.type !== 'champion'))
       if (!playable) {
-        if (!practice && !grantedGoldRef.current && game.you.hand.some((c) => c.type !== 'curse' && c.type !== 'champion')) {
+        if (!practice && !vsRemote && !grantedGoldRef.current && game.you.hand.some((c) => c.type !== 'curse' && c.type !== 'champion')) {
           // suteikiam mokymo aukso, kad žingsnis būtų įvykdomas
           grantedGoldRef.current = true
           setGame((prev) => {
@@ -778,6 +783,34 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       return g
     })
   }, [isGuest, pushToast])
+
+  // PvP: užkraunam varžovo viešą profilį + viešas kalades
+  useEffect(() => {
+    if (!net?.opponentId) return
+    const supabase = createClient()
+    supabase.from('profiles').select('id, username, display_name, avatar_url, level, is_public').eq('id', net.opponentId).maybeSingle()
+      .then(({ data }) => { if (data) setOppProfile(data as typeof oppProfile) })
+    supabase.from('decks').select('id, name').eq('user_id', net.opponentId).eq('visibility', 'public').order('updated_at', { ascending: false }).limit(6)
+      .then(({ data }) => setOppDecks(((data as { id: string; name: string }[]) ?? [])))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [net?.opponentId])
+
+  // PvP: 60s ėjimo laikmatis – aktyvus žaidėjas, pasibaigus, automatiškai baigia ėjimą
+  useEffect(() => {
+    if (!vsRemote || !game || game.winner) return
+    setTurnLeft(60)
+    const start = Date.now()
+    const iv = setInterval(() => {
+      const left = Math.max(0, 60 - Math.floor((Date.now() - start) / 1000))
+      setTurnLeft(left)
+      if (left <= 0) {
+        clearInterval(iv)
+        if (game.active === 'you') doAction({ t: 'endTurn', actor: 'you' })
+      }
+    }, 500)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vsRemote, game?.globalTurn, game?.active, game?.winner])
 
   const onHandCardClick = (c: TutCard) => {
     if (!myTurn) { pushToast('Palauk savo ėjimo.'); return }
@@ -1094,10 +1127,34 @@ doAction({ t: 'endTurn', actor: 'you' })
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
         style={{ borderBottom: '1px solid rgba(240,180,41,0.15)', background: 'rgba(0,0,0,0.35)' }}>
         <div className="flex items-center gap-2 min-w-0">
-          <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--gold)' }} />
-          <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
-            Mokomoji kova · {deckName}
-          </span>
+          {vsRemote ? (
+            <>
+              <button onClick={() => { playUiClick(); setOppOpen(true) }} className="flex items-center gap-2 min-w-0 rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5" title="Varžovo profilis">
+                <span className="text-[10px] uppercase tracking-wide shrink-0" style={{ color: 'var(--text-muted)' }}>vs</span>
+                {oppProfile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={oppProfile.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" style={{ border: '1px solid rgba(240,180,41,0.4)' }} />
+                ) : (
+                  <span className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[11px]" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)' }}>⚔️</span>
+                )}
+                <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
+                  {oppProfile?.display_name || oppProfile?.username || opponentName || 'Varžovas'}
+                </span>
+              </button>
+              {!game?.winner && (
+                <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: turnLeft <= 10 ? '#fca5a5' : 'var(--text-secondary)', background: turnLeft <= 10 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
+                  ⏱ {turnLeft}s
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--gold)' }} />
+              <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
+                Mokomoji kova · {deckName}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? 'Išjungti garsą ir muziką' : 'Įjungti garsą ir muziką'}
@@ -1304,6 +1361,42 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── vedamo žingsnio pop-up ── */}
       <AnimatePresence>
+        {/* PvP: varžovo viešas profilis */}
+        {oppOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)' }} onClick={() => setOppOpen(false)}>
+            <div className="rounded-2xl p-5 w-[min(400px,94vw)]" style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(239,68,68,0.4)' }} onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-3">
+                {oppProfile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={oppProfile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" style={{ border: '1px solid rgba(240,180,41,0.4)' }} />
+                ) : (
+                  <span className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)' }}>⚔️</span>
+                )}
+                <div className="min-w-0">
+                  <p className="text-base font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>{oppProfile?.display_name || oppProfile?.username || opponentName || 'Varžovas'}</p>
+                  {oppProfile?.username && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>@{oppProfile.username}{oppProfile.level != null ? ` · Lygis ${oppProfile.level}` : ''}</p>}
+                </div>
+              </div>
+              <p className="text-[11px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>Viešos kaladės</p>
+              {oppDecks.length === 0 ? (
+                <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Nėra viešų kaladžių.</p>
+              ) : (
+                <div className="space-y-1 mb-3 max-h-44 overflow-y-auto">
+                  {oppDecks.map((d) => (
+                    <a key={d.id} href={'/community-decks/' + d.id} target="_blank" rel="noreferrer" className="block rounded-lg px-3 py-1.5 text-xs transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)' }}>📚 {d.name}</a>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                {oppProfile?.username && oppProfile.is_public && (
+                  <a href={'/users/' + oppProfile.username} target="_blank" rel="noreferrer" className="flex-1 text-center px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>Pilnas profilis →</a>
+                )}
+                <button onClick={() => setOppOpen(false)} className="px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Uždaryti</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {step && !popupCollapsed && (
           <motion.div key={step.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[126]"

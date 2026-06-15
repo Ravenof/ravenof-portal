@@ -56,7 +56,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
       const m = data as Match | null
       if (m && m.guest_id && m.guest_deck_id) {
         if (pollRef.current) clearInterval(pollRef.current)
-        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id }, deckId, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
+        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
       }
     }, 2000)
   }, [deckId])
@@ -88,7 +88,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: deckId, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
     setBusy(false)
     if (error) { playError(); setStatus('Nepavyko prisijungti: ' + error.message); return }
-    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id }, deckId, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
+    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
   }
 
   const findRandom = async () => {
@@ -102,7 +102,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     const m = (open as Match[] | null)?.[0]
     if (m) {
       const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: deckId, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
-      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id }, deckId, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
+      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
     }
     // 2) niekas nelaukia – sukuriam viešą kambarį ir laukiam
     const { data, error } = await supabase.from('pvp_matches').insert({
