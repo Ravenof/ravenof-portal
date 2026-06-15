@@ -1390,7 +1390,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
   return { ok: true }
 }
 
-export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string }): PlayResult {
+export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }): PlayResult {
   if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
   g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
@@ -1511,15 +1511,22 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
           log(g, { t: 'death', side: s, cardName: sac.card.name, msg: `„${sac.card.name}" paaukojamas Čempionui.`, src: { side: s, uid: sac.uid } })
           return { ok: true }
         }
-        if (opts?.tributeHandUid) {
-          const hIdx = p.hand.findIndex((c) => c.uid === opts.tributeHandUid && c.uid !== uid)
-          if (hIdx === -1) return { ok: false, reason: 'Tribute korta rankoje nerasta.' }
-          const [hc] = p.hand.splice(hIdx, 1)
-          p.discard.push(hc)
-          log(g, { t: 'death', side: s, cardName: hc.name, msg: `„${hc.name}" paaukojama iš rankos (×2 tribute).` })
+        const handIds = (opts?.tributeHandUids ?? (opts?.tributeHandUid ? [opts.tributeHandUid] : [])).filter((x) => x !== uid)
+        if (handIds.length >= 2) {
+          const idxs: number[] = []
+          for (const hid of handIds.slice(0, 2)) {
+            const hIdx = p.hand.findIndex((c, ci) => c.uid === hid && !idxs.includes(ci))
+            if (hIdx === -1) return { ok: false, reason: 'Tribute kortos rankoje nerastos.' }
+            idxs.push(hIdx)
+          }
+          for (const hIdx of [...idxs].sort((a, b) => b - a)) {
+            const [hc] = p.hand.splice(hIdx, 1)
+            p.discard.push(hc)
+            log(g, { t: 'death', side: s, cardName: hc.name, msg: `„${hc.name}" paaukojama iš rankos (2 kortos = 1 tšk Čempionui).` })
+          }
           return { ok: true }
         }
-        return { ok: false, reason: 'Reikia tribute: paaukok 1 padarą iš lauko arba 1 kortą iš rankos.' }
+        return { ok: false, reason: 'Reikia tribute: 1 padaras iš lauko ARBA 2 kortos iš rankos.' }
       }
       const fam = card.championGroup ?? null
       const cardPhase = card.championPhase ?? null
@@ -1569,6 +1576,29 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
     case 'curse':
       return { ok: false, reason: 'Prakeiksmai žaidžiami tik per kortų efektus.' }
   }
+}
+
+/** Čempiono fazės keitimas į mažesnę: rankos korta <-> tos pačios šeimos žemesnės fazės korta iš kaladės. */
+export function swapChampionPhase(g: GameState, s: Side, handUid: string, targetPhase: number): PlayResult {
+  if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
+  if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
+  const p = P(g, s)
+  const i = p.hand.findIndex((c) => c.uid === handUid)
+  if (i === -1) return { ok: false, reason: 'Kortos nėra rankoje.' }
+  const card = p.hand[i]
+  const fam = card.championGroup
+  const ph = card.championPhase ?? null
+  if (!fam || ph == null) return { ok: false, reason: 'Tai ne fazinis Čempionas.' }
+  if (targetPhase >= ph) return { ok: false, reason: 'Galima keisti tik į mažesnę fazę.' }
+  const di = p.deck.findIndex((c) => c.championGroup === fam && c.championPhase === targetPhase)
+  if (di === -1) return { ok: false, reason: `Kaladėje nėra šios šeimos ${targetPhase} fazės kortos.` }
+  const [lower] = p.deck.splice(di, 1)
+  p.hand.splice(i, 1)
+  p.hand.push(lower)
+  p.deck.push(card)
+  p.deck = shuffle(p.deck)
+  log(g, { t: 'champion', side: s, cardName: lower.name, msg: `⇩ ${sideName(s)} ${s === 'you' ? 'keiti' : 'keičia'} „${card.name}" (${ph} fazė) į „${lower.name}" (${targetPhase} fazė).` })
+  return { ok: true }
 }
 
 /** Grąžina čempiono skill sąrašą (su atrakinimu pagal fazę). */
@@ -1780,7 +1810,7 @@ export function swapPerspective(g: GameState): GameState {
 }
 
 export type NetAction =
-  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string }
+  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }
   | { t: 'attack'; actor: Side; uid: string; target: TargetRef }
   | { t: 'discardForGold'; actor: Side; uid: string }
   | { t: 'champ'; actor: Side; skillIndex: number; target?: TargetRef; targets?: TargetRef[] }
@@ -1788,12 +1818,13 @@ export type NetAction =
   | { t: 'resolveSummon'; uids: string[] }
   | { t: 'resolvePeek'; uids: string[] }
   | { t: 'resolveChoice'; index: number }
+  | { t: 'swapChampPhase'; actor: Side; uid: string; phase: number }
   | { t: 'clearReveal' }
 
 /** Pritaiko struktūruotą veiksmą (host'o autoritetinei būsenai). */
 export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reason?: string } {
   switch (a.t) {
-    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, targets: a.targets, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid })
+    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, targets: a.targets, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid, tributeHandUids: a.tributeHandUids })
     case 'attack': return attack(g, a.actor, a.uid, a.target)
     case 'discardForGold': return discardForGold(g, a.actor, a.uid)
     case 'champ': return useChampionAbility(g, a.actor, a.skillIndex, { target: a.target, targets: a.targets })
@@ -1801,6 +1832,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'resolveSummon': return resolveSummonChoice(g, a.uids)
     case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
     case 'resolveChoice': return resolveChoice(g, a.index)
+    case 'swapChampPhase': return swapChampionPhase(g, a.actor, a.uid, a.phase)
     case 'clearReveal': g.pendingReveal = null; return { ok: true }
   }
 }
@@ -1815,6 +1847,7 @@ export function swapAction(a: NetAction): NetAction {
     case 'discardForGold': return { ...a, actor: other(a.actor) }
     case 'champ': return { ...a, actor: other(a.actor), target: sw(a.target), targets: a.targets?.map(sw) }
     case 'endTurn': return { ...a, actor: other(a.actor) }
+    case 'swapChampPhase': return { ...a, actor: other(a.actor) }
     default: return a
   }
 }

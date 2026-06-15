@@ -253,7 +253,7 @@ function Token({ children, title }: { children: React.ReactNode; title: string }
 type SelectMode =
   | { kind: 'attacker'; uid: string }
   | { kind: 'spell'; uid: string }
-  | { kind: 'sacrifice'; cardUid: string }
+  | { kind: 'sacrifice'; cardUid: string; picked: string[] }
   | { kind: 'discard' }
   | { kind: 'spellMulti'; uid: string; need: number; picked: TargetRef[] }
   | null
@@ -323,6 +323,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [oppOpen, setOppOpen] = useState(false)
   const [turnLeft, setTurnLeft] = useState(60)
   const [champPopup, setChampPopup] = useState<string | null>(null)
+  const [champSwap, setChampSwap] = useState<{ cardUid: string; name: string; phase: number; options: number[] } | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
@@ -836,19 +837,37 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }
     if (select?.kind === 'sacrifice') {
       if (c.uid === select.cardUid) { pushToast('Negali paaukoti paties Čempiono.'); return }
-      const champUid = select.cardUid
-      doAction({ t: 'play', actor: 'you', uid: champUid, tributeHandUid: c.uid })
-      setSelect(null)
+      const picked = select.picked.includes(c.uid) ? select.picked : [...select.picked, c.uid]
+      if (picked.length >= 2) {
+        doAction({ t: 'play', actor: 'you', uid: select.cardUid, tributeHandUids: picked.slice(0, 2) })
+        setSelect(null)
+      } else {
+        playUiClick()
+        setSelect({ ...select, picked })
+        pushToast(`Tribute iš rankos: ${picked.length}/2 (arba paspausk padarą lauke = 1 tšk).`)
+      }
       return
     }
     if (c.type === 'champion') {
+      const fam = c.championGroup ?? null
+      const ph = c.championPhase ?? null
+      const champOnField = game!.you.units.find((u) => u?.isChampion && (fam ? u.card.championGroup === fam : true))
+      const canEvolveNow = ph != null && !!champOnField && champOnField.phase === ph - 1
+      // Aukštesnė fazė, kurios dabar negalima nei iškviesti (≠1), nei evoliucionuoti → siūlom keisti į žemesnę
+      if (ph != null && ph > 1 && !canEvolveNow) {
+        const opts: number[] = []
+        for (let tp = 1; tp < ph; tp++) if (game!.you.deck.some((d) => d.championGroup === fam && d.championPhase === tp)) opts.push(tp)
+        if (opts.length > 0) { playUiClick(); setChampSwap({ cardUid: c.uid, name: c.name, phase: ph, options: opts }); return }
+        pushToast(`Reikia ${ph - 1} fazės Čempiono lauke (arba turėk žemesnę fazę kaladėje, kad pakeistum).`)
+        return
+      }
       const hasBoardSac = game!.you.units.some((u) => u && !u.isChampion)
-      const hasHandSac = game!.you.hand.some((h) => h.uid !== c.uid)
-      if (!hasBoardSac && !hasHandSac) { pushToast('Čempionui reikia tribute – padaro lauke arba kitos kortos rankoje.'); return }
+      const handSacCount = game!.you.hand.filter((h) => h.uid !== c.uid).length
+      if (!hasBoardSac && handSacCount < 2) { pushToast('Čempionui reikia tribute: 1 padaras lauke ARBA 2 kortos rankoje.'); return }
       if (game!.you.gold < c.gold) { pushToast(`Trūksta aukso: kaina ${c.gold}, turi ${game!.you.gold}.`); return }
       playUiClick()
-      setSelect({ kind: 'sacrifice', cardUid: c.uid })
-      pushToast('Tribute: paspausk padarą lauke (1 tšk) arba kitą kortą rankoje (2 tšk).')
+      setSelect({ kind: 'sacrifice', cardUid: c.uid, picked: [] })
+      pushToast('Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje (0/2).')
       return
     }
     const selMap = selectionMappingFor(c)
@@ -1375,7 +1394,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
             {select.kind === 'attacker' && '⚔ Pasirink taikinį (raudonas apvadas) arba spausk Esc'}
             {select.kind === 'spell' && '✨ Pasirink burto taikinį arba spausk Esc'}
-            {select.kind === 'sacrifice' && '⚜ Pasirink padarą, kurį paaukosi Čempionui'}
+            {select.kind === 'sacrifice' && `⚜ Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje (${select.picked.length}/2)`}
           </motion.div>
         )}
         {select?.kind === 'discard' && (
@@ -1641,6 +1660,28 @@ doAction({ t: 'endTurn', actor: 'you' })
             </motion.div>
           )
         })()}
+      </AnimatePresence>
+
+      {/* ── Čempiono fazės keitimas į mažesnę ── */}
+      <AnimatePresence>
+        {champSwap && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[135] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setChampSwap(null)}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
+              className="rounded-2xl p-4 w-[min(360px,92vw)] text-center" style={{ background: 'linear-gradient(145deg,#1e1729,#120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>⇩ Keisti Čempiono fazę</p>
+              <p className="text-[11px] mb-3" style={{ color: 'var(--text-secondary)' }}>„{champSwap.name}" ({champSwap.phase} fazė) keičiama į žemesnės fazės kortą iš kaladės (dabar evoliucija negalima).</p>
+              <div className="flex flex-col gap-2">
+                {champSwap.options.map((tp) => (
+                  <button key={tp} onClick={() => { playUiClick(); doAction({ t: 'swapChampPhase', actor: 'you', uid: champSwap.cardUid, phase: tp }); setChampSwap(null) }}
+                    className="px-4 py-2 rounded-xl text-sm font-bold" style={{ background: 'rgba(240,180,41,0.14)', border: '1px solid rgba(240,180,41,0.45)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                    → {tp} fazė
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* ── kortos apžiūra ── */}
