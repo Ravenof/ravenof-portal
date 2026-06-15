@@ -132,7 +132,7 @@ export const MECHANIC_TIPS: Record<TipKey, { title: string; text: string }> = {
   },
   lastwish: {
     title: '🕯 Paskutinis noras',
-    text: 'Efektas aktyvuojasi padarui žūstant, prieš jam keliaujant į panaudotų krūvą. Nutildytas padaras Paskutinio noro neaktyvuoja.',
+    text: 'Efektas aktyvuojasi padarui žūstant, prieš jam keliaujant į kapinyną. Nutildytas padaras Paskutinio noro neaktyvuoja.',
   },
   'status-frozen': {
     title: '❄ Sušaldytas',
@@ -172,11 +172,11 @@ export const MECHANIC_TIPS: Record<TipKey, { title: string; text: string }> = {
   },
   'hand-burn': {
     title: 'Rankos limitas!',
-    text: 'Rankoje telpa tik 10 kortų – perteklius sudega ir keliauja tiesiai į panaudotų krūvą. Nešykštėk kortų žaisti!',
+    text: 'Rankoje telpa tik 10 kortų – perteklius sudega ir keliauja tiesiai į kapinyną. Nešykštėk kortų žaisti!',
   },
   curse: {
     title: '🕸 Prakeiksmas',
-    text: 'Prakeiksmas įmaišomas į TAVO kaladę kortų efektais. Ištraukei – efektas suveikia iš karto ir korta keliauja į panaudotų krūvą.',
+    text: 'Prakeiksmas įmaišomas į TAVO kaladę kortų efektais. Ištraukei – efektas suveikia iš karto ir korta keliauja į kapinyną.',
   },
   coin: {
     title: '🪙 Monetos metimas',

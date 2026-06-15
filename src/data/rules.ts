@@ -238,25 +238,25 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Padaras',
-        text: 'Pagrindinis kovos lauko vienetas su ATK ir gyvybės taškais. Negali atakuoti tą patį ėjimą, kai buvo iškviestas, išskyrus padarus su Sprintu. Vienu metu kovos lauke gali būti iki 5 padarų (įskaitant Čempioną). Gyvybės taškams nukritus iki 0, padaras keliauja į panaudotų kortų krūvą.',
+        text: 'Pagrindinis kovos lauko vienetas su ATK ir gyvybės taškais. Negali atakuoti tą patį ėjimą, kai buvo iškviestas, išskyrus padarus su Sprintu. Vienu metu kovos lauke gali būti iki 5 padarų (įskaitant Čempioną). Gyvybės taškams nukritus iki 0, padaras keliauja į kapinyną.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Burtas',
-        text: 'Vienkartinė korta su momentišku efektu. Žaidėjas sumoka aukso kainą, efektas aktyvuojamas, korta keliauja į panaudotų kortų krūvą, nebent kortos tekstas nurodo kitaip. Jei burtas padaro žalą - kiekvienam taikiniui traukiama atskira ŽMK korta.',
+        text: 'Vienkartinė korta su momentišku efektu. Žaidėjas sumoka aukso kainą, efektas aktyvuojamas, korta keliauja į kapinyną, nebent kortos tekstas nurodo kitaip. Jei burtas padaro žalą - kiekvienam taikiniui traukiama atskira ŽMK korta.',
       },
       {
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Artefaktas',
-        text: 'Ilgalaikė korta, kuri lieka kovos lauke ir nuolat veikia. Turi gyvybės taškus, bet neturi ATK, nebent kortos tekstas nurodo kitaip. Vienu metu gali būti aktyvūs iki 2 artefaktų. Gyvybės taškams nukritus iki 0, artefaktas keliauja į panaudotų kortų krūvą.',
+        text: 'Ilgalaikė korta, kuri lieka kovos lauke ir nuolat veikia. Turi gyvybės taškus, bet neturi ATK, nebent kortos tekstas nurodo kitaip. Vienu metu gali būti aktyvūs iki 2 artefaktų. Gyvybės taškams nukritus iki 0, artefaktas keliauja į kapinyną.',
       },
       {
         type: 'callout',
         calloutVariant: 'warning',
         label: 'Prakeiksmas',
-        text: 'Korta, kuri trukdo priešininkui - įmaišoma į jo kaladę. Prakeiksmai neturi aukso kainos ir laikomi atskiroje prakeiksmų kaladėje (10-20 kortų) - į pagrindinę kaladę jie nededami. Prakeiksmas į priešininko kaladę įmaišomas nemokamai tik tada, kai tai nurodo kortos efektas - savo nuožiūra jo įmaišyti negalima. Priešininkui ištraukus prakeiksmą - efektas iš karto aktyvuojamas, korta keliauja į panaudotų kortų krūvą. Jei abu žaidėjai naudoja prakeiksmus, jie įmaišomi atversti - taip lengviau atskirti, kuri korta priklauso kuriam žaidėjui.',
+        text: 'Korta, kuri trukdo priešininkui - įmaišoma į jo kaladę. Prakeiksmai neturi aukso kainos ir laikomi atskiroje prakeiksmų kaladėje (10-20 kortų) - į pagrindinę kaladę jie nededami. Prakeiksmas į priešininko kaladę įmaišomas nemokamai tik tada, kai tai nurodo kortos efektas - savo nuožiūra jo įmaišyti negalima. Priešininkui ištraukus prakeiksmą - efektas iš karto aktyvuojamas, korta keliauja į kapinyną. Jei abu žaidėjai naudoja prakeiksmus, jie įmaišomi atversti - taip lengviau atskirti, kuri korta priklauso kuriam žaidėjui.',
       },
       {
         type: 'callout',
@@ -327,9 +327,9 @@ export const RULES_SECTIONS: RuleSection[] = [
     id: 'kovos-laukas',
     number: '8',
     title: 'Žaidimo zonos',
-    summary: 'Pagrindinė kaladė, panaudotų kortų krūva, ranka (maks. 10), padarų zona (maks. 5), artefaktai (maks. 2), reakcijos (maks. 3), lauko korta, ŽMK.',
+    summary: 'Pagrindinė kaladė, kapinynas, ranka (maks. 10), padarų zona (maks. 5), artefaktai (maks. 2), reakcijos (maks. 3), lauko korta, ŽMK.',
     category: 'zonos',
-    relatedTerms: ['kovos laukas', 'panaudotų kortų krūva', 'ranka', 'padarų zona', 'artefaktai', 'reakcijos', 'lauko korta', 'ŽMK', 'pagrindinė kaladė', 'prakeiksmų kaladė'],
+    relatedTerms: ['kovos laukas', 'kapinynas', 'ranka', 'padarų zona', 'artefaktai', 'reakcijos', 'lauko korta', 'ŽMK', 'pagrindinė kaladė', 'prakeiksmų kaladė'],
     content: [
       {
         type: 'table',
@@ -338,7 +338,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         rows: [
           ['Pagrindinė kaladė',      'Žaidėjo kortų kaladė. Laikoma užversta.',                                       '-'],
           ['Prakeiksmų kaladė',      'Atskira prakeiksmų kaladė (jei naudojama). Laikoma užversta.',                  '10-20'],
-          ['Panaudotų kortų krūva',  'Panaudotos ir žuvusios kortos. Atvira - abu žaidėjai mato.',                     '-'],
+          ['Panaudotų kortų kapinynas',  'Panaudotos ir žuvusios kortos. Atvira - abu žaidėjai mato.',                     '-'],
           ['Ranka',                  'Žaidėjo kortos. Priešininkas jų nemato.',                                        '10'],
           ['Padarų zona',            'Padarai ir Čempionas.',                                                          '5'],
           ['Artefaktų zona',         'Aktyvūs artefaktai.',                                                            '2'],
@@ -357,7 +357,7 @@ export const RULES_SECTIONS: RuleSection[] = [
       {
         type: 'callout',
         calloutVariant: 'warning',
-        text: 'Jei rankoje yra daugiau nei 10 kortų - perteklinės kortos (žaidėjo pasirinkimu) iš karto keliauja į panaudotų kortų krūvą.',
+        text: 'Jei rankoje yra daugiau nei 10 kortų - perteklinės kortos (žaidėjo pasirinkimu) iš karto keliauja į kapinyną.',
       },
       { type: 'battlefieldDiagram' },
     ],
@@ -437,7 +437,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         headers: ['Fazė', 'Aprašymas'],
         rows: [
           ['1. Ėjimo pradžia',    'Aktyvuojasi ėjimo pradžios efektai: artefaktai, Degantis, Apnuodytas ir kt. Būsenos, trunkančios 1 ėjimą, pašalinamos.'],
-          ['2. Kortos traukimas', 'Žaidėjas traukia 1 kortą. Rankos limitas: 10 kortų - perteklius keliauja į panaudotų kortų krūvą.'],
+          ['2. Kortos traukimas', 'Žaidėjas traukia 1 kortą. Rankos limitas: 10 kortų - perteklius keliauja į kapinyną.'],
           ['3. Aukso gavimas',    'Gaunamas auksas pagal ėjimo numerį (žr. skyrių "Aukso sistema").'],
           ['4. Pagrindinė fazė',  'Veiksmai atliekami bet kokia tvarka, kol žaidėjui užtenka aukso.'],
           ['5. Ėjimo pabaiga',    'Aktyvuojasi ėjimo pabaigos efektai. Nepanaudotas auksas dingsta.'],
@@ -449,7 +449,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         headers: ['Veiksmas', 'Aprašymas'],
         rows: [
           ['Iškviesti padarą',                 'Sumokama aukso kaina - padaras perkeliamas į padarų zoną. Tą ėjimą jis negali atakuoti, išskyrus su Sprintu.'],
-          ['Panaudoti burtą',                  'Sumokama aukso kaina - efektas aktyvuojamas - korta keliauja į panaudotų kortų krūvą.'],
+          ['Panaudoti burtą',                  'Sumokama aukso kaina - efektas aktyvuojamas - korta keliauja į kapinyną.'],
           ['Padėti artefaktą',                 'Sumokama aukso kaina - artefaktas perkeliamas į artefaktų zoną (maks. 2).'],
           ['Padėti reakciją',                  'Sumokama aukso kaina - reakcija padedama užversta į reakcijų zoną su aukso / kainos žetonu.'],
           ['Žaisti lauko kortą',               'Sumokama aukso kaina - nauja lauko korta pakeičia esamą.'],
@@ -579,7 +579,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Paaukotų kortų kelionė',
-        text: 'Paaukoti padarai iš kovos lauko ir paaukotos kortos iš rankos keliauja į panaudotų kortų krūvą - ne iš žaidimo.',
+        text: 'Paaukoti padarai iš kovos lauko ir paaukotos kortos iš rankos keliauja į kapinyną - ne iš žaidimo.',
       },
       {
         type: 'callout',
@@ -633,7 +633,7 @@ export const RULES_SECTIONS: RuleSection[] = [
         type: 'callout',
         calloutVariant: 'quick',
         label: 'Paskutinis noras',
-        text: 'Aktyvuojasi kai padaro gyvybės taškai nukrinta iki 0. Efektas įvyksta prieš kortai keliaujant į panaudotų kortų krūvą. Jei korta žūsta būdama Nutildyta, jos Paskutinis noras neaktyvuojamas.',
+        text: 'Aktyvuojasi kai padaro gyvybės taškai nukrinta iki 0. Efektas įvyksta prieš kortai keliaujant į kapinyną. Jei korta žūsta būdama Nutildyta, jos Paskutinis noras neaktyvuojamas.',
       },
       {
         type: 'callout',
@@ -732,7 +732,7 @@ export const RULES_SECTIONS: RuleSection[] = [
           ['⚡', 'Žaibas',           'Elektros žala, greiti smūgiai, grandinių efektai.'],
           ['💚', 'Gydymas',          'Gyvybės taškų atkūrimas. Gali veikti padarus, Čempionus ir artefaktus, jei kortos tekstas leidžia.'],
           ['⬆️', 'Pastiprinimas',    'ATK, gyvybės taškų ar kitų reikšmių didinimas.'],
-          ['☠️', 'Nekrotinis',       'Tamsioji žala, panaudotų kortų krūvos sinergijos, negyvėlių efektai.'],
+          ['☠️', 'Nekrotinis',       'Tamsioji žala, kapinyno sinergijos, negyvėlių efektai.'],
           ['⬇️', 'Susilpninimas',    'ATK, gyvybės taškų ar kitų reikšmių mažinimas.'],
           ['☣️', 'Nuodai',           'Periodinė žala, Apnuodijimo būsena.'],
           ['⭐', 'Artefaktas',       'Artefaktų kūrimas, sąveika ar stiprinimas.'],
@@ -781,8 +781,8 @@ export const RULES_SECTIONS: RuleSection[] = [
           'Jei šis sukelia kitą efektą (pvz., reakciją) - naujasis pridedamas į eilės viršų.',
           'Sprendžiamas viršuje esantis efektas, tada kitas ir t. t.',
           'ŽMK korta traukiama tuo metu, kai žala išsprendžiama - ne iš anksto.',
-          'Korta keliauja į panaudotų kortų krūvą tik po to, kai visi jos efektai išsprendžiami.',
-          'Paskutinis noras aktyvuojasi prieš kortai patenkant į panaudotų kortų krūvą.',
+          'Korta keliauja į kapinyną tik po to, kai visi jos efektai išsprendžiami.',
+          'Paskutinis noras aktyvuojasi prieš kortai patenkant į kapinyną.',
         ],
       },
       {
@@ -865,7 +865,7 @@ export const RULES_SECTIONS: RuleSection[] = [
       {
         type: 'list',
         items: [
-          'Kaladė neatsinaujina automatiškai - kortos iš panaudotų kortų krūvos negrįžta, nebent specialus efektas tai leidžia.',
+          'Kaladė neatsinaujina automatiškai - kortos iš kapinyno negrįžta, nebent specialus efektas tai leidžia.',
           'Žalos padarams išlieka visam laikui - tarp ėjimų neatsinaujina. Žalą galima sumažinti tik gydymo efektais.',
           'Žaidėjo gyvybės taškai negali viršyti pradinio maksimumo.',
           'Padarų ATK ir gyvybės taškai gali būti didinami be viršutinės ribos.',

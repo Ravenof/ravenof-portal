@@ -7,8 +7,8 @@
 import { useMemo, useState } from 'react'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
-  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SUBTYPE_OPTIONS,
-  type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect,
+  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SUBTYPE_OPTIONS, SPELL_TYPES,
+  type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType,
 } from '@/lib/game/types'
 
 const inputStyle: React.CSSProperties = {
@@ -120,6 +120,17 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
         </label>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div>
+          <label style={labelStyle}>Burto tipas (ugnis/ledas/žaibas/...)</label>
+          <select value={cfg.spellType ?? ''}
+            onChange={(e) => update({ ...cfg, spellType: (e.target.value || undefined) as SpellType | undefined })} style={inputStyle}>
+            <option value="">(nėra / nesvarbu)</option>
+            {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
+          </select>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2">
         <input type="checkbox" id="auraEnemyDmgHeal"
           checked={cfg.passiveAura?.enemyUnitDamageHealsOwner ?? false}
@@ -217,6 +228,51 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
             </div>)}
           </>)
         })()}
+      </div>
+
+      <div className="rounded-lg p-3" style={{ background: 'rgba(160,140,220,0.06)', border: '1px solid rgba(160,140,220,0.3)' }}>
+        <p style={{ ...labelStyle, marginBottom: 6 }}>⚖ Pranašumas / nepalankumas + 🩸 burtų vampyrizmas (pasyvi aura)</p>
+        {(() => {
+          const pa = cfg.passiveAura
+          const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div>
+                <label style={labelStyle}>Atakų ŽMK</label>
+                <select value={pa?.advAttack ?? ''} onChange={(e) => setPa({ advAttack: (e.target.value || undefined) as 'advantage' | 'disadvantage' | undefined })} style={inputStyle}>
+                  <option value="">(normalu)</option>
+                  <option value="advantage">Pranašumas (2 traukia, geresnė)</option>
+                  <option value="disadvantage">Nepalankumas (2 traukia, blogesnė)</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Burtų ŽMK</label>
+                <select value={pa?.advSpell ?? ''} onChange={(e) => setPa({ advSpell: (e.target.value || undefined) as 'advantage' | 'disadvantage' | undefined })} style={inputStyle}>
+                  <option value="">(normalu)</option>
+                  <option value="advantage">Pranašumas</option>
+                  <option value="disadvantage">Nepalankumas</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Burtų ŽMK tik tipui</label>
+                <select value={pa?.advSpellType ?? ''} onChange={(e) => setPa({ advSpellType: (e.target.value || undefined) as SpellType | undefined })} style={inputStyle}>
+                  <option value="">(visi burtai)</option>
+                  {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>🩸 Burtų vampyrizmas</label>
+                <select value={pa?.spellLifestealScope ?? ''} onChange={(e) => setPa({ spellLifestealScope: (e.target.value || undefined) as 'friendly' | 'enemy' | 'all' | undefined })} style={inputStyle}>
+                  <option value="">(išjungta)</option>
+                  <option value="friendly">Savo burtų žala → +HP savininkui</option>
+                  <option value="enemy">Priešo burtų žala → +HP savininkui</option>
+                  <option value="all">Bet kurio burto žala → +HP savininkui</option>
+                </select>
+              </div>
+            </div>
+          )
+        })()}
+        <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>„Kam galioja" (Savo/Priešo/Visiems) imama iš aukščiau esančios auros nustatymo (auraScope).</p>
       </div>
 
       <div>

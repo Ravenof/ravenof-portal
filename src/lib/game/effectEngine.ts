@@ -26,6 +26,8 @@ export type GameApi = {
   activateCurses(g: GameState, target: Side, count: number, srcName: string, depth: number): void
   drawZmkVisual(g: GameState, s: Side): void
   removeZmkCard(g: GameState, s: Side, value: string, count: number): void
+  setSpellDiscount(g: GameState, s: Side, n: number): void
+  buffSpellDamage(g: GameState, s: Side, n: number): void
   millDeck(g: GameState, s: Side, n: number): void
   returnGraveyardToDeck(g: GameState, s: Side, n: number): void
   peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
@@ -117,15 +119,19 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   switch (m.effect) {
     case 'damage': {
       const useZmk = m.triggersZmk !== false
+      // Burtų žalos priedas (charakterio onCast trigger'is): pridedamas tik burto kontekste.
+      const spellBonus = (g.rollContext?.kind === 'spell' && g.rollContext.actor === caster)
+        ? (caster === 'you' ? g.you : g.ai).spellDamageBonus : 0
+      const dv = v + spellBonus
       for (const t of targets) {
-        if (t.kind === 'player') api.dealToPlayer(g, t.side, v, caster, useZmk)
+        if (t.kind === 'player') api.dealToPlayer(g, t.side, dv, caster, useZmk)
         else if (t.kind === 'artifact') {
           const p = t.side === 'you' ? g.you : g.ai
           const a = p.artifacts.find((x) => x?.uid === t.uid)
-          if (a) api.dealToArtifact(g, a, t.side, v, caster)
+          if (a) api.dealToArtifact(g, a, t.side, dv, caster)
         } else {
           const f = findUnit(g, t)
-          if (f) api.dealToUnit(g, f.u, f.owner, v, caster, useZmk)
+          if (f) api.dealToUnit(g, f.u, f.owner, dv, caster, useZmk)
         }
       }
       break
@@ -201,6 +207,8 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       api.removeZmkCard(g, who, m.zmkValue ?? '-2', v)
       break
     }
+    case 'spellDiscount': api.setSpellDiscount(g, caster, v); break
+    case 'buffSpellDamage': api.buffSpellDamage(g, caster, v); break
     default:
       api.log(g, { t: 'blocked', side: caster, msg: `⚠ Nepalaikomas efektas „${m.effect}" („${ctx.sourceName}") – praleidžiama.` })
       applied = false

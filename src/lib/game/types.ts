@@ -59,6 +59,7 @@ export type EffectType =
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
   | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
+  | 'spellDiscount' | 'buffSpellDamage'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -80,9 +81,9 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'discard',             label: 'Išmesti kortas',             needsValue: true },
   { value: 'summonFromHand',      label: 'Iškviesti iš rankos',        needsValue: false },
   { value: 'summonFromDeck',      label: 'Iškviesti iš kaladės',       needsValue: false },
-  { value: 'summonFromGraveyard', label: 'Iškviesti iš krūvos',        needsValue: false },
+  { value: 'summonFromGraveyard', label: 'Iškviesti iš kapinyno',        needsValue: false },
   { value: 'returnToHand',        label: 'Grąžinti į ranką',           needsValue: false },
-  { value: 'moveToGraveyard',     label: 'Į panaudotų krūvą',          needsValue: false },
+  { value: 'moveToGraveyard',     label: 'Į kapinyną',          needsValue: false },
   { value: 'revive',              label: 'Prikelti',                   needsValue: false },
   { value: 'gainGold',            label: 'Gauti aukso',                needsValue: true },
   { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true },
@@ -97,6 +98,22 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'selfToEnemyHand',     label: 'Ši korta → priešo ranka (Paskutinis noras)', needsValue: false },
   { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false },
   { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
+  { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)',    needsValue: true },
+  { value: 'buffSpellDamage',     label: 'Burtų žala +X (savininkui)',      needsValue: true },
+]
+
+// ── Burtų tipai (ugnies/ledo/žaibo/funkcinis/nekromantijos/sustiprinimo/susilpninimo) ─
+export type SpellType =
+  | 'fire' | 'ice' | 'lightning' | 'functional' | 'necromancy' | 'buff' | 'debuff'
+
+export const SPELL_TYPES: { value: SpellType; label: string; icon: string }[] = [
+  { value: 'fire',       label: 'Ugnies',        icon: '🔥' },
+  { value: 'ice',        label: 'Ledo',          icon: '❄' },
+  { value: 'lightning',  label: 'Žaibo',         icon: '⚡' },
+  { value: 'functional', label: 'Funkcinis',     icon: '⚙' },
+  { value: 'necromancy', label: 'Nekromantijos', icon: '☠' },
+  { value: 'buff',       label: 'Sustiprinimo',  icon: '⬆' },
+  { value: 'debuff',     label: 'Susilpninimo',  icon: '⬇' },
 ]
 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
@@ -293,6 +310,12 @@ export type PassiveAuraConfig = {
   auraCantAttack?: boolean             // paveikti padarai negali atakuoti
   auraKeywords?: ('taunt' | 'shield' | 'stealth' | 'sprint')[]  // suteikiami raktažodžiai
   auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
+  // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──
+  advAttack?: 'advantage' | 'disadvantage'   // paveiktų padarų ATAKŲ ŽMK traukimas
+  advSpell?: 'advantage' | 'disadvantage'    // paveiktos pusės BURTŲ žalos ŽMK traukimas
+  advSpellType?: SpellType                    // advSpell tik šio tipo burtams (kitaip – visiems)
+  // ── Burtų vampyrizmas (Gydūnė Džilė): burto žala pridedama prie žaidėjo HP ──
+  spellLifestealScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų žala gydo tos pusės žaidėją
 }
 
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──
@@ -301,6 +324,7 @@ export type ChampionSkill = { name?: string; mappings: EffectMapping[] }
 // ── Pilna kortos gameplay konfigūracija (cards.gameplay JSONB) ────────────────
 export type GameplayConfig = {
   virtualEnabled?: boolean        // default true
+  spellType?: SpellType           // burto tipas (ugnis/ledas/žaibas/...); naudoja auras + Milva tipo atranka
   needsEffectMapping?: boolean    // adminui: kortai reikia suvesti efektus
   effectMappings?: EffectMapping[]
   fieldEffectConfig?: FieldEffectConfig      // jei type = Laukas

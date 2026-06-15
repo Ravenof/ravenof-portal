@@ -3,7 +3,7 @@
 // (src/data/rules.ts). Jokio UI – tik būsena, veiksmai ir įvykių log'as.
 // Naudoja mokomasis režimas „Išmokyk mane žaisti" (TutorialGame.tsx).
 
-import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType } from '@/lib/game/types'
+import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType, SpellType } from '@/lib/game/types'
 import { buildZmkDeck } from '@/lib/game/zmkEngine'
 import { applyMappings, applyMapping, type GameApi } from '@/lib/game/effectEngine'
 import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
@@ -124,6 +124,10 @@ export type PlayerState = {
   attacksThisTurn: number
   /** Ar šio ėjimo pirmos žalos sumažinimas (field pasyvas) jau panaudotas */
   fieldDamageReducedThisTurn: boolean
+  /** Kito burto aukso nuolaida (Archimagas Lisarijus). Panaudojama vieną kartą. */
+  spellDiscountNext: number
+  /** Burtų žalos priedas (charakterio onCast trigger'is +X). Kaupiasi. */
+  spellDamageBonus: number
 }
 
 export type GameEventType =
@@ -150,6 +154,12 @@ export type GameEvent = {
   sound?: BattleSoundType
 }
 
+/** Trumpalaikis ŽMK traukimo kontekstas (atakos/burto pranašumui/nepalankumui). */
+export type RollBias = 'normal' | 'advantage' | 'disadvantage'
+export type RollContext =
+  | { kind: 'attack'; actor: Side; poisonedSides?: Partial<Record<Side, boolean>> }
+  | { kind: 'spell'; actor: Side; spellType?: SpellType }
+
 export type TargetRef =
   | { kind: 'player'; side: Side }
   | { kind: 'unit'; side: Side; uid: string }
@@ -173,6 +183,8 @@ export type GameState = {
   pendingReveal?: PendingReveal | null
   /** Laukiantis iškvietimo pasirinkimas (žaidėjas renkasi kortą) */
   pendingSummon?: PendingSummon | null
+  /** Trumpalaikis ŽMK traukimo kontekstas (nevalomas tarp veiksmų – išvalomas kiekvieno veiksmo pradžioje) */
+  rollContext?: RollContext | null
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
@@ -271,6 +283,7 @@ function mkPlayer(side: Side, deck: TutCard[], zmkPile: ZmkValue[], curses: TutC
     zmk: zmkPile, zmkGrave: [],
     gold: 0, turnNumber: 0, discardedForGold: false,
     curses, attacksThisTurn: 0, fieldDamageReducedThisTurn: false,
+    spellDiscountNext: 0, spellDamageBonus: 0,
   }
 }
 
@@ -299,6 +312,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     pendingPeek: null,
     pendingReveal: null,
     pendingSummon: null,
+    rollContext: null,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
   drawCards(g, first, 4, true)
@@ -334,7 +348,7 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
     }
     if (p.hand.length >= 10) {
       p.discard.push(c)
-      log(g, { t: 'handBurn', side: s, cardName: c.name, msg: `Rankos limitas 10 – „${c.name}" keliauja į panaudotų krūvą.` })
+      log(g, { t: 'handBurn', side: s, cardName: c.name, msg: `Rankos limitas 10 – „${c.name}" keliauja į kapinyną.` })
       continue
     }
     p.hand.push(c)
@@ -384,17 +398,19 @@ function zmkAfter(g: GameState, s: Side, v: ZmkValue) {
   }
 }
 
-/** Žala su ŽMK. unfavorable – traukiamos 2, imama blogesnė veikėjui. */
-function rollDamage(g: GameState, actor: Side, base: number, unfavorable: boolean): number {
-  let v = drawZmkCard(g, actor)
-  if (unfavorable) {
+/** Žala su ŽMK. bias: advantage – traukiamos 2, imama geresnė; disadvantage – blogesnė. */
+function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'normal'): number {
+  const v = drawZmkCard(g, actor)
+  if (bias !== 'normal') {
     const v2 = drawZmkCard(g, actor)
     const a = applyZmk(base, v)
     const b = applyZmk(base, v2)
-    const worse = a <= b ? v : v2
-    log(g, { t: 'zmk', side: actor, zmk: worse, value: Math.min(a, b), msg: `Nepalankiai: ŽMK ${v} ir ${v2} – imama blogesnė.` })
+    const adv = bias === 'advantage'
+    const pick = adv ? (a >= b ? v : v2) : (a <= b ? v : v2)
+    const val = adv ? Math.max(a, b) : Math.min(a, b)
+    log(g, { t: 'zmk', side: actor, zmk: pick, value: val, msg: `${adv ? 'Palankiai' : 'Nepalankiai'}: ŽMK ${v} ir ${v2} – imama ${adv ? 'geresnė' : 'blogesnė'}.` })
     zmkAfter(g, actor, v); zmkAfter(g, actor, v2)
-    return Math.min(a, b)
+    return val
   }
   const dmg = applyZmk(base, v)
   log(g, { t: 'zmk', side: actor, zmk: v, value: dmg, msg: `ŽMK: ${v} → ${base} bazinė žala tampa ${dmg}.` })
@@ -402,16 +418,81 @@ function rollDamage(g: GameState, actor: Side, base: number, unfavorable: boolea
   return dmg
 }
 
+// ── Pranašumas / nepalankumas + burtų vampyrizmas (pasyvios auros) ────────────
+function combineBias(n: number): RollBias {
+  return n > 0 ? 'advantage' : n < 0 ? 'disadvantage' : 'normal'
+}
+/** Sumuoja pranašumo (+1) / nepalankumo (−1) auras, veikiančias `side` traukimą. */
+function netAuraBias(g: GameState, side: Side, kind: 'attack' | 'spell', spellType?: SpellType): number {
+  let n = 0
+  for (const sd of ['you', 'ai'] as Side[]) {
+    const p = P(g, sd)
+    const srcs = [
+      ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+      ...p.artifacts.filter((a): a is BoardArtifact => !!a),
+    ]
+    for (const c of srcs) {
+      const cfg = c.card.gameplay?.passiveAura
+      if (!cfg) continue
+      const scope = cfg.auraScope ?? 'friendly'
+      const affects = scope === 'all' || (scope === 'friendly' ? sd === side : sd !== side)
+      if (!affects) continue
+      if (kind === 'attack' && cfg.advAttack) n += cfg.advAttack === 'advantage' ? 1 : -1
+      if (kind === 'spell' && cfg.advSpell) {
+        if (cfg.advSpellType && cfg.advSpellType !== spellType) continue
+        n += cfg.advSpell === 'advantage' ? 1 : -1
+      }
+    }
+  }
+  return n
+}
+/** ŽMK bias pagal dabartinį rollContext (atakos poison + auros). */
+function ctxBias(g: GameState, roller: Side): RollBias {
+  const c = g.rollContext
+  if (!c) return 'normal'
+  if (c.kind === 'spell') {
+    if (c.actor !== roller) return 'normal'
+    return combineBias(netAuraBias(g, roller, 'spell', c.spellType))
+  }
+  const poison = c.poisonedSides?.[roller] ? -1 : 0
+  return combineBias(netAuraBias(g, roller, 'attack') + poison)
+}
+/** Burtų vampyrizmas: burto žala (kai rollContext = spell) gydo aurą turinčią pusę. */
+function applySpellLifesteal(g: GameState, dmg: number) {
+  const c = g.rollContext
+  if (!c || c.kind !== 'spell' || dmg <= 0) return
+  const caster = c.actor
+  for (const sd of ['you', 'ai'] as Side[]) {
+    const p = P(g, sd)
+    const srcs = [
+      ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+      ...p.artifacts.filter((a): a is BoardArtifact => !!a),
+    ]
+    let heal = false
+    for (const c2 of srcs) {
+      const sc = c2.card.gameplay?.passiveAura?.spellLifestealScope
+      if (!sc) continue
+      const trigger = sc === 'all' || (sc === 'friendly' ? caster === sd : caster !== sd)
+      if (trigger) { heal = true; break }
+    }
+    if (!heal) continue
+    const before = p.hp
+    p.hp = Math.min(p.maxHp, p.hp + dmg)
+    if (p.hp > before) log(g, { t: 'heal', side: sd, value: p.hp - before, msg: `🩸 Burto vampyrizmas: ${sideName(sd)} +${p.hp - before} HP (burto žala ${dmg}).`, sound: 'heal' })
+  }
+}
+
 // ── Žalos taikymas / mirtys ───────────────────────────────────────────────────
 
 function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, useZmk = true) {
-  let dmg = useZmk ? rollDamage(g, actor, base, false) : base
+  let dmg = useZmk ? rollDamage(g, actor, base, ctxBias(g, actor)) : base
   const fr = fieldEngine.applyFirstDamageReduction(g, target, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: target, msg: `🌍 Laukas sumažina pirmą žalą iki ${dmg}.` }) }
   if (dmg <= 0) return
   const p = P(g, target)
   p.hp -= dmg
   log(g, { t: 'damage', side: target, value: dmg, msg: `${sideName(target)} ${target === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, p.hp)} HP.` })
+  applySpellLifesteal(g, dmg)
   checkWin(g)
 }
 
@@ -421,7 +502,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
     log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja žalą „${target.card.name}" – ŽMK netraukiama.` })
     return
   }
-  let dmg = useZmk ? rollDamage(g, actor, base, false) : base
+  let dmg = useZmk ? rollDamage(g, actor, base, ctxBias(g, actor)) : base
   const fr = fieldEngine.applyFirstDamageReduction(g, owner, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: owner, msg: `🌍 Laukas sumažina pirmą žalą iki ${dmg}.` }) }
   if (dmg <= 0) {
@@ -431,6 +512,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   target.hp -= dmg
   log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, msg: `„${target.card.name}" gauna ${dmg} žalos (${Math.max(0, target.hp)}/${target.maxHp}).` })
   applyEnemyDamageLeech(g, owner, dmg)
+  applySpellLifesteal(g, dmg)
   if (target.hp <= 0) killUnit(g, owner, target)
 }
 
@@ -527,8 +609,9 @@ function applyEnemyDamageLeech(g: GameState, damagedOwner: Side, dmg: number) {
 }
 
 function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: number, actor: Side) {
-  const dmg = rollDamage(g, actor, base, false)
+  const dmg = rollDamage(g, actor, base, ctxBias(g, actor))
   if (dmg <= 0) return
+  applySpellLifesteal(g, dmg)
   target.hp -= dmg
   log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, msg: `Artefaktas „${target.card.name}" gauna ${dmg} žalos.` })
   if (target.hp <= 0) {
@@ -544,7 +627,7 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
   const p = P(g, owner)
   const idx = p.units.findIndex((x) => x?.uid === u.uid)
   if (idx === -1) return
-  // Paskutinis noras / onDeath mapping'ai – prieš kortai keliaujant į krūvą
+  // Paskutinis noras / onDeath mapping'ai – prieš kortai keliaujant į kapinyną
   if (!u.statuses.silenced) {
     const deathMappings = (u.card.mappings ?? []).filter((m) => m.trigger === 'onDeath')
     if (deathMappings.length > 0) {
@@ -571,7 +654,7 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
     log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja ${reroute === owner ? 'tau' : 'priešininkui'} į ranką (Paskutinis noras).`, sound: 'death', src: { side: owner, uid: u.uid } })
   } else {
     p.discard.push(u.card)
-    log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į panaudotų krūvą.`, sound: 'death', src: { side: owner, uid: u.uid } })
+    log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į kapinyną.`, sound: 'death', src: { side: owner, uid: u.uid } })
   }
   fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype })
   recomputeAuras(g)
@@ -655,7 +738,8 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
   const p = P(g, owner)
   // frozen/stunned/silenced: pašalinama savininko KITO ėjimo pabaigoje
   // burning/poisoned: kol pašalins efektas (PERMANENT)
-  const until = st === 'burning' || st === 'poisoned' ? PERMANENT : p.turnNumber + 1
+  // Degantis/Apnuodytas/Nutildytas – kol pašalins efektas (PERMANENT); Sušaldytas/Apsvaigintas – 1 ėjimą
+  const until = st === 'burning' || st === 'poisoned' || st === 'silenced' ? PERMANENT : p.turnNumber + 1
   u.statuses[st] = until
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
   if (st === 'silenced') recomputeAuras(g)
@@ -720,7 +804,7 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
   p.units[idx] = null
   if (p.hand.length >= 10) {
     p.discard.push(u.card)
-    log(g, { t: 'handBurn', side: owner, cardName: u.card.name, msg: `Ranka pilna – „${u.card.name}" keliauja į krūvą.` })
+    log(g, { t: 'handBurn', side: owner, cardName: u.card.name, msg: `Ranka pilna – „${u.card.name}" keliauja į kapinyną.` })
   } else {
     p.hand.push(u.card)
     log(g, { t: 'play', side: owner, cardName: u.card.name, msg: `„${u.card.name}" grąžinamas į ranką.` })
@@ -730,7 +814,7 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
 function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; count?: number }) {
   const p = P(g, s)
   const src = zone === 'hand' ? p.hand : zone === 'deck' ? p.deck : p.discard
-  const zoneName = zone === 'hand' ? 'rankoje' : zone === 'deck' ? 'kaladėje' : 'krūvoje'
+  const zoneName = zone === 'hand' ? 'rankoje' : zone === 'deck' ? 'kaladėje' : 'kapinyne'
   const want = (opts?.subtype ?? '').trim().toLowerCase()
   const eligible = (c: TutCard) =>
     c.type === 'unit' &&
@@ -992,6 +1076,17 @@ function removeZmkCardPrim(g: GameState, s: Side, value: string, count: number) 
   })
 }
 
+function setSpellDiscountPrim(g: GameState, s: Side, n: number) {
+  const p = P(g, s)
+  p.spellDiscountNext = Math.max(p.spellDiscountNext, n)
+  log(g, { t: 'gold', side: s, value: -n, msg: `${sideName(s)} kitas burtas kainuos ${n} aukso pigiau.` })
+}
+function buffSpellDamagePrim(g: GameState, s: Side, n: number) {
+  const p = P(g, s)
+  p.spellDamageBonus += n
+  log(g, { t: 'buff', side: s, value: n, msg: `${sideName(s)} burtai nuo šiol daro +${n} žalos (iš viso +${p.spellDamageBonus}).` })
+}
+
 export const gameApi: GameApi = {
   dealToUnit, dealToPlayer, dealToArtifact,
   healUnit: healUnitPrim,
@@ -1014,13 +1109,15 @@ export const gameApi: GameApi = {
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
+  setSpellDiscount: setSpellDiscountPrim,
+  buffSpellDamage: buffSpellDamagePrim,
   log,
 }
 
 /** Reali kortos kaina su lauko pasyvais (burtai/padarai gali kainuoti kitaip). */
 export function effectiveCost(g: GameState, s: Side, card: TutCard): number {
   let cost = card.gold
-  if (card.type === 'spell') cost += fieldEngine.spellCostDelta(g, s)
+  if (card.type === 'spell') cost += fieldEngine.spellCostDelta(g, s) - P(g, s).spellDiscountNext
   if (card.type === 'unit') cost += fieldEngine.unitCostDelta(g, s)
   cost -= auraCostReductionFor(g, s, card)
   return Math.max(0, cost)
@@ -1078,6 +1175,7 @@ export function toResolved(t: TargetRef): ResolvedTarget {
 
 export function beginTurn(g: GameState): GameState {
   if (g.winner) return g
+  g.rollContext = null
   const s = g.active
   const p = P(g, s)
   g.globalTurn += 1
@@ -1134,6 +1232,7 @@ export function beginTurn(g: GameState): GameState {
 
 export function endTurn(g: GameState): GameState {
   if (g.winner) return g
+  g.rollContext = null
   const s = g.active
   const p = P(g, s)
   // pašalinam pasibaigusias būsenas (frozen/stunned/silenced iki šio ėjimo pabaigos)
@@ -1179,6 +1278,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
 
 export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; sacrificeUid?: string; tributeHandUid?: string }): PlayResult {
   if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
+  g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
   const p = P(g, s)
   const i = p.hand.findIndex((c) => c.uid === uid)
@@ -1224,6 +1324,8 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
     case 'spell': {
       p.hand.splice(i, 1)
       p.gold -= cost
+      p.spellDiscountNext = 0
+      g.rollContext = { kind: 'spell', actor: s, spellType: card.gameplay?.spellType }
       const spellMappings = (card.mappings ?? []).filter((m) => m.trigger === 'onCast' || m.trigger === 'onPlay')
       const proj = spellMappings[0]?.projectile ?? card.gameplay?.projectileType ?? projectileForCard(card)
       log(g, {
@@ -1274,7 +1376,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         fireTrigger(gameApi, g, s, 'onFieldLeave', 1)
         const oldOwner = P(g, g.field.owner)
         oldOwner.discard.push(g.field.card)
-        log(g, { t: 'field', side: s, cardName: g.field.card.name, msg: `Sena lauko korta „${g.field.card.name}" keliauja į panaudotų krūvą.` })
+        log(g, { t: 'field', side: s, cardName: g.field.card.name, msg: `Sena lauko korta „${g.field.card.name}" keliauja į kapinyną.` })
       }
       g.field = { card, owner: s }
       log(g, { t: 'field', side: s, cardName: card.name, msg: `🌍 ${sideName(s)} ${s === 'you' ? 'žaidi' : 'žaidžia'} lauko kortą „${card.name}" – veikia abu žaidėjus.`, sound: 'field' })
@@ -1381,6 +1483,7 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
   if (!skills[skillIndex].unlocked) return { ok: false, reason: `Skill ${skillIndex + 1} užrakintas – reikia ${skillIndex + 1} fazės.` }
   const skill = skills[skillIndex]
   ch.abilityUsed = true
+  g.rollContext = { kind: 'spell', actor: s, spellType: ch.card.gameplay?.spellType }
   log(g, {
     t: 'ability', side: s, cardName: ch.card.name, msg: `⚜ „${ch.card.name}" naudoja „${skill.name}" (${ch.phase} fazė).`,
     src: { side: s, uid: ch.uid }, tgt: opts?.target ? { ...opts.target } : undefined,
@@ -1454,6 +1557,7 @@ function maybeTriggerReaction(g: GameState, defender: Side, attacker: BoardUnit,
 
 export function attack(g: GameState, s: Side, attackerUid: string, target: TargetRef): PlayResult {
   if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
+  g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
   const p = P(g, s)
   const u = p.units.find((x) => x?.uid === attackerUid)
@@ -1467,6 +1571,8 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
 
   u.attacksUsed += 1
   p.attacksThisTurn += 1
+  g.rollContext = { kind: 'attack', actor: s, poisonedSides: { you: false, ai: false } }
+  if (g.rollContext.poisonedSides) g.rollContext.poisonedSides[s] = !!u.statuses.poisoned
   if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `◑ „${u.card.name}" Sėlinimas baigiasi po atakos.` }) }
   const foe = other(s)
   const atk = effectiveAtk(g, u)
@@ -1490,6 +1596,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       applyMappings(gameApi, g, foe, def.card.mappings ?? [], 'onAttacked', { sourceName: def.card.name, sourceUid: def.uid, depth: 1 })
       if (!p.units.some((x) => x?.uid === u.uid)) return { ok: true }
     }
+    if (g.rollContext?.kind === 'attack' && g.rollContext.poisonedSides) g.rollContext.poisonedSides[foe] = !!def.statuses.poisoned
     const defAtk = def.isChampion ? 0 : effectiveAtk(g, def)
     const defRetaliates = !def.statuses.frozen && defAtk > 0 // Sušaldytas nedaro atgalinės žalos
     // abu žalą daro vienu metu: puolančiojo žala gynėjui
@@ -1497,7 +1604,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       def.shield = false
       log(g, { t: 'damage', side: foe, cardName: def.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja žalą „${def.card.name}".` })
     } else {
-      const dmg = rollDamage(g, s, atk, unfav)
+      const dmg = rollDamage(g, s, atk, ctxBias(g, s))
       def.hp -= dmg
       log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, msg: `„${def.card.name}" gauna ${dmg} žalos (${Math.max(0, def.hp)}/${def.maxHp}).` })
     }
@@ -1507,7 +1614,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
         u.shield = false
         log(g, { t: 'damage', side: s, cardName: u.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja atgalinę žalą „${u.card.name}".` })
       } else {
-        const back = rollDamage(g, foe, defAtk, !!def.statuses.poisoned)
+        const back = rollDamage(g, foe, defAtk, ctxBias(g, foe))
         u.hp -= back
         log(g, { t: 'damage', side: s, cardName: u.card.name, value: back, msg: `Atgalinė žala: „${u.card.name}" gauna ${back} (${Math.max(0, u.hp)}/${u.maxHp}).` })
       }
@@ -1523,7 +1630,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     dealToArtifact(g, a, foe, atk, s)
   } else {
     log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" atakuoja ${foe === 'ai' ? 'priešininką' : 'tave'} tiesiogiai!`, src: { side: s, uid: u.uid }, tgt: { kind: 'player', side: foe }, sound: 'attack' })
-    if (unfav) { const dmg = rollDamage(g, s, atk, true); if (dmg > 0) { P(g, foe).hp -= dmg; log(g, { t: 'damage', side: foe, value: dmg, msg: `${sideName(foe)} ${foe === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, P(g, foe).hp)} HP.` }); checkWin(g) } }
+    if (unfav) { const dmg = rollDamage(g, s, atk, ctxBias(g, s)); if (dmg > 0) { P(g, foe).hp -= dmg; log(g, { t: 'damage', side: foe, value: dmg, msg: `${sideName(foe)} ${foe === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, P(g, foe).hp)} HP.` }); checkWin(g) } }
     else dealToPlayer(g, foe, atk, s)
   }
   checkWin(g)

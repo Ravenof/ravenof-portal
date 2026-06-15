@@ -30,7 +30,7 @@ const RULES = [
   'Nutildytas arba Apsvaigintas Čempionas negali naudoti gebėjimų.',
   'To paties Čempiono kovos lauke negali būti daugiau nei vienas. Skirtingų - gali būti keli.',
   'Dedamas į padarų zoną - įskaičiuojamas į 5 vietų ribą.',
-  'Gyvybės taškams nukritus iki 0, Čempionas keliauja į panaudotų kortų krūvą.',
+  'Gyvybės taškams nukritus iki 0, Čempionas keliauja į kapinyną.',
 ]
 
 const TRIBUTE_SOURCES = [
