@@ -44,6 +44,11 @@ export function fieldGoldBonus(g: GameState, s: Side): number {
   return passive(g, s)?.goldBonusPerTurn ?? 0
 }
 
+/** Padarų zonos limitas (default 5; Platusis laukas pakelia iki 10). */
+export function creatureCap(g: GameState, s: Side): number {
+  return passive(g, s)?.creatureCap ?? 5
+}
+
 /** Pirmos žalos per ėjimą sumažinimas. Grąžina sumažintą žalą ir ar suveikė. */
 export function applyFirstDamageReduction(g: GameState, receiverSide: Side, dmg: number): { dmg: number; reduced: boolean } {
   const p = passive(g, receiverSide)

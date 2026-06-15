@@ -23,10 +23,10 @@ import {
   championSkills, canUnitAttack, legalTargets, cloneState, P,
   swapPerspective, applyNetAction, swapAction, type NetAction,
   parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
-  STATUS_META, TutStatus,
+  STATUS_META, TutStatus, boardCreatureCap,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
-import { parseGameplayConfig, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
+import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
@@ -120,6 +120,10 @@ function buildDemoDeck(cards: Omit<TutCard, 'uid'>[]): TutCard[] {
 
 // ── Maža kortos „veido" reprezentacija ───────────────────────────────────────
 
+const STATUS_GLOW: Record<TutStatus, string> = {
+  frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa',
+}
+
 function MiniCard({ c, w, dim, faceDown }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean }) {
   const h = Math.round(w * 4 / 3)
   if (faceDown) {
@@ -179,6 +183,8 @@ function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick }: {
   const h = Math.round(w * 4 / 3)
   const atk = effectiveAtk(g, u)
   const ring = selected ? '#f0b429' : targetable ? '#ef4444' : canAct ? 'rgba(74,222,128,0.7)' : 'transparent'
+  const activeStatuses = Object.keys(u.statuses) as TutStatus[]
+  const sGlow = activeStatuses.length ? STATUS_GLOW[activeStatuses[0]] : null
   return (
     <motion.button
       layout
@@ -195,6 +201,7 @@ function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick }: {
           border: u.isChampion ? '2px solid #f0b429' : '1.5px solid ' + u.card.rarityColor + '90',
           boxShadow: ring !== 'transparent'
             ? `0 0 0 2px ${ring}, 0 0 14px ${ring}`
+            : sGlow ? `0 0 0 2px ${sGlow}cc, 0 0 16px ${sGlow}aa`
             : '0 3px 10px rgba(0,0,0,0.6)',
         }}>
         {u.card.image ? (
@@ -224,24 +231,24 @@ function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick }: {
         {u.shield && <Token title="Magiškasis skydas">✦★</Token>}
         {u.stealth && <Token title="Sėlinimas">◑</Token>}
         {u.card.keywords.includes('taunt') && <Token title="Pasišaipymas">⊙</Token>}
-        {(Object.keys(u.statuses) as TutStatus[]).map((s) => (
-          <Token key={s} title={STATUS_META[s].name}>{STATUS_META[s].icon}</Token>
+        {activeStatuses.map((s) => (
+          <Token key={s} title={STATUS_META[s].name} color={STATUS_GLOW[s]}>{STATUS_META[s].icon}</Token>
         ))}
       </div>
     </motion.button>
   )
 }
 
-function Token({ children, title }: { children: React.ReactNode; title: string }) {
+function Token({ children, title, color }: { children: React.ReactNode; title: string; color?: string }) {
   return (
     <span title={title}
-      className="inline-flex items-center justify-center rounded-full text-[9px] leading-none"
+      className="inline-flex items-center justify-center rounded-full text-[10px] leading-none"
       style={{
-        minWidth: 16, height: 16, padding: '0 3px',
-        background: 'radial-gradient(circle at 35% 30%, #2a2138, #14101e)',
-        border: '1px solid rgba(240,180,41,0.5)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.7)',
-        color: 'var(--gold)',
+        minWidth: 17, height: 17, padding: '0 3px',
+        background: color ? `radial-gradient(circle at 35% 30%, ${color}55, #14101e)` : 'radial-gradient(circle at 35% 30%, #2a2138, #14101e)',
+        border: '1px solid ' + (color ? color + 'cc' : 'rgba(240,180,41,0.5)'),
+        boxShadow: color ? `0 0 6px ${color}aa` : '0 1px 4px rgba(0,0,0,0.7)',
+        color: color ?? 'var(--gold)',
       }}>
       {children}
     </span>
@@ -324,6 +331,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [turnLeft, setTurnLeft] = useState(60)
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [champSwap, setChampSwap] = useState<{ cardUid: string; name: string; phase: number; options: number[] } | null>(null)
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
+  const [millShow, setMillShow] = useState<{ side: Side; cards: TutCard[] } | null>(null)
+  const millSeenRef = useRef(0)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
@@ -1036,11 +1046,20 @@ doAction({ t: 'endTurn', actor: 'you' })
   const renderUnitsRow = (side: Side, tut: string) => {
     if (!game) return null
     const p = P(game, side)
+    const cap = boardCreatureCap(game, side)
+    const slots = Math.max(cap, p.units.length)
     return (
-      <div data-tut={tut} className="flex justify-center gap-1.5 sm:gap-2 min-h-[80px] sm:min-h-[124px] items-center">
+      <div data-tut={tut} className="flex flex-wrap justify-center gap-1 sm:gap-2 min-h-[80px] sm:min-h-[124px] items-center">
         <AnimatePresence>
-          {p.units.map((u, i) => u ? (
-            <div key={u.uid} data-unit-uid={u.uid} onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}>
+          {Array.from({ length: slots }).map((_, i) => { const u = p.units[i]; return u ? (
+            <div key={u.uid} data-unit-uid={u.uid}
+              onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}
+              onMouseEnter={!isTouch ? (ev) => setHoverCard({ card: u.card, x: ev.clientX, y: ev.clientY }) : undefined}
+              onMouseMove={!isTouch ? (ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: u.card, x: ev.clientX, y: ev.clientY }) : undefined}
+              onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}
+              onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(u.card) }, 450) }}
+              onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+              onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}>
               <UnitTile
                 g={game} u={u} w={unitW}
                 selected={select?.kind === 'attacker' && select.uid === u.uid}
@@ -1060,7 +1079,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 border: '1px dashed rgba(240,180,41,0.18)',
                 background: 'rgba(240,180,41,0.02)',
               }} />
-          ))}
+          ) })}
         </AnimatePresence>
       </div>
     )
@@ -1171,9 +1190,44 @@ doAction({ t: 'endTurn', actor: 'you' })
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 16 16, crosshair`
   }, [select, game, PROJ_EMOJI])
 
+  // Taikymo etiketė prie kursoriaus (desktop): koks efektas vyks
+  const selectLabel = useMemo(() => {
+    if (!select || !game) return ''
+    if (select.kind === 'attacker') { const u = game.you.units.find((x) => x?.uid === select.uid); return `⚔ Ataka${u ? ' ' + effectiveAtk(game, u) : ''}` }
+    if (select.kind === 'spell' || select.kind === 'spellMulti') {
+      const card = game.you.hand.find((c) => c.uid === select.uid)
+      const m = card ? selectionMappingFor(card) : null
+      const eff = m ? (EFFECT_TYPES.find((e) => e.value === m.effect)?.label ?? 'Efektas') : 'Burtas'
+      const val = m && m.value != null ? ' ' + m.value : ''
+      const cnt = select.kind === 'spellMulti' ? ` (${select.picked.length}/${select.need})` : ''
+      return `✨ ${eff}${val}${cnt}`
+    }
+    if (select.kind === 'sacrifice') return `⚜ Tribute (${select.picked.length}/2)`
+    return ''
+  }, [select, game])
+
+  useEffect(() => {
+    if (!select || isTouch) { setCursorPos(null); return }
+    const onMove = (e: MouseEvent) => setCursorPos({ x: e.clientX, y: e.clientY })
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [select, isTouch])
+
+  // Mill pop-up (kortos iš kaladės -> kapinynas)
+  useEffect(() => {
+    const lm = game?.lastMill
+    if (!lm || lm.id === millSeenRef.current) return
+    millSeenRef.current = lm.id
+    setMillShow({ side: lm.side, cards: lm.cards })
+    const t = setTimeout(() => setMillShow(null), 2200)
+    return () => clearTimeout(t)
+  }, [game?.lastMill?.id])
+
   return createPortal(
     <div className="fixed inset-0 z-[120] flex flex-col select-none"
       style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingTop: 'env(safe-area-inset-top)',
         background: 'radial-gradient(ellipse at 50% 0%, #1a1325 0%, #0a0810 60%, #060409 100%)',
         cursor: targetingCursor,
         WebkitUserSelect: 'none',
@@ -1245,7 +1299,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
       {game && !loading && (
-        <div className="flex-1 flex flex-col overflow-hidden px-2 py-1.5 gap-1">
+        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto sm:overflow-hidden px-2 py-1.5 gap-1">
           {/* ── AI pusė ── */}
           <div data-tut="ai-area" className="shrink-0">
             <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
@@ -1259,7 +1313,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="flex items-end gap-2">
                 {renderPile('Ranka', game.ai.hand.length)}
                 {renderPile('Kaladė', game.ai.deck.length)}
-                {renderPile('Krūva', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
+                {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
                 {renderPile('ŽMK', game.ai.zmk.length)}
               </div>
             </div>
@@ -1298,7 +1352,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               {goldBar('you')}
               <div className="flex items-end gap-2">
                 {renderPile('Kaladė', game.you.deck.length, { tut: 'deck' })}
-                {renderPile('Krūva', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
+                {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
                 {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk' })}
               </div>
               <button
@@ -1348,7 +1402,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             {/* ranka: normali (vėduoklė) arba padidinta (wrap + scroll) */}
             <div data-tut="hand"
               className={handExpanded
-                ? 'flex flex-wrap justify-center items-start gap-2 max-h-[46vh] overflow-y-auto p-2 rounded-xl'
+                ? 'flex flex-wrap justify-center items-start gap-2 max-h-[40vh] overflow-y-auto p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] rounded-xl'
                 : 'flex justify-center items-end gap-0 min-h-[110px] sm:min-h-[150px] pb-1 overflow-x-auto'}
               style={handExpanded ? { background: 'rgba(10,8,16,0.92)', border: '1px solid rgba(240,180,41,0.25)' } : undefined}>
               <AnimatePresence>
@@ -1882,6 +1936,34 @@ doAction({ t: 'endTurn', actor: 'you' })
           🎯 Pasirink taikinius: {select.picked.length}/{select.need}
         </div>
       )}
+
+      {/* ── taikymo etiketė prie kursoriaus (desktop) ── */}
+      {cursorPos && selectLabel && !isTouch && createPortal(
+        <div className="fixed z-[205] pointer-events-none px-2 py-1 rounded-md text-[11px] font-bold"
+          style={{ left: cursorPos.x + 18, top: cursorPos.y + 18, background: 'rgba(13,10,20,0.95)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)' }}>
+          {selectLabel}
+        </div>, document.body)}
+
+      {/* ── mill pop-up: kortos -> kapinynas ── */}
+      <AnimatePresence>
+        {millShow && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[136] flex items-center justify-center p-4 pointer-events-none">
+            <div className="rounded-2xl p-4 text-center pointer-events-auto" style={{ background: 'rgba(13,10,20,0.95)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-sm font-bold mb-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
+                🪦 {millShow.side === 'you' ? 'Tavo' : 'Priešininko'} {millShow.cards.length} korta(-os) → kapinynas
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center max-w-[80vw]">
+                {millShow.cards.map((c, i) => (
+                  <motion.div key={c.uid + '-mill-' + i} initial={{ y: -10, opacity: 0 }} animate={{ y: 24, opacity: [0, 1, 1, 0.3] }} transition={{ duration: 1.8, delay: i * 0.12 }}>
+                    <MiniCard c={c} w={isTouch ? 54 : 66} />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── kaladės viršaus peržiūra (tik skaitymui) ── */}
       <AnimatePresence>

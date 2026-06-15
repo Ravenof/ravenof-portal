@@ -297,6 +297,7 @@ export type FieldPassiveConfig = {
   attackLimitPerTurn?: number    // maks. atakų per ėjimą
   firstDamageReduction?: number  // pirma žala per ėjimą sumažinama X
   goldBonusPerTurn?: number      // papildomas auksas ėjimo pradžioje
+  creatureCap?: number           // padarų zonos limitas (Platusis laukas: 10 vietoj 5)
 }
 
 export type FieldEffectConfig = {

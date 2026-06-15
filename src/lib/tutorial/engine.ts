@@ -187,6 +187,8 @@ export type GameState = {
   pendingChoice?: PendingChoice | null
   /** Trumpalaikis ŽMK traukimo kontekstas (nevalomas tarp veiksmų – išvalomas kiekvieno veiksmo pradžioje) */
   rollContext?: RollContext | null
+  /** Paskutinis mill (UI animacijai: kortos iš kaladės į kapinyną) */
+  lastMill?: { id: number; side: Side; cards: TutCard[] } | null
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
@@ -325,6 +327,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     pendingSummon: null,
     pendingChoice: null,
     rollContext: null,
+    lastMill: null,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
   drawCards(g, first, 4, true)
@@ -834,7 +837,7 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
     (!want || (c.subtype ?? '').toLowerCase() === want)
   const count = Math.max(1, opts?.count ?? 1)
   for (let n = 0; n < count; n++) {
-    const slot = p.units.findIndex((u) => u === null)
+    const slot = freeUnitSlot(g, p)
     if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
     const idx = src.findIndex(eligible)
     if (idx === -1) { log(g, { t: 'blocked', side: s, msg: `Nėra tinkamo padaro ${zoneName} – iškvietimas neįvyksta.` }); return }
@@ -852,8 +855,21 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
   }
 }
 
+function unitCount(p: PlayerState): number { return p.units.filter((u) => u != null).length }
+/** Laisva padaro vieta atsižvelgiant į lauko limitą (Platusis laukas: iki 10). Auga masyvas iki cap. */
+function freeUnitSlot(g: GameState, p: PlayerState): number {
+  const cap = fieldEngine.creatureCap(g, p.side)
+  if (unitCount(p) >= cap) return -1
+  const idx = p.units.findIndex((u) => u === null)
+  if (idx !== -1) return idx
+  if (p.units.length < cap) { p.units.push(null); return p.units.length - 1 }
+  return -1
+}
+/** Padarų zonos limitas pusei (UI). */
+export function boardCreatureCap(g: GameState, s: Side): number { return fieldEngine.creatureCap(g, s) }
+
 function placeUnit(g: GameState, p: PlayerState, card: TutCard, suffix: string) {
-  const slot = p.units.findIndex((u) => u === null)
+  const slot = freeUnitSlot(g, p)
   if (slot === -1) return false
   p.units[slot] = {
     uid: card.uid + suffix, card,
@@ -875,7 +891,7 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
     const arr = opt.zone === 'hand' ? p.hand : opt.zone === 'deck' ? p.deck : p.discard
     const idx = arr.findIndex((c) => c.uid === uid)
     if (idx === -1) continue
-    const slotFree = p.units.findIndex((u) => u === null)
+    const slotFree = freeUnitSlot(g, p)
     if (slotFree === -1) { log(g, { t: 'blocked', side: ps.caster, msg: 'Padarų zona pilna.' }); break }
     const [card] = arr.splice(idx, 1)
     placeUnit(g, p, card, '-sc' + g.globalTurn)
@@ -910,7 +926,7 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
     return
   }
   for (let n = 0; n < count; n++) {
-    const slot = p.units.findIndex((u) => u === null)
+    const slot = freeUnitSlot(g, p)
     if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – iškvietimas neįvyksta.' }); return }
     let src: TutCard[] | null = null
     let idx = -1
@@ -933,16 +949,18 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
   }
 }
 
+let millCounter = 0
 function millDeckPrim(g: GameState, s: Side, n: number) {
   const p = P(g, s)
-  let moved = 0
+  const milled: TutCard[] = []
   for (let i = 0; i < n; i++) {
     const c = p.deck.pop()
     if (!c) break
     p.discard.push(c)
-    moved++
+    milled.push(c)
   }
-  log(g, { t: 'discardGold', side: s, value: moved, msg: `${sideName(s)} kaladės ${moved} kort(os) keliauja į kapinyną (mill).` })
+  if (milled.length > 0) g.lastMill = { id: ++millCounter, side: s, cards: milled }
+  log(g, { t: 'discardGold', side: s, value: milled.length, msg: `${sideName(s)} kaladės ${milled.length} kort(os) keliauja į kapinyną (mill).` })
 }
 
 function returnGraveyardToDeckPrim(g: GameState, s: Side, n: number) {
@@ -1403,8 +1421,8 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
 
   switch (card.type) {
     case 'unit': {
-      const slot = p.units.findIndex((u) => u === null)
-      if (slot === -1) return { ok: false, reason: 'Padarų zona pilna (maks. 5).' }
+      const slot = freeUnitSlot(g, p)
+      if (slot === -1) return { ok: false, reason: `Padarų zona pilna (maks. ${fieldEngine.creatureCap(g, s)}).` }
       p.hand.splice(i, 1)
       p.gold -= cost
       const u: BoardUnit = {
@@ -1553,14 +1571,15 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       if (cardPhase != null && cardPhase !== 1) {
         return { ok: false, reason: `Pirma iškviesk 1 fazės Čempioną (ši korta – ${cardPhase} fazė).` }
       }
-      const slot = p.units.findIndex((u) => u === null)
-      if (slot === -1) return { ok: false, reason: 'Padarų zona pilna (maks. 5, įskaitant Čempioną).' }
+      const willFreeBoard = !!opts?.sacrificeUid
+      if (unitCount(p) - (willFreeBoard ? 1 : 0) >= fieldEngine.creatureCap(g, s)) return { ok: false, reason: `Padarų zona pilna (maks. ${fieldEngine.creatureCap(g, s)}, įskaitant Čempioną).` }
       const t = doTribute()
       if (!t.ok) return t
       const ci = p.hand.findIndex((c) => c.uid === uid)
       if (ci >= 0) p.hand.splice(ci, 1)
       p.gold -= cost
-      const freeSlot = p.units.findIndex((u) => u === null)
+      const freeSlot = freeUnitSlot(g, p)
+      if (freeSlot === -1) return { ok: false, reason: 'Padarų zona pilna.' }
       p.units[freeSlot] = {
         uid: card.uid, card, atk: 0,
         hp: card.health ?? 8, maxHp: card.health ?? 8,
@@ -1806,6 +1825,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)
   if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
   if (c.pendingChoice) c.pendingChoice.caster = other(c.pendingChoice.caster)
+  if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
   return c
 }
 

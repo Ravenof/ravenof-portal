@@ -767,6 +767,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                 ['attackLimitPerTurn', 'Maks. atakų per ėjimą'],
                 ['firstDamageReduction', 'Pirma žala per ėjimą −X'],
                 ['goldBonusPerTurn', 'Auksas ėjimo pradžioje +X'],
+                ['creatureCap', 'Padarų zonos limitas (Platusis laukas: 10)'],
               ] as const).map(([key, label]) => (
                 <div key={key}>
                   <label style={labelStyle}>{label}</label>
