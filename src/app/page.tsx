@@ -10,6 +10,7 @@ type DeckRow         = { id: string; name: string; score: number; card_count: nu
 type AnnouncementRow = { id: string; title: string; slug: string; summary: string | null; type: string; pinned: boolean; published_at: string }
 
 const QUICK_LINKS = [
+  { href: '/digital',         icon: '🎮', label: 'Ravenof Digital'  },
   { href: '/cards',           icon: '🃏', label: 'Kortų bazė'       },
   { href: '/deck-builder',    icon: '⚗️',  label: 'Kaladžių kūrėjas' },
   { href: '/community-decks', icon: '📚', label: 'Viešos kaladės'   },
@@ -156,8 +157,9 @@ export default async function HomePage() {
 
           {/* PAGRINDINIAI VEIKSMAI */}
           <div className="max-w-2xl mx-auto pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
+                { href: '/digital',      icon: '🎮', title: 'Ravenof Digital', desc: 'Žaisk: mokymasis, prieš AI ir PvP' },
                 { href: '/cards',        icon: '🃏', title: 'Kortų bazė', desc: 'Naršyk ir filtruok visas korteles' },
                 { href: '/life-tracker', icon: '⚔️',  title: 'Kova',       desc: 'HP skaitiklis žaidimui' },
                 { href: '/rules',        icon: '🛡️',  title: 'Taisyklės',  desc: 'Greita žaidimo nuoroda' },

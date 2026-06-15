@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, Layers, Swords, Trophy, Map, User } from 'lucide-react'
+import { LayoutGrid, Layers, Swords, Gamepad2, Trophy, Map, User } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { NAV_SECTIONS, isNavActive, type NavKey } from '@/lib/nav'
 
@@ -11,6 +11,7 @@ const ICONS: Record<NavKey, LucideIcon> = {
   cards:   LayoutGrid,
   decks:   Layers,
   kova:    Swords,
+  digital: Gamepad2,
   arena:   Trophy,
   atlas:   Map,
   profile: User,

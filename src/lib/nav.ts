@@ -3,7 +3,7 @@
  * Keičiant skiltis – keisti TIK čia.
  */
 
-export type NavKey = 'cards' | 'decks' | 'kova' | 'arena' | 'atlas' | 'profile'
+export type NavKey = 'cards' | 'decks' | 'kova' | 'digital' | 'arena' | 'atlas' | 'profile'
 
 export type NavSection = {
   key: NavKey
@@ -18,6 +18,7 @@ export const NAV_SECTIONS: NavSection[] = [
   { key: 'cards',   href: '/cards',        label: 'Kortos',   group: ['/cards', '/my-cards'] },
   { key: 'decks',   href: '/my-decks',     label: 'Kaladės',  group: ['/my-decks', '/deck-builder', '/community-decks'] },
   { key: 'kova',    href: '/life-tracker', label: 'Kova',     group: ['/life-tracker'] },
+  { key: 'digital', href: '/digital',      label: 'Digital',  group: ['/digital'] },
   { key: 'arena',   href: '/arena',        label: 'Arena',    group: ['/arena', '/events', '/my-events', '/leaderboards'] },
   { key: 'atlas',   href: '/lore',         label: 'Atlasas',  group: ['/lore', '/rules'] },
   { key: 'profile', href: '/me',           label: 'Profilis', group: ['/me', '/users', '/profile'] },
