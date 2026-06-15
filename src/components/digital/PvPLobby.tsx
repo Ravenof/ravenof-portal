@@ -35,6 +35,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
   const [status, setStatus] = useState<string>('')
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
+  const [resumeRec, setResumeRec] = useState<{ matchId: string; isHost: boolean; mySide: 'you' | 'ai'; opponentId: string | null; deckId: string; opponentDeckId: string | null; opponentName: string | null; deckName: string | null } | null>(null)
   const [decks, setDecks] = useState<{ id: string; name: string; faction: string | null }[]>([])
   const [deckSel, setDeckSel] = useState<string>(deckId)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -55,7 +56,31 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
-  const deckName2 = decks.find((d) => d.id === deckSel)?.name ?? deckName
+  // PvP reconnect: ar yra išsaugota aktyvi partija (per pastarąsias ~15 min)?
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('rvn-pvp-active')
+      if (!raw) return
+      const r = JSON.parse(raw) as { matchId: string; isHost: boolean; mySide: 'you' | 'ai'; opponentId: string | null; deckId: string; opponentDeckId: string | null; opponentName: string | null; deckName: string | null; ts: number }
+      if (r && r.matchId && Date.now() - (r.ts || 0) < 15 * 60 * 1000) setResumeRec(r)
+      else localStorage.removeItem('rvn-pvp-active')
+    } catch { /* */ }
+  }, [])
+
+  const doReconnect = () => {
+    if (!resumeRec) return
+    playUiClick()
+    setLaunch({
+      net: { isHost: resumeRec.isHost, mySide: resumeRec.mySide, matchId: resumeRec.matchId, opponentId: resumeRec.opponentId || undefined, resume: true },
+      deckId: resumeRec.deckId, opponentDeckId: resumeRec.opponentDeckId, opponentName: resumeRec.opponentName || 'Varžovas',
+    })
+  }
+  const dismissReconnect = () => {
+    try { localStorage.removeItem('rvn-pvp-active') } catch { /* */ }
+    setResumeRec(null)
+  }
+
+  const deckName2 = (launch && resumeRec ? resumeRec.deckName : null) ?? decks.find((d) => d.id === deckSel)?.name ?? deckName
 
   // Host laukia, kol prisijungs svečias (poll kas 2s)
   const waitForGuest = useCallback((matchId: string) => {
@@ -157,6 +182,15 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)' }} onClick={onClose}>
       <div className="rounded-2xl p-5 w-[min(440px,94vw)]" style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(239,68,68,0.4)' }} onClick={(e) => e.stopPropagation()}>
         <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>⚔️ PvP arena</p>
+        {resumeRec && !room && (
+          <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)' }}>
+            <p className="text-xs mb-2" style={{ color: '#86efac' }}>🔄 Turi nebaigtą partiją su „{resumeRec.opponentName || 'Varžovu'}". Grįžti gali, jei varžovas dar prisijungęs (30s).</p>
+            <div className="flex gap-2">
+              <button onClick={doReconnect} className="flex-1 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>↩ Grįžti į žaidimą</button>
+              <button onClick={dismissReconnect} className="px-3 py-2 rounded-lg text-xs" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Atmesti</button>
+            </div>
+          </div>
+        )}
         {!room && (
           <div className="mb-4">
             <label className="text-[11px] uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>Tavo kaladė</label>

@@ -33,7 +33,9 @@ import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
-export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string }
+export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
+const PVP_ACTIVE_KEY = 'rvn-pvp-active'
+const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
 type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; net?: PvPNet }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
@@ -356,6 +358,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [myName, setMyName] = useState<string | null>(null)
   const [turnBanner, setTurnBanner] = useState<{ name: string; you: boolean } | null>(null)
   const lastTurnRef = useRef(-1)
+  const [oppPresent, setOppPresent] = useState(false)
+  const [oppMissingLeft, setOppMissingLeft] = useState<number | null>(null)
+  const sawOppRef = useRef(!!net?.resume)
+  const graceRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [champSwap, setChampSwap] = useState<{ cardUid: string; name: string; phase: number; options: number[] } | null>(null)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
@@ -583,10 +589,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const oppReady = !loadOpp || oppCards !== null
   useEffect(() => {
     // Svečias žaidimo nekuria – laukia būsenos iš host'o.
-    if (isGuest) return
-    if (deckCards && extrasLoaded && oppReady && !game) initGame(deckCards, oppCards)
+    if (isGuest || game) return
+    // Host reconnect: atkuriam išsaugotą būseną vietoj naujo kūrimo
+    if (net?.resume && isHost) {
+      try { const raw = localStorage.getItem(pvpStateKey(net.matchId)); if (raw) { const g = JSON.parse(raw) as GameState; seenRef.current = g.log.length; setGame(g); return } } catch { /* */ }
+    }
+    if (deckCards && extrasLoaded && oppReady) initGame(deckCards, oppCards)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckCards, extrasLoaded, oppReady, initGame, isGuest])
+  }, [deckCards, extrasLoaded, oppReady, initGame, isGuest, net?.resume])
+
+  const closeGame = useCallback(() => {
+    try { localStorage.removeItem(PVP_ACTIVE_KEY); if (net) localStorage.removeItem(pvpStateKey(net.matchId)) } catch { /* */ }
+    onClose()
+  }, [net, onClose])
 
   // ── Ambient muzika + garso būsenos sekimas ──
   useEffect(() => {
@@ -604,7 +619,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (e.key === 'Escape') {
         if (inspect) setInspect(null)
         else if (select) setSelect(null)
-        else onClose()
+        else closeGame()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -612,7 +627,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [inspect, select, onClose])
+  }, [inspect, select, closeGame])
 
   const rectFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number } | null => {
     if (!ref) return null
@@ -844,8 +859,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         setGame(swapPerspective(payload as GameState))
       })
     }
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED' && !net.isHost) ch.send({ type: 'broadcast', event: 'hello', payload: {} })
+    ch.on('presence', { event: 'sync' }, () => {
+      const st = ch.presenceState() as Record<string, { side?: Side }[]>
+      let opp = false
+      for (const arr of Object.values(st)) for (const meta of arr) { if (meta.side && meta.side !== net.mySide) opp = true }
+      if (opp) sawOppRef.current = true
+      setOppPresent(opp)
+    })
+    ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        try { await ch.track({ side: net.mySide }) } catch { /* */ }
+        if (!net.isHost) ch.send({ type: 'broadcast', event: 'hello', payload: {} })
+      }
     })
     channelRef.current = ch
     return () => { supabase.removeChannel(ch); channelRef.current = null }
@@ -858,6 +883,44 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       channelRef.current.send({ type: 'broadcast', event: 'state', payload: game })
     }
   }, [game, isHost])
+
+  // PvP reconnect: išsaugom aktyvią partiją (kad galima grįžti); host saugo ir būseną
+  useEffect(() => {
+    if (!net) return
+    try {
+      localStorage.setItem(PVP_ACTIVE_KEY, JSON.stringify({
+        matchId: net.matchId, isHost: net.isHost, mySide: net.mySide, opponentId: net.opponentId ?? null,
+        deckId, opponentDeckId: opponentDeckId ?? null, opponentName: opponentName ?? null, deckName, ts: Date.now(),
+      }))
+    } catch { /* */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [net?.matchId])
+  useEffect(() => {
+    if (!net || !game) return
+    if (isHost) { try { localStorage.setItem(pvpStateKey(net.matchId), JSON.stringify(game)) } catch { /* */ } }
+    if (game.winner) { try { localStorage.removeItem(PVP_ACTIVE_KEY); localStorage.removeItem(pvpStateKey(net.matchId)) } catch { /* */ } }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, isHost, net?.matchId])
+
+  // PvP grace: varžovui atsijungus – 30s laukiam; neprisijungus – pergalė
+  useEffect(() => {
+    const stop = () => { if (graceRef.current) { clearInterval(graceRef.current); graceRef.current = null } }
+    if (!net || !game || game.winner || oppPresent || !sawOppRef.current) { stop(); setOppMissingLeft(null); return }
+    if (graceRef.current) return
+    let left = 30
+    setOppMissingLeft(left)
+    graceRef.current = setInterval(() => {
+      left -= 1
+      setOppMissingLeft(left)
+      if (left <= 0) {
+        stop()
+        setGame((g) => { if (!g || g.winner) return g; const c = cloneState(g); c.winner = 'you'; c.log.push({ t: 'win', side: 'you', msg: 'Varžovas neprisijungė per 30s – TU LAIMĖJAI! 🏆' }); return c })
+        try { localStorage.removeItem(PVP_ACTIVE_KEY); localStorage.removeItem(pvpStateKey(net.matchId)) } catch { /* */ }
+      }
+    }, 1000)
+    return stop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oppPresent, game?.winner, net?.matchId])
 
   /** Struktūruotas veiksmas: svečias siunčia host'ui, host/lokalus – taiko vietoje. */
   const doAction = useCallback((a: NetAction) => {
@@ -1460,7 +1523,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           </button>
           <button onClick={() => { playUiClick(); setShowLog((v) => !v) }} title="Įvykių žurnalas"
             className="p-1.5 rounded-lg transition-colors hover:bg-white/5 text-sm">📜</button>
-          <button onClick={() => { playUiClick(); onClose() }} title="Užverti (Esc)"
+          <button onClick={() => { playUiClick(); closeGame() }} title="Užverti (Esc)"
             className="p-1.5 rounded-lg transition-colors hover:bg-white/5">
             <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
           </button>
@@ -2180,6 +2243,16 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
 
+      {/* ── varžovas atsijungė: 30s grace ── */}
+      {oppMissingLeft !== null && !game?.winner && (
+        <div className="fixed inset-x-0 top-12 z-[124] flex justify-center pointer-events-none px-4">
+          <div className="px-4 py-2 rounded-xl text-center" style={{ background: 'rgba(90,15,15,0.93)', border: '1px solid rgba(239,68,68,0.6)' }}>
+            <p className="text-sm font-bold" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>⚠ Varžovas atsijungė</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Laukiama prisijungimo: {oppMissingLeft}s</p>
+          </div>
+        </div>
+      )}
+
       {/* ── ėjimo pasikeitimo pranešimas (kieno eilė) ── */}
       <AnimatePresence>
         {turnBanner && (
@@ -2447,7 +2520,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   }}>
                   ⚔ Žaisti dar kartą
                 </button>
-                <button onClick={() => { playUiClick(); onClose() }}
+                <button onClick={() => { playUiClick(); closeGame() }}
                   className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95"
                   style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)' }}>
                   Užverti
