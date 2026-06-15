@@ -286,6 +286,23 @@ function spellTargetRefs(game: GameState, side: Side, m: EffectMapping): TargetR
   return out
 }
 
+// ── Drag & drop (Hearthstone tipo) ───────────────────────────────────────────
+type DragState = { card: TutCard; uid: string; targeted: boolean; origin: { x: number; y: number }; x: number; y: number; mode: 'card' | 'arrow' }
+
+function cardDropZoneOf(c: TutCard): 'unit' | 'spell' | 'artifact' | 'field' | 'reaction' {
+  if (c.type === 'spell') return 'spell'
+  if (c.type === 'artifact') return 'artifact'
+  if (c.type === 'field') return 'field'
+  if (c.type === 'reaction') return 'reaction'
+  return 'unit'
+}
+/** Ar kortai (sužaidžiant) reikia rankiniu būdu rinktis taikinį? */
+function cardNeedsTarget(game: GameState, c: TutCard): boolean {
+  const sm = selectionMappingFor(c)
+  if (sm) return spellTargetRefs(game, 'you', sm).length > 0
+  return (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
+}
+
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, net }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
@@ -334,6 +351,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
   const [millShow, setMillShow] = useState<{ side: Side; cards: TutCard[] } | null>(null)
   const millSeenRef = useRef(0)
+  const [drag, setDrag] = useState<DragState | null>(null)
+  const dragRef = useRef<DragState | null>(null)
+  const dragMovedRef = useRef(false)
+  const handRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
@@ -363,7 +384,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const summonBlocks = !!game?.pendingSummon
   const choiceBlocks = !!game?.pendingChoice
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-  const handW = isTouch ? 58 : 96
+  const handW = isTouch ? 72 : 96
   const unitW = isTouch ? 58 : 90
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
@@ -965,7 +986,16 @@ doAction({ t: 'endTurn', actor: 'you' })
 
   // teisėti taikiniai pažymėjimui
   const targetSet = useMemo(() => {
-    if (!game || !select) return new Set<string>()
+    if (!game) return new Set<string>()
+    // Drag of a targeted card → highlight valid targets
+    if (drag?.targeted) {
+      const sm = selectionMappingFor(drag.card)
+      const s = new Set<string>()
+      if (sm) for (const t of spellTargetRefs(game, 'you', sm)) s.add(t.kind + ':' + ('uid' in t ? t.uid : t.side))
+      else { for (const u of game.ai.units) if (u && !u.stealth) s.add('unit:' + u.uid); s.add('player:ai') }
+      return s
+    }
+    if (!select) return new Set<string>()
     if (select.kind === 'attacker') {
       const ts = legalTargets(game, 'you')
       return new Set(ts.map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
@@ -997,7 +1027,72 @@ doAction({ t: 'endTurn', actor: 'you' })
       return s
     }
     return new Set<string>()
-  }, [game, select])
+  }, [game, select, drag])
+
+  // ── Drag & drop valdiklis (Hearthstone tipo: tempk kortą ant lentos) ──
+  const elToTargetRef = (el: Element | null): TargetRef | null => {
+    let n = el as HTMLElement | null
+    while (n && n !== document.body) {
+      const u = n.dataset?.unitUid
+      if (u) { const side: Side = game!.you.units.some((x) => x?.uid === u) ? 'you' : 'ai'; return { kind: 'unit', side, uid: u } }
+      const a = n.dataset?.artifactUid
+      if (a) { const side: Side = game!.you.artifacts.some((x) => x?.uid === a) ? 'you' : 'ai'; return { kind: 'artifact', side, uid: a } }
+      const pl = n.dataset?.player
+      if (pl === 'you' || pl === 'ai') return { kind: 'player', side: pl }
+      n = n.parentElement
+    }
+    return null
+  }
+
+  const beginDrag = (card: TutCard, e: React.PointerEvent) => {
+    if (!myTurn || popupBlocks) return
+    const d: DragState = { card, uid: card.uid, targeted: !!game && cardNeedsTarget(game, card), origin: { x: e.clientX, y: e.clientY }, x: e.clientX, y: e.clientY, mode: 'card' }
+    dragRef.current = d; dragMovedRef.current = false; setDrag(d)
+  }
+
+  useEffect(() => {
+    if (!drag) return
+    const handTop = () => handRef.current?.getBoundingClientRect().top ?? Infinity
+    const move = (e: PointerEvent) => {
+      const d = dragRef.current; if (!d) return
+      if (Math.hypot(e.clientX - d.origin.x, e.clientY - d.origin.y) > 8) dragMovedRef.current = true
+      const onBoard = e.clientY < handTop() - 10
+      const nd: DragState = { ...d, x: e.clientX, y: e.clientY, mode: d.targeted && onBoard && dragMovedRef.current ? 'arrow' : 'card' }
+      dragRef.current = nd; setDrag(nd)
+    }
+    const up = (e: PointerEvent) => {
+      const d = dragRef.current; dragRef.current = null; setDrag(null)
+      if (!d) return
+      if (selectAtDrag === 'discard') { onHandCardClick(d.card); return }
+      if (!dragMovedRef.current) {
+        if (isTouch && !handExpanded) { playUiClick(); setHandExpanded(true) }
+        else onHandCardClick(d.card)
+        return
+      }
+      const onBoard = e.clientY < handTop() - 10
+      if (!onBoard) { playCardPick(); return }
+      const tgt = elToTargetRef(document.elementFromPoint(e.clientX, e.clientY))
+      const sm = selectionMappingFor(d.card)
+      const multi = !!sm && (sm.hitCount ?? 1) > 1 && sm.requiresSelection !== false
+      if (d.targeted && !multi && tgt && targetSet.has(tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side))) {
+        // tiesioginis tempimas ant taikinio (1 taikinys)
+        doAction({ t: 'play', actor: 'you', uid: d.uid, target: tgt }); setSelect(null)
+      } else {
+        // daugiataikis ar be tikslaus taikinio – įprastas tap-target kelias
+        onHandCardClick(d.card)
+      }
+    }
+    const selectAtDrag = select?.kind
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drag?.uid])
 
   // ── Pop-up inkaro matavimas ──
   const anchorKey = step?.anchor ?? (activeTip ? null : null)
@@ -1048,6 +1143,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     const p = P(game, side)
     const cap = boardCreatureCap(game, side)
     const slots = Math.max(cap, p.units.length)
+    const myDropGlow = side === 'you' && !!drag && !drag.targeted && (cardDropZoneOf(drag.card) === 'unit' || cardDropZoneOf(drag.card) === 'spell')
     return (
       <div data-tut={tut} className="flex flex-wrap justify-center gap-1 sm:gap-2 min-h-[80px] sm:min-h-[124px] items-center">
         <AnimatePresence>
@@ -1076,8 +1172,10 @@ doAction({ t: 'endTurn', actor: 'you' })
             <div key={side + '-slot-' + i} className="rounded-lg"
               style={{
                 width: unitW, height: Math.round(unitW * 4 / 3),
-                border: '1px dashed rgba(240,180,41,0.18)',
-                background: 'rgba(240,180,41,0.02)',
+                border: myDropGlow ? '2px solid rgba(74,222,128,0.85)' : '1px dashed rgba(240,180,41,0.18)',
+                background: myDropGlow ? 'rgba(74,222,128,0.12)' : 'rgba(240,180,41,0.02)',
+                boxShadow: myDropGlow ? '0 0 14px rgba(74,222,128,0.6)' : undefined,
+                transition: 'box-shadow 0.15s, border-color 0.15s',
               }} />
           ) })}
         </AnimatePresence>
@@ -1400,7 +1498,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </div>
 
             {/* ranka: normali (vėduoklė) arba padidinta (wrap + scroll) */}
-            <div data-tut="hand"
+            <div data-tut="hand" ref={handRef}
               className={handExpanded
                 ? 'flex flex-wrap justify-center items-start gap-2 max-h-[40vh] overflow-y-auto p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] rounded-xl'
                 : 'flex justify-center items-end gap-0 min-h-[110px] sm:min-h-[150px] pb-1 overflow-x-auto'}
@@ -1423,10 +1521,10 @@ doAction({ t: 'endTurn', actor: 'you' })
                       onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
                     >
                       <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
-                        <button onClick={() => onHandCardClick(c)} className="block"
-                          style={{ filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined }}>
+                        <div onPointerDown={(e) => beginDrag(c, e)} className="block cursor-grab active:cursor-grabbing"
+                          style={{ touchAction: 'none', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: drag?.uid === c.uid && dragMovedRef.current ? 0.3 : 1 }}>
                           <MiniCard c={c} w={w} dim={!afford && select?.kind !== 'discard'} />
-                        </button>
+                        </div>
                       </GameCard>
                     </motion.div>
                   )
@@ -1928,6 +2026,29 @@ doAction({ t: 'endTurn', actor: 'you' })
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── drag & drop vaizdas: korta seka pirštą / taikymo rodyklė ── */}
+      {drag && dragMovedRef.current && typeof document !== 'undefined' && createPortal(
+        drag.mode === 'arrow' ? (
+          <svg className="fixed inset-0 z-[210] pointer-events-none" width="100%" height="100%">
+            <defs>
+              <marker id="rvn-arrow" markerWidth="10" markerHeight="10" refX="5" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#f0b429" />
+              </marker>
+            </defs>
+            <line x1={drag.origin.x} y1={drag.origin.y} x2={drag.x} y2={drag.y}
+              stroke="#f0b429" strokeWidth="4" strokeDasharray="3 9" strokeLinecap="round" markerEnd="url(#rvn-arrow)" opacity="0.95" />
+            <circle cx={drag.x} cy={drag.y} r="20" fill="none" stroke="#ef4444" strokeWidth="3" />
+            <text x={drag.x} y={drag.y + 8} fontSize="22" textAnchor="middle">🎯</text>
+          </svg>
+        ) : (
+          <div className="fixed z-[210] pointer-events-none" style={{ left: drag.x, top: drag.y, transform: 'translate(-50%, -50%) rotate(-4deg)' }}>
+            <div style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.65))' }}>
+              <MiniCard c={drag.card} w={isTouch ? 96 : 120} />
+            </div>
+          </div>
+        ),
+        document.body)}
 
       {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
       {select?.kind === 'spellMulti' && (
