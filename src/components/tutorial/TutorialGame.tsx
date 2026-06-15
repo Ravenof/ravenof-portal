@@ -28,7 +28,7 @@ import {
 import { aiNextAction } from '@/lib/tutorial/ai'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
-import { resolveTargets } from '@/lib/game/targetResolver'
+import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
@@ -285,7 +285,7 @@ function selectionMappingFor(c: TutCard): EffectMapping | null {
 /** Galiojantys pavieniai taikiniai (TargetRef) burto mapping'ui (be lauko/sėlinimo). */
 function spellTargetRefs(game: GameState, side: Side, m: EffectMapping): TargetRef[] {
   const out: TargetRef[] = []
-  for (const t of resolveTargets(game, side, m.target)) {
+  for (const t of resolveMappingTargets(game, side, m)) {
     if (t.kind === 'field') continue
     if (t.kind === 'unit' && t.side === 'ai') { const u = game.ai.units.find((x) => x?.uid === t.uid); if (u?.stealth) continue }
     out.push(t as TargetRef)

@@ -4,7 +4,7 @@
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
 import type { EffectMapping, EffectType } from './types'
-import { resolveTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, type ResolvedTarget } from './targetResolver'
+import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 
 export type GameApi = {
@@ -56,6 +56,7 @@ export function effectIntent(e: EffectType): 'harm' | 'help' {
 
 /** Ar mapping'ui reikia žaidėjo pasirinkti taikinį UI'juje? */
 export function mappingNeedsSelection(m: EffectMapping): boolean {
+  if (m.targetTypes && m.targetTypes.length > 0) return m.requiresSelection !== false
   if (isMultiTarget(m.target)) return false
   if (m.requiresSelection === false) return false
   if (m.requiresSelection === true) return true
@@ -98,19 +99,23 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       }
     }
     targets = t ? [t] : []
-  } else if (ctx.chosenTargets && ctx.chosenTargets.length > 0 && !isMultiTarget(m.target)) {
-    targets = ctx.chosenTargets
-  } else if (ctx.chosenTarget && !isMultiTarget(m.target)) {
-    targets = [ctx.chosenTarget]
   } else {
-    let all = resolveTargets(g, caster, m.target)
-    if (m.targetWoundedOnly) all = filterWounded(g, all)
-    if (m.targetSubtype) all = filterSubtype(g, all, m.targetSubtype)
-    if (isMultiTarget(m.target)) targets = all
-    else {
-      const n = Math.max(1, m.hitCount ?? 1)
-      if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
-      else targets = autoPickN(g, caster, all, effectIntent(m.effect), n, m.allowRandomTarget)
+    const hasTypes = !!m.targetTypes && m.targetTypes.length > 0
+    const aoe = hasTypes ? false : isMultiTarget(m.target)
+    if (ctx.chosenTargets && ctx.chosenTargets.length > 0 && !aoe) {
+      targets = ctx.chosenTargets
+    } else if (ctx.chosenTarget && !aoe) {
+      targets = [ctx.chosenTarget]
+    } else {
+      let all = hasTypes ? resolveMappingTargets(g, caster, m) : resolveTargets(g, caster, m.target)
+      if (m.targetWoundedOnly) all = filterWounded(g, all)
+      if (m.targetSubtype) all = filterSubtype(g, all, m.targetSubtype)
+      if (aoe) targets = all
+      else {
+        const n = Math.max(1, m.hitCount ?? 1)
+        if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
+        else targets = autoPickN(g, caster, all, effectIntent(m.effect), n, m.allowRandomTarget)
+      }
     }
   }
   if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage'].includes(m.effect)) {

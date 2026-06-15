@@ -3,7 +3,7 @@
 // Be random pagal default: kai reikia automatinio pasirinkimo, imamas
 // deterministinis "geriausias" taikinys; random tik kai allowRandomTarget=true.
 
-import type { TargetType, MetricSource, EffectCondition, TargetSelect } from './types'
+import type { TargetType, MetricSource, EffectCondition, TargetSelect, EffectMapping } from './types'
 import type { GameState, Side, BoardUnit } from '@/lib/tutorial/engine'
 
 export type ResolvedTarget =
@@ -86,6 +86,20 @@ export function resolveTargets(g: GameState, casterSide: Side, target: TargetTyp
         { kind: 'player', side: casterSide },
       ]
   }
+}
+
+/** Taikinių sąjunga: jei mapping turi targetTypes (keli tipai) – grąžina visų uniją; kitaip – vieno target. */
+export function resolveMappingTargets(g: GameState, caster: Side, m: Pick<EffectMapping, 'target' | 'targetTypes'>): ResolvedTarget[] {
+  const types = (m.targetTypes && m.targetTypes.length > 0) ? m.targetTypes : [m.target]
+  const out: ResolvedTarget[] = []
+  const seen = new Set<string>()
+  for (const t of types) {
+    for (const r of resolveTargets(g, caster, t)) {
+      const k = r.kind === 'player' ? 'player:' + r.side : r.kind === 'field' ? 'field' : r.kind + ':' + r.uid
+      if (!seen.has(k)) { seen.add(k); out.push(r) }
+    }
+  }
+  return out
 }
 
 /** Ar target tipas yra AoE / be pasirinkimo (taikoma visiems iš karto)? */

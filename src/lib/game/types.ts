@@ -251,6 +251,7 @@ export type EffectMapping = {
   trigger: TriggerType
   effect: EffectType
   target: TargetType
+  targetTypes?: TargetType[]     // keli taikinių tipai (union); žaidėjas renkasi iš visų pažymėtų (varnelės)
   value?: number                // damage 2, draw 1, heal 3...
   requiresSelection?: boolean   // ar žaidėjas renkasi taikinį
   optional?: boolean            // ar efektas privalomas
