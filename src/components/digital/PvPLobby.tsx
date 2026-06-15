@@ -35,17 +35,27 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
   const [status, setStatus] = useState<string>('')
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
+  const [decks, setDecks] = useState<{ id: string; name: string; faction: string | null }[]>([])
+  const [deckSel, setDeckSel] = useState<string>(deckId)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       setUserId(user.id)
       const nm = (user.user_metadata?.username as string) || (user.user_metadata?.display_name as string) || (user.email?.split('@')[0]) || 'Žaidėjas'
       setUserName(nm)
+      supabase.from('decks').select('id, name, faction:factions ( name )').eq('user_id', user.id).order('updated_at', { ascending: false })
+        .then(({ data }) => {
+          const rows = (data as unknown as { id: string; name: string; faction: { name: string } | null }[]) ?? []
+          setDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null })))
+        })
     })
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
+
+  const deckName2 = decks.find((d) => d.id === deckSel)?.name ?? deckName
 
   // Host laukia, kol prisijungs svečias (poll kas 2s)
   const waitForGuest = useCallback((matchId: string) => {
@@ -56,10 +66,10 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
       const m = data as Match | null
       if (m && m.guest_id && m.guest_deck_id) {
         if (pollRef.current) clearInterval(pollRef.current)
-        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
+        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: deckSel, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
       }
     }, 2000)
-  }, [deckId])
+  }, [deckSel])
 
   const createPrivate = async () => {
     if (!userId) return
@@ -67,7 +77,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     const supabase = createClient()
     const code = randCode()
     const { data, error } = await supabase.from('pvp_matches').insert({
-      code, is_public: false, status: 'waiting', host_id: userId, host_deck_id: deckId, host_name: userName,
+      code, is_public: false, status: 'waiting', host_id: userId, host_deck_id: deckSel, host_name: userName,
     }).select('*').single()
     setBusy(false)
     if (error || !data) { playError(); setStatus('Klaida kuriant kambarį: ' + (error?.message ?? '')); return }
@@ -85,10 +95,10 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     const m = found as Match | null
     if (!m) { setBusy(false); playError(); setStatus('Kambarys nerastas arba jau užimtas.'); return }
     if (m.host_id === userId) { setBusy(false); playError(); setStatus('Negali jungtis į savo paties kambarį.'); return }
-    const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: deckId, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
+    const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: deckSel, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
     setBusy(false)
     if (error) { playError(); setStatus('Nepavyko prisijungti: ' + error.message); return }
-    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
+    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: deckSel, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
   }
 
   const findRandom = async () => {
@@ -101,12 +111,12 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
       .order('created_at', { ascending: true }).limit(1)
     const m = (open as Match[] | null)?.[0]
     if (m) {
-      const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: deckId, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
-      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
+      const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: deckSel, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
+      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: deckSel, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
     }
     // 2) niekas nelaukia – sukuriam viešą kambarį ir laukiam
     const { data, error } = await supabase.from('pvp_matches').insert({
-      is_public: true, status: 'waiting', host_id: userId, host_deck_id: deckId, host_name: userName,
+      is_public: true, status: 'waiting', host_id: userId, host_deck_id: deckSel, host_name: userName,
     }).select('*').single()
     setBusy(false)
     if (error || !data) { playError(); setStatus('Klaida: ' + (error?.message ?? '')); return }
@@ -125,7 +135,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     return (
       <TutorialGame
         deckId={launch.deckId}
-        deckName={deckName}
+        deckName={deckName2}
         opponentDeckId={launch.opponentDeckId}
         opponentName={launch.opponentName}
         net={launch.net}
@@ -147,7 +157,19 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)' }} onClick={onClose}>
       <div className="rounded-2xl p-5 w-[min(440px,94vw)]" style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(239,68,68,0.4)' }} onClick={(e) => e.stopPropagation()}>
         <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>⚔️ PvP arena</p>
-        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Tavo kaladė: <span style={{ color: 'var(--text-secondary)' }}>{deckName}</span></p>
+        {!room && (
+          <div className="mb-4">
+            <label className="text-[11px] uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>Tavo kaladė</label>
+            {decks.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Įkeliama…</p>
+            ) : (
+              <select value={deckSel} onChange={(e) => setDeckSel(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none' }}>
+                {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
+              </select>
+            )}
+          </div>
+        )}
 
         {room ? (
           <div className="text-center space-y-3">

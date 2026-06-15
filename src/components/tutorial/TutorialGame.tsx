@@ -1387,12 +1387,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   ))}
                 </div>
               )}
-              <div className="flex gap-2">
-                {oppProfile?.username && oppProfile.is_public && (
-                  <a href={'/users/' + oppProfile.username} target="_blank" rel="noreferrer" className="flex-1 text-center px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>Pilnas profilis →</a>
-                )}
-                <button onClick={() => setOppOpen(false)} className="px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Uždaryti</button>
-              </div>
+              <button onClick={() => setOppOpen(false)} className="w-full px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Uždaryti</button>
             </div>
           </div>
         )}
