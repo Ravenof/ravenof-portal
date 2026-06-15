@@ -183,6 +183,8 @@ export type GameState = {
   pendingReveal?: PendingReveal | null
   /** Laukiantis iškvietimo pasirinkimas (žaidėjas renkasi kortą) */
   pendingSummon?: PendingSummon | null
+  /** Laukiantis „pasirink 1 iš kelių" / tutor pasirinkimas */
+  pendingChoice?: PendingChoice | null
   /** Trumpalaikis ŽMK traukimo kontekstas (nevalomas tarp veiksmų – išvalomas kiekvieno veiksmo pradžioje) */
   rollContext?: RollContext | null
 }
@@ -190,6 +192,15 @@ export type GameState = {
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
 export type PendingReveal = { whoseDeck: Side; title: string; cards: TutCard[] }
 export type PendingSummon = { caster: Side; choose: number; options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] }
+export type PendingChoice = {
+  caster: Side
+  sourceName: string
+  title: string
+  kind: 'effect' | 'tutorHand'
+  options: { label: string; sub?: string }[]
+  branches?: EffectMapping[][]
+  cards?: TutCard[]
+}
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
 
@@ -312,6 +323,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     pendingPeek: null,
     pendingReveal: null,
     pendingSummon: null,
+    pendingChoice: null,
     rollContext: null,
   }
   // Pradinės rankos: pirmasis 4, antrasis 5
@@ -1087,6 +1099,106 @@ function buffSpellDamagePrim(g: GameState, s: Side, n: number) {
   log(g, { t: 'buff', side: s, value: n, msg: `${sideName(s)} burtai nuo šiol daro +${n} žalos (iš viso +${p.spellDamageBonus}).` })
 }
 
+// ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ─────────
+function maybeReturnCastSpell(g: GameState, caster: Side, card: TutCard) {
+  for (const sd of ['you', 'ai'] as Side[]) {
+    const p = P(g, sd)
+    const srcs = [
+      ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+      ...p.artifacts.filter((a): a is BoardArtifact => !!a),
+    ]
+    let match = false
+    for (const c of srcs) {
+      const sc = c.card.gameplay?.passiveAura?.returnCastSpellScope
+      if (!sc) continue
+      if (sc === 'all' || (sc === 'friendly' ? caster === sd : caster !== sd)) { match = true; break }
+    }
+    if (!match) continue
+    const cp = P(g, caster)
+    const idx = cp.discard.findIndex((c) => c.uid === card.uid)
+    if (idx === -1) return
+    const [returned] = cp.discard.splice(idx, 1)
+    cp.deck = shuffle([...cp.deck, returned])
+    log(g, { t: 'play', side: caster, cardName: returned.name, msg: `🏰 Alchemikų fortas: „${returned.name}" grąžinamas į ${sideName(caster)} kaladę.` })
+    return
+  }
+}
+
+// ── Tutor: korta/burtas pagal tipą iš kaladės/kapinyno į ranką (Milva Servilė) ─
+function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; choose?: boolean }) {
+  const p = P(g, caster)
+  const zone = opts.zone ?? 'both'
+  const wantType = (opts.spellType ?? '').trim()
+  const fromZones: { arr: TutCard[]; name: 'deck' | 'discard' }[] = []
+  if (zone === 'deck' || zone === 'both') fromZones.push({ arr: p.deck, name: 'deck' })
+  if (zone === 'discard' || zone === 'both') fromZones.push({ arr: p.discard, name: 'discard' })
+  const eligible = (c: TutCard) => c.type !== 'curse' && (!wantType || (c.type === 'spell' && c.gameplay?.spellType === wantType))
+  const candidates: { card: TutCard; arr: TutCard[] }[] = []
+  for (const z of fromZones) for (const c of z.arr) if (eligible(c)) candidates.push({ card: c, arr: z.arr })
+  if (candidates.length === 0) { log(g, { t: 'blocked', side: caster, msg: `Nėra tinkamos kortos${wantType ? ' (' + wantType + ')' : ''} – tutor neįvyksta.` }); return }
+  if (opts.choose && caster === 'you') {
+    g.pendingChoice = {
+      caster, sourceName: 'Tutor', kind: 'tutorHand',
+      title: `Pasirink kortą į ranką${wantType ? ' (' + wantType + ')' : ''}`,
+      options: candidates.slice(0, 12).map((c) => ({ label: c.card.name, sub: `${c.card.gold} aukso` })),
+      cards: candidates.slice(0, 12).map((c) => c.card),
+    }
+    return
+  }
+  const pick = candidates[Math.floor(Math.random() * candidates.length)]
+  const i = pick.arr.findIndex((c) => c.uid === pick.card.uid)
+  if (i === -1) return
+  const [c] = pick.arr.splice(i, 1)
+  if (p.hand.length >= 10) { p.discard.push(c); log(g, { t: 'handBurn', side: caster, cardName: c.name, msg: `Ranka pilna – „${c.name}" į kapinyną.` }); return }
+  p.hand.push(c)
+  log(g, { t: 'draw', side: caster, cardName: caster === 'you' ? c.name : undefined, msg: `${sideName(caster)} ${caster === 'you' ? 'gauni' : 'gauna'} „${caster === 'you' ? c.name : '?'}" į ranką (tutor).`, sound: 'draw' })
+}
+
+// ── chooseEffect: žaidėjas renkasi 1 iš variantų (pop-up); AI auto 1-as ───────
+function chooseEffectPrim(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[]) {
+  if (branches.length === 0) return
+  if (caster === 'you') {
+    g.pendingChoice = {
+      caster, sourceName, kind: 'effect',
+      title: `„${sourceName}" – pasirink efektą`,
+      options: branches.map((_, i) => ({ label: labels[i] || `Variantas ${i + 1}` })),
+      branches,
+    }
+    return
+  }
+  // AI: paprastas euristinis – 1-as variantas
+  for (const m of branches[0]) {
+    applyMapping(gameApi, g, caster, m, { sourceName, depth: 1 })
+    if (g.winner) return
+  }
+}
+
+/** Žaidėjo pasirinkimo (chooseEffect / tutorHand) užbaigimas. */
+export function resolveChoice(g: GameState, index: number): { ok: boolean; reason?: string } {
+  const pc = g.pendingChoice
+  if (!pc) return { ok: true }
+  g.pendingChoice = null
+  if (pc.kind === 'effect' && pc.branches && pc.branches[index]) {
+    for (const m of pc.branches[index]) {
+      applyMapping(gameApi, g, pc.caster, m, { sourceName: pc.sourceName, depth: 1 })
+      if (g.winner) break
+    }
+  } else if (pc.kind === 'tutorHand' && pc.cards && pc.cards[index]) {
+    const card = pc.cards[index]
+    const p = P(g, pc.caster)
+    for (const arr of [p.deck, p.discard]) {
+      const i = arr.findIndex((c) => c.uid === card.uid)
+      if (i !== -1) {
+        const [c] = arr.splice(i, 1)
+        if (p.hand.length >= 10) { p.discard.push(c); log(g, { t: 'handBurn', side: pc.caster, cardName: c.name, msg: `Ranka pilna – „${c.name}" į kapinyną.` }) }
+        else { p.hand.push(c); log(g, { t: 'draw', side: pc.caster, cardName: c.name, msg: `${sideName(pc.caster)} ${pc.caster === 'you' ? 'pasirenki' : 'pasirenka'} „${c.name}" į ranką (tutor).`, sound: 'draw' }) }
+        break
+      }
+    }
+  }
+  return { ok: true }
+}
+
 export const gameApi: GameApi = {
   dealToUnit, dealToPlayer, dealToArtifact,
   healUnit: healUnitPrim,
@@ -1111,6 +1223,8 @@ export const gameApi: GameApi = {
   removeZmkCard: removeZmkCardPrim,
   setSpellDiscount: setSpellDiscountPrim,
   buffSpellDamage: buffSpellDamagePrim,
+  tutorToHand: tutorToHandPrim,
+  chooseEffect: chooseEffectPrim,
   log,
 }
 
@@ -1276,7 +1390,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
   return { ok: true }
 }
 
-export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; sacrificeUid?: string; tributeHandUid?: string }): PlayResult {
+export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string }): PlayResult {
   if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
   g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
@@ -1309,7 +1423,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       if (summonMappings.length > 0) {
         log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis!`, src: { side: s, uid: u.uid } })
         for (const m of summonMappings) {
-          applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+          applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
           if (g.winner) break
         }
       } else if (card.keywords.includes('battlecry') && card.effect) {
@@ -1336,7 +1450,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       })
       if (spellMappings.length > 0) {
         for (const m of spellMappings) {
-          applyMapping(gameApi, g, s, m, { sourceName: card.name, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+          applyMapping(gameApi, g, s, m, { sourceName: card.name, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
           if (g.winner) break
         }
       } else if (card.effect) {
@@ -1344,6 +1458,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         else applyAutoEffect(g, s, card.effect, card.name)
       }
       p.discard.push(card)
+      maybeReturnCastSpell(g, s, card)
       // lauko onCast trigger'iai
       fireTrigger(gameApi, g, s, 'onCast', 1)
       afterPlay(g, s, card)
@@ -1470,7 +1585,7 @@ export function championSkills(ch: BoardUnit): { name: string; mappings: EffectM
   }))
 }
 
-export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?: { target?: TargetRef }): PlayResult {
+export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?: { target?: TargetRef; targets?: TargetRef[] }): PlayResult {
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
   const p = P(g, s)
   const ch = p.units.find((u) => u?.isChampion)
@@ -1491,7 +1606,7 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
   })
   if (skill.mappings.length > 0) {
     for (const m of skill.mappings) {
-      applyMapping(gameApi, g, s, m, { sourceName: ch.card.name, sourceUid: ch.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, depth: 0 })
+      applyMapping(gameApi, g, s, m, { sourceName: ch.card.name, sourceUid: ch.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
       if (g.winner) break
     }
   } else {
@@ -1660,29 +1775,32 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingPeek) { c.pendingPeek.caster = other(c.pendingPeek.caster); c.pendingPeek.victim = other(c.pendingPeek.victim) }
   if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)
   if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
+  if (c.pendingChoice) c.pendingChoice.caster = other(c.pendingChoice.caster)
   return c
 }
 
 export type NetAction =
-  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; sacrificeUid?: string; tributeHandUid?: string }
+  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string }
   | { t: 'attack'; actor: Side; uid: string; target: TargetRef }
   | { t: 'discardForGold'; actor: Side; uid: string }
-  | { t: 'champ'; actor: Side; skillIndex: number; target?: TargetRef }
+  | { t: 'champ'; actor: Side; skillIndex: number; target?: TargetRef; targets?: TargetRef[] }
   | { t: 'endTurn'; actor: Side }
   | { t: 'resolveSummon'; uids: string[] }
   | { t: 'resolvePeek'; uids: string[] }
+  | { t: 'resolveChoice'; index: number }
   | { t: 'clearReveal' }
 
 /** Pritaiko struktūruotą veiksmą (host'o autoritetinei būsenai). */
 export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reason?: string } {
   switch (a.t) {
-    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid })
+    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, targets: a.targets, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid })
     case 'attack': return attack(g, a.actor, a.uid, a.target)
     case 'discardForGold': return discardForGold(g, a.actor, a.uid)
-    case 'champ': return useChampionAbility(g, a.actor, a.skillIndex, { target: a.target })
+    case 'champ': return useChampionAbility(g, a.actor, a.skillIndex, { target: a.target, targets: a.targets })
     case 'endTurn': { endTurn(g); if (!g.winner) beginTurn(g); return { ok: true } }
     case 'resolveSummon': return resolveSummonChoice(g, a.uids)
     case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
+    case 'resolveChoice': return resolveChoice(g, a.index)
     case 'clearReveal': g.pendingReveal = null; return { ok: true }
   }
 }
@@ -1692,10 +1810,10 @@ export function swapAction(a: NetAction): NetAction {
   const sw = <T extends TargetRef | undefined>(t: T): T =>
     (t ? ({ ...t, side: other(t.side) } as T) : t)
   switch (a.t) {
-    case 'play': return { ...a, actor: other(a.actor), target: sw(a.target) }
+    case 'play': return { ...a, actor: other(a.actor), target: sw(a.target), targets: a.targets?.map(sw) }
     case 'attack': return { ...a, actor: other(a.actor), target: sw(a.target) }
     case 'discardForGold': return { ...a, actor: other(a.actor) }
-    case 'champ': return { ...a, actor: other(a.actor), target: sw(a.target) }
+    case 'champ': return { ...a, actor: other(a.actor), target: sw(a.target), targets: a.targets?.map(sw) }
     case 'endTurn': return { ...a, actor: other(a.actor) }
     default: return a
   }

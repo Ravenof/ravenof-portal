@@ -255,6 +255,7 @@ type SelectMode =
   | { kind: 'spell'; uid: string }
   | { kind: 'sacrifice'; cardUid: string }
   | { kind: 'discard' }
+  | { kind: 'spellMulti'; uid: string; need: number; picked: TargetRef[] }
   | null
 
 /** Grąžina sužaidimo/iškvietimo mapping'ą, kuriam žaidėjas turi pasirinkti taikinį (arba null). */
@@ -265,6 +266,17 @@ function selectionMappingFor(c: TutCard): EffectMapping | null {
     if (isEntry && mappingNeedsSelection(m)) return m
   }
   return null
+}
+
+/** Galiojantys pavieniai taikiniai (TargetRef) burto mapping'ui (be lauko/sėlinimo). */
+function spellTargetRefs(game: GameState, side: Side, m: EffectMapping): TargetRef[] {
+  const out: TargetRef[] = []
+  for (const t of resolveTargets(game, side, m.target)) {
+    if (t.kind === 'field') continue
+    if (t.kind === 'unit' && t.side === 'ai') { const u = game.ai.units.find((x) => x?.uid === t.uid); if (u?.stealth) continue }
+    out.push(t as TargetRef)
+  }
+  return out
 }
 
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, net }: Props) {
@@ -338,6 +350,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const peekBlocks = !!game?.pendingPeek
   const revealBlocks = !!game?.pendingReveal
   const summonBlocks = !!game?.pendingSummon
+  const choiceBlocks = !!game?.pendingChoice
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 58 : 96
   const unitW = isTouch ? 58 : 90
@@ -716,7 +729,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -730,7 +743,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -846,7 +859,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (selMap && resolveTargets(game!, 'you', selMap.target).length === 0) {
         doAction({ t: 'play', actor: 'you', uid: c.uid }); setSelect(null); return
       }
+      const need = Math.max(1, selMap?.hitCount ?? 1)
+      const avail = selMap ? spellTargetRefs(game!, 'you', selMap).length : 0
       playUiClick()
+      if (selMap && need > 1 && avail > 1) {
+        setSelect({ kind: 'spellMulti', uid: c.uid, need: Math.min(need, avail), picked: [] })
+        pushToast(`Pasirink taikinius: 0/${Math.min(need, avail)}`)
+        return
+      }
       setSelect({ kind: 'spell', uid: c.uid })
       pushToast('Pasirink taikinį efektui (pažymėti padarai).')
       return
@@ -891,6 +911,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const uid = select.uid
       doAction({ t: 'play', actor: 'you', uid, target: t })
       setSelect(null)
+    } else if (select?.kind === 'spellMulti') {
+      const key = t.kind + ':' + ('uid' in t ? t.uid : t.side)
+      if (select.picked.some((p) => (p.kind + ':' + ('uid' in p ? p.uid : p.side)) === key)) return
+      const picked = [...select.picked, t]
+      if (picked.length >= select.need) {
+        doAction({ t: 'play', actor: 'you', uid: select.uid, targets: picked })
+        setSelect(null)
+      } else {
+        playUiClick()
+        setSelect({ ...select, picked })
+        pushToast(`Pasirink taikinius: ${picked.length}/${select.need}`)
+      }
     }
   }
 
@@ -926,6 +958,13 @@ doAction({ t: 'endTurn', actor: 'you' })
       for (const u of game.you.units) if (u) s.add('unit:' + u.uid)
       for (const a of game.ai.artifacts) if (a) s.add('artifact:' + a.uid)
       s.add('player:ai'); s.add('player:you')
+      return s
+    }
+    if (select.kind === 'spellMulti') {
+      const card = game.you.hand.find((c) => c.uid === select.uid)
+      const sm = card ? selectionMappingFor(card) : null
+      const s = new Set<string>()
+      if (sm) for (const t of spellTargetRefs(game, 'you', sm)) s.add(t.kind + ':' + ('uid' in t ? t.uid : t.side))
       return s
     }
     return new Set<string>()
@@ -1760,6 +1799,48 @@ doAction({ t: 'endTurn', actor: 'you' })
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── pasirink 1 iš kelių efektų / tutor korta į ranką ── */}
+      <AnimatePresence>
+        {game?.pendingChoice && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[134] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.72)' }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="rounded-2xl p-4 w-[min(600px,94vw)] max-h-[86vh] overflow-y-auto text-center"
+              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              <p className="text-sm font-bold mb-3" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{game.pendingChoice.title}</p>
+              {game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards ? (
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {game.pendingChoice.cards.map((c, i) => (
+                    <button key={c.uid + '-ch-' + i} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i }) }} className="transition-transform hover:-translate-y-1" title={c.name}>
+                      <MiniCard c={c} w={isTouch ? 60 : 74} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 items-stretch">
+                  {game.pendingChoice.options.map((opt, i) => (
+                    <button key={'opt-' + i} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i }) }}
+                      className="px-4 py-3 rounded-xl text-sm font-bold transition-all"
+                      style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                      {opt.label}{opt.sub ? <span className="block text-[10px] font-normal mt-0.5" style={{ color: 'var(--text-secondary)' }}>{opt.sub}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
+      {select?.kind === 'spellMulti' && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[120] px-4 py-2 rounded-full text-sm font-bold pointer-events-none"
+          style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+          🎯 Pasirink taikinius: {select.picked.length}/{select.need}
+        </div>
+      )}
 
       {/* ── kaladės viršaus peržiūra (tik skaitymui) ── */}
       <AnimatePresence>

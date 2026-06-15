@@ -16,6 +16,9 @@ export function fireTrigger(api: GameApi, g: GameState, side: Side, trigger: str
   for (const u of [...p.units]) {
     if (g.winner) return
     if (!u || u.statuses.silenced) continue
+    // Kovos šūksnis (onSummon/onPlay) suveikia TIK sužaidus tą kortą (apdorojama playCard inline),
+    // o ne kai lauke sužaidžiamas kitas padaras – todėl per lentos „sweep" jų nebešauname.
+    if (trigger === 'onSummon' || trigger === 'onPlay') continue
     const mappings = u.card.mappings ?? []
     if (mappings.some((m) => m.trigger === trigger)) {
       applyMappings(api, g, side, mappings, trigger, { sourceName: u.card.name, sourceUid: u.uid, depth })

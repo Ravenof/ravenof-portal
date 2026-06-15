@@ -60,6 +60,7 @@ export type EffectType =
   | 'gainGold' | 'loseGold'
   | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
   | 'spellDiscount' | 'buffSpellDamage'
+  | 'chooseEffect' | 'tutorToHand'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -100,6 +101,8 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)',    needsValue: true },
   { value: 'buffSpellDamage',     label: 'Burtų žala +X (savininkui)',      needsValue: true },
+  { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },
+  { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false },
 ]
 
 // ── Burtų tipai (ugnies/ledo/žaibo/funkcinis/nekromantijos/sustiprinimo/susilpninimo) ─
@@ -276,6 +279,12 @@ export type EffectMapping = {
   summonChoose?: boolean            // summonAdvanced: žaidėjas pats renkasi kortą (popup)
   summonNames?: string              // summonAdvanced: tik šios kortos (vardai per kablelį)
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
+  sameTarget?: boolean              // follow-up (`then`): naudoti tą patį taikinį kaip tėvinis efektas
+  onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
+  chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
+  tutorZone?: 'deck' | 'discard' | 'both'  // tutorToHand: iš kur ieškoti (default both)
+  tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
+  tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   note?: string
 }
@@ -316,6 +325,8 @@ export type PassiveAuraConfig = {
   advSpellType?: SpellType                    // advSpell tik šio tipo burtams (kitaip – visiems)
   // ── Burtų vampyrizmas (Gydūnė Džilė): burto žala pridedama prie žaidėjo HP ──
   spellLifestealScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų žala gydo tos pusės žaidėją
+  // ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ──
+  returnCastSpellScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų sužaidimą gaudo (grąžina į kaladę)
 }
 
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──

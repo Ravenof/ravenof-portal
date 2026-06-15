@@ -28,6 +28,8 @@ export type GameApi = {
   removeZmkCard(g: GameState, s: Side, value: string, count: number): void
   setSpellDiscount(g: GameState, s: Side, n: number): void
   buffSpellDamage(g: GameState, s: Side, n: number): void
+  tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; choose?: boolean }): void
+  chooseEffect(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[]): void
   millDeck(g: GameState, s: Side, n: number): void
   returnGraveyardToDeck(g: GameState, s: Side, n: number): void
   peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
@@ -40,6 +42,7 @@ export type ApplyCtx = {
   sourceName: string
   sourceUid?: string
   chosenTarget?: ResolvedTarget
+  chosenTargets?: ResolvedTarget[]   // rankinis kelių taikinių parinkimas (1/N)
   depth: number          // rekursijos apsauga follow-up trigger'iams
 }
 
@@ -95,6 +98,8 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       }
     }
     targets = t ? [t] : []
+  } else if (ctx.chosenTargets && ctx.chosenTargets.length > 0 && !isMultiTarget(m.target)) {
+    targets = ctx.chosenTargets
   } else if (ctx.chosenTarget && !isMultiTarget(m.target)) {
     targets = [ctx.chosenTarget]
   } else {
@@ -108,7 +113,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       else targets = autoPickN(g, caster, all, effectIntent(m.effect), n, m.allowRandomTarget)
     }
   }
-  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -207,6 +212,12 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       api.removeZmkCard(g, who, m.zmkValue ?? '-2', v)
       break
     }
+    case 'chooseEffect': {
+      const opts = m.chooseOne ?? []
+      if (opts.length > 0) api.chooseEffect(g, caster, ctx.sourceName, opts.map((x) => x.mappings), opts.map((x) => x.label))
+      break
+    }
+    case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, choose: m.tutorChoose }); break
     case 'spellDiscount': api.setSpellDiscount(g, caster, v); break
     case 'buffSpellDamage': api.buffSpellDamage(g, caster, v); break
     default:
@@ -220,11 +231,21 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     const who = resolveCurseTarget(g, caster, tc.appliesTo, ctx.chosenTarget, tc.allowRandomTarget)
     api.activateCurses(g, who, tc.count, ctx.sourceName, ctx.depth + 1)
   }
-  // follow-up grandinė: „tada padaryk ir X" – po pagrindinio efekto įvykdom kiekvieną „then" mapping'ą.
-  // Konteksto chosenTarget nebeperduodam (kad self-heal ar kitas taikinys atsirinktų savarankiškai).
+  // follow-up grandinė: „tada padaryk ir X".
+  // onlyIfTargetDied – tik jei pagrindinio efekto (pavienis) taikinys žuvo (Kamuolinis žaibas).
+  // sameTarget – naudoti tą patį taikinį; kitaip taikinys atsirenkamas savarankiškai.
   if (applied && m.then && m.then.length > 0 && !g.winner) {
+    const singleUnit = (targets.length === 1 && targets[0].kind === 'unit') ? targets[0] : null
+    const lastTargetDied = singleUnit ? !findUnit(g, singleUnit) : false
     for (const next of m.then) {
-      applyMapping(api, g, caster, next, { ...ctx, chosenTarget: undefined, depth: ctx.depth + 1 })
+      if (next.onlyIfTargetDied && !lastTargetDied) continue
+      const keep = !!next.sameTarget
+      applyMapping(api, g, caster, next, {
+        ...ctx,
+        chosenTarget: keep ? ctx.chosenTarget : undefined,
+        chosenTargets: keep ? ctx.chosenTargets : undefined,
+        depth: ctx.depth + 1,
+      })
       if (g.winner) break
     }
   }

@@ -269,6 +269,15 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                   <option value="all">Bet kurio burto žala → +HP savininkui</option>
                 </select>
               </div>
+              <div>
+                <label style={labelStyle}>🏰 Sužaistą burtą → kaladė (Alchemikų fortas)</label>
+                <select value={pa?.returnCastSpellScope ?? ''} onChange={(e) => setPa({ returnCastSpellScope: (e.target.value || undefined) as 'friendly' | 'enemy' | 'all' | undefined })} style={inputStyle}>
+                  <option value="">(išjungta)</option>
+                  <option value="friendly">Savo burtus grąžinti į kaladę</option>
+                  <option value="enemy">Priešo burtus grąžinti į jo kaladę</option>
+                  <option value="all">Bet kurį burtą grąžinti</option>
+                </select>
+              </div>
             </div>
           )
         })()}
@@ -440,12 +449,38 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                         </label>
                         <label className="flex items-center gap-1">
                           Taikinių sk.
-                          <input type="number" min={1} value={m.hitCount ?? 1} disabled={pickMode === 'player'}
+                          <input type="number" min={1} value={m.hitCount ?? 1}
                             onChange={(e) => setMapping(i, { hitCount: Math.max(1, Number(e.target.value)) })}
-                            style={{ ...inputStyle, width: 50, opacity: pickMode === 'player' ? 0.5 : 1 }}
-                            title={pickMode === 'player' ? 'Žaidėjo pasirinkimui kol kas 1 taikinys' : 'Kiek atskirų taikinių paveikti'} />
+                            style={{ ...inputStyle, width: 50 }}
+                            title={pickMode === 'player' ? 'Žaidėjas rankiniu būdu parenka tiek taikinių (rodoma 1/N)' : 'Kiek atskirų taikinių paveikti'} />
                         </label>
                       </>
+                    )}
+                    {m.effect === 'tutorToHand' && (
+                      <>
+                        <label className="flex items-center gap-1">Zona
+                          <select value={m.tutorZone ?? 'both'} onChange={(e) => setMapping(i, { tutorZone: e.target.value as 'deck' | 'discard' | 'both' })} style={{ ...inputStyle, width: 130 }}>
+                            <option value="both">Kaladė + kapinynas</option>
+                            <option value="deck">Kaladė</option>
+                            <option value="discard">Kapinynas</option>
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1">Tik tipas
+                          <select value={m.tutorSpellType ?? ''} onChange={(e) => setMapping(i, { tutorSpellType: (e.target.value || undefined) as SpellType | undefined })} style={{ ...inputStyle, width: 130 }}>
+                            <option value="">(bet kuri korta)</option>
+                            {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input type="checkbox" checked={!!m.tutorChoose} onChange={(e) => setMapping(i, { tutorChoose: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                          Žaidėjas renkasi
+                        </label>
+                      </>
+                    )}
+                    {m.effect === 'chooseEffect' && (
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        „Pasirink 1 iš…" variantus (chooseOne) suvesk JSON režimu
+                      </span>
                     )}
                     <label className="flex items-center gap-1">
                       <input type="checkbox" checked={m.optional ?? false}
@@ -688,6 +723,16 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                             <input type="checkbox" checked={fm.requiresSelection === true}
                               onChange={(e) => setThen({ requiresSelection: e.target.checked ? true : false })} className="w-3.5 h-3.5 accent-yellow-400" />
                             Renkasi
+                          </label>
+                          <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Naudoti tą patį taikinį kaip pagrindinis efektas">
+                            <input type="checkbox" checked={!!fm.sameTarget}
+                              onChange={(e) => setThen({ sameTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                            Tas pats taikinys
+                          </label>
+                          <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Vykdyti tik jei pagrindinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)">
+                            <input type="checkbox" checked={!!fm.onlyIfTargetDied}
+                              onChange={(e) => setThen({ onlyIfTargetDied: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                            Tik jei taikinys žuvo
                           </label>
                           <button type="button" onClick={() => { const arr = (m.then ?? []).filter((_, j) => j !== fi); setMapping(i, { then: arr.length ? arr : undefined }) }}
                             className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
