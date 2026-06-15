@@ -368,6 +368,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const dragRef = useRef<DragState | null>(null)
   const dragMovedRef = useRef(false)
   const handRef = useRef<HTMLDivElement | null>(null)
+  const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
@@ -1065,7 +1066,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     const wasExpanded = handExpanded
     let started = false
     dragMovedRef.current = false
-    const handTop = () => handRef.current?.getBoundingClientRect().top ?? Infinity
+    const handTop = () => (handPanelRef.current ?? handRef.current)?.getBoundingClientRect().top ?? Infinity
     let lp: ReturnType<typeof setTimeout> | null = null
     function cleanup() {
       if (lp) { clearTimeout(lp); lp = null }
@@ -1095,7 +1096,8 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) {
           if (selKind === 'discard') { onHandCardClick(card); return }
           if (!handExpanded) { playUiClick(); setHandExpanded(true) }
-          else onHandCardClick(card)
+          else if (!isTouch) { setHandExpanded(false); onHandCardClick(card) }
+          // touch + atvira ranka: palietimas = tik skaitymas; žaidžiama tempiant AUKŠTYN
         }
         return
       }
@@ -1527,57 +1529,33 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             </div>
 
-            {/* ranka: didelė skaitoma vėduoklė; tempk Į ŠONUS = scroll, tempk kortą AUKŠTYN = žaidi */}
+            {/* ranka (sutraukta vėduoklė); palietus kortą – atsiveria didelė skaitoma ranka (overlay) */}
             <div data-tut="hand" ref={handRef}
-              className={handExpanded
-                ? 'relative w-full overflow-x-auto overflow-y-hidden flex items-end hand-strip'
-                : 'flex justify-center items-end gap-0 min-h-[110px] sm:min-h-[150px] pb-1 overflow-x-auto'}
-              style={handExpanded
-                ? { height: Math.round((isTouch ? 150 : 176) * 4 / 3) + 34, background: 'linear-gradient(to top, rgba(10,8,16,0.99), rgba(10,8,16,0.82))', touchAction: 'pan-x', paddingBottom: 'env(safe-area-inset-bottom)' }
-                : undefined}>
-              {handExpanded ? (
-                <div className="flex items-end mx-auto px-3 pt-2" style={{ minWidth: 'min-content' }}>
-                  {game.you.hand.map((c, i) => {
-                    const afford = game.you.gold >= c.gold
-                    const W = isTouch ? 150 : 176
-                    const isDragging = drag?.uid === c.uid && dragMovedRef.current
-                    return (
-                      <div key={c.uid}
-                        onPointerDown={(e) => beginHandPointer(c, e)}
-                        onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
-                        className="shrink-0 cursor-grab active:cursor-grabbing transition-transform hover:-translate-y-3"
-                        style={{ marginLeft: i === 0 ? 0 : -(W * 0.18), zIndex: i, touchAction: 'pan-x', opacity: isDragging ? 0.15 : 1, filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined }}>
-                        <MiniCard c={c} w={W} readable dim={!afford && select?.kind !== 'discard'} />
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <AnimatePresence>
-                  {game.you.hand.map((c, i) => {
-                    const n = game.you.hand.length
-                    const off = i - (n - 1) / 2
-                    const afford = game.you.gold >= c.gold
-                    const isDragging = drag?.uid === c.uid && dragMovedRef.current
-                    return (
-                      <motion.div key={c.uid} layout
-                        initial={{ y: 55, opacity: 0, scale: 0.85 }}
-                        animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
-                        exit={{ y: -40, opacity: 0, scale: 0.8 }}
-                        whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
-                        style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
-                        onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
-                        <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
-                          <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
-                            style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
-                            <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
-                          </div>
-                        </GameCard>
-                      </motion.div>
-                    )
-                  })}
-                </AnimatePresence>
-              )}
+              className="flex justify-center items-end gap-0 min-h-[104px] sm:min-h-[150px] pb-1 overflow-x-auto">
+              <AnimatePresence>
+                {game.you.hand.map((c, i) => {
+                  const n = game.you.hand.length
+                  const off = i - (n - 1) / 2
+                  const afford = game.you.gold >= c.gold
+                  const isDragging = drag?.uid === c.uid && dragMovedRef.current
+                  return (
+                    <motion.div key={c.uid} layout
+                      initial={{ y: 55, opacity: 0, scale: 0.85 }}
+                      animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
+                      exit={{ y: -40, opacity: 0, scale: 0.8 }}
+                      whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
+                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
+                      onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
+                      <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                        <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
+                          style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
+                          <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
+                        </div>
+                      </GameCard>
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
               {game.you.hand.length === 0 && (
                 <span className="text-[10px] self-center mx-auto" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>
               )}
@@ -2097,6 +2075,48 @@ doAction({ t: 'endTurn', actor: 'you' })
           </div>
         ),
         document.body)}
+
+      {/* ── išskleista ranka: scroll-snap karuselė (didelės skaitomos kortos), tempk AUKŠTYN = žaidi ── */}
+      {handExpanded && game && (() => {
+        const vh = typeof window !== 'undefined' ? window.innerHeight : 720
+        const panelH = Math.min(Math.round(vh * 0.5), 460)
+        const cardH = panelH - 92
+        const handCardW = Math.max(150, Math.round(cardH * 0.75))
+        const pad = 'calc(50% - ' + Math.round(handCardW / 2) + 'px)'
+        return (
+          <div className="fixed inset-0 z-[122]"
+            onPointerDown={(e) => { if (e.target === e.currentTarget) { playUiClick(); setHandExpanded(false) } }}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }}
+              onPointerDown={() => { playUiClick(); setHandExpanded(false) }} />
+            <div ref={handPanelRef} className="absolute left-0 right-0 bottom-0 flex flex-col"
+              style={{ height: panelH, background: 'linear-gradient(to top, #07050b 78%, rgba(7,5,11,0))', paddingBottom: 'env(safe-area-inset-bottom)' }}
+              onPointerDown={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>↑ Tempk kortą aukštyn — žaisti · braukite šonu</span>
+                <button onClick={() => { playUiClick(); setHandExpanded(false) }} className="text-xs px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden flex items-center gap-4"
+                style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', paddingLeft: pad, paddingRight: pad }}>
+                {game.you.hand.length === 0 && <span className="mx-auto text-xs" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>}
+                {game.you.hand.map((c) => {
+                  const afford = game.you.gold >= c.gold
+                  const isDragging = drag?.uid === c.uid && dragMovedRef.current
+                  return (
+                    <div key={c.uid}
+                      onPointerDown={(e) => beginHandPointer(c, e)}
+                      onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
+                      className="shrink-0 cursor-grab active:cursor-grabbing"
+                      style={{ scrollSnapAlign: 'center', touchAction: 'pan-x', opacity: isDragging ? 0.15 : 1, filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, boxShadow: afford ? '0 0 16px rgba(240,180,41,0.25)' : undefined, borderRadius: 12 }}>
+                      <MiniCard c={c} w={handCardW} readable dim={!afford && select?.kind !== 'discard'} />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
       {select?.kind === 'spellMulti' && (
