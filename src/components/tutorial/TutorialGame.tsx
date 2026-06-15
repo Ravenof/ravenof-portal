@@ -352,7 +352,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [oppProfile, setOppProfile] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null; level: number | null; is_public: boolean } | null>(null)
   const [oppDecks, setOppDecks] = useState<{ id: string; name: string }[]>([])
   const [oppOpen, setOppOpen] = useState(false)
-  const [turnLeft, setTurnLeft] = useState(60)
+  const [turnLeft, setTurnLeft] = useState(120)
+  const [myName, setMyName] = useState<string | null>(null)
+  const [turnBanner, setTurnBanner] = useState<{ name: string; you: boolean } | null>(null)
+  const lastTurnRef = useRef(-1)
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [champSwap, setChampSwap] = useState<{ cardUid: string; name: string; phase: number; options: number[] } | null>(null)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
@@ -885,10 +888,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // PvP: 60s ėjimo laikmatis – aktyvus žaidėjas, pasibaigus, automatiškai baigia ėjimą
   useEffect(() => {
     if (!vsRemote || !game || game.winner) return
-    setTurnLeft(60)
+    setTurnLeft(120)
     const start = Date.now()
     const iv = setInterval(() => {
-      const left = Math.max(0, 60 - Math.floor((Date.now() - start) / 1000))
+      const left = Math.max(0, 120 - Math.floor((Date.now() - start) / 1000))
       setTurnLeft(left)
       if (left <= 0) {
         clearInterval(iv)
@@ -898,6 +901,30 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vsRemote, game?.globalTurn, game?.active, game?.winner])
+
+  // Savo profilio vardas (ėjimo juostai)
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id
+      if (!uid) return
+      supabase.from('profiles').select('username, display_name').eq('id', uid).maybeSingle()
+        .then(({ data: p }) => { const pr = p as { username?: string; display_name?: string } | null; if (pr) setMyName(pr.display_name || pr.username || null) })
+    })
+  }, [])
+
+  // Ėjimui pasikeitus – per vidurį ekrano parodom kieno eilė (nickas + „eilė")
+  useEffect(() => {
+    if (!game || game.winner) return
+    if (game.globalTurn === lastTurnRef.current) return
+    lastTurnRef.current = game.globalTurn
+    if (game.globalTurn === 0) return
+    const you = game.active === 'you'
+    const name = you ? (myName || 'Tu') : (oppProfile?.display_name || oppProfile?.username || opponentName || 'Priešininkas')
+    setTurnBanner({ name, you })
+    const t = setTimeout(() => setTurnBanner(null), 1600)
+    return () => clearTimeout(t)
+  }, [game?.globalTurn, game?.active, game?.winner, myName, oppProfile, opponentName])
 
   const onHandCardClick = (c: TutCard) => {
     if (!myTurn) { pushToast('Palauk savo ėjimo.'); return }
@@ -1412,7 +1439,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </span>
               </button>
               {!game?.winner && (
-                <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: turnLeft <= 10 ? '#fca5a5' : 'var(--text-secondary)', background: turnLeft <= 10 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
+                <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: turnLeft <= 20 ? '#fca5a5' : 'var(--text-secondary)', background: turnLeft <= 20 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
                   ⏱ {turnLeft}s
                 </span>
               )}
@@ -2145,6 +2172,26 @@ doAction({ t: 'endTurn', actor: 'you' })
           </div>
         )
       })()}
+
+      {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) ── */}
+      {vsRemote && !game?.winner && turnLeft <= 20 && (
+        <div className="fixed left-1/2 -translate-x-1/2 top-14 z-[123] pointer-events-none">
+          <span className="font-bold tabular-nums animate-pulse" style={{ fontSize: 44, lineHeight: 1, color: '#ef4444', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 18px rgba(239,68,68,0.85)' }}>⏱ {turnLeft}</span>
+        </div>
+      )}
+
+      {/* ── ėjimo pasikeitimo pranešimas (kieno eilė) ── */}
+      <AnimatePresence>
+        {turnBanner && (
+          <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[129] flex items-center justify-center pointer-events-none">
+            <div className="px-7 py-4 rounded-2xl text-center" style={{ background: 'rgba(10,8,16,0.93)', border: '1px solid ' + (turnBanner.you ? 'rgba(74,222,128,0.6)' : 'rgba(239,68,68,0.6)'), boxShadow: '0 0 36px rgba(0,0,0,0.7)' }}>
+              <p className="text-2xl font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: turnBanner.you ? '#4ade80' : '#f87171' }}>{turnBanner.name}</p>
+              <p className="text-sm tracking-wide mt-0.5" style={{ color: 'var(--text-secondary)' }}>eilė</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
       {select?.kind === 'spellMulti' && (
