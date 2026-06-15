@@ -124,7 +124,7 @@ const STATUS_GLOW: Record<TutStatus, string> = {
   frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa',
 }
 
-function MiniCard({ c, w, dim, faceDown }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean }) {
+function MiniCard({ c, w, dim, faceDown, readable }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean }) {
   const h = Math.round(w * 4 / 3)
   if (faceDown) {
     return (
@@ -139,6 +139,10 @@ function MiniCard({ c, w, dim, faceDown }: { c: TutCard; w: number; dim?: boolea
       </div>
     )
   }
+  // Skaitomas (zoomed) režimas: didesni ženkliukai + pavadinimas ir efekto tekstas ant kortos
+  const badge = Math.max(9, Math.round(w * (readable ? 0.085 : 0.1)))
+  const nameSize = Math.max(10, Math.round(w * 0.085))
+  const textSize = Math.max(9, Math.round(w * 0.064))
   return (
     <div className="relative rounded-lg overflow-hidden select-none"
       style={{
@@ -156,18 +160,27 @@ function MiniCard({ c, w, dim, faceDown }: { c: TutCard; w: number; dim?: boolea
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1 text-center"
           style={{ background: c.factionColor + '18' }}>
           <span className="text-base opacity-40" style={{ color: c.factionColor }}>⚜</span>
-          <span className="text-[8px] leading-tight font-semibold" style={{ color: 'var(--text-secondary)' }}>{c.name}</span>
+          {!readable && <span className="text-[8px] leading-tight font-semibold" style={{ color: 'var(--text-secondary)' }}>{c.name}</span>}
         </div>
       )}
-      <span className="absolute top-0.5 left-0.5 px-1 rounded-full text-[9px] font-bold"
-        style={{ background: 'rgba(0,0,0,0.8)', color: 'var(--gold)' }}>{c.gold}</span>
+      {readable && (
+        <div className="absolute inset-x-0 bottom-0 px-1.5 pt-4 pb-3.5"
+          style={{ background: 'linear-gradient(to top, rgba(7,5,11,0.97) 62%, rgba(7,5,11,0.0))' }}>
+          <p className="font-bold leading-tight" style={{ fontSize: nameSize, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{c.name}</p>
+          {c.effectText && (
+            <p className="leading-snug mt-0.5" style={{ fontSize: textSize, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.effectText}</p>
+          )}
+        </div>
+      )}
+      <span className="absolute top-0.5 left-0.5 rounded-full font-bold"
+        style={{ background: 'rgba(0,0,0,0.85)', color: 'var(--gold)', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.gold}</span>
       {c.attack !== null && c.type === 'unit' && (
-        <span className="absolute bottom-0.5 left-0.5 px-1 rounded text-[9px] font-bold"
-          style={{ background: 'rgba(0,0,0,0.8)', color: '#f87171' }}>{c.attack}</span>
+        <span className="absolute bottom-0.5 left-0.5 rounded font-bold"
+          style={{ background: 'rgba(0,0,0,0.85)', color: '#f87171', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.attack}</span>
       )}
       {c.health !== null && c.type !== 'spell' && (
-        <span className="absolute bottom-0.5 right-0.5 px-1 rounded text-[9px] font-bold"
-          style={{ background: 'rgba(0,0,0,0.8)', color: '#4ade80' }}>{c.health}</span>
+        <span className="absolute bottom-0.5 right-0.5 rounded font-bold"
+          style={{ background: 'rgba(0,0,0,0.85)', color: '#4ade80', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.health}</span>
       )}
     </div>
   )
@@ -1066,6 +1079,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       if (selectAtDrag === 'discard') { onHandCardClick(d.card); return }
       if (!dragMovedRef.current) {
         if (isTouch && !handExpanded) { playUiClick(); setHandExpanded(true) }
+        else if (isTouch && handExpanded) { /* išskleistoj vėduoklėj palietimas = skaitymas (peek), žaidžiama tempimu */ }
         else onHandCardClick(d.card)
         return
       }
@@ -1497,33 +1511,53 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             </div>
 
-            {/* ranka: normali (vėduoklė) arba padidinta (wrap + scroll) */}
+            {/* ranka: vėduoklė (collapsed) arba didelė, skaitoma vėduoklė (expanded) */}
             <div data-tut="hand" ref={handRef}
               className={handExpanded
-                ? 'flex flex-wrap justify-center items-start gap-2 max-h-[40vh] overflow-y-auto p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] rounded-xl'
+                ? 'relative w-full flex justify-center items-end'
                 : 'flex justify-center items-end gap-0 min-h-[110px] sm:min-h-[150px] pb-1 overflow-x-auto'}
-              style={handExpanded ? { background: 'rgba(10,8,16,0.92)', border: '1px solid rgba(240,180,41,0.25)' } : undefined}>
+              style={handExpanded
+                ? { height: 'min(42vh, ' + (Math.round((isTouch ? 152 : 178) * 4 / 3) + 90) + 'px)', background: 'linear-gradient(to top, rgba(10,8,16,0.97), rgba(10,8,16,0))', paddingBottom: 'env(safe-area-inset-bottom)' }
+                : undefined}>
               <AnimatePresence>
                 {game.you.hand.map((c, i) => {
                   const n = game.you.hand.length
                   const off = i - (n - 1) / 2
                   const afford = game.you.gold >= c.gold
-                  const w = handExpanded ? (isTouch ? 104 : 140) : handW
+                  const isPeek = drag?.uid === c.uid && !dragMovedRef.current
+                  const isDragging = drag?.uid === c.uid && dragMovedRef.current
+                  if (handExpanded) {
+                    const W = n > 7 ? (isTouch ? 122 : 146) : (isTouch ? 152 : 178)
+                    const availW = Math.min((typeof window !== 'undefined' ? window.innerWidth : 420) - 24, 900)
+                    const step = n > 1 ? Math.min(W * 0.82, (availW - W) / (n - 1)) : 0
+                    return (
+                      <motion.div key={c.uid}
+                        initial={{ opacity: 0, y: 60 }}
+                        animate={{ opacity: isDragging ? 0 : 1, x: off * step, y: isPeek ? -66 : Math.abs(off) * 7, rotate: isPeek ? 0 : off * 3.0, scale: isPeek ? 1.34 : 1 }}
+                        exit={{ opacity: 0, y: 40 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                        whileHover={!isTouch && !isPeek ? { y: -52, scale: 1.3, rotate: 0, zIndex: 60 } : undefined}
+                        style={{ position: 'absolute', bottom: 10, left: '50%', marginLeft: -W / 2, transformOrigin: 'bottom center', zIndex: isPeek ? 70 : i }}
+                        onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
+                        <div onPointerDown={(e) => beginDrag(c, e)} className="cursor-grab active:cursor-grabbing"
+                          style={{ touchAction: 'none', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined }}>
+                          <MiniCard c={c} w={W} readable dim={!afford && select?.kind !== 'discard'} />
+                        </div>
+                      </motion.div>
+                    )
+                  }
                   return (
-                    <motion.div
-                      key={c.uid}
-                      layout
+                    <motion.div key={c.uid} layout
                       initial={{ y: 55, opacity: 0, scale: 0.85 }}
-                      animate={{ y: 0, opacity: 1, rotate: handExpanded ? 0 : Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
+                      animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
-                      whileHover={handExpanded ? { y: -6, zIndex: 30 } : { y: -14, zIndex: 30, rotate: 0 }}
-                      style={{ marginLeft: handExpanded || i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
-                      onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
-                    >
+                      whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
+                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
+                      onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
                       <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
                         <div onPointerDown={(e) => beginDrag(c, e)} className="block cursor-grab active:cursor-grabbing"
-                          style={{ touchAction: 'none', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: drag?.uid === c.uid && dragMovedRef.current ? 0.3 : 1 }}>
-                          <MiniCard c={c} w={w} dim={!afford && select?.kind !== 'discard'} />
+                          style={{ touchAction: 'none', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
+                          <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
                         </div>
                       </GameCard>
                     </motion.div>
