@@ -61,6 +61,7 @@ export type EffectType =
   | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
   | 'spellDiscount' | 'buffSpellDamage'
   | 'chooseEffect' | 'tutorToHand'
+  | 'coinFlip' | 'loseGoldNextTurn'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -101,6 +102,8 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)',    needsValue: true },
   { value: 'buffSpellDamage',     label: 'Burtų žala +X (savininkui)',      needsValue: true },
+  { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false },
+  { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true },
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },
   { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false },
 ]
@@ -130,6 +133,8 @@ export type TriggerType =
   | 'onFieldEnter' | 'onFieldLeave'
   | 'onChampionSkill' | 'onArtifactActivated'
   | 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay'
+  | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd'
+  | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion'
   | 'custom'
 
 export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
@@ -155,6 +160,17 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onAnyAttack',         label: 'Kai BET KURIS padaras puola (globalu)' },
   { value: 'onAnySummon',         label: 'Kai iškviečiamas/prikeliamas BET KURIS padaras (globalu)' },
   { value: 'onAnyPlay',           label: 'Kai sužaidžiama BET KURI korta (globalu)' },
+  { value: 'onAnyCast',           label: 'Kai panaudojamas BET KURIS burtas (globalu)' },
+  { value: 'onAnyArtifact',       label: 'Kai padedamas BET KURIS artefaktas (globalu)' },
+  { value: 'onAnyChampion',       label: 'Kai iškviečiamas/evoliucionuoja BET KURIS Čempionas (globalu)' },
+  { value: 'onAnyDamage',         label: 'Kai BET KAS gauna žalą (globalu)' },
+  { value: 'onAnyHeal',           label: 'Kai BET KAS pagydomas (globalu)' },
+  { value: 'onAnyDraw',           label: 'Kai BET KAS traukia kortą (globalu)' },
+  { value: 'onAnyDiscard',        label: 'Kai BET KAS išmeta į kapinyną (globalu)' },
+  { value: 'onAnyStatus',         label: 'Kai BET KAM uždedama būsena (globalu)' },
+  { value: 'onAnyGold',           label: 'Kai BET KAS gauna aukso (globalu)' },
+  { value: 'onAnyTurnStart',      label: 'Kiekvieno ėjimo pradžioje (abiejų žaidėjų)' },
+  { value: 'onAnyTurnEnd',        label: 'Kiekvieno ėjimo pabaigoje (abiejų žaidėjų)' },
   { value: 'custom',              label: 'Custom (kodas)' },
 ]
 
@@ -283,6 +299,9 @@ export type EffectMapping = {
   sameTarget?: boolean              // follow-up (`then`): naudoti tą patį taikinį kaip tėvinis efektas
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
+  coinGreen?: EffectMapping[]       // coinFlip: efektai, kai iškrinta ŽALIA pusė
+  coinRed?: EffectMapping[]         // coinFlip: efektai, kai iškrinta RAUDONA pusė
+  triggerSpellType?: SpellType      // globalus trigger (onAnyCast): tik šio tipo burtas aktyvuoja
   tutorZone?: 'deck' | 'discard' | 'both'  // tutorToHand: iš kur ieškoti (default both)
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
   tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
@@ -329,10 +348,27 @@ export type PassiveAuraConfig = {
   spellLifestealScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų žala gydo tos pusės žaidėją
   // ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ──
   returnCastSpellScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų sužaidimą gaudo (grąžina į kaladę)
+  // ── Žalos mažinimas procentais (aura): paveiktiems padarams žala −X% ──
+  auraDamageReductionPct?: number      // 0–100; paveiktų padarų gaunama žala sumažinama X%
+  // ── Nemirtingumas (aura): paveikti padarai negali žūti – lieka su 1 HP ──
+  auraImmortal?: boolean               // paveikti padarai nežūsta (HP nukrenta iki min. 1)
+  // ── Burtų žalos priedas (aura): paveiktos pusės burtai daro +X žalos ──
+  auraSpellDamage?: number             // +X žalos paveiktos pusės burtams
+  auraSpellType?: SpellType            // auraSpellDamage tik šio tipo burtams (kitaip – visiems)
 }
 
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──
 export type ChampionSkill = { name?: string; mappings: EffectMapping[] }
+
+// ── Atakos taikinio apribojimas (statinis padaro nustatymas) ─────────────────
+export type AttackRestriction = 'unitsOnly' | 'championsOnly' | 'noPlayer' | 'playerOnly' | 'artifactsOnly'
+export const ATTACK_RESTRICTIONS: { value: AttackRestriction; label: string }[] = [
+  { value: 'unitsOnly',     label: 'Tik padarus' },
+  { value: 'championsOnly', label: 'Tik Čempionus' },
+  { value: 'noPlayer',      label: 'Negali pulti žaidėjo tiesiogiai' },
+  { value: 'playerOnly',    label: 'Tik žaidėją tiesiogiai' },
+  { value: 'artifactsOnly', label: 'Tik artefaktus' },
+]
 
 // ── Pilna kortos gameplay konfigūracija (cards.gameplay JSONB) ────────────────
 export type GameplayConfig = {
@@ -345,6 +381,7 @@ export type GameplayConfig = {
   artifactEffectConfig?: { mappings: EffectMapping[] } // jei Artefaktas
   passiveAura?: PassiveAuraConfig
   keywords?: ('sprint' | 'taunt' | 'shield' | 'stealth')[]  // statiniai padaro raktažodžiai
+  attackRestriction?: AttackRestriction  // padaras gali pulti tik tam tikrus taikinius
   canTriggerCurse?: boolean
   canTriggerZmk?: boolean
   animationType?: string

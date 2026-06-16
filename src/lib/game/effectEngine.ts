@@ -21,6 +21,7 @@ export type GameApi = {
   buffUnit(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number): void
   gainGold(g: GameState, s: Side, n: number, srcName: string): void
   loseGold(g: GameState, s: Side, n: number, srcName: string): void
+  scheduleGoldPenalty(g: GameState, s: Side, n: number, srcName: string): void
   returnUnitToHand(g: GameState, owner: Side, u: BoardUnit): void
   summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; count?: number }): void
   activateCurses(g: GameState, target: Side, count: number, srcName: string, depth: number): void
@@ -48,7 +49,7 @@ export type ApplyCtx = {
 
 const MAX_DEPTH = 4
 
-const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'moveToGraveyard']
+const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard']
 
 // Efektai, kuriems NIEKADA nereikia rankinio taikinio (sužaidžiami iškart, be pasirinkimo).
 const NO_SELECT_EFFECTS = new Set<EffectType>([
@@ -56,6 +57,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
   'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage',
+  'coinFlip', 'loseGoldNextTurn',
 ])
 
 export function effectIntent(e: EffectType): 'harm' | 'help' {
@@ -127,7 +129,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -224,6 +226,17 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     case 'removeZmkCard': {
       const who: Side = m.zmkAppliesTo === 'opponent' ? foe : caster
       api.removeZmkCard(g, who, m.zmkValue ?? '-2', v)
+      break
+    }
+    case 'loseGoldNextTurn': api.scheduleGoldPenalty(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, ctx.sourceName); break
+    case 'coinFlip': {
+      const green = Math.random() < 0.5
+      api.log(g, { t: 'coin', side: caster, coin: green ? 'green' : 'red', msg: green ? '🪙 Monetos metimas: ŽALIA!' : '🪙 Monetos metimas: RAUDONA!' })
+      const branch = green ? (m.coinGreen ?? []) : (m.coinRed ?? [])
+      for (const nm of branch) {
+        applyMapping(api, g, caster, nm, { ...ctx, depth: ctx.depth + 1 })
+        if (g.winner) break
+      }
       break
     }
     case 'chooseEffect': {

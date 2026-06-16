@@ -335,6 +335,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Prakeiksmo aktyvacijos overlay
   const [cardFlash, setCardFlash] = useState<{ card: TutCard | null; title: string; tag: string | null; color: string } | null>(null)
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Monetos metimo animacija (žalia/raudona)
+  const [coinAnim, setCoinAnim] = useState<{ side: Side; coin: 'green' | 'red' } | null>(null)
+  const coinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
@@ -739,7 +742,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           flashTimerRef.current = setTimeout(() => setCardFlash(null), 1700)
           break
         }
-        case 'coin': queueTip('coin'); break
+        case 'coin': {
+          playBattleSound('zmkFlip')
+          const cc: 'green' | 'red' = e.coin === 'red' ? 'red' : 'green'
+          setCoinAnim({ side: e.side, coin: cc })
+          if (coinTimerRef.current) clearTimeout(coinTimerRef.current)
+          coinTimerRef.current = setTimeout(() => setCoinAnim(null), 1400)
+          break
+        }
         case 'status': if (e.status) queueTip(('status-' + e.status) as TipKey); break
         default: break
       }
@@ -1139,7 +1149,8 @@ doAction({ t: 'endTurn', actor: 'you' })
     if (!game) return new Set<string>()
     // Atakos tempimas → pažymim teisėtus atakos taikinius
     if (drag?.attackUid) {
-      const ts = legalTargets(game, 'you')
+      const atkU = game.you.units.find((u) => u?.uid === drag.attackUid) ?? undefined
+      const ts = legalTargets(game, 'you', atkU)
       return new Set(ts.map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
     }
     // Drag of a targeted card → highlight valid targets
@@ -1152,7 +1163,8 @@ doAction({ t: 'endTurn', actor: 'you' })
     }
     if (!select) return new Set<string>()
     if (select.kind === 'attacker') {
-      const ts = legalTargets(game, 'you')
+      const atkU = game.you.units.find((u) => u?.uid === select.uid) ?? undefined
+      const ts = legalTargets(game, 'you', atkU)
       return new Set(ts.map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
     }
     if (select.kind === 'spell') {
@@ -1234,7 +1246,8 @@ doAction({ t: 'endTurn', actor: 'you' })
       const tgt = elToTargetRef(document.elementFromPoint(ev.clientX, ev.clientY))
       if (!tgt || !game) return
       const key = tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side)
-      const ok = legalTargets(game, 'you').some((t) => (t.kind + ':' + ('uid' in t ? t.uid : t.side)) === key)
+      const atkU = game.you.units.find((u) => u?.uid === d.uid) ?? undefined
+      const ok = legalTargets(game, 'you', atkU).some((t) => (t.kind + ':' + ('uid' in t ? t.uid : t.side)) === key)
       if (ok) { doAction({ t: 'attack', actor: 'you', uid: d.uid, target: tgt }); setSelect(null) }
     }
     window.addEventListener('pointermove', move)
@@ -2520,6 +2533,39 @@ doAction({ t: 'endTurn', actor: 'you' })
                   </button>
                 </motion.div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Monetos metimo animacija (žalia/raudona pusė) ── */}
+      <AnimatePresence>
+        {coinAnim && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[132] flex items-center justify-center pointer-events-none p-4">
+            <motion.div initial={{ scale: 0.4, opacity: 0, y: -30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.7, opacity: 0 }}
+              transition={{ type: 'spring', damping: 14 }} className="flex flex-col items-center gap-3">
+              <motion.div
+                initial={{ rotateY: 0 }} animate={{ rotateY: 1080 }}
+                transition={{ duration: 0.95, ease: 'easeOut' }}
+                style={{
+                  width: 96, height: 96, borderRadius: '50%', transformStyle: 'preserve-3d',
+                  background: coinAnim.coin === 'green'
+                    ? 'radial-gradient(circle at 35% 30%, #6ee7a8, #16a34a 70%, #0f7a36)'
+                    : 'radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 70%, #991b1b)',
+                  border: '4px solid ' + (coinAnim.coin === 'green' ? '#bbf7d0' : '#fecaca'),
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px ' + (coinAnim.coin === 'green' ? 'rgba(34,197,94,0.6)' : 'rgba(220,38,38,0.6)'),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 44,
+                }}>
+                {coinAnim.coin === 'green' ? '✔' : '✘'}
+              </motion.div>
+              <span className="px-3 py-1 rounded-full text-sm font-bold"
+                style={{ background: 'rgba(8,6,12,0.92)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.08em',
+                  border: '1px solid ' + (coinAnim.coin === 'green' ? '#22c55e' : '#dc2626'),
+                  color: coinAnim.coin === 'green' ? '#4ade80' : '#f87171' }}>
+                {coinAnim.coin === 'green' ? 'ŽALIA' : 'RAUDONA'}
+              </span>
             </motion.div>
           </motion.div>
         )}

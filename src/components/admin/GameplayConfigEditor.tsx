@@ -7,8 +7,8 @@
 import { useMemo, useState } from 'react'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
-  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SUBTYPE_OPTIONS, SPELL_TYPES,
-  type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType,
+  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SUBTYPE_OPTIONS, SPELL_TYPES, ATTACK_RESTRICTIONS,
+  type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType, type AttackRestriction,
 } from '@/lib/game/types'
 
 const inputStyle: React.CSSProperties = {
@@ -284,6 +284,52 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
         <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>„Kam galioja" (Savo/Priešo/Visiems) imama iš aukščiau esančios auros nustatymo (auraScope).</p>
       </div>
 
+      <div className="rounded-lg p-3" style={{ background: 'rgba(90,160,220,0.06)', border: '1px solid rgba(90,160,220,0.3)' }}>
+        <p style={{ ...labelStyle, marginBottom: 6 }}>🛡 Apsauginės / burtų auros (pasyvi aura; „Kam galioja" = auraScope viršuje)</p>
+        {(() => {
+          const pa = cfg.passiveAura
+          const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div>
+                <label style={labelStyle}>Žala −% (0–90)</label>
+                <input type="number" min={0} max={90} value={pa?.auraDamageReductionPct ?? 0}
+                  onChange={(e) => setPa({ auraDamageReductionPct: Math.min(90, Math.max(0, Number(e.target.value))) || undefined })} style={inputStyle} />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                  <input type="checkbox" checked={!!pa?.auraImmortal}
+                    onChange={(e) => setPa({ auraImmortal: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-blue-400" />
+                  ♾ Negali žūti (lieka 1 HP)
+                </label>
+              </div>
+              <div>
+                <label style={labelStyle}>Burtų žala +X</label>
+                <input type="number" min={0} value={pa?.auraSpellDamage ?? 0}
+                  onChange={(e) => setPa({ auraSpellDamage: Number(e.target.value) || undefined })} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Burtų žala +X tik tipui</label>
+                <select value={pa?.auraSpellType ?? ''} onChange={(e) => setPa({ auraSpellType: (e.target.value || undefined) as SpellType | undefined })} style={inputStyle}>
+                  <option value="">(visi burtai)</option>
+                  {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
+                </select>
+              </div>
+            </div>
+          )
+        })()}
+        <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>Žala −% ir „Negali žūti" veikia auraScope nurodytus padarus (potipio filtras taikomas). Burtų žala +X – tos pusės (auraScope) burtams.</p>
+      </div>
+
+      <div>
+        <label style={labelStyle}>⚔ Atakos taikinio apribojimas (šis padaras gali pulti tik…)</label>
+        <select value={cfg.attackRestriction ?? ''}
+          onChange={(e) => update({ ...cfg, attackRestriction: (e.target.value || undefined) as AttackRestriction | undefined })} style={inputStyle}>
+          <option value="">(be apribojimo – bet ką)</option>
+          {ATTACK_RESTRICTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+      </div>
+
       <div>
         <p style={{ ...labelStyle, marginBottom: 4 }}>Padaro raktažodžiai (statiniai)</p>
         <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
@@ -334,9 +380,9 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
             {mappings.map((m, i) => {
               const effectDef = EFFECT_TYPES.find((e) => e.value === m.effect)
               const eff = m.effect
-              const isGlobalTrigger = ['onAnySummon', 'onAnyDeath', 'onAnyAttack', 'onAnyPlay'].includes(m.trigger)
+              const isGlobalTrigger = ['onAnySummon', 'onAnyDeath', 'onAnyAttack', 'onAnyPlay', 'onAnyCast', 'onAnyArtifact', 'onAnyChampion'].includes(m.trigger)
               const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
-              const isPlayerEff = ['discard', 'gainGold', 'loseGold'].includes(eff)
+              const isPlayerEff = ['discard', 'gainGold', 'loseGold', 'loseGoldNextTurn'].includes(eff)
               const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
               const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'revealOwnDeck', 'revealEnemyDeck'].includes(eff)
               const isTargeted = !isSummon && !isPlayerEff && !isDeckEff && !isFixedNoTarget
@@ -344,7 +390,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
               const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
               const targetOpts = isTargeted ? TARGET_TYPES : TARGET_TYPES.filter((t) => playerOnly.includes(t.value))
               const isSinglePick = ['enemyUnit', 'ownUnit', 'anyUnit', 'enemyChampion', 'ownChampion', 'anyChampion', 'enemyArtifact', 'ownArtifact', 'anyArtifact'].includes(m.target)
-              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', gainGold: 'Auksas +', loseGold: 'Auksas −', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
+              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', gainGold: 'Auksas +', loseGold: 'Auksas −', loseGoldNextTurn: 'Auksas − (kitą ėjimą)', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
               // dabartinė parinkimo reikšmė vienam dropdownui
               const pickMode = m.requiresSelection ? 'player' : m.allowRandomTarget ? 'random' : (m.targetSelect ?? 'auto')
               const setPickMode = (v: string) => {
@@ -384,6 +430,15 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                           {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
                         </select>
                       </div>
+                      {m.trigger === 'onAnyCast' && (
+                        <div>
+                          <label style={labelStyle}>Tik burto tipas</label>
+                          <select value={m.triggerSpellType ?? ''} onChange={(e) => setMapping(i, { triggerSpellType: (e.target.value || undefined) as SpellType | undefined })} style={inputStyle}>
+                            <option value="">(bet kuris burtas)</option>
+                            {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
+                          </select>
+                        </div>
+                      )}
                       {m.trigger === 'onAnySummon' && (
                         <div className="col-span-2">
                           <label style={labelStyle}>Iškvietimo šaltinis</label>
@@ -501,6 +556,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                     {m.effect === 'chooseEffect' && (
                       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                         „Pasirink 1 iš…" variantus (chooseOne) suvesk JSON režimu
+                      </span>
+                    )}
+                    {m.effect === 'coinFlip' && (
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        🪙 Monetos metimas: ŽALIOS pusės efektus (coinGreen[]) ir RAUDONOS (coinRed[]) suvesk JSON režimu
                       </span>
                     )}
                     <label className="flex items-center gap-1">

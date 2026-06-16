@@ -107,7 +107,7 @@ export function aiNextAction(g: GameState): AiAction {
 // ── Taikinių parinkimas ───────────────────────────────────────────────────────
 
 function pickAttackTarget(g: GameState, u: BoardUnit): TargetRef | null {
-  const targets = legalTargets(g, 'ai')
+  const targets = legalTargets(g, 'ai', u)
   if (targets.length === 0) return null
   const atk = effectiveAtk(g, u)
   const foe = P(g, 'you')
