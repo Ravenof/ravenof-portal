@@ -41,7 +41,14 @@ export function findLethalSequence(g: GameState): boolean {
 export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty }): AiAction {
   if (g.winner || g.active !== 'ai') return null
   const difficulty = resolveDifficulty(opts)
-  const ranked = decideAiTurn(g, { difficulty })
+  let ranked: ScoredAction[]
+  try {
+    ranked = decideAiTurn(g, { difficulty })
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[AI] decideAiTurn klaida:', err)
+    return null
+  }
 
   if (ranked.length > 0) {
     const survival = evaluateSurvivalRisk(g)

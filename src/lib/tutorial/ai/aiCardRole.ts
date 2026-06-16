@@ -50,6 +50,7 @@ export function analyzeMappings(mappings: EffectMapping[]): CardAnalysis {
     targetsEnemyUnit: false, targetsOwnUnit: false, canHitFace: false, isAoE: false, needsTarget: false,
   }
   for (const m of mappings) {
+    if (!m || typeof m.effect !== 'string') continue  // apsauga nuo nepilnų mapping'ų (DB JSONB)
     const v = m.value ?? (m.dynamicValue ? m.dynamicValue.base : 1)
     const e = m.effect
     if (e === 'damage') {

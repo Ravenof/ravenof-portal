@@ -855,13 +855,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
-        const g = cloneState(prev)
-        const act = aiNextAction(g, { difficulty })
-        if (!act) {
-          endTurn(g)
-          if (!g.winner) beginTurn(g)
+        try {
+          const g = cloneState(prev)
+          const act = aiNextAction(g, { difficulty })
+          if (!act) {
+            endTurn(g)
+            if (!g.winner) beginTurn(g)
+          }
+          return g
+        } catch (err) {
+          // AI klaida neturi sugriauti viso žaidimo – tiesiog saugiai baigiam ėjimą.
+          console.error('[AI] klaida sprendžiant ėjimą – baigiu AI ėjimą:', err)
+          const g2 = cloneState(prev)
+          try { endTurn(g2); if (!g2.winner) beginTurn(g2) } catch { /* */ }
+          return g2
         }
-        return g
       })
     }, 1000)
     return () => clearTimeout(t)

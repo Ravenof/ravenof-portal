@@ -162,6 +162,7 @@ export function championAbilityTarget(g: GameState, mappings: TutCard['mappings'
 function analyzeMappingsLite(mappings: NonNullable<TutCard['mappings']>): { dmg: number; heal: number; buff: boolean; status: boolean } {
   let dmg = 0, heal = 0, buff = false, status = false
   for (const m of mappings) {
+    if (!m || typeof m.effect !== 'string') continue
     const v = m.value ?? 1
     if (m.effect === 'damage') dmg = Math.max(dmg, v)
     else if (m.effect === 'heal') heal = Math.max(heal, v)
