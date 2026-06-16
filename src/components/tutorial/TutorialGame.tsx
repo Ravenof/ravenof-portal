@@ -296,7 +296,7 @@ function spellTargetRefs(game: GameState, side: Side, m: EffectMapping): TargetR
 }
 
 // ── Drag & drop (Hearthstone tipo) ───────────────────────────────────────────
-type DragState = { card: TutCard; uid: string; targeted: boolean; origin: { x: number; y: number }; x: number; y: number; mode: 'card' | 'arrow' }
+type DragState = { card: TutCard; uid: string; targeted: boolean; origin: { x: number; y: number }; x: number; y: number; mode: 'card' | 'arrow'; attackUid?: string }
 
 function cardDropZoneOf(c: TutCard): 'unit' | 'spell' | 'artifact' | 'field' | 'reaction' {
   if (c.type === 'spell') return 'spell'
@@ -362,6 +362,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [oppMissingLeft, setOppMissingLeft] = useState<number | null>(null)
   const sawOppRef = useRef(!!net?.resume)
   const graceRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const dragEndRef = useRef(0)
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [champSwap, setChampSwap] = useState<{ cardUid: string; name: string; phase: number; options: number[] } | null>(null)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
@@ -1059,6 +1060,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   const onMyUnitClick = (u: BoardUnit) => {
     if (!myTurn || popupBlocks) return
+    if (Date.now() - dragEndRef.current < 350) return
     if (select?.kind === 'sacrifice') {
       if (u.isChampion) { pushToast('Čempiono paaukoti negalima.'); return }
       const cardUid = select.cardUid
@@ -1085,6 +1087,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   const onTargetClick = (t: TargetRef) => {
     if (!myTurn || popupBlocks) return
+    if (Date.now() - dragEndRef.current < 350) return
     if (select?.kind === 'attacker') {
       const uid = select.uid
       doAction({ t: 'attack', actor: 'you', uid, target: t })
@@ -1119,6 +1122,11 @@ doAction({ t: 'endTurn', actor: 'you' })
   // teisėti taikiniai pažymėjimui
   const targetSet = useMemo(() => {
     if (!game) return new Set<string>()
+    // Atakos tempimas → pažymim teisėtus atakos taikinius
+    if (drag?.attackUid) {
+      const ts = legalTargets(game, 'you')
+      return new Set(ts.map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
+    }
     // Drag of a targeted card → highlight valid targets
     if (drag?.targeted) {
       const sm = selectionMappingFor(drag.card)
@@ -1176,6 +1184,49 @@ doAction({ t: 'endTurn', actor: 'you' })
     return null
   }
 
+  // Ataka tempimu: tempk savo padarą ant priešo taikinio (drag&drop). Palietimas (be tempimo) = įprastas pasirinkimas.
+  const beginUnitDrag = (u: BoardUnit, e: React.PointerEvent) => {
+    if (!myTurn || popupBlocks || !game) return
+    if (u.isChampion) return
+    if (!canUnitAttack(game, 'you', u).ok) return
+    const rect = unitRectsRef.current.get(u.uid)
+    const ox = rect?.x ?? e.clientX, oy = rect?.y ?? e.clientY
+    const sx = e.clientX, sy = e.clientY
+    let started = false
+    const cleanup = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    function move(ev: PointerEvent) {
+      if (!started) {
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) return
+        started = true; dragMovedRef.current = true
+        if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null }
+        const d: DragState = { card: u.card, uid: u.uid, targeted: true, attackUid: u.uid, origin: { x: ox, y: oy }, x: ev.clientX, y: ev.clientY, mode: 'arrow' }
+        dragRef.current = d; setDrag(d)
+      }
+      const d = dragRef.current; if (!d) return
+      const nd: DragState = { ...d, x: ev.clientX, y: ev.clientY }
+      dragRef.current = nd; setDrag(nd)
+    }
+    function up(ev: PointerEvent) {
+      cleanup()
+      if (!started) return  // palietimas – tegul suveikia onClick (pasirinkti puolėją)
+      dragEndRef.current = Date.now()
+      const d = dragRef.current; dragRef.current = null; setDrag(null)
+      if (!d) return
+      const tgt = elToTargetRef(document.elementFromPoint(ev.clientX, ev.clientY))
+      if (!tgt || !game) return
+      const key = tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side)
+      const ok = legalTargets(game, 'you').some((t) => (t.kind + ':' + ('uid' in t ? t.uid : t.side)) === key)
+      if (ok) { doAction({ t: 'attack', actor: 'you', uid: d.uid, target: tgt }); setSelect(null) }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
+
   // Vienas pirštas: tempimas Į ŠONUS = ranka scrollinama (native pan-x), tempimas AUKŠTYN = žaidžiama korta.
   const beginHandPointer = (card: TutCard, e: React.PointerEvent) => {
     if (!myTurn || popupBlocks) return
@@ -1219,6 +1270,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         }
         return
       }
+      dragEndRef.current = Date.now()
       const d = dragRef.current; dragRef.current = null; setDrag(null)
       if (!d) return
       if (selKind === 'discard') { onHandCardClick(d.card); return }
@@ -1299,6 +1351,8 @@ doAction({ t: 'endTurn', actor: 'you' })
         <AnimatePresence>
           {Array.from({ length: slots }).map((_, i) => { const u = p.units[i]; return u ? (
             <div key={u.uid} data-unit-uid={u.uid}
+              onPointerDown={side === 'you' ? (e) => beginUnitDrag(u, e) : undefined}
+              style={side === 'you' ? { touchAction: 'none' } : undefined}
               onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}
               onMouseEnter={!isTouch ? (ev) => setHoverCard({ card: u.card, x: ev.clientX, y: ev.clientY }) : undefined}
               onMouseMove={!isTouch ? (ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: u.card, x: ev.clientX, y: ev.clientY }) : undefined}
@@ -1852,7 +1906,10 @@ doAction({ t: 'endTurn', actor: 'you' })
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
             className="fixed right-2 top-12 bottom-2 z-[124] w-[min(300px,80vw)] rounded-xl p-3 overflow-y-auto"
             style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)' }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--gold)' }}>Įvykių žurnalas</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>Įvykių žurnalas</p>
+              <button onClick={() => { playUiClick(); setShowLog(false) }} aria-label="Uždaryti" className="text-sm leading-none px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
+            </div>
             <div className="space-y-1">
               {game.log.slice(-80).map((e, i) => {
                 const card = e.cardName ? cardByName[e.cardName] : null
