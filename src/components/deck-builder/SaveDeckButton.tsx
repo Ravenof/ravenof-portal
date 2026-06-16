@@ -81,8 +81,18 @@ export function SaveDeckButton({ userId }: Props) {
           })),
         ]
         if (rows.length > 0) {
-          const { error } = await supabase.from('deck_cards').insert(rows)
-          if (error) throw error
+          let insErr = (await supabase.from('deck_cards').insert(rows)).error
+          // Atsarginis kelias: jei DB API schemos cache dar nemato „is_side_deck"
+          // stulpelio (PGRST204), saugom be jo – kad kaladės išsaugojimas (pvz.
+          // privati → vieša) ir kortos nedingtų. Side deck (prakeiksmai) tada praleidžiami.
+          if (insErr && /is_side_deck|schema cache|column .* does not exist/i.test(insErr.message ?? '')) {
+            const mainRows = entries.map((e) => ({ deck_id: savedDeckId!, card_id: e.card.id, quantity: e.quantity }))
+            insErr = mainRows.length > 0 ? (await supabase.from('deck_cards').insert(mainRows)).error : null
+            if (!insErr && sideEntries.length > 0) {
+              alert('Kaladė išsaugota, bet prakeiksmų (side deck) išsaugoti nepavyko – DB API dar nemato „is_side_deck" stulpelio. Perkrauk Supabase projektą (Settings → Restart) ir išsaugok dar kartą.')
+            }
+          }
+          if (insErr) throw insErr
         }
 
         markSaved(savedDeckId)
