@@ -577,9 +577,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         try {
           const rows = ((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)
           const built = rowsToDeck(rows, 'o')
-          setOppCards(built.length > 0 ? built : [])
-        } catch { setOppCards([]) }
-      }, () => { if (alive) setOppCards([]) })
+          // PvP host: jei DB negrąžina kortų (privati varžovo kaladė – RLS), NElaikom tuščios –
+          // laukiam, kol svečias atsiųs savo kaladę per realtime (broadcast 'deck').
+          if (built.length > 0) setOppCards(built)
+          else if (!(net && isHost)) setOppCards([])
+        } catch { if (!(net && isHost)) setOppCards([]) }
+      }, () => { if (alive && !(net && isHost)) setOppCards([]) })
     } else if (opponentFaction) {
       supabase.from('cards').select(sel).eq('status', 'active').in('faction_id', [opponentFaction, 14]).limit(250).then(({ data }) => {
         if (!alive) return
@@ -869,6 +872,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // ── PvP realtime: kanalas + veiksmų dispečeris ──
   const channelRef = useRef<RealtimeChannel | null>(null)
+  const deckCardsRef = useRef<TutCard[] | null>(null)
+  useEffect(() => { deckCardsRef.current = deckCards }, [deckCards])
+  const [chReady, setChReady] = useState(false)
   useEffect(() => {
     if (!net) return
     const supabase = createClient()
@@ -881,9 +887,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       ch.on('broadcast', { event: 'hello' }, () => {
         setGame((prev) => { if (prev) ch.send({ type: 'broadcast', event: 'state', payload: prev }); return prev })
       })
+      // Svečias atsiunčia savo (pasirinktą) kaladę – host ja sukuria AI pusę (be DB/RLS).
+      ch.on('broadcast', { event: 'deck' }, ({ payload }) => {
+        const cards = (payload as { cards?: TutCard[] }).cards
+        if (cards && cards.length > 0) setOppCards(cards)
+      })
     } else {
       ch.on('broadcast', { event: 'state' }, ({ payload }) => {
         setGame(swapPerspective(payload as GameState))
+      })
+      // Host prašo svečio kaladės – atsiunčiam pasirinktą kaladę
+      ch.on('broadcast', { event: 'reqdeck' }, () => {
+        const cards = deckCardsRef.current
+        if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards } })
       })
     }
     ch.on('presence', { event: 'sync' }, () => {
@@ -896,7 +912,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     ch.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         try { await ch.track({ side: net.mySide }) } catch { /* */ }
-        if (!net.isHost) ch.send({ type: 'broadcast', event: 'hello', payload: {} })
+        setChReady(true)
+        if (net.isHost) {
+          ch.send({ type: 'broadcast', event: 'reqdeck', payload: {} })
+        } else {
+          ch.send({ type: 'broadcast', event: 'hello', payload: {} })
+          const cards = deckCardsRef.current
+          if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards } })
+        }
       }
     })
     channelRef.current = ch
@@ -910,6 +933,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       channelRef.current.send({ type: 'broadcast', event: 'state', payload: game })
     }
   }, [game, isHost])
+
+  // Svečias: turėdamas savo kaladę ir paruoštą kanalą – atsiunčia ją host'ui (kad
+  // host sukurtų AI pusę iš TIKROS svečio kaladės, o ne nukristų į savo kaladę).
+  useEffect(() => {
+    if (!net || net.isHost || !chReady || !deckCards || deckCards.length === 0) return
+    channelRef.current?.send({ type: 'broadcast', event: 'deck', payload: { cards: deckCards } })
+  }, [net, chReady, deckCards])
+
+  // PvP host saugiklis: jei per 8s negavom svečio kaladės (senas klientas) – tęsiam (fallback).
+  useEffect(() => {
+    if (!net || !isHost || game || oppCards !== null) return
+    const t = setTimeout(() => setOppCards((c) => (c === null ? [] : c)), 8000)
+    return () => clearTimeout(t)
+  }, [net, isHost, game, oppCards])
 
   // PvP reconnect: išsaugom aktyvią partiją (kad galima grįžti); host saugo ir būseną
   useEffect(() => {
