@@ -24,6 +24,7 @@ export type TargetType =
   | 'allUnits'
   | 'allEnemyTargets'   // priešo padarai + artefaktai + žaidėjas
   | 'allOwnTargets'
+  | 'castSpell'         // dabar žaidžiamas burtas (counter/nutildymas; tik onAnyCast reakcijai)
 
 export const TARGET_TYPES: { value: TargetType; label: string }[] = [
   { value: 'self',            label: 'Be taikinio / globalu' },
@@ -46,6 +47,7 @@ export const TARGET_TYPES: { value: TargetType; label: string }[] = [
   { value: 'allUnits',        label: 'Visi padarai' },
   { value: 'allEnemyTargets', label: 'Visi priešo taikiniai' },
   { value: 'allOwnTargets',   label: 'Visi tavo taikiniai' },
+  { value: 'castSpell',       label: 'Dabar žaidžiamas burtas (nutildyti/atšaukti)' },
 ]
 
 // ── Efektų tipai ──────────────────────────────────────────────────────────────
@@ -297,6 +299,7 @@ export type EffectMapping = {
   summonNames?: string              // summonAdvanced: tik šios kortos (vardai per kablelį)
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   sameTarget?: boolean              // follow-up (`then`): naudoti tą patį taikinį kaip tėvinis efektas
+  useAttackTarget?: boolean         // onAttack/onAttacked: efektas taikomas į kovos taikinį (atakuotą padarą / atakuotoją)
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
   coinGreen?: EffectMapping[]       // coinFlip: efektai, kai iškrinta ŽALIA pusė

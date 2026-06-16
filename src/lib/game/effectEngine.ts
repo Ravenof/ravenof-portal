@@ -22,6 +22,7 @@ export type GameApi = {
   gainGold(g: GameState, s: Side, n: number, srcName: string): void
   loseGold(g: GameState, s: Side, n: number, srcName: string): void
   scheduleGoldPenalty(g: GameState, s: Side, n: number, srcName: string): void
+  counterCurrentSpell(g: GameState, srcName: string): void
   returnUnitToHand(g: GameState, owner: Side, u: BoardUnit): void
   summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; count?: number }): void
   activateCurses(g: GameState, target: Side, count: number, srcName: string, depth: number): void
@@ -66,6 +67,7 @@ export function effectIntent(e: EffectType): 'harm' | 'help' {
 
 /** Ar mapping'ui reikia žaidėjo pasirinkti taikinį UI'juje? */
 export function mappingNeedsSelection(m: EffectMapping): boolean {
+  if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
   if (m.targetTypes && m.targetTypes.length > 0) return m.requiresSelection !== false
   if (isMultiTarget(m.target)) return false
@@ -93,6 +95,13 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   }
   // Sąlyga: jei netenkinama – mapping praleidžiamas tyliai (naudojama fallback porai).
   if (m.condition && !evalCondition(g, caster, m.condition)) return false
+
+  // Taikinys „dabar žaidžiamas burtas" (castSpell): nutildo/atšaukia žaidžiamą burtą.
+  if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) {
+    if (g.rollContext?.kind === 'spell') api.counterCurrentSpell(g, ctx.sourceName)
+    else api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra žaidžiamo burto, kurį būtų galima nutildyti.` })
+    return true
+  }
 
   // Reikšmė: dinaminė (base + perEach * metrika) arba fiksuota.
   const v = m.dynamicValue

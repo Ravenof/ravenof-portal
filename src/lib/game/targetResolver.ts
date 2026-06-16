@@ -85,6 +85,8 @@ export function resolveTargets(g: GameState, casterSide: Side, target: TargetTyp
         ...resolveTargets(g, casterSide, 'ownArtifact'),
         { kind: 'player', side: casterSide },
       ]
+    case 'castSpell':
+      return []  // specialiai apdorojama effectEngine (burto atšaukimas)
   }
 }
 

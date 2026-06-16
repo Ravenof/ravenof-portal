@@ -568,6 +568,13 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                         onChange={(e) => setMapping(i, { optional: e.target.checked })} className="w-3.5 h-3.5 accent-yellow-400" />
                       Neprivalomas
                     </label>
+                    {(m.trigger === 'onAttack' || m.trigger === 'onAttacked') && (
+                      <label className="flex items-center gap-1" title={m.trigger === 'onAttack' ? 'Efektas taikomas į atakuotą taikinį (tą patį, kurį puolė)' : 'Efektas taikomas į atakuotoją'}>
+                        <input type="checkbox" checked={!!m.useAttackTarget}
+                          onChange={(e) => setMapping(i, { useAttackTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                        🎯 Taikinys = kovos taikinys {m.trigger === 'onAttack' ? '(atakuotas)' : '(atakuotojas)'}
+                      </label>
+                    )}
                     <label className="flex items-center gap-1">
                       <input type="checkbox" checked={!!m.triggersCurse}
                         onChange={(e) => setMapping(i, { triggersCurse: e.target.checked ? { count: 1, appliesTo: 'opponent' } : undefined })} className="w-3.5 h-3.5 accent-yellow-400" />

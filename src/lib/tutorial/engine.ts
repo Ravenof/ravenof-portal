@@ -191,6 +191,8 @@ export type GameState = {
   rollContext?: RollContext | null
   /** Paskutinis mill (UI animacijai: kortos iš kaladės į kapinyną) */
   lastMill?: { id: number; side: Side; cards: TutCard[] } | null
+  /** Žaidžiamas burtas atšauktas reakcija (onAnyCast „castSpell" taikinys) – efektas nevyksta. */
+  spellCountered?: boolean
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
@@ -1176,6 +1178,11 @@ function scheduleGoldPenaltyPrim(g: GameState, s: Side, n: number, srcName: stri
   log(g, { t: 'gold', side: s, value: -n, msg: `🪙 ${sideName(s)} kito ėjimo pradžioje neteks ${p.goldPenaltyNextTurn} aukso („${srcName}").` })
 }
 
+function counterCurrentSpellPrim(g: GameState, srcName: string) {
+  g.spellCountered = true
+  log(g, { t: 'spell', side: g.active, msg: `🚫 „${srcName}" pasiruošęs nutildyti žaidžiamą burtą.` })
+}
+
 function drawZmkVisualPrim(g: GameState, s: Side) {
   const v = drawZmkCard(g, s)
   log(g, { t: 'zmk', side: s, zmk: v, msg: `ŽMK traukimas: ${v}.`, sound: 'zmkFlip' })
@@ -1324,6 +1331,7 @@ export const gameApi: GameApi = {
   gainGold: gainGoldPrim,
   loseGold: loseGoldPrim,
   scheduleGoldPenalty: scheduleGoldPenaltyPrim,
+  counterCurrentSpell: counterCurrentSpellPrim,
   returnUnitToHand: returnUnitToHandPrim,
   summonFromZone: summonFromZonePrim,
   millDeck: millDeckPrim,
@@ -1570,6 +1578,16 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         src: { side: s }, tgt: opts?.target ? { ...opts.target } : undefined,
         projectile: proj, sound: spellMappings[0]?.sound ?? card.gameplay?.soundType ?? 'spellCast',
       })
+      // Reakcijų langas: priešo onAnyCast gali NUTILDYTI/ATŠAUKTI burtą (castSpell taikinys)
+      g.spellCountered = false
+      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, spellType: card.gameplay?.spellType })
+      if (g.spellCountered) {
+        g.spellCountered = false
+        log(g, { t: 'spell', side: s, cardName: card.name, msg: `🚫 Burtas „${card.name}" nutildytas – jokio efekto.` })
+        p.discard.push(card)
+        afterPlay(g, s, card)
+        return { ok: true }
+      }
       if (spellMappings.length > 0) {
         for (const m of spellMappings) {
           applyMapping(gameApi, g, s, m, { sourceName: card.name, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
@@ -1584,7 +1602,6 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       // lauko onCast trigger'iai
       fireTrigger(gameApi, g, s, 'onCast', 1)
       afterPlay(g, s, card)
-      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, spellType: card.gameplay?.spellType })
       return { ok: true }
     }
     case 'artifact': {
@@ -1867,9 +1884,12 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   const foe = other(s)
   const atk = effectiveAtk(g, u)
   const unfav = !!u.statuses.poisoned // Apnuodytas puola nepalankiai
-  // onAttack mapping'ai (puolančiojo)
-  if ((u.card.mappings ?? []).some((m) => m.trigger === 'onAttack')) {
-    applyMappings(gameApi, g, s, u.card.mappings ?? [], 'onAttack', { sourceName: u.card.name, sourceUid: u.uid, depth: 1 })
+  // onAttack mapping'ai (puolančiojo). useAttackTarget → efektas taikomas į atakuotą taikinį.
+  for (const m of (u.card.mappings ?? [])) {
+    if (m.trigger !== 'onAttack') continue
+    const ct = m.useAttackTarget ? toResolved(target) : undefined
+    applyMapping(gameApi, g, s, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: ct, depth: 1 })
+    if (g.winner) break
   }
   fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype })
 
@@ -1881,9 +1901,15 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     const def = P(g, foe).units.find((x) => x?.uid === target.uid)
     if (!def) { log(g, { t: 'blocked', side: s, msg: 'Taikinys nebegalioja.' }); return { ok: true } }
     log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" (${atk} ATK) atakuoja „${def.card.name}" – abu traukia po ŽMK!`, src: { side: s, uid: u.uid }, tgt: { kind: 'unit', side: foe, uid: def.uid }, sound: 'attack' })
-    // onAttacked mapping'ai (gynėjo)
-    if (!def.statuses.silenced && (def.card.mappings ?? []).some((m) => m.trigger === 'onAttacked')) {
-      applyMappings(gameApi, g, foe, def.card.mappings ?? [], 'onAttacked', { sourceName: def.card.name, sourceUid: def.uid, depth: 1 })
+    // onAttacked mapping'ai (gynėjo). useAttackTarget → efektas taikomas į atakuotoją.
+    if (!def.statuses.silenced) {
+      const attackerRef = toResolved({ kind: 'unit', side: s, uid: u.uid })
+      for (const m of (def.card.mappings ?? [])) {
+        if (m.trigger !== 'onAttacked') continue
+        const ct = m.useAttackTarget ? attackerRef : undefined
+        applyMapping(gameApi, g, foe, m, { sourceName: def.card.name, sourceUid: def.uid, chosenTarget: ct, depth: 1 })
+        if (g.winner) break
+      }
       if (!p.units.some((x) => x?.uid === u.uid)) return { ok: true }
     }
     if (g.rollContext?.kind === 'attack' && g.rollContext.poisonedSides) g.rollContext.poisonedSides[foe] = !!def.statuses.poisoned
