@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
+import type { AiDifficulty } from '@/lib/tutorial/ai'
 
 const TutorialGame = dynamic(() => import('./TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -23,6 +24,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full' }: {
   const [factions, setFactions] = useState<Faction[]>([])
   const [oppDeck, setOppDeck] = useState<string>('')
   const [oppFaction, setOppFaction] = useState<number | ''>('')
+  const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
 
   useEffect(() => {
     if (!open) return
@@ -47,6 +49,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full' }: {
         opponentDeckId={mode === 'public' ? oppDeck : null}
         opponentFaction={mode === 'faction' && oppFaction ? Number(oppFaction) : null}
         opponentName={mode === 'public' ? (publicDecks.find((d) => d.id === oppDeck)?.name ?? 'Priešas') : (factions.find((f) => f.id === oppFaction)?.name ?? 'Priešas')}
+        difficulty={difficulty}
         onClose={() => { setStarted(false); setOpen(false) }}
       />
     )
@@ -95,6 +98,21 @@ export function PracticeButton({ deckId, deckName, variant = 'full' }: {
                 {publicDecks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
               </select>
             )}
+
+            <p className="text-[11px] font-semibold mt-4 mb-1.5" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI sunkumas</p>
+            <div className="flex gap-2">
+              {([['easy', '😴 Lengvas'], ['normal', '⚔ Vidutinis'], ['hard', '💀 Sunkus']] as const).map(([d, lbl]) => (
+                <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} className="flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                  style={{ background: difficulty === d ? 'rgba(34,197,94,0.25)' : 'var(--bg-elevated)', border: '1px solid ' + (difficulty === d ? 'rgba(34,197,94,0.5)' : 'var(--bg-border)'), color: difficulty === d ? '#86efac' : 'var(--text-muted)' }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              {difficulty === 'easy' ? 'Žaidžia paprasčiau, dažniau eina į veidą, ne visada optimaliai.'
+                : difficulty === 'hard' ? 'Planuoja į priekį, taupo removal, agresyviai baudžia silpną lentą.'
+                : 'Skaičiuoja trade\u2019us, naudoja removal/AoE logiškai, saugosi lethal.'}
+            </p>
 
             <div className="flex gap-2 mt-5">
               <button disabled={!canStart} onClick={() => { playUiClick(); setStarted(true) }}

@@ -26,6 +26,7 @@ import {
   STATUS_META, TutStatus, boardCreatureCap,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
+import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
@@ -36,7 +37,7 @@ import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/scr
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
 const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
-type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; net?: PvPNet }
+type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -312,7 +313,7 @@ function cardNeedsTarget(game: GameState, c: TutCard): boolean {
   return (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, net }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
   const isGuest = !!net && !net.isHost
@@ -852,7 +853,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
         const g = cloneState(prev)
-        const act = aiNextAction(g)
+        const act = aiNextAction(g, { difficulty })
         if (!act) {
           endTurn(g)
           if (!g.winner) beginTurn(g)
@@ -861,7 +862,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, difficulty])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner

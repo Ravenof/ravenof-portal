@@ -7,6 +7,7 @@ import { GameState, P, other, playCard, attack, discardForGold, useChampionAbili
 import type { AiAction, AiDifficulty } from './aiTypes'
 import { DIFFICULTY_WEIGHTS, aiLog } from './aiTypes'
 import { generateLegalActions, type ScoredAction } from './aiActions'
+import { planFocusFire } from './aiFocusFire'
 import { hasLethalThisTurn, evaluateSurvivalRisk, evaluateBoardThreat } from './aiThreatEvaluation'
 
 export type { AiAction, AiDifficulty }
@@ -24,6 +25,8 @@ function resolveDifficulty(opts?: { difficulty?: AiDifficulty }): AiDifficulty {
 export function decideAiTurn(g: GameState, opts?: { difficulty?: AiDifficulty }): ScoredAction[] {
   const w = DIFFICULTY_WEIGHTS[resolveDifficulty(opts)]
   const actions = generateLegalActions(g, w)
+  // Focus-fire planavimas (cumulative damage) – nebent jau turim lethal į veidą.
+  if (!hasLethalThisTurn(g)) actions.push(...planFocusFire(g, w))
   for (const a of actions) a.score += Math.random() * w.jitter
   actions.sort((x, y) => y.score - x.score)
   return actions
