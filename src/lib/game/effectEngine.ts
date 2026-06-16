@@ -50,12 +50,21 @@ const MAX_DEPTH = 4
 
 const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'moveToGraveyard']
 
+// Efektai, kuriems NIEKADA nereikia rankinio taikinio (sužaidžiami iškart, be pasirinkimo).
+const NO_SELECT_EFFECTS = new Set<EffectType>([
+  'drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard',
+  'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
+  'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
+  'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage',
+])
+
 export function effectIntent(e: EffectType): 'harm' | 'help' {
   return HARM_EFFECTS.includes(e) ? 'harm' : 'help'
 }
 
 /** Ar mapping'ui reikia žaidėjo pasirinkti taikinį UI'juje? */
 export function mappingNeedsSelection(m: EffectMapping): boolean {
+  if (NO_SELECT_EFFECTS.has(m.effect)) return false
   if (m.targetTypes && m.targetTypes.length > 0) return m.requiresSelection !== false
   if (isMultiTarget(m.target)) return false
   if (m.requiresSelection === false) return false
