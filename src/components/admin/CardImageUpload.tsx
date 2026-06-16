@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { Upload, Loader2, X, ImageIcon } from 'lucide-react'
+import { Upload, Loader2, X, ImageIcon, Maximize2 } from 'lucide-react'
+import { CardLightbox } from '@/components/rules/CardLightbox'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
@@ -30,6 +31,7 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
   const [error, setError]       = useState<string | null>(null)
   const [success, setSuccess]   = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [zoom, setZoom] = useState<string | null>(null)
 
   const displayUrl = preview ?? currentUrl ?? null
 
@@ -102,6 +104,8 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
     <div className="space-y-2">
       {/* Current / Preview image */}
       <div
+        onClick={() => { if (displayUrl) setZoom(displayUrl) }}
+        title={displayUrl ? 'Peržiūrėti iš arti' : undefined}
         className="relative rounded-lg overflow-hidden flex items-center justify-center"
         style={{
           width: '100%',
@@ -109,6 +113,7 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
           maxWidth: '160px',
           background: 'var(--bg-elevated)',
           border: '1px solid var(--bg-border)',
+          cursor: displayUrl ? 'zoom-in' : 'default',
         }}
       >
         {displayUrl ? (
@@ -124,13 +129,16 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
             {preview && (
               <button
                 type="button"
-                onClick={() => { setPreview(null); if (fileRef.current) fileRef.current.value = '' }}
+                onClick={(e) => { e.stopPropagation(); setPreview(null); if (fileRef.current) fileRef.current.value = '' }}
                 className="absolute top-1 right-1 rounded-full p-0.5"
                 style={{ background: 'rgba(0,0,0,0.7)', color: '#fff' }}
               >
                 <X className="w-3 h-3" />
               </button>
             )}
+            <span className="absolute bottom-1 right-1 rounded-full p-1 pointer-events-none" style={{ background: 'rgba(0,0,0,0.6)', color: '#fff' }}>
+              <Maximize2 className="w-3 h-3" />
+            </span>
           </>
         ) : (
           <div className="flex flex-col items-center gap-1 opacity-40">
@@ -186,6 +194,7 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
         {ALLOWED_LABEL} · maks. 5 MB
       </p>
+      {zoom && <CardLightbox src={zoom} alt="Kortos paveikslėlis" onClose={() => setZoom(null)} />}
     </div>
   )
 }

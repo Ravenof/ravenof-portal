@@ -3,7 +3,8 @@
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Trash2, Pencil, X } from 'lucide-react'
+import { Trash2, Pencil, X, Eye } from 'lucide-react'
+import { CardLightbox } from '@/components/rules/CardLightbox'
 import { DeleteCardButton } from '@/components/admin/DeleteCardButton'
 import { bulkUpdateCards, bulkDeleteCards, type BulkChanges } from '@/app/admin/cards/actions'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
@@ -24,6 +25,7 @@ export type AdminCardRow = {
   health: number | null
   status: string
   is_champion: boolean
+  image_url: string | null
   faction: { name: string; color_hex: string } | null
   card_type: { name: string } | null
   rarity: { name: string; color_hex: string } | null
@@ -54,6 +56,7 @@ export function AdminCardsTable({
   const [bulkRarity, setBulkRarity] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+  const [preview, setPreview] = useState<{ src: string; name: string } | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const allSelected = rows.length > 0 && selected.size === rows.length
@@ -219,8 +222,8 @@ export function AdminCardsTable({
                   className="cursor-pointer accent-yellow-500"
                   aria-label="Pažymėti visas" />
               </th>
-              {['Nr.', 'Pavadinimas', 'Frakcija', 'Tipas', 'Retumas', 'Auksas', 'ATK', 'HP', 'Statusas', '', ''].map(h => (
-                <th key={h} className="text-left px-3 py-2 text-xs font-semibold"
+              {['Nr.', 'Pavadinimas', 'Frakcija', 'Tipas', 'Retumas', 'Auksas', 'ATK', 'HP', 'Statusas', '', '', ''].map((h, hi) => (
+                <th key={h + hi} className="text-left px-3 py-2 text-xs font-semibold"
                   style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -277,6 +280,14 @@ export function AdminCardsTable({
                   </span>
                 </td>
                 <td className="px-3 py-2">
+                  {card.image_url ? (
+                    <button onClick={() => { playUiClick(); setPreview({ src: card.image_url!, name: card.name }) }} title="Peržiūrėti kortą"
+                      className="p-1 rounded transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }} aria-label={`Peržiūrėti ${card.name}`}>
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                </td>
+                <td className="px-3 py-2">
                   <Link href={'/admin/cards/' + card.id}
                     className="text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
                     style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--bg-border)', whiteSpace: 'nowrap' }}>
@@ -296,6 +307,7 @@ export function AdminCardsTable({
           </div>
         )}
       </div>
+      {preview && <CardLightbox src={preview.src} alt={preview.name} caption={preview.name} onClose={() => setPreview(null)} />}
     </>
   )
 }

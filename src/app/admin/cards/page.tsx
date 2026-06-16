@@ -19,7 +19,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
   let q = supabase
     .from('cards')
     .select(`
-      id, card_number, name, gold_cost, attack, health, status, is_champion,
+      id, card_number, name, gold_cost, attack, health, status, is_champion, image_url,
       faction:factions ( id, name, color_hex ),
       card_type:card_types ( id, name ),
       rarity:rarities ( id, name, color_hex )
@@ -45,7 +45,7 @@ export default async function AdminCardsPage({ searchParams }: { searchParams: S
 
   const rows = (cards ?? []) as unknown as {
     id: string; card_number: string | null; name: string; gold_cost: number | null
-    attack: number | null; health: number | null; status: string; is_champion: boolean
+    attack: number | null; health: number | null; status: string; is_champion: boolean; image_url: string | null
     faction: { name: string; color_hex: string } | null
     card_type: { name: string } | null
     rarity: { name: string; color_hex: string } | null

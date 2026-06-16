@@ -363,6 +363,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const sawOppRef = useRef(!!net?.resume)
   const graceRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const dragEndRef = useRef(0)
+  const logSwipeRef = useRef<{ x: number; y: number } | null>(null)
   const [champPopup, setChampPopup] = useState<string | null>(null)
   const [champSwap, setChampSwap] = useState<{ cardUid: string; name: string; phase: number; options: number[] } | null>(null)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
@@ -1905,7 +1906,11 @@ doAction({ t: 'endTurn', actor: 'you' })
         {showLog && game && (
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
             className="fixed right-2 top-12 bottom-2 z-[124] w-[min(300px,80vw)] rounded-xl p-3 overflow-y-auto"
-            style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)' }}>
+            style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)', touchAction: 'pan-y' }}
+            onPointerDown={(e) => { logSwipeRef.current = { x: e.clientX, y: e.clientY } }}
+            onPointerMove={(e) => { const st = logSwipeRef.current; if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y; if (dx > 70 && Math.abs(dx) > Math.abs(dy)) { logSwipeRef.current = null; playUiClick(); setShowLog(false) } }}
+            onPointerUp={() => { logSwipeRef.current = null }}
+            onPointerCancel={() => { logSwipeRef.current = null }}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>Įvykių žurnalas</p>
               <button onClick={() => { playUiClick(); setShowLog(false) }} aria-label="Uždaryti" className="text-sm leading-none px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
@@ -2046,20 +2051,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             onClick={() => { playCardPlace(); setInspect(null) }}>
             <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
               <GameCard glowColor={inspect.rarityColor} intensity={12}>
-                <div className="flex flex-col rounded-xl overflow-hidden" style={{ width: 'min(260px, 70vw)', background: 'var(--bg-surface)', border: '2px solid ' + inspect.rarityColor }}>
-                  <MiniCard c={inspect} w={Math.min(260, typeof window !== 'undefined' ? window.innerWidth * 0.7 : 260)} />
-                  <div className="p-3">
-                    <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>{inspect.name}</p>
-                    {inspect.keywords.length > 0 && (
-                      <p className="text-[10px] mb-1" style={{ color: 'var(--gold)' }}>
-                        {inspect.keywords.map((k) => KEYWORD_LABELS[k]).join(' · ')}
-                      </p>
-                    )}
-                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                      {inspect.effectText || 'Korta be specialaus efekto.'}
-                    </p>
-                  </div>
-                </div>
+                <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * 0.84 : 320)} />
               </GameCard>
             </motion.div>
           </motion.div>
