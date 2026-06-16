@@ -333,7 +333,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
   // Prakeiksmo aktyvacijos overlay
-  const [curseShow, setCurseShow] = useState<{ name: string; msg: string; image: string | null } | null>(null)
+  const [cardFlash, setCardFlash] = useState<{ card: TutCard | null; title: string; tag: string | null; color: string } | null>(null)
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
@@ -383,9 +384,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const cardByName = useMemo(() => {
     const m: Record<string, TutCard> = {}
     for (const c of deckCards ?? []) m[c.name] = c
+    for (const c of oppCards ?? []) m[c.name] = c
     for (const c of curseCards) m[c.name] = c
     return m
-  }, [deckCards, curseCards])
+  }, [deckCards, oppCards, curseCards])
 
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
@@ -684,7 +686,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       switch (e.t) {
         case 'draw': if (!e.sound) playCardDraw(); break
         case 'play': case 'artifact': case 'champion': if (!e.sound) playBattleSound('summon'); break
-        case 'spell': case 'ability': if (!e.sound) playBattleSound('spellCast'); break
+        case 'spell': case 'ability': {
+          if (!e.sound) playBattleSound('spellCast')
+          if (e.t === 'spell' && e.cardName) {
+            const card = [...game.you.discard, ...game.ai.discard].find((c) => c.name === e.cardName) ?? cardByName[e.cardName] ?? null
+            setCardFlash({ card, title: e.cardName, tag: e.side === 'you' ? 'Tavo burtas' : 'Priešo burtas', color: '#60a5fa' })
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+            flashTimerRef.current = setTimeout(() => setCardFlash(null), 1000)
+          }
+          break
+        }
         case 'attack': if (!e.sound) playBattleSound('attack'); break
         case 'zmk':
           zmkN += 1
@@ -720,9 +731,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'curse': {
           queueTip('curse')
           playBattleSound('curse')
-          const cc = [...game.you.discard, ...game.ai.discard].find((c) => c.name === e.cardName)
-          setCurseShow({ name: e.cardName ?? 'Prakeiksmas', msg: e.msg, image: cc?.image ?? null })
-          setTimeout(() => setCurseShow(null), 2600)
+          const card = (e.cardName ? cardByName[e.cardName] : null)
+            ?? [...game.you.discard, ...game.ai.discard, ...game.you.deck, ...game.ai.deck].find((c) => c.name === e.cardName) ?? null
+          const activated = /aktyvuoj|ištrauk/i.test(e.msg)
+          setCardFlash({ card, title: e.cardName ?? 'Prakeiksmas', tag: activated ? 'AKTYVUOJAMAS' : 'ĮMAIŠOMAS', color: activated ? '#ef4444' : '#a78bfa' })
+          if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+          flashTimerRef.current = setTimeout(() => setCardFlash(null), 1700)
           break
         }
         case 'coin': queueTip('coin'); break
@@ -2511,27 +2525,23 @@ doAction({ t: 'endTurn', actor: 'you' })
         )}
       </AnimatePresence>
 
-      {/* ── prakeiksmo aktyvacijos overlay ── */}
+      {/* ── kortos „flash" pop-up: sužaistas burtas (1s) / prakeiksmas (įmaišomas/aktyvuojamas) ── */}
       <AnimatePresence>
-        {curseShow && (
+        {cardFlash && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[131] flex items-center justify-center pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(80,20,120,0.35), rgba(0,0,0,0.7))' }}>
-            <motion.div
-              initial={{ scale: 0.4, rotate: -8, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              transition={{ type: 'spring', damping: 14 }}
-              className="rounded-2xl p-5 text-center w-[min(320px,88vw)]"
-              style={{ background: 'linear-gradient(145deg, #241430, #130a1c)', border: '2px solid rgba(168,85,247,0.7)', boxShadow: '0 0 40px rgba(168,85,247,0.5)' }}>
-              <p className="text-3xl mb-1">🕸</p>
-              {curseShow.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={curseShow.image} alt={curseShow.name} className="mx-auto mb-2 rounded-lg" style={{ width: 100 }} />
+            className="fixed inset-0 z-[131] flex items-center justify-center pointer-events-none p-4">
+            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ type: 'spring', damping: 16 }} className="flex flex-col items-center gap-2">
+              {cardFlash.tag && (
+                <span className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + cardFlash.color, color: cardFlash.color, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>{cardFlash.tag}</span>
               )}
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>
-                Prakeiksmas: {curseShow.name}
-              </p>
-              <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{curseShow.msg}</p>
+              {cardFlash.card ? (
+                <div style={{ filter: 'drop-shadow(0 14px 34px rgba(0,0,0,0.75))', outline: '2px solid ' + cardFlash.color, borderRadius: 14 }}>
+                  <MiniCard c={cardFlash.card} w={isTouch ? 150 : 196} />
+                </div>
+              ) : (
+                <div className="px-5 py-3 rounded-xl text-base font-bold" style={{ background: 'rgba(8,6,12,0.95)', border: '1px solid ' + cardFlash.color, color: 'var(--text-primary)' }}>{cardFlash.title}</div>
+              )}
             </motion.div>
           </motion.div>
         )}
