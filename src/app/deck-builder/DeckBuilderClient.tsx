@@ -31,6 +31,7 @@ type Props = {
   collection: CollectionMap
   deckId: string | null
   initialDeck: InitialDeck
+  embedded?: boolean
 }
 
 type ValidityState = 'valid' | 'almost' | 'invalid'
@@ -71,7 +72,7 @@ const VALIDITY_ICONS: Record<ValidityState, React.ElementType> = {
   invalid: AlertCircle,
 }
 
-export function DeckBuilderClient({ userId, cards, factions, collection, deckId, initialDeck }: Props) {
+export function DeckBuilderClient({ userId, cards, factions, collection, deckId, initialDeck, embedded = false }: Props) {
   const store = useDeckBuilderStore()
   const [showStats, setShowStats] = useState(false)
 
@@ -102,7 +103,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-base)' }}>
+    <div className={embedded ? 'flex flex-col' : 'min-h-screen flex flex-col'} style={embedded ? undefined : { background: 'var(--bg-base)' }}>
       {/* HEADER */}
       <header
         className="sticky top-0 z-20 border-b px-4 py-3"

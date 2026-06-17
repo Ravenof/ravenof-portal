@@ -13,7 +13,7 @@ import { playUiClick } from '@/lib/ui-sound'
 const NAV = [
   { href: '/digital', label: 'Meniu', icon: LayoutGrid },
   { href: '/digital/album', label: 'Albumas', icon: BookOpen },
-  { href: '/deck-builder', label: 'Kaladės', icon: Hammer },
+  { href: '/digital/deck', label: 'Kaladės', icon: Hammer },
 ] as const
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
