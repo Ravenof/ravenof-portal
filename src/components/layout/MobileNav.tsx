@@ -25,6 +25,7 @@ const HIDE_PREFIXES = [
   '/suspended',
   '/offline',
   '/deck-builder',
+  '/digital',
 ]
 
 export function MobileNav() {

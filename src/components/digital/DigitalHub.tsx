@@ -148,24 +148,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
   return (
     <div className="relative">
-      <style>{`
-        @keyframes rvnFlameRise { 0%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(-14px) scaleX(1.06)} 100%{transform:translateY(0) scaleX(1)} }
-        @keyframes rvnFlameFlicker { 0%,100%{opacity:.30} 35%{opacity:.62} 60%{opacity:.42} 80%{opacity:.7} }
-        .rvn-flames{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
-          background: radial-gradient(120% 55% at 50% 118%, rgba(240,90,20,0.20), rgba(120,20,10,0.06) 42%, transparent 70%); }
-        .rvn-flame{ position:absolute; bottom:-70px; width:300px; height:360px; border-radius:48% 48% 50% 50%;
-          filter: blur(34px); mix-blend-mode:screen;
-          background: radial-gradient(circle at 50% 72%, rgba(255,175,45,0.6), rgba(240,95,20,0.4) 34%, rgba(150,25,10,0.14) 60%, transparent 72%);
-          animation: rvnFlameRise 3.4s ease-in-out infinite, rvnFlameFlicker 1.5s ease-in-out infinite; }
-      `}</style>
-      <div className="rvn-flames" aria-hidden>
-        <div className="rvn-flame" style={{ left: '4%', width: 260, animationDelay: '0s, 0.2s' }} />
-        <div className="rvn-flame" style={{ left: '24%', width: 320, height: 420, animationDelay: '0.6s, 0.9s' }} />
-        <div className="rvn-flame" style={{ left: '46%', width: 300, animationDelay: '1.1s, 0.4s' }} />
-        <div className="rvn-flame" style={{ left: '68%', width: 340, height: 430, animationDelay: '0.3s, 1.2s' }} />
-        <div className="rvn-flame" style={{ left: '88%', width: 260, animationDelay: '0.9s, 0.6s' }} />
-      </div>
-
       <div className="relative z-10 space-y-6">
         {/* Aukso balansas + pakuotės */}
         <div className="flex items-center justify-center gap-3">
