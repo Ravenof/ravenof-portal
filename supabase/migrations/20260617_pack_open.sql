@@ -9,7 +9,7 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   v_qty int; v_count int; i int; k int; v_card uuid;
   v_received uuid[] := '{}';
-  v_rarities uuid[]; n int; v_total_w int; v_r int; v_acc int; v_rar uuid;
+  v_rarities int[]; n int; v_total_w int; v_r int; v_acc int; v_rar int;
 begin
   -- nuosavybė
   select quantity into v_qty from public.user_pack_inventory
