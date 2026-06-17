@@ -85,7 +85,7 @@ export default async function MyCardsPage() {
             className="text-lg font-bold"
             style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.04em' }}
           >
-            Mano Kortos
+            Virtualios kortos
           </h1>
         </div>
         <Link
