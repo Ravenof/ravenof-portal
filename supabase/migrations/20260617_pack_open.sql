@@ -49,7 +49,7 @@ begin
     update public.user_collections set quantity = quantity + 1, updated_at = now()
       where user_id = auth.uid() and card_id = v_card;
     if not found then
-      insert into public.user_collections (user_id, card_id, quantity) values (auth.uid(), v_card, 1);
+      insert into public.user_collections (user_id, card_id, quantity, updated_at) values (auth.uid(), v_card, 1, now());
     end if;
   end loop;
 

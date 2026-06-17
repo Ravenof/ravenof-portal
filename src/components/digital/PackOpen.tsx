@@ -30,7 +30,10 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
     const r = await openPack(packId)
     setOpening(false)
     if ('error' in r) {
-      setError(r.error === 'no pack to open' ? 'Nebeturi šios pakuotės.' : 'Nepavyko atplėšti.')
+      const e = r.error || ''
+      setError(/no pack to open/i.test(e) ? 'Nebeturi šios pakuotės.'
+        : /rvn_open_pack|function|schema cache|404|not exist|does not exist/i.test(e) ? 'DB funkcija „rvn_open_pack" nerasta – paleisk Phase 2 migraciją Supabase SQL editoriuje.'
+        : ('Klaida: ' + e))
       firedRef.current = false
       return
     }
