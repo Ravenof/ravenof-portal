@@ -61,7 +61,7 @@ export type OpenedCard = {
 /** Atplėšia pakuotę: RPC sunaudoja pakuotę ir grąžina kortų ID; detales paimam atskirai. */
 export async function openPack(packId: string): Promise<OpenedCard[] | { error: string }> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_open_pack', { p_pack_id: packId })
+  const { data, error } = await supabase.rpc('rvn_open_pack_v2', { p_pack_id: packId })
   if (error) return { error: error.message }
   const ids = (data as string[]) ?? []
   if (ids.length === 0) return []
