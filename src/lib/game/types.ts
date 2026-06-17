@@ -91,7 +91,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'revive',              label: 'Prikelti',                   needsValue: false },
   { value: 'gainGold',            label: 'Gauti aukso',                needsValue: true },
   { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true },
-  { value: 'triggerCurse',        label: 'Aktyvuoti prakeiksmą',       needsValue: true },
+  { value: 'triggerCurse',        label: 'Įmaišyti prakeiksmų į kaladę (aktyvuojasi ištraukus)', needsValue: true },
   { value: 'triggerZmk',          label: 'Traukti ŽMK',                needsValue: false },
   { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true },
   { value: 'mill',                label: 'Mill (kortos iš kaladės į kapinyną)', needsValue: true },
@@ -287,11 +287,14 @@ export type EffectMapping = {
   hitCount?: number                 // kiek atskirų taikinių paveikti (auto/atsitiktinis; default 1)
   targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
   targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
+  targetFaction?: number            // tik nurodytos frakcijos padarai (faction id)
   triggerSide?: 'own' | 'enemy' | 'any'  // globalus trigger: kieno įvykis aktyvuoja (savo/priešo/bet kuris)
   triggerSubtype?: string           // globalus trigger: tik šio potipio padaro įvykis aktyvuoja
+  triggerFaction?: number           // globalus trigger: tik šios frakcijos padaro įvykis aktyvuoja
   triggerSummonSource?: 'any' | 'graveyard' | 'deck' | 'hand' | 'play'  // onAnySummon: iš kur padaras atsirado
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
   summonSubtype?: string            // summon*: tik šio potipio padarai
+  summonFaction?: number            // summon*: tik šios frakcijos padarai
   summonCount?: number              // summon*: kiek iškviesti (default 1)
   summonZones?: ('hand' | 'deck' | 'discard')[]  // summonAdvanced: iš kurių zonų (eilės tvarka)
   summonCostMin?: number            // summonAdvanced: kaina >= reikšmė
@@ -338,6 +341,7 @@ export type PassiveAuraConfig = {
   auraHealth?: number                  // +HP (ir maxHP) paveiktiems padarams
   auraScope?: 'friendly' | 'enemy' | 'all'  // kuriuos padarus veikia (default: savus)
   auraSubtype?: string                 // tik šio potipio padarus (ZOMBIE/GOBLIN/…)
+  auraFaction?: number                 // tik šios frakcijos padarus (faction id)
   auraIncludesSelf?: boolean           // ar veikia ir pačią auros kortą (default: ne)
   auraSilence?: boolean                // paveikti padarai nutildomi (efektai/raktažodžiai blokuojami)
   auraCantAttack?: boolean             // paveikti padarai negali atakuoti

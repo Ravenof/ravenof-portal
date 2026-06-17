@@ -4,10 +4,11 @@
 // Dropdown'ais sudaromi EffectMapping'ai + field pasyvai + raw JSON režimas.
 // Rezultatas serializuojamas į hidden input name="gameplay" (saveCard parsina).
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
-  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SUBTYPE_OPTIONS, SPELL_TYPES, ATTACK_RESTRICTIONS,
+  METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SPELL_TYPES, ATTACK_RESTRICTIONS,
   type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType, type AttackRestriction,
 } from '@/lib/game/types'
 
@@ -42,6 +43,13 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
   const [rawError, setRawError] = useState<string | null>(null)
 
   const [activeSkill, setActiveSkill] = useState(0)
+  const [factions, setFactions] = useState<{ id: number; name: string }[]>([])
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('factions').select('id, name').order('sort_order').then(({ data }) => {
+      setFactions(((data as { id: number; name: string }[]) ?? []))
+    })
+  }, [])
   const update = (next: GameplayConfig) => setCfg(next)
 
   const champSkills = cfg.championSkillConfig?.skills ?? []
@@ -189,10 +197,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Tik potipis</label>
-                  <select value={pa?.auraSubtype ?? ''}
-                    onChange={(e) => setPa({ auraSubtype: e.target.value || undefined })} style={inputStyle}>
-                    {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                  <label style={labelStyle}>Tik frakcija</label>
+                  <select value={pa?.auraFaction ?? ''}
+                    onChange={(e) => setPa({ auraFaction: e.target.value ? Number(e.target.value) : undefined })} style={inputStyle}>
+                    <option value="">(bet kuri frakcija)</option>
+                    {factions.map((fc) => <option key={fc.id} value={fc.id}>{fc.name}</option>)}
                   </select>
                 </div>
                 <div className="flex items-end pb-1">
@@ -425,9 +434,10 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>Tik potipis</label>
-                        <select value={m.triggerSubtype ?? ''} onChange={(e) => setMapping(i, { triggerSubtype: e.target.value || undefined })} style={inputStyle}>
-                          {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                        <label style={labelStyle}>Tik frakcija</label>
+                        <select value={m.triggerFaction ?? ''} onChange={(e) => setMapping(i, { triggerFaction: e.target.value ? Number(e.target.value) : undefined })} style={inputStyle}>
+                          <option value="">(bet kuri frakcija)</option>
+                          {factions.map((fc) => <option key={fc.id} value={fc.id}>{fc.name}</option>)}
                         </select>
                       </div>
                       {m.trigger === 'onAnyCast' && (
@@ -575,25 +585,30 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                         🎯 Taikinys = kovos taikinys {m.trigger === 'onAttack' ? '(atakuotas)' : '(atakuotojas)'}
                       </label>
                     )}
-                    <label className="flex items-center gap-1">
+                    <label className="flex items-center gap-1" title="Įmaišo prakeiksmų kortų iš side deck'o į kaladę. Aktyvuojasi, kai jas ištraukia.">
                       <input type="checkbox" checked={!!m.triggersCurse}
                         onChange={(e) => setMapping(i, { triggersCurse: e.target.checked ? { count: 1, appliesTo: 'opponent' } : undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
-                      Aktyvuoja prakeiksmą
+                      🕸 Įmaišo prakeiksmų į kaladę
                     </label>
                     {m.triggersCurse && (
                       <>
-                        <input type="number" min={1} max={5} value={m.triggersCurse.count}
-                          onChange={(e) => setMapping(i, { triggersCurse: { ...m.triggersCurse!, count: Number(e.target.value) } })}
-                          style={{ ...inputStyle, width: 50 }} title="Kiek prakeiksmų" />
-                        <select value={m.triggersCurse.appliesTo}
-                          onChange={(e) => setMapping(i, { triggersCurse: { ...m.triggersCurse!, appliesTo: e.target.value as 'caster' | 'opponent' | 'targetOwner' | 'chosenTarget' | 'random' } })}
-                          style={{ ...inputStyle, width: 130 }}>
-                          <option value="caster">Sau (caster)</option>
-                          <option value="opponent">Priešininkui</option>
-                          <option value="targetOwner">Taikinio savininkui</option>
-                          <option value="chosenTarget">Pasirinktam</option>
-                          <option value="random">Random (jei leista)</option>
-                        </select>
+                        <label className="flex items-center gap-1">Kiek
+                          <input type="number" min={1} max={5} value={m.triggersCurse.count}
+                            onChange={(e) => setMapping(i, { triggersCurse: { ...m.triggersCurse!, count: Number(e.target.value) } })}
+                            style={{ ...inputStyle, width: 50 }} title="Kiek prakeiksmų kortų įmaišyti" />
+                        </label>
+                        <label className="flex items-center gap-1">Į kieno kaladę
+                          <select value={m.triggersCurse.appliesTo}
+                            onChange={(e) => setMapping(i, { triggersCurse: { ...m.triggersCurse!, appliesTo: e.target.value as 'caster' | 'opponent' | 'targetOwner' | 'chosenTarget' | 'random' } })}
+                            style={{ ...inputStyle, width: 160 }}>
+                            <option value="opponent">Priešo kaladę</option>
+                            <option value="caster">Savo kaladę</option>
+                            <option value="targetOwner">Taikinio savininko</option>
+                            <option value="chosenTarget">Pasirinkto</option>
+                            <option value="random">Atsitiktinai (jei leista)</option>
+                          </select>
+                        </label>
+                        <span className="text-[10px] w-full" style={{ color: 'var(--text-muted)' }}>🕸 Prakeiksmai įmaišomi į kaladę ir aktyvuojasi tik kai juos ištraukia. (Reikia, kad kortai būtų priskirtas prakeiksmų side deck.)</span>
                       </>
                     )}
                     {m.effect === 'removeZmkCard' && (
@@ -652,9 +667,10 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                             style={{ ...inputStyle, width: 64 }} title="Tik kortos su kaina <= reikšmė" />
                         </label>
                         <label className="flex items-center gap-1">
-                          Potipis
-                          <select value={m.summonSubtype ?? ''} onChange={(e) => setMapping(i, { summonSubtype: e.target.value || undefined })} style={{ ...inputStyle, width: 120 }}>
-                            {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                          Frakcija
+                          <select value={m.summonFaction ?? ''} onChange={(e) => setMapping(i, { summonFaction: e.target.value ? Number(e.target.value) : undefined })} style={{ ...inputStyle, width: 140 }}>
+                            <option value="">(bet kuri frakcija)</option>
+                            {factions.map((fc) => <option key={fc.id} value={fc.id}>{fc.name}</option>)}
                           </select>
                         </label>
                         <label className="flex items-center gap-1">
@@ -713,10 +729,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                     {isTargeted && (
                       <>
                         <label className="flex items-center gap-1">
-                          Potipis:
-                          <select value={m.targetSubtype ?? ''} onChange={(e) => setMapping(i, { targetSubtype: e.target.value || undefined })}
-                            style={{ ...inputStyle, width: 120 }} title="Tik šio potipio padarai">
-                            {SUBTYPE_OPTIONS.map((st) => <option key={st} value={st}>{st || '(bet koks)'}</option>)}
+                          Frakcija:
+                          <select value={m.targetFaction ?? ''} onChange={(e) => setMapping(i, { targetFaction: e.target.value ? Number(e.target.value) : undefined })}
+                            style={{ ...inputStyle, width: 140 }} title="Tik šios frakcijos padarai">
+                            <option value="">(bet kuri frakcija)</option>
+                            {factions.map((fc) => <option key={fc.id} value={fc.id}>{fc.name}</option>)}
                           </select>
                         </label>
                         <label className="flex items-center gap-1">

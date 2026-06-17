@@ -247,6 +247,15 @@ export function filterSubtype(g: GameState, candidates: ResolvedTarget[], subtyp
   })
 }
 
+export function filterFaction(g: GameState, candidates: ResolvedTarget[], factionId: number): ResolvedTarget[] {
+  if (!factionId) return candidates
+  return candidates.filter((t) => {
+    if (t.kind !== 'unit') return false
+    const u = P(g, t.side).units.find((x) => x?.uid === t.uid)
+    return !!u && u.card.factionId === factionId
+  })
+}
+
 /** Filtruoja kandidatus iki sužeistų padarų (hp < maxHp). */
 export function filterWounded(g: GameState, candidates: ResolvedTarget[]): ResolvedTarget[] {
   return candidates.filter((t) => {

@@ -4,7 +4,7 @@
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
 import type { EffectMapping, EffectType } from './types'
-import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, type ResolvedTarget } from './targetResolver'
+import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, filterFaction, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 
 export type GameApi = {
@@ -24,7 +24,7 @@ export type GameApi = {
   scheduleGoldPenalty(g: GameState, s: Side, n: number, srcName: string): void
   counterCurrentSpell(g: GameState, srcName: string): void
   returnUnitToHand(g: GameState, owner: Side, u: BoardUnit): void
-  summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; count?: number }): void
+  summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; factionId?: number; count?: number }): void
   activateCurses(g: GameState, target: Side, count: number, srcName: string, depth: number): void
   drawZmkVisual(g: GameState, s: Side): void
   removeZmkCard(g: GameState, s: Side, value: string, count: number): void
@@ -36,7 +36,7 @@ export type GameApi = {
   returnGraveyardToDeck(g: GameState, s: Side, n: number): void
   peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
-  summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number; choose?: boolean; names?: string }): void
+  summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   log(g: GameState, e: GameEvent): void
 }
 
@@ -130,6 +130,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       let all = hasTypes ? resolveMappingTargets(g, caster, m) : resolveTargets(g, caster, m.target)
       if (m.targetWoundedOnly) all = filterWounded(g, all)
       if (m.targetSubtype) all = filterSubtype(g, all, m.targetSubtype)
+      if (m.targetFaction) all = filterFaction(g, all, m.targetFaction)
       if (aoe) targets = all
       else {
         const n = Math.max(1, m.hitCount ?? 1)
@@ -209,15 +210,15 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v); break
     case 'gainGold': api.gainGold(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v, ctx.sourceName); break
     case 'loseGold': api.loseGold(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, ctx.sourceName); break
-    case 'summonFromHand': api.summonFromZone(g, caster, 'hand', { costMax: m.summonCostMax, subtype: m.summonSubtype, count: m.summonCount }); break
-    case 'summonFromDeck': api.summonFromZone(g, caster, 'deck', { costMax: m.summonCostMax, subtype: m.summonSubtype, count: m.summonCount }); break
-    case 'summonFromGraveyard': case 'revive': api.summonFromZone(g, caster, 'discard', { costMax: m.summonCostMax, subtype: m.summonSubtype, count: m.summonCount }); break
+    case 'summonFromHand': api.summonFromZone(g, caster, 'hand', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
+    case 'summonFromDeck': api.summonFromZone(g, caster, 'deck', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
+    case 'summonFromGraveyard': case 'revive': api.summonFromZone(g, caster, 'discard', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
     case 'mill': api.millDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
     case 'returnGraveyardToDeck': api.returnGraveyardToDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
     case 'peekDiscard': api.peekDiscard(g, targets[0]?.kind === 'player' ? targets[0].side : foe, m.peekCount ?? v * 2, v, caster); break
     case 'revealOwnDeck': api.revealDeck(g, caster, v, caster); break
     case 'revealEnemyDeck': api.revealDeck(g, foe, v, caster); break
-    case 'summonAdvanced': api.summonAdvanced(g, caster, { zones: m.summonZones, costMin: m.summonCostMin, costMax: m.summonCostMax, subtype: m.summonSubtype, count: m.summonCount, choose: m.summonChoose, names: m.summonNames }); break
+    case 'summonAdvanced': api.summonAdvanced(g, caster, { zones: m.summonZones, costMin: m.summonCostMin, costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: m.summonChoose, names: m.summonNames }); break
     case 'selfToEnemyHand': case 'selfToOwnHand': break  // apdorojama killUnit (onDeath reroute)
     case 'returnToHand':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.returnUnitToHand(g, f.owner, f.u) }

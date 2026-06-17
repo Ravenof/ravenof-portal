@@ -54,7 +54,7 @@ type DbRow = {
     gameplay?: unknown
     card_type: { name: string } | null
     rarity: { color_hex: string | null } | null
-    faction: { color_hex: string | null } | null
+    faction: { id?: number | null; name?: string | null; color_hex: string | null } | null
     card_keywords: { keyword: { name: string } | null }[] | null
   } | null
 }
@@ -88,6 +88,8 @@ function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
     effectText: text,
     rarityColor: c.rarity?.color_hex ?? '#d4af37',
     factionColor: c.faction?.color_hex ?? '#d4af37',
+    factionId: c.faction?.id ?? null,
+    factionName: c.faction?.name ?? null,
     effect: parseEffect(text),
     gameplay,
     // Admin mapping > legacy teksto parseris (mappings tušti = legacy kelias)
@@ -351,6 +353,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
   const [showLog, setShowLog] = useState(false)
+  const logScrollRef = useRef<HTMLDivElement | null>(null)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
   const [peekSel, setPeekSel] = useState<string[]>([])
@@ -392,6 +395,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     for (const c of curseCards) m[c.name] = c
     return m
   }, [deckCards, oppCards, curseCards])
+
+  // Kortos paieška pagal vardą: kaladės + visos žaidimo zonos (kad logas/pop-up'ai
+  // rodytų ir varžovo bei sužaistų kortų paveikslus – įskaitant burtus).
+  const findCard = useCallback((name?: string | null): TutCard | null => {
+    if (!name) return null
+    if (cardByName[name]) return cardByName[name]
+    if (!game) return null
+    for (const p of [game.you, game.ai]) {
+      for (const arr of [p.hand, p.deck, p.discard]) { const f = arr.find((c) => c.name === name); if (f) return f }
+      for (const u of p.units) if (u?.card.name === name) return u.card
+      for (const a of p.artifacts) if (a?.card.name === name) return a.card
+    }
+    if (game.field?.card.name === name) return game.field.card
+    return null
+  }, [cardByName, game])
 
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
@@ -467,7 +485,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
           card_type:card_types ( name ),
           rarity:rarities ( color_hex ),
-          faction:factions ( color_hex ),
+          faction:factions ( id, name, color_hex ),
           card_keywords ( keyword:keywords ( name ) )
         `)
         .eq('status', 'active')
@@ -495,7 +513,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
           card_type:card_types ( name ),
           rarity:rarities ( color_hex ),
-          faction:factions ( color_hex ),
+          faction:factions ( id, name, color_hex ),
           card_keywords ( keyword:keywords ( name ) )
         )
       `)
@@ -529,7 +547,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
         card_type:card_types ( name ),
         rarity:rarities ( color_hex ),
-        faction:factions ( color_hex ),
+        faction:factions ( id, name, color_hex ),
         card_keywords ( keyword:keywords ( name ) )
       `).eq('status', 'active').limit(300),
     ]).then(([zmkRes, cardsRes]) => {
@@ -570,7 +588,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!loadOpp) return
     let alive = true
     const supabase = createClient()
-    const sel = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( color_hex ), faction:factions ( color_hex ), card_keywords ( keyword:keywords ( name ) )`
+    const sel = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( color_hex ), faction:factions ( id, name, color_hex ), card_keywords ( keyword:keywords ( name ) )`
     if (opponentDeckId) {
       supabase.from('deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('deck_id', opponentDeckId).then(({ data }) => {
         if (!alive) return
@@ -686,20 +704,34 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const fresh = game.log.slice(seenRef.current)
     seenRef.current = game.log.length
     let zmkN = 0
+    let skipYouDraw = false
     const zmkBatch: { v: string; side: Side }[] = []
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
       switch (e.t) {
-        case 'draw': if (!e.sound) playCardDraw(); break
+        case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
+        case 'draw': {
+          if (!e.sound) playCardDraw()
+          if (e.side === 'you' && e.cardName) {
+            if (skipYouDraw) { skipYouDraw = false }
+            else {
+              const card = findCard(e.cardName)
+              setCardFlash({ card, title: e.cardName, tag: 'Ištraukei', color: '#34d399' })
+              if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+              flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
+            }
+          }
+          break
+        }
         case 'play': case 'artifact': case 'champion': if (!e.sound) playBattleSound('summon'); break
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
           if (e.t === 'spell' && e.cardName) {
-            const card = [...game.you.discard, ...game.ai.discard].find((c) => c.name === e.cardName) ?? cardByName[e.cardName] ?? null
+            const card = findCard(e.cardName)
             setCardFlash({ card, title: e.cardName, tag: e.side === 'you' ? 'Tavo burtas' : 'Priešo burtas', color: '#60a5fa' })
             if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
-            flashTimerRef.current = setTimeout(() => setCardFlash(null), 1000)
+            flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
           }
           break
         }
@@ -738,12 +770,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'curse': {
           queueTip('curse')
           playBattleSound('curse')
-          const card = (e.cardName ? cardByName[e.cardName] : null)
-            ?? [...game.you.discard, ...game.ai.discard, ...game.you.deck, ...game.ai.deck].find((c) => c.name === e.cardName) ?? null
+          const card = findCard(e.cardName)
           const activated = /aktyvuoj|ištrauk/i.test(e.msg)
           setCardFlash({ card, title: e.cardName ?? 'Prakeiksmas', tag: activated ? 'AKTYVUOJAMAS' : 'ĮMAIŠOMAS', color: activated ? '#ef4444' : '#a78bfa' })
           if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
-          flashTimerRef.current = setTimeout(() => setCardFlash(null), 1700)
+          flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
           break
         }
         case 'coin': {
@@ -795,7 +826,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         (step.require === 'any-play' && e.side === 'you' && ['play', 'spell', 'artifact'].includes(e.t)))
       if (done) setStepIdx((i) => i + 1)
     }
-  }, [game, step, queueTip, PROJ_EMOJI, rectFor, spawnProjectile, cardByName])
+  }, [game, step, queueTip, PROJ_EMOJI, rectFor, spawnProjectile, cardByName, findCard])
 
   // ŽMK flash dingsta
   useEffect(() => {
@@ -847,6 +878,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (!canAttack) setStepIdx((i) => i + 1)
     }
   }, [game, step])
+
+  // Logą atidarius – nuslenkam į naujausią įvykį (apačią)
+  useEffect(() => {
+    if (showLog && logScrollRef.current) logScrollRef.current.scrollTop = logScrollRef.current.scrollHeight
+  }, [showLog, game?.log.length])
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {
@@ -1977,7 +2013,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── įvykių žurnalas ── */}
       <AnimatePresence>
         {showLog && game && (
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
+          <motion.div ref={logScrollRef} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
             className="fixed right-2 top-12 bottom-2 z-[124] w-[min(300px,80vw)] rounded-xl p-3 overflow-y-auto"
             style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)', touchAction: 'pan-y' }}
             onPointerDown={(e) => { logSwipeRef.current = { x: e.clientX, y: e.clientY } }}
@@ -1990,7 +2026,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </div>
             <div className="space-y-1">
               {game.log.slice(-80).map((e, i) => {
-                const card = e.cardName ? cardByName[e.cardName] : null
+                const card = findCard(e.cardName)
                 const zImg = e.t === 'zmk' && e.zmk ? zmkImg(game, e.zmk) : null
                 const sideColor = e.side === 'you' ? 'rgba(96,165,250,0.7)' : 'rgba(167,139,250,0.7)'
                 return (

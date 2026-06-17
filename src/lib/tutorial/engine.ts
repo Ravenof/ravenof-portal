@@ -63,6 +63,8 @@ export type TutCard = {
   effectText: string
   rarityColor: string
   factionColor: string
+  factionId?: number | null
+  factionName?: string | null
   effect: ParsedEffect | null
   /** Admin gameplay konfigūracija (cards.gameplay JSONB) */
   gameplay?: GameplayConfig | null
@@ -524,6 +526,7 @@ function aurasAffecting(g: GameState, ownerSide: Side, uid: string): PassiveAura
       if (!affects) continue
       if (c.uid === uid && !cfg.auraIncludesSelf) continue
       if (cfg.auraSubtype && cfg.auraSubtype.trim().toLowerCase() !== unitSubtype) continue
+      if (cfg.auraFaction && ownerUnit?.card.factionId !== cfg.auraFaction) continue
       out.push(cfg)
     }
   }
@@ -657,6 +660,7 @@ function recomputeAuras(g: GameState) {
     const aHp = cfg.auraHealth ?? 0
     const scope = cfg.auraScope ?? 'friendly'
     const want = (cfg.auraSubtype ?? '').trim().toLowerCase()
+    const wantFac = cfg.auraFaction ?? 0
     for (const sd of ['you', 'ai'] as Side[]) {
       if (scope === 'friendly' && sd !== src.side) continue
       if (scope === 'enemy' && sd === src.side) continue
@@ -664,6 +668,7 @@ function recomputeAuras(g: GameState) {
         if (!u) continue
         if (u.uid === src.selfUid && !cfg.auraIncludesSelf) continue
         if (want && (u.card.subtype ?? '').toLowerCase() !== want) continue
+        if (wantFac && u.card.factionId !== wantFac) continue
         if (aAtk) { u.atk = Math.max(0, u.atk + aAtk); u.auraAtk = (u.auraAtk ?? 0) + aAtk }
         if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
         if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
@@ -756,7 +761,7 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
     p.discard.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į kapinyną.`, sound: 'death', src: { side: owner, uid: u.uid } })
   }
-  fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype })
+  fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
   recomputeAuras(g)
 }
 
@@ -912,15 +917,17 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
   }
 }
 
-function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; count?: number }) {
+function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; factionId?: number; count?: number }) {
   const p = P(g, s)
   const src = zone === 'hand' ? p.hand : zone === 'deck' ? p.deck : p.discard
   const zoneName = zone === 'hand' ? 'rankoje' : zone === 'deck' ? 'kaladėje' : 'kapinyne'
   const want = (opts?.subtype ?? '').trim().toLowerCase()
+  const wantFac = opts?.factionId ?? 0
   const eligible = (c: TutCard) =>
     c.type === 'unit' &&
     (opts?.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
-    (!want || (c.subtype ?? '').toLowerCase() === want)
+    (!want || (c.subtype ?? '').toLowerCase() === want) &&
+    (!wantFac || c.factionId === wantFac)
   const count = Math.max(1, opts?.count ?? 1)
   for (let n = 0; n < count; n++) {
     const slot = freeUnitSlot(g, p)
@@ -988,16 +995,18 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
   return { ok: true }
 }
 
-function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; count?: number; choose?: boolean; names?: string }) {
+function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }) {
   const p = P(g, s)
   const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
   const want = (opts.subtype ?? '').trim().toLowerCase()
+  const wantFacA = opts.factionId ?? 0
   const nameWhitelist = (opts.names ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
   const eligible = (c: TutCard) =>
     c.type === 'unit' &&
     (opts.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
     (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
     (!want || (c.subtype ?? '').toLowerCase() === want) &&
+    (!wantFacA || c.factionId === wantFacA) &&
     (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
   const count = Math.max(1, opts.count ?? 1)
   if (opts.choose && s === 'you') {
@@ -1113,10 +1122,23 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
 let firingGlobal = false
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   try {
+    // Ar mapping'o trigerio filtrai (kieno įvykis / potipis / frakcija / burto tipas) tinka.
+    const passes = (m: EffectMapping, sd: Side): boolean => {
+      if (ctx?.side) {
+        const want = m.triggerSide ?? 'any'
+        if (want === 'own' && ctx.side !== sd) return false
+        if (want === 'enemy' && ctx.side === sd) return false
+      }
+      if (m.triggerSubtype && (ctx?.subtype ?? '').toLowerCase() !== m.triggerSubtype.trim().toLowerCase()) return false
+      if (m.triggerSpellType && trigger === 'onAnyCast' && m.triggerSpellType !== ctx?.spellType) return false
+      if (m.triggerFaction && ctx?.faction !== m.triggerFaction) return false
+      if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) return false
+      return true
+    }
     for (const sd of ['you', 'ai'] as Side[]) {
       const pp = P(g, sd)
       const cards = [
@@ -1126,19 +1148,24 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
       for (const c of cards) {
         const ms = (c.card.mappings ?? []).filter((m) => m.trigger === trigger)
         for (const m of ms) {
-          // Filtras: kieno įvykis (savo/priešo/bet kuris)
-          if (ctx?.side) {
-            const want = m.triggerSide ?? 'any'
-            if (want === 'own' && ctx.side !== sd) continue
-            if (want === 'enemy' && ctx.side === sd) continue
-          }
-          // Filtras: tik nurodyto potipio padaras
-          if (m.triggerSubtype && (ctx?.subtype ?? '').toLowerCase() !== m.triggerSubtype.trim().toLowerCase()) continue
-          // Filtras: tik nurodyto burto tipo (onAnyCast)
-          if (m.triggerSpellType && trigger === 'onAnyCast' && m.triggerSpellType !== ctx?.spellType) continue
-          // Filtras: iškvietimo šaltinis (tik onAnySummon) – pvz. tik iš kapinyno
-          if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) continue
+          if (!passes(m, sd)) continue
           applyMapping(gameApi, g, sd, m, { sourceName: c.card.name, sourceUid: c.uid, depth: 2 })
+          if (g.winner) return
+        }
+      }
+      // Užverstos reakcijos („spąstai"): mapping-pagrįstos – suveikia kai įvyksta
+      // sukonfigūruotas įvykis (kieno – pagal triggerSide), tada SUNAUDOJAMOS.
+      for (let ri = 0; ri < pp.reactions.length; ri++) {
+        const r = pp.reactions[ri]
+        if (!r) continue
+        const rms = (r.card.mappings ?? []).filter((m) => m.trigger === trigger && passes(m, sd))
+        if (rms.length === 0) continue
+        // Sunaudojam reakciją prieš taikant efektą (kad netriggerintų savęs rekursyviai)
+        pp.reactions[ri] = null
+        pp.discard.push(r.card)
+        log(g, { t: 'reactionTrigger', side: sd, cardName: r.card.name, msg: `⚡ Reakcija! ${sideName(sd)} ${sd === 'you' ? 'atverti' : 'atverčia'} „${r.card.name}" – ji suveikia.`, src: { side: sd, uid: r.uid } })
+        for (const m of rms) {
+          applyMapping(gameApi, g, sd, m, { sourceName: r.card.name, sourceUid: r.uid, depth: 2 })
           if (g.winner) return
         }
       }
@@ -1152,12 +1179,12 @@ type SummonSource = 'graveyard' | 'deck' | 'hand' | 'play'
 /** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. source = iš kur atsirado. */
 function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource = 'play') {
   recomputeAuras(g)
-  fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype, source })
+  fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype, faction: card.factionId, source })
 }
 /** Kortos sužaidimo globalus trigeris. */
 function afterPlay(g: GameState, s: Side, card: TutCard) {
   recomputeAuras(g)
-  fireGlobalListeners(g, 'onAnyPlay', { side: s, subtype: card.subtype })
+  fireGlobalListeners(g, 'onAnyPlay', { side: s, subtype: card.subtype, faction: card.factionId })
 }
 
 function gainGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
@@ -1375,6 +1402,7 @@ function auraCostReductionFor(g: GameState, s: Side, card: TutCard): number {
       const sideMatch = scope === 'all' || (scope === 'friendly' ? sd === s : sd !== s)
       if (!sideMatch) continue
       if (cfg.auraSubtype && want(card.subtype ?? undefined) !== want(cfg.auraSubtype)) continue
+      if (cfg.auraFaction && card.factionId !== cfg.auraFaction) continue
       red += cfg.auraCostReduction
     }
   }
@@ -1580,7 +1608,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       })
       // Reakcijų langas: priešo onAnyCast gali NUTILDYTI/ATŠAUKTI burtą (castSpell taikinys)
       g.spellCountered = false
-      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, spellType: card.gameplay?.spellType })
+      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, faction: card.factionId, spellType: card.gameplay?.spellType })
       if (g.spellCountered) {
         g.spellCountered = false
         log(g, { t: 'spell', side: s, cardName: card.name, msg: `🚫 Burtas „${card.name}" nutildytas – jokio efekto.` })
@@ -1612,7 +1640,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       p.artifacts[slot] = { uid: card.uid, card, hp: card.health ?? 3, maxHp: card.health ?? 3 }
       log(g, { t: 'artifact', side: s, cardName: card.name, value: card.gold, msg: `${sideName(s)} ${s === 'you' ? 'padedi' : 'padeda'} artefaktą „${card.name}".` })
       afterPlay(g, s, card)
-      fireGlobalListeners(g, 'onAnyArtifact', { side: s, subtype: card.subtype })
+      fireGlobalListeners(g, 'onAnyArtifact', { side: s, subtype: card.subtype, faction: card.factionId })
       return { ok: true }
     }
     case 'reaction': {
@@ -1688,7 +1716,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
         existing.hp = existing.maxHp
         log(g, { t: 'evolve', side: s, cardName: card.name, msg: `⚜ Čempionas evoliucionuoja į ${existing.phase} fazę ir pilnai pagyja! Atrakintas ${existing.phase}-as skill.` })
         afterPlay(g, s, card)
-        fireGlobalListeners(g, 'onAnyChampion', { side: s, subtype: card.subtype })
+        fireGlobalListeners(g, 'onAnyChampion', { side: s, subtype: card.subtype, faction: card.factionId })
         return { ok: true }
       }
       // Iškvietimas (nėra šios šeimos čempiono lauke). Griežta: tik 1 fazės kortą.
@@ -1714,7 +1742,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
       log(g, { t: 'champion', side: s, cardName: card.name, value: card.gold, msg: `⚜ ${sideName(s)} ${s === 'you' ? 'iškvieti' : 'iškviečia'} Čempioną „${card.name}" (1 fazė)! Naudoja gebėjimus (skills), neatakuoja.` })
       afterSummon(g, s, card, 'play')
       afterPlay(g, s, card)
-      fireGlobalListeners(g, 'onAnyChampion', { side: s, subtype: card.subtype })
+      fireGlobalListeners(g, 'onAnyChampion', { side: s, subtype: card.subtype, faction: card.factionId })
       return { ok: true }
     }
     case 'curse':
@@ -1851,6 +1879,9 @@ function maybeTriggerReaction(g: GameState, defender: Side, attacker: BoardUnit,
   for (let i = dp.reactions.length - 1; i >= 0; i--) {
     const r = dp.reactions[i]
     if (!r) continue
+    // Mapping-pagrįstos reakcijos suveikia per globalius trigerius (fireGlobalListeners),
+    // todėl jų čia (legacy ataka) nešauname – kad nedubliuotųsi.
+    if ((r.card.mappings ?? []).length > 0) continue
     dp.reactions[i] = null
     dp.discard.push(r.card)
     log(g, { t: 'reactionTrigger', side: defender, cardName: r.card.name, msg: `⚡ Reakcija! ${sideName(defender)} ${defender === 'you' ? 'atverti' : 'atverčia'} „${r.card.name}" – ji suveikia prieš ataką.` })
@@ -1891,7 +1922,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     applyMapping(gameApi, g, s, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: ct, depth: 1 })
     if (g.winner) break
   }
-  fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype })
+  fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype, faction: u.card.factionId })
 
   // Gynėjo reakcija (jei turi) – „paskutinis aktyvavęsis sprendžiamas pirmas"
   maybeTriggerReaction(g, foe, u, s)
