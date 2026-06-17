@@ -12,7 +12,7 @@ import { playUiClick } from '@/lib/ui-sound'
 
 const NAV = [
   { href: '/digital', label: 'Meniu', icon: LayoutGrid },
-  { href: '/my-cards', label: 'Kortos', icon: BookOpen },
+  { href: '/digital/album', label: 'Albumas', icon: BookOpen },
   { href: '/deck-builder', label: 'Kaladės', icon: Hammer },
 ] as const
 
