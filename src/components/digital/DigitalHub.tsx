@@ -1,7 +1,7 @@
 'use client'
 
 // ── Ravenof Digital hub — pagrindinis meniu (liepsnų fonas, raižyti blokai) ───
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
@@ -9,6 +9,7 @@ import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
 import { PvPLobby } from './PvPLobby'
+import { getWallet, buyPack, getActivePack, type Wallet } from '@/lib/economy'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -36,6 +37,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [aiOpen, setAiOpen] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
+  const [storeOpen, setStoreOpen] = useState(false)
+  const [pack, setPack] = useState<{ id: string; name: string; price_gold: number } | null>(null)
+  const [buying, setBuying] = useState(false)
+  const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
 
   useEffect(() => {
     if (!loggedIn) return
@@ -59,6 +65,21 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     return () => clearTimeout(t)
   }, [toast])
 
+  useEffect(() => {
+    if (!loggedIn) return
+    refreshWallet()
+    getActivePack().then(setPack)
+  }, [loggedIn, refreshWallet])
+
+  const doBuy = async () => {
+    if (!pack || buying) return
+    setBuying(true); playUiClick()
+    const r = await buyPack(pack.id)
+    setBuying(false)
+    if ('error' in r) { setToast(r.error === 'not enough gold' ? 'Per mažai aukso.' : 'Nepavyko nupirkti pakuotės.'); return }
+    refreshWallet(); setToast('Pakuotė nupirkta! 🎁')
+  }
+
   const sel = decks.find((d) => d.id === selDeck)
   const flash = (msg: string) => { playUiClick(); setToast(msg) }
   const needDeck = (fn: () => void) => () => { playUiClick(); if (!sel) { setToast('Pirma pasirink kaladę viršuje.'); return } fn() }
@@ -81,8 +102,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     { key: 'campaign', icon: '🗺️', title: 'KAMPANIJA', subtitle: 'Siužetinė vienžaidėjo kampanija', accent: '240,180,41', comingSoon: true },
     { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', comingSoon: true },
     { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', onClick: needDeck(() => setPvpOpen(true)) },
-    { key: 'mycards', icon: '🃏', title: 'MANO KORTOS', subtitle: 'Tavo kortų kolekcija', accent: '96,165,250', href: '/my-cards' },
-    { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk kortas ir paketus', accent: '240,180,41', comingSoon: true },
+    { key: 'mycards', icon: '🃏', title: 'VIRTUALIOS KORTOS', subtitle: 'Tavo kortų kolekcija (albumas)', accent: '96,165,250', href: '/my-cards' },
+    { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk pakuotes už auksą', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
   ]
 
   const renderTile = (t: TileCfg) => {
@@ -144,6 +165,20 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       <div className="relative z-10 space-y-6">
+        {/* Aukso balansas + pakuotės */}
+        <div className="flex items-center justify-center gap-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold"
+            style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.55)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
+            🪙 {wallet.gold.toLocaleString()}
+          </span>
+          <button onClick={() => { playUiClick(); setStoreOpen(true) }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-transform hover:scale-105"
+            style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(251,146,60,0.55)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}
+            title="Atidaryti parduotuvę">
+            🎁 {wallet.packs} pak.
+          </button>
+        </div>
+
         {/* Kaladės pasirinkimas (kovoms prieš AI / PvP) */}
         <div className="relative mx-auto max-w-md" style={{ clipPath: oct(12), background: 'rgba(240,180,41,0.4)', padding: 2 }}>
           <div className="px-4 py-3" style={{ clipPath: oct(11), background: 'linear-gradient(160deg, #15101f, #0a0810)' }}>
@@ -170,13 +205,34 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       {/* Paleidimai */}
       {tutorialOpen && (
-        <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => setTutorialOpen(false)} />
+        <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => { setTutorialOpen(false); refreshWallet() }} />
       )}
       {sel && (
-        <PracticeButton deckId={sel.id} deckName={sel.name} hideTrigger open={aiOpen} onClose={() => setAiOpen(false)} />
+        <PracticeButton deckId={sel.id} deckName={sel.name} hideTrigger open={aiOpen} onClose={() => { setAiOpen(false); refreshWallet() }} />
       )}
       {pvpOpen && sel && (
-        <PvPLobby deckId={sel.id} deckName={sel.name} onClose={() => setPvpOpen(false)} />
+        <PvPLobby deckId={sel.id} deckName={sel.name} onClose={() => { setPvpOpen(false); refreshWallet() }} />
+      )}
+
+      {storeOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={() => setStoreOpen(false)}>
+          <div className="relative w-[min(420px,94vw)]" style={{ clipPath: oct(16), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-6 text-center" style={{ clipPath: oct(15), background: 'radial-gradient(120% 90% at 50% 0%, rgba(240,180,41,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
+              <p className="text-lg font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🛒 PARDUOTUVĖ</p>
+              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Turi 🪙 {wallet.gold.toLocaleString()} aukso · 🎁 {wallet.packs} pakuotės</p>
+              <div className="mx-auto mb-4" style={{ width: 96, height: 128, clipPath: oct(10), background: 'linear-gradient(160deg, #3a2a55, #15101f)', border: '2px solid rgba(240,180,41,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>🎴</div>
+              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{pack?.name ?? 'Standartinė pakuotė'}</p>
+              <p className="text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>10 kortų · retumai pagal tikimybę</p>
+              <button onClick={doBuy} disabled={buying || !pack || wallet.gold < (pack?.price_gold ?? 200)}
+                className="w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40 hover:scale-[1.02] active:scale-95"
+                style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
+                {buying ? 'Perkama…' : `Pirkti už 🪙 ${pack?.price_gold ?? 200}`}
+              </button>
+              <p className="text-[10px] mt-3" style={{ color: 'var(--text-muted)' }}>Pakuočių atplėšimas (animacija + 10 kortų) — netrukus.</p>
+              <button onClick={() => { playUiClick(); setStoreOpen(false) }} className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>Uždaryti</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && (

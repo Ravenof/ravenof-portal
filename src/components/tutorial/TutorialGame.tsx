@@ -27,6 +27,7 @@ import {
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
+import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason } from '@/lib/economy'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
@@ -913,6 +914,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
+
+  // Aukso apdovanojimas už pergalę (PvE pagal sunkumą / PvP unranked). Tik kartą; ne tutorial.
+  const awardedRef = useRef(false)
+  useEffect(() => {
+    if (!game || game.winner !== 'you' || awardedRef.current) return
+    if (deckId === DEMO_DECK_ID) return
+    awardedRef.current = true
+    if (vsRemote) awardGold('pvp_unranked', PVP_REWARD)
+    else if (practice) awardGold(('pve_' + difficulty) as GoldReason, PVE_REWARD[difficulty])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner])
 
   // ── PvP realtime: kanalas + veiksmų dispečeris ──
   const channelRef = useRef<RealtimeChannel | null>(null)
