@@ -54,9 +54,7 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
     setOpening(false)
     if ('error' in r) {
       const e = r.error || ''
-      setError(/no pack to open/i.test(e) ? 'Nebeturi šios pakuotės.'
-        : /rvn_open_pack|function|schema cache|not exist|does not exist/i.test(e) ? 'DB funkcija „rvn_open_pack" nerasta – paleisk Phase 2 migraciją.'
-        : ('Klaida: ' + e))
+      setError(/no pack to open/i.test(e) ? 'Nebeturi šios pakuotės.' : ('Klaida: ' + e))
       firedRef.current = false
       return
     }
