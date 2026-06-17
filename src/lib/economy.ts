@@ -58,10 +58,33 @@ export type OpenedCard = {
   faction: string | null
 }
 
-/** Atplėšia pakuotę: sunaudoja 1 turimą, grąžina ištrauktas kortas (RNG pagal retumus). */
+/** Atplėšia pakuotę: RPC sunaudoja pakuotę ir grąžina kortų ID; detales paimam atskirai. */
 export async function openPack(packId: string): Promise<OpenedCard[] | { error: string }> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('rvn_open_pack', { p_pack_id: packId })
   if (error) return { error: error.message }
-  return (data as OpenedCard[]) ?? []
+  const ids = (data as string[]) ?? []
+  if (ids.length === 0) return []
+  const { data: rows, error: e2 } = await supabase
+    .from('cards')
+    .select('id, name, image_url, faction:factions ( name ), rarity:rarities ( name, color_hex, sort_order )')
+    .in('id', ids)
+  if (e2) return { error: e2.message }
+  type Row = { id: string; name: string; image_url: string | null; faction: { name: string } | null; rarity: { name: string; color_hex: string; sort_order: number } | null }
+  const byId = new Map<string, Row>()
+  for (const r of ((rows as unknown as Row[]) ?? [])) byId.set(r.id, r)
+  const cards: OpenedCard[] = ids.map((id) => {
+    const r = byId.get(id)
+    return {
+      id,
+      name: r?.name ?? '?',
+      image_url: r?.image_url ?? null,
+      rarity: r?.rarity?.name ?? null,
+      rarity_color: r?.rarity?.color_hex ?? null,
+      sort_order: r?.rarity?.sort_order ?? null,
+      faction: r?.faction?.name ?? null,
+    }
+  })
+  cards.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))  // dažnos pirma, rečiausios paskutinės
+  return cards
 }

@@ -58,7 +58,7 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
       firedRef.current = false
       return
     }
-    setCards([...r].reverse()); setRevealIdx(0)  // rečiausios paskutinės
+    setCards([...r]); setRevealIdx(0)  // jau surūšiuota: dažnos pirma, rečiausios paskutinės
     onOpened?.()
   }
 
