@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { UserRoleForm } from '@/components/admin/UserRoleForm'
 import { UserDangerButtons } from '@/components/admin/UserDangerButtons'
+import { UserGrantForm } from '@/components/admin/UserGrantForm'
 import { getLevelTitleForXp } from '@/lib/gamification/levels'
 
 type SearchParams = Promise<{ q?: string; role?: string }>
@@ -30,7 +31,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
 
   let q = supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, role, created_at, xp_total, level')
+    .select('id, username, display_name, avatar_url, role, created_at, xp_total, level, gold')
     .order('created_at', { ascending: false })
 
   if (params.role) q = q.eq('role', params.role)
@@ -39,7 +40,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const { data: users, error } = await q.limit(200)
   const rows = (users ?? []) as {
     id: string; username: string; display_name: string | null
-    role: string; created_at: string; xp_total: number; level: number
+    role: string; created_at: string; xp_total: number; level: number; gold: number | null
   }[]
 
   return (
@@ -116,7 +117,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                {['Vartotojas', 'Rolė', 'Lygis / XP', 'Registracija', 'Keisti rolę', 'Veiksmai'].map(h => (
+                {['Vartotojas', 'Rolė', 'Lygis / XP', 'Registracija', 'Auksas / pakuotės', 'Keisti rolę', 'Veiksmai'].map(h => (
                   <th key={h} className="text-left px-3 py-2 text-xs font-semibold"
                     style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -146,6 +147,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                   </td>
                   <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     {formatDate(u.created_at)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <UserGrantForm userId={u.id} gold={u.gold ?? 0} />
                   </td>
                   <td className="px-3 py-2">
                     {u.id === user?.id ? (

@@ -77,3 +77,31 @@ export async function setBanStatus(
   revalidatePath('/admin/users')
   return {}
 }
+
+export async function adminGiveGold(targetUserId: string, amount: number): Promise<{ error?: string; gold?: number }> {
+  const supabase = await createClient()
+  const user = await getCachedUser()
+  if (!user) return { error: 'Neprisijungęs' }
+  const { data: ap } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (ap?.role !== 'admin') return { error: 'Neturi admin teisių' }
+  if (!Number.isFinite(amount) || amount === 0) return { error: 'Nurodyk sumą' }
+  const { data, error } = await supabase.rpc('rvn_admin_grant', { p_target: targetUserId, p_gold: Math.trunc(amount), p_pack_id: null, p_packs: 0 })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/users')
+  return { gold: data as number }
+}
+
+export async function adminGivePacks(targetUserId: string, qty: number): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const user = await getCachedUser()
+  if (!user) return { error: 'Neprisijungęs' }
+  const { data: ap } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (ap?.role !== 'admin') return { error: 'Neturi admin teisių' }
+  if (!Number.isFinite(qty) || qty <= 0) return { error: 'Nurodyk kiekį' }
+  const { data: pack } = await supabase.from('card_packs').select('id').eq('is_active', true).order('sort_order').limit(1).maybeSingle()
+  if (!pack) return { error: 'Nėra aktyvios pakuotės' }
+  const { error } = await supabase.rpc('rvn_admin_grant', { p_target: targetUserId, p_gold: 0, p_pack_id: (pack as { id: string }).id, p_packs: Math.trunc(qty) })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/users')
+  return {}
+}
