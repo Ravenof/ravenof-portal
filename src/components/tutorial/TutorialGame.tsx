@@ -1526,12 +1526,26 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
         <div data-tut={side === 'you' ? 'reactions' : undefined} className="flex gap-1">
           {p.reactions.map((r, i) => r ? (
-            <div key={r.uid} className="relative rounded-md"
-              style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
-              <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
-                style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
-            </div>
+            side === 'you' ? (
+              // Savo reakcijas gali peržiūrėti (užverstas priešui). Priešo – paslėptos.
+              <button key={r.uid} type="button"
+                onClick={() => { playUiClick(); setPileView({ title: 'Tavo reakcijos (matai tik tu)', cards: p.reactions.filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.card) }) }}
+                title="Peržiūrėk savo padėtas reakcijas (priešas jų nemato)"
+                className="relative rounded-md cursor-pointer"
+                style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
+                <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
+                <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
+                <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
+                  style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
+              </button>
+            ) : (
+              <div key={r.uid} className="relative rounded-md"
+                style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
+                <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
+                <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
+                  style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
+              </div>
+            )
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
               style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
