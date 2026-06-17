@@ -46,10 +46,9 @@ begin
 
     v_received := array_append(v_received, v_card);
 
-    update public.user_collections set quantity = quantity + 1, updated_at = now()
-      where user_id = auth.uid() and card_id = v_card;
+    update public.user_collections set quantity = quantity + 1 where user_id = auth.uid() and card_id = v_card;
     if not found then
-      insert into public.user_collections (user_id, card_id, quantity, updated_at) values (auth.uid(), v_card, 1, now());
+      insert into public.user_collections (user_id, card_id, quantity) values (auth.uid(), v_card, 1);
     end if;
   end loop;
 
@@ -61,8 +60,8 @@ begin
       'id', c.id, 'name', c.name, 'image_url', c.image_url,
       'rarity', r.name, 'rarity_color', r.color_hex, 'sort_order', r.sort_order, 'faction', f.name
     ) order by r.sort_order desc), '[]'::jsonb)
-    from unnest(v_received) with ordinality as wc(cid, ord)
-    join public.cards c on c.id = wc.cid
+    from unnest(v_received) as cid
+    join public.cards c on c.id = cid
     left join public.rarities r on r.id = c.rarity_id
     left join public.factions f on f.id = c.faction_id
   );
