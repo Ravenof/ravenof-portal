@@ -4,16 +4,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
-import { PracticeButton } from '@/components/tutorial/PracticeButton'
-import { PvPLobby } from './PvPLobby'
 import { getWallet, buyPack, getActivePack, type Wallet } from '@/lib/economy'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
-
-type Deck = { id: string; name: string; faction: string | null }
 
 /** Aštrūs „išraižyti" kampai (oktagonas su nupjautais kampais). */
 const oct = (b: number) =>
@@ -31,10 +26,6 @@ type TileCfg = {
 }
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
-  const [decks, setDecks] = useState<Deck[]>([])
-  const [selDeck, setSelDeck] = useState<string>('')
-  const [pvpOpen, setPvpOpen] = useState(false)
-  const [aiOpen, setAiOpen] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
@@ -42,22 +33,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [pack, setPack] = useState<{ id: string; name: string; price_gold: number } | null>(null)
   const [buying, setBuying] = useState(false)
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
-
-  useEffect(() => {
-    if (!loggedIn) return
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      supabase.from('decks').select('id, name, faction:factions ( name )').eq('user_id', user.id).order('updated_at', { ascending: false })
-        .then(({ data }) => {
-          const rows = (data as unknown as { id: string; name: string; faction: { name: string } | null }[]) ?? []
-          const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null }))
-          setDecks(ds)
-          if (ds.length && !selDeck) setSelDeck(ds[0].id)
-        })
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loggedIn])
 
   useEffect(() => {
     if (!toast) return
@@ -80,9 +55,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     refreshWallet(); setToast('Pakuotė nupirkta! 🎁')
   }
 
-  const sel = decks.find((d) => d.id === selDeck)
   const flash = (msg: string) => { playUiClick(); setToast(msg) }
-  const needDeck = (fn: () => void) => () => { playUiClick(); if (!sel) { setToast('Pirma pasirink kaladę viršuje.'); return } fn() }
 
   if (!loggedIn) {
     return (
@@ -98,11 +71,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
   const tiles: TileCfg[] = [
     { key: 'tutorial', icon: '🎓', title: 'MOKYMASIS', subtitle: 'Išmok pagrindus žingsnis po žingsnio', accent: '139,92,246', onClick: () => { playUiClick(); setTutorialOpen(true) } },
-    { key: 'ai', icon: '🎯', title: 'KOVA PRIEŠ AI', subtitle: 'Treniruokis prieš botą (lengvas / vidutinis / sunkus)', accent: '34,197,94', onClick: needDeck(() => setAiOpen(true)) },
+    { key: 'ai', icon: '🎯', title: 'KOVA PRIEŠ AI', subtitle: 'Treniruokis prieš botą (lengvas / vidutinis / sunkus)', accent: '34,197,94', href: '/digital/pve' },
     { key: 'campaign', icon: '🗺️', title: 'KAMPANIJA', subtitle: 'Siužetinė vienžaidėjo kampanija', accent: '240,180,41', comingSoon: true },
     { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', comingSoon: true },
-    { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', onClick: needDeck(() => setPvpOpen(true)) },
-    { key: 'mycards', icon: '🃏', title: 'VIRTUALIOS KORTOS', subtitle: 'Tavo kortų kolekcija (albumas)', accent: '96,165,250', href: '/my-cards' },
+    { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', href: '/digital/pvp' },
+    { key: 'mycards', icon: '🃏', title: 'KORTŲ ALBUMAS', subtitle: 'Tavo kolekcija + pakuočių atplėšimas', accent: '96,165,250', href: '/digital/album' },
     { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk pakuotes už auksą', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
   ]
 
@@ -161,25 +134,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </button>
         </div>
 
-        {/* Kaladės pasirinkimas (kovoms prieš AI / PvP) */}
-        <div className="relative mx-auto max-w-md" style={{ clipPath: oct(12), background: 'rgba(240,180,41,0.4)', padding: 2 }}>
-          <div className="px-4 py-3" style={{ clipPath: oct(11), background: 'linear-gradient(160deg, #15101f, #0a0810)' }}>
-            <label className="text-[10px] font-semibold block mb-1.5 text-center" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
-              ⚔ KOVOS KALADĖ
-            </label>
-            {decks.length === 0 ? (
-              <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-                Neturi kaladžių. <Link href="/deck-builder" className="underline" style={{ color: 'var(--gold)' }}>Sukurk kaladę</Link>.
-              </p>
-            ) : (
-              <select value={selDeck} onChange={(e) => setSelDeck(e.target.value)}
-                style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}>
-                {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
-              </select>
-            )}
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tiles.map(renderTile)}
         </div>
@@ -189,13 +143,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {tutorialOpen && (
         <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => { setTutorialOpen(false); refreshWallet() }} />
       )}
-      {sel && (
-        <PracticeButton deckId={sel.id} deckName={sel.name} hideTrigger open={aiOpen} onClose={() => { setAiOpen(false); refreshWallet() }} />
-      )}
-      {pvpOpen && sel && (
-        <PvPLobby deckId={sel.id} deckName={sel.name} onClose={() => { setPvpOpen(false); refreshWallet() }} />
-      )}
-
       {storeOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={() => setStoreOpen(false)}>
           <div className="relative w-[min(420px,94vw)]" style={{ clipPath: oct(16), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>

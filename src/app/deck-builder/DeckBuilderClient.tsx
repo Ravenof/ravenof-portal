@@ -154,7 +154,7 @@ export function DeckBuilderClient({ userId, cards, factions, collection, deckId,
             {showStats ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
 
-          <SaveDeckButton userId={userId} />
+          <SaveDeckButton userId={userId} redirectTo={embedded ? '/digital' : '/my-decks'} />
         </div>
       </header>
 

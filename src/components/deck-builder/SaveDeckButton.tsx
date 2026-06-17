@@ -7,9 +7,9 @@ import { isDeckValid, validateDeck } from '@/lib/deck-validation'
 import { createClient } from '@/lib/supabase/client'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 
-type Props = { userId: string }
+type Props = { userId: string; redirectTo?: string }
 
-export function SaveDeckButton({ userId }: Props) {
+export function SaveDeckButton({ userId, redirectTo = '/my-decks' }: Props) {
   const store = useDeckBuilderStore()
   const router = useRouter()
   const { deckId, name, description, factionId, visibility, entries, sideEntries, isSaving, setIsSaving, markSaved, isDirty } = store
@@ -96,7 +96,7 @@ export function SaveDeckButton({ userId }: Props) {
         }
 
         markSaved(savedDeckId)
-        router.push('/my-decks')
+        router.push(redirectTo)
       }
     } catch (err) {
       console.error('Save deck error:', err)
