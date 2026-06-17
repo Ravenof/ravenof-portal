@@ -12,12 +12,18 @@ const TutorialGame = dynamic(() => import('./TutorialGame').then((m) => m.Tutori
 type PublicDeck = { id: string; name: string; faction: string | null }
 type Faction = { id: number; name: string }
 
-export function PracticeButton({ deckId, deckName, variant = 'full' }: {
+export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger = false, open: openProp, onClose }: {
   deckId: string
   deckName: string
   variant?: 'full' | 'compact'
+  /** Controlled režimas: paslepia savo mygtuką, atidarymą valdo tėvas. */
+  hideTrigger?: boolean
+  open?: boolean
+  onClose?: () => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isOpen = hideTrigger ? !!openProp : internalOpen
+  const setOpen = (v: boolean) => { if (hideTrigger) { if (!v) onClose?.() } else setInternalOpen(v) }
   const [started, setStarted] = useState(false)
   const [mode, setMode] = useState<'public' | 'faction'>('faction')
   const [publicDecks, setPublicDecks] = useState<PublicDeck[]>([])
@@ -27,7 +33,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full' }: {
   const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
 
   useEffect(() => {
-    if (!open) return
+    if (!isOpen) return
     const supabase = createClient()
     supabase.from('decks').select('id, name, faction:factions ( name )').eq('visibility', 'public').order('score', { ascending: false }).limit(50)
       .then(({ data }) => {
@@ -36,41 +42,41 @@ export function PracticeButton({ deckId, deckName, variant = 'full' }: {
       })
     supabase.from('factions').select('id, name').order('sort_order').limit(20)
       .then(({ data }) => setFactions(((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
-  }, [open])
+  }, [isOpen])
 
   const canStart = mode === 'public' ? !!oppDeck : !!oppFaction
-
-  if (started) {
-    return (
-      <TutorialGame
-        deckId={deckId}
-        deckName={deckName}
-        practice
-        opponentDeckId={mode === 'public' ? oppDeck : null}
-        opponentFaction={mode === 'faction' && oppFaction ? Number(oppFaction) : null}
-        opponentName={mode === 'public' ? (publicDecks.find((d) => d.id === oppDeck)?.name ?? 'Priešas') : (factions.find((f) => f.id === oppFaction)?.name ?? 'Priešas')}
-        difficulty={difficulty}
-        onClose={() => { setStarted(false); setOpen(false) }}
-      />
-    )
-  }
 
   const selStyle = { width: '100%', padding: '0.5rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none' } as React.CSSProperties
 
   return (
     <>
-      <button
-        onClick={() => { playUiClick(); setOpen(true) }}
-        className={variant === 'full'
-          ? 'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95'
-          : 'inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 w-full'}
-        style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.06))', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}
-        title="Praktika prieš AI: pasirink priešo kaladę (viešą arba atsitiktinę iš frakcijos)"
-      >
-        🎯 Praktika prieš AI
-      </button>
+      {!hideTrigger && (
+        <button
+          onClick={() => { playUiClick(); setOpen(true) }}
+          className={variant === 'full'
+            ? 'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95'
+            : 'inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 w-full'}
+          style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.06))', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}
+          title="Praktika prieš AI: pasirink priešo kaladę (viešą arba atsitiktinę iš frakcijos)"
+        >
+          🎯 Praktika prieš AI
+        </button>
+      )}
 
-      {open && (
+      {started && (
+        <TutorialGame
+          deckId={deckId}
+          deckName={deckName}
+          practice
+          opponentDeckId={mode === 'public' ? oppDeck : null}
+          opponentFaction={mode === 'faction' && oppFaction ? Number(oppFaction) : null}
+          opponentName={mode === 'public' ? (publicDecks.find((d) => d.id === oppDeck)?.name ?? 'Priešas') : (factions.find((f) => f.id === oppFaction)?.name ?? 'Priešas')}
+          difficulty={difficulty}
+          onClose={() => { setStarted(false); setOpen(false) }}
+        />
+      )}
+
+      {isOpen && !started && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)' }} onClick={() => setOpen(false)}>
           <div className="rounded-2xl p-5 w-[min(440px,94vw)]" style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(34,197,94,0.4)' }} onClick={(e) => e.stopPropagation()}>
             <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#86efac' }}>🎯 Praktika</p>
@@ -111,7 +117,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full' }: {
             <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
               {difficulty === 'easy' ? 'Žaidžia paprasčiau, dažniau eina į veidą, ne visada optimaliai.'
                 : difficulty === 'hard' ? 'Planuoja į priekį, taupo removal, agresyviai baudžia silpną lentą.'
-                : 'Skaičiuoja trade\u2019us, naudoja removal/AoE logiškai, saugosi lethal.'}
+                : 'Skaičiuoja trade’us, naudoja removal/AoE logiškai, saugosi lethal.'}
             </p>
 
             <div className="flex gap-2 mt-5">

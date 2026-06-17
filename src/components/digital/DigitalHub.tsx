@@ -1,20 +1,41 @@
 'use client'
 
-// ── Ravenof Digital hub — Tutorial / Praktika prieš AI / PvP ──────────────────
+// ── Ravenof Digital hub — pagrindinis meniu (liepsnų fonas, raižyti blokai) ───
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
-import { TutorialButton, DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
+import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
 import { PvPLobby } from './PvPLobby'
 
+const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
+
 type Deck = { id: string; name: string; faction: string | null }
+
+/** Aštrūs „išraižyti" kampai (oktagonas su nupjautais kampais). */
+const oct = (b: number) =>
+  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
+
+type TileCfg = {
+  key: string
+  icon: string
+  title: string
+  subtitle: string
+  accent: string            // 'r,g,b'
+  href?: string
+  onClick?: () => void
+  comingSoon?: boolean
+}
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [decks, setDecks] = useState<Deck[]>([])
   const [selDeck, setSelDeck] = useState<string>('')
   const [pvpOpen, setPvpOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loggedIn) return
@@ -32,13 +53,19 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn])
 
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 2200)
+    return () => clearTimeout(t)
+  }, [toast])
+
   const sel = decks.find((d) => d.id === selDeck)
-  const selStyle = { width: '100%', padding: '0.5rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none' } as React.CSSProperties
-  const cardStyle = (border: string) => ({ background: 'var(--bg-surface)', border: '1px solid ' + border }) as React.CSSProperties
+  const flash = (msg: string) => { playUiClick(); setToast(msg) }
+  const needDeck = (fn: () => void) => () => { playUiClick(); if (!sel) { setToast('Pirma pasirink kaladę viršuje.'); return } fn() }
 
   if (!loggedIn) {
     return (
-      <div className="rounded-2xl p-6 text-center" style={cardStyle('var(--bg-border)')}>
+      <div className="rounded-2xl p-6 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
         <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad galėtum žaisti skaitmenines kovas.</p>
         <Link href="/login?next=/digital" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold"
           style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>
@@ -48,64 +75,115 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     )
   }
 
+  const tiles: TileCfg[] = [
+    { key: 'tutorial', icon: '🎓', title: 'MOKYMASIS', subtitle: 'Išmok pagrindus žingsnis po žingsnio', accent: '139,92,246', onClick: () => { playUiClick(); setTutorialOpen(true) } },
+    { key: 'ai', icon: '🎯', title: 'KOVA PRIEŠ AI', subtitle: 'Treniruokis prieš botą (lengvas / vidutinis / sunkus)', accent: '34,197,94', onClick: needDeck(() => setAiOpen(true)) },
+    { key: 'campaign', icon: '🗺️', title: 'KAMPANIJA', subtitle: 'Siužetinė vienžaidėjo kampanija', accent: '240,180,41', comingSoon: true },
+    { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', comingSoon: true },
+    { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', onClick: needDeck(() => setPvpOpen(true)) },
+    { key: 'mycards', icon: '🃏', title: 'MANO KORTOS', subtitle: 'Tavo kortų kolekcija', accent: '96,165,250', href: '/my-cards' },
+    { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk kortas ir paketus', accent: '240,180,41', comingSoon: true },
+  ]
+
+  const renderTile = (t: TileCfg) => {
+    const a = t.accent
+    const inner = (
+      <div className="relative h-full" style={{ clipPath: oct(15), background: `rgba(${a},0.5)`, padding: 2.5 }}>
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4 py-7 gap-2"
+          style={{
+            clipPath: oct(14),
+            background: `radial-gradient(120% 90% at 50% 0%, rgba(${a},0.16), rgba(10,8,16,0.96) 60%), linear-gradient(160deg, #15101f, #0a0810)`,
+            boxShadow: `inset 0 0 24px rgba(${a},0.12), inset 0 1px 0 rgba(255,255,255,0.05)`,
+          }}>
+          {/* kampų ornamentai */}
+          {[['top-1.5 left-1.5'], ['top-1.5 right-1.5'], ['bottom-1.5 left-1.5'], ['bottom-1.5 right-1.5']].map(([pos], i) => (
+            <span key={i} className={`absolute ${pos} text-[10px] leading-none`} style={{ color: `rgba(${a},0.85)`, textShadow: `0 0 6px rgba(${a},0.6)` }}>❖</span>
+          ))}
+          <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.55))` }}>{t.icon}</span>
+          <h2 className="text-base font-bold tracking-wide" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', letterSpacing: '0.08em', textShadow: `0 0 12px rgba(${a},0.4)` }}>{t.title}</h2>
+          <p className="text-[11px] leading-snug max-w-[200px]" style={{ color: 'var(--text-muted)' }}>{t.subtitle}</p>
+          {t.comingSoon && (
+            <span className="mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-widest"
+              style={{ background: 'rgba(0,0,0,0.6)', border: `1px solid rgba(${a},0.6)`, color: `rgba(${a},1)`, letterSpacing: '0.18em' }}>NETRUKUS</span>
+          )}
+        </div>
+      </div>
+    )
+
+    const common = `group relative block h-[170px] transition-all duration-150 ${t.comingSoon ? 'opacity-70' : 'hover:scale-[1.035] active:scale-[0.99]'} focus:outline-none`
+    const glow = { filter: t.comingSoon ? 'saturate(0.7)' : undefined } as React.CSSProperties
+
+    if (t.href && !t.comingSoon) {
+      return <Link key={t.key} href={t.href} onClick={() => playUiClick()} className={common} style={glow}>{inner}</Link>
+    }
+    return (
+      <button key={t.key} type="button" onClick={t.comingSoon ? () => flash('Netrukus! Šis režimas dar kuriamas.') : t.onClick} className={common} style={glow}>
+        {inner}
+      </button>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Deck selektorius bendras AI/PvP */}
-      <div className="rounded-2xl p-4" style={cardStyle('rgba(240,180,41,0.2)')}>
-        <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-          ⚔️ TAVO KALADĖ (kovoms prieš AI ir PvP)
-        </label>
-        {decks.length === 0 ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Neturi kaladžių. <Link href="/deck-builder" className="underline" style={{ color: 'var(--gold)' }}>Sukurk kaladę</Link>, kad galėtum kautis.
-          </p>
-        ) : (
-          <select value={selDeck} onChange={(e) => setSelDeck(e.target.value)} style={selStyle}>
-            {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
-          </select>
-        )}
+    <div className="relative">
+      <style>{`
+        @keyframes rvnFlameRise { 0%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(-14px) scaleX(1.06)} 100%{transform:translateY(0) scaleX(1)} }
+        @keyframes rvnFlameFlicker { 0%,100%{opacity:.30} 35%{opacity:.62} 60%{opacity:.42} 80%{opacity:.7} }
+        .rvn-flames{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+          background: radial-gradient(120% 55% at 50% 118%, rgba(240,90,20,0.20), rgba(120,20,10,0.06) 42%, transparent 70%); }
+        .rvn-flame{ position:absolute; bottom:-70px; width:300px; height:360px; border-radius:48% 48% 50% 50%;
+          filter: blur(34px); mix-blend-mode:screen;
+          background: radial-gradient(circle at 50% 72%, rgba(255,175,45,0.6), rgba(240,95,20,0.4) 34%, rgba(150,25,10,0.14) 60%, transparent 72%);
+          animation: rvnFlameRise 3.4s ease-in-out infinite, rvnFlameFlicker 1.5s ease-in-out infinite; }
+      `}</style>
+      <div className="rvn-flames" aria-hidden>
+        <div className="rvn-flame" style={{ left: '4%', width: 260, animationDelay: '0s, 0.2s' }} />
+        <div className="rvn-flame" style={{ left: '24%', width: 320, height: 420, animationDelay: '0.6s, 0.9s' }} />
+        <div className="rvn-flame" style={{ left: '46%', width: 300, animationDelay: '1.1s, 0.4s' }} />
+        <div className="rvn-flame" style={{ left: '68%', width: 340, height: 430, animationDelay: '0.3s, 1.2s' }} />
+        <div className="rvn-flame" style={{ left: '88%', width: 260, animationDelay: '0.9s, 0.6s' }} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Tutorial */}
-        <div className="rounded-2xl p-6 flex flex-col gap-3" style={cardStyle('rgba(139,92,246,0.3)')}>
-          <div className="text-3xl">🎓</div>
-          <h2 className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>Mokymasis</h2>
-          <p className="text-xs leading-relaxed flex-1" style={{ color: 'var(--text-muted)' }}>Žingsnis po žingsnio: kovos laukas, auksas, ŽMK, žetonai. Su demo kalade.</p>
-          <TutorialButton deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" />
+      <div className="relative z-10 space-y-6">
+        {/* Kaladės pasirinkimas (kovoms prieš AI / PvP) */}
+        <div className="relative mx-auto max-w-md" style={{ clipPath: oct(12), background: 'rgba(240,180,41,0.4)', padding: 2 }}>
+          <div className="px-4 py-3" style={{ clipPath: oct(11), background: 'linear-gradient(160deg, #15101f, #0a0810)' }}>
+            <label className="text-[10px] font-semibold block mb-1.5 text-center" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>
+              ⚔ KOVOS KALADĖ
+            </label>
+            {decks.length === 0 ? (
+              <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                Neturi kaladžių. <Link href="/deck-builder" className="underline" style={{ color: 'var(--gold)' }}>Sukurk kaladę</Link>.
+              </p>
+            ) : (
+              <select value={selDeck} onChange={(e) => setSelDeck(e.target.value)}
+                style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}>
+                {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
+              </select>
+            )}
+          </div>
         </div>
 
-        {/* Praktika prieš AI */}
-        <div className="rounded-2xl p-6 flex flex-col gap-3" style={cardStyle('rgba(34,197,94,0.3)')}>
-          <div className="text-3xl">🎯</div>
-          <h2 className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>Praktika prieš AI</h2>
-          <p className="text-xs leading-relaxed flex-1" style={{ color: 'var(--text-muted)' }}>Kovok su savo kalade prieš viešą arba atsitiktinę frakcijos kaladę.</p>
-          {sel ? (
-            <PracticeButton deckId={sel.id} deckName={sel.name} />
-          ) : (
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pasirink kaladę viršuje.</span>
-          )}
-        </div>
-
-        {/* PvP */}
-        <div className="rounded-2xl p-6 flex flex-col gap-3" style={cardStyle('rgba(239,68,68,0.35)')}>
-          <div className="text-3xl">⚔️</div>
-          <h2 className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>PvP — žaidėjas prieš žaidėją</h2>
-          <p className="text-xs leading-relaxed flex-1" style={{ color: 'var(--text-muted)' }}>Kaukis realiu laiku prieš kitą žaidėją: privatus kambarys su kodu arba atsitiktinis varžovas.</p>
-          {sel ? (
-            <button onClick={() => { playUiClick(); setPvpOpen(true) }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95"
-              style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.06))', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-              ⚔️ Į areną
-            </button>
-          ) : (
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pasirink kaladę viršuje.</span>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {tiles.map(renderTile)}
         </div>
       </div>
 
+      {/* Paleidimai */}
+      {tutorialOpen && (
+        <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => setTutorialOpen(false)} />
+      )}
+      {sel && (
+        <PracticeButton deckId={sel.id} deckName={sel.name} hideTrigger open={aiOpen} onClose={() => setAiOpen(false)} />
+      )}
       {pvpOpen && sel && (
         <PvPLobby deckId={sel.id} deckName={sel.name} onClose={() => setPvpOpen(false)} />
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
+          style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+          {toast}
+        </div>
       )}
     </div>
   )

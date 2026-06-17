@@ -32,13 +32,6 @@ export default async function DigitalPage() {
       </header>
 
       <div className="max-w-screen-lg mx-auto px-4 py-8">
-        <p
-          className="text-sm mb-6"
-          style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}
-        >
-          Skaitmeninė kovos erdvė — mokykis, treniruokis prieš AI ir kaukis prieš kitus žaidėjus.
-        </p>
-
         <DigitalHub loggedIn={!!user} />
       </div>
     </div>
