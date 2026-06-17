@@ -60,8 +60,8 @@ begin
       'id', c.id, 'name', c.name, 'image_url', c.image_url,
       'rarity', r.name, 'rarity_color', r.color_hex, 'sort_order', r.sort_order, 'faction', f.name
     ) order by r.sort_order desc), '[]'::jsonb)
-    from unnest(v_received) as cid
-    join public.cards c on c.id = cid
+    from unnest(v_received) as u(cid)
+    join public.cards c on c.id = u.cid
     left join public.rarities r on r.id = c.rarity_id
     left join public.factions f on f.id = c.faction_id
   );
