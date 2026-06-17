@@ -47,3 +47,21 @@ export async function getActivePack(): Promise<{ id: string; name: string; price
   const { data } = await supabase.from('card_packs').select('id, name, price_gold').eq('is_active', true).order('sort_order').limit(1).maybeSingle()
   return (data as { id: string; name: string; price_gold: number } | null) ?? null
 }
+
+export type OpenedCard = {
+  id: string
+  name: string
+  image_url: string | null
+  rarity: string | null
+  rarity_color: string | null
+  sort_order: number | null
+  faction: string | null
+}
+
+/** Atplėšia pakuotę: sunaudoja 1 turimą, grąžina ištrauktas kortas (RNG pagal retumus). */
+export async function openPack(packId: string): Promise<OpenedCard[] | { error: string }> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_open_pack', { p_pack_id: packId })
+  if (error) return { error: error.message }
+  return (data as OpenedCard[]) ?? []
+}

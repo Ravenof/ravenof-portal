@@ -10,6 +10,7 @@ import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
 import { PvPLobby } from './PvPLobby'
 import { getWallet, buyPack, getActivePack, type Wallet } from '@/lib/economy'
+import { PackOpen } from './PackOpen'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -41,6 +42,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [storeOpen, setStoreOpen] = useState(false)
   const [pack, setPack] = useState<{ id: string; name: string; price_gold: number } | null>(null)
   const [buying, setBuying] = useState(false)
+  const [openingPack, setOpeningPack] = useState(false)
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
 
   useEffect(() => {
@@ -214,6 +216,12 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         <PvPLobby deckId={sel.id} deckName={sel.name} onClose={() => { setPvpOpen(false); refreshWallet() }} />
       )}
 
+      {openingPack && pack && (
+        <PackOpen packId={pack.id} packName={pack.name}
+          onClose={() => { setOpeningPack(false); refreshWallet() }}
+          onOpened={() => refreshWallet()} />
+      )}
+
       {storeOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={() => setStoreOpen(false)}>
           <div className="relative w-[min(420px,94vw)]" style={{ clipPath: oct(16), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
@@ -228,7 +236,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
                 style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
                 {buying ? 'Perkama…' : `Pirkti už 🪙 ${pack?.price_gold ?? 200}`}
               </button>
-              <p className="text-[10px] mt-3" style={{ color: 'var(--text-muted)' }}>Pakuočių atplėšimas (animacija + 10 kortų) — netrukus.</p>
+              {wallet.packs > 0 && pack && (
+                <button onClick={() => { playUiClick(); setStoreOpen(false); setOpeningPack(true) }}
+                  className="w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-95"
+                  style={{ background: 'rgba(251,146,60,0.2)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
+                  🎁 Atplėšti pakuotę (turi {wallet.packs})
+                </button>
+              )}
               <button onClick={() => { playUiClick(); setStoreOpen(false) }} className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>Uždaryti</button>
             </div>
           </div>
