@@ -202,6 +202,7 @@ export type PendingReveal = { whoseDeck: Side; title: string; cards: TutCard[] }
 export type PendingSummon = { caster: Side; choose: number; options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] }
 export type PendingChoice = {
   caster: Side
+  chooser?: Side
   sourceName: string
   title: string
   kind: 'effect' | 'tutorHand'
@@ -1301,18 +1302,20 @@ function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'di
 }
 
 // ── chooseEffect: žaidėjas renkasi 1 iš variantų (pop-up); AI auto 1-as ───────
-function chooseEffectPrim(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[]) {
+function chooseEffectPrim(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[], chooser?: Side) {
   if (branches.length === 0) return
-  if (caster === 'you') {
+  const who: Side = chooser ?? caster
+  if (who === 'you') {
+    // Pop-up rodomas tam, kas renkasi (chooser). Efektai vykdomi kerėtojo (caster) vardu.
     g.pendingChoice = {
-      caster, sourceName, kind: 'effect',
+      caster, chooser: 'you', sourceName, kind: 'effect',
       title: `„${sourceName}" – pasirink efektą`,
       options: branches.map((_, i) => ({ label: labels[i] || `Variantas ${i + 1}` })),
       branches,
     }
     return
   }
-  // AI: paprastas euristinis – 1-as variantas
+  // AI renkasi – paprastas euristinis: 1-as variantas (vykdomas caster vardu)
   for (const m of branches[0]) {
     applyMapping(gameApi, g, caster, m, { sourceName, depth: 1 })
     if (g.winner) return
@@ -2007,7 +2010,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingPeek) { c.pendingPeek.caster = other(c.pendingPeek.caster); c.pendingPeek.victim = other(c.pendingPeek.victim) }
   if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)
   if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
-  if (c.pendingChoice) c.pendingChoice.caster = other(c.pendingChoice.caster)
+  if (c.pendingChoice) { c.pendingChoice.caster = other(c.pendingChoice.caster); if (c.pendingChoice.chooser) c.pendingChoice.chooser = other(c.pendingChoice.chooser) }
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
   return c
 }

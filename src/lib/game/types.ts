@@ -305,6 +305,7 @@ export type EffectMapping = {
   useAttackTarget?: boolean         // onAttack/onAttacked: efektas taikomas į kovos taikinį (atakuotą padarą / atakuotoją)
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
+  chooseBy?: 'caster' | 'opponent'  // chooseEffect: kas renkasi – kerėtojas (default) ar priešininkas/auka (pvz. prakeiksmui)
   coinGreen?: EffectMapping[]       // coinFlip: efektai, kai iškrinta ŽALIA pusė
   coinRed?: EffectMapping[]         // coinFlip: efektai, kai iškrinta RAUDONA pusė
   triggerSpellType?: SpellType      // globalus trigger (onAnyCast): tik šio tipo burtas aktyvuoja

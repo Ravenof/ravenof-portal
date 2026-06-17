@@ -2311,7 +2311,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── pasirink 1 iš kelių efektų / tutor korta į ranką ── */}
       <AnimatePresence>
-        {game?.pendingChoice && (
+        {game?.pendingChoice && ((game.pendingChoice.chooser ?? game.pendingChoice.caster) === 'you') && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[134] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.72)' }}>

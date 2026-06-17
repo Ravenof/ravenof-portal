@@ -564,9 +564,17 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                       </>
                     )}
                     {m.effect === 'chooseEffect' && (
-                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                        „Pasirink 1 iš…" variantus (chooseOne) suvesk JSON režimu
-                      </span>
+                      <>
+                        <label className="flex items-center gap-1">Kas renkasi
+                          <select value={m.chooseBy ?? 'caster'} onChange={(e) => setMapping(i, { chooseBy: (e.target.value as 'caster' | 'opponent') })} style={{ ...inputStyle, width: 150 }}>
+                            <option value="caster">Kerėtojas (tu)</option>
+                            <option value="opponent">Priešininkas / auka</option>
+                          </select>
+                        </label>
+                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          „Pasirink 1 iš…" variantus (chooseOne) suvesk JSON režimu. Prakeiksmui rink „Priešininkas / auka", kad rinktųsi auka.
+                        </span>
+                      </>
                     )}
                     {m.effect === 'coinFlip' && (
                       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>

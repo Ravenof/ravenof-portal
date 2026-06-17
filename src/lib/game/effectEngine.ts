@@ -31,7 +31,7 @@ export type GameApi = {
   setSpellDiscount(g: GameState, s: Side, n: number): void
   buffSpellDamage(g: GameState, s: Side, n: number): void
   tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; choose?: boolean }): void
-  chooseEffect(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[]): void
+  chooseEffect(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[], chooser?: Side): void
   millDeck(g: GameState, s: Side, n: number): void
   returnGraveyardToDeck(g: GameState, s: Side, n: number): void
   peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
@@ -251,7 +251,10 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     }
     case 'chooseEffect': {
       const opts = m.chooseOne ?? []
-      if (opts.length > 0) api.chooseEffect(g, caster, ctx.sourceName, opts.map((x) => x.mappings), opts.map((x) => x.label))
+      if (opts.length > 0) {
+        const chooser: Side = m.chooseBy === 'opponent' ? (caster === 'you' ? 'ai' : 'you') : caster
+        api.chooseEffect(g, caster, ctx.sourceName, opts.map((x) => x.mappings), opts.map((x) => x.label), chooser)
+      }
       break
     }
     case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, choose: m.tutorChoose }); break
