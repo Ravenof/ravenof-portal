@@ -389,7 +389,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
             {mappings.map((m, i) => {
               const effectDef = EFFECT_TYPES.find((e) => e.value === m.effect)
               const eff = m.effect
-              const isGlobalTrigger = ['onAnySummon', 'onAnyDeath', 'onAnyAttack', 'onAnyPlay', 'onAnyCast', 'onAnyArtifact', 'onAnyChampion'].includes(m.trigger)
+              const isGlobalTrigger = m.trigger.startsWith('onAny')
               const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
               const isPlayerEff = ['discard', 'gainGold', 'loseGold', 'loseGoldNextTurn'].includes(eff)
               const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
@@ -422,7 +422,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                       style={{ background: 'rgba(120,160,255,0.06)', border: '1px solid rgba(120,160,255,0.3)' }}>
                       <div className="col-span-2">
                         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          🌐 Globalus trigger – efektas suveikia, kai įvykis nutinka {m.trigger === 'onAnySummon' ? 'bet kuriam iškviestam/prikeltam padarui' : m.trigger === 'onAnyDeath' ? 'bet kuriam sunaikintam padarui' : m.trigger === 'onAnyAttack' ? 'bet kuriam puolančiam padarui' : 'bet kuriai sužaistai kortai'} (ne tik šiai kortai). Filtruok žemiau.
+                          🌐 Globalus „šakos" trigger – efektas suveikia KAS KARTĄ kai įvyksta pasirinktas įvykis (ne tik šiai kortai), per savo IR priešo ėjimą. Filtruok žemiau: kieno įvykis + (jei nori) sąlyga. Schema: sąlyga {'>'} kas triggers {'>'} efektas.
                         </p>
                       </div>
                       <div>
