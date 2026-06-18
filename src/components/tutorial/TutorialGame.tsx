@@ -33,6 +33,7 @@ import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
+import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
@@ -320,6 +321,12 @@ function cardNeedsTarget(game: GameState, c: TutCard): boolean {
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
+
+  // Kovos fono muzika (grįžus į meniu – menu tema)
+  useEffect(() => {
+    startBattleMusic()
+    return () => { startMenuMusic() }
+  }, [])
   const isGuest = !!net && !net.isHost
   const vsRemote = !!net
   const loadOpp = practice || isHost          // host kraują priešo (svečio) kaladę
