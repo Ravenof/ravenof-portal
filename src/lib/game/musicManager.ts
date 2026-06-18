@@ -4,7 +4,7 @@
 // dekoduotus buferius. Dekoduotas 5 min stereo trekas užimtų ~50 MB RAM; streaming'as
 // laiko atmintyje tik mažą buferį, tad net 5 kovos trekai praktiškai nieko nekainuoja.
 //
-//   • Kovos muzika: 5 trekai, grojami atsitiktine tvarka (be pasikartojimo iš eilės),
+//   • Kovos muzika: 7 trekai, grojami atsitiktine tvarka (be pasikartojimo iš eilės),
 //     vienas po kito → nuolatinė variacija.
 //   • Main menu: viena tema, looping.
 //   • Crossfade tarp trekų/režimų (be staigaus nutrūkimo).
@@ -20,7 +20,7 @@
 import { isUiSoundEnabled, subscribeUiSound } from '@/lib/ui-sound'
 
 const MENU_TRACK = '/sounds/music/menu-theme.mp3'
-const BATTLE_TRACKS = [1, 2, 3, 4, 5].map((n) => `/sounds/music/battle-${n}.mp3`)
+const BATTLE_TRACKS = [1, 2, 3, 4, 5, 6, 7].map((n) => `/sounds/music/battle-${n}.mp3`)
 
 const MUSIC_VOLUME = 0.32   // muzika tylesnė už SFX
 const FADE_MS = 1100
@@ -114,7 +114,11 @@ function startTrack(src: string, loop: boolean, onEnded?: () => void): void {
   const prev = current
   const el = makeEl(src, loop)
   current = el
-  if (onEnded) el.addEventListener('ended', onEnded)
+  if (onEnded) {
+    el.addEventListener('ended', onEnded)
+    // jei trekas neuzsikrovė (404/klaida) — nepakimba, pereina prie kito
+    el.addEventListener('error', () => { if (current === el) onEnded() })
+  }
   stopEl(prev)
   if (isUiSoundEnabled()) {
     tryPlay(el)
