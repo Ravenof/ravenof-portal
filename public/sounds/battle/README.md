@@ -5,7 +5,7 @@ gali padėti vieną failą (`attack.mp3`) ARBA kelis variantus (`attack-1.mp3`,
 `attack-2.mp3`, `attack-3.mp3`) — grojamas atsitiktinis. Failo nesant — sintezuotas
 fallback (kodo keisti nereikia).
 
-## Failų vardai (base ARBA -1..-3)
+## Failų vardai (base ARBA -1..-6 variantai)
 - `attack` — ataka
 - `spell-cast` — burto metimas
 - `impact` — smūgis/žala

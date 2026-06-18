@@ -38,6 +38,9 @@ function candidates(key: BattleSoundType): string[] {
     `/sounds/battle/${b}-1.mp3`,
     `/sounds/battle/${b}-2.mp3`,
     `/sounds/battle/${b}-3.mp3`,
+    `/sounds/battle/${b}-4.mp3`,
+    `/sounds/battle/${b}-5.mp3`,
+    `/sounds/battle/${b}-6.mp3`,
   ]
 }
 
