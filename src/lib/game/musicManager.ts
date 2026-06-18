@@ -4,7 +4,7 @@
 // dekoduotus buferius. Dekoduotas 5 min stereo trekas užimtų ~50 MB RAM; streaming'as
 // laiko atmintyje tik mažą buferį, tad net 5 kovos trekai praktiškai nieko nekainuoja.
 //
-//   • Kovos muzika: 7 trekai, grojami atsitiktine tvarka (be pasikartojimo iš eilės),
+//   • Kovos muzika: 6 trekai, grojami atsitiktine tvarka (be pasikartojimo iš eilės),
 //     vienas po kito → nuolatinė variacija.
 //   • Main menu: viena tema, looping.
 //   • Crossfade tarp trekų/režimų (be staigaus nutrūkimo).
@@ -20,7 +20,7 @@
 import { isUiSoundEnabled, subscribeUiSound } from '@/lib/ui-sound'
 
 const MENU_TRACK = '/sounds/music/menu-theme.mp3'
-const BATTLE_TRACKS = [1, 2, 3, 4, 5, 6, 7].map((n) => `/sounds/music/battle-${n}.mp3`)
+const BATTLE_TRACKS = [1, 2, 3, 4, 5, 6].map((n) => `/sounds/music/battle-${n}.mp3`)
 
 const MUSIC_VOLUME = 0.32   // muzika tylesnė už SFX
 const FADE_MS = 1100

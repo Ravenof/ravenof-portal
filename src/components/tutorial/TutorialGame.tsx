@@ -34,7 +34,6 @@ import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
-import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
@@ -641,12 +640,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     onClose()
   }, [net, onClose])
 
-  // ── Ambient muzika + garso būsenos sekimas ──
+  // ── Garso būsenos sekimas (kovos muzika tvarkoma atskirame effect'e) ──
   useEffect(() => {
-    const stop = startAmbient()
     setSoundOn(isUiSoundEnabled())
     const unsub = subscribeUiSound(setSoundOn)
-    return () => { stop(); unsub() }
+    return () => { unsub() }
   }, [])
 
   // ── Body scroll lock + Escape ──

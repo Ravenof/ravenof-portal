@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { playUiClick } from '@/lib/ui-sound'
-import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { getWallet, buyPack, getActivePacks, type Wallet, type Pack } from '@/lib/economy'
 
@@ -40,12 +39,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     const t = setTimeout(() => setToast(null), 2200)
     return () => clearTimeout(t)
   }, [toast])
-
-  // Main menu tema
-  useEffect(() => {
-    startMenuMusic()
-    return () => { stopMusic() }
-  }, [])
 
   useEffect(() => {
     if (!loggedIn) return

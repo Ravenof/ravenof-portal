@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { LayoutGrid, BookOpen, Hammer, LogOut } from 'lucide-react'
 import { Flames } from '@/components/digital/Flames'
 import { GlobalSoundToggle } from '@/components/ui/GlobalSoundToggle'
-import { startAmbient } from '@/lib/tutorial/ambient'
+import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 
 const NAV = [
@@ -19,12 +19,12 @@ const NAV = [
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  // Dark fantasy ambient — startuoja po pirmo prisilietimo (naršyklės reikalavimas), tildomas garso jungikliu.
+  // Main menu tema — groja per VISUS /digital puslapius (layout nepersikrauna naviguojant
+  // tarp meniu/albumo/kaladžių/pve/pvp); kovoje TutorialGame perjungia į kovos muziką ir grįžta.
+  // Garsas paiso globalaus jungiklio; jei naršyklė blokuoja autoplay — pasileidžia po pirmo gesto.
   useEffect(() => {
-    let stop: () => void = () => {}
-    const onFirst = () => { try { stop = startAmbient() } catch { /* */ } }
-    window.addEventListener('pointerdown', onFirst, { once: true })
-    return () => { window.removeEventListener('pointerdown', onFirst); try { stop() } catch { /* */ } }
+    startMenuMusic()
+    return () => { stopMusic() }
   }, [])
 
   return (
