@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { VoiceLinesUpload } from './VoiceLinesUpload'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
   METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SPELL_TYPES, ATTACK_RESTRICTIONS,
@@ -25,8 +26,10 @@ const SOUND_OPTIONS = ['', 'attack', 'spellCast', 'impact', 'draw', 'curse', 'fi
 
 const EMPTY_MAPPING: EffectMapping = { trigger: 'onPlay', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true }
 
-export function GameplayConfigEditor({ initial, isField, isChampion = false, cardNames = [], hasEffectText }: {
+export function GameplayConfigEditor({ initial, isField, isChampion = false, cardNames = [], hasEffectText, cardId = null, cardNumber = '' }: {
   initial: unknown
+  cardId?: string | null
+  cardNumber?: string
   isField: boolean
   isChampion?: boolean
   cardNames?: string[]
@@ -103,6 +106,16 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
   return (
     <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
       <input type="hidden" name="gameplay" value={serialized} />
+
+      {/* Iškvietimo balsai — keli garso failai, summon metu grojamas atsitiktinis */}
+      <div className="rounded-lg p-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)' }}>
+        <VoiceLinesUpload
+          value={cfg.voiceLines ?? []}
+          cardId={cardId}
+          cardNumber={cardNumber}
+          onChange={(urls) => update({ ...cfg, voiceLines: urls.length ? urls : undefined })}
+        />
+      </div>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p style={{ ...labelStyle, marginBottom: 0, fontSize: '0.7rem' }}>🎮 Virtualaus žaidimo efektai</p>
         <div className="flex items-center gap-2">

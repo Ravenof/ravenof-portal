@@ -222,6 +222,8 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities, c
         {/* Virtualaus žaidimo gameplay konfigūracija (mapinimas) */}
         <GameplayConfigEditor
           initial={initialData?.gameplay ?? null}
+          cardId={cardId}
+          cardNumber={cardNumber}
           isField={isFieldType}
           isChampion={isChampType}
           cardNames={cardNames}

@@ -394,6 +394,7 @@ export type GameplayConfig = {
   canTriggerZmk?: boolean
   animationType?: string
   soundType?: BattleSoundType
+  voiceLines?: string[]            // iškvietimo balsai: keli mp3/ogg URL, grojami atsitiktinai per voiceManager
   projectileType?: ProjectileType
   tutorialTags?: string[]
 }

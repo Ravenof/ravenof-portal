@@ -32,6 +32,7 @@ import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping 
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
+import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startAmbient, stopAmbient } from '@/lib/tutorial/ambient'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
@@ -714,6 +715,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
         case 'draw': {
           if (!e.sound) playCardDraw()
+          if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
           if (e.side === 'you' && e.cardName) {
             if (skipYouDraw) { skipYouDraw = false }
             else {
@@ -725,7 +727,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           }
           break
         }
-        case 'play': case 'artifact': case 'champion': if (!e.sound) playBattleSound('summon'); break
+        case 'play': case 'artifact': case 'champion': {
+          if (!e.sound) playBattleSound('summon')
+          const sc = findCard(e.cardName)
+          if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
+          break
+        }
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
           if (e.t === 'spell' && e.cardName) {
