@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playCardFlip, playUiClick } from '@/lib/ui-sound'
 import { getWallet, getActivePack, type Wallet } from '@/lib/economy'
 import { PackOpen } from './PackOpen'
+import { rarityColor } from '@/lib/digital/rarity'
 
 const PER_PAGE = 9 // 3x3 binderio kišenės
 
@@ -21,7 +22,7 @@ type OwnedCard = {
 function Pocket({ c }: { c: OwnedCard | null }) {
   const [bad, setBad] = useState(false)
   if (!c) return <div className="rounded-md" style={{ aspectRatio: '2.5 / 3.5', border: '1px dashed rgba(240,180,41,0.18)', background: 'rgba(240,180,41,0.02)' }} />
-  const col = c.rarity_color || '#d4af37'
+  const col = rarityColor(c.rarity)
   const href = '/cards/' + encodeURIComponent(c.card_number ?? c.card_id)
   return (
     <Link href={href} className="relative block rounded-md overflow-hidden group" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${col}`, boxShadow: `0 0 8px ${col}44` }}>

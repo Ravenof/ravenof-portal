@@ -4,23 +4,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
+import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery } from '@/lib/ui-sound'
 
 const MAX_TEAR = 150
 const THRESH = 0.42
 
-/** Retumo efekto lygis pagal pavadinimą: legendinė=3, epiška=2, unikali=1, kita=0. */
-function rarityLevel(name?: string | null): number {
-  const s = (name || '').toLowerCase()
-  if (/legend/.test(s)) return 3
-  if (/epi[sšc]/.test(s)) return 2
-  if (/unik|uniq/.test(s)) return 1
-  return 0
-}
-
 function CardArt({ card }: { card: OpenedCard }) {
   const [bad, setBad] = useState(false)
-  const col = card.rarity_color || '#d4af37'
+  const col = rarityColor(card.rarity)
   if (card.image_url && !bad) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={card.image_url} alt={card.name} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
@@ -80,15 +72,15 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
     if (!current) return
     playCardFlip()
     const L = rarityLevel(current.rarity)
-    if (L === 1) playDiscovery()
-    else if (L === 2) playSuccess()
-    else if (L === 3) { playSuccess(); const t = setTimeout(() => playDiscovery(), 130); return () => clearTimeout(t) }
+    if (L === 2) playDiscovery()
+    else if (L === 3) playSuccess()
+    else if (L >= 4) { playSuccess(); const t = setTimeout(() => playDiscovery(), 130); return () => clearTimeout(t) }
   }, [current])
 
   const L = rarityLevel(current?.rarity)
-  const col = current?.rarity_color || '#d4af37'
+  const col = rarityColor(current?.rarity)
   const sparks = useMemo(() => {
-    const n = [0, 8, 16, 30][L] ?? 0
+    const n = [0, 5, 12, 20, 34][L] ?? 0
     return Array.from({ length: n }, (_, i) => {
       const a = (i / n) * Math.PI * 2 + Math.random() * 0.5
       const d = 70 + Math.random() * (40 + L * 40)
@@ -131,7 +123,7 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
           <p className="text-xs font-bold" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>{revealIdx + 1} / {cards.length}</p>
           <div className="relative" style={{ width: 210, height: 294, perspective: 900 }}>
             {/* fono švytėjimas pagal retumą */}
-            {L >= 2 && <motion.div key={'glow' + revealIdx} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: [0, 0.9, 0.5], scale: [0.6, 1.4, 1.2] }} transition={{ duration: 0.9 }} className="absolute -inset-10" style={{ borderRadius: '50%', filter: 'blur(30px)', background: `radial-gradient(circle, ${col}cc, transparent 70%)` }} />}
+            {L >= 1 && <motion.div key={'glow' + revealIdx} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: [0, 0.9, 0.5], scale: [0.6, 1.4, 1.2] }} transition={{ duration: 0.9 }} className="absolute -inset-10" style={{ borderRadius: '50%', filter: 'blur(30px)', background: `radial-gradient(circle, ${col}cc, transparent 70%)` }} />}
             {/* sparkles */}
             {sparks.map((p, i) => (
               <motion.span key={'sp' + revealIdx + '-' + i} initial={{ x: 0, y: 0, opacity: 0, scale: 0 }} animate={{ x: p.x, y: p.y, opacity: [0, 1, 0], scale: [0, 1, 0.4] }} transition={{ duration: 0.7 + L * 0.15, delay: p.delay }}
@@ -160,7 +152,7 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
           <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>TAVO KORTOS!</p>
           <div className="grid grid-cols-5 gap-2 sm:gap-3">
             {cards.map((c, i) => {
-              const cc = c.rarity_color || '#d4af37'
+              const cc = rarityColor(c.rarity)
               return (
                 <div key={c.id + '-' + i} className="relative rounded-md overflow-hidden" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 0 12px ${cc}77` }}>
                   <CardArt card={c} />

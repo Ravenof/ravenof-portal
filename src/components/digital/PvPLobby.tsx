@@ -26,6 +26,12 @@ type Launch = { net: PvPNet; deckId: string; opponentDeckId: string | null; oppo
 
 const randCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
 
+/** Aštrūs „išraižyti" kampai. */
+const oct = (b: number) =>
+  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
+
+const ACC = '251,146,60' // oranžinis (PVP — LAISVA akcentas)
+
 export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckName: string; onClose: () => void }) {
   const [tab, setTab] = useState<'private' | 'random'>('private')
   const [userId, setUserId] = useState<string | null>(null)
@@ -170,18 +176,22 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
   }
 
   const tabBtn = (k: 'private' | 'random', label: string) => (
-    <button onClick={() => { setTab(k); setStatus('') }} className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold"
-      style={{ background: tab === k ? 'rgba(239,68,68,0.22)' : 'var(--bg-elevated)', border: '1px solid ' + (tab === k ? 'rgba(239,68,68,0.5)' : 'var(--bg-border)'), color: tab === k ? '#fca5a5' : 'var(--text-muted)' }}>
+    <button onClick={() => { setTab(k); setStatus('') }} className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+      style={{ background: tab === k ? `rgba(${ACC},0.28)` : 'rgba(10,8,16,0.7)', border: '1px solid ' + (tab === k ? `rgba(${ACC},0.6)` : 'rgba(255,255,255,0.08)'), color: tab === k ? '#fdba74' : 'var(--text-muted)' }}>
       {label}
     </button>
   )
-  const inputStyle = { width: '100%', padding: '0.5rem 0.6rem', borderRadius: '0.5rem', fontSize: '1rem', letterSpacing: '0.2em', textAlign: 'center', textTransform: 'uppercase', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none' } as React.CSSProperties
-  const actBtn = { background: 'rgba(239,68,68,0.22)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' } as React.CSSProperties
+  const inputStyle = { width: '100%', padding: '0.6rem', borderRadius: '0.5rem', fontSize: '1rem', letterSpacing: '0.2em', textAlign: 'center', textTransform: 'uppercase', background: 'rgba(10,8,16,0.85)', border: `1px solid rgba(${ACC},0.4)`, color: 'var(--text-primary)', outline: 'none' } as React.CSSProperties
+  const actBtn = { background: `rgba(${ACC},0.25)`, border: `1px solid rgba(${ACC},0.55)`, color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' } as React.CSSProperties
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)' }} onClick={onClose}>
-      <div className="rounded-2xl p-5 w-[min(440px,94vw)]" style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(239,68,68,0.4)' }} onClick={(e) => e.stopPropagation()}>
-        <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>⚔️ PvP arena</p>
+    <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
+      <div className="relative w-[min(440px,94vw)]" style={{ clipPath: oct(16), background: `rgba(${ACC},0.5)`, padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
+        <div className="relative px-5 py-6" style={{ clipPath: oct(15), background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)`, boxShadow: `inset 0 0 24px rgba(${ACC},0.12)` }}>
+        {['top-2 left-2', 'top-2 right-2', 'bottom-2 left-2', 'bottom-2 right-2'].map((pos, i) => (
+          <span key={i} className={`absolute ${pos} text-[10px] leading-none`} style={{ color: `rgba(${ACC},0.8)`, textShadow: `0 0 6px rgba(${ACC},0.6)` }}>❖</span>
+        ))}
+        <p className="text-lg font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em', textShadow: `0 0 12px rgba(${ACC},0.4)` }}>⚔️ PVP ARENA</p>
         {resumeRec && !room && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)' }}>
             <p className="text-xs mb-2" style={{ color: '#86efac' }}>🔄 Turi nebaigtą partiją su „{resumeRec.opponentName || 'Varžovu'}". Grįžti gali, jei varžovas dar prisijungęs (30s).</p>
@@ -214,7 +224,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
               </>
             )}
             <p className="text-sm flex items-center justify-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#fca5a5' }} /> {status}
+              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: `rgba(${ACC},1)` }} /> {status}
             </p>
             <button onClick={cancel} className="px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Atšaukti</button>
           </div>
@@ -246,6 +256,7 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
             <button onClick={onClose} className="w-full mt-4 px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Uždaryti</button>
           </>
         )}
+        </div>
       </div>
     </div>
   )
