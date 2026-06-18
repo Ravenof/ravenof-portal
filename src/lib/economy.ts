@@ -48,6 +48,26 @@ export async function getActivePack(): Promise<{ id: string; name: string; price
   return (data as { id: string; name: string; price_gold: number } | null) ?? null
 }
 
+export type Pack = { id: string; name: string; description: string | null; price_gold: number; sort_order: number }
+
+/** Visos aktyvios pakuotės (boosteriai) parduotuvei. */
+export async function getActivePacks(): Promise<Pack[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('card_packs').select('id, name, description, price_gold, sort_order').eq('is_active', true).order('sort_order')
+  return (data as Pack[]) ?? []
+}
+
+/** Vartotojo turimų pakuočių kiekiai pagal pack_id (tik qty>0). */
+export async function getPackInventory(): Promise<Record<string, number>> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {}
+  const { data } = await supabase.from('user_pack_inventory').select('pack_id, quantity').eq('user_id', user.id).gt('quantity', 0)
+  const out: Record<string, number> = {}
+  for (const r of ((data as { pack_id: string; quantity: number }[]) ?? [])) out[r.pack_id] = r.quantity
+  return out
+}
+
 export type OpenedCard = {
   id: string
   name: string
@@ -61,7 +81,7 @@ export type OpenedCard = {
 /** Atplėšia pakuotę: RPC sunaudoja pakuotę ir grąžina kortų ID; detales paimam atskirai. */
 export async function openPack(packId: string): Promise<OpenedCard[] | { error: string }> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_open_pack_v2', { p_pack_id: packId })
+  const { data, error } = await supabase.rpc('rvn_open_pack_v3', { p_pack_id: packId })
   if (error) return { error: error.message }
   const ids = (data as string[]) ?? []
   if (ids.length === 0) return []

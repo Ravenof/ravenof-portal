@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { playCardFlip, playUiClick } from '@/lib/ui-sound'
-import { getWallet, getActivePack, type Wallet } from '@/lib/economy'
+import { getWallet, getActivePacks, getPackInventory, type Wallet, type Pack } from '@/lib/economy'
 import { PackOpen } from './PackOpen'
 import { rarityColor } from '@/lib/digital/rarity'
 
@@ -46,10 +46,13 @@ export function DigitalAlbum() {
   const [page, setPage] = useState(0)
   const [dir, setDir] = useState(1)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
-  const [pack, setPack] = useState<{ id: string; name: string; price_gold: number } | null>(null)
-  const [opening, setOpening] = useState(false)
+  const [packs, setPacks] = useState<Pack[]>([])
+  const [inv, setInv] = useState<Record<string, number>>({})
+  const [chooser, setChooser] = useState(false)
+  const [openingPack, setOpeningPack] = useState<Pack | null>(null)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
+  const refreshInv = useCallback(() => { getPackInventory().then(setInv) }, [])
 
   const loadCards = useCallback(async () => {
     const supabase = createClient()
@@ -69,10 +72,11 @@ export function DigitalAlbum() {
     setCards(list)
   }, [])
 
-  useEffect(() => { loadCards(); refreshWallet(); getActivePack().then(setPack) }, [loadCards, refreshWallet])
+  useEffect(() => { loadCards(); refreshWallet(); refreshInv(); getActivePacks().then(setPacks) }, [loadCards, refreshWallet, refreshInv])
 
   const pageCount = Math.max(1, Math.ceil((cards?.length ?? 0) / PER_PAGE))
   const clampedPage = Math.min(page, pageCount - 1)
+  const ownedPacks = packs.filter((p) => (inv[p.id] ?? 0) > 0)
   const pocketCards = useMemo(() => {
     const start = clampedPage * PER_PAGE
     const slice = (cards ?? []).slice(start, start + PER_PAGE)
@@ -136,18 +140,39 @@ export function DigitalAlbum() {
             <span className="mx-1.5 opacity-40">·</span>
             🎁 <span style={{ color: '#fdba74', fontWeight: 700 }}>{wallet.packs}</span> pak.
           </div>
-          {wallet.packs > 0 && pack ? (
-            <button onClick={() => { playUiClick(); setOpening(true) }} className="px-4 py-2 rounded-xl text-xs font-bold transition-transform hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(251,146,60,0.2)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>🎁 Atidaryti pakuotę</button>
+          {ownedPacks.length > 0 ? (
+            <button onClick={() => { playUiClick(); if (ownedPacks.length === 1) setOpeningPack(ownedPacks[0]); else setChooser(true) }} className="px-4 py-2 rounded-xl text-xs font-bold transition-transform hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(251,146,60,0.2)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>🎁 Atidaryti pakuotę</button>
           ) : (
             <Link href="/digital" onClick={() => playUiClick()} className="px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(240,180,41,0.12)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pirkti parduotuvėje</Link>
           )}
         </div>
       </div>
 
-      {opening && pack && (
-        <PackOpen packId={pack.id} packName={pack.name}
-          onClose={() => { setOpening(false); refreshWallet() }}
-          onOpened={() => { refreshWallet(); loadCards() }} />
+      {chooser && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setChooser(false)}>
+          <div className="relative w-[min(380px,92vw)]" style={{ clipPath: 'polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px)', background: 'rgba(251,146,60,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-5" style={{ clipPath: 'polygon(13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px),0 13px)', background: 'radial-gradient(120% 90% at 50% 0%, rgba(251,146,60,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)' }}>
+              <p className="text-base font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.06em' }}>🎁 KURĮ BOOSTERĮ ATIDARYTI?</p>
+              <div className="space-y-2">
+                {ownedPacks.map((p) => (
+                  <button key={p.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(p) }}
+                    className="w-full text-left px-3 py-2.5 rounded-lg transition-all hover:scale-[1.02]"
+                    style={{ background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.45)' }}>
+                    <span className="text-sm font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{p.name}</span>
+                    <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>×{inv[p.id]}</span>
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full text-xs" style={{ color: 'var(--text-muted)' }}>Atšaukti</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openingPack && (
+        <PackOpen packId={openingPack.id} packName={openingPack.name}
+          onClose={() => { setOpeningPack(null); refreshWallet(); refreshInv() }}
+          onOpened={() => { refreshWallet(); refreshInv(); loadCards() }} />
       )}
     </div>
   )

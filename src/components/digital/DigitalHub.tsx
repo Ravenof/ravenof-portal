@@ -6,7 +6,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
-import { getWallet, buyPack, getActivePack, type Wallet } from '@/lib/economy'
+import { getWallet, buyPack, getActivePacks, type Wallet, type Pack } from '@/lib/economy'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -30,7 +30,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [storeOpen, setStoreOpen] = useState(false)
-  const [pack, setPack] = useState<{ id: string; name: string; price_gold: number } | null>(null)
+  const [packs, setPacks] = useState<Pack[]>([])
   const [buying, setBuying] = useState(false)
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
 
@@ -43,13 +43,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet()
-    getActivePack().then(setPack)
+    getActivePacks().then(setPacks)
   }, [loggedIn, refreshWallet])
 
-  const doBuy = async () => {
-    if (!pack || buying) return
+  const doBuy = async (packId: string) => {
+    if (buying) return
     setBuying(true); playUiClick()
-    const r = await buyPack(pack.id)
+    const r = await buyPack(packId)
     setBuying(false)
     if ('error' in r) { setToast(r.error === 'not enough gold' ? 'Per mažai aukso.' : 'Nepavyko nupirkti pakuotės.'); return }
     refreshWallet(); setToast('Pakuotė nupirkta! 🎁')
@@ -149,14 +149,21 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <div className="px-5 py-6 text-center" style={{ clipPath: oct(15), background: 'radial-gradient(120% 90% at 50% 0%, rgba(240,180,41,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
               <p className="text-lg font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🛒 PARDUOTUVĖ</p>
               <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Turi 🪙 {wallet.gold.toLocaleString()} aukso · 🎁 {wallet.packs} pakuotės</p>
-              <div className="mx-auto mb-4" style={{ width: 96, height: 128, clipPath: oct(10), background: 'linear-gradient(160deg, #3a2a55, #15101f)', border: '2px solid rgba(240,180,41,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>🎴</div>
-              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{pack?.name ?? 'Standartinė pakuotė'}</p>
-              <p className="text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>10 kortų · retumai pagal tikimybę</p>
-              <button onClick={doBuy} disabled={buying || !pack || wallet.gold < (pack?.price_gold ?? 200)}
-                className="w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40 hover:scale-[1.02] active:scale-95"
-                style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-                {buying ? 'Perkama…' : `Pirkti už 🪙 ${pack?.price_gold ?? 200}`}
-              </button>
+              <div className="space-y-3 mb-2 text-left">
+                {packs.map((p) => (
+                  <div key={p.id} className="px-3 py-3" style={{ clipPath: oct(10), background: 'linear-gradient(160deg, rgba(58,42,85,0.45), rgba(21,16,31,0.7))', border: '1px solid rgba(240,180,41,0.3)' }}>
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>🎴 {p.name}</p>
+                    {p.description && <p className="text-[10px] mt-0.5 mb-2 leading-snug" style={{ color: 'var(--text-muted)' }}>{p.description}</p>}
+                    <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>10 kortų · 10-a visada Unikalus arba geresnė</p>
+                    <button onClick={() => doBuy(p.id)} disabled={buying || wallet.gold < p.price_gold}
+                      className="w-full px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40 hover:scale-[1.02] active:scale-95"
+                      style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
+                      {buying ? 'Perkama…' : `Pirkti už 🪙 ${p.price_gold}`}
+                    </button>
+                  </div>
+                ))}
+                {packs.length === 0 && <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>Šiuo metu pakuočių nėra.</p>}
+              </div>
               {wallet.packs > 0 && (
                 <Link href="/digital/album" onClick={() => { playUiClick(); setStoreOpen(false) }}
                   className="block w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-bold text-center transition-all hover:scale-[1.02] active:scale-95"
