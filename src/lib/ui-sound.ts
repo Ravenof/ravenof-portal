@@ -1,5 +1,9 @@
 // ── Globalus portalo UI garso variklis ────────────────────────────────────────
-// Web Audio sintezatoriai (be failų) + globalus įjungimo/išjungimo nustatymas.
+// FILE-FIRST: kiekvienas garsas pirmiausia bando paleisti mp3 iš /public/sounds/ui/
+// (su atsitiktiniais variantais, pvz. card-place-1.mp3 / -2 / -3). Jei failo nėra –
+// fallback į sintezuotą Web Audio garsą (kad veiktų ir be assetų). Įkėlus mp3 failus,
+// kodo keisti nereikia. Synth lieka tik kaip atsarga.
+//
 // Naudojimas: import { playCardPick, isUiSoundEnabled, toggleUiSound } from '@/lib/ui-sound'
 
 const STORAGE_KEY = 'ravenof-sound-enabled'
@@ -43,7 +47,65 @@ export function subscribeUiSound(cb: (enabled: boolean) => void): () => void {
   return () => { _listeners.delete(cb) }
 }
 
-// ── Audio kontekstas ──────────────────────────────────────────────────────────
+// ── FILE-FIRST mp3 sluoksnis ──────────────────────────────────────────────────
+// Kiekvienam efektui galima padėti kelis variantų failus; grojamas atsitiktinis.
+// Failo nesant – iškart pereinama prie synth fallback (ir tas URL pažymimas „dead",
+// kad nebebandytume). Vienas HTMLAudio elementas per URL (pakartotinis naudojimas).
+
+const sfxDead = new Set<string>()
+const sfxPool = new Map<string, HTMLAudioElement>()
+const sfxLast = new Map<string, string>()
+
+/** Bando groti random mp3 variantą; jei nepavyksta/nėra – sintezuotas fallback. */
+function sfx(candidates: string[], volume: number, synth: () => void): void {
+  if (typeof window === 'undefined' || !isUiSoundEnabled()) return
+  const live = candidates.filter((u) => !sfxDead.has(u))
+  if (live.length === 0) { synth(); return }
+
+  const setKey = candidates[0]
+  let url = live[Math.floor(Math.random() * live.length)]
+  if (live.length > 1) {
+    const last = sfxLast.get(setKey)
+    for (let i = 0; i < 3 && url === last; i++) url = live[Math.floor(Math.random() * live.length)]
+  }
+  sfxLast.set(setKey, url)
+
+  try {
+    let a = sfxPool.get(url)
+    if (!a) {
+      a = new Audio(url)
+      a.preload = 'auto'
+      a.addEventListener('error', () => { sfxDead.add(url); sfxPool.delete(url) })
+      sfxPool.set(url, a)
+    }
+    a.volume = volume
+    a.currentTime = 0
+    const p = a.play()
+    if (p) p.catch(() => { if (!sfxDead.has(url)) { sfxDead.add(url); synth() } })
+  } catch {
+    sfxDead.add(url)
+    synth()
+  }
+}
+
+// Variantų manifestas — įkelk atitinkamus failus į public/sounds/ui/ (žr. README).
+const UI = '/sounds/ui'
+const SFX = {
+  hover:     [`${UI}/hover-1.mp3`, `${UI}/hover-2.mp3`],
+  cardPick:  [`${UI}/card-pick-1.mp3`, `${UI}/card-pick-2.mp3`, `${UI}/card-pick-3.mp3`],
+  cardPlace: [`${UI}/card-place-1.mp3`, `${UI}/card-place-2.mp3`, `${UI}/card-place-3.mp3`],
+  cardFlip:  [`${UI}/card-flip-1.mp3`, `${UI}/card-flip-2.mp3`],
+  uiClick:   [`${UI}/ui-click-1.mp3`, `${UI}/ui-click-2.mp3`],
+  success:   [`${UI}/success.mp3`],
+  error:     [`${UI}/error.mp3`],
+  mapZoom:   [`${UI}/map-zoom.mp3`],
+  panelOpen: [`${UI}/panel-open.mp3`],
+  discovery: [`${UI}/discovery.mp3`],
+  shuffle:   [`${UI}/shuffle-1.mp3`, `${UI}/shuffle-2.mp3`],
+  cardDraw:  [`${UI}/card-draw-1.mp3`, `${UI}/card-draw-2.mp3`, `${UI}/card-draw-3.mp3`],
+}
+
+// ── Audio kontekstas (synth fallback) ─────────────────────────────────────────
 let _ctx: AudioContext | null = null
 let _noiseBuffer: AudioBuffer | null = null
 
@@ -84,16 +146,11 @@ function getNoiseBuffer(ctx: AudioContext): AudioBuffer {
   return _noiseBuffer
 }
 
-// ── Sintezės primityvai ───────────────────────────────────────────────────────
+// ── Sintezės primityvai (fallback) ────────────────────────────────────────────
 
-/** Tonas su dažnio slinktimi ir gain envelope. */
 function tone(
-  freq: number,
-  endFreq: number,
-  type: OscillatorType,
-  duration: number,
-  gainVal: number,
-  startOffset = 0
+  freq: number, endFreq: number, type: OscillatorType,
+  duration: number, gainVal: number, startOffset = 0,
 ): void {
   withCtx((ctx) => {
     try {
@@ -114,13 +171,8 @@ function tone(
   })
 }
 
-/** „Popieriaus švilpesys" — filtruotas triukšmas (kortos paėmimas/padėjimas). */
 function swish(
-  duration: number,
-  fromFreq: number,
-  toFreq: number,
-  gainVal: number,
-  startOffset = 0
+  duration: number, fromFreq: number, toFreq: number, gainVal: number, startOffset = 0,
 ): void {
   withCtx((ctx) => {
     try {
@@ -145,85 +197,70 @@ function swish(
   })
 }
 
-// ── Viešas API — portalo garsai ───────────────────────────────────────────────
+// Synth fallback'ai (privatūs)
+function _synthHover(): void { tone(1900, 2100, 'triangle', 0.025, 0.04) }
+function _synthPick(): void { swish(0.12, 600, 2600, 0.22) }
+function _synthPlace(): void { swish(0.09, 2000, 500, 0.18); tone(150, 90, 'sine', 0.07, 0.22, 0.02) }
+function _synthFlip(): void { swish(0.18, 500, 3500, 0.26) }
+function _synthClick(): void { tone(900, 700, 'square', 0.035, 0.06) }
+function _synthSuccess(): void { tone(523, 659, 'sine', 0.12, 0.14); tone(659, 880, 'sine', 0.14, 0.12, 0.1) }
+function _synthError(): void { tone(180, 110, 'sawtooth', 0.16, 0.16) }
+function _synthMapZoom(): void { swish(0.1, 400, 900, 0.06) }
+function _synthPanelOpen(): void { swish(0.14, 700, 2200, 0.12) }
+function _synthDiscovery(): void { tone(523, 784, 'sine', 0.18, 0.14); tone(784, 1047, 'sine', 0.22, 0.12, 0.14); swish(0.3, 1500, 4000, 0.08, 0.05) }
+function _synthShuffle(): void {
+  swish(0.07, 900, 2200, 0.14); swish(0.07, 700, 1900, 0.13, 0.08)
+  swish(0.07, 1000, 2400, 0.14, 0.16); swish(0.07, 800, 2000, 0.12, 0.24); swish(0.12, 600, 1600, 0.16, 0.34)
+}
+function _synthDraw(): void { swish(0.13, 800, 3000, 0.2); tone(1200, 1600, 'triangle', 0.04, 0.05, 0.06) }
+
+// ── Viešas API — file-first su synth fallback ─────────────────────────────────
 
 let _lastHover = 0
+let _lastZoom = 0
 
 /** Subtilus „tik" užvedus pelę ant kortos (throttled). */
 export function playCardHover(): void {
   const now = Date.now()
   if (now - _lastHover < 90) return
   _lastHover = now
-  tone(1900, 2100, 'triangle', 0.025, 0.04)
+  sfx(SFX.hover, 0.3, _synthHover)
 }
 
-/** Kortos paėmimas — popierius kyla aukštyn. */
-export function playCardPick(): void {
-  swish(0.12, 600, 2600, 0.22)
-}
+/** Kortos paėmimas. */
+export function playCardPick(): void { sfx(SFX.cardPick, 0.5, _synthPick) }
 
-/** Kortos padėjimas — švilpesys žemyn + minkštas „tump". */
-export function playCardPlace(): void {
-  swish(0.09, 2000, 500, 0.18)
-  tone(150, 90, 'sine', 0.07, 0.22, 0.02)
-}
+/** Kortos padėjimas. */
+export function playCardPlace(): void { sfx(SFX.cardPlace, 0.55, _synthPlace) }
 
-/** Kortos apvertimas — greitas platus švilpesys. */
-export function playCardFlip(): void {
-  swish(0.18, 500, 3500, 0.26)
-}
+/** Kortos apvertimas. */
+export function playCardFlip(): void { sfx(SFX.cardFlip, 0.5, _synthFlip) }
 
 /** Bendras UI paspaudimas. */
-export function playUiClick(): void {
-  tone(900, 700, 'square', 0.035, 0.06)
-}
+export function playUiClick(): void { sfx(SFX.uiClick, 0.4, _synthClick) }
 
-/** Sėkmė — du kylantys tonai. */
-export function playSuccess(): void {
-  tone(523, 659, 'sine', 0.12, 0.14)
-  tone(659, 880, 'sine', 0.14, 0.12, 0.1)
-}
+/** Sėkmė. */
+export function playSuccess(): void { sfx(SFX.success, 0.5, _synthSuccess) }
 
-/** Klaida — žemas burzgesys. */
-export function playError(): void {
-  tone(180, 110, 'sawtooth', 0.16, 0.16)
-}
+/** Klaida. */
+export function playError(): void { sfx(SFX.error, 0.5, _synthError) }
 
-// ── Atlaso garsai ─────────────────────────────────────────────────────────────
-
-let _lastZoom = 0
-
-/** Žemėlapio zoom — labai tylus whoosh (throttled). */
+/** Žemėlapio zoom (throttled). */
 export function playMapZoom(): void {
   const now = Date.now()
   if (now - _lastZoom < 160) return
   _lastZoom = now
-  swish(0.1, 400, 900, 0.06)
+  sfx(SFX.mapZoom, 0.35, _synthMapZoom)
 }
 
-/** Panelės/markerio atidarymas — švelnus swish. */
-export function playPanelOpen(): void {
-  swish(0.14, 700, 2200, 0.12)
-}
+/** Panelės/markerio atidarymas. */
+export function playPanelOpen(): void { sfx(SFX.panelOpen, 0.45, _synthPanelOpen) }
 
-/** Lokacijos atradimas — magiškas varpelis. */
-export function playDiscovery(): void {
-  tone(523, 784, 'sine', 0.18, 0.14)
-  tone(784, 1047, 'sine', 0.22, 0.12, 0.14)
-  swish(0.3, 1500, 4000, 0.08, 0.05)
-}
+/** Lokacijos atradimas. */
+export function playDiscovery(): void { sfx(SFX.discovery, 0.5, _synthDiscovery) }
 
-/** Kaladės maišymas — greitų popieriaus švilpesių serija. */
-export function playShuffle(): void {
-  swish(0.07, 900, 2200, 0.14)
-  swish(0.07, 700, 1900, 0.13, 0.08)
-  swish(0.07, 1000, 2400, 0.14, 0.16)
-  swish(0.07, 800, 2000, 0.12, 0.24)
-  swish(0.12, 600, 1600, 0.16, 0.34)
-}
+/** Kaladės maišymas. */
+export function playShuffle(): void { sfx(SFX.shuffle, 0.5, _synthShuffle) }
 
-/** Kortos traukimas iš kaladės. */
-export function playCardDraw(): void {
-  swish(0.13, 800, 3000, 0.2)
-  tone(1200, 1600, 'triangle', 0.04, 0.05, 0.06)
-}
+/** Kortos traukimas. */
+export function playCardDraw(): void { sfx(SFX.cardDraw, 0.5, _synthDraw) }

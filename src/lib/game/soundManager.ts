@@ -1,22 +1,12 @@
 // ── Battle sound manager ──────────────────────────────────────────────────────
-// Failas-pirma sistema: jei /public/sounds/battle/<key>.mp3 egzistuoja – grojam
-// jį; jei ne (404 / klaida) – fallback į sintezuotą ui-sound garsą. Vėliau
-// užtenka įkelti mp3 failus į public/sounds/battle/ ir jie bus naudojami
-// automatiškai, kodo keisti nereikia.
+// FILE-FIRST su variantais: kiekvienam mūšio garsui galima padėti vieną arba kelis
+// failus public/sounds/battle/ (pvz. attack.mp3 ARBA attack-1.mp3 / attack-2.mp3 / …).
+// Grojamas atsitiktinis esamas variantas; jei nė vieno failo nėra – sintezuotas
+// fallback iš ui-sound. Įkėlus mp3, kodo keisti nereikia.
 //
-// Laukiami failai (placeholder struktūra):
-//   public/sounds/battle/attack.mp3
-//   public/sounds/battle/spell-cast.mp3
-//   public/sounds/battle/impact.mp3
-//   public/sounds/battle/draw.mp3
-//   public/sounds/battle/curse.mp3
-//   public/sounds/battle/field.mp3
-//   public/sounds/battle/heal.mp3
-//   public/sounds/battle/freeze.mp3
-//   public/sounds/battle/death.mp3
-//   public/sounds/battle/summon.mp3
-//   public/sounds/battle/zmk-flip.mp3
-//   public/sounds/battle/champion-skill.mp3
+// Laukiami failai (kiekvienam – base ARBA -1..-3 variantai):
+//   attack, spell-cast, impact, draw, curse, field, heal, freeze, death, summon,
+//   zmk-flip, champion-skill   →  public/sounds/battle/<vardas>(-N).mp3
 
 import {
   isUiSoundEnabled, playCardPick, playCardPlace, playCardFlip, playCardDraw,
@@ -24,19 +14,31 @@ import {
 } from '@/lib/ui-sound'
 import type { BattleSoundType } from './types'
 
-const FILES: Record<BattleSoundType, string> = {
-  attack:        'attack.mp3',
-  spellCast:     'spell-cast.mp3',
-  impact:        'impact.mp3',
-  draw:          'draw.mp3',
-  curse:         'curse.mp3',
-  field:         'field.mp3',
-  heal:          'heal.mp3',
-  freeze:        'freeze.mp3',
-  death:         'death.mp3',
-  summon:        'summon.mp3',
-  zmkFlip:       'zmk-flip.mp3',
-  championSkill: 'champion-skill.mp3',
+// Bazinis failo vardas kiekvienam tipui
+const BASE: Record<BattleSoundType, string> = {
+  attack:        'attack',
+  spellCast:     'spell-cast',
+  impact:        'impact',
+  draw:          'draw',
+  curse:         'curse',
+  field:         'field',
+  heal:          'heal',
+  freeze:        'freeze',
+  death:         'death',
+  summon:        'summon',
+  zmkFlip:       'zmk-flip',
+  championSkill: 'champion-skill',
+}
+
+// Kandidatų sąrašas: base + iki 3 variantų. Random pick tarp esamų.
+function candidates(key: BattleSoundType): string[] {
+  const b = BASE[key]
+  return [
+    `/sounds/battle/${b}.mp3`,
+    `/sounds/battle/${b}-1.mp3`,
+    `/sounds/battle/${b}-2.mp3`,
+    `/sounds/battle/${b}-3.mp3`,
+  ]
 }
 
 // Sintezuoti fallback'ai (kol nėra mp3 assetų)
@@ -55,32 +57,37 @@ const SYNTH_FALLBACK: Record<BattleSoundType, () => void> = {
   championSkill: playDiscovery,
 }
 
-// failo būsena: undefined = nebandyta, true = yra, false = nėra (naudojam synth)
-const fileAvailable: Partial<Record<BattleSoundType, boolean>> = {}
-const audioCache: Partial<Record<BattleSoundType, HTMLAudioElement>> = {}
+const dead = new Set<string>()                      // 404/klaida – nebebandom
+const pool = new Map<string, HTMLAudioElement>()    // url -> elementas
+const lastByKey = new Map<BattleSoundType, string>()
 
 export function playBattleSound(key: BattleSoundType, volume = 0.5): void {
   if (typeof window === 'undefined' || !isUiSoundEnabled()) return
-  if (fileAvailable[key] === false) { SYNTH_FALLBACK[key]?.(); return }
+
+  const live = candidates(key).filter((u) => !dead.has(u))
+  if (live.length === 0) { SYNTH_FALLBACK[key]?.(); return }
+
+  let url = live[Math.floor(Math.random() * live.length)]
+  if (live.length > 1) {
+    const last = lastByKey.get(key)
+    for (let i = 0; i < 3 && url === last; i++) url = live[Math.floor(Math.random() * live.length)]
+  }
+  lastByKey.set(key, url)
+
   try {
-    let a = audioCache[key]
+    let a = pool.get(url)
     if (!a) {
-      a = new Audio(`/sounds/battle/${FILES[key]}`)
+      a = new Audio(url)
       a.preload = 'auto'
-      audioCache[key] = a
-      a.addEventListener('error', () => {
-        fileAvailable[key] = false
-        delete audioCache[key]
-      })
+      a.addEventListener('error', () => { dead.add(url); pool.delete(url) })
+      pool.set(url, a)
     }
     a.volume = volume
     a.currentTime = 0
     const p = a.play()
-    if (p) p.then(() => { fileAvailable[key] = true }).catch(() => {
-      // autoplay block arba failo nėra – fallback
-      if (fileAvailable[key] !== true) { fileAvailable[key] = false; SYNTH_FALLBACK[key]?.() }
-    })
+    if (p) p.catch(() => { if (!dead.has(url)) { dead.add(url); SYNTH_FALLBACK[key]?.() } })
   } catch {
+    dead.add(url)
     SYNTH_FALLBACK[key]?.()
   }
 }
