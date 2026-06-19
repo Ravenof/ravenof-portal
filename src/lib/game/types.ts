@@ -378,6 +378,22 @@ export const ATTACK_RESTRICTIONS: { value: AttackRestriction; label: string }[] 
   { value: 'artifactsOnly', label: 'Tik artefaktus' },
 ]
 
+// ── Iškvietimo (summon) pilno lauko vizualūs efektai ─────────────────────────
+export type SummonEffectType =
+  | 'eclipse' | 'necroticSmoke' | 'lightning' | 'massFreeze'
+  | 'fire' | 'explosion' | 'poisonCloud' | 'earthquake'
+
+export const SUMMON_EFFECTS: { value: SummonEffectType; label: string; icon: string }[] = [
+  { value: 'eclipse',       label: 'Tamsa (piktoji)',      icon: '🌑' },
+  { value: 'necroticSmoke', label: 'Nekrotinis dūmas',     icon: '💜' },
+  { value: 'lightning',     label: 'Nužaibavimas',         icon: '⚡' },
+  { value: 'massFreeze',    label: 'Masinis užšaldymas',   icon: '❄️' },
+  { value: 'fire',          label: 'Ugnis',                icon: '🔥' },
+  { value: 'explosion',     label: 'Sprogimas',            icon: '💥' },
+  { value: 'poisonCloud',   label: 'Nuodų debesis',        icon: '☠️' },
+  { value: 'earthquake',    label: 'Žemės drebėjimas',     icon: '🌋' },
+]
+
 // ── Pilna kortos gameplay konfigūracija (cards.gameplay JSONB) ────────────────
 export type GameplayConfig = {
   virtualEnabled?: boolean        // default true
@@ -395,6 +411,7 @@ export type GameplayConfig = {
   animationType?: string
   soundType?: BattleSoundType
   voiceLines?: string[]            // iškvietimo balsai: keli mp3/ogg URL, grojami atsitiktinai per voiceManager
+  summonEffect?: SummonEffectType  // pilno lauko vizualus efektas iškviečiant kortą
   projectileType?: ProjectileType
   tutorialTags?: string[]
 }
