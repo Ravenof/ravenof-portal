@@ -8,6 +8,7 @@ export type FxKind =
   | 'projectile' | 'slash' | 'beam' | 'healStream' | 'buffSurge' | 'debuffDrain'
   | 'aoeWave' | 'curseMark' | 'disintegrate' | 'shield' | 'freeze'
   | 'summonPortal' | 'graveRise' | 'drawStream' | 'stealthFade' | 'goldSteal'
+  | 'burn' | 'poison'
 
 export type FxIntensity = 'small' | 'normal' | 'big'
 
@@ -63,4 +64,12 @@ export function factionPalette(name?: string | null, fallback = '#d4af37'): Fact
 export const PROJECTILE_COLOR: Record<string, string> = {
   fireball: '#ff7a1a', darkCurse: '#a855f7', healingGlow: '#5ef0c0', freezeBurst: '#7cc4ff',
   stunBurst: '#ffd24a', destroyStrike: '#ff4a4a', arrow: '#e8e0c8', lightning: '#9fc4ff', poisonGlob: '#84cc16',
+}
+
+// Frakcijos „parašas" – kokia kryptinė animacija labiausiai tinka jos žalai
+export function factionDirectionalKind(name?: string | null): 'projectile' | 'slash' | 'beam' {
+  if (!name) return 'projectile'
+  if (/[šs]vies|pulk|pl[ėe][šs]ik|nakt|ryt|v[ėe]j/i.test(name)) return 'slash'   // riteriai / vagys / vėjas – kirtis
+  if (/inkviz|legion/i.test(name)) return 'beam'                                   // šventas spindulys
+  return 'projectile'                                                              // magai / demonai / nekro / goblinai
 }

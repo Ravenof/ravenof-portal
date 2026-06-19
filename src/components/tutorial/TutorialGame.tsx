@@ -36,7 +36,7 @@ import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { BattleEffectOverlay } from './BattleEffectOverlay'
 import { BattleFxLayer, type BattleFxHandle } from './BattleFxLayer'
-import { factionPalette, PROJECTILE_COLOR } from '@/lib/game/effectAnimations'
+import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
@@ -812,7 +812,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
         case 'reactionTrigger': queueTip('reaction'); break
-        case 'field': queueTip('field'); if (!e.sound) playBattleSound('field'); break
+        case 'field': {
+          queueTip('field'); if (!e.sound) playBattleSound('field')
+          const d = SETTLE + fxSeq; fxSeq += 120
+          window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: { x: window.innerWidth / 2, y: window.innerHeight / 2 }, color: '#ffd24a', duration: 1.7 }), d)
+          break
+        }
         case 'evolve': queueTip('evolve'); playSuccess(); break
         case 'handBurn': queueTip('hand-burn'); break
         case 'curse': {
@@ -834,7 +839,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           coinTimerRef.current = setTimeout(() => setCoinAnim(null), 1400)
           break
         }
-        case 'status': if (e.status) queueTip(('status-' + e.status) as TipKey); break
+        case 'status': {
+          if (e.status) queueTip(('status-' + e.status) as TipKey)
+          const su = e.src?.uid, stt = e.status
+          if (su && stt && !/baig/i.test(e.msg)) {
+            const fxMap: Record<string, { kind: 'freeze' | 'burn' | 'poison' | 'debuffDrain'; col: string }> = {
+              frozen: { kind: 'freeze', col: '#38bdf8' }, stunned: { kind: 'freeze', col: '#facc15' },
+              burning: { kind: 'burn', col: '#fb923c' }, poisoned: { kind: 'poison', col: '#84cc16' },
+              silenced: { kind: 'debuffDrain', col: '#a78bfa' },
+            }
+            const m = fxMap[stt]
+            if (m) { const d = SETTLE + fxSeq; fxSeq += 100; const uu = su; window.setTimeout(() => { const at = unitRectsRef.current.get(uu) ?? rectFor({ uid: uu }); if (at) { fxRef.current?.spawn({ kind: m.kind, from: at, to: at, color: m.col, duration: m.kind === 'freeze' ? 1.2 : 1.4 }); fxRef.current?.shakeUnit(uu, 'soft') } }, d) }
+          }
+          break
+        }
         case 'damage': {
           const tgt = e.tgt, val = e.value
           if (tgt && val) {
@@ -845,7 +863,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               const to = rectOf(tgt); if (!to) return
               const from = sref ? rectOf(sref) : null
               const fireProj = !am && !!from && !pf
-              if (fireProj) fxRef.current?.spawn({ kind: 'projectile', from: from!, to, color: col, duration: 1.0 })
+              if (fireProj) fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 })
               window.setTimeout(() => {
                 fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, '#ff5a4a', val >= 4)
                 fxRef.current?.hitFlash(to.x, to.y, '#ff5a4a')
@@ -882,6 +900,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           }, base)
           break
         }
+        case 'gold': {
+          const gv = e.value
+          if (gv && gv < 0) { const sd = e.side; const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { const at = rectFor({ side: sd }); if (at) fxRef.current?.floatNumber(at.x, at.y - 14, String(gv) + ' 🪙', '#ffd24a') }, d) }
+          break
+        }
         default: break
       }
       if (e.t === 'champion') queueTip('champion')
@@ -897,7 +920,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         projFired = true
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
-          if (from && to) fxRef.current?.spawn({ kind: isAtk ? 'slash' : 'projectile', from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })
+          if (from && to) fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })
         }, isAtk ? 120 : 200)
         void PROJ_EMOJI; void spawnProjectile
       }

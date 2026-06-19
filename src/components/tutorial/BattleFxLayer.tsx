@@ -245,6 +245,18 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       for (let k = it.parts.length - 1; k >= 0; k--) { const q = it.parts[k]; q.x += q.vx; q.y += q.vy; const e = (now - q.life) / q.max; if (e >= 1) { it.parts.splice(k, 1); continue }; ctx.fillStyle = `rgba(20,16,28,${(1 - e) * 0.6})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.size, 0, TAU); ctx.fill() }
       break
     }
+    case 'burn': {
+      if (Math.random() < 0.9) it.parts.push({ x: to.x + rnd(-22, 22) * D, y: to.y + rnd(-6, 16) * D, vx: rnd(-0.3, 0.3) * D, vy: -rnd(1.5, 3.6) * D, life: now, max: rnd(500, 900), size: rnd(2, 5) * D, rot: 0, vr: 0 })
+      glow(ctx, to.x, to.y, 30 * D * im * (1 - p * 0.4), color, (1 - p) * 0.5)
+      for (let k = it.parts.length - 1; k >= 0; k--) { const q = it.parts[k]; q.x += q.vx; q.y += q.vy; q.vy *= 0.99; const e = (now - q.life) / q.max; if (e >= 1) { it.parts.splice(k, 1); continue }; glow(ctx, q.x, q.y, q.size * 2.6, `hsla(${20 + (1 - e) * 25},100%,60%,${1 - e})`, (1 - e) * 0.9) }
+      break
+    }
+    case 'poison': {
+      if (Math.random() < 0.8) it.parts.push({ x: to.x + rnd(-24, 24) * D, y: to.y + rnd(-18, 18) * D, vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.3, 1.2) * D, life: now, max: rnd(700, 1200), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
+      glow(ctx, to.x, to.y, 28 * D * im * (1 - p * 0.4), color, (1 - p) * 0.45)
+      for (let k = it.parts.length - 1; k >= 0; k--) { const q = it.parts[k]; q.x += q.vx + Math.sin((now + q.rot * 100) / 300) * 0.3 * D; q.y += q.vy; const e = (now - q.life) / q.max; if (e >= 1) { it.parts.splice(k, 1); continue }; glow(ctx, q.x, q.y, q.size * 2.4, color, (1 - e) * 0.85) }
+      break
+    }
   }
   ctx.globalCompositeOperation = 'source-over'
   ctx.globalAlpha = 1
