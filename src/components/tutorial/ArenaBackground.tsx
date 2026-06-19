@@ -57,7 +57,7 @@ export function ArenaBackground({ arena }: { arena: ArenaKey }) {
   const pc = t.particle
   const ambN = 16
   return (
-    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
+    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: -1, pointerEvents: 'none' }}>
       <style>{CSS}</style>
 
       {/* dangus / skliautas */}
