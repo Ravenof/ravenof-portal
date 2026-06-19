@@ -11,6 +11,7 @@ import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
   METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SPELL_TYPES, ATTACK_RESTRICTIONS,
   type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType, type AttackRestriction,
+  SUMMON_EFFECTS, type SummonEffectType,
 } from '@/lib/game/types'
 
 const inputStyle: React.CSSProperties = {
@@ -115,6 +116,19 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
           cardNumber={cardNumber}
           onChange={(urls) => update({ ...cfg, voiceLines: urls.length ? urls : undefined })}
         />
+      </div>
+
+      {/* Pilno lauko summon efektas */}
+      <div>
+        <label style={labelStyle}>Iškvietimo efektas (pilnas laukas, iki 5 s)</label>
+        <select
+          value={cfg.summonEffect ?? ''}
+          onChange={(e) => update({ ...cfg, summonEffect: (e.target.value || undefined) as SummonEffectType | undefined })}
+          style={inputStyle}
+        >
+          <option value="">(nėra)</option>
+          {SUMMON_EFFECTS.map((fx) => <option key={fx.value} value={fx.value}>{fx.icon} {fx.label}</option>)}
+        </select>
       </div>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p style={{ ...labelStyle, marginBottom: 0, fontSize: '0.7rem' }}>🎮 Virtualaus žaidimo efektai</p>

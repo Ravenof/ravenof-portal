@@ -28,12 +28,13 @@ import {
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason } from '@/lib/economy'
-import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping } from '@/lib/game/types'
+import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
+import { BattleEffectOverlay } from './BattleEffectOverlay'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
@@ -349,6 +350,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Monetos metimo animacija (žalia/raudona)
   const [coinAnim, setCoinAnim] = useState<{ side: Side; coin: 'green' | 'red' } | null>(null)
   const coinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Pilno lauko summon efektas
+  const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; key: number } | null>(null)
+
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
@@ -736,6 +740,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (!e.sound) playBattleSound('summon')
           const sc = findCard(e.cardName)
           if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
+          if (sc?.gameplay?.summonEffect) setBoardFx({ type: sc.gameplay.summonEffect, key: Date.now() })
           break
         }
         case 'spell': case 'ability': {
@@ -1684,6 +1689,10 @@ doAction({ t: 'endTurn', actor: 'you' })
         WebkitTouchCallout: 'none',
         userSelect: 'none',
         overflowX: 'hidden',
+        animation: boardFx
+          ? (boardFx.type === 'earthquake' ? 'rvnfxShakeHard 0.4s linear 7'
+            : boardFx.type === 'explosion' ? 'rvnfxShakeHard 0.45s linear 1' : undefined)
+          : undefined,
       }}>
       {/* viršutinė juosta */}
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
@@ -2217,6 +2226,9 @@ doAction({ t: 'endTurn', actor: 'you' })
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* ── pilno lauko summon efektas ── */}
+      {boardFx && <BattleEffectOverlay type={boardFx.type} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}
 
       {/* ── projectile / impact sluoksnis ── */}
       <div className="fixed inset-0 z-[128] pointer-events-none">
