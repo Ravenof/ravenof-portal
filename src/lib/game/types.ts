@@ -382,16 +382,34 @@ export const ATTACK_RESTRICTIONS: { value: AttackRestriction; label: string }[] 
 export type SummonEffectType =
   | 'eclipse' | 'necroticSmoke' | 'lightning' | 'massFreeze'
   | 'fire' | 'explosion' | 'poisonCloud' | 'earthquake'
+  | 'shadowSurge' | 'hellfire' | 'frostNova' | 'bloodRitual'
+  | 'soulRelease' | 'voidRip' | 'plague' | 'arcaneDeto'
+  | 'emberStorm' | 'boneEruption' | 'cursedBrand' | 'spectralWail'
+  | 'moltenShatter' | 'deathPulse'
 
 export const SUMMON_EFFECTS: { value: SummonEffectType; label: string; icon: string }[] = [
-  { value: 'eclipse',       label: 'Tamsa (piktoji)',      icon: '🌑' },
-  { value: 'necroticSmoke', label: 'Nekrotinis dūmas',     icon: '💜' },
-  { value: 'lightning',     label: 'Nužaibavimas',         icon: '⚡' },
-  { value: 'massFreeze',    label: 'Masinis užšaldymas',   icon: '❄️' },
-  { value: 'fire',          label: 'Ugnis',                icon: '🔥' },
-  { value: 'explosion',     label: 'Sprogimas',            icon: '💥' },
-  { value: 'poisonCloud',   label: 'Nuodų debesis',        icon: '☠️' },
-  { value: 'earthquake',    label: 'Žemės drebėjimas',     icon: '🌋' },
+  { value: 'eclipse',       label: 'Tamsa (piktoji)',       icon: '🌑' },
+  { value: 'shadowSurge',   label: 'Šešėlių antplūdis',     icon: '🌫️' },
+  { value: 'voidRip',       label: 'Tuštumos plyšys',       icon: '🕳️' },
+  { value: 'necroticSmoke', label: 'Nekrotinis dūmas',      icon: '💜' },
+  { value: 'spectralWail',  label: 'Vaiduoklių aimana',     icon: '👻' },
+  { value: 'soulRelease',   label: 'Sielų išlaisvinimas',   icon: '🕯️' },
+  { value: 'deathPulse',    label: 'Mirties banga',         icon: '⚰️' },
+  { value: 'boneEruption',  label: 'Kaulų išsiveržimas',    icon: '💀' },
+  { value: 'lightning',     label: 'Nužaibavimas',          icon: '⚡' },
+  { value: 'arcaneDeto',    label: 'Arkaninis sprogimas',   icon: '🔮' },
+  { value: 'cursedBrand',   label: 'Prakeikimo ženklas',    icon: '🩸' },
+  { value: 'bloodRitual',   label: 'Kraujo ritualas',       icon: '⛧' },
+  { value: 'massFreeze',    label: 'Masinis užšaldymas',    icon: '❄️' },
+  { value: 'frostNova',     label: 'Ledo nova',             icon: '🧊' },
+  { value: 'fire',          label: 'Ugnis',                 icon: '🔥' },
+  { value: 'hellfire',      label: 'Pragaro ugnis',         icon: '👹' },
+  { value: 'emberStorm',    label: 'Žarijų audra',          icon: '✨' },
+  { value: 'moltenShatter', label: 'Lavos skilimas',        icon: '🌋' },
+  { value: 'explosion',     label: 'Sprogimas',             icon: '💥' },
+  { value: 'poisonCloud',   label: 'Nuodų debesis',         icon: '☠️' },
+  { value: 'plague',        label: 'Maras',                 icon: '🦠' },
+  { value: 'earthquake',    label: 'Žemės drebėjimas',      icon: '🪨' },
 ]
 
 // ── Pilna kortos gameplay konfigūracija (cards.gameplay JSONB) ────────────────

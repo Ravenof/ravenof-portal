@@ -9,9 +9,8 @@
 // TutorialGame (root div).
 
 import { useEffect, useRef } from 'react'
-import type { SummonEffectType } from '@/lib/game/types'
 
-export const FX_DURATION: Record<SummonEffectType, number> = {
+export const FX_DURATION: Record<string, number> = {
   eclipse:       3400,
   necroticSmoke: 4200,
   lightning:     2100,
@@ -87,7 +86,7 @@ type Particle = {
 }
 
 // ── Canvas dalelių variklis ───────────────────────────────────────────────────
-function startParticles(canvas: HTMLCanvasElement, type: SummonEffectType, duration: number): () => void {
+function startParticles(canvas: HTMLCanvasElement, type: string, duration: number): () => void {
   const ctx = canvas.getContext('2d')
   if (!ctx) return () => {}
   const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -218,7 +217,7 @@ function draw(ctx: CanvasRenderingContext2D, p: Particle, a: number): void {
 
 // ── Komponentas ───────────────────────────────────────────────────────────────
 export function BattleEffectOverlay({ type, effectKey, onDone }: {
-  type: SummonEffectType
+  type: string
   effectKey: number
   onDone: () => void
 }) {

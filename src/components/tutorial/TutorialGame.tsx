@@ -34,7 +34,7 @@ import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
-import { BattleEffectOverlay } from './BattleEffectOverlay'
+import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { BattleFxLayer, type BattleFxHandle } from './BattleFxLayer'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
@@ -355,7 +355,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [coinAnim, setCoinAnim] = useState<{ side: Side; coin: 'green' | 'red' } | null>(null)
   const coinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Pilno lauko summon efektas
-  const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; key: number } | null>(null)
+  const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   const fxRef = useRef<BattleFxHandle>(null)
 
   // Projectile animacijos
@@ -759,7 +759,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (!e.sound) playBattleSound('summon')
           const sc = findCard(e.cardName)
           if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
-          if (sc?.gameplay?.summonEffect) setBoardFx({ type: sc.gameplay.summonEffect, key: Date.now() })
+          if (sc?.gameplay?.summonEffect) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
           srcRef = e.src; srcCard = sc
           window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
           if (/iškvie[čc]iam|pasirinkta/i.test(e.msg) && e.cardName) {
@@ -1812,10 +1812,6 @@ doAction({ t: 'endTurn', actor: 'you' })
         WebkitTouchCallout: 'none',
         userSelect: 'none',
         overflowX: 'hidden',
-        animation: boardFx
-          ? (boardFx.type === 'earthquake' ? 'rvnfxShakeHard 0.4s linear 7'
-            : boardFx.type === 'explosion' ? 'rvnfxShakeHard 0.45s linear 1' : undefined)
-          : undefined,
       }}>
       {/* viršutinė juosta */}
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
@@ -2354,7 +2350,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <BattleFxLayer ref={fxRef} />
 
       {/* ── pilno lauko summon efektas ── */}
-      {boardFx && <BattleEffectOverlay type={boardFx.type} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}
+      {boardFx && <SummonBurst type={boardFx.type} x={boardFx.x} y={boardFx.y} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}
 
       {/* ── projectile / impact sluoksnis ── */}
       <div className="fixed inset-0 z-[128] pointer-events-none">
