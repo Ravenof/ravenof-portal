@@ -35,6 +35,7 @@ import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
+import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle } from './BattleFxLayer'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
@@ -357,6 +358,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Pilno lauko summon efektas
   const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   const fxRef = useRef<BattleFxHandle>(null)
+  const arenaRef = useRef<ArenaKey>(randomArena())
 
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
@@ -1813,6 +1815,9 @@ doAction({ t: 'endTurn', actor: 'you' })
         userSelect: 'none',
         overflowX: 'hidden',
       }}>
+      {/* ── mūšio arena (atsitiktinis frakcijos fonas) ── */}
+      <ArenaBackground arena={arenaRef.current} />
+
       {/* viršutinė juosta */}
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
         style={{ borderBottom: '1px solid rgba(240,180,41,0.15)', background: 'rgba(0,0,0,0.35)' }}>
