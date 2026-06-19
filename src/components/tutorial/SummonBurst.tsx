@@ -37,8 +37,8 @@ const C: Record<SummonEffectType, Cfg> = {
   arcaneDeto:    { motif: 'ritual', glow: '#4c1d95', ring: '#a78bfa', ring2: '#ffffff', core: '#f5f0ff', particle: 'spark', pcolor: '#c4b5fd', count: 50, s0: 3, s1: 11, grav: .04, geom: 'star12', runeN: 32, shake: 'hard', dur: 2000 },
   cursedBrand:   { motif: 'ritual', glow: '#3a0a2a', ring: '#d4327a', core: '#ffd0e6', particle: 'rune', pcolor: '#ff3a8a', count: 28, s0: .6, s1: 2.8, grav: 0, geom: 'pentagram', runeN: 28, glyph: 'eye', shake: 'soft', dur: 2300 },
   bloodRitual:   { motif: 'ritual', glow: '#5a0808', ring: '#c01e1e', core: '#ff8080', particle: 'drop', pcolor: '#e23a3a', count: 34, s0: 2, s1: 6, grav: .14, geom: 'pentagram', runeN: 26, shake: 'soft', dur: 2400 },
-  massFreeze:    { motif: 'ice', glow: '#5aa8e8', ring: '#cfe6ff', ring2: '#9fe1ff', core: '#ffffff', particle: 'shard', pcolor: '#dff2ff', count: 38, s0: 1.5, s1: 5, grav: .03, shake: 'soft', dur: 2100 },
-  frostNova:     { motif: 'ice', glow: '#7cc4ff', ring: '#eaf6ff', ring2: '#7cc4ff', core: '#ffffff', particle: 'shard', pcolor: '#eaf6ff', count: 46, s0: 3, s1: 8, grav: .02, shake: 'soft', dur: 2000 },
+  massFreeze:    { motif: 'ice', glow: '#5aa8e8', ring: '#cfe6ff', ring2: '#9fe1ff', core: '#ffffff', particle: 'shard', pcolor: '#dff2ff', count: 54, s0: 1.5, s1: 5, grav: .03, shake: 'soft', dur: 2100 },
+  frostNova:     { motif: 'ice', glow: '#7cc4ff', ring: '#eaf6ff', ring2: '#7cc4ff', core: '#ffffff', particle: 'shard', pcolor: '#eaf6ff', count: 62, s0: 3, s1: 8, grav: .02, shake: 'soft', dur: 2000 },
   fire:          { motif: 'flame', glow: '#ff7a1a', ring: '#ffb24a', core: '#fff0c0', particle: 'ember', pcolor: '#ffb24a', count: 50, s0: 1.5, s1: 5, grav: -.05, rise: true, shake: 'soft', dur: 2100 },
   hellfire:      { motif: 'flame', glow: '#6a0c0c', ring: '#ff3a1a', core: '#ffe0a0', particle: 'ember', pcolor: '#ff5a2a', count: 58, s0: 2, s1: 6.5, grav: -.05, rise: true, pentagram: true, glyph: 'eye', shake: 'hard', dur: 2300 },
   emberStorm:    { motif: 'flame', glow: '#7a3a10', ring: '#ff9a3a', core: '#ffe0b0', particle: 'ember', pcolor: '#ffc24a', count: 64, s0: 1.5, s1: 6, grav: -.035, rise: true, shake: 'soft', dur: 2300 },
@@ -116,11 +116,17 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
 
       // ── DOMINUOJANTIS MOTYVAS ──
       if (released) {
+        glow(ctx, ox, oy, eo(rt) * maxR * 0.5, cfg.glow, (1 - rt) * 0.22)   // bendra išsiplečianti aura
         switch (cfg.motif) {
           case 'ritual':  ritual(ctx, ox, oy, p, rt, cfg, now, D); break
           case 'flame':   flame(ctx, ox, oy, rt, cfg, now, D); if (cfg.pentagram) pentaOverlay(ctx, ox, oy, p, cfg.core, now, D); break
           case 'blast':   blast(ctx, ox, oy, rt, cfg, maxR, D); break
-          case 'ice':     iceStar(ctx, ox, oy, rt, cfg, now, D); ringB(ctx, ox, oy, eo(rt) * maxR * 0.8, cfg.ring2 ?? cfg.ring, (1 - rt) * 0.6, 3 * D, D); break
+          case 'ice': {
+            ringB(ctx, ox, oy, eo(rt) * maxR, cfg.ring, (1 - rt) * 0.85, 5 * D, D)
+            if (cfg.ring2) ringB(ctx, ox, oy, eo(Math.max(0, rt - 0.08)) * maxR, cfg.ring2, (1 - rt) * 0.55, 2.5 * D, D)
+            glow(ctx, ox, oy, eo(rt) * maxR * 0.55, cfg.glow, (1 - rt) * 0.3)
+            break
+          }
           case 'bolts':   drawBolts(ctx, bolts, rt, cfg, now, D); break
           case 'cloud':   cloud(ctx, ox, oy, rt, cfg, now, D); break
           case 'quake':   cracks(ctx, ox, oy, rt, maxR, cfg.ring, cfg.core, D); glow(ctx, ox, oy, 50 * D * (1 - rt), cfg.glow, (1 - rt) * 0.4); break
@@ -201,13 +207,6 @@ function blast(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number
   ctx.save(); ctx.translate(ox, oy)
   for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; const r0 = eo(rt) * 50 * D, r1 = eo(rt) * maxR * (0.7 + (i % 3) * 0.1); ctx.strokeStyle = cfg.ring; ctx.globalAlpha = (1 - rt) * 0.5; ctx.lineWidth = 2 * D; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); ctx.stroke() }
   ctx.restore(); ctx.globalAlpha = 1
-}
-// ICE – kristalų žvaigždė (snaigė)
-function iceStar(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, now: number, D: number) {
-  const R = eo(cl(rt * 1.3)) * 150 * D; ctx.save(); ctx.translate(ox, oy); ctx.rotate(now / 5000)
-  ctx.strokeStyle = cfg.ring; ctx.shadowColor = cfg.core; ctx.shadowBlur = 8 * D; ctx.globalAlpha = (1 - rt) * 0.9; ctx.lineWidth = 3 * D; ctx.lineCap = 'round'
-  for (let i = 0; i < 6; i++) { ctx.rotate(TAU / 6); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -R); for (const f of [0.42, 0.68]) { ctx.moveTo(0, -R * f); ctx.lineTo(R * 0.17, -R * f - R * 0.17); ctx.moveTo(0, -R * f); ctx.lineTo(-R * 0.17, -R * f - R * 0.17) } ctx.stroke() }
-  ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
 }
 // BOLTS – šakotas žaibo tinklas
 function genNet(ox: number, oy: number, maxR: number, D: number): Bolt[] {
