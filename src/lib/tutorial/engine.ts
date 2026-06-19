@@ -156,6 +156,7 @@ export type GameEvent = {
   tgt?: { kind: 'player' | 'unit' | 'artifact' | 'field'; side?: Side; uid?: string }
   projectile?: ProjectileType
   sound?: BattleSoundType
+  fromZone?: 'hand' | 'deck' | 'graveyard'
 }
 
 /** Trumpalaikis ŽMK traukimo kontekstas (atakos/burto pranašumui/nepalankumui). */
@@ -944,7 +945,7 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
       statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
       isChampion: false, phase: 0, abilityUsed: false,
     }
-    log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
+    log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon', fromZone: zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand' })
     afterSummon(g, s, card, zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand')
   }
 }
@@ -989,7 +990,7 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
     if (slotFree === -1) { log(g, { t: 'blocked', side: ps.caster, msg: 'Padarų zona pilna.' }); break }
     const [card] = arr.splice(idx, 1)
     placeUnit(g, p, card, '-sc' + g.globalTurn)
-    log(g, { t: 'play', side: ps.caster, cardName: card.name, msg: `„${card.name}" iškviečiamas (pasirinkta)!`, sound: 'summon' })
+    log(g, { t: 'play', side: ps.caster, cardName: card.name, msg: `„${card.name}" iškviečiamas (pasirinkta)!`, sound: 'summon', fromZone: opt.zone === 'discard' ? 'graveyard' : opt.zone === 'deck' ? 'deck' : 'hand' })
     afterSummon(g, ps.caster, card, opt.zone === 'discard' ? 'graveyard' : opt.zone === 'deck' ? 'deck' : 'hand')
   }
   g.pendingSummon = null
@@ -1040,7 +1041,7 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
       shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
       statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
     }
-    log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon' })
+    log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon', fromZone: foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand' })
     afterSummon(g, s, card, foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand')
   }
 }

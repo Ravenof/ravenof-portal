@@ -192,12 +192,13 @@ function MiniCard({ c, w, dim, faceDown, readable }: { c: TutCard; w: number; di
 
 // ── Padaro plytelė kovos lauke ───────────────────────────────────────────────
 
-function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick }: {
+function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick, hpShown }: {
   g: GameState; u: BoardUnit; w: number
   selected?: boolean; targetable?: boolean; canAct?: boolean; dimmed?: boolean
-  onClick?: () => void
+  onClick?: () => void; hpShown?: number
 }) {
   const h = Math.round(w * 4 / 3)
+  const hpDisp = hpShown ?? u.hp
   const atk = effectiveAtk(g, u)
   const ring = selected ? '#f0b429' : targetable ? '#ef4444' : canAct ? 'rgba(74,222,128,0.7)' : 'transparent'
   const activeStatuses = Object.keys(u.statuses) as TutStatus[]
@@ -239,8 +240,9 @@ function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick }: {
           ) : (
             <span className="px-1 rounded text-[10px] font-bold" style={{ background: 'rgba(0,0,0,0.85)', color: 'var(--gold)' }}>F{u.phase}</span>
           )}
-          <span className="px-1 rounded text-[10px] font-bold"
-            style={{ background: 'rgba(0,0,0,0.85)', color: u.hp < u.maxHp ? '#fbbf24' : '#4ade80' }}>{u.hp}</span>
+          <motion.span key={hpDisp} initial={{ scale: 1.55 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 17 }}
+            className="px-1 rounded text-[10px] font-bold"
+            style={{ display: 'inline-block', background: 'rgba(0,0,0,0.85)', color: hpDisp < u.maxHp ? '#fbbf24' : '#4ade80' }}>{hpDisp}</motion.span>
         </div>
       </div>
       {/* žetonai: būsenos + skydas + sėlinimas + pasišaipymas */}
@@ -399,6 +401,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
+  const [hpHold, setHpHold] = useState<Record<string, number>>({})
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const lpRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -740,7 +743,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
-          if (e.side === 'you') { window.setTimeout(() => { const deckEl = document.querySelector('[data-pile="deck-you"]'); const he = handRef.current; if (deckEl && he) { const dr = deckEl.getBoundingClientRect(), hr = he.getBoundingClientRect(); fxRef.current?.spawn({ kind: 'drawStream', from: { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }, to: { x: hr.left + hr.width / 2, y: hr.top - 10 }, color: '#7cc4ff', duration: 1.0 }) } }, 40) }
+          { const sd = e.side; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); fxRef.current?.spawn({ kind: 'drawStream', from: { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }, to: { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top - 10 : hr.bottom + 10 }, color: '#7cc4ff', duration: 1.0 }) } }, 40) }
           if (e.side === 'you' && e.cardName) {
             if (skipYouDraw) { skipYouDraw = false }
             else {
@@ -760,8 +763,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           srcRef = e.src; srcCard = sc
           window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
           if (/iškvie[čc]iam|pasirinkta/i.test(e.msg) && e.cardName) {
-            const nm = e.cardName, sd = e.side, pcol = palOf(findCard(nm))
-            window.setTimeout(() => { const uid = P(game, sd).units.find((u) => u?.card.name === nm)?.uid; const at = uid ? rectOf({ uid }) : null; if (at) fxRef.current?.spawn({ kind: 'summonPortal', to: at, color: pcol.primary, color2: pcol.secondary, duration: 1.3 }) }, 60)
+            const nm = e.cardName, sd = e.side, pcol = palOf(findCard(nm)), grave = e.fromZone === 'graveyard'
+            window.setTimeout(() => { const uid = P(game, sd).units.find((u) => u?.card.name === nm)?.uid; const at = uid ? rectOf({ uid }) : null; if (at) fxRef.current?.spawn({ kind: grave ? 'graveRise' : 'summonPortal', to: at, color: grave ? '#5ef0c0' : pcol.primary, color2: pcol.secondary, duration: grave ? 1.6 : 1.3 }) }, 60)
           }
           if (e.t === 'champion' && /iškvie|[čc]empion/i.test(e.msg) && e.cardName) {
             const nm = e.cardName, sd = e.side
@@ -868,6 +871,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'damage': {
           const tgt = e.tgt, val = e.value
           if (tgt && val) {
+            if (tgt.uid && tgt.side) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: cur + val })) } }
             const base = SETTLE + fxSeq; fxSeq += 120
             const sref = srcRef, col = palOf(srcCard).primary, pf = projFired, am = aoeMode
             if (am && !aoeFired) { aoeFired = true; const sr = sref; window.setTimeout(() => { const fr = sr ? rectOf(sr) : null; if (fr) fxRef.current?.spawn({ kind: 'aoeWave', from: fr, color: col, duration: 1.6 }) }, SETTLE) }
@@ -877,6 +881,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               const fireProj = !am && !!from && !pf
               if (fireProj) fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 })
               window.setTimeout(() => {
+                if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
                 fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, '#ff5a4a', val >= 4)
                 fxRef.current?.hitFlash(to.x, to.y, '#ff5a4a')
                 if (tgt.uid) fxRef.current?.shakeUnit(tgt.uid, val >= 5 ? 'hard' : 'normal')
@@ -888,13 +893,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'heal': {
           const tgt = e.tgt, val = e.value
+          if (tgt?.uid && tgt.side && val) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: Math.max(0, cur - val) })) } }
           const base = SETTLE + fxSeq; fxSeq += 120
           const sref = srcRef
           window.setTimeout(() => {
             const to = tgt ? rectOf(tgt) : rectFor({ side: e.side }); if (!to) return
             const from = sref ? rectOf(sref) : null
             if (from) fxRef.current?.spawn({ kind: 'healStream', from, to, color: '#5ef0c0', duration: 1.2 })
-            window.setTimeout(() => { if (val) fxRef.current?.floatNumber(to.x, to.y - 12, '+' + val, '#5ef0c0'); if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft') }, from ? 420 : 0)
+            window.setTimeout(() => { if (tgt?.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) } if (val) fxRef.current?.floatNumber(to.x, to.y - 12, '+' + val, '#5ef0c0'); if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft') }, from ? 420 : 0)
           }, base)
           break
         }
@@ -1617,7 +1623,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
               onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}>
               <UnitTile
-                g={game} u={u} w={unitW}
+                g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
                 selected={select?.kind === 'attacker' && select.uid === u.uid}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}
@@ -1887,8 +1893,8 @@ doAction({ t: 'endTurn', actor: 'you' })
               {hpBar('ai')}
               {goldBar('ai')}
               <div className="flex items-end gap-2">
-                {renderPile('Ranka', game.ai.hand.length)}
-                {renderPile('Kaladė', game.ai.deck.length)}
+                {renderPile('Ranka', game.ai.hand.length, { pileKey: 'hand-ai' })}
+                {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
                 {renderPile('ŽMK', game.ai.zmk.length)}
               </div>
