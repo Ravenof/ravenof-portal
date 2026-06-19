@@ -398,6 +398,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const handRef = useRef<HTMLDivElement | null>(null)
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
+  const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
   const flyIdRef = useRef(0)
   const unitRectsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const lpRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -739,6 +740,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
+          if (e.side === 'you') { window.setTimeout(() => { const deckEl = document.querySelector('[data-pile="deck-you"]'); const he = handRef.current; if (deckEl && he) { const dr = deckEl.getBoundingClientRect(), hr = he.getBoundingClientRect(); fxRef.current?.spawn({ kind: 'drawStream', from: { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }, to: { x: hr.left + hr.width / 2, y: hr.top - 10 }, color: '#7cc4ff', duration: 1.0 }) } }, 40) }
           if (e.side === 'you' && e.cardName) {
             if (skipYouDraw) { skipYouDraw = false }
             else {
@@ -757,6 +759,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (sc?.gameplay?.summonEffect) setBoardFx({ type: sc.gameplay.summonEffect, key: Date.now() })
           srcRef = e.src; srcCard = sc
           window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
+          if (/iškvie[čc]iam|pasirinkta/i.test(e.msg) && e.cardName) {
+            const nm = e.cardName, sd = e.side, pcol = palOf(findCard(nm))
+            window.setTimeout(() => { const uid = P(game, sd).units.find((u) => u?.card.name === nm)?.uid; const at = uid ? rectOf({ uid }) : null; if (at) fxRef.current?.spawn({ kind: 'summonPortal', to: at, color: pcol.primary, color2: pcol.secondary, duration: 1.3 }) }, 60)
+          }
+          if (e.t === 'champion' && /iškvie|[čc]empion/i.test(e.msg) && e.cardName) {
+            const nm = e.cardName, sd = e.side
+            window.setTimeout(() => { const uid = P(game, sd).units.find((u) => u?.card.name === nm)?.uid; const at = uid ? rectOf({ uid }) : null; if (at) { fxRef.current?.spawn({ kind: 'buffSurge', to: at, color: '#ffd24a', duration: 1.0 }); fxRef.current?.shakeBoard('soft') } }, 360)
+          }
           break
         }
         case 'spell': case 'ability': {
@@ -800,8 +810,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const srcR = srcRef && srcRef.side !== e.side ? rectOf(srcRef) : null
             const pc = palOf(card).primary
             if (srcR) {
+              let gid = 0
+              if (card) { gid = ++flyIdRef.current; const gc = card, gx = from.x, gy = from.y; setDeathGhosts((gs) => [...gs, { id: gid, card: gc, x: gx, y: gy }]) }
               window.setTimeout(() => fxRef.current?.spawn({ kind: 'slash', from: srcR, to: from, color: '#ff4a4a', duration: 0.9 }), base)
-              window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); fxRef.current?.hitFlash(from.x, from.y, '#ff4a4a'); playBattleSound('death', 0.4); startFly() }, base + 430)
+              window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); fxRef.current?.hitFlash(from.x, from.y, '#ff4a4a'); playBattleSound('death', 0.4); if (gid) setDeathGhosts((gs) => gs.filter((x) => x.id !== gid)); startFly() }, base + 430)
             } else {
               window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); startFly() }, base)
             }
@@ -1915,7 +1927,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               {hpBar('you')}
               {goldBar('you')}
               <div className="flex items-end gap-2">
-                {renderPile('Kaladė', game.you.deck.length, { tut: 'deck' })}
+                {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you' })}
                 {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
                 {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk' })}
               </div>
@@ -2359,6 +2371,23 @@ doAction({ t: 'endTurn', actor: 'you' })
               className="absolute text-3xl"
               style={{ left: im.x - 18, top: im.y - 18 }}>
               💥
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* ── pasmerktos kortos (laiko vietoje kol kirtis atskrieja, tada subyra) ── */}
+      <div className="fixed inset-0 z-[127] pointer-events-none">
+        <AnimatePresence>
+          {deathGhosts.map((g) => (
+            <motion.div key={'ghost' + g.id}
+              initial={{ opacity: 1, scale: 1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.55, filter: 'grayscale(1) brightness(1.7)' }}
+              transition={{ duration: 0.34, ease: 'easeIn' }}
+              className="absolute rvn-doom"
+              style={{ left: g.x - unitW / 2, top: g.y - Math.round(unitW * 4 / 3) / 2 }}>
+              <MiniCard c={g.card} w={unitW} />
             </motion.div>
           ))}
         </AnimatePresence>

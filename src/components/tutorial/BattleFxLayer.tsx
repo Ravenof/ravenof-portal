@@ -295,5 +295,7 @@ const CSS = `
 .rvn-hit-hard { animation-name: rvnHitHard; }
 @keyframes rvnHitSoft { 0%,100%{transform:translate(0,0)} 30%{transform:translate(-3px,0)} 60%{transform:translate(2px,0)} }
 @keyframes rvnHit { 0%,100%{transform:translate(0,0) rotate(0)} 20%{transform:translate(-5px,1px) rotate(-2deg)} 45%{transform:translate(4px,-1px) rotate(2deg)} 70%{transform:translate(-3px,0) rotate(-1deg)} }
+[class~="rvn-doom"] { animation: rvnDoom 0.42s ease-in-out infinite alternate; }
+@keyframes rvnDoom { from { filter: drop-shadow(0 0 4px rgba(255,60,60,0.5)); } to { filter: drop-shadow(0 0 13px rgba(255,40,40,0.95)) brightness(1.12); } }
 @keyframes rvnHitHard { 0%,100%{transform:translate(0,0) rotate(0)} 15%{transform:translate(-8px,2px) rotate(-3deg)} 40%{transform:translate(7px,-2px) rotate(3deg)} 65%{transform:translate(-5px,1px) rotate(-2deg)} 85%{transform:translate(3px,0) rotate(1deg)} }
 `
