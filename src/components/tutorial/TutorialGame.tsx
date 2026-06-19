@@ -35,6 +35,8 @@ import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { BattleEffectOverlay } from './BattleEffectOverlay'
+import { BattleFxLayer, type BattleFxHandle } from './BattleFxLayer'
+import { factionPalette, PROJECTILE_COLOR } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
@@ -352,6 +354,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const coinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Pilno lauko summon efektas
   const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; key: number } | null>(null)
+  const fxRef = useRef<BattleFxHandle>(null)
 
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
@@ -717,6 +720,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let zmkN = 0
     let skipYouDraw = false
     const zmkBatch: { v: string; side: Side }[] = []
+    // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
+    let srcRef: { side: Side; uid?: string } | undefined
+    let srcCard: TutCard | null = null
+    let fxSeq = 0
+    let projFired = false
+    let aoeFired = false
+    const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
+    const SETTLE = hasPlay ? 800 : 0
+    const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 3
+    const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
+    const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
@@ -741,10 +755,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           const sc = findCard(e.cardName)
           if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
           if (sc?.gameplay?.summonEffect) setBoardFx({ type: sc.gameplay.summonEffect, key: Date.now() })
+          srcRef = e.src; srcCard = sc
+          window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
           break
         }
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
+          srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard
           if (e.t === 'spell' && e.cardName) {
             const card = findCard(e.cardName)
             setCardFlash({ card, title: e.cardName, tag: e.side === 'you' ? 'Tavo burtas' : 'Priešo burtas', color: '#60a5fa' })
@@ -753,7 +770,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           }
           break
         }
-        case 'attack': if (!e.sound) playBattleSound('attack'); break
+        case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; break }
         case 'zmk':
           zmkN += 1
           if (game.zmkMode === 'draw') {
@@ -769,13 +786,26 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           const card = e.cardName ? cardByName[e.cardName] : null
           const from = uid ? unitRectsRef.current.get(uid) : null
           const pileEl = document.querySelector(`[data-pile="discard-${e.side}"]`)
-          if (card && from && pileEl) {
-            const r = pileEl.getBoundingClientRect()
-            const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-            const id = ++flyIdRef.current
-            setFlyingCards((f) => [...f, { id, card, from, to }])
-            setTimeout(() => setFlyingCards((f) => f.filter((x) => x.id !== id)), 650)
+          const startFly = () => {
+            if (card && from && pileEl) {
+              const r = pileEl.getBoundingClientRect()
+              const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+              const id = ++flyIdRef.current
+              setFlyingCards((f) => [...f, { id, card, from, to }])
+              setTimeout(() => setFlyingCards((f) => f.filter((x) => x.id !== id)), 650)
+            }
           }
+          if (from) {
+            const base = SETTLE + fxSeq; fxSeq += 120
+            const srcR = srcRef && srcRef.side !== e.side ? rectOf(srcRef) : null
+            const pc = palOf(card).primary
+            if (srcR) {
+              window.setTimeout(() => fxRef.current?.spawn({ kind: 'slash', from: srcR, to: from, color: '#ff4a4a', duration: 0.9 }), base)
+              window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); fxRef.current?.hitFlash(from.x, from.y, '#ff4a4a'); playBattleSound('death', 0.4); startFly() }, base + 430)
+            } else {
+              window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); startFly() }, base)
+            }
+          } else { startFly() }
           break
         }
         case 'win': if (e.side === 'you') playSuccess(); else playError(); break
@@ -793,6 +823,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           setCardFlash({ card, title: e.cardName ?? 'Prakeiksmas', tag: activated ? 'AKTYVUOJAMAS' : 'ĮMAIŠOMAS', color: activated ? '#ef4444' : '#a78bfa' })
           if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
           flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
+          if (srcRef) { const sref = srcRef, opp: Side = sref.side === 'you' ? 'ai' : 'you'; const d = SETTLE + fxSeq; fxSeq += 120; window.setTimeout(() => { const from = rectOf(sref), to = rectFor({ side: opp }); if (from && to) fxRef.current?.spawn({ kind: 'curseMark', from, to, color: '#a855f7', duration: 1.4 }) }, d) }
           break
         }
         case 'coin': {
@@ -804,23 +835,71 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           break
         }
         case 'status': if (e.status) queueTip(('status-' + e.status) as TipKey); break
+        case 'damage': {
+          const tgt = e.tgt, val = e.value
+          if (tgt && val) {
+            const base = SETTLE + fxSeq; fxSeq += 120
+            const sref = srcRef, col = palOf(srcCard).primary, pf = projFired, am = aoeMode
+            if (am && !aoeFired) { aoeFired = true; const sr = sref; window.setTimeout(() => { const fr = sr ? rectOf(sr) : null; if (fr) fxRef.current?.spawn({ kind: 'aoeWave', from: fr, color: col, duration: 1.6 }) }, SETTLE) }
+            window.setTimeout(() => {
+              const to = rectOf(tgt); if (!to) return
+              const from = sref ? rectOf(sref) : null
+              const fireProj = !am && !!from && !pf
+              if (fireProj) fxRef.current?.spawn({ kind: 'projectile', from: from!, to, color: col, duration: 1.0 })
+              window.setTimeout(() => {
+                fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, '#ff5a4a', val >= 4)
+                fxRef.current?.hitFlash(to.x, to.y, '#ff5a4a')
+                if (tgt.uid) fxRef.current?.shakeUnit(tgt.uid, val >= 5 ? 'hard' : 'normal')
+                playBattleSound('impact', 0.3)
+              }, fireProj ? 600 : 220)
+            }, base)
+          }
+          break
+        }
+        case 'heal': {
+          const tgt = e.tgt, val = e.value
+          const base = SETTLE + fxSeq; fxSeq += 120
+          const sref = srcRef
+          window.setTimeout(() => {
+            const to = tgt ? rectOf(tgt) : rectFor({ side: e.side }); if (!to) return
+            const from = sref ? rectOf(sref) : null
+            if (from) fxRef.current?.spawn({ kind: 'healStream', from, to, color: '#5ef0c0', duration: 1.2 })
+            window.setTimeout(() => { if (val) fxRef.current?.floatNumber(to.x, to.y - 12, '+' + val, '#5ef0c0'); if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft') }, from ? 420 : 0)
+          }, base)
+          break
+        }
+        case 'buff': {
+          const tgt = e.tgt, val = e.value ?? 0
+          const base = SETTLE + fxSeq; fxSeq += 120
+          const sref = srcRef
+          window.setTimeout(() => {
+            const to = tgt ? rectOf(tgt) : null; if (!to) return
+            const up = val >= 0
+            const from = sref ? rectOf(sref) ?? to : to
+            fxRef.current?.spawn({ kind: up ? 'buffSurge' : 'debuffDrain', from, to, color: up ? '#ffd24a' : '#a855f7', duration: 1.2 })
+            if (val) fxRef.current?.floatNumber(to.x, to.y - 12, (up ? '+' : '') + val, up ? '#ffd24a' : '#a855f7')
+            if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft')
+          }, base)
+          break
+        }
         default: break
       }
       if (e.t === 'champion') queueTip('champion')
       if (e.t === 'artifact') queueTip('artifact')
       if (e.t === 'play' && /Sprintas/.test(e.msg)) queueTip('sprint')
-      // projectile animacija (spell / ability / attack su src+tgt)
+      // efekto projektilas/kirtis nuo source kortos (spell / ability / attack)
       if (e.src && e.tgt && (e.t === 'spell' || e.t === 'ability' || e.t === 'attack')) {
-        const emoji = e.t === 'attack' ? '⚔️' : PROJ_EMOJI[e.projectile ?? ''] ?? (e.projectile && e.projectile !== 'none' ? '✨' : '')
-        if (emoji) {
-          // setTimeout – kad DOM jau būtų atnaujintas
-          const src = e.src, tgt = e.tgt
-          setTimeout(() => {
-            const from = rectFor(src)
-            const to = rectFor(tgt)
-            if (from && to) spawnProjectile(from, to, emoji)
-          }, 30)
-        }
+        const isAtk = e.t === 'attack'
+        const proj = e.projectile
+        const col = (proj && PROJECTILE_COLOR[proj]) || palOf(srcCard).primary
+        const col2 = palOf(srcCard).secondary
+        const src = e.src, tgt = e.tgt
+        projFired = true
+        window.setTimeout(() => {
+          const from = rectOf(src), to = rectOf(tgt)
+          if (from && to) fxRef.current?.spawn({ kind: isAtk ? 'slash' : 'projectile', from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })
+        }, isAtk ? 120 : 200)
+        void PROJ_EMOJI; void spawnProjectile
       }
     }
     if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current })
@@ -1489,7 +1568,10 @@ doAction({ t: 'endTurn', actor: 'you' })
       <div data-tut={tut} className="flex flex-wrap justify-center gap-1 sm:gap-2 min-h-[80px] sm:min-h-[124px] items-center">
         <AnimatePresence>
           {Array.from({ length: slots }).map((_, i) => { const u = p.units[i]; return u ? (
-            <div key={u.uid} data-unit-uid={u.uid}
+            <motion.div key={u.uid} data-unit-uid={u.uid}
+              initial={{ y: -32, scale: 0.82, opacity: 0 }}
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 520, damping: 16, mass: 0.7 }}
               onPointerDown={side === 'you' ? (e) => beginUnitDrag(u, e) : undefined}
               style={side === 'you' ? { touchAction: 'none' } : undefined}
               onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}
@@ -1510,7 +1592,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 }
                 onClick={() => side === 'you' ? onMyUnitClick(u) : onTargetClick({ kind: 'unit', side: 'ai', uid: u.uid })}
               />
-            </div>
+            </motion.div>
           ) : (
             <div key={side + '-slot-' + i} className="rounded-lg"
               style={{
@@ -1679,7 +1761,7 @@ doAction({ t: 'endTurn', actor: 'you' })
   }, [game?.lastMill?.id])
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex flex-col select-none"
+    <div data-fx-root className="fixed inset-0 z-[120] flex flex-col select-none"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingTop: 'env(safe-area-inset-top)',
@@ -2226,6 +2308,9 @@ doAction({ t: 'endTurn', actor: 'you' })
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* ── kovos FX sluoksnis (projektilai, kirčiai, skaičiai) ── */}
+      <BattleFxLayer ref={fxRef} />
 
       {/* ── pilno lauko summon efektas ── */}
       {boardFx && <BattleEffectOverlay type={boardFx.type} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}
