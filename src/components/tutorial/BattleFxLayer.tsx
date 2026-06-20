@@ -286,6 +286,16 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 const CSS = `
 .rvn-fnum { position: absolute; transform: translate(-50%,-50%); font-weight: 800; font-family: Cinzel, Georgia, serif; pointer-events: none; animation: rvnFnum 1.1s cubic-bezier(.2,.8,.2,1) forwards; }
 @keyframes hpvCrit { 0%,100%{ box-shadow: 0 0 6px rgba(239,68,68,0.45); } 50%{ box-shadow: 0 0 14px rgba(239,68,68,0.95); } }
+.hpv2 { position:absolute; inset:0; background: rgba(16,12,24,0.5); overflow:hidden; }
+.hpv2-liquid { position:absolute; left:0; right:0; bottom:0; transition: height .5s cubic-bezier(.3,.8,.3,1), background .5s ease; }
+.hpv2-wave { position:absolute; left:50%; top:-21px; width:280%; height:46px; transform:translateX(-50%); border-radius:42% 46% 43% 45%; opacity:.85; animation: hpvSpin 4.5s linear infinite; }
+.hpv2-wave2 { top:-18px; height:42px; opacity:.5; animation-duration: 7s; animation-direction: reverse; }
+@keyframes hpvSpin { from{ transform:translateX(-50%) rotate(0deg); } to{ transform:translateX(-50%) rotate(360deg); } }
+.hpv2-bub { position:absolute; bottom:4px; width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,0.55); animation: hpvBub linear infinite; }
+@keyframes hpvBub { 0%{ transform:translateY(0) scale(.5); opacity:0; } 20%{ opacity:.8; } 100%{ transform:translateY(-46px) scale(1); opacity:0; } }
+.hpv2-glass { position:absolute; inset:0; pointer-events:none; background:linear-gradient(125deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.05) 30%, transparent 52%, rgba(0,0,0,0.34) 100%); }
+.hpv2-shine { position:absolute; top:14px; left:8px; width:4px; height:52%; border-radius:3px; pointer-events:none; background:linear-gradient(180deg, rgba(255,255,255,0.55), transparent); }
+@media (prefers-reduced-motion: reduce){ .hpv2-wave, .hpv2-bub { animation:none !important; } }
 @keyframes rvnFnum { 0%{opacity:0; transform:translate(-50%,-30%) scale(0.4)} 18%{opacity:1; transform:translate(-50%,-55%) scale(1.25)} 32%{transform:translate(-50%,-58%) scale(1)} 100%{opacity:0; transform:translate(-50%,-150%) scale(1)} }
 [data-fx-root].rvn-shake-soft { animation: rvnShakeSoft 0.36s ease-in-out; }
 [data-fx-root].rvn-shake-hard { animation: rvnShakeHard 0.48s ease-in-out; }

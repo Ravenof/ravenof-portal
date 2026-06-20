@@ -136,33 +136,28 @@ const STATUS_GLOW: Record<TutStatus, string> = {
 }
 
 function HpVial({ hp, maxHp }: { hp: number; maxHp: number }) {
-  const rid = useId().replace(/:/g, '')
   const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
   const hue = ratio * 120
-  const top = `hsl(${hue},88%,57%)`, bot = `hsl(${hue},88%,38%)`
+  const top = `hsl(${hue},88%,58%)`, bot = `hsl(${hue},86%,36%)`
   const crit = hp > 0 && hp <= 10
-  const bodyTop = 14, bodyBot = 46
-  const liqY = bodyBot - (bodyBot - bodyTop) * ratio
-  const bottle = 'M16 6 L16 14 C 9 16, 4 23, 5 33 C 6 43, 12 47, 20 47 C 28 47, 34 43, 35 33 C 36 23, 31 16, 24 14 L 24 6 Z'
+  const clip = "path('M18 2 L18 15 C 9 18, 4 27, 5 39 C 6 51, 13 57, 23 57 C 33 57, 40 51, 41 39 C 42 27, 37 18, 28 15 L 28 2 C 28 0.6 27 0 23 0 C 19 0 18 0.6 18 2 Z')"
   return (
-    <span style={{ position: 'relative', display: 'inline-block', width: 40, height: 56, flex: '0 0 auto' }}>
-      <svg width="40" height="48" viewBox="0 0 40 48" style={{ position: 'absolute', bottom: 0, left: 0, filter: crit ? 'drop-shadow(0 0 5px rgba(239,68,68,0.85))' : 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))' }}>
-        <defs><clipPath id={'hv' + rid}><path d={bottle} /></clipPath></defs>
-        <path d={bottle} fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-        <g clipPath={`url(#hv${rid})`}>
-          <rect x="0" y={liqY} width="40" height={bodyBot - liqY + 2} fill={bot} />
-          <rect x="0" y={liqY} width="40" height="9" fill={top} opacity="0.9" />
-          <rect x="0" y={liqY} width="40" height="2.5" fill="#ffffff" opacity="0.35" />
-        </g>
-        <rect x="8.5" y="20" width="2.6" height="18" rx="1.3" fill="rgba(255,255,255,0.3)" />
-        <rect x="15" y="1.5" width="10" height="6" rx="1.6" fill="#8a5a30" stroke="#4a2f16" strokeWidth="0.7" />
-      </svg>
-      <span className={crit ? '' : ''} style={{ position: 'absolute', top: -3, left: '50%', transform: 'translateX(-50%)', width: 26, height: 24, animation: crit ? 'hpvCrit 0.8s ease-in-out infinite' : undefined }}>
-        <svg width="26" height="24" viewBox="0 0 24 22">
-          <defs><linearGradient id={'hh' + rid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff6b6b" /><stop offset="1" stopColor="#b91c1c" /></linearGradient></defs>
-          <path d="M12 21 C12 21 2 14.5 2 7.8 C2 4.6 4.4 2.4 7.2 2.4 C9.2 2.4 11 3.7 12 5.4 C13 3.7 14.8 2.4 16.8 2.4 C19.6 2.4 22 4.6 22 7.8 C22 14.5 12 21 12 21 Z" fill={`url(#hh${rid})`} stroke="#7f1d1d" strokeWidth="0.8" />
-        </svg>
-        <span style={{ position: 'absolute', inset: 0, top: -2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: hp >= 100 ? 9 : 11, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.9)', pointerEvents: 'none' }}>{Math.max(0, hp)}</span>
+    <span style={{ position: 'relative', display: 'inline-block', width: 46, height: 60, flex: '0 0 auto',
+      filter: crit ? 'drop-shadow(0 0 7px rgba(239,68,68,0.85))' : `drop-shadow(0 0 5px ${top}55) drop-shadow(0 2px 3px rgba(0,0,0,0.5))` }}>
+      <span className="hpv2" style={{ clipPath: clip, WebkitClipPath: clip }}>
+        <span className="hpv2-liquid" style={{ height: `${Math.max(2, ratio * 100)}%`, background: `linear-gradient(180deg, ${top}, ${bot})` }}>
+          <span className="hpv2-wave" style={{ background: top }} />
+          <span className="hpv2-wave hpv2-wave2" style={{ background: bot }} />
+          {[0, 1, 2].map((i) => <span key={i} className="hpv2-bub" style={{ left: `${28 + i * 20}%`, animationDelay: `${i * 1.1}s`, animationDuration: `${3 + i}s` }} />)}
+        </span>
+        <span className="hpv2-glass" />
+        <span className="hpv2-shine" />
+      </span>
+      <span style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 13, height: 6, borderRadius: '3px 3px 1px 1px', background: 'linear-gradient(180deg,#9a6a3a,#5a3a1c)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.5)' }} />
+      <span style={{ position: 'absolute', top: 31, left: '50%', transform: 'translateX(-50%)', minWidth: 30, height: 17, padding: '0 5px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(180deg,#2c2218,#14100a)', borderRadius: 3, borderTop: '1px solid rgba(212,175,55,0.35)', borderBottom: '1px solid rgba(0,0,0,0.7)', borderLeft: '1px solid rgba(0,0,0,0.4)', borderRight: '1px solid rgba(0,0,0,0.4)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+        <span style={{ fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: hp >= 100 ? 10 : 13, lineHeight: 1, color: crit ? '#ff6b6b' : '#e8c84a', textShadow: '0 1px 1px rgba(0,0,0,0.9)' }}>{Math.max(0, hp)}</span>
       </span>
     </span>
   )
@@ -1753,11 +1748,11 @@ doAction({ t: 'endTurn', actor: 'you' })
         data-player={side}
         onClick={() => side === 'ai' && onTargetClick({ kind: 'player', side: 'ai' })}
         disabled={!targetable}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+        className="flex items-center justify-center p-0.5 rounded-xl"
         style={{
-          background: 'rgba(0,0,0,0.5)',
-          border: targetable ? '2px solid #ef4444' : '1px solid rgba(239,68,68,0.35)',
-          boxShadow: targetable ? '0 0 12px rgba(239,68,68,0.6)' : 'none',
+          background: 'transparent',
+          border: targetable ? '2px solid #ef4444' : '2px solid transparent',
+          boxShadow: targetable ? '0 0 14px rgba(239,68,68,0.7)' : 'none',
           cursor: targetable ? 'pointer' : 'default',
         }}>
         <HpVial hp={p.hp} maxHp={p.maxHp} />
