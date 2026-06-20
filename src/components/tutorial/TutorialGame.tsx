@@ -43,7 +43,8 @@ import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/scr
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
 const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
-type Props = { deckId: string; deckName: string; onClose: () => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet }
+type RankedResultPayload = { result: 'win' | 'loss'; turns: number; stats: import('@/lib/ranked/types').PlayerMatchStats }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -362,7 +363,7 @@ function cardNeedsTarget(game: GameState, c: TutCard): boolean {
   return (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
 
@@ -1100,8 +1101,35 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!game || game.winner !== 'you' || awardedRef.current) return
     if (deckId === DEMO_DECK_ID) return
     awardedRef.current = true
+    if (ranked) return // ranked atlygis skiriamas per RPC (rvn_report_ranked_match)
     if (vsRemote) awardGold('pvp_unranked', PVP_REWARD)
     else if (practice) awardGold(('pve_' + difficulty) as GoldReason, PVE_REWARD[difficulty])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner])
+
+  // Ranked rezultato pranešimas tėvui (kovai pasibaigus; tik kartą)
+  const rankedReportedRef = useRef(false)
+  const hpLowestRef = useRef(40)
+  useEffect(() => { if (game?.you) hpLowestRef.current = Math.min(hpLowestRef.current, game.you.hp) }, [game?.you?.hp])
+  useEffect(() => {
+    if (!ranked || !game?.winner || rankedReportedRef.current) return
+    rankedReportedRef.current = true
+    const meWon = net ? game.winner === net.mySide : game.winner === 'you'
+    const me = game.you, opp = game.ai
+    const cnt = (arr: typeof me.discard, t: string) => arr.filter((c) => c.type === t).length
+    const creaturesLost = cnt(me.discard, 'unit'), creaturesKilled = cnt(opp.discard, 'unit')
+    const championsLost = cnt(me.discard, 'champion'), championsKilled = cnt(opp.discard, 'champion')
+    onRankedResult?.({
+      result: meWon ? 'win' : 'loss',
+      turns: game.globalTurn,
+      stats: {
+        creaturesKilled, creaturesLost, championsKilled, championsLost,
+        totalKills: creaturesKilled + championsKilled, totalDeaths: creaturesLost + championsLost,
+        damageDealtToEnemyPlayer: Math.max(0, opp.maxHp - opp.hp), damageTaken: Math.max(0, me.maxHp - me.hp),
+        cardsPlayed: 0, spellsPlayed: cnt(me.discard, 'spell'), effectsTriggered: 0,
+        hpRemaining: Math.max(0, me.hp), hpLowest: hpLowestRef.current,
+      },
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
 

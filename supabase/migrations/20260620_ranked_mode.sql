@@ -1,0 +1,968 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- Ravenof Reitingo kova (Ranked Mode) — pilnas modulis
+-- Server-authoritative: rango/loss-counter/atlygio/sezono logika RPC viduje.
+-- rankStep modelis (0–149): rankNumber = 50 - floor(step/3); medal = step % 3.
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- ── 0) Pagalbinės rango funkcijos ───────────────────────────────────────────
+create or replace function public.rvn_rank_number(p_step int)
+returns int language sql immutable as $$
+  select 50 - floor(greatest(0, least(149, p_step)) / 3)::int
+$$;
+
+create or replace function public.rvn_medal_tier(p_step int)
+returns text language sql immutable as $$
+  select (array['bronze','silver','gold'])[ (greatest(0, least(149, p_step)) % 3) + 1 ]
+$$;
+
+-- ── 1) Sezonai ──────────────────────────────────────────────────────────────
+create table if not exists public.ranked_seasons (
+  id              uuid primary key default gen_random_uuid(),
+  name            text not null,
+  start_date      timestamptz not null default now(),
+  end_date        timestamptz not null,
+  is_active       boolean not null default true,
+  reset_completed boolean not null default false,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+create unique index if not exists ranked_seasons_one_active
+  on public.ranked_seasons (is_active) where is_active;
+
+-- ── 2) Reitingo profiliai (per sezoną) ──────────────────────────────────────
+create table if not exists public.ranked_profiles (
+  user_id             uuid not null references public.profiles(id) on delete cascade,
+  season_id           uuid not null references public.ranked_seasons(id) on delete cascade,
+  rank_step           int  not null default 0,
+  loss_counter        int  not null default 0,
+  wins                int  not null default 0,
+  losses              int  not null default 0,
+  wins_vs_real        int  not null default 0,
+  losses_vs_real      int  not null default 0,
+  win_streak          int  not null default 0,
+  best_win_streak     int  not null default 0,
+  best_rank_step      int  not null default 0,
+  reached_numbers     int[] not null default '{}',
+  portal_exp_earned   int  not null default 0,
+  ranked_gold_earned  int  not null default 0,
+  creatures_killed    int  not null default 0,
+  creatures_lost      int  not null default 0,
+  champions_killed    int  not null default 0,
+  champions_lost      int  not null default 0,
+  total_kills         int  not null default 0,
+  total_deaths        int  not null default 0,
+  total_damage_dealt  int  not null default 0,
+  total_damage_taken  int  not null default 0,
+  main_faction        text,
+  last_opponent_ids   text[] not null default '{}',
+  locked_deck_id      uuid references public.decks(id) on delete set null,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  primary key (user_id, season_id)
+);
+create index if not exists ranked_profiles_season_step
+  on public.ranked_profiles (season_id, rank_step desc);
+
+-- ── 3) Botai ─────────────────────────────────────────────────────────────────
+create table if not exists public.ranked_bots (
+  id                 uuid primary key default gen_random_uuid(),
+  slug               text unique not null,
+  name               text not null,
+  avatar             text,
+  season_id          uuid references public.ranked_seasons(id) on delete set null,
+  rank_step          int  not null default 0,
+  deck_id            uuid,
+  faction_slug       text,
+  faction            text,
+  strategy_type      text,
+  aggression         text,
+  control_preference text,
+  trade_preference   text,
+  risk_tolerance     text,
+  difficulty         text not null default 'normal',
+  wins               int  not null default 0,
+  losses             int  not null default 0,
+  wins_vs_real       int  not null default 0,
+  losses_vs_real     int  not null default 0,
+  creatures_killed   int  not null default 0,
+  creatures_lost     int  not null default 0,
+  champions_killed   int  not null default 0,
+  champions_lost     int  not null default 0,
+  total_kills        int  not null default 0,
+  total_deaths       int  not null default 0,
+  total_damage_dealt int  not null default 0,
+  total_damage_taken int  not null default 0,
+  active             boolean not null default true,
+  personality        text,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+-- ── 4) Botų kalades (lengvai keičiamos iš admin) ────────────────────────────
+create table if not exists public.ranked_bot_decks (
+  id                       uuid primary key default gen_random_uuid(),
+  bot_owner_id             uuid references public.ranked_bots(id) on delete cascade,
+  deck_name                text not null,
+  faction_slug             text,
+  strategy_type            text,
+  cards                    jsonb not null default '[]',
+  preferred_mulligan_rules jsonb not null default '{}',
+  preferred_targeting_rules jsonb not null default '{}',
+  preferred_play_pattern   text,
+  difficulty_modifier      text not null default 'normal',
+  created_at               timestamptz not null default now(),
+  updated_at               timestamptz not null default now()
+);
+
+-- ── 5) Kovų žurnalas ─────────────────────────────────────────────────────────
+create table if not exists public.ranked_matches (
+  id                   uuid primary key default gen_random_uuid(),
+  season_id            uuid not null references public.ranked_seasons(id) on delete cascade,
+  player_id            uuid not null references public.profiles(id) on delete cascade,
+  opponent_kind        text not null check (opponent_kind in ('bot','real')),
+  opponent_id          text,
+  opponent_name        text not null,
+  opponent_rank_step   int  not null default 0,
+  player_faction       text,
+  opponent_faction     text,
+  result               text not null check (result in ('win','loss')),
+  rank_step_before     int  not null,
+  rank_step_after      int  not null,
+  loss_counter_before  int  not null,
+  loss_counter_after   int  not null,
+  rank_change          text not null check (rank_change in ('up','down','same')),
+  reason               text not null default 'match',
+  duration_seconds     int  not null default 0,
+  turns_played         int  not null default 0,
+  player_stats         jsonb not null default '{}',
+  exp_gained           int  not null default 0,
+  gold_gained          int  not null default 0,
+  client_match_id      text,
+  created_at           timestamptz not null default now()
+);
+create index if not exists ranked_matches_player_idx on public.ranked_matches (player_id, created_at desc);
+-- Idempotencija: tas pats client_match_id neįrašomas du kartus
+create unique index if not exists ranked_matches_client_uniq
+  on public.ranked_matches (player_id, client_match_id) where client_match_id is not null;
+
+-- ── 6) Atlygiai (milestone definicijos) + pasiimti ──────────────────────────
+create table if not exists public.ranked_rewards (
+  reward_key          text primary key,
+  required_rank_step  int not null,
+  title               text not null,
+  description         text,
+  reward_payload      jsonb not null default '{}',
+  sort_order          int not null default 0,
+  active              boolean not null default true
+);
+create table if not exists public.ranked_rewards_claimed (
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  season_id  uuid not null references public.ranked_seasons(id) on delete cascade,
+  reward_key text not null references public.ranked_rewards(reward_key) on delete cascade,
+  claimed_at timestamptz not null default now(),
+  primary key (user_id, season_id, reward_key)
+);
+
+-- ── 7) Pasiekimai + vartotojo progresas ─────────────────────────────────────
+create table if not exists public.ranked_achievements (
+  achievement_key   text primary key,
+  name              text not null,
+  description       text,
+  requirement_type  text not null,
+  requirement_value int not null default 1,
+  reward_payload    jsonb not null default '{}',
+  sort_order        int not null default 0,
+  active            boolean not null default true
+);
+create table if not exists public.ranked_user_achievements (
+  user_id         uuid not null references public.profiles(id) on delete cascade,
+  season_id       uuid not null references public.ranked_seasons(id) on delete cascade,
+  achievement_key text not null references public.ranked_achievements(achievement_key) on delete cascade,
+  progress        int  not null default 0,
+  completed       boolean not null default false,
+  claimed         boolean not null default false,
+  completed_at    timestamptz,
+  claimed_at      timestamptz,
+  primary key (user_id, season_id, achievement_key)
+);
+
+-- ── 8) Sezono istorija ───────────────────────────────────────────────────────
+create table if not exists public.ranked_season_history (
+  user_id              uuid not null references public.profiles(id) on delete cascade,
+  season_id            uuid not null references public.ranked_seasons(id) on delete cascade,
+  final_rank_step      int not null,
+  best_rank_step       int not null,
+  leaderboard_position int,
+  wins                 int not null default 0,
+  losses               int not null default 0,
+  win_rate             numeric not null default 0,
+  kd_ratio             numeric not null default 0,
+  rewards_earned       text[] not null default '{}',
+  created_at           timestamptz not null default now(),
+  primary key (user_id, season_id)
+);
+
+-- ── 9) Matchmaking eilė (tikri žaidėjai) ─────────────────────────────────────
+create table if not exists public.ranked_queue (
+  user_id     uuid primary key references public.profiles(id) on delete cascade,
+  season_id   uuid not null references public.ranked_seasons(id) on delete cascade,
+  rank_step   int not null,
+  deck_id     uuid not null references public.decks(id) on delete cascade,
+  matched_with uuid references public.profiles(id) on delete set null,
+  match_id    uuid references public.pvp_matches(id) on delete set null,
+  enqueued_at timestamptz not null default now()
+);
+
+-- ── 10) Portal EXP šaltinio tipų išplėtimas (ranked) ────────────────────────
+do $$
+begin
+  alter table public.xp_transactions drop constraint if exists xp_transactions_source_type_check;
+  alter table public.xp_transactions add constraint xp_transactions_source_type_check
+    check (source_type in (
+      'event_attendance','deck_published','deck_upvote_received','deck_downvote_received',
+      'deck_copied','collection_milestone','manual_admin_adjustment',
+      'ranked_match','ranked_reward','ranked_achievement','ranked_season'
+    ));
+exception when others then null;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RLS
+-- ════════════════════════════════════════════════════════════════════════════
+alter table public.ranked_seasons          enable row level security;
+alter table public.ranked_profiles         enable row level security;
+alter table public.ranked_bots             enable row level security;
+alter table public.ranked_bot_decks        enable row level security;
+alter table public.ranked_matches          enable row level security;
+alter table public.ranked_rewards          enable row level security;
+alter table public.ranked_rewards_claimed  enable row level security;
+alter table public.ranked_achievements     enable row level security;
+alter table public.ranked_user_achievements enable row level security;
+alter table public.ranked_season_history   enable row level security;
+alter table public.ranked_queue            enable row level security;
+
+-- Viešai skaitomos referencinės lentelės
+drop policy if exists ranked_seasons_read on public.ranked_seasons;
+create policy ranked_seasons_read on public.ranked_seasons for select using (true);
+drop policy if exists ranked_bots_read on public.ranked_bots;
+create policy ranked_bots_read on public.ranked_bots for select using (true);
+drop policy if exists ranked_bot_decks_read on public.ranked_bot_decks;
+create policy ranked_bot_decks_read on public.ranked_bot_decks for select using (true);
+drop policy if exists ranked_rewards_read on public.ranked_rewards;
+create policy ranked_rewards_read on public.ranked_rewards for select using (true);
+drop policy if exists ranked_achievements_read on public.ranked_achievements;
+create policy ranked_achievements_read on public.ranked_achievements for select using (true);
+
+-- Profiliai: visi skaito (leaderboard/profilis), rašoma tik per RPC
+drop policy if exists ranked_profiles_read on public.ranked_profiles;
+create policy ranked_profiles_read on public.ranked_profiles for select using (true);
+
+-- Kovų žurnalas: savininkas skaito; rašoma tik per RPC
+drop policy if exists ranked_matches_read on public.ranked_matches;
+create policy ranked_matches_read on public.ranked_matches for select using (player_id = auth.uid() or public.is_admin());
+
+-- Pasiimti atlygiai / pasiekimai: savininkas skaito
+drop policy if exists ranked_rc_read on public.ranked_rewards_claimed;
+create policy ranked_rc_read on public.ranked_rewards_claimed for select using (user_id = auth.uid() or public.is_admin());
+drop policy if exists ranked_ua_read on public.ranked_user_achievements;
+create policy ranked_ua_read on public.ranked_user_achievements for select using (user_id = auth.uid() or public.is_admin());
+
+-- Sezono istorija: visi skaito (profilio puslapis), rašoma per RPC
+drop policy if exists ranked_sh_read on public.ranked_season_history;
+create policy ranked_sh_read on public.ranked_season_history for select using (true);
+
+-- Eilė: savininkas valdo savo įrašą
+drop policy if exists ranked_queue_read on public.ranked_queue;
+create policy ranked_queue_read on public.ranked_queue for select to authenticated using (true);
+drop policy if exists ranked_queue_ins on public.ranked_queue;
+create policy ranked_queue_ins on public.ranked_queue for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists ranked_queue_del on public.ranked_queue;
+create policy ranked_queue_del on public.ranked_queue for delete to authenticated using (user_id = auth.uid());
+drop policy if exists ranked_queue_upd on public.ranked_queue;
+create policy ranked_queue_upd on public.ranked_queue for update to authenticated using (true) with check (true);
+
+-- Admin pilnas valdymas referencinėms lentelėms
+drop policy if exists ranked_seasons_admin on public.ranked_seasons;
+create policy ranked_seasons_admin on public.ranked_seasons for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists ranked_bots_admin on public.ranked_bots;
+create policy ranked_bots_admin on public.ranked_bots for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists ranked_bot_decks_admin on public.ranked_bot_decks;
+create policy ranked_bot_decks_admin on public.ranked_bot_decks for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists ranked_rewards_admin on public.ranked_rewards;
+create policy ranked_rewards_admin on public.ranked_rewards for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists ranked_achievements_admin on public.ranked_achievements;
+create policy ranked_achievements_admin on public.ranked_achievements for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists ranked_profiles_admin on public.ranked_profiles;
+create policy ranked_profiles_admin on public.ranked_profiles for all using (public.is_admin()) with check (public.is_admin());
+
+-- ── touch updated_at ─────────────────────────────────────────────────────────
+create or replace function public.rvn_touch_ranked()
+returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end $$;
+drop trigger if exists ranked_profiles_touch on public.ranked_profiles;
+create trigger ranked_profiles_touch before update on public.ranked_profiles
+  for each row execute function public.rvn_touch_ranked();
+drop trigger if exists ranked_bots_touch on public.ranked_bots;
+create trigger ranked_bots_touch before update on public.ranked_bots
+  for each row execute function public.rvn_touch_ranked();
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RPC: sezonas / profilis / deck-lock
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- Aktyvus sezonas; jei nėra — sukuriamas numatytasis (3 mėn.).
+create or replace function public.rvn_active_season()
+returns public.ranked_seasons language plpgsql security definer set search_path = public as $$
+declare v_season public.ranked_seasons; v_name text;
+begin
+  select * into v_season from public.ranked_seasons where is_active limit 1;
+  if v_season.id is null then
+    v_name := 'Sezonas ' || to_char(now(), 'YYYY') || '-' || to_char(now(), 'MM');
+    insert into public.ranked_seasons (name, start_date, end_date, is_active)
+      values (v_name, now(), now() + interval '90 days', true)
+      returning * into v_season;
+  end if;
+  return v_season;
+end $$;
+
+-- Užtikrina vartotojo reitingo profilį aktyviame sezone.
+create or replace function public.rvn_ensure_ranked_profile()
+returns public.ranked_profiles language plpgsql security definer set search_path = public as $$
+declare v_season public.ranked_seasons; v_p public.ranked_profiles;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  v_season := public.rvn_active_season();
+  select * into v_p from public.ranked_profiles where user_id = auth.uid() and season_id = v_season.id;
+  if v_p.user_id is null then
+    insert into public.ranked_profiles (user_id, season_id) values (auth.uid(), v_season.id)
+      on conflict (user_id, season_id) do nothing;
+    select * into v_p from public.ranked_profiles where user_id = auth.uid() and season_id = v_season.id;
+  end if;
+  return v_p;
+end $$;
+
+-- Užfiksuoja ranked kaladę (turi priklausyti vartotojui).
+create or replace function public.rvn_lock_ranked_deck(p_deck_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_season public.ranked_seasons;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if not exists (select 1 from public.decks where id = p_deck_id and user_id = auth.uid()) then
+    raise exception 'deck not found or not owned';
+  end if;
+  v_season := public.rvn_active_season();
+  perform public.rvn_ensure_ranked_profile();
+  update public.ranked_profiles set locked_deck_id = p_deck_id
+    where user_id = auth.uid() and season_id = v_season.id;
+end $$;
+
+-- Vidinis: skiria atlygio payload (exp/gold/boosters/card). source: ranked_reward|ranked_achievement|ranked_season
+create or replace function public.rvn__grant_payload(p_user uuid, p_payload jsonb, p_source text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_exp int; v_gold int; v_boost int; v_cardmin text; v_so int; v_pack uuid; v_card uuid; i int;
+begin
+  v_exp := coalesce((p_payload->>'exp')::int, 0);
+  v_gold := coalesce((p_payload->>'gold')::int, 0);
+  v_boost := coalesce((p_payload->>'boosters')::int, 0);
+  v_cardmin := p_payload->>'cardMin';
+
+  if v_exp > 0 then
+    insert into public.xp_transactions (user_id, amount, reason, source_type)
+      values (p_user, v_exp, 'Reitingo atlygis', p_source);
+  end if;
+  if v_gold > 0 then
+    update public.profiles set gold = gold + v_gold where id = p_user;
+  end if;
+  if v_boost > 0 then
+    select id into v_pack from public.card_packs where is_active order by sort_order limit 1;
+    if v_pack is not null then
+      insert into public.user_pack_inventory (user_id, pack_id, quantity)
+        values (p_user, v_pack, v_boost)
+        on conflict (user_id, pack_id) do update set quantity = public.user_pack_inventory.quantity + v_boost;
+    end if;
+  end if;
+  if v_cardmin is not null then
+    v_so := case v_cardmin when 'magic' then 2 when 'unique' then 3 when 'epic' then 4 when 'legendary' then 5 else 2 end;
+    begin
+      select c.id into v_card from public.cards c
+        join public.rarities r on r.id = c.rarity_id
+        where c.status = 'active' and r.sort_order >= v_so
+        order by random() limit 1;
+      if v_card is not null then
+        insert into public.user_collections (user_id, card_id, quantity)
+          values (p_user, v_card, 1)
+          on conflict (user_id, card_id) do update set quantity = public.user_collections.quantity + 1;
+      end if;
+    exception when others then null; -- kortos skyrimas niekada nelaužia claim'o
+    end;
+  end if;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RPC: rvn_report_ranked_match — server-authoritative kovos apdorojimas
+-- ════════════════════════════════════════════════════════════════════════════
+create or replace function public.rvn_report_ranked_match(p_payload jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_season public.ranked_seasons;
+  v_p public.ranked_profiles;
+  v_kind text := p_payload->>'opponentKind';
+  v_opp_id text := p_payload->>'opponentId';
+  v_opp_name text := coalesce(p_payload->>'opponentName', 'Priešininkas');
+  v_opp_step int := coalesce((p_payload->>'opponentRankStep')::int, 0);
+  v_result text := p_payload->>'result';
+  v_pfac text := p_payload->>'playerFaction';
+  v_ofac text := p_payload->>'opponentFaction';
+  v_dur int := coalesce((p_payload->>'durationSeconds')::int, 0);
+  v_turns int := coalesce((p_payload->>'turnsPlayed')::int, 0);
+  v_stats jsonb := coalesce(p_payload->'stats', '{}'::jsonb);
+  v_cmid text := p_payload->>'clientMatchId';
+  v_before int; v_loss_before int; v_after int; v_loss_after int; v_change text;
+  v_exp int := 0; v_gold int := 0; v_match_id uuid;
+  v_nn int; v_new_number int := null; v_medal text;
+  v_hp_rem int := coalesce((v_stats->>'hpRemaining')::int, 0);
+  v_hp_low int := coalesce((v_stats->>'hpLowest')::int, 99);
+  v_ck int := coalesce((v_stats->>'creaturesKilled')::int, 0);
+  v_cl int := coalesce((v_stats->>'creaturesLost')::int, 0);
+  v_chk int := coalesce((v_stats->>'championsKilled')::int, 0);
+  v_chl int := coalesce((v_stats->>'championsLost')::int, 0);
+  v_tk int := coalesce((v_stats->>'totalKills')::int, v_ck + v_chk);
+  v_td int := coalesce((v_stats->>'totalDeaths')::int, v_cl + v_chl);
+  v_dd int := coalesce((v_stats->>'damageDealtToEnemyPlayer')::int, 0);
+  v_dt int := coalesce((v_stats->>'damageTaken')::int, 0);
+  v_unlocked text[] := '{}';
+  v_completed text[] := '{}';
+  v_is_real boolean := (v_kind = 'real');
+  ach record; v_prog int; v_done boolean; v_was boolean;
+  v_wins_vs_bot int;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  if v_result not in ('win','loss') then raise exception 'invalid result'; end if;
+  if v_kind not in ('bot','real') then raise exception 'invalid opponent kind'; end if;
+
+  v_season := public.rvn_active_season();
+  v_p := public.rvn_ensure_ranked_profile();
+
+  -- Idempotencija: tas pats clientMatchId neapdorojamas du kartus
+  if v_cmid is not null and exists (
+    select 1 from public.ranked_matches where player_id = v_uid and client_match_id = v_cmid
+  ) then
+    raise exception 'duplicate match submission';
+  end if;
+
+  v_before := v_p.rank_step;
+  v_loss_before := v_p.loss_counter;
+
+  -- ── Rango / loss-counter perskaičiavimas ─────────────────────────────────
+  if v_result = 'win' then
+    v_after := least(v_before + 1, 149);
+    v_loss_after := 0;
+    v_change := case when v_after > v_before then 'up' else 'same' end;
+  else
+    if v_loss_before + 1 >= 2 then
+      v_after := greatest(v_before - 1, 0);
+      v_loss_after := 0;
+      v_change := case when v_after < v_before then 'down' else 'same' end;
+    else
+      v_after := v_before;
+      v_loss_after := v_loss_before + 1;
+      v_change := 'same';
+    end if;
+  end if;
+
+  -- ── Atlygis (pasikartojantis) ────────────────────────────────────────────
+  if v_result = 'win' then v_exp := v_exp + 20; end if;
+  if v_change = 'up' then
+    v_medal := public.rvn_medal_tier(v_after);
+    v_exp := v_exp + 50 + case v_medal when 'bronze' then 25 when 'silver' then 50 else 75 end;
+    v_nn := public.rvn_rank_number(v_after);
+    if not (v_nn = any(v_p.reached_numbers)) then
+      v_new_number := v_nn;
+      v_gold := v_gold + 100;
+    end if;
+  end if;
+
+  -- ── Profilio atnaujinimas ────────────────────────────────────────────────
+  update public.ranked_profiles set
+    rank_step = v_after,
+    loss_counter = v_loss_after,
+    wins = wins + (case when v_result='win' then 1 else 0 end),
+    losses = losses + (case when v_result='loss' then 1 else 0 end),
+    wins_vs_real = wins_vs_real + (case when v_result='win' and v_is_real then 1 else 0 end),
+    losses_vs_real = losses_vs_real + (case when v_result='loss' and v_is_real then 1 else 0 end),
+    win_streak = (case when v_result='win' then win_streak + 1 else 0 end),
+    best_win_streak = greatest(best_win_streak, (case when v_result='win' then win_streak + 1 else 0 end)),
+    best_rank_step = greatest(best_rank_step, v_after),
+    reached_numbers = (case when v_new_number is not null then array_append(reached_numbers, v_new_number) else reached_numbers end),
+    portal_exp_earned = portal_exp_earned + v_exp,
+    ranked_gold_earned = ranked_gold_earned + v_gold,
+    creatures_killed = creatures_killed + v_ck,
+    creatures_lost = creatures_lost + v_cl,
+    champions_killed = champions_killed + v_chk,
+    champions_lost = champions_lost + v_chl,
+    total_kills = total_kills + v_tk,
+    total_deaths = total_deaths + v_td,
+    total_damage_dealt = total_damage_dealt + v_dd,
+    total_damage_taken = total_damage_taken + v_dt,
+    main_faction = coalesce(v_pfac, main_faction),
+    last_opponent_ids = (array[coalesce(v_opp_id,'')] || last_opponent_ids)[1:3]
+  where user_id = v_uid and season_id = v_season.id
+  returning * into v_p;
+
+  -- ── EXP / auksas ─────────────────────────────────────────────────────────
+  if v_exp > 0 then
+    insert into public.xp_transactions (user_id, amount, reason, source_type)
+      values (v_uid, v_exp, 'Reitingo kova', 'ranked_match');
+  end if;
+  if v_gold > 0 then
+    update public.profiles set gold = gold + v_gold where id = v_uid;
+  end if;
+
+  -- ── Kovos žurnalas ───────────────────────────────────────────────────────
+  insert into public.ranked_matches (
+    season_id, player_id, opponent_kind, opponent_id, opponent_name, opponent_rank_step,
+    player_faction, opponent_faction, result, rank_step_before, rank_step_after,
+    loss_counter_before, loss_counter_after, rank_change, reason, duration_seconds,
+    turns_played, player_stats, exp_gained, gold_gained, client_match_id
+  ) values (
+    v_season.id, v_uid, v_kind, v_opp_id, v_opp_name, v_opp_step,
+    v_pfac, v_ofac, v_result, v_before, v_after,
+    v_loss_before, v_loss_after, v_change,
+    (case when v_result='loss' and v_change='down' then 'second_loss' else 'match' end),
+    v_dur, v_turns, v_stats, v_exp, v_gold, v_cmid
+  ) returning id into v_match_id;
+
+  -- ── Botų statistika (jei prieš botą) ─────────────────────────────────────
+  if v_kind = 'bot' and v_opp_id is not null then
+    update public.ranked_bots set
+      wins = wins + (case when v_result='loss' then 1 else 0 end),
+      losses = losses + (case when v_result='win' then 1 else 0 end),
+      wins_vs_real = wins_vs_real + (case when v_result='loss' then 1 else 0 end),
+      losses_vs_real = losses_vs_real + (case when v_result='win' then 1 else 0 end),
+      creatures_killed = creatures_killed + v_cl,
+      creatures_lost = creatures_lost + v_ck,
+      total_kills = total_kills + v_td,
+      total_deaths = total_deaths + v_tk,
+      total_damage_dealt = total_damage_dealt + v_dt,
+      total_damage_taken = total_damage_taken + v_dd
+    where slug = v_opp_id;
+  end if;
+
+  -- ── Pasiekimų progresas ──────────────────────────────────────────────────
+  v_wins_vs_bot := v_p.wins - v_p.wins_vs_real;
+  for ach in select * from public.ranked_achievements where active loop
+    v_prog := 0; v_done := false;
+    case ach.requirement_type
+      when 'wins' then v_prog := v_p.wins; v_done := v_p.wins >= ach.requirement_value;
+      when 'reach_rank' then
+        v_done := public.rvn_rank_number(v_p.best_rank_step) <= ach.requirement_value;
+        v_prog := case when v_done then ach.requirement_value else 0 end;
+      when 'win_streak' then v_prog := v_p.best_win_streak; v_done := v_p.best_win_streak >= ach.requirement_value;
+      when 'beat_higher' then
+        v_prog := (case when v_result='win' and v_opp_step > v_before then 1 else 0 end);
+        v_done := v_prog >= 1;
+      when 'comeback' then
+        v_prog := (case when v_result='win' and v_hp_low < 10 then 1 else 0 end);
+        v_done := v_prog >= 1;
+      when 'flawless' then
+        v_prog := (case when v_result='win' and v_hp_rem >= 20 then 1 else 0 end);
+        v_done := v_prog >= 1;
+      when 'beat_bots' then v_prog := v_wins_vs_bot; v_done := v_wins_vs_bot >= ach.requirement_value;
+      when 'beat_real' then v_prog := v_p.wins_vs_real; v_done := v_p.wins_vs_real >= ach.requirement_value;
+      when 'season_games' then v_prog := v_p.wins + v_p.losses; v_done := (v_p.wins + v_p.losses) >= ach.requirement_value;
+      when 'kd_ratio' then
+        v_prog := (case when (v_p.wins+v_p.losses) >= 20 and
+          (case when v_p.total_deaths > 0 then v_p.total_kills::numeric / v_p.total_deaths else v_p.total_kills end) >= ach.requirement_value
+          then 1 else 0 end);
+        v_done := v_prog >= 1;
+      else v_prog := 0;
+    end case;
+
+    insert into public.ranked_user_achievements (user_id, season_id, achievement_key, progress, completed, completed_at)
+      values (v_uid, v_season.id, ach.achievement_key, v_prog, v_done, case when v_done then now() else null end)
+    on conflict (user_id, season_id, achievement_key) do update set
+      progress = greatest(public.ranked_user_achievements.progress, excluded.progress),
+      completed = public.ranked_user_achievements.completed or excluded.completed,
+      completed_at = coalesce(public.ranked_user_achievements.completed_at, excluded.completed_at)
+    ;
+
+    -- surenkam ką tik užbaigtus (completed ir dar nepaimtus)
+    if v_done then
+      if exists (select 1 from public.ranked_user_achievements
+                 where user_id=v_uid and season_id=v_season.id and achievement_key=ach.achievement_key and not claimed) then
+        v_completed := array_append(v_completed, ach.achievement_key);
+      end if;
+    end if;
+  end loop;
+
+  -- ── Atrakinti (pasiekiami, bet nepaimti) milestone atlygiai ──────────────
+  select coalesce(array_agg(r.reward_key), '{}') into v_unlocked
+  from public.ranked_rewards r
+  where r.active and r.required_rank_step <= v_p.best_rank_step
+    and not exists (select 1 from public.ranked_rewards_claimed c
+                    where c.user_id=v_uid and c.season_id=v_season.id and c.reward_key=r.reward_key);
+
+  return jsonb_build_object(
+    'rankStepBefore', v_before,
+    'rankStepAfter', v_after,
+    'rankChange', v_change,
+    'lossCounterBefore', v_loss_before,
+    'lossCounterAfter', v_loss_after,
+    'hitFloor', (v_result='loss' and v_before=0),
+    'hitCeiling', (v_result='win' and v_before=149),
+    'expGained', v_exp,
+    'goldGained', v_gold,
+    'newRankNumberReached', v_new_number,
+    'unlockedRewardKeys', to_jsonb(v_unlocked),
+    'completedAchievementKeys', to_jsonb(v_completed),
+    'matchId', v_match_id
+  );
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RPC: atlygio / pasiekimo pasiėmimas
+-- ════════════════════════════════════════════════════════════════════════════
+create or replace function public.rvn_claim_ranked_reward(p_key text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_season public.ranked_seasons; v_p public.ranked_profiles; v_r public.ranked_rewards;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  v_season := public.rvn_active_season();
+  v_p := public.rvn_ensure_ranked_profile();
+  select * into v_r from public.ranked_rewards where reward_key = p_key and active;
+  if v_r.reward_key is null then raise exception 'reward not found'; end if;
+  if v_p.best_rank_step < v_r.required_rank_step then raise exception 'requirement not met'; end if;
+  if exists (select 1 from public.ranked_rewards_claimed where user_id=v_uid and season_id=v_season.id and reward_key=p_key) then
+    raise exception 'already claimed';
+  end if;
+  insert into public.ranked_rewards_claimed (user_id, season_id, reward_key) values (v_uid, v_season.id, p_key);
+  perform public.rvn__grant_payload(v_uid, v_r.reward_payload, 'ranked_reward');
+end $$;
+
+create or replace function public.rvn_claim_ranked_achievement(p_key text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_season public.ranked_seasons; v_a public.ranked_achievements; v_ua public.ranked_user_achievements;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  v_season := public.rvn_active_season();
+  perform public.rvn_ensure_ranked_profile();
+  select * into v_a from public.ranked_achievements where achievement_key = p_key and active;
+  if v_a.achievement_key is null then raise exception 'achievement not found'; end if;
+  select * into v_ua from public.ranked_user_achievements where user_id=v_uid and season_id=v_season.id and achievement_key=p_key;
+  if v_ua.achievement_key is null or not v_ua.completed then raise exception 'not completed'; end if;
+  if v_ua.claimed then raise exception 'already claimed'; end if;
+  update public.ranked_user_achievements set claimed=true, claimed_at=now()
+    where user_id=v_uid and season_id=v_season.id and achievement_key=p_key;
+  perform public.rvn__grant_payload(v_uid, v_a.reward_payload, 'ranked_achievement');
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RPC: boto parinkimas (anti-repeat per last_opponent_ids)
+-- ════════════════════════════════════════════════════════════════════════════
+create or replace function public.rvn_pick_bot()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_p public.ranked_profiles; v_bot public.ranked_bots; v_last text[];
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  v_p := public.rvn_ensure_ranked_profile();
+  v_last := v_p.last_opponent_ids;
+  -- Artimiausias pagal rankStep, vengiant paskutinių 2 priešininkų iš eilės
+  select * into v_bot from public.ranked_bots
+    where active and not (slug = any(v_last[1:2]))
+    order by abs(rank_step - v_p.rank_step), random() limit 1;
+  if v_bot.slug is null then
+    select * into v_bot from public.ranked_bots where active
+      order by abs(rank_step - v_p.rank_step), random() limit 1;
+  end if;
+  if v_bot.slug is null then raise exception 'no bots available'; end if;
+  return jsonb_build_object(
+    'slug', v_bot.slug, 'name', v_bot.name, 'avatar', v_bot.avatar,
+    'faction', v_bot.faction, 'faction_slug', v_bot.faction_slug,
+    'rank_step', v_bot.rank_step, 'difficulty', v_bot.difficulty
+  );
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RPC: leaderboard (tikri žaidėjai + botai, su tie-breaker'iais)
+-- ════════════════════════════════════════════════════════════════════════════
+create or replace function public.rvn_leaderboard(p_limit int default 100, p_offset int default 0)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_season public.ranked_seasons; v_out jsonb;
+begin
+  v_season := public.rvn_active_season();
+  with rows as (
+    -- Tikri žaidėjai
+    select
+      false as is_bot, rp.user_id::text as entity_id,
+      coalesce(pr.display_name, pr.username, 'Žaidėjas') as name,
+      pr.avatar_url as avatar,
+      rp.rank_step, rp.wins, rp.losses, rp.wins_vs_real, rp.win_streak,
+      rp.best_rank_step, rp.main_faction, rp.total_kills, rp.total_deaths, rp.updated_at,
+      (rp.user_id = v_uid) as is_me
+    from public.ranked_profiles rp
+    join public.profiles pr on pr.id = rp.user_id
+    where rp.season_id = v_season.id and (rp.wins + rp.losses) > 0
+    union all
+    -- Botai (atrodo kaip tikri žaidėjai)
+    select
+      true as is_bot, b.slug as entity_id, b.name, b.avatar,
+      b.rank_step, b.wins, b.losses, b.wins_vs_real, 0 as win_streak,
+      greatest(b.rank_step, b.rank_step) as best_rank_step, b.faction as main_faction,
+      b.total_kills, b.total_deaths, b.updated_at, false as is_me
+    from public.ranked_bots b
+    where b.active
+  ), ranked as (
+    select *,
+      case when (wins+losses) > 0 then round(wins::numeric/(wins+losses), 4) else 0 end as win_rate,
+      case when total_deaths > 0 then round(total_kills::numeric/total_deaths, 2)
+           else total_kills::numeric end as kd_ratio,
+      row_number() over (order by
+        rank_step desc, wins_vs_real desc, wins desc,
+        (case when (wins+losses)>0 then wins::numeric/(wins+losses) else 0 end) desc,
+        (case when total_deaths>0 then total_kills::numeric/total_deaths else total_kills end) desc,
+        win_streak desc, (wins+losses) desc, updated_at asc
+      ) as position
+    from rows
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'position', position, 'is_bot', is_bot, 'entity_id', entity_id,
+    'name', name, 'avatar', avatar, 'rank_step', rank_step,
+    'rank_number', public.rvn_rank_number(rank_step), 'medal_tier', public.rvn_medal_tier(rank_step),
+    'wins', wins, 'losses', losses, 'win_rate', win_rate, 'kd_ratio', kd_ratio,
+    'wins_vs_real', wins_vs_real, 'win_streak', win_streak, 'best_rank_step', best_rank_step,
+    'main_faction', main_faction, 'is_me', is_me
+  ) order by position), '[]'::jsonb) into v_out
+  from ranked where position > p_offset and position <= p_offset + p_limit;
+  return v_out;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RPC: matchmaking eilė (tikri žaidėjai); bot fallback daromas kliente po 60 s
+-- ════════════════════════════════════════════════════════════════════════════
+create or replace function public.rvn_queue_join(p_deck_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_season public.ranked_seasons; v_p public.ranked_profiles;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  if not exists (select 1 from public.decks where id=p_deck_id and user_id=v_uid) then raise exception 'invalid deck'; end if;
+  v_season := public.rvn_active_season();
+  v_p := public.rvn_ensure_ranked_profile();
+  insert into public.ranked_queue (user_id, season_id, rank_step, deck_id)
+    values (v_uid, v_season.id, v_p.rank_step, p_deck_id)
+    on conflict (user_id) do update set rank_step=excluded.rank_step, deck_id=excluded.deck_id, enqueued_at=now(), matched_with=null, match_id=null;
+end $$;
+
+create or replace function public.rvn_queue_leave()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.ranked_queue where user_id = auth.uid();
+end $$;
+
+-- Bandyti suporuoti su laukiančiu tikru žaidėju per leistiną rango spindulį.
+create or replace function public.rvn_queue_poll(p_range int default 3)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_me public.ranked_queue; v_opp public.ranked_queue;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  select * into v_me from public.ranked_queue where user_id = v_uid;
+  if v_me.user_id is null then return jsonb_build_object('status','left'); end if;
+  -- Jau suporuotas?
+  if v_me.matched_with is not null then
+    return jsonb_build_object('status','matched','opponent', v_me.matched_with::text);
+  end if;
+  -- Ieškom kito laukiančio žaidėjo rango spindulyje
+  select * into v_opp from public.ranked_queue
+    where user_id <> v_uid and matched_with is null
+      and abs(rank_step - v_me.rank_step) <= p_range
+    order by enqueued_at asc limit 1;
+  if v_opp.user_id is not null then
+    update public.ranked_queue set matched_with = v_opp.user_id where user_id = v_uid;
+    update public.ranked_queue set matched_with = v_uid where user_id = v_opp.user_id;
+    return jsonb_build_object('status','matched','opponent', v_opp.user_id::text);
+  end if;
+  return jsonb_build_object('status','waiting');
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- ADMIN RPC
+-- ════════════════════════════════════════════════════════════════════════════
+create or replace function public.rvn_admin_set_rank(p_user uuid, p_step int, p_reason text default 'admin_adjustment')
+returns void language plpgsql security definer set search_path = public as $$
+declare v_season public.ranked_seasons; v_before int;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  v_season := public.rvn_active_season();
+  insert into public.ranked_profiles (user_id, season_id) values (p_user, v_season.id) on conflict do nothing;
+  select rank_step into v_before from public.ranked_profiles where user_id=p_user and season_id=v_season.id;
+  update public.ranked_profiles set rank_step = greatest(0, least(149, p_step)), loss_counter=0,
+    best_rank_step = greatest(best_rank_step, greatest(0, least(149, p_step)))
+    where user_id=p_user and season_id=v_season.id;
+end $$;
+
+-- Sezono pabaiga + reset (išsaugo istoriją, atstato rangą pagal galutinį žingsnį).
+create or replace function public.rvn_admin_end_season(p_new_name text default null)
+returns public.ranked_seasons language plpgsql security definer set search_path = public as $$
+declare v_old public.ranked_seasons; v_new public.ranked_seasons; rp record; v_reset int; v_pos int; v_name text;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  select * into v_old from public.ranked_seasons where is_active limit 1;
+  if v_old.id is null then raise exception 'no active season'; end if;
+
+  -- Istorija + nauja sezono pradžia kiekvienam profiliui
+  v_new := null;
+  update public.ranked_seasons set is_active=false, reset_completed=true, updated_at=now() where id=v_old.id;
+  v_name := coalesce(p_new_name, 'Sezonas ' || to_char(now(), 'YYYY') || '-' || to_char(now(), 'MM'));
+  insert into public.ranked_seasons (name, start_date, end_date, is_active)
+    values (v_name, now(), now() + interval '90 days', true) returning * into v_new;
+
+  v_pos := 0;
+  for rp in
+    select * from public.ranked_profiles where season_id = v_old.id order by rank_step desc, wins desc
+  loop
+    v_pos := v_pos + 1;
+    insert into public.ranked_season_history (
+      user_id, season_id, final_rank_step, best_rank_step, leaderboard_position,
+      wins, losses, win_rate, kd_ratio, rewards_earned
+    ) values (
+      rp.user_id, v_old.id, rp.rank_step, rp.best_rank_step, v_pos,
+      rp.wins, rp.losses,
+      case when (rp.wins+rp.losses)>0 then round(rp.wins::numeric/(rp.wins+rp.losses),4) else 0 end,
+      case when rp.total_deaths>0 then round(rp.total_kills::numeric/rp.total_deaths,2) else rp.total_kills end,
+      (select coalesce(array_agg(reward_key),'{}') from public.ranked_rewards_claimed where user_id=rp.user_id and season_id=v_old.id)
+    ) on conflict (user_id, season_id) do nothing;
+
+    -- Reset pagal galutinį rankStep
+    v_reset := case
+      when rp.rank_step <= 29 then 0
+      when rp.rank_step <= 59 then 15
+      when rp.rank_step <= 89 then 30
+      when rp.rank_step <= 119 then 45
+      else 60 end;
+    insert into public.ranked_profiles (user_id, season_id, rank_step, best_rank_step, main_faction, locked_deck_id)
+      values (rp.user_id, v_new.id, v_reset, v_reset, rp.main_faction, rp.locked_deck_id)
+      on conflict (user_id, season_id) do nothing;
+  end loop;
+
+  -- Botus priskirti naujam sezonui
+  update public.ranked_bots set season_id = v_new.id where active;
+  return v_new;
+end $$;
+
+-- ── Teisės ──────────────────────────────────────────────────────────────────
+grant execute on function public.rvn_active_season() to authenticated;
+grant execute on function public.rvn_ensure_ranked_profile() to authenticated;
+grant execute on function public.rvn_lock_ranked_deck(uuid) to authenticated;
+grant execute on function public.rvn_report_ranked_match(jsonb) to authenticated;
+grant execute on function public.rvn_claim_ranked_reward(text) to authenticated;
+grant execute on function public.rvn_claim_ranked_achievement(text) to authenticated;
+grant execute on function public.rvn_pick_bot() to authenticated;
+grant execute on function public.rvn_leaderboard(int, int) to authenticated;
+grant execute on function public.rvn_queue_join(uuid) to authenticated;
+grant execute on function public.rvn_queue_leave() to authenticated;
+grant execute on function public.rvn_queue_poll(int) to authenticated;
+grant execute on function public.rvn_admin_set_rank(uuid, int, text) to authenticated;
+grant execute on function public.rvn_admin_end_season(text) to authenticated;
+grant execute on function public.rvn_rank_number(int) to authenticated, anon;
+grant execute on function public.rvn_medal_tier(int) to authenticated, anon;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- SEED
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- Numatytasis aktyvus sezonas (jei dar nėra)
+insert into public.ranked_seasons (name, start_date, end_date, is_active)
+select 'Sezonas ' || to_char(now(),'YYYY') || '-' || to_char(now(),'MM'), now(), now() + interval '90 days', true
+where not exists (select 1 from public.ranked_seasons where is_active);
+
+-- 20 botų (atrodo kaip tikri online žaidėjai; tapatybė matoma tik admin)
+insert into public.ranked_bots
+  (slug, name, avatar, season_id, rank_step, faction_slug, faction, strategy_type, aggression, control_preference, trade_preference, risk_tolerance, difficulty, personality)
+values
+  ('shadowrook','ShadowRook','🪦',(select id from public.ranked_seasons where is_active limit 1),115,'mirties-marsas','Mirties maršas','control','low','high','high','low','hard','Ramus laiptų grindintojas, mėgsta lėtas kalades.'),
+  ('lootgoblin69','LootGoblin69','👺',(select id from public.ranked_seasons where is_active limit 1),48,'vryhioko-gauja','Goblinų Gauja','aggro','very_high','low','low','very_high','normal','Chaotiškas goblinas, lekia į veidą ir lošia.'),
+  ('silvertilt','SilverTilt','🛡️',(select id from public.ranked_seasons where is_active limit 1),92,'sviesos-pulkas','Šviesos pulkas','midrange','medium','medium','high','low','hard','Rimtas ranked žaidėjas, švarūs ėjimai.'),
+  ('nomananocry','NoManaNoCry','🔮',(select id from public.ranked_seasons where is_active limit 1),96,'mistikos-melodija','Mistikos melodija','control','medium','high','medium','medium','hard','Burtų mėgėjas, kantrus value žaidimas.'),
+  ('cursedealer','CurseDealer','🕯️',(select id from public.ranked_seasons where is_active limit 1),85,'demonu-orda','Demonų orda','curse','medium','high','medium','medium','hard','Erzinantis kontrolininkas, mėgsta trikdyti.'),
+  ('piratewifi','PirateWifi','🏴‍☠️',(select id from public.ranked_seasons where is_active limit 1),68,'plesiku-naktis','Plėšikų naktis','tempo','high','medium','medium','medium','normal','Žaidžia greitai, baudžia klaidas.'),
+  ('sneak-exe','Sneak.exe','🥷',(select id from public.ranked_seasons where is_active limit 1),106,'rytu-vejas','Rytų vėjas','stealth','medium','medium','low','low','hard','Asasinas, laukia lethal lango.'),
+  ('healmepls','HealMePls','✨',(select id from public.ranked_seasons where is_active limit 1),78,'inkvizicijos-legionas','Inkvizicijos legionas','defensive','low','high','high','low','normal','Support mėgėjas, ilgi žaidimai.'),
+  ('topdecktomas','TopdeckTomas','🍀',(select id from public.ranked_seasons where is_active limit 1),61,'plesiku-naktis','Plėšikų naktis','tempo','high','medium','medium','medium','normal','Laimingas laiptų žaidėjas, visad ištraukia.'),
+  ('graveyardenjoyer','GraveyardEnjoyer','⚰️',(select id from public.ranked_seasons where is_active limit 1),95,'mirties-marsas','Mirties maršas','midrange','medium','medium','medium','medium','normal','Mėgsta kapinyno mechanikas ir recursion.'),
+  ('tauntpolice','TauntPolice','🚧',(select id from public.ranked_seasons where is_active limit 1),72,'sviesos-pulkas','Šviesos pulkas','defensive','low','high','high','low','normal','Blokuoja viską, verčia tradinti.'),
+  ('laggywizard','LaggyWizard','🧙',(select id from public.ranked_seasons where is_active limit 1),88,'mistikos-melodija','Mistikos melodija','control','high','medium','medium','medium','normal','Magas su sprogstamais ėjimais.'),
+  ('pactenjoyer','PactEnjoyer','😈',(select id from public.ranked_seasons where is_active limit 1),99,'demonu-orda','Demonų orda','curse','medium','high','medium','medium','hard','Mėgsta dark pact / curse, sunku žaisti prieš.'),
+  ('faceisplace','FaceIsPlace','💥',(select id from public.ranked_seasons where is_active limit 1),52,'vryhioko-gauja','Goblinų Gauja','aggro','very_high','very_low','very_low','very_high','normal','Klasikinis aggro, ignoruoja lentą.'),
+  ('critkestas','CritKestas','🎯',(select id from public.ranked_seasons where is_active limit 1),110,'rytu-vejas','Rytų vėjas','stealth','medium','medium','low','low','hard','Burst žaidėjas, vienas švarus kill.'),
+  ('buffdaddylt','BuffDaddyLT','💪',(select id from public.ranked_seasons where is_active limit 1),83,'inkvizicijos-legionas','Inkvizicijos legionas','defensive','low','high','high','low','normal','Mėgsta buff stacking ir apsaugotus padarus.'),
+  ('deckgoblin','DeckGoblin','🎒',(select id from public.ranked_seasons where is_active limit 1),70,'plesiku-naktis','Plėšikų naktis','midrange','medium','medium','medium','medium','normal','Praktiškas laiptų žaidėjas, prisitaiko.'),
+  ('whispermain','WhisperMain','🌑',(select id from public.ranked_seasons where is_active limit 1),103,'demonu-orda','Demonų orda','curse','medium','high','medium','medium','hard','Debuff/control main.'),
+  ('afk-baron','AFK_Baron','🪑',(select id from public.ranked_seasons where is_active limit 1),30,null,'Universalus','midrange','medium','low','medium','low','easy','Casual žaidėjas, paprastas bet ne beviltiškas.'),
+  ('rankgremlin','RankGremlin','👹',(select id from public.ranked_seasons where is_active limit 1),137,null,'Mišri kaladė','control','high','high','high','low','hard','Sweaty ranked grinder — stipriausias botas laiptuose.')
+on conflict (slug) do update set
+  name=excluded.name, avatar=excluded.avatar, rank_step=excluded.rank_step,
+  faction_slug=excluded.faction_slug, faction=excluded.faction, strategy_type=excluded.strategy_type,
+  aggression=excluded.aggression, control_preference=excluded.control_preference,
+  trade_preference=excluded.trade_preference, risk_tolerance=excluded.risk_tolerance,
+  difficulty=excluded.difficulty, personality=excluded.personality;
+
+-- Po vieną kaladę kiekvienam botui (archetipas; lengvai keičiama iš admin)
+insert into public.ranked_bot_decks (bot_owner_id, deck_name, faction_slug, strategy_type, preferred_play_pattern, difficulty_modifier, cards)
+select b.id,
+  case b.slug
+    when 'shadowrook' then 'Lėtas kapinynas' when 'lootgoblin69' then 'Goblinų antplūdis'
+    when 'silvertilt' then 'Disciplinuotas midrange' when 'nomananocry' then 'Šalčio kontrolė'
+    when 'cursedealer' then 'Prakeiksmų sandoris' when 'piratewifi' then 'Plėšikų tempas'
+    when 'sneak-exe' then 'Tylus durklas' when 'healmepls' then 'Atkaklus gynėjas'
+    when 'topdecktomas' then 'Godus tempas' when 'graveyardenjoyer' then 'Negyvėlių roj'
+    when 'tauntpolice' then 'Taunt siena' when 'laggywizard' then 'Sprogstanti magija'
+    when 'pactenjoyer' then 'Prakeiksmų krūva' when 'faceisplace' then 'Tik į veidą'
+    when 'critkestas' then 'Apskaičiuotas smūgis' when 'buffdaddylt' then 'Metodiškas sustain'
+    when 'deckgoblin' then 'Adaptyvus midrange' when 'whispermain' then 'Šnabždesių kontrolė'
+    when 'afk-baron' then 'Paprasta kreivė' else 'Aukšto rango bosas' end,
+  b.faction_slug, b.strategy_type, b.strategy_type, b.difficulty, '[]'::jsonb
+from public.ranked_bots b
+where not exists (select 1 from public.ranked_bot_decks d where d.bot_owner_id = b.id);
+
+-- Milestone atlygiai
+insert into public.ranked_rewards (reward_key, required_rank_step, title, description, reward_payload, sort_order) values
+  ('reach_45_bronze', 15,  'Pasiektas 45 rangas', 'Pasiek 45 Bronza', '{"exp":250,"gold":100}', 1),
+  ('reach_40_bronze', 30,  'Pasiektas 40 rangas', 'Pasiek 40 Bronza', '{"exp":400,"gold":200,"boosters":1}', 2),
+  ('reach_35_bronze', 45,  'Pasiektas 35 rangas', 'Pasiek 35 Bronza', '{"exp":500,"gold":250}', 3),
+  ('reach_30_bronze', 60,  'Pasiektas 30 rangas', 'Pasiek 30 Bronza', '{"exp":700,"gold":300,"boosters":1}', 4),
+  ('reach_25_bronze', 75,  'Pasiektas 25 rangas', 'Pasiek 25 Bronza', '{"exp":800,"gold":400}', 5),
+  ('reach_20_bronze', 90,  'Pasiektas 20 rangas', 'Pasiek 20 Bronza', '{"exp":1000,"gold":500,"boosters":1,"cardMin":"magic"}', 6),
+  ('reach_15_bronze', 105, 'Pasiektas 15 rangas', 'Pasiek 15 Bronza', '{"exp":1200,"gold":600}', 7),
+  ('reach_10_bronze', 120, 'Pasiektas 10 rangas', 'Pasiek 10 Bronza', '{"exp":1500,"gold":800,"boosters":2,"cardMin":"unique"}', 8),
+  ('reach_5_bronze',  135, 'Pasiektas 5 rangas',  'Pasiek 5 Bronza',  '{"exp":2000,"gold":1000,"boosters":2}', 9),
+  ('reach_1_bronze',  147, 'Pasiektas 1 rangas',  'Pasiek 1 Bronza',  '{"exp":2500,"gold":1500,"boosters":3,"cardMin":"epic"}', 10),
+  ('reach_1_gold',    149, 'Aukso viršūnė',       'Pasiek 1 Auksas — aukščiausią rangą', '{"exp":5000,"gold":3000,"boosters":5,"cardMin":"legendary","badge":true}', 11)
+on conflict (reward_key) do update set required_rank_step=excluded.required_rank_step,
+  title=excluded.title, description=excluded.description, reward_payload=excluded.reward_payload, sort_order=excluded.sort_order;
+
+-- Pasiekimai
+insert into public.ranked_achievements (achievement_key, name, description, requirement_type, requirement_value, reward_payload, sort_order) values
+  ('first_win','Pirma reitingo pergalė','Laimėk 1 reitingo kovą','wins',1,'{"exp":100,"gold":100}',1),
+  ('wins_5','Penkios pergalės','Laimėk 5 reitingo kovas','wins',5,'{"exp":250,"gold":150}',2),
+  ('wins_10','Dešimt pergalių','Laimėk 10 reitingo kovų','wins',10,'{"exp":500,"gold":250}',3),
+  ('wins_25','Dvidešimt penkios pergalės','Laimėk 25 reitingo kovas','wins',25,'{"exp":1000,"gold":500}',4),
+  ('wins_50','Penkiasdešimt pergalių','Laimėk 50 reitingo kovų','wins',50,'{"exp":1500,"boosters":1}',5),
+  ('wins_100','Šimtas pergalių','Laimėk 100 reitingo kovų','wins',100,'{"exp":2500,"boosters":2}',6),
+  ('reach_40','Pasiektas 40 rangas','Pasiek 40 Bronza ar aukščiau','reach_rank',40,'{"exp":500,"gold":300}',7),
+  ('reach_30','Pasiektas 30 rangas','Pasiek 30 Bronza ar aukščiau','reach_rank',30,'{"exp":800,"boosters":1}',8),
+  ('reach_20','Pasiektas 20 rangas','Pasiek 20 Bronza ar aukščiau','reach_rank',20,'{"exp":1200,"boosters":1}',9),
+  ('reach_10','Pasiektas 10 rangas','Pasiek 10 Bronza ar aukščiau','reach_rank',10,'{"exp":2000,"boosters":2}',10),
+  ('reach_1_gold','Aukso viršūnė','Pasiek 1 Auksas','reach_rank',1,'{"exp":5000,"boosters":3,"badge":true}',11),
+  ('streak_3','Pergalių serija I','Laimėk 3 reitingo kovas iš eilės','win_streak',3,'{"exp":500}',12),
+  ('streak_5','Pergalių serija II','Laimėk 5 reitingo kovas iš eilės','win_streak',5,'{"exp":1000,"gold":500}',13),
+  ('beat_higher','Stipresnio nugalėtojas','Nugalėk aukštesnio rango priešininką','beat_higher',1,'{"exp":500}',14),
+  ('comeback','Sugrįžimas iš bedugnės','Laimėk nukritus žemiau 10 HP','comeback',1,'{"exp":750}',15),
+  ('flawless','Tobula kontrolė','Laimėk turėdamas 20+ HP','flawless',1,'{"exp":750}',16),
+  ('bot_hunter','Botų medžiotojas','Nugalėk 10 botų priešininkų','beat_bots',10,'{"exp":500,"gold":300}',17),
+  ('real_fighter','Tikrų dvikovų kovotojas','Nugalėk 10 tikrų žaidėjų','beat_real',10,'{"exp":1000,"gold":500}',18),
+  ('season_veteran','Sezono veteranas','Sužaisk 50 reitingo kovų per sezoną','season_games',50,'{"exp":1500,"boosters":1}',19),
+  ('blood_statistician','Kraujo statistikas','Pasiek K/D 2.0+ po bent 20 kovų','kd_ratio',2,'{"exp":1000}',20)
+on conflict (achievement_key) do update set name=excluded.name, description=excluded.description,
+  requirement_type=excluded.requirement_type, requirement_value=excluded.requirement_value,
+  reward_payload=excluded.reward_payload, sort_order=excluded.sort_order;
+
+alter publication supabase_realtime add table public.ranked_queue;

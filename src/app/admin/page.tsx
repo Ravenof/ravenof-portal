@@ -246,6 +246,7 @@ export default async function AdminDashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {[
               { href: '/admin/cards/new',                label: '+ Nauja korta',    color: 'var(--gold)'           },
+              { href: '/admin/ranked',                 label: '🏆 Reitingo kova', color: '#fca5a5'               },
               { href: '/admin/cards/import',             label: '↑ Importuoti', color: 'var(--text-secondary)' },
               { href: '/admin/events/new',               label: '+ Renginys',        color: '#34d399'               },
               { href: '/admin/announcements?action=new', label: '+ Skelbimas',       color: '#38bdf8'               },

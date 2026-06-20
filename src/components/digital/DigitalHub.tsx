@@ -73,7 +73,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     { key: 'tutorial', icon: '🎓', title: 'MOKYMASIS', subtitle: 'Išmok pagrindus žingsnis po žingsnio', accent: '139,92,246', onClick: () => { playUiClick(); setTutorialOpen(true) } },
     { key: 'ai', icon: '🎯', title: 'KOVA PRIEŠ AI', subtitle: 'Treniruokis prieš botą (lengvas / vidutinis / sunkus)', accent: '34,197,94', href: '/digital/pve' },
     { key: 'campaign', icon: '🗺️', title: 'KAMPANIJA', subtitle: 'Siužetinė vienžaidėjo kampanija', accent: '240,180,41', comingSoon: true },
-    { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', comingSoon: true },
+    { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', href: '/digital/ranked' },
     { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', href: '/digital/pvp' },
     { key: 'mycards', icon: '🃏', title: 'KORTŲ ALBUMAS', subtitle: 'Tavo kolekcija + pakuočių atplėšimas', accent: '96,165,250', href: '/digital/album' },
     { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk pakuotes už auksą', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
