@@ -5,6 +5,8 @@
 // Rezultatas serializuojamas į hidden input name="gameplay" (saveCard parsina).
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { SummonBurst } from '@/components/tutorial/SummonBurst'
 import { createClient } from '@/lib/supabase/client'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
 import {
@@ -42,6 +44,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
   }, [initial])
 
   const [cfg, setCfg] = useState<GameplayConfig>(initialCfg)
+  const [fxPreview, setFxPreview] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   const [rawMode, setRawMode] = useState(false)
   const [rawText, setRawText] = useState('')
   const [rawError, setRawError] = useState<string | null>(null)
@@ -121,15 +124,37 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
       {/* Pilno lauko summon efektas */}
       <div>
         <label style={labelStyle}>Iškvietimo efektas (pilnas laukas, iki 5 s)</label>
-        <select
-          value={cfg.summonEffect ?? ''}
-          onChange={(e) => update({ ...cfg, summonEffect: (e.target.value || undefined) as SummonEffectType | undefined })}
-          style={inputStyle}
-        >
-          <option value="">(nėra)</option>
-          {SUMMON_EFFECTS.map((fx) => <option key={fx.value} value={fx.value}>{fx.icon} {fx.label}</option>)}
-        </select>
+        <div className="flex gap-2">
+          <select
+            value={cfg.summonEffect ?? ''}
+            onChange={(e) => update({ ...cfg, summonEffect: (e.target.value || undefined) as SummonEffectType | undefined })}
+            style={{ ...inputStyle, flex: 1 }}
+          >
+            <option value="">(nėra)</option>
+            {SUMMON_EFFECTS.map((fx) => <option key={fx.value} value={fx.value}>{fx.icon} {fx.label}</option>)}
+          </select>
+          <button
+            type="button"
+            disabled={!cfg.summonEffect}
+            onClick={() => { if (cfg.summonEffect) setFxPreview({ type: cfg.summonEffect, x: window.innerWidth / 2, y: window.innerHeight / 2, key: Date.now() }) }}
+            className="px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--gold)', color: '#0a0a0f', cursor: cfg.summonEffect ? 'pointer' : 'not-allowed' }}
+          >▶ Peržiūra</button>
+        </div>
       </div>
+
+      {fxPreview && typeof document !== 'undefined' && createPortal(
+        <>
+          <div onClick={() => setFxPreview(null)} style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(2,1,6,0.92)', cursor: 'pointer' }} />
+          <div style={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 122, width: 92, height: 128, borderRadius: 10, border: '1.5px solid rgba(240,180,41,0.7)', background: 'rgba(240,180,41,0.08)', boxShadow: '0 0 24px rgba(240,180,41,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, opacity: 0.9, pointerEvents: 'none' }}>🜏</div>
+          <SummonBurst type={fxPreview.type} x={fxPreview.x} y={fxPreview.y} effectKey={fxPreview.key} onDone={() => { /* lieka kol uždaroma */ }} />
+          <div style={{ position: 'fixed', bottom: 28, left: 0, right: 0, zIndex: 130, display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button type="button" onClick={() => setFxPreview((p) => p ? { ...p, key: Date.now() } : p)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>↻ Dar kartą</button>
+            <button type="button" onClick={() => setFxPreview(null)} className="px-4 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>✕ Uždaryti</button>
+          </div>
+        </>,
+        document.body,
+      )}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p style={{ ...labelStyle, marginBottom: 0, fontSize: '0.7rem' }}>🎮 Virtualaus žaidimo efektai</p>
         <div className="flex items-center gap-2">
