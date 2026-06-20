@@ -1066,9 +1066,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [showLog, game?.log.length])
 
   // ── AI ėjimo ciklas ──
+  // Ranked: prieš PIRMĄ ėjimo veiksmą botas „pagalvoja" 5–20 s (atsitiktinai),
+  // tarp tolesnių to paties ėjimo veiksmų – trumpas žmogiškas delsimas.
+  const aiThoughtTurnRef = useRef<number>(-1)
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
     if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks) return
+    let delay = 1000
+    if (ranked) {
+      if (aiThoughtTurnRef.current !== game.globalTurn) {
+        aiThoughtTurnRef.current = game.globalTurn
+        delay = 5000 + Math.floor(Math.random() * 15000) // 5–20 s prieš ėjimą
+      } else {
+        delay = 700 + Math.floor(Math.random() * 800)    // 0.7–1.5 s tarp veiksmų
+      }
+    }
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -1088,9 +1100,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           return g2
         }
       })
-    }, 1000)
+    }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty, ranked])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -1920,7 +1932,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             <>
               <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--gold)' }} />
               <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
-                Mokomoji kova · {deckName}
+                {ranked ? `Reitingo kova · prieš ${opponentName ?? 'Priešininką'}` : practice ? `Kova · prieš ${opponentName ?? 'Priešininką'}` : `Mokomoji kova · ${deckName}`}
               </span>
             </>
           )}

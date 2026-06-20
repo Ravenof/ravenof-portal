@@ -117,6 +117,7 @@ export function RankedClient() {
         deckId={selDeck}
         deckName={selDeckObj.name}
         ranked
+        practice
         opponentFaction={opponentFactionId(opp)}
         opponentName={opp.name}
         difficulty={opp.difficulty}
