@@ -4,8 +4,8 @@
 // efektyviai sudaro veiksmų seką (lethal → board control → value → veidas).
 
 import { GameState, P, other, playCard, attack, discardForGold, useChampionAbility } from '../engine'
-import type { AiAction, AiDifficulty } from './aiTypes'
-import { DIFFICULTY_WEIGHTS, aiLog } from './aiTypes'
+import type { AiAction, AiDifficulty, AiWeightDelta } from './aiTypes'
+import { DIFFICULTY_WEIGHTS, mergeWeights, aiLog } from './aiTypes'
 import { generateLegalActions, type ScoredAction } from './aiActions'
 import { planFocusFire } from './aiFocusFire'
 import { hasLethalThisTurn, evaluateSurvivalRisk, evaluateBoardThreat } from './aiThreatEvaluation'
@@ -22,8 +22,8 @@ function resolveDifficulty(opts?: { difficulty?: AiDifficulty }): AiDifficulty {
 }
 
 /** Įvertina visus veiksmus ir grąžina rūšiuotą sąrašą (su jitter). Testavimui/debug. */
-export function decideAiTurn(g: GameState, opts?: { difficulty?: AiDifficulty }): ScoredAction[] {
-  const w = DIFFICULTY_WEIGHTS[resolveDifficulty(opts)]
+export function decideAiTurn(g: GameState, opts?: { difficulty?: AiDifficulty; weights?: AiWeightDelta }): ScoredAction[] {
+  const w = mergeWeights(DIFFICULTY_WEIGHTS[resolveDifficulty(opts)], opts?.weights)
   const actions = generateLegalActions(g, w)
   // Focus-fire planavimas (cumulative damage) – nebent jau turim lethal į veidą.
   if (!hasLethalThisTurn(g)) actions.push(...planFocusFire(g, w))
@@ -38,12 +38,12 @@ export function findLethalSequence(g: GameState): boolean {
 }
 
 /** Atlieka VIENĄ geriausią AI veiksmą. null – nebėra naudingų veiksmų (baigti ėjimą). */
-export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty }): AiAction {
+export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty; weights?: AiWeightDelta }): AiAction {
   if (g.winner || g.active !== 'ai') return null
   const difficulty = resolveDifficulty(opts)
   let ranked: ScoredAction[]
   try {
-    ranked = decideAiTurn(g, { difficulty })
+    ranked = decideAiTurn(g, { difficulty, weights: opts?.weights })
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[AI] decideAiTurn klaida:', err)

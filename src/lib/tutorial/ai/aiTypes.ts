@@ -31,6 +31,22 @@ export const DIFFICULTY_WEIGHTS: Record<AiDifficulty, AiWeights> = {
   hard:   { faceBias: -2, jitter: 0.4, tradeThreshold: 0,   spellWasteGuard: 1.4, removalMinValue: 5,  lookahead: true  },
 }
 
+/** Strategijos modifikatorius (per-bot): ADITYVŪS svorių pokyčiai ant difficulty bazės. */
+export type AiWeightDelta = Partial<Omit<AiWeights, 'lookahead'>> & { lookahead?: boolean }
+
+/** Sulieja bazę su delta (skaitiniai laukai sumuojami, lookahead perrašomas). */
+export function mergeWeights(base: AiWeights, delta?: AiWeightDelta): AiWeights {
+  if (!delta) return base
+  return {
+    faceBias: base.faceBias + (delta.faceBias ?? 0),
+    jitter: Math.max(0, base.jitter + (delta.jitter ?? 0)),
+    tradeThreshold: base.tradeThreshold + (delta.tradeThreshold ?? 0),
+    spellWasteGuard: Math.max(0.1, base.spellWasteGuard + (delta.spellWasteGuard ?? 0)),
+    removalMinValue: Math.max(0, base.removalMinValue + (delta.removalMinValue ?? 0)),
+    lookahead: delta.lookahead ?? base.lookahead,
+  }
+}
+
 /** Debug įjungiamas dev mode (NEXT_PUBLIC_AI_DEBUG=1 arba window.__AI_DEBUG__). */
 export const AI_DEBUG: boolean = (() => {
   try {

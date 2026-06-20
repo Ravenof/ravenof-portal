@@ -15,6 +15,8 @@ import {
   formatRank, nextStepView, rankView, formatKD,
 } from '@/lib/ranked/rank'
 import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
+import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
+import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
 import { OctPanel, SectionTitle, RButton, oct } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
@@ -121,6 +123,7 @@ export function RankedClient() {
         opponentFaction={opponentFactionId(opp)}
         opponentName={opp.name}
         difficulty={opp.difficulty}
+        aiStrategy={opp.kind === 'bot' && opp.id ? (() => { const b = RANKED_BOT_BY_SLUG.get(opp.id!); return b ? strategyWeights(b) : undefined })() : undefined}
         onRankedResult={handleResult}
         onClose={() => { if (flow === 'playing') { setFlow('idle'); load() } }}
       />

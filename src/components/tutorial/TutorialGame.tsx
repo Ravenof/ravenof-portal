@@ -26,7 +26,7 @@ import {
   STATUS_META, TutStatus, boardCreatureCap,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
-import type { AiDifficulty } from '@/lib/tutorial/ai'
+import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason } from '@/lib/economy'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
@@ -44,7 +44,7 @@ export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentI
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
 const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
 type RankedResultPayload = { result: 'win' | 'loss'; turns: number; stats: import('@/lib/ranked/types').PlayerMatchStats }
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -363,7 +363,7 @@ function cardNeedsTarget(game: GameState, c: TutCard): boolean {
   return (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
 
@@ -1086,7 +1086,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (!prev || prev.winner || prev.active !== 'ai') return prev
         try {
           const g = cloneState(prev)
-          const act = aiNextAction(g, { difficulty })
+          const act = aiNextAction(g, { difficulty, weights: aiStrategy })
           if (!act) {
             endTurn(g)
             if (!g.winner) beginTurn(g)
@@ -1102,7 +1102,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty, ranked])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty, ranked, aiStrategy])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner

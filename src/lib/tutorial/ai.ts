@@ -3,4 +3,4 @@
 // stabilų importo kelią ('@/lib/tutorial/ai') ir re-eksportuoja viešąjį API.
 
 export { aiNextAction, decideAiTurn, findLethalSequence, other } from './ai/aiEngine'
-export type { AiAction, AiDifficulty } from './ai/aiTypes'
+export type { AiAction, AiDifficulty, AiWeightDelta } from './ai/aiTypes'
