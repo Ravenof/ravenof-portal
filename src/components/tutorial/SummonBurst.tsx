@@ -58,6 +58,8 @@ const HALF = Math.PI / 2
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const eo = (t: number) => 1 - Math.pow(1 - t, 3)
 const cl = (t: number) => Math.max(0, Math.min(1, t))
+let LOW = false                                   // mobilus / silpnas įrenginys → mažiau particle, be shadowBlur
+const blur = (v: number) => (LOW ? 0 : v)         // shadowBlur off mobiliame (didžiausias perf laimėjimas)
 
 type Part = { x: number; y: number; px: number; py: number; vx: number; vy: number; size: number; rot: number; vr: number; max: number; seed: number; z: number; kind: Pkind }
 type Bolt = { x: number; y: number }[]
@@ -72,7 +74,8 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
     const cfg = C[type]; const c = cvs.current; const ctx = c?.getContext('2d')
     const tEnd = window.setTimeout(() => doneRef.current(), cfg.dur)
     if (!c || !ctx) return () => window.clearTimeout(tEnd)
-    const D = Math.min(window.devicePixelRatio || 1, 2)
+    LOW = window.innerWidth < 820 || (typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 8) <= 4) || (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
+    const D = Math.min(window.devicePixelRatio || 1, LOW ? 1 : 2)
     c.width = Math.floor(window.innerWidth * D); c.height = Math.floor(window.innerHeight * D)
     const ox = x * D, oy = y * D
     const maxR = 520 * D
@@ -82,10 +85,11 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
     let released = false
     const seedBurst = () => {
       released = true
-      for (let i = 0; i < cfg.count; i++) { const a = rnd(0, TAU); const sp = rnd(cfg.s0, cfg.s1) * D; parts.push({ x: ox, y: oy, px: ox, py: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (cfg.rise ? rnd(0.5, 2) * D : 0), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: rnd(-0.18, 0.18), max: cfg.dur * rnd(0.5, 0.92), seed: rnd(0, 9), z: rnd(-1, 1), kind: cfg.particle }) }
+      const pN = Math.round(cfg.count * (LOW ? 0.5 : 1))
+      for (let i = 0; i < pN; i++) { const a = rnd(0, TAU); const sp = rnd(cfg.s0, cfg.s1) * D; parts.push({ x: ox, y: oy, px: ox, py: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (cfg.rise ? rnd(0.5, 2) * D : 0), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: rnd(-0.18, 0.18), max: cfg.dur * rnd(0.5, 0.92), seed: rnd(0, 9), z: rnd(-1, 1), kind: cfg.particle }) }
       // tūrio „body" sluoksnis – tankūs minkšti puff'ai gyliui
       const mass = cfg.motif === 'cloud' || cfg.motif === 'souls' || cfg.motif === 'tendrils' || cfg.motif === 'darkness' || cfg.motif === 'ritual' || cfg.rise
-      const bodyN = mass ? 18 : 7
+      const bodyN = mass ? (LOW ? 9 : 18) : (LOW ? 4 : 7)
       for (let i = 0; i < bodyN; i++) { const a = rnd(0, TAU); const sp = rnd(0.3, 1.5) * D; parts.push({ x: ox, y: oy, px: ox, py: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (cfg.rise ? rnd(0.6, 1.8) * D : 0), size: rnd(44, 96) * D, rot: 0, vr: 0, max: cfg.dur * rnd(0.6, 0.95), seed: rnd(0, 9), z: rnd(-1, 1), kind: 'body' }) }
       if (cfg.motif === 'bolts') bolts = genNet(ox, oy, maxR, D)
     }
@@ -173,7 +177,7 @@ function orb(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col
   for (let i = 4; i >= 0; i--) { const rr = r * (0.5 + i * 0.17); glow(ctx, x, y - i * 2 * D, rr, i < 2 ? core : color, a * (0.28 + (4 - i) * 0.12)) }
 }
 function ringB(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number, lw: number, D: number) {
-  if (r < 1 || a <= 0) return; ctx.shadowColor = color; ctx.shadowBlur = 10 * D
+  if (r < 1 || a <= 0) return; ctx.shadowColor = color; ctx.shadowBlur = blur(10 * D)
   ctx.strokeStyle = color; ctx.globalAlpha = a; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke()
   ctx.shadowBlur = 0; ctx.globalAlpha = 1
 }
@@ -219,9 +223,9 @@ function genBolt(x1: number, y1: number, x2: number, y2: number, disp: number): 
 }
 function drawBolts(ctx: CanvasRenderingContext2D, bolts: Bolt[], rt: number, cfg: Cfg, now: number, D: number) {
   const fl = rt < 0.5 ? 1 : (Math.sin(now / 40) > 0 ? 0.8 : 0.3); const a = (1 - rt) * fl
-  ctx.lineCap = 'round'; ctx.shadowColor = cfg.ring; ctx.shadowBlur = 14 * D
+  ctx.lineCap = 'round'; ctx.shadowColor = cfg.ring; ctx.shadowBlur = blur(14 * D)
   ctx.strokeStyle = cfg.ring; ctx.globalAlpha = a * 0.5; ctx.lineWidth = 5 * D; for (const b of bolts) trace(ctx, b)
-  ctx.shadowBlur = 7 * D; ctx.strokeStyle = cfg.core; ctx.globalAlpha = a; ctx.lineWidth = 1.6 * D; for (const b of bolts) trace(ctx, b)
+  ctx.shadowBlur = blur(7 * D); ctx.strokeStyle = cfg.core; ctx.globalAlpha = a; ctx.lineWidth = 1.6 * D; for (const b of bolts) trace(ctx, b)
   ctx.shadowBlur = 0; ctx.globalAlpha = 1
 }
 function trace(ctx: CanvasRenderingContext2D, b: Bolt) { ctx.beginPath(); ctx.moveTo(b[0].x, b[0].y); for (let i = 1; i < b.length; i++) ctx.lineTo(b[i].x, b[i].y); ctx.stroke() }
@@ -237,7 +241,7 @@ function cracks(ctx: CanvasRenderingContext2D, x: number, y: number, rt: number,
     const a = i / 14 * TAU + 0.25; const r = eo(rt) * maxR * (0.6 + (i % 3) * 0.14)
     const pts: [number, number][] = [[x, y]]; for (let k = 1; k <= 5; k++) { const rr = r * k / 5; const ja = a + Math.sin(k * 1.7 + i) * 0.2; pts.push([x + Math.cos(ja) * rr, y + Math.sin(ja) * rr]) }
     ctx.strokeStyle = color; ctx.globalAlpha = (1 - rt) * 0.85; ctx.lineWidth = 5 * D; ctx.beginPath(); pts.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke()
-    ctx.strokeStyle = core; ctx.shadowColor = core; ctx.shadowBlur = 8 * D; ctx.globalAlpha = (1 - rt) * 0.95; ctx.lineWidth = 1.4 * D; ctx.beginPath(); pts.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.shadowBlur = 0
+    ctx.strokeStyle = core; ctx.shadowColor = core; ctx.shadowBlur = blur(8 * D); ctx.globalAlpha = (1 - rt) * 0.95; ctx.lineWidth = 1.4 * D; ctx.beginPath(); pts.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.shadowBlur = 0
   }
   ctx.globalAlpha = 1
 }
@@ -246,7 +250,7 @@ function rift(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, 
   const fade = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15)
   const h = (40 + eo(cl(p * 1.4)) * 150) * D * fade; const w = (9 + Math.sin(now / 200) * 3) * D * (1 - rt * 0.4)
   ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#05010a'; ctx.globalAlpha = cl(p * 3) * fade; ctx.beginPath(); ctx.ellipse(ox, oy, w, h, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
-  ctx.strokeStyle = cfg.ring; ctx.shadowColor = cfg.ring2 ?? cfg.core; ctx.shadowBlur = 18 * D; ctx.globalAlpha = fade * 0.95; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.ellipse(ox, oy, w, h, 0, 0, TAU); ctx.stroke()
+  ctx.strokeStyle = cfg.ring; ctx.shadowColor = cfg.ring2 ?? cfg.core; ctx.shadowBlur = blur(18 * D); ctx.globalAlpha = fade * 0.95; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.ellipse(ox, oy, w, h, 0, 0, TAU); ctx.stroke()
   // vidinis sūkurys
   ctx.globalAlpha = fade * 0.6; ctx.lineWidth = 1.6 * D
   for (let i = 0; i < 4; i++) { const ph = now / 500 + i * 1.6; ctx.beginPath(); ctx.ellipse(ox, oy, w * (0.3 + i * 0.2), h * (0.3 + i * 0.2), 0, ph, ph + 2.4); ctx.stroke() }
@@ -255,7 +259,7 @@ function rift(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, 
 }
 // TENDRILS – šešėlių tentakliai
 function tendrils(ctx: CanvasRenderingContext2D, x: number, y: number, rt: number, maxR: number, color: string, D: number, now: number) {
-  const n = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 9 * D
+  const n = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(9 * D)
   for (let i = 0; i < n; i++) {
     const a = i / n * TAU + now / 2200; const r = eo(rt) * maxR
     const pts: [number, number][] = [[x, y]]
@@ -275,20 +279,20 @@ function souls(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number
 function darkness(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, rt: number, cfg: Cfg, D: number) {
   const fade = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15); const dr = (22 + eo(cl(p / 0.4)) * 72) * D
   ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#04020a'; ctx.globalAlpha = cl(p * 2) * fade; ctx.beginPath(); ctx.arc(ox, oy, dr, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
-  ctx.strokeStyle = cfg.core; ctx.shadowColor = cfg.ring; ctx.shadowBlur = 18 * D; ctx.globalAlpha = fade * 0.9; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.arc(ox, oy, dr + 4 * D, 0, TAU); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1
+  ctx.strokeStyle = cfg.core; ctx.shadowColor = cfg.ring; ctx.shadowBlur = blur(18 * D); ctx.globalAlpha = fade * 0.9; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.arc(ox, oy, dr + 4 * D, 0, TAU); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1
   ringB(ctx, ox, oy, eo(rt) * 300 * D, cfg.ring, (1 - rt) * 0.45, 3 * D, D)
 }
 // ERUPTION – kaulų spygliai
 function eruption(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, D: number) {
   const g = eo(cl(rt * 1.4)); ctx.save(); ctx.translate(ox, oy)
-  for (let i = 0; i < 16; i++) { const a = i / 16 * TAU + (i % 2) * 0.22; const dist = (28 + (i % 4) * 24) * D * g; const len = (42 + (i % 5) * 18) * D * g; const wd = (6 + (i % 3) * 2) * D; const bx = Math.cos(a) * dist, by = Math.sin(a) * dist * 0.55; ctx.fillStyle = cfg.ring; ctx.shadowColor = cfg.core; ctx.shadowBlur = 6 * D; ctx.globalAlpha = (1 - rt) * 0.92; ctx.beginPath(); ctx.moveTo(bx - wd, by); ctx.lineTo(bx, by - len); ctx.lineTo(bx + wd, by); ctx.closePath(); ctx.fill() }
+  for (let i = 0; i < 16; i++) { const a = i / 16 * TAU + (i % 2) * 0.22; const dist = (28 + (i % 4) * 24) * D * g; const len = (42 + (i % 5) * 18) * D * g; const wd = (6 + (i % 3) * 2) * D; const bx = Math.cos(a) * dist, by = Math.sin(a) * dist * 0.55; ctx.fillStyle = cfg.ring; ctx.shadowColor = cfg.core; ctx.shadowBlur = blur(6 * D); ctx.globalAlpha = (1 - rt) * 0.92; ctx.beginPath(); ctx.moveTo(bx - wd, by); ctx.lineTo(bx, by - len); ctx.lineTo(bx + wd, by); ctx.closePath(); ctx.fill() }
   ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
 }
 // RITUAL – magijos ratas (tik ritualiniams)
 function ritual(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, rt: number, cfg: Cfg, now: number, D: number) {
   const R = 118 * D; const prog = cl(p / 0.24); const fade = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15)
   if (fade <= 0) { ringB(ctx, ox, oy, eo(rt) * 320 * D, cfg.ring, (1 - rt) * 0.5, 3 * D, D); return }
-  ctx.save(); ctx.translate(ox, oy); ctx.scale(1, 0.42); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade; ctx.shadowColor = cfg.ring; ctx.shadowBlur = 12 * D
+  ctx.save(); ctx.translate(ox, oy); ctx.scale(1, 0.42); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade; ctx.shadowColor = cfg.ring; ctx.shadowBlur = blur(12 * D)
   const end = -HALF + prog * TAU; ctx.strokeStyle = cfg.ring; ctx.lineWidth = 2 * D; arc(ctx, R, end); arc(ctx, R * 0.97, end); ctx.lineWidth = 3.4 * D; arc(ctx, R * 0.8, end); ctx.lineWidth = 1.4 * D; arc(ctx, R * 0.3, end)
   ctx.save(); ctx.rotate(now / 3400); for (let i = 0; i < 48; i++) { if (i / 48 > prog) break; const a = i / 48 * TAU; ctx.lineWidth = (i % 12 === 0 ? 3 : 1) * D; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R, Math.sin(a) * R); ctx.lineTo(Math.cos(a) * R * (i % 12 === 0 ? 0.86 : 0.92), Math.sin(a) * R * (i % 12 === 0 ? 0.86 : 0.92)); ctx.stroke() } ctx.restore()
   const runeN = cfg.runeN ?? 24; ctx.save(); ctx.rotate(-now / 2700); ctx.strokeStyle = cfg.core; ctx.lineWidth = 1.5 * D; for (let i = 0; i < runeN; i++) { if (i / runeN > prog) break; const a = i / runeN * TAU; ctx.save(); ctx.rotate(a); ctx.translate(R * 0.88, 0); ctx.rotate(HALF); runeMark(ctx, (i * 3) % 4, 5 * D); ctx.restore() } ctx.restore()
@@ -307,9 +311,9 @@ function drawP(ctx: CanvasRenderingContext2D, q: Part, a: number, color: string,
   a *= 0.5 + (q.z + 1) / 2 * 0.5                    // priekis ryškesnis
   if (q.kind === 'body') { ctx.globalCompositeOperation = 'source-over'; const g = ctx.createRadialGradient(x, y, 0, x, y, s); g.addColorStop(0, color); g.addColorStop(0.45, dark); g.addColorStop(1, 'transparent'); ctx.globalAlpha = a * 0.3; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
   if (q.kind === 'ember' || q.kind === 'wisp' || q.kind === 'spore') { const fl = 0.75 + 0.25 * Math.sin(now * 0.02 + q.seed * 7); const g = ctx.createRadialGradient(x, y, 0, x, y, s * 2.8); g.addColorStop(0, color); g.addColorStop(1, 'transparent'); ctx.globalAlpha = a * 0.9 * fl; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s * 2.8, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; return }
-  if (q.kind === 'spark') { ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 6 * D; ctx.globalAlpha = a; ctx.lineWidth = s * 0.8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(q.px, q.py); ctx.lineTo(x, y); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1; return }
+  if (q.kind === 'spark') { ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(6 * D); ctx.globalAlpha = a; ctx.lineWidth = s * 0.8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(q.px, q.py); ctx.lineTo(x, y); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1; return }
   if (q.kind === 'ash' || q.kind === 'drop') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = color; ctx.globalAlpha = a; ctx.beginPath(); if (q.kind === 'drop') ctx.ellipse(x, y, s * 0.7, s * 1.4, Math.atan2(q.vy, q.vx) + HALF, 0, TAU); else ctx.arc(x, y, s, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
-  if (q.kind === 'shard') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 6 * D; ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(0, -s * 2.2); ctx.lineTo(s, s); ctx.lineTo(-s, s); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
+  if (q.kind === 'shard') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(6 * D); ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(0, -s * 2.2); ctx.lineTo(s, s); ctx.lineTo(-s, s); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
   if (q.kind === 'bone') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = color; ctx.globalAlpha = a; ctx.beginPath(); ctx.roundRect(-s * 0.4, -s * 1.6, s * 0.8, s * 3.2, s * 0.4); ctx.fill(); ctx.beginPath(); ctx.arc(0, -s * 1.6, s * 0.6, 0, TAU); ctx.arc(0, s * 1.6, s * 0.6, 0, TAU); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
-  if (q.kind === 'rune') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 5 * D; ctx.globalAlpha = a; ctx.lineWidth = s * 0.5; ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(0, s); ctx.moveTo(0, -s * 0.4); ctx.lineTo(s * 0.7, -s * 0.9); ctx.stroke(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
+  if (q.kind === 'rune') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(5 * D); ctx.globalAlpha = a; ctx.lineWidth = s * 0.5; ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(0, s); ctx.moveTo(0, -s * 0.4); ctx.lineTo(s * 0.7, -s * 0.9); ctx.stroke(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
 }
