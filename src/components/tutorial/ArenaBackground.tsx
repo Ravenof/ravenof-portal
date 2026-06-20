@@ -11,7 +11,24 @@ import { useState } from 'react'
 
 export type ArenaKey = 'crypt' | 'arcane' | 'cathedral' | 'citadel' | 'inferno' | 'scrapyard' | 'harbor' | 'dojo'
 export const ARENA_KEYS: ArenaKey[] = ['crypt', 'arcane', 'cathedral', 'citadel', 'inferno', 'scrapyard', 'harbor', 'dojo']
-export function randomArena(): ArenaKey { return ARENA_KEYS[Math.floor(Math.random() * ARENA_KEYS.length)] }
+// Auto-detektas: kurios arenos turi tikrą paveikslėlį (HEAD užklausa, pigu).
+const arenaHasArt: Partial<Record<ArenaKey, boolean>> = {}
+let arenaDetectStarted = false
+function detectArenaArt() {
+  if (arenaDetectStarted || typeof window === 'undefined') return
+  arenaDetectStarted = true
+  for (const k of ARENA_KEYS) {
+    fetch(`/arenas/${k}.jpg`, { method: 'HEAD' }).then((r) => { arenaHasArt[k] = r.ok }).catch(() => { arenaHasArt[k] = false })
+  }
+}
+if (typeof window !== 'undefined') detectArenaArt()
+
+/** Atsitiktinė arena – PIRMENYBĖ toms, kurios turi tikrą paveikslėlį (kad nerodytų procedūrinės). */
+export function randomArena(): ArenaKey {
+  const withArt = ARENA_KEYS.filter((k) => arenaHasArt[k])
+  const pool = withArt.length ? withArt : ARENA_KEYS
+  return pool[Math.floor(Math.random() * pool.length)]
+}
 
 type Theme = {
   name: string
