@@ -5,7 +5,7 @@
 // žetonai, ŽMK, pop-up scenarijus ir dark fantasy ambient muzika.
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Swords, Music, VolumeX } from 'lucide-react'
@@ -136,17 +136,34 @@ const STATUS_GLOW: Record<TutStatus, string> = {
 }
 
 function HpVial({ hp, maxHp }: { hp: number; maxHp: number }) {
+  const rid = useId().replace(/:/g, '')
   const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
   const hue = ratio * 120
-  const top = `hsl(${hue},86%,56%)`, bot = `hsl(${hue},86%,38%)`
+  const top = `hsl(${hue},88%,57%)`, bot = `hsl(${hue},88%,38%)`
   const crit = hp > 0 && hp <= 10
+  const bodyTop = 14, bodyBot = 46
+  const liqY = bodyBot - (bodyBot - bodyTop) * ratio
+  const bottle = 'M16 6 L16 14 C 9 16, 4 23, 5 33 C 6 43, 12 47, 20 47 C 28 47, 34 43, 35 33 C 36 23, 31 16, 24 14 L 24 6 Z'
   return (
-    <span style={{ position: 'relative', display: 'inline-block', width: 15, height: 23, borderRadius: '4px 4px 6px 6px', overflow: 'hidden', flex: '0 0 auto',
-      border: crit ? '1.5px solid rgba(239,68,68,0.7)' : '1.5px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.06)',
-      boxShadow: crit ? '0 0 9px rgba(239,68,68,0.85)' : 'inset 0 1px 3px rgba(0,0,0,0.55)',
-      animation: crit ? 'hpvCrit 0.85s ease-in-out infinite' : undefined }}>
-      <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `${ratio * 100}%`, background: `linear-gradient(180deg, ${top}, ${bot})`, boxShadow: `0 0 7px ${top}`, transition: 'height .45s cubic-bezier(.3,.8,.3,1), background .45s ease' }} />
-      <span style={{ position: 'absolute', top: 2, left: 2, width: 3, height: '55%', borderRadius: 3, background: 'linear-gradient(180deg, rgba(255,255,255,0.4), transparent)' }} />
+    <span style={{ position: 'relative', display: 'inline-block', width: 40, height: 56, flex: '0 0 auto' }}>
+      <svg width="40" height="48" viewBox="0 0 40 48" style={{ position: 'absolute', bottom: 0, left: 0, filter: crit ? 'drop-shadow(0 0 5px rgba(239,68,68,0.85))' : 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))' }}>
+        <defs><clipPath id={'hv' + rid}><path d={bottle} /></clipPath></defs>
+        <path d={bottle} fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
+        <g clipPath={`url(#hv${rid})`}>
+          <rect x="0" y={liqY} width="40" height={bodyBot - liqY + 2} fill={bot} />
+          <rect x="0" y={liqY} width="40" height="9" fill={top} opacity="0.9" />
+          <rect x="0" y={liqY} width="40" height="2.5" fill="#ffffff" opacity="0.35" />
+        </g>
+        <rect x="8.5" y="20" width="2.6" height="18" rx="1.3" fill="rgba(255,255,255,0.3)" />
+        <rect x="15" y="1.5" width="10" height="6" rx="1.6" fill="#8a5a30" stroke="#4a2f16" strokeWidth="0.7" />
+      </svg>
+      <span className={crit ? '' : ''} style={{ position: 'absolute', top: -3, left: '50%', transform: 'translateX(-50%)', width: 26, height: 24, animation: crit ? 'hpvCrit 0.8s ease-in-out infinite' : undefined }}>
+        <svg width="26" height="24" viewBox="0 0 24 22">
+          <defs><linearGradient id={'hh' + rid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff6b6b" /><stop offset="1" stopColor="#b91c1c" /></linearGradient></defs>
+          <path d="M12 21 C12 21 2 14.5 2 7.8 C2 4.6 4.4 2.4 7.2 2.4 C9.2 2.4 11 3.7 12 5.4 C13 3.7 14.8 2.4 16.8 2.4 C19.6 2.4 22 4.6 22 7.8 C22 14.5 12 21 12 21 Z" fill={`url(#hh${rid})`} stroke="#7f1d1d" strokeWidth="0.8" />
+        </svg>
+        <span style={{ position: 'absolute', inset: 0, top: -2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: hp >= 100 ? 9 : 11, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.9)', pointerEvents: 'none' }}>{Math.max(0, hp)}</span>
+      </span>
     </span>
   )
 }
@@ -1744,9 +1761,6 @@ doAction({ t: 'endTurn', actor: 'you' })
           cursor: targetable ? 'pointer' : 'default',
         }}>
         <HpVial hp={p.hp} maxHp={p.maxHp} />
-        <span className="text-sm sm:text-lg font-bold" style={{ color: p.hp <= 10 ? '#ef4444' : 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
-          {Math.max(0, p.hp)}
-        </span>
       </button>
     )
   }
