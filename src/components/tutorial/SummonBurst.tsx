@@ -119,7 +119,7 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         glow(ctx, ox, oy, eo(rt) * maxR * 0.5, cfg.glow, (1 - rt) * 0.22)   // bendra išsiplečianti aura
         switch (cfg.motif) {
           case 'ritual':  ritual(ctx, ox, oy, p, rt, cfg, now, D); break
-          case 'flame':   flame(ctx, ox, oy, rt, cfg, now, D); if (cfg.pentagram) pentaOverlay(ctx, ox, oy, p, cfg.core, now, D); break
+          case 'flame':   flame(ctx, ox, oy, rt, cfg, now, D); break
           case 'blast':   blast(ctx, ox, oy, rt, cfg, maxR, D); break
           case 'ice': {
             ringB(ctx, ox, oy, eo(rt) * maxR, cfg.ring, (1 - rt) * 0.85, 5 * D, D)
@@ -151,8 +151,6 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         }
       }
 
-      // centrinis glifas
-      if (cfg.glyph) { const ga = p < 0.3 ? p / 0.3 : 1 - (p - 0.3) / 0.7; glyph(ctx, cfg.glyph, ox, oy, 30 * D, cfg.core, Math.max(0, ga), now) }
 
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1
       if (now - t0 < cfg.dur) raf = requestAnimationFrame(frame)
@@ -199,11 +197,6 @@ function flame(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number
     ctx.beginPath(); ctx.arc(px, py, s * 1.7, 0, TAU); ctx.fill()
   }
   ctx.globalAlpha = 1; glow(ctx, ox, oy, 74 * D, cfg.core, fade * (1 - rt) * 0.7)
-}
-function pentaOverlay(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, core: string, now: number, D: number) {
-  ctx.save(); ctx.translate(ox, oy); ctx.scale(1, 0.42); ctx.rotate(now / 2400); ctx.strokeStyle = core; ctx.shadowColor = core; ctx.shadowBlur = 10 * D; ctx.globalAlpha = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15) * 0.85; ctx.lineWidth = 2 * D
-  const r = 80 * D; ctx.beginPath(); for (let i = 0; i <= 5; i++) { const a = ((i * 2) % 5) / 5 * TAU - HALF; const px = Math.cos(a) * r, py = Math.sin(a) * r; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py) } ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, r * 1.14, 0, TAU); ctx.stroke()
-  ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
 }
 // BLAST – sprogimo banga + skeveldros
 function blast(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, maxR: number, D: number) {
@@ -299,7 +292,6 @@ function ritual(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number
   const end = -HALF + prog * TAU; ctx.strokeStyle = cfg.ring; ctx.lineWidth = 2 * D; arc(ctx, R, end); arc(ctx, R * 0.97, end); ctx.lineWidth = 3.4 * D; arc(ctx, R * 0.8, end); ctx.lineWidth = 1.4 * D; arc(ctx, R * 0.3, end)
   ctx.save(); ctx.rotate(now / 3400); for (let i = 0; i < 48; i++) { if (i / 48 > prog) break; const a = i / 48 * TAU; ctx.lineWidth = (i % 12 === 0 ? 3 : 1) * D; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R, Math.sin(a) * R); ctx.lineTo(Math.cos(a) * R * (i % 12 === 0 ? 0.86 : 0.92), Math.sin(a) * R * (i % 12 === 0 ? 0.86 : 0.92)); ctx.stroke() } ctx.restore()
   const runeN = cfg.runeN ?? 24; ctx.save(); ctx.rotate(-now / 2700); ctx.strokeStyle = cfg.core; ctx.lineWidth = 1.5 * D; for (let i = 0; i < runeN; i++) { if (i / runeN > prog) break; const a = i / runeN * TAU; ctx.save(); ctx.rotate(a); ctx.translate(R * 0.88, 0); ctx.rotate(HALF); runeMark(ctx, (i * 3) % 4, 5 * D); ctx.restore() } ctx.restore()
-  if (prog > 0.6 && cfg.geom) { ctx.save(); ctx.rotate(now / 2400); ctx.strokeStyle = cfg.core; ctx.lineWidth = 1.8 * D; drawGeom(ctx, cfg.geom, R * 0.64); ctx.restore() }
   ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
 }
 function arc(ctx: CanvasRenderingContext2D, r: number, end: number) { ctx.beginPath(); ctx.arc(0, 0, r, -HALF, end); ctx.stroke() }
@@ -307,11 +299,6 @@ function runeMark(ctx: CanvasRenderingContext2D, v: number, s: number) {
   ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(0, s)
   if (v === 0) { ctx.moveTo(0, -s * 0.4); ctx.lineTo(s * 0.6, -s * 0.8) } else if (v === 1) { ctx.moveTo(0, 0); ctx.lineTo(s * 0.6, -s * 0.5); ctx.moveTo(0, 0); ctx.lineTo(s * 0.6, s * 0.5) } else if (v === 2) { ctx.moveTo(-s * 0.5, -s * 0.6); ctx.lineTo(s * 0.5, -s * 0.6) } else { ctx.moveTo(0, -s * 0.3); ctx.lineTo(s * 0.5, 0); ctx.lineTo(0, s * 0.3) }
   ctx.stroke()
-}
-function drawGeom(ctx: CanvasRenderingContext2D, geom: Geom, r: number) {
-  const poly = (n: number, off: number) => { ctx.beginPath(); for (let i = 0; i <= n; i++) { const a = i / n * TAU - HALF + off; const x = Math.cos(a) * r, y = Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y) } ctx.stroke() }
-  const starP = (n: number, k: number) => { ctx.beginPath(); for (let i = 0; i <= n; i++) { const a = ((i * k) % n) / n * TAU - HALF; const x = Math.cos(a) * r, y = Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y) } ctx.stroke() }
-  if (geom === 'hexagram') { poly(3, 0); poly(3, Math.PI) } else if (geom === 'pentagram') starP(5, 2); else if (geom === 'star12') starP(12, 5); else poly(3, 0)
 }
 function drawP(ctx: CanvasRenderingContext2D, q: Part, a: number, color: string, dark: string, now: number, D: number) {
   const { x, y } = q
@@ -325,10 +312,4 @@ function drawP(ctx: CanvasRenderingContext2D, q: Part, a: number, color: string,
   if (q.kind === 'shard') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 6 * D; ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(0, -s * 2.2); ctx.lineTo(s, s); ctx.lineTo(-s, s); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
   if (q.kind === 'bone') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = color; ctx.globalAlpha = a; ctx.beginPath(); ctx.roundRect(-s * 0.4, -s * 1.6, s * 0.8, s * 3.2, s * 0.4); ctx.fill(); ctx.beginPath(); ctx.arc(0, -s * 1.6, s * 0.6, 0, TAU); ctx.arc(0, s * 1.6, s * 0.6, 0, TAU); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
   if (q.kind === 'rune') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 5 * D; ctx.globalAlpha = a; ctx.lineWidth = s * 0.5; ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(0, s); ctx.moveTo(0, -s * 0.4); ctx.lineTo(s * 0.7, -s * 0.9); ctx.stroke(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
-}
-function glyph(ctx: CanvasRenderingContext2D, kind: 'skull' | 'eye', x: number, y: number, r: number, c: string, a: number, now: number) {
-  if (a <= 0) return; ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * 0.95; ctx.strokeStyle = c; ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 8; ctx.lineWidth = Math.max(1.6, r * 0.06)
-  if (kind === 'eye') { ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.55, 0, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, r * 0.3 * (0.9 + 0.1 * Math.sin(now / 200)), 0, TAU); ctx.fill() }
-  else { ctx.beginPath(); ctx.arc(0, -r * 0.1, r * 0.62, Math.PI, 0); ctx.lineTo(r * 0.46, r * 0.42); ctx.lineTo(-r * 0.46, r * 0.42); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.arc(-r * 0.26, -r * 0.05, r * 0.17, 0, TAU); ctx.arc(r * 0.26, -r * 0.05, r * 0.17, 0, TAU); ctx.fill() }
-  ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
 }
