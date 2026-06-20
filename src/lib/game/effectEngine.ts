@@ -37,6 +37,7 @@ export type GameApi = {
   peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
+  copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
   log(g: GameState, e: GameEvent): void
 }
 
@@ -46,6 +47,8 @@ export type ApplyCtx = {
   chosenTarget?: ResolvedTarget
   chosenTargets?: ResolvedTarget[]   // rankinis kelių taikinių parinkimas (1/N)
   depth: number          // rekursijos apsauga follow-up trigger'iams
+  chainDamage?: number       // #3: padaryta žala ankstesniame grandinės efekte
+  chainDestroyedHp?: number  // #4: sunaikintų taikinių HP suma ankstesniame efekte
 }
 
 const MAX_DEPTH = 4
@@ -58,7 +61,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
   'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage',
-  'coinFlip', 'loseGoldNextTurn',
+  'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard',
 ])
 
 export function effectIntent(e: EffectType): 'harm' | 'help' {
@@ -104,8 +107,12 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   }
 
   // Reikšmė: dinaminė (base + perEach * metrika) arba fiksuota.
+  const dvs = m.dynamicValue?.source
+  const dvMetric = dvs === 'lastDamageDealt' ? (ctx.chainDamage ?? 0)
+    : dvs === 'destroyedTargetsHp' ? (ctx.chainDestroyedHp ?? 0)
+    : (dvs ? metric(g, caster, dvs) : 0)
   const v = m.dynamicValue
-    ? Math.max(0, Math.round(m.dynamicValue.base + m.dynamicValue.perEach * metric(g, caster, m.dynamicValue.source)))
+    ? Math.max(0, Math.round(m.dynamicValue.base + m.dynamicValue.perEach * dvMetric))
     : (m.value ?? 1)
 
   // taikinių parinkimas
@@ -146,6 +153,8 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
 
   const foe: Side = caster === 'you' ? 'ai' : 'you'
   let applied = true
+  let chainDamage = 0        // #3
+  let chainDestroyedHp = 0   // #4
 
   switch (m.effect) {
     case 'damage': {
@@ -155,14 +164,14 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
         ? (caster === 'you' ? g.you : g.ai).spellDamageBonus : 0
       const dv = v + spellBonus
       for (const t of targets) {
-        if (t.kind === 'player') api.dealToPlayer(g, t.side, dv, caster, useZmk)
+        if (t.kind === 'player') { api.dealToPlayer(g, t.side, dv, caster, useZmk); chainDamage += dv }
         else if (t.kind === 'artifact') {
           const p = t.side === 'you' ? g.you : g.ai
           const a = p.artifacts.find((x) => x?.uid === t.uid)
-          if (a) api.dealToArtifact(g, a, t.side, dv, caster)
+          if (a) { api.dealToArtifact(g, a, t.side, dv, caster); chainDamage += dv }
         } else {
           const f = findUnit(g, t)
-          if (f) api.dealToUnit(g, f.u, f.owner, dv, caster, useZmk)
+          if (f) { api.dealToUnit(g, f.u, f.owner, dv, caster, useZmk); chainDamage += dv }
         }
       }
       break
@@ -175,7 +184,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       break
     case 'destroy':
       for (const t of targets) {
-        if (t.kind === 'unit') { const f = findUnit(g, t); if (f) api.killUnit(g, f.owner, f.u) }
+        if (t.kind === 'unit') { const f = findUnit(g, t); if (f) { chainDestroyedHp += Math.max(0, f.u.hp); api.killUnit(g, f.owner, f.u) } }
         else if (t.kind === 'artifact') api.destroyArtifact(g, t.side, t.uid)
       }
       break
@@ -224,7 +233,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       for (const t of targets) { const f = findUnit(g, t); if (f) api.returnUnitToHand(g, f.owner, f.u) }
       break
     case 'moveToGraveyard':
-      for (const t of targets) { const f = findUnit(g, t); if (f) api.killUnit(g, f.owner, f.u) }
+      for (const t of targets) { const f = findUnit(g, t); if (f) { chainDestroyedHp += Math.max(0, f.u.hp); api.killUnit(g, f.owner, f.u) } }
       break
     case 'triggerCurse': {
       const tc = m.triggersCurse ?? { count: v, appliesTo: 'opponent' as const }
@@ -258,6 +267,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
       break
     }
     case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, choose: m.tutorChoose }); break
+    case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
     case 'spellDiscount': api.setSpellDiscount(g, caster, v); break
     case 'buffSpellDamage': api.buffSpellDamage(g, caster, v); break
     default:
@@ -285,6 +295,8 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
         chosenTarget: keep ? ctx.chosenTarget : undefined,
         chosenTargets: keep ? ctx.chosenTargets : undefined,
         depth: ctx.depth + 1,
+        chainDamage,
+        chainDestroyedHp,
       })
       if (g.winner) break
     }

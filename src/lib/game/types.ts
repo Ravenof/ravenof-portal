@@ -64,6 +64,7 @@ export type EffectType =
   | 'spellDiscount' | 'buffSpellDamage'
   | 'chooseEffect' | 'tutorToHand'
   | 'coinFlip' | 'loseGoldNextTurn'
+  | 'copyEffectFromGraveyard'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -107,6 +108,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false },
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true },
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },
+  { value: 'copyEffectFromGraveyard', label: 'Kopijuoti efektą iš kapinyno padaro (pop-up)', needsValue: false },
   { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false },
 ]
 
@@ -136,7 +138,7 @@ export type TriggerType =
   | 'onChampionSkill' | 'onArtifactActivated'
   | 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay'
   | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd'
-  | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion'
+  | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse'
   | 'custom'
 
 export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
@@ -173,6 +175,7 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onAnyGold',           label: 'Kai BET KAS gauna aukso (globalu)' },
   { value: 'onAnyTurnStart',      label: 'Kiekvieno ėjimo pradžioje (abiejų žaidėjų)' },
   { value: 'onAnyTurnEnd',        label: 'Kiekvieno ėjimo pabaigoje (abiejų žaidėjų)' },
+  { value: 'onAnyCurse',          label: 'Kai aktyvuojamas BET KURIS prakeiksmas (globalu)' },
   { value: 'custom',              label: 'Custom (kodas)' },
 ]
 
@@ -216,6 +219,7 @@ export type MetricSource =
   | 'ownGraveyard' | 'enemyGraveyard'
   | 'ownDeck' | 'enemyDeck'
   | 'ownHp' | 'enemyHp' | 'ownGold' | 'enemyGold' | 'turnNumber'
+  | 'lastDamageDealt' | 'destroyedTargetsHp'
 
 export const METRIC_SOURCES: { value: MetricSource; label: string }[] = [
   { value: 'ownUnits',          label: 'Tavo padarų sk.' },
@@ -236,6 +240,8 @@ export const METRIC_SOURCES: { value: MetricSource; label: string }[] = [
   { value: 'ownGold',           label: 'Tavo auksas' },
   { value: 'enemyGold',         label: 'Priešo auksas' },
   { value: 'turnNumber',        label: 'Ėjimo nr.' },
+  { value: 'lastDamageDealt',   label: 'Padaryta žala (grandinėje, šio efekto)' },
+  { value: 'destroyedTargetsHp',label: 'Sunaikintų taikinių HP suma (grandinėje)' },
 ]
 
 export type CompareOp = 'gte' | 'lte' | 'gt' | 'lt' | 'eq' | 'ne'
@@ -312,6 +318,7 @@ export type EffectMapping = {
   tutorZone?: 'deck' | 'discard' | 'both'  // tutorToHand: iš kur ieškoti (default both)
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
   tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
+  copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard: iš kurio kapinyno rinktis (default any)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   note?: string
 }

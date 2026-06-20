@@ -447,6 +447,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const revealBlocks = !!game?.pendingReveal
   const summonBlocks = !!game?.pendingSummon
   const choiceBlocks = !!game?.pendingChoice
+  const copyBlocks = !!game?.pendingCopy
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 72 : 96
   const unitW = isTouch ? 58 : 90
@@ -1027,7 +1028,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks) return
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -1049,7 +1050,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, 1000)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, difficulty])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -2484,6 +2485,30 @@ doAction({ t: 'endTurn', actor: 'you' })
                 style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>
                 Iškviesti pažymėtas
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {game?.pendingCopy && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="rounded-2xl p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center"
+              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(167,139,250,0.5)' }}>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>Perimk efektą iš kapinyno</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Pasirink padarą – jo efektas taps tavo padaro efektu.</p>
+              <div className="flex flex-wrap gap-2 justify-center mb-1">
+                {game.pendingCopy.options.map((o) => (
+                  <button key={o.card.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveCopy', uid: o.card.uid }) }}
+                    className="relative transition-transform hover:-translate-y-1" title={o.card.name}>
+                    <div style={{ outline: '2px solid transparent', borderRadius: 10 }}>
+                      <MiniCard c={o.card} w={isTouch ? 60 : 74} />
+                    </div>
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] px-1 rounded-full" style={{ background: '#14101e', color: o.side === 'you' ? '#86efac' : '#fca5a5' }}>{o.side === 'you' ? 'Tavo' : 'Priešo'}</span>
+                  </button>
+                ))}
+              </div>
             </motion.div>
           </motion.div>
         )}

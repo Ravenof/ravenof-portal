@@ -190,6 +190,8 @@ export type GameState = {
   pendingSummon?: PendingSummon | null
   /** Laukiantis „pasirink 1 iš kelių" / tutor pasirinkimas */
   pendingChoice?: PendingChoice | null
+  /** Laukiantis efekto kopijavimas iš kapinyno (#5) */
+  pendingCopy?: PendingCopy | null
   /** Trumpalaikis ŽMK traukimo kontekstas (nevalomas tarp veiksmų – išvalomas kiekvieno veiksmo pradžioje) */
   rollContext?: RollContext | null
   /** Paskutinis mill (UI animacijai: kortos iš kaladės į kapinyną) */
@@ -211,6 +213,8 @@ export type PendingChoice = {
   branches?: EffectMapping[][]
   cards?: TutCard[]
 }
+
+export type PendingCopy = { caster: Side; sourceUid: string; sourceName: string; options: { card: TutCard; side: Side }[] }
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
 
@@ -334,6 +338,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     pendingReveal: null,
     pendingSummon: null,
     pendingChoice: null,
+    pendingCopy: null,
     rollContext: null,
     lastMill: null,
   }
@@ -366,6 +371,10 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
         const dmg = c.effect?.damage ?? 1
         dealToPlayer(g, s, dmg, curseCaster, false)
       }
+      // #1: globalus „prakeiksmas aktyvuotas" trigeris (side = auka, kuri ištraukė).
+      fireGlobalListeners(g, 'onAnyCurse', { side: s, subtype: c.subtype, faction: c.factionId })
+      // #2: kapinyno prikėlimas (onAnyCurse+revive marker'is)
+      reviveGraveyardOnCurse(g, s)
       if (g.winner) return
       continue
     }
@@ -997,6 +1006,39 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
   return { ok: true }
 }
 
+// ── #5: efekto kopijavimas iš kapinyno ──
+function mappingCount(c: TutCard): number { return (c.mappings ?? []).length }
+function copyEffectPrim(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any') {
+  if (!sourceUid) { log(g, { t: 'blocked', side: s, msg: `„${sourceName}": nėra šaltinio padaro efektui kopijuoti.` }); return }
+  const sides: Side[] = fromSide === 'own' ? [s] : fromSide === 'enemy' ? [other(s)] : [s, other(s)]
+  const options: { card: TutCard; side: Side }[] = []
+  for (const sd of sides) for (const c of P(g, sd).discard) if (c.type === 'unit' && mappingCount(c) > 0) options.push({ card: c, side: sd })
+  if (options.length === 0) { log(g, { t: 'blocked', side: s, msg: `„${sourceName}": kapinyne nėra padaro su efektu.` }); return }
+  if (s === 'you') {
+    g.pendingCopy = { caster: s, sourceUid, sourceName, options }
+    log(g, { t: 'play', side: s, msg: 'Pasirink padarą kapinyne, kurio efektą perimti.' })
+    return
+  }
+  const best = options.reduce((a, b) => (mappingCount(b.card) > mappingCount(a.card) ? b : a))
+  applyCopyEffect(g, s, sourceUid, best.card)
+}
+function applyCopyEffect(g: GameState, s: Side, sourceUid: string, srcCard: TutCard) {
+  const u = P(g, s).units.find((x): x is BoardUnit => !!x && x.uid === sourceUid)
+  if (!u) { log(g, { t: 'blocked', side: s, msg: 'Efekto kopijavimas: šaltinio padaras nebe lauke.' }); return }
+  const copied = srcCard.mappings ?? []
+  if (copied.length === 0) return
+  u.card = { ...u.card, mappings: [...(u.card.mappings ?? []), ...copied.map((m) => ({ ...m }))] }
+  log(g, { t: 'buff', side: s, cardName: u.card.name, msg: `🜏 „${u.card.name}" perima „${srcCard.name}" efektą!`, src: { side: s, uid: sourceUid } })
+}
+export function resolveCopyEffect(g: GameState, chosenUid: string): { ok: boolean; reason?: string } {
+  const pc = g.pendingCopy
+  if (!pc) return { ok: true }
+  const opt = pc.options.find((o) => o.card.uid === chosenUid)
+  if (opt) applyCopyEffect(g, pc.caster, pc.sourceUid, opt.card)
+  g.pendingCopy = null
+  return { ok: true }
+}
+
 function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }) {
   const p = P(g, s)
   const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
@@ -1124,7 +1166,7 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
 let firingGlobal = false
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   try {
@@ -1174,6 +1216,31 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
     }
   } finally {
     firingGlobal = false
+  }
+}
+
+// #2: prakeiksmui aktyvavus, prikelti iš kapinyno padarus, turinčius onAnyCurse+revive marker'į.
+function reviveGraveyardOnCurse(g: GameState, victim: Side) {
+  if (g.winner) return
+  for (const sd of ['you', 'ai'] as Side[]) {
+    const pp = P(g, sd)
+    for (let i = pp.discard.length - 1; i >= 0; i--) {
+      const card = pp.discard[i]
+      if (!card || card.type !== 'unit') continue
+      const trig = (card.mappings ?? []).find((m) => m.trigger === 'onAnyCurse' && (m.effect === 'revive' || m.effect === 'summonFromGraveyard'))
+      if (!trig) continue
+      const want = trig.triggerSide ?? 'any'
+      if (want === 'own' && victim !== sd) continue
+      if (want === 'enemy' && victim === sd) continue
+      if (freeUnitSlot(g, pp) === -1) continue
+      pp.discard.splice(i, 1)
+      const suffix = '-rev' + g.globalTurn + '-' + i
+      if (placeUnit(g, pp, card, suffix)) {
+        log(g, { t: 'play', side: sd, cardName: card.name, msg: `⚰️→ „${card.name}" prikeliamas iš kapinyno (prakeiksmo aktyvacija)!`, sound: 'summon', src: { side: sd, uid: card.uid + suffix }, fromZone: 'graveyard' })
+        afterSummon(g, sd, card, 'graveyard')
+      } else { pp.discard.splice(i, 0, card) }
+      if (g.winner) return
+    }
   }
 }
 
@@ -1371,6 +1438,7 @@ export const gameApi: GameApi = {
   revealDeck: revealDeckPrim,
   summonAdvanced: summonAdvancedPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
+  copyEffectFromGraveyard: (g, s, sourceUid, sourceName, fromSide) => copyEffectPrim(g, s, sourceUid, sourceName, fromSide),
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
   setSpellDiscount: setSpellDiscountPrim,
@@ -2012,6 +2080,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)
   if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
   if (c.pendingChoice) { c.pendingChoice.caster = other(c.pendingChoice.caster); if (c.pendingChoice.chooser) c.pendingChoice.chooser = other(c.pendingChoice.chooser) }
+  if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
   return c
 }
@@ -2025,6 +2094,7 @@ export type NetAction =
   | { t: 'resolveSummon'; uids: string[] }
   | { t: 'resolvePeek'; uids: string[] }
   | { t: 'resolveChoice'; index: number }
+  | { t: 'resolveCopy'; uid: string }
   | { t: 'swapChampPhase'; actor: Side; uid: string; phase: number }
   | { t: 'clearReveal' }
 
@@ -2039,6 +2109,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'resolveSummon': return resolveSummonChoice(g, a.uids)
     case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
     case 'resolveChoice': return resolveChoice(g, a.index)
+    case 'resolveCopy': return resolveCopyEffect(g, a.uid)
     case 'swapChampPhase': return swapChampionPhase(g, a.actor, a.uid, a.phase)
     case 'clearReveal': g.pendingReveal = null; return { ok: true }
   }

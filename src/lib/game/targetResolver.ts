@@ -166,6 +166,8 @@ export function metric(g: GameState, caster: Side, src: MetricSource): number {
     case 'ownGold':           return me.gold
     case 'enemyGold':         return foe.gold
     case 'turnNumber':        return me.turnNumber
+    case 'lastDamageDealt':   return 0   // skaičiuojama efektų grandinėje (effectEngine ctx)
+    case 'destroyedTargetsHp':return 0   // skaičiuojama efektų grandinėje (effectEngine ctx)
   }
 }
 
