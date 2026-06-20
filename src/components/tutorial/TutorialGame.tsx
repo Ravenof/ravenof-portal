@@ -477,8 +477,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const choiceBlocks = !!game?.pendingChoice
   const copyBlocks = !!game?.pendingCopy
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-  const handW = isTouch ? 72 : 96
-  const unitW = isTouch ? 58 : 90
+  const handW = isTouch ? 72 : 128
+  const unitW = isTouch ? 58 : 118
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -1612,7 +1612,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         <div
           className={'relative rounded-md flex items-center justify-center ' + (interactive ? 'cursor-pointer' : '')}
           style={{
-            width: isTouch ? 34 : 44, height: isTouch ? 46 : 60,
+            width: isTouch ? 34 : 52, height: isTouch ? 46 : 72,
             background: opts?.faceUp ? 'rgba(240,180,41,0.08)' : 'linear-gradient(145deg, #1a1325, #0d0a14)',
             border: '1px solid rgba(240,180,41,0.3)',
           }}
@@ -1692,7 +1692,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onContextMenu={(e) => { e.preventDefault(); setInspect(a.card) }}
               className="relative rounded-md overflow-hidden"
               style={{
-                width: isTouch ? 40 : 50, height: isTouch ? 54 : 68,
+                width: isTouch ? 40 : 60, height: isTouch ? 54 : 84,
                 border: targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
               {a.card.image
@@ -1704,7 +1704,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
-              style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, border: '1px dashed rgba(240,180,41,0.25)' }}>⭐</div>
+              style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, border: '1px dashed rgba(240,180,41,0.25)' }}>⭐</div>
           ))}
         </div>
         <div data-tut={side === 'you' ? 'reactions' : undefined} className="flex gap-1">
@@ -1715,7 +1715,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 onClick={() => { playUiClick(); setPileView({ title: 'Tavo reakcijos (matai tik tu)', cards: p.reactions.filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.card) }) }}
                 title="Peržiūrėk savo padėtas reakcijas (priešas jų nemato)"
                 className="relative rounded-md cursor-pointer"
-                style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
+                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
                 <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
@@ -1723,7 +1723,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             ) : (
               <div key={r.uid} className="relative rounded-md"
-                style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
+                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
                 <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
                   style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
@@ -1731,7 +1731,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             )
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
-              style={{ width: isTouch ? 40 : 50, height: isTouch ? 54 : 68, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
+              style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
           ))}
         </div>
       </div>
@@ -1907,7 +1907,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <span className="text-sm animate-pulse" style={{ color: 'var(--gold)' }}>Ruošiama kova…</span>
         </div>
       )}
-      {game && !loading && (
+      {game && !loading && isTouch && (
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto sm:overflow-hidden px-2 py-1.5 gap-1">
           {/* ── AI pusė ── */}
           <div data-tut="ai-area" className="shrink-0">
@@ -2040,6 +2040,90 @@ doAction({ t: 'endTurn', actor: 'you' })
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {game && !loading && !isTouch && (
+        <div className="flex-1 min-h-0 flex gap-3 px-3 py-2 overflow-hidden">
+          <aside className="flex flex-col items-center gap-2.5 w-[160px] shrink-0 overflow-y-auto pt-1">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)' }}>
+              <span className="text-sm">🜏</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#a78bfa' }}>Priešininkas</span>
+            </div>
+            {game.active === 'ai' && !game.winner && <span className="text-[10px] animate-pulse" style={{ color: 'var(--gold)' }}>galvoja…</span>}
+            {hpBar('ai')}
+            {goldBar('ai')}
+            <div className="flex flex-wrap justify-center gap-2 pt-1">
+              {renderPile('Ranka', game.ai.hand.length, { pileKey: 'hand-ai' })}
+              {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai' })}
+              {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
+              {renderPile('ŽMK', game.ai.zmk.length)}
+            </div>
+          </aside>
+
+          <div className="flex-1 min-h-0 flex flex-col justify-between gap-1 overflow-hidden">
+            <div className="shrink-0">
+              {renderUnitsRow('ai', 'units-ai')}
+              <div className="mt-1">{renderSideZones('ai')}</div>
+            </div>
+            <div className="shrink-0 flex items-center justify-center gap-3 py-1 relative" style={{ borderTop: '1px solid rgba(240,180,41,0.1)', borderBottom: '1px solid rgba(240,180,41,0.1)' }}>
+              <div data-tut="field" className="flex items-center gap-1.5">
+                {game.field ? (
+                  <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }} onClick={() => setInspect(game.field!.card)}>
+                    <MiniCard c={game.field.card} w={68} />
+                  </button>
+                ) : (
+                  <div className="rounded-md flex items-center justify-center text-xs opacity-25" style={{ width: 68, height: 90, border: '1px dashed rgba(240,180,41,0.3)' }}>🌍</div>
+                )}
+                <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Laukas</span>
+              </div>
+              <div className="flex-1 max-w-lg text-center px-2">
+                <p className="text-xs leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col justify-end gap-1 min-h-0">
+              <div>{renderSideZones('you')}</div>
+              {renderUnitsRow('you', 'units-you')}
+              <div data-tut="hand" ref={handRef} className="flex justify-center items-end gap-1 min-h-[200px] pb-1 flex-wrap">
+                <AnimatePresence>
+                  {game.you.hand.map((c, i) => {
+                    const afford = game.you.gold >= c.gold
+                    const isDragging = drag?.uid === c.uid && dragMovedRef.current
+                    return (
+                      <motion.div key={c.uid} layout initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: isDragging ? 0.25 : 1 }} exit={{ y: -30, opacity: 0 }} whileHover={{ y: -18, zIndex: 30 }}
+                        style={{ marginLeft: i === 0 ? 0 : -(handW * 0.14), zIndex: i }}
+                        onMouseEnter={(ev) => setHoverCard({ card: c, x: ev.clientX, y: ev.clientY })}
+                        onMouseMove={(ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: c, x: ev.clientX, y: ev.clientY })}
+                        onMouseLeave={() => setHoverCard(null)}
+                        onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
+                        <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                          <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing" style={{ filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
+                            <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
+                          </div>
+                        </GameCard>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+                {game.you.hand.length === 0 && <span className="text-xs self-center" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>}
+              </div>
+            </div>
+          </div>
+
+          <aside className="flex flex-col items-center gap-2.5 w-[160px] shrink-0 overflow-y-auto justify-between py-1">
+            <div className="flex flex-wrap justify-center gap-2">
+              {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you' })}
+              {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
+              {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk' })}
+            </div>
+            {goldBar('you')}
+            {hpBar('you')}
+            <div className="flex flex-col items-stretch gap-2 w-full mt-auto">
+              <button onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau išmetei kortą šį ėjimą.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+                className="px-2 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: select?.kind === 'discard' ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: game.you.discardedForGold ? 'var(--text-muted)' : 'var(--gold)' }} title="Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)">+100⚜ už kortą</button>
+              <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn} className="px-3 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-40" style={{ background: myTurn ? 'linear-gradient(135deg, rgba(240,180,41,0.3), rgba(240,180,41,0.1))' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>{myTurn ? 'Baigti ėjimą' : 'Priešo ėjimas…'}</button>
+            </div>
+          </aside>
         </div>
       )}
 
@@ -2267,15 +2351,15 @@ doAction({ t: 'endTurn', actor: 'you' })
       {hoverCard && typeof document !== 'undefined' && createPortal(
         <div className="fixed z-[200] pointer-events-none"
           style={{
-            left: Math.min(hoverCard.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 800) - 200),
-            top: Math.min(hoverCard.y + 16, (typeof window !== 'undefined' ? window.innerHeight : 600) - 300),
+            left: Math.min(hoverCard.x + 20, (typeof window !== 'undefined' ? window.innerWidth : 800) - 300),
+            top: Math.max(8, Math.min(hoverCard.y - 40, (typeof window !== 'undefined' ? window.innerHeight : 600) - 440)),
           }}>
-          <div className="rounded-xl overflow-hidden" style={{ width: 180, background: 'var(--bg-surface)', border: '2px solid ' + hoverCard.card.rarityColor, boxShadow: '0 8px 30px rgba(0,0,0,0.7)' }}>
-            <MiniCard c={hoverCard.card} w={180} />
-            <div className="p-2">
-              <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{hoverCard.card.name}</p>
+          <div className="rounded-xl overflow-hidden" style={{ width: 280, background: 'var(--bg-surface)', border: '2px solid ' + hoverCard.card.rarityColor, boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
+            <MiniCard c={hoverCard.card} w={280} />
+            <div className="p-2.5">
+              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
               {hoverCard.card.effectText && (
-                <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>
+                <p className="text-xs mt-1 leading-snug" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>
               )}
             </div>
           </div>
