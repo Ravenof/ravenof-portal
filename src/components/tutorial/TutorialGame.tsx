@@ -135,6 +135,22 @@ const STATUS_GLOW: Record<TutStatus, string> = {
   frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa',
 }
 
+function HpVial({ hp, maxHp }: { hp: number; maxHp: number }) {
+  const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
+  const hue = ratio * 120
+  const top = `hsl(${hue},86%,56%)`, bot = `hsl(${hue},86%,38%)`
+  const crit = hp > 0 && hp <= 10
+  return (
+    <span style={{ position: 'relative', display: 'inline-block', width: 15, height: 23, borderRadius: '4px 4px 6px 6px', overflow: 'hidden', flex: '0 0 auto',
+      border: crit ? '1.5px solid rgba(239,68,68,0.7)' : '1.5px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.06)',
+      boxShadow: crit ? '0 0 9px rgba(239,68,68,0.85)' : 'inset 0 1px 3px rgba(0,0,0,0.55)',
+      animation: crit ? 'hpvCrit 0.85s ease-in-out infinite' : undefined }}>
+      <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `${ratio * 100}%`, background: `linear-gradient(180deg, ${top}, ${bot})`, boxShadow: `0 0 7px ${top}`, transition: 'height .45s cubic-bezier(.3,.8,.3,1), background .45s ease' }} />
+      <span style={{ position: 'absolute', top: 2, left: 2, width: 3, height: '55%', borderRadius: 3, background: 'linear-gradient(180deg, rgba(255,255,255,0.4), transparent)' }} />
+    </span>
+  )
+}
+
 function MiniCard({ c, w, dim, faceDown, readable }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean }) {
   const h = Math.round(w * 4 / 3)
   if (faceDown) {
@@ -1727,7 +1743,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           boxShadow: targetable ? '0 0 12px rgba(239,68,68,0.6)' : 'none',
           cursor: targetable ? 'pointer' : 'default',
         }}>
-        <span className="text-sm sm:text-lg">❤️</span>
+        <HpVial hp={p.hp} maxHp={p.maxHp} />
         <span className="text-sm sm:text-lg font-bold" style={{ color: p.hp <= 10 ? '#ef4444' : 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
           {Math.max(0, p.hp)}
         </span>

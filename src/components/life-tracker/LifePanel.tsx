@@ -7,6 +7,7 @@ type Props = {
   sideIdx: 0 | 1
   name: string
   hp: number
+  maxHp: number
   isActive: boolean
   flashType: ActionType | null
   flashKey: number
@@ -18,6 +19,7 @@ export function LifePanel({
   sideIdx,
   name,
   hp,
+  maxHp,
   isActive,
   flashType,
   flashKey,
@@ -28,6 +30,13 @@ export function LifePanel({
   const isCritical = hp <= 0
 
   const hpColor = isCritical ? '#ef4444' : isDanger ? '#f97316' : '#d4af37'
+
+  // Vial: užpildymas ir spalva pagal HP/max (hue 120°žalia → 0°raudona palaipsniui)
+  const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
+  const hue = ratio * 120
+  const liqTop = `hsl(${hue}, 84%, 54%)`
+  const liqBot = `hsl(${hue}, 84%, 36%)`
+  const crit = hp > 0 && hp <= 10
 
   // Border — bevel-ish: top brighter, bottom darker
   const bTop  = isActive ? '#e8c84a' : isCritical ? 'rgba(239,68,68,.35)' : 'rgba(255,255,255,.10)'
@@ -58,6 +67,7 @@ export function LifePanel({
         transition: 'border-color .25s ease, box-shadow .25s ease',
       }}
     >
+      <style>{LT_VIAL_CSS}</style>
       {/* Flash overlay */}
       <div
         key={flashKey}
@@ -100,25 +110,20 @@ export function LifePanel({
           }}
         />
 
-        {/* HP number */}
-        <div
-          className="font-bold leading-none select-none py-2"
-          style={{
-            color: hpColor,
-            fontFamily: 'Cinzel, Georgia, serif',
-            fontSize: 'clamp(4rem, 10vw, 6rem)',
-            letterSpacing: '-0.02em',
-            textShadow: isCritical
-              ? '0 0 32px rgba(239,68,68,.75), 0 0 60px rgba(239,68,68,.35)'
-              : isDanger
-              ? '0 0 24px rgba(249,115,22,.6), 0 0 48px rgba(249,115,22,.25)'
-              : isActive
-              ? '0 0 20px rgba(212,175,55,.45), 0 0 40px rgba(212,175,55,.18)'
-              : 'none',
-            transition: 'color .2s ease, text-shadow .2s ease',
-          }}
-        >
-          {hp}
+        {/* HP vial */}
+        <div className="relative my-1" style={{ width: 120, height: 196 }}>
+          <div className={'lt-vial' + (crit ? ' lt-vial-crit' : '')}
+            style={{ borderColor: isActive ? 'rgba(212,175,55,0.5)' : crit ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.14)' }}>
+            <div className="lt-vial-liquid" style={{ height: `${ratio * 100}%`, background: `linear-gradient(180deg, ${liqTop}, ${liqBot})`, boxShadow: `0 0 26px ${liqTop}` }}>
+              <div className="lt-vial-wave" style={{ background: liqTop }} />
+              <div className="lt-vial-wave lt-vial-wave2" style={{ background: liqBot }} />
+              {[0, 1, 2, 3].map((i) => (
+                <span key={i} className="lt-bubble" style={{ left: `${16 + i * 22}%`, animationDelay: `${i * 0.85}s`, animationDuration: `${3.2 + (i % 3) * 0.9}s` }} />
+              ))}
+            </div>
+            <div className="lt-vial-shine" />
+          </div>
+          <span className="lt-vial-hp" style={{ color: '#fff', textShadow: `0 0 16px ${liqTop}, 0 2px 5px rgba(0,0,0,0.85)` }}>{hp}</span>
         </div>
 
         {/* Status badge */}
@@ -167,3 +172,19 @@ export function LifePanel({
     </div>
   )
 }
+
+
+const LT_VIAL_CSS = `
+.lt-vial { position:absolute; inset:0; border-radius:18px 18px 32px 32px; overflow:hidden; border:2.5px solid rgba(255,255,255,0.14); background:linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.01)); box-shadow: inset 0 2px 12px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.05), 0 6px 20px rgba(0,0,0,0.5); transition:border-color .25s ease; }
+.lt-vial-crit { animation: ltCrit 0.85s ease-in-out infinite; }
+@keyframes ltCrit { 0%,100%{ box-shadow: inset 0 2px 12px rgba(0,0,0,0.55), 0 0 8px rgba(239,68,68,0.35); } 50%{ box-shadow: inset 0 2px 12px rgba(0,0,0,0.55), 0 0 28px rgba(239,68,68,0.95); } }
+.lt-vial-liquid { position:absolute; left:0; right:0; bottom:0; transition: height .6s cubic-bezier(.3,.8,.3,1), background .6s ease; will-change:height; }
+.lt-vial-wave { position:absolute; left:50%; top:-26px; width:240%; height:54px; transform:translateX(-50%); border-radius:43% 47% 44% 46%; opacity:.9; animation: ltSpin 6.5s linear infinite; }
+.lt-vial-wave2 { top:-22px; width:240%; height:50px; opacity:.55; animation-duration: 9s; animation-direction: reverse; }
+@keyframes ltSpin { from{ transform:translateX(-50%) rotate(0deg); } to{ transform:translateX(-50%) rotate(360deg); } }
+.lt-bubble { position:absolute; bottom:6px; width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.55); animation: ltBubble linear infinite; }
+@keyframes ltBubble { 0%{ transform:translateY(0) scale(0.6); opacity:0; } 15%{ opacity:.85; } 100%{ transform:translateY(-150px) scale(1); opacity:0; } }
+.lt-vial-shine { position:absolute; top:8px; left:12px; width:16px; height:60%; border-radius:40%; background:linear-gradient(180deg, rgba(255,255,255,0.28), transparent); pointer-events:none; z-index:2; }
+.lt-vial-hp { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:Cinzel, Georgia, serif; font-weight:800; font-size:clamp(2.6rem,7vw,3.5rem); letter-spacing:-0.02em; pointer-events:none; z-index:3; }
+@media (prefers-reduced-motion: reduce){ .lt-vial-wave, .lt-bubble, .lt-vial-crit { animation:none !important; } }
+`

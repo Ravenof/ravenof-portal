@@ -436,6 +436,7 @@ export function LifeTrackerClient() {
                   sideIdx={sideIdx}
                   name={state.names[sideIdx]}
                   hp={state.hp[sideIdx]}
+                  maxHp={state.maxHp}
                   isActive={state.activeSide === sideIdx}
                   flashType={flashType}
                   flashKey={flashKey}

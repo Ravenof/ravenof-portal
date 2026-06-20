@@ -285,6 +285,7 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 
 const CSS = `
 .rvn-fnum { position: absolute; transform: translate(-50%,-50%); font-weight: 800; font-family: Cinzel, Georgia, serif; pointer-events: none; animation: rvnFnum 1.1s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes hpvCrit { 0%,100%{ box-shadow: 0 0 6px rgba(239,68,68,0.45); } 50%{ box-shadow: 0 0 14px rgba(239,68,68,0.95); } }
 @keyframes rvnFnum { 0%{opacity:0; transform:translate(-50%,-30%) scale(0.4)} 18%{opacity:1; transform:translate(-50%,-55%) scale(1.25)} 32%{transform:translate(-50%,-58%) scale(1)} 100%{opacity:0; transform:translate(-50%,-150%) scale(1)} }
 [data-fx-root].rvn-shake-soft { animation: rvnShakeSoft 0.36s ease-in-out; }
 [data-fx-root].rvn-shake-hard { animation: rvnShakeHard 0.48s ease-in-out; }
