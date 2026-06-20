@@ -4,7 +4,7 @@
 // 0–20 s: ±3 žingsniai · 20–40 s: ±10 · 40–60 s: bet koks · >60 s: botas.
 import { useEffect, useRef, useState } from 'react'
 import { oct } from './_ui'
-import { queueJoin, queueLeave, queuePoll, pickBot, getOpponentSummary } from '@/lib/ranked/client'
+import { queueJoin, queueLeave, queuePoll, pickBot, getOpponentSummary, getRankedPvpMatch } from '@/lib/ranked/client'
 import { playRanked } from '@/lib/ranked/sound'
 
 export type MatchedOpponent = {
@@ -16,6 +16,9 @@ export type MatchedOpponent = {
   factionSlug: string | null
   rankStep: number
   difficulty: 'easy' | 'normal' | 'hard'
+  /** Realaus žaidėjo kovai – realtime PvP sync info (kitaip kova prieš botą per AI). */
+  net?: { isHost: boolean; mySide: 'you' | 'ai'; matchId: string; opponentId: string }
+  opponentDeckId?: string | null
 }
 
 const BOT_FALLBACK_SEC = 60
@@ -43,15 +46,19 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
       // Realių žaidėjų paieška
       const r = await queuePoll(range)
       if (doneRef.current) return
-      if (r.status === 'matched' && r.opponent) {
+      if (r.status === 'matched' && r.opponent && r.matchId) {
         doneRef.current = true
-        const summ = await getOpponentSummary(r.opponent)
+        const [summ, pm] = await Promise.all([getOpponentSummary(r.opponent), getRankedPvpMatch(r.matchId)])
         await queueLeave()
+        const isHost = !!r.isHost
         onMatch({
           kind: 'real', id: r.opponent,
           name: summ?.name ?? 'Žaidėjas', avatar: '🛡️',
           faction: summ?.faction ?? 'Nežinoma', factionSlug: null,
           rankStep: summ?.rankStep ?? 0, difficulty: 'normal',
+          net: { isHost, mySide: isHost ? 'you' : 'ai', matchId: r.matchId, opponentId: r.opponent },
+          // host'as įkrauna svečio kaladę; svečias gauna būseną per sync
+          opponentDeckId: isHost ? (pm?.guest_deck_id ?? null) : null,
         })
         return
       }

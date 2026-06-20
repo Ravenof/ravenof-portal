@@ -175,7 +175,7 @@ export async function queueLeave(): Promise<void> {
   const supabase = createClient()
   await supabase.rpc('rvn_queue_leave')
 }
-export type QueuePoll = { status: 'waiting' | 'matched' | 'left'; opponent?: string }
+export type QueuePoll = { status: 'waiting' | 'matched' | 'left'; opponent?: string; matchId?: string; isHost?: boolean }
 export async function queuePoll(range: number): Promise<QueuePoll> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('rvn_queue_poll', { p_range: range })
@@ -205,4 +205,24 @@ export async function getFactionIdMap(): Promise<Record<string, number>> {
   const out: Record<string, number> = {}
   for (const f of ((data as { id: number; slug: string }[]) ?? [])) out[f.slug] = f.id
   return out
+}
+
+
+export type RankedPvpMatch = {
+  id: string
+  host_id: string
+  host_deck_id: string
+  host_name: string | null
+  guest_id: string | null
+  guest_deck_id: string | null
+  guest_name: string | null
+}
+export async function getRankedPvpMatch(matchId: string): Promise<RankedPvpMatch | null> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('pvp_matches')
+    .select('id, host_id, host_deck_id, host_name, guest_id, guest_deck_id, guest_name')
+    .eq('id', matchId)
+    .maybeSingle()
+  return (data as RankedPvpMatch) ?? null
 }

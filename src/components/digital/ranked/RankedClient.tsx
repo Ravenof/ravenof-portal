@@ -94,7 +94,7 @@ export function RankedClient() {
     const input: ReportMatchInput = {
       opponentKind: opp.kind, opponentId: opp.id, opponentName: opp.name, opponentRankStep: opp.rankStep,
       result: r.result, playerFaction: selDeckObj?.faction ?? null, opponentFaction: opp.faction,
-      durationSeconds: r.turns * 30, turnsPlayed: r.turns, stats: r.stats, clientMatchId: matchIdRef.current,
+      durationSeconds: r.turns * 30, turnsPlayed: r.turns, stats: r.stats, clientMatchId: opp.net?.matchId ?? matchIdRef.current,
     }
     const res = await reportMatch(input)
     if ('error' in res) { setToast('Nepavyko įrašyti rezultato.'); setFlow('idle'); await load(); return }
@@ -114,6 +114,21 @@ export function RankedClient() {
       onReady={() => setFlow('playing')} />
   }
   if (flow === 'playing' && opp && selDeckObj) {
+    // Realus žaidėjas → realtime PvP sync (net); botas → praktika prieš AI su strategija.
+    if (opp.net) {
+      return (
+        <TutorialGame
+          deckId={selDeck}
+          deckName={selDeckObj.name}
+          ranked
+          net={opp.net}
+          opponentDeckId={opp.opponentDeckId ?? null}
+          opponentName={opp.name}
+          onRankedResult={handleResult}
+          onClose={() => { if (flow === 'playing') { setFlow('idle'); load() } }}
+        />
+      )
+    }
     return (
       <TutorialGame
         deckId={selDeck}

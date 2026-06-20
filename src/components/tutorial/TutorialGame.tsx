@@ -1116,7 +1116,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   useEffect(() => {
     if (!ranked || !game?.winner || rankedReportedRef.current) return
     rankedReportedRef.current = true
-    const meWon = net ? game.winner === net.mySide : game.winner === 'you'
+    const meWon = game.winner === 'you' // ir host'as, ir svečias lokaliai mato save kaip 'you' (swapPerspective)
     const me = game.you, opp = game.ai
     const cnt = (arr: typeof me.discard, t: string) => arr.filter((c) => c.type === t).length
     const creaturesLost = cnt(me.discard, 'unit'), creaturesKilled = cnt(opp.discard, 'unit')
