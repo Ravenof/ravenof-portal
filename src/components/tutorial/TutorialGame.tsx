@@ -1066,21 +1066,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [showLog, game?.log.length])
 
   // ── AI ėjimo ciklas ──
-  // Ranked: prieš PIRMĄ ėjimo veiksmą botas „pagalvoja" 5–20 s (atsitiktinai),
-  // tarp tolesnių to paties ėjimo veiksmų – trumpas žmogiškas delsimas.
-  const aiThoughtTurnRef = useRef<number>(-1)
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
     if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks) return
-    let delay = 1000
-    if (ranked) {
-      if (aiThoughtTurnRef.current !== game.globalTurn) {
-        aiThoughtTurnRef.current = game.globalTurn
-        delay = 5000 + Math.floor(Math.random() * 15000) // 5–20 s prieš ėjimą
-      } else {
-        delay = 700 + Math.floor(Math.random() * 800)    // 0.7–1.5 s tarp veiksmų
-      }
-    }
+    // Ranked: botas „mąsto" iki ~2 s per kortą/veiksmą (žmogiškas tempas, bet ne lėtas).
+    const delay = ranked ? (500 + Math.floor(Math.random() * 1500)) : 1000
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -1289,7 +1279,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // PvP: 60s ėjimo laikmatis – aktyvus žaidėjas, pasibaigus, automatiškai baigia ėjimą
   useEffect(() => {
-    if (!vsRemote || !game || game.winner) return
+    if (!(vsRemote || ranked) || !game || game.winner) return
     setTurnLeft(120)
     const start = Date.now()
     const iv = setInterval(() => {
@@ -1302,7 +1292,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }, 500)
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vsRemote, game?.globalTurn, game?.active, game?.winner])
+  }, [vsRemote, ranked, game?.globalTurn, game?.active, game?.winner])
 
   // Savo profilio vardas (ėjimo juostai)
   useEffect(() => {
@@ -1934,6 +1924,11 @@ doAction({ t: 'endTurn', actor: 'you' })
               <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
                 {ranked ? `Reitingo kova · prieš ${opponentName ?? 'Priešininką'}` : practice ? `Kova · prieš ${opponentName ?? 'Priešininką'}` : `Mokomoji kova · ${deckName}`}
               </span>
+              {ranked && !game?.winner && game?.active === 'you' && (
+                <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: turnLeft <= 20 ? '#fca5a5' : 'var(--text-secondary)', background: turnLeft <= 20 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
+                  ⏱ {turnLeft}s
+                </span>
+              )}
             </>
           )}
         </div>
@@ -2785,7 +2780,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       })()}
 
       {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) ── */}
-      {vsRemote && !game?.winner && turnLeft <= 20 && (
+      {(vsRemote || (ranked && game?.active === 'you')) && !game?.winner && turnLeft <= 20 && (
         <div className="fixed left-1/2 -translate-x-1/2 top-14 z-[123] pointer-events-none">
           <span className="font-bold tabular-nums animate-pulse" style={{ fontSize: 44, lineHeight: 1, color: '#ef4444', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 18px rgba(239,68,68,0.85)' }}>⏱ {turnLeft}</span>
         </div>
