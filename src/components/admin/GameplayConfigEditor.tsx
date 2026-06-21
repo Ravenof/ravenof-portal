@@ -204,7 +204,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -216,7 +216,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -286,6 +286,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                   </label>
                 ))}
               </div>
+              <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#fca5a5' }}
+                title="Paveikti padarai nežūsta – HP nukrenta tik iki 1. Laukai Kam galioja / Veikia ir pačią kortą / Tik frakcija nustato, kam tai galioja (pvz. visiems kitiems ne sau, arba konkrečios frakcijos).">
+                <input type="checkbox" checked={!!pa?.auraImmortal}
+                  onChange={(e) => setPa({ auraImmortal: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-red-400" />
+                ♾ Kiti negali mirti (nemirtingumas – lieka 1 HP)
+              </label>
             </div>)}
           </>)
         })()}
@@ -356,13 +362,6 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                 <label style={labelStyle}>Žala −% (0–90)</label>
                 <input type="number" min={0} max={90} value={pa?.auraDamageReductionPct ?? 0}
                   onChange={(e) => setPa({ auraDamageReductionPct: Math.min(90, Math.max(0, Number(e.target.value))) || undefined })} style={inputStyle} />
-              </div>
-              <div className="flex items-end pb-1">
-                <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                  <input type="checkbox" checked={!!pa?.auraImmortal}
-                    onChange={(e) => setPa({ auraImmortal: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-blue-400" />
-                  ♾ Negali žūti (lieka 1 HP)
-                </label>
               </div>
               <div>
                 <label style={labelStyle}>Burtų žala +X</label>
