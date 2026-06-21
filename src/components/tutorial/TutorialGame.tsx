@@ -791,7 +791,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }
     const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
     const SETTLE = hasPlay ? 800 : 0
-    const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 3
+    const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 taikiniai (įsk. žaidėjo pasirinktus) → pilno lauko AoE animacija
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
     const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
     for (const e of fresh) {
@@ -935,7 +935,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const elemCol = fxElemColor ?? (srcProj && srcProj !== 'none' ? (PROJECTILE_COLOR[srcProj] ?? null) : null)
             const numCol = elemCol ?? '#ff5a4a'
             const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = aoeMode
-            if (am && !aoeFired) { aoeFired = true; const sr = sref; window.setTimeout(() => { const fr = sr ? rectOf(sr) : null; if (fr) fxRef.current?.spawn({ kind: 'aoeWave', from: fr, color: col, duration: 1.7, variant: aoeVariant() }) }, SETTLE) }
             window.setTimeout(() => {
               const to = rectOf(tgt); if (!to) return
               const from = sref ? rectOf(sref) : null
@@ -1005,6 +1004,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
     }
     if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current })
+    if (aoeMode && !aoeFired) {
+      aoeFired = true
+      const aCol = fxElemColor ?? palOf(srcCard).primary
+      const aFrom = (srcRef ? rectOf(srcRef) : null) ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+      window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, color: aCol, duration: 1.7, variant: aoeVariant() }), SETTLE)
+    }
     if (drewFlash.length > 0) {
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
       if (drewFlash.length === 1) setCardFlash({ card: drewFlash[0].card, title: drewFlash[0].title, tag: 'Ištraukei', color: '#34d399' })
