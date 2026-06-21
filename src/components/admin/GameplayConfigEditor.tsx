@@ -532,7 +532,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                   {showTarget && (
                     <div className="col-span-2 md:col-span-4">
                       <label style={labelStyle}>Keli taikinių tipai (varnelės) – jei pažymėta, žaidėjas renkasi iš VISŲ pažymėtų (padaras+žaidėjas+artefaktas+čempionas)</label>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        <button type="button"
+                          onClick={() => setMapping(i, { targetTypes: ['anyUnit', 'anyArtifact', 'anyPlayer'], requiresSelection: true })}
+                          className="px-2 py-0.5 rounded" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>
+                          ⚡ padaras / artefaktas / žaidėjas
+                        </button>
                         {TARGET_TYPES.filter((t) => !['self', 'selfUnit', 'activeField', 'allOwnUnits', 'allEnemyUnits', 'allUnits', 'allEnemyTargets', 'allOwnTargets'].includes(t.value)).map((t) => {
                           const on = (m.targetTypes ?? []).includes(t.value)
                           return (
@@ -876,6 +881,32 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                               <select value={fm.target} onChange={(e) => setThen({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 150 }}>
                                 {(fPlayerOnly ? TARGET_TYPES.filter((t) => ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer'].includes(t.value)) : TARGET_TYPES).map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                               </select>
+                            </div>
+                          )}
+                          {!fNoTarget && !fPlayerOnly && (
+                            <div className="w-full">
+                              <label style={labelStyle}>Keli taikinių tipai (varnelės) – žaidėjas renkasi iš VISŲ pažymėtų (padaras / artefaktas / žaidėjas / čempionas)</label>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                <button type="button"
+                                  onClick={() => setThen({ targetTypes: ['anyUnit', 'anyArtifact', 'anyPlayer'], requiresSelection: true })}
+                                  className="px-2 py-0.5 rounded" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>
+                                  ⚡ padaras / artefaktas / žaidėjas
+                                </button>
+                                {TARGET_TYPES.filter((t) => !['self', 'selfUnit', 'activeField', 'allOwnUnits', 'allEnemyUnits', 'allUnits', 'allEnemyTargets', 'allOwnTargets', 'castSpell'].includes(t.value)).map((t) => {
+                                  const on = (fm.targetTypes ?? []).includes(t.value)
+                                  return (
+                                    <label key={t.value} className="flex items-center gap-1">
+                                      <input type="checkbox" checked={on}
+                                        onChange={() => {
+                                          const cur = fm.targetTypes ?? []
+                                          const next = cur.includes(t.value) ? cur.filter((x) => x !== t.value) : [...cur, t.value]
+                                          setThen({ targetTypes: next.length ? next : undefined })
+                                        }} className="w-3.5 h-3.5 accent-yellow-400" />
+                                      {t.label}
+                                    </label>
+                                  )
+                                })}
+                              </div>
                             </div>
                           )}
                           {fEffDef?.needsValue && (
