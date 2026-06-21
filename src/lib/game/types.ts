@@ -56,7 +56,7 @@ export type EffectType =
   | 'silence' | 'freeze' | 'stun' | 'poison' | 'burn'
   | 'taunt' | 'stealth' | 'shield'
   | 'buffAttack' | 'buffHealth' | 'debuffAttack' | 'debuffHealth'
-  | 'drawCards' | 'discard'
+  | 'drawCards' | 'drawUntilHand' | 'discard'
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
@@ -84,6 +84,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'debuffAttack',        label: '−ATK',                       needsValue: true },
   { value: 'debuffHealth',        label: '−HP',                        needsValue: true },
   { value: 'drawCards',           label: 'Traukti kortas',             needsValue: true },
+  { value: 'drawUntilHand',       label: 'Traukti kol rankoje bus X kortų', needsValue: true },
   { value: 'discard',             label: 'Išmesti kortas',             needsValue: true },
   { value: 'summonFromHand',      label: 'Iškviesti iš rankos',        needsValue: false },
   { value: 'summonFromDeck',      label: 'Iškviesti iš kaladės',       needsValue: false },

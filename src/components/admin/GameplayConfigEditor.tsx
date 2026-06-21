@@ -450,7 +450,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
               const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
               const targetOpts = isTargeted ? TARGET_TYPES : TARGET_TYPES.filter((t) => playerOnly.includes(t.value))
               const isSinglePick = ['enemyUnit', 'ownUnit', 'anyUnit', 'enemyChampion', 'ownChampion', 'anyChampion', 'enemyArtifact', 'ownArtifact', 'anyArtifact'].includes(m.target)
-              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', gainGold: 'Auksas +', loseGold: 'Auksas −', loseGoldNextTurn: 'Auksas − (kitą ėjimą)', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
+              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', drawUntilHand: 'Rankoje kortų (X)', gainGold: 'Auksas +', loseGold: 'Auksas −', loseGoldNextTurn: 'Auksas − (kitą ėjimą)', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
               // dabartinė parinkimo reikšmė vienam dropdownui
               const pickMode = m.requiresSelection ? 'player' : m.allowRandomTarget ? 'random' : (m.targetSelect ?? 'auto')
               const setPickMode = (v: string) => {
