@@ -276,6 +276,7 @@ export type EffectMapping = {
   effect: EffectType
   target: TargetType
   targetTypes?: TargetType[]     // keli taikinių tipai (union); žaidėjas renkasi iš visų pažymėtų (varnelės)
+  applyToAllTypes?: boolean      // targetTypes: true = paveikti VISUS pažymėtus (AoE); false/undef = žaidėjas renkasi 1 (ARBA)
   value?: number                // damage 2, draw 1, heal 3...
   requiresSelection?: boolean   // ar žaidėjas renkasi taikinį
   optional?: boolean            // ar efektas privalomas

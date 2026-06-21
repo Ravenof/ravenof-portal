@@ -529,9 +529,24 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                       </select>
                     </div>
                   )}
+                  {showTarget && (m.targetTypes?.length ?? 0) > 0 && (
+                    <div className="col-span-2 md:col-span-4">
+                      <label style={labelStyle}>Pažymėtų tipų režimas</label>
+                      <div className="flex gap-2 text-[11px]">
+                        <button type="button" onClick={() => setMapping(i, { applyToAllTypes: undefined, requiresSelection: true, hitCount: undefined })}
+                          className="px-2.5 py-1 rounded" style={{ background: !m.applyToAllTypes ? 'rgba(240,180,41,0.22)' : 'rgba(10,8,16,0.7)', border: '1px solid ' + (!m.applyToAllTypes ? 'rgba(240,180,41,0.55)' : 'rgba(255,255,255,0.1)'), color: !m.applyToAllTypes ? 'var(--gold)' : 'var(--text-muted)' }}>
+                          🎯 ARBA – žaidėjas renkasi 1
+                        </button>
+                        <button type="button" onClick={() => setMapping(i, { applyToAllTypes: true, requiresSelection: false })}
+                          className="px-2.5 py-1 rounded" style={{ background: m.applyToAllTypes ? 'rgba(239,68,68,0.22)' : 'rgba(10,8,16,0.7)', border: '1px solid ' + (m.applyToAllTypes ? 'rgba(239,68,68,0.55)' : 'rgba(255,255,255,0.1)'), color: m.applyToAllTypes ? '#fca5a5' : 'var(--text-muted)' }}>
+                          💥 VISIEMS pažymėtiems (AoE)
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {showTarget && (
                     <div className="col-span-2 md:col-span-4">
-                      <label style={labelStyle}>Keli taikinių tipai (varnelės) – jei pažymėta, žaidėjas renkasi iš VISŲ pažymėtų (padaras+žaidėjas+artefaktas+čempionas)</label>
+                      <label style={labelStyle}>Keli taikinių tipai (varnelės) – „ARBA" režime žaidėjas renkasi 1 iš pažymėtų (padaras / artefaktas / žaidėjas / čempionas)</label>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                         <button type="button"
                           onClick={() => setMapping(i, { targetTypes: ['anyUnit', 'anyArtifact', 'anyPlayer'], requiresSelection: true })}
@@ -883,9 +898,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                               </select>
                             </div>
                           )}
+                          {!fNoTarget && !fPlayerOnly && (fm.targetTypes?.length ?? 0) > 0 && (
+                            <div className="w-full mb-1">
+                              <div className="flex gap-2 text-[11px]">
+                                <button type="button" onClick={() => setThen({ applyToAllTypes: undefined, requiresSelection: true })}
+                                  className="px-2 py-0.5 rounded" style={{ background: !fm.applyToAllTypes ? 'rgba(240,180,41,0.22)' : 'rgba(10,8,16,0.7)', border: '1px solid ' + (!fm.applyToAllTypes ? 'rgba(240,180,41,0.55)' : 'rgba(255,255,255,0.1)'), color: !fm.applyToAllTypes ? 'var(--gold)' : 'var(--text-muted)' }}>
+                                  🎯 ARBA (1)
+                                </button>
+                                <button type="button" onClick={() => setThen({ applyToAllTypes: true, requiresSelection: false })}
+                                  className="px-2 py-0.5 rounded" style={{ background: fm.applyToAllTypes ? 'rgba(239,68,68,0.22)' : 'rgba(10,8,16,0.7)', border: '1px solid ' + (fm.applyToAllTypes ? 'rgba(239,68,68,0.55)' : 'rgba(255,255,255,0.1)'), color: fm.applyToAllTypes ? '#fca5a5' : 'var(--text-muted)' }}>
+                                  💥 VISIEMS (AoE)
+                                </button>
+                              </div>
+                            </div>
+                          )}
                           {!fNoTarget && !fPlayerOnly && (
                             <div className="w-full">
-                              <label style={labelStyle}>Keli taikinių tipai (varnelės) – žaidėjas renkasi iš VISŲ pažymėtų (padaras / artefaktas / žaidėjas / čempionas)</label>
+                              <label style={labelStyle}>Keli taikinių tipai (varnelės) – „ARBA" režime žaidėjas renkasi 1 iš pažymėtų</label>
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                                 <button type="button"
                                   onClick={() => setThen({ targetTypes: ['anyUnit', 'anyArtifact', 'anyPlayer'], requiresSelection: true })}

@@ -75,7 +75,7 @@ export function effectIntent(e: EffectType): 'harm' | 'help' {
 export function mappingNeedsSelection(m: EffectMapping): boolean {
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
-  if (m.targetTypes && m.targetTypes.length > 0) return m.requiresSelection !== false
+  if (m.targetTypes && m.targetTypes.length > 0) return !m.applyToAllTypes && m.requiresSelection !== false
   if (isMultiTarget(m.target)) return false
   if (m.requiresSelection === false) return false
   if (m.requiresSelection === true) return true
@@ -146,7 +146,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     targets = t ? [t] : []
   } else {
     const hasTypes = !!m.targetTypes && m.targetTypes.length > 0
-    const aoe = hasTypes ? false : isMultiTarget(m.target)
+    const aoe = hasTypes ? !!m.applyToAllTypes : isMultiTarget(m.target)  // union: AoE tik jei aiškiai pasirinkta, kitaip – 1 taikinys (ARBA)
     if (ctx.chosenTargets && ctx.chosenTargets.length > 0 && !aoe) {
       targets = ctx.chosenTargets
     } else if (ctx.chosenTarget && !aoe) {
