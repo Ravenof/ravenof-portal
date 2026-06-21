@@ -111,7 +111,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       el.style.setProperty('--lx', Math.round(dx) + 'px')
       el.style.setProperty('--ly', Math.round(dy) + 'px')
       el.classList.remove('rvn-lunge'); void el.offsetWidth; el.classList.add('rvn-lunge')
-      window.setTimeout(() => el.classList.remove('rvn-lunge'), 360)
+      window.setTimeout(() => el.classList.remove('rvn-lunge'), 540)
     },
     hitFlash: (x, y, color) => {
       const D = dprRef.current
@@ -367,6 +367,6 @@ const CSS = `
 [class~="rvn-doom"] { animation: rvnDoom 0.42s ease-in-out infinite alternate; }
 @keyframes rvnDoom { from { filter: drop-shadow(0 0 4px rgba(255,60,60,0.5)); } to { filter: drop-shadow(0 0 13px rgba(255,40,40,0.95)) brightness(1.12); } }
 @keyframes rvnHitHard { 0%,100%{transform:translate(0,0) rotate(0)} 15%{transform:translate(-8px,2px) rotate(-3deg)} 40%{transform:translate(7px,-2px) rotate(3deg)} 65%{transform:translate(-5px,1px) rotate(-2deg)} 85%{transform:translate(3px,0) rotate(1deg)} }
-.rvn-lunge { animation: rvnLunge 0.34s cubic-bezier(0.34,0.2,0.2,1); z-index: 45; will-change: transform; }
-@keyframes rvnLunge { 0%{transform:translate(0,0)} 40%{transform:translate(var(--lx,0px),var(--ly,0px)) scale(1.08)} 100%{transform:translate(0,0)} }
+.rvn-lunge { animation: rvnLunge 0.52s cubic-bezier(0.34,0.2,0.2,1); z-index: 45; will-change: transform; }
+@keyframes rvnLunge { 0%{transform:translate(0,0)} 42%{transform:translate(var(--lx,0px),var(--ly,0px)) scale(1.1)} 56%{transform:translate(var(--lx,0px),var(--ly,0px)) scale(1.06)} 100%{transform:translate(0,0)} }
 `

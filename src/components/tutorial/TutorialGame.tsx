@@ -1021,8 +1021,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
-          if (from && to) fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })
-        }, isAtk ? 120 : 200)
+          if (from && to) {
+            fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })
+            if (isAtk) { playBattleSound('impact', 0.45); fxRef.current?.hitFlash(to.x, to.y, '#ffffff'); fxRef.current?.shakeBoard('soft') }
+          }
+        }, isAtk ? 220 : 200)
         void PROJ_EMOJI; void spawnProjectile
       }
     }
