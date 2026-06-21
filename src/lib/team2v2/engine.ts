@@ -14,6 +14,15 @@ export const SUMMON_SICK_MS = 1200      // ką tik iškviestas negali iškart pu
 export const HAND_MAX = 8
 export const BOARD_SLOTS = 5
 
+export type T2Zmk = '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'
+const ZMK_BAG: T2Zmk[] = [
+  '+0','+0','+0','+0','+0','+0', '+1','+1','+1','+1','+1', '-1','-1','-1','-1','-1', '+2','-2','x2','x0',
+]
+function applyZmk(base: number, v: T2Zmk): number {
+  switch (v) { case '+0': return base; case '+1': return base + 1; case '-1': return Math.max(0, base - 1)
+    case '+2': return base + 2; case '-2': return Math.max(0, base - 2); case 'x2': return base * 2; case 'x0': return 0 }
+}
+
 export type T2Card = { uid: string; id: string; name: string; image: string | null; gold: number; atk: number; hp: number; factionColor: string; rarityColor: string }
 export type T2Unit = { uid: string; card: T2Card; hp: number; maxHp: number; atk: number; bornAt: number; lastAttackAt: number }
 
@@ -30,6 +39,9 @@ export type T2Seat = {
   hand: T2Card[]
   units: (T2Unit | null)[]
   lastDrawAt: number
+  zmk: T2Zmk[]
+  zmkGrave: T2Zmk[]
+  lastZmk?: { v: T2Zmk; dmg: number; at: number }
   botSlug?: string | null
   difficulty?: 'easy' | 'normal' | 'hard'
 }
@@ -63,6 +75,7 @@ export function createT2State(seats: SeatInit[], now = 0): T2State {
       id: si.id, team: si.team, controller: si.controller, name: si.name, avatar: si.avatar,
       gold: GOLD_START, goldFloat: GOLD_START, lastIncomeAt: now, lastDrawAt: now,
       deck, hand, units: Array(BOARD_SLOTS).fill(null),
+      zmk: shuffle([...ZMK_BAG]), zmkGrave: [],
       botSlug: si.botSlug, difficulty: si.difficulty,
     }
     order.push(si.id)
@@ -72,6 +85,13 @@ export function createT2State(seats: SeatInit[], now = 0): T2State {
     teams: { A: { hp: TEAM_HP_MAX, maxHp: TEAM_HP_MAX }, B: { hp: TEAM_HP_MAX, maxHp: TEAM_HP_MAX } },
     startedAt: now, winner: null, log: [], _logId: 0,
   }
+}
+
+function drawZmk(seat: T2Seat): T2Zmk {
+  if (seat.zmk.length === 0) { seat.zmk = shuffle(seat.zmkGrave); seat.zmkGrave = [] }
+  const v = (seat.zmk.pop() ?? '+0') as T2Zmk
+  seat.zmkGrave.push(v)
+  return v
 }
 
 /** Realaus laiko tika: auksas kaupiasi, periodiškai traukiama korta. Mutuoja state. */
@@ -124,7 +144,9 @@ export function attack(s: T2State, seatId: SeatId, attackerUid: string, target: 
   if (!au || !unitReady(au, now)) return false
   if (target.kind === 'face') {
     if (target.team === seat.team) return false
-    dmgTeam(s, target.team, au.atk, now, `„${au.card.name}" (${au.atk}) puola komandą`)
+    const v = drawZmk(seat); const dmg = applyZmk(au.atk, v)
+    seat.lastZmk = { v, dmg, at: now }
+    dmgTeam(s, target.team, dmg, now, `„${au.card.name}" (${au.atk}${v !== '+0' ? ' ' + v : ''}=${dmg}) puola komandą`)
     au.lastAttackAt = now
     return true
   }
@@ -133,10 +155,12 @@ export function attack(s: T2State, seatId: SeatId, attackerUid: string, target: 
   const slot = tSeat.units.findIndex((u) => u?.uid === target.uid)
   const def = slot >= 0 ? tSeat.units[slot] : null
   if (!def) return false
-  // vienu metu: abu daro žalą
-  def.hp -= au.atk
-  au.hp -= def.atk
-  log(s, now, `„${au.card.name}" ⚔ „${def.card.name}".`)
+  // vienu metu: abu daro žalą (su ŽMK)
+  const av = drawZmk(seat); const adm = applyZmk(au.atk, av); seat.lastZmk = { v: av, dmg: adm, at: now }
+  const dv = drawZmk(tSeat); const ddm = applyZmk(def.atk, dv); tSeat.lastZmk = { v: dv, dmg: ddm, at: now }
+  def.hp -= adm
+  au.hp -= ddm
+  log(s, now, `„${au.card.name}" (${adm}) ⚔ „${def.card.name}" (${ddm}).`)
   au.lastAttackAt = now
   if (def.hp <= 0) { tSeat.units[slot] = null; log(s, now, `„${def.card.name}" sunaikintas.`) }
   const aSlot = seat.units.findIndex((u) => u?.uid === au.uid)

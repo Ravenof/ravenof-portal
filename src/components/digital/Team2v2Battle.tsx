@@ -11,6 +11,7 @@ import type { CoopSetup } from '@/lib/team2v2/setup'
 import { playUiClick, playCardPlace } from '@/lib/ui-sound'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
+import { awardGold } from '@/lib/economy'
 
 const BOT_INTERVAL: Record<string, number> = { easy: 2600, normal: 1900, hard: 1400 }
 
@@ -28,6 +29,7 @@ export function Team2v2Battle({ setup, cards, onExit }: { setup: CoopSetup; card
   const rerender = useCallback(() => force((v) => v + 1), [])
   const [sel, setSel] = useState<string | null>(null) // pasirinktas puolėjo uid (p0)
   const [done, setDone] = useState(false)
+  const rewardedRef = useRef(false)
 
   const tnow = () => performance.now() - baseRef.current
 
@@ -51,7 +53,10 @@ export function Team2v2Battle({ setup, cards, onExit }: { setup: CoopSetup; card
           botNextRef.current[id] = now + gap * (0.7 + Math.random() * 0.6)
         }
       }
-      if (st.winner && !done) { setDone(true); playBattleSound(st.winner === 'A' ? 'summon' : 'death', 0.5) }
+      if (st.winner && !done) {
+        setDone(true); playBattleSound(st.winner === 'A' ? 'summon' : 'death', 0.5)
+        if (st.winner === 'A' && !rewardedRef.current) { rewardedRef.current = true; awardGold('pvp_unranked', 100) }
+      }
       rerender()
     }, 160)
     return () => { clearInterval(iv); startMenuMusic() }
@@ -118,6 +123,9 @@ export function Team2v2Battle({ setup, cards, onExit }: { setup: CoopSetup; card
   const seatRow = (seat: T2Seat, kind: 'mine' | 'ally' | 'foe') => (
     <div key={seat.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(10,8,16,0.4)' }}>
       <span className="w-16 shrink-0 text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{seat.avatar} {seat.name.replace(' (AI)', '')}{seat.controller === 'ai' ? ' 🤖' : ''}</span>
+      {seat.lastZmk && now - seat.lastZmk.at < 900 && (
+        <span className="shrink-0 text-[10px] font-bold px-1 rounded animate-pulse" style={{ background: 'rgba(0,0,0,0.85)', color: seat.lastZmk.v.startsWith('-') || seat.lastZmk.v === 'x0' ? '#f87171' : '#4ade80' }} title="ŽMK">⚄ {seat.lastZmk.v}→{seat.lastZmk.dmg}</span>
+      )}
       <div className="flex gap-1 flex-1 min-h-[60px] items-center overflow-x-auto">
         {seat.units.map((u, i) => u ? unitChip(u, { mine: kind === 'mine', foe: kind === 'foe', seatId: seat.id }) : <span key={i} className="shrink-0 rounded-md" style={{ width: 46, height: 60, border: '1px dashed rgba(255,255,255,0.08)' }} />)}
       </div>
@@ -171,7 +179,7 @@ export function Team2v2Battle({ setup, cards, onExit }: { setup: CoopSetup; card
           <div className="text-center px-6 py-8 rounded-2xl" style={{ background: 'rgba(10,8,16,0.97)', border: `1px solid ${winner === you.team ? 'rgba(56,189,248,0.6)' : 'rgba(239,68,68,0.5)'}` }}>
             <p className="text-5xl mb-2">{winner === you.team ? '🏆' : '💀'}</p>
             <p className="text-2xl font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: winner === you.team ? '#7dd3fc' : '#f87171' }}>{winner === you.team ? 'Komanda laimėjo!' : 'Komanda pralaimėjo'}</p>
-            <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>2v2 co-op vs botai</p>
+            <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>2v2 co-op vs botai{winner === you.team ? ' · +100 🪙' : ''}</p>
             <button onClick={() => { playUiClick(); onExit() }} className="px-6 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(56,189,248,0.2)', border: '1px solid rgba(56,189,248,0.55)', color: '#7dd3fc', fontFamily: 'var(--rvn-font-display)' }}>Grįžti</button>
           </div>
         </div>
