@@ -37,7 +37,7 @@ import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled } from '@/lib/settings'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
-import { BattleFxLayer, type BattleFxHandle } from './BattleFxLayer'
+import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
@@ -391,7 +391,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
   // Prakeiksmo aktyvacijos overlay
-  const [cardFlash, setCardFlash] = useState<{ card: TutCard | null; title: string; tag: string | null; color: string } | null>(null)
+  const [cardFlash, setCardFlash] = useState<{ card: TutCard | null; cards?: (TutCard | null)[]; title: string; tag: string | null; color: string } | null>(null)
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Monetos metimo animacija (žalia/raudona)
   const [coinAnim, setCoinAnim] = useState<{ side: Side; coin: 'green' | 'red' } | null>(null)
@@ -768,12 +768,27 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let zmkN = 0
     let skipYouDraw = false
     const zmkBatch: { v: string; side: Side }[] = []
+    const drewFlash: { card: TutCard | null; title: string }[] = []  // visi šiame pakete žaidėjo ištraukti (kad rodytų VISUS, ne tik paskutinį)
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
     let srcRef: { side: Side; uid?: string } | undefined
     let srcCard: TutCard | null = null
     let fxSeq = 0
     let projFired = false
     let aoeFired = false
+    let fxElemColor: string | null = null  // pasirinkto efekto elemento spalva (ugnis/žaibas/ledas…) AoE/žalos FX
+    let fxElemType: string | null = null     // elemento tipas → AoE variantas (fire/lightning/ice/…)
+    const aoeVariant = (): AoeVariant => {
+      const t = fxElemType ?? (srcCard?.gameplay?.projectileType ?? null)
+      switch (t) {
+        case 'fireball': return 'fire'
+        case 'lightning': return 'lightning'
+        case 'freezeBurst': return 'ice'
+        case 'poisonGlob': return 'poison'
+        case 'darkCurse': return 'arcane'
+        case 'healingGlow': return 'holy'
+        default: return 'generic'
+      }
+    }
     const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
     const SETTLE = hasPlay ? 800 : 0
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 3
@@ -782,6 +797,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
+      if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
         case 'draw': {
@@ -791,10 +807,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (e.side === 'you' && e.cardName) {
             if (skipYouDraw) { skipYouDraw = false }
             else {
-              const card = findCard(e.cardName)
-              setCardFlash({ card, title: e.cardName, tag: 'Ištraukei', color: '#34d399' })
-              if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
-              flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
+              drewFlash.push({ card: findCard(e.cardName), title: e.cardName })
             }
           }
           break
@@ -874,7 +887,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'field': {
           queueTip('field'); if (!e.sound) playBattleSound('field')
           const d = SETTLE + fxSeq; fxSeq += 120
-          window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: { x: window.innerWidth / 2, y: window.innerHeight / 2 }, color: '#ffd24a', duration: 1.7 }), d)
+          window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: { x: window.innerWidth / 2, y: window.innerHeight / 2 }, color: fxElemColor ?? '#ffd24a', duration: 1.7, variant: aoeVariant() }), d)
           break
         }
         case 'evolve': queueTip('evolve'); playSuccess(); break
@@ -917,8 +930,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (tgt && val) {
             if (tgt.uid && tgt.side) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: cur + val })) } }
             const base = SETTLE + fxSeq; fxSeq += 120
-            const sref = srcRef, col = palOf(srcCard).primary, pf = projFired, am = aoeMode
-            if (am && !aoeFired) { aoeFired = true; const sr = sref; window.setTimeout(() => { const fr = sr ? rectOf(sr) : null; if (fr) fxRef.current?.spawn({ kind: 'aoeWave', from: fr, color: col, duration: 1.6 }) }, SETTLE) }
+            // elemento spalva: batch e.projectile > source kortos projectileType > frakcijos paletė
+            const srcProj = srcCard?.gameplay?.projectileType
+            const elemCol = fxElemColor ?? (srcProj && srcProj !== 'none' ? (PROJECTILE_COLOR[srcProj] ?? null) : null)
+            const numCol = elemCol ?? '#ff5a4a'
+            const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = aoeMode
+            if (am && !aoeFired) { aoeFired = true; const sr = sref; window.setTimeout(() => { const fr = sr ? rectOf(sr) : null; if (fr) fxRef.current?.spawn({ kind: 'aoeWave', from: fr, color: col, duration: 1.7, variant: aoeVariant() }) }, SETTLE) }
             window.setTimeout(() => {
               const to = rectOf(tgt); if (!to) return
               const from = sref ? rectOf(sref) : null
@@ -926,8 +943,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               if (fireProj) fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 })
               window.setTimeout(() => {
                 if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
-                fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, '#ff5a4a', val >= 4)
-                fxRef.current?.hitFlash(to.x, to.y, '#ff5a4a')
+                fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, val >= 4)
+                fxRef.current?.hitFlash(to.x, to.y, numCol)
                 if (tgt.uid) fxRef.current?.shakeUnit(tgt.uid, val >= 5 ? 'hard' : 'normal')
                 playBattleSound('impact', 0.3)
               }, fireProj ? 600 : 220)
@@ -988,6 +1005,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
     }
     if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current })
+    if (drewFlash.length > 0) {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+      if (drewFlash.length === 1) setCardFlash({ card: drewFlash[0].card, title: drewFlash[0].title, tag: 'Ištraukei', color: '#34d399' })
+      else setCardFlash({ card: null, cards: drewFlash.map((d) => d.card), title: `Ištraukei ${drewFlash.length} kortas`, tag: `Ištraukei ${drewFlash.length}`, color: '#34d399' })
+      flashTimerRef.current = setTimeout(() => setCardFlash(null), drewFlash.length > 1 ? 2800 : 2000)
+    }
 
     // lentos skenavimas raktažodžių patarimams
     for (const s of ['you', 'ai'] as Side[]) {
@@ -3049,7 +3072,15 @@ doAction({ t: 'endTurn', actor: 'you' })
               {cardFlash.tag && (
                 <span className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + cardFlash.color, color: cardFlash.color, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>{cardFlash.tag}</span>
               )}
-              {cardFlash.card ? (
+              {cardFlash.cards && cardFlash.cards.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-center gap-2 max-w-[94vw]">
+                  {cardFlash.cards.map((c, ci) => (
+                    <div key={ci} style={{ filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.7))', outline: '2px solid ' + cardFlash.color, borderRadius: 12 }}>
+                      {c ? <MiniCard c={c} w={isTouch ? 96 : 130} /> : <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(8,6,12,0.95)', border: '1px solid ' + cardFlash.color, color: 'var(--text-primary)' }}>?</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : cardFlash.card ? (
                 <div style={{ filter: 'drop-shadow(0 14px 34px rgba(0,0,0,0.75))', outline: '2px solid ' + cardFlash.color, borderRadius: 14 }}>
                   <MiniCard c={cardFlash.card} w={isTouch ? 150 : 196} />
                 </div>

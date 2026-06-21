@@ -17,8 +17,10 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { FxKind, FxIntensity } from '@/lib/game/effectAnimations'
 
+export type AoeVariant = 'fire' | 'lightning' | 'ice' | 'poison' | 'arcane' | 'holy' | 'generic'
 export type SpawnFx = {
   kind: FxKind
+  variant?: AoeVariant
   from?: { x: number; y: number }
   to?: { x: number; y: number }
   color: string
@@ -45,7 +47,7 @@ const intMul = (i?: FxIntensity) => (i === 'big' ? 1.5 : i === 'small' ? 0.7 : 1
 type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; rot: number; vr: number }
 type Item = {
   id: number; kind: FxKind; from: { x: number; y: number }; to: { x: number; y: number }
-  color: string; color2: string; im: number; dur: number; t0: number; parts: P[]; seeded: boolean
+  color: string; color2: string; im: number; dur: number; t0: number; parts: P[]; seeded: boolean; variant?: AoeVariant
 }
 
 function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
@@ -75,7 +77,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
         id: ++idc.current, kind: fx.kind,
         from: { x: from.x * D, y: from.y * D }, to: { x: to.x * D, y: to.y * D },
         color: fx.color, color2: fx.color2 ?? fx.color, im: intMul(fx.intensity),
-        dur: (fx.duration ?? 1.4) * 1000, t0: performance.now(), parts: [], seeded: false,
+        dur: (fx.duration ?? 1.4) * 1000, t0: performance.now(), parts: [], seeded: false, variant: fx.variant,
       })
       ensureLoop()
     },
@@ -212,11 +214,54 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       break
     }
     case 'aoeWave': {
-      const r = easeOut(p) * Math.max(window.innerWidth, window.innerHeight) * 0.55 * D
-      ctx.strokeStyle = color; ctx.globalAlpha = (1 - p) * 0.85; ctx.lineWidth = (8 - p * 5) * D
-      ctx.beginPath(); ctx.arc(from.x, from.y, r, 0, TAU); ctx.stroke()
-      ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = (1 - p) * 0.5; ctx.lineWidth = 2 * D
-      ctx.beginPath(); ctx.arc(from.x, from.y, r, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1
+      // Pilno lauko efektas: šviesa + dūmai + dalelės pagal elementą. JOKIŲ linijų/ikonų.
+      const W = window.innerWidth * D, H = window.innerHeight * D
+      const v = it.variant ?? 'generic'
+      if (!it.seeded) {
+        it.seeded = true
+        const n = Math.round(64 * im)
+        for (let k = 0; k < n; k++) {
+          const x = rnd(0, W), y = rnd(0, H)
+          if (v === 'fire') it.parts.push({ x, y: rnd(H * 0.5, H), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.8, 2.6) * D, life: now + rnd(0, 300), max: rnd(700, 1300), size: rnd(2, 6) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'ice') it.parts.push({ x, y: rnd(-H * 0.2, H * 0.4), vx: rnd(-0.3, 0.3) * D, vy: rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'lightning') it.parts.push({ x, y, vx: 0, vy: 0, life: now + rnd(0, 700), max: rnd(90, 220), size: rnd(2, 7) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'poison') it.parts.push({ x, y: rnd(H * 0.4, H), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.3, 1.1) * D, life: now + rnd(0, 400), max: rnd(1000, 1700), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 0 })
+          else it.parts.push({ x, y, vx: rnd(-0.5, 0.5) * D, vy: -rnd(0.2, 1.0) * D, life: now + rnd(0, 350), max: rnd(700, 1300), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
+        }
+        // dūmų debesys (dideli minkšti, kyla)
+        const sn = Math.round(10 * im)
+        for (let k = 0; k < sn; k++) it.parts.push({ x: rnd(0, W), y: rnd(H * 0.45, H * 1.05), vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.2, 0.7) * D, life: now, max: rnd(1100, 1700), size: rnd(40, 90) * D, rot: -1, vr: 0 })
+      }
+      ctx.globalCompositeOperation = 'lighter'
+      // pilno lauko šviesos banga (be linijų): centrinis žybsnis + bendras atspalvis
+      const wash = Math.sin(Math.min(1, p) * Math.PI)
+      ctx.fillStyle = color; ctx.globalAlpha = wash * (v === 'lightning' ? 0.16 : 0.09); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1
+      glow(ctx, from.x, from.y, Math.max(W, H) * (0.35 + easeOut(p) * 0.4), color, (1 - p) * 0.16)
+      if (v === 'lightning' && p < 0.18) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = (0.18 - p) / 0.18 * 0.35; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
+      // dalelės / dūmai
+      for (let k = it.parts.length - 1; k >= 0; k--) {
+        const q = it.parts[k]
+        if (now < q.life) continue
+        q.x += q.vx + Math.sin((now + q.rot * 120) / 320) * 0.25 * D
+        q.y += q.vy
+        const e = (now - q.life) / q.max
+        if (e >= 1) { it.parts.splice(k, 1); continue }
+        const a = Math.sin(Math.min(1, e) * Math.PI)
+        if (q.rot === -1) { // dūmų debesis
+          ctx.globalCompositeOperation = 'source-over'
+          glow(ctx, q.x, q.y, q.size * (1 + e * 0.6), color, a * 0.10)
+          ctx.globalCompositeOperation = 'lighter'
+        } else if (v === 'fire') {
+          glow(ctx, q.x, q.y, q.size * 2.6, `hsla(${18 + (1 - e) * 30},100%,60%,1)`, a * 0.9)
+        } else if (v === 'lightning') {
+          glow(ctx, q.x, q.y, q.size * (1.8 + Math.random() * 1.2), Math.random() < 0.5 ? '#ffffff' : color, a * 0.95)
+        } else if (v === 'ice') {
+          glow(ctx, q.x, q.y, q.size * 2.2, color, a * 0.85); glow(ctx, q.x, q.y, q.size * 0.7, '#ffffff', a * 0.7)
+        } else {
+          glow(ctx, q.x, q.y, q.size * 2.4, color, a * 0.85)
+        }
+      }
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1
       break
     }
     case 'shield': {
