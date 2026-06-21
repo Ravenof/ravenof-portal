@@ -23,6 +23,7 @@ import {
   championSkills, canUnitAttack, legalTargets, cloneState, P,
   swapPerspective, applyNetAction, swapAction, type NetAction,
   parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
+  effectiveCost, auraSpellDamageBonus,
   STATUS_META, TutStatus, boardCreatureCap,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
@@ -176,7 +177,15 @@ function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; scale?: n
   return <span style={{ display: 'inline-block', width: 46 * scale, height: 60 * scale, flex: '0 0 auto' }}><span style={{ display: 'inline-block', transformOrigin: 'top left', transform: `scale(${scale})` }}>{inner}</span></span>
 }
 
-function MiniCard({ c, w, dim, faceDown, readable }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean }) {
+/** Burtų žalos priedas rankoje (tik žalą darantiems burtams; pasyvi aura). */
+function spellDmgBonusFor(game: GameState, c: TutCard): number {
+  if (c.type !== 'spell') return 0
+  const deals = (c.mappings ?? []).some((m) => m.effect === 'damage' || m.effect === 'burn') || !!c.effect?.damage
+  if (!deals) return 0
+  return auraSpellDamageBonus(game, 'you', c.gameplay?.spellType)
+}
+
+function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean; costNow?: number; dmgBonus?: number }) {
   const h = Math.round(w * 4 / 3)
   if (faceDown) {
     return (
@@ -217,8 +226,17 @@ function MiniCard({ c, w, dim, faceDown, readable }: { c: TutCard; w: number; di
         </div>
       )}
       {(!readable || !c.image) && (<>
-        <span className="absolute top-0.5 left-0.5 rounded-full font-bold"
-          style={{ background: 'rgba(0,0,0,0.85)', color: 'var(--gold)', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.gold}</span>
+        {(() => {
+          const cheaper = costNow != null && costNow < c.gold
+          const pricier = costNow != null && costNow > c.gold
+          const shown = costNow ?? c.gold
+          const cc = cheaper ? '#4ade80' : pricier ? '#fbbf24' : 'var(--gold)'
+          return <span className="absolute top-0.5 left-0.5 rounded-full font-bold" style={{ background: 'rgba(0,0,0,0.85)', color: cc, fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px', boxShadow: cheaper ? '0 0 6px rgba(74,222,128,0.7)' : undefined }}>{shown}</span>
+        })()}
+        {dmgBonus != null && dmgBonus > 0 && (
+          <span className="absolute top-0.5 right-0.5 rounded font-bold" title="Burtų žalos priedas (pasyvi aura)"
+            style={{ background: 'rgba(0,0,0,0.85)', color: '#fb923c', fontSize: badge, padding: '0 ' + Math.round(badge * 0.35) + 'px', boxShadow: '0 0 6px rgba(251,146,60,0.7)' }}>+{dmgBonus}</span>
+        )}
         {c.attack !== null && c.type === 'unit' && (
           <span className="absolute bottom-0.5 left-0.5 rounded font-bold"
             style={{ background: 'rgba(0,0,0,0.85)', color: '#f87171', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.attack}</span>
@@ -2112,7 +2130,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                       <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
                         <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
                           style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
-                          <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
+                          <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
                         </div>
                       </GameCard>
                     </motion.div>
@@ -2183,7 +2201,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                     onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
                     <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
                       <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing" style={{ filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
-                        <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} />
+                        <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
                       </div>
                     </GameCard>
                   </motion.div>

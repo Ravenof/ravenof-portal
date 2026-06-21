@@ -554,7 +554,7 @@ function unitIsImmortal(g: GameState, ownerSide: Side, uid: string): boolean {
   return aurasAffecting(g, ownerSide, uid).some((cfg) => !!cfg?.auraImmortal)
 }
 /** Burtų žalos priedas iš aurų caster pusės (atitinkamo tipo) burtams. */
-function auraSpellDamageBonus(g: GameState, caster: Side, spellType?: SpellType): number {
+export function auraSpellDamageBonus(g: GameState, caster: Side, spellType?: SpellType): number {
   let bonus = 0
   for (const sd of ['you', 'ai'] as Side[]) {
     const p = P(g, sd)
