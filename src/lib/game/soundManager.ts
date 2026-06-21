@@ -11,7 +11,7 @@ import { getSfxVolume } from '@/lib/settings'
 
 import {
   isUiSoundEnabled, playCardPick, playCardPlace, playCardFlip, playCardDraw,
-  playError, playSuccess, playUiClick, playDiscovery, playShuffle,
+  playError, playSuccess, playUiClick, playDiscovery, playShuffle, playImpact,
 } from '@/lib/ui-sound'
 import type { BattleSoundType } from './types'
 
@@ -49,7 +49,7 @@ function candidates(key: BattleSoundType): string[] {
 const SYNTH_FALLBACK: Record<BattleSoundType, () => void> = {
   attack:        playCardPick,
   spellCast:     playCardFlip,
-  impact:        playError,
+  impact:        playImpact,
   draw:          playCardDraw,
   curse:         playError,
   field:         playDiscovery,

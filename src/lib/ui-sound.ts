@@ -206,6 +206,7 @@ function _synthFlip(): void { swish(0.18, 500, 3500, 0.26) }
 function _synthClick(): void { tone(900, 700, 'square', 0.035, 0.06) }
 function _synthSuccess(): void { tone(523, 659, 'sine', 0.12, 0.14); tone(659, 880, 'sine', 0.14, 0.12, 0.1) }
 function _synthError(): void { tone(180, 110, 'sawtooth', 0.16, 0.16) }
+function _synthImpact(): void { tone(175, 52, 'sine', 0.15, 0.5); swish(0.08, 2800, 320, 0.34) }
 function _synthMapZoom(): void { swish(0.1, 400, 900, 0.06) }
 function _synthPanelOpen(): void { swish(0.14, 700, 2200, 0.12) }
 function _synthDiscovery(): void { tone(523, 784, 'sine', 0.18, 0.14); tone(784, 1047, 'sine', 0.22, 0.12, 0.14); swish(0.3, 1500, 4000, 0.08, 0.05) }
@@ -245,6 +246,7 @@ export function playSuccess(): void { sfx(SFX.success, 0.5, _synthSuccess) }
 
 /** Klaida. */
 export function playError(): void { sfx(SFX.error, 0.5, _synthError) }
+export function playImpact(): void { _synthImpact() }
 
 /** Žemėlapio zoom (throttled). */
 export function playMapZoom(): void {
