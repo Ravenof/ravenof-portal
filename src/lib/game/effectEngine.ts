@@ -52,6 +52,9 @@ export type ApplyCtx = {
 }
 
 const MAX_DEPTH = 4
+// Globali kaskados riba: apsaugo nuo begalinės rekursijos, kai trigger'iai (pvz.
+// onDeath/onAnyDeath) iškviečiami su depth=0 (debuff→mirtis→deathrattle→debuff…).
+const MAX_CASCADE = 200
 
 const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard']
 
@@ -96,6 +99,21 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     api.log(g, { t: 'blocked', side: caster, msg: `⚠ Efektų grandinė per gili – „${ctx.sourceName}" follow-up praleistas.` })
     return false
   }
+  // Globali kaskados apsauga (depth=0 reset'ai per killUnit→onDeath neapsaugo nuo ciklų).
+  const gg = g as unknown as { __fxCascade?: number }
+  if ((gg.__fxCascade ?? 0) > MAX_CASCADE) {
+    api.log(g, { t: 'blocked', side: caster, msg: `⚠ Efektų kaskada per ilga – „${ctx.sourceName}" praleistas (apsauga nuo ciklo).` })
+    return false
+  }
+  gg.__fxCascade = (gg.__fxCascade ?? 0) + 1
+  try {
+    return applyMappingInner(api, g, caster, m, ctx)
+  } finally {
+    gg.__fxCascade = (gg.__fxCascade ?? 1) - 1
+  }
+}
+
+function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMapping, ctx: ApplyCtx): boolean {
   // Sąlyga: jei netenkinama – mapping praleidžiamas tyliai (naudojama fallback porai).
   if (m.condition && !evalCondition(g, caster, m.condition)) return false
 
