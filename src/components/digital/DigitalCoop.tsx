@@ -6,6 +6,10 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { buildCoopMatch, type CoopSetup } from '@/lib/team2v2/setup'
+import { loadCoopCards } from '@/lib/team2v2/cards'
+import { Team2v2Battle } from './Team2v2Battle'
+import type { T2Card } from '@/lib/team2v2/engine'
+import type { SeatId } from '@/lib/team2v2/types'
 import { TEAM_HP_MAX, type Team } from '@/lib/team2v2/types'
 
 const oct = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
@@ -17,6 +21,8 @@ export function DigitalCoop() {
   const [sel, setSel] = useState('')
   const [name, setName] = useState('Tu')
   const [setup, setSetup] = useState<CoopSetup | null>(null)
+  const [cards, setCards] = useState<Record<SeatId, T2Card[]> | null>(null)
+  const [loadingBattle, setLoadingBattle] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -34,6 +40,12 @@ export function DigitalCoop() {
   }, [])
 
   const make = () => { if (!sel) return; playUiClick(); setSetup(buildCoopMatch(sel, name)) }
+  const start = async () => {
+    if (!setup) return; playUiClick(); setLoadingBattle(true)
+    const c = await loadCoopCards(setup); setLoadingBattle(false)
+    if (!c.p0 || c.p0.length === 0) return
+    setCards(c)
+  }
 
   const TeamPanel = ({ team, label, accent }: { team: Team; label: string; accent: string }) => (
     <div style={{ clipPath: oct(11), background: `rgba(${accent},0.4)`, padding: 2, flex: 1 }}>
@@ -56,6 +68,8 @@ export function DigitalCoop() {
       </div>
     </div>
   )
+
+  if (setup && cards) return <Team2v2Battle setup={setup} cards={cards} onExit={() => { setCards(null); setSetup(null) }} />
 
   return (
     <div className="max-w-md mx-auto space-y-5">
@@ -99,6 +113,11 @@ export function DigitalCoop() {
           <div className="px-3 py-2.5 rounded-lg text-center" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.35)' }}>
             <p className="text-[11px]" style={{ color: '#fcd34d' }}>⚙ Komanda sudaryta. Realaus laiko 2v2 kovos variklis kuriamas (kitas etapas) — komandos veiks vienu metu, bendras HP {TEAM_HP_MAX}.</p>
           </div>
+          <button onClick={start} disabled={loadingBattle}
+            className="block w-full px-4 py-3 rounded-xl text-base font-bold transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+            style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#7dd3fc', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>
+            {loadingBattle ? 'Kraunama…' : '▶ PRADĖTI KOVĄ'}
+          </button>
           <button onClick={() => { playUiClick(); setSetup(null) }} className="block w-full px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>← Iš naujo</button>
         </>
       )}
