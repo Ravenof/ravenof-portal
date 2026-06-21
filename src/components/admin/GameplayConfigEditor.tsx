@@ -204,7 +204,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -216,7 +216,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -254,6 +254,18 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                     onChange={(e) => setPa({ auraFaction: e.target.value ? Number(e.target.value) : undefined })} style={inputStyle}>
                     <option value="">(bet kuri frakcija)</option>
                     {factions.map((fc) => <option key={fc.id} value={fc.id}>{fc.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>🔮 Burtų žala +X</label>
+                  <input type="number" min={0} value={pa?.auraSpellDamage ?? 0}
+                    onChange={(e) => setPa({ auraSpellDamage: Number(e.target.value) || undefined })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Burtų žala tik tipui</label>
+                  <select value={pa?.auraSpellType ?? ''} onChange={(e) => setPa({ auraSpellType: (e.target.value || undefined) as SpellType | undefined })} style={inputStyle}>
+                    <option value="">(visi burtai)</option>
+                    {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
                   </select>
                 </div>
                 <div className="flex items-end pb-1">
@@ -362,18 +374,6 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                 <label style={labelStyle}>Žala −% (0–90)</label>
                 <input type="number" min={0} max={90} value={pa?.auraDamageReductionPct ?? 0}
                   onChange={(e) => setPa({ auraDamageReductionPct: Math.min(90, Math.max(0, Number(e.target.value))) || undefined })} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Burtų žala +X</label>
-                <input type="number" min={0} value={pa?.auraSpellDamage ?? 0}
-                  onChange={(e) => setPa({ auraSpellDamage: Number(e.target.value) || undefined })} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Burtų žala +X tik tipui</label>
-                <select value={pa?.auraSpellType ?? ''} onChange={(e) => setPa({ auraSpellType: (e.target.value || undefined) as SpellType | undefined })} style={inputStyle}>
-                  <option value="">(visi burtai)</option>
-                  {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
-                </select>
               </div>
             </div>
           )
