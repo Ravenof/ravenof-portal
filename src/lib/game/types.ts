@@ -105,7 +105,6 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false },
   { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)',    needsValue: true },
-  { value: 'buffSpellDamage',     label: 'Burtų žala +X (savininkui)',      needsValue: true },
   { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false },
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true },
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },

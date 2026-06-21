@@ -182,10 +182,9 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
   switch (m.effect) {
     case 'damage': {
       const useZmk = m.triggersZmk !== false
-      // Burtų žalos priedas (charakterio onCast trigger'is): pridedamas tik burto kontekste.
-      const spellBonus = (g.rollContext?.kind === 'spell' && g.rollContext.actor === caster)
-        ? (caster === 'you' ? g.you : g.ai).spellDamageBonus : 0
-      const dv = v + spellBonus
+      // Burtų žalos priedas dabar TIK pasyvi aura (auraSpellDamage – kol kūrinys kovos lauke),
+      // pridedama dealToUnit/dealToPlayer per spellAuraBonusFor. Jokio nuolatinio kaupiamo priedo.
+      const dv = v
       for (const t of targets) {
         if (t.kind === 'player') { api.dealToPlayer(g, t.side, dv, caster, useZmk); chainDamage += dv }
         else if (t.kind === 'artifact') {
