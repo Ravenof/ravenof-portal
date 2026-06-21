@@ -516,7 +516,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                   )}
                   <div>
                     <label style={labelStyle}>Efektas</label>
-                    <select value={m.effect} onChange={(e) => setMapping(i, { effect: e.target.value as EffectMapping['effect'] })} style={inputStyle}>
+                    <select value={m.effect} onChange={(e) => { const ev = e.target.value as EffectMapping['effect']; setMapping(i, ev === 'reflectToAttacker' ? { effect: ev, useAttackTarget: true } : { effect: ev }) }} style={inputStyle}>
                       {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
@@ -576,10 +576,25 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                         onChange={(e) => setMapping(i, { value: Number(e.target.value) })} style={inputStyle} />
                     </div>
                   )}
+                  {(m.effect === 'damage' || m.effect === 'burn') && (
+                    <div className="col-span-2 md:col-span-4">
+                      <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}
+                        title="Jei žala viršija taikinio HP, perteklius pereina to padaro žaidėjui (pvz. 6 žala į 4 HP padarą → 2 žaidėjui).">
+                        <input type="checkbox" checked={!!m.overflowToPlayer}
+                          onChange={(e) => setMapping(i, { overflowToPlayer: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                        💥 Perteklinę žalą perduoti taikinio žaidėjui
+                      </label>
+                    </div>
+                  )}
+                  {m.effect === 'reflectToAttacker' && (
+                    <div className="col-span-2 md:col-span-4 text-[11px]" style={{ color: '#fca5a5' }}>
+                      ℹ Naudok su trigeriu <b>onAttacked</b>: sunaikina puolantį padarą ir atspindi jo ATK į puolėjo žaidėją. „Efektas į atakuotoją" įjungiamas automatiškai.
+                    </div>
+                  )}
                   {isTargeted && (
                     <>
                       <div>
-                        <label style={labelStyle}>Projectile</label>
+                        <label style={labelStyle} title="Elemento animacija (ugnis/žaibas/ledas/nuodai…). Naudojama ir AoE bei čempionų efektams – nuspalvina bangą, projektilą ir žalos skaičių.">Animacijos elementas (AoE/žala)</label>
                         <select value={m.projectile ?? 'none'} onChange={(e) => setMapping(i, { projectile: e.target.value as EffectMapping['projectile'] })} style={inputStyle}>
                           {PROJECTILE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
                         </select>

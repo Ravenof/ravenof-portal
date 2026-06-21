@@ -8,7 +8,7 @@ import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, e
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 
 export type GameApi = {
-  dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk?: boolean): void
+  dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk?: boolean, overflow?: boolean): void
   dealToPlayer(g: GameState, target: Side, base: number, actor: Side, useZmk?: boolean): void
   dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: number, actor: Side): void
   healUnit(g: GameState, owner: Side, u: BoardUnit, n: number): void
@@ -38,6 +38,7 @@ export type GameApi = {
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
+  effectiveAtk(g: GameState, u: BoardUnit): number
   log(g: GameState, e: GameEvent): void
 }
 
@@ -100,16 +101,20 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     return false
   }
   // Globali kaskados apsauga (depth=0 reset'ai per killUnit→onDeath neapsaugo nuo ciklų).
-  const gg = g as unknown as { __fxCascade?: number }
+  const gg = g as unknown as { __fxCascade?: number; __fxProjectile?: string }
   if ((gg.__fxCascade ?? 0) > MAX_CASCADE) {
     api.log(g, { t: 'blocked', side: caster, msg: `⚠ Efektų kaskada per ilga – „${ctx.sourceName}" praleistas (apsauga nuo ciklo).` })
     return false
   }
   gg.__fxCascade = (gg.__fxCascade ?? 0) + 1
+  // Elemento perdavimas FX'ui: žalos log'ai per šį efektą gaus m.projectile (battlecry/čempionas/burtas).
+  const prevProj = gg.__fxProjectile
+  if (m.projectile && m.projectile !== 'none') gg.__fxProjectile = m.projectile
   try {
     return applyMappingInner(api, g, caster, m, ctx)
   } finally {
     gg.__fxCascade = (gg.__fxCascade ?? 1) - 1
+    gg.__fxProjectile = prevProj
   }
 }
 
@@ -164,7 +169,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -189,7 +194,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
           if (a) { api.dealToArtifact(g, a, t.side, dv, caster); chainDamage += dv }
         } else {
           const f = findUnit(g, t)
-          if (f) { api.dealToUnit(g, f.u, f.owner, dv, caster, useZmk); chainDamage += dv }
+          if (f) { api.dealToUnit(g, f.u, f.owner, dv, caster, useZmk, !!m.overflowToPlayer); chainDamage += dv }
         }
       }
       break
@@ -286,6 +291,22 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
     case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, choose: m.tutorChoose }); break
     case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
+    case 'reflectToAttacker': {
+      // onAttacked reakcijai (su „efektas į atakuotoją" / useAttackTarget): sunaikina puolantį padarą
+      // ir atspindi jo ATK į jo žaidėją.
+      const atkRef = ctx.chosenTarget
+      if (atkRef && atkRef.kind === 'unit') {
+        const f = findUnit(g, atkRef)
+        if (f) {
+          const refl = api.effectiveAtk(g, f.u)
+          if (refl > 0) api.dealToPlayer(g, f.owner, refl, caster, false)
+          api.killUnit(g, f.owner, f.u)
+        }
+      } else {
+        api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją").` })
+      }
+      break
+    }
     case 'spellDiscount': api.setSpellDiscount(g, caster, v); break
     case 'buffSpellDamage': api.buffSpellDamage(g, caster, v); break
     default:

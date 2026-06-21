@@ -589,13 +589,13 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
   if (dmg <= 0) return
   const p = P(g, target)
   p.hp -= dmg
-  log(g, { t: 'damage', side: target, value: dmg, msg: `${sideName(target)} ${target === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, p.hp)} HP.` })
+  log(g, { t: 'damage', side: target, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, msg: `${sideName(target)} ${target === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, p.hp)} HP.` })
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: target })
   checkWin(g)
 }
 
-function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk = true) {
+function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk = true, overflow = false) {
   if (target.shield) {
     target.shield = false
     log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja žalą „${target.card.name}" – ŽMK netraukiama.` })
@@ -615,9 +615,14 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
     log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, msg: `„${target.card.name}" žalos negauna (0).` })
     return
   }
+  const overHpBefore = target.hp
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, msg: `„${target.card.name}" gauna ${dmg} žalos (${Math.max(0, target.hp)}/${target.maxHp}).` })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, msg: `„${target.card.name}" gauna ${dmg} žalos (${Math.max(0, target.hp)}/${target.maxHp}).` })
   applyEnemyDamageLeech(g, owner, dmg)
+  if (overflow) {
+    const excess = Math.max(0, dmg - Math.max(0, overHpBefore))
+    if (excess > 0) { log(g, { t: 'damage', side: owner, msg: `↳ Perteklinė žala ${excess} pereina ${owner === 'you' ? 'tau' : 'priešininkui'}.` }); dealToPlayer(g, owner, excess, actor, false) }
+  }
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: owner })
   if (target.hp <= 0) killUnit(g, owner, target)
@@ -1445,6 +1450,7 @@ export const gameApi: GameApi = {
   buffSpellDamage: buffSpellDamagePrim,
   tutorToHand: tutorToHandPrim,
   chooseEffect: chooseEffectPrim,
+  effectiveAtk: (g, u) => effectiveAtk(g, u),
   log,
 }
 

@@ -65,6 +65,7 @@ export type EffectType =
   | 'chooseEffect' | 'tutorToHand'
   | 'coinFlip' | 'loseGoldNextTurn'
   | 'copyEffectFromGraveyard'
+  | 'reflectToAttacker'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
   { value: 'damage',              label: 'Žala',                       needsValue: true },
@@ -109,6 +110,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true },
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },
   { value: 'copyEffectFromGraveyard', label: 'Kopijuoti efektą iš kapinyno padaro (pop-up)', needsValue: false },
+  { value: 'reflectToAttacker', label: 'Atspindėti puolėją: sunaikinti puolantį padarą + jo ATK į jo žaidėją (onAttacked)', needsValue: false },
   { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false },
 ]
 
@@ -283,6 +285,7 @@ export type EffectMapping = {
   allowRandomTarget?: boolean   // jei reikia taikinio, bet leidžiam auto/random
   triggersCurse?: CurseTriggerConfig
   triggersZmk?: boolean         // ar žalai traukiamas ŽMK (default true damage tipo efektams)
+  overflowToPlayer?: boolean    // žala padarui: perteklinė (virš taikinio HP) žala pereina taikinio žaidėjui
   zmkValue?: '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'  // removeZmkCard: kuri ŽMK korta šalinama
   zmkAppliesTo?: 'caster' | 'opponent'                      // removeZmkCard: kieno kaladė (default caster)
   animation?: string
