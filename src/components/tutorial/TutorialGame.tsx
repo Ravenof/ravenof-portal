@@ -34,6 +34,7 @@ import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
+import { isSummonFxEnabled } from '@/lib/settings'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle } from './BattleFxLayer'
@@ -802,7 +803,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (!e.sound) playBattleSound('summon')
           const sc = findCard(e.cardName)
           if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
-          if (sc?.gameplay?.summonEffect) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
+          if (sc?.gameplay?.summonEffect && isSummonFxEnabled()) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
           srcRef = e.src; srcCard = sc
           window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
           if (/iškvie[čc]iam|pasirinkta/i.test(e.msg) && e.cardName) {

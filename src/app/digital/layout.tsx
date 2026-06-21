@@ -9,6 +9,7 @@ import { Flames } from '@/components/digital/Flames'
 import { GlobalSoundToggle } from '@/components/ui/GlobalSoundToggle'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
+import { loadDigitalSettings } from '@/lib/settings-sync'
 
 const NAV = [
   { href: '/digital', label: 'Meniu', icon: LayoutGrid },
@@ -23,6 +24,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   // tarp meniu/albumo/kaladžių/pve/pvp); kovoje TutorialGame perjungia į kovos muziką ir grįžta.
   // Garsas paiso globalaus jungiklio; jei naršyklė blokuoja autoplay — pasileidžia po pirmo gesto.
   useEffect(() => {
+    loadDigitalSettings() // pritaiko vartotojo garsumo/efektų nustatymus (DB → localStorage)
     startMenuMusic()
     return () => { stopMusic() }
   }, [])

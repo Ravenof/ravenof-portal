@@ -4,6 +4,7 @@
 // kodo keisti nereikia.
 
 import { isUiSoundEnabled, playUiClick, playSuccess, playError, playPanelOpen, playDiscovery, playCardFlip } from '@/lib/ui-sound'
+import { getSfxVolume } from '@/lib/settings'
 
 export type RankedSoundEvent =
   | 'ranked_queue_start'
@@ -49,7 +50,7 @@ export function playRanked(event: RankedSoundEvent, volume = 0.5): void {
       a.addEventListener('error', () => { dead.add(url); pool.delete(url); FALLBACK[event]?.() })
       pool.set(url, a)
     }
-    a.volume = volume
+    a.volume = Math.max(0, Math.min(1, volume * getSfxVolume()))
     a.currentTime = 0
     const p = a.play()
     if (p && typeof p.catch === 'function') p.catch(() => { dead.add(url); FALLBACK[event]?.() })

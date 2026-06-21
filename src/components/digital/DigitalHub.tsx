@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic'
 import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { getWallet, buyPack, getActivePacks, type Wallet, type Pack } from '@/lib/economy'
+import { SettingsModal } from './SettingsModal'
+import { loadDigitalSettings } from '@/lib/settings-sync'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -30,6 +32,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [storeOpen, setStoreOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [packs, setPacks] = useState<Pack[]>([])
   const [buying, setBuying] = useState(false)
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
@@ -44,6 +47,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     if (!loggedIn) return
     refreshWallet()
     getActivePacks().then(setPacks)
+    loadDigitalSettings()
   }, [loggedIn, refreshWallet])
 
   const doBuy = async (packId: string) => {
@@ -132,6 +136,12 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             title="Atidaryti parduotuvę">
             🎁 {wallet.packs} pak.
           </button>
+          <button onClick={() => { playUiClick(); setSettingsOpen(true) }}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform hover:scale-105"
+            style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}
+            title="Nustatymai" aria-label="Nustatymai">
+            ⚙️
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -176,6 +186,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </div>
         </div>
       )}
+
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"

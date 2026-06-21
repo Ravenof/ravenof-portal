@@ -18,11 +18,12 @@
 //   menu-theme.mp3, battle-1.mp3 … battle-5.mp3
 
 import { isUiSoundEnabled, subscribeUiSound } from '@/lib/ui-sound'
+import { getMusicVolume, subscribeSettings } from '@/lib/settings'
 
 const MENU_TRACK = '/sounds/music/menu-theme.mp3'
 const BATTLE_TRACKS = [1, 2, 3, 4].map((n) => `/sounds/music/battle-${n}.mp3`)
 
-const MUSIC_VOLUME = 0.32   // muzika tylesnė už SFX
+const musicVol = () => getMusicVolume()
 const FADE_MS = 1100
 const FADE_STEPS = 22
 
@@ -100,12 +101,18 @@ function pickBattle(): string {
 function ensureSub(): void {
   if (subbed) return
   subbed = true
+  // gyvas muzikos garsumo keitimas iš nustatymų
+  subscribeSettings(() => {
+    if (mode !== 'none' && current && isUiSoundEnabled()) {
+      try { current.volume = Math.max(0, Math.min(1, musicVol())) } catch { /* */ }
+    }
+  })
   subscribeUiSound((enabled) => {
     if (!enabled) {
       if (current) { try { current.pause() } catch { /* */ } }
     } else if (mode !== 'none' && current) {
       tryPlay(current)
-      fade(current, MUSIC_VOLUME, FADE_MS)
+      fade(current, musicVol(), FADE_MS)
     }
   })
 }
@@ -122,7 +129,7 @@ function startTrack(src: string, loop: boolean, onEnded?: () => void): void {
   stopEl(prev)
   if (isUiSoundEnabled()) {
     tryPlay(el)
-    fade(el, MUSIC_VOLUME, FADE_MS)
+    fade(el, musicVol(), FADE_MS)
   }
 }
 

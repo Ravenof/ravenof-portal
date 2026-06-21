@@ -1,3 +1,4 @@
+import { getSfxVolume } from '@/lib/settings'
 // ── Globalus portalo UI garso variklis ────────────────────────────────────────
 // FILE-FIRST: kiekvienas garsas pirmiausia bando paleisti mp3 iš /public/sounds/ui/
 // (su atsitiktiniais variantais, pvz. card-place-1.mp3 / -2 / -3). Jei failo nėra –
@@ -78,7 +79,7 @@ function sfx(candidates: string[], volume: number, synth: () => void): void {
       a.addEventListener('error', () => { sfxDead.add(url); sfxPool.delete(url) })
       sfxPool.set(url, a)
     }
-    a.volume = volume
+    a.volume = Math.max(0, Math.min(1, volume * getSfxVolume()))
     a.currentTime = 0
     const p = a.play()
     if (p) p.catch(() => { if (!sfxDead.has(url)) { sfxDead.add(url); synth() } })

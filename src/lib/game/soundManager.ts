@@ -1,3 +1,4 @@
+import { getSfxVolume } from '@/lib/settings'
 // ── Battle sound manager ──────────────────────────────────────────────────────
 // FILE-FIRST su variantais: kiekvienam mūšio garsui galima padėti vieną arba kelis
 // failus public/sounds/battle/ (pvz. attack.mp3 ARBA attack-1.mp3 / attack-2.mp3 / …).
@@ -85,7 +86,7 @@ export function playBattleSound(key: BattleSoundType, volume = 0.5): void {
       a.addEventListener('error', () => { dead.add(url); pool.delete(url) })
       pool.set(url, a)
     }
-    a.volume = volume
+    a.volume = Math.max(0, Math.min(1, volume * getSfxVolume()))
     a.currentTime = 0
     const p = a.play()
     if (p) p.catch(() => { if (!dead.has(url)) { dead.add(url); SYNTH_FALLBACK[key]?.() } })

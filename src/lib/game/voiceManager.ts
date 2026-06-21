@@ -1,3 +1,4 @@
+import { getSfxVolume } from '@/lib/settings'
 // ── Per-kortos „iškvietimo balsų" variklis ────────────────────────────────────
 // Kiekviena korta gali turėti kelis garso failus (cards.gameplay.voiceLines).
 // Iškviečiant kortą sugroja VIENĄ atsitiktinį. Suprojektuota taip, kad NEvalgytų
@@ -140,7 +141,7 @@ export async function playCardVoice(
     const src = ctx.createBufferSource()
     src.buffer = buf
     const gain = ctx.createGain()
-    gain.gain.value = opts?.volume ?? 0.7
+    gain.gain.value = Math.max(0, Math.min(1, (opts?.volume ?? 0.7) * getSfxVolume()))
     src.connect(gain)
     gain.connect(ctx.destination)
     src.onended = () => { if (currentSource === src) currentSource = null }
