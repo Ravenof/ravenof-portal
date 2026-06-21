@@ -4,7 +4,8 @@
 
 import { createClient } from '@/lib/supabase/client'
 import type { SeatId } from './types'
-import type { T2Card } from './engine'
+import type { T2Card, T2Effect } from './engine'
+import { parseGameplayConfig } from '@/lib/game/types'
 import type { CoopSetup } from './setup'
 
 type CardRow = {
@@ -12,6 +13,26 @@ type CardRow = {
   attack: number | null; health: number | null; is_champion: boolean | null
   rarity: { color_hex: string | null } | null
   faction: { slug: string | null; color_hex: string | null } | null
+  gameplay?: unknown
+}
+
+function parseBattlecry(gameplay: unknown): T2Effect[] {
+  const cfg = parseGameplayConfig(gameplay)
+  const out: T2Effect[] = []
+  for (const m of (cfg?.effectMappings ?? [])) {
+    if (m.trigger !== 'onSummon' && m.trigger !== 'onPlay') continue
+    const v = m.value ?? 1
+    const multi = ['allEnemyUnits', 'allEnemyTargets', 'allUnits'].includes(m.target) || ((m.targetTypes?.length ?? 0) > 1)
+    switch (m.effect) {
+      case 'damage': out.push({ kind: multi ? 'aoeDamage' : 'damage', value: v }); break
+      case 'heal': out.push({ kind: 'heal', value: v }); break
+      case 'buffAttack': out.push({ kind: 'buffAtk', value: v }); break
+      case 'buffHealth': out.push({ kind: 'buffHp', value: v }); break
+      case 'drawCards': out.push({ kind: 'draw', value: v }); break
+      case 'drawUntilHand': out.push({ kind: 'draw', value: Math.max(1, v - 4) }); break
+    }
+  }
+  return out.slice(0, 3) // saugiklis
 }
 
 function toCard(r: CardRow, i: number): T2Card {
@@ -19,11 +40,12 @@ function toCard(r: CardRow, i: number): T2Card {
     uid: `${r.id}#${i}`, id: r.id, name: r.name, image: r.image_url,
     gold: r.gold_cost ?? 100, atk: r.attack ?? 1, hp: r.health ?? 1,
     factionColor: r.faction?.color_hex ?? '#d4af37', rarityColor: r.rarity?.color_hex ?? '#d4af37',
+    effects: parseBattlecry(r.gameplay),
   }
 }
 const isUnit = (r: CardRow) => r.attack != null && r.health != null && !r.is_champion
 
-const SEL = 'id, name, image_url, gold_cost, attack, health, is_champion, rarity:rarities ( color_hex ), faction:factions ( slug, color_hex )'
+const SEL = 'id, name, image_url, gold_cost, attack, health, is_champion, gameplay, rarity:rarities ( color_hex ), faction:factions ( slug, color_hex )'
 
 function shuffle<T>(a: T[]): T[] { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]] } return b }
 

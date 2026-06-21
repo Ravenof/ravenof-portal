@@ -153,6 +153,9 @@ export function Team2v2Battle({ setup, cards, onExit }: { setup: CoopSetup; card
         {teamHpBar('A', '56,189,248')}
 
         {/* Tavo auksas + ranka */}
+        {s.log.length > 0 && (
+          <p className="text-[10px] text-center truncate px-2" style={{ color: 'var(--text-muted)' }}>{s.log[s.log.length - 1].msg}</p>
+        )}
         <div className="flex items-center justify-between px-1 pt-1">
           <span className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🪙 {you.gold}{you.gold >= GOLD_CAP ? ' (max)' : ''}</span>
           {sel && <span className="text-[10px]" style={{ color: '#fcd34d' }}>Pasirink taikinį (priešo kūrinį ar komandą)</span>}

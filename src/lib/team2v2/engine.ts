@@ -23,7 +23,8 @@ function applyZmk(base: number, v: T2Zmk): number {
     case '+2': return base + 2; case '-2': return Math.max(0, base - 2); case 'x2': return base * 2; case 'x0': return 0 }
 }
 
-export type T2Card = { uid: string; id: string; name: string; image: string | null; gold: number; atk: number; hp: number; factionColor: string; rarityColor: string }
+export type T2Effect = { kind: 'damage' | 'aoeDamage' | 'heal' | 'buffAtk' | 'buffHp' | 'draw'; value: number }
+export type T2Card = { uid: string; id: string; name: string; image: string | null; gold: number; atk: number; hp: number; factionColor: string; rarityColor: string; effects?: T2Effect[] }
 export type T2Unit = { uid: string; card: T2Card; hp: number; maxHp: number; atk: number; bornAt: number; lastAttackAt: number }
 
 export type T2Seat = {
@@ -116,6 +117,40 @@ export function canPlay(seat: T2Seat, card: T2Card): boolean {
   return seat.gold >= card.gold && seat.units.some((u) => u === null)
 }
 
+function teamUnits(s: T2State, team: TeamId): { seatId: SeatId; slot: number; u: T2Unit }[] {
+  const out: { seatId: SeatId; slot: number; u: T2Unit }[] = []
+  for (const id of s.order) { const sx = s.seats[id]; if (sx.team === team) sx.units.forEach((u, slot) => { if (u) out.push({ seatId: id, slot, u }) }) }
+  return out
+}
+
+function resolveBattlecry(s: T2State, seat: T2Seat, e: T2Effect, now: number): void {
+  const foe = enemyTeam(seat.team)
+  if (e.kind === 'damage') {
+    const enemies = teamUnits(s, foe)
+    if (enemies.length) {
+      const tgt = enemies.sort((a, b) => a.u.hp - b.u.hp)[0]
+      tgt.u.hp -= e.value
+      log(s, now, `Kovos šūksnis: „${tgt.u.card.name}" gauna ${e.value} žalos.`)
+      if (tgt.u.hp <= 0) { s.seats[tgt.seatId].units[tgt.slot] = null }
+    } else {
+      dmgTeam(s, foe, e.value, now, `Kovos šūksnis (${e.value})`)
+    }
+  } else if (e.kind === 'aoeDamage') {
+    let n = 0
+    for (const { seatId, slot, u } of teamUnits(s, foe)) { u.hp -= e.value; n++; if (u.hp <= 0) s.seats[seatId].units[slot] = null }
+    log(s, now, `Kovos šūksnis: ${e.value} žalos visiems priešo kūriniams (${n}).`)
+  } else if (e.kind === 'heal') {
+    const t = s.teams[seat.team]; t.hp = Math.min(t.maxHp, t.hp + e.value)
+    log(s, now, `Kovos šūksnis: +${e.value} HP komandai (${t.hp}/${t.maxHp}).`)
+  } else if (e.kind === 'buffAtk' || e.kind === 'buffHp') {
+    for (const { u } of teamUnits(s, seat.team)) { if (e.kind === 'buffAtk') u.atk += e.value; else { u.hp += e.value; u.maxHp += e.value } }
+    log(s, now, `Kovos šūksnis: komandos kūriniai +${e.value} ${e.kind === 'buffAtk' ? 'ATK' : 'HP'}.`)
+  } else if (e.kind === 'draw') {
+    for (let i = 0; i < e.value && seat.hand.length < HAND_MAX && seat.deck.length > 0; i++) seat.hand.push(seat.deck.shift()!)
+    log(s, now, `Kovos šūksnis: ${seat.name} traukia ${e.value} kortas.`)
+  }
+}
+
 export function playUnit(s: T2State, seatId: SeatId, cardUid: string, now: number): boolean {
   if (s.winner) return false
   const seat = s.seats[seatId]
@@ -129,6 +164,7 @@ export function playUnit(s: T2State, seatId: SeatId, cardUid: string, now: numbe
   seat.goldFloat -= card.gold; seat.gold = Math.floor(seat.goldFloat)
   seat.units[slot] = { uid: card.uid, card, hp: card.hp, maxHp: card.hp, atk: card.atk, bornAt: now, lastAttackAt: now }
   log(s, now, `${seat.name} iškviečia „${card.name}".`)
+  for (const e of (card.effects ?? [])) { if (s.winner) break; resolveBattlecry(s, seat, e, now) }
   return true
 }
 
