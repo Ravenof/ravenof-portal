@@ -1014,6 +1014,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         const col2 = palOf(srcCard).secondary
         const src = e.src, tgt = e.tgt
         projFired = true
+        // Paprastos atakos: puolėjo korta greitai nuskrieja iki taikinio ir grįžta (tik atakoms, ne efektams)
+        if (isAtk && src.uid) {
+          const to0 = rectOf(tgt)
+          if (to0) fxRef.current?.lungeUnit(src.uid, to0)
+        }
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
           if (from && to) fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })

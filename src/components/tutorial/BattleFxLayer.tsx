@@ -34,6 +34,7 @@ export type BattleFxHandle = {
   floatNumber: (x: number, y: number, text: string, color: string, big?: boolean) => void
   shakeBoard: (kind?: 'soft' | 'hard') => void
   shakeUnit: (uid: string, kind?: 'soft' | 'normal' | 'hard') => void
+  lungeUnit: (uid: string, target: { x: number; y: number }) => void
   hitFlash: (x: number, y: number, color: string) => void
 }
 
@@ -99,6 +100,18 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       const cls = kind === 'hard' ? 'rvn-hit-hard' : kind === 'soft' ? 'rvn-hit-soft' : 'rvn-hit'
       el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls)
       window.setTimeout(() => el.classList.remove(cls), 420)
+    },
+    lungeUnit: (uid, target) => {
+      const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2
+      // pajuda ~60% link taikinio ir grįžta
+      const dx = (target.x - cx) * 0.6, dy = (target.y - cy) * 0.6
+      el.style.setProperty('--lx', Math.round(dx) + 'px')
+      el.style.setProperty('--ly', Math.round(dy) + 'px')
+      el.classList.remove('rvn-lunge'); void el.offsetWidth; el.classList.add('rvn-lunge')
+      window.setTimeout(() => el.classList.remove('rvn-lunge'), 360)
     },
     hitFlash: (x, y, color) => {
       const D = dprRef.current
@@ -354,4 +367,6 @@ const CSS = `
 [class~="rvn-doom"] { animation: rvnDoom 0.42s ease-in-out infinite alternate; }
 @keyframes rvnDoom { from { filter: drop-shadow(0 0 4px rgba(255,60,60,0.5)); } to { filter: drop-shadow(0 0 13px rgba(255,40,40,0.95)) brightness(1.12); } }
 @keyframes rvnHitHard { 0%,100%{transform:translate(0,0) rotate(0)} 15%{transform:translate(-8px,2px) rotate(-3deg)} 40%{transform:translate(7px,-2px) rotate(3deg)} 65%{transform:translate(-5px,1px) rotate(-2deg)} 85%{transform:translate(3px,0) rotate(1deg)} }
+.rvn-lunge { animation: rvnLunge 0.34s cubic-bezier(0.34,0.2,0.2,1); z-index: 45; will-change: transform; }
+@keyframes rvnLunge { 0%{transform:translate(0,0)} 40%{transform:translate(var(--lx,0px),var(--ly,0px)) scale(1.08)} 100%{transform:translate(0,0)} }
 `
