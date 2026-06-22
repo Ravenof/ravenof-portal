@@ -365,6 +365,32 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
   return g
 }
 
+/** 2v2 partija: 4 seat'ai (you+ally vs ai+foe2), 2 komandos su bendru 60 HP, mode '2v2'. */
+export function createGame2v2(decks: { you: TutCard[]; ally: TutCard[]; ai: TutCard[]; foe2: TutCard[] }, firstTeam: TeamId, opts?: CreateGameOpts): GameState {
+  const mk = (side: Side, deck: TutCard[], tag: string) => mkPlayer(side, deck, buildZmkDeck(opts?.zmkDefs).pile, buildCurseDeck(opts?.curseCards ?? [], tag))
+  const zmkMeta = buildZmkDeck(opts?.zmkDefs)
+  const g: GameState = {
+    you: mk('you', decks.you, 'y'),
+    ai: mk('ai', decks.ai, 'a'),
+    extraSeats: { ally: mk('ally', decks.ally, 'al'), foe2: mk('foe2', decks.foe2, 'f2') },
+    teams: {
+      A: { id: 'A', seatIds: ['you', 'ally'], hp: 60, maxHp: 60, sharedHp: true },
+      B: { id: 'B', seatIds: ['ai', 'foe2'], hp: 60, maxHp: 60, sharedHp: true },
+    },
+    mode: '2v2',
+    activeTeam: firstTeam,
+    active: firstTeam === 'A' ? 'you' : 'ai',
+    field: null, globalTurn: 0, winner: null, winnerTeam: null, log: [],
+    zmkMode: zmkMeta.mode, zmkDefs: zmkMeta.defs,
+    pendingPeek: null, pendingReveal: null, pendingSummon: null, pendingChoice: null, pendingCopy: null,
+    rollContext: null, lastMill: null,
+  }
+  for (const sd of ['you', 'ally', 'ai', 'foe2'] as Side[]) drawCards(g, sd, 4, true)
+  recomputeAuras(g)
+  log(g, { t: 'start', side: g.active, msg: `2v2: komanda ${firstTeam} pradeda. Bendras komandos HP 60.` })
+  return g
+}
+
 // ── Traukimas / auksas ────────────────────────────────────────────────────────
 
 function drawCards(g: GameState, s: Side, n: number, silent = false) {
@@ -1555,9 +1581,15 @@ export function toResolved(t: TargetRef): ResolvedTarget {
 export function beginTurn(g: GameState): GameState {
   if (g.winner) return g
   g.rollContext = null
-  const s = g.active
-  const p = P(g, s)
   g.globalTurn += 1
+  seatBeginTurn(g, g.active)
+  return g
+}
+
+/** Vieno seat'o ėjimo pradžia (be globalTurn/rollContext – juos tvarko viešosios funkcijos). */
+function seatBeginTurn(g: GameState, s: Side): GameState {
+  if (g.winner) return g
+  const p = P(g, s)
   p.turnNumber += 1
   p.discardedForGold = false
   p.attacksThisTurn = 0
@@ -1620,7 +1652,14 @@ export function beginTurn(g: GameState): GameState {
 export function endTurn(g: GameState): GameState {
   if (g.winner) return g
   g.rollContext = null
-  const s = g.active
+  seatEndTurn(g, g.active)
+  g.active = other(g.active)
+  return g
+}
+
+/** Vieno seat'o ėjimo pabaiga (be active perjungimo/rollContext). */
+function seatEndTurn(g: GameState, s: Side): GameState {
+  if (g.winner) return g
   const p = P(g, s)
   // pašalinam pasibaigusias būsenas (frozen/stunned/silenced iki šio ėjimo pabaigos)
   for (const u of p.units) {
@@ -1639,7 +1678,30 @@ export function endTurn(g: GameState): GameState {
   fireGlobalListeners(g, 'onAnyTurnEnd', { side: s })
   p.gold = 0
   log(g, { t: 'endTurn', side: s, msg: `${sideName(s)} ${s === 'you' ? 'baigi' : 'baigia'} ėjimą. Nepanaudotas auksas dingsta.` })
-  g.active = other(s)
+  return g
+}
+
+// ── 2v2 komandos ėjimai ──────────────────────────────────────────────────────
+/** Komandos ėjimo pradžia: VISI tos komandos seat'ai gauna ėjimo pradžią (auksas/traukimas/triggeriai). */
+export function beginTeamTurn(g: GameState): GameState {
+  if (g.winner || !g.teams) return g
+  g.rollContext = null
+  g.globalTurn += 1
+  const team = g.activeTeam ?? 'A'
+  const seats = g.teams[team].seatIds
+  log(g, { t: 'startTurn', side: seats[0], msg: `— Komanda ${team} pradeda ėjimą —` })
+  for (const s of seats) { if (g.winner) break; seatBeginTurn(g, s) }
+  g.active = seats[0]
+  return g
+}
+/** Komandos ėjimo pabaiga: visi komandos seat'ai baigia; aktyvi komanda persijungia. */
+export function endTeamTurn(g: GameState): GameState {
+  if (g.winner || !g.teams) return g
+  g.rollContext = null
+  const team = g.activeTeam ?? 'A'
+  for (const s of g.teams[team].seatIds) seatEndTurn(g, s)
+  g.activeTeam = team === 'A' ? 'B' : 'A'
+  g.active = g.teams[g.activeTeam].seatIds[0]
   return g
 }
 
