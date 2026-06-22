@@ -205,6 +205,7 @@ export type GameState = {
   teams?: Record<TeamId, TeamConfig>
   activeTeam?: TeamId
   extraSeats?: Partial<Record<Side, PlayerState>>
+  winnerTeam?: TeamId | null
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
@@ -601,9 +602,8 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
   const fr = fieldEngine.applyFirstDamageReduction(g, target, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: target, msg: `🌍 Laukas sumažina pirmą žalą iki ${dmg}.` }) }
   if (dmg <= 0) return
-  const p = P(g, target)
-  p.hp -= dmg
-  log(g, { t: 'damage', side: target, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, msg: `${sideName(target)} ${target === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, p.hp)} HP.` })
+  const left = applyPlayerDamage(g, target, dmg)
+  log(g, { t: 'damage', side: target, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, msg: `${sideName(target)} ${target === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${left} HP.` })
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: target })
   checkWin(g)
@@ -795,8 +795,34 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
   recomputeAuras(g)
 }
 
+/** Žala žaidėjui: 2v2 – mažina komandos bendrą HP; 1v1 – seat'o PlayerState.hp. Grąžina likusį HP. */
+function applyPlayerDamage(g: GameState, target: Side, dmg: number): number {
+  if (g.mode === '2v2' && g.teams) {
+    const t = g.teams[teamOfSeat(g, target)]
+    t.hp = Math.max(0, t.hp - dmg)
+    return t.hp
+  }
+  const p = P(g, target)
+  p.hp -= dmg
+  return Math.max(0, p.hp)
+}
+/** Gydymas žaidėjui: 2v2 – komandos HP (iki maxHp); 1v1 – seat'o HP. Grąžina realiai pagydytą kiekį. */
+function applyPlayerHeal(g: GameState, target: Side, n: number): number {
+  if (g.mode === '2v2' && g.teams) {
+    const t = g.teams[teamOfSeat(g, target)]
+    const b = t.hp; t.hp = Math.min(t.maxHp, t.hp + n); return t.hp - b
+  }
+  const p = P(g, target)
+  const b = p.hp; p.hp = Math.min(p.maxHp, p.hp + n); return p.hp - b
+}
+
 function checkWin(g: GameState) {
   if (g.winner) return
+  if (g.mode === '2v2' && g.teams) {
+    if (g.teams.A.hp <= 0) { g.winnerTeam = 'B'; g.winner = 'ai'; log(g, { t: 'win', side: 'ai', msg: 'Komandos A HP = 0. Komanda B laimi!' }) }
+    else if (g.teams.B.hp <= 0) { g.winnerTeam = 'A'; g.winner = 'you'; log(g, { t: 'win', side: 'you', msg: 'Komandos B HP = 0. Komanda A laimi! 🏆' }) }
+    return
+  }
   if (g.you.hp <= 0) { g.winner = 'ai'; log(g, { t: 'win', side: 'ai', msg: 'Tavo HP nukrito iki 0. Priešininkas laimi!' }) }
   else if (g.ai.hp <= 0) { g.winner = 'you'; log(g, { t: 'win', side: 'you', msg: 'Priešininko HP nukrito iki 0. TU LAIMĖJAI! 🏆' }) }
 }
@@ -890,10 +916,8 @@ function healUnitPrim(g: GameState, owner: Side, u: BoardUnit, n: number) {
 }
 
 function healPlayerPrim(g: GameState, s: Side, n: number) {
-  const p = P(g, s)
-  const b = p.hp
-  p.hp = Math.min(p.maxHp, p.hp + n)
-  if (p.hp > b) { log(g, { t: 'heal', side: s, value: p.hp - b, msg: `${sideName(s)} ${s === 'you' ? 'atgauni' : 'atgauna'} ${p.hp - b} HP.`, sound: 'heal' }); fireGlobalListeners(g, 'onAnyHeal', { side: s }) }
+  const gained = applyPlayerHeal(g, s, n)
+  if (gained > 0) { log(g, { t: 'heal', side: s, value: gained, msg: `${sideName(s)} ${s === 'you' ? 'atgauni' : 'atgauna'} ${gained} HP.`, sound: 'heal' }); fireGlobalListeners(g, 'onAnyHeal', { side: s }) }
 }
 
 function buffUnitPrim(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number) {
@@ -2069,7 +2093,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     dealToArtifact(g, a, foe, atk, s)
   } else {
     log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" atakuoja ${foe === 'ai' ? 'priešininką' : 'tave'} tiesiogiai!`, src: { side: s, uid: u.uid }, tgt: { kind: 'player', side: foe }, sound: 'attack' })
-    if (unfav) { const dmg = rollDamage(g, s, atk, ctxBias(g, s)); if (dmg > 0) { P(g, foe).hp -= dmg; log(g, { t: 'damage', side: foe, value: dmg, msg: `${sideName(foe)} ${foe === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${Math.max(0, P(g, foe).hp)} HP.` }); checkWin(g) } }
+    if (unfav) { const dmg = rollDamage(g, s, atk, ctxBias(g, s)); if (dmg > 0) { const left = applyPlayerDamage(g, foe, dmg); log(g, { t: 'damage', side: foe, value: dmg, msg: `${sideName(foe)} ${foe === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${left} HP.` }); checkWin(g) } }
     else dealToPlayer(g, foe, atk, s)
   }
   checkWin(g)
