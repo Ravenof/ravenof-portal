@@ -11,7 +11,9 @@ import * as fieldEngine from '@/lib/game/fieldEngine'
 import { fireTrigger } from '@/lib/game/triggerSystem'
 import type { ResolvedTarget } from '@/lib/game/targetResolver'
 
-export type Side = 'you' | 'ai'
+export type Side = 'you' | 'ai' | 'ally' | 'foe2'  // 1v1: you/ai; 2v2 komandos: A={you,ally} B={ai,foe2}
+export type TeamId = 'A' | 'B'
+export type TeamConfig = { id: TeamId; seatIds: Side[]; hp: number; maxHp: number; sharedHp: boolean }
 export type TutCardType = 'unit' | 'spell' | 'artifact' | 'reaction' | 'field' | 'champion' | 'curse'
 export type TutKeyword = 'sprint' | 'taunt' | 'shield' | 'stealth' | 'battlecry' | 'lastwish'
 export type TutStatus = 'frozen' | 'stunned' | 'burning' | 'poisoned' | 'silenced'
@@ -198,6 +200,11 @@ export type GameState = {
   lastMill?: { id: number; side: Side; cards: TutCard[] } | null
   /** Žaidžiamas burtas atšauktas reakcija (onAnyCast „castSpell" taikinys) – efektas nevyksta. */
   spellCountered?: boolean
+  // ── 2v2 komandinis sluoksnis (adityvus; 1v1 šių nenaudoja) ──
+  mode?: '1v1' | '2v2'
+  teams?: Record<TeamId, TeamConfig>
+  activeTeam?: TeamId
+  extraSeats?: Partial<Record<Side, PlayerState>>
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
@@ -228,7 +235,14 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function other(s: Side): Side { return s === 'you' ? 'ai' : 'you' }
-export function P(g: GameState, s: Side): PlayerState { return s === 'you' ? g.you : g.ai }
+export function P(g: GameState, s: Side): PlayerState { return g.extraSeats?.[s] ?? (s === 'you' ? g.you : g.ai) }
+
+/** Visi žaidėjų seat'ai (1v1: you/ai; 2v2: 4). */
+export function allSeats(g: GameState): Side[] { return g.teams ? [...g.teams.A.seatIds, ...g.teams.B.seatIds] : ['you', 'ai'] }
+export function teamOfSeat(g: GameState, s: Side): TeamId { if (g.teams) return g.teams.A.seatIds.includes(s) ? 'A' : 'B'; return s === 'you' ? 'A' : 'B' }
+export function friendlySeats(g: GameState, s: Side): Side[] { if (g.teams) return g.teams[teamOfSeat(g, s)].seatIds; return [s] }
+export function enemySeats(g: GameState, s: Side): Side[] { if (g.teams) { const t = teamOfSeat(g, s); return g.teams[t === 'A' ? 'B' : 'A'].seatIds }; return [other(s)] }
+export function teamConfig(g: GameState, t: TeamId): TeamConfig | undefined { return g.teams?.[t] }
 
 function log(g: GameState, e: GameEvent) { g.log.push(e) }
 const sideName = (s: Side) => (s === 'you' ? 'Tu' : 'Priešininkas')
