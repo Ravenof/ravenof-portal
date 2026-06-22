@@ -241,6 +241,7 @@ export function P(g: GameState, s: Side): PlayerState { return g.extraSeats?.[s]
 /** Visi žaidėjų seat'ai (1v1: you/ai; 2v2: 4). */
 export function allSeats(g: GameState): Side[] { return g.teams ? [...g.teams.A.seatIds, ...g.teams.B.seatIds] : ['you', 'ai'] }
 export function teamOfSeat(g: GameState, s: Side): TeamId { if (g.teams) return g.teams.A.seatIds.includes(s) ? 'A' : 'B'; return s === 'you' ? 'A' : 'B' }
+function sameTeam(g: GameState, a: Side, b: Side): boolean { return teamOfSeat(g, a) === teamOfSeat(g, b) }
 export function friendlySeats(g: GameState, s: Side): Side[] { if (g.teams) return g.teams[teamOfSeat(g, s)].seatIds; return [s] }
 export function enemySeats(g: GameState, s: Side): Side[] { if (g.teams) { const t = teamOfSeat(g, s); return g.teams[t === 'A' ? 'B' : 'A'].seatIds }; return [other(s)] }
 export function teamConfig(g: GameState, t: TeamId): TeamConfig | undefined { return g.teams?.[t] }
@@ -499,7 +500,7 @@ function combineBias(n: number): RollBias {
 /** Sumuoja pranašumo (+1) / nepalankumo (−1) auras, veikiančias `side` traukimą. */
 function netAuraBias(g: GameState, side: Side, kind: 'attack' | 'spell', spellType?: SpellType): number {
   let n = 0
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     const srcs = [
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -509,7 +510,7 @@ function netAuraBias(g: GameState, side: Side, kind: 'attack' | 'spell', spellTy
       const cfg = c.card.gameplay?.passiveAura
       if (!cfg) continue
       const scope = cfg.auraScope ?? 'friendly'
-      const affects = scope === 'all' || (scope === 'friendly' ? sd === side : sd !== side)
+      const affects = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, side) : !sameTeam(g, sd, side))
       if (!affects) continue
       if (kind === 'attack' && cfg.advAttack) n += cfg.advAttack === 'advantage' ? 1 : -1
       if (kind === 'spell' && cfg.advSpell) {
@@ -536,7 +537,7 @@ function applySpellLifesteal(g: GameState, dmg: number) {
   const c = g.rollContext
   if (!c || c.kind !== 'spell' || dmg <= 0) return
   const caster = c.actor
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     const srcs = [
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -564,7 +565,7 @@ function aurasAffecting(g: GameState, ownerSide: Side, uid: string): PassiveAura
   const out: PassiveAura[] = []
   const ownerUnit = P(g, ownerSide).units.find((u) => u?.uid === uid)
   const unitSubtype = (ownerUnit?.card.subtype ?? '').trim().toLowerCase()
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     const srcs = [
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -574,7 +575,7 @@ function aurasAffecting(g: GameState, ownerSide: Side, uid: string): PassiveAura
       const cfg = c.card.gameplay?.passiveAura
       if (!cfg) continue
       const scope = cfg.auraScope ?? 'friendly'
-      const affects = scope === 'all' || (scope === 'friendly' ? sd === ownerSide : sd !== ownerSide)
+      const affects = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, ownerSide) : !sameTeam(g, sd, ownerSide))
       if (!affects) continue
       if (c.uid === uid && !cfg.auraIncludesSelf) continue
       if (cfg.auraSubtype && cfg.auraSubtype.trim().toLowerCase() !== unitSubtype) continue
@@ -597,7 +598,7 @@ function unitIsImmortal(g: GameState, ownerSide: Side, uid: string): boolean {
 /** Burtų žalos priedas iš aurų caster pusės (atitinkamo tipo) burtams. */
 export function auraSpellDamageBonus(g: GameState, caster: Side, spellType?: SpellType): number {
   let bonus = 0
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     const srcs = [
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -607,7 +608,7 @@ export function auraSpellDamageBonus(g: GameState, caster: Side, spellType?: Spe
       const cfg = c.card.gameplay?.passiveAura
       if (!cfg?.auraSpellDamage) continue
       const scope = cfg.auraScope ?? 'friendly'
-      const affects = scope === 'all' || (scope === 'friendly' ? sd === caster : sd !== caster)
+      const affects = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, caster) : !sameTeam(g, sd, caster))
       if (!affects) continue
       if (cfg.auraSpellType && cfg.auraSpellType !== spellType) continue
       bonus += cfg.auraSpellDamage
@@ -682,7 +683,7 @@ function recomputeAuras(g: GameState) {
   recomputingAuras = true
   try {
   // 1) Nuimam dabartinį auros priedą nuo visų padarų
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     for (const u of P(g, sd).units) {
       if (!u) continue
       if (u.auraAtk) { u.atk = Math.max(0, u.atk - u.auraAtk) }
@@ -696,7 +697,7 @@ function recomputeAuras(g: GameState) {
   // 2) Surenkam auros šaltinius (nenutildyti padarai + artefaktai)
   type Src = { side: Side; cfg: NonNullable<TutCard['gameplay']>['passiveAura']; selfUid: string }
   const sources: Src[] = []
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     for (const u of p.units) {
       if (!u || u.statuses.silenced) continue
@@ -717,9 +718,9 @@ function recomputeAuras(g: GameState) {
     const scope = cfg.auraScope ?? 'friendly'
     const want = (cfg.auraSubtype ?? '').trim().toLowerCase()
     const wantFac = cfg.auraFaction ?? 0
-    for (const sd of ['you', 'ai'] as Side[]) {
-      if (scope === 'friendly' && sd !== src.side) continue
-      if (scope === 'enemy' && sd === src.side) continue
+    for (const sd of allSeats(g)) {
+      if (scope === 'friendly' && !sameTeam(g, sd, src.side)) continue
+      if (scope === 'enemy' && sameTeam(g, sd, src.side)) continue
       for (const u of P(g, sd).units) {
         if (!u) continue
         if (u.uid === src.selfUid && !cfg.auraIncludesSelf) continue
@@ -738,7 +739,7 @@ function recomputeAuras(g: GameState) {
     }
   }
   // 4) Jei debuff aura nuvarė HP iki 0 – žūtis
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     for (const u of [...P(g, sd).units]) {
       if (u && u.hp <= 0) killUnit(g, sd, u)
     }
@@ -1243,8 +1244,8 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
     const passes = (m: EffectMapping, sd: Side): boolean => {
       if (ctx?.side) {
         const want = m.triggerSide ?? 'any'
-        if (want === 'own' && ctx.side !== sd) return false
-        if (want === 'enemy' && ctx.side === sd) return false
+        if (want === 'own' && ctx.side && !sameTeam(g, ctx.side, sd)) return false
+        if (want === 'enemy' && ctx.side && sameTeam(g, ctx.side, sd)) return false
       }
       if (m.triggerSubtype && (ctx?.subtype ?? '').toLowerCase() !== m.triggerSubtype.trim().toLowerCase()) return false
       if (m.triggerSpellType && trigger === 'onAnyCast' && m.triggerSpellType !== ctx?.spellType) return false
@@ -1252,7 +1253,7 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
       if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) return false
       return true
     }
-    for (const sd of ['you', 'ai'] as Side[]) {
+    for (const sd of allSeats(g)) {
       const pp = P(g, sd)
       const cards = [
         ...pp.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -1291,7 +1292,7 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
 // #2: prakeiksmui aktyvavus, prikelti iš kapinyno padarus, turinčius onAnyCurse+revive marker'į.
 function reviveGraveyardOnCurse(g: GameState, victim: Side) {
   if (g.winner) return
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const pp = P(g, sd)
     for (let i = pp.discard.length - 1; i >= 0; i--) {
       const card = pp.discard[i]
@@ -1299,8 +1300,8 @@ function reviveGraveyardOnCurse(g: GameState, victim: Side) {
       const trig = (card.mappings ?? []).find((m) => m.trigger === 'onAnyCurse' && (m.effect === 'revive' || m.effect === 'summonFromGraveyard'))
       if (!trig) continue
       const want = trig.triggerSide ?? 'any'
-      if (want === 'own' && victim !== sd) continue
-      if (want === 'enemy' && victim === sd) continue
+      if (want === 'own' && !sameTeam(g, victim, sd)) continue
+      if (want === 'enemy' && sameTeam(g, victim, sd)) continue
       if (freeUnitSlot(g, pp) === -1) continue
       pp.discard.splice(i, 1)
       const suffix = '-rev' + g.globalTurn + '-' + i
@@ -1385,7 +1386,7 @@ function buffSpellDamagePrim(g: GameState, s: Side, n: number) {
 
 // ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ─────────
 function maybeReturnCastSpell(g: GameState, caster: Side, card: TutCard) {
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     const srcs = [
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -1531,7 +1532,7 @@ export function effectiveCost(g: GameState, s: Side, card: TutCard): number {
 function auraCostReductionFor(g: GameState, s: Side, card: TutCard): number {
   let red = 0
   const want = (st?: string) => (st ?? '').trim().toLowerCase()
-  for (const sd of ['you', 'ai'] as Side[]) {
+  for (const sd of allSeats(g)) {
     const p = P(g, sd)
     const srcs = [
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
@@ -1541,7 +1542,7 @@ function auraCostReductionFor(g: GameState, s: Side, card: TutCard): number {
       const cfg = c.card.gameplay?.passiveAura
       if (!cfg?.auraCostReduction) continue
       const scope = cfg.auraScope ?? 'friendly'
-      const sideMatch = scope === 'all' || (scope === 'friendly' ? sd === s : sd !== s)
+      const sideMatch = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, s) : !sameTeam(g, sd, s))
       if (!sideMatch) continue
       if (cfg.auraSubtype && want(card.subtype ?? undefined) !== want(cfg.auraSubtype)) continue
       if (cfg.auraFaction && card.factionId !== cfg.auraFaction) continue
