@@ -2038,16 +2038,19 @@ function attackTargetAllowed(g: GameState, r: AttackRestriction, t: TargetRef): 
 
 /** Teisėti atakos taikiniai (Pasišaipymas + Sėlinimas + padaro atakos apribojimas). */
 export function legalTargets(g: GameState, attackerSide: Side, attacker?: BoardUnit): TargetRef[] {
-  const foe = other(attackerSide)
-  const fp = P(g, foe)
+  const foes = enemySeats(g, attackerSide)  // 1v1: [other]; 2v2: abu priešų seat'ai
   const restriction = attacker?.card.gameplay?.attackRestriction
   const apply = (list: TargetRef[]) => restriction ? list.filter((t) => attackTargetAllowed(g, restriction, t)) : list
-  const taunts = fp.units.filter((u): u is BoardUnit => !!u && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) && !u.stealth)
-  if (taunts.length > 0) return apply(taunts.map((u) => ({ kind: 'unit', side: foe, uid: u.uid })))
+  // Pasišaipymas: jei BET KURIS priešų seat'as turi taunt – privaloma pulti taunt
+  const taunts: TargetRef[] = []
+  for (const foe of foes) for (const u of P(g, foe).units) if (u && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) && !u.stealth) taunts.push({ kind: 'unit', side: foe, uid: u.uid })
+  if (taunts.length > 0) return apply(taunts)
   const out: TargetRef[] = []
-  for (const u of fp.units) if (u && !u.stealth) out.push({ kind: 'unit', side: foe, uid: u.uid })
-  for (const a of fp.artifacts) if (a) out.push({ kind: 'artifact', side: foe, uid: a.uid })
-  out.push({ kind: 'player', side: foe })
+  for (const foe of foes) {
+    for (const u of P(g, foe).units) if (u && !u.stealth) out.push({ kind: 'unit', side: foe, uid: u.uid })
+    for (const a of P(g, foe).artifacts) if (a) out.push({ kind: 'artifact', side: foe, uid: a.uid })
+  }
+  out.push({ kind: 'player', side: foes[0] ?? other(attackerSide) })  // priešų komandos HP
   return apply(out)
 }
 
@@ -2090,7 +2093,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   g.rollContext = { kind: 'attack', actor: s, poisonedSides: { you: false, ai: false } }
   if (g.rollContext.poisonedSides) g.rollContext.poisonedSides[s] = !!u.statuses.poisoned
   if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `◑ „${u.card.name}" Sėlinimas baigiasi po atakos.` }) }
-  const foe = other(s)
+  const foe: Side = ('side' in target) ? target.side : other(s)  // 2v2: gynėjas pagal taikinio seat'ą
   const atk = effectiveAtk(g, u)
   const unfav = !!u.statuses.poisoned // Apnuodytas puola nepalankiai
   // onAttack mapping'ai (puolančiojo). useAttackTarget → efektas taikomas į atakuotą taikinį.
