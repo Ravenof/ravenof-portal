@@ -12,8 +12,11 @@ export type ResolvedTarget =
   | { kind: 'artifact'; side: Side; uid: string }
   | { kind: 'field' }
 
-function P(g: GameState, s: Side) { return s === 'you' ? g.you : g.ai }
+function P(g: GameState, s: Side) { return g.extraSeats?.[s] ?? (s === 'you' ? g.you : g.ai) }
 function other(s: Side): Side { return s === 'you' ? 'ai' : 'you' }
+function teamOf(g: GameState, s: Side): 'A' | 'B' { if (g.teams) return g.teams.A.seatIds.includes(s) ? 'A' : 'B'; return s === 'you' ? 'A' : 'B' }
+function friendly(g: GameState, s: Side): Side[] { if (g.teams) return g.teams[teamOf(g, s)].seatIds; return [s] }
+function enemies(g: GameState, s: Side): Side[] { if (g.teams) { const t = teamOf(g, s); return g.teams[t === 'A' ? 'B' : 'A'].seatIds }; return [other(s)] }
 
 function units(g: GameState, s: Side, opts?: { includeStealth?: boolean; championOnly?: boolean; noChampion?: boolean }): BoardUnit[] {
   return P(g, s).units.filter((u): u is BoardUnit => {
@@ -33,60 +36,39 @@ function units(g: GameState, s: Side, opts?: { includeStealth?: boolean; champio
  * pavieniams priešo taikiniams (AoE pasiekia visus pagal taisykles).
  */
 export function resolveTargets(g: GameState, casterSide: Side, target: TargetType): ResolvedTarget[] {
-  const foe = other(casterSide)
-  const single = (arr: ResolvedTarget[]) => arr
+  const allies = friendly(g, casterSide)
+  const foes = enemies(g, casterSide)
+  const enemyRep = foes[0] ?? other(casterSide)
+  const ownU = (opts?: { championOnly?: boolean; includeStealth?: boolean }): ResolvedTarget[] =>
+    allies.flatMap((sd) => units(g, sd, opts).map((u): ResolvedTarget => ({ kind: 'unit', side: sd, uid: u.uid })))
+  const enemyU = (opts?: { championOnly?: boolean; includeStealth?: boolean }, hideStealth = true): ResolvedTarget[] =>
+    foes.flatMap((sd) => units(g, sd, opts).filter((u) => !hideStealth || !u.stealth).map((u): ResolvedTarget => ({ kind: 'unit', side: sd, uid: u.uid })))
+  const ownArt = (): ResolvedTarget[] =>
+    allies.flatMap((sd) => P(g, sd).artifacts.filter((a): a is NonNullable<typeof a> => !!a).map((a): ResolvedTarget => ({ kind: 'artifact', side: sd, uid: a.uid })))
+  const enemyArt = (): ResolvedTarget[] =>
+    foes.flatMap((sd) => P(g, sd).artifacts.filter((a): a is NonNullable<typeof a> => !!a).map((a): ResolvedTarget => ({ kind: 'artifact', side: sd, uid: a.uid })))
   switch (target) {
     case 'self':           return [{ kind: 'player', side: casterSide }]
     case 'selfUnit':       return []  // sprendžiama effectEngine pagal ctx.sourceUid
     case 'ownPlayer':      return [{ kind: 'player', side: casterSide }]
-    case 'enemyPlayer':    return [{ kind: 'player', side: foe }]
-    case 'anyPlayer':      return [{ kind: 'player', side: casterSide }, { kind: 'player', side: foe }]
-    case 'ownUnit':
-      return single(units(g, casterSide).map((u) => ({ kind: 'unit', side: casterSide, uid: u.uid })))
-    case 'enemyUnit':
-      return single(units(g, foe).filter((u) => !u.stealth).map((u) => ({ kind: 'unit', side: foe, uid: u.uid })))
-    case 'anyUnit':
-      return [
-        ...units(g, casterSide).map((u): ResolvedTarget => ({ kind: 'unit', side: casterSide, uid: u.uid })),
-        ...units(g, foe).filter((u) => !u.stealth).map((u): ResolvedTarget => ({ kind: 'unit', side: foe, uid: u.uid })),
-      ]
-    case 'ownChampion':
-      return units(g, casterSide, { championOnly: true }).map((u) => ({ kind: 'unit', side: casterSide, uid: u.uid }))
-    case 'enemyChampion':
-      return units(g, foe, { championOnly: true }).filter((u) => !u.stealth).map((u) => ({ kind: 'unit', side: foe, uid: u.uid }))
-    case 'anyChampion':
-      return [
-        ...units(g, casterSide, { championOnly: true }).map((u): ResolvedTarget => ({ kind: 'unit', side: casterSide, uid: u.uid })),
-        ...units(g, foe, { championOnly: true }).filter((u) => !u.stealth).map((u): ResolvedTarget => ({ kind: 'unit', side: foe, uid: u.uid })),
-      ]
-    case 'ownArtifact':
-      return P(g, casterSide).artifacts.filter((a): a is NonNullable<typeof a> => !!a).map((a) => ({ kind: 'artifact', side: casterSide, uid: a.uid }))
-    case 'enemyArtifact':
-      return P(g, foe).artifacts.filter((a): a is NonNullable<typeof a> => !!a).map((a) => ({ kind: 'artifact', side: foe, uid: a.uid }))
-    case 'anyArtifact':
-      return [...resolveTargets(g, casterSide, 'ownArtifact'), ...resolveTargets(g, casterSide, 'enemyArtifact')]
-    case 'activeField':
-      return g.field ? [{ kind: 'field' }] : []
-    case 'allOwnUnits':
-      return units(g, casterSide, { includeStealth: true }).map((u) => ({ kind: 'unit', side: casterSide, uid: u.uid }))
-    case 'allEnemyUnits':
-      return units(g, foe, { includeStealth: true }).map((u) => ({ kind: 'unit', side: foe, uid: u.uid }))
-    case 'allUnits':
-      return [...resolveTargets(g, casterSide, 'allOwnUnits'), ...resolveTargets(g, casterSide, 'allEnemyUnits')]
-    case 'allEnemyTargets':
-      return [
-        ...resolveTargets(g, casterSide, 'allEnemyUnits'),
-        ...resolveTargets(g, casterSide, 'enemyArtifact'),
-        { kind: 'player', side: foe },
-      ]
-    case 'allOwnTargets':
-      return [
-        ...resolveTargets(g, casterSide, 'allOwnUnits'),
-        ...resolveTargets(g, casterSide, 'ownArtifact'),
-        { kind: 'player', side: casterSide },
-      ]
-    case 'castSpell':
-      return []  // specialiai apdorojama effectEngine (burto atšaukimas)
+    case 'enemyPlayer':    return [{ kind: 'player', side: enemyRep }]
+    case 'anyPlayer':      return [{ kind: 'player', side: casterSide }, { kind: 'player', side: enemyRep }]
+    case 'ownUnit':        return ownU()
+    case 'enemyUnit':      return enemyU()
+    case 'anyUnit':        return [...ownU(), ...enemyU()]
+    case 'ownChampion':    return ownU({ championOnly: true })
+    case 'enemyChampion':  return enemyU({ championOnly: true })
+    case 'anyChampion':    return [...ownU({ championOnly: true }), ...enemyU({ championOnly: true })]
+    case 'ownArtifact':    return ownArt()
+    case 'enemyArtifact':  return enemyArt()
+    case 'anyArtifact':    return [...ownArt(), ...enemyArt()]
+    case 'activeField':    return g.field ? [{ kind: 'field' }] : []
+    case 'allOwnUnits':    return ownU({ includeStealth: true })
+    case 'allEnemyUnits':  return enemyU({ includeStealth: true }, false)
+    case 'allUnits':       return [...ownU({ includeStealth: true }), ...enemyU({ includeStealth: true }, false)]
+    case 'allEnemyTargets': return [...enemyU({ includeStealth: true }, false), ...enemyArt(), { kind: 'player', side: enemyRep }]
+    case 'allOwnTargets':  return [...ownU({ includeStealth: true }), ...ownArt(), { kind: 'player', side: casterSide }]
+    case 'castSpell':      return []  // specialiai apdorojama effectEngine (burto atšaukimas)
   }
 }
 
