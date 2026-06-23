@@ -79,8 +79,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     { key: 'campaign', icon: '🗺️', title: 'KAMPANIJA', subtitle: 'Siužetinė vienžaidėjo kampanija', accent: '240,180,41', comingSoon: true },
     { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', href: '/digital/ranked' },
     { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', href: '/digital/pvp' },
-    { key: 'coop', icon: '🤝', title: 'CO-OP 2v2', subtitle: 'Tu + AI sąjungininkas prieš 2 botus (bendras 60 HP)', accent: '56,189,248', href: '/digital/coop' },
-    { key: 'pvp2v2', icon: '🤝', title: 'PVP 2v2', subtitle: '4 tikri žaidėjai — tu su draugu prieš kitą porą', accent: '168,85,247', href: '/digital/pvp2v2' },
     { key: 'mycards', icon: '🃏', title: 'KORTŲ ALBUMAS', subtitle: 'Tavo kolekcija + pakuočių atplėšimas', accent: '96,165,250', href: '/digital/album' },
     { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk pakuotes už auksą', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
   ]
