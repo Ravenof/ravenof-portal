@@ -74,7 +74,7 @@ const ZMK_IMG: Record<string, string> = {
   'x2': '/rules/zmk/card-x2-sm.webp', 'x0': '/rules/zmk/card-x0-sm.webp',
 }
 /** ŽMK kortos nuotrauka: admin zmk_cards.image_url > taisyklių numatytoji. */
-function zmkImg(g: GameState | null, v: string): string | null {
+export function zmkImg(g: GameState | null, v: string): string | null {
   return g?.zmkDefs?.[v]?.image_url || ZMK_IMG[v] || null
 }
 

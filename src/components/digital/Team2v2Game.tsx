@@ -1,28 +1,30 @@
 'use client'
 
 // ── 2v2 kovos UI — co-op (vs botai) IR PvP (4 tikri žaidėjai) ───────────────────
-// Tas pats variklis (createGame2v2) + tas pats kortų vaizdas kaip 1v1 (UnitTile/
-// MiniCard/PileBack/HpVial). Laukas padalintas į dvi puses: tavo / sąjungininko
-// kūriniai apačioj, abu priešai viršuj; kiekvienas žaidėjas turi savo Kaladę /
-// Kapinyną / ŽMK. PvP = host-authoritative broadcast; UI persiorientuoja per viewSeat.
+// Tas pats variklis (createGame2v2) + 1v1 pojūtis: tikros UnitTile/MiniCard kortos,
+// drag-and-drop kortų žaidimas (tempk aukštyn į lauką), ŽMK „flip" animacija, artefaktų
+// ir reakcijų eilutės. Laukas padalintas į dvi puses (tavo | sąjungininkas; viršuj abu
+// priešai); kiekvienas žaidėjas turi savo Kaladę/ŽMK/Kapinyną. PvP = host-authoritative.
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   createGame2v2, beginTeamTurn, endTeamTurn, playCard, attack, canAfford,
   canUnitAttack, legalTargets, P, teamOfSeat, enemySeats, friendlySeats, boardCreatureCap,
   type GameState, type Side, type TutCard, type TargetRef, type BoardUnit, type TeamId,
 } from '@/lib/tutorial/engine'
-import { UnitTile, MiniCard, PileBack, HpVial } from '@/components/tutorial/TutorialGame'
+import { UnitTile, MiniCard, PileBack, HpVial, zmkImg } from '@/components/tutorial/TutorialGame'
 import { aiActFor } from '@/lib/team2v2/ai'
 import type { Coop2v2, CoopSeatMeta } from '@/lib/team2v2/load'
 import { createClient } from '@/lib/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Pvp2v2Net, Net2v2Action } from '@/lib/team2v2/pvp'
-import { playUiClick, playCardPlace } from '@/lib/ui-sound'
+import { playUiClick, playCardPlace, playCardPick } from '@/lib/ui-sound'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 type Meta = Record<Side, CoopSeatMeta>
+type Drag = { card: TutCard; x: number; y: number; onBoard: boolean }
 const ACCENT: Record<TeamId, string> = { A: '56,189,248', B: '239,68,68' }
 const repSeat = (team: TeamId): Side => (team === 'A' ? 'you' : 'ai')
 
@@ -38,9 +40,14 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
   const [sel, setSel] = useState<string | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
   const [compact, setCompact] = useState(true)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const [zmkFlash, setZmkFlash] = useState<{ cards: { v: string; side: Side }[]; n: number } | null>(null)
   const startedRef = useRef(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
   const decksRef = useRef<Partial<Record<Side, TutCard[]>>>({})
+  const dragRef = useRef<Drag | null>(null)
+  const handAreaRef = useRef<HTMLDivElement>(null)
+  const seenLogRef = useRef(0)
   const wonRef = useRef(false)
 
   const meta: Meta = coop ? coop.meta : (metaProp as Meta)
@@ -67,6 +74,17 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     startBattleMusic(); rerender()
     return () => { startMenuMusic() }
   }, [isPvp, rerender])
+
+  // ── ŽMK „flip" animacija iš naujų log įrašų ───────────────────────────────────
+  useEffect(() => {
+    const g = gRef.current; if (!g) return
+    if (g.log.length <= seenLogRef.current) return
+    const fresh = g.log.slice(seenLogRef.current)
+    seenLogRef.current = g.log.length
+    const zs = fresh.filter((e) => e.t === 'zmk' && e.zmk).map((e) => ({ v: e.zmk as string, side: e.side as Side }))
+    if (zs.length) setZmkFlash({ cards: zs.slice(0, 4), n: g.log.length })
+  })
+  useEffect(() => { if (!zmkFlash) return; const t = setTimeout(() => setZmkFlash(null), 1500); return () => clearTimeout(t) }, [zmkFlash])
 
   // ── PvP: realaus laiko sinchronizacija ───────────────────────────────────────
   const broadcastState = useCallback(() => {
@@ -137,7 +155,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     while (!g.winner && guard++ < 40) {
       g.active = seat; const did = aiActFor(g, seat); rerender()
       if (!did) break
-      await sleep(520)
+      await sleep(560)
     }
   }
   const endTurnCoop = async () => {
@@ -169,6 +187,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
   const myTurn = !g.winner && g.activeTeam === myTeam && (isPvp || phase === 'human')
   const unitW = compact ? 46 : 60
   const pileW = compact ? 26 : 32
+  const artW = compact ? 34 : 46
 
   const seatName = (s: Side) => meta[s]?.name?.replace(' (AI)', '') ?? s
   const seatAvatar = (s: Side) => meta[s]?.avatar ?? '🎴'
@@ -180,7 +199,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
   }
   const onPlay = (c: TutCard) => {
     if (!myTurn || !canAfford(g, viewSeat, c)) { playUiClick(); return }
-    if (isPvp) { playUiClick(); sendOrApply({ t: 'play', seat: viewSeat, uid: c.uid }); return }
+    if (isPvp) { playCardPlace(); sendOrApply({ t: 'play', seat: viewSeat, uid: c.uid }); return }
     g.active = 'you'
     const r = playCard(g, 'you', c.uid)
     if (r.ok) { playCardPlace(); winSfx() }
@@ -199,20 +218,44 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     rerender()
   }
 
+  // ── drag-and-drop: tempk kortą aukštyn į lauką, kad sužaistum ──────────────────
+  const beginHandPointer = (card: TutCard, e: React.PointerEvent) => {
+    if (!myTurn) { return }
+    const sx = e.clientX, sy = e.clientY
+    let started = false
+    const handTop = () => handAreaRef.current?.getBoundingClientRect().top ?? Infinity
+    const cleanup = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up) }
+    function move(ev: PointerEvent) {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy
+      if (!started) { if (dy < -14 && Math.abs(dy) > Math.abs(dx)) { started = true; playCardPick() } else if (Math.abs(dx) > 10) { cleanup(); return } else return }
+      const onBoard = ev.clientY < handTop() - 10
+      const d: Drag = { card, x: ev.clientX, y: ev.clientY, onBoard }; dragRef.current = d; setDrag(d)
+    }
+    function up(ev: PointerEvent) {
+      cleanup()
+      const d = dragRef.current; dragRef.current = null; setDrag(null)
+      if (!started) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) onPlay(card); return }
+      if (d && d.onBoard) onPlay(card); else playUiClick()
+    }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up)
+  }
+
   const legalSet = (() => {
     if (!sel) return new Set<string>()
     const u = me.units.find((x) => x?.uid === sel)
     if (!u) return new Set<string>()
     return new Set(legalTargets(g, viewSeat, u).map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
   })()
+  const dropActive = !!drag && drag.onBoard
 
-  // ── kūrinių eilė vienam seatui ────────────────────────────────────────────────
+  // ── kūrinių eilė ──────────────────────────────────────────────────────────────
   const seatUnits = (seat: Side, mine: boolean) => {
     const p = P(g, seat)
     const cap = boardCreatureCap(g, seat)
     const slots = Math.max(cap, p.units.length, compact ? 4 : 5)
+    const glow = mine && seat === viewSeat && dropActive
     return (
-      <div className="flex gap-1 items-center overflow-x-auto py-0.5 min-h-[64px]">
+      <div className="flex gap-1 items-center overflow-x-auto py-0.5 min-h-[64px] rounded-lg" style={{ outline: glow ? '2px solid rgba(74,222,128,0.8)' : undefined, background: glow ? 'rgba(74,222,128,0.08)' : undefined, boxShadow: glow ? '0 0 14px rgba(74,222,128,0.5)' : undefined, transition: 'background .15s' }}>
         {Array.from({ length: slots }).map((_, i) => {
           const u = p.units[i]
           if (!u) return <span key={seat + '-s' + i} className="shrink-0 rounded-lg" style={{ width: unitW, height: Math.round(unitW * 4 / 3), border: '1px dashed rgba(240,180,41,0.14)' }} />
@@ -233,7 +276,42 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     )
   }
 
-  // ── Kaladė / ŽMK / Kapinynas vienam seatui ────────────────────────────────────
+  // ── artefaktai + reakcijos ────────────────────────────────────────────────────
+  const seatExtras = (seat: Side, mine: boolean) => {
+    const p = P(g, seat)
+    const hasAny = p.artifacts.some(Boolean) || p.reactions.some(Boolean)
+    if (!hasAny) return null
+    return (
+      <div className="flex gap-2 items-center justify-center mt-0.5">
+        {p.artifacts.filter(Boolean).map((a) => {
+          const art = a!; const targetable = !mine && legalSet.has('artifact:' + art.uid)
+          return (
+            <button key={art.uid} onClick={() => targetable && onTarget({ kind: 'artifact', side: seat, uid: art.uid })} disabled={!targetable}
+              className="relative rounded-md overflow-hidden shrink-0" style={{ width: artW, height: Math.round(artW * 1.4), border: targetable ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)', cursor: targetable ? 'crosshair' : 'default' }}>
+              {art.card.image
+                ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={art.card.image} alt={art.card.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                : <div className="absolute inset-0 flex items-center justify-center text-xs" style={{ background: 'rgba(240,180,41,0.08)' }}>⭐</div>}
+              <span className="absolute bottom-0 right-0 px-0.5 rounded-tl text-[8px] font-bold" style={{ background: 'rgba(0,0,0,0.85)', color: '#4ade80' }}>{art.hp}</span>
+            </button>
+          )
+        })}
+        {p.reactions.filter(Boolean).map((r) => {
+          const rs = r!
+          return (
+            <button key={rs.uid} onClick={() => { if (mine) { playUiClick(); setPileView({ title: 'Tavo reakcijos (matai tik tu)', cards: p.reactions.filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.card) }) } }}
+              className="relative rounded-md overflow-hidden shrink-0" style={{ width: artW, height: Math.round(artW * 1.4), background: 'linear-gradient(145deg,#241a38,#0d0a14)', border: '1px solid rgba(139,92,246,0.6)', cursor: mine ? 'pointer' : 'default' }}>
+              <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
+              <PileBack kind="curse" />
+              {mine && <span className="absolute bottom-0 left-0 right-0 text-[6px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>}
+              <span className="absolute -top-1 left-1/2 -translate-x-1/2 px-0.5 rounded-full text-[7px] font-bold" style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{rs.paid}⚜</span>
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ── Kaladė / ŽMK / Kapinynas ──────────────────────────────────────────────────
   const pileCell = (label: string, count: number, kind: 'plain' | 'zmk' | 'grave', cards?: TutCard[]) => {
     const ph = Math.round(pileW * 4 / 3)
     const top = kind === 'grave' && cards && cards.length ? cards[cards.length - 1] : null
@@ -261,7 +339,6 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     )
   }
 
-  // ── seato zona (antraštė + kūriniai), piles atskirai ──────────────────────────
   const seatZone = (seat: Side, mine: boolean, pilesOnTop: boolean) => {
     const p = P(g, seat)
     const active = g.active === seat && g.activeTeam === teamOfSeat(g, seat)
@@ -273,7 +350,9 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
           <span className="shrink-0 text-[10px] font-bold" style={{ color: 'var(--gold)' }}>🪙{p.gold}</span>
         </div>
         {pilesOnTop && <div className="mb-0.5">{seatPiles(seat)}</div>}
+        {pilesOnTop && seatExtras(seat, mine)}
         {seatUnits(seat, mine)}
+        {!pilesOnTop && seatExtras(seat, mine)}
         {!pilesOnTop && <div className="mt-0.5">{seatPiles(seat)}</div>}
       </div>
     )
@@ -302,7 +381,6 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
-        {/* priešų komanda (viršuj) */}
         <div className="flex justify-center"><div>{teamHp(enemyTeam)}</div></div>
         <div className="flex gap-1.5 items-stretch">
           {seatZone(topSeats[0], false, true)}
@@ -315,24 +393,23 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
           <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(240,180,41,0.4),transparent)' }} />
         </div>
 
-        {/* tavo komanda (apačioj): tavo | sąjungininko */}
         <div className="flex gap-1.5 items-stretch">
           {seatZone(viewSeat, true, false)}
           {seatZone(allySeat, false, false)}
         </div>
         <div className="flex justify-center"><div>{teamHp(myTeam)}</div></div>
 
-        {/* ėjimo juosta + ranka */}
         <div className="flex items-center justify-between px-1 pt-0.5">
           <span className="text-[10px] truncate flex-1 mr-2" style={{ color: 'var(--text-muted)' }}>{g.log.length ? g.log[g.log.length - 1].msg : ''}</span>
           <button onClick={endTurn} disabled={!myTurn} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-40" style={{ background: 'rgba(56,189,248,0.2)', border: '1px solid rgba(56,189,248,0.55)', color: '#7dd3fc', fontFamily: 'var(--rvn-font-display)' }}>Baigti ėjimą</button>
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 min-h-[72px] items-center">
+        <div ref={handAreaRef} className="flex gap-1.5 overflow-x-auto pb-1 min-h-[72px] items-center" style={{ touchAction: 'pan-x' }}>
           {me.hand.length === 0 && <span className="text-[10px] mx-auto" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>}
           {me.hand.map((c) => {
             const afford = myTurn && canAfford(g, viewSeat, c)
+            const dragging = drag?.card.uid === c.uid
             return (
-              <button key={c.uid} onClick={() => onPlay(c)} disabled={!myTurn} className="shrink-0 active:scale-95 disabled:cursor-default" style={{ opacity: afford ? 1 : 0.5 }}>
+              <button key={c.uid} onPointerDown={(e) => beginHandPointer(c, e)} disabled={!myTurn} className="shrink-0 active:scale-95 disabled:cursor-default" style={{ opacity: dragging ? 0.3 : afford ? 1 : 0.5, touchAction: 'pan-x' }}>
                 <MiniCard c={c} w={compact ? 52 : 66} dim={!afford} costNow={c.gold} />
               </button>
             )
@@ -340,7 +417,34 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
         </div>
       </div>
 
-      {/* kapinyno peržiūra */}
+      {/* tempiamos kortos sluoksnis */}
+      {drag && typeof document !== 'undefined' && createPortal(
+        <div className="fixed z-[210] pointer-events-none" style={{ left: drag.x, top: drag.y, transform: 'translate(-50%,-60%) rotate(-4deg)' }}>
+          <div style={{ filter: drag.onBoard ? 'drop-shadow(0 0 16px rgba(74,222,128,0.8))' : 'drop-shadow(0 8px 16px rgba(0,0,0,0.6))' }}>
+            <MiniCard c={drag.card} w={compact ? 84 : 104} />
+          </div>
+        </div>, document.body)}
+
+      {/* ŽMK flip */}
+      {zmkFlash && typeof document !== 'undefined' && createPortal(
+        <div key={zmkFlash.n} className="fixed inset-0 z-[205] flex items-center justify-center pointer-events-none">
+          <div className="flex items-end justify-center gap-3 flex-wrap">
+            {zmkFlash.cards.map((zc, idx) => {
+              const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
+              const mineZmk = teamOfSeat(g, zc.side) === myTeam
+              const img = zmkImg(g, zc.v)
+              return (
+                <div key={idx} className="flex flex-col items-center gap-1.5 zmk2v2-pop" style={{ animationDelay: `${idx * 0.1}s` }}>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#14101e', border: `1px solid ${mineZmk ? 'rgba(96,165,250,0.8)' : 'rgba(248,113,113,0.8)'}`, color: mineZmk ? '#93c5fd' : '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>{mineZmk ? 'Tavo komandos ŽMK' : 'Priešo ŽMK'}</span>
+                  {img && <div className="rounded-xl overflow-hidden" style={{ width: 'min(104px,25vw)', aspectRatio: '2.5/3.5', border: '2px solid var(--gold)', boxShadow: '0 0 26px rgba(240,180,41,0.55)' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={img} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} /></div>}
+                  <span className="px-3 py-1 rounded-lg font-black text-base" style={{ background: 'linear-gradient(145deg,#2a2138,#14101e)', border: '2px solid var(--gold)', color: col, boxShadow: '0 0 14px rgba(240,180,41,0.35)', fontFamily: 'var(--rvn-font-display)' }}>ŽMK {zc.v.replace('x', '×')}</span>
+                </div>
+              )
+            })}
+          </div>
+          <style>{`.zmk2v2-pop{animation:zmk2v2 .4s cubic-bezier(.2,1.3,.5,1) both}@keyframes zmk2v2{from{opacity:0;transform:scale(.4) rotateY(90deg)}to{opacity:1;transform:scale(1) rotateY(0)}}`}</style>
+        </div>, document.body)}
+
       {pileView && (
         <div className="absolute inset-0 z-[158] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setPileView(null)}>
           <div className="max-w-md w-full rounded-2xl p-4" style={{ background: 'rgba(10,8,16,0.97)', border: '1px solid rgba(240,180,41,0.4)' }} onClick={(e) => e.stopPropagation()}>
