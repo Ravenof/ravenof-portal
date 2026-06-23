@@ -141,13 +141,13 @@ const STATUS_GLOW: Record<TutStatus, string> = {
 const CARD_BACK_SRC: Record<'plain' | 'curse' | 'zmk', string> = {
   plain: '/card-backs/back.webp', curse: '/card-backs/curse.webp', zmk: '/card-backs/zmk.webp',
 }
-function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
+export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
   const [ok, setOk] = useState(false)
   return <img src={CARD_BACK_SRC[kind]} alt="" draggable={false} onLoad={() => setOk(true)} onError={() => setOk(false)}
     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: ok ? 1 : 0, transition: 'opacity .2s' }} />
 }
 
-function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; scale?: number }) {
+export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; scale?: number }) {
   const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
   const hue = ratio * 120
   const top = `hsl(${hue},88%,58%)`, bot = `hsl(${hue},86%,36%)`
@@ -185,7 +185,7 @@ function spellDmgBonusFor(game: GameState, c: TutCard): number {
   return auraSpellDamageBonus(game, 'you', c.gameplay?.spellType)
 }
 
-function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean; costNow?: number; dmgBonus?: number }) {
+export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean; costNow?: number; dmgBonus?: number }) {
   const h = Math.round(w * 4 / 3)
   if (faceDown) {
     return (
@@ -252,7 +252,7 @@ function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: { c: Tut
 
 // ── Padaro plytelė kovos lauke ───────────────────────────────────────────────
 
-function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick, hpShown }: {
+export function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick, hpShown }: {
   g: GameState; u: BoardUnit; w: number
   selected?: boolean; targetable?: boolean; canAct?: boolean; dimmed?: boolean
   onClick?: () => void; hpShown?: number
@@ -318,7 +318,7 @@ function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick, hpSh
   )
 }
 
-function Token({ children, title, color }: { children: React.ReactNode; title: string; color?: string }) {
+export function Token({ children, title, color }: { children: React.ReactNode; title: string; color?: string }) {
   return (
     <span title={title}
       className="inline-flex items-center justify-center rounded-full text-[10px] leading-none"
