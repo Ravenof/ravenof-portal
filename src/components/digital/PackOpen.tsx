@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
+import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery } from '@/lib/ui-sound'
 
@@ -51,6 +52,7 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
       return
     }
     setCards([...r]); setRevealIdx(0)  // jau surūšiuota: dažnos pirma, rečiausios paskutinės
+    reportQuestEvent('open_pack')
     onOpened?.()
   }
 

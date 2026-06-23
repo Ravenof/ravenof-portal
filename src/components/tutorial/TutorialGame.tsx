@@ -29,6 +29,7 @@ import {
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason } from '@/lib/economy'
+import { reportQuestEvent } from '@/lib/gamification/quests'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
@@ -1187,6 +1188,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         hpRemaining: Math.max(0, me.hp), hpLowest: hpLowestRef.current,
       },
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner])
+
+  // Dienos užduočių įvykiai (sužaista kova + pergalė) — ne tutorial/demo
+  const questReportedRef = useRef(false)
+  useEffect(() => {
+    if (!game?.winner || questReportedRef.current) return
+    if (deckId === DEMO_DECK_ID) return
+    questReportedRef.current = true
+    reportQuestEvent('play_match')
+    if (game.winner === 'you') reportQuestEvent((vsRemote || ranked) ? 'pvp_win' : 'pve_win')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
 

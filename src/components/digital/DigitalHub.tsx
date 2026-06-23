@@ -8,6 +8,11 @@ import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { getWallet, buyPack, getActivePacks, type Wallet, type Pack } from '@/lib/economy'
 import { SettingsModal } from './SettingsModal'
+import { QuestsModal } from './QuestsModal'
+import { SeasonPassModal } from './SeasonPassModal'
+import { CosmeticsModal } from './CosmeticsModal'
+import { DailyDealModal } from './DailyDealModal'
+import { loginCheckin } from '@/lib/gamification/quests'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -33,6 +38,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [storeOpen, setStoreOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [questsOpen, setQuestsOpen] = useState(false)
+  const [seasonOpen, setSeasonOpen] = useState(false)
+  const [cosmeticsOpen, setCosmeticsOpen] = useState(false)
+  const [dealOpen, setDealOpen] = useState(false)
   const [packs, setPacks] = useState<Pack[]>([])
   const [buying, setBuying] = useState(false)
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
@@ -48,6 +57,12 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     refreshWallet()
     getActivePacks().then(setPacks)
     loadDigitalSettings()
+    loginCheckin().then((c) => {
+      if (c && !c.already && c.reward > 0) {
+        setToast(`🔥 ${c.streak} d. serija! +🪙 ${c.reward}${c.bonusBooster ? ' + 🎁 1 pak.' : ''}`)
+        refreshWallet()
+      }
+    })
   }, [loggedIn, refreshWallet])
 
   const doBuy = async (packId: string) => {
@@ -144,6 +159,22 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </button>
         </div>
 
+        {/* Dienos veiklos */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {([
+            { key: 'quests',    label: '📅 Užduotys',        col: '139,92,246',  on: () => setQuestsOpen(true) },
+            { key: 'season',    label: '🎖️ Sezono kelias',  col: '240,180,41',  on: () => setSeasonOpen(true) },
+            { key: 'deal',      label: '🔥 Dienos pasiūlymas', col: '251,146,60', on: () => setDealOpen(true) },
+            { key: 'cosmetics', label: '✨ Kosmetika',        col: '96,165,250',  on: () => setCosmeticsOpen(true) },
+          ] as const).map((b) => (
+            <button key={b.key} onClick={() => { playUiClick(); b.on() }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-transform hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${b.col},0.55)`, color: `rgb(${b.col})`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
+              {b.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tiles.map(renderTile)}
         </div>
@@ -188,6 +219,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       )}
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}
+      {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
+      {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={refreshWallet} />}
+      {dealOpen && <DailyDealModal gold={wallet.gold} onClose={() => setDealOpen(false)} onSpent={refreshWallet} />}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
