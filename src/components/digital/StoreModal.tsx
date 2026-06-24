@@ -189,12 +189,12 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
   const actCol = done ? '74,222,128' : a
   return (
     <button onClick={p.onAction} disabled={p.disabled || busy}
-      className="group relative aspect-[3/4] overflow-hidden transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:cursor-default"
+      className="group relative w-full flex flex-col overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default"
       style={{ clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
-      <div className="relative h-full w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
+      <div className="relative w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
         {/* paveikslas (didžioji dalis) */}
-        <div className="relative flex-1 flex items-center justify-center overflow-hidden"
-          style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
+        <div className="relative w-full flex items-center justify-center overflow-hidden"
+          style={{ aspectRatio: '5 / 6', background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false}
@@ -205,8 +205,8 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
         </div>
         {/* apačia: pavadinimas + kaina/veiksmas */}
         <div className="px-2 pt-1.5 pb-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.6))' }}>
-          <p className="text-[11px] font-bold leading-tight truncate" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{p.title}</p>
-          {p.sub && <p className="text-[8px] uppercase tracking-widest truncate mb-1" style={{ color: `rgb(${a})` }}>{p.sub}</p>}
+          <p className="text-[11px] font-bold leading-tight truncate text-left" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{p.title}</p>
+          {p.sub && <p className="text-[8px] uppercase tracking-widest truncate mb-1 text-left" style={{ color: `rgb(${a})` }}>{p.sub}</p>}
           <span className="mt-1 inline-flex w-full items-center justify-center px-2 py-1 rounded-lg text-[11px] font-bold"
             style={{ background: p.disabled && !done ? 'rgba(255,255,255,0.05)' : `rgba(${actCol},0.18)`, border: `1px solid rgba(${actCol},${p.disabled && !done ? 0.25 : 0.6})`, color: p.disabled && !done ? 'var(--text-muted)' : `rgb(${actCol})`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
             {busy ? '…' : p.actionLabel}
