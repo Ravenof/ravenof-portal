@@ -1,18 +1,19 @@
 'use client'
 
 // ── Aukcionas — „turgus su kortomis ant stalų" (naršyk / parduok / mano) ──────
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getWallet } from '@/lib/economy'
 import { rarityColor } from '@/lib/digital/rarity'
 import { browseListings, myListings, listCard, cancelListing, buyListing, myCollection,
   type Listing, type MyListing, type OwnedCard } from '@/lib/market'
+import { CardLightbox } from '@/components/rules/CardLightbox'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
 function CardArt({ url, name }: { url: string | null; name: string }) {
   const [bad, setBad] = useState(false)
   if (url && !bad) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt={name} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+    return <img src={url} alt={name} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false} />
   }
   return <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>
     <span className="text-xl">🎴</span><span className="text-[9px] font-bold leading-tight" style={{ color: '#fff' }}>{name}</span>
@@ -35,9 +36,17 @@ export function MarketClient() {
   const [sellSel, setSellSel] = useState<OwnedCard | null>(null)
   const [price, setPrice] = useState('')
   const [collQ, setCollQ] = useState('')
+  const [detail, setDetail] = useState<{ src: string; alt: string } | null>(null)
+  const lpRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refreshGold = useCallback(() => { getWallet().then((w) => w && setGold(w.gold)) }, [])
   const doBrowse = useCallback(() => { browseListings(qCard, qSeller).then(setListings) }, [qCard, qSeller])
+  const lp = (url: string | null, name: string) => ({
+    onPointerDown: () => { if (!url) return; lpRef.current = setTimeout(() => { lpRef.current = null; setDetail({ src: url, alt: name }) }, 420) },
+    onPointerUp: () => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } },
+    onPointerLeave: () => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } },
+  })
+  const viewStall = (seller: string | null) => { if (!seller) return; playUiClick(); setQSeller(seller); setQCard(''); setTab('browse'); browseListings('', seller).then(setListings) }
 
   useEffect(() => { refreshGold(); doBrowse() }, [refreshGold]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'mine') myListings().then(setMine); if (tab === 'sell') myCollection().then(setColl) }, [tab])
@@ -92,14 +101,20 @@ export function MarketClient() {
             <input value={qSeller} onChange={(e) => setQSeller(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doBrowse()} placeholder="Pardavėjas…" className="w-36 px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
             <button onClick={() => { playUiClick(); doBrowse() }} className="px-4 py-2 rounded-lg text-sm font-bold" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)' }}>Ieškoti</button>
           </div>
+          {qSeller && (
+            <div className="flex items-center justify-between px-3 py-1.5 rounded-lg" style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)' }}>
+              <span className="text-xs" style={{ color: '#93c5fd' }}>🏪 {qSeller} stalas</span>
+              <button onClick={() => { setQSeller(''); browseListings(qCard, '').then(setListings) }} className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Visi stalai ✕</button>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {listings.map((l) => {
               const col = rarityColor(l.rarity)
               return (
                 <div key={l.id} className="rounded-lg p-2 flex flex-col" style={board}>
-                  <div className="relative w-full overflow-hidden rounded" style={{ height: 150, border: `2px solid ${col}` }}><CardArt url={l.imageUrl} name={l.name} /></div>
+                  <div {...lp(l.imageUrl, l.name)} className="relative w-full overflow-hidden rounded cursor-pointer" style={{ height: 200, border: `2px solid ${col}`, background: '#0d0805' }}><CardArt url={l.imageUrl} name={l.name} /></div>
                   <p className="text-[11px] font-bold truncate mt-1.5" style={{ color: '#f3ead3' }}>{l.name}</p>
-                  <p className="text-[9px] truncate" style={{ color: 'var(--text-muted)' }}>@{l.seller ?? '?'}</p>
+                  <button onClick={() => viewStall(l.seller)} className="text-[9px] truncate text-left hover:underline" style={{ color: '#93c5fd' }}>@{l.seller ?? '?'}</button>
                   <button onClick={() => buy(l)} disabled={busy === l.id || gold < l.price}
                     className="mt-1.5 w-full px-2 py-1.5 rounded-lg text-xs font-bold transition-transform hover:scale-[1.03] disabled:opacity-40"
                     style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
@@ -152,7 +167,7 @@ export function MarketClient() {
             const col = rarityColor(m.rarity)
             return (
               <div key={m.id} className="rounded-lg p-2 flex flex-col" style={board}>
-                <div className="relative w-full overflow-hidden rounded" style={{ height: 150, border: `2px solid ${col}` }}><CardArt url={m.imageUrl} name={m.name} /></div>
+                <div {...lp(m.imageUrl, m.name)} className="relative w-full overflow-hidden rounded cursor-pointer" style={{ height: 200, border: `2px solid ${col}`, background: '#0d0805' }}><CardArt url={m.imageUrl} name={m.name} /></div>
                 <p className="text-[11px] font-bold truncate mt-1.5" style={{ color: '#f3ead3' }}>{m.name}</p>
                 <p className="text-[10px]" style={{ color: 'var(--gold)' }}>🪙 {m.price}</p>
                 <button onClick={() => cancel(m)} disabled={busy === m.id} className="mt-1.5 w-full px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>{busy === m.id ? '…' : 'Atšaukti'}</button>
@@ -162,6 +177,7 @@ export function MarketClient() {
           {mine.length === 0 && <p className="col-span-full text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>Neturi aktyvių listing&apos;ų.</p>}
         </div>
       )}
+      {detail && <CardLightbox src={detail.src} alt={detail.alt} onClose={() => setDetail(null)} />}
     </div>
   )
 }
