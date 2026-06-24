@@ -1,6 +1,8 @@
 'use client'
 
-// ── Vieninga PARDUOTUVĖ — visos prekės kvadratų tinklelyje + filtrai viršuje ───
+// ── PARDUOTUVĖ (perdaryta nuo nulio) — visos prekės tinklelyje, filtrai viršuje ─
+// Plytelė: FIKSUOTO px aukščio mygtukas (kad CSS Grid eilutės nepersidengtų),
+// viršuje paveikslas (object-contain), apačioje pavadinimas + kaina/veiksmas.
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { getActivePacks, buyPack, type Pack } from '@/lib/economy'
@@ -14,20 +16,20 @@ const oct = (b: number) =>
   `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
 
 function hexRgb(hex: string): string {
-  const h = hex.replace('#', '')
+  const h = (hex || '#9ca3af').replace('#', '')
   const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16)
   return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`
 }
 
 type Cat = 'all' | 'packs' | 'daily' | 'starter' | 'card_back' | 'board' | 'avatar'
 const CATS: { key: Cat; label: string; col: string }[] = [
-  { key: 'all',       label: '✦ Visi',          col: '240,180,41' },
-  { key: 'packs',     label: '🎁 Pakuotės',     col: '240,180,41' },
+  { key: 'all',       label: '✦ Visi',           col: '240,180,41' },
+  { key: 'packs',     label: '🎁 Pakuotės',      col: '240,180,41' },
   { key: 'daily',     label: '🔥 Dienos kortos', col: '251,146,60' },
-  { key: 'starter',   label: '🆓 Starter',       col: '34,197,94' },
-  { key: 'card_back', label: '🂠 Nugarėlės',     col: '96,165,250' },
-  { key: 'board',     label: '▦ Lentos',         col: '139,92,246' },
-  { key: 'avatar',    label: '😀 Avatarai',      col: '236,72,153' },
+  { key: 'starter',   label: '🆓 Starter',        col: '34,197,94' },
+  { key: 'card_back', label: '🂠 Nugarėlės',      col: '96,165,250' },
+  { key: 'board',     label: '▦ Lentos',          col: '139,92,246' },
+  { key: 'avatar',    label: '😀 Avatarai',       col: '236,72,153' },
 ]
 const KIND_COL: Record<CosmeticKind, string> = { card_back: '96,165,250', board: '139,92,246', avatar: '236,72,153' }
 
@@ -58,8 +60,8 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
   }, [])
 
   const flash = (m: string, e = false) => { (e ? playError : playSuccess)(); setMsg(m) }
-  const equippedFor = (kind: CosmeticKind) =>
-    kind === 'card_back' ? cos?.equippedCardBack : kind === 'board' ? cos?.equippedBoard : cos?.equippedAvatar
+  const equippedFor = (k: CosmeticKind) =>
+    k === 'card_back' ? cos?.equippedCardBack : k === 'board' ? cos?.equippedBoard : cos?.equippedAvatar
 
   // ── veiksmai ──
   const doBuyPack = async (p: Pack) => {
@@ -87,13 +89,13 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
     setLocalGold(r.gold); flash(`${c.name} nupirkta!`); onChanged?.(); getCosmetics().then(setCos)
   }
   const doEquipCos = async (c: Cosmetic) => {
-    if (busy) return; const isEq = equippedFor(c.kind) === c.id; setBusy('cos:' + c.id); playUiClick()
-    const okk = await equipCosmetic(c.kind, isEq ? null : c.id); setBusy(null)
-    if (!okk) return flash('Nepavyko.', true)
+    if (busy) return; const eq = equippedFor(c.kind) === c.id; setBusy('cos:' + c.id); playUiClick()
+    const ok = await equipCosmetic(c.kind, eq ? null : c.id); setBusy(null)
+    if (!ok) return flash('Nepavyko.', true)
     playSuccess(); getCosmetics().then(setCos)
   }
 
-  // ── prekių sąrašas ──
+  // ── prekės ──
   const products = useMemo<Prod[]>(() => {
     const out: Prod[] = []
     for (const p of packs) out.push({
@@ -101,15 +103,12 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
       img: { url: p.image_url, emoji: '🎴' }, actionLabel: `🪙 ${p.price_gold}`, state: 'buy',
       disabled: localGold < p.price_gold, onAction: () => doBuyPack(p),
     })
-    for (const c of deal) {
-      const acc = hexRgb(rarityColor(c.rarity))
-      out.push({
-        key: 'deal:' + c.id, cat: 'daily', title: c.name, sub: c.rarity ?? undefined, accent: acc,
-        img: { url: c.imageUrl, emoji: '🎴' },
-        actionLabel: c.bought ? '✓ Nupirkta' : `🪙 ${c.priceGold}`, state: c.bought ? 'done' : 'buy',
-        disabled: c.bought || localGold < c.priceGold, onAction: () => doBuyDeal(c),
-      })
-    }
+    for (const c of deal) out.push({
+      key: 'deal:' + c.id, cat: 'daily', title: c.name, sub: c.rarity ?? undefined, accent: hexRgb(rarityColor(c.rarity)),
+      img: { url: c.imageUrl, emoji: '🎴' },
+      actionLabel: c.bought ? '✓ Nupirkta' : `🪙 ${c.priceGold}`, state: c.bought ? 'done' : 'buy',
+      disabled: c.bought || localGold < c.priceGold, onAction: () => doBuyDeal(c),
+    })
     for (const s of starters) out.push({
       key: 'sd:' + s.id, cat: 'starter', title: s.name, sub: `${s.cardCount} kortų`, accent: '34,197,94',
       img: { url: s.imageUrl, emoji: '🃏' },
@@ -137,7 +136,7 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
       <div className="relative w-[min(640px,97vw)] max-h-[92vh]" style={{ clipPath: oct(18), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col max-h-[92vh]" style={{ clipPath: oct(17), background: 'radial-gradient(120% 60% at 50% 0%, rgba(240,180,41,0.13), rgba(10,8,16,0.98) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
 
-          {/* Antraštė + filtrai (lieka viršuje) */}
+          {/* Antraštė + filtrai */}
           <div className="px-5 pt-5 pb-3 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <p className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🛒 PARDUOTUVĖ</p>
@@ -164,11 +163,13 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
             )}
           </div>
 
-          {/* Prekių tinklelis (slenkamas) */}
-          <div className="px-5 pb-5 flex-1 min-h-0 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 content-start">
-            {loading && <p className="col-span-full text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
-            {!loading && shown.length === 0 && <p className="col-span-full text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>Šioje kategorijoje prekių nėra.</p>}
-            {shown.map((p) => <ProductTile key={p.key} p={p} busy={busy === p.key} />)}
+          {/* Tinklelis */}
+          <div className="px-5 pb-4 flex-1 min-h-0 overflow-y-auto">
+            {loading && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+            {!loading && shown.length === 0 && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>Šioje kategorijoje prekių nėra.</p>}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {shown.map((p) => <ProductTile key={p.key} p={p} busy={busy === p.key} />)}
+            </div>
           </div>
 
           {/* Apačia */}
@@ -182,6 +183,8 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
   )
 }
 
+const TILE_H = 246  // fiksuotas px aukštis – kad grid eilutės nepersidengtų
+
 function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
   const [bad, setBad] = useState(false)
   const a = p.accent
@@ -190,9 +193,10 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
   return (
     <button onClick={p.onAction} disabled={p.disabled || busy}
       className="group relative w-full overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default"
-      style={{ aspectRatio: '3 / 4', clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
+      style={{ height: TILE_H, clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
       <div className="relative h-full w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
-        <div className="relative flex-1 flex items-center justify-center overflow-hidden"
+        {/* paveikslas (užima didžiąją dalį) */}
+        <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden"
           style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -201,10 +205,11 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
             <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
           ) : null}
         </div>
-        <div className="px-2 pt-1.5 pb-2 shrink-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.6))' }}>
+        {/* apačia: pavadinimas + kaina/veiksmas */}
+        <div className="px-2 pt-1.5 pb-2 shrink-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.55))' }}>
           <p className="text-[11px] font-bold leading-tight truncate text-left" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{p.title}</p>
-          {p.sub && <p className="text-[8px] uppercase tracking-widest truncate mb-1 text-left" style={{ color: `rgb(${a})` }}>{p.sub}</p>}
-          <span className="mt-1 inline-flex w-full items-center justify-center px-2 py-1 rounded-lg text-[11px] font-bold"
+          {p.sub && <p className="text-[8px] uppercase tracking-widest truncate text-left mb-1" style={{ color: `rgb(${a})` }}>{p.sub}</p>}
+          <span className="mt-0.5 flex w-full items-center justify-center px-2 py-1 rounded-lg text-[11px] font-bold"
             style={{ background: p.disabled && !done ? 'rgba(255,255,255,0.05)' : `rgba(${actCol},0.18)`, border: `1px solid rgba(${actCol},${p.disabled && !done ? 0.25 : 0.6})`, color: p.disabled && !done ? 'var(--text-muted)' : `rgb(${actCol})`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
             {busy ? '…' : p.actionLabel}
           </span>
