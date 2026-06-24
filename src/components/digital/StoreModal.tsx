@@ -189,22 +189,19 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
   const actCol = done ? '74,222,128' : a
   return (
     <button onClick={p.onAction} disabled={p.disabled || busy}
-      className="group relative w-full flex flex-col overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default"
-      style={{ clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
-      <div className="relative w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
-        {/* paveikslas (didžioji dalis) */}
-        <div className="relative w-full overflow-hidden"
-          style={{ paddingTop: '120%', background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
+      className="group relative w-full overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default"
+      style={{ aspectRatio: '3 / 4', clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
+      <div className="relative h-full w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
+        <div className="relative flex-1 flex items-center justify-center overflow-hidden"
+          style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false}
-              style={{ opacity: done ? 0.5 : 1 }} />
+            <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false} style={{ opacity: done ? 0.5 : 1 }} />
           ) : p.img.emoji ? (
-            <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
+            <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
           ) : null}
         </div>
-        {/* apačia: pavadinimas + kaina/veiksmas */}
-        <div className="px-2 pt-1.5 pb-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.6))' }}>
+        <div className="px-2 pt-1.5 pb-2 shrink-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.6))' }}>
           <p className="text-[11px] font-bold leading-tight truncate text-left" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{p.title}</p>
           {p.sub && <p className="text-[8px] uppercase tracking-widest truncate mb-1 text-left" style={{ color: `rgb(${a})` }}>{p.sub}</p>}
           <span className="mt-1 inline-flex w-full items-center justify-center px-2 py-1 rounded-lg text-[11px] font-bold"
