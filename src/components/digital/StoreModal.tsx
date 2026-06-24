@@ -197,7 +197,7 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
           style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false}
+            <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false}
               style={{ opacity: done ? 0.5 : 1 }} />
           ) : p.img.emoji ? (
             <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
