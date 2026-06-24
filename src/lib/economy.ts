@@ -48,12 +48,12 @@ export async function getActivePack(): Promise<{ id: string; name: string; price
   return (data as { id: string; name: string; price_gold: number } | null) ?? null
 }
 
-export type Pack = { id: string; name: string; description: string | null; price_gold: number; sort_order: number }
+export type Pack = { id: string; name: string; description: string | null; price_gold: number; sort_order: number; image_url: string | null }
 
 /** Visos aktyvios pakuotės (boosteriai) parduotuvei. */
 export async function getActivePacks(): Promise<Pack[]> {
   const supabase = createClient()
-  const { data } = await supabase.from('card_packs').select('id, name, description, price_gold, sort_order').eq('is_active', true).order('sort_order')
+  const { data } = await supabase.from('card_packs').select('id, name, description, price_gold, sort_order, image_url').eq('is_active', true).order('sort_order')
   return (data as Pack[]) ?? []
 }
 
