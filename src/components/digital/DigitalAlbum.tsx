@@ -170,7 +170,7 @@ export function DigitalAlbum() {
       )}
 
       {openingPack && (
-        <PackOpen packId={openingPack.id} packName={openingPack.name}
+        <PackOpen packId={openingPack.id} packName={openingPack.name} packImage={openingPack.image_url}
           onClose={() => { setOpeningPack(null); refreshWallet(); refreshInv() }}
           onOpened={() => { refreshWallet(); refreshInv(); loadCards() }} />
       )}

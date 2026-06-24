@@ -189,7 +189,7 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
   const actCol = done ? '74,222,128' : a
   return (
     <button onClick={p.onAction} disabled={p.disabled || busy}
-      className="group relative aspect-square overflow-hidden transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:cursor-default"
+      className="group relative aspect-[3/4] overflow-hidden transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:cursor-default"
       style={{ clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
       <div className="relative h-full w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
         {/* paveikslas (didžioji dalis) */}

@@ -27,9 +27,10 @@ function CardArt({ card }: { card: OpenedCard }) {
   )
 }
 
-export function PackOpen({ packId, packName, onClose, onOpened }: {
-  packId: string; packName: string; onClose: () => void; onOpened?: () => void
+export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
+  packId: string; packName: string; packImage?: string | null; onClose: () => void; onOpened?: () => void
 }) {
+  const [packImgBad, setPackImgBad] = useState(false)
   const [tear, setTear] = useState(0)
   const [dir, setDir] = useState(1)
   const [opening, setOpening] = useState(false)
@@ -104,10 +105,22 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
           </p>
           <div className="relative" style={{ width: 220, height: 300, touchAction: 'none' }}>
             <div className="absolute inset-x-0 top-0" style={{ height: 130, filter: 'blur(22px)', opacity: 0.15 + tear * 0.85, background: 'radial-gradient(70% 100% at 50% 0%, rgba(255,205,90,0.95), rgba(240,120,30,0.5) 50%, transparent 78%)' }} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{ clipPath: 'polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px)', background: 'linear-gradient(160deg, #2a1d44, #120c1e 60%, #0a0810)', border: '2px solid rgba(240,180,41,0.45)', boxShadow: 'inset 0 0 30px rgba(240,180,41,0.12)' }}>
-              <span className="text-5xl" style={{ filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.5))' }}>🎴</span>
-              <span className="text-xs font-bold tracking-widest" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.18em' }}>RAVENOF</span>
-              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{packName}</span>
+            <div className="absolute inset-0 overflow-hidden" style={{ clipPath: 'polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px)', background: 'linear-gradient(160deg, #2a1d44, #120c1e 60%, #0a0810)', border: '2px solid rgba(240,180,41,0.45)', boxShadow: 'inset 0 0 30px rgba(240,180,41,0.12)' }}>
+              {packImage && !packImgBad ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={packImage} alt={packName} onError={() => setPackImgBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}>
+                    <span className="text-[10px] font-bold tracking-widest" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.14em' }}>{packName}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                  <span className="text-5xl" style={{ filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.5))' }}>🎴</span>
+                  <span className="text-xs font-bold tracking-widest" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.18em' }}>RAVENOF</span>
+                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{packName}</span>
+                </div>
+              )}
             </div>
             <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} className="absolute left-0 right-0 top-0 cursor-grab active:cursor-grabbing flex items-center justify-center"
               style={{ height: 64, touchAction: 'none', transform: `translateX(${dir * tear * 230}px) rotate(${dir * tear * 10}deg)`, opacity: 1 - tear * 0.9, transition: startRef.current ? 'none' : 'transform 0.22s, opacity 0.22s', clipPath: 'polygon(0 0,100% 0,100% 64%,93% 100%,86% 66%,79% 100%,72% 66%,65% 100%,58% 66%,51% 100%,44% 66%,37% 100%,30% 66%,23% 100%,16% 66%,9% 100%,0 80%)', background: 'linear-gradient(160deg, #3a2a55, #241a38)', borderTop: '2px solid rgba(240,180,41,0.55)', borderLeft: '2px solid rgba(240,180,41,0.4)', borderRight: '2px solid rgba(240,180,41,0.4)' }}>
@@ -152,15 +165,15 @@ export function PackOpen({ packId, packName, onClose, onOpened }: {
       {done && cards && (
         <div className="flex flex-col items-center gap-4 w-full max-w-[760px]">
           <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>TAVO KORTOS!</p>
-          <div className="grid grid-cols-5 gap-2 sm:gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
             {cards.map((c, i) => {
               const cc = rarityColor(c.rarity)
               return (
                 <div key={c.id + '-' + i} className="relative rounded-md overflow-hidden" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 0 12px ${cc}77` }}>
                   <CardArt card={c} />
                   <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center" style={{ background: 'rgba(0,0,0,0.75)' }}>
-                    <p className="text-[8px] leading-tight truncate" style={{ color: '#fff' }}>{c.name}</p>
-                    <p className="text-[7px] font-bold uppercase" style={{ color: cc }}>{c.rarity ?? ''}</p>
+                    <p className="text-[10px] leading-tight truncate" style={{ color: '#fff' }}>{c.name}</p>
+                    <p className="text-[8px] font-bold uppercase tracking-wide" style={{ color: cc }}>{c.rarity ?? ''}</p>
                   </div>
                 </div>
               )
