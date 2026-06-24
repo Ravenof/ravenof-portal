@@ -6,12 +6,11 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
-import { getWallet, buyPack, getActivePacks, type Wallet, type Pack } from '@/lib/economy'
+import { getWallet, type Wallet } from '@/lib/economy'
 import { SettingsModal } from './SettingsModal'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
-import { CosmeticsModal } from './CosmeticsModal'
-import { DailyDealModal } from './DailyDealModal'
+import { StoreModal } from './StoreModal'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 
@@ -40,10 +39,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [questsOpen, setQuestsOpen] = useState(false)
   const [seasonOpen, setSeasonOpen] = useState(false)
-  const [cosmeticsOpen, setCosmeticsOpen] = useState(false)
-  const [dealOpen, setDealOpen] = useState(false)
-  const [packs, setPacks] = useState<Pack[]>([])
-  const [buying, setBuying] = useState(false)
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
 
   useEffect(() => {
@@ -55,7 +50,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet()
-    getActivePacks().then(setPacks)
     loadDigitalSettings()
     loginCheckin().then((c) => {
       if (c && !c.already && c.reward > 0) {
@@ -64,15 +58,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       }
     })
   }, [loggedIn, refreshWallet])
-
-  const doBuy = async (packId: string) => {
-    if (buying) return
-    setBuying(true); playUiClick()
-    const r = await buyPack(packId)
-    setBuying(false)
-    if ('error' in r) { setToast(r.error === 'not enough gold' ? 'Per mažai aukso.' : 'Nepavyko nupirkti pakuotės.'); return }
-    refreshWallet(); setToast('Pakuotė nupirkta! 🎁')
-  }
 
   const flash = (msg: string) => { playUiClick(); setToast(msg) }
 
@@ -95,7 +80,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', href: '/digital/ranked' },
     { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', href: '/digital/pvp' },
     { key: 'mycards', icon: '🃏', title: 'KORTŲ ALBUMAS', subtitle: 'Tavo kolekcija + pakuočių atplėšimas', accent: '96,165,250', href: '/digital/album' },
-    { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pirk pakuotes už auksą', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
+    { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pakuotės · dienos kortos · starter kaladės · kosmetika', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
   ]
 
   const renderTile = (t: TileCfg) => {
@@ -164,8 +149,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           {([
             { key: 'quests',    label: '📅 Užduotys',        col: '139,92,246',  on: () => setQuestsOpen(true) },
             { key: 'season',    label: '🎖️ Sezono kelias',  col: '240,180,41',  on: () => setSeasonOpen(true) },
-            { key: 'deal',      label: '🔥 Dienos pasiūlymas', col: '251,146,60', on: () => setDealOpen(true) },
-            { key: 'cosmetics', label: '✨ Kosmetika',        col: '96,165,250',  on: () => setCosmeticsOpen(true) },
           ] as const).map((b) => (
             <button key={b.key} onClick={() => { playUiClick(); b.on() }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-transform hover:scale-105 active:scale-95"
@@ -184,45 +167,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {tutorialOpen && (
         <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => { setTutorialOpen(false); refreshWallet() }} />
       )}
-      {storeOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={() => setStoreOpen(false)}>
-          <div className="relative w-[min(420px,94vw)]" style={{ clipPath: oct(16), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-            <div className="px-5 py-6 text-center" style={{ clipPath: oct(15), background: 'radial-gradient(120% 90% at 50% 0%, rgba(240,180,41,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
-              <p className="text-lg font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🛒 PARDUOTUVĖ</p>
-              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Turi 🪙 {wallet.gold.toLocaleString()} aukso · 🎁 {wallet.packs} pakuotės</p>
-              <div className="space-y-3 mb-2 text-left">
-                {packs.map((p) => (
-                  <div key={p.id} className="px-3 py-3" style={{ clipPath: oct(10), background: 'linear-gradient(160deg, rgba(58,42,85,0.45), rgba(21,16,31,0.7))', border: '1px solid rgba(240,180,41,0.3)' }}>
-                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>🎴 {p.name}</p>
-                    {p.description && <p className="text-[10px] mt-0.5 mb-2 leading-snug" style={{ color: 'var(--text-muted)' }}>{p.description}</p>}
-                    <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>10 kortų · 10-a visada Unikalus arba geresnė</p>
-                    <button onClick={() => doBuy(p.id)} disabled={buying || wallet.gold < p.price_gold}
-                      className="w-full px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40 hover:scale-[1.02] active:scale-95"
-                      style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-                      {buying ? 'Perkama…' : `Pirkti už 🪙 ${p.price_gold}`}
-                    </button>
-                  </div>
-                ))}
-                {packs.length === 0 && <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>Šiuo metu pakuočių nėra.</p>}
-              </div>
-              {wallet.packs > 0 && (
-                <Link href="/digital/album" onClick={() => { playUiClick(); setStoreOpen(false) }}
-                  className="block w-full mt-2 px-4 py-2.5 rounded-xl text-sm font-bold text-center transition-all hover:scale-[1.02] active:scale-95"
-                  style={{ background: 'rgba(251,146,60,0.2)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-                  🎁 Atplėšti albume (turi {wallet.packs})
-                </Link>
-              )}
-              <button onClick={() => { playUiClick(); setStoreOpen(false) }} className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>Uždaryti</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
-      {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={refreshWallet} />}
-      {dealOpen && <DailyDealModal gold={wallet.gold} onClose={() => setDealOpen(false)} onSpent={refreshWallet} />}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"

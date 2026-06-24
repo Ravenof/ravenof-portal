@@ -11,6 +11,7 @@ export type Cosmetic = {
   priceGold: number
   css: string | null
   emoji: string | null
+  imageUrl: string | null
 }
 
 export type CosmeticsState = {

@@ -8,6 +8,7 @@ export const metadata = { title: 'Administravimas' }
 const NAV = [
   { href: '/admin',               label: '📊 Apžvalga'    },
   { href: '/admin/cards',         label: '🃏 Kortos'        },
+  { href: '/admin/shop',          label: '🛒 Parduotuvė'    },
   { href: '/admin/zmk',           label: '🎲 ŽMK kortos'    },
   { href: '/admin/events',        label: '📅 Renginiai'     },
   { href: '/admin/lore',          label: '📖 Atlasas'       },
@@ -246,6 +247,7 @@ export default async function AdminDashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {[
               { href: '/admin/cards/new',                label: '+ Nauja korta',    color: 'var(--gold)'           },
+              { href: '/admin/shop',                     label: '🛒 Parduotuvė',     color: '#fbbf24'               },
               { href: '/admin/ranked',                 label: '🏆 Reitingo kova', color: '#fca5a5'               },
               { href: '/admin/cards/import',             label: '↑ Importuoti', color: 'var(--text-secondary)' },
               { href: '/admin/events/new',               label: '+ Renginys',        color: '#34d399'               },
