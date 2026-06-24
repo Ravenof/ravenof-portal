@@ -391,6 +391,57 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
       </div>
 
       <div>
+        <label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={!!cfg.ignoreTaunt} className="w-3.5 h-3.5 accent-yellow-400"
+            onChange={(e) => update({ ...cfg, ignoreTaunt: e.target.checked || undefined })} />
+          🥷 Gali pulti tiesiogiai (ignoruoja priešo Pasišaipymą)
+        </label>
+      </div>
+
+      <div>
+        <label style={labelStyle}>⚔⚔ Papildomos atakos per ėjimą (bazinė = 1)</label>
+        <div className="grid grid-cols-2 gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          {(['base','ifEnemyTaunt','perEnemyTaunt','ifNoEnemyCreatures'] as const).map((k) => {
+            const lbl = k === 'base' ? 'Visada +' : k === 'ifEnemyTaunt' ? '+ jei priešas turi taunt' : k === 'perEnemyTaunt' ? '+ × priešo taunt sk.' : '+ jei priešas be kūrinių'
+            const ea = cfg.extraAttacks ?? {}
+            return (
+              <label key={k} className="flex items-center justify-between gap-1">
+                {lbl}
+                <input type="number" min={0} value={ea[k] ?? ''} placeholder="0"
+                  onChange={(e) => { const v = e.target.value === '' ? undefined : Number(e.target.value); const next = { ...ea, [k]: v }; const clean = Object.fromEntries(Object.entries(next).filter(([, x]) => x != null)) as NonNullable<GameplayConfig['extraAttacks']>; update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined }) }}
+                  style={{ ...inputStyle, width: 60 }} />
+              </label>
+            )
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label style={labelStyle}>🤝 Sinergija (veikia kai ŠIS ir partneris abu kovos lauke)</label>
+        <div className="space-y-2">
+          <input value={cfg.synergy?.withNames ?? ''} placeholder="Partnerių kortų vardai (kableliais)"
+            onChange={(e) => update({ ...cfg, synergy: { ...(cfg.synergy ?? {}), withNames: e.target.value || undefined } })} style={inputStyle} />
+          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            arba frakcija:
+            <select value={cfg.synergy?.withFaction ?? ''} onChange={(e) => update({ ...cfg, synergy: { ...(cfg.synergy ?? {}), withFaction: e.target.value ? Number(e.target.value) : undefined } })} style={{ ...inputStyle, width: 160 }}>
+              <option value="">(nesvarbu)</option>
+              {factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <label className="flex items-center justify-between gap-1">+ATK<input type="number" value={cfg.synergy?.buffAttack ?? ''} placeholder="0" onChange={(e) => update({ ...cfg, synergy: { ...(cfg.synergy ?? {}), buffAttack: e.target.value === '' ? undefined : Number(e.target.value) } })} style={{ ...inputStyle, width: 60 }} /></label>
+            <label className="flex items-center justify-between gap-1">+HP<input type="number" value={cfg.synergy?.buffHealth ?? ''} placeholder="0" onChange={(e) => update({ ...cfg, synergy: { ...(cfg.synergy ?? {}), buffHealth: e.target.value === '' ? undefined : Number(e.target.value) } })} style={{ ...inputStyle, width: 60 }} /></label>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            {([['sprint','▶ Sprintas'],['taunt','⊙ Pasišaipymas'],['shield','✦★ Skydas'],['stealth','◑ Sėlinimas']] as const).map(([kw, ic]) => {
+              const cur = cfg.synergy?.keywords ?? []
+              return <label key={kw} className="flex items-center gap-1"><input type="checkbox" checked={cur.includes(kw)} className="w-3.5 h-3.5 accent-yellow-400" onChange={(e) => { const ks = e.target.checked ? [...cur, kw] : cur.filter((x) => x !== kw); update({ ...cfg, synergy: { ...(cfg.synergy ?? {}), keywords: ks.length ? ks : undefined } }) }} />{ic}</label>
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div>
         <p style={{ ...labelStyle, marginBottom: 4 }}>Padaro raktažodžiai (statiniai)</p>
         <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
           {([['sprint', '▶ Sprintas'], ['taunt', '⊙ Pasišaipymas'], ['shield', '✦★ Magiškasis skydas'], ['stealth', '◑ Sėlinimas']] as const).map(([kw, lbl]) => {

@@ -444,6 +444,20 @@ export type GameplayConfig = {
   passiveAura?: PassiveAuraConfig
   keywords?: ('sprint' | 'taunt' | 'shield' | 'stealth')[]  // statiniai padaro raktažodžiai
   attackRestriction?: AttackRestriction  // padaras gali pulti tik tam tikrus taikinius
+  ignoreTaunt?: boolean                  // gali pulti tiesiogiai – ignoruoja priešo Pasišaipymą (taunt)
+  extraAttacks?: {                        // papildomos atakos per ėjimą (be šios bazinė = 1)
+    base?: number                         // visada +N
+    ifEnemyTaunt?: number                 // +N jei priešas turi bent 1 taunt kūrinį
+    perEnemyTaunt?: number                // +N × priešo taunt kūrinių skaičius (dinaminis)
+    ifNoEnemyCreatures?: number           // +N jei priešas neturi kūrinių
+  }
+  synergy?: {                             // veikia kai ŠIS ir partneris abu kovos lauke
+    withNames?: string                    // partnerių kortų vardai (kableliais)
+    withFaction?: number                  // arba bet kuris šios frakcijos narys (faction id)
+    buffAttack?: number                   // +ATK kol abu lauke
+    buffHealth?: number                   // +HP kol abu lauke
+    keywords?: ('sprint' | 'taunt' | 'shield' | 'stealth')[]  // suteikiami raktažodžiai
+  }
   canTriggerCurse?: boolean
   canTriggerZmk?: boolean
   animationType?: string

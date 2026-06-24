@@ -739,6 +739,29 @@ function recomputeAuras(g: GameState) {
       }
     }
   }
+  // 3b) Sinergija: kol ŠIS ir partneris (vardu/frakcija) abu kovos lauke – buff'as/raktažodžiai
+  for (const sd of allSeats(g)) {
+    const units = P(g, sd).units.filter((x): x is BoardUnit => !!x)
+    for (const u of units) {
+      if (u.statuses.silenced) continue
+      const syn = u.card.gameplay?.synergy
+      if (!syn) continue
+      const names = (syn.withNames ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+      const fac = syn.withFaction ?? 0
+      const hasPartner = units.some((x) => x.uid !== u.uid && (
+        (names.length > 0 && names.includes(x.card.name.trim().toLowerCase())) ||
+        (fac > 0 && x.card.factionId === fac)
+      ))
+      if (!hasPartner) continue
+      if (syn.buffAttack) { u.atk = Math.max(0, u.atk + syn.buffAttack); u.auraAtk = (u.auraAtk ?? 0) + syn.buffAttack }
+      if (syn.buffHealth) { u.maxHp = Math.max(1, u.maxHp + syn.buffHealth); u.hp += syn.buffHealth; u.auraHp = (u.auraHp ?? 0) + syn.buffHealth }
+      for (const kw of (syn.keywords ?? [])) {
+        if (kw === 'shield') { if (!u.shield) { u.shield = true; u.auraShield = true } }
+        else if (kw === 'stealth') { if (!u.stealth) { u.stealth = true; u.auraStealth = true } }
+        else { (u.auraKw ??= []).push(kw) }
+      }
+    }
+  }
   // 4) Jei debuff aura nuvarė HP iki 0 – žūtis
   for (const sd of allSeats(g)) {
     for (const u of [...P(g, sd).units]) {
@@ -2096,11 +2119,24 @@ export function effectiveAtk(g: GameState, u: BoardUnit): number {
   return Math.max(0, u.atk + fieldEngine.fieldAtkDelta(g, owner))
 }
 
+// Maks. atakų per ėjimą šiam padarui: 1 + papildomos (statinės/sąlyginės/dinaminės iš gameplay.extraAttacks).
+function unitMaxAttacks(g: GameState, s: Side, u: BoardUnit): number {
+  const ea = u.card.gameplay?.extraAttacks
+  if (!ea) return 1
+  const enemyUnits = enemySeats(g, s).flatMap((f) => P(g, f).units.filter((x): x is BoardUnit => !!x))
+  const tauntCount = enemyUnits.filter((x) => x.card.keywords.includes('taunt') || !!x.auraKw?.includes('taunt')).length
+  let extra = ea.base ?? 0
+  if ((ea.ifEnemyTaunt ?? 0) > 0 && tauntCount > 0) extra += ea.ifEnemyTaunt as number
+  if ((ea.perEnemyTaunt ?? 0) > 0) extra += (ea.perEnemyTaunt as number) * tauntCount
+  if ((ea.ifNoEnemyCreatures ?? 0) > 0 && enemyUnits.length === 0) extra += ea.ifNoEnemyCreatures as number
+  return 1 + Math.max(0, extra)
+}
+
 export function canUnitAttack(g: GameState, s: Side, u: BoardUnit): { ok: boolean; reason?: string } {
   if (u.isChampion) return { ok: false, reason: 'Čempionas neturi ATK ir negali atakuoti – naudok gebėjimą.' }
   const limit = fieldEngine.attackLimit(g, s)
   if (P(g, s).attacksThisTurn >= limit) return { ok: false, reason: `🌍 Laukas riboja atakas: maks. ${limit} per ėjimą.` }
-  if (u.attacksUsed >= 1) return { ok: false, reason: 'Šis padaras jau atakavo šį ėjimą.' }
+  if (u.attacksUsed >= unitMaxAttacks(g, s, u)) return { ok: false, reason: 'Šis padaras jau atakavo šį ėjimą.' }
   if (u.statuses.frozen) return { ok: false, reason: '❄ Padaras sušaldytas – praleidžia veikimo galimybę.' }
   if (u.statuses.stunned) return { ok: false, reason: '✦ Padaras apsvaigintas – negali atakuoti.' }
   if (u.auraCantAttack) return { ok: false, reason: '🔗 Aura blokuoja šio padaro atakas.' }
@@ -2130,11 +2166,12 @@ function attackTargetAllowed(g: GameState, r: AttackRestriction, t: TargetRef): 
 export function legalTargets(g: GameState, attackerSide: Side, attacker?: BoardUnit): TargetRef[] {
   const foes = enemySeats(g, attackerSide)  // 1v1: [other]; 2v2: abu priešų seat'ai
   const restriction = attacker?.card.gameplay?.attackRestriction
+  const ignoreTaunt = !!attacker?.card.gameplay?.ignoreTaunt
   const apply = (list: TargetRef[]) => restriction ? list.filter((t) => attackTargetAllowed(g, restriction, t)) : list
   // Pasišaipymas: jei BET KURIS priešų seat'as turi taunt – privaloma pulti taunt
   const taunts: TargetRef[] = []
   for (const foe of foes) for (const u of P(g, foe).units) if (u && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) && !u.stealth) taunts.push({ kind: 'unit', side: foe, uid: u.uid })
-  if (taunts.length > 0) return apply(taunts)
+  if (!ignoreTaunt && taunts.length > 0) return apply(taunts)
   const out: TargetRef[] = []
   for (const foe of foes) {
     for (const u of P(g, foe).units) if (u && !u.stealth) out.push({ kind: 'unit', side: foe, uid: u.uid })
