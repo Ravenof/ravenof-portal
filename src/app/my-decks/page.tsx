@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { MyDecksList } from '@/components/my-decks/MyDecksList'
 import { RavenofButton } from '@/components/ui/RavenofButton'
+import { DeckImportButton } from '@/components/my-decks/DeckImportButton'
 import type { DeckWithRelations } from '@/types'
 
 export const metadata = { title: 'Mano kaladės' }
@@ -75,6 +76,7 @@ export default async function MyDecksPage() {
             Mano kaladės
           </h1>
           <HeaderNav />
+          <DeckImportButton />
           <Link href="/deck-builder">
             <RavenofButton variant="gold" size="md">
               <Plus className="w-4 h-4" />

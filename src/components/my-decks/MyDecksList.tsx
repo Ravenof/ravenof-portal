@@ -11,6 +11,7 @@ import type { DeckWithRelations } from '@/types'
 import { PlaytestButton } from '@/components/decks/PlaytestButton'
 import { TutorialButton } from '@/components/tutorial/TutorialButton'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
+import { ShareCodeButton } from './ShareCodeButton'
 
 type Props = {
   decks: DeckWithRelations[]
@@ -274,6 +275,9 @@ export function MyDecksList({ decks, userId, deckOwnership = {} }: Props) {
                   <Copy className="w-3 h-3" />
                 )}
               </RavenofButton>
+
+              {/* Dalijimosi kodas */}
+              <ShareCodeButton deckId={deck.id} factionId={deck.faction_id} />
 
               {/* Delete */}
               {!isConfirming ? (

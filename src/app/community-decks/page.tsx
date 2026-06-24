@@ -103,6 +103,9 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
             <h1 className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', textShadow: '0 0 16px rgba(240,180,41,0.3)', letterSpacing: '0.06em' }}>
               📚 Viešos kaladės
             </h1>
+            <Link href="/community-decks/meta" className="text-xs px-2.5 py-1 rounded-lg transition-opacity hover:opacity-80" style={{ color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.3)', background: 'rgba(240,180,41,0.06)' }}>
+              📊 Meta
+            </Link>
           </div>
           <HeaderNav />
         </div>
