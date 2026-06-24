@@ -150,6 +150,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             { key: 'quests',    label: '📅 Užduotys',        col: '139,92,246',  on: () => setQuestsOpen(true) },
             { key: 'season',    label: '🎖️ Sezono kelias',  col: '240,180,41',  on: () => setSeasonOpen(true) },
             { key: 'friends',   label: '👥 Draugai',         col: '96,165,250',  on: () => { window.location.href = '/friends' } },
+            { key: 'market',    label: '🏪 Aukcionas',       col: '146,84,40',   on: () => { window.location.href = '/market' } },
           ] as const).map((b) => (
             <button key={b.key} onClick={() => { playUiClick(); b.on() }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-transform hover:scale-105 active:scale-95"
