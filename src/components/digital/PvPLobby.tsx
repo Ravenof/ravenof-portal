@@ -32,7 +32,7 @@ const oct = (b: number) =>
 
 const ACC = '251,146,60' // oranžinis (PVP — LAISVA akcentas)
 
-export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckName: string; onClose: () => void }) {
+export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: { deckId: string; deckName: string; onClose: () => void; presetHost?: string | null; presetJoin?: string | null }) {
   const [tab, setTab] = useState<'private' | 'random'>('private')
   const [userId, setUserId] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>('Žaidėjas')
@@ -73,6 +73,15 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     } catch { /* */ }
   }, [])
 
+  // Iššūkio auto-veiksmas: ?host=CODE → sukuria kambarį tuo kodu; ?join=CODE → prisijungia.
+  const autoRef = useRef(false)
+  useEffect(() => {
+    if (autoRef.current || !userId) return
+    if (presetHost) { autoRef.current = true; setTab('private'); createPrivate(presetHost) }
+    else if (presetJoin) { autoRef.current = true; setTab('private'); setJoinCode(presetJoin); joinByCode(presetJoin) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, presetHost, presetJoin])
+
   const doReconnect = () => {
     if (!resumeRec) return
     playUiClick()
@@ -102,11 +111,11 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     }, 2000)
   }, [deckSel])
 
-  const createPrivate = async () => {
+  const createPrivate = async (presetCode?: string) => {
     if (!userId) return
     playUiClick(); setBusy(true); setStatus('Kuriamas kambarys…')
     const supabase = createClient()
-    const code = randCode()
+    const code = presetCode || randCode()
     const { data, error } = await supabase.from('pvp_matches').insert({
       code, is_public: false, status: 'waiting', host_id: userId, host_deck_id: deckSel, host_name: userName,
     }).select('*').single()
@@ -117,11 +126,12 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
     waitForGuest(m.id)
   }
 
-  const joinByCode = async () => {
-    if (!userId || !joinCode.trim()) return
+  const joinByCode = async (codeArg?: string) => {
+    const raw = (codeArg ?? joinCode).trim()
+    if (!userId || !raw) return
     playUiClick(); setBusy(true); setStatus('Jungiamasi…')
     const supabase = createClient()
-    const code = joinCode.trim().toUpperCase()
+    const code = raw.toUpperCase()
     const { data: found } = await supabase.from('pvp_matches').select('*').eq('code', code).eq('status', 'waiting').is('guest_id', null).maybeSingle()
     const m = found as Match | null
     if (!m) { setBusy(false); playError(); setStatus('Kambarys nerastas arba jau užimtas.'); return }
@@ -234,12 +244,12 @@ export function PvPLobby({ deckId, deckName, onClose }: { deckId: string; deckNa
 
             {tab === 'private' ? (
               <div className="space-y-4">
-                <button disabled={busy} onClick={createPrivate} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
+                <button disabled={busy} onClick={() => createPrivate()} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
                   ➕ Sukurti kambarį (gauk kodą)
                 </button>
                 <div className="flex items-center gap-2"><div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }} /><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>ARBA</span><div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }} /></div>
                 <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="KODAS" maxLength={5} style={inputStyle} />
-                <button disabled={busy || !joinCode.trim()} onClick={joinByCode} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
+                <button disabled={busy || !joinCode.trim()} onClick={() => joinByCode()} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
                   🔑 Jungtis pagal kodą
                 </button>
               </div>

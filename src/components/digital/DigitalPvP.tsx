@@ -14,6 +14,8 @@ export function DigitalPvP() {
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [open, setOpen] = useState(false)
+  const [hostCode, setHostCode] = useState<string | null>(null)
+  const [joinCode, setJoinCode] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -27,6 +29,14 @@ export function DigitalPvP() {
         })
     })
   }, [])
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    setHostCode(sp.get('host')); setJoinCode(sp.get('join'))
+  }, [])
+
+  // Iššūkis: kai yra ?host/?join ir parinkta kaladė – atidaryti lobby automatiškai
+  useEffect(() => { if ((hostCode || joinCode) && sel) setOpen(true) }, [hostCode, joinCode, sel])
 
   const deck = decks?.find((d) => d.id === sel)
   const A = '251,146,60'
@@ -63,7 +73,8 @@ export function DigitalPvP() {
             style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>
             ⚔ Į ARENĄ
           </button>
-          {open && deck && <PvPLobby deckId={deck.id} deckName={deck.name} onClose={() => setOpen(false)} />}
+          {(hostCode || joinCode) && <p className="text-[11px] text-center" style={{ color: '#fdba74' }}>🎯 Draugo iššūkis: parink kaladę – kova prasidės automatiškai.</p>}
+          {open && deck && <PvPLobby deckId={deck.id} deckName={deck.name} presetHost={hostCode} presetJoin={joinCode} onClose={() => setOpen(false)} />}
         </>
       )}
     </div>
