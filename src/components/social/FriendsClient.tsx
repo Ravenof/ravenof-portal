@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Swords, Check, X, Trash2 } from 'lucide-react'
+import { UserPlus, Swords, Check, X, Trash2, Repeat } from 'lucide-react'
 import { friendRequest, friendRespond, friendRemove, friendsList, challengeCreate, challengeIncoming, challengeAccept, challengeCancel, randMatchCode, type Friend, type Challenge } from '@/lib/social'
+import { tradeCreate, tradeIncoming, tradeAccept, type TradeIncoming } from '@/lib/trade'
+import { TradeWindow } from './TradeWindow'
 import { RavenofButton } from '@/components/ui/RavenofButton'
 
 export function FriendsClient() {
@@ -11,16 +13,18 @@ export function FriendsClient() {
   const [friends, setFriends] = useState<Friend[]>([])
   const [pending, setPending] = useState<Friend[]>([])
   const [challenges, setChallenges] = useState<Challenge[]>([])
+  const [trades, setTrades] = useState<TradeIncoming[]>([])
+  const [tradeId, setTradeId] = useState<string | null>(null)
   const [uname, setUname] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const reload = useCallback(async () => {
-    const [{ friends, pending }, ch] = await Promise.all([friendsList(), challengeIncoming()])
-    setFriends(friends); setPending(pending); setChallenges(ch)
+    const [{ friends, pending }, ch, tr] = await Promise.all([friendsList(), challengeIncoming(), tradeIncoming()])
+    setFriends(friends); setPending(pending); setChallenges(ch); setTrades(tr)
   }, [])
 
-  useEffect(() => { reload(); const t = setInterval(() => challengeIncoming().then(setChallenges), 5000); return () => clearInterval(t) }, [reload])
+  useEffect(() => { reload(); const t = setInterval(() => { challengeIncoming().then(setChallenges); tradeIncoming().then(setTrades) }, 5000); return () => clearInterval(t) }, [reload])
 
   const add = async () => {
     if (!uname.trim() || busy) return
@@ -45,6 +49,8 @@ export function FriendsClient() {
     router.push(`/digital/pvp?join=${code}`)
   }
   const decline = async (c: Challenge) => { await challengeCancel(c.id); reload() }
+  const startTrade = async (f: Friend) => { const id = await tradeCreate(f.userId); if (id) setTradeId(id); else setMsg('Nepavyko pradėti mainų.') }
+  const acceptTrade = async (tr: TradeIncoming) => { await tradeAccept(tr.id); setTradeId(tr.id); reload() }
 
   const card = { background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }
   return (
@@ -70,6 +76,21 @@ export function FriendsClient() {
                 <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{c.displayName || c.username} kviečia į kovą</span>
                 <RavenofButton variant="gold" size="sm" onClick={() => accept(c)}><Swords className="w-3 h-3" /> Priimti</RavenofButton>
                 <RavenofButton variant="muted" size="sm" onClick={() => decline(c)}><X className="w-3 h-3" /></RavenofButton>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Gauti mainų pasiūlymai */}
+      {trades.length > 0 && (
+        <div className="rounded-xl p-4" style={{ ...card, borderColor: 'rgba(96,165,250,0.4)' }}>
+          <p className="text-sm font-bold mb-2" style={{ color: '#93c5fd', fontFamily: 'var(--rvn-font-display)' }}>🔄 Mainų pasiūlymai</p>
+          <div className="space-y-2">
+            {trades.map((tr) => (
+              <div key={tr.id} className="flex items-center gap-2">
+                <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{tr.displayName || tr.username} nori mainytis</span>
+                <RavenofButton variant="gold" size="sm" onClick={() => acceptTrade(tr)}><Repeat className="w-3 h-3" /> Atidaryti</RavenofButton>
               </div>
             ))}
           </div>
@@ -103,12 +124,14 @@ export function FriendsClient() {
               <div key={f.id} className="flex items-center gap-2">
                 <span className="flex-1 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}<span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>@{f.username}</span></span>
                 <RavenofButton variant="secondary" size="sm" onClick={() => challenge(f)}><Swords className="w-3 h-3" /> Iššūkis</RavenofButton>
+                <RavenofButton variant="secondary" size="sm" onClick={() => startTrade(f)}><Repeat className="w-3 h-3" /> Mainai</RavenofButton>
                 <RavenofButton variant="muted" size="sm" onClick={() => remove(f.id)}><Trash2 className="w-3 h-3" /></RavenofButton>
               </div>
             ))}
           </div>
         )}
       </div>
+      {tradeId && <TradeWindow tradeId={tradeId} onClose={() => { setTradeId(null); reload() }} />}
     </div>
   )
 }
