@@ -193,14 +193,14 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
       style={{ clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
       <div className="relative w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
         {/* paveikslas (didžioji dalis) */}
-        <div className="relative w-full flex items-center justify-center overflow-hidden"
-          style={{ aspectRatio: '5 / 6', background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
+        <div className="relative w-full overflow-hidden"
+          style={{ paddingTop: '120%', background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false}
               style={{ opacity: done ? 0.5 : 1 }} />
           ) : p.img.emoji ? (
-            <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
+            <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
           ) : null}
         </div>
         {/* apačia: pavadinimas + kaina/veiksmas */}
