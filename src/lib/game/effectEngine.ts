@@ -224,14 +224,15 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       for (const t of targets) { const f = findUnit(g, t); if (f) api.applyStatus(g, f.owner, f.u, map[m.effect]) }
       break
     }
-    case 'taunt': case 'stealth': case 'shield':
+    case 'taunt': case 'stealth': case 'shield': case 'sprint':
       for (const t of targets) {
         const f = findUnit(g, t)
         if (!f) continue
         if (m.effect === 'shield') f.u.shield = true
         else if (m.effect === 'stealth') f.u.stealth = true
+        else if (m.effect === 'sprint') { if (!f.u.card.keywords.includes('sprint')) f.u.card.keywords.push('sprint') }
         else if (!f.u.card.keywords.includes('taunt')) f.u.card.keywords.push('taunt')
-        api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, msg: `„${f.u.card.name}" gauna ${m.effect === 'shield' ? '✦★ Magiškąjį skydą' : m.effect === 'stealth' ? '◑ Sėlinimą' : '⊙ Pasišaipymą'}.` })
+        api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, msg: `„${f.u.card.name}" gauna ${m.effect === 'shield' ? '✦★ Magiškąjį skydą' : m.effect === 'stealth' ? '◑ Sėlinimą' : m.effect === 'sprint' ? '▶ Sprintą' : '⊙ Pasišaipymą'}.` })
       }
       break
     case 'buffAttack':

@@ -54,7 +54,7 @@ export const TARGET_TYPES: { value: TargetType; label: string }[] = [
 export type EffectType =
   | 'damage' | 'heal' | 'destroy'
   | 'silence' | 'freeze' | 'stun' | 'poison' | 'burn'
-  | 'taunt' | 'stealth' | 'shield'
+  | 'taunt' | 'stealth' | 'shield' | 'sprint'
   | 'buffAttack' | 'buffHealth' | 'debuffAttack' | 'debuffHealth'
   | 'drawCards' | 'drawUntilHand' | 'discard'
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
@@ -79,6 +79,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'taunt',               label: 'Suteikti Pasišaipymą',       needsValue: false },
   { value: 'stealth',             label: 'Suteikti Sėlinimą',          needsValue: false },
   { value: 'shield',              label: 'Suteikti Magiškąjį skydą',   needsValue: false },
+  { value: 'sprint',              label: 'Suteikti Sprintą',           needsValue: false },
   { value: 'buffAttack',          label: '+ATK',                       needsValue: true },
   { value: 'buffHealth',          label: '+HP',                        needsValue: true },
   { value: 'debuffAttack',        label: '−ATK',                       needsValue: true },
