@@ -30,6 +30,7 @@ import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
+import { friendRequestById } from '@/lib/social'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
@@ -1207,6 +1208,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const deckCardsRef = useRef<TutCard[] | null>(null)
   useEffect(() => { deckCardsRef.current = deckCards }, [deckCards])
   const [chReady, setChReady] = useState(false)
+  const [chatLog, setChatLog] = useState<{ mine: boolean; text: string }[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatOpen, setChatOpen] = useState(false)
+  const [friendAdded, setFriendAdded] = useState<'idle' | 'sent' | 'exists'>('idle')
   useEffect(() => {
     if (!net) return
     const supabase = createClient()
@@ -1234,6 +1239,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards } })
       })
     }
+    ch.on('broadcast', { event: 'chat' }, ({ payload }) => { const txt = (payload as { text?: string }).text; if (txt) setChatLog((l) => [...l.slice(-40), { mine: false, text: txt }]) })
     ch.on('presence', { event: 'sync' }, () => {
       const st = ch.presenceState() as Record<string, { side?: Side }[]>
       let opp = false
@@ -1258,6 +1264,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     return () => { supabase.removeChannel(ch); channelRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [net?.matchId])
+
+  const sendBattleChat = () => {
+    const txt = chatInput.trim(); if (!txt || !channelRef.current) return
+    channelRef.current.send({ type: 'broadcast', event: 'chat', payload: { text: txt } })
+    setChatLog((l) => [...l.slice(-40), { mine: true, text: txt }]); setChatInput('')
+  }
 
   // Host transliuoja autoritetinę būseną po kiekvieno pasikeitimo
   useEffect(() => {
@@ -3137,6 +3149,28 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── pergalės / pralaimėjimo modalas ── */}
       <AnimatePresence>
+        {vsRemote && (
+          <div className="fixed bottom-4 left-4 z-[130]">
+            {chatOpen ? (
+              <div className="w-64 rounded-xl flex flex-col" style={{ background: 'rgba(10,8,16,0.96)', border: '1px solid rgba(240,180,41,0.4)', height: 280 }}>
+                <div className="flex items-center justify-between px-3 py-1.5 border-b" style={{ borderColor: 'rgba(240,180,41,0.2)' }}>
+                  <span className="text-[11px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>💬 Pokalbis</span>
+                  <button onClick={() => setChatOpen(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 flex flex-col">
+                  {chatLog.length === 0 && <span className="text-[10px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Parašyk žinutę varžovui.</span>}
+                  {chatLog.map((m, i) => <div key={i} className={'max-w-[80%] px-2 py-1 rounded-lg text-[11px] ' + (m.mine ? 'self-end' : 'self-start')} style={{ background: m.mine ? 'rgba(240,180,41,0.18)' : 'rgba(255,255,255,0.06)', color: '#f3ead3' }}>{m.text}</div>)}
+                </div>
+                <div className="flex gap-1 p-2 border-t" style={{ borderColor: 'rgba(240,180,41,0.2)' }}>
+                  <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendBattleChat()} maxLength={200} placeholder="Žinutė…" className="flex-1 px-2 py-1 rounded text-[11px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+                  <button onClick={sendBattleChat} className="px-2 rounded text-[11px] font-bold" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>➤</button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setChatOpen(true)} className="relative w-11 h-11 rounded-full flex items-center justify-center text-lg" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.5)' }} title="Pokalbis">💬{chatLog.length > 0 ? <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full" style={{ background: '#4ade80' }} /> : null}</button>
+            )}
+          </div>
+        )}
         {game?.winner && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="fixed inset-0 z-[140] flex items-center justify-center p-4"
@@ -3157,6 +3191,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                   ? 'Puiku! Dabar žinai, kaip žaisti Ravenof. Laikas tikram mūšiui!'
                   : 'Nieko tokio – tai treniruotė. Pabandyk dar kartą, dabar jau žinai taisykles!'}
               </p>
+              {net?.opponentId && (
+                <button onClick={async () => { if (friendAdded !== 'idle') return; playUiClick(); const r = await friendRequestById(net.opponentId!); setFriendAdded(r.ok ? 'sent' : 'exists') }} disabled={friendAdded !== 'idle'}
+                  className="w-full mb-3 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02] disabled:opacity-60"
+                  style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.5)', color: '#93c5fd', fontFamily: 'var(--rvn-font-display)' }}>
+                  {friendAdded === 'sent' ? '✓ Užklausa išsiųsta' : friendAdded === 'exists' ? 'Jau draugai / užklausa yra' : `➕ Pridėti ${opponentName ?? 'priešininką'} į draugus`}
+                </button>
+              )}
               <div className="flex gap-2 justify-center">
                 <button onClick={() => { playUiClick(); if (deckCards) { shownTipsRef.current.clear(); setStepIdx(GUIDED_STEPS.length); setTipQueue([]); initGame(deckCards) } }}
                   className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95"

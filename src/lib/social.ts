@@ -40,3 +40,19 @@ export async function challengeCancel(id: string): Promise<void> {
 }
 
 export const randMatchCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
+
+export type ChatMessage = { id: string; fromMe: boolean; body: string; createdAt: string }
+
+export async function sendMessage(toId: string, body: string): Promise<void> {
+  await createClient().rpc('rvn_send_message', { p_to: toId, p_body: body })
+}
+export async function getConversation(friendId: string): Promise<ChatMessage[]> {
+  const { data, error } = await createClient().rpc('rvn_conversation', { p_friend: friendId, p_limit: 80 })
+  if (error) return []
+  return (data as ChatMessage[]) ?? []
+}
+export async function friendRequestById(targetId: string): Promise<{ ok: boolean; reason?: string }> {
+  const { data, error } = await createClient().rpc('rvn_friend_request_id', { p_target: targetId })
+  if (error) return { ok: false, reason: error.message }
+  return data as { ok: boolean; reason?: string }
+}
