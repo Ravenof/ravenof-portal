@@ -576,6 +576,39 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                         onChange={(e) => setMapping(i, { value: Number(e.target.value) })} style={inputStyle} />
                     </div>
                   )}
+                  {(m.effect === 'buffAttack' || m.effect === 'buffHealth') && (
+                    <div>
+                      <label style={labelStyle} title="Laikinas sustiprinimas nuiminėjamas ėjimo riboje">Trukmė</label>
+                      <select value={m.buffDuration ?? 'permanent'} onChange={(e) => setMapping(i, { buffDuration: e.target.value === 'permanent' ? undefined : e.target.value as 'endOfTurn' | 'untilNextTurn' })} style={inputStyle}>
+                        <option value="permanent">Nuolatinis</option>
+                        <option value="endOfTurn">Iki ėjimo pabaigos</option>
+                        <option value="untilNextTurn">Iki kito savo ėjimo</option>
+                      </select>
+                    </div>
+                  )}
+                  {m.effect === 'drawCards' && (
+                    <div className="col-span-2 md:col-span-4 flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Atsitiktinė korta iš kapinyno į ranką">
+                        <input type="checkbox" checked={!!m.drawFromGraveyard} onChange={(e) => setMapping(i, { drawFromGraveyard: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                        🪦 Iš kapinyno
+                      </label>
+                      <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        Tik tipas:
+                        <select value={m.drawCardType ?? ''} onChange={(e) => setMapping(i, { drawCardType: (e.target.value || undefined) as EffectMapping['drawCardType'] })} style={{ ...inputStyle, width: 120 }}>
+                          <option value="">(bet kuri)</option>
+                          <option value="unit">Padaras</option>
+                          <option value="spell">Burtas</option>
+                          <option value="champion">Čempionas</option>
+                          <option value="artifact">Artefaktas</option>
+                          <option value="field">Laukas</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Trauki tiek kortų (Reikšmė), pasilieki nurodytą skaičių (pop-up), kitas išmeti">
+                        Pasilikti (keep):
+                        <input type="number" min={0} value={m.drawKeep ?? ''} placeholder="—" onChange={(e) => setMapping(i, { drawKeep: e.target.value === '' ? undefined : Number(e.target.value) })} style={{ ...inputStyle, width: 60 }} />
+                      </label>
+                    </div>
+                  )}
                   {(m.effect === 'damage' || m.effect === 'burn') && (
                     <div className="col-span-2 md:col-span-4">
                       <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}
@@ -778,6 +811,21 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                             onChange={(e) => setMapping(i, { summonChoose: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                           Žaidėjas pasirenka kortą (popup)
                         </label>
+                        {(m.effect === 'summonFromGraveyard' || m.effect === 'revive') && (
+                          <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Naudok then-grandinėje po Sunaikinti: prikelia BŪTENT sunaikintą taikinį">
+                            <input type="checkbox" checked={!!m.reviveDestroyedTarget} onChange={(e) => setMapping(i, { reviveDestroyedTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                            🦴 Prikelti sunaikintą taikinį
+                          </label>
+                        )}
+                        {m.reviveDestroyedTarget && (
+                          <label className="flex items-center gap-1">
+                            Kam:
+                            <select value={m.reviveToSide ?? 'own'} onChange={(e) => setMapping(i, { reviveToSide: e.target.value as 'own' | 'enemy' })} style={{ ...inputStyle, width: 110 }}>
+                              <option value="own">Tau</option>
+                              <option value="enemy">Priešui</option>
+                            </select>
+                          </label>
+                        )}
                         <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
                           <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Tik konkrečios kortos (nebūt.)</span>
                           {cardNames.length > 0 ? (
@@ -973,6 +1021,28 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                               onChange={(e) => setThen({ onlyIfTargetDied: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                             Tik jei taikinys žuvo
                           </label>
+                          <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Taikinys = ką tik šios kortos iškviestas padaras (raktažodžiui/būsenai suteikti)">
+                            <input type="checkbox" checked={!!fm.targetSummoned}
+                              onChange={(e) => setThen({ targetSummoned: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                            Iškviestam padarui
+                          </label>
+                          {(fm.effect === 'buffAttack' || fm.effect === 'buffHealth') && (
+                            <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }}>
+                              Trukmė:
+                              <select value={fm.buffDuration ?? 'permanent'} onChange={(e) => setThen({ buffDuration: e.target.value === 'permanent' ? undefined : e.target.value as 'endOfTurn' | 'untilNextTurn' })} style={{ ...inputStyle, width: 130 }}>
+                                <option value="permanent">Nuolatinis</option>
+                                <option value="endOfTurn">Iki ėjimo pab.</option>
+                                <option value="untilNextTurn">Iki kito ėjimo</option>
+                              </select>
+                            </label>
+                          )}
+                          {(fm.effect === 'summonFromGraveyard' || fm.effect === 'revive') && (
+                            <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Prikelti BŪTENT pagrindinio efekto sunaikintą taikinį">
+                              <input type="checkbox" checked={!!fm.reviveDestroyedTarget}
+                                onChange={(e) => setThen({ reviveDestroyedTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                              🦴 Sunaikintą taikinį
+                            </label>
+                          )}
                           <button type="button" onClick={() => { const arr = (m.then ?? []).filter((_, j) => j !== fi); setMapping(i, { then: arr.length ? arr : undefined }) }}
                             className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
                         </div>

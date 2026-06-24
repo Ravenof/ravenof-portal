@@ -324,6 +324,14 @@ export type EffectMapping = {
   tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
   copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard: iš kurio kapinyno rinktis (default any)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
+  // ── Nauji card-mapping praplėtimai ──
+  buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'  // buffAttack/buffHealth: laikinas boost
+  reviveDestroyedTarget?: boolean   // then po destroy/onDeath: prikelti BŪTENT sunaikintą taikinį (ne atsitiktinį)
+  reviveToSide?: 'own' | 'enemy'    // kam atitenka prikeltas padaras (default own)
+  drawFromGraveyard?: boolean       // drawCards: traukti iš kapinyno (atsitiktinė), o ne iš kaladės
+  drawCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // drawCards: tik šio tipo kortą
+  drawKeep?: number                 // drawCards: traukti `value`, pasilikti `drawKeep` (pop-up), kitas išmesti
+  targetSummoned?: boolean          // then: taikinys = ką tik šio efekto iškviestas padaras (raktažodžiui suteikti)
   note?: string
 }
 

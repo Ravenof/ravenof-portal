@@ -14,11 +14,13 @@ export type GameApi = {
   healUnit(g: GameState, owner: Side, u: BoardUnit, n: number): void
   healPlayer(g: GameState, s: Side, n: number): void
   drawCards(g: GameState, s: Side, n: number): void
+  drawAdvanced(g: GameState, s: Side, opts: { count: number; fromGraveyard?: boolean; cardType?: string; keep?: number }): void
+  reviveCards(g: GameState, s: Side, cards: TutCard[]): void
   discardCards(g: GameState, s: Side, n: number): void
   killUnit(g: GameState, owner: Side, u: BoardUnit): void
   destroyArtifact(g: GameState, owner: Side, uid: string): void
   applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus): void
-  buffUnit(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number): void
+  buffUnit(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number, duration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'): void
   gainGold(g: GameState, s: Side, n: number, srcName: string): void
   loseGold(g: GameState, s: Side, n: number, srcName: string): void
   scheduleGoldPenalty(g: GameState, s: Side, n: number, srcName: string): void
@@ -50,6 +52,7 @@ export type ApplyCtx = {
   depth: number          // rekursijos apsauga follow-up trigger'iams
   chainDamage?: number       // #3: padaryta žala ankstesniame grandinės efekte
   chainDestroyedHp?: number  // #4: sunaikintų taikinių HP suma ankstesniame efekte
+  chainDestroyedCards?: TutCard[]  // #1: ankstesniame efekte sunaikintos kortos (prikėlimui)
 }
 
 const MAX_DEPTH = 4
@@ -140,7 +143,12 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
 
   // taikinių parinkimas
   let targets: ResolvedTarget[]
-  if (m.target === 'selfUnit') {
+  if (m.targetSummoned) {
+    const uid = (g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid
+    let t: ResolvedTarget | null = null
+    if (uid) for (const sd of ['you', 'ai'] as Side[]) { const pp = sd === 'you' ? g.you : g.ai; if (pp.units.some((x) => x?.uid === uid)) { t = { kind: 'unit', side: sd, uid }; break } }
+    targets = t ? [t] : []
+  } else if (m.target === 'selfUnit') {
     let t: ResolvedTarget | null = null
     if (ctx.sourceUid) {
       for (const sd of ['you', 'ai'] as Side[]) {
@@ -178,6 +186,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
   let applied = true
   let chainDamage = 0        // #3
   let chainDestroyedHp = 0   // #4
+  const chainDestroyedCards: TutCard[] = []  // #1
 
   switch (m.effect) {
     case 'damage': {
@@ -206,7 +215,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       break
     case 'destroy':
       for (const t of targets) {
-        if (t.kind === 'unit') { const f = findUnit(g, t); if (f) { chainDestroyedHp += Math.max(0, f.u.hp); api.killUnit(g, f.owner, f.u) } }
+        if (t.kind === 'unit') { const f = findUnit(g, t); if (f) { chainDestroyedHp += Math.max(0, f.u.hp); chainDestroyedCards.push(f.u.card); api.killUnit(g, f.owner, f.u) } }
         else if (t.kind === 'artifact') api.destroyArtifact(g, t.side, t.uid)
       }
       break
@@ -226,10 +235,10 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
       break
     case 'buffAttack':
-      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, v, 0) }
+      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, v, 0, m.buffDuration) }
       break
     case 'buffHealth':
-      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, v) }
+      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, v, m.buffDuration) }
       break
     case 'debuffAttack':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, -v, 0) }
@@ -237,14 +246,23 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'debuffHealth':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, -v) }
       break
-    case 'drawCards': api.drawCards(g, caster, v); break
+    case 'drawCards':
+      if (m.drawFromGraveyard || m.drawCardType || m.drawKeep != null) api.drawAdvanced(g, caster, { count: v, fromGraveyard: m.drawFromGraveyard, cardType: m.drawCardType, keep: m.drawKeep })
+      else api.drawCards(g, caster, v)
+      break
     case 'drawUntilHand': { const h = (caster === 'you' ? g.you : g.ai).hand.length; const need = Math.max(0, v - h); if (need > 0) api.drawCards(g, caster, need); break }
     case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v); break
     case 'gainGold': api.gainGold(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v, ctx.sourceName); break
     case 'loseGold': api.loseGold(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, ctx.sourceName); break
-    case 'summonFromHand': api.summonFromZone(g, caster, 'hand', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
-    case 'summonFromDeck': api.summonFromZone(g, caster, 'deck', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
-    case 'summonFromGraveyard': case 'revive': api.summonFromZone(g, caster, 'discard', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
+    case 'summonFromHand': m.summonChoose ? api.summonAdvanced(g, caster, { zones: ['hand'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true }) : api.summonFromZone(g, caster, 'hand', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
+    case 'summonFromDeck': m.summonChoose ? api.summonAdvanced(g, caster, { zones: ['deck'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true }) : api.summonFromZone(g, caster, 'deck', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
+    case 'summonFromGraveyard': case 'revive': {
+      const reviveSide: Side = m.reviveToSide === 'enemy' ? foe : caster
+      if (m.reviveDestroyedTarget) api.reviveCards(g, reviveSide, ctx.chainDestroyedCards ?? [])
+      else if (m.summonChoose) api.summonAdvanced(g, caster, { zones: ['discard'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true })
+      else api.summonFromZone(g, caster, 'discard', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount })
+      break
+    }
     case 'mill': api.millDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
     case 'returnGraveyardToDeck': api.returnGraveyardToDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
     case 'peekDiscard': api.peekDiscard(g, targets[0]?.kind === 'player' ? targets[0].side : foe, m.peekCount ?? v * 2, v, caster); break
@@ -256,7 +274,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       for (const t of targets) { const f = findUnit(g, t); if (f) api.returnUnitToHand(g, f.owner, f.u) }
       break
     case 'moveToGraveyard':
-      for (const t of targets) { const f = findUnit(g, t); if (f) { chainDestroyedHp += Math.max(0, f.u.hp); api.killUnit(g, f.owner, f.u) } }
+      for (const t of targets) { const f = findUnit(g, t); if (f) { chainDestroyedHp += Math.max(0, f.u.hp); chainDestroyedCards.push(f.u.card); api.killUnit(g, f.owner, f.u) } }
       break
     case 'triggerCurse': {
       const tc = m.triggersCurse ?? { count: v, appliesTo: 'opponent' as const }
@@ -336,6 +354,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
         depth: ctx.depth + 1,
         chainDamage,
         chainDestroyedHp,
+        chainDestroyedCards,
       })
       if (g.winner) break
     }

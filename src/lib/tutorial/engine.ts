@@ -100,6 +100,7 @@ export type BoardUnit = {
   auraCantAttack?: boolean  // aura blokuoja atakas
   auraShield?: boolean      // skydą suteikė aura
   auraStealth?: boolean     // sėlinimą suteikė aura
+  tempBuffs?: { atk: number; hp: number; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }[]  // laikini buff'ai (nuiminėjami ėjimo riboje)
 }
 
 export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: number }
@@ -208,7 +209,7 @@ export type GameState = {
   winnerTeam?: TeamId | null
 }
 
-export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[] }
+export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[]; toHand?: boolean }
 export type PendingReveal = { whoseDeck: Side; title: string; cards: TutCard[] }
 export type PendingSummon = { caster: Side; choose: number; options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] }
 export type PendingChoice = {
@@ -947,7 +948,7 @@ function healPlayerPrim(g: GameState, s: Side, n: number) {
   if (gained > 0) { log(g, { t: 'heal', side: s, value: gained, msg: `${sideName(s)} ${s === 'you' ? 'atgauni' : 'atgauna'} ${gained} HP.`, sound: 'heal' }); fireGlobalListeners(g, 'onAnyHeal', { side: s }) }
 }
 
-function buffUnitPrim(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number) {
+function buffUnitPrim(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number, duration?: 'permanent' | 'endOfTurn' | 'untilNextTurn') {
   if (atk !== 0) {
     u.atk = Math.max(0, u.atk + atk)
     log(g, { t: 'buff', side: owner, cardName: u.card.name, msg: `„${u.card.name}" ${atk > 0 ? 'gauna +' + atk : 'praranda ' + Math.abs(atk)} ATK.` })
@@ -960,6 +961,26 @@ function buffUnitPrim(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: 
     u.hp += hp
     log(g, { t: 'buff', side: owner, cardName: u.card.name, msg: `„${u.card.name}" praranda ${Math.abs(hp)} HP.` })
     if (u.hp <= 0) killUnit(g, owner, u)
+  }
+  if (duration && duration !== 'permanent' && (atk !== 0 || hp !== 0)) {
+    (u.tempBuffs ??= []).push({ atk, hp, kind: duration, turn: P(g, owner).turnNumber })
+  }
+}
+
+// Laikinų buff'ų nuėmimas: 'endOfTurn' – savo ėjimo pabaigoje; 'untilNextTurn' – kito savo ėjimo pradžioje.
+function expireTempBuffs(g: GameState, s: Side, phase: 'beginTurn' | 'endTurn') {
+  const p = P(g, s)
+  for (const u of p.units) {
+    if (!u || !u.tempBuffs || u.tempBuffs.length === 0) continue
+    const keep: typeof u.tempBuffs = []
+    for (const b of u.tempBuffs) {
+      const expire = phase === 'endTurn' ? (b.kind === 'endOfTurn' && b.turn >= p.turnNumber) : (b.kind === 'untilNextTurn' && b.turn < p.turnNumber)
+      if (!expire) { keep.push(b); continue }
+      if (b.atk) u.atk = Math.max(0, u.atk - b.atk)
+      if (b.hp) { u.maxHp = Math.max(1, u.maxHp - b.hp); u.hp = Math.max(1, u.hp - b.hp) }
+      log(g, { t: 'buff', side: s, cardName: u.card.name, msg: `„${u.card.name}" laikinas sustiprinimas baigėsi.` })
+    }
+    u.tempBuffs = keep
   }
 }
 
@@ -1024,6 +1045,7 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
       statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
       isChampion: false, phase: 0, abilityUsed: false,
     }
+    ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = p.units[slot]?.uid
     log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon', fromZone: zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand' })
     afterSummon(g, s, card, zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand')
   }
@@ -1051,6 +1073,7 @@ function placeUnit(g: GameState, p: PlayerState, card: TutCard, suffix: string) 
     shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
     statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
   }
+  ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = card.uid + suffix
   return true
 }
 
@@ -1153,8 +1176,70 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'de
       shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
       statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
     }
+    ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = p.units[slot]?.uid
     log(g, { t: 'play', side: s, cardName: card.name, msg: `„${card.name}" iškviečiamas efektu!`, sound: 'summon', fromZone: foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand' })
     afterSummon(g, s, card, foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand')
+  }
+}
+
+// ── Card draw su „twist": iš kapinyno / tik tipo / traukti N pasilikti K ──
+function drawAdvancedPrim(g: GameState, s: Side, opts: { count: number; fromGraveyard?: boolean; cardType?: string; keep?: number }) {
+  const p = P(g, s)
+  const typeOk = (c: TutCard) => c.type !== 'curse' && (!opts.cardType || c.type === opts.cardType)
+  const count = Math.max(1, opts.count)
+  // iš kapinyno (atsitiktinė) → ranka
+  if (opts.fromGraveyard) {
+    const pool = shuffle(p.discard.filter(typeOk))
+    if (pool.length === 0) { log(g, { t: 'blocked', side: s, msg: `Kapinyne nėra tinkamos kortos traukimui.` }); return }
+    let drawn = 0
+    for (const c of pool) {
+      if (drawn >= count) break
+      const idx = p.discard.findIndex((x) => x.uid === c.uid); if (idx === -1) continue
+      p.discard.splice(idx, 1)
+      if (p.hand.length >= 10) { p.discard.push(c); log(g, { t: 'handBurn', side: s, cardName: c.name, msg: `Ranka pilna – „${c.name}" lieka kapinyne.` }) }
+      else { p.hand.push(c); drawn++; log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} „${c.name}" iš kapinyno.`, sound: 'draw' }) }
+    }
+    return
+  }
+  // traukti tinkamas iš kaladės viršaus (deck galas = viršus)
+  const drawn: TutCard[] = []
+  for (let i = p.deck.length - 1; i >= 0 && drawn.length < count; i--) {
+    if (typeOk(p.deck[i])) { drawn.push(p.deck[i]); p.deck.splice(i, 1) }
+  }
+  if (drawn.length === 0) { log(g, { t: 'blocked', side: s, msg: `Kaladėje nėra tinkamos kortos traukimui.` }); return }
+  // traukti N → pasilikti K (pop-up); kitas išmesti
+  if (opts.keep != null && opts.keep < drawn.length) {
+    const discardN = drawn.length - opts.keep
+    if (s === 'you') {
+      g.pendingPeek = { caster: s, victim: s, choose: discardN, cards: drawn, toHand: true }
+      log(g, { t: 'play', side: s, msg: `Ištraukei ${drawn.length} – pasirink ${discardN} išmesti (likusias pasilieki).` })
+    } else {
+      const sorted = [...drawn].sort((a, b) => (b.gold ?? 0) - (a.gold ?? 0))
+      const keepSet = new Set(sorted.slice(0, opts.keep).map((c) => c.uid))
+      for (const c of drawn) { if (keepSet.has(c.uid)) { if (p.hand.length < 10) p.hand.push(c); else p.discard.push(c) } else p.discard.push(c) }
+      log(g, { t: 'play', side: s, msg: `${sideName(s)} traukia ${drawn.length} ir pasilieka ${opts.keep}.` })
+    }
+    return
+  }
+  // paprastas tipinis traukimas
+  for (const c of drawn) {
+    if (p.hand.length >= 10) { p.discard.push(c) }
+    else { p.hand.push(c); log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.`, sound: 'draw' }) }
+  }
+}
+
+// ── #1: prikelti BŪTENT sunaikintas kortas (Kaulų rinkėjas) ──
+function reviveCardsPrim(g: GameState, s: Side, cards: TutCard[]) {
+  const p = P(g, s)
+  for (const card of cards) {
+    if (card.type !== 'unit') continue
+    const slot = freeUnitSlot(g, p)
+    if (slot === -1) { log(g, { t: 'blocked', side: s, msg: 'Padarų zona pilna – prikėlimas neįvyksta.' }); return }
+    // pašalinam iš bet kurio kapinyno (mirus korta nukeliavo į savininko kapinyną)
+    for (const sd of ['you', 'ai'] as Side[]) { const dp = P(g, sd); const j = dp.discard.findIndex((c) => c.uid === card.uid); if (j !== -1) { dp.discard.splice(j, 1); break } }
+    placeUnit(g, p, card, '-rev' + g.globalTurn)
+    log(g, { t: 'play', side: s, cardName: card.name, msg: `🦴 „${card.name}" prikeliamas tavo pusėje!`, sound: 'summon', fromZone: 'graveyard' })
+    afterSummon(g, s, card, 'graveyard')
   }
 }
 
@@ -1213,8 +1298,8 @@ export function resolvePeekDiscard(g: GameState, chosenUids: string[]): { ok: bo
   const vp = P(g, pk.victim)
   const chosen = new Set(chosenUids.slice(0, pk.choose))
   for (const c of pk.cards) if (chosen.has(c.uid)) vp.discard.push(c)
-  for (const c of pk.cards) if (!chosen.has(c.uid)) vp.deck.push(c)
-  log(g, { t: 'play', side: pk.caster, msg: `${chosen.size} korta(-os) išmesta į ${sideName(pk.victim)} kapinyną; likusios grąžintos ant kaladės.` })
+  for (const c of pk.cards) if (!chosen.has(c.uid)) { if (pk.toHand) { if (vp.hand.length < 10) vp.hand.push(c); else vp.discard.push(c) } else vp.deck.push(c) }
+  log(g, { t: 'play', side: pk.caster, msg: pk.toHand ? `${pk.cards.length - chosen.size} korta(-os) paliktos rankoje; ${chosen.size} išmesta.` : `${chosen.size} korta(-os) išmesta į ${sideName(pk.victim)} kapinyną; likusios grąžintos ant kaladės.` })
   g.pendingPeek = null
   return { ok: true }
 }
@@ -1507,6 +1592,8 @@ export const gameApi: GameApi = {
   peekDiscard: peekDiscardPrim,
   revealDeck: revealDeckPrim,
   summonAdvanced: summonAdvancedPrim,
+  drawAdvanced: drawAdvancedPrim,
+  reviveCards: reviveCardsPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   copyEffectFromGraveyard: (g, s, sourceUid, sourceName, fromSide) => copyEffectPrim(g, s, sourceUid, sourceName, fromSide),
   drawZmkVisual: drawZmkVisualPrim,
@@ -1592,6 +1679,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
   p.turnNumber += 1
+  expireTempBuffs(g, s, 'beginTurn')
   p.discardedForGold = false
   p.attacksThisTurn = 0
   p.fieldDamageReducedThisTurn = false
@@ -1673,6 +1761,7 @@ function seatEndTurn(g: GameState, s: Side): GameState {
       }
     }
   }
+  expireTempBuffs(g, s, 'endTurn')
   recomputeAuras(g)
   // onTurnEnd mapping'ai (padarai, artefaktai, laukas)
   fireTrigger(gameApi, g, s, 'onTurnEnd')
