@@ -9,7 +9,6 @@ import { playUiClick } from '@/lib/ui-sound'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
-import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
 
 type Col = {
@@ -206,12 +205,11 @@ function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
   const owned = c.owned > 0
   const col = rarityColor(c.rarity)
   return (
-    <GameCard glowColor={owned ? col + '88' : 'rgba(120,120,140,0.3)'} sounds={owned}>
-      <button onClick={onClick} className="relative block w-full overflow-hidden rounded-lg"
+      <button onClick={onClick} className="relative block w-full overflow-hidden rounded-lg transition-transform active:scale-[0.97]"
         style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${owned ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: owned ? `0 0 10px ${col}44` : 'none' }}>
         {c.image && !bad
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false}
+          ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false} loading="lazy" decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
               style={{ filter: owned ? undefined : 'grayscale(1) brightness(0.55)', opacity: owned ? 1 : 0.55 }} />
           : <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1)', opacity: owned ? 1 : 0.55 }}>
@@ -240,7 +238,6 @@ function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
           <p className="text-[9px] leading-tight truncate text-center" style={{ color: owned ? '#fff' : 'var(--text-muted)' }}>{c.name}</p>
         </div>
       </button>
-    </GameCard>
   )
 }
 

@@ -824,14 +824,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const supabase = createClient()
     Promise.all([
       supabase.from('zmk_cards').select('*').eq('active', true).order('sort_order'),
-      supabase.from('cards').select(`
-        id, name, image_url, gold_cost, attack, health,
-        effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
-        card_type:card_types ( name ),
-        rarity:rarities ( color_hex ),
-        faction:factions ( id, name, color_hex ),
-        card_keywords ( keyword:keywords ( name ) )
-      `).eq('status', 'active').limit(300),
+      // 300 kortų su pilnu gameplay JSON reikalinga TIK demo kaladei (prakeiksmams).
+      // Tikroms kaladėms to nekraunam – tai pagreitina žaidimo startą.
+      deckId === DEMO_DECK_ID
+        ? supabase.from('cards').select(`
+            id, name, image_url, gold_cost, attack, health,
+            effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
+            card_type:card_types ( name ),
+            rarity:rarities ( color_hex ),
+            faction:factions ( id, name, color_hex ),
+            card_keywords ( keyword:keywords ( name ) )
+          `).eq('status', 'active').limit(300)
+        : Promise.resolve({ data: null, error: null }),
     ]).then(([zmkRes, cardsRes]) => {
       if (!alive) return
       // zmk_cards lentelės gali nebūti (migracija nepaleista) – fallback default
