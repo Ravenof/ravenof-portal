@@ -26,10 +26,6 @@ type Launch = { net: PvPNet; deckId: string; opponentDeckId: string | null; oppo
 
 const randCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
 
-/** Aštrūs „išraižyti" kampai. */
-const oct = (b: number) =>
-  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
 const ACC = '251,146,60' // oranžinis (PVP — LAISVA akcentas)
 
 export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: { deckId: string; deckName: string; onClose: () => void; presetHost?: string | null; presetJoin?: string | null }) {
@@ -191,17 +187,13 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
       {label}
     </button>
   )
-  const inputStyle = { width: '100%', padding: '0.6rem', borderRadius: '0.5rem', fontSize: '1rem', letterSpacing: '0.2em', textAlign: 'center', textTransform: 'uppercase', background: 'rgba(10,8,16,0.85)', border: `1px solid rgba(${ACC},0.4)`, color: 'var(--text-primary)', outline: 'none' } as React.CSSProperties
+  const inputStyle = { width: '100%', minHeight: 48, padding: '0.6rem', borderRadius: '0.5rem', fontSize: '1rem', letterSpacing: '0.2em', textAlign: 'center', textTransform: 'uppercase', background: 'rgba(10,8,16,0.85)', border: `1px solid rgba(${ACC},0.4)`, color: 'var(--text-primary)', outline: 'none' } as React.CSSProperties
   const actBtn = { background: `rgba(${ACC},0.25)`, border: `1px solid rgba(${ACC},0.55)`, color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' } as React.CSSProperties
 
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
-      <div className="relative w-[min(440px,94vw)]" style={{ clipPath: oct(16), background: `rgba(${ACC},0.5)`, padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-        <div className="relative px-5 py-6" style={{ clipPath: oct(15), background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)`, boxShadow: `inset 0 0 24px rgba(${ACC},0.12)` }}>
-        {['top-2 left-2', 'top-2 right-2', 'bottom-2 left-2', 'bottom-2 right-2'].map((pos, i) => (
-          <span key={i} className={`absolute ${pos} text-[10px] leading-none`} style={{ color: `rgba(${ACC},0.8)`, textShadow: `0 0 6px rgba(${ACC},0.6)` }}>❖</span>
-        ))}
-        <p className="text-lg font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em', textShadow: `0 0 12px rgba(${ACC},0.4)` }}>⚔️ PVP ARENA</p>
+      <div className="relative w-[min(440px,94vw)] rounded-2xl px-5 py-6" style={{ border: `1px solid rgba(${ACC},0.4)`, background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)`, boxShadow: '0 16px 48px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
+        <p className="text-lg font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em', textShadow: `0 0 12px rgba(${ACC},0.4)` }}>⚔️ DRAUGIŠKA KOVA</p>
         {resumeRec && !room && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)' }}>
             <p className="text-xs mb-2" style={{ color: '#86efac' }}>🔄 Turi nebaigtą partiją su „{resumeRec.opponentName || 'Varžovu'}". Grįžti gali, jei varžovas dar prisijungęs (30s).</p>
@@ -218,7 +210,7 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Įkeliama…</p>
             ) : (
               <select value={deckSel} onChange={(e) => setDeckSel(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none' }}>
+                style={{ width: '100%', minHeight: 46, padding: '0 0.7rem', borderRadius: '0.6rem', fontSize: '0.85rem', background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-primary)', outline: 'none' }}>
                 {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
               </select>
             )}
@@ -244,19 +236,19 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
 
             {tab === 'private' ? (
               <div className="space-y-4">
-                <button disabled={busy} onClick={() => createPrivate()} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
+                <button disabled={busy} onClick={() => createPrivate()} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ ...actBtn, minHeight: 48 }}>
                   ➕ Sukurti kambarį (gauk kodą)
                 </button>
                 <div className="flex items-center gap-2"><div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }} /><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>ARBA</span><div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }} /></div>
                 <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="KODAS" maxLength={5} style={inputStyle} />
-                <button disabled={busy || !joinCode.trim()} onClick={() => joinByCode()} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
+                <button disabled={busy || !joinCode.trim()} onClick={() => joinByCode()} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ ...actBtn, minHeight: 48 }}>
                   🔑 Jungtis pagal kodą
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sistema suporuos su kitu laukiančiu žaidėju arba sukurs kambarį ir lauks.</p>
-                <button disabled={busy} onClick={findRandom} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={actBtn}>
+                <button disabled={busy} onClick={findRandom} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ ...actBtn, minHeight: 48 }}>
                   🎲 Ieškoti varžovo
                 </button>
               </div>
@@ -266,7 +258,6 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
             <button onClick={onClose} className="w-full mt-4 px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)', border: '1px solid var(--bg-border)' }}>Uždaryti</button>
           </>
         )}
-        </div>
       </div>
     </div>
   )

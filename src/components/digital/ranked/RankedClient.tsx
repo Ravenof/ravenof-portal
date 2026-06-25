@@ -18,7 +18,7 @@ import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
 import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
-import { OctPanel, SectionTitle, RButton, oct } from './_ui'
+import { OctPanel, SectionTitle, RButton } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
 import { MatchFound } from './MatchFound'
 import { RankedResult } from './RankedResult'
@@ -220,13 +220,11 @@ export function RankedClient() {
             </div>
           ) : (
             <div className="space-y-2.5">
-              <div style={{ clipPath: oct(11), background: 'rgba(239,68,68,0.4)', padding: 2 }}>
-                <div className="px-4 py-3" style={{ clipPath: oct(10), background: 'linear-gradient(160deg,#15101f,#0a0810)' }}>
-                  <label className="text-[10px] font-semibold block mb-1.5 text-center" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>⚔ REITINGO KALADĖ</label>
-                  <select value={selDeck} onChange={(e) => setSelDeck(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.85rem', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}>
-                    {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
-                  </select>
-                </div>
+              <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <label className="text-[10px] font-bold block mb-1.5 uppercase tracking-widest" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.12em' }}>⚔ Reitingo kaladė</label>
+                <select value={selDeck} onChange={(e) => setSelDeck(e.target.value)} className="w-full text-sm outline-none" style={{ minHeight: 46, padding: '0 0.7rem', borderRadius: '0.6rem', background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-primary)' }}>
+                  {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
+                </select>
               </div>
               <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
             </div>
@@ -268,7 +266,7 @@ export function RankedClient() {
       {view === 'season' && (<><SectionTitle icon="📅">Sezono istorija</SectionTitle><SeasonHistory /></>)}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>
+        <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>
       )}
     </div>
   )
