@@ -1,7 +1,5 @@
-import { DigitalAlbum } from '@/components/digital/DigitalAlbum'
+import { redirect } from 'next/navigation'
 
-export const metadata = { title: 'Kortų albumas | Ravenof Digital' }
-
-export default function DigitalAlbumPage() {
-  return <DigitalAlbum />
+export default function DigitalAlbumRedirect() {
+  redirect('/digital/collection')
 }

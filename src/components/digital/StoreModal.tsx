@@ -155,7 +155,7 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
               ))}
             </div>
             {packInv > 0 && (
-              <Link href="/digital/album" onClick={() => { playUiClick(); onClose() }}
+              <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
                 className="mt-3 block w-full px-4 py-2 rounded-xl text-xs font-bold text-center transition-transform hover:scale-[1.01]"
                 style={{ background: 'rgba(251,146,60,0.18)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>
                 🎁 Atplėšti albume (turi {packInv})

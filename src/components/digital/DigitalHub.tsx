@@ -1,57 +1,48 @@
 'use client'
 
-// ── Ravenof Digital hub — pagrindinis meniu (liepsnų fonas, raižyti blokai) ───
+// ── Ravenof Digital — pagrindinis meniu (mobile game hub) ─────────────────────
+// Hero „ŽAISTI" su 3 režimais, 2x2 greitos nuorodos, žemiau mažesnės kortelės.
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { LayoutGrid, Layers, ShoppingBag, ClipboardList, Target, Trophy, Swords, GraduationCap, Map as MapIcon, Lock } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { getWallet, type Wallet } from '@/lib/economy'
-import { SettingsModal } from './SettingsModal'
+import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
 import { loginCheckin } from '@/lib/gamification/quests'
-import { loadDigitalSettings } from '@/lib/settings-sync'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
-/** Aštrūs „išraižyti" kampai (oktagonas su nupjautais kampais). */
+/** Aštrūs „išraižyti" kampai (oktagonas). */
 const oct = (b: number) =>
   `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
-type TileCfg = {
-  key: string
-  icon: string
-  title: string
-  subtitle: string
-  accent: string            // 'r,g,b'
-  href?: string
-  onClick?: () => void
-  comingSoon?: boolean
-}
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [storeOpen, setStoreOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [questsOpen, setQuestsOpen] = useState(false)
   const [seasonOpen, setSeasonOpen] = useState(false)
-  const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }) }, [])
+  const [streak, setStreak] = useState<number | null>(null)
+
+  const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 2200)
+    const t = setTimeout(() => setToast(null), 2400)
     return () => clearTimeout(t)
   }, [toast])
 
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet()
-    loadDigitalSettings()
     loginCheckin().then((c) => {
+      if (c) setStreak(c.streak ?? null)
       if (c && !c.already && c.reward > 0) {
         setToast(`🔥 ${c.streak} d. serija! +🪙 ${c.reward}${c.bonusBooster ? ' + 🎁 1 pak.' : ''}`)
         refreshWallet()
@@ -73,111 +64,129 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     )
   }
 
-  const tiles: TileCfg[] = [
-    { key: 'tutorial', icon: '🎓', title: 'MOKYMASIS', subtitle: 'Išmok pagrindus žingsnis po žingsnio', accent: '139,92,246', onClick: () => { playUiClick(); setTutorialOpen(true) } },
-    { key: 'ai', icon: '🎯', title: 'KOVA PRIEŠ AI', subtitle: 'Treniruokis prieš botą (lengvas / vidutinis / sunkus)', accent: '34,197,94', href: '/digital/pve' },
-    { key: 'campaign', icon: '🗺️', title: 'KAMPANIJA', subtitle: 'Siužetinė vienžaidėjo kampanija', accent: '240,180,41', comingSoon: true },
-    { key: 'ranked', icon: '🏆', title: 'PVP — RANGINĖ', subtitle: 'Reitinguojamos kovos dėl vietos lentelėje', accent: '239,68,68', href: '/digital/ranked' },
-    { key: 'free', icon: '⚔️', title: 'PVP — LAISVA', subtitle: 'Kaukis prieš žaidėją (kodas arba atsitiktinis)', accent: '251,146,60', href: '/digital/pvp' },
-    { key: 'mycards', icon: '🃏', title: 'KORTŲ ALBUMAS', subtitle: 'Tavo kolekcija + pakuočių atplėšimas', accent: '96,165,250', href: '/digital/album' },
-    { key: 'store', icon: '🛒', title: 'PARDUOTUVĖ', subtitle: 'Pakuotės · dienos kortos · starter kaladės · kosmetika', accent: '240,180,41', onClick: () => { playUiClick(); setStoreOpen(true) } },
-  ]
+  // ── Hero režimai ──
+  const modes = [
+    { key: 'pve',    label: 'Treniruotė',    sub: 'Prieš AI', icon: Target, accent: '34,197,94',  href: '/digital/pve' },
+    { key: 'ranked', label: 'Ranginė kova',  sub: 'Reitingas', icon: Trophy, accent: '239,68,68',  href: '/digital/ranked' },
+    { key: 'free',   label: 'Draugiška kova', sub: 'Su draugu', icon: Swords, accent: '251,146,60', href: '/digital/pvp' },
+  ] as const
 
-  const renderTile = (t: TileCfg) => {
-    const a = t.accent
-    const inner = (
-      <div className="relative h-full" style={{ clipPath: oct(15), background: `rgba(${a},0.5)`, padding: 2.5 }}>
-        <div className="relative h-full flex flex-col items-center justify-center text-center px-4 py-7 gap-2"
-          style={{
-            clipPath: oct(14),
-            background: `radial-gradient(120% 90% at 50% 0%, rgba(${a},0.16), rgba(10,8,16,0.96) 60%), linear-gradient(160deg, #15101f, #0a0810)`,
-            boxShadow: `inset 0 0 24px rgba(${a},0.12), inset 0 1px 0 rgba(255,255,255,0.05)`,
-          }}>
-          {/* kampų ornamentai */}
-          {[['top-1.5 left-1.5'], ['top-1.5 right-1.5'], ['bottom-1.5 left-1.5'], ['bottom-1.5 right-1.5']].map(([pos], i) => (
-            <span key={i} className={`absolute ${pos} text-[10px] leading-none`} style={{ color: `rgba(${a},0.85)`, textShadow: `0 0 6px rgba(${a},0.6)` }}>❖</span>
-          ))}
-          <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.55))` }}>{t.icon}</span>
-          <h2 className="text-base font-bold tracking-wide" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', letterSpacing: '0.08em', textShadow: `0 0 12px rgba(${a},0.4)` }}>{t.title}</h2>
-          <p className="text-[11px] leading-snug max-w-[200px]" style={{ color: 'var(--text-muted)' }}>{t.subtitle}</p>
-          {t.comingSoon && (
-            <span className="mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-widest"
-              style={{ background: 'rgba(0,0,0,0.6)', border: `1px solid rgba(${a},0.6)`, color: `rgba(${a},1)`, letterSpacing: '0.18em' }}>NETRUKUS</span>
-          )}
-        </div>
-      </div>
-    )
-
-    const common = `group relative block h-[170px] transition-all duration-150 ${t.comingSoon ? 'opacity-70' : 'hover:scale-[1.035] active:scale-[0.99]'} focus:outline-none`
-    const glow = { filter: t.comingSoon ? 'saturate(0.7)' : undefined } as React.CSSProperties
-
-    if (t.href && !t.comingSoon) {
-      return <Link key={t.key} href={t.href} onClick={() => playUiClick()} className={common} style={glow}>{inner}</Link>
-    }
-    return (
-      <button key={t.key} type="button" onClick={t.comingSoon ? () => flash('Netrukus! Šis režimas dar kuriamas.') : t.onClick} className={common} style={glow}>
-        {inner}
-      </button>
-    )
-  }
+  // ── 2x2 greitos nuorodos ──
+  const quick = [
+    { key: 'collection', label: 'Kolekcija',  icon: LayoutGrid,    accent: '96,165,250',  href: '/digital/collection' },
+    { key: 'decks',      label: 'Kaladės',    icon: Layers,        accent: '139,92,246',  href: '/digital/deck' },
+    { key: 'shop',       label: 'Parduotuvė', icon: ShoppingBag,   accent: '240,180,41',  onClick: () => { playUiClick(); setStoreOpen(true) } },
+    { key: 'quests',     label: 'Užduotys',   icon: ClipboardList, accent: '236,72,153',  onClick: () => { playUiClick(); setQuestsOpen(true) } },
+  ] as const
 
   return (
-    <div className="relative">
-      <div className="relative z-10 space-y-6">
-        {/* Aukso balansas + pakuotės */}
-        <div className="flex items-center justify-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold"
-            style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.55)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-            🪙 {wallet.gold.toLocaleString()}
-          </span>
-          <button onClick={() => { playUiClick(); setStoreOpen(true) }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-transform hover:scale-105"
-            style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(251,146,60,0.55)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}
-            title="Atidaryti parduotuvę">
-            🎁 {wallet.packs} pak.
-          </button>
-          <button onClick={() => { playUiClick(); setSettingsOpen(true) }}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform hover:scale-105"
-            style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}
-            title="Nustatymai" aria-label="Nustatymai">
-            ⚙️
-          </button>
-        </div>
+    <div className="relative z-10 space-y-4">
+      {/* ── Dienos juosta ── */}
+      <button onClick={() => { playUiClick(); setQuestsOpen(true) }}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-left transition-transform active:scale-[0.99]"
+        style={{ background: 'linear-gradient(100deg, rgba(139,92,246,0.14), rgba(10,8,16,0.7))', border: '1px solid rgba(139,92,246,0.35)' }}>
+        <span className="text-xs font-semibold" style={{ color: '#e9d5ff' }}>
+          {streak ? `🔥 ${streak} d. prisijungimo serija` : '📅 Dienos užduotys'}
+        </span>
+        <span className="text-[11px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Atsiimk →</span>
+      </button>
 
-        {/* Dienos veiklos */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {([
-            { key: 'quests',    label: '📅 Užduotys',        col: '139,92,246',  on: () => setQuestsOpen(true) },
-            { key: 'season',    label: '🎖️ Sezono kelias',  col: '240,180,41',  on: () => setSeasonOpen(true) },
-            { key: 'friends',   label: '👥 Draugai',         col: '96,165,250',  on: () => { window.location.href = '/friends' } },
-            { key: 'market',    label: '🏪 Aukcionas',       col: '146,84,40',   on: () => { window.location.href = '/market' } },
-          ] as const).map((b) => (
-            <button key={b.key} onClick={() => { playUiClick(); b.on() }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-transform hover:scale-105 active:scale-95"
-              style={{ background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${b.col},0.55)`, color: `rgb(${b.col})`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>
-              {b.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tiles.map(renderTile)}
+      {/* ── HERO: ŽAISTI ── */}
+      <div className="relative" style={{ clipPath: oct(16), background: 'rgba(240,180,41,0.4)', padding: 2 }}>
+        <div className="px-4 pt-4 pb-4"
+          style={{ clipPath: oct(15), background: 'radial-gradient(130% 90% at 50% 0%, rgba(240,180,41,0.13), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#17111f,#0a0810)' }}>
+          <div className="text-center mb-3">
+            <h1 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.14em', textShadow: '0 0 18px rgba(240,180,41,0.45)' }}>ŽAISTI</h1>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Pasirink kovos režimą</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {modes.map((m) => {
+              const Icon = m.icon
+              return (
+                <Link key={m.key} href={m.href} onClick={() => playUiClick()}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 px-1 transition-transform active:scale-[0.97]"
+                  style={{ minHeight: 92, background: `linear-gradient(160deg, rgba(${m.accent},0.16), rgba(10,8,16,0.9))`, border: `1px solid rgba(${m.accent},0.5)` }}>
+                  <Icon className="w-6 h-6" style={{ color: `rgb(${m.accent})` }} />
+                  <span className="text-[12px] font-bold text-center leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{m.label}</span>
+                  <span className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{m.sub}</span>
+                </Link>
+              )
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Paleidimai */}
+      {/* ── 2x2 greitos nuorodos ── */}
+      <div className="grid grid-cols-2 gap-3">
+        {quick.map((q) => {
+          const Icon = q.icon
+          const inner = (
+            <div className="flex items-center gap-3 px-4 rounded-xl transition-transform active:scale-[0.98]"
+              style={{ minHeight: 64, background: `linear-gradient(120deg, rgba(${q.accent},0.12), rgba(10,8,16,0.85))`, border: `1px solid rgba(${q.accent},0.4)` }}>
+              <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 38, height: 38, background: `rgba(${q.accent},0.16)`, border: `1px solid rgba(${q.accent},0.4)` }}>
+                <Icon className="w-5 h-5" style={{ color: `rgb(${q.accent})` }} />
+              </span>
+              <span className="text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>{q.label}</span>
+            </div>
+          )
+          return 'href' in q && q.href
+            ? <Link key={q.key} href={q.href} onClick={() => playUiClick()}>{inner}</Link>
+            : <button key={q.key} type="button" onClick={q.onClick}>{inner}</button>
+        })}
+      </div>
+
+      {/* ── Mažesnės kortelės ── */}
+      <div className="space-y-2">
+        {/* Sezono kelias */}
+        <button onClick={() => { playUiClick(); setSeasonOpen(true) }}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-transform active:scale-[0.99]"
+          style={{ background: 'linear-gradient(120deg, rgba(240,180,41,0.1), rgba(10,8,16,0.8))', border: '1px solid rgba(240,180,41,0.32)' }}>
+          <span className="text-xl">🎖️</span>
+          <span className="flex-1">
+            <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Sezono kelias</span>
+            <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Rinkite pakopas ir atsiimkite apdovanojimus</span>
+          </span>
+          <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>›</span>
+        </button>
+
+        {/* Kampanija — NETRUKUS */}
+        <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(120,120,140,0.22)', filter: 'saturate(0.55)', opacity: 0.72 }}>
+          <MapIcon className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+          <span className="flex-1">
+            <span className="block text-sm font-bold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>Kampanija</span>
+            <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Siužetinė vienžaidėjo kampanija</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest"
+            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(120,120,140,0.4)', color: 'var(--text-muted)', letterSpacing: '0.16em' }}>
+            <Lock className="w-2.5 h-2.5" /> NETRUKUS
+          </span>
+        </div>
+
+        {/* Pamoka */}
+        <button onClick={() => { playUiClick(); setTutorialOpen(true) }}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-transform active:scale-[0.99]"
+          style={{ background: 'linear-gradient(120deg, rgba(139,92,246,0.1), rgba(10,8,16,0.8))', border: '1px solid rgba(139,92,246,0.32)' }}>
+          <GraduationCap className="w-5 h-5" style={{ color: '#c4b5fd' }} />
+          <span className="flex-1">
+            <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Pamoka</span>
+            <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Išmok pagrindus žingsnis po žingsnio</span>
+          </span>
+          <span className="text-[11px] font-bold" style={{ color: '#c4b5fd' }}>›</span>
+        </button>
+      </div>
+
+      {/* ── Modalai / paleidimai ── */}
       {tutorialOpen && (
         <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => { setTutorialOpen(false); refreshWallet() }} />
       )}
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
-
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
-          style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+        <div className="fixed left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
+          style={{ bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
           {toast}
         </div>
       )}
