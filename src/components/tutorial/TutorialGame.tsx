@@ -157,6 +157,7 @@ export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
 function OppHandFan({ count, big }: { count: number; big?: boolean }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return
     let raf = 0
     const onMove = (e: PointerEvent) => {
       cancelAnimationFrame(raf)
@@ -704,6 +705,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 72 : 104
   const unitW = isTouch ? 58 : 104
+  // Kovoje paslepiam meniu liepsnas (Flames) – kad nesisuktų po ArenaBackground (perf)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.documentElement.classList.add('rvn-in-battle')
+    return () => document.documentElement.classList.remove('rvn-in-battle')
+  }, [])
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {

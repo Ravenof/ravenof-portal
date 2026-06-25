@@ -72,7 +72,7 @@ export function ArenaBackground({ arena }: { arena: ArenaKey }) {
   const [imgOk, setImgOk] = useState(false)
   const t = T[arena]
   const pc = t.particle
-  const ambN = 16
+  const ambN = (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) ? 8 : 16
   return (
     <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: -1, pointerEvents: 'none' }}>
       <style>{CSS}</style>
