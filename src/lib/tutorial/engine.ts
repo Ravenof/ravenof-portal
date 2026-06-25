@@ -16,7 +16,7 @@ export type TeamId = 'A' | 'B'
 export type TeamConfig = { id: TeamId; seatIds: Side[]; hp: number; maxHp: number; sharedHp: boolean }
 export type TutCardType = 'unit' | 'spell' | 'artifact' | 'reaction' | 'field' | 'champion' | 'curse'
 export type TutKeyword = 'sprint' | 'taunt' | 'shield' | 'stealth' | 'battlecry' | 'lastwish'
-export type TutStatus = 'frozen' | 'stunned' | 'burning' | 'poisoned' | 'silenced'
+export type TutStatus = 'frozen' | 'stunned' | 'burning' | 'poisoned' | 'silenced' | 'blessed'
 
 export const STATUS_META: Record<TutStatus, { icon: string; name: string }> = {
   frozen:   { icon: '❄', name: 'Sušaldytas' },
@@ -24,6 +24,7 @@ export const STATUS_META: Record<TutStatus, { icon: string; name: string }> = {
   burning:  { icon: '🔥', name: 'Degantis' },
   poisoned: { icon: '☠', name: 'Apnuodytas' },
   silenced: { icon: '🔇', name: 'Nutildytas' },
+  blessed:  { icon: '🕊', name: 'Palaimintas' },
 }
 
 export const KEYWORD_META: Record<TutKeyword, { icon: string; name: string }> = {
@@ -169,7 +170,7 @@ export type GameEvent = {
 /** Trumpalaikis ŽMK traukimo kontekstas (atakos/burto pranašumui/nepalankumui). */
 export type RollBias = 'normal' | 'advantage' | 'disadvantage'
 export type RollContext =
-  | { kind: 'attack'; actor: Side; poisonedSides?: Partial<Record<Side, boolean>> }
+  | { kind: 'attack'; actor: Side; poisonedSides?: Partial<Record<Side, boolean>>; blessedSides?: Partial<Record<Side, boolean>> }
   | { kind: 'spell'; actor: Side; spellType?: SpellType }
 
 export type TargetRef =
@@ -285,6 +286,7 @@ export function parseEffect(text: string | null | undefined): ParsedEffect | nul
   else if (/padeg|degim|degant/.test(t)) { e.status = 'burning'; any = true }
   else if (/nuod/.test(t)) { e.status = 'poisoned'; any = true }
   else if (/nutild/.test(t)) { e.status = 'silenced'; any = true }
+  else if (/palaimin/.test(t)) { e.status = 'blessed'; any = true }
 
   if (/monet\w*\s*met/.test(t)) { e.coinflip = true; any = true }
 
@@ -535,7 +537,8 @@ function ctxBias(g: GameState, roller: Side): RollBias {
     return combineBias(netAuraBias(g, roller, 'spell', c.spellType))
   }
   const poison = c.poisonedSides?.[roller] ? -1 : 0
-  return combineBias(netAuraBias(g, roller, 'attack') + poison)
+  const blessed = c.blessedSides?.[roller] ? 1 : 0
+  return combineBias(netAuraBias(g, roller, 'attack') + poison + blessed)
 }
 /** Burtų vampyrizmas: burto žala (kai rollContext = spell) gydo aurą turinčią pusę. */
 function applySpellLifesteal(g: GameState, dmg: number) {
@@ -955,7 +958,7 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
   // frozen/stunned/silenced: pašalinama savininko KITO ėjimo pabaigoje
   // burning/poisoned: kol pašalins efektas (PERMANENT)
   // Degantis/Apnuodytas/Nutildytas – kol pašalins efektas (PERMANENT); Sušaldytas/Apsvaigintas – 1 ėjimą
-  const until = st === 'burning' || st === 'poisoned' || st === 'silenced' ? PERMANENT : p.turnNumber + 1
+  const until = st === 'burning' || st === 'poisoned' || st === 'silenced' || st === 'blessed' ? PERMANENT : p.turnNumber + 1
   u.statuses[st] = until
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
   fireGlobalListeners(g, 'onAnyStatus', { side: owner })
@@ -2221,8 +2224,10 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
 
   u.attacksUsed += 1
   p.attacksThisTurn += 1
-  g.rollContext = { kind: 'attack', actor: s, poisonedSides: { you: false, ai: false } }
+  g.rollContext = { kind: 'attack', actor: s, poisonedSides: { you: false, ai: false }, blessedSides: { you: false, ai: false } }
   if (g.rollContext.poisonedSides) g.rollContext.poisonedSides[s] = !!u.statuses.poisoned
+  if (g.rollContext.blessedSides) g.rollContext.blessedSides[s] = !!u.statuses.blessed
+  if (u.statuses.blessed) { delete u.statuses.blessed; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `"${u.card.name}" Palaiminimas panaudotas - ataka palanki (advantage).` }) }
   if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `◑ „${u.card.name}" Sėlinimas baigiasi po atakos.` }) }
   const foe: Side = ('side' in target) ? target.side : other(s)  // 2v2: gynėjas pagal taikinio seat'ą
   const atk = effectiveAtk(g, u)

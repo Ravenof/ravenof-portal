@@ -137,7 +137,11 @@ function buildDemoDeck(cards: Omit<TutCard, 'uid'>[]): TutCard[] {
 // ── Maža kortos „veido" reprezentacija ───────────────────────────────────────
 
 const STATUS_GLOW: Record<TutStatus, string> = {
-  frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa',
+  frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa', blessed: '#fcd34d',
+}
+const ICON_BASE = '/icons/status/'
+const STATUS_ICON: Record<TutStatus, string> = {
+  frozen: 'frozen', burning: 'burning', poisoned: 'poison', stunned: 'stunned', silenced: 'silenced', blessed: 'light',
 }
 
 const CARD_BACK_SRC: Record<'plain' | 'curse' | 'zmk', string> = {
@@ -407,18 +411,27 @@ export function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClic
       </div>
       {/* žetonai: būsenos + skydas + sėlinimas + pasišaipymas */}
       <div className="absolute -top-2 inset-x-0 flex justify-center gap-0.5 pointer-events-none flex-wrap">
-        {u.shield && <Token title="Magiškasis skydas">✦★</Token>}
-        {u.stealth && <Token title="Sėlinimas">◑</Token>}
-        {u.card.keywords.includes('taunt') && <Token title="Pasišaipymas">⊙</Token>}
+        {u.shield && <Token title="Magiškasis skydas" color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token>}
+        {u.stealth && <Token title="Sėlinimas" color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token>}
+        {u.card.keywords.includes('taunt') && <Token title="Pasišaipymas" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token>}
+        {u.card.keywords.includes('sprint') && <Token title="Sprintas" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token>}
         {activeStatuses.map((s) => (
-          <Token key={s} title={STATUS_META[s].name} color={STATUS_GLOW[s]}>{STATUS_META[s].icon}</Token>
+          <Token key={s} title={STATUS_META[s].name} color={STATUS_GLOW[s]} icon={ICON_BASE + STATUS_ICON[s] + '.webp'}>{STATUS_META[s].icon}</Token>
         ))}
       </div>
     </motion.button>
   )
 }
 
-export function Token({ children, title, color }: { children: React.ReactNode; title: string; color?: string }) {
+export function Token({ children, title, color, icon }: { children: React.ReactNode; title: string; color?: string; icon?: string }) {
+  if (icon) {
+    return (
+      <span title={title} className="inline-flex items-center justify-center" style={{ width: 20, height: 20, filter: color ? `drop-shadow(0 0 4px ${color}cc)` : 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={icon} alt={title} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      </span>
+    )
+  }
   return (
     <span title={title}
       className="inline-flex items-center justify-center rounded-full text-[10px] leading-none"
