@@ -578,6 +578,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
+  const [popCards, setPopCards] = useState<{ id: number; card: TutCard | null; x: number; y: number; color: string; tag?: string }[]>([])
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
   const [hpHold, setHpHold] = useState<Record<string, number>>({})
@@ -942,6 +943,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 taikiniai (įsk. žaidėjo pasirinktus) → pilno lauko AoE animacija
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
     const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
+    const spawnPop = (card: TutCard | null, at: { x: number; y: number }, color: string, tag?: string) => { const id = ++flyIdRef.current; setPopCards((pp) => [...pp, { id, card, x: at.x, y: at.y, color, tag }]); window.setTimeout(() => setPopCards((pp) => pp.filter((x) => x.id !== id)), 1300) }
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
@@ -951,7 +953,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
-          { const sd = e.side; const dnm = e.cardName; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 950) } }, 40) }
+          { const sd = e.side; const dnm = e.cardName; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 1600) } }, 40) }
           if (e.side === 'you' && e.cardName && skipYouDraw) { skipYouDraw = false }
           break
         }
@@ -975,11 +977,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
           srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard
-          if (e.t === 'spell' && e.cardName) {
+          if (e.t === 'spell' && e.cardName && !e.tgt) {
             const card = findCard(e.cardName)
-            setCardFlash({ card, title: e.cardName, tag: e.side === 'you' ? 'Tavo burtas' : 'Priešo burtas', color: '#60a5fa' })
-            if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
-            flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
+            const at = (e.src ? rectOf(e.src) : null) ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.4 }
+            window.setTimeout(() => spawnPop(card, at, '#60a5fa', e.side === 'you' ? 'Burtas' : 'Priešo burtas'), 160)
           }
           break
         }
@@ -1151,6 +1152,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             if (isAtk) { playBattleSound('impact', 0.45); fxRef.current?.hitFlash(to.x, to.y, '#ffffff'); fxRef.current?.shakeBoard('soft') }
           }
         }, isAtk ? 220 : 200)
+        const popAt = rectOf(tgt)
+        if (popAt) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col, ptag = e.t === 'spell' ? (e.side === 'you' ? 'Burtas' : 'Priešo burtas') : undefined; window.setTimeout(() => spawnPop(pc, popAt, pcol, ptag), isAtk ? 260 : 220) }
         void PROJ_EMOJI; void spawnProjectile
       }
     }
@@ -2779,19 +2782,37 @@ doAction({ t: 'endTurn', actor: 'you' })
         </AnimatePresence>
       </div>
 
+      {/* ── kortos „pop" prie taikinio (burtai / efektai / atakos) ── */}
+      <div className="fixed inset-0 z-[130] pointer-events-none">
+        <AnimatePresence>
+          {popCards.map((pp) => (
+            <div key={'pop' + pp.id} className="absolute" style={{ left: pp.x, top: pp.y, transform: 'translateX(-50%)' }}>
+              <motion.div initial={{ opacity: 0, scale: 0.5, y: 0 }} animate={{ opacity: [0, 1, 1, 0], scale: [0.5, 1, 1, 0.92], y: [0, -20, -28, -42] }} transition={{ duration: 1.2, ease: 'easeOut', times: [0, 0.25, 0.7, 1] }} className="flex flex-col items-center gap-1">
+                {pp.tag && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap" style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + pp.color, color: pp.color, fontFamily: 'var(--rvn-font-display)' }}>{pp.tag}</span>}
+                {pp.card ? <div style={{ outline: '2px solid ' + pp.color, borderRadius: 10, filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.7))' }}><MiniCard c={pp.card} w={isTouch ? 66 : 84} /></div> : null}
+              </motion.div>
+            </div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* ── skrendančios traukiamos kortos (kaladė → ranka) ── */}
       <div className="fixed inset-0 z-[129] pointer-events-none">
         <AnimatePresence>
-          {flyingDraws.map((fc) => (
+          {flyingDraws.map((fc) => {
+            const cx = (typeof window !== 'undefined' ? window.innerWidth : 360) / 2
+            const cy = (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.4
+            return (
             <motion.div key={'draw' + fc.id}
-              initial={{ left: fc.from.x - 16, top: fc.from.y - 22, opacity: 0.2, scale: 0.5, rotate: fc.side === 'you' ? -12 : 12 }}
-              animate={{ left: fc.to.x - 22, top: fc.to.y - 30, opacity: [0.25, 1, 1, 0], scale: [0.5, 1, 1, 0.75], rotate: 0 }}
-              transition={{ duration: 0.9, ease: 'easeOut', times: [0, 0.4, 0.75, 1] }}
+              initial={{ left: fc.from.x - 18, top: fc.from.y - 24, opacity: 0.25, scale: 0.45, rotate: fc.side === 'you' ? -14 : 14 }}
+              animate={{ left: [fc.from.x - 18, cx - 40, cx - 40, fc.to.x - 26], top: [fc.from.y - 24, cy - 56, cy - 56, fc.to.y - 30], opacity: [0.25, 1, 1, 0.2], scale: [0.45, 1.3, 1.3, 0.65], rotate: [fc.side === 'you' ? -14 : 14, 0, 0, 0] }}
+              transition={{ duration: 1.5, ease: 'easeInOut', times: [0, 0.32, 0.62, 1] }}
               className="absolute"
-              style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.65))' }}>
-              {fc.card ? <MiniCard c={fc.card} w={44} /> : <div className="relative rounded-md overflow-hidden" style={{ width: 40, height: 53, border: '1px solid rgba(240,180,41,0.4)', background: '#0d0a14' }}><PileBack kind="plain" /></div>}
+              style={{ filter: 'drop-shadow(0 8px 22px rgba(0,0,0,0.72))' }}>
+              {fc.card ? <MiniCard c={fc.card} w={64} /> : <div className="relative rounded-md overflow-hidden" style={{ width: 56, height: 75, border: '1px solid rgba(240,180,41,0.45)', background: '#0d0a14' }}><PileBack kind="plain" /></div>}
             </motion.div>
-          ))}
+            )
+          })}
         </AnimatePresence>
       </div>
 
