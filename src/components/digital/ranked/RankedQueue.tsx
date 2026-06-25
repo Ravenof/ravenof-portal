@@ -3,7 +3,6 @@
 // ── Matchmaking eilė — laipsniškai plečia paiešką; po 60 s krenta į botą. ────
 // 0–20 s: ±3 žingsniai · 20–40 s: ±10 · 40–60 s: bet koks · >60 s: botas.
 import { useEffect, useRef, useState } from 'react'
-import { oct } from './_ui'
 import { queueJoin, queueLeave, queuePoll, pickBot, getOpponentSummary, getRankedPvpMatch } from '@/lib/ranked/client'
 import { playRanked } from '@/lib/ranked/sound'
 
@@ -91,8 +90,8 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
 
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.93)' }}>
-      <div className="relative w-[min(420px,94vw)]" style={{ clipPath: oct(18), background: 'rgba(239,68,68,0.5)', padding: 2.5 }}>
-        <div className="px-6 py-9 text-center" style={{ clipPath: oct(17), background: 'radial-gradient(120% 90% at 50% 0%, rgba(239,68,68,0.14), rgba(10,8,16,0.98) 62%), linear-gradient(160deg,#15101f,#0a0810)' }}>
+      <div className="relative w-[min(420px,94vw)]" style={{ borderRadius: 20, background: 'rgba(239,68,68,0.32)', padding: 2 }}>
+        <div className="px-6 py-9 text-center" style={{ borderRadius: 19, background: 'radial-gradient(120% 90% at 50% 0%, rgba(239,68,68,0.14), rgba(10,8,16,0.98) 62%), linear-gradient(160deg,#15101f,#0a0810)' }}>
           {/* sukasi runų žiedas */}
           <div className="relative mx-auto mb-5" style={{ width: 92, height: 92 }}>
             <div className="absolute inset-0 rounded-full" style={{ border: '2px solid rgba(239,68,68,0.25)' }} />

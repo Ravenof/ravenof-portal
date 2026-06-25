@@ -3,7 +3,7 @@
 // ── Reitingo kovos rezultato ekranas (po kovos). ─────────────────────────────
 import { useEffect } from 'react'
 import { RankBadge } from './RankBadge'
-import { oct, RButton } from './_ui'
+import { RButton } from './_ui'
 import { formatRank, isMaxRank } from '@/lib/ranked/rank'
 import { MILESTONE_BY_KEY } from '@/lib/ranked/rewards'
 import { ACHIEVEMENT_BY_KEY } from '@/lib/ranked/achievements'
@@ -33,8 +33,8 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
 
   return (
     <div className="fixed inset-0 z-[170] flex items-center justify-center p-4 overflow-y-auto" style={{ background: 'rgba(4,3,8,0.95)' }}>
-      <div className="relative w-[min(460px,96vw)] my-6" style={{ clipPath: oct(18), background: won ? 'rgba(240,180,41,0.55)' : 'rgba(239,68,68,0.5)', padding: 2.5 }}>
-        <div className="px-5 py-7" style={{ clipPath: oct(17), background: `radial-gradient(120% 80% at 50% 0%, rgba(${won ? '240,180,41' : '239,68,68'},0.16), rgba(10,8,16,0.98) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
+      <div className="relative w-[min(460px,96vw)] my-6" style={{ borderRadius: 20, background: won ? 'rgba(240,180,41,0.4)' : 'rgba(239,68,68,0.32)', padding: 2 }}>
+        <div className="px-5 py-7" style={{ borderRadius: 19, background: `radial-gradient(120% 80% at 50% 0%, rgba(${won ? '240,180,41' : '239,68,68'},0.16), rgba(10,8,16,0.98) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
           <p className="text-5xl text-center mb-1">{won ? '🏆' : '💀'}</p>
           <h2 className="text-2xl font-bold text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: won ? 'var(--gold)' : '#f87171', letterSpacing: '0.06em' }}>{won ? 'Pergalė' : 'Pralaimėjimas'}</h2>
           <p className="text-center text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>prieš {opponentName}</p>

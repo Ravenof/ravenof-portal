@@ -47,7 +47,7 @@ export function MoreScreen() {
     {
       title: 'Bendruomenė',
       rows: [
-        { key: 'friends', label: 'Draugai', sub: 'Žinutės, mainai, kvietimai', icon: Users, accent: '96,165,250', onClick: () => { playUiClick(); router.push('/friends') } },
+        { key: 'friends', label: 'Draugai', sub: 'Žinutės, mainai, kvietimai', icon: Users, accent: '96,165,250', onClick: () => { playUiClick(); router.push('/digital/friends') } },
         { key: 'market', label: 'Aukcionas', sub: 'Pirk ir parduok kortas', icon: Store, accent: '146,84,40', onClick: () => { playUiClick(); router.push('/market') } },
       ],
     },

@@ -150,7 +150,7 @@ export function FriendsClient() {
       </div>
       {tradeId && <TradeWindow tradeId={tradeId} onClose={() => { setTradeId(null); reload() }} />}
       {chatWith && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={() => setChatWith(null)}>
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.8)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }} onClick={() => setChatWith(null)}>
           <div className="w-full max-w-md rounded-2xl flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', height: 'min(70vh,520px)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--bg-border)' }}>
               <p className="text-sm font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>💬 {chatWith.displayName || chatWith.username}</p>

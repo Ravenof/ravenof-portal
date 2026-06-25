@@ -12,9 +12,6 @@ import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/start
 import { rarityColor } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
-const oct = (b: number) =>
-  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
 function hexRgb(hex: string): string {
   const h = (hex || '#9ca3af').replace('#', '')
   const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16)
@@ -133,15 +130,15 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
-      <div className="relative w-[min(640px,97vw)] max-h-[92vh]" style={{ clipPath: oct(18), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-col max-h-[92vh]" style={{ clipPath: oct(17), background: 'radial-gradient(120% 60% at 50% 0%, rgba(240,180,41,0.13), rgba(10,8,16,0.98) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
+      <div className="relative w-[min(640px,97vw)] max-h-[92vh]" style={{ borderRadius: 20, background: 'rgba(240,180,41,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-col max-h-[92vh]" style={{ borderRadius: 19, background: 'radial-gradient(120% 60% at 50% 0%, rgba(240,180,41,0.13), rgba(10,8,16,0.98) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
 
           {/* Antraštė + filtrai */}
           <div className="px-5 pt-5 pb-3 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <p className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🛒 PARDUOTUVĖ</p>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold"
-                style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.55)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                 🪙 {localGold.toLocaleString()}
               </span>
             </div>
@@ -193,8 +190,8 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
   return (
     <button onClick={p.onAction} disabled={p.disabled || busy}
       className="group relative w-full overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default"
-      style={{ height: TILE_H, clipPath: oct(12), background: `rgba(${a},0.5)`, padding: 2 }}>
-      <div className="relative h-full w-full flex flex-col" style={{ clipPath: oct(11), background: '#0a0810' }}>
+      style={{ height: TILE_H, borderRadius: 14, background: `rgba(${a},0.5)`, padding: 2 }}>
+      <div className="relative h-full w-full flex flex-col" style={{ borderRadius: 13, background: '#0a0810' }}>
         {/* paveikslas (užima didžiąją dalį) */}
         <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden"
           style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
@@ -206,7 +203,7 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
           ) : null}
         </div>
         {/* apačia: pavadinimas + kaina/veiksmas */}
-        <div className="px-2 pt-1.5 pb-2 shrink-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.55))' }}>
+        <div className="px-2 pt-1.5 pb-2 shrink-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.4))' }}>
           <p className="text-[11px] font-bold leading-tight truncate text-left" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{p.title}</p>
           {p.sub && <p className="text-[8px] uppercase tracking-widest truncate text-left mb-1" style={{ color: `rgb(${a})` }}>{p.sub}</p>}
           <span className="mt-0.5 flex w-full items-center justify-center px-2 py-1 rounded-lg text-[11px] font-bold"

@@ -10,9 +10,6 @@ import {
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
 
-const oct = (b: number) =>
-  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
 const ACC = '240,180,41'
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -32,11 +29,8 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
-      <div className="relative w-[min(420px,94vw)]" style={{ clipPath: oct(16), background: `rgba(${ACC},0.5)`, padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-        <div className="relative px-5 py-6" style={{ clipPath: oct(15), background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
-          {['top-2 left-2', 'top-2 right-2', 'bottom-2 left-2', 'bottom-2 right-2'].map((p, i) => (
-            <span key={i} className={`absolute ${p} text-[10px] leading-none`} style={{ color: `rgba(${ACC},0.8)`, textShadow: `0 0 6px rgba(${ACC},0.6)` }}>❖</span>
-          ))}
+      <div className="relative w-[min(420px,94vw)]" style={{ borderRadius: 18, background: `rgba(${ACC},0.32)`, padding: 2 }} onClick={(e) => e.stopPropagation()}>
+        <div className="relative px-5 py-6" style={{ borderRadius: 17, background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
           <p className="text-lg font-bold mb-5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>⚙️ NUSTATYMAI</p>
 
           {/* Bendras garso jungiklis */}
@@ -68,14 +62,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           <div className="mt-5 flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
             <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Sparkles className="w-4 h-4" />Iškvietimo efektai</span>
             <button onClick={() => onSummon(!summon)} className="relative w-12 h-6 rounded-full transition-colors"
-              style={{ background: summon ? 'rgba(240,180,41,0.55)' : 'rgba(255,255,255,0.12)' }}>
+              style={{ background: summon ? 'rgba(240,180,41,0.4)' : 'rgba(255,255,255,0.12)' }}>
               <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{ left: summon ? '26px' : '2px', background: summon ? 'var(--gold-bright)' : 'var(--text-muted)' }} />
             </button>
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Išjungus, kovose nerodomi padarų iškvietimo vizualiniai efektai (geriau silpnesniems įrenginiams).</p>
 
           <button onClick={() => { playUiClick(); onClose() }} className="w-full mt-6 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-95"
-            style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.55)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
+            style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
             Uždaryti
           </button>
         </div>

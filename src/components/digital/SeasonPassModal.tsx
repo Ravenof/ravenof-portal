@@ -6,9 +6,6 @@ import { getSeasonPass, claimPassTier, type SeasonPass } from '@/lib/gamificatio
 import { rewardLabel } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
-const oct = (b: number) =>
-  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
 export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const [pass, setPass] = useState<SeasonPass | null>(null)
   const [loading, setLoading] = useState(true)
@@ -31,8 +28,8 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
-      <div className="relative w-[min(460px,95vw)] max-h-[88vh]" style={{ clipPath: oct(16), background: 'rgba(240,180,41,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ clipPath: oct(15), background: 'radial-gradient(120% 90% at 50% 0%, rgba(240,180,41,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
+      <div className="relative w-[min(460px,95vw)] max-h-[88vh]" style={{ borderRadius: 18, background: 'rgba(240,180,41,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ borderRadius: 17, background: 'radial-gradient(120% 90% at 50% 0%, rgba(240,180,41,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
           <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🎖️ SEZONO KELIAS</p>
           {pass?.season && <p className="text-[11px] text-center mb-3" style={{ color: 'var(--text-muted)' }}>{pass.season.title} · 🎖️ {xp.toLocaleString()} kelio XP</p>}
 
@@ -45,9 +42,9 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
               const unlocked = xp >= t.xpRequired
               const pct = Math.min(100, Math.round((xp / t.xpRequired) * 100))
               return (
-                <div key={t.tier} className="px-3 py-2.5" style={{ clipPath: oct(8), background: 'linear-gradient(160deg, rgba(58,42,85,0.4), rgba(21,16,31,0.7))', border: `1px solid ${unlocked ? 'rgba(240,180,41,0.5)' : 'rgba(240,180,41,0.18)'}` }}>
+                <div key={t.tier} className="px-3 py-2.5" style={{ borderRadius: 10, background: 'linear-gradient(160deg, rgba(58,42,85,0.4), rgba(21,16,31,0.7))', border: `1px solid ${unlocked ? 'rgba(240,180,41,0.5)' : 'rgba(240,180,41,0.18)'}` }}>
                   <div className="flex items-center gap-2.5">
-                    <div className="flex items-center justify-center w-9 h-9 text-sm font-bold shrink-0" style={{ clipPath: oct(6), background: unlocked ? 'rgba(240,180,41,0.22)' : 'rgba(0,0,0,0.4)', border: `1px solid ${unlocked ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.1)'}`, color: unlocked ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{t.tier}</div>
+                    <div className="flex items-center justify-center w-9 h-9 text-sm font-bold shrink-0" style={{ borderRadius: 8, background: unlocked ? 'rgba(240,180,41,0.22)' : 'rgba(0,0,0,0.4)', border: `1px solid ${unlocked ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.1)'}`, color: unlocked ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{t.tier}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold" style={{ color: '#f3ead3' }}>{rewardLabel(t.reward)}</p>
                       <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: 'rgba(0,0,0,0.5)' }}>

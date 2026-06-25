@@ -5,9 +5,6 @@ import { useEffect, useState } from 'react'
 import { getCosmetics, buyCosmetic, equipCosmetic, type Cosmetic, type CosmeticKind, type CosmeticsState } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
-const oct = (b: number) =>
-  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
 const KIND_LABEL: Record<CosmeticKind, string> = { card_back: 'Nugarėlės', board: 'Lentos', avatar: 'Avatarai' }
 const KINDS: CosmeticKind[] = ['card_back', 'board', 'avatar']
 
@@ -49,8 +46,8 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
-      <div className="relative w-[min(480px,95vw)] max-h-[88vh]" style={{ clipPath: oct(16), background: 'rgba(96,165,250,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ clipPath: oct(15), background: 'radial-gradient(120% 90% at 50% 0%, rgba(96,165,250,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
+      <div className="relative w-[min(480px,95vw)] max-h-[88vh]" style={{ borderRadius: 18, background: 'rgba(96,165,250,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ borderRadius: 17, background: 'radial-gradient(120% 90% at 50% 0%, rgba(96,165,250,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
           <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#93c5fd', letterSpacing: '0.08em' }}>✨ KOSMETIKA</p>
           <p className="text-[11px] text-center mb-3" style={{ color: 'var(--text-muted)' }}>Turi 🪙 {localGold.toLocaleString()} aukso</p>
 
@@ -69,8 +66,8 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
               const owned = (state?.owned ?? []).includes(c.id)
               const equipped = equippedFor(c.kind) === c.id
               return (
-                <div key={c.id} className="px-2.5 py-2.5" style={{ clipPath: oct(8), background: 'linear-gradient(160deg, rgba(58,42,85,0.4), rgba(21,16,31,0.7))', border: `1px solid ${equipped ? 'rgba(74,222,128,0.6)' : 'rgba(96,165,250,0.25)'}` }}>
-                  <div className="h-16 w-full mb-2 flex items-center justify-center" style={{ clipPath: oct(6), background: c.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div key={c.id} className="px-2.5 py-2.5" style={{ borderRadius: 10, background: 'linear-gradient(160deg, rgba(58,42,85,0.4), rgba(21,16,31,0.7))', border: `1px solid ${equipped ? 'rgba(74,222,128,0.6)' : 'rgba(96,165,250,0.25)'}` }}>
+                  <div className="h-16 w-full mb-2 flex items-center justify-center" style={{ borderRadius: 8, background: c.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     {c.emoji && <span className="text-3xl">{c.emoji}</span>}
                   </div>
                   <p className="text-[11px] font-bold truncate" style={{ color: '#f3ead3' }}>{c.name}</p>

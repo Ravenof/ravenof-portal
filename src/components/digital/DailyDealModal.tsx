@@ -7,9 +7,6 @@ import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
-const oct = (b: number) =>
-  `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-
 function DealArt({ card }: { card: DealCard }) {
   const [bad, setBad] = useState(false)
   const col = rarityColor(card.rarity)
@@ -48,8 +45,8 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
-      <div className="relative w-[min(480px,95vw)] max-h-[88vh]" style={{ clipPath: oct(16), background: 'rgba(251,146,60,0.5)', padding: 2.5 }} onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ clipPath: oct(15), background: 'radial-gradient(120% 90% at 50% 0%, rgba(251,146,60,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
+      <div className="relative w-[min(480px,95vw)] max-h-[88vh]" style={{ borderRadius: 18, background: 'rgba(251,146,60,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ borderRadius: 17, background: 'radial-gradient(120% 90% at 50% 0%, rgba(251,146,60,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
           <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em' }}>🔥 DIENOS PASIŪLYMAS</p>
           <p className="text-[11px] text-center mb-4" style={{ color: 'var(--text-muted)' }}>Atsinaujina kasdien · 🪙 {localGold.toLocaleString()} aukso</p>
 

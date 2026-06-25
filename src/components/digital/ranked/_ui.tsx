@@ -15,8 +15,8 @@ export function OctPanel({ children, accent = ACCENT, b = 14, className = '', st
   children: ReactNode; accent?: string; b?: number; className?: string; style?: React.CSSProperties
 }) {
   return (
-    <div className={className} style={{ clipPath: oct(b + 1), background: `rgba(${accent},0.5)`, padding: 2, ...style }}>
-      <div style={{ clipPath: oct(b), background: `radial-gradient(120% 90% at 50% 0%, rgba(${accent},0.12), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#15101f,#0a0810)`, boxShadow: `inset 0 0 22px rgba(${accent},0.10)`, height: '100%' }}>
+    <div className={className} style={{ borderRadius: b + 4, background: `rgba(${accent},0.32)`, padding: 1.5, ...style }}>
+      <div style={{ borderRadius: b + 3, background: `radial-gradient(120% 90% at 50% 0%, rgba(${accent},0.12), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#15101f,#0a0810)`, boxShadow: `inset 0 0 22px rgba(${accent},0.10)`, height: '100%' }}>
         {children}
       </div>
     </div>

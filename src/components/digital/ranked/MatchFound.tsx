@@ -3,7 +3,6 @@
 // ── Priešininkas rastas — „versus" intro (boto tapatybė NEatskleidžiama). ────
 import { useEffect } from 'react'
 import { RankBadge } from './RankBadge'
-import { oct } from './_ui'
 import { playRanked } from '@/lib/ranked/sound'
 
 export type Opponent = { name: string; avatar: string; faction: string; rankStep: number }
@@ -29,8 +28,8 @@ export function MatchFound({ me, opponent, onReady }: {
 
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.94)' }}>
-      <div className="relative w-[min(520px,96vw)]" style={{ clipPath: oct(18), background: 'rgba(239,68,68,0.5)', padding: 2.5 }}>
-        <div className="px-5 py-8" style={{ clipPath: oct(17), background: 'radial-gradient(120% 90% at 50% 0%, rgba(239,68,68,0.16), rgba(10,8,16,0.98) 62%), linear-gradient(160deg,#15101f,#0a0810)' }}>
+      <div className="relative w-[min(520px,96vw)]" style={{ borderRadius: 20, background: 'rgba(239,68,68,0.32)', padding: 2 }}>
+        <div className="px-5 py-8" style={{ borderRadius: 19, background: 'radial-gradient(120% 90% at 50% 0%, rgba(239,68,68,0.16), rgba(10,8,16,0.98) 62%), linear-gradient(160deg,#15101f,#0a0810)' }}>
           <p className="text-center text-xs font-semibold mb-5" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.18em' }}>PRIEŠININKAS RASTAS</p>
           <div className="flex items-center justify-around gap-3">
             <Side name={me.name} avatar="🛡️" step={me.rankStep} align="l" />

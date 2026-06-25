@@ -3150,24 +3150,24 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── pergalės / pralaimėjimo modalas ── */}
       <AnimatePresence>
         {vsRemote && (
-          <div className="fixed bottom-4 left-4 z-[130]">
+          <div className="fixed left-3 z-[130]" style={{ bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))' }}>
             {chatOpen ? (
-              <div className="w-64 rounded-xl flex flex-col" style={{ background: 'rgba(10,8,16,0.96)', border: '1px solid rgba(240,180,41,0.4)', height: 280 }}>
-                <div className="flex items-center justify-between px-3 py-1.5 border-b" style={{ borderColor: 'rgba(240,180,41,0.2)' }}>
-                  <span className="text-[11px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>💬 Pokalbis</span>
-                  <button onClick={() => setChatOpen(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <div className="w-[270px] rounded-2xl flex flex-col overflow-hidden" style={{ background: 'rgba(10,8,16,0.97)', border: '1px solid rgba(240,180,41,0.35)', boxShadow: '0 12px 36px rgba(0,0,0,0.6)', height: 300 }}>
+                <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid rgba(240,180,41,0.18)' }}>
+                  <span className="text-[12px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>💬 Pokalbis</span>
+                  <button onClick={() => setChatOpen(false)} className="flex items-center justify-center rounded-full" style={{ width: 26, height: 26, color: 'var(--text-muted)' }}>✕</button>
                 </div>
-                <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 flex flex-col">
+                <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1.5 flex flex-col">
                   {chatLog.length === 0 && <span className="text-[10px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Parašyk žinutę varžovui.</span>}
-                  {chatLog.map((m, i) => <div key={i} className={'max-w-[80%] px-2 py-1 rounded-lg text-[11px] ' + (m.mine ? 'self-end' : 'self-start')} style={{ background: m.mine ? 'rgba(240,180,41,0.18)' : 'rgba(255,255,255,0.06)', color: '#f3ead3' }}>{m.text}</div>)}
+                  {chatLog.map((m, i) => <div key={i} className={'max-w-[82%] px-2.5 py-1.5 text-[11px] leading-snug ' + (m.mine ? 'self-end' : 'self-start')} style={{ background: m.mine ? 'rgba(240,180,41,0.2)' : 'rgba(255,255,255,0.07)', color: '#f3ead3', borderRadius: m.mine ? '12px 12px 4px 12px' : '12px 12px 12px 4px' }}>{m.text}</div>)}
                 </div>
-                <div className="flex gap-1 p-2 border-t" style={{ borderColor: 'rgba(240,180,41,0.2)' }}>
-                  <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendBattleChat()} maxLength={200} placeholder="Žinutė…" className="flex-1 px-2 py-1 rounded text-[11px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-                  <button onClick={sendBattleChat} className="px-2 rounded text-[11px] font-bold" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>➤</button>
+                <div className="flex gap-1.5 p-2" style={{ borderTop: '1px solid rgba(240,180,41,0.18)' }}>
+                  <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendBattleChat()} maxLength={200} placeholder="Žinutė…" className="flex-1 px-2.5 rounded-lg text-[12px] outline-none" style={{ minHeight: 38, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.25)', color: 'var(--text-primary)' }} />
+                  <button onClick={sendBattleChat} className="flex items-center justify-center rounded-lg text-[13px] font-bold" style={{ width: 38, height: 38, background: 'rgba(240,180,41,0.9)', color: '#1a0f04' }}>➤</button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => setChatOpen(true)} className="relative w-11 h-11 rounded-full flex items-center justify-center text-lg" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.5)' }} title="Pokalbis">💬{chatLog.length > 0 ? <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full" style={{ background: '#4ade80' }} /> : null}</button>
+              <button onClick={() => setChatOpen(true)} className="relative flex items-center justify-center rounded-full text-lg" style={{ width: 44, height: 44, background: 'rgba(10,8,16,0.92)', border: '1px solid rgba(240,180,41,0.45)', boxShadow: '0 6px 18px rgba(0,0,0,0.5)' }} title="Pokalbis">💬{chatLog.length > 0 ? <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full" style={{ background: '#4ade80' }} /> : null}</button>
             )}
           </div>
         )}
