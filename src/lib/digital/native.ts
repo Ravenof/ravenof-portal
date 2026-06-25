@@ -55,3 +55,19 @@ export function onOpenStore(cb: () => void): () => void {
   window.addEventListener(STORE_EVENT, cb)
   return () => window.removeEventListener(STORE_EVENT, cb)
 }
+
+// ── Pilno ekrano (immersive) režimas — paslepia native status bar ─────────────
+export async function setNativeImmersive(on: boolean): Promise<void> {
+  if (!isNativeApp()) return
+  try {
+    const SB = (window as any).Capacitor?.Plugins?.StatusBar
+    if (!SB) return
+    if (on) {
+      await SB.setOverlaysWebView?.({ overlay: true })
+      await SB.hide?.()
+    } else {
+      await SB.show?.()
+      await SB.setOverlaysWebView?.({ overlay: false })
+    }
+  } catch { /* status bar plugin neprieinama */ }
+}

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
+import { DigitalPicker } from './DigitalPicker'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -38,7 +39,7 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
   const [resumeRec, setResumeRec] = useState<{ matchId: string; isHost: boolean; mySide: 'you' | 'ai'; opponentId: string | null; deckId: string; opponentDeckId: string | null; opponentName: string | null; deckName: string | null } | null>(null)
-  const [decks, setDecks] = useState<{ id: string; name: string; faction: string | null }[]>([])
+  const [decks, setDecks] = useState<{ id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }[]>([])
   const [deckSel, setDeckSel] = useState<string>(deckId)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -49,10 +50,10 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
       setUserId(user.id)
       const nm = (user.user_metadata?.username as string) || (user.user_metadata?.display_name as string) || (user.email?.split('@')[0]) || 'Žaidėjas'
       setUserName(nm)
-      supabase.from('decks').select('id, name, faction:factions ( name )').eq('user_id', user.id).order('updated_at', { ascending: false })
+      supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).order('updated_at', { ascending: false })
         .then(({ data }) => {
-          const rows = (data as unknown as { id: string; name: string; faction: { name: string } | null }[]) ?? []
-          setDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null })))
+          const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
+          setDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null })))
         })
     })
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
@@ -205,14 +206,11 @@ export function PvPLobby({ deckId, deckName, onClose, presetHost, presetJoin }: 
         )}
         {!room && (
           <div className="mb-4">
-            <label className="text-[11px] uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>Tavo kaladė</label>
             {decks.length === 0 ? (
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Įkeliama…</p>
             ) : (
-              <select value={deckSel} onChange={(e) => setDeckSel(e.target.value)}
-                style={{ width: '100%', minHeight: 46, padding: '0 0.7rem', borderRadius: '0.6rem', fontSize: '0.85rem', background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-primary)', outline: 'none' }}>
-                {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
-              </select>
+              <DigitalPicker label="Tavo kaladė" accent={ACC} value={deckSel} onChange={setDeckSel}
+                items={decks.map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
             )}
           </div>
         )}

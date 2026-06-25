@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { UserPlus, Swords, Check, X, Trash2, Repeat, MessageCircle, Send } from 'lucide-react'
 import { friendRequest, friendRespond, friendRemove, friendsList, challengeCreate, challengeIncoming, challengeAccept, challengeCancel, randMatchCode, sendMessage, getConversation, type Friend, type Challenge, type ChatMessage } from '@/lib/social'
@@ -149,9 +150,9 @@ export function FriendsClient() {
         )}
       </div>
       {tradeId && <TradeWindow tradeId={tradeId} onClose={() => { setTradeId(null); reload() }} />}
-      {chatWith && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.8)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }} onClick={() => setChatWith(null)}>
-          <div className="w-full max-w-md rounded-2xl flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', height: 'min(70vh,520px)' }} onClick={(e) => e.stopPropagation()}>
+      {chatWith && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.85)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }} onClick={() => setChatWith(null)}>
+          <div className="w-full max-w-md rounded-2xl flex flex-col overflow-hidden" style={{ background: 'linear-gradient(160deg,#17111f,#0a0810)', border: '1px solid rgba(240,180,41,0.35)', boxShadow: '0 16px 48px rgba(0,0,0,0.7)', height: 'min(72vh,540px)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--bg-border)' }}>
               <p className="text-sm font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>💬 {chatWith.displayName || chatWith.username}</p>
               <button onClick={() => setChatWith(null)} style={{ color: 'var(--text-muted)' }}><X className="w-4 h-4" /></button>
@@ -169,8 +170,7 @@ export function FriendsClient() {
               <RavenofButton variant="gold" size="md" onClick={sendChat}><Send className="w-4 h-4" /></RavenofButton>
             </div>
           </div>
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   )
 }

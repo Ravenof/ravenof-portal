@@ -384,6 +384,84 @@ function cardNeedsTarget(game: GameState, c: TutCard): boolean {
   return (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
 }
 
+// ── Messenger stiliaus „chat head" PvP kovai — tampomas burbulas + atsakymo langas ─
+type ChatMsg = { mine: boolean; text: string }
+function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open, setOpen }: {
+  chatLog: ChatMsg[]; chatInput: string; setChatInput: (v: string) => void; sendBattleChat: () => void
+  open: boolean; setOpen: (v: boolean) => void
+}) {
+  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 12, y: 320 })
+  const [seen, setSeen] = useState(0)
+  const dragging = useRef(false)
+  const moved = useRef(false)
+  const startRef = useRef({ px: 0, py: 0, ox: 0, oy: 0 })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setPos({ x: 12, y: window.innerHeight - 170 })
+  }, [])
+  useEffect(() => { if (open) setSeen(chatLog.length) }, [open, chatLog.length])
+
+  const unread = open ? 0 : Math.max(0, chatLog.length - seen)
+  const lastIncoming = [...chatLog].reverse().find((m) => !m.mine)
+
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+  const onDown = (e: React.PointerEvent) => {
+    dragging.current = true; moved.current = false
+    startRef.current = { px: e.clientX, py: e.clientY, ox: pos.x, oy: pos.y }
+    try { (e.target as HTMLElement).setPointerCapture(e.pointerId) } catch { /* */ }
+  }
+  const onMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return
+    const dx = e.clientX - startRef.current.px, dy = e.clientY - startRef.current.py
+    if (Math.abs(dx) + Math.abs(dy) > 6) moved.current = true
+    const w = typeof window !== 'undefined' ? window.innerWidth : 360
+    const h = typeof window !== 'undefined' ? window.innerHeight : 640
+    setPos({ x: clamp(startRef.current.ox + dx, 6, w - 58), y: clamp(startRef.current.oy + dy, 50, h - 64) })
+  }
+  const onUp = () => { if (!dragging.current) return; dragging.current = false; if (!moved.current) setOpen(!open) }
+
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
+    <>
+      {open && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center" style={{ background: 'rgba(4,3,8,0.55)' }} onClick={() => setOpen(false)}>
+          <div className="w-full sm:w-[min(420px,94vw)] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden sm:mb-6" style={{ background: 'linear-gradient(160deg,#17111f,#0a0810)', border: '1px solid rgba(240,180,41,0.35)', boxShadow: '0 -8px 40px rgba(0,0,0,0.7)', height: 'min(60vh,440px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.18)' }}>
+              <span className="text-[12px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>💬 Pokalbis su varžovu</span>
+              <button onClick={() => setOpen(false)} className="flex items-center justify-center rounded-full" style={{ width: 28, height: 28, color: 'var(--text-muted)' }}>✕</button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-2.5 py-2 space-y-1.5 flex flex-col">
+              {chatLog.length === 0 && <span className="text-[11px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Parašyk žinutę varžovui.</span>}
+              {chatLog.map((m, i) => <div key={i} className={'max-w-[82%] px-2.5 py-1.5 text-[12px] leading-snug ' + (m.mine ? 'self-end' : 'self-start')} style={{ background: m.mine ? 'rgba(240,180,41,0.2)' : 'rgba(255,255,255,0.07)', color: '#f3ead3', borderRadius: m.mine ? '12px 12px 4px 12px' : '12px 12px 12px 4px' }}>{m.text}</div>)}
+            </div>
+            <div className="flex gap-1.5 p-2 shrink-0" style={{ borderTop: '1px solid rgba(240,180,41,0.18)' }}>
+              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendBattleChat()} maxLength={200} placeholder="Žinutė…" className="flex-1 px-3 rounded-lg text-[13px] outline-none" style={{ minHeight: 42, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.25)', color: 'var(--text-primary)' }} />
+              <button onClick={sendBattleChat} className="flex items-center justify-center rounded-lg text-[14px] font-bold" style={{ width: 42, height: 42, background: 'rgba(240,180,41,0.92)', color: '#1a0f04' }}>➤</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!open && unread > 0 && lastIncoming && (
+        <div className="fixed z-[210] max-w-[200px] px-3 py-1.5 text-[11px] leading-snug" style={{ left: pos.x + 52, top: pos.y + 4, background: 'rgba(17,17,31,0.97)', border: '1px solid rgba(240,180,41,0.35)', color: '#f3ead3', borderRadius: '12px 12px 12px 4px', boxShadow: '0 6px 18px rgba(0,0,0,0.5)' }}>
+          {lastIncoming.text}
+        </div>
+      )}
+
+      {!open && (
+        <button onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
+          className="fixed z-[211] flex items-center justify-center rounded-full text-xl select-none"
+          style={{ left: pos.x, top: pos.y, width: 50, height: 50, touchAction: 'none', background: 'rgba(10,8,16,0.94)', border: '1px solid rgba(240,180,41,0.5)', boxShadow: '0 6px 20px rgba(0,0,0,0.55)' }}
+          title="Pokalbis (tempk — perkelk, bakstelk — atidaryk)">
+          💬
+          {unread > 0 && <span className="absolute -top-1 -right-1 flex items-center justify-center text-[10px] font-bold rounded-full" style={{ minWidth: 18, height: 18, padding: '0 4px', background: '#ef4444', color: '#fff', border: '1px solid #0a0810' }}>{unread}</span>}
+        </button>
+      )}
+    </>, document.body)
+}
+
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
@@ -3150,26 +3228,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── pergalės / pralaimėjimo modalas ── */}
       <AnimatePresence>
         {vsRemote && (
-          <div className="fixed left-3 z-[130]" style={{ bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))' }}>
-            {chatOpen ? (
-              <div className="w-[270px] rounded-2xl flex flex-col overflow-hidden" style={{ background: 'rgba(10,8,16,0.97)', border: '1px solid rgba(240,180,41,0.35)', boxShadow: '0 12px 36px rgba(0,0,0,0.6)', height: 300 }}>
-                <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid rgba(240,180,41,0.18)' }}>
-                  <span className="text-[12px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>💬 Pokalbis</span>
-                  <button onClick={() => setChatOpen(false)} className="flex items-center justify-center rounded-full" style={{ width: 26, height: 26, color: 'var(--text-muted)' }}>✕</button>
-                </div>
-                <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1.5 flex flex-col">
-                  {chatLog.length === 0 && <span className="text-[10px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Parašyk žinutę varžovui.</span>}
-                  {chatLog.map((m, i) => <div key={i} className={'max-w-[82%] px-2.5 py-1.5 text-[11px] leading-snug ' + (m.mine ? 'self-end' : 'self-start')} style={{ background: m.mine ? 'rgba(240,180,41,0.2)' : 'rgba(255,255,255,0.07)', color: '#f3ead3', borderRadius: m.mine ? '12px 12px 4px 12px' : '12px 12px 12px 4px' }}>{m.text}</div>)}
-                </div>
-                <div className="flex gap-1.5 p-2" style={{ borderTop: '1px solid rgba(240,180,41,0.18)' }}>
-                  <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendBattleChat()} maxLength={200} placeholder="Žinutė…" className="flex-1 px-2.5 rounded-lg text-[12px] outline-none" style={{ minHeight: 38, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.25)', color: 'var(--text-primary)' }} />
-                  <button onClick={sendBattleChat} className="flex items-center justify-center rounded-lg text-[13px] font-bold" style={{ width: 38, height: 38, background: 'rgba(240,180,41,0.9)', color: '#1a0f04' }}>➤</button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => setChatOpen(true)} className="relative flex items-center justify-center rounded-full text-lg" style={{ width: 44, height: 44, background: 'rgba(10,8,16,0.92)', border: '1px solid rgba(240,180,41,0.45)', boxShadow: '0 6px 18px rgba(0,0,0,0.5)' }} title="Pokalbis">💬{chatLog.length > 0 ? <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full" style={{ background: '#4ade80' }} /> : null}</button>
-            )}
-          </div>
+          <BattleChatHead chatLog={chatLog} chatInput={chatInput} setChatInput={setChatInput} sendBattleChat={sendBattleChat} open={chatOpen} setOpen={setChatOpen} />
         )}
         {game?.winner && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}

@@ -14,7 +14,7 @@ import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 import { getWallet, type Wallet } from '@/lib/economy'
-import { onWalletChanged, onOpenStore } from '@/lib/digital/native'
+import { onWalletChanged, onOpenStore, setNativeImmersive } from '@/lib/digital/native'
 
 type NavItem = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
 const NAV: NavItem[] = [
@@ -37,7 +37,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     loadDigitalSettings()
     startMenuMusic()
-    return () => { stopMusic() }
+    setNativeImmersive(true)   // pilnas ekranas — paslepia native status bar
+    return () => { stopMusic(); setNativeImmersive(false) }
   }, [])
 
   // Piniginė: perkraunam įėjus, keičiant puslapį, grįžus į langą ir po pirkimų/atplėšimų.

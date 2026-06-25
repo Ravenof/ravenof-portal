@@ -18,6 +18,7 @@ import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
 import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
+import { DigitalPicker } from '../DigitalPicker'
 import { OctPanel, SectionTitle, RButton } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
 import { MatchFound } from './MatchFound'
@@ -33,7 +34,7 @@ const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').
 type View = 'home' | 'leaderboard' | 'rewards' | 'achievements' | 'history' | 'season'
 type Flow = 'idle' | 'queue' | 'found' | 'playing' | 'result'
 
-type Deck = { id: string; name: string; faction: string | null }
+type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
 
 export function RankedClient() {
   const [season, setSeason] = useState<RankedSeason | null>(null)
@@ -221,10 +222,8 @@ export function RankedClient() {
           ) : (
             <div className="space-y-2.5">
               <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <label className="text-[10px] font-bold block mb-1.5 uppercase tracking-widest" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.12em' }}>⚔ Reitingo kaladė</label>
-                <select value={selDeck} onChange={(e) => setSelDeck(e.target.value)} className="w-full text-sm outline-none" style={{ minHeight: 46, padding: '0 0.7rem', borderRadius: '0.6rem', background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-primary)' }}>
-                  {decks.map((d) => <option key={d.id} value={d.id}>{d.name}{d.faction ? ` (${d.faction})` : ''}</option>)}
-                </select>
+                <DigitalPicker label="⚔ Reitingo kaladė" accent="239,68,68" value={selDeck} onChange={setSelDeck}
+                  items={decks.map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
               </div>
               <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
             </div>
