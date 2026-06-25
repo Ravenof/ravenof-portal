@@ -12,7 +12,7 @@ export function Flames() {
         .rvn-fl{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden;
           background: radial-gradient(125% 55% at 50% 120%, rgba(240,90,20,0.18), rgba(120,20,10,0.05) 44%, transparent 72%); }
         .rvn-fl-i{ position:absolute; bottom:-80px; width:320px; height:380px; border-radius:48% 48% 50% 50%;
-          filter: blur(28px); mix-blend-mode:screen; will-change:transform,opacity;
+          filter: blur(28px); mix-blend-mode:screen;
           background: radial-gradient(circle at 50% 72%, rgba(255,175,45,0.5), rgba(240,95,20,0.32) 34%, rgba(150,25,10,0.12) 60%, transparent 72%);
           animation: rvnFlRise 4s ease-in-out infinite, rvnFlFlick 1.8s ease-in-out infinite; }
         /* Kovoje (TutorialGame) – nematyti, tad išjungiam (ArenaBackground rodomas viršuje) */
