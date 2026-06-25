@@ -151,6 +151,10 @@ export type GameEvent = {
   cardName?: string
   value?: number
   zmk?: ZmkValue
+  /** Pranašumo/nepalankumo traukimas: abi ŽMK reikšmės + kuri panaudota. */
+  zmkPair?: [ZmkValue, ZmkValue]
+  zmkPicked?: ZmkValue
+  bias?: RollBias
   status?: TutStatus
   coin?: 'green' | 'red'
   /** Animacijoms: šaltinis (kortos uid arba žaidėjas) */
@@ -484,7 +488,7 @@ function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'n
     const adv = bias === 'advantage'
     const pick = adv ? (a >= b ? v : v2) : (a <= b ? v : v2)
     const val = adv ? Math.max(a, b) : Math.min(a, b)
-    log(g, { t: 'zmk', side: actor, zmk: pick, value: val, msg: `${adv ? 'Palankiai' : 'Nepalankiai'}: ŽMK ${v} ir ${v2} – imama ${adv ? 'geresnė' : 'blogesnė'}.` })
+    log(g, { t: 'zmk', side: actor, zmk: pick, value: val, zmkPair: [v, v2], zmkPicked: pick, bias, msg: `${adv ? 'Palankiai' : 'Nepalankiai'}: ŽMK ${v} ir ${v2} – imama ${adv ? 'geresnė' : 'blogesnė'}.` })
     zmkAfter(g, actor, v); zmkAfter(g, actor, v2)
     return val
   }

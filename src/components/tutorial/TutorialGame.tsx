@@ -24,7 +24,7 @@ import {
   swapPerspective, applyNetAction, swapAction, type NetAction,
   parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
   effectiveCost, auraSpellDamageBonus,
-  STATUS_META, TutStatus, boardCreatureCap,
+  STATUS_META, TutStatus, boardCreatureCap, type ZmkValue,
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
@@ -150,7 +150,21 @@ export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
 }
 
 // ── Varžovo rankos vėduoklė (kortų nugarėlės; lenkiasi link žvilgsnio – card-back kosmetikai) ─
-function OppHandFan({ count, big, tilt }: { count: number; big?: boolean; tilt: { x: number; y: number } }) {
+function OppHandFan({ count, big }: { count: number; big?: boolean }) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  useEffect(() => {
+    let raf = 0
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const nx = Math.max(-1, Math.min(1, (e.clientX / Math.max(1, window.innerWidth)) * 2 - 1))
+        const ny = Math.max(-1, Math.min(1, (e.clientY / Math.max(1, window.innerHeight)) * 2 - 1))
+        setTilt((t) => (Math.abs(t.x - nx) < 0.03 && Math.abs(t.y - ny) < 0.03 ? t : { x: nx, y: ny }))
+      })
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => { window.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf) }
+  }, [])
   const pw = big ? 44 : 30
   const ph = Math.round(pw * 4 / 3)
   const step = Math.round(pw * 0.42)
@@ -181,6 +195,54 @@ function OppHandFan({ count, big, tilt }: { count: number; big?: boolean; tilt: 
         <span className="absolute -bottom-1 right-0 px-1 rounded text-[10px] font-bold" style={{ color: 'var(--gold)', background: 'rgba(0,0,0,0.8)' }}>{count}</span>
       </div>
       <span className="text-[8px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Ranka</span>
+    </div>
+  )
+}
+
+// ── ŽMK pranašumo/nepalankumo traukimas: 2 kortos, nepanaudota subyra į gabalus ──
+const zmkCol = (v: string) => (v.startsWith('+') && v !== '+0') ? '#4ade80' : v.startsWith('-') ? '#f87171' : '#f0b429'
+function ZmkRollCard({ v, game }: { v: ZmkValue; game: GameState | null }) {
+  const img = zmkImg(game, v)
+  const c = zmkCol(v)
+  return (
+    <div className="relative rounded-xl overflow-hidden flex items-center justify-center" style={{ width: 'min(94px,24vw)', aspectRatio: '2.5 / 3.5', border: `2px solid ${c}`, background: '#14101e', boxShadow: `0 0 22px ${c}66` }}>
+      {img ? <img src={img} alt={`ŽMK ${v}`} draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <span className="font-black text-2xl" style={{ color: c, fontFamily: 'var(--rvn-font-display)' }}>{v.replace('x', '×')}</span>}
+    </div>
+  )
+}
+function ZmkRoll({ roll, game }: { roll: { side: Side; a: ZmkValue; b: ZmkValue; picked: ZmkValue; adv: boolean }; game: GameState | null }) {
+  const { a, b, picked, adv, side } = roll
+  const broken: ZmkValue = picked === a ? b : a
+  const bc = zmkCol(broken)
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(8,6,12,0.92)', border: `1px solid ${adv ? '#4ade80' : '#f87171'}`, color: adv ? '#4ade80' : '#f87171', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>
+        {side === 'you' ? 'Tavo' : 'Priešo'} ŽMK · {adv ? 'PALANKIAI' : 'NEPALANKIAI'}
+      </span>
+      <div className="flex items-center gap-5">
+        {/* Panaudota – lieka, padidėja, švyti */}
+        <motion.div initial={{ scale: 0.4, rotateY: 90, opacity: 0 }} animate={{ scale: [0.4, 1, 1.14, 1.1], rotateY: 0, opacity: [0, 1, 1, 1] }} transition={{ duration: 0.7, times: [0, 0.5, 0.8, 1] }} style={{ transformStyle: 'preserve-3d' }}>
+          <ZmkRollCard v={picked} game={game} />
+          <div className="text-center text-[10px] font-bold mt-1" style={{ color: zmkCol(picked) }}>✓ panaudota</div>
+        </motion.div>
+        {/* Nepanaudota – subyra į gabalus */}
+        <div className="relative">
+          <motion.div initial={{ scale: 0.4, rotateY: -90, opacity: 0 }} animate={{ scale: [0.4, 1, 1, 0.15], opacity: [0, 1, 1, 0], rotate: [0, 0, -7, 12] }} transition={{ duration: 1.0, times: [0, 0.35, 0.55, 1], ease: 'easeIn' }}>
+            <ZmkRollCard v={broken} game={game} />
+          </motion.div>
+          {Array.from({ length: 9 }).map((_, i) => {
+            const ang = (i / 9) * Math.PI * 2
+            const dist = 60 + (i % 3) * 24
+            return (
+              <motion.div key={i} className="absolute left-1/2 top-1/2" style={{ width: 9, height: 13, background: bc, borderRadius: 2, boxShadow: `0 0 6px ${bc}` }}
+                initial={{ x: -4, y: -6, opacity: 0, scale: 0.5 }}
+                animate={{ x: Math.cos(ang) * dist, y: Math.sin(ang) * dist, opacity: [0, 1, 0], rotate: ang * 60, scale: [0.5, 1, 0.3] }}
+                transition={{ duration: 0.75, delay: 0.55, ease: 'easeOut' }} />
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
@@ -522,6 +584,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [zmkFlash, setZmkFlash] = useState<{ cards: { v: string; side: Side }[]; n: number } | null>(null)
+  const [zmkRoll, setZmkRoll] = useState<{ id: number; side: Side; a: ZmkValue; b: ZmkValue; picked: ZmkValue; adv: boolean } | null>(null)
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
   // Prakeiksmo aktyvacijos overlay
@@ -579,7 +642,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
   const [popCards, setPopCards] = useState<{ id: number; card: TutCard | null; x: number; y: number; color: string; tag?: string }[]>([])
-  const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
   const [hpHold, setHpHold] = useState<Record<string, number>>({})
   const flyIdRef = useRef(0)
@@ -629,19 +691,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 72 : 104
   const unitW = isTouch ? 58 : 104
-  // Parallax: varžovo nugarėlės lenkiasi link žvilgsnio (pelės/piršto pozicijos)
-  useEffect(() => {
-    let raf = 0
-    const onMove = (e: PointerEvent) => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => setTilt({
-        x: Math.max(-1, Math.min(1, (e.clientX / Math.max(1, window.innerWidth)) * 2 - 1)),
-        y: Math.max(-1, Math.min(1, (e.clientY / Math.max(1, window.innerHeight)) * 2 - 1)),
-      }))
-    }
-    window.addEventListener('pointermove', onMove, { passive: true })
-    return () => { window.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf) }
-  }, [])
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -916,6 +965,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const fresh = game.log.slice(seenRef.current)
     seenRef.current = game.log.length
     let zmkN = 0
+    let drawSeq = 0
     let skipYouDraw = false
     const zmkBatch: { v: string; side: Side }[] = []
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
@@ -953,7 +1003,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
-          { const sd = e.side; const dnm = e.cardName; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 1600) } }, 40) }
+          { const sd = e.side; const dnm = e.cardName; const dseq = drawSeq++; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 1600) } }, 40 + dseq * 220) }
           if (e.side === 'you' && e.cardName && skipYouDraw) { skipYouDraw = false }
           break
         }
@@ -987,7 +1037,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; break }
         case 'zmk':
           zmkN += 1
-          if (game.zmkMode === 'draw') {
+          if (e.zmkPair) {
+            const [za, zb] = e.zmkPair
+            setZmkRoll({ id: ++flyIdRef.current, side: e.side, a: za, b: zb, picked: e.zmkPicked ?? e.zmk ?? za, adv: e.bias === 'advantage' })
+          } else if (game.zmkMode === 'draw') {
             setZmkPending((q) => [...q, { v: e.zmk ?? '?', side: e.side, revealed: false }])
           } else {
             zmkBatch.push({ v: e.zmk ?? '?', side: e.side })
@@ -1192,6 +1245,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const t = setTimeout(() => setZmkFlash(null), 2000)
     return () => clearTimeout(t)
   }, [zmkFlash])
+  useEffect(() => { if (!zmkRoll) return; const t = setTimeout(() => setZmkRoll(null), 1900); return () => clearTimeout(t) }, [zmkRoll])
 
   // Padarų pozicijų momentinė nuotrauka (sunaikinimo skrydžio animacijai). Be deps – po kiekvieno render'io.
   useEffect(() => {
@@ -2174,7 +2228,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               {hpBar('ai')}
               {goldBar('ai')}
               <div className="flex items-end gap-2">
-                <OppHandFan count={game.ai.hand.length} tilt={tilt} />
+                <OppHandFan count={game.ai.hand.length} />
                 {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
                 {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk' })}
@@ -2314,7 +2368,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <p className="text-xs leading-snug line-clamp-1 max-w-md text-center" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
             </div>
             <div className="flex items-start gap-2 pt-1">
-              <OppHandFan count={game.ai.hand.length} big tilt={tilt} />
+              <OppHandFan count={game.ai.hand.length} big />
               {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', big: true })}
               {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', big: true })}
               {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', big: true })}
@@ -2845,6 +2899,16 @@ doAction({ t: 'endTurn', actor: 'you' })
                 )
               })}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── ŽMK pranašumas / nepalankumas: 2 kortos, nepanaudota subyra ── */}
+      <AnimatePresence>
+        {zmkRoll && (
+          <motion.div key={'roll' + zmkRoll.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[131] flex items-center justify-center pointer-events-none">
+            <ZmkRoll roll={zmkRoll} game={game} />
           </motion.div>
         )}
       </AnimatePresence>
