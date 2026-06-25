@@ -4,6 +4,7 @@ import './globals.css'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { PWARegister } from '@/components/pwa/PWARegister'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 
 const cinzel = Cinzel({
   subsets: ['latin', 'latin-ext'],
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body className="pb-16 lg:pb-0">
         {children}
         <MobileNav />
+        <NotificationCenter />
         <InstallPrompt />
         <PWARegister />
       </body>
