@@ -6,10 +6,11 @@ import Link from 'next/link'
 import { Search, Lock, X, Grid2x2, Grid3x3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
-import { getWallet } from '@/lib/economy'
-import { requestOpenStore } from '@/lib/digital/native'
+import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
+import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
+import { PackOpen } from './PackOpen'
 
 type Col = {
   id: string; name: string; image: string | null
@@ -22,7 +23,10 @@ type Col = {
 export function DigitalCollection() {
   const [cards, setCards] = useState<Col[] | null>(null)
   const [loggedOut, setLoggedOut] = useState(false)
-  const [packs, setPacks] = useState(0)
+  const [packList, setPackList] = useState<Pack[]>([])
+  const [inv, setInv] = useState<Record<string, number>>({})
+  const [chooser, setChooser] = useState(false)
+  const [openingPack, setOpeningPack] = useState<Pack | null>(null)
 
   const [q, setQ] = useState('')
   const [faction, setFaction] = useState('all')
@@ -58,7 +62,11 @@ export function DigitalCollection() {
     setCards(list)
   }, [])
 
-  useEffect(() => { load(); getWallet().then((w) => { if (w) setPacks(w.packs) }) }, [load])
+  const refreshInv = useCallback(() => { getPackInventory().then(setInv) }, [])
+  useEffect(() => { load(); refreshInv(); getActivePacks().then(setPackList) }, [load, refreshInv])
+  const ownedPacks = packList.filter((p) => (inv[p.id] ?? 0) > 0)
+  const totalPacks = Object.values(inv).reduce((a, b) => a + b, 0)
+  const openPacks = () => { playUiClick(); if (ownedPacks.length === 0) { requestOpenStore(); return } if (ownedPacks.length === 1) setOpeningPack(ownedPacks[0]); else setChooser(true) }
 
   const factions = useMemo(() => {
     const m = new Map<string, string>()
@@ -158,12 +166,35 @@ export function DigitalCollection() {
 
       {/* Sticky CTA */}
       <div className="fixed left-0 right-0 z-30 px-4" style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
-        <button onClick={() => { playUiClick(); requestOpenStore() }}
+        <button onClick={openPacks}
           className="mx-auto block w-[min(420px,100%)] px-4 py-2.5 rounded-full text-xs font-bold transition-transform active:scale-[0.98]"
           style={{ background: 'rgba(251,146,60,0.92)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>
-          {packs > 0 ? `🎁 Atplėšti pakus (${packs})` : '🛒 Į parduotuvę'}
+          {totalPacks > 0 ? `🎁 Atplėšti pakus (${totalPacks})` : '🛒 Į parduotuvę'}
         </button>
       </div>
+
+      {chooser && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setChooser(false)}>
+          <div className="w-[min(360px,92vw)] rounded-2xl p-5" style={{ border: '1px solid rgba(251,146,60,0.5)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-base font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.06em' }}>🎁 Kurį paką atplėšti?</p>
+            <div className="space-y-2">
+              {ownedPacks.map((pk) => (
+                <button key={pk.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(pk) }} className="w-full text-left px-3 py-2.5 rounded-xl transition-transform active:scale-[0.98]" style={{ background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.45)' }}>
+                  <span className="text-sm font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{pk.name}</span>
+                  <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>×{inv[pk.id]}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full text-xs" style={{ color: 'var(--text-muted)' }}>Atšaukti</button>
+          </div>
+        </div>
+      )}
+
+      {openingPack && (
+        <PackOpen packId={openingPack.id} packName={openingPack.name} packImage={openingPack.image_url}
+          onClose={() => { setOpeningPack(null); refreshInv(); emitWalletChanged() }}
+          onOpened={() => { refreshInv(); emitWalletChanged(); load() }} />
+      )}
 
       {preview && <PreviewModal c={preview} onClose={() => setPreview(null)} />}
     </div>
