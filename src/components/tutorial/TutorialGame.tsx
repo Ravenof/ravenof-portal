@@ -157,7 +157,6 @@ export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
 function OppHandFan({ count, big }: { count: number; big?: boolean }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return
     let raf = 0
     const onMove = (e: PointerEvent) => {
       cancelAnimationFrame(raf)
@@ -705,12 +704,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 72 : 104
   const unitW = isTouch ? 58 : 104
-  // Kovoje paslepiam meniu liepsnas (Flames) – kad nesisuktų po ArenaBackground (perf)
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    document.documentElement.classList.add('rvn-in-battle')
-    return () => document.documentElement.classList.remove('rvn-in-battle')
-  }, [])
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -824,18 +817,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const supabase = createClient()
     Promise.all([
       supabase.from('zmk_cards').select('*').eq('active', true).order('sort_order'),
-      // 300 kortų su pilnu gameplay JSON reikalinga TIK demo kaladei (prakeiksmams).
-      // Tikroms kaladėms to nekraunam – tai pagreitina žaidimo startą.
-      deckId === DEMO_DECK_ID
-        ? supabase.from('cards').select(`
-            id, name, image_url, gold_cost, attack, health,
-            effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
-            card_type:card_types ( name ),
-            rarity:rarities ( color_hex ),
-            faction:factions ( id, name, color_hex ),
-            card_keywords ( keyword:keywords ( name ) )
-          `).eq('status', 'active').limit(300)
-        : Promise.resolve({ data: null, error: null }),
+      supabase.from('cards').select(`
+        id, name, image_url, gold_cost, attack, health,
+        effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
+        card_type:card_types ( name ),
+        rarity:rarities ( color_hex ),
+        faction:factions ( id, name, color_hex ),
+        card_keywords ( keyword:keywords ( name ) )
+      `).eq('status', 'active').limit(300),
     ]).then(([zmkRes, cardsRes]) => {
       if (!alive) return
       // zmk_cards lentelės gali nebūti (migracija nepaleista) – fallback default
