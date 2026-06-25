@@ -149,6 +149,42 @@ export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: ok ? 1 : 0, transition: 'opacity .2s' }} />
 }
 
+// ── Varžovo rankos vėduoklė (kortų nugarėlės; lenkiasi link žvilgsnio – card-back kosmetikai) ─
+function OppHandFan({ count, big, tilt }: { count: number; big?: boolean; tilt: { x: number; y: number } }) {
+  const pw = big ? 44 : 30
+  const ph = Math.round(pw * 4 / 3)
+  const step = Math.round(pw * 0.42)
+  const n = Math.min(count, 6)
+  if (count <= 0) {
+    return (
+      <div data-pile="hand-ai" className="flex flex-col items-center gap-0.5">
+        <div style={{ width: pw, height: ph, opacity: 0.4, border: '1px solid rgba(240,180,41,0.3)', borderRadius: 6 }} />
+        <span className="text-[8px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Ranka</span>
+      </div>
+    )
+  }
+  const mid = (n - 1) / 2
+  return (
+    <div data-pile="hand-ai" className="flex flex-col items-center gap-0.5">
+      <div className="relative" style={{ width: pw + (n - 1) * step, height: ph + 10, perspective: 520 }}>
+        {Array.from({ length: n }).map((_, i) => {
+          const off = i - mid
+          const rot = off * 9 + tilt.x * 9
+          const tx = off * step
+          const ty = Math.abs(off) * 3 - tilt.y * 3
+          return (
+            <div key={i} className="absolute rounded-md overflow-hidden" style={{ left: '50%', top: 2, width: pw, height: ph, border: '1px solid rgba(240,180,41,0.35)', background: '#0d0a14', transform: `translateX(-50%) translateX(${tx}px) translateY(${ty}px) rotate(${rot}deg)`, transformOrigin: 'bottom center', transition: 'transform 0.18s ease-out', boxShadow: '0 2px 7px rgba(0,0,0,0.55)' }}>
+              <PileBack kind="plain" />
+            </div>
+          )
+        })}
+        <span className="absolute -bottom-1 right-0 px-1 rounded text-[10px] font-bold" style={{ color: 'var(--gold)', background: 'rgba(0,0,0,0.8)' }}>{count}</span>
+      </div>
+      <span className="text-[8px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Ranka</span>
+    </div>
+  )
+}
+
 export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; scale?: number }) {
   const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
   const hue = ratio * 120
@@ -541,6 +577,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const handRef = useRef<HTMLDivElement | null>(null)
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
+  const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
   const [hpHold, setHpHold] = useState<Record<string, number>>({})
   const flyIdRef = useRef(0)
@@ -590,6 +628,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 72 : 104
   const unitW = isTouch ? 58 : 104
+  // Parallax: varžovo nugarėlės lenkiasi link žvilgsnio (pelės/piršto pozicijos)
+  useEffect(() => {
+    let raf = 0
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => setTilt({
+        x: Math.max(-1, Math.min(1, (e.clientX / Math.max(1, window.innerWidth)) * 2 - 1)),
+        y: Math.max(-1, Math.min(1, (e.clientY / Math.max(1, window.innerHeight)) * 2 - 1)),
+      }))
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => { window.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf) }
+  }, [])
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -866,7 +917,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let zmkN = 0
     let skipYouDraw = false
     const zmkBatch: { v: string; side: Side }[] = []
-    const drewFlash: { card: TutCard | null; title: string }[] = []  // visi šiame pakete žaidėjo ištraukti (kad rodytų VISUS, ne tik paskutinį)
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
     let srcRef: { side: Side; uid?: string } | undefined
     let srcCard: TutCard | null = null
@@ -901,13 +951,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
-          { const sd = e.side; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); fxRef.current?.spawn({ kind: 'drawStream', from: { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }, to: { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top - 10 : hr.bottom + 10 }, color: '#7cc4ff', duration: 1.0 }) } }, 40) }
-          if (e.side === 'you' && e.cardName) {
-            if (skipYouDraw) { skipYouDraw = false }
-            else {
-              drewFlash.push({ card: findCard(e.cardName), title: e.cardName })
-            }
-          }
+          { const sd = e.side; const dnm = e.cardName; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 950) } }, 40) }
+          if (e.side === 'you' && e.cardName && skipYouDraw) { skipYouDraw = false }
           break
         }
         case 'play': case 'artifact': case 'champion': {
@@ -1115,12 +1160,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const aCol = fxElemColor ?? palOf(srcCard).primary
       const aFrom = (srcRef ? rectOf(srcRef) : null) ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
       window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, color: aCol, duration: 1.7, variant: aoeVariant() }), SETTLE)
-    }
-    if (drewFlash.length > 0) {
-      if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
-      if (drewFlash.length === 1) setCardFlash({ card: drewFlash[0].card, title: drewFlash[0].title, tag: 'Ištraukei', color: '#34d399' })
-      else setCardFlash({ card: null, cards: drewFlash.map((d) => d.card), title: `Ištraukei ${drewFlash.length} kortas`, tag: `Ištraukei ${drewFlash.length}`, color: '#34d399' })
-      flashTimerRef.current = setTimeout(() => setCardFlash(null), drewFlash.length > 1 ? 2800 : 2000)
     }
 
     // lentos skenavimas raktažodžių patarimams
@@ -2132,7 +2171,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               {hpBar('ai')}
               {goldBar('ai')}
               <div className="flex items-end gap-2">
-                {renderPile('Ranka', game.ai.hand.length, { pileKey: 'hand-ai', back: 'plain' })}
+                <OppHandFan count={game.ai.hand.length} tilt={tilt} />
                 {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
                 {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk' })}
@@ -2272,7 +2311,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <p className="text-xs leading-snug line-clamp-1 max-w-md text-center" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
             </div>
             <div className="flex items-start gap-2 pt-1">
-              {renderPile('Ranka', game.ai.hand.length, { pileKey: 'hand-ai', back: 'plain', big: true })}
+              <OppHandFan count={game.ai.hand.length} big tilt={tilt} />
               {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', big: true })}
               {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', big: true })}
               {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', big: true })}
@@ -2740,6 +2779,22 @@ doAction({ t: 'endTurn', actor: 'you' })
         </AnimatePresence>
       </div>
 
+      {/* ── skrendančios traukiamos kortos (kaladė → ranka) ── */}
+      <div className="fixed inset-0 z-[129] pointer-events-none">
+        <AnimatePresence>
+          {flyingDraws.map((fc) => (
+            <motion.div key={'draw' + fc.id}
+              initial={{ left: fc.from.x - 16, top: fc.from.y - 22, opacity: 0.2, scale: 0.5, rotate: fc.side === 'you' ? -12 : 12 }}
+              animate={{ left: fc.to.x - 22, top: fc.to.y - 30, opacity: [0.25, 1, 1, 0], scale: [0.5, 1, 1, 0.75], rotate: 0 }}
+              transition={{ duration: 0.9, ease: 'easeOut', times: [0, 0.4, 0.75, 1] }}
+              className="absolute"
+              style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.65))' }}>
+              {fc.card ? <MiniCard c={fc.card} w={44} /> : <div className="relative rounded-md overflow-hidden" style={{ width: 40, height: 53, border: '1px solid rgba(240,180,41,0.4)', background: '#0d0a14' }}><PileBack kind="plain" /></div>}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* ── ŽMK auto-traukimo flash (fiksuotas, centruotas; rodo VISAS traukimo kortas – pvz. puolančio ir gynėjo) ── */}
       <AnimatePresence>
         {zmkFlash && (
@@ -3199,7 +3254,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <AnimatePresence>
         {cardFlash && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[131] flex items-center justify-center pointer-events-none p-4">
+            className="fixed inset-0 z-[131] flex items-start justify-center pointer-events-none px-4" style={{ paddingTop: '9vh' }}>
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}
               transition={{ type: 'spring', damping: 16 }} className="flex flex-col items-center gap-2">
               {cardFlash.tag && (
@@ -3209,13 +3264,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <div className="flex flex-wrap items-center justify-center gap-2 max-w-[94vw]">
                   {cardFlash.cards.map((c, ci) => (
                     <div key={ci} style={{ filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.7))', outline: '2px solid ' + cardFlash.color, borderRadius: 12 }}>
-                      {c ? <MiniCard c={c} w={isTouch ? 96 : 130} /> : <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(8,6,12,0.95)', border: '1px solid ' + cardFlash.color, color: 'var(--text-primary)' }}>?</div>}
+                      {c ? <MiniCard c={c} w={isTouch ? 72 : 96} /> : <div className="px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(8,6,12,0.95)', border: '1px solid ' + cardFlash.color, color: 'var(--text-primary)' }}>?</div>}
                     </div>
                   ))}
                 </div>
               ) : cardFlash.card ? (
                 <div style={{ filter: 'drop-shadow(0 14px 34px rgba(0,0,0,0.75))', outline: '2px solid ' + cardFlash.color, borderRadius: 14 }}>
-                  <MiniCard c={cardFlash.card} w={isTouch ? 150 : 196} />
+                  <MiniCard c={cardFlash.card} w={isTouch ? 100 : 132} />
                 </div>
               ) : (
                 <div className="px-5 py-3 rounded-xl text-base font-bold" style={{ background: 'rgba(8,6,12,0.95)', border: '1px solid ' + cardFlash.color, color: 'var(--text-primary)' }}>{cardFlash.title}</div>
