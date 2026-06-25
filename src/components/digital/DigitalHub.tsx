@@ -74,7 +74,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   // ── 2x2 greitos nuorodos ──
   const quick = [
     { key: 'collection', label: 'Kolekcija',  icon: LayoutGrid,    accent: '96,165,250',  href: '/digital/collection' },
-    { key: 'decks',      label: 'Kaladės',    icon: Layers,        accent: '139,92,246',  href: '/digital/deck' },
+    { key: 'decks',      label: 'Kaladės',    icon: Layers,        accent: '139,92,246',  href: '/digital/decks' },
     { key: 'shop',       label: 'Parduotuvė', icon: ShoppingBag,   accent: '240,180,41',  onClick: () => { playUiClick(); setStoreOpen(true) } },
     { key: 'quests',     label: 'Užduotys',   icon: ClipboardList, accent: '236,72,153',  onClick: () => { playUiClick(); setQuestsOpen(true) } },
   ] as const

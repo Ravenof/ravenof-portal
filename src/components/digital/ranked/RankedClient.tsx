@@ -64,6 +64,8 @@ export function RankedClient() {
     })
     getRankedDecks().then((d) => { setDecks(d); setSelDeck((cur) => cur || d[0]?.id || '') })
     getFactionIdMap().then(setFactionIds)
+    // „Lazy cron": jei reikia (≥11 val.), paleidžia botų tarpusavio kovas (K/D gyvas be pg_cron)
+    createClient().rpc('rvn_maybe_simulate_bot_matches').then(() => {}, () => {})
     load()
   }, [load])
 
@@ -97,7 +99,7 @@ export function RankedClient() {
       durationSeconds: r.turns * 30, turnsPlayed: r.turns, stats: r.stats, clientMatchId: opp.net?.matchId ?? matchIdRef.current,
     }
     const res = await reportMatch(input)
-    if ('error' in res) { setToast('Nepavyko įrašyti rezultato.'); setFlow('idle'); await load(); return }
+    if ('error' in res) { setToast('Nepavyko įrašyti rezultato: ' + res.error); setFlow('idle'); await load(); return }
     setResult({ ...res, won: r.result === 'win' })
     setFlow('result')
     await load()
@@ -214,7 +216,7 @@ export function RankedClient() {
           ) : decks.length === 0 ? (
             <div className="text-center">
               <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Neturi kaladžių — reitingo kovai reikia bent vienos.</p>
-              <Link href="/digital/deck" onClick={() => playUiClick()} className="inline-block px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+              <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="inline-block px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
             </div>
           ) : (
             <div className="space-y-2.5">

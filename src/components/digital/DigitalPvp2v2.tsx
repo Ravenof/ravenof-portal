@@ -137,7 +137,7 @@ export function DigitalPvp2v2() {
       ) : decks.length === 0 ? (
         <div className="text-center">
           <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Neturi kaladžių.</p>
-          <Link href="/digital/deck" onClick={() => playUiClick()} className="inline-block px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#d8b4fe', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+          <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="inline-block px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#d8b4fe', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
         </div>
       ) : (
         <>

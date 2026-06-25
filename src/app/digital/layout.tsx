@@ -20,7 +20,7 @@ type NavItem = { key: string; label: string; icon: React.ComponentType<{ classNa
 const NAV: NavItem[] = [
   { key: 'play',       label: 'Žaisti',     icon: Swords,      href: '/digital' },
   { key: 'collection', label: 'Kolekcija',  icon: LayoutGrid,  href: '/digital/collection' },
-  { key: 'decks',      label: 'Kaladės',    icon: Layers,      href: '/digital/deck' },
+  { key: 'decks',      label: 'Kaladės',    icon: Layers,      href: '/digital/decks' },
   { key: 'shop',       label: 'Parduotuvė', icon: ShoppingBag, action: 'store' },
   { key: 'more',       label: 'Daugiau',    icon: Menu,        href: '/digital/more' },
 ]
