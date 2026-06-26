@@ -65,6 +65,7 @@ export type TutCard = {
   keywords: TutKeyword[]
   effectText: string
   rarityColor: string
+  rarityName?: string | null
   factionColor: string
   factionId?: number | null
   factionName?: string | null
@@ -165,6 +166,8 @@ export type GameEvent = {
   projectile?: ProjectileType
   sound?: BattleSoundType
   fromZone?: 'hand' | 'deck' | 'graveyard'
+  /** Čempiono skill kino pop-up: kuris skill (0..2) panaudotas. */
+  skillIndex?: number
 }
 
 /** Trumpalaikis ŽMK traukimo kontekstas (atakos/burto pranašumui/nepalankumui). */
@@ -2101,6 +2104,7 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
   g.rollContext = { kind: 'spell', actor: s, spellType: ch.card.gameplay?.spellType }
   log(g, {
     t: 'ability', side: s, cardName: ch.card.name, msg: `⚜ „${ch.card.name}" naudoja „${skill.name}" (${ch.phase} fazė).`,
+    skillIndex,
     src: { side: s, uid: ch.uid }, tgt: opts?.target ? { ...opts.target } : undefined,
     projectile: skill.mappings[0]?.projectile ?? projectileForCard(ch.card), sound: 'championSkill',
   })

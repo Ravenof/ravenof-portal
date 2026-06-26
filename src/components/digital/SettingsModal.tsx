@@ -2,10 +2,13 @@
 
 // ── Ravenof Digital — nustatymų modalas (garsumas + efektai, su DB išsaugojimu) ─
 import { useEffect, useState } from 'react'
-import { Volume2, VolumeX, Music, Sparkles } from 'lucide-react'
+import { Volume2, VolumeX, Music, Sparkles, Clapperboard } from 'lucide-react'
 import {
   getMusicVolume, getSfxVolume, isSummonFxEnabled,
   setMusicVolume, setSfxVolume, setSummonFxEnabled,
+  isPremiumCinematicsEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled,
+  setPremiumCinematicsEnabled, setSummonCinematicsEnabled, setChampionSkillCinematicsEnabled,
+  DEFAULT_SUMMON_CINEMATICS, DEFAULT_SKILL_CINEMATICS,
 } from '@/lib/settings'
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
@@ -17,15 +20,22 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [sfx, setSfx] = useState(1)
   const [summon, setSummon] = useState(true)
   const [soundOn, setSoundOn] = useState(true)
+  const [cine, setCine] = useState(true)
+  const [cineSummon, setCineSummon] = useState(DEFAULT_SUMMON_CINEMATICS)
+  const [cineSkill, setCineSkill] = useState(DEFAULT_SKILL_CINEMATICS)
 
   useEffect(() => {
     setMusic(getMusicVolume()); setSfx(getSfxVolume()); setSummon(isSummonFxEnabled()); setSoundOn(isUiSoundEnabled())
+    setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
     return subscribeUiSound(setSoundOn)
   }, [])
 
   const onMusic = (v: number) => { setMusic(v); setMusicVolume(v); saveDigitalSettings() }
   const onSfx = (v: number) => { setSfx(v); setSfxVolume(v); saveDigitalSettings() }
   const onSummon = (v: boolean) => { playUiClick(); setSummon(v); setSummonFxEnabled(v); saveDigitalSettings() }
+  const onCine = (v: boolean) => { playUiClick(); setCine(v); setPremiumCinematicsEnabled(v); saveDigitalSettings() }
+  const onCineSummon = (v: boolean) => { playUiClick(); setCineSummon(v); setSummonCinematicsEnabled(v); saveDigitalSettings() }
+  const onCineSkill = (v: boolean) => { playUiClick(); setCineSkill(v); setChampionSkillCinematicsEnabled(v); saveDigitalSettings() }
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
@@ -67,6 +77,26 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Išjungus, kovose nerodomi padarų iškvietimo vizualiniai efektai (geriau silpnesniems įrenginiams).</p>
+
+          {/* Premium kino pop-up jungiklis */}
+          <div className="mt-4 flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
+            <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Clapperboard className="w-4 h-4" />Kino pop-up</span>
+            <button onClick={() => onCine(!cine)} className="relative w-12 h-6 rounded-full transition-colors"
+              style={{ background: cine ? 'rgba(240,180,41,0.4)' : 'rgba(255,255,255,0.12)' }}>
+              <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{ left: cine ? '26px' : '2px', background: cine ? 'var(--gold-bright)' : 'var(--text-muted)' }} />
+            </button>
+          </div>
+          <div className={`mt-2 space-y-2 transition-opacity ${cine ? '' : 'opacity-40 pointer-events-none'}`}>
+            <label className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid var(--bg-border)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Iškvietimo (Legendinis / Čempionas)</span>
+              <input type="checkbox" checked={cineSummon} onChange={(e) => onCineSummon(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
+            </label>
+            <label className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid var(--bg-border)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Čempiono skill</span>
+              <input type="checkbox" checked={cineSkill} onChange={(e) => onCineSkill(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
+            </label>
+          </div>
+          <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Trumpas (2–3 s) kino pop-up iškviečiant Legendinį/Čempioną ar panaudojus Čempiono skill. Praleidžiamas bakstelėjus.</p>
 
           <button onClick={() => { playUiClick(); onClose() }} className="w-full mt-6 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-95"
             style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>

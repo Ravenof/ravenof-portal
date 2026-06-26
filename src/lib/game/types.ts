@@ -385,8 +385,71 @@ export type PassiveAuraConfig = {
   auraSpellType?: SpellType            // auraSpellDamage tik šio tipo burtams (kitaip – visiems)
 }
 
+// ── Premium kino pop-up (PremiumCinematics) ──────────────────────────────────
+// Du tipai: „summon" (Legendinis/Čempionas iškvietimas) ir „championSkill".
+// Failai saugomi card-cinematics bucket'e (WebM + MP4 fallback + poster); DB
+// laiko tik URL + metaduomenis. Logika: lib/game/cinematics.ts + cinematicQueue.ts.
+export type CinematicFrameTheme =
+  | 'default' | 'undead' | 'demon' | 'holy' | 'mystic' | 'goblin' | 'pirate' | 'eastern' | 'inquisition'
+
+export const CINEMATIC_FRAME_THEMES: { value: CinematicFrameTheme; label: string }[] = [
+  { value: 'default',     label: 'Numatytas (plienas)' },
+  { value: 'undead',      label: 'Nemirėliai (Mirties maršas)' },
+  { value: 'demon',       label: 'Demonai (Demonų orda)' },
+  { value: 'holy',        label: 'Šventieji (Šviesos pulkas)' },
+  { value: 'mystic',      label: 'Mistika (Mistikos melodija)' },
+  { value: 'goblin',      label: 'Goblinai (Vryhioko gauja)' },
+  { value: 'pirate',      label: 'Piratai (Plėšikų naktis)' },
+  { value: 'eastern',     label: 'Rytai (Rytų vėjas)' },
+  { value: 'inquisition', label: 'Inkvizicija (Inkvizicijos legionas)' },
+]
+
+export type CinematicTriggerSource =
+  | 'playedFromHand' | 'summonedByEffect' | 'revived' | 'copied' | 'generated'
+
+export const CINEMATIC_TRIGGER_SOURCES: { value: CinematicTriggerSource; label: string }[] = [
+  { value: 'playedFromHand',   label: 'Sužaista iš rankos' },
+  { value: 'summonedByEffect', label: 'Iškviesta efekto' },
+  { value: 'revived',          label: 'Prikelta' },
+  { value: 'copied',           label: 'Nukopijuota' },
+  { value: 'generated',        label: 'Sugeneruota' },
+]
+
+export const CINEMATIC_MAX_BYTES = 5 * 1024 * 1024        // siūlomas hard max (UI)
+export const CINEMATIC_WARN_BYTES = 2 * 1024 * 1024       // warn jei didesnis
+export const CINEMATIC_MAX_DURATION_MS = 3500
+export const CINEMATIC_MIN_DURATION_MS_SUMMON = 1500
+export const CINEMATIC_MIN_DURATION_MS_SKILL = 1000
+export const CINEMATIC_DEFAULT_DURATION_MS_SUMMON = 2600
+export const CINEMATIC_DEFAULT_DURATION_MS_SKILL = 2200
+
+export type SummonCinematic = {
+  enabled: boolean
+  webm?: string
+  mp4?: string
+  poster?: string
+  durationMs?: number
+  titleOverride?: string
+  frameTheme?: CinematicFrameTheme
+  triggerSources?: CinematicTriggerSource[]
+  uploadedAt?: string
+  updatedAt?: string
+}
+
+export type SkillCinematic = {
+  enabled: boolean
+  webm?: string
+  mp4?: string
+  poster?: string
+  durationMs?: number
+  titleOverride?: string
+  frameTheme?: CinematicFrameTheme
+  uploadedAt?: string
+  updatedAt?: string
+}
+
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──
-export type ChampionSkill = { name?: string; mappings: EffectMapping[] }
+export type ChampionSkill = { name?: string; mappings: EffectMapping[]; cinematic?: SkillCinematic }
 
 // ── Atakos taikinio apribojimas (statinis padaro nustatymas) ─────────────────
 export type AttackRestriction = 'unitsOnly' | 'championsOnly' | 'noPlayer' | 'playerOnly' | 'artifactsOnly'
@@ -463,6 +526,7 @@ export type GameplayConfig = {
   animationType?: string
   soundType?: BattleSoundType
   voiceLines?: string[]            // iškvietimo balsai: keli mp3/ogg URL, grojami atsitiktinai per voiceManager
+  summonCinematic?: SummonCinematic // Premium kino pop-up (Legendiniams/Čempionams) — žr. lib/game/cinematics.ts
   summonEffect?: SummonEffectType  // pilno lauko vizualus efektas iškviečiant kortą
   projectileType?: ProjectileType
   tutorialTags?: string[]

@@ -9,11 +9,13 @@ import { createPortal } from 'react-dom'
 import { SummonBurst } from '@/components/tutorial/SummonBurst'
 import { createClient } from '@/lib/supabase/client'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
+import { CinematicUpload, type CinematicData } from './CinematicUpload'
 import {
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
   METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SPELL_TYPES, ATTACK_RESTRICTIONS,
   type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType, type AttackRestriction,
   SUMMON_EFFECTS, type SummonEffectType,
+  type SkillCinematic,
 } from '@/lib/game/types'
 
 const inputStyle: React.CSSProperties = {
@@ -68,6 +70,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
       const skills = [0, 1, 2].map((idx) => ({
         name: champSkills[idx]?.name ?? '',
         mappings: idx === activeSkill ? arr : (champSkills[idx]?.mappings ?? []),
+        cinematic: champSkills[idx]?.cinematic,
       }))
       update({ ...cfg, championSkillConfig: { skills } })
     } else {
@@ -78,6 +81,15 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
     const skills = [0, 1, 2].map((j) => ({
       name: j === idx ? name : (champSkills[j]?.name ?? ''),
       mappings: champSkills[j]?.mappings ?? [],
+      cinematic: champSkills[j]?.cinematic,
+    }))
+    update({ ...cfg, championSkillConfig: { skills } })
+  }
+  const setSkillCinematic = (idx: number, data: CinematicData | undefined) => {
+    const skills = [0, 1, 2].map((j) => ({
+      name: champSkills[j]?.name ?? '',
+      mappings: champSkills[j]?.mappings ?? [],
+      cinematic: j === idx ? (data as SkillCinematic | undefined) : champSkills[j]?.cinematic,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -91,7 +103,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
     if (isChampion && out.championSkillConfig?.skills) {
-      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [] })) }
+      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic })) }
     }
     return JSON.stringify(out)
   }, [cfg, needsMapping])
@@ -141,6 +153,19 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
             style={{ background: 'var(--gold)', color: '#0a0a0f', cursor: cfg.summonEffect ? 'pointer' : 'not-allowed' }}
           >▶ Peržiūra</button>
         </div>
+      </div>
+
+      {/* Premium summon kino pop-up (Legendiniams / Čempionams) */}
+      <div className="rounded-lg p-3" style={{ background: 'rgba(150,170,200,0.05)', border: '1px solid var(--bg-border)' }}>
+        <p style={{ ...labelStyle, marginBottom: 6 }}>🎬 Summon Cinematic — kino pop-up (Legendinis / Čempionas)</p>
+        <CinematicUpload
+          kind="summon"
+          cardId={cardId}
+          cardNumber={cardNumber}
+          value={cfg.summonCinematic as CinematicData | undefined}
+          onChange={(data) => update({ ...cfg, summonCinematic: data as GameplayConfig['summonCinematic'] })}
+          showTriggerSources
+        />
       </div>
 
       {fxPreview && typeof document !== 'undefined' && createPortal(
@@ -483,6 +508,19 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
               <input type="text" placeholder={`Skill ${activeSkill + 1} pavadinimas`} value={champSkills[activeSkill]?.name ?? ''}
                 onChange={(e) => setSkillName(activeSkill, e.target.value)} style={inputStyle} />
               <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>Žemiau – šio skill efektai. Trigger paprastai „Čempiono gebėjimas".</p>
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(240,180,41,0.25)' }}>
+                <p style={{ ...labelStyle, marginBottom: 6 }}>🎬 Skill {activeSkill + 1} Cinematic</p>
+                <CinematicUpload
+                  key={activeSkill}
+                  kind="skill"
+                  skillId={`skill-${activeSkill + 1}`}
+                  cardId={cardId}
+                  cardNumber={cardNumber}
+                  value={champSkills[activeSkill]?.cinematic as CinematicData | undefined}
+                  onChange={(data) => setSkillCinematic(activeSkill, data)}
+                  defaultTitle={champSkills[activeSkill]?.name || undefined}
+                />
+              </div>
             </div>
           )}
 

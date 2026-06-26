@@ -7,20 +7,32 @@
 const K_MUSIC = 'rvn-music-volume'
 const K_SFX = 'rvn-sfx-volume'
 const K_SUMMON = 'rvn-summon-fx'
+const K_CINE = 'rvn-premium-cinematics'
+const K_CINE_SUMMON = 'rvn-cinematics-summon'
+const K_CINE_SKILL = 'rvn-cinematics-skill'
 
 export const DEFAULT_MUSIC_VOLUME = 0.32 // muzika tylesnė už SFX (kaip anksčiau)
 export const DEFAULT_SFX_VOLUME = 1.0
 export const DEFAULT_SUMMON_FX = true
+export const DEFAULT_PREMIUM_CINEMATICS = true
+export const DEFAULT_SUMMON_CINEMATICS = true
+export const DEFAULT_SKILL_CINEMATICS = true
 
 export type DigitalSettings = {
   musicVolume: number      // 0..1
   sfxVolume: number        // 0..1
   summonFxEnabled: boolean
+  premiumCinematicsEnabled: boolean       // bendras kino pop-up jungiklis
+  summonCinematicsEnabled: boolean        // summon kino (Legendinis/Čempionas)
+  championSkillCinematicsEnabled: boolean // Čempiono skill kino
 }
 
 let _music: number | null = null
 let _sfx: number | null = null
 let _summon: boolean | null = null
+let _cine: boolean | null = null
+let _cineSummon: boolean | null = null
+let _cineSkill: boolean | null = null
 const listeners = new Set<(s: DigitalSettings) => void>()
 
 function clamp01(n: number): number {
@@ -49,9 +61,26 @@ export function isSummonFxEnabled(): boolean {
   if (_summon === null) _summon = readBool(K_SUMMON, DEFAULT_SUMMON_FX)
   return _summon
 }
+export function isPremiumCinematicsEnabled(): boolean {
+  if (_cine === null) _cine = readBool(K_CINE, DEFAULT_PREMIUM_CINEMATICS)
+  return _cine
+}
+export function isSummonCinematicsEnabled(): boolean {
+  if (_cineSummon === null) _cineSummon = readBool(K_CINE_SUMMON, DEFAULT_SUMMON_CINEMATICS)
+  return isPremiumCinematicsEnabled() && _cineSummon
+}
+export function isChampionSkillCinematicsEnabled(): boolean {
+  if (_cineSkill === null) _cineSkill = readBool(K_CINE_SKILL, DEFAULT_SKILL_CINEMATICS)
+  return isPremiumCinematicsEnabled() && _cineSkill
+}
 
 export function getSettings(): DigitalSettings {
-  return { musicVolume: getMusicVolume(), sfxVolume: getSfxVolume(), summonFxEnabled: isSummonFxEnabled() }
+  return {
+    musicVolume: getMusicVolume(), sfxVolume: getSfxVolume(), summonFxEnabled: isSummonFxEnabled(),
+    premiumCinematicsEnabled: isPremiumCinematicsEnabled(),
+    summonCinematicsEnabled: _cineSummon ?? DEFAULT_SUMMON_CINEMATICS,
+    championSkillCinematicsEnabled: _cineSkill ?? DEFAULT_SKILL_CINEMATICS,
+  }
 }
 
 function notify(): void {
@@ -74,6 +103,21 @@ export function setSummonFxEnabled(v: boolean): void {
   try { window.localStorage.setItem(K_SUMMON, _summon ? '1' : '0') } catch { /* */ }
   notify()
 }
+export function setPremiumCinematicsEnabled(v: boolean): void {
+  _cine = !!v
+  try { window.localStorage.setItem(K_CINE, _cine ? '1' : '0') } catch { /* */ }
+  notify()
+}
+export function setSummonCinematicsEnabled(v: boolean): void {
+  _cineSummon = !!v
+  try { window.localStorage.setItem(K_CINE_SUMMON, _cineSummon ? '1' : '0') } catch { /* */ }
+  notify()
+}
+export function setChampionSkillCinematicsEnabled(v: boolean): void {
+  _cineSkill = !!v
+  try { window.localStorage.setItem(K_CINE_SKILL, _cineSkill ? '1' : '0') } catch { /* */ }
+  notify()
+}
 
 /** Pritaiko nustatymus iš DB (be re-notify kilpos su saugojimu). silent=true praleidžia listener'ius. */
 export function hydrateSettings(s: Partial<DigitalSettings> | null | undefined): void {
@@ -81,6 +125,9 @@ export function hydrateSettings(s: Partial<DigitalSettings> | null | undefined):
   if (typeof s.musicVolume === 'number') { _music = clamp01(s.musicVolume); try { window.localStorage.setItem(K_MUSIC, String(_music)) } catch { /* */ } }
   if (typeof s.sfxVolume === 'number') { _sfx = clamp01(s.sfxVolume); try { window.localStorage.setItem(K_SFX, String(_sfx)) } catch { /* */ } }
   if (typeof s.summonFxEnabled === 'boolean') { _summon = s.summonFxEnabled; try { window.localStorage.setItem(K_SUMMON, _summon ? '1' : '0') } catch { /* */ } }
+  if (typeof s.premiumCinematicsEnabled === 'boolean') { _cine = s.premiumCinematicsEnabled; try { window.localStorage.setItem(K_CINE, _cine ? '1' : '0') } catch { /* */ } }
+  if (typeof s.summonCinematicsEnabled === 'boolean') { _cineSummon = s.summonCinematicsEnabled; try { window.localStorage.setItem(K_CINE_SUMMON, _cineSummon ? '1' : '0') } catch { /* */ } }
+  if (typeof s.championSkillCinematicsEnabled === 'boolean') { _cineSkill = s.championSkillCinematicsEnabled; try { window.localStorage.setItem(K_CINE_SKILL, _cineSkill ? '1' : '0') } catch { /* */ } }
   notify()
 }
 

@@ -39,6 +39,9 @@ import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled } from '@/lib/settings'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
+import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
+import { useCinematicQueue } from '@/lib/game/cinematicQueue'
+import { collectDeckCinematicPosters, preloadCinematicPosters, type CinematicCardInput } from '@/lib/game/cinematics'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
@@ -64,7 +67,7 @@ type DbRow = {
     champion_phase?: number | null
     gameplay?: unknown
     card_type: { name: string } | null
-    rarity: { color_hex: string | null } | null
+    rarity: { name?: string | null; color_hex: string | null } | null
     faction: { id?: number | null; name?: string | null; color_hex: string | null } | null
     card_keywords: { keyword: { name: string } | null }[] | null
   } | null
@@ -98,6 +101,7 @@ function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
     keywords: Array.from(new Set([...detectKeywords(kwNames, text), ...((gameplay?.keywords ?? []) as ReturnType<typeof detectKeywords>)])),
     effectText: text,
     rarityColor: c.rarity?.color_hex ?? '#d4af37',
+    rarityName: c.rarity?.name ?? null,
     factionColor: c.faction?.color_hex ?? '#d4af37',
     factionId: c.faction?.id ?? null,
     factionName: c.faction?.name ?? null,
@@ -687,6 +691,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
+
+  // ── PremiumCinematics: bendra kino eilė (summon + championSkill) ───────────
+  const cine = useCinematicQueue()
+  const toCineCard = useCallback((c: TutCard): CinematicCardInput => ({
+    id: c.id, name: c.name, image: c.image, rarityName: c.rarityName, type: c.type,
+    isChampion: c.type === 'champion', factionName: c.factionName, gameplay: c.gameplay ?? null,
+  }), [])
+  // PremiumCinematics: preload tik dabartinės kaladės kino posterius (video lieka lazy)
+  useEffect(() => {
+    if (!deckCards) return
+    preloadCinematicPosters(collectDeckCinematicPosters(deckCards.map(toCineCard)))
+  }, [deckCards, toCineCard])
   const shownTipsRef = useRef<Set<string>>(new Set())
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -759,7 +775,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           id, name, image_url, gold_cost, attack, health,
           effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
           card_type:card_types ( name ),
-          rarity:rarities ( color_hex ),
+          rarity:rarities ( name, color_hex ),
           faction:factions ( id, name, color_hex ),
           card_keywords ( keyword:keywords ( name ) )
         `)
@@ -787,7 +803,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           id, name, image_url, gold_cost, attack, health,
           effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
           card_type:card_types ( name ),
-          rarity:rarities ( color_hex ),
+          rarity:rarities ( name, color_hex ),
           faction:factions ( id, name, color_hex ),
           card_keywords ( keyword:keywords ( name ) )
         )
@@ -821,7 +837,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         id, name, image_url, gold_cost, attack, health,
         effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay,
         card_type:card_types ( name ),
-        rarity:rarities ( color_hex ),
+        rarity:rarities ( name, color_hex ),
         faction:factions ( id, name, color_hex ),
         card_keywords ( keyword:keywords ( name ) )
       `).eq('status', 'active').limit(300),
@@ -863,7 +879,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!loadOpp) return
     let alive = true
     const supabase = createClient()
-    const sel = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( color_hex ), faction:factions ( id, name, color_hex ), card_keywords ( keyword:keywords ( name ) )`
+    const sel = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( name, color_hex ), faction:factions ( id, name, color_hex ), card_keywords ( keyword:keywords ( name ) )`
     if (opponentDeckId) {
       supabase.from('deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('deck_id', opponentDeckId).then(({ data }) => {
         if (!alive) return
@@ -1024,6 +1040,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (!e.sound) playBattleSound('summon')
           const sc = findCard(e.cardName)
           if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
+          // Premium summon kino pop-up (Legendinis/Čempionas; ne fazės keitimas/artefaktas)
+          if (sc && (e.t === 'play' || (e.t === 'champion' && /iškvie/i.test(e.msg)))) {
+            const csrc = e.fromZone === 'graveyard' ? 'revived'
+              : /iškvie[čc]iam|pasirinkta|efektu/i.test(e.msg) ? 'summonedByEffect'
+              : 'playedFromHand'
+            cine.enqueueSummonCinematic(toCineCard(sc), { source: csrc })
+          }
           if (sc?.gameplay?.summonEffect && isSummonFxEnabled()) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
           srcRef = e.src; srcCard = sc
           window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
@@ -1040,6 +1063,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
           srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard
+          // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
+          if (e.t === 'ability' && typeof e.skillIndex === 'number') {
+            const cc = findCard(e.cardName)
+            if (cc) cine.enqueueChampionSkillCinematic(toCineCard(cc), e.skillIndex)
+          }
           if (e.t === 'spell' && e.cardName && !e.tgt) {
             const card = findCard(e.cardName)
             const at = (e.src ? rectOf(e.src) : null) ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.4 }
@@ -2789,6 +2817,12 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── pilno lauko summon efektas ── */}
       {boardFx && <SummonBurst type={boardFx.type} x={boardFx.x} y={boardFx.y} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}
+
+      {/* ── Premium kino pop-up (summon + championSkill); portalas į body, kad position:fixed netruktų board transform ── */}
+      {typeof document !== 'undefined' && createPortal(
+        <RavenofCinematicOverlay cinematic={cine.current} onFinished={cine.finish} />,
+        document.body,
+      )}
 
       {/* ── projectile / impact sluoksnis ── */}
       <div className="fixed inset-0 z-[128] pointer-events-none">
