@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/zmk',           label: '🎲 ŽMK kortos'    },
   { href: '/admin/events',        label: '📅 Renginiai'     },
   { href: '/admin/lore',          label: '📖 Atlasas'       },
+  { href: '/admin/campaigns',     label: '🗺️ Kampanijos'    },
   { href: '/admin/announcements', label: '📰 Skelbimai'     },
   { href: '/admin/users',         label: '👥 Naudotojai'    },
   { href: '/admin/achievements',  label: '🏅 Pasiekimai'    },

@@ -51,7 +51,9 @@ export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentI
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
 const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
 type RankedResultPayload = { result: 'win' | 'loss'; turns: number; stats: import('@/lib/ranked/types').PlayerMatchStats }
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta }
+// Campaign mode: lightweight battle result reported to the campaign runtime (zero-coupling).
+export type CampaignBattleResult = { result: 'win' | 'lose'; turns: number; stats: { spellsPlayed: number; creaturesKilled: number; championsKilled: number; hpRemaining: number; hpLowest: number } }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -577,7 +579,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
 
@@ -1033,7 +1035,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
         case 'draw': {
           if (!e.sound) playCardDraw()
-          if (e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
+          if (e.side === 'you' && e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
           { const sd = e.side; const dnm = e.cardName; const dseq = drawSeq++; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 1600) } }, 40 + dseq * 220) }
           if (e.side === 'you' && e.cardName && skipYouDraw) { skipYouDraw = false }
           break
@@ -1418,6 +1420,27 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     questReportedRef.current = true
     reportQuestEvent('play_match')
     if (game.winner === 'you') reportQuestEvent((vsRemote || ranked) ? 'pvp_win' : 'pve_win')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner])
+
+  // ── Campaign mode: pranešam kovos rezultatą runtime'ui (tik kartą; nieko nekeičia) ──
+  const campReportedRef = useRef(false)
+  useEffect(() => {
+    if (!onCampaignResult || !game?.winner || campReportedRef.current) return
+    campReportedRef.current = true
+    const me = game.you, opp = game.ai
+    const cnt = (arr: typeof me.discard, t: string) => arr.filter((c) => c.type === t).length
+    onCampaignResult({
+      result: game.winner === 'you' ? 'win' : 'lose',
+      turns: game.globalTurn,
+      stats: {
+        spellsPlayed: cnt(me.discard, 'spell'),
+        creaturesKilled: cnt(opp.discard, 'unit'),
+        championsKilled: cnt(opp.discard, 'champion'),
+        hpRemaining: Math.max(0, me.hp),
+        hpLowest: hpLowestRef.current,
+      },
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
 
@@ -2661,7 +2684,8 @@ doAction({ t: 'endTurn', actor: 'you' })
             </div>
             <div className="space-y-1">
               {game.log.slice(-80).map((e, i) => {
-                const card = findCard(e.cardName)
+                // Traukimo įvykiai: korta matoma TIK savininkui ('you'). Priešo (po swapPerspective – 'ai') traukimas lieka užverstas.
+                const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
                 const zImg = e.t === 'zmk' && e.zmk ? zmkImg(game, e.zmk) : null
                 const sideColor = e.side === 'you' ? 'rgba(96,165,250,0.7)' : 'rgba(167,139,250,0.7)'
                 return (

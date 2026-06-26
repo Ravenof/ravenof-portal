@@ -116,6 +116,22 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </div>
       </div>
 
+      {/* ── Kampanija (vieno žaidėjo istorija) ── */}
+      <Link href="/digital/campaign" onClick={() => playUiClick()}
+        className="block relative overflow-hidden rounded-2xl transition-transform active:scale-[0.99]"
+        style={{ border: '1px solid rgba(240,180,41,0.45)', background: 'linear-gradient(110deg, rgba(240,180,41,0.16), rgba(10,8,16,0.92) 70%)' }}>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 44, height: 44, background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.45)' }}>
+            <MapIcon className="w-6 h-6" style={{ color: 'rgb(240,180,41)' }} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>Kampanija</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Istorijos misijos pasaulio žemėlapyje</p>
+          </div>
+          <span className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Žaisti →</span>
+        </div>
+      </Link>
+
       {/* ── 2x2 greitos nuorodos ── */}
       <div className="grid grid-cols-2 gap-3">
         {quick.map((q) => {
