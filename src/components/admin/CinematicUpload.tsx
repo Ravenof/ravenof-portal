@@ -26,6 +26,8 @@ export type CinematicData = {
   titleOverride?: string
   frameTheme?: CinematicFrameTheme
   triggerSources?: CinematicTriggerSource[]
+  cropX?: number
+  cropY?: number
   uploadedAt?: string
   updatedAt?: string
 }
@@ -82,6 +84,17 @@ export function CinematicUpload({
   showTriggerSources?: boolean
 }) {
   const v: CinematicData = value ?? {}
+  const cropX = typeof v.cropX === 'number' ? v.cropX : 50
+  const cropY = typeof v.cropY === 'number' ? v.cropY : 50
+  const cropRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef(false)
+  const setCropFromEvent = (clientX: number, clientY: number) => {
+    const el = cropRef.current; if (!el) return
+    const r = el.getBoundingClientRect()
+    const x = Math.round(Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100)))
+    const y = Math.round(Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100)))
+    patch({ cropX: x, cropY: y })
+  }
   const [busy, setBusy] = useState<Slot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [warns, setWarns] = useState<string[]>([])
@@ -123,7 +136,7 @@ export function CinematicUpload({
     if (slot !== 'poster') {
       const dur = await readVideoDuration(file)
       if (dur != null && dur * 1000 > CINEMATIC_MAX_DURATION_MS) {
-        localWarns.push(`⚠ ${slot.toUpperCase()} trukmė ${dur.toFixed(1)} s > 3.5 s — per ilgas kino.`)
+        localWarns.push(`⚠ ${slot.toUpperCase()} trukmė ${dur.toFixed(1)} s > ${(CINEMATIC_MAX_DURATION_MS / 1000).toFixed(1)} s — per ilgas kino.`)
       }
     }
 
@@ -219,6 +232,50 @@ export function CinematicUpload({
           <img src={v.poster} alt="poster" className="mt-2 rounded-lg" style={{ maxWidth: 200, border: '1px solid var(--bg-border)' }} />
         )}
 
+        {/* Kadravimo / fokuso pasirinkimas — VERTIKALUS (mobile) rėmas; spausk/tempk */}
+        {(v.webm || v.mp4 || v.poster) && (
+          <div className="mt-3">
+            <label style={labelStyle}>Kadras (vertikalus mobile rėmas) — spausk/tempk fokusą</label>
+            <div className="flex items-start gap-3">
+              <div
+                ref={cropRef}
+                onPointerDown={(e) => { draggingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); setCropFromEvent(e.clientX, e.clientY) }}
+                onPointerMove={(e) => { if (draggingRef.current) setCropFromEvent(e.clientX, e.clientY) }}
+                onPointerUp={() => { draggingRef.current = false }}
+                onPointerCancel={() => { draggingRef.current = false }}
+                className="relative overflow-hidden rounded-lg select-none"
+                style={{ width: 132, aspectRatio: '9 / 16', border: '2px solid var(--gold)', background: '#000', cursor: 'crosshair', touchAction: 'none' }}
+              >
+                {v.poster ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={v.poster} alt="kadras" draggable={false}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${cropX}% ${cropY}%`, pointerEvents: 'none' }} />
+                ) : (
+                  <video muted loop autoPlay playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${cropX}% ${cropY}%`, pointerEvents: 'none' }}>
+                    {v.webm && <source src={v.webm} type="video/webm" />}
+                    {v.mp4 && <source src={v.mp4} type="video/mp4" />}
+                  </video>
+                )}
+                {/* fokuso žymeklis */}
+                <span style={{
+                  position: 'absolute', left: `${cropX}%`, top: `${cropY}%`, transform: 'translate(-50%,-50%)',
+                  width: 18, height: 18, borderRadius: '50%', border: '2px solid #fff',
+                  boxShadow: '0 0 0 2px rgba(0,0,0,0.6), 0 0 8px rgba(240,180,41,0.9)', pointerEvents: 'none',
+                }} />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Fokusas: X {cropX}% · Y {cropY}%</p>
+                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Vertikalus rėmas apkerpa horizontalaus video šonus — pasirink, kuri sritis matysis (object-position).</p>
+                <button type="button" onClick={() => patch({ cropX: 50, cropY: 50 })}
+                  className="px-2 py-1 rounded text-[11px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)' }}>
+                  Centruoti (50/50)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Metadata */}
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div>
@@ -264,7 +321,7 @@ export function CinematicUpload({
       {warns.map((w, i) => <p key={i} className="text-[10px]" style={{ color: '#f59e0b' }}>{w}</p>)}
       {validation.map((w, i) => <p key={i} className="text-[10px]" style={{ color: w.startsWith('⛔') ? '#ef4444' : w.startsWith('ℹ') ? 'var(--text-muted)' : '#f59e0b' }}>{w}</p>)}
       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-        WebM+MP4+poster · 2.0–2.8 s (max 3.5) · 1280×720 · ~1–2 MB (max 5) · be garso · be teksto/vardo įdeginto į video.
+        WebM+MP4+poster · 2.0–2.8 s (max 4) · 1280×720 · ~1–2 MB (max 5) · be garso · be teksto/vardo įdeginto į video.
       </p>
     </div>
   )

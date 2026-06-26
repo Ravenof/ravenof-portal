@@ -417,7 +417,7 @@ export const CINEMATIC_TRIGGER_SOURCES: { value: CinematicTriggerSource; label: 
 
 export const CINEMATIC_MAX_BYTES = 5 * 1024 * 1024        // siūlomas hard max (UI)
 export const CINEMATIC_WARN_BYTES = 2 * 1024 * 1024       // warn jei didesnis
-export const CINEMATIC_MAX_DURATION_MS = 3500
+export const CINEMATIC_MAX_DURATION_MS = 4000
 export const CINEMATIC_MIN_DURATION_MS_SUMMON = 1500
 export const CINEMATIC_MIN_DURATION_MS_SKILL = 1000
 export const CINEMATIC_DEFAULT_DURATION_MS_SUMMON = 2600
@@ -432,6 +432,8 @@ export type SummonCinematic = {
   titleOverride?: string
   frameTheme?: CinematicFrameTheme
   triggerSources?: CinematicTriggerSource[]
+  cropX?: number   // 0..100 fokuso taškas X (object-position) vertikaliam (mobile) rėmui
+  cropY?: number   // 0..100 fokuso taškas Y
   uploadedAt?: string
   updatedAt?: string
 }
@@ -444,6 +446,8 @@ export type SkillCinematic = {
   durationMs?: number
   titleOverride?: string
   frameTheme?: CinematicFrameTheme
+  cropX?: number   // 0..100 fokuso taškas X (object-position) vertikaliam (mobile) rėmui
+  cropY?: number   // 0..100 fokuso taškas Y
   uploadedAt?: string
   updatedAt?: string
 }

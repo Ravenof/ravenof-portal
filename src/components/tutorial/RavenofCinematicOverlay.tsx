@@ -100,8 +100,10 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
         transition={{ type: 'spring', stiffness: 230, damping: 22 }}
         className="relative"
         style={{
-          width: 'min(86vw, 760px)',
-          aspectRatio: '16 / 9',
+          // Mobile vertical (portrait) — 9/16; aukščio valdomas, kad tilptų ekrane
+          height: 'min(78vh, 660px)',
+          aspectRatio: '9 / 16',
+          maxWidth: '92vw',
         }}
       >
         {/* Švytėjimo halo (themed) */}
@@ -131,7 +133,7 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
                 poster={posterSrc}
                 onEnded={finish}
                 onError={() => setVideoFailed(true)}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${cinematic.cropX}% ${cinematic.cropY}%`, display: 'block' }}
               >
                 {cinematic.webm && <source src={cinematic.webm} type="video/webm" />}
                 {cinematic.mp4 && <source src={cinematic.mp4} type="video/mp4" />}
@@ -144,7 +146,7 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
                 transition={{ duration: reduced ? 0 : Math.min(2.2, cinematic.durationMs / 1000) }}
                 style={{
                   width: '100%', height: '100%',
-                  backgroundImage: `url(${posterSrc})`, backgroundSize: 'cover', backgroundPosition: 'center',
+                  backgroundImage: `url(${posterSrc})`, backgroundSize: 'cover', backgroundPosition: `${cinematic.cropX}% ${cinematic.cropY}%`,
                 }}
               />
             ) : (
@@ -178,10 +180,10 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
           </div>
         </div>
 
-        {/* Pavadinimo overlay (NE įdegintas į video) */}
+        {/* Pavadinimo overlay (NE įdegintas į video; rodomas rėmo apačioje) */}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: -2, transform: 'translateY(100%)',
-          textAlign: 'center', paddingTop: 10, pointerEvents: 'none',
+          position: 'absolute', left: 10, right: 10, bottom: 14,
+          textAlign: 'center', pointerEvents: 'none',
         }}>
           {isSkill && (
             <p style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: pal.border, opacity: 0.85, margin: 0 }}>

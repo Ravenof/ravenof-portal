@@ -30,6 +30,8 @@ export type ActiveCinematic = {
   durationMs: number
   title: string
   frameTheme: CinematicFrameTheme
+  cropX: number         // 0..100 object-position X (vertikalus mobile rėmas crop'ina šonus)
+  cropY: number         // 0..100 object-position Y
   staticOnly: boolean   // nėra video → rodom tik poster/kortos artą (zoom/glow)
   dedupeKey: string
 }
@@ -127,6 +129,8 @@ export function buildSummonCinematic(card: CinematicCardInput, ctx: SummonTrigge
     durationMs: clampDuration(sc.durationMs, CINEMATIC_MIN_DURATION_MS_SUMMON, CINEMATIC_DEFAULT_DURATION_MS_SUMMON),
     title: (sc.titleOverride ?? '').trim() || card.name,
     frameTheme: theme,
+    cropX: typeof sc.cropX === 'number' ? sc.cropX : 50,
+    cropY: typeof sc.cropY === 'number' ? sc.cropY : 50,
     staticOnly: !video,
     dedupeKey: `summon:${card.id}`,
   }
@@ -165,6 +169,8 @@ export function buildSkillCinematic(
     durationMs: clampDuration(cine.durationMs, CINEMATIC_MIN_DURATION_MS_SKILL, CINEMATIC_DEFAULT_DURATION_MS_SKILL),
     title: skillName,
     frameTheme: theme,
+    cropX: typeof cine.cropX === 'number' ? cine.cropX : 50,
+    cropY: typeof cine.cropY === 'number' ? cine.cropY : 50,
     staticOnly: !video,
     dedupeKey: `skill:${card.id}:${skillId}`,
   }
