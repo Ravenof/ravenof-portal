@@ -198,3 +198,31 @@ export function collectDeckCinematicPosters(cards: CinematicCardInput[]): string
   }
   return out
 }
+
+// Preload deck'o summon video (Legendiniai/Čempionai) — kad pirmas iškvietimas grotų iškart.
+// Cap'inta (mobile data). Skill video paliekam lazy (poster fallback dengia, jei lėtas tinklas).
+const _preloadedV = new Set<string>()
+const MAX_PRELOAD_VIDEOS = 6
+export function preloadCinematicVideos(urls: Array<string | undefined | null>): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
+  let n = 0
+  for (const u of urls) {
+    if (!u || _preloadedV.has(u)) continue
+    if (n >= MAX_PRELOAD_VIDEOS) break
+    _preloadedV.add(u); n++
+    try {
+      const v = document.createElement('video')
+      v.preload = 'auto'; v.muted = true; v.src = u
+      try { v.load() } catch { /* */ }
+    } catch { /* */ }
+  }
+}
+
+export function collectDeckCinematicVideos(cards: CinematicCardInput[]): string[] {
+  const out: string[] = []
+  for (const c of cards) {
+    const sc = c.gameplay?.summonCinematic
+    if (sc?.enabled) { const u = sc.webm || sc.mp4; if (u) out.push(u) }
+  }
+  return out
+}

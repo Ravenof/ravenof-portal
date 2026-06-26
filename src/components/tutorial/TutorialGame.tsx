@@ -41,7 +41,7 @@ import { isSummonFxEnabled } from '@/lib/settings'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
 import { useCinematicQueue } from '@/lib/game/cinematicQueue'
-import { collectDeckCinematicPosters, preloadCinematicPosters, type CinematicCardInput } from '@/lib/game/cinematics'
+import { collectDeckCinematicPosters, preloadCinematicPosters, collectDeckCinematicVideos, preloadCinematicVideos, type CinematicCardInput } from '@/lib/game/cinematics'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
@@ -701,7 +701,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // PremiumCinematics: preload tik dabartinės kaladės kino posterius (video lieka lazy)
   useEffect(() => {
     if (!deckCards) return
-    preloadCinematicPosters(collectDeckCinematicPosters(deckCards.map(toCineCard)))
+    const cc = deckCards.map(toCineCard)
+    preloadCinematicPosters(collectDeckCinematicPosters(cc))
+    preloadCinematicVideos(collectDeckCinematicVideos(cc))
   }, [deckCards, toCineCard])
   const shownTipsRef = useRef<Set<string>>(new Set())
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)

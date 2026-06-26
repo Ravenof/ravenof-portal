@@ -12,8 +12,10 @@ import type { ActiveCinematic } from '@/lib/game/cinematics'
 import { CINEMATIC_THEME_PALETTE, prefersReducedMotion } from '@/lib/game/cinematics'
 
 const SKIP_DELAY_MS = 500
-const END_BUFFER_MS = 350           // saugiklis virš durationMs jei onEnded nesuveikia
+const END_BUFFER_MS = 350           // saugiklis virš durationMs (tik static/poster keliui)
 const REDUCED_DURATION_MS = 800
+const START_TIMEOUT_MS = 2600       // jei video per tiek nepradeda groti → krentam į poster fallback
+const SAFETY_MAX_MS = 9000          // absoliutus saugiklis (jei onEnded niekada nesuveiks)
 
 export function RavenofCinematicOverlay({ cinematic, onFinished }: {
   cinematic: ActiveCinematic | null
@@ -31,13 +33,17 @@ export function RavenofCinematicOverlay({ cinematic, onFinished }: {
 function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic; onFinished: () => void }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const doneRef = useRef(false)
+  const startedRef = useRef(false)
   const [skippable, setSkippable] = useState(false)
   const [videoFailed, setVideoFailed] = useState(false)
 
   const reduced = prefersReducedMotion()
   const pal = CINEMATIC_THEME_PALETTE[cinematic.frameTheme] ?? CINEMATIC_THEME_PALETTE.default
   const hasVideoSrc = !cinematic.staticOnly && !!(cinematic.webm || cinematic.mp4) && !reduced && !videoFailed
+  // Static (poster) keliui — leidžiam kristi į kortos artą. Video keliui — TIK aiškiai įkeltas
+  // poster (kitaip „kortos pic → video" blyksnis); be poster video rodo savo 1-ą kadrą iškart.
   const posterSrc = cinematic.poster ?? cinematic.cardImage ?? undefined
+  const videoPoster = cinematic.poster ?? undefined
 
   // Vienkartinis užbaigimas (apsauga nuo dvigubo onFinished)
   const finish = () => {
@@ -48,29 +54,39 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
     onFinished()
   }
 
+  // Bandom paleisti grojimą (kviečiama iš canplay/loadeddata; idempotent)
+  const tryPlay = () => {
+    const v = videoRef.current
+    if (!v || startedRef.current || doneRef.current) return
+    v.muted = true
+    const p = v.play()
+    if (p && typeof p.catch === 'function') p.catch(() => { /* autoplay gali būti blokuotas — watchdog kris į poster */ })
+  }
+
   // Skip leidžiamas po SKIP_DELAY_MS
   useEffect(() => {
     const t = window.setTimeout(() => setSkippable(true), SKIP_DELAY_MS)
     return () => window.clearTimeout(t)
   }, [])
 
-  // Hard timeout — visada uždaro (net jei video onEnded nesuveikia / static / reduced)
+  // Užbaigimo logika: VIDEO kelias leidžia pragroti iki galo (onEnded), timeout'ai tik saugikliai.
+  // STATIC/reduced kelias uždaromas po fiksuoto laiko.
   useEffect(() => {
-    const dur = reduced ? REDUCED_DURATION_MS : cinematic.durationMs + END_BUFFER_MS
-    const t = window.setTimeout(finish, dur)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cinematic.dedupeKey])
-
-  // Autoplay (jei video) — muted leidžia inline autoplay mobiliuose
-  useEffect(() => {
-    if (!hasVideoSrc) return
+    if (!hasVideoSrc) {
+      const ms = reduced ? REDUCED_DURATION_MS : Math.max(cinematic.durationMs, 1200) + END_BUFFER_MS
+      const t = window.setTimeout(finish, ms)
+      return () => window.clearTimeout(t)
+    }
     const v = videoRef.current
-    if (!v) return
-    v.muted = true
-    const p = v.play()
-    if (p && typeof p.catch === 'function') p.catch(() => { /* autoplay blokuotas — timeout vis tiek uždarys */ })
-    return () => { try { v.pause() } catch { /* */ } }
+    if (v) { try { v.muted = true; v.load() } catch { /* */ } }
+    tryPlay()
+    // 1) start watchdog — jei nepradeda groti laiku, fallback į poster
+    const startT = window.setTimeout(() => {
+      if (!startedRef.current && !doneRef.current) setVideoFailed(true)
+    }, START_TIMEOUT_MS)
+    // 2) absoliutus saugiklis — jei onEnded niekada nesuveiks
+    const safetyT = window.setTimeout(finish, SAFETY_MAX_MS)
+    return () => { window.clearTimeout(startT); window.clearTimeout(safetyT); try { v?.pause() } catch { /* */ } }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cinematic.dedupeKey, hasVideoSrc])
 
@@ -94,10 +110,10 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
       role="dialog"
     >
       <motion.div
-        initial={{ scale: 0.82, rotate: -3, opacity: 0 }}
+        initial={{ scale: 0.94, rotate: -2.2, opacity: 0 }}
         animate={{ scale: 1, rotate: -2.2, opacity: 1 }}
-        exit={{ scale: 0.9, rotate: -2.2, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 230, damping: 22 }}
+        exit={{ scale: 0.97, rotate: -2.2, opacity: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         className="relative"
         style={{
           // Mobile vertical (portrait) — 9/16; ~60% ekrano, centre (ne full screen)
@@ -129,8 +145,12 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
                 ref={videoRef}
                 muted
                 playsInline
-                preload="metadata"
-                poster={posterSrc}
+                autoPlay
+                preload="auto"
+                poster={videoPoster}
+                onLoadedData={tryPlay}
+                onCanPlay={tryPlay}
+                onPlaying={() => { startedRef.current = true }}
                 onEnded={finish}
                 onError={() => setVideoFailed(true)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${cinematic.cropX}% ${cinematic.cropY}%`, display: 'block' }}
