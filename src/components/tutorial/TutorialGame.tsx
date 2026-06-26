@@ -1342,7 +1342,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (vsRemote) return  // PvP – jokio AI
     if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks) return
     // Ranked: botas „mąsto" iki ~2 s per kortą/veiksmą (žmogiškas tempas, bet ne lėtas).
-    const delay = ranked ? (500 + Math.floor(Math.random() * 1500)) : 1000
+    // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
+    const delay = cine.current ? 5000 : (ranked ? (500 + Math.floor(Math.random() * 1500)) : 1000)
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -1364,7 +1365,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty, ranked, aiStrategy])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner

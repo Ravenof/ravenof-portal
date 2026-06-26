@@ -87,8 +87,8 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
       style={{
         zIndex: 160,
         cursor: skippable ? 'pointer' : 'default',
-        // tamsus backdrop + vinjetė (be sunkaus blur dėl mobile našumo)
-        background: 'radial-gradient(120% 100% at 50% 45%, rgba(6,4,12,0.72), rgba(2,1,6,0.94) 70%)',
+        // NE full screen — patamsinamas tik centras (~60%), pakraščiuose matosi mūšio laukas
+        background: 'radial-gradient(42% 56% at 50% 50%, rgba(2,1,6,0.82), rgba(2,1,6,0.10) 100%)',
       }}
       aria-live="polite"
       role="dialog"
@@ -100,10 +100,10 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
         transition={{ type: 'spring', stiffness: 230, damping: 22 }}
         className="relative"
         style={{
-          // Mobile vertical (portrait) — 9/16; aukščio valdomas, kad tilptų ekrane
-          height: 'min(78vh, 660px)',
+          // Mobile vertical (portrait) — 9/16; ~60% ekrano, centre (ne full screen)
+          height: 'min(60vh, 520px)',
           aspectRatio: '9 / 16',
-          maxWidth: '92vw',
+          maxWidth: '88vw',
         }}
       >
         {/* Švytėjimo halo (themed) */}
