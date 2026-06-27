@@ -46,6 +46,9 @@ export function mapNodeRow(r: any): CampaignNode {
     scenario: (r.scenario ?? {}) as ScenarioConfig, rewardPayload: (r.reward_payload ?? {}) as RewardPayload,
     replay: r.replay ?? { allowed: true }, difficulty: r.difficulty ?? {}, adminNotes: r.admin_notes,
     status: r.status ?? 'active', sortOrder: r.sort_order ?? 0,
+    sourceChapter: r.source_chapter ?? null, sourceEventIds: r.source_event_ids ?? [],
+    canonSummary: r.canon_summary ?? null, canonCharacters: r.canon_characters ?? [],
+    canonLocations: r.canon_locations ?? [], seedKey: r.seed_key ?? null,
   }
 }
 

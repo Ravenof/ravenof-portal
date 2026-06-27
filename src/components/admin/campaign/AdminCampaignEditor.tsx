@@ -30,6 +30,9 @@ function nodeRow(n: CampaignNode): any {
     pre_cutscene_id: n.preCutsceneId, post_cutscene_id: n.postCutsceneId, failure_cutscene_id: n.failureCutsceneId,
     battle_config: n.battleConfig, scenario: n.scenario, reward_payload: n.rewardPayload, replay: n.replay,
     difficulty: n.difficulty, admin_notes: n.adminNotes, status: n.status, sort_order: n.sortOrder,
+    source_chapter: n.sourceChapter ?? null, source_event_ids: n.sourceEventIds ?? [],
+    canon_summary: n.canonSummary ?? null, canon_characters: n.canonCharacters ?? [],
+    canon_locations: n.canonLocations ?? [], seed_key: n.seedKey ?? null,
   }
 }
 function cutsceneRow(c: Cutscene): any {

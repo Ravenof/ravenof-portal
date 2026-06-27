@@ -339,6 +339,13 @@ export interface CampaignNode {
   adminNotes?: string | null
   status: Visibility
   sortOrder: number
+  // ── Canon / source (admin-only) — ties mission to the Varngradas novel/Atlas ──
+  sourceChapter?: string | null      // e.g. 'VIII', 'Prologas'
+  sourceEventIds?: string[]          // Atlas event ids, e.g. ['E08-01','E08-02']
+  canonSummary?: string | null
+  canonCharacters?: string[]
+  canonLocations?: string[]
+  seedKey?: string | null            // stable key for Seed/Rebuild safe-merge
 }
 
 // ──────────────────────────────── Progress ─────────────────────────────────

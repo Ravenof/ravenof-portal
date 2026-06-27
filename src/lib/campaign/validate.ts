@@ -65,6 +65,37 @@ export function validateCampaign(
     if (isBattle && !(n.objectives ?? []).some((o) => o.primary)) {
       push('warning', s, `„${n.title}" neturi pagrindinio tikslo (primary objective).`)
     }
+    // ── Canon completeness (Varngradas novel) ──
+    if (n.status === 'active') {
+      if (!n.sourceChapter?.trim()) push('warning', s, `Kanonas: „${n.title}" be skyriaus (sourceChapter).`)
+      const major = isBattle || (n.objectives?.length ?? 0) > 0 || n.missionType === 'STORY_ONLY'
+      if (major && !n.preCutsceneId && !n.postCutsceneId) {
+        push('warning', s, `Kanonas: svarbus mazgas „${n.title}" neturi nei pre, nei post cutscene.`)
+      }
+    }
+  }
+
+  // ── Campaign-wide canon rules (Varngradas) ──
+  const lower = (x?: string | null) => (x ?? '').toLowerCase()
+  const finalNode = nodes.find((n) => (n.title || '').toLowerCase().includes('nekrenta') || /(final|16)/i.test(n.seedKey ?? ''))
+  if (finalNode) {
+    const txt = lower(finalNode.description) + ' ' + lower(finalNode.loreText) + ' ' + lower(finalNode.canonSummary)
+    if (/(belzator).*(žū|miršt|sunaikin|nužud)|(žū|miršt|sunaikin|nužud).*(belzator)/.test(txt)) {
+      push('error', finalNode.id, 'Kanonas: finale Belzatoras turi ATSITRAUKTI (sužeistas), ne žūti/būti sunaikintas.')
+    }
+  }
+  // Varngradas spelling consistency (no Varnagrad / Varngrad mix)
+  for (const n of nodes) {
+    const blob = [n.title, n.subtitle, n.description, n.loreText, n.canonSummary].map((x) => x ?? '').join(' ')
+    if (/Varnagrad/.test(blob)) push('warning', n.id, `Pavadinimo darna: „${n.title}" naudoja „Varnagrad" – kanonas yra „Varngradas".`)
+    if (/\bVarngrad\b/.test(blob)) push('warning', n.id, `Pavadinimo darna: „${n.title}" naudoja „Varngrad" – kanonas yra „Varngradas".`)
+  }
+  // Prazaras must not be written as undead villain in this prequel
+  for (const c of cutscenes) {
+    const t = (c.steps ?? []).map((st) => st.text ?? '').join(' ').toLowerCase()
+    if (/prazar/.test(t) && /(nemiręs|nemirėlis|piktadar|blogio valdov|undead)/.test(t)) {
+      push('warning', c.id, 'Kanonas: šioje novelėje Prazaras nėra nemirėlis/piktadarys (tik būsimas kabliukas).')
+    }
   }
 
   // cutscene steps need text

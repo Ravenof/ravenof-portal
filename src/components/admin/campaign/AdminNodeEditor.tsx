@@ -27,7 +27,7 @@ export function AdminNodeEditor({ node, chapters, cutscenes, factions, isStart, 
   onSetStart: () => void
   onDelete: () => void
 }) {
-  const [tab, setTab] = useState<'basic' | 'battle' | 'objectives' | 'rewards' | 'json'>('basic')
+  const [tab, setTab] = useState<'basic' | 'battle' | 'objectives' | 'rewards' | 'canon' | 'json'>('basic')
   const bc = node.battleConfig ?? ({} as BattleConfig)
   const rw = node.rewardPayload ?? ({} as RewardPayload)
   const patchBc = (p: Partial<BattleConfig>) => onChange({ battleConfig: { ...bc, ...p } })
@@ -59,7 +59,7 @@ export function AdminNodeEditor({ node, chapters, cutscenes, factions, isStart, 
       </div>
 
       <div className="flex gap-1.5 flex-wrap">
-        <Tab id="basic" label="Pagrindai" /><Tab id="battle" label="Kova" /><Tab id="objectives" label="Tikslai" /><Tab id="rewards" label="Atlygis" /><Tab id="json" label="Advanced JSON" />
+        <Tab id="basic" label="Pagrindai" /><Tab id="battle" label="Kova" /><Tab id="objectives" label="Tikslai" /><Tab id="rewards" label="Atlygis" /><Tab id="canon" label="📖 Kanonas" /><Tab id="json" label="Advanced JSON" />
       </div>
 
       {tab === 'basic' && (
@@ -126,6 +126,20 @@ export function AdminNodeEditor({ node, chapters, cutscenes, factions, isStart, 
           <Field label="Min. kortos retumas"><select value={rw.cardMin ?? ''} onChange={(e) => patchRw({ cardMin: (e.target.value || undefined) as RewardPayload['cardMin'] })} className="w-full px-2 py-1.5 rounded text-sm" style={inp}><option value="">—</option><option value="magic">magic</option><option value="unique">unique</option><option value="epic">epic</option><option value="legendary">legendary</option></select></Field>
           <Field label="Kortų ID (kableliais)"><input value={(rw.cards ?? []).join(',')} onChange={(e) => patchRw({ cards: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
           <Field label="Kodekso atrakinimai (kableliais)"><input value={(rw.codexUnlocks ?? []).join(',')} onChange={(e) => patchRw({ codexUnlocks: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
+        </div>
+      )}
+
+      {tab === 'canon' && (
+        <div className="space-y-2">
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Tik administratoriui. Susieja misiją su Varngrado novele / Atlaso laiko juosta.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Skyrius (source chapter)"><input value={node.sourceChapter ?? ''} onChange={(e) => onChange({ sourceChapter: e.target.value || null })} placeholder="pvz. VIII" className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
+            <Field label="Atlaso įvykių ID (kableliais)"><input value={(node.sourceEventIds ?? []).join(', ')} onChange={(e) => onChange({ sourceEventIds: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })} placeholder="E08-01, E08-02" className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
+          </div>
+          <Field label="Kanono santrauka"><textarea value={node.canonSummary ?? ''} onChange={(e) => onChange({ canonSummary: e.target.value || null })} rows={3} className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
+          <Field label="Kanono veikėjai (kableliais)"><input value={(node.canonCharacters ?? []).join(', ')} onChange={(e) => onChange({ canonCharacters: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })} placeholder="Prazaras, Saldas, Madelius" className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
+          <Field label="Kanono lokacijos (kableliais)"><input value={(node.canonLocations ?? []).join(', ')} onChange={(e) => onChange({ canonLocations: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })} placeholder="Šiauriniai vartai, Vartų kiemas" className="w-full px-2 py-1.5 rounded text-sm" style={inp} /></Field>
+          {node.seedKey && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>seedKey: <span className="font-mono">{node.seedKey}</span> (valdoma Seed/Rebuild įrankio)</p>}
         </div>
       )}
 
