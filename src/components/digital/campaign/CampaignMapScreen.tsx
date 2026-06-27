@@ -1,8 +1,8 @@
 'use client'
 
 // ════════════════════════════════════════════════════════════════════════════
-// CampaignMapScreen — player-facing campaign screen: loads campaign + progress,
-// renders the Atlas map with nodes, the mission intro sheet, and drives the
+// CampaignMapScreen — full-screen player campaign screen: loads campaign +
+// progress, renders the Atlas map full-bleed, the mission intro sheet and drives
 // CampaignRuntime when a mission starts.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -41,7 +41,7 @@ export function CampaignMapScreen({ slug }: { slug: string }) {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase.from('decks').select('id, name').eq('user_id', user.id).order('updated_at', { ascending: false })
+      supabase.from('decks').select('id, name').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false })
         .then(({ data }) => {
           const ds = (data as { id: string; name: string }[] | null) ?? []
           setDecks(ds); if (ds.length) setPlayerDeck(ds[0])
@@ -64,8 +64,8 @@ export function CampaignMapScreen({ slug }: { slug: string }) {
   )
 
   const { campaign, cutscenes } = data
+  const done = nodeViews.filter((n) => n.state === 'completed').length
 
-  // resolve which deck to use for a node: story deck > chosen collection deck
   const resolveDeck = (n: NodeView): { id: string; name: string } | null => {
     const bc = n.battleConfig ?? {}
     if (bc.playerDeckMode === 'story' && bc.storyDeckId) return { id: bc.storyDeckId, name: 'Istorinė kaladė' }
@@ -74,37 +74,41 @@ export function CampaignMapScreen({ slug }: { slug: string }) {
 
   const startNode = (n: NodeView) => {
     setSelected(null)
-    if (n.missionType !== 'STORY_ONLY' && !resolveDeck(n)) return // guarded by intro panel UI
+    if (n.missionType !== 'STORY_ONLY' && !resolveDeck(n)) return
     setActiveNode(n)
   }
 
-  const onMissionComplete = async () => {
-    setActiveNode(null)
-    await reload()
-  }
+  const onMissionComplete = async () => { setActiveNode(null); await reload() }
 
   return (
-    <div className="max-w-md mx-auto space-y-3">
-      <div className="flex items-center justify-between">
-        <Link href="/digital/campaign" onClick={() => playUiClick()} className="text-xs" style={{ color: 'var(--text-muted)' }}>← Kampanijos</Link>
-        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          {nodeViews.filter((n) => n.state === 'completed').length} / {nodeViews.length} įveikta
-        </span>
-      </div>
+    <>
+      {/* Full-bleed map between header and bottom nav */}
+      <div className="fixed left-0 right-0 z-10"
+        style={{ top: 'calc(env(safe-area-inset-top,0px) + 49px)', bottom: 'calc(env(safe-area-inset-bottom,0px) + 58px)' }}>
+        <CampaignMap campaign={campaign} nodes={nodeViews} onSelect={(n) => { playUiClick(); setSelected(n) }} />
 
-      <div className="text-center">
-        <h1 className="text-xl font-extrabold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{campaign.title}</h1>
-        {campaign.subtitle && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{campaign.subtitle}</p>}
-      </div>
-
-      <CampaignMap campaign={campaign} nodes={nodeViews} onSelect={(n) => { playUiClick(); setSelected(n) }} />
-
-      {!playerDeck && decks.length === 0 && (
-        <div className="rounded-xl px-4 py-3 text-center" style={{ background: `rgba(${GOLD},0.08)`, border: `1px solid rgba(${GOLD},0.3)` }}>
-          <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Kovinėms misijoms reikia kaladės.</p>
-          <Link href="/digital/decks?tab=builder" className="text-xs font-bold" style={{ color: 'var(--gold)' }}>Sukurti kaladę →</Link>
+        {/* Top overlay: back + title + progress */}
+        <div className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
+          <div className="flex items-center justify-between gap-2 px-3 py-2"
+            style={{ background: 'linear-gradient(180deg, rgba(6,4,11,0.92), rgba(6,4,11,0))' }}>
+            <Link href="/digital/campaign" onClick={() => playUiClick()} className="pointer-events-auto text-xs px-2 py-1 rounded-lg"
+              style={{ background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>← Kampanijos</Link>
+            <div className="text-center min-w-0 flex-1">
+              <p className="text-sm font-extrabold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{campaign.title}</p>
+            </div>
+            <span className="text-[11px] px-2 py-1 rounded-lg whitespace-nowrap" style={{ background: 'rgba(10,8,16,0.8)', color: 'var(--text-muted)' }}>{done}/{nodeViews.length}</span>
+          </div>
         </div>
-      )}
+
+        {/* Deck warning toast */}
+        {!playerDeck && decks.length === 0 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 rounded-xl px-4 py-2 text-center pointer-events-auto"
+            style={{ background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Kovinėms misijoms reikia kaladės. </span>
+            <Link href="/digital/decks?tab=builder" className="text-xs font-bold" style={{ color: 'var(--gold)' }}>Sukurti →</Link>
+          </div>
+        )}
+      </div>
 
       {selected && (
         <MissionIntroPanel node={selected}
@@ -121,6 +125,6 @@ export function CampaignMapScreen({ slug }: { slug: string }) {
           onComplete={onMissionComplete}
           onExit={() => setActiveNode(null)} />
       )}
-    </div>
+    </>
   )
 }

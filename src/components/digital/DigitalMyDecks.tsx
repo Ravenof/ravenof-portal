@@ -26,7 +26,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const load = useCallback(async () => {
     const supabase = createClient()
     const [{ data: deckRows }, { data: colRows }] = await Promise.all([
-      supabase.from('decks').select('id, name, faction_id, visibility, card_count, avg_gold_cost, faction:factions ( name, color_hex )').eq('user_id', userId).order('updated_at', { ascending: false }),
+      supabase.from('decks').select('id, name, faction_id, visibility, card_count, avg_gold_cost, faction:factions ( name, color_hex )').eq('user_id', userId).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
       supabase.from('user_collections').select('card_id, quantity').eq('user_id', userId),
     ])
     type DR = { id: string; name: string; faction_id: number | null; visibility: string; card_count: number; avg_gold_cost: number; faction: { name: string; color_hex: string } | null }

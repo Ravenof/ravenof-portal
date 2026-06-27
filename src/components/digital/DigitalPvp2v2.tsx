@@ -35,7 +35,7 @@ export function DigitalPvp2v2() {
       if (!user) { setDecks([]); return }
       setUid(user.id)
       setName((user.user_metadata?.display_name as string) || (user.user_metadata?.username as string) || (user.email?.split('@')[0]) || 'Tu')
-      supabase.from('decks').select('id, name, faction:factions ( name )').eq('user_id', user.id).order('updated_at', { ascending: false })
+      supabase.from('decks').select('id, name, faction:factions ( name )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false })
         .then(({ data }) => {
           const rows = (data as unknown as { id: string; name: string; faction: { name: string } | null }[]) ?? []
           const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null }))

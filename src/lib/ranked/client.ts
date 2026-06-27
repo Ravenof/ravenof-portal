@@ -159,6 +159,7 @@ export async function getRankedDecks(): Promise<{ id: string; name: string; fact
     .from('decks')
     .select('id, name, faction:factions ( name, icon_url, color_hex )')
     .eq('user_id', user.id)
+    .not('name', 'ilike', '[Kampanija]%')
     .order('updated_at', { ascending: false })
   const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
   return rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null }))
