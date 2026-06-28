@@ -696,7 +696,7 @@ function auraIsActive(cfg: NonNullable<TutCard['gameplay']>['passiveAura']): boo
     || !!cfg.auraSilence || !!cfg.auraCantAttack || (cfg.auraKeywords?.length ?? 0) > 0
 }
 let recomputingAuras = false
-function recomputeAuras(g: GameState) {
+export function recomputeAuras(g: GameState) {
   if (recomputingAuras) return
   recomputingAuras = true
   try {

@@ -4,10 +4,8 @@
 // Hero „ŽAISTI" su 3 režimais, 2x2 greitos nuorodos, žemiau mažesnės kortelės.
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { LayoutGrid, Layers, ShoppingBag, ClipboardList, Target, Trophy, Swords, GraduationCap } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
-import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
@@ -15,14 +13,12 @@ import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
 import { loginCheckin } from '@/lib/gamification/quests'
 
-const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
 /** Aštrūs „išraižyti" kampai (oktagonas). */
 const oct = (b: number) =>
   `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
-  const [tutorialOpen, setTutorialOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [storeOpen, setStoreOpen] = useState(false)
@@ -149,23 +145,20 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>›</span>
         </button>
 
-        {/* Pamoka */}
-        <button onClick={() => { playUiClick(); setTutorialOpen(true) }}
+        {/* Pamoka (mokymų sistema) */}
+        <Link href="/digital/tutorial" onClick={() => playUiClick()}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-transform active:scale-[0.99]"
           style={{ background: 'linear-gradient(120deg, rgba(139,92,246,0.1), rgba(10,8,16,0.8))', border: '1px solid rgba(139,92,246,0.32)' }}>
           <GraduationCap className="w-5 h-5" style={{ color: '#c4b5fd' }} />
           <span className="flex-1">
-            <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Pamoka</span>
-            <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Išmok pagrindus žingsnis po žingsnio</span>
+            <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Mokymai</span>
+            <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>5 pamokos: nuo pagrindų iki gelmių</span>
           </span>
           <span className="text-[11px] font-bold" style={{ color: '#c4b5fd' }}>›</span>
-        </button>
+        </Link>
       </div>
 
       {/* ── Modalai / paleidimai ── */}
-      {tutorialOpen && (
-        <TutorialGame deckId={DEMO_DECK_TUTORIAL} deckName="Demo kaladė" onClose={() => { setTutorialOpen(false); refreshWallet() }} />
-      )}
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
       {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}

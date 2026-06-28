@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/announcements', label: '📰 Skelbimai'     },
   { href: '/admin/users',         label: '👥 Naudotojai'    },
   { href: '/admin/achievements',  label: '🏅 Pasiekimai'    },
+  { href: '/admin/tutorial',      label: '🎓 Mokymai'       },
 ]
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {

@@ -53,7 +53,16 @@ const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
 type RankedResultPayload = { result: 'win' | 'loss'; turns: number; stats: import('@/lib/ranked/types').PlayerMatchStats }
 // Campaign mode: lightweight battle result reported to the campaign runtime (zero-coupling).
 export type CampaignBattleResult = { result: 'win' | 'lose'; turns: number; stats: { spellsPlayed: number; creaturesKilled: number; championsKilled: number; hpRemaining: number; hpLowest: number } }
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void }
+// ── Tutorial v2 director hooks (žr. src/components/tutorial2) ──
+export type TutorialHooks = {
+  active: boolean
+  applySetup?: (g: GameState) => void                     // perrašo ką tik sukurtą žaidimą (rankos/kaladės/lenta)
+  gate?: (a: NetAction, g: GameState) => { ok: boolean; hint?: string }  // gate'ina žaidėjo veiksmus
+  enemyTurn?: (g: GameState) => void                      // vykdo scripted priešo veiksmus (po 1 per tiką)
+  onEvents?: (fresh: GameEvent[], g: GameState) => void   // praneša director'iui apie naujus įvykius
+}
+
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; tutorial?: TutorialHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -579,7 +588,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, tutorial }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
 
@@ -598,7 +607,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [zmkDefs, setZmkDefs] = useState<ZmkCardDef[] | null>(null)
   const [curseCards, setCurseCards] = useState<TutCard[]>([])
   const [extrasLoaded, setExtrasLoaded] = useState(false)
-  const [stepIdx, setStepIdx] = useState((practice || !!net) ? GUIDED_STEPS.length : 0)
+  const [stepIdx, setStepIdx] = useState((practice || !!net || tutorial?.active) ? GUIDED_STEPS.length : 0)
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -873,10 +882,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       { zmkDefs, curseCards },
     )
     beginTurn(g)
+    if (tutorial?.active && tutorial.applySetup) { try { tutorial.applySetup(g) } catch (e) { console.error('[tutorial] applySetup', e) } }
     seenRef.current = g.log.length
     setGame(g)
     playShuffle()
-  }, [zmkDefs, curseCards])
+  }, [zmkDefs, curseCards, tutorial])
 
   // Praktika / PvP host: priešo (svečio) kaladė
   useEffect(() => {
@@ -997,6 +1007,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!game) return
     const fresh = game.log.slice(seenRef.current)
     seenRef.current = game.log.length
+    if (tutorial?.active && tutorial.onEvents && fresh.length) { try { tutorial.onEvents(fresh, game) } catch (e) { console.error('[tutorial] onEvents', e) } }
     let zmkN = 0
     let drawSeq = 0
     let skipYouDraw = false
@@ -1378,6 +1389,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (!prev || prev.winner || prev.active !== 'ai') return prev
         try {
           const g = cloneState(prev)
+          if (tutorial?.active && tutorial.enemyTurn) { tutorial.enemyTurn(g); return g }
           const act = aiNextAction(g, { difficulty, weights: aiStrategy })
           if (!act) {
             endTurn(g)
@@ -1605,11 +1617,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     setGame((prev) => {
       if (!prev) return prev
       const g = cloneState(prev)
+      if (tutorial?.active && tutorial.gate) {
+        const v = tutorial.gate(a, g)
+        if (!v.ok) { if (v.hint) pushToast(v.hint); return prev }
+      }
       const r = applyNetAction(g, a)
       if (r && !r.ok) { pushToast(r.reason ?? 'Veiksmas negalimas'); return prev }
       return g
     })
-  }, [isGuest, pushToast])
+  }, [isGuest, pushToast, tutorial])
 
   // PvP: užkraunam varžovo viešą profilį + viešas kalades
   useEffect(() => {
@@ -2418,7 +2434,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   const afford = game.you.gold >= c.gold
                   const isDragging = drag?.uid === c.uid && dragMovedRef.current
                   return (
-                    <motion.div key={c.uid} layout
+                    <motion.div key={c.uid} data-hand-card={c.name} layout
                       initial={{ y: 55, opacity: 0, scale: 0.85 }}
                       animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
@@ -2491,7 +2507,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 const afford = game.you.gold >= c.gold
                 const isDragging = drag?.uid === c.uid && dragMovedRef.current
                 return (
-                  <motion.div key={c.uid} layout initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: isDragging ? 0.25 : 1 }} exit={{ y: -30, opacity: 0 }} whileHover={{ y: -18, zIndex: 30 }}
+                  <motion.div key={c.uid} data-hand-card={c.name} layout initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: isDragging ? 0.25 : 1 }} exit={{ y: -30, opacity: 0 }} whileHover={{ y: -18, zIndex: 30 }}
                     style={{ marginLeft: i === 0 ? 0 : -(handW * 0.12), zIndex: i }}
                     onMouseEnter={(ev) => setHoverCard({ card: c, x: ev.clientX, y: ev.clientY })}
                     onMouseMove={(ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: c, x: ev.clientX, y: ev.clientY })}
