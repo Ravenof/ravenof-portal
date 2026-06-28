@@ -1004,6 +1004,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
     let srcRef: { side: Side; uid?: string } | undefined
     let srcCard: TutCard | null = null
+    let srcKind: 'attack' | 'ability' | null = null  // mirties FX: 'attack' → kirtis (melee), kitaip → projektilas + sprogimas
+    const projVictims = new Set<string>()  // uid taikinių, kuriems žala JAU paleido projektilą (kad mirtis nedubliuotų)
     let fxSeq = 0
     let projFired = false
     let aoeFired = false
@@ -1033,6 +1035,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
+        case 'fxSource': { srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; break }
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.side === 'you' && e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
@@ -1052,7 +1055,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             cine.enqueueSummonCinematic(toCineCard(sc), { source: csrc })
           }
           if (sc?.gameplay?.summonEffect && isSummonFxEnabled()) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
-          srcRef = e.src; srcCard = sc
+          srcRef = e.src; srcCard = sc; srcKind = 'ability'
           window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
           if (/iškvie[čc]iam|pasirinkta/i.test(e.msg) && e.cardName) {
             const nm = e.cardName, sd = e.side, pcol = palOf(findCard(nm)), grave = e.fromZone === 'graveyard'
@@ -1066,7 +1069,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
-          srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard
+          srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'
           // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
           if (e.t === 'ability' && typeof e.skillIndex === 'number') {
             const cc = findCard(e.cardName)
@@ -1079,7 +1082,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           }
           break
         }
-        case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; break }
+        case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'attack'; break }
         case 'zmk':
           zmkN += 1
           if (e.zmkPair) {
@@ -1112,10 +1115,31 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const srcR = srcRef && srcRef.side !== e.side ? rectOf(srcRef) : null
             const pc = palOf(card).primary
             if (srcR) {
+              const melee = srcKind === 'attack'
+              const hadDmg = !!(e.src?.uid && projVictims.has(e.src.uid))  // žala jau paleido projektilą į šį taikinį
+              const projKind = melee ? 'slash' : factionDirectionalKind(srcCard?.factionName)
+              const projCol = melee ? '#ff4a4a' : palOf(srcCard).primary
+              const travel = hadDmg ? 120 : (melee ? 430 : 560)
               let gid = 0
               if (card) { gid = ++flyIdRef.current; const gc = card, gx = from.x, gy = from.y; setDeathGhosts((gs) => [...gs, { id: gid, card: gc, x: gx, y: gy }]) }
-              window.setTimeout(() => fxRef.current?.spawn({ kind: 'slash', from: srcR, to: from, color: '#ff4a4a', duration: 0.9 }), base)
-              window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); fxRef.current?.hitFlash(from.x, from.y, '#ff4a4a'); playBattleSound('death', 0.4); if (gid) setDeathGhosts((gs) => gs.filter((x) => x.id !== gid)); startFly() }, base + 430)
+              // 1) projektilas/kirtis NUO šaltinio iki taikinio (praleidžiam, jei žala jau jį paleido)
+              if (!hadDmg) window.setTimeout(() => fxRef.current?.spawn({ kind: projKind, from: srcR, to: from, color: projCol, duration: melee ? 0.9 : 1.0 }), base)
+              // 2) smūgis: sunaikinimas → SPROGIMAS (korta ištaškoma į gabalus); melee → įprastas suirimas
+              window.setTimeout(() => {
+                if (melee) {
+                  fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 })
+                  fxRef.current?.hitFlash(from.x, from.y, '#ff4a4a')
+                } else {
+                  fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 1.0, intensity: 'big' })
+                  fxRef.current?.spawn({ kind: 'burn', to: from, color: '#ff8a3a', duration: 0.7, intensity: 'small' })
+                  fxRef.current?.hitFlash(from.x, from.y, '#ffd24a')
+                  fxRef.current?.shakeBoard('hard')
+                  if (e.src?.uid) fxRef.current?.shakeUnit(e.src.uid, 'hard')
+                }
+                playBattleSound('death', 0.45)
+                if (gid) setDeathGhosts((gs) => gs.filter((x) => x.id !== gid))
+                startFly()
+              }, base + travel)
             } else {
               window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); startFly() }, base)
             }
@@ -1170,6 +1194,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'damage': {
           const tgt = e.tgt, val = e.value
           if (tgt && val) {
+            if (tgt.uid) projVictims.add(tgt.uid)
             if (tgt.uid && tgt.side) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: cur + val })) } }
             const base = SETTLE + fxSeq; fxSeq += 120
             // elemento spalva: batch e.projectile > source kortos projectileType > frakcijos paletė

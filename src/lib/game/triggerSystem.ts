@@ -21,6 +21,9 @@ export function fireTrigger(api: GameApi, g: GameState, side: Side, trigger: str
     if (trigger === 'onSummon' || trigger === 'onPlay') continue
     const mappings = u.card.mappings ?? []
     if (mappings.some((m) => m.trigger === trigger)) {
+      // FX šaltinis: kad suveikę efektai (žala/sunaikinimas/buff) prasidėtų NUO šio padaro
+      // (projektilas iš šaltinio į taikinį) — animatorius perskaito 'fxSource' ir nustato srcRef.
+      api.log(g, { t: 'fxSource', side, cardName: u.card.name, src: { side, uid: u.uid }, msg: '' })
       applyMappings(api, g, side, mappings, trigger, { sourceName: u.card.name, sourceUid: u.uid, depth })
     }
   }
@@ -29,7 +32,7 @@ export function fireTrigger(api: GameApi, g: GameState, side: Side, trigger: str
     if (!a) continue
     const mappings = a.card.gameplay?.artifactEffectConfig?.mappings ?? a.card.mappings ?? []
     if (mappings.some((m) => m.trigger === trigger)) {
-      api.log(g, { t: 'artifact', side, cardName: a.card.name, msg: `Artefaktas „${a.card.name}" suveikia.` })
+      api.log(g, { t: 'artifact', side, cardName: a.card.name, src: { side, uid: a.uid }, msg: `Artefaktas „${a.card.name}" suveikia.` })
       applyMappings(api, g, side, mappings, trigger, { sourceName: a.card.name, sourceUid: a.uid, depth })
     }
   }

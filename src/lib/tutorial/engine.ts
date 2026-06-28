@@ -145,6 +145,7 @@ export type GameEventType =
   | 'attack' | 'zmk' | 'zmkReshuffle' | 'damage' | 'heal' | 'death' | 'lastwish'
   | 'status' | 'buff' | 'discardGold' | 'endTurn' | 'win'
   | 'champion' | 'evolve' | 'ability' | 'reactionTrigger' | 'coin' | 'curse' | 'blocked'
+  | 'fxSource'
 
 export type GameEvent = {
   t: GameEventType
@@ -414,14 +415,20 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
       p.discard.push(c)
       log(g, { t: 'curse', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'ištraukei' : 'ištraukė'} įmaišytą prakeiksmą „${c.name}" – efektas aktyvuojasi!`, sound: 'curse' })
       const curseCaster: Side = other(s)
-      if (c.mappings && c.mappings.length > 0) {
-        for (const m of c.mappings) {
+      // Aktyvacija ištraukus = TIK 'onCurseDrawn' mapping'ai (griežtai, atskirta nuo įmaišymo).
+      const curseActivation = (c.mappings ?? []).filter((m) => m.trigger === 'onCurseDrawn')
+      if (curseActivation.length > 0) {
+        for (const m of curseActivation) {
           applyMapping(gameApi, g, curseCaster, m, { sourceName: c.name, depth: 1 })
           if (g.winner) return
         }
-      } else {
+      } else if (!c.mappings || c.mappings.length === 0) {
+        // Visai nekonfigūruotas prakeiksmas (be mapping'ų) – tekstinio efekto fallback.
         const dmg = c.effect?.damage ?? 1
         dealToPlayer(g, s, dmg, curseCaster, false)
+      } else {
+        // Turi mapping'ų, bet nė vienas nepažymėtas 'onCurseDrawn' – aktyvacija neįvyksta.
+        log(g, { t: 'blocked', side: s, msg: `Prakeiksmas „${c.name}" neturi „Kai auka ištraukia" (onCurseDrawn) aktyvacijos – efektas neįvyksta.` })
       }
       // #1: globalus „prakeiksmas aktyvuotas" trigeris (side = auka, kuri ištraukė).
       fireGlobalListeners(g, 'onAnyCurse', { side: s, subtype: c.subtype, faction: c.factionId })
@@ -436,7 +443,7 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
       continue
     }
     p.hand.push(c)
-    if (!silent) log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.`, sound: 'draw' })
+    if (!silent) log(g, { t: 'draw', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.`, sound: 'draw' })
     // onDraw mapping'ai (pvz. „ištraukus šią kortą – aktyvuojamas prakeiksmas")
     const onDraw = (c.mappings ?? []).filter((m) => m.trigger === 'onDraw')
     if (onDraw.length > 0 && !silent) {
@@ -1230,7 +1237,7 @@ function drawAdvancedPrim(g: GameState, s: Side, opts: { count: number; fromGrav
       const idx = p.discard.findIndex((x) => x.uid === c.uid); if (idx === -1) continue
       p.discard.splice(idx, 1)
       if (p.hand.length >= 10) { p.discard.push(c); log(g, { t: 'handBurn', side: s, cardName: c.name, msg: `Ranka pilna – „${c.name}" lieka kapinyne.` }) }
-      else { p.hand.push(c); drawn++; log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} „${c.name}" iš kapinyno.`, sound: 'draw' }) }
+      else { p.hand.push(c); drawn++; log(g, { t: 'draw', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} „${c.name}" iš kapinyno.`, sound: 'draw' }) }
     }
     return
   }
@@ -1257,7 +1264,7 @@ function drawAdvancedPrim(g: GameState, s: Side, opts: { count: number; fromGrav
   // paprastas tipinis traukimas
   for (const c of drawn) {
     if (p.hand.length >= 10) { p.discard.push(c) }
-    else { p.hand.push(c); log(g, { t: 'draw', side: s, cardName: s === 'you' ? c.name : undefined, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.`, sound: 'draw' }) }
+    else { p.hand.push(c); log(g, { t: 'draw', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'trauki' : 'traukia'} kortą.`, sound: 'draw' }) }
   }
 }
 
@@ -1554,7 +1561,7 @@ function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'di
   const [c] = pick.arr.splice(i, 1)
   if (p.hand.length >= 10) { p.discard.push(c); log(g, { t: 'handBurn', side: caster, cardName: c.name, msg: `Ranka pilna – „${c.name}" į kapinyną.` }); return }
   p.hand.push(c)
-  log(g, { t: 'draw', side: caster, cardName: caster === 'you' ? c.name : undefined, msg: `${sideName(caster)} ${caster === 'you' ? 'gauni' : 'gauna'} „${caster === 'you' ? c.name : '?'}" į ranką (tutor).`, sound: 'draw' })
+  log(g, { t: 'draw', side: caster, cardName: c.name, msg: `${sideName(caster)} ${caster === 'you' ? 'gauni' : 'gauna'} „${caster === 'you' ? c.name : '?'}" į ranką (tutor).`, sound: 'draw' })
 }
 
 // ── chooseEffect: žaidėjas renkasi 1 iš variantų (pop-up); AI auto 1-as ───────
