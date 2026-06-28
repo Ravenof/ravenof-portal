@@ -72,18 +72,18 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </PlayHeroCard>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickActionCard icon={<Layers className="w-5 h-5" />} label="Kaladės" sub="Tvarkyk kovos kalades" accent="139,92,246" href="/digital/decks" onClick={() => playUiClick()} />
-        <QuickActionCard icon={<LayoutGrid className="w-5 h-5" />} label="Kolekcija" sub="Peržiūrėk kortas" accent="96,165,250" href="/digital/collection" onClick={() => playUiClick()} />
-        <QuickActionCard icon={<ClipboardList className="w-5 h-5" />} label="Užduotys" sub="Dienos tikslai" accent="236,72,153" onClick={() => { playUiClick(); setQuestsOpen(true) }} badge={questsPending > 0 ? <CountBadge n={questsPending} /> : null} />
-        <QuickActionCard icon={<ShoppingBag className="w-5 h-5" />} label="Parduotuvė" sub="Paketai ir pasiūlymai" accent="240,180,41" onClick={() => { playUiClick(); setStoreOpen(true) }} badge={wallet.packs > 0 ? <CountBadge n="🎁" accent="251,146,60" /> : null} />
+        <QuickActionCard iconName="qa-decks" icon={<Layers className="w-5 h-5" />} label="Kaladės" sub="Tvarkyk kovos kalades" accent="139,92,246" href="/digital/decks" onClick={() => playUiClick()} />
+        <QuickActionCard iconName="qa-collection" icon={<LayoutGrid className="w-5 h-5" />} label="Kolekcija" sub="Peržiūrėk kortas" accent="96,165,250" href="/digital/collection" onClick={() => playUiClick()} />
+        <QuickActionCard iconName="qa-quests" icon={<ClipboardList className="w-5 h-5" />} label="Užduotys" sub="Dienos tikslai" accent="236,72,153" onClick={() => { playUiClick(); setQuestsOpen(true) }} badge={questsPending > 0 ? <CountBadge n={questsPending} /> : null} />
+        <QuickActionCard iconName="qa-shop" icon={<ShoppingBag className="w-5 h-5" />} label="Parduotuvė" sub="Paketai ir pasiūlymai" accent="240,180,41" onClick={() => { playUiClick(); setStoreOpen(true) }} badge={wallet.packs > 0 ? <CountBadge n="🎁" accent="251,146,60" /> : null} />
       </div>
 
-      <StatCard emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
+      <StatCard emblemName="emblem-season" emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
         value={`Pakopa ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
         chips={<><RewardChip icon="🪙" amount="x500" /><RewardChip icon="📜" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
-      <StatCard emblemIcon={<GraduationCap className="w-6 h-6" />} title="Mokymai" sub="Starter kaladės — išmok žaisti"
+      <StatCard emblemName="emblem-tutorial" emblemIcon={<GraduationCap className="w-6 h-6" />} title="Mokymai" sub="Starter kaladės — išmok žaisti"
         value={`${decksClaimed} / 8`} pct={Math.round((decksClaimed / 8) * 100)} accent="139,92,246"
         href="/digital/tutorial" onClick={() => playUiClick()} />
 

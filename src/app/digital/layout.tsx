@@ -18,6 +18,7 @@ import { onWalletChanged, onOpenStore, setNativeImmersive } from '@/lib/digital/
 import { createClient } from '@/lib/supabase/client'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { HubStyles, ProfileChip, ResourcePill, IconBtn } from '@/components/digital/ui/HubKit'
+import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 
 type NavItem = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
 const NAV: NavItem[] = [
@@ -97,8 +98,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
         <div className="flex items-center gap-1.5 shrink-0">
           <ResourcePill icon={<span>🪙</span>} value={wallet.gold.toLocaleString('lt-LT')} />
           <ResourcePill icon={<span>🎁</span>} value={wallet.packs} accent="251,146,60" onClick={() => { playUiClick(); setStoreOpen(true) }} />
-          <IconBtn label="Pranešimai" badge={unread || null} onClick={() => { playUiClick(); router.push('/digital/more') }}><Bell className="w-4 h-4" /></IconBtn>
-          <IconBtn label="Nustatymai" onClick={() => { playUiClick(); setSettingsOpen(true) }}><Settings className="w-4 h-4" /></IconBtn>
+          <IconBtn label="Pranešimai" badge={unread || null} onClick={() => { playUiClick(); router.push('/digital/more') }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
+          <IconBtn label="Nustatymai" onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
         </div>
       </header>
 
@@ -117,7 +118,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             <>
               <span className="relative flex items-center justify-center rvn-press" style={{ width: 32, height: 32 }}>
                 {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.34), transparent 70%)' }} />}
-                <Icon className="w-[22px] h-[22px]" />
+                <RvnIcon name={`nav-${it.key}`} size={24} fallback={<Icon className="w-[22px] h-[22px]" />} />
               </span>
               <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{it.label}</span>
             </>

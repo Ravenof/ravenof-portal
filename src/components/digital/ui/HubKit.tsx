@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ChevronRight, Lock } from 'lucide-react'
+import { RvnIcon } from './RvnIcon'
 
 const GOLD = '240,180,41'
 
@@ -50,7 +51,7 @@ export function ProfileChip({ name, level, pct, avatarUrl, onClick }: { name: st
     <button onClick={onClick} className="rvn-press flex items-center gap-2 min-w-0" style={{ background: 'none', border: 'none', padding: 0 }}>
       <span className="relative flex items-center justify-center shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: `1.5px solid rgba(${GOLD},0.65)`,
         background: avatarUrl ? `center/cover url(${avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)', boxShadow: `0 0 10px rgba(${GOLD},0.3), inset 0 0 8px rgba(0,0,0,0.6)` }}>
-        {!avatarUrl && <span style={{ fontSize: 18 }}>🐦‍⬛</span>}
+        {!avatarUrl && <RvnIcon name="avatar" size={36} round fallback={<span style={{ fontSize: 18 }}>🐦‍⬛</span>} />}
         <span className="absolute rvn-disp" style={{ bottom: -5, right: -5, minWidth: 18, height: 16, padding: '0 3px', borderRadius: 8, fontSize: 9.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg,#1a1424,#0a0810)', border: `1px solid rgba(${GOLD},0.8)`, color: `rgb(${GOLD})` }}>{level}</span>
       </span>
       <span className="flex flex-col items-start min-w-0" style={{ gap: 3 }}>
@@ -93,7 +94,7 @@ function MiniReward({ icon, amount, accent = GOLD }: { icon: string; amount: str
 export function RewardBanner({ streak, claimable, onClaim }: { streak: number; claimable: boolean; onClaim?: () => void }) {
   return (
     <div className={`rvn-panel rvn-fade flex items-center gap-3 ${claimable ? 'rvn-glow' : ''}`} style={{ padding: '10px 12px', borderColor: claimable ? `rgba(${GOLD},0.5)` : undefined }}>
-      <span className="flex items-center justify-center shrink-0" style={{ width: 36, height: 38, fontSize: 24, filter: 'drop-shadow(0 0 8px rgba(251,120,40,0.7))' }}>🔥</span>
+      <span className="flex items-center justify-center shrink-0" style={{ width: 36, height: 38, filter: 'drop-shadow(0 0 8px rgba(251,120,40,0.5))' }}><RvnIcon name="flame" size={28} fallback={<span style={{ fontSize: 24 }}>🔥</span>} /></span>
       <span className="flex-1 min-w-0">
         <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3' }}>{streak} d. prisijungimo serija</span>
         <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{claimable ? 'Atlygis paruoštas!' : 'Kitas atlygis rytoj'}</span>
@@ -119,7 +120,7 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
             style={{ minHeight: 70, borderRadius: 11, padding: '9px 4px', gap: 4, opacity: m.locked ? 0.5 : 1,
               background: sel ? `linear-gradient(165deg, rgba(${m.accent},0.30), rgba(10,8,16,0.92))` : 'linear-gradient(165deg, rgba(24,18,34,0.9), rgba(10,8,16,0.92))',
               border: `1px solid rgba(${m.accent},${sel ? 0.7 : 0.3})`, boxShadow: sel ? undefined : 'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
-            {m.locked ? <Lock className="w-[18px] h-[18px]" style={{ color: 'var(--text-muted)' }} /> : <Icon className="w-[19px] h-[19px]" style={{ color: `rgb(${m.accent})`, filter: `drop-shadow(0 0 5px rgba(${m.accent},0.6))` }} />}
+            {m.locked ? <Lock className="w-[18px] h-[18px]" style={{ color: 'var(--text-muted)' }} /> : <RvnIcon name={`mode-${m.key}`} size={22} fallback={<Icon className="w-[19px] h-[19px]" style={{ color: `rgb(${m.accent})`, filter: `drop-shadow(0 0 5px rgba(${m.accent},0.6))` }} />} />}
             <span className="rvn-disp" style={{ fontSize: 11, fontWeight: 700, color: '#f3ead3', lineHeight: 1.05 }}>{m.label}</span>
             <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{m.locked ? 'Greitai' : m.sub}</span>
           </button>
@@ -148,11 +149,11 @@ export function PlayHeroCard({ subtitle, ctaLabel = 'Pradėti kovą', onCta, chi
 }
 
 // ── QuickActionCard ───────────────────────────────────────────────────────────
-export function QuickActionCard({ icon, label, sub, accent = GOLD, badge, href, onClick }: { icon: ReactNode; label: string; sub: string; accent?: string; badge?: ReactNode; href?: string; onClick?: () => void }) {
+export function QuickActionCard({ icon, iconName, label, sub, accent = GOLD, badge, href, onClick }: { icon: ReactNode; iconName?: string; label: string; sub: string; accent?: string; badge?: ReactNode; href?: string; onClick?: () => void }) {
   const inner = (
     <div className="rvn-press rvn-panel relative flex items-center gap-3" style={{ padding: '12px', minHeight: 66, borderColor: `rgba(${accent},0.32)` }}>
       <span className="flex items-center justify-center shrink-0" style={{ width: 42, height: 42, borderRadius: 12, color: `rgb(${accent})`,
-        background: `radial-gradient(circle at 50% 35%, rgba(${accent},0.28), rgba(${accent},0.08))`, border: `1px solid rgba(${accent},0.5)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.1), 0 0 10px rgba(${accent},0.2)` }}>{icon}</span>
+        background: `radial-gradient(circle at 50% 35%, rgba(${accent},0.28), rgba(${accent},0.08))`, border: `1px solid rgba(${accent},0.5)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.1), 0 0 10px rgba(${accent},0.2)` }}>{iconName ? <RvnIcon name={iconName} size={24} fallback={icon} /> : icon}</span>
       <span className="flex flex-col min-w-0" style={{ gap: 2 }}>
         <span className="truncate rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3' }}>{label}</span>
         <span className="truncate" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>
@@ -169,11 +170,11 @@ export function CountBadge({ n, accent = '239,68,68' }: { n: number | string; ac
 }
 
 // ── StatCard (Sezono kelias / Mokymai) — live ────────────────────────────────
-export function StatCard({ emblemIcon, title, sub, value, pct, accent = GOLD, chips, href, onClick }: { emblemIcon: ReactNode; title: string; sub: string; value: string; pct: number; accent?: string; chips?: ReactNode; href?: string; onClick?: () => void }) {
+export function StatCard({ emblemIcon, emblemName, title, sub, value, pct, accent = GOLD, chips, href, onClick }: { emblemIcon: ReactNode; emblemName?: string; title: string; sub: string; value: string; pct: number; accent?: string; chips?: ReactNode; href?: string; onClick?: () => void }) {
   const inner = (
     <div className="rvn-press rvn-panel flex items-center gap-3" style={{ padding: '12px 14px', borderColor: `rgba(${accent},0.32)` }}>
       <span className="flex items-center justify-center shrink-0" style={{ width: 48, height: 48, borderRadius: 13, color: `rgb(${accent})`,
-        background: `radial-gradient(circle at 50% 32%, rgba(${accent},0.32), rgba(${accent},0.08))`, border: `1px solid rgba(${accent},0.55)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), 0 0 12px rgba(${accent},0.25)` }}>{emblemIcon}</span>
+        background: `radial-gradient(circle at 50% 32%, rgba(${accent},0.32), rgba(${accent},0.08))`, border: `1px solid rgba(${accent},0.55)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), 0 0 12px rgba(${accent},0.25)` }}>{emblemName ? <RvnIcon name={emblemName} size={30} fallback={emblemIcon} /> : emblemIcon}</span>
       <span className="flex-1 min-w-0">
         <span className="block rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: '#f3ead3', letterSpacing: '0.02em' }}>{title}</span>
         <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>
