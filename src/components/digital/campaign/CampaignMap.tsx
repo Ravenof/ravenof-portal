@@ -101,14 +101,18 @@ export function CampaignMap({ campaign, nodes, onSelect }: {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (pinch.current) return
-    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
     setSmooth(false)
     drag.current = { x: e.clientX, y: e.clientY, tx: t.current.tx, ty: t.current.ty, moved: false, id: e.pointerId }
   }
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current; if (!d || d.id !== e.pointerId) return
+    if (e.buttons === 0 && e.pointerType === 'mouse') { drag.current = null; return }
     const dx = e.clientX - d.x, dy = e.clientY - d.y
-    if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 6) {
+      d.moved = true
+      ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+    }
+    if (!d.moved) return
     t.current.tx = d.tx + dx; t.current.ty = d.ty + dy
     apply()
   }
@@ -174,7 +178,7 @@ export function CampaignMap({ campaign, nodes, onSelect }: {
             const size = 34
             return (
               <button key={n.id}
-                onPointerUp={(e) => { e.stopPropagation(); if (!drag.current?.moved && n.state !== 'locked') onSelect(n) }}
+                onPointerUp={(e) => { e.stopPropagation(); const moved = drag.current?.moved; drag.current = null; setSmooth(true); if (!moved && n.state !== 'locked') onSelect(n) }}
                 className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                 style={{ left: `${n.posX}%`, top: `${n.posY}%`, opacity: st.op, zIndex: n.state === 'current' ? 6 : 3 }}>
                 {(n.state === 'current') && <span className="absolute rounded-full animate-ping" style={{ width: size + 10, height: size + 10, border: '2px solid rgba(240,180,41,0.5)' }} />}
