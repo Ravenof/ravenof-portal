@@ -13,6 +13,8 @@ import { playUiClick } from '@/lib/ui-sound'
 import { loadTutorialState, isLessonUnlocked, type TutorialState } from '@/lib/tutorial2/lessonLoader'
 import type { LessonRow } from '@/lib/tutorial2/lessonTypes'
 import { TutorialDirector } from './TutorialDirector'
+import { TutorialGame } from '@/components/tutorial/TutorialGame'
+import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { rebuildTutorial } from '@/lib/tutorial2/seedRebuild'
 import { tutorialLessonSeeds } from '@/data/tutorialLessons/lessonSeeds'
 
@@ -21,6 +23,11 @@ export function TutorialHub() {
   const [active, setActive] = useState<LessonRow | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [grad, setGrad] = useState<{ deckId: string; enemyFaction: number | null; enemyName: string } | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [starters, setStarters] = useState<StarterDeck[] | null>(null)
+  const [claiming, setClaiming] = useState(false)
+  const [pickMsg, setPickMsg] = useState('')
 
   const reload = async () => setState(await loadTutorialState())
 
@@ -35,8 +42,25 @@ export function TutorialHub() {
     })
   }, [])
 
+  const openPicker = async () => { setPickerOpen(true); setPickMsg(''); setStarters(await getStarterDecks()) }
+
+  const chooseStarter = async (d: StarterDeck) => {
+    if (d.claimed) { setPickMsg('Šią kaladę jau turi – žaisk įprastas kovas.'); return }
+    setClaiming(true); setPickMsg('')
+    const res = await claimStarterDeck(d.id)
+    setClaiming(false)
+    if ('error' in res) { setPickMsg(res.error === 'not enough gold' ? 'Trūksta aukso šiai kaladei.' : 'Nepavyko: ' + res.error); return }
+    const pool = (starters ?? []).filter((x) => x.id !== d.id)
+    const foe = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
+    setPickerOpen(false)
+    setGrad({ deckId: res.deckId, enemyFaction: foe?.factionId ?? null, enemyName: foe?.name ?? 'Priešininkas' })
+  }
+
   const seed = async () => { setBusy(true); await rebuildTutorial(tutorialLessonSeeds, 'merge'); await reload(); setBusy(false) }
 
+  if (grad) {
+    return <TutorialGame practice deckId={grad.deckId} deckName="Tavo starter kaladė" opponentFaction={grad.enemyFaction} opponentName={grad.enemyName} onClose={() => { setGrad(null); reload() }} />
+  }
   if (active) {
     return <TutorialDirector lesson={active} onExit={() => { setActive(null); reload() }} />
   }
@@ -91,6 +115,47 @@ export function TutorialHub() {
           )
         })}
       </div>
+
+      {/* Graduation: pasirink starter kaladę po pamokų */}
+      {lessons.length > 0 && doneCount >= lessons.length && (
+        <button onClick={openPicker}
+          style={{ width: '100%', marginTop: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14, padding: '16px', borderRadius: 16, cursor: 'pointer',
+            background: 'linear-gradient(110deg, rgba(240,180,41,0.22), rgba(10,8,16,0.92))', border: '1.5px solid rgba(240,180,41,0.6)' }}>
+          <span style={{ fontSize: 30, width: 46, textAlign: 'center' }}>🎓</span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', fontWeight: 800, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display, Cinzel, serif)' }}>Pasirink starter kaladę</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)' }}>Gauk ją nemokamai ir sužaisk egzamino kovą</span>
+          </span>
+          <span style={{ color: 'var(--gold)', fontWeight: 700 }}>→</span>
+        </button>
+      )}
+
+      {/* Starter deck picker */}
+      {pickerOpen && (
+        <div onClick={() => !claiming && setPickerOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.86)', backdropFilter: 'blur(3px)', padding: 14 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', maxHeight: '88vh', overflowY: 'auto', padding: 18, borderRadius: 18, background: 'linear-gradient(160deg, rgba(20,15,28,0.98), rgba(8,6,14,0.98))', border: '1.5px solid rgba(240,180,41,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 18, margin: 0 }}>Pasirink starter kaladę</h2>
+              <button onClick={() => setPickerOpen(false)} style={{ color: 'var(--text-muted)', fontSize: 18, background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Pirmoji – nemokamai. Su ja sužaisi egzamino kovą prieš atsitiktinę kaladę.</p>
+            {pickMsg && <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8 }}>{pickMsg}</p>}
+            {!starters && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Kraunama…</p>}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {(starters ?? []).map((d) => (
+                <button key={d.id} disabled={claiming} onClick={() => chooseStarter(d)}
+                  style={{ textAlign: 'left', padding: 12, borderRadius: 12, cursor: 'pointer',
+                    background: d.claimed ? 'rgba(52,211,153,0.1)' : 'rgba(240,180,41,0.1)',
+                    border: `1px solid ${d.claimed ? 'rgba(52,211,153,0.4)' : 'rgba(240,180,41,0.35)'}` }}>
+                  <span style={{ display: 'block', fontWeight: 800, color: '#f3ead3', fontSize: 13 }}>{d.faction ?? d.name}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>{d.cardCount} kortų</span>
+                  <span style={{ display: 'block', fontSize: 11, marginTop: 4, color: d.claimed ? '#34d399' : 'var(--gold)', fontWeight: 700 }}>{d.claimed ? '✓ Turima' : 'Pasirinkti (nemokamai)'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAdmin && lessons.length > 0 && (
         <div style={{ marginTop: 18, textAlign: 'center' }}>

@@ -8,6 +8,7 @@ export type StarterDeck = {
   imageUrl: string | null
   priceGold: number
   faction: string | null
+  factionId: number | null
   cardCount: number
   claimed: boolean
 }
