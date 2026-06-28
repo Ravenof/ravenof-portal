@@ -137,14 +137,14 @@ export function RewardChip({ src }: { src: string }) {
 export type HubMode = { key: string; img: string; imgSel: string }
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid grid-cols-3 gap-2">
       {modes.map((m) => {
         const sel = m.key === selected
         return (
           <button key={m.key} onClick={() => onSelect(m.key)} className="rvn-press block w-full overflow-hidden"
-            style={{ borderRadius: 12, lineHeight: 0, opacity: sel ? 1 : 0.8,
-              boxShadow: sel ? `0 0 0 1.5px rgba(${GOLD},0.9), 0 0 16px rgba(${GOLD},0.4)` : 'none',
-              filter: sel ? 'none' : 'saturate(0.85) brightness(0.92)' }}>
+            style={{ borderRadius: 10, lineHeight: 0, opacity: sel ? 1 : 0.82,
+              boxShadow: sel ? `0 0 0 1.5px rgba(${GOLD},0.9), 0 0 14px rgba(${GOLD},0.4)` : 'none',
+              filter: sel ? 'none' : 'saturate(0.85) brightness(0.9)' }}>
             <img src={sel ? m.imgSel : m.img} alt="" className="w-full block" />
           </button>
         )
@@ -159,15 +159,15 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
     <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.45)`, boxShadow: `0 8px 30px rgba(0,0,0,0.5)` }}>
       <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.28) 0%, rgba(8,6,14,0.55) 55%, rgba(8,6,14,0.88) 100%)' }} />
-      <div className="relative p-4">
-        <div className="flex flex-col items-center mb-3" style={{ gap: 3 }}>
-          <img src={`${ASSET}/heading.webp`} alt="Žaisti dabar" style={{ height: 40, width: 'auto', filter: `drop-shadow(0 2px 6px #000)` }} />
-          <img src={`${ASSET}/subtitle.webp`} alt={subtitle} style={{ height: 15, width: 'auto', opacity: 0.95 }} />
+      <div className="relative p-4 flex flex-col" style={{ gap: 12 }}>
+        <div className="flex flex-col items-center" style={{ gap: 3 }}>
+          <img src={`${ASSET}/heading.webp`} alt="Žaisti dabar" style={{ height: 38, width: 'auto', filter: `drop-shadow(0 2px 6px #000)` }} />
+          <img src={`${ASSET}/subtitle.webp`} alt={subtitle} style={{ height: 14, width: 'auto', opacity: 0.95 }} />
         </div>
-        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, filter: `drop-shadow(0 4px 14px rgba(${GOLD},0.4))` }}>
-          <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" style={{ borderRadius: 10 }} />
+        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 420, margin: '0 auto', filter: `drop-shadow(0 4px 14px rgba(${GOLD},0.4))` }}>
+          <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" />
         </button>
-        <div className="mt-3">{children}</div>
+        <div>{children}</div>
       </div>
     </div>
   )
