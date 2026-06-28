@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { LayoutGrid, Layers, ShoppingBag, ClipboardList, Target, Trophy, Swords, GraduationCap, Map as MapIcon, Lock } from 'lucide-react'
+import { LayoutGrid, Layers, ShoppingBag, ClipboardList, Target, Trophy, Swords, GraduationCap } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { DEMO_DECK_TUTORIAL } from '@/components/tutorial/TutorialButton'
 import { getWallet, type Wallet } from '@/lib/economy'
@@ -116,22 +116,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </div>
       </div>
 
-      {/* ── Kampanija (vieno žaidėjo istorija) ── */}
-      <Link href="/digital/campaign" onClick={() => playUiClick()}
-        className="block relative overflow-hidden rounded-2xl transition-transform active:scale-[0.99]"
-        style={{ border: '1px solid rgba(240,180,41,0.45)', background: 'linear-gradient(110deg, rgba(240,180,41,0.16), rgba(10,8,16,0.92) 70%)' }}>
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 44, height: 44, background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.45)' }}>
-            <MapIcon className="w-6 h-6" style={{ color: 'rgb(240,180,41)' }} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>Kampanija</p>
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Istorijos misijos pasaulio žemėlapyje</p>
-          </div>
-          <span className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Žaisti →</span>
-        </div>
-      </Link>
-
       {/* ── 2x2 greitos nuorodos ── */}
       <div className="grid grid-cols-2 gap-3">
         {quick.map((q) => {
@@ -164,20 +148,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </span>
           <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>›</span>
         </button>
-
-        {/* Kampanija — NETRUKUS */}
-        <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(120,120,140,0.22)', filter: 'saturate(0.55)', opacity: 0.72 }}>
-          <MapIcon className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-          <span className="flex-1">
-            <span className="block text-sm font-bold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>Kampanija</span>
-            <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Siužetinė vienžaidėjo kampanija</span>
-          </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest"
-            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(120,120,140,0.4)', color: 'var(--text-muted)', letterSpacing: '0.16em' }}>
-            <Lock className="w-2.5 h-2.5" /> NETRUKUS
-          </span>
-        </div>
 
         {/* Pamoka */}
         <button onClick={() => { playUiClick(); setTutorialOpen(true) }}
