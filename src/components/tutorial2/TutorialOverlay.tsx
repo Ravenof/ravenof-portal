@@ -9,6 +9,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface OverlayDialogue { name?: string; text: string; speaker?: 'guide' | 'enemy' | 'narrator' }
 
@@ -56,11 +57,15 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
     return () => cancelAnimationFrame(raf.current)
   }, [p.highlightSelectors, p.arrowSelector])
 
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const speaker = p.dialogue?.speaker ?? 'guide'
   const accent = speaker === 'enemy' ? '#ef4444' : speaker === 'narrator' ? '#9aa0b5' : '#f0b429'
 
-  return (
-    <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 200, pointerEvents: 'none' }}>
+  if (!mounted) return null
+  return createPortal(
+    <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 350, pointerEvents: 'none' }}>
       <style>{CSS}</style>
 
       {/* Dimming with spotlight holes */}
@@ -117,7 +122,8 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
           )}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 

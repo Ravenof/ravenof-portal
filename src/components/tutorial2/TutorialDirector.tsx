@@ -7,6 +7,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { TutorialGame, DEMO_DECK_ID, type TutorialHooks } from '@/components/tutorial/TutorialGame'
 import { applyNetAction, beginTurn, endTurn, recomputeAuras, P, type GameState, type GameEvent, type NetAction, type TargetRef, type Side, type BoardArtifact } from '@/lib/tutorial/engine'
 import { CardPool } from '@/lib/tutorial2/cardPool'
@@ -278,8 +279,9 @@ function RewardScreen({ title, reward, onDone }: { title: string; reward: Lesson
   if (reward.exp) items.push({ icon: '✦', label: `+${reward.exp} EXP` })
   if (reward.boosters) items.push({ icon: '📦', label: `${reward.boosters} boosteris` })
   if (reward.cardMin) items.push({ icon: '🃏', label: `Korta (${reward.cardMin})` })
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(4px)' }}>
+  if (typeof document === 'undefined') return null
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 360, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(4px)' }}>
       <div style={{ width: 'min(440px, 92vw)', textAlign: 'center', padding: 28, borderRadius: 20, background: 'linear-gradient(160deg, rgba(20,15,28,0.98), rgba(8,6,14,0.98))', border: '1.5px solid rgba(240,180,41,0.5)', boxShadow: '0 18px 60px rgba(0,0,0,0.7)' }}>
         <div style={{ fontSize: 46 }}>🏆</div>
         <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 22, margin: '6px 0 2px' }}>Pamoka įveikta!</h2>
@@ -294,6 +296,7 @@ function RewardScreen({ title, reward, onDone }: { title: string; reward: Lesson
         </div>
         <button onClick={onDone} style={{ width: '100%', padding: '12px', borderRadius: 12, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg, rgba(240,180,41,0.35), rgba(240,180,41,0.12))', border: '1.5px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', cursor: 'pointer' }}>Tęsti →</button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
