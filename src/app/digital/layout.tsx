@@ -88,7 +88,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.82)', backdropFilter: 'blur(10px)' }}>
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/digital" onClick={() => playUiClick()} className="shrink-0 rvn-press" style={{ lineHeight: 0 }}>
-            <img src="/digital/ui/logo.webp" alt="Ravenof Digital" style={{ height: 30, width: 'auto', display: 'block' }} />
+            <img src="/digital/ui2/logo.webp" alt="Ravenof Digital" style={{ height: 30, width: 'auto', display: 'block' }} />
           </Link>
           {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); router.push('/digital/more') }} />}
         </div>
@@ -111,12 +111,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
         style={{ background: 'rgba(7,5,12,0.97)', borderTop: '1px solid rgba(240,180,41,0.16)', boxShadow: '0 -4px 24px rgba(0,0,0,0.6)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {NAV.map((it) => {
           const active = isActive(it)
-          const Icon = it.icon
           const inner = (
             <>
-              <span className="relative flex items-center justify-center rvn-press" style={{ width: 30, height: 30 }}>
-                {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.32), transparent 70%)' }} />}
-                <Icon className="w-[22px] h-[22px]" />
+              <span className="relative flex items-center justify-center rvn-press" style={{ width: 32, height: 32 }}>
+                {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.34), transparent 70%)' }} />}
+                <img src={`/digital/ui2/nav-${it.key === 'home' ? 'home' : it.key}.webp`} alt="" style={{ width: 26, height: 26, objectFit: 'contain', filter: active ? 'drop-shadow(0 0 6px rgba(240,180,41,0.7))' : 'grayscale(0.7) brightness(0.8)', opacity: active ? 1 : 0.75 }} />
               </span>
               <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{it.label}</span>
             </>
