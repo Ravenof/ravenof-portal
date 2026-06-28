@@ -1,12 +1,9 @@
 'use client'
 
-// ── Ravenof Digital — pagrindinis meniu (premium mobile game lobby) ──────────
-// Naudoja realius UI assets (public/digital/ui): hero arena, CTA, mode tiles,
-// quick-action kortelės. RewardBanner + ProgressionCards stilizuoti CSS.
+// ── Ravenof Digital — pagrindinis meniu (premium, realūs UI assets) ──────────
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Map as MapIcon } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
@@ -14,8 +11,7 @@ import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
 import { loginCheckin } from '@/lib/gamification/quests'
-import { getSeasonPass } from '@/lib/gamification/seasonPass'
-import { HubStyles, RewardBanner, PlayHeroCard, ModeSelector, QuickActionCard, ProgressionCard, ASSET, type HubMode } from './ui/HubKit'
+import { HubStyles, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
   { key: 'pve',    img: `${ASSET}/mode-pve.webp`,    imgSel: `${ASSET}/mode-pve-sel.webp` },
@@ -34,7 +30,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [streak, setStreak] = useState(0)
   const [claimable, setClaimable] = useState(false)
   const [mode, setMode] = useState('ranked')
-  const [season, setSeason] = useState<{ cur: number; total: number; pct: number } | null>(null)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
@@ -43,12 +38,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     if (!loggedIn) return
     refreshWallet()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPass().then((p) => {
-      if (!p?.tiers?.length) return
-      const total = p.tiers.length
-      const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length
-      setSeason({ cur, total, pct: Math.round((cur / total) * 100) })
-    })
   }, [loggedIn, refreshWallet])
 
   if (!loggedIn) {
@@ -60,19 +49,23 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     )
   }
 
-  const claimReward = () => { playUiClick(); setClaimable(false); setToast(`🔥 ${streak} d. serija — atlygis atsiimtas!`); refreshWallet() }
+  const claimReward = () => { if (!claimable) return; playUiClick(); setClaimable(false); setToast(`🔥 ${streak} d. serija — atlygis atsiimtas!`); refreshWallet() }
   const startBattle = () => { playUiClick(); router.push(MODE_HREF[mode]) }
 
   return (
-    <div className="relative z-10 space-y-3.5">
+    <div className="relative z-10 space-y-3">
       <HubStyles />
 
-      <RewardBanner streak={streak} claimable={claimable} onClaim={claimReward} nextLabel="Kitas atlygis rytoj" />
+      {/* Reward banner (asset) */}
+      <QuickActionCard image={`${ASSET}/banner-claim.webp`} onClick={claimReward} dim={!claimable}
+        overlay={!claimable ? <span style={{ fontSize: 13, fontWeight: 800, color: '#f3ead3', background: 'rgba(6,4,11,0.7)', padding: '4px 12px', borderRadius: 10, fontFamily: 'var(--rvn-font-display)' }}>Atsiimta ✓</span> : null} />
 
+      {/* Hero */}
       <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
         <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
       </PlayHeroCard>
 
+      {/* Quick actions 2x2 */}
       <div className="grid grid-cols-2 gap-3">
         <QuickActionCard image={`${ASSET}/qa-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
         <QuickActionCard image={`${ASSET}/qa-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
@@ -80,11 +73,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
-      <div className="space-y-2.5">
-        <ProgressionCard icon="🎖️" title="Sezono kelias" sub={season ? undefined : 'Rinkite pakopas ir atlygius'} pct={season?.pct} progressLabel={season ? `Pakopa ${season.cur} / ${season.total}` : undefined} accent="240,180,41" onClick={() => { playUiClick(); setSeasonOpen(true) }} />
-        <ProgressionCard icon={<GraduationCap className="w-5 h-5" />} title="Mokymai" sub="8 starter kaladės — išmok žaisti nemokamai" accent="139,92,246" href="/digital/tutorial" onClick={() => playUiClick()} />
-        <ProgressionCard icon={<MapIcon className="w-5 h-5" />} title="Kampanija" sub="Ravenoro žemėlapis" accent="180,120,255" locked comingSoon />
-      </div>
+      {/* Progression (assets) */}
+      <QuickActionCard image={`${ASSET}/prog-season.webp`} onClick={() => { playUiClick(); setSeasonOpen(true) }} />
+      <QuickActionCard image={`${ASSET}/prog-tutorial.webp`} href="/digital/tutorial" onClick={() => playUiClick()} />
 
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
       {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}

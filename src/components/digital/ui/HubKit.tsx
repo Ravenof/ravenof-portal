@@ -38,8 +38,7 @@ export function ProfileChip({ name, level, pct, avatarUrl, onClick }: {
 }) {
   return (
     <button onClick={onClick} className="rvn-press flex items-center gap-2 min-w-0" style={{ background: 'none', border: 'none', padding: 0 }}>
-      <span className="relative flex items-center justify-center shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: `1.5px solid rgba(${GOLD},0.6)`, background: avatarUrl ? `center/cover url(${avatarUrl})` : 'radial-gradient(circle at 50% 35%, #2a2038, #0c0a14)', boxShadow: `0 0 10px rgba(${GOLD},0.25)` }}>
-        {!avatarUrl && <span style={{ fontSize: 17 }}>🐦‍⬛</span>}
+      <span className="relative flex items-center justify-center shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: `1.5px solid rgba(${GOLD},0.6)`, background: `center/cover url(${avatarUrl || ASSET + '/avatar-default.webp'})`, boxShadow: `0 0 10px rgba(${GOLD},0.25)` }}>
         <span className="absolute -bottom-1 -right-1 flex items-center justify-center tabular-nums" style={{ minWidth: 18, height: 16, padding: '0 3px', borderRadius: 8, fontSize: 9, fontWeight: 800, background: '#0a0810', border: `1px solid rgba(${GOLD},0.7)`, color: `rgb(${GOLD})` }}>{level}</span>
       </span>
       <span className="flex flex-col items-start min-w-0" style={{ gap: 2 }}>
@@ -140,11 +139,12 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
 }
 
 // ── QuickActionCard (real asset card) ────────────────────────────────────────
-export function QuickActionCard({ image, badge, href, onClick }: { image: string; badge?: ReactNode; href?: string; onClick?: () => void }) {
+export function QuickActionCard({ image, badge, href, onClick, dim, overlay }: { image: string; badge?: ReactNode; href?: string; onClick?: () => void; dim?: boolean; overlay?: ReactNode }) {
   const inner = (
     <div className="rvn-press relative w-full overflow-hidden" style={{ borderRadius: 14, lineHeight: 0 }}>
-      <img src={image} alt="" className="w-full block" />
+      <img src={image} alt="" className="w-full block" style={{ opacity: dim ? 0.5 : 1, filter: dim ? 'grayscale(0.4)' : 'none' }} />
       {badge != null && <span className="absolute" style={{ top: 8, right: 10 }}>{badge}</span>}
+      {overlay != null && <span className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: 'none' }}>{overlay}</span>}
     </div>
   )
   return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="w-full">{inner}</button>
