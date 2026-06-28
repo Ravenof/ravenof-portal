@@ -87,9 +87,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.82)', backdropFilter: 'blur(10px)' }}>
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/digital" onClick={() => playUiClick()} className="flex flex-col leading-none shrink-0">
-            <span style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 14, fontWeight: 800, letterSpacing: '0.1em', textShadow: '0 0 12px rgba(240,180,41,0.4)' }}>RAVENOF</span>
-            <span style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-muted)', fontSize: 7, fontWeight: 700, letterSpacing: '0.4em', marginTop: 1 }}>DIGITAL</span>
+          <Link href="/digital" onClick={() => playUiClick()} className="shrink-0 rvn-press" style={{ lineHeight: 0 }}>
+            <img src="/digital/ui/logo.webp" alt="Ravenof Digital" style={{ height: 30, width: 'auto', display: 'block' }} />
           </Link>
           {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); router.push('/digital/more') }} />}
         </div>

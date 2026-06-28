@@ -13,6 +13,7 @@ import type { ReactNode } from 'react'
 import { ChevronRight, Lock } from 'lucide-react'
 
 const GOLD = '240,180,41'
+export const ASSET = '/digital/ui'
 
 // Vienkartiniai keyframes/utility klasės (įdėk kartą per ekraną).
 export function HubStyles() {
@@ -98,25 +99,19 @@ export function RewardBanner({ streak, claimable, onClaim, nextLabel }: {
   )
 }
 
-// ── ModeSelector ──────────────────────────────────────────────────────────────
-export type HubMode = { key: string; label: string; sub: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; accent: string; locked?: boolean }
+// ── ModeSelector (real asset tiles) ──────────────────────────────────────────
+export type HubMode = { key: string; img: string; imgSel: string }
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="flex flex-col gap-2">
       {modes.map((m) => {
-        const Icon = m.icon
-        const sel = m.key === selected && !m.locked
+        const sel = m.key === selected
         return (
-          <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)}
-            className={`rvn-press relative flex flex-col items-center justify-center gap-1 ${sel ? 'rvn-sel-border' : ''}`}
-            style={{ minHeight: 62, borderRadius: 12, padding: '8px 2px', opacity: m.locked ? 0.5 : 1,
-              background: sel ? `linear-gradient(160deg, rgba(${m.accent},0.22), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.55)',
-              border: `1px solid rgba(${m.accent},${sel ? 0.6 : 0.28})` }}>
-            {m.locked
-              ? <Lock className="w-[18px] h-[18px]" style={{ color: 'var(--text-muted)' }} />
-              : <Icon className="w-[18px] h-[18px]" style={{ color: `rgb(${m.accent})` }} />}
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#f3ead3', lineHeight: 1.05, textAlign: 'center' }}>{m.label}</span>
-            <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{m.locked ? 'Greitai' : m.sub}</span>
+          <button key={m.key} onClick={() => onSelect(m.key)} className="rvn-press block w-full overflow-hidden"
+            style={{ borderRadius: 12, lineHeight: 0, opacity: sel ? 1 : 0.8,
+              boxShadow: sel ? `0 0 0 1.5px rgba(${GOLD},0.9), 0 0 16px rgba(${GOLD},0.4)` : 'none',
+              filter: sel ? 'none' : 'saturate(0.85) brightness(0.92)' }}>
+            <img src={sel ? m.imgSel : m.img} alt="" className="w-full block" />
           </button>
         )
       })}
@@ -124,24 +119,19 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
   )
 }
 
-// ── PlayHeroCard ──────────────────────────────────────────────────────────────
-export function PlayHeroCard({ title, subtitle, ctaLabel, onCta, children }: {
-  title: string; subtitle: string; ctaLabel: string; onCta: () => void; children?: ReactNode
-}) {
+// ── PlayHeroCard (cinematic arena asset bg + CTA asset) ──────────────────────
+export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; onCta: () => void; children?: ReactNode }) {
   return (
-    <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.4)` }}>
-      {/* cinematic foncas */}
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 50% 0%, rgba(120,30,40,0.4), rgba(10,8,16,0.96) 60%), linear-gradient(170deg,#1a0f16,#0a0810)' }} />
-      <div className="absolute inset-0" style={{ background: `radial-gradient(80% 50% at 50% 8%, rgba(${GOLD},0.16), transparent 70%)` }} />
+    <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.45)`, boxShadow: `0 8px 30px rgba(0,0,0,0.5)` }}>
+      <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.28) 0%, rgba(8,6,14,0.55) 55%, rgba(8,6,14,0.88) 100%)' }} />
       <div className="relative p-4">
         <div className="text-center mb-3">
-          <h1 style={{ fontFamily: 'var(--rvn-font-display)', color: `rgb(${GOLD})`, fontSize: 24, fontWeight: 800, letterSpacing: '0.1em', textShadow: `0 0 20px rgba(${GOLD},0.5)`, margin: 0 }}>{title}</h1>
-          <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{subtitle}</p>
+          <h1 style={{ fontFamily: 'var(--rvn-font-display)', color: `rgb(${GOLD})`, fontSize: 25, fontWeight: 800, letterSpacing: '0.1em', textShadow: `0 2px 4px #000, 0 0 22px rgba(${GOLD},0.55)`, margin: 0 }}>ŽAISTI DABAR</h1>
+          <p style={{ fontSize: 11.5, color: '#e8dcc0', marginTop: 2, textShadow: '0 1px 3px #000' }}>{subtitle}</p>
         </div>
-        <button onClick={onCta} className="rvn-press rvn-glow-pulse w-full"
-          style={{ padding: '13px', borderRadius: 13, fontSize: 16, fontWeight: 800, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em',
-            background: `linear-gradient(135deg, rgba(${GOLD},1), rgba(190,130,18,0.95))`, color: '#1a1206', border: 'none', textShadow: '0 1px 0 rgba(255,255,255,0.25)' }}>
-          {ctaLabel}
+        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, filter: `drop-shadow(0 4px 14px rgba(${GOLD},0.4))` }}>
+          <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" style={{ borderRadius: 10 }} />
         </button>
         <div className="mt-3">{children}</div>
       </div>
@@ -149,23 +139,15 @@ export function PlayHeroCard({ title, subtitle, ctaLabel, onCta, children }: {
   )
 }
 
-// ── QuickActionCard ───────────────────────────────────────────────────────────
-export function QuickActionCard({ icon, label, sub, accent = GOLD, badge, href, onClick }: {
-  icon: ReactNode; label: string; sub: string; accent?: string; badge?: ReactNode; href?: string; onClick?: () => void
-}) {
+// ── QuickActionCard (real asset card) ────────────────────────────────────────
+export function QuickActionCard({ image, badge, href, onClick }: { image: string; badge?: ReactNode; href?: string; onClick?: () => void }) {
   const inner = (
-    <div className="rvn-press rvn-card relative flex items-center gap-3" style={{ borderRadius: 14, padding: '11px 12px', minHeight: 62, borderColor: `rgba(${accent},0.3)` }}>
-      <span className="flex items-center justify-center shrink-0" style={{ width: 38, height: 38, borderRadius: 11, background: `rgba(${accent},0.15)`, border: `1px solid rgba(${accent},0.4)`, color: `rgb(${accent})` }}>{icon}</span>
-      <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
-        <span className="truncate" style={{ fontSize: 13.5, fontWeight: 700, color: '#f3ead3' }}>{label}</span>
-        <span className="truncate" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>
-      </span>
-      {badge != null && (
-        <span className="absolute" style={{ top: 8, right: 8 }}>{badge}</span>
-      )}
+    <div className="rvn-press relative w-full overflow-hidden" style={{ borderRadius: 14, lineHeight: 0 }}>
+      <img src={image} alt="" className="w-full block" />
+      {badge != null && <span className="absolute" style={{ top: 8, right: 10 }}>{badge}</span>}
     </div>
   )
-  return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="text-left w-full">{inner}</button>
+  return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="w-full">{inner}</button>
 }
 
 export function CountBadge({ n, accent = '239,68,68' }: { n: number | string; accent?: string }) {

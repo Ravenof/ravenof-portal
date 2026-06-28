@@ -1,27 +1,26 @@
 'use client'
 
-// ── Ravenof Digital — pagrindinis meniu (modern mobile game lobby) ────────────
-// RewardBanner · PlayHeroCard + ModeSelector · 2x2 QuickActions · ProgressionCards.
+// ── Ravenof Digital — pagrindinis meniu (premium mobile game lobby) ──────────
+// Naudoja realius UI assets (public/digital/ui): hero arena, CTA, mode tiles,
+// quick-action kortelės. RewardBanner + ProgressionCards stilizuoti CSS.
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Target, Trophy, Swords, Layers, LayoutGrid, ClipboardList, ShoppingBag, GraduationCap, Map as MapIcon } from 'lucide-react'
+import { GraduationCap, Map as MapIcon } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
-import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
+import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
-import {
-  HubStyles, RewardBanner, PlayHeroCard, ModeSelector, QuickActionCard, ProgressionCard, CountBadge, type HubMode,
-} from './ui/HubKit'
+import { HubStyles, RewardBanner, PlayHeroCard, ModeSelector, QuickActionCard, ProgressionCard, ASSET, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    label: 'Treniruotė',  sub: 'Prieš AI',  icon: Target, accent: '52,211,153' },
-  { key: 'ranked', label: 'Ranginė',     sub: 'Reitingas', icon: Trophy, accent: '239,68,68' },
-  { key: 'free',   label: 'Draugiška',   sub: 'Su draugu', icon: Swords, accent: '251,146,60' },
+  { key: 'pve',    img: `${ASSET}/mode-pve.webp`,    imgSel: `${ASSET}/mode-pve-sel.webp` },
+  { key: 'ranked', img: `${ASSET}/mode-ranked.webp`, imgSel: `${ASSET}/mode-ranked-sel.webp` },
+  { key: 'free',   img: `${ASSET}/mode-free.webp`,   imgSel: `${ASSET}/mode-free-sel.webp` },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
@@ -35,20 +34,14 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [streak, setStreak] = useState(0)
   const [claimable, setClaimable] = useState(false)
   const [mode, setMode] = useState('ranked')
-  const [questsPending, setQuestsPending] = useState(0)
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number } | null>(null)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
-
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
-
-  const refreshQuests = useCallback(() => {
-    getDailyQuests().then((qs) => setQuestsPending((qs ?? []).filter((q) => q.progress >= q.target && !q.claimed).length))
-  }, [])
 
   useEffect(() => {
     if (!loggedIn) return
-    refreshWallet(); refreshQuests()
+    refreshWallet()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPass().then((p) => {
       if (!p?.tiers?.length) return
@@ -56,7 +49,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length
       setSeason({ cur, total, pct: Math.round((cur / total) * 100) })
     })
-  }, [loggedIn, refreshWallet, refreshQuests])
+  }, [loggedIn, refreshWallet])
 
   if (!loggedIn) {
     return (
@@ -76,15 +69,15 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       <RewardBanner streak={streak} claimable={claimable} onClaim={claimReward} nextLabel="Kitas atlygis rytoj" />
 
-      <PlayHeroCard title="ŽAISTI DABAR" subtitle="Pasirink režimą ir pradėk kovą" ctaLabel="Pradėti kovą" onCta={startBattle}>
+      <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
         <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
       </PlayHeroCard>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickActionCard icon={<Layers className="w-5 h-5" />} label="Kaladės" sub="Tvarkyk kovos kalades" accent="139,92,246" href="/digital/decks" onClick={() => playUiClick()} />
-        <QuickActionCard icon={<LayoutGrid className="w-5 h-5" />} label="Kolekcija" sub="Peržiūrėk kortas" accent="96,165,250" href="/digital/collection" onClick={() => playUiClick()} />
-        <QuickActionCard icon={<ClipboardList className="w-5 h-5" />} label="Užduotys" sub="Dienos tikslai" accent="236,72,153" onClick={() => { playUiClick(); setQuestsOpen(true) }} badge={questsPending > 0 ? <CountBadge n={questsPending} /> : null} />
-        <QuickActionCard icon={<ShoppingBag className="w-5 h-5" />} label="Parduotuvė" sub="Paketai ir pasiūlymai" accent="240,180,41" onClick={() => { playUiClick(); setStoreOpen(true) }} badge={wallet.packs > 0 ? <CountBadge n="🎁" accent="251,146,60" /> : null} />
+        <QuickActionCard image={`${ASSET}/qa-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
+        <QuickActionCard image={`${ASSET}/qa-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
+        <QuickActionCard image={`${ASSET}/qa-quests.webp`} onClick={() => { playUiClick(); setQuestsOpen(true) }} />
+        <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
       <div className="space-y-2.5">
@@ -94,7 +87,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
-      {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
+      {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
 
       {toast && (
