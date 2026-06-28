@@ -13,7 +13,7 @@ import type { ReactNode } from 'react'
 import { ChevronRight, Lock } from 'lucide-react'
 
 const GOLD = '240,180,41'
-export const ASSET = '/digital/ui'
+export const ASSET = '/digital/ui2'
 
 // Vienkartiniai keyframes/utility klasės (įdėk kartą per ekraną).
 export function HubStyles() {
@@ -38,7 +38,7 @@ export function ProfileChip({ name, level, pct, avatarUrl, onClick }: {
 }) {
   return (
     <button onClick={onClick} className="rvn-press flex items-center gap-2 min-w-0" style={{ background: 'none', border: 'none', padding: 0 }}>
-      <span className="relative flex items-center justify-center shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: `1.5px solid rgba(${GOLD},0.6)`, background: `center/cover url(${avatarUrl || ASSET + '/avatar-default.webp'})`, boxShadow: `0 0 10px rgba(${GOLD},0.25)` }}>
+      <span className="relative flex items-center justify-center shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: `1.5px solid rgba(${GOLD},0.6)`, background: `center/cover url(${avatarUrl || ASSET + '/avatar.webp'})`, boxShadow: `0 0 10px rgba(${GOLD},0.25)` }}>
         <span className="absolute -bottom-1 -right-1 flex items-center justify-center tabular-nums" style={{ minWidth: 18, height: 16, padding: '0 3px', borderRadius: 8, fontSize: 9, fontWeight: 800, background: '#0a0810', border: `1px solid rgba(${GOLD},0.7)`, color: `rgb(${GOLD})` }}>{level}</span>
       </span>
       <span className="flex flex-col items-start min-w-0" style={{ gap: 2 }}>
@@ -91,8 +91,8 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
         <span className="block" style={{ fontSize: 13.5, fontWeight: 700, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{streak} d. prisijungimo serija</span>
         <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{claimable ? 'Atlygis paruoštas!' : 'Kitas atlygis rytoj'}</span>
       </span>
-      <Chip icon="🪙" amount="x250" />
-      <Chip icon="📜" amount="x1" />
+      <img src={`${ASSET}/chip-gold.webp`} alt="" style={{ height: 44, width: 'auto' }} />
+      <img src={`${ASSET}/chip-pack.webp`} alt="" style={{ height: 44, width: 'auto' }} />
       <button onClick={claimable ? onClaim : undefined} disabled={!claimable} className="rvn-press shrink-0"
         style={{ padding: '8px 15px', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: 'var(--rvn-font-display)',
           background: claimable ? `linear-gradient(135deg, rgba(${GOLD},1), rgba(190,130,18,0.95))` : 'rgba(255,255,255,0.05)',
@@ -160,9 +160,9 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
       <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.28) 0%, rgba(8,6,14,0.55) 55%, rgba(8,6,14,0.88) 100%)' }} />
       <div className="relative p-4">
-        <div className="text-center mb-3">
-          <h1 style={{ fontFamily: 'var(--rvn-font-display)', color: `rgb(${GOLD})`, fontSize: 25, fontWeight: 800, letterSpacing: '0.1em', textShadow: `0 2px 4px #000, 0 0 22px rgba(${GOLD},0.55)`, margin: 0 }}>ŽAISTI DABAR</h1>
-          <p style={{ fontSize: 11.5, color: '#e8dcc0', marginTop: 2, textShadow: '0 1px 3px #000' }}>{subtitle}</p>
+        <div className="flex flex-col items-center mb-3" style={{ gap: 3 }}>
+          <img src={`${ASSET}/heading.webp`} alt="Žaisti dabar" style={{ height: 40, width: 'auto', filter: `drop-shadow(0 2px 6px #000)` }} />
+          <img src={`${ASSET}/subtitle.webp`} alt={subtitle} style={{ height: 15, width: 'auto', opacity: 0.95 }} />
         </div>
         <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, filter: `drop-shadow(0 4px 14px rgba(${GOLD},0.4))` }}>
           <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" style={{ borderRadius: 10 }} />

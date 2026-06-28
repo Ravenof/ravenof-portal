@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { GraduationCap } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
@@ -81,12 +80,12 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
-      <StatCard emblem={`${ASSET}/emb-season.webp`} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
+      <StatCard emblem={`${ASSET}/crest-season.webp`} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
         value={`Pakopa ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
-        chips={<><RewardChip src={`${ASSET}/slot-coin.webp`} /><RewardChip src={`${ASSET}/slot-book.webp`} /></>}
+        chips={<><RewardChip src={`${ASSET}/chip-gold.webp`} /><RewardChip src={`${ASSET}/chip-pack.webp`} /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
-      <StatCard emblemIcon={<GraduationCap className="w-6 h-6" />} title="Mokymai" sub="Starter kaladės — išmok žaisti"
+      <StatCard emblem={`${ASSET}/cap-academy.webp`} title="Mokymai" sub="Starter kaladės — išmok žaisti"
         value={`${decksClaimed} / 8`} pct={Math.round((decksClaimed / 8) * 100)} accent="139,92,246"
         href="/digital/tutorial" onClick={() => playUiClick()} />
 
