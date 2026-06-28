@@ -1,24 +1,25 @@
 'use client'
 
-// ── Ravenof Digital — pagrindinis meniu (premium assets + GYVI duomenys) ─────
+// ── Ravenof Digital — pagrindinis meniu (premium CSS, gyvi duomenys) ─────────
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Target, Trophy, Swords, Layers, LayoutGrid, ClipboardList, ShoppingBag, GraduationCap, Medal } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
-import { loginCheckin } from '@/lib/gamification/quests'
+import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
 import { getStarterDecks } from '@/lib/starterDecks'
-import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
+import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, CountBadge, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    img: `${ASSET}/mode-pve.webp`,    imgSel: `${ASSET}/mode-pve-sel.webp` },
-  { key: 'ranked', img: `${ASSET}/mode-ranked.webp`, imgSel: `${ASSET}/mode-ranked-sel.webp` },
-  { key: 'free',   img: `${ASSET}/mode-free.webp`,   imgSel: `${ASSET}/mode-free-sel.webp` },
+  { key: 'pve',    label: 'Treniruotė', sub: 'Prieš AI',  icon: Target, accent: '52,211,153' },
+  { key: 'ranked', label: 'Ranginė',    sub: 'Reitingas', icon: Trophy, accent: '239,68,68' },
+  { key: 'free',   label: 'Draugiška',  sub: 'Su draugu', icon: Swords, accent: '251,146,60' },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
@@ -34,22 +35,19 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [mode, setMode] = useState('ranked')
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [decksClaimed, setDecksClaimed] = useState(0)
+  const [questsPending, setQuestsPending] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
+  const refreshQuests = useCallback(() => { getDailyQuests().then((qs) => setQuestsPending((qs ?? []).filter((q) => q.progress >= q.target && !q.claimed).length)) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
 
   useEffect(() => {
     if (!loggedIn) return
-    refreshWallet()
+    refreshWallet(); refreshQuests()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPass().then((p) => {
-      if (!p?.tiers?.length) return
-      const total = p.tiers.length
-      const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length
-      setSeason({ cur, total, pct: Math.round((cur / total) * 100) })
-    })
+    getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }) })
     getStarterDecks().then((d) => setDecksClaimed((d ?? []).filter((x) => x.claimed).length))
-  }, [loggedIn, refreshWallet])
+  }, [loggedIn, refreshWallet, refreshQuests])
 
   if (!loggedIn) {
     return (
@@ -74,23 +72,23 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </PlayHeroCard>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickActionCard image={`${ASSET}/qa-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
-        <QuickActionCard image={`${ASSET}/qa-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
-        <QuickActionCard image={`${ASSET}/qa-quests.webp`} onClick={() => { playUiClick(); setQuestsOpen(true) }} />
-        <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
+        <QuickActionCard icon={<Layers className="w-5 h-5" />} label="Kaladės" sub="Tvarkyk kovos kalades" accent="139,92,246" href="/digital/decks" onClick={() => playUiClick()} />
+        <QuickActionCard icon={<LayoutGrid className="w-5 h-5" />} label="Kolekcija" sub="Peržiūrėk kortas" accent="96,165,250" href="/digital/collection" onClick={() => playUiClick()} />
+        <QuickActionCard icon={<ClipboardList className="w-5 h-5" />} label="Užduotys" sub="Dienos tikslai" accent="236,72,153" onClick={() => { playUiClick(); setQuestsOpen(true) }} badge={questsPending > 0 ? <CountBadge n={questsPending} /> : null} />
+        <QuickActionCard icon={<ShoppingBag className="w-5 h-5" />} label="Parduotuvė" sub="Paketai ir pasiūlymai" accent="240,180,41" onClick={() => { playUiClick(); setStoreOpen(true) }} badge={wallet.packs > 0 ? <CountBadge n="🎁" accent="251,146,60" /> : null} />
       </div>
 
-      <StatCard emblem={`${ASSET}/crest-season.webp`} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
+      <StatCard emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
         value={`Pakopa ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
-        chips={<><RewardChip src={`${ASSET}/chip-gold.webp`} /><RewardChip src={`${ASSET}/chip-pack.webp`} /></>}
+        chips={<><RewardChip icon="🪙" amount="x500" /><RewardChip icon="📜" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
-      <StatCard emblem={`${ASSET}/cap-academy.webp`} title="Mokymai" sub="Starter kaladės — išmok žaisti"
+      <StatCard emblemIcon={<GraduationCap className="w-6 h-6" />} title="Mokymai" sub="Starter kaladės — išmok žaisti"
         value={`${decksClaimed} / 8`} pct={Math.round((decksClaimed / 8) * 100)} accent="139,92,246"
         href="/digital/tutorial" onClick={() => playUiClick()} />
 
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
-      {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} onReward={refreshWallet} />}
+      {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
 
       {toast && (
