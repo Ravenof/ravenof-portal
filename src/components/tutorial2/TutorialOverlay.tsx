@@ -95,12 +95,12 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       )}
 
       {/* Progress */}
-      <div style={{ position: 'fixed', top: 10, right: 12, fontSize: 11, color: 'rgba(243,234,211,0.7)', background: 'rgba(6,4,11,0.7)', padding: '3px 9px', borderRadius: 9 }}>
+      <div style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', right: 12, fontSize: 11, color: 'rgba(243,234,211,0.7)', background: 'rgba(6,4,11,0.7)', padding: '3px 9px', borderRadius: 9 }}>
         {p.step}/{p.total}
       </div>
 
       {/* Skip lesson */}
-      <button onClick={p.onSkipLesson} style={{ position: 'fixed', top: 8, left: 12, pointerEvents: 'auto', fontSize: 11, color: 'rgba(243,234,211,0.6)', background: 'rgba(6,4,11,0.7)', border: '1px solid rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 9 }}>
+      <button onClick={p.onSkipLesson} style={{ position: 'fixed', top: 'calc(8px + env(safe-area-inset-top, 0px))', left: 12, pointerEvents: 'auto', fontSize: 11, color: 'rgba(243,234,211,0.6)', background: 'rgba(6,4,11,0.7)', border: '1px solid rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 9 }}>
         Praleisti pamoką
       </button>
 
@@ -126,8 +126,8 @@ const CSS = `
 @keyframes rvnTutPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(240,180,41,0.85), 0 0 14px 3px rgba(240,180,41,0.45); } 50% { box-shadow: 0 0 0 3px rgba(240,180,41,1), 0 0 26px 8px rgba(240,180,41,0.7); } }
 .rvn-tut-arrow { position: fixed; font-size: 30px; color: #f0b429; text-shadow: 0 0 12px rgba(240,180,41,0.9), 0 2px 4px #000; pointer-events: none; animation: rvnTutBounce 0.9s ease-in-out infinite; }
 @keyframes rvnTutBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
-.rvn-tut-obj { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 18px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-.rvn-tut-bubble { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); width: min(680px, 94vw); display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; }
+.rvn-tut-obj { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 18px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(680px, 94vw); display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; }
 @keyframes rvnTutRise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .rvn-tut-portrait { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid; background: rgba(0,0,0,0.4); flex-shrink: 0; }
 .rvn-tut-next { flex-shrink: 0; padding: 8px 16px; border-radius: 11px; font-weight: 800; font-size: 13px; background: rgba(240,180,41,0.14); border: 1.5px solid; cursor: pointer; font-family: var(--rvn-font-display, Cinzel, serif); }

@@ -226,6 +226,7 @@ export function CardForm({ cardId, initialData, factions, cardTypes, rarities, c
           cardNumber={cardNumber}
           isField={isFieldType}
           isChampion={isChampType}
+          isCurse={isCurseType}
           cardNames={cardNames}
           hasEffectText={!!(initialData?.effect_text ?? '').trim()}
         />

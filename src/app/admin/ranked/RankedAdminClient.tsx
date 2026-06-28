@@ -60,6 +60,11 @@ export function RankedAdminClient() {
     refresh()
   }
 
+  const simMatches = async () => {
+    const { data, error } = await supabase.rpc('rvn_admin_simulate_bot_matches', { p_rounds: 1 })
+    say(error ? `Bot kovos KLAIDA: ${error.message}` : `Botų tarpusavio kovos sužaistos (${data}).`)
+    refresh()
+  }
   const simLadder = async () => {
     const { data, error } = await supabase.rpc('rvn_simulate_bot_ladder', { p_rounds: 10 })
     say(error ? `Bot ladder KLAIDA: ${error.message}` : `Botų laiptai pajudinti (${data} kovų).`)
@@ -88,6 +93,7 @@ export function RankedAdminClient() {
         ) : <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Nėra aktyvaus sezono.</p>}
         <button onClick={endSeason} style={{ ...btn, marginTop: 10, background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>Užbaigti sezoną + reset</button>
         <button onClick={simLadder} style={{ ...btn, marginTop: 10, marginLeft: 8, background: 'rgba(96,165,250,0.16)', border: '1px solid rgba(96,165,250,0.5)', color: '#93c5fd' }}>Simuliuoti botų laiptus (10 raundų)</button>
+        <button onClick={simMatches} style={{ ...btn, marginTop: 10, marginLeft: 8, background: 'rgba(168,85,247,0.16)', border: '1px solid rgba(168,85,247,0.5)', color: '#c4b5fd' }}>Simuliuoti botų kovas (K/D)</button>
       </div>
 
       {/* Debug įrankiai */}

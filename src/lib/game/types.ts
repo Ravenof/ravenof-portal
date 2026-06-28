@@ -135,7 +135,7 @@ export type TriggerType =
   | 'onAttack' | 'onAttacked'
   | 'onDamageDealt' | 'onDamageReceived'
   | 'onHeal' | 'onDeath' | 'onDestroy'
-  | 'onDraw' | 'onDiscard'
+  | 'onDraw' | 'onDiscard' | 'onCurseDrawn'
   | 'onTurnStart' | 'onTurnEnd'
   | 'onFieldEnter' | 'onFieldLeave'
   | 'onChampionSkill' | 'onArtifactActivated'
@@ -156,6 +156,7 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onDeath',             label: 'Žūstant (Paskutinis noras)' },
   { value: 'onDestroy',           label: 'Sunaikinus' },
   { value: 'onDraw',              label: 'Ištraukus kortą' },
+  { value: 'onCurseDrawn',        label: 'Kai auka ištraukia šį prakeiksmą (aktyvacija)' },
   { value: 'onDiscard',           label: 'Išmetus kortą' },
   { value: 'onTurnStart',         label: 'Ėjimo pradžioje' },
   { value: 'onTurnEnd',           label: 'Ėjimo pabaigoje' },

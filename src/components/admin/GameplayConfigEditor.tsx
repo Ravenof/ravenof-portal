@@ -31,12 +31,13 @@ const SOUND_OPTIONS = ['', 'attack', 'spellCast', 'impact', 'draw', 'curse', 'fi
 
 const EMPTY_MAPPING: EffectMapping = { trigger: 'onPlay', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true }
 
-export function GameplayConfigEditor({ initial, isField, isChampion = false, cardNames = [], hasEffectText, cardId = null, cardNumber = '' }: {
+export function GameplayConfigEditor({ initial, isField, isChampion = false, isCurse = false, cardNames = [], hasEffectText, cardId = null, cardNumber = '' }: {
   initial: unknown
   cardId?: string | null
   cardNumber?: string
   isField: boolean
   isChampion?: boolean
+  isCurse?: boolean
   cardNames?: string[]
   hasEffectText: boolean
 }) {
@@ -1146,7 +1147,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, car
                 </div>
               )
             })}
-            <button type="button" onClick={() => writeMappings([...mappings, { ...EMPTY_MAPPING }])}
+            <button type="button" onClick={() => writeMappings([...mappings, { ...EMPTY_MAPPING, trigger: isCurse ? 'onCurseDrawn' : EMPTY_MAPPING.trigger }])}
               className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
               style={{ background: 'rgba(240,180,41,0.12)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>
               + Pridėti efekto mapping'ą
