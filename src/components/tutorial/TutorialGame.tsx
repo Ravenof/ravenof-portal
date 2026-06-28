@@ -599,7 +599,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [])
   const isGuest = !!net && !net.isHost
   const vsRemote = !!net
-  const loadOpp = practice || isHost          // host kraują priešo (svečio) kaladę
+  const loadOpp = practice || isHost || !!opponentDeckId || !!opponentFaction  // priešą kraunam ir kai nurodytas opponentDeckId/Faction (pvz. tutorial guided mūšis su GUIDED_STEPS)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [deckCards, setDeckCards] = useState<TutCard[] | null>(null)

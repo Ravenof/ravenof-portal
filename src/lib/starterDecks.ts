@@ -11,6 +11,7 @@ export type StarterDeck = {
   factionId: number | null
   cardCount: number
   claimed: boolean
+  deckId: string | null
 }
 
 export async function getStarterDecks(): Promise<StarterDeck[]> {
