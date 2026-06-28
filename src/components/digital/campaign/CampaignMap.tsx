@@ -35,6 +35,7 @@ export function CampaignMap({ campaign, nodes, onSelect }: {
   const pinch = useRef<{ d: number; s: number; cx: number; cy: number } | null>(null)
   const [smooth, setSmooth] = useState(true)
   const lastTap = useRef(0)
+  const panned = useRef(false)  // true if the last gesture was a pan (suppress node click)
 
   const mapSrc = campaign.mapImageUrl || ATLAS_MAP
   const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -101,6 +102,7 @@ export function CampaignMap({ campaign, nodes, onSelect }: {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (pinch.current) return
+    panned.current = false
     setSmooth(false)
     drag.current = { x: e.clientX, y: e.clientY, tx: t.current.tx, ty: t.current.ty, moved: false, id: e.pointerId }
   }
@@ -110,6 +112,7 @@ export function CampaignMap({ campaign, nodes, onSelect }: {
     const dx = e.clientX - d.x, dy = e.clientY - d.y
     if (!d.moved && Math.abs(dx) + Math.abs(dy) > 6) {
       d.moved = true
+      panned.current = true
       ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
     }
     if (!d.moved) return
@@ -178,7 +181,8 @@ export function CampaignMap({ campaign, nodes, onSelect }: {
             const size = 34
             return (
               <button key={n.id}
-                onPointerUp={(e) => { e.stopPropagation(); const moved = drag.current?.moved; drag.current = null; setSmooth(true); if (!moved && n.state !== 'locked') onSelect(n) }}
+                onPointerUp={(e) => { e.stopPropagation(); drag.current = null; setSmooth(true) }}
+                onClick={(e) => { e.stopPropagation(); if (!panned.current && n.state !== 'locked') onSelect(n) }}
                 className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                 style={{ left: `${n.posX}%`, top: `${n.posY}%`, opacity: st.op, zIndex: n.state === 'current' ? 6 : 3 }}>
                 {(n.state === 'current') && <span className="absolute rounded-full animate-ping" style={{ width: size + 10, height: size + 10, border: '2px solid rgba(240,180,41,0.5)' }} />}
