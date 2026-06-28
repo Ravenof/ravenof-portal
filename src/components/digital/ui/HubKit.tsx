@@ -73,32 +73,67 @@ export function IconBtn({ children, onClick, badge, label }: { children: ReactNo
   )
 }
 
-// ── RewardBanner (login streak / daily) ───────────────────────────────────────
-export function RewardBanner({ streak, claimable, onClaim, nextLabel }: {
-  streak: number; claimable: boolean; onClaim?: () => void; nextLabel?: string
-}) {
+// ── RewardBanner (live: streak) ───────────────────────────────────────────────
+function Chip({ icon, amount }: { icon: string; amount: string }) {
+  return (
+    <span className="flex flex-col items-center justify-center" style={{ width: 44, height: 44, borderRadius: 9, background: 'linear-gradient(160deg, rgba(40,30,55,0.9), rgba(12,9,18,0.95))', border: `1px solid rgba(${GOLD},0.4)` }}>
+      <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 9, fontWeight: 800, color: `rgb(${GOLD})` }}>{amount}</span>
+    </span>
+  )
+}
+export function RewardBanner({ streak, claimable, onClaim }: { streak: number; claimable: boolean; onClaim?: () => void }) {
   return (
     <div className={`rvn-card rvn-fade flex items-center gap-3 ${claimable ? 'rvn-glow-pulse' : ''}`}
-      style={{ borderRadius: 14, padding: '9px 12px', borderColor: claimable ? `rgba(${GOLD},0.5)` : 'rgba(255,255,255,0.07)' }}>
-      <span className="flex items-center justify-center shrink-0" style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(240,120,40,0.16)', border: '1px solid rgba(251,146,60,0.4)', fontSize: 18 }}>🔥</span>
+      style={{ borderRadius: 16, padding: '10px 12px', borderColor: claimable ? `rgba(${GOLD},0.55)` : 'rgba(255,255,255,0.08)' }}>
+      <img src={`${ASSET}/flame.webp`} alt="" style={{ width: 34, height: 38, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 8px rgba(251,120,40,0.6))' }} />
       <span className="flex-1 min-w-0">
-        <span className="block" style={{ fontSize: 13, fontWeight: 700, color: '#f3ead3' }}>{streak} d. prisijungimo serija</span>
-        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{claimable ? 'Atlygis paruoštas!' : (nextLabel ?? 'Grįžk rytoj')}</span>
+        <span className="block" style={{ fontSize: 13.5, fontWeight: 700, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{streak} d. prisijungimo serija</span>
+        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{claimable ? 'Atlygis paruoštas!' : 'Kitas atlygis rytoj'}</span>
       </span>
-      {claimable
-        ? <span className="flex items-center" style={{ fontSize: 12, color: 'var(--text-muted)' }}>🪙<b style={{ marginLeft: 2, color: `rgb(${GOLD})` }}>+250</b></span>
-        : null}
+      <Chip icon="🪙" amount="x250" />
+      <Chip icon="📜" amount="x1" />
       <button onClick={claimable ? onClaim : undefined} disabled={!claimable} className="rvn-press shrink-0"
-        style={{ padding: '7px 14px', borderRadius: 10, fontSize: 12.5, fontWeight: 800, fontFamily: 'var(--rvn-font-display)',
-          background: claimable ? `linear-gradient(135deg, rgba(${GOLD},0.95), rgba(200,140,20,0.9))` : 'rgba(255,255,255,0.05)',
-          color: claimable ? '#1a1206' : 'var(--text-muted)', border: claimable ? 'none' : '1px solid rgba(255,255,255,0.1)', opacity: claimable ? 1 : 0.7 }}>
+        style={{ padding: '8px 15px', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: 'var(--rvn-font-display)',
+          background: claimable ? `linear-gradient(135deg, rgba(${GOLD},1), rgba(190,130,18,0.95))` : 'rgba(255,255,255,0.05)',
+          color: claimable ? '#1a1206' : 'var(--text-muted)', border: claimable ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
         {claimable ? 'Atsiimti' : 'Atsiimta'}
       </button>
     </div>
   )
 }
 
-// ── ModeSelector (real asset tiles) ──────────────────────────────────────────
+// ── Progress stat card (Sezono kelias / Mokymai) — live ──────────────────────
+export function StatCard({ emblem, emblemIcon, title, sub, value, pct, accent = GOLD, chips, href, onClick }: {
+  emblem?: string; emblemIcon?: ReactNode; title: string; sub: string; value: string; pct: number; accent?: string; chips?: ReactNode; href?: string; onClick?: () => void
+}) {
+  const inner = (
+    <div className="rvn-press rvn-card flex items-center gap-3" style={{ borderRadius: 16, padding: '12px 14px', borderColor: `rgba(${accent},0.3)` }}>
+      {emblem
+        ? <img src={emblem} alt="" style={{ width: 48, height: 48, objectFit: 'contain', flexShrink: 0, filter: `drop-shadow(0 0 8px rgba(${accent},0.45))` }} />
+        : <span className="flex items-center justify-center shrink-0" style={{ width: 46, height: 46, borderRadius: 12, background: `rgba(${accent},0.16)`, border: `1px solid rgba(${accent},0.45)`, color: `rgb(${accent})` }}>{emblemIcon}</span>}
+      <span className="flex-1 min-w-0">
+        <span className="block" style={{ fontSize: 15, fontWeight: 800, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{title}</span>
+        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>
+        <span className="flex items-center gap-2" style={{ marginTop: 5 }}>
+          <span style={{ flex: 1, height: 6, borderRadius: 4, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+            <span style={{ display: 'block', height: '100%', width: `${Math.max(2, Math.min(100, pct))}%`, background: `linear-gradient(90deg, rgba(${accent},0.7), rgb(${accent}))`, borderRadius: 4, boxShadow: `0 0 8px rgba(${accent},0.5)` }} />
+          </span>
+          <span className="tabular-nums shrink-0" style={{ fontSize: 10.5, fontWeight: 700, color: `rgb(${accent})` }}>{value}</span>
+        </span>
+      </span>
+      {chips && <span className="flex items-center gap-1 shrink-0">{chips}</span>}
+      <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+    </div>
+  )
+  return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="text-left w-full">{inner}</button>
+}
+
+export function RewardChip({ src }: { src: string }) {
+  return <img src={src} alt="" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
+}
+
+// ── ModeSelector// ── ModeSelector (real asset tiles) ──────────────────────────────────────────
 export type HubMode = { key: string; img: string; imgSel: string }
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
