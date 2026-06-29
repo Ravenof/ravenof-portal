@@ -120,8 +120,8 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
         const sel = m.key === selected && !m.locked
         return (
           <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className="rvn-press block w-full overflow-hidden"
-            style={{ borderRadius: 10, lineHeight: 0, opacity: m.locked ? 0.45 : sel ? 1 : 0.82,
-              boxShadow: sel ? `0 0 0 1.5px rgba(${GOLD},0.9), 0 0 14px rgba(${GOLD},0.4)` : 'none', filter: sel ? 'none' : 'saturate(0.85) brightness(0.9)' }}>
+            style={{ borderRadius: 10, lineHeight: 0, opacity: m.locked ? 0.45 : sel ? 1 : 0.7,
+              filter: sel ? 'none' : 'saturate(0.7) brightness(0.78)', transform: sel ? 'scale(1.03)' : 'none', transition: 'transform .15s ease, opacity .15s, filter .15s' }}>
             <img src={sel ? m.imgSel : m.img} alt="" className="w-full block" />
           </button>
         )
@@ -141,7 +141,7 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
           <img src={`${ASSET}/heading.webp`} alt="Žaisti dabar" style={{ height: 38, width: 'auto', filter: 'drop-shadow(0 2px 6px #000)' }} />
           <img src={`${ASSET}/subtitle.webp`} alt={subtitle} style={{ height: 14, width: 'auto', opacity: 0.95 }} />
         </div>
-        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 430, margin: '0 auto', filter: `drop-shadow(0 4px 14px rgba(${GOLD},0.4))` }}>
+        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 300, margin: '6px auto 2px', filter: `drop-shadow(0 3px 9px rgba(${GOLD},0.3))` }}>
           <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" />
         </button>
         <div>{children}</div>
