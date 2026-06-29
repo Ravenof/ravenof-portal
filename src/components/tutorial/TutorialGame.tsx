@@ -669,6 +669,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
+  const [flyingReturns, setFlyingReturns] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
   const [popCards, setPopCards] = useState<{ id: number; card: TutCard | null; x: number; y: number; color: string; tag?: string }[]>([])
   const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
   const [hpHold, setHpHold] = useState<Record<string, number>>({})
@@ -1047,6 +1048,23 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
         case 'fxSource': { srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; break }
+        case 'returnHand': {
+          // Korta grąžinama nuo lauko į ranką: lėtai pakyla, tada greit nuskrenda į ranką.
+          const uid = e.src?.uid
+          const rc = e.cardName ? cardByName[e.cardName] : null
+          const from = uid ? unitRectsRef.current.get(uid) : null
+          const sd = e.side
+          const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]')
+          if (rc && from && handEl) {
+            const hr = handEl.getBoundingClientRect()
+            const to = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }
+            const rid = ++flyIdRef.current
+            fxRef.current?.spawn({ kind: 'drawStream', from, to, color: '#a78bfa', duration: 0.9 })
+            setFlyingReturns((f) => [...f, { id: rid, card: rc, from, to, side: sd }])
+            window.setTimeout(() => setFlyingReturns((f) => f.filter((x) => x.id !== rid)), 950)
+          }
+          break
+        }
         case 'draw': {
           if (!e.sound) playCardDraw()
           if (e.side === 'you' && e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
@@ -2961,6 +2979,22 @@ doAction({ t: 'endTurn', actor: 'you' })
                 {pp.card ? <div style={{ outline: '2px solid ' + pp.color, borderRadius: 10, filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.7))' }}><MiniCard c={pp.card} w={isTouch ? 66 : 84} /></div> : null}
               </motion.div>
             </div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* ── grąžinamos į ranką kortos (laukas → lėtai pakyla → greit į ranką) ── */}
+      <div className="fixed inset-0 z-[129] pointer-events-none">
+        <AnimatePresence>
+          {flyingReturns.map((fc) => (
+            <motion.div key={'ret' + fc.id}
+              initial={{ left: fc.from.x - 20, top: fc.from.y - 26, opacity: 1, scale: 1, rotate: 0 }}
+              animate={{ left: [fc.from.x - 20, fc.from.x - 20, fc.to.x - 16], top: [fc.from.y - 26, fc.from.y - 62, fc.to.y - 20], opacity: [1, 1, 0.2], scale: [1, 1.1, 0.5], rotate: [0, 0, fc.side === 'you' ? -10 : 10] }}
+              transition={{ duration: 0.85, ease: 'easeIn', times: [0, 0.45, 1] }}
+              className="absolute"
+              style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.65))' }}>
+              <MiniCard c={fc.card} w={44} />
+            </motion.div>
           ))}
         </AnimatePresence>
       </div>

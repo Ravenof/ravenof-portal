@@ -141,7 +141,7 @@ export type PlayerState = {
 
 export type GameEventType =
   | 'start' | 'startTurn' | 'draw' | 'gold' | 'handBurn' | 'deckEmpty'
-  | 'play' | 'battlecry' | 'spell' | 'artifact' | 'reactionSet' | 'field'
+  | 'play' | 'battlecry' | 'spell' | 'artifact' | 'reactionSet' | 'field' | 'returnHand'
   | 'attack' | 'zmk' | 'zmkReshuffle' | 'damage' | 'heal' | 'death' | 'lastwish'
   | 'status' | 'buff' | 'discardGold' | 'endTurn' | 'win'
   | 'champion' | 'evolve' | 'ability' | 'reactionTrigger' | 'coin' | 'curse' | 'blocked'
@@ -1055,7 +1055,7 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
     log(g, { t: 'handBurn', side: owner, cardName: u.card.name, msg: `Ranka pilna – „${u.card.name}" keliauja į kapinyną.` })
   } else {
     p.hand.push(u.card)
-    log(g, { t: 'play', side: owner, cardName: u.card.name, msg: `„${u.card.name}" grąžinamas į ranką.` })
+    log(g, { t: 'returnHand', side: owner, cardName: u.card.name, msg: `„${u.card.name}" grąžinamas į ranką.`, src: { side: owner, uid: u.uid }, sound: 'draw' })
   }
 }
 
