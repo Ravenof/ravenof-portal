@@ -433,7 +433,7 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
         {u.shield && <Token title="Magiškasis skydas" color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token>}
         {u.stealth && <Token title="Sėlinimas" color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token>}
         {u.card.keywords.includes('taunt') && <Token title="Pasišaipymas" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token>}
-        {u.card.keywords.includes('sprint') && <Token title="Sprintas" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token>}
+        {(u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')) && u.summonedOnTurn === g.globalTurn && <Token title="Sprintas (aktyvus tik iškvietimo ėjimą)" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token>}
         {activeStatuses.map((s) => (
           <Token key={s} title={STATUS_META[s].name} color={STATUS_GLOW[s]} icon={ICON_BASE + STATUS_ICON[s] + '.webp'}>{STATUS_META[s].icon}</Token>
         ))}
@@ -620,7 +620,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [zmkFlash, setZmkFlash] = useState<{ cards: { v: string; side: Side }[]; n: number } | null>(null)
+  const [zmkFlash, setZmkFlash] = useState<{ cards: { v: string; side: Side }[]; n: number; pos: { x: number; y: number } | null } | null>(null)
   const [zmkRoll, setZmkRoll] = useState<{ id: number; side: Side; a: ZmkValue; b: ZmkValue; picked: ZmkValue; adv: boolean } | null>(null)
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
@@ -679,6 +679,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
   const [flyingReturns, setFlyingReturns] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
+  const [flyingShatters, setFlyingShatters] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   const [popCards, setPopCards] = useState<{ id: number; card: TutCard | null; x: number; y: number; color: string; tag?: string }[]>([])
   const [deathGhosts, setDeathGhosts] = useState<{ id: number; card: TutCard; x: number; y: number }[]>([])
   const [hpHold, setHpHold] = useState<Record<string, number>>({})
@@ -1022,6 +1023,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let drawSeq = 0
     let skipYouDraw = false
     const zmkBatch: { v: string; side: Side }[] = []
+    let zmkTgtPos: { x: number; y: number } | null = null
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
     let srcRef: { side: Side; uid?: string } | undefined
     let srcCard: TutCard | null = null
@@ -1144,8 +1146,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               const r = pileEl.getBoundingClientRect()
               const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
               const id = ++flyIdRef.current
-              setFlyingCards((f) => [...f, { id, card, from, to }])
-              setTimeout(() => setFlyingCards((f) => f.filter((x) => x.id !== id)), 650)
+              if (card.image) {
+                // Sunaikinta korta: gabalai išsilaksto → susiburia → nuskrenda į kapinyną.
+                setFlyingShatters((f) => [...f, { id, card, from, to }])
+                setTimeout(() => setFlyingShatters((f) => f.filter((x) => x.id !== id)), 1250)
+              } else {
+                setFlyingCards((f) => [...f, { id, card, from, to }])
+                setTimeout(() => setFlyingCards((f) => f.filter((x) => x.id !== id)), 650)
+              }
             }
           }
           if (from) {
@@ -1231,6 +1239,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'damage': {
           const tgt = e.tgt, val = e.value
+          { const dp = tgt ? rectOf(tgt) : rectFor({ side: e.side }); if (dp) zmkTgtPos = dp }
           if (tgt && val) {
             if (tgt.uid) projVictims.add(tgt.uid)
             if (tgt.uid && tgt.side) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: cur + val })) } }
@@ -1318,7 +1327,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         void PROJ_EMOJI; void spawnProjectile
       }
     }
-    if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current })
+    if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current, pos: zmkTgtPos })
     if (aoeMode && !aoeFired) {
       aoeFired = true
       const aCol = fxElemColor ?? palOf(srcCard).primary
@@ -2007,7 +2016,8 @@ doAction({ t: 'endTurn', actor: 'you' })
           if (selKind === 'discard') { onHandCardClick(card); return }
           if (!handExpanded) { playUiClick(); setHandExpanded(true) }
           else if (!isTouch) { setHandExpanded(false); onHandCardClick(card) }
-          // touch + atvira ranka: palietimas = tik skaitymas; žaidžiama tempiant AUKŠTYN
+          else { playUiClick(); setHandExpanded(false) }
+          // touch + atvira ranka: bakstelėjimas = sutraukti (simetriška); žaidžiama tempiant AUKŠTYN
         }
         return
       }
@@ -2181,16 +2191,16 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
-                <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
-                  style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
+                  style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}⚜</span>
               </button>
             ) : (
               <div key={r.uid} className="relative rounded-md overflow-hidden"
                 style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
                 <PileBack kind="curse" />
-                <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 rounded-full text-[8px] font-bold"
-                  style={{ background: 'rgba(0,0,0,0.9)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.5)' }}>{r.paid}⚜</span>
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
+                  style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}⚜</span>
               </div>
             )
           ) : (
@@ -2767,7 +2777,42 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── įvykių žurnalas ── */}
       <AnimatePresence>
-        {showLog && game && (
+        {/* ── Nuolatinis suskleistas spalvotas log (dešinė): kortų/ŽMK miniatiūros eilės tvarka; žalia=tu, raudona=priešas ── */}
+      {game && !showLog && (() => {
+        const items = game.log
+          .map((e, idx) => {
+            const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
+            const zi = e.t === 'zmk' && e.zmk ? zmkImg(game, e.zmk) : null
+            return (card || zi) ? { e, idx, card, zi } : null
+          })
+          .filter((x): x is NonNullable<typeof x> => !!x)
+          .slice(-12)
+        if (items.length === 0) return null
+        return (
+          <div className="fixed right-1 top-1/2 -translate-y-1/2 z-[118] flex flex-col gap-1" style={{ maxHeight: '72vh', overflow: 'hidden' }}>
+            {items.map(({ e, idx, card, zi }) => {
+              const col = e.side === 'you' ? '#4ade80' : '#f87171'
+              return (
+                <div key={idx + '-mini'}
+                  onClick={() => { if (card) { playCardFlip(); setInspect(card) } else setShowLog(true) }}
+                  onMouseEnter={card && !isTouch ? (ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY }) : undefined}
+                  onMouseMove={card && !isTouch ? (ev) => setHoverCard((h) => h ? { ...h, x: ev.clientX, y: ev.clientY } : { card, x: ev.clientX, y: ev.clientY }) : undefined}
+                  onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}
+                  onTouchStart={card ? () => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(card) }, 400) } : undefined}
+                  onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+                  onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+                  className="rounded overflow-hidden cursor-pointer shrink-0"
+                  style={{ width: 24, aspectRatio: '2.5 / 3.5', outline: '2px solid ' + col, boxShadow: '0 0 6px ' + col + '88' }}
+                  title={card ? card.name : ('ŽMK ' + (e.zmk ?? ''))}>
+                  {card ? <MiniCard c={card} w={24} /> : <img src={zi!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
+
+      {showLog && game && (
           <motion.div ref={logScrollRef} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
             className="fixed right-2 top-12 bottom-2 z-[124] w-[min(300px,80vw)] rounded-xl p-3 overflow-y-auto"
             style={{ background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.25)', touchAction: 'pan-y' }}
@@ -2993,6 +3038,34 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── skrendančios kortos (sunaikinta/panaudota → kapinynas) ── */}
       <div className="fixed inset-0 z-[129] pointer-events-none">
+        {/* ── sunaikintos kortos gabalai: išsilaksto → susiburia → skrenda į kapinyną ── */}
+        <AnimatePresence>
+          {flyingShatters.map((fc) => {
+            const PW = 18, PH = 25, N = 3
+            return Array.from({ length: N * N }).map((_, k) => {
+              const c = k % N, r = Math.floor(k / N)
+              const dirX = c - 1, dirY = r - 1
+              const cellCx = fc.from.x + dirX * PW
+              const cellCy = fc.from.y + dirY * PH
+              const scX = fc.from.x + dirX * 46
+              const scY = fc.from.y + dirY * 46 - 10
+              const rot = (dirX + dirY * 2) * 40
+              return (
+                <motion.div key={fc.id + '-sh-' + k}
+                  initial={{ left: cellCx, top: cellCy, opacity: 1, scale: 1, rotate: 0 }}
+                  animate={{ left: [cellCx, scX, fc.from.x, fc.to.x], top: [cellCy, scY, fc.from.y, fc.to.y], opacity: [1, 1, 1, 0.05], scale: [1, 1.05, 0.9, 0.3], rotate: [0, rot, 0, rot / 2] }}
+                  transition={{ duration: 1.15, ease: 'easeInOut', times: [0, 0.32, 0.62, 1] }}
+                  className="absolute"
+                  style={{
+                    width: PW, height: PH, marginLeft: -PW / 2, marginTop: -PH / 2,
+                    backgroundImage: `url(${fc.card.image})`, backgroundSize: `${PW * N}px ${PH * N}px`,
+                    backgroundPosition: `-${c * PW}px -${r * PH}px`,
+                    borderRadius: 2, boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                  }} />
+              )
+            })
+          })}
+        </AnimatePresence>
         <AnimatePresence>
           {flyingCards.map((fc) => (
             <motion.div key={fc.id}
@@ -3057,37 +3130,38 @@ doAction({ t: 'endTurn', actor: 'you' })
         </AnimatePresence>
       </div>
 
-      {/* ── ŽMK auto-traukimo flash (fiksuotas, centruotas; rodo VISAS traukimo kortas – pvz. puolančio ir gynėjo) ── */}
+      {/* ── ŽMK auto-traukimo miniatiūros PRIE TAIKINIO (mažos, švarios; vietoj didelių centre) ── */}
       <AnimatePresence>
-        {zmkFlash && (
-          <motion.div key={zmkFlash.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[130] flex items-center justify-center pointer-events-none">
-            <div className="flex items-end justify-center gap-3 flex-wrap">
-              {zmkFlash.cards.map((zc, idx) => {
-                const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
-                return (
-                  <motion.div key={idx} initial={{ scale: 0.4, opacity: 0.3, rotateY: 90 }} animate={{ scale: 1, opacity: 1, rotateY: 0 }} exit={{ scale: 0.7, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 240, damping: 18, delay: idx * 0.12 }}
-                    className="flex flex-col items-center gap-1.5" style={{ transformStyle: 'preserve-3d' }}>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: '#14101e', border: `1px solid ${zc.side === 'you' ? 'rgba(96,165,250,0.8)' : 'rgba(167,139,250,0.8)'}`, color: zc.side === 'you' ? '#93c5fd' : '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>
-                      {zc.side === 'you' ? 'Tavo ŽMK' : 'Priešo ŽMK'}
-                    </span>
-                    {zmkImg(game, zc.v) ? (
-                      <div className="rounded-xl overflow-hidden" style={{ width: 'min(110px, 26vw)', aspectRatio: '2.5 / 3.5', border: '2px solid var(--gold)', boxShadow: '0 0 28px rgba(240,180,41,0.55)' }}>
-                        <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                      </div>
-                    ) : null}
-                    <span className="px-3 py-1 rounded-lg font-black text-base"
-                      style={{ background: 'linear-gradient(145deg, #2a2138, #14101e)', border: '2px solid var(--gold)', color: col, boxShadow: '0 0 14px rgba(240,180,41,0.35)', fontFamily: 'var(--rvn-font-display)' }}>
-                      ŽMK {zc.v.replace('x', '×')}
-                    </span>
-                  </motion.div>
-                )
-              })}
-            </div>
-          </motion.div>
-        )}
+        {zmkFlash && (() => {
+          const pos = zmkFlash.pos ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.42 }
+          return (
+            <motion.div key={zmkFlash.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed z-[130] pointer-events-none"
+              style={{ left: pos.x, top: pos.y - 64, transform: 'translateX(-50%)' }}>
+              <div className="flex items-end justify-center gap-1.5">
+                {zmkFlash.cards.map((zc, idx) => {
+                  const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
+                  const sideCol = zc.side === 'you' ? '#4ade80' : '#f87171'
+                  return (
+                    <motion.div key={idx} initial={{ scale: 0.3, opacity: 0, y: 10, rotateY: 80 }} animate={{ scale: 1, opacity: 1, y: 0, rotateY: 0 }} exit={{ scale: 0.6, opacity: 0, y: -14 }}
+                      transition={{ type: 'spring', stiffness: 280, damping: 18, delay: idx * 0.08 }}
+                      className="flex flex-col items-center gap-0.5" style={{ transformStyle: 'preserve-3d' }}>
+                      {zmkImg(game, zc.v) ? (
+                        <div className="rounded-md overflow-hidden" style={{ width: 40, aspectRatio: '2.5 / 3.5', border: '2px solid ' + sideCol, boxShadow: '0 0 12px ' + sideCol + '99' }}>
+                          <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                        </div>
+                      ) : null}
+                      <span className="px-1.5 rounded font-black text-[11px]"
+                        style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + col, color: col, fontFamily: 'var(--rvn-font-display)' }}>
+                        {zc.v.replace('x', '×')}
+                      </span>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )
+        })()}
       </AnimatePresence>
 
       {/* ── ŽMK pranašumas / nepalankumas: 2 kortos, nepanaudota subyra ── */}
@@ -3508,21 +3582,29 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[132] flex items-center justify-center pointer-events-none p-4">
             <motion.div initial={{ scale: 0.4, opacity: 0, y: -30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.7, opacity: 0 }}
               transition={{ type: 'spring', damping: 14 }} className="flex flex-col items-center gap-3">
-              <motion.div
-                initial={{ rotateY: 0 }} animate={{ rotateY: 1080 }}
-                transition={{ duration: 0.95, ease: 'easeOut' }}
-                style={{
-                  width: 96, height: 96, borderRadius: '50%', transformStyle: 'preserve-3d',
-                  background: coinAnim.coin === 'green'
-                    ? 'radial-gradient(circle at 35% 30%, #6ee7a8, #16a34a 70%, #0f7a36)'
-                    : 'radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 70%, #991b1b)',
-                  border: '4px solid ' + (coinAnim.coin === 'green' ? '#bbf7d0' : '#fecaca'),
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px ' + (coinAnim.coin === 'green' ? 'rgba(34,197,94,0.6)' : 'rgba(220,38,38,0.6)'),
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 44,
-                }}>
-                {coinAnim.coin === 'green' ? '✔' : '✘'}
-              </motion.div>
+              {/* Tikra dvipusė moneta: verčiasi (rotateX) ir nutupia ant rezultato pusės. */}
+              <div style={{ perspective: 700, width: 100, height: 100 }}>
+                <motion.div
+                  initial={{ rotateX: 0 }}
+                  animate={{ rotateX: 360 * 4 + (coinAnim.coin === 'red' ? 180 : 0) }}
+                  transition={{ duration: 1.05, ease: [0.15, 0.6, 0.25, 1] }}
+                  style={{ width: 100, height: 100, position: 'relative', transformStyle: 'preserve-3d' }}>
+                  {/* ŽALIA pusė (priekis) */}
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: '50%', backfaceVisibility: 'hidden',
+                    background: 'radial-gradient(circle at 35% 30%, #6ee7a8, #16a34a 70%, #0f7a36)',
+                    border: '4px solid #bbf7d0', boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px rgba(34,197,94,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46, color: '#fff',
+                  }}>✔</div>
+                  {/* RAUDONA pusė (kita) */}
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: '50%', backfaceVisibility: 'hidden', transform: 'rotateX(180deg)',
+                    background: 'radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 70%, #991b1b)',
+                    border: '4px solid #fecaca', boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px rgba(220,38,38,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46, color: '#fff',
+                  }}>✘</div>
+                </motion.div>
+              </div>
               <span className="px-3 py-1 rounded-full text-sm font-bold"
                 style={{ background: 'rgba(8,6,12,0.92)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.08em',
                   border: '1px solid ' + (coinAnim.coin === 'green' ? '#22c55e' : '#dc2626'),
