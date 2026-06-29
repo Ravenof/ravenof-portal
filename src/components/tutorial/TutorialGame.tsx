@@ -621,7 +621,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [zmkFlash, setZmkFlash] = useState<{ cards: { v: string; side: Side }[]; n: number; pos: { x: number; y: number } | null } | null>(null)
+  const [zmkFlash, setZmkFlash] = useState<{ placed: { v: string; side: Side; x: number; y: number }[]; n: number } | null>(null)
   const [zmkRoll, setZmkRoll] = useState<{ id: number; side: Side; a: ZmkValue; b: ZmkValue; picked: ZmkValue; adv: boolean } | null>(null)
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
@@ -1023,8 +1023,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let zmkN = 0
     let drawSeq = 0
     let skipYouDraw = false
-    const zmkBatch: { v: string; side: Side }[] = []
-    let zmkTgtPos: { x: number; y: number } | null = null
+    const pendingZmk: { v: string; side: Side }[] = []
+    const zmkPlaced: { v: string; side: Side; x: number; y: number }[] = []
+    let lastTgtRef: { kind?: string; side?: Side; uid?: string } | null = null
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
     let srcRef: { side: Side; uid?: string } | undefined
     let srcCard: TutCard | null = null
@@ -1056,6 +1057,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
+      if (e.tgt) lastTgtRef = e.tgt
+
       if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
@@ -1132,7 +1135,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           } else if (game.zmkMode === 'draw') {
             setZmkPending((q) => [...q, { v: e.zmk ?? '?', side: e.side, revealed: false }])
           } else {
-            zmkBatch.push({ v: e.zmk ?? '?', side: e.side })
+            pendingZmk.push({ v: e.zmk ?? '?', side: e.side })
           }
           if (!e.sound) playBattleSound('zmkFlip')
           if (e.zmk === 'x2' || e.zmk === 'x0') queueTip('zmk-special')
@@ -1150,6 +1153,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               if (card.image) {
                 // Sunaikinta korta: gabalai išsilaksto → susiburia → nuskrenda į kapinyną.
                 setFlyingShatters((f) => [...f, { id, card, from, to }])
+                playBattleSound('impact', 0.4)
+                window.setTimeout(() => playBattleSound('impact', 0.5), 1000)  // gabalai sukrinta i kapinyna – duslus smugis
                 setTimeout(() => setFlyingShatters((f) => f.filter((x) => x.id !== id)), 1250)
               } else {
                 setFlyingCards((f) => [...f, { id, card, from, to }])
@@ -1240,7 +1245,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'damage': {
           const tgt = e.tgt, val = e.value
-          { const dp = tgt ? rectOf(tgt) : rectFor({ side: e.side }); if (dp) zmkTgtPos = dp }
+          { let dp = tgt ? rectOf(tgt) : null
+            if (!dp && e.cardName) { const pp = P(game, e.side); const u = pp.units.find((x) => x?.card.name === e.cardName); if (u) dp = rectOf({ uid: u.uid }); if (!dp) { const a = pp.artifacts.find((x) => x?.card.name === e.cardName); if (a) dp = rectOf({ uid: a.uid }) } }
+            if (!dp && lastTgtRef) dp = rectOf(lastTgtRef)
+            if (!dp) dp = rectFor({ side: e.side })
+            if (dp && pendingZmk.length) { for (const z of pendingZmk) zmkPlaced.push({ ...z, x: dp.x, y: dp.y }); pendingZmk.length = 0 } }
           if (tgt && val) {
             if (tgt.uid) projVictims.add(tgt.uid)
             if (tgt.uid && tgt.side) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: cur + val })) } }
@@ -1328,7 +1337,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         void PROJ_EMOJI; void spawnProjectile
       }
     }
-    if (zmkBatch.length > 0) setZmkFlash({ cards: zmkBatch, n: seenRef.current, pos: zmkTgtPos })
+    if (pendingZmk.length > 0) { const fb = (srcRef ? rectOf(srcRef) : null) ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.42 }; for (const z of pendingZmk) zmkPlaced.push({ ...z, x: fb.x, y: fb.y }) }
+    if (zmkPlaced.length > 0) setZmkFlash({ placed: zmkPlaced, n: seenRef.current })
     if (aoeMode && !aoeFired) {
       aoeFired = true
       const aCol = fxElemColor ?? palOf(srcCard).primary
@@ -3102,8 +3112,8 @@ doAction({ t: 'endTurn', actor: 'you' })
               return (
                 <motion.div key={fc.id + '-sh-' + k}
                   initial={{ left: cellCx, top: cellCy, opacity: 1, scale: 1, rotate: 0 }}
-                  animate={{ left: [cellCx, scX, fc.from.x, fc.to.x], top: [cellCy, scY, fc.from.y, fc.to.y], opacity: [1, 1, 1, 0.05], scale: [1, 1.05, 0.9, 0.3], rotate: [0, rot, 0, rot / 2] }}
-                  transition={{ duration: 1.15, ease: 'easeInOut', times: [0, 0.32, 0.62, 1] }}
+                  animate={{ left: [cellCx, scX, fc.to.x], top: [cellCy, scY, fc.to.y], opacity: [1, 1, 0.12], scale: [1, 1, 0.28], rotate: [0, rot, rot * 1.6] }}
+                  transition={{ duration: 1.1, ease: [0.3, 0, 0.4, 1], times: [0, 0.28, 1] }}
                   className="absolute"
                   style={{
                     width: PW, height: PH, marginLeft: -PW / 2, marginTop: -PH / 2,
@@ -3182,32 +3192,41 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── ŽMK auto-traukimo miniatiūros PRIE TAIKINIO (mažos, švarios; vietoj didelių centre) ── */}
       <AnimatePresence>
         {zmkFlash && (() => {
-          const pos = zmkFlash.pos ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.42 }
+          // Grupuojam pagal taikinio poziciją – kiekvienas ŽMK rodomas PRIE savo taikinio (AoE/multi → prie visų).
+          const groups = new Map<string, { x: number; y: number; cards: { v: string; side: Side }[] }>()
+          for (const p of zmkFlash.placed) {
+            const key = Math.round(p.x / 18) + ':' + Math.round(p.y / 18)
+            const g = groups.get(key) ?? { x: p.x, y: p.y, cards: [] }
+            g.cards.push({ v: p.v, side: p.side })
+            groups.set(key, g)
+          }
           return (
-            <motion.div key={zmkFlash.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed z-[130] pointer-events-none"
-              style={{ left: pos.x, top: pos.y - 64, transform: 'translateX(-50%)' }}>
-              <div className="flex items-end justify-center gap-1.5">
-                {zmkFlash.cards.map((zc, idx) => {
-                  const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
-                  const sideCol = zc.side === 'you' ? '#4ade80' : '#f87171'
-                  return (
-                    <motion.div key={idx} initial={{ scale: 0.3, opacity: 0, y: 10, rotateY: 80 }} animate={{ scale: 1, opacity: 1, y: 0, rotateY: 0 }} exit={{ scale: 0.6, opacity: 0, y: -14 }}
-                      transition={{ type: 'spring', stiffness: 280, damping: 18, delay: idx * 0.08 }}
-                      className="flex flex-col items-center gap-0.5" style={{ transformStyle: 'preserve-3d' }}>
-                      {zmkImg(game, zc.v) ? (
-                        <div className="rounded-md overflow-hidden" style={{ width: 40, aspectRatio: '2.5 / 3.5', border: '2px solid ' + sideCol, boxShadow: '0 0 12px ' + sideCol + '99' }}>
-                          <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                        </div>
-                      ) : null}
-                      <span className="px-1.5 rounded font-black text-[11px]"
-                        style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + col, color: col, fontFamily: 'var(--rvn-font-display)' }}>
-                        {zc.v.replace('x', '×')}
-                      </span>
-                    </motion.div>
-                  )
-                })}
-              </div>
+            <motion.div key={zmkFlash.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[130] pointer-events-none">
+              {Array.from(groups.values()).map((grp, gi) => (
+                <div key={gi} className="absolute" style={{ left: grp.x, top: grp.y - 60, transform: 'translateX(-50%)' }}>
+                  <div className="flex items-end justify-center gap-1">
+                    {grp.cards.map((zc, idx) => {
+                      const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
+                      const sideCol = zc.side === 'you' ? '#4ade80' : '#f87171'
+                      return (
+                        <motion.div key={idx} initial={{ scale: 0.3, opacity: 0, y: 10, rotateY: 80 }} animate={{ scale: 1, opacity: 1, y: 0, rotateY: 0 }} exit={{ scale: 0.6, opacity: 0, y: -12 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 18, delay: idx * 0.07 }}
+                          className="flex flex-col items-center gap-0.5" style={{ transformStyle: 'preserve-3d' }}>
+                          {zmkImg(game, zc.v) ? (
+                            <div className="rounded-md overflow-hidden" style={{ width: 36, aspectRatio: '2.5 / 3.5', border: '2px solid ' + sideCol, boxShadow: '0 0 11px ' + sideCol + '99' }}>
+                              <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                            </div>
+                          ) : null}
+                          <span className="px-1.5 rounded font-black text-[11px]"
+                            style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + col, color: col, fontFamily: 'var(--rvn-font-display)' }}>
+                            {zc.v.replace('x', '×')}
+                          </span>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </motion.div>
           )
         })()}
