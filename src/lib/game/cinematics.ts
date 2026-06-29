@@ -202,7 +202,15 @@ export function collectDeckCinematicPosters(cards: CinematicCardInput[]): string
 // Preload deck'o summon video (Legendiniai/Čempionai) — kad pirmas iškvietimas grotų iškart.
 // Cap'inta (mobile data). Skill video paliekam lazy (poster fallback dengia, jei lėtas tinklas).
 const _preloadedV = new Set<string>()
+const _preloadEls: HTMLVideoElement[] = []   // laikom REFERENCIJAS – kitaip naršyklė GC'ina <video> ir nutraukia parsisiuntimą
 const MAX_PRELOAD_VIDEOS = 6
+let _canWebm: boolean | null = null
+/** Ar naršyklė gali groti WebM (Safari/iOS – ne). Kešuojama. */
+export function canPlayWebm(): boolean {
+  if (_canWebm !== null) return _canWebm
+  try { const v = document.createElement('video'); _canWebm = !!v.canPlayType && v.canPlayType('video/webm') !== '' } catch { _canWebm = false }
+  return _canWebm
+}
 export function preloadCinematicVideos(urls: Array<string | undefined | null>): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
   let n = 0
@@ -212,17 +220,25 @@ export function preloadCinematicVideos(urls: Array<string | undefined | null>): 
     _preloadedV.add(u); n++
     try {
       const v = document.createElement('video')
-      v.preload = 'auto'; v.muted = true; v.src = u
+      v.preload = 'auto'; v.muted = true; v.playsInline = true; v.src = u
       try { v.load() } catch { /* */ }
+      _preloadEls.push(v)            // referencija išlaikoma → download nenutraukiamas iki cache
+      if (_preloadEls.length > MAX_PRELOAD_VIDEOS) { const old = _preloadEls.shift(); try { old?.removeAttribute('src'); old?.load() } catch { /* */ } }
     } catch { /* */ }
   }
 }
 
+// Parenka URL pagal tai, ką naršyklė tikrai gros (Safari/iOS – mp4, ne webm), kad
+// preload'intume būtent tą failą, kurį overlay paskui naudos.
 export function collectDeckCinematicVideos(cards: CinematicCardInput[]): string[] {
   const out: string[] = []
+  const preferWebm = canPlayWebm()
   for (const c of cards) {
     const sc = c.gameplay?.summonCinematic
-    if (sc?.enabled) { const u = sc.webm || sc.mp4; if (u) out.push(u) }
+    if (sc?.enabled) {
+      const u = preferWebm ? (sc.webm || sc.mp4) : (sc.mp4 || sc.webm)
+      if (u) out.push(u)
+    }
   }
   return out
 }

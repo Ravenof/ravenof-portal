@@ -14,7 +14,7 @@ import { CINEMATIC_THEME_PALETTE, prefersReducedMotion } from '@/lib/game/cinema
 const SKIP_DELAY_MS = 500
 const END_BUFFER_MS = 350           // saugiklis virš durationMs (tik static/poster keliui)
 const REDUCED_DURATION_MS = 800
-const START_TIMEOUT_MS = 2600       // jei video per tiek nepradeda groti → krentam į poster fallback
+const START_TIMEOUT_MS = 7000       // jei video per tiek nepradeda groti → krentam į poster fallback (šaltam tinklui reikia laiko)
 const SAFETY_MAX_MS = 9000          // absoliutus saugiklis (jei onEnded niekada nesuveiks)
 
 export function RavenofCinematicOverlay({ cinematic, onFinished }: {
@@ -78,7 +78,8 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
       return () => window.clearTimeout(t)
     }
     const v = videoRef.current
-    if (v) { try { v.muted = true; v.load() } catch { /* */ } }
+    // NE v.load() – autoPlay+preload jau pradėjo krauti; load() resetintų elementą ir krautų iš naujo (prarastume preload/cache).
+    if (v) { try { v.muted = true } catch { /* */ } }
     tryPlay()
     // 1) start watchdog — jei nepradeda groti laiku, fallback į poster
     const startT = window.setTimeout(() => {
