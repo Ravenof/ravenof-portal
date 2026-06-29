@@ -154,6 +154,7 @@ function buildDemoDeck(cards: Omit<TutCard, 'uid'>[]): TutCard[] {
 const STATUS_GLOW: Record<TutStatus, string> = {
   frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa', blessed: '#fcd34d',
 }
+const RAIL_PANEL = { background: 'rgba(13,10,20,0.66)', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)' }
 const ICON_BASE = '/icons/status/'
 const STATUS_ICON: Record<TutStatus, string> = {
   frozen: 'frozen', burning: 'burning', poisoned: 'poison', stunned: 'stunned', silenced: 'silenced', blessed: 'light',
@@ -743,7 +744,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const copyBlocks = !!game?.pendingCopy
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 72 : 104
-  const unitW = isTouch ? 58 : 104
+  const unitW = isTouch ? 58 : 94
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -2149,11 +2150,11 @@ doAction({ t: 'endTurn', actor: 'you' })
     )
   }
 
-  const renderSideZones = (side: Side) => {
+  const renderArtifactRow = (side: Side) => {
     if (!game) return null
     const p = P(game, side)
     return (
-      <div data-tut={side === 'you' ? 'artifacts' : undefined} className="flex justify-center gap-3 items-center">
+      <div data-tut={side === 'you' ? 'artifacts' : undefined} className="flex justify-center gap-1 items-center">
         <div className="flex gap-1">
           {p.artifacts.map((a, i) => a ? (
             <button key={a.uid} data-artifact-uid={a.uid}
@@ -2161,7 +2162,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onContextMenu={(e) => { e.preventDefault(); setInspect(a.card) }}
               className="relative rounded-md overflow-hidden"
               style={{
-                width: isTouch ? 40 : 60, height: isTouch ? 54 : 84,
+                width: isTouch ? 40 : 60, height: isTouch ? 54 : 72,
                 border: pickedKeys.has('artifact:' + a.uid) ? '2px solid #22c55e' : targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
               {pickedKeys.has('artifact:' + a.uid) && (
@@ -2176,9 +2177,18 @@ doAction({ t: 'endTurn', actor: 'you' })
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
-              style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, border: '1px dashed rgba(240,180,41,0.25)' }}>⭐</div>
+              style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 72, border: '1px dashed rgba(240,180,41,0.25)' }}>⭐</div>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  const renderReactionRow = (side: Side) => {
+    if (!game) return null
+    const p = P(game, side)
+    return (
+      <div className="flex justify-center gap-1 items-center">
         <div data-tut={side === 'you' ? 'reactions' : undefined} className="flex gap-1">
           {p.reactions.map((r, i) => r ? (
             side === 'you' ? (
@@ -2187,7 +2197,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 onClick={() => { playUiClick(); setPileView({ title: 'Tavo reakcijos (matai tik tu)', cards: p.reactions.filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.card) }) }}
                 title="Peržiūrėk savo padėtas reakcijas (priešas jų nemato)"
                 className="relative rounded-md overflow-hidden cursor-pointer"
-                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
+                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 72, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
@@ -2196,7 +2206,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             ) : (
               <div key={r.uid} className="relative rounded-md overflow-hidden"
-                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
+                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 72, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
@@ -2205,13 +2215,22 @@ doAction({ t: 'endTurn', actor: 'you' })
             )
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center text-[10px] opacity-25"
-              style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 84, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
+              style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 72, border: '1px dashed rgba(139,92,246,0.3)' }}>⚡</div>
           ))}
         </div>
       </div>
     )
   }
 
+  const renderSideZones = (side: Side) => {
+    if (!game) return null
+    return (
+      <div className="flex justify-center gap-3 items-center">
+        {renderArtifactRow(side)}
+        {renderReactionRow(side)}
+      </div>
+    )
+  }
   const hpBar = (side: Side, scale = 1) => {
     if (!game) return null
     const p = P(game, side)
@@ -2526,47 +2545,64 @@ doAction({ t: 'endTurn', actor: 'you' })
       )}
 
       {game && !loading && !isTouch && (
-        <div className="flex-1 min-h-0 flex flex-col px-4 py-2 overflow-hidden">
-          {/* viršus: priešo HP/auksas (kairė), info (centre), pile'ai (dešinė) */}
-          <div className="shrink-0 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 pt-1">
-              {hpBar('ai', 1.35)}
-              <div className="pt-2">{goldBar('ai')}</div>
-            </div>
-            <div className="flex flex-col items-center gap-0.5 pt-1">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)' }}>
-                <span className="text-sm">🜏</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#a78bfa' }}>Priešininkas</span>
-                {game.active === 'ai' && !game.winner && <span className="text-[10px] animate-pulse" style={{ color: 'var(--gold)' }}>galvoja…</span>}
-              </div>
-              <p className="text-xs leading-snug line-clamp-1 max-w-md text-center" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
-            </div>
-            <div className="flex items-start gap-2 pt-1">
-              <OppHandFan count={game.ai.hand.length} big />
-              {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', big: true })}
-              {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', big: true })}
-              {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', big: true })}
-            </div>
-          </div>
+        <div className="flex-1 min-h-0 w-full mx-auto relative" style={{ maxWidth: 1440 }}>
+          <div className="absolute inset-0 grid gap-3 px-3 py-2" style={{ gridTemplateColumns: '212px minmax(0,1fr) 236px' }}>
 
-          {/* lenta – dvi priešpriešos linijos centre */}
-          <div className="flex-1 min-h-0 flex flex-col justify-center gap-1 py-1">
-            {renderSideZones('ai')}
-            {renderUnitsRow('ai', 'units-ai')}
-            <div className="flex items-center justify-center py-1.5 relative" style={{ borderTop: '1px solid rgba(240,180,41,0.12)', borderBottom: '1px solid rgba(240,180,41,0.12)' }}>
-              <div data-tut="field" className="flex items-center gap-2">
-                {game.field ? (
-                  <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }} onClick={() => setInspect(game.field!.card)}><MiniCard c={game.field.card} w={104} /></button>
-                ) : (
-                  <div className="rounded-md flex items-center justify-center text-base opacity-20" style={{ width: 104, height: 139, border: '1px dashed rgba(240,180,41,0.3)' }}>🌍 Laukas</div>
-                )}
+            {/* ─────────── KAIRĖ RAIL: žaidėjo info + pile'ai ─────────── */}
+            <aside className="flex flex-col gap-2 min-h-0 overflow-hidden">
+              <div className="rounded-xl p-2.5 flex flex-col gap-2" style={RAIL_PANEL}>
+                <div className="flex items-center gap-2">
+                  {hpBar('you', 1.0)}
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Žaidėjas</span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Nekronautas</span>
+                  </div>
+                </div>
+                <div className="self-center">{goldBar('you')}</div>
               </div>
-            </div>
-            {renderUnitsRow('you', 'units-you')}
-            {renderSideZones('you')}
-          </div>
+              <div className="rounded-xl p-2.5 flex justify-center gap-2" style={RAIL_PANEL}>
+                {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', big: true })}
+                {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk', big: true })}
+                {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', big: true })}
+              </div>
+              <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Efektai</span>
+                <div className="flex items-center gap-2" style={{ fontSize: 15 }}>
+                  <span title="Skydas" style={{ opacity: game.you.units.some((u) => u?.shield) ? 1 : 0.25 }}>✦</span>
+                  <span title="Būsenos" style={{ opacity: game.you.units.some((u) => u && Object.keys(u.statuses).length > 0) ? 1 : 0.25 }}>✷</span>
+                  <span title="Frakcija" style={{ opacity: 0.6 }}>🜏</span>
+                </div>
+              </div>
+            </aside>
 
-          {/* ranka */}
+            {/* ─────────── CENTRINĖ LENTA (9 sluoksniai) ─────────── */}
+            <section className="flex flex-col min-h-0 justify-between">
+              {/* A — priešo ranka (nugarėlės, viršuje) */}
+              <div className="flex justify-center items-start shrink-0"><OppHandFan count={game.ai.hand.length} big /></div>
+              {/* B — priešo reakcijos */}
+              <div className="shrink-0">{renderReactionRow('ai')}</div>
+              {/* C — priešo artefaktai */}
+              <div className="shrink-0">{renderArtifactRow('ai')}</div>
+              {/* D — priešo padarai (pagrindinė zona) */}
+              <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
+              {/* E — bendras Lauko slotas */}
+              <div className="shrink-0 flex items-center justify-center py-1 relative" style={{ borderTop: '1px solid rgba(240,180,41,0.14)', borderBottom: '1px solid rgba(240,180,41,0.14)' }}>
+                <span className="absolute left-2 text-[9px] uppercase tracking-[0.2em]" style={{ color: 'rgba(240,180,41,0.5)' }}>Laukas · bendras</span>
+                <div data-tut="field" className="flex items-center gap-2">
+                  {game.field ? (
+                    <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }} onClick={() => setInspect(game.field!.card)}><MiniCard c={game.field.card} w={106} /></button>
+                  ) : (
+                    <div className="rounded-md flex items-center justify-center text-base opacity-25" style={{ width: 106, height: 142, border: '1px dashed rgba(240,180,41,0.35)' }}>🌍 Laukas</div>
+                  )}
+                </div>
+              </div>
+              {/* F — tavo padarai (pagrindinė zona) */}
+              <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
+              {/* G — tavo artefaktai */}
+              <div className="shrink-0">{renderArtifactRow('you')}</div>
+              {/* H — tavo reakcijos */}
+              <div className="shrink-0">{renderReactionRow('you')}</div>
+              {/* I — tavo ranka */}
           <div data-tut="hand" ref={handRef} className="shrink-0 flex justify-center items-end gap-1 min-h-[160px] pb-1 flex-wrap">
             <AnimatePresence>
               {game.you.hand.map((c, i) => {
@@ -2590,27 +2626,40 @@ doAction({ t: 'endTurn', actor: 'you' })
             </AnimatePresence>
             {game.you.hand.length === 0 && <span className="text-xs self-center" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>}
           </div>
+            </section>
 
-          {/* apačia: tavo pile'ai (kairė) + HP/auksas/mygtukai (dešinė) */}
-          <div className="shrink-0 flex items-end justify-between gap-3">
-            <div className="flex items-end gap-2 pb-1">
-              {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', big: true })}
-              {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk', big: true })}
-              {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', big: true })}
-            </div>
-            <div className="flex items-end gap-3 pb-1">
-              <div className="flex flex-col items-center gap-1.5">
+            {/* ─────────── DEŠINĖ RAIL: priešo info + pile'ai + komandos ─────────── */}
+            <aside className="flex flex-col gap-2 min-h-0 overflow-hidden">
+              <div className="rounded-xl p-2.5 flex flex-col gap-2" style={RAIL_PANEL}>
+                <div className="flex items-center gap-2 justify-end">
+                  <div className="flex flex-col leading-tight items-end">
+                    <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>Priešininkas</span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Ranka: {game.ai.hand.length}{game.active === 'ai' && !game.winner ? ' · galvoja…' : ''}</span>
+                  </div>
+                  {hpBar('ai', 1.0)}
+                </div>
+              </div>
+              <div className="rounded-xl p-2.5 flex justify-center gap-2" style={RAIL_PANEL}>
+                {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', big: true })}
+                {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', big: true })}
+                {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', big: true })}
+              </div>
+              {/* Komandų zona */}
+              <div className="rounded-xl p-3 flex flex-col items-center gap-2 mt-auto" style={RAIL_PANEL}>
                 {goldBar('you')}
                 <button onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau išmetei kortą šį ėjimą.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap" style={{ background: select?.kind === 'discard' ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: game.you.discardedForGold ? 'var(--text-muted)' : 'var(--gold)' }} title="Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)">+100⚜ už kortą</button>
-                <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn} className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-40 whitespace-nowrap" style={{ background: myTurn ? 'linear-gradient(135deg, rgba(240,180,41,0.3), rgba(240,180,41,0.1))' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>{myTurn ? 'Baigti ėjimą' : 'Priešo ėjimas…'}</button>
+                  className="w-full px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap" style={{ background: select?.kind === 'discard' ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: game.you.discardedForGold ? 'var(--text-muted)' : 'var(--gold)' }} title="Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)">+100⚜ už kortą</button>
+                <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
+                  className="w-full px-4 py-3 rounded-xl text-base font-extrabold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-40 whitespace-nowrap"
+                  style={{ background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #16602e)' : 'rgba(120,30,30,0.35)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', boxShadow: myTurn ? '0 0 22px rgba(34,197,94,0.4)' : 'none' }}>
+                  {myTurn ? 'Baigti ėjimą' : 'Priešininko ėjimas…'}
+                </button>
               </div>
-              {hpBar('you', 1.35)}
-            </div>
+            </aside>
+
           </div>
         </div>
       )}
-
       {/* ── pasirinkimo užuomina ── */}
       <AnimatePresence>
         {select && select.kind !== 'discard' && (
