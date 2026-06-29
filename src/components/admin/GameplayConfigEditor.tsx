@@ -230,7 +230,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -330,6 +330,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   onChange={(e) => setPa({ auraImmortal: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-red-400" />
                 ♾ Kiti negali mirti (nemirtingumas – lieka 1 HP)
               </label>
+              <div className="flex items-center gap-2 text-[11px] mt-2" style={{ color: '#86efac' }}>
+                <label className="flex items-center gap-1" title="Paveiktas padaras, ataka sunaikinęs priešo padarą, gali pulti dar kartą tą patį ėjimą.">
+                  <input type="checkbox" checked={!!pa?.auraSecondAttack}
+                    onChange={(e) => setPa({ auraSecondAttack: e.target.checked || undefined, auraSecondAttackCond: e.target.checked ? (pa?.auraSecondAttackCond ?? 'any') : undefined })} className="w-3.5 h-3.5 accent-green-400" />
+                  ⚔↻ Antra ataka, jei sunaikina padarą
+                </label>
+                {pa?.auraSecondAttack && (
+                  <label className="flex items-center gap-1">Sąlyga:
+                    <select value={pa?.auraSecondAttackCond ?? 'any'}
+                      onChange={(e) => setPa({ auraSecondAttackCond: e.target.value as 'any' | 'taunt' | 'shield' })} style={{ ...inputStyle, width: 180 }}>
+                      <option value="any">Bet kurį padarą</option>
+                      <option value="taunt">Tik su Pasišaipymu</option>
+                      <option value="shield">Tik su Magišku skydu</option>
+                    </select>
+                  </label>
+                )}
+              </div>
             </div>)}
           </>)
         })()}

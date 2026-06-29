@@ -615,6 +615,20 @@ function auraDamageReductionPctFor(g: GameState, ownerSide: Side, uid: string): 
 function unitIsImmortal(g: GameState, ownerSide: Side, uid: string): boolean {
   return aurasAffecting(g, ownerSide, uid).some((cfg) => !!cfg?.auraImmortal)
 }
+/** Antros atakos aura: jei puolantysis sunaikino padarą (su sąlyga) – grąžinam jam atakos teisę. */
+function grantSecondAttackIfAura(g: GameState, side: Side, u: BoardUnit, killed: { taunt: boolean; shield: boolean }) {
+  for (const cfg of aurasAffecting(g, side, u.uid)) {
+    if (!cfg?.auraSecondAttack) continue
+    const cond = cfg.auraSecondAttackCond ?? 'any'
+    const ok = cond === 'any' || (cond === 'taunt' && killed.taunt) || (cond === 'shield' && killed.shield)
+    if (!ok) continue
+    const p = P(g, side)
+    u.attacksUsed = Math.max(0, u.attacksUsed - 1)
+    p.attacksThisTurn = Math.max(0, p.attacksThisTurn - 1)
+    log(g, { t: 'buff', side, cardName: u.card.name, msg: `⚔↻ „${u.card.name}" sunaikino padarą – gali pulti dar kartą!`, src: { side, uid: u.uid } })
+    return
+  }
+}
 /** Burtų žalos priedas iš aurų caster pusės (atitinkamo tipo) burtams. */
 export function auraSpellDamageBonus(g: GameState, caster: Side, spellType?: SpellType): number {
   let bonus = 0
@@ -2295,6 +2309,8 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   if (target.kind === 'unit') {
     const def = P(g, foe).units.find((x) => x?.uid === target.uid)
     if (!def) { log(g, { t: 'blocked', side: s, msg: 'Taikinys nebegalioja.' }); return { ok: true } }
+    const defHadTaunt = def.card.keywords.includes('taunt') || !!def.auraKw?.includes('taunt')
+    const defHadShield = !!def.shield
     log(g, { t: 'attack', side: s, cardName: u.card.name, msg: `⚔ „${u.card.name}" (${atk} ATK) atakuoja „${def.card.name}" – abu traukia po ŽMK!`, src: { side: s, uid: u.uid }, tgt: { kind: 'unit', side: foe, uid: def.uid }, sound: 'attack' })
     // onAttacked mapping'ai (gynėjo). useAttackTarget → efektas taikomas į atakuotoją.
     if (!def.statuses.silenced) {
@@ -2332,8 +2348,13 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     } else if (def.statuses.frozen) {
       log(g, { t: 'status', side: foe, cardName: def.card.name, status: 'frozen', msg: `❄ „${def.card.name}" sušaldytas – atgalinės žalos nedaro.` })
     }
+    const defKilled = def.hp <= 0
     if (def.hp <= 0) killUnit(g, foe, def)
     if (u.hp <= 0) killUnit(g, s, u)
+    // Antros atakos aura: puolantysis sunaikino padarą ir pats išliko.
+    if (defKilled && !def.isChampion && u.hp > 0 && p.units.some((x) => x?.uid === u.uid)) {
+      grantSecondAttackIfAura(g, s, u, { taunt: defHadTaunt, shield: defHadShield })
+    }
   } else if (target.kind === 'artifact') {
     const a = P(g, foe).artifacts.find((x) => x?.uid === target.uid)
     if (!a) return { ok: true }

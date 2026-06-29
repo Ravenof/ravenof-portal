@@ -391,6 +391,9 @@ export type PassiveAuraConfig = {
   // ── Burtų žalos priedas (aura): paveiktos pusės burtai daro +X žalos ──
   auraSpellDamage?: number             // +X žalos paveiktos pusės burtams
   auraSpellType?: SpellType            // auraSpellDamage tik šio tipo burtams (kitaip – visiems)
+  // ── Antra ataka (aura): sunaikinęs padarą ataka – gali pulti dar kartą ──
+  auraSecondAttack?: boolean           // paveiktas padaras, sunaikinęs priešo padarą, gali pulti dar kartą tą patį ėjimą
+  auraSecondAttackCond?: 'any' | 'taunt' | 'shield'  // sąlyga: bet kuris / tik su Pasišaipymu / tik su Magišku skydu
 }
 
 // ── Premium kino pop-up (PremiumCinematics) ──────────────────────────────────
