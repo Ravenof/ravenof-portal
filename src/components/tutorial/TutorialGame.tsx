@@ -371,15 +371,15 @@ export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: {
 
 // ── Padaro plytelė kovos lauke ───────────────────────────────────────────────
 
-export function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClick, hpShown }: {
+export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed, onClick, hpShown }: {
   g: GameState; u: BoardUnit; w: number
-  selected?: boolean; targetable?: boolean; canAct?: boolean; dimmed?: boolean
+  selected?: boolean; targetable?: boolean; picked?: boolean; canAct?: boolean; dimmed?: boolean
   onClick?: () => void; hpShown?: number
 }) {
   const h = Math.round(w * 4 / 3)
   const hpDisp = hpShown ?? u.hp
   const atk = effectiveAtk(g, u)
-  const ring = selected ? '#f0b429' : targetable ? '#ef4444' : canAct ? 'rgba(74,222,128,0.7)' : 'transparent'
+  const ring = picked ? '#22c55e' : selected ? '#f0b429' : targetable ? '#ef4444' : canAct ? 'rgba(74,222,128,0.7)' : 'transparent'
   const activeStatuses = Object.keys(u.statuses) as TutStatus[]
   const sGlow = activeStatuses.length ? STATUS_GLOW[activeStatuses[0]] : null
   return (
@@ -392,6 +392,10 @@ export function UnitTile({ g, u, w, selected, targetable, canAct, dimmed, onClic
       className="relative rounded-lg overflow-visible select-none"
       style={{ width: w, height: h, cursor: onClick ? 'pointer' : 'default', opacity: dimmed ? 0.4 : 1, filter: dimmed ? 'grayscale(0.7)' : undefined, transition: 'opacity 0.2s, filter 0.2s' }}
     >
+      {picked && (
+        <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none"
+          style={{ width: 22, height: 22, background: '#16a34a', border: '2px solid #bbf7d0', boxShadow: '0 0 10px rgba(34,197,94,0.9)', color: '#fff', fontSize: 13, fontWeight: 900 }}>✓</span>
+      )}
       <div className="absolute inset-0 rounded-lg overflow-hidden"
         style={{
           background: 'var(--bg-surface)',
@@ -466,7 +470,7 @@ export function Token({ children, title, color, icon }: { children: React.ReactN
 
 type SelectMode =
   | { kind: 'attacker'; uid: string }
-  | { kind: 'spell'; uid: string }
+  | { kind: 'spell'; uid: string; picked?: TargetRef | null }
   | { kind: 'sacrifice'; cardUid: string; picked: string[] }
   | { kind: 'discard' }
   | { kind: 'spellMulti'; uid: string; need: number; picked: TargetRef[] }
@@ -491,6 +495,11 @@ function spellTargetRefs(game: GameState, side: Side, m: EffectMapping): TargetR
     out.push(t as TargetRef)
   }
   return out
+}
+
+/** Unikalus TargetRef raktas (palyginimui/pažymėjimui). */
+function targetRefKey(t: TargetRef): string {
+  return t.kind + ':' + ('uid' in t ? t.uid : t.side)
 }
 
 // ── Drag & drop (Hearthstone tipo) ───────────────────────────────────────────
@@ -1775,10 +1784,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       setSelect(null)
       return
     }
-    if (select?.kind === 'spell') {
-      const uid = select.uid
-      doAction({ t: 'play', actor: 'you', uid, target: { kind: 'unit', side: 'you', uid: u.uid } })
-      setSelect(null)
+    if (select?.kind === 'spell' || select?.kind === 'spellMulti') {
+      toggleSpellTarget({ kind: 'unit', side: 'you', uid: u.uid })
       return
     }
     if (u.isChampion) {
@@ -1792,6 +1799,35 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     setSelect(select?.kind === 'attacker' && select.uid === u.uid ? null : { kind: 'attacker', uid: u.uid })
   }
 
+  // ── Burto taikinių pažymėjimas: bakstelk = pažymi (✓), dar kartą = atžymi; „Gerai" patvirtina ──
+  const toggleSpellTarget = (t: TargetRef) => {
+    if (select?.kind === 'spell') {
+      const same = select.picked && targetRefKey(select.picked) === targetRefKey(t)
+      playUiClick()
+      setSelect({ ...select, picked: same ? null : t })
+    } else if (select?.kind === 'spellMulti') {
+      const key = targetRefKey(t)
+      const exists = select.picked.some((p) => targetRefKey(p) === key)
+      if (exists) { playUiClick(); setSelect({ ...select, picked: select.picked.filter((p) => targetRefKey(p) !== key) }); return }
+      if (select.picked.length >= select.need) { pushToast(`Jau pasirinkta ${select.need}. Atžymėk vieną arba spausk „Gerai".`); return }
+      playUiClick()
+      setSelect({ ...select, picked: [...select.picked, t] })
+    }
+  }
+  const confirmSpellTargets = () => {
+    if (select?.kind === 'spell') {
+      if (!select.picked) { pushToast('Pirma pasirink taikinį.'); return }
+      playUiClick()
+      doAction({ t: 'play', actor: 'you', uid: select.uid, target: select.picked })
+      setSelect(null)
+    } else if (select?.kind === 'spellMulti') {
+      if (select.picked.length !== select.need) { pushToast(`Pasirink ${select.need} taikinį(-ius).`); return }
+      playUiClick()
+      doAction({ t: 'play', actor: 'you', uid: select.uid, targets: select.picked })
+      setSelect(null)
+    }
+  }
+
   const onTargetClick = (t: TargetRef) => {
     if (!myTurn || popupBlocks) return
     if (Date.now() - dragEndRef.current < 350) return
@@ -1799,22 +1835,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const uid = select.uid
       doAction({ t: 'attack', actor: 'you', uid, target: t })
       setSelect(null)
-    } else if (select?.kind === 'spell') {
-      const uid = select.uid
-      doAction({ t: 'play', actor: 'you', uid, target: t })
-      setSelect(null)
-    } else if (select?.kind === 'spellMulti') {
-      const key = t.kind + ':' + ('uid' in t ? t.uid : t.side)
-      if (select.picked.some((p) => (p.kind + ':' + ('uid' in p ? p.uid : p.side)) === key)) return
-      const picked = [...select.picked, t]
-      if (picked.length >= select.need) {
-        doAction({ t: 'play', actor: 'you', uid: select.uid, targets: picked })
-        setSelect(null)
-      } else {
-        playUiClick()
-        setSelect({ ...select, picked })
-        pushToast(`Pasirink taikinius: ${picked.length}/${select.need}`)
-      }
+    } else if (select?.kind === 'spell' || select?.kind === 'spellMulti') {
+      toggleSpellTarget(t)
     }
   }
 
@@ -1877,6 +1899,15 @@ doAction({ t: 'endTurn', actor: 'you' })
     }
     return new Set<string>()
   }, [game, select, drag])
+
+  // Pažymėtų (✓) taikinių raktai burto select metu
+  const pickedKeys = useMemo(() => {
+    if (select?.kind === 'spell') return new Set<string>(select.picked ? [targetRefKey(select.picked)] : [])
+    if (select?.kind === 'spellMulti') return new Set<string>(select.picked.map(targetRefKey))
+    return new Set<string>()
+  }, [select])
+  const canConfirmTargets = select?.kind === 'spell' ? !!select.picked
+    : select?.kind === 'spellMulti' ? select.picked.length === select.need : false
 
   // ── Drag & drop valdiklis (Hearthstone tipo: tempk kortą ant lentos) ──
   const elToTargetRef = (el: Element | null): TargetRef | null => {
@@ -2083,6 +2114,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <UnitTile
                 g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
                 selected={select?.kind === 'attacker' && select.uid === u.uid}
+                picked={pickedKeys.has('unit:' + u.uid)}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}
                 dimmed={
@@ -2120,8 +2152,11 @@ doAction({ t: 'endTurn', actor: 'you' })
               className="relative rounded-md overflow-hidden"
               style={{
                 width: isTouch ? 40 : 60, height: isTouch ? 54 : 84,
-                border: targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
+                border: pickedKeys.has('artifact:' + a.uid) ? '2px solid #22c55e' : targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
+              {pickedKeys.has('artifact:' + a.uid) && (
+                <span className="absolute top-0 right-0 z-30 flex items-center justify-center rounded-bl pointer-events-none" style={{ width: 16, height: 16, background: '#16a34a', color: '#fff', fontSize: 11, fontWeight: 900 }}>✓</span>
+              )}
               {a.card.image
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={a.card.image} alt={a.card.name} className="absolute inset-0 w-full h-full object-cover" />
@@ -2177,13 +2212,16 @@ doAction({ t: 'endTurn', actor: 'you' })
         data-player={side}
         onClick={() => side === 'ai' && onTargetClick({ kind: 'player', side: 'ai' })}
         disabled={!targetable}
-        className="flex items-center justify-center p-0.5 rounded-xl"
+        className="relative flex items-center justify-center p-0.5 rounded-xl"
         style={{
           background: 'transparent',
-          border: targetable ? '2px solid #ef4444' : '2px solid transparent',
-          boxShadow: targetable ? '0 0 14px rgba(239,68,68,0.7)' : 'none',
+          border: pickedKeys.has('player:' + side) ? '2px solid #22c55e' : targetable ? '2px solid #ef4444' : '2px solid transparent',
+          boxShadow: pickedKeys.has('player:' + side) ? '0 0 16px rgba(34,197,94,0.7)' : targetable ? '0 0 14px rgba(239,68,68,0.7)' : 'none',
           cursor: targetable ? 'pointer' : 'default',
         }}>
+        {pickedKeys.has('player:' + side) && (
+          <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none" style={{ width: 20, height: 20, background: '#16a34a', border: '2px solid #bbf7d0', color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>
+        )}
         <HpVial hp={p.hp} maxHp={p.maxHp} scale={scale} />
       </button>
     )
@@ -3256,10 +3294,22 @@ doAction({ t: 'endTurn', actor: 'you' })
       </AnimatePresence>
 
       {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
-      {select?.kind === 'spellMulti' && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[120] px-4 py-2 rounded-full text-sm font-bold pointer-events-none"
-          style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-          🎯 Pasirink taikinius: {select.picked.length}/{select.need}
+      {(select?.kind === 'spell' || select?.kind === 'spellMulti') && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[121] flex items-center gap-2">
+          <div className="px-4 py-2 rounded-full text-sm font-bold pointer-events-none"
+            style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+            🎯 {select.kind === 'spellMulti' ? `Taikiniai: ${select.picked.length}/${select.need}` : (select.picked ? 'Taikinys pasirinktas' : 'Pasirink taikinį')}
+          </div>
+          <button onClick={confirmSpellTargets} disabled={!canConfirmTargets}
+            className="px-4 py-2 rounded-full text-sm font-extrabold"
+            style={{ background: canConfirmTargets ? 'linear-gradient(145deg,#16a34a,#15803d)' : 'rgba(40,40,46,0.8)', border: '1px solid ' + (canConfirmTargets ? '#4ade80' : 'rgba(255,255,255,0.15)'), color: canConfirmTargets ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: canConfirmTargets ? '0 0 16px rgba(34,197,94,0.55)' : 'none', cursor: canConfirmTargets ? 'pointer' : 'not-allowed' }}>
+            ✓ Gerai
+          </button>
+          <button onClick={() => { playUiClick(); setSelect(null) }}
+            className="px-3 py-2 rounded-full text-sm font-bold"
+            style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>
+            ✕
+          </button>
         </div>
       )}
 

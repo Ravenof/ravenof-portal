@@ -61,7 +61,7 @@ export type EffectType =
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
   | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
-  | 'spellDiscount' | 'buffSpellDamage'
+  | 'spellDiscount' | 'buffSpellDamage' | 'cardCostMod'
   | 'chooseEffect' | 'tutorToHand'
   | 'coinFlip' | 'loseGoldNextTurn'
   | 'copyEffectFromGraveyard'
@@ -107,6 +107,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false },
   { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)',    needsValue: true },
+  { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true },
   { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false },
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true },
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },
@@ -142,6 +143,7 @@ export type TriggerType =
   | 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay'
   | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd'
   | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse'
+  | 'onOpponentGoldEmpty'
   | 'custom'
 
 export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
@@ -180,6 +182,7 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onAnyTurnStart',      label: 'Kiekvieno ėjimo pradžioje (abiejų žaidėjų)' },
   { value: 'onAnyTurnEnd',        label: 'Kiekvieno ėjimo pabaigoje (abiejų žaidėjų)' },
   { value: 'onAnyCurse',          label: 'Kai aktyvuojamas BET KURIS prakeiksmas (globalu)' },
+  { value: 'onOpponentGoldEmpty', label: 'Kai priešininkas išnaudoja visą auksą (globalu)' },
   { value: 'custom',              label: 'Custom (kodas)' },
 ]
 
@@ -290,6 +293,10 @@ export type EffectMapping = {
   overflowToPlayer?: boolean    // žala padarui: perteklinė (virš taikinio HP) žala pereina taikinio žaidėjui
   zmkValue?: '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'  // removeZmkCard: kuri ŽMK korta šalinama
   zmkAppliesTo?: 'caster' | 'opponent'                      // removeZmkCard: kieno kaladė (default caster)
+  goldAppliesTo?: 'caster' | 'opponent'                     // gainGold/loseGold: kam taikoma (default: gain→caster, lose→opponent)
+  costModDelta?: number                                     // cardCostMod: kainos pokytis (+ brangiau, − pigiau)
+  costModCardType?: 'any' | 'unit' | 'spell' | 'artifact' | 'reaction' | 'field'  // cardCostMod: kuriam kortos tipui
+  costModAppliesTo?: 'caster' | 'opponent'                  // cardCostMod: kieno sekančiai kortai (default caster)
   animation?: string
   sound?: BattleSoundType
   projectile?: ProjectileType

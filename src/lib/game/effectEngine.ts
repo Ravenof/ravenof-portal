@@ -31,6 +31,7 @@ export type GameApi = {
   drawZmkVisual(g: GameState, s: Side): void
   removeZmkCard(g: GameState, s: Side, value: string, count: number): void
   setSpellDiscount(g: GameState, s: Side, n: number): void
+  addCardCostMod(g: GameState, s: Side, delta: number, cardType: string | null): void
   buffSpellDamage(g: GameState, s: Side, n: number): void
   tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; choose?: boolean }): void
   chooseEffect(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[], chooser?: Side): void
@@ -67,7 +68,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard',
   'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
   'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
-  'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage',
+  'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
   'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard',
 ])
 
@@ -177,7 +178,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -253,8 +254,9 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       break
     case 'drawUntilHand': { const h = (caster === 'you' ? g.you : g.ai).hand.length; const need = Math.max(0, v - h); if (need > 0) api.drawCards(g, caster, need); break }
     case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v); break
-    case 'gainGold': api.gainGold(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v, ctx.sourceName); break
-    case 'loseGold': api.loseGold(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, ctx.sourceName); break
+    case 'gainGold': api.gainGold(g, m.goldAppliesTo === 'opponent' ? foe : m.goldAppliesTo === 'caster' ? caster : (targets[0]?.kind === 'player' ? targets[0].side : caster), v, ctx.sourceName); break
+    case 'loseGold': api.loseGold(g, m.goldAppliesTo === 'caster' ? caster : m.goldAppliesTo === 'opponent' ? foe : (targets[0]?.kind === 'player' ? targets[0].side : foe), v, ctx.sourceName); break
+    case 'cardCostMod': api.addCardCostMod(g, m.costModAppliesTo === 'opponent' ? foe : caster, m.costModDelta ?? v, (m.costModCardType && m.costModCardType !== 'any') ? m.costModCardType : null); break
     case 'summonFromHand': m.summonChoose ? api.summonAdvanced(g, caster, { zones: ['hand'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true }) : api.summonFromZone(g, caster, 'hand', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
     case 'summonFromDeck': m.summonChoose ? api.summonAdvanced(g, caster, { zones: ['deck'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true }) : api.summonFromZone(g, caster, 'deck', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
     case 'summonFromGraveyard': case 'revive': {

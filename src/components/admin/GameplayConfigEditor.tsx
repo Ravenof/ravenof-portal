@@ -786,9 +786,37 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       </>
                     )}
                     {m.effect === 'coinFlip' && (
-                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                        🪙 Monetos metimas: ŽALIOS pusės efektus (coinGreen[]) ir RAUDONOS (coinRed[]) suvesk JSON režimu
-                      </span>
+                      <div className="w-full pl-2 mt-1" style={{ borderLeft: '2px solid rgba(240,180,41,0.5)' }}>
+                        <span className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>🪙 Moneta krenta 50/50. Nustatyk kiekvienos pusės efektą:</span>
+                        {(['green', 'red'] as const).map((sideKey) => {
+                          const arrKey = sideKey === 'green' ? 'coinGreen' : 'coinRed'
+                          const cur = ((m as EffectMapping)[arrKey] ?? []) as EffectMapping[]
+                          const inner = cur[0] ?? ({ trigger: m.trigger, effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: true } as EffectMapping)
+                          const setInner = (patch: Partial<EffectMapping>) => {
+                            const a = [...cur]
+                            a[0] = { ...(a[0] ?? { trigger: m.trigger }), ...patch } as EffectMapping
+                            setMapping(i, { [arrKey]: a } as Partial<EffectMapping>)
+                          }
+                          const innerDef = EFFECT_TYPES.find((e) => e.value === inner.effect)
+                          return (
+                            <div key={sideKey} className="flex flex-wrap items-end gap-2 mb-1">
+                              <span className="text-[11px] font-bold" style={{ color: sideKey === 'green' ? '#4ade80' : '#f87171' }}>{sideKey === 'green' ? '🟢 ŽALIA' : '🔴 RAUDONA'}</span>
+                              <select value={inner.effect} onChange={(e) => setInner({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 140 }}>
+                                {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                              </select>
+                              <select value={inner.target} onChange={(e) => setInner({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 130 }}>
+                                {TARGET_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                              </select>
+                              {innerDef?.needsValue && <input type="number" value={inner.value ?? 1} onChange={(e) => setInner({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 60 }} />}
+                              <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                <input type="checkbox" checked={inner.requiresSelection === true} onChange={(e) => setInner({ requiresSelection: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                                Renkasi
+                              </label>
+                            </div>
+                          )
+                        })}
+                        <span className="text-[10px] block" style={{ color: 'var(--text-muted)' }}>Sudėtingesnėms (kelių efektų) pusėms naudok JSON režimą.</span>
+                      </div>
                     )}
                     <label className="flex items-center gap-1">
                       <input type="checkbox" checked={m.optional ?? false}
@@ -847,6 +875,52 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                             <option value="opponent">Priešo kaladė</option>
                           </select>
                         </label>
+                      </>
+                    )}
+                    {/* Gold gain/lose – kam taikoma (sau / priešininkui) */}
+                    {(m.effect === 'gainGold' || m.effect === 'loseGold') && (
+                      <label className="flex items-center gap-1" title="Kam taikomas aukso pokytis">
+                        Kam:
+                        <select value={m.goldAppliesTo ?? (m.effect === 'gainGold' ? 'caster' : 'opponent')}
+                          onChange={(e) => setMapping(i, { goldAppliesTo: e.target.value as 'caster' | 'opponent' })}
+                          style={{ ...inputStyle, width: 130 }}>
+                          <option value="caster">Sau</option>
+                          <option value="opponent">Priešininkui</option>
+                        </select>
+                      </label>
+                    )}
+                    {/* cardCostMod – sekanti korta kainuoja +/- (gali pagal tipa) */}
+                    {m.effect === 'cardCostMod' && (
+                      <>
+                        <label className="flex items-center gap-1" title="Kainos pokytis: teigiamas = brangiau, neigiamas = pigiau">
+                          Pokytis:
+                          <input type="number" value={m.costModDelta ?? m.value ?? -1}
+                            onChange={(e) => setMapping(i, { costModDelta: Number(e.target.value) })}
+                            style={{ ...inputStyle, width: 70 }} />
+                        </label>
+                        <label className="flex items-center gap-1" title="Kuriam kortos tipui (any = bet kuriai sekanciai kortai)">
+                          Tipas:
+                          <select value={m.costModCardType ?? 'any'}
+                            onChange={(e) => setMapping(i, { costModCardType: e.target.value as EffectMapping['costModCardType'] })}
+                            style={{ ...inputStyle, width: 120 }}>
+                            <option value="any">Bet kuri</option>
+                            <option value="unit">Padaras</option>
+                            <option value="spell">Burtas</option>
+                            <option value="artifact">Artefaktas</option>
+                            <option value="reaction">Reakcija</option>
+                            <option value="field">Laukas</option>
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1" title="Kieno sekanciai kortai taikoma">
+                          Kam:
+                          <select value={m.costModAppliesTo ?? 'caster'}
+                            onChange={(e) => setMapping(i, { costModAppliesTo: e.target.value as 'caster' | 'opponent' })}
+                            style={{ ...inputStyle, width: 130 }}>
+                            <option value="caster">Sau</option>
+                            <option value="opponent">Priesininkui</option>
+                          </select>
+                        </label>
+                        <span className="text-[10px] w-full" style={{ color: 'var(--text-muted)' }}>Pokytis taikomas pirmai tinkamai sekanciai kortai (suvartojama ja suzaidus).</span>
                       </>
                     )}
                     {/* Summon parametrai */}
@@ -1032,7 +1106,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       }
                       const fEffDef = EFFECT_TYPES.find((e) => e.value === fm.effect)
                       const fPlayerOnly = ['discard', 'gainGold', 'loseGold'].includes(fm.effect)
-                      const fNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand'].includes(fm.effect)
+                      const fNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'chooseEffect'].includes(fm.effect)
                       return (
                         <div key={fi} className="flex flex-wrap items-end gap-2 mb-1">
                           <span className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>↳ tada</span>
@@ -1133,6 +1207,62 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                               🦴 Sunaikintą taikinį
                             </label>
                           )}
+                          {fEffDef?.needsValue && (
+                            <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Reikšmė = bazė + perEach × metrika (pvz. padaryta žala)">
+                              <input type="checkbox" checked={!!fm.dynamicValue}
+                                onChange={(e) => setThen({ dynamicValue: e.target.checked ? { base: 0, perEach: 1, source: 'lastDamageDealt' } : undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                              Dinaminė
+                            </label>
+                          )}
+                          {fm.dynamicValue && (
+                            <span className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }}>
+                              bazė
+                              <input type="number" value={fm.dynamicValue.base} onChange={(e) => setThen({ dynamicValue: { ...fm.dynamicValue!, base: Number(e.target.value) } })} style={{ ...inputStyle, width: 46 }} />
+                              + už
+                              <input type="number" value={fm.dynamicValue.perEach} onChange={(e) => setThen({ dynamicValue: { ...fm.dynamicValue!, perEach: Number(e.target.value) } })} style={{ ...inputStyle, width: 46 }} />
+                              <select value={fm.dynamicValue.source} onChange={(e) => setThen({ dynamicValue: { ...fm.dynamicValue!, source: e.target.value as MetricSource } })} style={{ ...inputStyle, width: 150 }}>
+                                {METRIC_SOURCES.map((ms) => <option key={ms.value} value={ms.value}>{ms.label}</option>)}
+                              </select>
+                            </span>
+                          )}
+                          {fm.effect === 'chooseEffect' && (
+                            <div className="w-full pl-2 mt-1" style={{ borderLeft: '2px solid rgba(96,165,250,0.5)' }}>
+                              <div className="flex items-center gap-2 mb-1 text-[11px]">
+                                <span style={{ color: '#93c5fd', fontWeight: 700 }}>⇄ ARBA padaryk (pop-up renkasi):</span>
+                                <label className="flex items-center gap-1">Renkasi
+                                  <select value={fm.chooseBy ?? 'caster'} onChange={(e) => setThen({ chooseBy: e.target.value as 'caster' | 'opponent' })} style={{ ...inputStyle, width: 130 }}>
+                                    <option value="caster">Tu</option>
+                                    <option value="opponent">Priešininkas</option>
+                                  </select>
+                                </label>
+                              </div>
+                              {[0, 1].map((k) => {
+                                const optArr = fm.chooseOne ?? []
+                                const inner = (optArr[k]?.mappings?.[0]) ?? { trigger: fm.trigger, effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: true } as EffectMapping
+                                const ensure = () => {
+                                  const arr = [...(fm.chooseOne ?? [])]
+                                  while (arr.length < 2) arr.push({ label: '', mappings: [{ trigger: fm.trigger, effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true } as EffectMapping] })
+                                  return arr
+                                }
+                                const setOpt = (patch: { label?: string }) => { const arr = ensure(); arr[k] = { ...arr[k], ...patch }; setThen({ chooseOne: arr }) }
+                                const setInner = (patch: Partial<EffectMapping>) => { const arr = ensure(); const m0 = { ...(arr[k].mappings[0] ?? {}), ...patch } as EffectMapping; arr[k] = { ...arr[k], mappings: [m0, ...arr[k].mappings.slice(1)] }; setThen({ chooseOne: arr }) }
+                                const innerDef = EFFECT_TYPES.find((e) => e.value === inner.effect)
+                                return (
+                                  <div key={k} className="flex flex-wrap items-end gap-2 mb-1">
+                                    <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>{k === 0 ? 'A' : 'B'}</span>
+                                    <input value={optArr[k]?.label ?? ''} placeholder={'Variantas ' + (k === 0 ? 'A' : 'B')} onChange={(e) => setOpt({ label: e.target.value })} style={{ ...inputStyle, width: 120 }} />
+                                    <select value={inner.effect} onChange={(e) => setInner({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 140 }}>
+                                      {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                    </select>
+                                    <select value={inner.target} onChange={(e) => setInner({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 130 }}>
+                                      {TARGET_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                    </select>
+                                    {innerDef?.needsValue && <input type="number" value={inner.value ?? 1} onChange={(e) => setInner({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 60 }} />}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                           <button type="button" onClick={() => { const arr = (m.then ?? []).filter((_, j) => j !== fi); setMapping(i, { then: arr.length ? arr : undefined }) }}
                             className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
                         </div>
@@ -1142,6 +1272,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       onClick={() => setMapping(i, { then: [...(m.then ?? []), { trigger: m.trigger, effect: 'heal', target: 'selfUnit', value: 2, requiresSelection: false } as EffectMapping] })}
                       className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>
                       + Tada padaryk dar…
+                    </button>
+                    <button type="button"
+                      onClick={() => setMapping(i, { then: [...(m.then ?? []), { trigger: m.trigger, effect: 'chooseEffect', target: 'self', requiresSelection: false, chooseBy: 'caster', chooseOne: [
+                        { label: 'Variantas A', mappings: [{ trigger: m.trigger, effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: true } as EffectMapping] },
+                        { label: 'Variantas B', mappings: [{ trigger: m.trigger, effect: 'heal', target: 'ownUnit', value: 2, requiresSelection: true } as EffectMapping] },
+                      ] } as EffectMapping] })}
+                      className="text-[11px] font-semibold ml-3" style={{ color: '#93c5fd' }}>
+                      + Arba padaryk…
                     </button>
                   </div>
                 </div>

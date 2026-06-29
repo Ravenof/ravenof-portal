@@ -137,6 +137,8 @@ export type PlayerState = {
   spellDamageBonus: number
   /** Aukso bauda, taikoma šio žaidėjo kito ėjimo pradžioje (priešo efektas). */
   goldPenaltyNextTurn: number
+  /** Sekančios kortos kainos modifikatoriai (cardCostMod). Kiekvienas suvartojamas, kai sužaidžiama atitinkama korta. */
+  nextCardCostMods: { delta: number; cardType: string | null }[]
 }
 
 export type GameEventType =
@@ -335,7 +337,7 @@ function mkPlayer(side: Side, deck: TutCard[], zmkPile: ZmkValue[], curses: TutC
     zmk: zmkPile, zmkGrave: [],
     gold: 0, turnNumber: 0, discardedForGold: false,
     curses, attacksThisTurn: 0, fieldDamageReducedThisTurn: false,
-    spellDiscountNext: 0, spellDamageBonus: 0, goldPenaltyNextTurn: 0,
+    spellDiscountNext: 0, spellDamageBonus: 0, goldPenaltyNextTurn: 0, nextCardCostMods: [],
   }
 }
 
@@ -1361,12 +1363,13 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
 let firingGlobal = false
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   try {
     // Ar mapping'o trigerio filtrai (kieno įvykis / potipis / frakcija / burto tipas) tinka.
     const passes = (m: EffectMapping, sd: Side): boolean => {
+      if (trigger === 'onOpponentGoldEmpty' && ctx?.side && sameTeam(g, ctx.side, sd)) return false
       if (ctx?.side) {
         const want = m.triggerSide ?? 'any'
         if (want === 'own' && ctx.side && !sameTeam(g, ctx.side, sd)) return false
@@ -1502,6 +1505,12 @@ function setSpellDiscountPrim(g: GameState, s: Side, n: number) {
   const p = P(g, s)
   p.spellDiscountNext = Math.max(p.spellDiscountNext, n)
   log(g, { t: 'gold', side: s, value: -n, msg: `${sideName(s)} kitas burtas kainuos ${n} aukso pigiau.` })
+}
+function addCardCostModPrim(g: GameState, s: Side, delta: number, cardType: string | null) {
+  const p = P(g, s)
+  p.nextCardCostMods.push({ delta, cardType })
+  const typeLbl = cardType ? ` (${cardType})` : ''
+  log(g, { t: 'gold', side: s, value: delta, msg: `🪙 ${sideName(s)} sekanti korta${typeLbl} kainuoja ${delta >= 0 ? '+' : ''}${delta} aukso.` })
 }
 function buffSpellDamagePrim(g: GameState, s: Side, n: number) {
   const p = P(g, s)
@@ -1639,6 +1648,7 @@ export const gameApi: GameApi = {
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
   setSpellDiscount: setSpellDiscountPrim,
+  addCardCostMod: addCardCostModPrim,
   buffSpellDamage: buffSpellDamagePrim,
   tutorToHand: tutorToHandPrim,
   chooseEffect: chooseEffectPrim,
@@ -1652,7 +1662,22 @@ export function effectiveCost(g: GameState, s: Side, card: TutCard): number {
   if (card.type === 'spell') cost += fieldEngine.spellCostDelta(g, s) - P(g, s).spellDiscountNext
   if (card.type === 'unit') cost += fieldEngine.unitCostDelta(g, s)
   cost -= auraCostReductionFor(g, s, card)
+  cost += cardCostModDelta(g, s, card)
   return Math.max(0, cost)
+}
+
+/** Sekančios kortos kainos modifikatorių suma, tinkanti šiai kortai (cardCostMod). */
+function cardCostModDelta(g: GameState, s: Side, card: TutCard): number {
+  let d = 0
+  for (const m of P(g, s).nextCardCostMods) {
+    if (m.cardType === null || m.cardType === card.type) d += m.delta
+  }
+  return d
+}
+/** Suvartoja (pašalina) šiai kortai tinkamus kainos modifikatorius – po sėkmingo sužaidimo. */
+function consumeCardCostMods(g: GameState, s: Side, card: TutCard): void {
+  const p = P(g, s)
+  p.nextCardCostMods = p.nextCardCostMods.filter((m) => !(m.cardType === null || m.cardType === card.type))
 }
 
 /** Suskaičiuoja kainos sumažinimą iš pasyvių aurų (padarų/artefaktų kovos lauke). */
@@ -1857,6 +1882,17 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
 }
 
 export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }): PlayResult {
+  const pp = P(g, s)
+  const playedCard = pp.hand.find((c) => c.uid === uid)
+  const goldBefore = pp.gold
+  const r = playCardInner(g, s, uid, opts)
+  if (r.ok && playedCard) consumeCardCostMods(g, s, playedCard)
+  // „Kai priešininkas išnaudoja visą auksą" – fire'inam priešo kortoms (jos reaguoja į TAVO 0 aukso).
+  if (r.ok && goldBefore > 0 && pp.gold === 0 && !g.winner) fireGlobalListeners(g, 'onOpponentGoldEmpty', { side: s })
+  return r
+}
+
+function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }): PlayResult {
   if (g.winner) return { ok: false, reason: 'Žaidimas baigtas.' }
   g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'Ne tavo ėjimas.' }
