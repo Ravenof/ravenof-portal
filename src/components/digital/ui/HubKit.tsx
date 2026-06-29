@@ -12,6 +12,7 @@ import { ChevronRight, Lock } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
 
 const GOLD = '240,180,41'
+export const ASSET = '/digital/ui2'
 
 // ── shared CSS ────────────────────────────────────────────────────────────────
 export function HubStyles() {
@@ -42,6 +43,8 @@ export function HubStyles() {
     @keyframes rvnFade { from{ opacity:0; transform: translateY(8px);} to{ opacity:1; transform:none;} }
     .rvn-fade { animation: rvnFade .26s ease-out both; }
     .rvn-disp { font-family: var(--rvn-font-display, Cinzel, serif); }
+    .rvn-imgcard .hi { position:absolute; inset:0; width:100%; opacity:0; transition:opacity .14s ease; }
+    .rvn-imgcard:active .hi { opacity:1; }
   `}</style>
 }
 
@@ -109,20 +112,17 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
 }
 
 // ── ModeSelector ──────────────────────────────────────────────────────────────
-export type HubMode = { key: string; label: string; sub: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; accent: string; locked?: boolean }
+export type HubMode = { key: string; img: string; imgSel: string; locked?: boolean }
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {modes.map((m) => {
-        const Icon = m.icon; const sel = m.key === selected && !m.locked
+        const sel = m.key === selected && !m.locked
         return (
-          <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className={`rvn-press relative flex flex-col items-center justify-center text-center ${sel ? 'rvn-sel' : ''}`}
-            style={{ minHeight: 70, borderRadius: 11, padding: '9px 4px', gap: 4, opacity: m.locked ? 0.5 : 1,
-              background: sel ? `linear-gradient(165deg, rgba(${m.accent},0.30), rgba(10,8,16,0.92))` : 'linear-gradient(165deg, rgba(24,18,34,0.9), rgba(10,8,16,0.92))',
-              border: `1px solid rgba(${m.accent},${sel ? 0.7 : 0.3})`, boxShadow: sel ? undefined : 'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
-            {m.locked ? <Lock className="w-[18px] h-[18px]" style={{ color: 'var(--text-muted)' }} /> : <RvnIcon name={`mode-${m.key}`} size={22} fallback={<Icon className="w-[19px] h-[19px]" style={{ color: `rgb(${m.accent})`, filter: `drop-shadow(0 0 5px rgba(${m.accent},0.6))` }} />} />}
-            <span className="rvn-disp" style={{ fontSize: 11, fontWeight: 700, color: '#f3ead3', lineHeight: 1.05 }}>{m.label}</span>
-            <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{m.locked ? 'Greitai' : m.sub}</span>
+          <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className="rvn-press block w-full overflow-hidden"
+            style={{ borderRadius: 10, lineHeight: 0, opacity: m.locked ? 0.45 : sel ? 1 : 0.82,
+              boxShadow: sel ? `0 0 0 1.5px rgba(${GOLD},0.9), 0 0 14px rgba(${GOLD},0.4)` : 'none', filter: sel ? 'none' : 'saturate(0.85) brightness(0.9)' }}>
+            <img src={sel ? m.imgSel : m.img} alt="" className="w-full block" />
           </button>
         )
       })}
@@ -131,17 +131,19 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
 }
 
 // ── PlayHeroCard ──────────────────────────────────────────────────────────────
-export function PlayHeroCard({ subtitle, ctaLabel = 'Pradėti kovą', onCta, children }: { subtitle: string; ctaLabel?: string; onCta: () => void; children?: ReactNode }) {
+export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; onCta: () => void; children?: ReactNode }) {
   return (
     <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.45)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)` }}>
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(130% 90% at 50% -10%, rgba(150,40,50,0.45), transparent 55%), radial-gradient(90% 70% at 50% 6%, rgba(240,180,41,0.16), transparent 60%), linear-gradient(170deg, #1d1018 0%, #0a0810 70%)' }} />
-      <div className="absolute inset-x-0 top-0" style={{ height: 3, background: `linear-gradient(90deg, transparent, rgba(${GOLD},0.8), transparent)` }} />
+      <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.22) 0%, rgba(8,6,14,0.48) 55%, rgba(8,6,14,0.82) 100%)' }} />
       <div className="relative p-4 flex flex-col" style={{ gap: 12 }}>
-        <div className="text-center">
-          <h1 className="rvn-disp" style={{ fontSize: 27, fontWeight: 800, color: `rgb(${GOLD})`, letterSpacing: '0.12em', margin: 0, textShadow: `0 2px 6px #000, 0 0 26px rgba(${GOLD},0.55)` }}>ŽAISTI DABAR</h1>
-          <p style={{ fontSize: 11.5, color: '#e8dcc0', marginTop: 3 }}>{subtitle}</p>
+        <div className="flex flex-col items-center" style={{ gap: 3 }}>
+          <img src={`${ASSET}/heading.webp`} alt="Žaisti dabar" style={{ height: 38, width: 'auto', filter: 'drop-shadow(0 2px 6px #000)' }} />
+          <img src={`${ASSET}/subtitle.webp`} alt={subtitle} style={{ height: 14, width: 'auto', opacity: 0.95 }} />
         </div>
-        <button onClick={onCta} className="rvn-press rvn-gold-btn rvn-glow w-full" style={{ padding: '14px', fontSize: 17, letterSpacing: '0.03em', maxWidth: 440, margin: '0 auto', borderRadius: 13 }}>{ctaLabel}</button>
+        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 430, margin: '0 auto', filter: `drop-shadow(0 4px 14px rgba(${GOLD},0.4))` }}>
+          <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" />
+        </button>
         <div>{children}</div>
       </div>
     </div>
@@ -149,20 +151,16 @@ export function PlayHeroCard({ subtitle, ctaLabel = 'Pradėti kovą', onCta, chi
 }
 
 // ── QuickActionCard ───────────────────────────────────────────────────────────
-export function QuickActionCard({ icon, iconName, label, sub, accent = GOLD, badge, href, onClick }: { icon: ReactNode; iconName?: string; label: string; sub: string; accent?: string; badge?: ReactNode; href?: string; onClick?: () => void }) {
+export function QuickActionCard({ image, badge, href, onClick }: { image: string; badge?: ReactNode; href?: string; onClick?: () => void }) {
+  const hi = image.replace('.webp', '-hi.webp')
   const inner = (
-    <div className="rvn-press rvn-panel relative flex items-center gap-3" style={{ padding: '12px', minHeight: 66, borderColor: `rgba(${accent},0.32)` }}>
-      <span className="flex items-center justify-center shrink-0" style={{ width: 42, height: 42, borderRadius: 12, color: `rgb(${accent})`,
-        background: `radial-gradient(circle at 50% 35%, rgba(${accent},0.28), rgba(${accent},0.08))`, border: `1px solid rgba(${accent},0.5)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.1), 0 0 10px rgba(${accent},0.2)` }}>{iconName ? <RvnIcon name={iconName} size={24} fallback={icon} /> : icon}</span>
-      <span className="flex flex-col min-w-0" style={{ gap: 2 }}>
-        <span className="truncate rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3' }}>{label}</span>
-        <span className="truncate" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>
-      </span>
-      <ChevronRight className="w-4 h-4 ml-auto shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
-      {badge != null && <span className="absolute" style={{ top: 8, right: 26 }}>{badge}</span>}
+    <div className="rvn-press rvn-imgcard relative w-full overflow-hidden" style={{ borderRadius: 14, lineHeight: 0 }}>
+      <img src={image} alt="" className="w-full block" />
+      <img src={hi} alt="" className="hi" />
+      {badge != null && <span className="absolute" style={{ top: 8, right: 12, lineHeight: 1 }}>{badge}</span>}
     </div>
   )
-  return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>
+  return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="w-full">{inner}</button>
 }
 
 export function CountBadge({ n, accent = '239,68,68' }: { n: number | string; accent?: string }) {

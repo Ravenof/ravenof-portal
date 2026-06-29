@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Target, Trophy, Swords, Layers, LayoutGrid, ClipboardList, ShoppingBag, GraduationCap, Medal } from 'lucide-react'
+import { GraduationCap, Medal } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
@@ -14,12 +14,12 @@ import { StoreModal } from './StoreModal'
 import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
 import { getStarterDecks } from '@/lib/starterDecks'
-import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, CountBadge, type HubMode } from './ui/HubKit'
+import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    label: 'Treniruotė', sub: 'Prieš AI',  icon: Target, accent: '52,211,153' },
-  { key: 'ranked', label: 'Ranginė',    sub: 'Reitingas', icon: Trophy, accent: '239,68,68' },
-  { key: 'free',   label: 'Draugiška',  sub: 'Su draugu', icon: Swords, accent: '251,146,60' },
+  { key: 'pve',    img: `${ASSET}/mode-pve.webp`,    imgSel: `${ASSET}/mode-pve-sel.webp` },
+  { key: 'ranked', img: `${ASSET}/mode-ranked.webp`, imgSel: `${ASSET}/mode-ranked-sel.webp` },
+  { key: 'free',   img: `${ASSET}/mode-free.webp`,   imgSel: `${ASSET}/mode-free-sel.webp` },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
@@ -72,10 +72,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </PlayHeroCard>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickActionCard iconName="qa-decks" icon={<Layers className="w-5 h-5" />} label="Kaladės" sub="Tvarkyk kovos kalades" accent="139,92,246" href="/digital/decks" onClick={() => playUiClick()} />
-        <QuickActionCard iconName="qa-collection" icon={<LayoutGrid className="w-5 h-5" />} label="Kolekcija" sub="Peržiūrėk kortas" accent="96,165,250" href="/digital/collection" onClick={() => playUiClick()} />
-        <QuickActionCard iconName="qa-quests" icon={<ClipboardList className="w-5 h-5" />} label="Užduotys" sub="Dienos tikslai" accent="236,72,153" onClick={() => { playUiClick(); setQuestsOpen(true) }} badge={questsPending > 0 ? <CountBadge n={questsPending} /> : null} />
-        <QuickActionCard iconName="qa-shop" icon={<ShoppingBag className="w-5 h-5" />} label="Parduotuvė" sub="Paketai ir pasiūlymai" accent="240,180,41" onClick={() => { playUiClick(); setStoreOpen(true) }} badge={wallet.packs > 0 ? <CountBadge n="🎁" accent="251,146,60" /> : null} />
+        <QuickActionCard image={`${ASSET}/card-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
+        <QuickActionCard image={`${ASSET}/card-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
+        <QuickActionCard image={`${ASSET}/card-quests.webp`} onClick={() => { playUiClick(); setQuestsOpen(true) }} />
+        <QuickActionCard image={`${ASSET}/card-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
       <StatCard emblemName="emblem-season" emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
