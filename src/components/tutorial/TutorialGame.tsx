@@ -316,10 +316,9 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
   const videos = avatar?.videos ?? []
   const [vid, setVid] = useState<string | null>(null)
   const vidTimer = useRef<number | undefined>(undefined)
-  const vidElRef = useRef<HTMLVideoElement | null>(null)
   const playRandomVid = () => { setVid(videos[Math.floor(Math.random() * videos.length)]) }
   useEffect(() => {
-    setVid(null)
+    setVid(null); onVid?.(null)
     if (vidTimer.current) window.clearTimeout(vidTimer.current)
     if (!videos.length) return
     let alive = true
@@ -327,17 +326,8 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
     return () => { alive = false; if (vidTimer.current) window.clearTimeout(vidTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatar?.id, videos.length])
-  // Kai paleidžiamas naujas idle video – priverstinai groti (mute) ir pranešti tėvui.
-  useEffect(() => {
-    const v = vidElRef.current
-    if (!v || !vid) { onVid?.(null); return }
-    v.muted = true
-    void v.play().catch(() => { /* autoplay gali būti blokuotas */ })
-    onVid?.(vid)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vid])
   const onVidEnd = () => {
-    setVid(null)
+    onVid?.(null); setVid(null)
     vidTimer.current = window.setTimeout(() => { if (videos.length) playRandomVid() }, 10000 + Math.random() * 20000)
   }
   // Vidinio lango įdubos (iš frame.png analizės)
@@ -352,15 +342,14 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
       style={{ width: size, height: size, filter: `drop-shadow(0 0 14px ${glow})` }}>
       {/* portretas / idle-video (po rėmu) */}
       <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
-        {avatar?.imageUrl
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
-          : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
-        {vid && (
-          <video ref={vidElRef} key={vid} src={vid} autoPlay muted playsInline preload="auto" disablePictureInPicture
-            onEnded={onVidEnd} onError={onVidEnd}
-            style={{ ...fitStyle, position: 'absolute', inset: 0 }} />
-        )}
+        {vid
+          ? <video key={vid} src={vid} autoPlay muted playsInline preload="auto"
+              onLoadedData={() => onVid?.(vid)} onEnded={onVidEnd}
+              style={fitStyle} />
+          : avatar?.imageUrl
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
+            : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
       </div>
       {/* ornate rėmas */}
