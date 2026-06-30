@@ -841,7 +841,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const choiceBlocks = !!game?.pendingChoice
   const copyBlocks = !!game?.pendingCopy
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-  const handW = isTouch ? 72 : 124
+  const handW = isTouch ? 80 : 124
   const unitW = isTouch ? 58 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
@@ -2606,59 +2606,33 @@ doAction({ t: 'endTurn', actor: 'you' })
             {renderUnitsRow('you', 'units-you')}
             {renderSideZones('you')}
 
-            {/* valdymo juosta */}
-            <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap shrink-0">
-              {hpBar('you')}
-              {goldBar('you')}
-              <div className="flex items-end gap-2">
-                {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
-                {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
-                {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
+            {/* valdymo juosta: auksas+parduoti (kairė) · avataras (centras) · pile'ai+baigti (dešinė) */}
+            <div className="flex items-end justify-between gap-2 shrink-0 px-1">
+              {/* kairė */}
+              <div className="flex flex-col items-center gap-1">
+                {goldBar('you')}
+                <button data-tut="discard-gold"
+                  onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau išmetei kortą šį ėjimą.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-bold transition-all whitespace-nowrap"
+                  style={{ background: game.you.discardedForGold ? 'rgba(0,0,0,0.5)' : select?.kind === 'discard' ? 'rgba(34,197,94,0.38)' : 'rgba(34,197,94,0.18)', border: '1px solid rgba(74,222,128,0.6)', color: game.you.discardedForGold ? 'var(--text-muted)' : '#86efac' }}
+                  title="Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)">+100⚜ už kortą</button>
               </div>
-              <button
-                data-tut="discard-gold"
-                onClick={() => {
-                  if (!myTurn || popupBlocks) return
-                  if (game.you.discardedForGold) { pushToast('Jau išmetei kortą šį ėjimą.'); return }
-                  playUiClick()
-                  setSelect(select?.kind === 'discard' ? null : { kind: 'discard' })
-                }}
-                className="px-2.5 py-1 rounded-full text-[11px] font-bold transition-all"
-                style={{
-                  background: select?.kind === 'discard' ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)',
-                  border: '1px solid rgba(240,180,41,0.4)',
-                  color: game.you.discardedForGold ? 'var(--text-muted)' : 'var(--gold)',
-                }}
-                title="Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)">
-                +100⚜
-              </button>
-              <button
-                onClick={() => { playUiClick(); setHandExpanded((v) => !v) }}
-                className="px-2.5 py-1 rounded-full text-[11px] font-bold transition-all"
-                style={{
-                  background: handExpanded ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)',
-                  border: '1px solid rgba(240,180,41,0.4)',
-                  color: 'var(--gold)',
-                }}
-                title={handExpanded ? 'Sumažinti ranką' : 'Padidinti ranką – kortos aiškiai matomos ir žaidžiamos'}>
-                {handExpanded ? '🔍−' : '🔍+'}
-              </button>
-              <button
-                data-tut="end-turn"
-                onClick={onEndTurn}
-                disabled={!myTurn}
-                className="px-4 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-40"
-                style={{
-                  background: myTurn ? 'linear-gradient(135deg, rgba(240,180,41,0.25), rgba(240,180,41,0.08))' : 'rgba(0,0,0,0.4)',
-                  border: '1px solid rgba(240,180,41,0.5)',
-                  color: 'var(--gold)',
-                  fontFamily: 'var(--rvn-font-display)',
-                  letterSpacing: '0.05em',
-                }}>
-                {myTurn ? 'Baigti ėjimą' : 'Priešininko ėjimas…'}
-              </button>
+              {/* centras: avataras */}
+              <div className="flex items-end">{hpBar('you')}</div>
+              {/* dešinė */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-end gap-1.5">
+                  {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
+                  {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
+                  {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
+                </div>
+                <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
+                  className="px-4 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-70 whitespace-nowrap"
+                  style={{ background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
+                  {myTurn ? 'Baigti ėjimą' : 'Priešininko ėjimas…'}
+                </button>
+              </div>
             </div>
-
             {/* ranka (sutraukta vėduoklė); palietus kortą – atsiveria didelė skaitoma ranka (overlay) */}
             <div data-tut="hand" ref={handRef}
               className="flex justify-center items-end gap-0 min-h-[104px] sm:min-h-[150px] pb-1 overflow-x-auto">
@@ -2674,7 +2648,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                       animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
                       whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
-                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.32), zIndex: i }}
+                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.1), zIndex: i }}
                       onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
                       <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
                         <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
