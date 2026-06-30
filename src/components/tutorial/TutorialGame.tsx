@@ -328,7 +328,14 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
     return () => { alive = false; if (vidTimer.current) window.clearTimeout(vidTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatar?.id, videos.length])
-  useEffect(() => { if (vidElRef.current) vidElRef.current.muted = true }, [vid])
+  useEffect(() => {
+    const v = vidElRef.current
+    if (!v || !vid) return
+    v.muted = true
+    void v.play().catch(() => { /* autoplay gali būti blokuotas */ })
+    const t = window.setTimeout(() => setVidReady(true), 700)  // atsarginis – jei onPlaying/onLoadedData nesuveikia
+    return () => window.clearTimeout(t)
+  }, [vid])
   useEffect(() => { onVid?.(vidReady ? vid : null) // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vid, vidReady])
   const onVidEnd = () => {
@@ -353,7 +360,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
           : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
         {vid && (
           <video ref={vidElRef} key={vid} src={vid} autoPlay muted playsInline preload="auto" disablePictureInPicture
-            onPlaying={() => setVidReady(true)} onEnded={onVidEnd} onError={onVidEnd}
+            onLoadedData={() => setVidReady(true)} onCanPlay={() => setVidReady(true)} onPlaying={() => setVidReady(true)} onEnded={onVidEnd} onError={onVidEnd}
             style={{ ...fitStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.25s ease' }} />
         )}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
