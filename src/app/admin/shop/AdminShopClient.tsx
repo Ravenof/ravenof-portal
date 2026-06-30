@@ -400,6 +400,7 @@ function AvatarsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & 
           {editing && <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={() => { setForm(blank); setEditing(false) }}>Atšaukti</button>}
         </div>
         {editing && <AdminAvatarAudio avatarId={form.id} supabase={supabase} flash={flash} />}
+        {editing && <AdminAvatarVideos avatarId={form.id} supabase={supabase} flash={flash} />}
       </div>
 
       <div className="space-y-2">
@@ -478,6 +479,57 @@ function AdminAvatarAudio({ avatarId, supabase, flash }: { avatarId: string; sup
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function AdminAvatarVideos({ avatarId, supabase, flash }: { avatarId: string; supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void }) {
+  const [vids, setVids] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const load = async () => {
+    const { data } = await supabase.from('cosmetics').select('videos').eq('id', avatarId).single()
+    setVids(((data as any)?.videos as string[]) ?? [])
+  }
+  useEffect(() => { void load() // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarId])
+
+  const save = async (next: string[]) => {
+    const { error } = await supabase.from('cosmetics').update({ videos: next, updated_at: new Date().toISOString() }).eq('id', avatarId)
+    if (error) { flash(error.message, true); return }
+    setVids(next)
+  }
+  const upload = async (file: File) => {
+    if (!['video/mp4', 'video/webm'].includes(file.type)) { flash('Tik MP4 / WEBM', true); return }
+    if (file.size > 10 * 1024 * 1024) { flash('Maks. 10 MB', true); return }
+    setBusy(true)
+    try {
+      const path = `${avatarId}/${Date.now()}-${avSafe(file.name)}`
+      const { error: up } = await supabase.storage.from('avatar-video').upload(path, file, { upsert: true, contentType: file.type })
+      if (up) { flash(up.message, true); return }
+      const { data: { publicUrl } } = supabase.storage.from('avatar-video').getPublicUrl(path)
+      await save([...vids, publicUrl]); flash('Video įkeltas')
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎬 Idle video ({vids.length}) {busy && '· keliama…'}</p>
+        <label className="text-[10px] cursor-pointer px-2 py-0.5 rounded" style={{ background: 'rgba(240,180,41,0.15)', color: 'var(--gold)' }}>
+          + Įkelti<input type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = '' }} />
+        </label>
+      </div>
+      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Groja vietoj portreto atsitiktinai kas 20–60 s.</p>
+      <div className="grid grid-cols-2 gap-2">
+        {vids.map((u, i) => (
+          <div key={i} className="rounded-lg p-1.5" style={{ background: 'var(--bg-elevated)' }}>
+            <video src={u} controls muted preload="none" style={{ width: '100%', borderRadius: 4 }} />
+            <button className="text-[11px] mt-1 w-full px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}
+              onClick={() => save(vids.filter((_, j) => j !== i))}>✕ Šalinti</button>
+          </div>
+        ))}
+        {vids.length === 0 && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Video nėra (rodomas portretas).</p>}
+      </div>
     </div>
   )
 }

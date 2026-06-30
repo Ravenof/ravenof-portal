@@ -299,9 +299,9 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
   return <span style={{ display: 'inline-block', width: 46 * scale, height: 60 * scale, flex: '0 0 auto' }}><span style={{ display: 'inline-block', transformOrigin: 'top left', transform: `scale(${scale})` }}>{inner}</span></span>
 }
 
-export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null }
+export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[] }
 
-/** Avatar – mūšio HP taikinys (portretas + HP + reakcijos). owner lemia akcentą. */
+/** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
 export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
   avatar: BattleAvatar | null
   hp: number; maxHp: number
@@ -309,28 +309,52 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
   scale?: number
   flash?: 'hit' | 'heal' | null
 }) {
-  const size = Math.round(56 * scale)
-  const frame = owner === 'player' ? 'rgba(240,180,41,0.85)' : 'rgba(167,139,250,0.85)'
-  const glow = owner === 'player' ? 'rgba(74,222,128,0.45)' : 'rgba(239,68,68,0.45)'
+  const size = Math.round(102 * scale)
+  const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
+  const crit = hp > 0 && hp <= maxHp * 0.25
+  const videos = avatar?.videos ?? []
+  const [vid, setVid] = useState<string | null>(null)
+  const vidTimer = useRef<number | undefined>(undefined)
+  useEffect(() => {
+    setVid(null)
+    if (vidTimer.current) window.clearTimeout(vidTimer.current)
+    if (!videos.length) return
+    let alive = true
+    const schedule = () => { vidTimer.current = window.setTimeout(() => { if (alive) setVid(videos[Math.floor(Math.random() * videos.length)]) }, 20000 + Math.random() * 40000) }
+    schedule()
+    return () => { alive = false; if (vidTimer.current) window.clearTimeout(vidTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatar?.id, videos.length])
+  const onVidEnd = () => {
+    setVid(null)
+    vidTimer.current = window.setTimeout(() => { if (videos.length) setVid(videos[Math.floor(Math.random() * videos.length)]) }, 20000 + Math.random() * 40000)
+  }
+  // Vidinio lango įdubos (iš frame.png analizės)
+  const win = { top: '29%', left: '28.5%', right: '28%', bottom: '33%' }
   return (
-    <div className="flex flex-col items-center gap-0.5 pointer-events-none">
-      <motion.div
-        animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.06, 1] } : {}}
-        transition={{ duration: 0.34 }}
-        className="relative overflow-hidden"
-        style={{ width: size, height: size, borderRadius: '50%', border: `2px solid ${frame}`,
-          boxShadow: `0 0 14px ${glow}, inset 0 0 16px rgba(0,0,0,0.65)`,
-          background: 'radial-gradient(circle at 50% 32%, #2a1f36, #0b0810)' }}>
-        {avatar?.imageUrl
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={avatar.imageUrl} alt={avatar.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-          : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: Math.round(size * 0.46) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
-        {/* ornate vidinis žiedas */}
-        <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.08)` }} />
+    <motion.div
+      animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
+      transition={{ duration: 0.34 }}
+      className="relative pointer-events-none"
+      style={{ width: size, height: size, filter: `drop-shadow(0 0 14px ${glow})` }}>
+      {/* portretas / idle-video (po rėmu) */}
+      <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
+        {vid
+          ? <video src={vid} autoPlay muted playsInline onEnded={onVidEnd} className="w-full h-full object-cover" />
+          : avatar?.imageUrl
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" draggable={false} />
+            : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
-      </motion.div>
-      <div style={{ marginTop: -10 }}><HpVial hp={hp} maxHp={maxHp} scale={0.62 * scale} /></div>
-    </div>
+      </div>
+      {/* ornate rėmas */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full select-none" draggable={false} />
+      {/* HP ant apatinio skydo */}
+      <span className="absolute" style={{ left: '50%', bottom: '9%', transform: 'translateX(-50%)',
+        fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: Math.round(size * 0.155), lineHeight: 1,
+        color: crit ? '#ff6b6b' : '#e8c84a', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}>{Math.max(0, hp)}</span>
+    </motion.div>
   )
 }
 
@@ -700,7 +724,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const items = (cos?.items ?? []).filter((c) => c.kind === 'avatar')
       const mine = items.find((c) => c.id === cos?.equippedAvatar) ?? items.find((c) => c.ownedByDefault) ?? items[0] ?? null
       const foe = items.find((c) => c.id !== mine?.id) ?? items[0] ?? null
-      const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji } : null
+      const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [] } : null
       const me = toAv(mine), en = toAv(foe)
       setYouAvatar(me); setEnemyAvatar(en)
       youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null

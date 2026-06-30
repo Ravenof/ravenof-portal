@@ -14,6 +14,7 @@ export type Cosmetic = {
   imageUrl: string | null
   rarity?: 'common' | 'rare' | 'epic' | 'legendary' | null
   ownedByDefault?: boolean
+  videos?: string[]
 }
 
 export type CosmeticsState = {
