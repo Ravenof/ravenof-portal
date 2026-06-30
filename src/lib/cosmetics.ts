@@ -15,6 +15,7 @@ export type Cosmetic = {
   rarity?: 'common' | 'rare' | 'epic' | 'legendary' | null
   ownedByDefault?: boolean
   videos?: string[]
+  portraitFit?: { x: number; y: number; zoom: number } | null
 }
 
 export type CosmeticsState = {

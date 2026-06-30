@@ -1,7 +1,7 @@
 'use client'
 
 // ── Parduotuvės administravimas: kosmetika · pakuotės · starter kaladės ───────
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ShopImageUpload } from '@/components/admin/ShopImageUpload'
@@ -401,6 +401,7 @@ function AvatarsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & 
         </div>
         {editing && <AdminAvatarAudio avatarId={form.id} supabase={supabase} flash={flash} />}
         {editing && <AdminAvatarVideos avatarId={form.id} supabase={supabase} flash={flash} />}
+        {editing && (form.image_url || form.emoji) && <AdminAvatarFit avatarId={form.id} imageUrl={form.image_url} supabase={supabase} flash={flash} />}
       </div>
 
       <div className="space-y-2">
@@ -530,6 +531,60 @@ function AdminAvatarVideos({ avatarId, supabase, flash }: { avatarId: string; su
         ))}
         {vids.length === 0 && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Video nėra (rodomas portretas).</p>}
       </div>
+    </div>
+  )
+}
+
+function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: string; imageUrl: string; supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void }) {
+  const [fit, setFit] = useState({ x: 50, y: 50, zoom: 100 })
+  const boxRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const { data } = await supabase.from('cosmetics').select('portrait_fit').eq('id', avatarId).single()
+      const pf = (data as any)?.portrait_fit
+      if (alive && pf) setFit({ x: pf.x ?? 50, y: pf.y ?? 50, zoom: pf.zoom ?? 100 })
+    })()
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarId])
+  const save = async () => {
+    const { error } = await supabase.from('cosmetics').update({ portrait_fit: fit, updated_at: new Date().toISOString() }).eq('id', avatarId)
+    if (error) { flash(error.message, true); return }
+    flash('Kadravimas išsaugotas')
+  }
+  const onDrag = (e: React.PointerEvent) => {
+    if (e.buttons !== 1) return
+    const r = boxRef.current?.getBoundingClientRect(); if (!r) return
+    setFit((f) => ({ ...f, x: Math.round(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100))), y: Math.round(Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100))) }))
+  }
+  const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
+  const fitStyle = { objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: `${fit.x}% ${fit.y}%` } as React.CSSProperties
+  return (
+    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
+      <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎯 Portreto kadravimas (zoom + vieta)</p>
+      <div className="flex gap-3">
+        <div ref={boxRef} onPointerDown={onDrag} onPointerMove={onDrag} style={{ position: 'relative', width: 150, height: 150, flexShrink: 0, cursor: 'crosshair', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', overflow: 'hidden', background: '#0a0810', ...win }}>
+            {imageUrl
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={imageUrl} alt="" className="w-full h-full object-cover" style={fitStyle} draggable={false} />
+              : <span className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>nėra</span>}
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" draggable={false} />
+        </div>
+        <div className="flex-1 space-y-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <label className="block">X: {fit.x}%<input type="range" min={0} max={100} value={fit.x} onChange={(e) => setFit((f) => ({ ...f, x: Number(e.target.value) }))} className="w-full" /></label>
+          <label className="block">Y: {fit.y}%<input type="range" min={0} max={100} value={fit.y} onChange={(e) => setFit((f) => ({ ...f, y: Number(e.target.value) }))} className="w-full" /></label>
+          <label className="block">Zoom: {fit.zoom}%<input type="range" min={100} max={300} value={fit.zoom} onChange={(e) => setFit((f) => ({ ...f, zoom: Number(e.target.value) }))} className="w-full" /></label>
+          <div className="flex gap-2">
+            <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti kadravimą</button>
+            <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={() => setFit({ x: 50, y: 50, zoom: 100 })}>Centruoti</button>
+          </div>
+        </div>
+      </div>
+      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Tempk ant peržiūros arba slankikliais. Taikoma ir nuotraukai, ir video.</p>
     </div>
   )
 }

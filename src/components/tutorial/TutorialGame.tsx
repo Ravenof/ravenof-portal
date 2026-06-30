@@ -299,7 +299,7 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
   return <span style={{ display: 'inline-block', width: 46 * scale, height: 60 * scale, flex: '0 0 auto' }}><span style={{ display: 'inline-block', transformOrigin: 'top left', transform: `scale(${scale})` }}>{inner}</span></span>
 }
 
-export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[] }
+export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
 export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
@@ -331,6 +331,8 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
   }
   // Vidinio lango įdubos (iš frame.png analizės)
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
+  const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
+  const fitStyle: React.CSSProperties = { objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: `${fit.x}% ${fit.y}%` }
   return (
     <motion.div
       animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
@@ -340,10 +342,10 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
       {/* portretas / idle-video (po rėmu) */}
       <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
         {vid
-          ? <video src={vid} autoPlay muted playsInline onEnded={onVidEnd} className="w-full h-full object-cover" />
+          ? <video src={vid} autoPlay muted playsInline onEnded={onVidEnd} className="w-full h-full object-cover" style={fitStyle} />
           : avatar?.imageUrl
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" draggable={false} />
+            ? <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" draggable={false} style={fitStyle} />
             : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
       </div>
@@ -724,7 +726,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const items = (cos?.items ?? []).filter((c) => c.kind === 'avatar')
       const mine = items.find((c) => c.id === cos?.equippedAvatar) ?? items.find((c) => c.ownedByDefault) ?? items[0] ?? null
       const foe = items.find((c) => c.id !== mine?.id) ?? items[0] ?? null
-      const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [] } : null
+      const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null } : null
       const me = toAv(mine), en = toAv(foe)
       setYouAvatar(me); setEnemyAvatar(en)
       youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null
@@ -2627,9 +2629,9 @@ doAction({ t: 'endTurn', actor: 'you' })
                   {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
                 </div>
                 <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
-                  className="px-4 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-70 whitespace-nowrap"
-                  style={{ background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
-                  {myTurn ? 'Baigti ėjimą' : 'Priešininko ėjimas…'}
+                  className="px-3 py-1.5 rounded-xl font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-80 whitespace-nowrap text-center"
+                  style={{ fontSize: myTurn ? 13 : 11, lineHeight: 1.1, background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
+                  {myTurn ? 'Baigti ėjimą' : 'Priešo ėjimas…'}
                 </button>
               </div>
             </div>
