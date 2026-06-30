@@ -1,7 +1,7 @@
 'use client'
 
 // ── Parduotuvės administravimas: kosmetika · pakuotės · starter kaladės ───────
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ShopImageUpload } from '@/components/admin/ShopImageUpload'
@@ -25,7 +25,7 @@ const btn = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hov
 
 export function AdminShopClient(props: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<'cosmetics' | 'packs' | 'starter'>('cosmetics')
+  const [tab, setTab] = useState<'cosmetics' | 'avatars' | 'packs' | 'starter'>('cosmetics')
   const [err, setErr] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const supabase = createClient()
@@ -35,7 +35,7 @@ export function AdminShopClient(props: Props) {
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        {([['cosmetics', '✨ Kosmetika'], ['packs', '🎁 Pakuotės'], ['starter', '🃏 Starter kaladės']] as const).map(([k, l]) => (
+        {([['cosmetics', '✨ Kosmetika'], ['avatars', '🦸 Avatarai'], ['packs', '🎁 Pakuotės'], ['starter', '🃏 Starter kaladės']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={btn}
             style={{ background: tab === k ? 'rgba(240,180,41,0.15)' : 'var(--bg-surface)', border: '1px solid ' + (tab === k ? 'rgba(240,180,41,0.4)' : 'var(--bg-border)'), color: tab === k ? 'var(--gold)' : 'var(--text-muted)' }}>
             {l}
@@ -47,6 +47,7 @@ export function AdminShopClient(props: Props) {
       {ok && <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', color: '#86efac' }}>{ok}</p>}
 
       {tab === 'cosmetics' && <CosmeticsTab items={props.cosmetics} supabase={supabase} flash={flash} reload={reload} />}
+      {tab === 'avatars' && <AvatarsTab items={props.cosmetics.filter((c) => c.kind === 'avatar')} supabase={supabase} flash={flash} reload={reload} />}
       {tab === 'packs' && <PacksTab items={props.packs} supabase={supabase} flash={flash} reload={reload} />}
       {tab === 'starter' && <StarterTab decks={props.starterDecks} deckCards={props.starterDeckCards} factions={props.factions} cards={props.cards} supabase={supabase} flash={flash} reload={reload} />}
     </div>
@@ -327,6 +328,156 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
         })}
         {decks.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Starter kaladžių nėra.</p>}
       </div>
+    </div>
+  )
+}
+
+// ───────────────────────────── AVATARAI ─────────────────────────────
+type AvatarForm = { id: string; name: string; description: string; price_gold: number; rarity: string; status: string; owned_by_default: boolean; image_url: string; emoji: string; sort_order: number }
+type AvAudioRow = { id: string; cosmetic_id: string; event_type: string; file_url: string; display_name: string | null; enabled: boolean; weight: number }
+const AV_EVENTS: [string, string][] = [['fightStart','Pradžios frazė'],['hit','Gauta žala'],['defeat','Pralaimėjimas'],['victory','Pergalė'],['spellCast','Burtų metimas'],['lowHp','Žema gyvybė'],['selected','Pasirinkta']]
+
+function avSafe(f: string) { return f.toLowerCase().replace(/[^a-z0-9.]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') }
+
+function AvatarsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & Common) {
+  const blank: AvatarForm = { id: '', name: '', description: '', price_gold: 500, rarity: 'common', status: 'active', owned_by_default: false, image_url: '', emoji: '☠', sort_order: 0 }
+  const [form, setForm] = useState<AvatarForm>(blank)
+  const [editing, setEditing] = useState(false)
+  const set = (k: keyof AvatarForm, v: any) => setForm((f) => ({ ...f, [k]: v }))
+
+  const save = async () => {
+    if (!form.id.trim() || !form.name.trim()) { flash('Reikia ID ir pavadinimo', true); return }
+    if (form.status === 'active' && !form.image_url && !form.emoji) { flash('Aktyviam avatarui reikia paveikslėlio arba emoji', true); return }
+    if (form.price_gold < 0) { flash('Kaina turi būti ≥ 0', true); return }
+    const { error } = await supabase.from('cosmetics').upsert({
+      id: form.id.trim(), kind: 'avatar', name: form.name.trim(), description: form.description || null,
+      price_gold: form.price_gold, image_url: form.image_url || null, emoji: form.emoji || null,
+      rarity: form.rarity, status: form.status, owned_by_default: form.owned_by_default,
+      is_active: form.status === 'active', sort_order: form.sort_order, updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' })
+    if (error) { flash(error.message, true); return }
+    flash('Išsaugota'); setForm(blank); setEditing(false); reload()
+  }
+  const del = async (id: string) => {
+    if (!confirm('Trinti avatarą ' + id + '? (kartu jo garsai)')) return
+    const { error } = await supabase.from('cosmetics').delete().eq('id', id)
+    if (error) { flash(error.message, true); return }
+    flash('Ištrinta'); reload()
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="rounded-xl p-4 space-y-2.5" style={card}>
+        <p className="text-sm font-bold" style={{ color: 'var(--gold)' }}>{editing ? 'Redaguoti avatarą' : 'Naujas avataras'}</p>
+        <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>ID (slug, pvz. av_nekronautas)
+          <input className={inp} style={{ ...inpStyle, opacity: editing ? 0.5 : 1 }} disabled={editing} value={form.id} onChange={(e) => set('id', e.target.value)} /></label>
+        <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Pavadinimas
+          <input className={inp} style={inpStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></label>
+        <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Aprašymas
+          <input className={inp} style={inpStyle} value={form.description} onChange={(e) => set('description', e.target.value)} /></label>
+        <div className="grid grid-cols-3 gap-2">
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Kaina
+            <input type="number" min={0} className={inp} style={inpStyle} value={form.price_gold} onChange={(e) => set('price_gold', Number(e.target.value))} /></label>
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Retumas
+            <select className={inp} style={inpStyle} value={form.rarity} onChange={(e) => set('rarity', e.target.value)}>
+              <option value="common">common</option><option value="rare">rare</option><option value="epic">epic</option><option value="legendary">legendary</option></select></label>
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Būsena
+            <select className={inp} style={inpStyle} value={form.status} onChange={(e) => set('status', e.target.value)}>
+              <option value="active">active</option><option value="hidden">hidden</option><option value="draft">draft</option></select></label>
+        </div>
+        <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Portretas (kvadratinis)</label>
+        <ShopImageUpload currentUrl={form.image_url} folder="avatars" onUpload={(u) => set('image_url', u)} />
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Emoji (fallback)
+            <input className={inp} style={inpStyle} value={form.emoji} onChange={(e) => set('emoji', e.target.value)} /></label>
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Eilė
+            <input type="number" className={inp} style={inpStyle} value={form.sort_order} onChange={(e) => set('sort_order', Number(e.target.value))} /></label>
+        </div>
+        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <input type="checkbox" checked={form.owned_by_default} onChange={(e) => set('owned_by_default', e.target.checked)} /> Turimas pagal nutylėjimą (nemokamas)</label>
+        <div className="flex gap-2 pt-1">
+          <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti</button>
+          {editing && <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={() => { setForm(blank); setEditing(false) }}>Atšaukti</button>}
+        </div>
+        {editing && <AdminAvatarAudio avatarId={form.id} supabase={supabase} flash={flash} />}
+      </div>
+
+      <div className="space-y-2">
+        {items.map((c: any) => (
+          <div key={c.id} className="flex items-center gap-2 rounded-xl p-2.5" style={card}>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: '#0a0810', border: '1px solid rgba(240,180,41,0.4)' }}>
+              {c.image_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={c.image_url} alt="" className="w-full h-full object-cover" /> : <span>{c.emoji}</span>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{c.name} <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· {c.rarity ?? 'common'}</span></p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>🪙 {c.price_gold} · {c.status ?? (c.is_active ? 'active' : 'hidden')}{c.owned_by_default ? ' · nemokamas' : ''}</p>
+            </div>
+            <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
+              onClick={() => { setForm({ id: c.id, name: c.name, description: c.description ?? '', price_gold: c.price_gold, rarity: c.rarity ?? 'common', status: c.status ?? (c.is_active ? 'active' : 'hidden'), owned_by_default: !!c.owned_by_default, image_url: c.image_url ?? '', emoji: c.emoji ?? '', sort_order: c.sort_order }); setEditing(true) }}>Redaguoti</button>
+            <button className={btn} style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5' }} onClick={() => del(c.id)}>✕</button>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Avatarų nėra.</p>}
+      </div>
+    </div>
+  )
+}
+
+function AdminAvatarAudio({ avatarId, supabase, flash }: { avatarId: string; supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void }) {
+  const [rows, setRows] = useState<AvAudioRow[]>([])
+  const [busy, setBusy] = useState(false)
+  const load = async () => {
+    const { data } = await supabase.from('avatar_audio').select('*').eq('cosmetic_id', avatarId).order('created_at')
+    setRows((data as AvAudioRow[]) ?? [])
+  }
+  useEffect(() => { void load() // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarId])
+
+  const upload = async (ev: string, file: File) => {
+    if (!file.type.startsWith('audio/')) { flash('Tik audio failai', true); return }
+    if (file.size > 2 * 1024 * 1024) { flash('Maks. 2 MB', true); return }
+    setBusy(true)
+    try {
+      const path = `${avatarId}/${ev}/${Date.now()}-${avSafe(file.name)}`
+      const { error: up } = await supabase.storage.from('avatar-audio').upload(path, file, { upsert: true, contentType: file.type })
+      if (up) { flash(up.message, true); return }
+      const { data: { publicUrl } } = supabase.storage.from('avatar-audio').getPublicUrl(path)
+      const { error: ins } = await supabase.from('avatar_audio').insert({ cosmetic_id: avatarId, event_type: ev, file_url: publicUrl, display_name: file.name, enabled: true, weight: 1 })
+      if (ins) { flash(ins.message, true); return }
+      flash('Įkelta'); await load()
+    } finally { setBusy(false) }
+  }
+  const patch = async (id: string, p: Partial<AvAudioRow>) => {
+    await supabase.from('avatar_audio').update({ ...p, updated_at: new Date().toISOString() }).eq('id', id); await load()
+  }
+  const remove = async (id: string) => { await supabase.from('avatar_audio').delete().eq('id', id); await load() }
+
+  return (
+    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
+      <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🔊 Garsai ({avatarId}) {busy && '· keliama…'}</p>
+      {AV_EVENTS.map(([ev, label]) => {
+        const clips = rows.filter((r) => r.event_type === ev)
+        return (
+          <div key={ev} className="rounded-lg p-2" style={{ background: 'var(--bg-elevated)' }}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{label} <span style={{ color: 'var(--text-muted)' }}>({clips.length})</span></span>
+              <label className="text-[10px] cursor-pointer px-2 py-0.5 rounded" style={{ background: 'rgba(240,180,41,0.15)', color: 'var(--gold)' }}>
+                + Įkelti<input type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(ev, f); e.target.value = '' }} />
+              </label>
+            </div>
+            {clips.map((r) => (
+              <div key={r.id} className="flex items-center gap-1.5 mt-1">
+                <audio src={r.file_url} controls preload="none" style={{ height: 26, flex: 1, minWidth: 0 }} />
+                <input type="number" min={1} value={r.weight} onChange={(e) => patch(r.id, { weight: Math.max(1, Number(e.target.value)) })} title="Svoris (random)" className="w-12 px-1 py-0.5 rounded text-[11px]" style={inpStyle} />
+                <label className="text-[10px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={r.enabled} onChange={(e) => patch(r.id, { enabled: e.target.checked })} />on</label>
+                <button className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5' }} onClick={() => remove(r.id)}>✕</button>
+              </div>
+            ))}
+          </div>
+        )
+      })}
     </div>
   )
 }
