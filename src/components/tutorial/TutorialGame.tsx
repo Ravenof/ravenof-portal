@@ -302,12 +302,13 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
 export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
-export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid }: {
   avatar: BattleAvatar | null
   hp: number; maxHp: number
   owner: 'player' | 'enemy'
   scale?: number
   flash?: 'hit' | 'heal' | null
+  onVid?: (v: string | null) => void
 }) {
   const size = Math.round(122 * scale)
   const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
@@ -323,14 +324,16 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
     if (vidTimer.current) window.clearTimeout(vidTimer.current)
     if (!videos.length) return
     let alive = true
-    vidTimer.current = window.setTimeout(() => { if (alive) playRandomVid() }, 20000 + Math.random() * 40000)
+    vidTimer.current = window.setTimeout(() => { if (alive) playRandomVid() }, 10000 + Math.random() * 20000)
     return () => { alive = false; if (vidTimer.current) window.clearTimeout(vidTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatar?.id, videos.length])
   useEffect(() => { if (vidElRef.current) vidElRef.current.muted = true }, [vid])
+  useEffect(() => { onVid?.(vidReady ? vid : null) // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vid, vidReady])
   const onVidEnd = () => {
     setVid(null); setVidReady(false)
-    vidTimer.current = window.setTimeout(() => { if (videos.length) playRandomVid() }, 20000 + Math.random() * 40000)
+    vidTimer.current = window.setTimeout(() => { if (videos.length) playRandomVid() }, 10000 + Math.random() * 20000)
   }
   // Vidinio lango įdubos (iš frame.png analizės)
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
@@ -721,6 +724,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [youAvatar, setYouAvatar] = useState<BattleAvatar | null>(null)
   const [enemyAvatar, setEnemyAvatar] = useState<BattleAvatar | null>(null)
   const [avatarFlash, setAvatarFlash] = useState<Partial<Record<Side, 'hit' | 'heal' | null>>>({})
+  const [youVid, setYouVid] = useState<string | null>(null)
+  const [enemyVid, setEnemyVid] = useState<string | null>(null)
+  const [avatarInspect, setAvatarInspect] = useState<{ avatar: BattleAvatar | null; vid: string | null } | null>(null)
+  const avLpRef = useRef<number | undefined>(undefined)
+  const avLpFired = useRef(false)
+  const openAvatarInspect = (side: Side) => { setAvatarInspect({ avatar: side === 'you' ? youAvatar : enemyAvatar, vid: side === 'you' ? youVid : enemyVid }) }
   const youAvIdRef = useRef<string | null>(null)
   const enemyAvIdRef = useRef<string | null>(null)
   const fightStartedRef = useRef(false)
@@ -1068,7 +1077,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (inspect) setInspect(null)
+        if (avatarInspect) setAvatarInspect(null)
+        else if (inspect) setInspect(null)
         else if (select) setSelect(null)
         else closeGame()
       }
@@ -1078,7 +1088,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [inspect, select, closeGame])
+  }, [inspect, select, avatarInspect, closeGame])
 
   const rectFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number } | null => {
     if (!ref) return null
@@ -2425,10 +2435,16 @@ doAction({ t: 'endTurn', actor: 'you' })
         data-tut={side === 'you' ? 'hp' : undefined}
         data-player={side}
         onClick={() => {
+          if (avLpFired.current) { avLpFired.current = false; return }  // buvo long-press – click praleidžiam
           // Tapinus avatarą – lokaliai groja jo „selected" balsas (savo ar priešo; priešui kitam kliente negroja).
           playAvatarAudio(side === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'selected')
           if (side === 'ai' && targetable) onTargetClick({ kind: 'player', side: 'ai' })
         }}
+        onPointerDown={() => { avLpFired.current = false; avLpRef.current = window.setTimeout(() => { avLpFired.current = true; openAvatarInspect(side) }, 420) }}
+        onPointerUp={() => { if (avLpRef.current) window.clearTimeout(avLpRef.current) }}
+        onPointerLeave={() => { if (avLpRef.current) window.clearTimeout(avLpRef.current) }}
+        onPointerCancel={() => { if (avLpRef.current) window.clearTimeout(avLpRef.current) }}
+        onContextMenu={(e) => { e.preventDefault(); openAvatarInspect(side) }}
         className="relative flex items-center justify-center p-0.5 rounded-xl cursor-pointer"
         style={{
           background: 'transparent',
@@ -2438,7 +2454,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {pickedKeys.has('player:' + side) && (
           <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none" style={{ width: 20, height: 20, background: '#16a34a', border: '2px solid #bbf7d0', color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>
         )}
-        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
     )
   }
@@ -3182,6 +3198,31 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── kortos apžiūra ── */}
       <AnimatePresence>
+        {avatarInspect && (() => {
+          const av = avatarInspect.avatar
+          const af = av?.fit ?? { x: 50, y: 50, zoom: 100 }
+          const aFit: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${af.x}% ${af.y}%`, transform: `scale(${Math.max(1, af.zoom / 100)})`, transformOrigin: 'center' }
+          return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 gap-3"
+              style={{ background: 'rgba(0,0,0,0.88)' }} onClick={() => setAvatarInspect(null)}>
+              <motion.div initial={{ scale: 0.82 }} animate={{ scale: 1 }} className="relative" style={{ width: 'min(380px, 84vw)', aspectRatio: '1' }} onClick={(e) => e.stopPropagation()}>
+                <div className="absolute overflow-hidden" style={{ top: '24.5%', left: '24.5%', right: '24%', bottom: '29%', background: '#0a0810', borderRadius: 6 }}>
+                  {avatarInspect.vid
+                    ? <video src={avatarInspect.vid} autoPlay loop muted playsInline style={aFit} />
+                    : av?.imageUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={av.imageUrl} alt={av.name} style={aFit} draggable={false} />
+                      : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: 80 }}>{av?.emoji ?? '\u{1F70F}'}</span>}
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" draggable={false} />
+              </motion.div>
+              <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>{av?.name ?? 'Avataras'}</p>
+            </motion.div>
+          )
+        })()}
+
         {inspect && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[135] flex items-center justify-center p-4"
