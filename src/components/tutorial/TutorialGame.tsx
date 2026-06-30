@@ -1317,7 +1317,34 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           break
         }
         case 'evolve': queueTip('evolve'); playSuccess(); break
-        case 'handBurn': queueTip('hand-burn'); break
+        case 'handBurn': {
+          queueTip('hand-burn')
+          // Ranka pilna (10): ištraukta korta ~1 s rodoma, tada sprogsta į kapinyną.
+          if (e.side !== 'you') { playBattleSound('death', 0.3); break }
+          const bc = e.cardName ? cardByName[e.cardName] : null
+          if (!bc) break
+          const bx = (typeof window !== 'undefined' ? window.innerWidth : 360) / 2
+          const by = (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.52
+          const ghostId = ++flyIdRef.current
+          setDeathGhosts((gs) => [...gs, { id: ghostId, card: bc, x: bx, y: by }])
+          playBattleSound('draw')
+          window.setTimeout(() => spawnPop(null, { x: bx, y: by }, '#f87171', 'Ranka pilna!'), 60)
+          window.setTimeout(() => {
+            setDeathGhosts((gs) => gs.filter((g) => g.id !== ghostId))
+            const pileEl = document.querySelector('[data-pile="discard-you"]')
+            if (pileEl) {
+              const r = pileEl.getBoundingClientRect()
+              const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+              const id = ++flyIdRef.current
+              setFlyingShatters((fs) => [...fs, { id, card: bc, from: { x: bx, y: by }, to }])
+              playBattleSound('death', 0.45)
+              playBattleSound('impact', 0.4)
+              window.setTimeout(() => playBattleSound('impact', 0.5), 1000)
+              window.setTimeout(() => setFlyingShatters((fs) => fs.filter((x) => x.id !== id)), 1250)
+            }
+          }, 1000)
+          break
+        }
         case 'curse': {
           queueTip('curse')
           playBattleSound('curse')
@@ -2644,13 +2671,16 @@ doAction({ t: 'endTurn', actor: 'you' })
                   const off = i - (n - 1) / 2
                   const afford = game.you.gold >= c.gold
                   const isDragging = drag?.uid === c.uid && dragMovedRef.current
+                  const vw = typeof window !== 'undefined' ? window.innerWidth : 400
+                  const step = Math.min(handW * 0.96, (vw - handW - 10) / Math.max(1, n - 1))  // tarpas tarp kortų – kad ~10 tilptų ekrane
+                  const ml = i === 0 ? 0 : step - handW
                   return (
                     <motion.div key={c.uid} data-hand-card={c.name} layout
                       initial={{ y: 55, opacity: 0, scale: 0.85 }}
                       animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
                       whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
-                      style={{ marginLeft: i === 0 ? 0 : -(handW * 0.1), zIndex: i }}
+                      style={{ marginLeft: ml, zIndex: i }}
                       onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
                       <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
                         <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
