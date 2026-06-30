@@ -36,6 +36,8 @@ import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
+import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
+import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled } from '@/lib/settings'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
@@ -295,6 +297,41 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
   )
   if (scale === 1) return inner
   return <span style={{ display: 'inline-block', width: 46 * scale, height: 60 * scale, flex: '0 0 auto' }}><span style={{ display: 'inline-block', transformOrigin: 'top left', transform: `scale(${scale})` }}>{inner}</span></span>
+}
+
+export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null }
+
+/** Avatar – mūšio HP taikinys (portretas + HP + reakcijos). owner lemia akcentą. */
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
+  avatar: BattleAvatar | null
+  hp: number; maxHp: number
+  owner: 'player' | 'enemy'
+  scale?: number
+  flash?: 'hit' | 'heal' | null
+}) {
+  const size = Math.round(56 * scale)
+  const frame = owner === 'player' ? 'rgba(240,180,41,0.85)' : 'rgba(167,139,250,0.85)'
+  const glow = owner === 'player' ? 'rgba(74,222,128,0.45)' : 'rgba(239,68,68,0.45)'
+  return (
+    <div className="flex flex-col items-center gap-0.5 pointer-events-none">
+      <motion.div
+        animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.06, 1] } : {}}
+        transition={{ duration: 0.34 }}
+        className="relative overflow-hidden"
+        style={{ width: size, height: size, borderRadius: '50%', border: `2px solid ${frame}`,
+          boxShadow: `0 0 14px ${glow}, inset 0 0 16px rgba(0,0,0,0.65)`,
+          background: 'radial-gradient(circle at 50% 32%, #2a1f36, #0b0810)' }}>
+        {avatar?.imageUrl
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={avatar.imageUrl} alt={avatar.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+          : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: Math.round(size * 0.46) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+        {/* ornate vidinis žiedas */}
+        <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.08)` }} />
+        {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
+      </motion.div>
+      <div style={{ marginTop: -10 }}><HpVial hp={hp} maxHp={maxHp} scale={0.62 * scale} /></div>
+    </div>
+  )
 }
 
 /** Burtų žalos priedas rankoje (tik žalą darantiems burtams; pasyvi aura). */
@@ -648,6 +685,43 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
   const [showLog, setShowLog] = useState(false)
+  // ── Avatarai (mūšio HP taikiniai + balsai) ─────────────────────────────────
+  const [youAvatar, setYouAvatar] = useState<BattleAvatar | null>(null)
+  const [enemyAvatar, setEnemyAvatar] = useState<BattleAvatar | null>(null)
+  const [avatarFlash, setAvatarFlash] = useState<Partial<Record<Side, 'hit' | 'heal' | null>>>({})
+  const youAvIdRef = useRef<string | null>(null)
+  const enemyAvIdRef = useRef<string | null>(null)
+  const fightStartedRef = useRef(false)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const cos = await getCosmetics()
+      if (!alive) return
+      const items = (cos?.items ?? []).filter((c) => c.kind === 'avatar')
+      const mine = items.find((c) => c.id === cos?.equippedAvatar) ?? items.find((c) => c.ownedByDefault) ?? items[0] ?? null
+      const foe = items.find((c) => c.id !== mine?.id) ?? items[0] ?? null
+      const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji } : null
+      const me = toAv(mine), en = toAv(foe)
+      setYouAvatar(me); setEnemyAvatar(en)
+      youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null
+      const map = await getAvatarAudio([me?.id, en?.id])
+      if (!alive) return
+      resetAvatarAudio(); setAvatarAudioMap(map)
+    })()
+    return () => { alive = false; stopAvatarAudio() }
+  }, [])
+  // fightStart: dabartinio ėjimo savininkas pirmas
+  useEffect(() => {
+    if (!game || fightStartedRef.current || !youAvIdRef.current) return
+    fightStartedRef.current = true
+    const a = youAvIdRef.current, b = enemyAvIdRef.current
+    if (game.active === 'you') { playAvatarAudio(a, 'fightStart'); window.setTimeout(() => playAvatarAudio(b, 'fightStart'), 950) }
+    else { playAvatarAudio(b, 'fightStart'); window.setTimeout(() => playAvatarAudio(a, 'fightStart'), 950) }
+  }, [game, youAvatar])
+  const flashAvatar = useCallback((sd: Side, kind: 'hit' | 'heal') => {
+    setAvatarFlash((f) => ({ ...f, [sd]: kind }))
+    window.setTimeout(() => setAvatarFlash((f) => ({ ...f, [sd]: null })), 340)
+  }, [])
   const logScrollRef = useRef<HTMLDivElement | null>(null)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
@@ -1113,6 +1187,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
+          if (e.t === 'spell') playAvatarAudio(e.side === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'spellCast')
           srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'
           // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
           if (e.t === 'ability' && typeof e.skillIndex === 'number') {
@@ -1198,7 +1273,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           } else { startFly() }
           break
         }
-        case 'win': if (e.side === 'you') playSuccess(); else playError(); break
+        case 'win': {
+          if (e.side === 'you') playSuccess(); else playError()
+          const winId = e.side === 'you' ? youAvIdRef.current : enemyAvIdRef.current
+          const loseId = e.side === 'you' ? enemyAvIdRef.current : youAvIdRef.current
+          playAvatarAudio(loseId, 'defeat')
+          window.setTimeout(() => playAvatarAudio(winId, 'victory'), 1400)
+          break
+        }
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
         case 'reactionTrigger': queueTip('reaction'); break
@@ -1245,6 +1327,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'damage': {
           const tgt = e.tgt, val = e.value
+          // Žaidėjo (avataro) žala: hit balsas + float skaičius + flash + lowHp
+          if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) {
+            const sd = e.side
+            const aid = sd === 'you' ? youAvIdRef.current : enemyAvIdRef.current
+            playAvatarAudio(aid, 'hit')
+            flashAvatar(sd, 'hit')
+            const pat = rectFor({ side: sd })
+            if (pat) { const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { fxRef.current?.floatNumber(pat.x, pat.y - 14, '-' + val, '#ff5a4a', (val ?? 0) >= 4); fxRef.current?.hitFlash(pat.x, pat.y, '#ff5a4a') }, d) }
+            const pp2 = P(game, sd)
+            if (pp2.hp > 0 && pp2.hp <= pp2.maxHp * 0.25) playAvatarAudio(aid, 'lowHp')
+          }
           { let dp = tgt ? rectOf(tgt) : null
             if (!dp && e.cardName) { const pp = P(game, e.side); const u = pp.units.find((x) => x?.card.name === e.cardName); if (u) dp = rectOf({ uid: u.uid }); if (!dp) { const a = pp.artifacts.find((x) => x?.card.name === e.cardName); if (a) dp = rectOf({ uid: a.uid }) } }
             if (!dp && lastTgtRef) dp = rectOf(lastTgtRef)
@@ -1277,6 +1370,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'heal': {
           const tgt = e.tgt, val = e.value
+          if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) flashAvatar(e.side, 'heal')
           if (tgt?.uid && tgt.side && val) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: Math.max(0, cur - val) })) } }
           const base = SETTLE + fxSeq; fxSeq += 120
           const sref = srcRef
@@ -2283,7 +2377,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {pickedKeys.has('player:' + side) && (
           <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none" style={{ width: 20, height: 20, background: '#16a34a', border: '2px solid #bbf7d0', color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>
         )}
-        <HpVial hp={p.hp} maxHp={p.maxHp} scale={scale} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} />
       </button>
     )
   }
