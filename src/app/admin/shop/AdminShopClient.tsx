@@ -559,7 +559,8 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
     setFit((f) => ({ ...f, x: Math.round(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100))), y: Math.round(Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100))) }))
   }
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
-  const fitStyle = { objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: `${fit.x}% ${fit.y}%` } as React.CSSProperties
+  const fz = Math.max(100, fit.zoom)
+  const fitStyle = { position: 'absolute', width: `${fz}%`, height: `${fz}%`, left: `${fit.x}%`, top: `${fit.y}%`, transform: `translate(-${fit.x}%, -${fit.y}%)`, objectFit: 'cover' } as React.CSSProperties
   return (
     <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
       <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎯 Portreto kadravimas (zoom + vieta)</p>
@@ -568,7 +569,7 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
           <div style={{ position: 'absolute', overflow: 'hidden', background: '#0a0810', ...win }}>
             {imageUrl
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={imageUrl} alt="" className="w-full h-full object-cover" style={fitStyle} draggable={false} />
+              ? <img src={imageUrl} alt="" style={fitStyle} draggable={false} />
               : <span className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>nėra</span>}
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}

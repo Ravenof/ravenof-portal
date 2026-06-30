@@ -314,25 +314,29 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
   const crit = hp > 0 && hp <= maxHp * 0.25
   const videos = avatar?.videos ?? []
   const [vid, setVid] = useState<string | null>(null)
+  const [vidReady, setVidReady] = useState(false)
   const vidTimer = useRef<number | undefined>(undefined)
+  const vidElRef = useRef<HTMLVideoElement | null>(null)
+  const playRandomVid = () => { setVidReady(false); setVid(videos[Math.floor(Math.random() * videos.length)]) }
   useEffect(() => {
-    setVid(null)
+    setVid(null); setVidReady(false)
     if (vidTimer.current) window.clearTimeout(vidTimer.current)
     if (!videos.length) return
     let alive = true
-    const schedule = () => { vidTimer.current = window.setTimeout(() => { if (alive) setVid(videos[Math.floor(Math.random() * videos.length)]) }, 20000 + Math.random() * 40000) }
-    schedule()
+    vidTimer.current = window.setTimeout(() => { if (alive) playRandomVid() }, 20000 + Math.random() * 40000)
     return () => { alive = false; if (vidTimer.current) window.clearTimeout(vidTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatar?.id, videos.length])
+  useEffect(() => { if (vidElRef.current) vidElRef.current.muted = true }, [vid])
   const onVidEnd = () => {
-    setVid(null)
-    vidTimer.current = window.setTimeout(() => { if (videos.length) setVid(videos[Math.floor(Math.random() * videos.length)]) }, 20000 + Math.random() * 40000)
+    setVid(null); setVidReady(false)
+    vidTimer.current = window.setTimeout(() => { if (videos.length) playRandomVid() }, 20000 + Math.random() * 40000)
   }
   // Vidinio lango įdubos (iš frame.png analizės)
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
   const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
-  const fitStyle: React.CSSProperties = { objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: `${fit.x}% ${fit.y}%` }
+  const fz = Math.max(100, fit.zoom)
+  const fitStyle: React.CSSProperties = { position: 'absolute', width: `${fz}%`, height: `${fz}%`, left: `${fit.x}%`, top: `${fit.y}%`, transform: `translate(-${fit.x}%, -${fit.y}%)`, objectFit: 'cover' }
   return (
     <motion.div
       animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
@@ -341,12 +345,15 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
       style={{ width: size, height: size, filter: `drop-shadow(0 0 14px ${glow})` }}>
       {/* portretas / idle-video (po rėmu) */}
       <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
-        {vid
-          ? <video src={vid} autoPlay muted playsInline onEnded={onVidEnd} className="w-full h-full object-cover" style={fitStyle} />
-          : avatar?.imageUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" draggable={false} style={fitStyle} />
-            : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+        {avatar?.imageUrl
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
+          : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+        {vid && (
+          <video ref={vidElRef} key={vid} src={vid} autoPlay muted playsInline preload="auto" disablePictureInPicture
+            onPlaying={() => setVidReady(true)} onEnded={onVidEnd} onError={onVidEnd}
+            style={{ ...fitStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.25s ease' }} />
+        )}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
       </div>
       {/* ornate rėmas */}
