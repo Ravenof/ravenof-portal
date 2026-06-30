@@ -2425,14 +2425,16 @@ doAction({ t: 'endTurn', actor: 'you' })
       <button
         data-tut={side === 'you' ? 'hp' : undefined}
         data-player={side}
-        onClick={() => side === 'ai' && onTargetClick({ kind: 'player', side: 'ai' })}
-        disabled={!targetable}
-        className="relative flex items-center justify-center p-0.5 rounded-xl"
+        onClick={() => {
+          // Tapinus avatarą – lokaliai groja jo „selected" balsas (savo ar priešo; priešui kitam kliente negroja).
+          playAvatarAudio(side === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'selected')
+          if (side === 'ai' && targetable) onTargetClick({ kind: 'player', side: 'ai' })
+        }}
+        className="relative flex items-center justify-center p-0.5 rounded-xl cursor-pointer"
         style={{
           background: 'transparent',
           border: pickedKeys.has('player:' + side) ? '2px solid #22c55e' : targetable ? '2px solid #ef4444' : '2px solid transparent',
           boxShadow: pickedKeys.has('player:' + side) ? '0 0 16px rgba(34,197,94,0.7)' : targetable ? '0 0 14px rgba(239,68,68,0.7)' : 'none',
-          cursor: targetable ? 'pointer' : 'default',
         }}>
         {pickedKeys.has('player:' + side) && (
           <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none" style={{ width: 20, height: 20, background: '#16a34a', border: '2px solid #bbf7d0', color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>

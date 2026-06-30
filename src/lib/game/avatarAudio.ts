@@ -14,8 +14,8 @@ const lastPlayed = new Map<string, number>()            // `${avatarId}:${event}
 const firedOnce = new Set<string>()                     // once-per-battle keys
 let channel: HTMLAudioElement | null = null
 
-const RATE_MS: Partial<Record<AvatarAudioEvent, number>> = { hit: 1800, spellCast: 2000 }
-const ONCE: AvatarAudioEvent[] = ['fightStart', 'defeat', 'victory', 'lowHp', 'selected']
+const RATE_MS: Partial<Record<AvatarAudioEvent, number>> = { hit: 1800, spellCast: 2000, selected: 450 }
+const ONCE: AvatarAudioEvent[] = ['fightStart', 'defeat', 'victory', 'lowHp']
 
 function uiSoundOn(): boolean {
   if (typeof window === 'undefined') return false
