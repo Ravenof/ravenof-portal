@@ -309,7 +309,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
   scale?: number
   flash?: 'hit' | 'heal' | null
 }) {
-  const size = Math.round(102 * scale)
+  const size = Math.round(122 * scale)
   const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
   const crit = hp > 0 && hp <= maxHp * 0.25
   const videos = avatar?.videos ?? []
@@ -330,7 +330,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
     vidTimer.current = window.setTimeout(() => { if (videos.length) setVid(videos[Math.floor(Math.random() * videos.length)]) }, 20000 + Math.random() * 40000)
   }
   // Vidinio lango įdubos (iš frame.png analizės)
-  const win = { top: '29%', left: '28.5%', right: '28%', bottom: '33%' }
+  const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
   return (
     <motion.div
       animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
