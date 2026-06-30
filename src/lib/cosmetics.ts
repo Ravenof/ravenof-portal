@@ -12,6 +12,8 @@ export type Cosmetic = {
   css: string | null
   emoji: string | null
   imageUrl: string | null
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary' | null
+  ownedByDefault?: boolean
 }
 
 export type CosmeticsState = {
@@ -69,4 +71,20 @@ export async function buyDailyDealCard(cardId: string): Promise<{ ok: true; gold
   const { data, error } = await supabase.rpc('rvn_buy_daily_deal_card', { p_card_id: cardId })
   if (error) return { error: error.message }
   return data as { ok: true; gold: number }
+}
+
+// ── Avatar audio (battle balsai) ─────────────────────────────────────────────
+export type AvatarAudioEvent = 'fightStart' | 'hit' | 'defeat' | 'victory' | 'spellCast' | 'lowHp' | 'selected'
+export type AvatarAudioClip = { url: string; weight: number }
+/** { [cosmeticId]: { [eventType]: AvatarAudioClip[] } } */
+export type AvatarAudioMap = Record<string, Partial<Record<AvatarAudioEvent, AvatarAudioClip[]>>>
+
+/** Battle pradžioje – paimam friendly+enemy avatarų garsus vienu RPC. */
+export async function getAvatarAudio(ids: (string | null | undefined)[]): Promise<AvatarAudioMap> {
+  const clean = Array.from(new Set(ids.filter((x): x is string => !!x)))
+  if (clean.length === 0) return {}
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_get_avatar_audio', { p_ids: clean })
+  if (error) { console.warn('[avatar audio] get:', error.message); return {} }
+  return (data as AvatarAudioMap) ?? {}
 }
