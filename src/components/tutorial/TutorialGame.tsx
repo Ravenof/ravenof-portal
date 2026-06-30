@@ -335,8 +335,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash }: {
   // Vidinio lango įdubos (iš frame.png analizės)
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
   const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
-  const fz = Math.max(100, fit.zoom)
-  const fitStyle: React.CSSProperties = { position: 'absolute', width: `${fz}%`, height: `${fz}%`, left: `${fit.x}%`, top: `${fit.y}%`, transform: `translate(-${fit.x}%, -${fit.y}%)`, objectFit: 'cover' }
+  const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: 'center' }
   return (
     <motion.div
       animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}

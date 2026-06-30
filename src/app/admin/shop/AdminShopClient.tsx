@@ -537,13 +537,16 @@ function AdminAvatarVideos({ avatarId, supabase, flash }: { avatarId: string; su
 
 function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: string; imageUrl: string; supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void }) {
   const [fit, setFit] = useState({ x: 50, y: 50, zoom: 100 })
+  const [previewVid, setPreviewVid] = useState<string | null>(null)
+  const [vids, setVids] = useState<string[]>([])
   const boxRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const { data } = await supabase.from('cosmetics').select('portrait_fit').eq('id', avatarId).single()
+      const { data } = await supabase.from('cosmetics').select('portrait_fit, videos').eq('id', avatarId).single()
       const pf = (data as any)?.portrait_fit
       if (alive && pf) setFit({ x: pf.x ?? 50, y: pf.y ?? 50, zoom: pf.zoom ?? 100 })
+      if (alive) setVids(((data as any)?.videos as string[]) ?? [])
     })()
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -559,18 +562,19 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
     setFit((f) => ({ ...f, x: Math.round(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100))), y: Math.round(Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100))) }))
   }
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
-  const fz = Math.max(100, fit.zoom)
-  const fitStyle = { position: 'absolute', width: `${fz}%`, height: `${fz}%`, left: `${fit.x}%`, top: `${fit.y}%`, transform: `translate(-${fit.x}%, -${fit.y}%)`, objectFit: 'cover' } as React.CSSProperties
+  const fitStyle = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: 'center' } as React.CSSProperties
   return (
     <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
       <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎯 Portreto kadravimas (zoom + vieta)</p>
       <div className="flex gap-3">
         <div ref={boxRef} onPointerDown={onDrag} onPointerMove={onDrag} style={{ position: 'relative', width: 150, height: 150, flexShrink: 0, cursor: 'crosshair', borderRadius: 6, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', overflow: 'hidden', background: '#0a0810', ...win }}>
-            {imageUrl
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={imageUrl} alt="" style={fitStyle} draggable={false} />
-              : <span className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>nėra</span>}
+            {previewVid
+              ? <video src={previewVid} autoPlay loop muted playsInline style={fitStyle} />
+              : imageUrl
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={imageUrl} alt="" style={fitStyle} draggable={false} />
+                : <span className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>nėra</span>}
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" draggable={false} />
@@ -579,6 +583,15 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
           <label className="block">X: {fit.x}%<input type="range" min={0} max={100} value={fit.x} onChange={(e) => setFit((f) => ({ ...f, x: Number(e.target.value) }))} className="w-full" /></label>
           <label className="block">Y: {fit.y}%<input type="range" min={0} max={100} value={fit.y} onChange={(e) => setFit((f) => ({ ...f, y: Number(e.target.value) }))} className="w-full" /></label>
           <label className="block">Zoom: {fit.zoom}%<input type="range" min={100} max={300} value={fit.zoom} onChange={(e) => setFit((f) => ({ ...f, zoom: Number(e.target.value) }))} className="w-full" /></label>
+          {vids.length > 0 && (
+            <div className="flex flex-wrap gap-1 items-center">
+              <span className="text-[10px]">Peržiūra:</span>
+              <button className="text-[10px] px-2 py-0.5 rounded" style={{ background: !previewVid ? 'rgba(240,180,41,0.25)' : 'var(--bg-elevated)', color: !previewVid ? 'var(--gold)' : 'var(--text-muted)' }} onClick={() => setPreviewVid(null)}>Nuotrauka</button>
+              {vids.map((v, i) => (
+                <button key={i} className="text-[10px] px-2 py-0.5 rounded" style={{ background: previewVid === v ? 'rgba(240,180,41,0.25)' : 'var(--bg-elevated)', color: previewVid === v ? 'var(--gold)' : 'var(--text-muted)' }} onClick={() => setPreviewVid(v)}>Video {i + 1}</button>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
             <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti kadravimą</button>
             <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={() => setFit({ x: 50, y: 50, zoom: 100 })}>Centruoti</button>
