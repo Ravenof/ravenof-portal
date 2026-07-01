@@ -734,7 +734,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (!alive) return
       const items = (cos?.items ?? []).filter((c) => c.kind === 'avatar')
       const mine = items.find((c) => c.id === cos?.equippedAvatar) ?? items.find((c) => c.ownedByDefault) ?? items[0] ?? null
-      const foe = items.find((c) => c.id !== mine?.id) ?? items[0] ?? null
+      // PvP: paimam TIKRĄ priešininko pasirinktą avatarą (iš jo profilio); kitaip – default.
+      let foeId: string | null = null
+      if (net?.opponentId) {
+        try { const { data: op } = await createClient().from('profiles').select('equipped_avatar').eq('id', net.opponentId).maybeSingle(); foeId = (op as { equipped_avatar?: string } | null)?.equipped_avatar ?? null } catch { /* */ }
+        if (!alive) return
+      }
+      const foe = (foeId ? items.find((c) => c.id === foeId) : null)
+        ?? items.find((c) => c.id !== mine?.id) ?? items[0] ?? null
       const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null } : null
       const me = toAv(mine), en = toAv(foe)
       setYouAvatar(me); setEnemyAvatar(en)
@@ -744,7 +751,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       resetAvatarAudio(); setAvatarAudioMap(map)
     })()
     return () => { alive = false; stopAvatarAudio() }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [net?.opponentId])
   // fightStart: dabartinio ėjimo savininkas pirmas
   useEffect(() => {
     if (!game || fightStartedRef.current || !youAvIdRef.current) return
@@ -2655,8 +2663,13 @@ doAction({ t: 'endTurn', actor: 'you' })
 
             {/* valdymo juosta: auksas+parduoti (kairė) · avataras (centras) · pile'ai+baigti (dešinė) */}
             <div className="flex items-end justify-between gap-2 shrink-0 px-1">
-              {/* kairė */}
+              {/* kairė: Baigti ėjimą (viršuje) · auksas · parduoti korta */}
               <div className="flex flex-col items-center gap-1">
+                <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
+                  className="px-3 py-1.5 rounded-xl font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-80 whitespace-nowrap text-center"
+                  style={{ fontSize: myTurn ? 13 : 11, lineHeight: 1.1, background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
+                  {myTurn ? 'Baigti ėjimą' : 'Priešo ėjimas…'}
+                </button>
                 {goldBar('you')}
                 <button data-tut="discard-gold"
                   onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau išmetei kortą šį ėjimą.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
@@ -2666,18 +2679,13 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               {/* centras: avataras */}
               <div className="flex items-end">{hpBar('you')}</div>
-              {/* dešinė */}
-              <div className="flex flex-col items-center gap-1">
+              {/* dešinė: pile'ai */}
+              <div className="flex flex-col items-center gap-1 justify-end">
                 <div className="flex items-end gap-1.5">
                   {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
                   {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
                   {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
                 </div>
-                <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
-                  className="px-3 py-1.5 rounded-xl font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-80 whitespace-nowrap text-center"
-                  style={{ fontSize: myTurn ? 13 : 11, lineHeight: 1.1, background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
-                  {myTurn ? 'Baigti ėjimą' : 'Priešo ėjimas…'}
-                </button>
               </div>
             </div>
             {/* ranka (sutraukta vėduoklė); palietus kortą – atsiveria didelė skaitoma ranka (overlay) */}
@@ -3024,10 +3032,10 @@ doAction({ t: 'endTurn', actor: 'you' })
             return (card || zi) ? { e, idx, card, zi } : null
           })
           .filter((x): x is NonNullable<typeof x> => !!x)
-          .slice(-12)
+          .slice(-3)
         if (items.length === 0) return null
         return (
-          <div className="fixed right-1 top-1/2 -translate-y-1/2 z-[118] flex flex-col gap-1" style={{ maxHeight: '72vh', overflow: 'hidden' }}>
+          <div className="fixed right-1 top-1/2 -translate-y-1/2 z-[118] flex flex-col gap-1 rounded-lg p-1" style={{ maxHeight: '72vh', overflow: 'hidden', background: 'rgba(10,8,16,0.72)', border: '1px solid rgba(240,180,41,0.3)', boxShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
             {items.map(({ e, idx, card, zi }) => {
               const col = e.side === 'you' ? '#4ade80' : '#f87171'
               return (
