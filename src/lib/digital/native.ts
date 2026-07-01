@@ -71,3 +71,58 @@ export async function setNativeImmersive(on: boolean): Promise<void> {
     }
   } catch { /* status bar plugin neprieinama */ }
 }
+
+// ── Grįžimo kabliukai — vietinės dienos notifikacijos (retention #6) ───────────
+// Capacitor LocalNotifications gyvena native shell'e. Be jokio backend/push:
+// suplanuojam kasdienį priminimą apie dienos atlygį ir kovą. Vartotojas gali
+// išjungti nustatymuose. Priminimų būsena — įrenginio lygmens (localStorage).
+const REMINDERS_KEY = 'rvn:reminders'
+const RID_DAILY = 4801   // vakarinis: dienos atlygis / serija
+const RID_BATTLE = 4802  // vidurdienio: sužaisk kovą
+
+/** Ar priminimai įjungti (numatytai taip). */
+export function remindersEnabled(): boolean {
+  if (typeof window === 'undefined') return true
+  return window.localStorage.getItem(REMINDERS_KEY) !== 'off'
+}
+
+function nextAt(hour: number, minute: number): Date {
+  const d = new Date()
+  d.setHours(hour, minute, 0, 0)
+  if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1)
+  return d
+}
+
+/** Suplanuoja kasdienius grįžimo priminimus (tik native, tik jei įjungta). */
+export async function scheduleReturnReminders(): Promise<void> {
+  if (!isNativeApp() || !remindersEnabled()) return
+  try {
+    const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+    if (!LN) return
+    const perm = await LN.checkPermissions?.()
+    if (perm?.display !== 'granted') {
+      const req = await LN.requestPermissions?.()
+      if (req?.display !== 'granted') return
+    }
+    await LN.cancel?.({ notifications: [{ id: RID_DAILY }, { id: RID_BATTLE }] })
+    await LN.schedule({ notifications: [
+      { id: RID_DAILY,  title: 'Ravenof', body: 'Tavo dienos atlygis laukia! 🔥 Neprarask serijos.', schedule: { at: nextAt(19, 0), every: 'day', allowWhileIdle: true } },
+      { id: RID_BATTLE, title: 'Ravenof', body: 'Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!', schedule: { at: nextAt(12, 30), every: 'day', allowWhileIdle: true } },
+    ] })
+  } catch { /* niekada nelaužia UI */ }
+}
+
+/** Atšaukia grįžimo priminimus. */
+export async function cancelReturnReminders(): Promise<void> {
+  try {
+    const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+    await LN?.cancel?.({ notifications: [{ id: RID_DAILY }, { id: RID_BATTLE }] })
+  } catch { /* ignoruojam */ }
+}
+
+/** Įjungia/išjungia priminimus (nustatymų jungiklis). */
+export async function setRemindersEnabled(on: boolean): Promise<void> {
+  if (typeof window !== 'undefined') window.localStorage.setItem(REMINDERS_KEY, on ? 'on' : 'off')
+  if (on) await scheduleReturnReminders()
+  else await cancelReturnReminders()
+}

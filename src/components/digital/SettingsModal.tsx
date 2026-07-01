@@ -2,7 +2,7 @@
 
 // ── Ravenof Digital — nustatymų modalas (garsumas + efektai, su DB išsaugojimu) ─
 import { useEffect, useState } from 'react'
-import { Volume2, VolumeX, Music, Sparkles, Clapperboard } from 'lucide-react'
+import { Volume2, VolumeX, Music, Sparkles, Clapperboard, Bell } from 'lucide-react'
 import {
   getMusicVolume, getSfxVolume, isSummonFxEnabled,
   setMusicVolume, setSfxVolume, setSummonFxEnabled,
@@ -12,6 +12,7 @@ import {
 } from '@/lib/settings'
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
+import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digital/native'
 
 const ACC = '240,180,41'
 
@@ -23,10 +24,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [cine, setCine] = useState(true)
   const [cineSummon, setCineSummon] = useState(DEFAULT_SUMMON_CINEMATICS)
   const [cineSkill, setCineSkill] = useState(DEFAULT_SKILL_CINEMATICS)
+  const [reminders, setReminders] = useState(true)
+  const [native, setNative] = useState(false)
 
   useEffect(() => {
     setMusic(getMusicVolume()); setSfx(getSfxVolume()); setSummon(isSummonFxEnabled()); setSoundOn(isUiSoundEnabled())
     setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
+    setReminders(remindersEnabled()); setNative(isNativeApp())
     return subscribeUiSound(setSoundOn)
   }, [])
 
@@ -36,6 +40,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const onCine = (v: boolean) => { playUiClick(); setCine(v); setPremiumCinematicsEnabled(v); saveDigitalSettings() }
   const onCineSummon = (v: boolean) => { playUiClick(); setCineSummon(v); setSummonCinematicsEnabled(v); saveDigitalSettings() }
   const onCineSkill = (v: boolean) => { playUiClick(); setCineSkill(v); setChampionSkillCinematicsEnabled(v); saveDigitalSettings() }
+  const onReminders = (v: boolean) => { playUiClick(); setReminders(v); void setRemindersEnabled(v) }
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
@@ -97,6 +102,19 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </label>
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Trumpas (2–3 s) kino pop-up iškviečiant Legendinį/Čempioną ar panaudojus Čempiono skill. Praleidžiamas bakstelėjus.</p>
+
+          {native && (
+            <>
+              <div className="mt-4 flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
+                <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Bell className="w-4 h-4" />Priminimai</span>
+                <button onClick={() => onReminders(!reminders)} className="relative w-12 h-6 rounded-full transition-colors"
+                  style={{ background: reminders ? 'rgba(240,180,41,0.4)' : 'rgba(255,255,255,0.12)' }}>
+                  <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{ left: reminders ? '26px' : '2px', background: reminders ? 'var(--gold-bright)' : 'var(--text-muted)' }} />
+                </button>
+              </div>
+              <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Kasdienis priminimas apie dienos atlygį ir kovą, kad neprarastum serijos. Notifikacijos rodomos tik telefone.</p>
+            </>
+          )}
 
           <button onClick={() => { playUiClick(); onClose() }} className="w-full mt-6 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-95"
             style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>

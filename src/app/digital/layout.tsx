@@ -14,7 +14,7 @@ import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 import { getWallet, type Wallet } from '@/lib/economy'
-import { onWalletChanged, onOpenStore, setNativeImmersive } from '@/lib/digital/native'
+import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { HubStyles, ProfileChip, ResourcePill, IconBtn } from '@/components/digital/ui/HubKit'
@@ -44,6 +44,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
+    void scheduleReturnReminders()
     return () => { stopMusic(); setNativeImmersive(false) }
   }, [])
 
