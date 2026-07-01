@@ -861,7 +861,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const copyBlocks = !!game?.pendingCopy
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 80 : 124
-  const unitW = isTouch ? 58 : 92
+  const unitW = isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -2632,34 +2632,20 @@ doAction({ t: 'endTurn', actor: 'you' })
                 {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk' })}
               </div>
             </div>
-            <div className="mt-1">{renderSideZones('ai')}</div>
-            <div className="mt-1">{renderUnitsRow('ai', 'units-ai')}</div>
+            <div className="mt-1 pl-[50px] pr-[38px]">{renderSideZones('ai')}</div>
+            <div className="mt-1 pl-[50px] pr-[38px]">{renderUnitsRow('ai', 'units-ai')}</div>
           </div>
 
-          {/* ── vidurio juosta: lauko korta + įvykiai + ŽMK flash ── */}
-          <div className="shrink-0 flex items-center justify-center gap-3 py-1 relative"
+          {/* ── vidurio juosta: įvykių tekstas (lauko korta – fixed kairysis slotas) ── */}
+          <div className="shrink-0 flex items-center justify-center py-0.5 pl-[50px] pr-[38px]"
             style={{ borderTop: '1px solid rgba(240,180,41,0.1)', borderBottom: '1px solid rgba(240,180,41,0.1)' }}>
-            <div data-tut="field" className="flex items-center gap-1.5">
-              {game.field ? (
-                <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }}
-                  onClick={() => setInspect(game.field!.card)}>
-                  <MiniCard c={game.field.card} w={isTouch ? 36 : 48} />
-                </button>
-              ) : (
-                <div className="rounded-md flex items-center justify-center text-xs opacity-25"
-                  style={{ width: isTouch ? 36 : 48, height: isTouch ? 48 : 64, border: '1px dashed rgba(240,180,41,0.3)' }}>🌍</div>
-              )}
-              <span className="text-[8px] uppercase tracking-wide hidden sm:block" style={{ color: 'var(--text-muted)' }}>Laukas</span>
-            </div>
-            <div className="flex-1 max-w-md text-center px-2">
-              <p className="text-[10px] sm:text-[11px] leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
-            </div>
+            <p className="text-[10px] leading-snug line-clamp-1 text-center" style={{ color: 'var(--text-secondary)' }}>{lastMsg}</p>
           </div>
 
           {/* ── Tavo pusė ── */}
           <div className="flex-1 flex flex-col justify-end gap-1 min-h-0">
-            {renderUnitsRow('you', 'units-you')}
-            {renderSideZones('you')}
+            <div className="pl-[50px] pr-[38px]">{renderUnitsRow('you', 'units-you')}</div>
+            <div className="pl-[50px] pr-[38px]">{renderSideZones('you')}</div>
 
             {/* valdymo juosta: auksas+parduoti (kairė) · avataras (centras) · pile'ai+baigti (dešinė) */}
             <div className="flex items-end justify-between gap-2 shrink-0 px-1">
@@ -3024,6 +3010,22 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── įvykių žurnalas ── */}
       <AnimatePresence>
         {/* ── Nuolatinis suskleistas spalvotas log (dešinė): kortų/ŽMK miniatiūros eilės tvarka; žalia=tu, raudona=priešas ── */}
+      {/* ── Lauko korta: fixed kairysis slotas (per vidurį), bendras abiem ── */}
+      {game && isTouch && (
+        <div className="fixed left-1 top-1/2 -translate-y-1/2 z-[118] flex flex-col items-center gap-0.5">
+          <span className="text-[7px] uppercase tracking-wide" style={{ color: 'rgba(167,139,250,0.75)' }}>Laukas</span>
+          <div data-tut="field" className="rounded-lg p-0.5" style={{ background: 'rgba(10,8,16,0.72)', border: '1px solid rgba(167,139,250,0.5)', boxShadow: '0 0 10px rgba(167,139,250,0.28)' }}>
+            {game.field ? (
+              <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }} onClick={() => setInspect(game.field!.card)}>
+                <MiniCard c={game.field.card} w={46} />
+              </button>
+            ) : (
+              <div className="rounded-md flex items-center justify-center text-base opacity-30" style={{ width: 46, height: 61, border: '1px dashed rgba(167,139,250,0.4)' }}>🌍</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {game && !showLog && isTouch && (() => {
         const items = game.log
           .map((e, idx) => {
