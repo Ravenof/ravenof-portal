@@ -198,3 +198,33 @@ export function RewardChip({ icon, amount, accent = GOLD }: { icon: string; amou
     </span>
   )
 }
+
+// ── Premium tuščios būsenos (empty state) su aiškiu CTA ──────────────────────
+export function EmptyState({ icon, title, sub, accent = GOLD, ctaLabel, onCta, ctaHref, secondary }: {
+  icon: ReactNode; title: string; sub?: string; accent?: string
+  ctaLabel?: string; onCta?: () => void; ctaHref?: string; secondary?: ReactNode
+}) {
+  const cta = ctaLabel ? (
+    ctaHref ? (
+      <Link href={ctaHref} onClick={onCta} className="rvn-press inline-flex items-center justify-center gap-2 px-6 rounded-xl text-sm font-extrabold rvn-disp"
+        style={{ minHeight: 48, background: `linear-gradient(180deg, rgb(${accent}), rgba(${accent},0.82))`, color: '#1a0f04', boxShadow: `0 8px 22px rgba(${accent},0.32)`, letterSpacing: '0.02em' }}>{ctaLabel}</Link>
+    ) : (
+      <button onClick={onCta} className="rvn-press inline-flex items-center justify-center gap-2 px-6 rounded-xl text-sm font-extrabold rvn-disp"
+        style={{ minHeight: 48, background: `linear-gradient(180deg, rgb(${accent}), rgba(${accent},0.82))`, color: '#1a0f04', boxShadow: `0 8px 22px rgba(${accent},0.32)`, letterSpacing: '0.02em' }}>{ctaLabel}</button>
+    )
+  ) : null
+  return (
+    <div className="rvn-fade flex flex-col items-center justify-center text-center gap-4 py-14 px-6">
+      <div className="relative flex items-center justify-center" style={{ width: 96, height: 96 }}>
+        <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: `radial-gradient(circle, rgba(${accent},0.22), transparent 70%)` }} />
+        <span className="relative" style={{ fontSize: 46, filter: `drop-shadow(0 4px 14px rgba(${accent},0.4))` }}>{icon}</span>
+      </div>
+      <div className="max-w-[280px]">
+        <p className="rvn-disp" style={{ fontSize: 17, fontWeight: 800, color: '#f3ead3' }}>{title}</p>
+        {sub && <p className="mt-1.5" style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-muted)' }}>{sub}</p>}
+      </div>
+      {cta}
+      {secondary}
+    </div>
+  )
+}

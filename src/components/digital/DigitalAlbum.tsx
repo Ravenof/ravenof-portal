@@ -9,6 +9,7 @@ import { playCardFlip, playUiClick } from '@/lib/ui-sound'
 import { getWallet, getActivePacks, getPackInventory, type Wallet, type Pack } from '@/lib/economy'
 import { PackOpen } from './PackOpen'
 import { rarityColor } from '@/lib/digital/rarity'
+import { EmptyState } from './ui/HubKit'
 
 const PER_PAGE = 9 // 3x3 binderio kišenės
 
@@ -101,7 +102,10 @@ export function DigitalAlbum() {
       {loggedOut ? (
         <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/login?next=/digital/album" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
       ) : cards.length === 0 ? (
-        <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Albumas tuščias — atplėšk pakuotę žemiau 🎁</p>
+        <EmptyState icon="🃏" title="Albumas dar tuščias" sub="Atplėšk pakuotę ir pradėk rinkti kortas savo kolekcijai." accent="251,146,60"
+          ctaLabel={ownedPacks.length > 0 ? '🎁 Atidaryti pakuotę' : 'Į parduotuvę'}
+          ctaHref={ownedPacks.length > 0 ? undefined : '/digital'}
+          onCta={ownedPacks.length > 0 ? () => { playUiClick(); if (ownedPacks.length === 1) setOpeningPack(ownedPacks[0]); else setChooser(true) } : () => playUiClick()} />
       ) : (
         <>
           {/* Binderio puslapis */}

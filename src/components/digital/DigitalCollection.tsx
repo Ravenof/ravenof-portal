@@ -11,6 +11,7 @@ import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
+import { EmptyState } from './ui/HubKit'
 
 type Col = {
   id: string; name: string; image: string | null
@@ -155,7 +156,12 @@ export function DigitalCollection() {
 
         {/* Tinklelis */}
         {filtered.length === 0 ? (
-          <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>{ownedOnly ? 'Neturi kortų pagal šiuos filtrus. Atplėšk pakuotę 🎁' : 'Kortų nerasta.'}</p>
+          ownedOnly ? (
+            <EmptyState icon="🃏" title="Kolekcija dar tuščia" sub="Atplėšk pakuotę, kad rinktum kortas ir kurtum galingesnes kaladės." accent="251,146,60"
+              ctaLabel="🎁 Atplėšti pakuotę" onCta={openPacks} />
+          ) : (
+            <EmptyState icon="🔍" title="Nieko nerasta" sub="Pabandyk kitą paiešką ar filtrą." />
+          )
         ) : (
           <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
             {filtered.map((c) => <CardCell key={c.id} c={c} onClick={() => { playUiClick(); setPreview(c) }} />)}

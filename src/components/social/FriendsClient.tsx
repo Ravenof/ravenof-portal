@@ -8,6 +8,7 @@ import { friendRequest, friendRespond, friendRemove, friendsList, challengeCreat
 import { tradeCreate, tradeIncoming, tradeAccept, type TradeIncoming } from '@/lib/trade'
 import { TradeWindow } from './TradeWindow'
 import { RavenofButton } from '@/components/ui/RavenofButton'
+import { EmptyState } from '@/components/digital/ui/HubKit'
 
 export function FriendsClient() {
   const router = useRouter()
@@ -76,7 +77,7 @@ export function FriendsClient() {
       <div className="rounded-xl p-4" style={card}>
         <p className="text-sm font-bold mb-2" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pridėti draugą</p>
         <div className="flex gap-2">
-          <input value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Naudotojo vardas"
+          <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Naudotojo vardas"
             className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
           <RavenofButton variant="gold" size="md" onClick={add}><UserPlus className="w-4 h-4" /> Pridėti</RavenofButton>
         </div>
@@ -134,7 +135,8 @@ export function FriendsClient() {
       <div className="rounded-xl p-4" style={card}>
         <p className="text-sm font-bold mb-2" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Draugai ({friends.length})</p>
         {friends.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Dar neturi draugų. Pridėk pagal naudotojo vardą.</p>
+          <EmptyState icon="👥" title="Dar neturi draugų" sub="Pridėk draugą pagal naudotojo vardą ir kvieskite vienas kitą į kovą." accent="96,165,250"
+            ctaLabel="➕ Pridėti draugą" onCta={() => { const el = document.getElementById('friend-uname-input') as HTMLInputElement | null; el?.focus(); el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }} />
         ) : (
           <div className="space-y-2">
             {friends.map((f) => (
