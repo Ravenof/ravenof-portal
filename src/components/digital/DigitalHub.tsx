@@ -35,6 +35,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [mode, setMode] = useState('ranked')
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [decksClaimed, setDecksClaimed] = useState(0)
+  const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [questsPending, setQuestsPending] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
@@ -46,7 +47,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     refreshWallet(); refreshQuests()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }) })
-    getStarterDecks().then((d) => setDecksClaimed((d ?? []).filter((x) => x.claimed).length))
+    getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setDecksClaimed(c); setNewPlayer(c === 0) })
   }, [loggedIn, refreshWallet, refreshQuests])
 
   if (!loggedIn) {
@@ -64,6 +65,22 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   return (
     <div className="relative z-10 space-y-3">
       <HubStyles />
+
+      {newPlayer && (
+        <Link href="/digital/tutorial" onClick={() => playUiClick()}
+          className="rvn-press rvn-glow block rvn-fade" style={{ borderRadius: 16, padding: '13px 16px', textDecoration: 'none',
+            background: 'radial-gradient(120% 120% at 0% 0%, rgba(240,180,41,0.28), transparent 55%), linear-gradient(150deg, rgba(60,42,14,0.95), rgba(11,8,18,0.98))',
+            border: '1px solid rgba(240,180,41,0.6)' }}>
+          <span className="flex items-center gap-3">
+            <span style={{ fontSize: 26 }}>🎓</span>
+            <span className="flex-1 min-w-0">
+              <span className="block rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: 'var(--gold)' }}>Pradėk čia, naujoke</span>
+              <span className="block" style={{ fontSize: 11.5, color: '#e8dcc0' }}>Pasirink nemokamą kaladę ir išmok žaisti</span>
+            </span>
+            <span className="rvn-disp" style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold)' }}>→</span>
+          </span>
+        </Link>
+      )}
 
       <RewardBanner streak={streak} claimable={claimable} onClaim={claimReward} />
 
