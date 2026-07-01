@@ -11,6 +11,7 @@ import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
+import { WelcomeReward } from './WelcomeReward'
 import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
 import { getStarterDecks } from '@/lib/starterDecks'
@@ -37,6 +38,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [decksClaimed, setDecksClaimed] = useState(0)
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [questsPending, setQuestsPending] = useState(0)
+  const [seasonClaimable, setSeasonClaimable] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
   const refreshQuests = useCallback(() => { getDailyQuests().then((qs) => setQuestsPending((qs ?? []).filter((q) => q.progress >= q.target && !q.claimed).length)) }, [])
@@ -46,7 +48,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     if (!loggedIn) return
     refreshWallet(); refreshQuests()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }) })
+    getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }); setSeasonClaimable(p.tiers.filter((t) => p.xp >= t.xpRequired && !(p.claimedTiers ?? []).includes(t.tier)).length) })
     getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setDecksClaimed(c); setNewPlayer(c === 0) })
   }, [loggedIn, refreshWallet, refreshQuests])
 
@@ -62,24 +64,37 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const claimReward = () => { if (!claimable) return; playUiClick(); setClaimable(false); setToast(`🔥 ${streak} d. serija — atlygis atsiimtas!`); refreshWallet() }
   const startBattle = () => { playUiClick(); router.push(MODE_HREF[mode]) }
 
+  // ── Protingas „kitas veiksmas" — viena aiški rekomendacija pagal žaidėjo būseną ──
+  type NextAction = { icon: string; title: string; sub: string; accent: string; act: () => void }
+  const nextAction: NextAction | null = newPlayer === null ? null
+    : newPlayer
+      ? { icon: '🎓', title: 'Pradėk čia, naujoke', sub: 'Pasirink nemokamą kaladę ir išmok žaisti', accent: '240,180,41', act: () => { playUiClick(); router.push('/digital/tutorial') } }
+    : questsPending > 0
+      ? { icon: '🎯', title: 'Atsiimk užduočių atlygį', sub: `Paruošta atsiimti: ${questsPending}`, accent: '52,211,153', act: () => { playUiClick(); setQuestsOpen(true) } }
+    : wallet.packs > 0
+      ? { icon: '🎁', title: 'Atplėšk pakuotę', sub: `Turi ${wallet.packs} · atidaryk albume`, accent: '251,146,60', act: () => { playUiClick(); router.push('/digital/album') } }
+    : seasonClaimable > 0
+      ? { icon: '📜', title: 'Atsiimk sezono pakopą', sub: `Laukia pakopų: ${seasonClaimable}`, accent: '139,92,246', act: () => { playUiClick(); setSeasonOpen(true) } }
+      : { icon: '⚔️', title: 'Sužaisk reitingo kovą', sub: 'Kelk reitingą ir uždirbk XP', accent: '240,180,41', act: () => { playUiClick(); router.push('/digital/ranked') } }
+
   return (
     <div className="relative z-10 space-y-3">
       <HubStyles />
 
-      {newPlayer && (
-        <Link href="/digital/tutorial" onClick={() => playUiClick()}
-          className="rvn-press rvn-glow block rvn-fade" style={{ borderRadius: 16, padding: '13px 16px', textDecoration: 'none',
-            background: 'radial-gradient(120% 120% at 0% 0%, rgba(240,180,41,0.28), transparent 55%), linear-gradient(150deg, rgba(60,42,14,0.95), rgba(11,8,18,0.98))',
-            border: '1px solid rgba(240,180,41,0.6)' }}>
+      {nextAction && (
+        <button onClick={nextAction.act} className="rvn-press rvn-glow block w-full text-left rvn-fade" style={{ borderRadius: 16, padding: '13px 16px',
+          background: `radial-gradient(130% 130% at 0% 0%, rgba(${nextAction.accent},0.30), transparent 56%), linear-gradient(150deg, rgba(20,15,30,0.96), rgba(10,8,16,0.98))`,
+          border: `1px solid rgba(${nextAction.accent},0.6)` }}>
           <span className="flex items-center gap-3">
-            <span style={{ fontSize: 26 }}>🎓</span>
+            <span style={{ fontSize: 26 }}>{nextAction.icon}</span>
             <span className="flex-1 min-w-0">
-              <span className="block rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: 'var(--gold)' }}>Pradėk čia, naujoke</span>
-              <span className="block" style={{ fontSize: 11.5, color: '#e8dcc0' }}>Pasirink nemokamą kaladę ir išmok žaisti</span>
+              <span className="block" style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.16em', color: `rgba(${nextAction.accent},0.92)` }}>KITAS VEIKSMAS</span>
+              <span className="block rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{nextAction.title}</span>
+              <span className="block" style={{ fontSize: 11.5, color: '#e8dcc0' }}>{nextAction.sub}</span>
             </span>
-            <span className="rvn-disp" style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold)' }}>→</span>
+            <span className="rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: `rgba(${nextAction.accent},1)` }}>→</span>
           </span>
-        </Link>
+        </button>
       )}
 
       <RewardBanner streak={streak} claimable={claimable} onClaim={claimReward} />
@@ -107,6 +122,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
+
+      <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setDecksClaimed(c); setNewPlayer(c === 0) }) }} />
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
