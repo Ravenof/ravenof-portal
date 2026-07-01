@@ -28,7 +28,8 @@ import {
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
-import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason } from '@/lib/economy'
+import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
+import { getLevelForXp, getLevelProgress } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
@@ -1632,6 +1633,26 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (ranked) return // ranked atlygis skiriamas per RPC (rvn_report_ranked_match)
     if (vsRemote) awardGold('pvp_unranked', PVP_REWARD)
     else if (practice) awardGold(('pve_' + difficulty) as GoldReason, PVE_REWARD[difficulty])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner])
+
+  // ── Kovos atlygis + level-up šventė (XP; ne demo/ranked/campaign) ──
+  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; before: number; after: number } | null>(null)
+  const matchRewardRef = useRef(false)
+  useEffect(() => {
+    if (!game?.winner || matchRewardRef.current) return
+    if (deckId === DEMO_DECK_ID || ranked || onCampaignResult) return
+    matchRewardRef.current = true
+    const won = game.winner === 'you'
+    const mode: MatchXpMode = vsRemote ? 'pvp' : (('pve_' + difficulty) as MatchXpMode)
+    const gold = won ? (vsRemote ? PVP_REWARD : (practice ? PVE_REWARD[difficulty] : 0)) : 0
+    reportMatchXp(won, mode).then((r) => {
+      const xp = r?.xpGained ?? 0
+      const before = r?.totalBefore ?? 0
+      const after = r?.totalAfter ?? (before + xp)
+      setMatchReward({ gold, xp, before, after })
+      if (getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
 
@@ -3953,6 +3974,52 @@ doAction({ t: 'endTurn', actor: 'you' })
                   ? 'Puiku! Dabar žinai, kaip žaisti Ravenof. Laikas tikram mūšiui!'
                   : 'Nieko tokio – tai treniruotė. Pabandyk dar kartą, dabar jau žinai taisykles!'}
               </p>
+
+              {/* ── Atlygis + level-up šventė ── */}
+              {matchReward && (matchReward.gold > 0 || matchReward.xp > 0) && (() => {
+                const lvlBefore = getLevelForXp(matchReward.before)
+                const prog = getLevelProgress(matchReward.after)
+                const leveledUp = prog.level > lvlBefore
+                const startPct = leveledUp ? 0 : getLevelProgress(matchReward.before).progressPercent
+                return (
+                  <div className="mb-4">
+                    {leveledUp && (
+                      <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.25, type: 'spring', stiffness: 220, damping: 16 }}
+                        className="mb-3 px-3 py-2 rounded-xl relative overflow-hidden"
+                        style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(240,180,41,0.28), transparent 60%), linear-gradient(160deg, rgba(46,34,64,0.92), rgba(12,9,18,0.96))', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 0 26px rgba(240,180,41,0.4)' }}>
+                        <div className="text-[11px] font-extrabold tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 14px rgba(240,180,41,0.6)' }}>✦ NAUJAS LYGIS {prog.level} ✦</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: '#e8dcc0' }}>{prog.title}</div>
+                      </motion.div>
+                    )}
+                    <div className="flex items-center justify-center gap-2 mb-2.5">
+                      {matchReward.gold > 0 && (
+                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                          style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(240,180,41,0.4)', color: '#f3ead3' }}>
+                          <span>🪙</span> +{matchReward.gold}
+                        </motion.div>
+                      )}
+                      {matchReward.xp > 0 && (
+                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                          style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(96,165,250,0.4)', color: '#cfe0ff' }}>
+                          <span>⭐</span> +{matchReward.xp} XP
+                        </motion.div>
+                      )}
+                    </div>
+                    <div className="px-1">
+                      <div className="flex justify-between text-[9px] mb-1" style={{ color: 'var(--text-muted)' }}>
+                        <span>Lygis {prog.level}</span>
+                        <span>{prog.isMaxLevel ? 'MAX' : `${prog.xpIntoLevel} / ${prog.nextLevelXp - prog.currentLevelXp}`}</span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.22)' }}>
+                        <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: 0.35, duration: 0.9, ease: 'easeOut' }}
+                          style={{ height: '100%', background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: '0 0 10px rgba(240,180,41,0.6)' }} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
               {net?.opponentId && (
                 <button onClick={async () => { if (friendAdded !== 'idle') return; playUiClick(); const r = await friendRequestById(net.opponentId!); setFriendAdded(r.ok ? 'sent' : 'exists') }} disabled={friendAdded !== 'idle'}
                   className="w-full mb-3 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02] disabled:opacity-60"
