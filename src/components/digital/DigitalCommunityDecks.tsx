@@ -64,11 +64,11 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
       uids.length ? supabase.from('profiles').select('id, username, display_name').in('id', uids) : Promise.resolve({ data: [] }),
       supabase.from('user_collections').select('card_id, quantity').eq('user_id', userId),
       ids.length ? supabase.from('deck_cards').select('deck_id, card_id, quantity, card:cards ( name, image_url, gold_cost, rarity:rarities ( name ) )').in('deck_id', ids) : Promise.resolve({ data: [] }),
-      ids.length ? supabase.from('deck_votes').select('deck_id, value').eq('user_id', userId).in('deck_id', ids) : Promise.resolve({ data: [] }),
+      ids.length ? supabase.from('deck_votes').select('deck_id, vote').eq('user_id', userId).in('deck_id', ids) : Promise.resolve({ data: [] }),
       supabase.from('profiles').select('role').eq('id', userId).maybeSingle(),
     ])
     setIsAdmin(((me as { role?: string } | null)?.role) === 'admin')
-    setMyVotes(Object.fromEntries(((votes as { deck_id: string; value: number }[]) ?? []).map((v) => [v.deck_id, v.value])))
+    setMyVotes(Object.fromEntries(((votes as { deck_id: string; vote: number }[]) ?? []).map((v) => [v.deck_id, v.vote])))
     const nameOf: Record<string, string> = Object.fromEntries(((profs as { id: string; username: string; display_name: string | null }[]) ?? []).map((p) => [p.id, p.display_name || p.username]))
     const owned: Record<string, number> = Object.fromEntries(((col as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
     type DCR = { deck_id: string; card_id: string; quantity: number; card: { name: string; image_url: string | null; gold_cost: number; rarity: { name: string | null } | null } | null }
@@ -100,7 +100,9 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
     const supabase = createClient()
     const res = next === 0
       ? await supabase.from('deck_votes').delete().eq('deck_id', d.id).eq('user_id', userId)
-      : await supabase.from('deck_votes').upsert({ deck_id: d.id, user_id: userId, value: next })
+      : cur === 0
+        ? await supabase.from('deck_votes').insert({ deck_id: d.id, user_id: userId, vote: next })
+        : await supabase.from('deck_votes').update({ vote: next, updated_at: new Date().toISOString() }).eq('deck_id', d.id).eq('user_id', userId)
     if (res.error) {
       setMyVotes((m) => ({ ...m, [d.id]: cur }))
       setDecks((ds) => (ds ?? []).map((x) => x.id === d.id ? { ...x, score: x.score - delta } : x))
@@ -227,10 +229,10 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
   const loadComments = useCallback(async () => {
     const supabase = createClient()
     const { data } = await supabase.from('deck_comments')
-      .select('id, user_id, body, created_at, removed, profile:profiles ( username, display_name )')
-      .eq('deck_id', d.id).order('created_at', { ascending: false }).limit(60)
-    type CR = { id: string; user_id: string; body: string; created_at: string; removed: boolean; profile: { username: string; display_name: string | null } | null }
-    const rows = ((data as unknown as CR[]) ?? []).filter((r) => !r.removed)
+      .select('id, user_id, body, created_at, status, profile:profiles ( username, display_name )')
+      .eq('deck_id', d.id).eq('status', 'active').order('created_at', { ascending: false }).limit(60)
+    type CR = { id: string; user_id: string; body: string; created_at: string; status: string; profile: { username: string; display_name: string | null } | null }
+    const rows = ((data as unknown as CR[]) ?? [])
     const ids = rows.map((r) => r.id)
     const sums: Record<string, number> = {}
     const mine: Record<string, number> = {}
@@ -241,7 +243,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
         if (v.user_id === userId) mine[v.comment_id] = v.value
       }
     }
-    setComments(rows.map((r) => ({ id: r.id, userId: r.user_id, author: r.profile?.display_name || r.profile?.username || 'Žaidėjas', body: r.body, created: r.created_at, votes: sums[r.id] ?? 0, myVote: mine[r.id] ?? 0, removed: r.removed })))
+    setComments(rows.map((r) => ({ id: r.id, userId: r.user_id, author: r.profile?.display_name || r.profile?.username || 'Žaidėjas', body: r.body, created: r.created_at, votes: sums[r.id] ?? 0, myVote: mine[r.id] ?? 0, removed: false })))
   }, [d.id, userId])
 
   useEffect(() => { loadComments() }, [loadComments])
@@ -283,7 +285,8 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
   const removeComment = async (c: Comment) => {
     playUiClick()
     const supabase = createClient()
-    const { error } = await supabase.from('deck_comments').update({ removed: true, removed_by: userId, removed_at: new Date().toISOString() }).eq('id', c.id)
+    const newStatus = isAdmin && c.userId !== userId ? 'hidden' : 'deleted'
+    const { error } = await supabase.from('deck_comments').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', c.id)
     if (error) { flash('Nepavyko pašalinti', true); return }
     setComments((cs) => (cs ?? []).filter((x) => x.id !== c.id))
     flash('Komentaras pašalintas')
@@ -337,7 +340,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
                     <span className="text-[11.5px] font-bold truncate" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{c.author}</span>
                     <span className="text-[9.5px] shrink-0" style={{ color: 'var(--text-muted)' }}>{timeAgo(c.created)}</span>
                     <span className="flex-1" />
-                    {isAdmin && <button onClick={() => removeComment(c)} aria-label="Pašalinti" className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /></button>}
+                    {(isAdmin || c.userId === userId) && <button onClick={() => removeComment(c)} aria-label="Pašalinti" className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /></button>}
                     {c.userId !== userId && <button onClick={() => reportComment(c)} aria-label="Pranešti" className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: 'var(--text-muted)' }}><Flag className="w-3.5 h-3.5" /></button>}
                   </div>
                   <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{c.body}</p>

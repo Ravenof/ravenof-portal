@@ -1,75 +1,20 @@
 -- ══════════════════════════════════════════════════════════════════════════════
--- Bendruomenės kaladžių socialinė sistema:
---  • deck_votes — vienas useris = vienas balsas (-1/+1), decks.score = sum(votes)
---  • deck_comments — komentarai po kaladėmis (adminas gali šalinti)
---  • deck_comment_votes / deck_comment_reports — komentarų balsai ir reportai
---  • rvn_copy_community_deck — PILNAS viešos kaladės kopijavimas (su side deck,
---    nepriklausomai nuo turimų kortų)
+-- Bendruomenės kaladžių socialinis papildymas (/digital).
+-- PASTABA: deck_votes (vote stulpelis) ir deck_comments (status modelis) su
+-- score trigeriu DB JAU EGZISTUOJA (web portalo Community Decks) — jų neliečiam.
+-- Čia tik tai, ko trūksta:
+--  • deck_comment_votes   — komentarų balsai (1 user = 1 balsas -1/+1)
+--  • deck_comment_reports — komentarų reportai (mato tik adminas)
+--  • rvn_copy_community_deck — PILNAS viešos kaladės kopijavimas su side deck,
+--    nepriklausomai nuo turimų kortų (fix: kopijuodavosi nepilnai)
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- ── 1) Kaladžių balsai ────────────────────────────────────────────────────────
-create table if not exists public.deck_votes (
-  deck_id    uuid not null references public.decks(id) on delete cascade,
-  user_id    uuid not null references public.profiles(id) on delete cascade,
-  value      smallint not null check (value in (-1, 1)),
-  created_at timestamptz not null default now(),
-  primary key (deck_id, user_id)
-);
-alter table public.deck_votes enable row level security;
-drop policy if exists deck_votes_read on public.deck_votes;
-create policy deck_votes_read on public.deck_votes for select using (true);
-drop policy if exists deck_votes_ins on public.deck_votes;
-create policy deck_votes_ins on public.deck_votes for insert with check (user_id = auth.uid());
-drop policy if exists deck_votes_upd on public.deck_votes;
-create policy deck_votes_upd on public.deck_votes for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-drop policy if exists deck_votes_del on public.deck_votes;
-create policy deck_votes_del on public.deck_votes for delete using (user_id = auth.uid());
-
-create or replace function public.rvn_deck_score_refresh() returns trigger
-language plpgsql security definer set search_path = public as $$
-declare v_deck uuid;
-begin
-  v_deck := coalesce(new.deck_id, old.deck_id);
-  update public.decks
-     set score = coalesce((select sum(value) from public.deck_votes where deck_id = v_deck), 0)
-   where id = v_deck;
-  return null;
-end $$;
-drop trigger if exists trg_deck_votes_score on public.deck_votes;
-create trigger trg_deck_votes_score
-  after insert or update or delete on public.deck_votes
-  for each row execute function public.rvn_deck_score_refresh();
-
--- ── 2) Komentarai ─────────────────────────────────────────────────────────────
-create table if not exists public.deck_comments (
-  id         uuid primary key default gen_random_uuid(),
-  deck_id    uuid not null references public.decks(id) on delete cascade,
-  user_id    uuid not null references public.profiles(id) on delete cascade,
-  body       text not null check (char_length(body) between 1 and 1000),
-  created_at timestamptz not null default now(),
-  removed    boolean not null default false,
-  removed_by uuid references public.profiles(id),
-  removed_at timestamptz
-);
-create index if not exists idx_deck_comments_deck on public.deck_comments(deck_id, created_at desc);
-alter table public.deck_comments enable row level security;
-drop policy if exists deck_comments_read on public.deck_comments;
-create policy deck_comments_read on public.deck_comments
-  for select using (removed = false or user_id = auth.uid() or public.is_admin());
-drop policy if exists deck_comments_ins on public.deck_comments;
-create policy deck_comments_ins on public.deck_comments
-  for insert with check (user_id = auth.uid() and removed = false);
--- šalinimas (removed=true): pats autorius arba adminas
-drop policy if exists deck_comments_upd on public.deck_comments;
-create policy deck_comments_upd on public.deck_comments
-  for update using (user_id = auth.uid() or public.is_admin())
-  with check (user_id = auth.uid() or public.is_admin());
-
--- ── 3) Komentarų balsai ───────────────────────────────────────────────────────
+-- ── 1) Komentarų balsai ───────────────────────────────────────────────────────
 create table if not exists public.deck_comment_votes (
   comment_id uuid not null references public.deck_comments(id) on delete cascade,
   user_id    uuid not null references public.profiles(id) on delete cascade,
   value      smallint not null check (value in (-1, 1)),
+  created_at timestamptz not null default now(),
   primary key (comment_id, user_id)
 );
 alter table public.deck_comment_votes enable row level security;
@@ -82,7 +27,7 @@ create policy dcv_upd on public.deck_comment_votes for update using (user_id = a
 drop policy if exists dcv_del on public.deck_comment_votes;
 create policy dcv_del on public.deck_comment_votes for delete using (user_id = auth.uid());
 
--- ── 4) Komentarų reportai ─────────────────────────────────────────────────────
+-- ── 2) Komentarų reportai ─────────────────────────────────────────────────────
 create table if not exists public.deck_comment_reports (
   comment_id uuid not null references public.deck_comments(id) on delete cascade,
   user_id    uuid not null references public.profiles(id) on delete cascade,
@@ -96,7 +41,7 @@ create policy dcr_read on public.deck_comment_reports for select using (public.i
 drop policy if exists dcr_ins on public.deck_comment_reports;
 create policy dcr_ins on public.deck_comment_reports for insert with check (user_id = auth.uid());
 
--- ── 5) Pilnas viešos kaladės kopijavimas ─────────────────────────────────────
+-- ── 3) Pilnas viešos kaladės kopijavimas ─────────────────────────────────────
 create or replace function public.rvn_copy_community_deck(p_deck_id uuid)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare
