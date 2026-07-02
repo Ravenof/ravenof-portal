@@ -6,7 +6,8 @@ import { motion } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
-import { playUiClick, playSuccess, playCardFlip, playDiscovery } from '@/lib/ui-sound'
+import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick } from '@/lib/ui-sound'
+import { GameCard } from '@/components/ui/GameCard'
 
 const PACK_W = 220
 const PACK_H = 300
@@ -16,6 +17,67 @@ const THRESH = 0.42
 // „kandžiotas" plėšimo kraštas
 const JAG_OUT = 'polygon(0 0, 100% 0, 100% 70%, 94% 100%, 88% 72%, 81% 100%, 74% 70%, 67% 96%, 60% 68%, 53% 100%, 46% 72%, 39% 98%, 32% 70%, 25% 100%, 18% 72%, 11% 96%, 5% 70%, 0 88%)'
 const JAG_IN  = 'polygon(0 0, 100% 0, 100% 78%, 95% 100%, 89% 76%, 82% 100%, 75% 74%, 68% 100%, 61% 72%, 54% 100%, 47% 76%, 40% 100%, 33% 74%, 26% 100%, 19% 76%, 12% 100%, 6% 74%, 0 94%)'
+
+// ── Retumo efektų pakopos: 1 žalios dalelės · 2 mėlyni žiedai · 3 violetiniai
+// dūmai · 4 raudoni dūmai + žaibai ────────────────────────────────────────────
+function RarityFx({ level, col, idx }: { level: number; col: string; idx: number }) {
+  const fx = useMemo(() => {
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a)
+    const dots = Array.from({ length: 14 }, () => ({ x: rnd(-110, 110), y0: rnd(30, 130), y1: rnd(-140, -60), s: rnd(3, 6), dur: rnd(2, 3.4), delay: rnd(0, 2) }))
+    const smoke = Array.from({ length: level >= 4 ? 9 : 6 }, () => ({ x: rnd(-95, 95), drift: rnd(-45, 45), s: rnd(60, level >= 4 ? 150 : 110), dur: rnd(2.2, 3.6), delay: rnd(0, 2.4), o: rnd(0.35, level >= 4 ? 0.6 : 0.45) }))
+    const bolts = Array.from({ length: 4 }, (_, bi) => {
+      const side = bi % 2 === 0 ? -1 : 1
+      const sx = side * rnd(95, 130); let x = sx; let y = rnd(-170, -120)
+      const pts: string[] = [`${x},${y}`]
+      for (let k = 0; k < 6; k++) { x += rnd(-34, 34) + side * 6; y += rnd(38, 62); pts.push(`${x},${y}`) }
+      return { pts: pts.join(' '), delay: rnd(0, 1.4), rd: rnd(0.5, 1.5) }
+    })
+    return { dots, smoke, bolts }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, level])
+
+  if (level <= 0) return null
+  return (
+    <div className="absolute pointer-events-none" style={{ inset: -70, zIndex: 0, overflow: 'visible' }}>
+      {/* 1 — dalelės, skraidančios aplink */}
+      {level === 1 && fx.dots.map((d, i) => (
+        <motion.span key={i} className="absolute left-1/2 top-1/2"
+          initial={{ x: d.x, y: d.y0, opacity: 0, scale: 0.6 }}
+          animate={{ y: [d.y0, d.y1], x: [d.x, d.x + (i % 2 ? 18 : -18)], opacity: [0, 0.9, 0], scale: [0.6, 1, 0.5] }}
+          transition={{ duration: d.dur, delay: d.delay, repeat: Infinity, ease: 'easeOut' }}
+          style={{ width: d.s, height: d.s, borderRadius: '50%', background: col, boxShadow: `0 0 8px ${col}` }} />
+      ))}
+      {/* 2 — nuvilnijantys žiedai */}
+      {level === 2 && [0, 1, 2].map((i) => (
+        <motion.span key={i} className="absolute left-1/2 top-1/2"
+          initial={{ opacity: 0, scale: 0.35 }}
+          animate={{ opacity: [0, 0.75, 0], scale: [0.35, 1.55] }}
+          transition={{ duration: 1.7, delay: i * 0.55, repeat: Infinity, ease: 'easeOut' }}
+          style={{ width: 260, height: 340, marginLeft: -130, marginTop: -170, borderRadius: 18, border: `2px solid ${col}`, boxShadow: `0 0 18px ${col}88, inset 0 0 18px ${col}55` }} />
+      ))}
+      {/* 3/4 — dūmai */}
+      {level >= 3 && fx.smoke.map((m, i) => (
+        <motion.span key={'s' + i} className="absolute left-1/2"
+          initial={{ x: m.x - m.s / 2, y: 150, opacity: 0, scale: 0.7 }}
+          animate={{ y: [150, -160], x: [m.x - m.s / 2, m.x - m.s / 2 + m.drift], opacity: [0, m.o, 0], scale: [0.7, 1.7] }}
+          transition={{ duration: m.dur, delay: m.delay, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ bottom: 0, width: m.s, height: m.s, borderRadius: '50%', filter: 'blur(16px)', background: `radial-gradient(circle, ${col}, transparent 68%)` }} />
+      ))}
+      {/* 4 — žaibai */}
+      {level >= 4 && (
+        <svg className="absolute left-1/2 top-1/2" width="380" height="480" viewBox="-190 -240 380 480" style={{ marginLeft: -190, marginTop: -240, overflow: 'visible' }}>
+          {fx.bolts.map((b, i) => (
+            <motion.polyline key={i} points={b.pts} fill="none" stroke="#ffe9a8" strokeWidth={2.4} strokeLinejoin="round"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0.15, 0.9, 0] }}
+              transition={{ duration: 0.34, delay: b.delay, repeat: Infinity, repeatDelay: b.rd, ease: 'linear' }}
+              style={{ filter: `drop-shadow(0 0 6px ${col}) drop-shadow(0 0 14px ${col})` }} />
+          ))}
+        </svg>
+      )}
+    </div>
+  )
+}
 
 // Folijos gabalo menas — pakuotės viršus (tas pats vaizdas, sulygiuotas)
 function FoilArt({ packImage, bad }: { packImage?: string | null; bad: boolean }) {
@@ -209,14 +271,22 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
           <p className="text-xs font-bold" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.1em' }}>{revealIdx + 1} / {cards.length}</p>
           <div className="relative" style={{ width: 210, height: 294, perspective: 900 }}>
             {/* fono švytėjimas pagal retumą */}
-            {L >= 1 && <motion.div key={'glow' + revealIdx} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: [0, 0.9, 0.5], scale: [0.6, 1.4, 1.2] }} transition={{ duration: 0.9 }} className="absolute -inset-10" style={{ borderRadius: '50%', filter: 'blur(30px)', background: `radial-gradient(circle, ${col}cc, transparent 70%)` }} />}
+            {L >= 1 && <motion.div key={'glow' + revealIdx} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: [0, 0.9, L >= 2 ? 0.65 : 0.45], scale: [0.6, L >= 3 ? 1.9 : 1.4, L >= 3 ? 1.6 : 1.2] }} transition={{ duration: 0.9 }} className="absolute -inset-10" style={{ borderRadius: '50%', filter: 'blur(30px)', background: `radial-gradient(circle, ${col}cc, transparent 70%)` }} />}
+            <RarityFx level={L} col={col} idx={revealIdx} />
             {/* sparkles */}
             {sparks.map((p, i) => (
               <motion.span key={'sp' + revealIdx + '-' + i} initial={{ x: 0, y: 0, opacity: 0, scale: 0 }} animate={{ x: p.x, y: p.y, opacity: [0, 1, 0], scale: [0, 1, 0.4] }} transition={{ duration: 0.7 + L * 0.15, delay: p.delay }}
                 className="absolute top-1/2 left-1/2" style={{ width: p.s, height: p.s, borderRadius: '50%', background: col, boxShadow: `0 0 ${4 + L * 2}px ${col}`, marginLeft: -p.s / 2, marginTop: -p.s / 2 }} />
             ))}
-            {/* korta (flip) */}
-            <motion.div key={'card' + revealIdx} initial={{ rotateY: 180, opacity: 0, scale: 0.85 }} animate={{ rotateY: 0, opacity: 1, scale: 1 }} transition={{ type: 'spring', damping: 13 }} style={{ transformStyle: 'preserve-3d' }}
+            {/* korta (flip; legendarai dreba) */}
+            <motion.div key={'card' + revealIdx} initial={{ rotateY: 180, opacity: 0, scale: 0.85 }}
+              animate={L >= 4
+                ? { rotateY: 0, opacity: 1, scale: 1, rotate: [0, -0.8, 0.9, -0.5, 0], x: [0, 1.5, -1.5, 1, 0] }
+                : { rotateY: 0, opacity: 1, scale: 1 }}
+              transition={L >= 4
+                ? { rotateY: { type: 'spring', damping: 13 }, rotate: { duration: 0.5, repeat: Infinity, delay: 0.6 }, x: { duration: 0.5, repeat: Infinity, delay: 0.6 } }
+                : { type: 'spring', damping: 13 }}
+              style={{ transformStyle: 'preserve-3d', zIndex: 1 }}
               className="relative w-full h-full rounded-lg overflow-hidden" >
               <div className="absolute inset-0 rounded-lg overflow-hidden" style={{ border: `${2 + Math.min(2, L)}px solid ${col}`, boxShadow: `0 0 ${14 + L * 10}px ${col}${L >= 2 ? 'cc' : '88'}` }}>
                 <CardArt card={current} />
@@ -232,25 +302,115 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
         </div>
       )}
 
-      {/* DONE — visos kortos */}
+      {/* DONE — kortos išmėtytos ant seno medinio stalo */}
       {done && cards && (
-        <div className="flex flex-col items-center gap-4 w-full max-w-[760px]">
-          <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>TAVO KORTOS!</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
-            {cards.map((c, i) => {
-              const cc = rarityColor(c.rarity)
-              return (
-                <div key={c.id + '-' + i} className="relative rounded-md overflow-hidden" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 0 12px ${cc}77` }}>
-                  <CardArt card={c} />
-                  <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center" style={{ background: 'rgba(0,0,0,0.75)' }}>
-                    <p className="text-[10px] leading-tight truncate" style={{ color: '#fff' }}>{c.name}</p>
-                    <p className="text-[8px] font-bold uppercase tracking-wide" style={{ color: cc }}>{c.rarity ?? ''}</p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <button onClick={() => { playUiClick(); onClose() }} className="mt-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>Į kolekciją</button>
+        <TableSpread cards={cards} onClose={() => { playUiClick(); onClose() }} />
+      )}
+    </div>
+  )
+}
+
+
+// ══ Senas medinis stalas: kortos išmėtytos, batch sukiojamas pirštu, kortos
+// tiltinasi (GameCard) ir bakstelėjus priartėja apžiūrai ═════════════════════
+function TableSpread({ cards, onClose }: { cards: OpenedCard[]; onClose: () => void }) {
+  const [rot, setRot] = useState(0)
+  const [zoom, setZoom] = useState<number | null>(null)
+  const [top, setTop] = useState<number | null>(null)
+  const dragRef = useRef<{ x: number; rot: number; moved: boolean } | null>(null)
+  const suppressRef = useRef(false)
+
+  // išsklaidytos pozicijos: laisvas ratas + jitter (deterministinės šiam atidarymui)
+  const spots = useMemo(() => {
+    const n = cards.length
+    return cards.map((_, i) => {
+      const a = (i / Math.max(1, n)) * Math.PI * 2 + 0.35
+      const ring = n <= 4 ? 22 : i % 2 === 0 ? 30 : 17
+      return {
+        x: Math.cos(a) * ring + (Math.random() * 8 - 4),
+        y: Math.sin(a) * ring * 0.78 + (Math.random() * 8 - 4),
+        r: Math.random() * 26 - 13,
+        d: Math.random() * 0.25,
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards])
+
+  const onDown = (e: React.PointerEvent) => {
+    dragRef.current = { x: e.clientX, rot, moved: false }
+    try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId) } catch { /* */ }
+  }
+  const onMove = (e: React.PointerEvent) => {
+    const d = dragRef.current
+    if (!d) return
+    const dx = e.clientX - d.x
+    if (Math.abs(dx) > 7 && !d.moved) { d.moved = true; playCardPick() }
+    if (d.moved) { setRot(d.rot + dx * 0.45); suppressRef.current = true }
+  }
+  const onUp = () => {
+    dragRef.current = null
+    setTimeout(() => { suppressRef.current = false }, 120)
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3 w-full max-w-[560px]">
+      <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>TAVO KORTOS!</p>
+
+      {/* stalas iš lentų */}
+      <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        className="relative w-full overflow-hidden rounded-2xl cursor-grab active:cursor-grabbing select-none"
+        style={{ height: 'min(58vh, 470px)', touchAction: 'none',
+          background: [
+            'radial-gradient(120% 90% at 50% 0%, rgba(255,205,110,0.10), transparent 55%)',
+            'repeating-linear-gradient(90deg, #4a3419 0px, #5a4322 26px, #4e3a1c 55px, #3c2c12 78px, #3c2c12 80px)',
+            'linear-gradient(160deg, #4a3419, #241807)',
+          ].join(', '),
+          boxShadow: 'inset 0 0 70px rgba(0,0,0,0.75), inset 0 2px 0 rgba(240,180,41,0.25), 0 10px 30px rgba(0,0,0,0.6)' }}>
+        {/* lentų siūlės ir vinys */}
+        <div aria-hidden className="absolute inset-0" style={{ background: 'repeating-linear-gradient(90deg, transparent 0 78px, rgba(0,0,0,0.55) 78px 80px)' }} />
+        <div aria-hidden className="absolute inset-0" style={{ background: 'radial-gradient(140% 120% at 50% 50%, transparent 55%, rgba(0,0,0,0.55))' }} />
+
+        {/* sukiojamas kortų batch'as */}
+        <motion.div className="absolute left-1/2 top-1/2" animate={{ rotate: rot }} transition={{ type: 'spring', stiffness: 160, damping: 24 }} style={{ width: 0, height: 0 }}>
+          {cards.map((c, i) => {
+            const cc = rarityColor(c.rarity)
+            const sp = spots[i]
+            return (
+              <motion.div key={c.id + '-' + i} className="absolute"
+                initial={{ opacity: 0, scale: 0.4, x: 0, y: 0, rotate: 0 }}
+                animate={{ opacity: 1, scale: 1, x: `${sp.x * 4}px`, y: `${sp.y * 3.2}px`, rotate: sp.r }}
+                transition={{ type: 'spring', stiffness: 210, damping: 20, delay: sp.d }}
+                style={{ width: 92, height: 129, marginLeft: -46, marginTop: -64, zIndex: top === i ? 30 : 10 + (i % 7) }}>
+                <GameCard glowColor={cc + '99'}>
+                  <button onClick={() => { if (suppressRef.current) return; playCardFlip(); setTop(i); setZoom(i) }}
+                    className="relative block w-full h-full rounded-md overflow-hidden"
+                    style={{ border: `2px solid ${cc}`, boxShadow: `0 6px 16px rgba(0,0,0,0.65), 0 0 12px ${cc}55` }}>
+                    <CardArt card={c} />
+                  </button>
+                </GameCard>
+              </motion.div>
+            )
+          })}
+        </motion.div>
+
+        <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] pointer-events-none" style={{ color: 'rgba(240,180,41,0.55)' }}>
+          Sukiok stalą pirštu · bakstelk kortą apžiūrai
+        </p>
+      </div>
+
+      <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>Į kolekciją</button>
+
+      {/* priartinta korta */}
+      {zoom != null && cards[zoom] && (
+        <div className="fixed inset-0 z-[190] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.88)' }} onClick={() => setZoom(null)}>
+          <motion.div initial={{ scale: 0.55, rotate: spots[zoom]?.r ?? 0, opacity: 0.4 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            className="relative rounded-lg overflow-hidden" style={{ width: 'min(300px, 74vw)', aspectRatio: '2.5 / 3.5', border: `3px solid ${rarityColor(cards[zoom].rarity)}`, boxShadow: `0 0 34px ${rarityColor(cards[zoom].rarity)}aa` }}>
+            <CardArt card={cards[zoom]} />
+            <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
+              <p className="text-[13px] leading-tight" style={{ color: '#fff' }}>{cards[zoom].name}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rarityColor(cards[zoom].rarity) }}>{cards[zoom].rarity ?? ''}</p>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>
