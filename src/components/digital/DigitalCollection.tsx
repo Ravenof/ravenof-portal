@@ -1,15 +1,17 @@
 'use client'
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Ravenof Digital — KOLEKCIJOS KNYGA: 9 kortos puslapyje (3×3), 3D puslapio
-// vertimo efektas (framer-motion + garsas), paieška / filtrai (frakcija,
-// retumas, tipas) / rikiavimas (kaina, pavadinimas, retumas, turimos) + swipe.
-// Puslapiavimas montuoja tik 9 GameCard vienu metu — greitesnis krovimas.
+// Ravenof Digital — KOLEKCIJOS KNYGA (be puslapio scroll):
+// • Ekranas fiksuoto aukščio — knyga automatiškai prisitaiko, nieko nereikia
+//   slinkti aukštyn/žemyn.
+// • 9 kortos puslapyje (3×3), 3D vertimo animacija + garsas, swipe.
+// • Filtrai (frakcija/retumas/tipas/rikiavimas/tik turimos) — pop-up modale,
+//   atidaromame mygtuku šalia paieškos (su aktyvių filtrų skaitliuku).
 // ══════════════════════════════════════════════════════════════════════════════
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Search, Lock, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Lock, X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playCardFlip } from '@/lib/ui-sound'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
@@ -54,11 +56,44 @@ export function DigitalCollection() {
   const [type, setType] = useState('all')
   const [sort, setSort] = useState<SortKey>('cost-asc')
   const [ownedOnly, setOwnedOnly] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [preview, setPreview] = useState<Col | null>(null)
 
   const [page, setPage] = useState(0)
   const [dir, setDir] = useState(1)
   const touchX = useRef<number | null>(null)
+
+  // ── ekrano matavimas: visa kolekcija telpa be scroll ─────────────────────
+  const rootRef = useRef<HTMLDivElement>(null)
+  const bookAreaRef = useRef<HTMLDivElement>(null)
+  const [rootH, setRootH] = useState<number | null>(null)
+  const [bookW, setBookW] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    const update = () => {
+      const el = rootRef.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top
+      // apačioje: tab bar (~64px) + saugos zona (~24px atsargai) + tarpas
+      setRootH(Math.max(360, window.innerHeight - top - 92))
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [cards, loggedOut])
+
+  useLayoutEffect(() => {
+    const el = bookAreaRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect()
+      // knygos aukštis ≈ 1.4·W + 44 (grid 3×kortos + nav eilutė + rėmas)
+      const wFromH = (r.height - 44) / 1.4
+      setBookW(Math.max(220, Math.floor(Math.min(470, r.width, wFromH))))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [cards, loggedOut])
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -75,7 +110,8 @@ export function DigitalCollection() {
     ])
     type R = { id: string; name: string; image_url: string | null; gold_cost: number; attack: number | null; health: number | null; description: string | null; effect_text: string | null; is_champion: boolean; faction: { name: string; slug: string } | null; card_type: { name: string } | null; rarity: { name: string; copy_limit: number; sort_order: number } | null }
     const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
-    const list: Col[] = ((cardRows as unknown as R[]) ?? []).map((r) => ({
+    const list: Col[] = ((cardRows as unknown as R[]) ??
+      []).map((r) => ({
       id: r.id, name: r.name, image: r.image_url,
       faction: r.faction?.name ?? null, factionSlug: r.faction?.slug ?? null,
       type: r.card_type?.name ?? null, rarity: r.rarity?.name ?? null,
@@ -124,7 +160,6 @@ export function DigitalCollection() {
     return [...list].sort(by[sort])
   }, [cards, q, faction, rarity, type, ownedOnly, sort])
 
-  // filtrams pasikeitus — grįžtam į 1 puslapį
   useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, sort])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
@@ -141,69 +176,51 @@ export function DigitalCollection() {
   }
 
   const ownedCount = (cards ?? []).filter((c) => c.owned > 0).length
+  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0) + (sort !== 'cost-asc' ? 1 : 0)
+  const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(false) }
 
   if (cards === null) return <p className="text-center text-sm py-16" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
 
-  const selStyle: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)', fontSize: 11.5, borderRadius: 10, padding: '7px 8px', minHeight: 38, width: '100%' }
+  if (loggedOut) {
+    return (
+      <div className="space-y-3">
+        <PageHero compact iconName="fi-collection" icon={<span style={{ fontSize: 28 }}>🎴</span>} title="KOLEKCIJA" sub="Tavo kortų knyga" />
+        <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-3" style={{ paddingBottom: 64 }}>
-      <PageHero compact iconName="fi-collection" icon={<span style={{ fontSize: 28 }}>🎴</span>} title="KOLEKCIJA" sub={`Tavo kortų knyga · surinkta ${ownedCount}/${cards.length}`} />
+    <div ref={rootRef} className="flex flex-col" style={{ height: rootH ?? undefined, overflow: 'hidden', gap: 10 }}>
+      <PageHero compact iconName="fi-collection" icon={<span style={{ fontSize: 28 }}>🎴</span>} title="KOLEKCIJA" sub={`Surinkta ${ownedCount}/${cards.length} · rodoma ${filtered.length}`} />
 
-      {loggedOut ? (
-        <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
-      ) : (
-      <>
-        {/* Paieška */}
-        <div className="relative">
+      {/* Paieška + filtrų mygtukas */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti kortos…"
             className="w-full pl-9 pr-3 rounded-xl text-sm outline-none"
             style={{ minHeight: 42, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
         </div>
+        <button onClick={() => { playUiClick(); setFiltersOpen(true) }} aria-label="Filtrai"
+          className="rvn-press relative flex items-center justify-center shrink-0"
+          style={{ width: 42, height: 42, borderRadius: 12, background: activeFilters > 0 ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},${activeFilters > 0 ? 0.65 : 0.3})`, color: 'var(--gold)' }}>
+          <SlidersHorizontal className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+          {activeFilters > 0 && <span className="absolute flex items-center justify-center" style={{ top: -5, right: -5, minWidth: 16, height: 16, padding: '0 3px', borderRadius: 8, fontSize: 9, fontWeight: 800, background: 'rgb(240,180,41)', color: '#1a0f04', border: '1px solid #0a0810' }}>{activeFilters}</span>}
+        </button>
+      </div>
 
-        {/* Filtrai + rikiavimas */}
-        <div className="grid grid-cols-2 gap-1.5">
-          <select value={faction} onChange={(e) => setFaction(e.target.value)} style={selStyle}>
-            <option value="all">Visos frakcijos</option>
-            {factions.map((f) => <option key={f.slug} value={f.slug}>{f.name}</option>)}
-          </select>
-          <select value={rarity} onChange={(e) => setRarity(e.target.value)} style={selStyle}>
-            <option value="all">Visi retumai</option>
-            {rarities.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
-          </select>
-          <select value={type} onChange={(e) => setType(e.target.value)} style={selStyle}>
-            <option value="all">Visi tipai</option>
-            {types.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} style={selStyle}>
-            {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }}
-            className="inline-flex items-center gap-2 px-3 rounded-full text-xs font-semibold transition-colors"
-            style={{ minHeight: 36, background: ownedOnly ? 'rgba(34,197,94,0.18)' : 'rgba(10,8,16,0.9)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.6)' : `rgba(${GOLD},0.3)`}`, color: ownedOnly ? '#86efac' : 'var(--text-muted)' }}>
-            <span className="relative inline-block rounded-full" style={{ width: 28, height: 15, background: ownedOnly ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.12)' }}>
-              <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 11, height: 11, left: ownedOnly ? 15 : 2 }} />
-            </span>
-            Tik turimos
-          </button>
-          <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{filtered.length} kortų</span>
-        </div>
-
-        {/* ── KNYGA ── */}
+      {/* ── KNYGA (užpildo likusį aukštį, be scroll) ── */}
+      <div ref={bookAreaRef} className="flex-1 min-h-0 flex items-center justify-center">
         {filtered.length === 0 ? (
           ownedOnly ? (
-            <EmptyState icon="🃏" title="Kolekcija dar tuščia" sub="Atplėšk pakuotę, kad rinktum kortas ir kurtum galingesnes kaladės." accent="251,146,60"
+            <EmptyState icon="🃏" title="Kolekcija dar tuščia" sub="Atplėšk pakuotę, kad rinktum kortas." accent="251,146,60"
               ctaLabel="🎁 Atplėšti pakuotę" onCta={openPacks} />
           ) : (
             <EmptyState icon="🔍" title="Nieko nerasta" sub="Pabandyk kitą paiešką ar filtrą." />
           )
         ) : (
-        <>
-          <div className="relative mx-auto max-w-[470px]" style={{ perspective: 1600 }}
+          <div className="relative" style={{ width: bookW ?? 300, perspective: 1600 }}
             onTouchStart={(e) => { touchX.current = e.touches[0].clientX }}
             onTouchEnd={(e) => {
               if (touchX.current == null) return
@@ -232,11 +249,11 @@ export function DigitalCollection() {
                   </motion.div>
                 </AnimatePresence>
 
-                {/* puslapio numeris knygos apačioje */}
-                <div className="flex items-center justify-center gap-3 mt-3">
+                {/* puslapio numeris */}
+                <div className="flex items-center justify-center gap-3" style={{ marginTop: 10 }}>
                   <button onClick={() => go(-1)} disabled={clamped === 0} aria-label="Ankstesnis puslapis"
                     className="rvn-press flex items-center justify-center disabled:opacity-25"
-                    style={{ width: 38, height: 38, clipPath: oct(8), background: `rgba(${GOLD},0.14)`, border: 'none', color: 'var(--gold)' }}>
+                    style={{ width: 36, height: 36, clipPath: oct(8), background: `rgba(${GOLD},0.14)`, border: 'none', color: 'var(--gold)' }}>
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <span className="rvn-disp tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', minWidth: 72, textAlign: 'center' }}>
@@ -244,27 +261,84 @@ export function DigitalCollection() {
                   </span>
                   <button onClick={() => go(1)} disabled={clamped >= pageCount - 1} aria-label="Kitas puslapis"
                     className="rvn-press flex items-center justify-center disabled:opacity-25"
-                    style={{ width: 38, height: 38, clipPath: oct(8), background: `rgba(${GOLD},0.14)`, border: 'none', color: 'var(--gold)' }}>
+                    style={{ width: 36, height: 36, clipPath: oct(8), background: `rgba(${GOLD},0.14)`, border: 'none', color: 'var(--gold)' }}>
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          <p className="text-center text-[10px]" style={{ color: 'rgba(150,160,185,0.55)' }}>Braukk per knygą arba spausk rodykles</p>
-        </>
         )}
-      </>
-      )}
-
-      {/* Sticky CTA */}
-      <div className="fixed left-0 right-0 z-30 px-4" style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
-        <button onClick={openPacks}
-          className="mx-auto block w-[min(420px,100%)] px-4 py-2.5 rounded-full text-xs font-bold transition-transform active:scale-[0.98]"
-          style={{ background: 'rgba(251,146,60,0.92)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>
-          {totalPacks > 0 ? `🎁 Atplėšti pakus (${totalPacks})` : '🛒 Į parduotuvę'}
-        </button>
       </div>
+
+      {/* Pakuočių CTA (fiksuota eilutė apačioje, ne overlay) */}
+      <button onClick={openPacks}
+        className="shrink-0 mx-auto block w-[min(420px,100%)] px-4 py-2.5 rounded-full text-xs font-bold transition-transform active:scale-[0.98]"
+        style={{ background: 'rgba(251,146,60,0.92)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>
+        {totalPacks > 0 ? `🎁 Atplėšti pakus (${totalPacks})` : '🛒 Į parduotuvę'}
+      </button>
+
+      {/* ── FILTRŲ POP-UP ── */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[160] flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }} onClick={() => setFiltersOpen(false)}>
+          <div className="w-full sm:max-w-md rvn-fade" onClick={(e) => e.stopPropagation()}
+            style={{ borderRadius: '18px 18px 0 0', background: 'linear-gradient(165deg, #17111f, #0a0810)', border: `1px solid rgba(${GOLD},0.35)`, borderBottom: 'none', boxShadow: '0 -10px 44px rgba(0,0,0,0.8)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+            <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5" style={{ borderBottom: `1px solid rgba(${GOLD},0.18)` }}>
+              <p className="text-base font-bold inline-flex items-center gap-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
+                <SlidersHorizontal className="w-4 h-4" /> FILTRAI IR RIKIAVIMAS
+              </p>
+              <button onClick={() => { playUiClick(); setFiltersOpen(false) }} aria-label="Uždaryti" className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="px-4 py-4 space-y-3">
+              <FilterField label="Frakcija">
+                <select value={faction} onChange={(e) => setFaction(e.target.value)} style={POPUP_SEL}>
+                  <option value="all">Visos frakcijos</option>
+                  {factions.map((f) => <option key={f.slug} value={f.slug}>{f.name}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Retumas">
+                <select value={rarity} onChange={(e) => setRarity(e.target.value)} style={POPUP_SEL}>
+                  <option value="all">Visi retumai</option>
+                  {rarities.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Tipas">
+                <select value={type} onChange={(e) => setType(e.target.value)} style={POPUP_SEL}>
+                  <option value="all">Visi tipai</option>
+                  {types.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Rikiuoti pagal">
+                <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} style={POPUP_SEL}>
+                  {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+              </FilterField>
+
+              <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: ownedOnly ? 'rgba(34,197,94,0.14)' : 'rgba(10,8,16,0.7)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.55)' : `rgba(${GOLD},0.25)`}`, color: ownedOnly ? '#86efac' : 'var(--text-secondary)' }}>
+                <span>Tik turimos kortos</span>
+                <span className="relative inline-block rounded-full" style={{ width: 34, height: 18, background: ownedOnly ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.12)' }}>
+                  <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 14, height: 14, left: ownedOnly ? 18 : 2 }} />
+                </span>
+              </button>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button onClick={() => { playUiClick(); resetFilters() }} disabled={activeFilters === 0}
+                  className="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-35"
+                  style={{ background: 'rgba(10,8,16,0.8)', border: `1px solid rgba(${GOLD},0.35)`, color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>
+                  Išvalyti
+                </button>
+                <button onClick={() => { playUiClick(); setFiltersOpen(false) }}
+                  className="rvn-gold-btn rvn-press flex-[2] px-3 py-2.5 text-xs" style={{ minHeight: 40 }}>
+                  Rodyti {filtered.length} kortų
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {chooser && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setChooser(false)}>
@@ -294,6 +368,17 @@ export function DigitalCollection() {
   )
 }
 
+const POPUP_SEL: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)', fontSize: 13, borderRadius: 10, padding: '9px 10px', minHeight: 42, width: '100%' }
+
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block mb-1 text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{label}</span>
+      {children}
+    </label>
+  )
+}
+
 function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
   const [bad, setBad] = useState(false)
   const owned = c.owned > 0
@@ -318,12 +403,9 @@ function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
         )}
 
         {owned && (
-          <span className="absolute top-1 right-1 px-1 rounded-full text-[9px] font-bold leading-tight"
+          <span className="absolute top-1 left-1 px-1 rounded-full text-[9px] font-bold leading-tight"
             style={{ background: 'rgba(0,0,0,0.82)', color: col, border: `1px solid ${col}` }}>×{c.owned}</span>
         )}
-
-        <span className="absolute top-1 left-1 flex items-center justify-center rounded-full text-[9px] font-bold"
-          style={{ width: 16, height: 16, background: 'rgba(240,180,41,0.92)', color: '#1a0f04', filter: owned ? undefined : 'grayscale(0.6)' }}>{c.gold}</span>
 
         <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5" style={{ background: 'rgba(0,0,0,0.8)' }}>
           <p className="text-[8px] leading-tight truncate text-center" style={{ color: owned ? '#fff' : 'var(--text-muted)' }}>{c.name}</p>
