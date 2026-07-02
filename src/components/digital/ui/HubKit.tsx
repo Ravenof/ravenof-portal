@@ -112,17 +112,21 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
 }
 
 // ── ModeSelector ──────────────────────────────────────────────────────────────
-export type HubMode = { key: string; img: string; imgSel: string; locked?: boolean }
+export type HubMode = { key: string; img: string; imgSel?: string; locked?: boolean }
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-1.5">
       {modes.map((m) => {
         const sel = m.key === selected && !m.locked
         return (
-          <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className="rvn-press block w-full overflow-hidden"
-            style={{ borderRadius: 10, lineHeight: 0, opacity: m.locked ? 0.45 : sel ? 1 : 0.7,
-              filter: sel ? 'none' : 'saturate(0.7) brightness(0.78)', transform: sel ? 'scale(1.03)' : 'none', transition: 'transform .15s ease, opacity .15s, filter .15s' }}>
-            <img src={sel ? m.imgSel : m.img} alt="" className="w-full block" />
+          <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className="rvn-press relative block w-full"
+            style={{ lineHeight: 0, opacity: m.locked ? 0.45 : sel ? 1 : 0.72,
+              filter: sel ? `drop-shadow(0 0 9px rgba(${GOLD},0.45))` : 'saturate(0.72) brightness(0.78)',
+              transform: sel ? 'scale(1.04)' : 'none', transition: 'transform .15s ease, opacity .15s, filter .15s', zIndex: sel ? 1 : 0 }}>
+            {sel && <span aria-hidden className="absolute" style={{ top: -4, left: '50%', width: 9, height: 9,
+              transform: 'translateX(-50%) rotate(45deg)', background: 'linear-gradient(135deg,#ff6b5e,#a51d1d)',
+              border: '1px solid rgba(255,205,130,0.85)', boxShadow: '0 0 8px rgba(239,68,68,0.85)', zIndex: 2 }} />}
+            <img src={sel && m.imgSel ? m.imgSel : m.img} alt="" className="w-full block" />
           </button>
         )
       })}
@@ -142,7 +146,7 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
           <span style={{ fontSize: 12, color: '#cfc6b8', textShadow: '0 1px 4px #000', letterSpacing: '0.02em' }}>{subtitle}</span>
         </div>
         <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 320, margin: '4px auto 2px', filter: `drop-shadow(0 4px 12px rgba(${GOLD},0.35))` }}>
-          <img src={`${ASSET}/cta.png`} alt="Pradėti kovą" className="w-full block" />
+          <img src={`${ASSET}/cta2.png`} alt="Pradėti kovą" className="w-full block" />
         </button>
         <div>{children}</div>
       </div>

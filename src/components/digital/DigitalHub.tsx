@@ -18,9 +18,9 @@ import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    img: `${ASSET}/mode-pve.webp`,    imgSel: `${ASSET}/mode-pve-sel.webp` },
-  { key: 'ranked', img: `${ASSET}/mode-ranked.webp`, imgSel: `${ASSET}/mode-ranked-sel.webp` },
-  { key: 'free',   img: `${ASSET}/mode-free.webp`,   imgSel: `${ASSET}/mode-free-sel.webp` },
+  { key: 'pve',    img: `${ASSET}/mode2-pve.png` },
+  { key: 'ranked', img: `${ASSET}/mode2-ranked.png` },
+  { key: 'free',   img: `${ASSET}/mode2-free.png` },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
