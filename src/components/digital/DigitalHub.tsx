@@ -18,9 +18,9 @@ import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    img: `${ASSET}/mode2-pve.png` },
-  { key: 'ranked', img: `${ASSET}/mode2-ranked.png` },
-  { key: 'free',   img: `${ASSET}/mode2-free.png` },
+  { key: 'pve',    label: 'Treniruočių kova', sub: 'Prieš AI',  iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
+  { key: 'ranked', label: 'Ranginė kova',     sub: 'Reitingas', iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
+  { key: 'free',   label: 'Draugiška kova',   sub: 'Su draugu', iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
@@ -104,10 +104,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </PlayHeroCard>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickActionCard image={`${ASSET}/card-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
-        <QuickActionCard image={`${ASSET}/card-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
-        <QuickActionCard image={`${ASSET}/card-quests.webp`} onClick={() => { playUiClick(); setQuestsOpen(true) }} />
-        <QuickActionCard image={`${ASSET}/card-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
+        <QuickActionCard image={`${ASSET}/qa-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
+        <QuickActionCard image={`${ASSET}/qa-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
+        <QuickActionCard image={`${ASSET}/qa-quests.webp`} onClick={() => { playUiClick(); setQuestsOpen(true) }} />
+        <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
       <StatCard emblemName="emblem-season" emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"

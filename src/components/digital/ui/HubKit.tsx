@@ -112,21 +112,31 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
 }
 
 // ── ModeSelector ──────────────────────────────────────────────────────────────
-export type HubMode = { key: string; img: string; imgSel?: string; locked?: boolean }
+export type HubMode = { key: string; label: string; sub: string; iconName: string; iconFallback?: ReactNode; accent: string; locked?: boolean }
+const octPath = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-1.5">
+    <div className="grid grid-cols-3 gap-1.5" style={{ paddingTop: 5 }}>
       {modes.map((m) => {
         const sel = m.key === selected && !m.locked
+        const A = m.accent
         return (
           <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className="rvn-press relative block w-full"
-            style={{ lineHeight: 0, opacity: m.locked ? 0.45 : sel ? 1 : 0.72,
-              filter: sel ? `drop-shadow(0 0 9px rgba(${GOLD},0.45))` : 'saturate(0.72) brightness(0.78)',
-              transform: sel ? 'scale(1.04)' : 'none', transition: 'transform .15s ease, opacity .15s, filter .15s', zIndex: sel ? 1 : 0 }}>
-            {sel && <span aria-hidden className="absolute" style={{ top: -4, left: '50%', width: 9, height: 9,
+            style={{ opacity: m.locked ? 0.45 : sel ? 1 : 0.74, filter: sel ? `drop-shadow(0 0 9px rgba(${A},0.5))` : 'saturate(0.75) brightness(0.82)',
+              transform: sel ? 'scale(1.045)' : 'none', transition: 'transform .15s ease, opacity .15s, filter .15s', zIndex: sel ? 1 : 0 }}>
+            {sel && <span aria-hidden className="absolute" style={{ top: -5, left: '50%', width: 9, height: 9,
               transform: 'translateX(-50%) rotate(45deg)', background: 'linear-gradient(135deg,#ff6b5e,#a51d1d)',
-              border: '1px solid rgba(255,205,130,0.85)', boxShadow: '0 0 8px rgba(239,68,68,0.85)', zIndex: 2 }} />}
-            <img src={sel && m.imgSel ? m.imgSel : m.img} alt="" className="w-full block" />
+              border: '1px solid rgba(255,205,130,0.85)', boxShadow: '0 0 8px rgba(239,68,68,0.8)', zIndex: 2 }} />}
+            <span className="block" style={{ clipPath: octPath(11), padding: 1.5, background: sel ? `rgba(${A},0.95)` : `rgba(${A},0.42)` }}>
+              <span className="flex items-center justify-center" style={{ clipPath: octPath(10), gap: 6, minHeight: 56, padding: '8px 5px',
+                background: `radial-gradient(120% 130% at 50% 0%, rgba(${A},0.22), transparent 60%), linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,12,0.98))` }}>
+                <RvnIcon name={m.iconName} size={22} fallback={m.iconFallback ?? null} style={{ flexShrink: 0 }} />
+                <span className="flex flex-col items-start min-w-0" style={{ gap: 1 }}>
+                  <span className="rvn-disp truncate" style={{ maxWidth: '100%', fontSize: 10.5, fontWeight: 800, lineHeight: 1.15, color: '#f3ead3', textAlign: 'left' }}>{m.label}</span>
+                  <span className="truncate" style={{ maxWidth: '100%', fontSize: 9, lineHeight: 1.15, color: 'rgba(190,180,165,0.85)' }}>{m.sub}</span>
+                </span>
+              </span>
+            </span>
           </button>
         )
       })}
