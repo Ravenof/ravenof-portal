@@ -19,6 +19,21 @@
 7. **Vaizdai** — sunkūs sąrašų thumb'ai su `loading="lazy"` + `decoding="async"`
    (kolekcijos knyga jau montuoja tik 9 kortas vienu metu).
 
+## Kova (commit337)
+8. **Ėjimo laikmatis** — `setTurnLeft` kas 500 ms re-renderindavo VISĄ ~4000 eilučių
+   TutorialGame komponentą (visa lenta, rankos kortos, framer-motion elementai) 2×/sek
+   visos PvP/ranked kovos metu. Dabar parent laiko tik `turnDeadline` (1 render per
+   ėjimą), o tiksintį skaičių renderina izoliuotas `<TurnTimer/>` (chip + didelis 20 s
+   įspėjimas) — board'as neberenderinamas dėl laikrodžio. Pabaigos auto-endTurn
+   tikrinamas intervale be setState.
+9. **ArenaBackground** — kai užsikrauna tikras arenos paveikslas, procedūriniai
+   sluoksniai (SVG siluetai, grid, gradientai) ir 12–16 animuotų dalelių anksčiau
+   likdavo suktis PO nepermatomu vaizdu — dabar visai nerenderinami. Dalelės/migla/
+   spinduliai taip pat paklūsta „Fono efektai" jungikliui (12 vietoj 16 dalelių).
+10. **BattleFxLayer patikrintas** — jau optimalus: vienas canvas, rAF ciklas pilnai
+   sustoja kai nėra aktyvių efektų, DPR cap ×2, shake/lunge/skaičiai per imperatyvų
+   handle be React re-render. Nieko keisti nereikėjo.
+
 ## Rekomendacijos ateičiai (nedaryta)
 - **Kortų vaizdų dydžiai**: Supabase Storage transformacijos (`?width=200`) thumb'ams —
   dabar pilno dydžio vaizdai traukiams į 38–92 px langelius. Didžiausias likęs laimėjimas

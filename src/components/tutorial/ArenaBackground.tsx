@@ -7,7 +7,8 @@
 // (dalelės / migla / spinduliai) → vignette. Procedūrinis (be assetų), CSS/SVG, lengvas
 // (jokio rAF). FILE-FIRST: jei yra public/arenas/<key>.jpg|webp – jis uždengia procedūrinį.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { isBgFxEnabled } from '@/lib/settings'
 
 export type ArenaKey = 'crypt' | 'arcane' | 'cathedral' | 'citadel' | 'inferno' | 'scrapyard' | 'harbor' | 'dojo'
 export const ARENA_KEYS: ArenaKey[] = ['crypt', 'arcane', 'cathedral', 'citadel', 'inferno', 'scrapyard', 'harbor', 'dojo']
@@ -70,13 +71,24 @@ function Silhouette({ k, accent }: { k: ArenaKey; accent: string }) {
 
 export function ArenaBackground({ arena }: { arena: ArenaKey }) {
   const [imgOk, setImgOk] = useState(false)
+  const [fxOn, setFxOn] = useState(true)
   const t = T[arena]
   const pc = t.particle
-  const ambN = 16
+  const ambN = 12
+  // „Fono efektai" nustatymas (tas pats kaip meniu liepsnoms) — taupo bateriją
+  useEffect(() => {
+    setFxOn(isBgFxEnabled())
+    const h = (e: Event) => setFxOn((e as CustomEvent<boolean>).detail)
+    window.addEventListener('rvn:bgfx', h)
+    return () => window.removeEventListener('rvn:bgfx', h)
+  }, [])
   return (
     <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: -1, pointerEvents: 'none' }}>
       <style>{CSS}</style>
 
+      {/* PERF: kai užsikrauna tikras arenos art, procedūriniai sluoksniai ir
+          animuotos dalelės NEberenderinami (anksčiau suko GPU po nepermatomu vaizdu) */}
+      {!imgOk && (<>
       {/* dangus / skliautas */}
       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, ${t.skyTop} 0%, ${t.skyTop} 30%, ${t.skyBottom} 54%, ${t.floor} 54%, ${t.floor} 100%)` }} />
       {/* horizonto švytėjimas */}
@@ -98,13 +110,13 @@ export function ArenaBackground({ arena }: { arena: ArenaKey }) {
       <div style={{ position: 'absolute', left: '50%', top: '52%', width: '85%', height: '46%', transform: 'translateX(-50%)', background: `radial-gradient(ellipse 60% 55% at 50% 40%, ${t.accent}22, transparent 70%)` }} />
 
       {/* migla */}
-      {t.fog && <div className="arena-fog" style={{ position: 'absolute', left: '-20%', right: '-20%', top: '40%', height: '26%', background: `radial-gradient(ellipse 50% 100% at 50% 50%, ${t.horizon}cc, transparent 70%)`, filter: 'blur(14px)' }} />}
+      {fxOn && t.fog && <div className="arena-fog" style={{ position: 'absolute', left: '-20%', right: '-20%', top: '40%', height: '26%', background: `radial-gradient(ellipse 50% 100% at 50% 50%, ${t.horizon}cc, transparent 70%)`, filter: 'blur(14px)' }} />}
 
       {/* spinduliai (katedra) */}
-      {t.rays && <div className="arena-rays" style={{ position: 'absolute', left: '50%', top: '-10%', width: '120%', height: '80%', transform: 'translateX(-50%)', background: `repeating-conic-gradient(from 0deg at 50% 0%, ${t.accent}00 0deg, ${t.accent}14 2deg, ${t.accent}00 6deg)`, mixBlendMode: 'screen', opacity: 0.5 }} />}
+      {fxOn && t.rays && <div className="arena-rays" style={{ position: 'absolute', left: '50%', top: '-10%', width: '120%', height: '80%', transform: 'translateX(-50%)', background: `repeating-conic-gradient(from 0deg at 50% 0%, ${t.accent}00 0deg, ${t.accent}14 2deg, ${t.accent}00 6deg)`, mixBlendMode: 'screen', opacity: 0.5 }} />}
 
       {/* ambiento dalelės */}
-      {Array.from({ length: ambN }).map((_, i) => {
+      {fxOn && Array.from({ length: ambN }).map((_, i) => {
         const left = (i * 61) % 100; const dur = 6 + (i % 5) * 2.2; const delay = (i % 7) * -1.6; const sz = 2 + (i % 4)
         const down = t.ambient === 'snow' || t.ambient === 'petals'
         return <span key={i} className={`arena-p ${down ? 'arena-down' : 'arena-up'}`} style={{ left: `${left}%`, width: sz, height: sz, background: pc, boxShadow: `0 0 ${sz * 3}px ${pc}`, animationDuration: `${dur}s`, animationDelay: `${delay}s`, top: down ? '-5%' : '100%', borderRadius: t.ambient === 'petals' ? '50% 0 50% 0' : '50%' } as React.CSSProperties} />
@@ -112,6 +124,7 @@ export function ArenaBackground({ arena }: { arena: ArenaKey }) {
 
       {/* vignette fokusui */}
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 75% 70% at 50% 52%, transparent 40%, rgba(2,1,6,0.72) 100%)' }} />
+      </>)}
 
       {/* FILE-FIRST tikras art (jei yra) */}
       <img src={`/arenas/${arena}.jpg`} alt="" onLoad={() => setImgOk(true)} onError={() => setImgOk(false)}

@@ -775,7 +775,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [oppProfile, setOppProfile] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null; level: number | null; is_public: boolean } | null>(null)
   const [oppDecks, setOppDecks] = useState<{ id: string; name: string }[]>([])
   const [oppOpen, setOppOpen] = useState(false)
-  const [turnLeft, setTurnLeft] = useState(120)
+  const [turnDeadline, setTurnDeadline] = useState<number | null>(null)
   const [myName, setMyName] = useState<string | null>(null)
   const [turnBanner, setTurnBanner] = useState<{ name: string; you: boolean } | null>(null)
   const lastTurnRef = useRef(-1)
@@ -1871,15 +1871,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [net?.opponentId])
 
-  // PvP: 60s ėjimo laikmatis – aktyvus žaidėjas, pasibaigus, automatiškai baigia ėjimą
+  // PvP: ėjimo laikmatis. PERF: parent laiko tik deadline (1 render per ėjimą);
+  // tiksintis skaičius renderinamas izoliuotame <TurnTimer/> — visas board
+  // NEBE re-renderinamas kas 500 ms. Pabaigos tikrinimas čia — be setState.
   useEffect(() => {
-    if (!(vsRemote || ranked) || !game || game.winner) return
-    setTurnLeft(120)
-    const start = Date.now()
+    if (!(vsRemote || ranked) || !game || game.winner) { setTurnDeadline(null); return }
+    const deadline = Date.now() + 120_000
+    setTurnDeadline(deadline)
     const iv = setInterval(() => {
-      const left = Math.max(0, 120 - Math.floor((Date.now() - start) / 1000))
-      setTurnLeft(left)
-      if (left <= 0) {
+      if (Date.now() >= deadline) {
         clearInterval(iv)
         if (game.active === 'you') doAction({ t: 'endTurn', actor: 'you' })
       }
@@ -2585,9 +2585,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </span>
               </button>
               {!game?.winner && (
-                <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: turnLeft <= 20 ? '#fca5a5' : 'var(--text-secondary)', background: turnLeft <= 20 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
-                  ⏱ {turnLeft}s
-                </span>
+                <TurnTimer deadline={turnDeadline} variant="chip" />
               )}
             </>
           ) : (
@@ -2597,9 +2595,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 {ranked ? `Reitingo kova · prieš ${opponentName ?? 'Priešininką'}` : practice ? `Kova · prieš ${opponentName ?? 'Priešininką'}` : `Mokomoji kova · ${deckName}`}
               </span>
               {ranked && !game?.winner && game?.active === 'you' && (
-                <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: turnLeft <= 20 ? '#fca5a5' : 'var(--text-secondary)', background: turnLeft <= 20 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
-                  ⏱ {turnLeft}s
-                </span>
+                <TurnTimer deadline={turnDeadline} variant="chip" />
               )}
             </>
           )}
@@ -3640,12 +3636,8 @@ doAction({ t: 'endTurn', actor: 'you' })
         )
       })()}
 
-      {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) ── */}
-      {(vsRemote || (ranked && game?.active === 'you')) && !game?.winner && turnLeft <= 20 && (
-        <div className="fixed left-1/2 -translate-x-1/2 top-14 z-[123] pointer-events-none">
-          <span className="font-bold tabular-nums animate-pulse" style={{ fontSize: 44, lineHeight: 1, color: '#ef4444', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 18px rgba(239,68,68,0.85)' }}>⏱ {turnLeft}</span>
-        </div>
-      )}
+      {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) — izoliuotas ── */}
+      {(vsRemote || (ranked && game?.active === 'you')) && !game?.winner && <TurnTimer deadline={turnDeadline} variant="big" />}
 
       {/* ── varžovas atsijungė: 30s grace ── */}
       {oppMissingLeft !== null && !game?.winner && (
@@ -4059,4 +4051,32 @@ const KEYWORD_LABELS: Record<string, string> = {
   stealth: '◑ Sėlinimas',
   battlecry: '📣 Kovos šūksnis',
   lastwish: '🕯 Paskutinis noras',
+}
+
+
+// ── Izoliuotas ėjimo laikmatis: tiksi savo intervale, re-renderina TIK save ──
+function TurnTimer({ deadline, variant }: { deadline: number | null; variant: 'chip' | 'big' }) {
+  const calc = () => deadline == null ? null : Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+  const [left, setLeft] = useState<number | null>(calc)
+  useEffect(() => {
+    if (deadline == null) { setLeft(null); return }
+    const tick = () => setLeft((p) => { const l = Math.max(0, Math.ceil((deadline - Date.now()) / 1000)); return p === l ? p : l })
+    tick()
+    const iv = setInterval(tick, 500)
+    return () => clearInterval(iv)
+  }, [deadline])
+  if (left == null) return null
+  if (variant === 'big') {
+    if (left > 20) return null
+    return (
+      <div className="fixed left-1/2 -translate-x-1/2 top-14 z-[123] pointer-events-none">
+        <span className="font-bold tabular-nums animate-pulse" style={{ fontSize: 44, lineHeight: 1, color: '#ef4444', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 18px rgba(239,68,68,0.85)' }}>⏱ {left}</span>
+      </div>
+    )
+  }
+  return (
+    <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: left <= 20 ? '#fca5a5' : 'var(--text-secondary)', background: left <= 20 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
+      ⏱ {left}s
+    </span>
+  )
 }
