@@ -165,7 +165,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
             {row.length < 3 && Array.from({ length: 3 - row.length }, (_, i) => <div key={`pad-${i}`} />)}
           </div>
           {/* lentynos lenta (lapukai užlipa ant jos) */}
-          <div aria-hidden style={{ height: 16, borderRadius: 3, margin: '-26px -2px 0', position: 'relative', zIndex: 0,
+          <div aria-hidden style={{ height: 18, borderRadius: 3, margin: '-30px -2px 0', position: 'relative', zIndex: 0,
             background: 'linear-gradient(180deg, #6b4f26 0%, #4a3419 45%, #241807 100%)',
             borderTop: `1px solid rgba(${GOLD},0.55)`, boxShadow: '0 6px 14px rgba(0,0,0,0.55), inset 0 -2px 4px rgba(0,0,0,0.6)' }} />
           <div aria-hidden style={{ height: 18 }} />
@@ -238,11 +238,11 @@ function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick
   const valid = d.faction !== null && d.cardCount >= DECK_MIN && d.cardCount <= DECK_MAX
   return (
     <button onClick={onClick} className="rvn-press relative block w-full text-left">
-      {/* kortų šūsnis (fizinis storis) */}
+      {/* kortų šūsnis (fizinis storis) — be outline, tik vaizdas + šešėliai */}
       <span className="relative block" style={{ aspectRatio: '3 / 4' }}>
-        <span aria-hidden className="absolute inset-0 rounded-[10px]" style={{ transform: 'translate(5px, 5px) rotate(1.2deg)', background: `linear-gradient(160deg, ${d.factionColor}22, #0d0a14)`, border: '1px solid rgba(0,0,0,0.6)' }} />
-        <span aria-hidden className="absolute inset-0 rounded-[10px]" style={{ transform: 'translate(2.5px, 2.5px) rotate(0.5deg)', background: 'linear-gradient(160deg,#241a33,#100c18)', border: '1px solid rgba(0,0,0,0.5)' }} />
-        <span className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ border: `1.5px solid ${d.factionColor}77`, boxShadow: `0 5px 14px rgba(0,0,0,0.55), 0 0 10px ${d.factionColor}22, inset 0 1px 0 rgba(255,255,255,0.08)` }}>
+        <span aria-hidden className="absolute inset-0 rounded-[7px]" style={{ transform: 'translate(5px, 5px) rotate(1.2deg)', background: 'linear-gradient(160deg,#1c1526,#0b0812)', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }} />
+        <span aria-hidden className="absolute inset-0 rounded-[7px]" style={{ transform: 'translate(2.5px, 2.5px) rotate(0.5deg)', background: 'linear-gradient(160deg,#241a33,#100c18)', boxShadow: '0 2px 4px rgba(0,0,0,0.45)' }} />
+        <span className="absolute inset-0 rounded-[7px] overflow-hidden" style={{ boxShadow: '0 7px 18px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(0,0,0,0.45)' }}>
           {cover
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={cover} alt="" draggable={false} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
@@ -260,7 +260,7 @@ function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick
         )}
       </span>
       {/* parchment lapukas — užklijuotas ant lentynos */}
-      <span className="relative block mx-auto" style={{ width: '88%', marginTop: 4, zIndex: 3, transform: 'rotate(-1.2deg)' }}>
+      <span className="relative block mx-auto" style={{ width: '88%', marginTop: 1, zIndex: 3, transform: 'rotate(-1.2deg)' }}>
         <span className="block rounded-[3px] px-1.5 pt-2 pb-1 text-center" style={{ background: 'linear-gradient(170deg, #efe3c0, #d9c691 85%, #c9b478)', boxShadow: '0 2px 5px rgba(0,0,0,0.55), inset 0 0 6px rgba(120,90,30,0.25)' }}>
           <span className="block text-[9px] font-bold leading-tight truncate" style={{ color: '#3a2b12', fontFamily: 'var(--rvn-font-display)' }}>{d.name}</span>
           <span className="block text-[8px] leading-tight truncate" style={{ color: '#6b5426' }}>{d.faction ?? 'Be frakcijos'} · {d.cardCount} kortų</span>
