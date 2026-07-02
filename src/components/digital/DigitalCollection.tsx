@@ -1,17 +1,27 @@
 'use client'
 
-// ── Ravenof Digital — Kolekcija (mobile, 2 kortos eilėje, turimos/užrakintos) ──
-import { useCallback, useEffect, useMemo, useState } from 'react'
+// ══════════════════════════════════════════════════════════════════════════════
+// Ravenof Digital — KOLEKCIJOS KNYGA: 9 kortos puslapyje (3×3), 3D puslapio
+// vertimo efektas (framer-motion + garsas), paieška / filtrai (frakcija,
+// retumas, tipas) / rikiavimas (kaina, pavadinimas, retumas, turimos) + swipe.
+// Puslapiavimas montuoja tik 9 GameCard vienu metu — greitesnis krovimas.
+// ══════════════════════════════════════════════════════════════════════════════
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Search, Lock, X, Grid2x2, Grid3x3 } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Search, Lock, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { playUiClick } from '@/lib/ui-sound'
+import { playUiClick, playCardFlip } from '@/lib/ui-sound'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
 import { EmptyState, PageHero } from './ui/HubKit'
+
+const PER_PAGE = 9
+const GOLD = '240,180,41'
+const oct = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
 
 type Col = {
   id: string; name: string; image: string | null
@@ -20,6 +30,15 @@ type Col = {
   gold: number; atk: number | null; hp: number | null; effect: string | null; isChampion: boolean
   owned: number
 }
+
+type SortKey = 'cost-asc' | 'cost-desc' | 'name' | 'rarity' | 'owned'
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: 'cost-asc',  label: 'Kaina ↑' },
+  { key: 'cost-desc', label: 'Kaina ↓' },
+  { key: 'name',      label: 'Pavadinimas A–Ž' },
+  { key: 'rarity',    label: 'Retumas' },
+  { key: 'owned',     label: 'Turimos pirma' },
+]
 
 export function DigitalCollection() {
   const [cards, setCards] = useState<Col[] | null>(null)
@@ -33,9 +52,13 @@ export function DigitalCollection() {
   const [faction, setFaction] = useState('all')
   const [rarity, setRarity] = useState('all')
   const [type, setType] = useState('all')
+  const [sort, setSort] = useState<SortKey>('cost-asc')
   const [ownedOnly, setOwnedOnly] = useState(false)
-  const [cols, setCols] = useState<2 | 3>(2)
   const [preview, setPreview] = useState<Col | null>(null)
+
+  const [page, setPage] = useState(0)
+  const [dir, setDir] = useState(1)
+  const touchX = useRef<number | null>(null)
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -77,13 +100,13 @@ export function DigitalCollection() {
   const rarities = useMemo(() => {
     const m = new Map<string, number>()
     for (const c of cards ?? []) if (c.rarity) m.set(c.rarity, c.raritySort)
-    return Array.from(m, ([name, sort]) => ({ name, sort })).sort((a, b) => a.sort - b.sort)
+    return Array.from(m, ([name, sortv]) => ({ name, sort: sortv })).sort((a, b) => a.sort - b.sort)
   }, [cards])
   const types = useMemo(() => Array.from(new Set((cards ?? []).map((c) => c.type).filter(Boolean))) as string[], [cards])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return (cards ?? []).filter((c) => {
+    const list = (cards ?? []).filter((c) => {
       if (ownedOnly && c.owned <= 0) return false
       if (faction !== 'all' && (c.factionSlug ?? c.faction) !== faction) return false
       if (rarity !== 'all' && c.rarity !== rarity) return false
@@ -91,18 +114,41 @@ export function DigitalCollection() {
       if (needle && !c.name.toLowerCase().includes(needle)) return false
       return true
     })
-  }, [cards, q, faction, rarity, type, ownedOnly])
+    const by: Record<SortKey, (a: Col, b: Col) => number> = {
+      'cost-asc':  (a, b) => a.gold - b.gold || a.name.localeCompare(b.name),
+      'cost-desc': (a, b) => b.gold - a.gold || a.name.localeCompare(b.name),
+      'name':      (a, b) => a.name.localeCompare(b.name),
+      'rarity':    (a, b) => b.raritySort - a.raritySort || a.gold - b.gold || a.name.localeCompare(b.name),
+      'owned':     (a, b) => (b.owned > 0 ? 1 : 0) - (a.owned > 0 ? 1 : 0) || b.owned - a.owned || a.gold - b.gold,
+    }
+    return [...list].sort(by[sort])
+  }, [cards, q, faction, rarity, type, ownedOnly, sort])
+
+  // filtrams pasikeitus — grįžtam į 1 puslapį
+  useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, sort])
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+  const clamped = Math.min(page, pageCount - 1)
+  const pagedCards = useMemo(() => {
+    const slice = filtered.slice(clamped * PER_PAGE, clamped * PER_PAGE + PER_PAGE)
+    return Array.from({ length: PER_PAGE }, (_, i) => slice[i] ?? null)
+  }, [filtered, clamped])
+
+  const go = (d: number) => {
+    const next = clamped + d
+    if (next < 0 || next >= pageCount) return
+    playCardFlip(); setDir(d); setPage(next)
+  }
 
   const ownedCount = (cards ?? []).filter((c) => c.owned > 0).length
 
   if (cards === null) return <p className="text-center text-sm py-16" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
 
-  const selStyle: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-secondary)', fontSize: 12, borderRadius: 10, padding: '8px 10px', minHeight: 40 }
+  const selStyle: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)', fontSize: 11.5, borderRadius: 10, padding: '7px 8px', minHeight: 38, width: '100%' }
 
   return (
     <div className="space-y-3" style={{ paddingBottom: 64 }}>
-      {/* Antraštė */}
-      <PageHero compact iconName="fi-collection" icon={<span style={{ fontSize: 28 }}>🎴</span>} title="KOLEKCIJA" sub={`Tavo turimos ir atrakinamos kortos · ${ownedCount}/${cards.length}`} />
+      <PageHero compact iconName="fi-collection" icon={<span style={{ fontSize: 28 }}>🎴</span>} title="KOLEKCIJA" sub={`Tavo kortų knyga · surinkta ${ownedCount}/${cards.length}`} />
 
       {loggedOut ? (
         <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
@@ -113,11 +159,11 @@ export function DigitalCollection() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti kortos…"
             className="w-full pl-9 pr-3 rounded-xl text-sm outline-none"
-            style={{ minHeight: 44, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-primary)' }} />
+            style={{ minHeight: 42, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
         </div>
 
-        {/* Filtrai */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* Filtrai + rikiavimas */}
+        <div className="grid grid-cols-2 gap-1.5">
           <select value={faction} onChange={(e) => setFaction(e.target.value)} style={selStyle}>
             <option value="all">Visos frakcijos</option>
             {factions.map((f) => <option key={f.slug} value={f.slug}>{f.name}</option>)}
@@ -130,28 +176,24 @@ export function DigitalCollection() {
             <option value="all">Visi tipai</option>
             {types.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} style={selStyle}>
+            {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
         </div>
 
-        {/* Perjungimai */}
         <div className="flex items-center justify-between gap-2">
           <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }}
             className="inline-flex items-center gap-2 px-3 rounded-full text-xs font-semibold transition-colors"
-            style={{ minHeight: 40, background: ownedOnly ? 'rgba(34,197,94,0.18)' : 'rgba(10,8,16,0.9)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.6)' : 'rgba(240,180,41,0.3)'}`, color: ownedOnly ? '#86efac' : 'var(--text-muted)' }}>
-            <span className="relative inline-block rounded-full" style={{ width: 30, height: 16, background: ownedOnly ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.12)' }}>
-              <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 12, height: 12, left: ownedOnly ? 16 : 2 }} />
+            style={{ minHeight: 36, background: ownedOnly ? 'rgba(34,197,94,0.18)' : 'rgba(10,8,16,0.9)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.6)' : `rgba(${GOLD},0.3)`}`, color: ownedOnly ? '#86efac' : 'var(--text-muted)' }}>
+            <span className="relative inline-block rounded-full" style={{ width: 28, height: 15, background: ownedOnly ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.12)' }}>
+              <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 11, height: 11, left: ownedOnly ? 15 : 2 }} />
             </span>
             Tik turimos
           </button>
-          <div className="inline-flex rounded-full overflow-hidden" style={{ border: '1px solid rgba(240,180,41,0.3)' }}>
-            {([2, 3] as const).map((n) => (
-              <button key={n} onClick={() => { playUiClick(); setCols(n) }} className="flex items-center justify-center" style={{ width: 40, height: 40, background: cols === n ? 'rgba(240,180,41,0.18)' : 'rgba(10,8,16,0.9)', color: cols === n ? 'var(--gold)' : 'var(--text-muted)' }} aria-label={`${n} stulpeliai`}>
-                {n === 2 ? <Grid2x2 className="w-4 h-4" /> : <Grid3x3 className="w-4 h-4" />}
-              </button>
-            ))}
-          </div>
+          <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{filtered.length} kortų</span>
         </div>
 
-        {/* Tinklelis */}
+        {/* ── KNYGA ── */}
         {filtered.length === 0 ? (
           ownedOnly ? (
             <EmptyState icon="🃏" title="Kolekcija dar tuščia" sub="Atplėšk pakuotę, kad rinktum kortas ir kurtum galingesnes kaladės." accent="251,146,60"
@@ -160,9 +202,57 @@ export function DigitalCollection() {
             <EmptyState icon="🔍" title="Nieko nerasta" sub="Pabandyk kitą paiešką ar filtrą." />
           )
         ) : (
-          <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-            {filtered.map((c) => <CardCell key={c.id} c={c} onClick={() => { playUiClick(); setPreview(c) }} />)}
+        <>
+          <div className="relative mx-auto max-w-[470px]" style={{ perspective: 1600 }}
+            onTouchStart={(e) => { touchX.current = e.touches[0].clientX }}
+            onTouchEnd={(e) => {
+              if (touchX.current == null) return
+              const dx = e.changedTouches[0].clientX - touchX.current
+              touchX.current = null
+              if (Math.abs(dx) > 48) go(dx < 0 ? 1 : -1)
+            }}>
+            {/* knygos „lapai" už nugaros */}
+            <div aria-hidden className="absolute inset-0" style={{ transform: 'translate(5px, 6px)', clipPath: oct(14), background: 'linear-gradient(160deg,#241a33,#0d0a14)', opacity: 0.7 }} />
+            <div aria-hidden className="absolute inset-0" style={{ transform: 'translate(2.5px, 3px)', clipPath: oct(14), background: 'linear-gradient(160deg,#2d2140,#100c18)', opacity: 0.85 }} />
+
+            {/* viršelio rėmas */}
+            <div className="relative" style={{ clipPath: oct(14), background: `linear-gradient(160deg, rgba(${GOLD},0.55), rgba(${GOLD},0.28))`, padding: 2.5 }}>
+              <div className="p-3" style={{ clipPath: oct(13), background: `radial-gradient(130% 70% at 50% 0%, rgba(${GOLD},0.09), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#1a1228,#0a0810)` }}>
+                <AnimatePresence mode="wait" initial={false} custom={dir}>
+                  <motion.div key={clamped}
+                    initial={{ rotateY: dir > 0 ? 80 : -80, opacity: 0.25 }}
+                    animate={{ rotateY: 0, opacity: 1 }}
+                    exit={{ rotateY: dir > 0 ? -80 : 80, opacity: 0.25 }}
+                    transition={{ duration: 0.38, ease: [0.3, 0.6, 0.3, 1] }}
+                    style={{ transformOrigin: dir > 0 ? 'left center' : 'right center', transformStyle: 'preserve-3d' }}
+                    className="grid grid-cols-3 gap-2">
+                    {pagedCards.map((c, i) => c
+                      ? <CardCell key={c.id} c={c} onClick={() => { playUiClick(); setPreview(c) }} />
+                      : <div key={`empty-${i}`} className="rounded-lg" style={{ aspectRatio: '2.5 / 3.5', border: `1px dashed rgba(${GOLD},0.18)`, background: `rgba(${GOLD},0.02)` }} />)}
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* puslapio numeris knygos apačioje */}
+                <div className="flex items-center justify-center gap-3 mt-3">
+                  <button onClick={() => go(-1)} disabled={clamped === 0} aria-label="Ankstesnis puslapis"
+                    className="rvn-press flex items-center justify-center disabled:opacity-25"
+                    style={{ width: 38, height: 38, clipPath: oct(8), background: `rgba(${GOLD},0.14)`, border: 'none', color: 'var(--gold)' }}>
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <span className="rvn-disp tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', minWidth: 72, textAlign: 'center' }}>
+                    {clamped + 1} / {pageCount}
+                  </span>
+                  <button onClick={() => go(1)} disabled={clamped >= pageCount - 1} aria-label="Kitas puslapis"
+                    className="rvn-press flex items-center justify-center disabled:opacity-25"
+                    style={{ width: 38, height: 38, clipPath: oct(8), background: `rgba(${GOLD},0.14)`, border: 'none', color: 'var(--gold)' }}>
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+          <p className="text-center text-[10px]" style={{ color: 'rgba(150,160,185,0.55)' }}>Braukk per knygą arba spausk rodykles</p>
+        </>
         )}
       </>
       )}
@@ -214,33 +304,29 @@ function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
         style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${owned ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: owned ? `0 0 10px ${col}44` : 'none' }}>
         {c.image && !bad
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false}
+          ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false} loading="lazy"
               className="absolute inset-0 w-full h-full object-cover"
               style={{ filter: owned ? undefined : 'grayscale(1) brightness(0.55)', opacity: owned ? 1 : 0.55 }} />
           : <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1)', opacity: owned ? 1 : 0.55 }}>
               <span className="text-xl">🎴</span><span className="text-[9px] leading-tight" style={{ color: '#fff' }}>{c.name}</span>
             </div>}
 
-        {/* Užrakta */}
         {!owned && (
           <span className="absolute inset-0 flex items-center justify-center">
-            <Lock className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.7)', filter: 'drop-shadow(0 1px 3px #000)' }} />
+            <Lock className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.7)', filter: 'drop-shadow(0 1px 3px #000)' }} />
           </span>
         )}
 
-        {/* Turimų ženklelis */}
         {owned && (
-          <span className="absolute top-1 right-1 px-1.5 rounded-full text-[10px] font-bold leading-tight"
+          <span className="absolute top-1 right-1 px-1 rounded-full text-[9px] font-bold leading-tight"
             style={{ background: 'rgba(0,0,0,0.82)', color: col, border: `1px solid ${col}` }}>×{c.owned}</span>
         )}
 
-        {/* Kaina */}
-        <span className="absolute top-1 left-1 flex items-center justify-center rounded-full text-[10px] font-bold"
-          style={{ width: 18, height: 18, background: 'rgba(240,180,41,0.92)', color: '#1a0f04', filter: owned ? undefined : 'grayscale(0.6)' }}>{c.gold}</span>
+        <span className="absolute top-1 left-1 flex items-center justify-center rounded-full text-[9px] font-bold"
+          style={{ width: 16, height: 16, background: 'rgba(240,180,41,0.92)', color: '#1a0f04', filter: owned ? undefined : 'grayscale(0.6)' }}>{c.gold}</span>
 
-        {/* Pavadinimas */}
         <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5" style={{ background: 'rgba(0,0,0,0.8)' }}>
-          <p className="text-[9px] leading-tight truncate text-center" style={{ color: owned ? '#fff' : 'var(--text-muted)' }}>{c.name}</p>
+          <p className="text-[8px] leading-tight truncate text-center" style={{ color: owned ? '#fff' : 'var(--text-muted)' }}>{c.name}</p>
         </div>
       </button>
     </GameCard>
