@@ -18,9 +18,9 @@ import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    label: 'Treniruočių kova', sub: 'Prieš AI',  iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
-  { key: 'ranked', label: 'Ranginė kova',     sub: 'Reitingas', iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
-  { key: 'free',   label: 'Draugiška kova',   sub: 'Su draugu', iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
+  { key: 'pve',    label: 'Treniruočių kova', iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
+  { key: 'ranked', label: 'Reitinginė kova',  iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
+  { key: 'free',   label: 'Draugiška kova',   iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 

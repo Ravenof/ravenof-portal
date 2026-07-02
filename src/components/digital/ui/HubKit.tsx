@@ -115,7 +115,7 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
 }
 
 // ── ModeSelector ──────────────────────────────────────────────────────────────
-export type HubMode = { key: string; label: string; sub: string; iconName: string; iconFallback?: ReactNode; accent: string; locked?: boolean }
+export type HubMode = { key: string; label: string; sub?: string; iconName: string; iconFallback?: ReactNode; accent: string; locked?: boolean }
 const octPath = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
   return (
@@ -134,10 +134,7 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
               <span className="flex items-center justify-center" style={{ clipPath: octPath(10), gap: 6, minHeight: 56, padding: '8px 5px',
                 background: `radial-gradient(120% 130% at 50% 0%, rgba(${A},0.22), transparent 60%), linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,12,0.98))` }}>
                 <RvnIcon name={m.iconName} size={22} fallback={m.iconFallback ?? null} style={{ flexShrink: 0 }} />
-                <span className="flex flex-col items-start min-w-0" style={{ gap: 1 }}>
-                  <span className="rvn-disp truncate" style={{ maxWidth: '100%', fontSize: 10.5, fontWeight: 800, lineHeight: 1.15, color: '#f3ead3', textAlign: 'left' }}>{m.label}</span>
-                  <span className="truncate" style={{ maxWidth: '100%', fontSize: 9, lineHeight: 1.15, color: 'rgba(190,180,165,0.85)' }}>{m.sub}</span>
-                </span>
+                <span className="rvn-disp min-w-0" style={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.2, color: '#f3ead3', textAlign: 'left' }}>{m.label}</span>
               </span>
             </span>
           </button>
