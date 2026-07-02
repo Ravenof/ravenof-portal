@@ -10,7 +10,7 @@
 // • Viskas su garsais, haptika ir spring animacijomis.
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, animate, motion, useMotionValue } from 'framer-motion'
+import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform, useVelocity } from 'framer-motion'
 import { ChevronLeft, Search, Plus, Minus, Eye, Lock, Save, Loader2, ChevronDown, X, Layers } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
@@ -108,6 +108,12 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const ghostY = useMotionValue(0)
   const ghostScale = useMotionValue(1)
   const ghostOpacity = useMotionValue(1)
+  // fizinis sekimas: ghost velkasi paskui pirštą su spyruokle + pakrypsta pagal greitį
+  const ghostSX = useSpring(ghostX, { stiffness: 1400, damping: 80, mass: 0.6 })
+  const ghostSY = useSpring(ghostY, { stiffness: 1400, damping: 80, mass: 0.6 })
+  const ghostVX = useVelocity(ghostSX)
+  const ghostTiltRaw = useTransform(ghostVX, [-1600, 0, 1600], [10, -3, -16])
+  const ghostTilt = useSpring(ghostTiltRaw, { stiffness: 260, damping: 22 })
   const dropRef = useRef<HTMLDivElement>(null)
   const pendingRef = useRef<{ card: CardWithRelations; rect: DOMRect; sx: number; sy: number; touch: boolean; timer: number | null } | null>(null)
   const activeRef = useRef(false)
@@ -126,6 +132,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     dragCardRef.current = p.card
     ghostScale.set(0.7); ghostOpacity.set(1)
     ghostX.set(x - GHOST_W / 2); ghostY.set(y - GHOST_H * 0.72)
+    ghostSX.jump(x - GHOST_W / 2); ghostSY.jump(y - GHOST_H * 0.72)
     setDragCard(p.card)
     animate(ghostScale, 1.06, { type: 'spring', stiffness: 420, damping: 22 })
     playCardPick()
@@ -142,13 +149,17 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     if (!p) return
     const dx = e.clientX - p.sx, dy = e.clientY - p.sy
     if (!activeRef.current) {
-      if (p.touch) { if (Math.hypot(dx, dy) > 12 && p.timer != null) { clearTimeout(p.timer); p.timer = null; pendingRef.current = null } }
+      if (p.touch) { if (Math.hypot(dx, dy) > 16 && p.timer != null) { clearTimeout(p.timer); p.timer = null; pendingRef.current = null } }
       else if (Math.hypot(dx, dy) > 6) startDrag(p, e.clientX, e.clientY)
       return
     }
     ghostX.set(e.clientX - GHOST_W / 2)
     ghostY.set(e.clientY - GHOST_H * 0.72)
-    setOverDrop(hitDrop(e.clientX, e.clientY))
+    const hit = hitDrop(e.clientX, e.clientY)
+    setOverDrop((prev) => {
+      if (prev !== hit) animate(ghostScale, hit ? 1.18 : 1.06, { type: 'spring', stiffness: 500, damping: 24 })
+      return hit
+    })
   }, [ghostX, ghostY, startDrag])
 
   const onUp = useCallback((e: PointerEvent) => {
@@ -198,7 +209,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
       const touch = e.pointerType === 'touch'
       const p = { card, rect, sx: e.clientX, sy: e.clientY, touch, timer: null as number | null }
       pendingRef.current = p
-      if (touch) p.timer = window.setTimeout(() => { if (pendingRef.current === p && !activeRef.current) startDrag(p, p.sx, p.sy) }, 190)
+      if (touch) p.timer = window.setTimeout(() => { if (pendingRef.current === p && !activeRef.current) startDrag(p, p.sx, p.sy) }, 130)
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
       window.addEventListener('pointercancel', onUp)
@@ -365,7 +376,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
       {/* ── Vilkimo „vaiduoklis" ── */}
       {dragCard && (
-        <motion.div className="fixed z-[200] pointer-events-none" style={{ left: 0, top: 0, x: ghostX, y: ghostY, scale: ghostScale, opacity: ghostOpacity, width: GHOST_W, height: GHOST_H, rotate: -4 }}>
+        <motion.div className="fixed z-[200] pointer-events-none" style={{ left: 0, top: 0, x: ghostSX, y: ghostSY, scale: ghostScale, opacity: ghostOpacity, width: GHOST_W, height: GHOST_H, rotate: ghostTilt }}>
           <div className="relative w-full h-full overflow-hidden rounded-lg" style={{ border: `2px solid ${dragGhostCol}`, boxShadow: `0 18px 40px rgba(0,0,0,0.7), 0 0 20px ${dragGhostCol}66`, background: '#15101f' }}>
             {dragCard.image_url
               // eslint-disable-next-line @next/next/no-img-element

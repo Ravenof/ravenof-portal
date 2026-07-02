@@ -10,7 +10,7 @@ import { DigitalPicker } from './DigitalPicker'
 import { PageHero } from './ui/HubKit'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
 
-type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
+type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
 const A = '34,197,94'
 
 export function DigitalPvE() {
@@ -22,12 +22,27 @@ export function DigitalPvE() {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setDecks([]); return }
-      supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false })
-        .then(({ data }) => {
-          const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
-          const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null }))
-          setDecks(ds); if (ds.length) setSel(ds[0].id)
-        })
+      Promise.all([
+        supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
+        supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
+      ]).then(async ([{ data }, { data: colRows }]) => {
+        const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
+        const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
+        // kaladės su trūkstamomis kortomis — nežaidžiamos
+        const ids = rows.map((d) => d.id)
+        const missingMap: Record<string, number> = {}
+        if (ids.length) {
+          const { data: dc } = await supabase.from('deck_cards').select('deck_id, card_id, quantity').in('deck_id', ids)
+          for (const r of ((dc as { deck_id: string; card_id: string; quantity: number }[]) ?? [])) {
+            const have = owned[r.card_id] ?? 0
+            if (have < r.quantity) missingMap[r.deck_id] = (missingMap[r.deck_id] ?? 0) + (r.quantity - have)
+          }
+        }
+        const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: missingMap[d.id] ?? 0 }))
+        setDecks(ds)
+        const firstOk = ds.find((x) => x.missing === 0)
+        if (firstOk) setSel(firstOk.id)
+      })
     })
   }, [])
 
@@ -49,7 +64,12 @@ export function DigitalPvE() {
         <>
           <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.3)` }}>
             <DigitalPicker label="⚔ Tavo kaladė" accent={A} value={sel} onChange={setSel}
-              items={decks.map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
+              items={decks.filter((d) => d.missing === 0).map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
+            {decks.some((d) => d.missing > 0) && (
+              <p className="text-[10px] mt-1.5" style={{ color: 'rgba(240,180,41,0.75)' }}>
+                ⚠ {decks.filter((d) => d.missing > 0).length} kaladė(-ės) paslėpta — trūksta kortų. Papildyk kolekciją arba redaguok kaladę skiltyje Mano kaladės.
+              </p>
+            )}
           </div>
           <button onClick={() => { playUiClick(); setOpen(true) }} disabled={!deck}
             className="flex items-center justify-center gap-2 w-full rounded-2xl text-base font-bold transition-transform active:scale-[0.98] disabled:opacity-40"
