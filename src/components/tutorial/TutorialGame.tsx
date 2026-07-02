@@ -2668,9 +2668,10 @@ doAction({ t: 'endTurn', actor: 'you' })
             <div className="flex items-end justify-between gap-2 shrink-0 px-1">
               {/* kairė: Baigti ėjimą (viršuje) · auksas · parduoti korta */}
               <div className="flex flex-col items-center gap-1">
+                {/* FIKSUOTAS dydis: tekstui keičiantis (Baigti ėjimą / Priešo ėjimas…) laukas nebejuda */}
                 <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
-                  className="px-3 py-1.5 rounded-xl font-bold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-80 whitespace-nowrap text-center"
-                  style={{ fontSize: myTurn ? 13 : 11, lineHeight: 1.1, background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
+                  className="py-1.5 rounded-xl font-bold transition-colors active:scale-95 disabled:opacity-80 whitespace-nowrap text-center"
+                  style={{ width: 118, fontSize: 11.5, lineHeight: 1.1, background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'linear-gradient(135deg, #7a1f1f, #4a1212)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.6)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em', boxShadow: myTurn ? '0 0 16px rgba(34,197,94,0.4)' : 'none' }}>
                   {myTurn ? 'Baigti ėjimą' : 'Priešo ėjimas…'}
                 </button>
                 {goldBar('you')}
