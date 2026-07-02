@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { loadCampaigns } from '@/lib/campaign/missionLoader'
 import { playUiClick } from '@/lib/ui-sound'
 import type { Campaign } from '@/lib/campaign/types'
+import { PageHero } from '../ui/HubKit'
 
 const GOLD = '240,180,41'
 
@@ -15,13 +16,8 @@ export function CampaignList() {
 
   return (
     <div className="max-w-md mx-auto space-y-4">
-      <div className="relative rounded-2xl overflow-hidden" style={{ border: `1px solid rgba(${GOLD},0.4)`, background: `radial-gradient(130% 90% at 50% 0%, rgba(${GOLD},0.16), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#17111f,#0a0810)` }}>
-        <div className="px-5 py-6 text-center">
-          <p className="text-3xl mb-1">🗺️</p>
-          <h1 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.1em', textShadow: `0 0 16px rgba(${GOLD},0.35)` }}>KAMPANIJA</h1>
-          <p className="text-[11px] mt-1.5 leading-snug" style={{ color: 'var(--text-muted)' }}>Vienas žaidėjas. Istorijos misijos Ravenof pasaulio žemėlapyje.</p>
-        </div>
-      </div>
+      <PageHero icon={<span style={{ fontSize: 44 }}>🗺️</span>} accent={GOLD}
+        title="KAMPANIJA" sub="Vienas žaidėjas. Istorijos misijos Ravenof pasaulio žemėlapyje." />
 
       {campaigns === null ? (
         <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>

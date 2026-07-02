@@ -7,6 +7,7 @@ import { Target, Swords } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { DigitalPicker } from './DigitalPicker'
+import { PageHero } from './ui/HubKit'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
@@ -34,16 +35,8 @@ export function DigitalPvE() {
 
   return (
     <div className="max-w-md mx-auto space-y-4">
-      {/* Hero */}
-      <div className="relative rounded-2xl overflow-hidden" style={{ border: `1px solid rgba(${A},0.4)`, background: `radial-gradient(130% 90% at 50% 0%, rgba(${A},0.16), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#17111f,#0a0810)` }}>
-        <div className="px-5 py-6 text-center">
-          <span className="inline-flex items-center justify-center rounded-2xl mb-2" style={{ width: 60, height: 60, background: `rgba(${A},0.14)`, border: `1px solid rgba(${A},0.4)` }}>
-            <Target className="w-7 h-7" style={{ color: `rgb(${A})` }} />
-          </span>
-          <h1 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.1em', textShadow: `0 0 16px rgba(${A},0.35)` }}>TRENIRUOTĖ</h1>
-          <p className="text-[11px] mt-1.5 leading-snug" style={{ color: 'var(--text-muted)' }}>Treniruokis prieš botą. Sunkumas (😴 lengvas / ⚔ vidutinis / 💀 sunkus) ir priešininkas pasirenkami kitame žingsnyje. Pergalė — auksas.</p>
-        </div>
-      </div>
+      <PageHero iconName="fi-pve" icon={<Target className="w-10 h-10" style={{ color: `rgb(${A})` }} />} accent={A}
+        title="TRENIRUOTĖ" sub="Treniruokis prieš botą. Sunkumas (😴 lengvas / ⚔ vidutinis / 💀 sunkus) ir priešininkas pasirenkami kitame žingsnyje. Pergalė — auksas." />
 
       {decks === null ? (
         <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>

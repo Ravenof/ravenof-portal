@@ -10,8 +10,10 @@ import { exitNativeApp } from '@/lib/digital/native'
 import { SettingsModal } from './SettingsModal'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
+import { PageHero } from './ui/HubKit'
+import { RvnIcon } from './ui/RvnIcon'
 
-type Row = { key: string; label: string; sub?: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; accent: string; onClick: () => void }
+type Row = { key: string; label: string; sub?: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; img?: string; accent: string; onClick: () => void }
 
 export function MoreScreen() {
   const router = useRouter()
@@ -39,23 +41,23 @@ export function MoreScreen() {
     {
       title: 'Žaidimas',
       rows: [
-        { key: 'settings', label: 'Nustatymai', sub: 'Garsas, muzika, efektai', icon: Settings, accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
-        { key: 'quests', label: 'Užduotys', sub: 'Dienos užduotys ir serija', icon: ClipboardList, accent: '139,92,246', onClick: () => { playUiClick(); setQuestsOpen(true) } },
-        { key: 'season', label: 'Sezono kelias', sub: 'Pakopos ir apdovanojimai', icon: Award, accent: '240,180,41', onClick: () => { playUiClick(); setSeasonOpen(true) } },
+        { key: 'settings', label: 'Nustatymai', sub: 'Garsas, muzika, efektai', icon: Settings, img: 'fi-settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
+        { key: 'quests', label: 'Užduotys', sub: 'Dienos užduotys ir serija', icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); setQuestsOpen(true) } },
+        { key: 'season', label: 'Sezono kelias', sub: 'Pakopos ir apdovanojimai', icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); setSeasonOpen(true) } },
       ],
     },
     {
       title: 'Bendruomenė',
       rows: [
         { key: 'friends', label: 'Draugai', sub: 'Žinutės, mainai, kvietimai', icon: Users, accent: '96,165,250', onClick: () => { playUiClick(); router.push('/digital/friends') } },
-        { key: 'market', label: 'Aukcionas', sub: 'Pirk ir parduok kortas', icon: Store, accent: '146,84,40', onClick: () => { playUiClick(); router.push('/market') } },
+        { key: 'market', label: 'Aukcionas', sub: 'Pirk ir parduok kortas', icon: Store, img: 'fi-shop', accent: '146,84,40', onClick: () => { playUiClick(); router.push('/market') } },
       ],
     },
   ]
 
   return (
     <div className="space-y-5">
-      <h1 className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>Daugiau</h1>
+      <PageHero compact iconName="nav-more" icon={<span style={{ fontSize: 26 }}>☰</span>} title="DAUGIAU" sub="Nustatymai, bendruomenė ir paskyra" />
 
       {sections.map((sec) => (
         <div key={sec.title} className="space-y-2">
@@ -68,7 +70,7 @@ export function MoreScreen() {
                   className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-white/5"
                   style={{ borderTop: i === 0 ? 'none' : '1px solid rgba(240,180,41,0.1)' }}>
                   <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 36, height: 36, background: `rgba(${r.accent},0.14)`, border: `1px solid rgba(${r.accent},0.4)` }}>
-                    <Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />
+                    {r.img ? <RvnIcon name={r.img} size={26} fallback={<Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />} /> : <Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />}
                   </span>
                   <span className="flex-1">
                     <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{r.label}</span>

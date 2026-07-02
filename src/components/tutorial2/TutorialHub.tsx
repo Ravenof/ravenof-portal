@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { playUiClick } from '@/lib/ui-sound'
 import { TutorialGame } from '@/components/tutorial/TutorialGame'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
+import { PageHero } from '@/components/digital/ui/HubKit'
 
 export function TutorialHub() {
   const [starters, setStarters] = useState<StarterDeck[] | null>(null)
@@ -59,15 +60,13 @@ export function TutorialHub() {
 
   return (
     <div style={{ minHeight: '100%', padding: '16px 14px 90px', maxWidth: 760, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
-        <Link href="/digital" onClick={() => playUiClick()} style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(255,255,255,0.12)', padding: '5px 11px', borderRadius: 10 }}>← Atgal</Link>
-        <h1 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 20, margin: 0 }}>Mokymai</h1>
-        <span style={{ width: 60 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <Link href="/digital" onClick={() => playUiClick()} style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(255,255,255,0.12)', padding: '5px 11px', borderRadius: 10, flexShrink: 0 }}>← Atgal</Link>
       </div>
-
-      <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 6, lineHeight: 1.5 }}>
-        Pasirink vieną starter kaladę — gauni ją nemokamai. Tada vedamame mūšyje išmoksi žaisti tikromis tos kaladės kortomis prieš atsitiktinį priešą.
-      </p>
+      <div style={{ marginBottom: 12 }}>
+        <PageHero iconName="fi-academy" icon={<span style={{ fontSize: 44 }}>🎓</span>} accent="139,92,246"
+          title="MOKYMAI" sub="Pasirink vieną starter kaladę — gauni ją nemokamai. Tada vedamame mūšyje išmoksi žaisti tikromis tos kaladės kortomis prieš atsitiktinį priešą." />
+      </div>
       {msg && <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8 }}>{msg}</p>}
 
       {!starters && <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Kraunama…</p>}

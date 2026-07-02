@@ -8,11 +8,11 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { ChevronRight, Lock } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
 
 const GOLD = '240,180,41'
-export const ASSET = '/digital/ui2'
+export const ASSET = '/digital/ui3'
 
 // ── shared CSS ────────────────────────────────────────────────────────────────
 export function HubStyles() {
@@ -86,10 +86,10 @@ export function IconBtn({ children, onClick, badge, label }: { children: ReactNo
 }
 
 // ── RewardBanner (live) ───────────────────────────────────────────────────────
-function MiniReward({ icon, amount, accent = GOLD }: { icon: string; amount: string; accent?: string }) {
+function MiniReward({ icon, img, amount, accent = GOLD }: { icon: string; img?: string; amount: string; accent?: string }) {
   return (
     <span className="flex flex-col items-center justify-center shrink-0" style={{ width: 42, height: 44, borderRadius: 9, background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: `1px solid rgba(${accent},0.45)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }}>
-      <span style={{ fontSize: 17, lineHeight: 1 }}>{icon}</span>
+      {img ? <RvnIcon name={img} size={20} fallback={<span style={{ fontSize: 17, lineHeight: 1 }}>{icon}</span>} /> : <span style={{ fontSize: 17, lineHeight: 1 }}>{icon}</span>}
       <span className="rvn-disp" style={{ fontSize: 9, fontWeight: 800, color: `rgb(${accent})`, marginTop: 1 }}>{amount}</span>
     </span>
   )
@@ -102,8 +102,8 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
         <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3' }}>{streak} d. prisijungimo serija</span>
         <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{claimable ? 'Atlygis paruoštas!' : 'Kitas atlygis rytoj'}</span>
       </span>
-      <MiniReward icon="🪙" amount="x250" />
-      <MiniReward icon="📜" amount="x1" accent="139,92,246" />
+      <MiniReward icon="🪙" img="fi-coins" amount="x250" />
+      <MiniReward icon="🎁" img="fi-gifts" amount="x1" accent="139,92,246" />
       <button onClick={claimable ? onClaim : undefined} disabled={!claimable} className="rvn-press rvn-gold-btn shrink-0" style={{ padding: '9px 16px', fontSize: 13 }}>
         {claimable ? 'Atsiimti' : 'Atsiimta'}
       </button>
@@ -137,12 +137,12 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
       <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.22) 0%, rgba(8,6,14,0.48) 55%, rgba(8,6,14,0.82) 100%)' }} />
       <div className="relative p-4 flex flex-col" style={{ gap: 12 }}>
-        <div className="flex flex-col items-center" style={{ gap: 3 }}>
-          <img src={`${ASSET}/heading.webp`} alt="Žaisti dabar" style={{ height: 38, width: 'auto', filter: 'drop-shadow(0 2px 6px #000)' }} />
-          <img src={`${ASSET}/subtitle.webp`} alt={subtitle} style={{ height: 14, width: 'auto', opacity: 0.95 }} />
+        <div className="flex flex-col items-center" style={{ gap: 5 }}>
+          <img src={`${ASSET}/heading.png`} alt="Žaisti dabar" style={{ height: 40, width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <span style={{ fontSize: 12, color: '#cfc6b8', textShadow: '0 1px 4px #000', letterSpacing: '0.02em' }}>{subtitle}</span>
         </div>
-        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 300, margin: '6px auto 2px', filter: `drop-shadow(0 3px 9px rgba(${GOLD},0.3))` }}>
-          <img src={`${ASSET}/cta.webp`} alt="Pradėti kovą" className="w-full block" />
+        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 320, margin: '4px auto 2px', filter: `drop-shadow(0 4px 12px rgba(${GOLD},0.35))` }}>
+          <img src={`${ASSET}/cta.png`} alt="Pradėti kovą" className="w-full block" />
         </button>
         <div>{children}</div>
       </div>
@@ -190,10 +190,10 @@ export function StatCard({ emblemIcon, emblemName, title, sub, value, pct, accen
   return href ? <Link href={href} onClick={onClick}>{inner}</Link> : <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>
 }
 
-export function RewardChip({ icon, amount, accent = GOLD }: { icon: string; amount: string; accent?: string }) {
+export function RewardChip({ icon, img, amount, accent = GOLD }: { icon: string; img?: string; amount: string; accent?: string }) {
   return (
     <span className="flex flex-col items-center justify-center" style={{ width: 38, height: 42, borderRadius: 8, background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: `1px solid rgba(${accent},0.45)` }}>
-      <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>
+      {img ? <RvnIcon name={img} size={18} fallback={<span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>} /> : <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>}
       <span className="rvn-disp" style={{ fontSize: 8.5, fontWeight: 800, color: `rgb(${accent})` }}>{amount}</span>
     </span>
   )
@@ -227,4 +227,57 @@ export function EmptyState({ icon, title, sub, accent = GOLD, ctaLabel, onCta, c
       {secondary}
     </div>
   )
+}
+
+
+// ── Divider (auksinis ornamentas) ─────────────────────────────────────────────
+export function Divider({ width = 190, style }: { width?: number; style?: React.CSSProperties }) {
+  return <img src={`${ASSET}/divider.png`} alt="" aria-hidden style={{ width, height: 'auto', display: 'block', margin: '0 auto', opacity: 0.9, ...style }} />
+}
+
+// ── PageHero — vieninga sub-puslapio antraštė (dark fantasy) ─────────────────
+export function PageHero({ iconName, icon, title, sub, accent = GOLD, compact }: {
+  iconName?: string; icon?: ReactNode; title: string; sub?: string; accent?: string; compact?: boolean
+}) {
+  if (compact) {
+    return (
+      <div className="rvn-fade flex items-center gap-3" style={{ padding: '2px 2px 6px' }}>
+        <span className="flex items-center justify-center shrink-0" style={{ width: 40, height: 40, filter: `drop-shadow(0 3px 8px rgba(${accent},0.45))` }}>
+          {iconName ? <RvnIcon name={iconName} size={38} fallback={icon ?? null} /> : icon}
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block rvn-disp truncate" style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', letterSpacing: '0.08em', textShadow: `0 0 14px rgba(${accent},0.35)` }}>{title}</span>
+          {sub && <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>}
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${accent},0.38)`,
+      background: `radial-gradient(130% 90% at 50% 0%, rgba(${accent},0.15), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#17111f,#0a0810)`,
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 26px rgba(0,0,0,0.5)' }}>
+      <div className="px-5 pt-5 pb-4 text-center">
+        <span className="inline-flex items-center justify-center" style={{ width: 64, height: 64, filter: `drop-shadow(0 4px 14px rgba(${accent},0.5))` }}>
+          {iconName ? <RvnIcon name={iconName} size={60} fallback={icon ?? null} /> : icon}
+        </span>
+        <h1 className="rvn-disp" style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', letterSpacing: '0.1em', textShadow: `0 0 18px rgba(${accent},0.4)`, marginTop: 4 }}>{title}</h1>
+        <Divider width={170} style={{ marginTop: 7 }} />
+        {sub && <p style={{ fontSize: 11, marginTop: 8, lineHeight: 1.55, color: 'var(--text-muted)', maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+// ── GoldPlate — auksinis CTA su asset plokšte ────────────────────────────────
+export function GoldPlate({ label, onClick, href, disabled, maxWidth = 300 }: {
+  label: string; onClick?: () => void; href?: string; disabled?: boolean; maxWidth?: number
+}) {
+  const inner = (
+    <span className="relative block" style={{ lineHeight: 0, filter: disabled ? 'grayscale(0.65) brightness(0.7)' : `drop-shadow(0 4px 12px rgba(${GOLD},0.3))` }}>
+      <img src={`${ASSET}/cta-blank.png`} alt="" className="w-full block" />
+      <span className="absolute inset-0 flex items-center justify-center rvn-disp" style={{ fontSize: 17, fontWeight: 800, color: '#3a2406', textShadow: '0 1px 0 rgba(255,255,255,0.4)', letterSpacing: '0.02em' }}>{label}</span>
+    </span>
+  )
+  if (href && !disabled) return <Link href={href} onClick={onClick} className="rvn-press block w-full mx-auto" style={{ maxWidth }}>{inner}</Link>
+  return <button onClick={onClick} disabled={disabled} className="rvn-press block w-full mx-auto" style={{ maxWidth }}>{inner}</button>
 }

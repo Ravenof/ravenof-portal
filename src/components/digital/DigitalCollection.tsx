@@ -11,7 +11,7 @@ import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
-import { EmptyState } from './ui/HubKit'
+import { EmptyState, PageHero } from './ui/HubKit'
 
 type Col = {
   id: string; name: string; image: string | null
@@ -102,10 +102,7 @@ export function DigitalCollection() {
   return (
     <div className="space-y-3" style={{ paddingBottom: 64 }}>
       {/* Antraštė */}
-      <div>
-        <h1 className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>Kolekcija</h1>
-        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Tavo turimos ir atrakinamos kortos · {ownedCount}/{cards.length}</p>
-      </div>
+      <PageHero compact iconName="fi-collection" icon={<span style={{ fontSize: 28 }}>🎴</span>} title="KOLEKCIJA" sub={`Tavo turimos ir atrakinamos kortos · ${ownedCount}/${cards.length}`} />
 
       {loggedOut ? (
         <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>

@@ -11,6 +11,7 @@ import { getDailyDeal, buyDailyDealCard, getCosmetics, buyCosmetic, equipCosmeti
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
+import { RvnIcon } from './ui/RvnIcon'
 
 function hexRgb(hex: string): string {
   const h = (hex || '#9ca3af').replace('#', '')
@@ -136,7 +137,7 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
           {/* Antraštė + filtrai */}
           <div className="px-5 pt-5 pb-3 shrink-0">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🛒 PARDUOTUVĖ</p>
+              <p className="text-lg font-bold inline-flex items-center gap-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}><RvnIcon name="fi-shop" size={24} fallback={<span>🛒</span>} /> PARDUOTUVĖ</p>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold"
                 style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                 🪙 {localGold.toLocaleString()}

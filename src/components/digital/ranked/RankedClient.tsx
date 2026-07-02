@@ -19,6 +19,7 @@ import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
 import { DigitalPicker } from '../DigitalPicker'
+import { PageHero } from '../ui/HubKit'
 import { OctPanel, SectionTitle, RButton } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
 import { MatchFound } from './MatchFound'
@@ -181,6 +182,7 @@ export function RankedClient() {
 
       {view === 'home' && rv && profile && (
         <>
+          <PageHero compact iconName="fi-ranked" icon={<span style={{ fontSize: 28 }}>🏆</span>} title="REITINGO KOVA" sub="Kilk rangais, rink atlygius ir tapk sezono čempionu" />
           {/* Sezono juosta */}
           <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
             <span>{season?.name ?? 'Sezonas'}</span>

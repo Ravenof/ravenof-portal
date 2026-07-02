@@ -9,6 +9,7 @@ import { DigitalDeckBuilder } from './DigitalDeckBuilder'
 import { DigitalMyDecks } from './DigitalMyDecks'
 import { DigitalCommunityDecks } from './DigitalCommunityDecks'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
+import { PageHero } from './ui/HubKit'
 
 type Tab = 'builder' | 'my' | 'community'
 type InitialDeck = {
@@ -34,6 +35,11 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
 
   return (
     <div>
+      {tab !== 'builder' && (
+        <div className="mb-3">
+          <PageHero compact iconName="fi-decks" icon={<span style={{ fontSize: 28 }}>📚</span>} title="KALADĖS" sub="Kurk, tvarkyk ir dalinkis kovos kaladėmis" />
+        </div>
+      )}
       {/* Segment tabs */}
       <div className="flex gap-1 p-1 rounded-2xl mb-3" style={{ background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(240,180,41,0.18)' }}>
         {TABS.map((t) => {

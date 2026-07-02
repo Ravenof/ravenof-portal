@@ -112,7 +112,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       <StatCard emblemName="emblem-season" emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
         value={`Pakopa ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
-        chips={<><RewardChip icon="🪙" amount="x500" /><RewardChip icon="📜" amount="x10" accent="139,92,246" /></>}
+        chips={<><RewardChip icon="🪙" img="fi-coins" amount="x500" /><RewardChip icon="📜" img="fi-quests" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
       <StatCard emblemName="emblem-tutorial" emblemIcon={<GraduationCap className="w-6 h-6" />} title="Mokymai" sub="Starter kaladės — išmok žaisti"

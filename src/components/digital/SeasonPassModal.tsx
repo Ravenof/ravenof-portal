@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { getSeasonPass, claimPassTier, type SeasonPass } from '@/lib/gamification/seasonPass'
 import { rewardLabel } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
+import { RvnIcon } from './ui/RvnIcon'
 
 export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const [pass, setPass] = useState<SeasonPass | null>(null)
@@ -30,7 +31,7 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
       <div className="relative w-[min(460px,95vw)] max-h-[88vh]" style={{ borderRadius: 18, background: 'rgba(240,180,41,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ borderRadius: 17, background: 'radial-gradient(120% 90% at 50% 0%, rgba(240,180,41,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
-          <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>🎖️ SEZONO KELIAS</p>
+          <p className="text-lg font-bold mb-0.5 text-center inline-flex items-center gap-2 justify-center w-full" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}><RvnIcon name="fi-season" size={24} fallback={<span>🎖️</span>} /> SEZONO KELIAS</p>
           {pass?.season && <p className="text-[11px] text-center mb-3" style={{ color: 'var(--text-muted)' }}>{pass.season.title} · 🎖️ {xp.toLocaleString()} kelio XP</p>}
 
           {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}

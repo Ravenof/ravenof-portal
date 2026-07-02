@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { buildCoop2v2, type Coop2v2 } from '@/lib/team2v2/load'
 import { Team2v2Game } from './Team2v2Game'
+import { PageHero } from './ui/HubKit'
 
 const oct = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
 const A = '56,189,248'
@@ -47,13 +48,8 @@ export function DigitalCoop() {
 
   return (
     <div className="max-w-md mx-auto space-y-5">
-      <div className="relative" style={{ clipPath: oct(15), background: `rgba(${A},0.5)`, padding: 2.5 }}>
-        <div className="px-5 py-6 text-center" style={{ clipPath: oct(14), background: `radial-gradient(120% 90% at 50% 0%, rgba(${A},0.16), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
-          <span className="text-5xl" style={{ filter: `drop-shadow(0 0 12px rgba(${A},0.55))` }}>🤝</span>
-          <h1 className="text-xl font-bold mt-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', letterSpacing: '0.08em' }}>CO-OP 2v2 (vs botai)</h1>
-          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Tu + AI sąjungininkas prieš 2 AI priešus. Ėjimais, komandos ėjimas, bendras 60 HP, draugiški efektai veikia visai komandai.</p>
-        </div>
-      </div>
+      <PageHero icon={<span style={{ fontSize: 44 }}>🤝</span>} accent={A}
+        title="CO-OP 2v2" sub="Tu + AI sąjungininkas prieš 2 AI priešus. Ėjimais, komandos ėjimas, bendras 60 HP, draugiški efektai veikia visai komandai." />
 
       {decks === null ? (
         <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>

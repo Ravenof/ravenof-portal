@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { getDailyQuests, loginCheckin, claimQuest, type DailyQuest, type LoginCheckin } from '@/lib/gamification/quests'
 import { rewardLabel } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
+import { RvnIcon } from './ui/RvnIcon'
 
 export function QuestsModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const [quests, setQuests] = useState<DailyQuest[]>([])
@@ -35,7 +36,7 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
       <div className="relative w-[min(460px,95vw)] max-h-[88vh]" style={{ borderRadius: 18, background: 'rgba(139,92,246,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ borderRadius: 17, background: 'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
-          <p className="text-lg font-bold mb-1 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd', letterSpacing: '0.08em' }}>📅 DIENOS UŽDUOTYS</p>
+          <p className="text-lg font-bold mb-1 text-center inline-flex items-center gap-2 justify-center w-full" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd', letterSpacing: '0.08em' }}><RvnIcon name="fi-quests" size={24} fallback={<span>📅</span>} /> DIENOS UŽDUOTYS</p>
 
           {/* Prisijungimo serija */}
           {streak && (

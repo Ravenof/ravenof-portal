@@ -89,16 +89,16 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.82)', backdropFilter: 'blur(10px)' }}>
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/digital" onClick={() => playUiClick()} className="flex flex-col leading-none shrink-0 rvn-disp">
-            <span style={{ color: 'var(--gold)', fontSize: 15, fontWeight: 800, letterSpacing: '0.1em', textShadow: '0 0 12px rgba(240,180,41,0.45)' }}>RAVENOF</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: 7, fontWeight: 700, letterSpacing: '0.42em', marginTop: 1 }}>DIGITAL</span>
+          <Link href="/digital" onClick={() => playUiClick()} className="flex items-center shrink-0" style={{ lineHeight: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/digital/ui3/logo.png" alt="Ravenof Digital" style={{ height: 34, width: 'auto', filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.35))' }} />
           </Link>
           {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); router.push('/digital/more') }} />}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <ResourcePill icon={<span>🪙</span>} value={wallet.gold.toLocaleString('lt-LT')} />
-          <ResourcePill icon={<span>🎁</span>} value={wallet.packs} accent="251,146,60" onClick={() => { playUiClick(); setStoreOpen(true) }} />
+          <ResourcePill icon={<RvnIcon name="fi-coins" size={16} fallback={<span>🪙</span>} />} value={wallet.gold.toLocaleString('lt-LT')} />
+          <ResourcePill icon={<RvnIcon name="fi-gifts" size={16} fallback={<span>🎁</span>} />} value={wallet.packs} accent="251,146,60" onClick={() => { playUiClick(); setStoreOpen(true) }} />
           <IconBtn label="Pranešimai" badge={unread || null} onClick={() => { playUiClick(); router.push('/digital/more') }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
           <IconBtn label="Nustatymai" onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
         </div>
@@ -119,7 +119,10 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             <>
               <span className="relative flex items-center justify-center rvn-press" style={{ width: 32, height: 32 }}>
                 {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.34), transparent 70%)' }} />}
-                <RvnIcon name={`nav-${it.key}`} size={24} fallback={<Icon className="w-[22px] h-[22px]" />} />
+                <RvnIcon name={`nav-${it.key}`} size={24} fallback={<Icon className="w-[22px] h-[22px]" />}
+                  style={{ filter: it.key === 'home'
+                    ? (active ? 'drop-shadow(0 0 6px rgba(240,180,41,0.55))' : 'grayscale(0.9) brightness(0.8)')
+                    : (active ? 'sepia(1) saturate(4.2) hue-rotate(-9deg) brightness(1.18) drop-shadow(0 0 6px rgba(240,180,41,0.55))' : 'none') }} />
               </span>
               <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{it.label}</span>
             </>
