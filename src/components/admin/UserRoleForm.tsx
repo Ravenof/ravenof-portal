@@ -5,6 +5,7 @@ import { updateUserRole } from '@/app/admin/users/actions'
 
 const ROLES = [
   { value: 'user', label: 'user' },
+  { value: 'tester', label: 'tester' },
   { value: 'event_moderator', label: 'moderator' },
   { value: 'admin', label: 'admin' },
 ]

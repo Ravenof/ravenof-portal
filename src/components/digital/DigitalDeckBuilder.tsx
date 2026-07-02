@@ -56,6 +56,13 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const [sheetOpen, setSheetOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [tester, setTester] = useState(false)
+
+  // Testerio/admino statusas: gali statyti kaladės iš VISŲ kortų (net neturimų)
+  useEffect(() => {
+    createClient().from('profiles').select('role').eq('id', userId).maybeSingle()
+      .then(({ data }) => { const r = (data as { role?: string } | null)?.role; setTester(r === 'tester' || r === 'admin') })
+  }, [userId])
 
   useEffect(() => {
     if (initialDeck) store.loadExisting(initialDeck.id, initialDeck.name, initialDeck.description, initialDeck.factionId, initialDeck.visibility, initialDeck.entries, initialDeck.sideEntries ?? [])
@@ -66,6 +73,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const flash = (m: string, err = false) => { (err ? playError : playUiClick)(); setToast(m) }
 
   const deckQtyOf = (id: string) => store.entries.find((e) => e.card.id === id)?.quantity ?? 0
+  const ownedOf = useCallback((id: string) => tester ? 99 : (collection[id] ?? 0), [tester, collection])
   const total = store.entries.reduce((s, e) => s + e.quantity, 0)
 
   const pool = useMemo(() => {
@@ -75,21 +83,21 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
       if (store.factionId == null) return false
       const isNeutral = c.faction_id === NEUTRAL_FACTION_ID
       if (c.faction_id !== store.factionId && !(showUniversal && isNeutral)) return false
-      if (store.ownedOnly && (collection[c.id] ?? 0) <= 0) return false
+      if (store.ownedOnly && ownedOf(c.id) <= 0) return false
       if (needle && !c.name.toLowerCase().includes(needle)) return false
       return true
     })
-  }, [cards, q, store.factionId, store.ownedOnly, showUniversal, collection])
+  }, [cards, q, store.factionId, store.ownedOnly, showUniversal, ownedOf])
 
   const canAdd = useCallback((c: CardWithRelations): string | null => {
-    const owned = collection[c.id] ?? 0
+    const owned = ownedOf(c.id)
     const dq = deckQtyOf(c.id)
-    if (owned <= 0) return 'Šios kortos neturi'
-    if (dq >= owned) return `Turi tik ×${owned}`
     if (dq >= getCopyLimit(c)) return 'Pasiektas kopijų limitas'
+    if (owned <= 0) return 'Šios kortos neturi'
+    if (dq >= owned) return `Turi tik ×${owned} — daugiau įsidėti negali`
     return null
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, store.entries])
+  }, [ownedOf, store.entries])
 
   const tryAdd = (c: CardWithRelations): boolean => {
     const why = canAdd(c)
@@ -203,7 +211,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
   const dragProps = (card: CardWithRelations) => ({
     onPointerDown: (e: React.PointerEvent) => {
-      if ((collection[card.id] ?? 0) <= 0) return
+      if (ownedOf(card.id) <= 0) return
       if (dragCard) return
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
       const touch = e.pointerType === 'touch'
@@ -262,7 +270,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
       {/* Antraštė */}
       <div className="flex items-center gap-2">
         <button onClick={() => { playUiClick(); onBack() }} className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 36, height: 36, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label="Atgal"><ChevronLeft className="w-5 h-5" /></button>
-        <h1 className="flex-1 text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>Deck Builder</h1>
+        <h1 className="flex-1 text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>Deck Builder{tester && <span className="ml-2 align-middle text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd', letterSpacing: '0.08em' }}>TESTER</span>}</h1>
         <span className="px-2.5 py-1 rounded-full text-xs font-bold tabular-nums" style={{ background: total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.16)' : `rgba(${GOLD},0.14)`, border: `1px solid ${total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.5)' : `rgba(${GOLD},0.4)`}`, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{total}/{DECK_MIN}</span>
       </div>
 
@@ -324,11 +332,11 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
           <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
         ) : view === 'list' ? (
           <div className="space-y-1.5">
-            {pool.map((c) => <CardRow key={c.id} c={c} owned={collection[c.id] ?? 0} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+            {pool.map((c) => <CardRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
-            {pool.map((c) => <CardTile key={c.id} c={c} owned={collection[c.id] ?? 0} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+            {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
           </div>
         )}
       </Section>
@@ -395,7 +403,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
         )}
       </AnimatePresence>
 
-      {preview && <BuilderPreview c={preview} owned={collection[preview.id] ?? 0} deckQty={deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
+      {preview && <BuilderPreview c={preview} owned={ownedOf(preview.id)} deckQty={deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
 
       {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(120px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
     </div>
@@ -589,7 +597,7 @@ function CardRow({ c, owned, deckQty, dragging, dragProps, onAdd, onDec, onPrevi
       <span className="flex items-center justify-center rounded-full text-[10px] font-bold shrink-0" style={{ width: 20, height: 20, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{c.gold_cost}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[12px] font-semibold leading-tight truncate" style={{ color: owned > 0 ? '#f3ead3' : 'var(--text-muted)' }}>{c.name}</span>
-        <span className="block text-[9px] leading-tight truncate" style={{ color: col }}>{c.rarity?.name ?? ''} · {c.card_type?.name ?? ''} {owned > 0 ? `· turi ×${owned}` : ''}</span>
+        <span className="block text-[9px] leading-tight truncate" style={{ color: col }}>{c.rarity?.name ?? ''} · {c.card_type?.name ?? ''} {owned > 0 && owned < 99 ? `· turi ×${owned}` : ''}</span>
       </span>
       <span className="text-[10px] font-bold tabular-nums shrink-0" style={{ color: deckQty > 0 ? 'var(--gold)' : 'var(--text-muted)' }}>{deckQty}/{Math.min(limit, owned || limit)}</span>
       <button onClick={onPreview} className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 30, height: 30, color: 'var(--text-muted)' }} aria-label="Peržiūra"><Eye className="w-4 h-4" /></button>

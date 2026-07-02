@@ -2,14 +2,33 @@
 
 // ── Pakuotės atplėšimas — tempk į šoną / spustelėk, tada kortos verčiamos po vieną ─
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery } from '@/lib/ui-sound'
 
-const MAX_TEAR = 150
+const PACK_W = 220
+const PACK_H = 300
+const STRIP_H = 56
+const LIFT_PAD = 48
 const THRESH = 0.42
+// „kandžiotas" plėšimo kraštas
+const JAG_OUT = 'polygon(0 0, 100% 0, 100% 70%, 94% 100%, 88% 72%, 81% 100%, 74% 70%, 67% 96%, 60% 68%, 53% 100%, 46% 72%, 39% 98%, 32% 70%, 25% 100%, 18% 72%, 11% 96%, 5% 70%, 0 88%)'
+const JAG_IN  = 'polygon(0 0, 100% 0, 100% 78%, 95% 100%, 89% 76%, 82% 100%, 75% 74%, 68% 100%, 61% 72%, 54% 100%, 47% 76%, 40% 100%, 33% 74%, 26% 100%, 19% 76%, 12% 100%, 6% 74%, 0 94%)'
+
+// Folijos gabalo menas — pakuotės viršus (tas pats vaizdas, sulygiuotas)
+function FoilArt({ packImage, bad }: { packImage?: string | null; bad: boolean }) {
+  return (
+    <span className="absolute inset-0 block overflow-hidden" style={{ borderTop: '2px solid rgba(240,180,41,0.5)', background: 'linear-gradient(160deg, #2a1d44, #120c1e)' }}>
+      {packImage && !bad && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={packImage} alt="" draggable={false} className="absolute left-0 top-0 object-cover" style={{ width: PACK_W, height: PACK_H }} />
+      )}
+      <span aria-hidden className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent 60%)' }} />
+    </span>
+  )
+}
 
 function CardArt({ card }: { card: OpenedCard }) {
   const [bad, setBad] = useState(false)
@@ -31,25 +50,32 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
   packId: string; packName: string; packImage?: string | null; onClose: () => void; onOpened?: () => void
 }) {
   const [packImgBad, setPackImgBad] = useState(false)
-  const [tear, setTear] = useState(0)
-  const [dir, setDir] = useState(1)
+  const [drag, setDrag] = useState<{ t: number; fx: number; dir: 1 | -1 }>({ t: 0, fx: 0, dir: 1 })
+  const [fired, setFired] = useState(false)
   const [opening, setOpening] = useState(false)
   const [cards, setCards] = useState<OpenedCard[] | null>(null)
   const [revealIdx, setRevealIdx] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const startRef = useRef<{ x: number; moved: boolean } | null>(null)
+  const packRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
+  const startXRef = useRef(0)
   const firedRef = useRef(false)
 
   const doOpen = async () => {
     if (firedRef.current) return
     firedRef.current = true
-    setTear(1); setOpening(true); playSuccess()
+    dragging.current = false
+    setFired(true)
+    setDrag((d) => ({ t: 1, fx: d.dir > 0 ? PACK_W : 0, dir: d.dir }))
+    setOpening(true); playSuccess()
     const r = await openPack(packId)
     setOpening(false)
     if ('error' in r) {
       const e = r.error || ''
       setError(/no pack to open/i.test(e) ? 'Nebeturi šios pakuotės.' : ('Klaida: ' + e))
       firedRef.current = false
+      setFired(false)
+      setDrag({ t: 0, fx: 0, dir: 1 })
       return
     }
     setCards([...r]); setRevealIdx(0)  // jau surūšiuota: dažnos pirma, rečiausios paskutinės
@@ -57,14 +83,31 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
     onOpened?.()
   }
 
-  const onDown = (e: React.PointerEvent) => { if (opening || firedRef.current) return; startRef.current = { x: e.clientX, moved: false }; try { (e.target as Element).setPointerCapture?.(e.pointerId) } catch { /* */ } }
-  const onMove = (e: React.PointerEvent) => {
-    const st = startRef.current; if (!st) return
-    const dx = e.clientX - st.x; if (Math.abs(dx) > 5) st.moved = true
-    setDir(dx >= 0 ? 1 : -1); const t = Math.min(1, Math.abs(dx) / MAX_TEAR); setTear(t)
-    if (t >= 1) { startRef.current = null; doOpen() }
+  const onDown = (e: React.PointerEvent) => {
+    if (opening || firedRef.current) return
+    dragging.current = true; startXRef.current = e.clientX
+    try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId) } catch { /* */ }
   }
-  const onUp = () => { const st = startRef.current; startRef.current = null; if (!st) return; if (tear >= THRESH || !st.moved) doOpen(); else setTear(0) }
+  const onMove = (e: React.PointerEvent) => {
+    if (!dragging.current || firedRef.current) return
+    const rect = packRef.current?.getBoundingClientRect()
+    const dx = e.clientX - startXRef.current
+    const dir: 1 | -1 = dx >= 0 ? 1 : -1
+    const t = Math.min(1, Math.abs(dx) / (PACK_W * 0.7))
+    const fx = rect ? Math.min(PACK_W, Math.max(0, e.clientX - rect.left)) : 0
+    setDrag({ t, fx, dir })
+    if (t >= 1) { dragging.current = false; doOpen() }
+  }
+  const onUp = () => {
+    if (!dragging.current) return
+    dragging.current = false
+    if (drag.t >= THRESH) doOpen()
+    else setDrag((d) => ({ t: 0, fx: d.dir > 0 ? 0 : PACK_W, dir: d.dir }))
+  }
+
+  // plėšimo regionas: nuo pradžios krašto iki piršto
+  const regionClip = drag.dir > 0 ? `inset(0 ${PACK_W - drag.fx}px 0 0)` : `inset(0 0 0 ${drag.fx}px)`
+  const regionClipTall = regionClip
 
   const revealing = !!cards && revealIdx < cards.length
   const done = !!cards && revealIdx >= cards.length
@@ -97,14 +140,18 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
     <div className="fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.93)' }}>
       <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="absolute top-4 right-4 text-base px-3 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
 
-      {/* SEALED */}
+      {/* SEALED — folija plyšta po pirštu */}
       {!cards && (
         <div className="flex flex-col items-center gap-5 select-none">
           <p className="text-sm font-bold text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-            {opening ? 'ATPLĖŠIAMA…' : 'TEMPK Į ŠONĄ ARBA SPUSTELĖK'}
+            {opening ? 'ATPLĖŠIAMA…' : 'PERBRAUK PIRŠTU PER PAKUOTĖS VIRŠŲ'}
           </p>
-          <div className="relative" style={{ width: 220, height: 300, touchAction: 'none' }}>
-            <div className="absolute inset-x-0 top-0" style={{ height: 130, filter: 'blur(22px)', opacity: 0.15 + tear * 0.85, background: 'radial-gradient(70% 100% at 50% 0%, rgba(255,205,90,0.95), rgba(240,120,30,0.5) 50%, transparent 78%)' }} />
+          <div ref={packRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+            className="relative cursor-grab active:cursor-grabbing" style={{ width: PACK_W, height: PACK_H, touchAction: 'none' }}>
+            {/* švytėjimas iš vidaus */}
+            <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: 130, filter: 'blur(22px)', opacity: 0.12 + drag.t * 0.88, background: 'radial-gradient(70% 100% at 50% 0%, rgba(255,205,90,0.95), rgba(240,120,30,0.5) 50%, transparent 78%)', zIndex: 4 }} />
+
+            {/* pakuotė */}
             <div className="absolute inset-0 overflow-hidden" style={{ clipPath: 'polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px)', background: 'linear-gradient(160deg, #2a1d44, #120c1e 60%, #0a0810)', border: '2px solid rgba(240,180,41,0.45)', boxShadow: 'inset 0 0 30px rgba(240,180,41,0.12)' }}>
               {packImage && !packImgBad ? (
                 <>
@@ -121,11 +168,35 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
                   <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{packName}</span>
                 </div>
               )}
+              {/* plėšimo linijos užuomina */}
+              <div className="absolute left-2 right-2 pointer-events-none" style={{ top: STRIP_H, borderTop: '1.5px dashed rgba(240,180,41,0.4)', opacity: Math.max(0, 1 - drag.t * 2.2) }} />
             </div>
-            <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} className="absolute left-0 right-0 top-0 cursor-grab active:cursor-grabbing flex items-center justify-center"
-              style={{ height: 64, touchAction: 'none', transform: `translateX(${dir * tear * 230}px) rotate(${dir * tear * 10}deg)`, opacity: 1 - tear * 0.9, transition: startRef.current ? 'none' : 'transform 0.22s, opacity 0.22s', clipPath: 'polygon(0 0,100% 0,100% 64%,93% 100%,86% 66%,79% 100%,72% 66%,65% 100%,58% 66%,51% 100%,44% 66%,37% 100%,30% 66%,23% 100%,16% 66%,9% 100%,0 80%)', background: 'linear-gradient(160deg, #3a2a55, #241a38)', borderTop: '2px solid rgba(240,180,41,0.55)', borderLeft: '2px solid rgba(240,180,41,0.4)', borderRight: '2px solid rgba(240,180,41,0.4)' }}>
-              <span className="text-[11px] font-bold tracking-widest pointer-events-none" style={{ color: 'rgba(240,180,41,0.95)', letterSpacing: '0.18em' }}>↤ ✄ PLĖŠK ✄ ↦</span>
+
+            {/* VIDUS — atsiveria po nuplėšta folija (kandžiotas kraštas) */}
+            <div className="absolute left-0 right-0 pointer-events-none overflow-hidden" style={{ top: 0, height: STRIP_H, clipPath: regionClip, zIndex: 2 }}>
+              <div className="absolute inset-0" style={{ clipPath: JAG_IN, background: 'linear-gradient(180deg, #060409, #140e20 55%, #241a38)', boxShadow: 'inset 0 -8px 12px rgba(0,0,0,0.85)' }} />
+              <div className="absolute inset-0" style={{ clipPath: JAG_IN, opacity: 0.25 + drag.t * 0.75, background: 'linear-gradient(180deg, rgba(255,195,85,0.35), transparent 75%)' }} />
             </div>
+
+            {/* NUPLĖŠAMA FOLIJA — pati pakuotės viršutinė juosta, kylanti ties pirštu */}
+            {!fired ? (
+              <div className="absolute left-0 right-0 pointer-events-none" style={{ top: -LIFT_PAD, height: STRIP_H + LIFT_PAD, clipPath: regionClipTall, zIndex: 3 }}>
+                <div className="absolute left-0 right-0 overflow-visible" style={{ top: LIFT_PAD, height: STRIP_H, clipPath: JAG_OUT,
+                  transform: `translateY(${-3 - drag.t * 16}px) translateX(${drag.dir * -3 * drag.t}px) rotate(${drag.dir * -7 * drag.t}deg)`,
+                  transformOrigin: drag.dir > 0 ? '100% 100%' : '0% 100%',
+                  transition: dragging.current ? 'none' : 'transform 0.25s ease',
+                  filter: `drop-shadow(0 ${3 + drag.t * 7}px ${4 + drag.t * 6}px rgba(0,0,0,0.6))` }}>
+                  <FoilArt packImage={packImage} bad={packImgBad} />
+                </div>
+              </div>
+            ) : (
+              <motion.div initial={{ x: 0, y: 0, rotate: 0, opacity: 1 }}
+                animate={{ x: drag.dir * 300, y: -140, rotate: drag.dir * 32, opacity: 0 }}
+                transition={{ duration: 0.55, ease: 'easeOut' }}
+                className="absolute left-0 right-0 pointer-events-none" style={{ top: 0, height: STRIP_H, clipPath: JAG_OUT, zIndex: 3 }}>
+                <FoilArt packImage={packImage} bad={packImgBad} />
+              </motion.div>
+            )}
           </div>
           {!opening && <button onClick={doOpen} className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>🎁 Atplėšti pakuotę</button>}
           {error && <p className="text-xs text-center max-w-[260px]" style={{ color: '#fca5a5' }}>{error}</p>}

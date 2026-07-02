@@ -148,14 +148,15 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
     <div className="space-y-1">
       {shelves.map((row, si) => (
         <div key={si}>
-          <div className="grid grid-cols-3 gap-2.5 px-1" style={{ alignItems: 'end' }}>
+          <div className="grid grid-cols-3 gap-2.5 px-1" style={{ alignItems: 'start' }}>
             {row.map((t) =>
               t === 'new' ? (
-                <button key="new" onClick={() => { playUiClick(); onCreate() }}
-                  className="rvn-press flex flex-col items-center justify-center gap-1.5"
-                  style={{ aspectRatio: '3 / 4', borderRadius: 12, border: `1.5px dashed rgba(${GOLD},0.4)`, background: `rgba(${GOLD},0.04)`, color: 'var(--gold)' }}>
-                  <Plus className="w-6 h-6" />
-                  <span className="rvn-disp" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>Nauja kaladė</span>
+                <button key="new" onClick={() => { playUiClick(); onCreate() }} className="rvn-press block w-full">
+                  <span className="flex flex-col items-center justify-center gap-1.5" style={{ aspectRatio: '3 / 4', borderRadius: 10, border: `1.5px dashed rgba(${GOLD},0.4)`, background: `rgba(${GOLD},0.04)`, color: 'var(--gold)' }}>
+                    <Plus className="w-6 h-6" />
+                    <span className="rvn-disp" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>Nauja kaladė</span>
+                  </span>
+                  <span className="block" style={{ height: 33 }} />
                 </button>
               ) : (
                 <DeckBox key={t.id} d={t} cover={t.factionId != null ? covers[t.factionId] ?? null : null} onClick={() => openDrawer(t)} />
@@ -163,11 +164,11 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
             )}
             {row.length < 3 && Array.from({ length: 3 - row.length }, (_, i) => <div key={`pad-${i}`} />)}
           </div>
-          {/* lentynos lenta */}
-          <div aria-hidden style={{ height: 11, borderRadius: 3, margin: '0 -2px',
+          {/* lentynos lenta (lapukai užlipa ant jos) */}
+          <div aria-hidden style={{ height: 16, borderRadius: 3, margin: '-26px -2px 0', position: 'relative', zIndex: 0,
             background: 'linear-gradient(180deg, #6b4f26 0%, #4a3419 45%, #241807 100%)',
             borderTop: `1px solid rgba(${GOLD},0.55)`, boxShadow: '0 6px 14px rgba(0,0,0,0.55), inset 0 -2px 4px rgba(0,0,0,0.6)' }} />
-          <div aria-hidden style={{ height: 14 }} />
+          <div aria-hidden style={{ height: 18 }} />
         </div>
       ))}
 
@@ -232,28 +233,41 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   )
 }
 
-// ── Kaladės dėžutė lentynoje ──────────────────────────────────────────────────
+// ── Fizinė kaladė lentynoje: kortų šūsnis + parchment lapukas ant lentynos ────
 function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick: () => void }) {
   const valid = d.faction !== null && d.cardCount >= DECK_MIN && d.cardCount <= DECK_MAX
   return (
-    <button onClick={onClick} className="rvn-press relative block w-full overflow-hidden text-left"
-      style={{ aspectRatio: '3 / 4', borderRadius: 12, border: `1.5px solid ${d.factionColor}66`, boxShadow: `0 4px 12px rgba(0,0,0,0.5), 0 0 10px ${d.factionColor}22` }}>
-      {cover
-        // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={cover} alt="" draggable={false} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
-        : <div className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: `radial-gradient(120% 90% at 50% 20%, ${d.factionColor}33, rgba(10,8,16,0.98) 70%), linear-gradient(160deg,#1a1325,#0a0810)` }}>🎴</div>}
-      <div className="absolute inset-x-0 bottom-0 px-1.5 pt-4 pb-1.5" style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.88) 42%)' }}>
-        <p className="text-[10px] font-bold leading-tight truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{d.name}</p>
-        <p className="text-[9px] tabular-nums" style={{ color: d.factionColor }}>{d.faction ?? 'Be frakcijos'} · {d.cardCount}/{DECK_MIN}</p>
-      </div>
-      <span className="absolute top-1 right-1 flex items-center justify-center rounded-full" style={{ width: 16, height: 16, background: 'rgba(0,0,0,0.7)' }}>
-        {valid
-          ? <CheckCircle2 style={{ width: 11, height: 11, color: '#4ade80' }} />
-          : <AlertCircle style={{ width: 11, height: 11, color: '#fca5a5' }} />}
+    <button onClick={onClick} className="rvn-press relative block w-full text-left">
+      {/* kortų šūsnis (fizinis storis) */}
+      <span className="relative block" style={{ aspectRatio: '3 / 4' }}>
+        <span aria-hidden className="absolute inset-0 rounded-[10px]" style={{ transform: 'translate(5px, 5px) rotate(1.2deg)', background: `linear-gradient(160deg, ${d.factionColor}22, #0d0a14)`, border: '1px solid rgba(0,0,0,0.6)' }} />
+        <span aria-hidden className="absolute inset-0 rounded-[10px]" style={{ transform: 'translate(2.5px, 2.5px) rotate(0.5deg)', background: 'linear-gradient(160deg,#241a33,#100c18)', border: '1px solid rgba(0,0,0,0.5)' }} />
+        <span className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ border: `1.5px solid ${d.factionColor}77`, boxShadow: `0 5px 14px rgba(0,0,0,0.55), 0 0 10px ${d.factionColor}22, inset 0 1px 0 rgba(255,255,255,0.08)` }}>
+          {cover
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={cover} alt="" draggable={false} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+            : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: `radial-gradient(120% 90% at 50% 20%, ${d.factionColor}33, rgba(10,8,16,0.98) 70%), linear-gradient(160deg,#1a1325,#0a0810)` }}>🎴</span>}
+          {/* šviesos atspindys viršuje — fizinis paviršius */}
+          <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: '30%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent)' }} />
+        </span>
+        <span className="absolute flex items-center justify-center rounded-full" style={{ top: 3, right: 3, width: 16, height: 16, background: 'rgba(0,0,0,0.7)', zIndex: 2 }}>
+          {valid
+            ? <CheckCircle2 style={{ width: 11, height: 11, color: '#4ade80' }} />
+            : <AlertCircle style={{ width: 11, height: 11, color: '#fca5a5' }} />}
+        </span>
+        {d.missing != null && d.missing > 0 && (
+          <span className="absolute px-1 rounded-full text-[8px] font-bold" style={{ top: 3, left: 3, zIndex: 2, background: 'rgba(0,0,0,0.75)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.35)' }}>-{d.missing}</span>
+        )}
       </span>
-      {d.missing != null && d.missing > 0 && (
-        <span className="absolute top-1 left-1 px-1 rounded-full text-[8px] font-bold" style={{ background: 'rgba(0,0,0,0.75)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.35)' }}>-{d.missing}</span>
-      )}
+      {/* parchment lapukas — užklijuotas ant lentynos */}
+      <span className="relative block mx-auto" style={{ width: '88%', marginTop: 4, zIndex: 3, transform: 'rotate(-1.2deg)' }}>
+        <span className="block rounded-[3px] px-1.5 pt-2 pb-1 text-center" style={{ background: 'linear-gradient(170deg, #efe3c0, #d9c691 85%, #c9b478)', boxShadow: '0 2px 5px rgba(0,0,0,0.55), inset 0 0 6px rgba(120,90,30,0.25)' }}>
+          <span className="block text-[9px] font-bold leading-tight truncate" style={{ color: '#3a2b12', fontFamily: 'var(--rvn-font-display)' }}>{d.name}</span>
+          <span className="block text-[8px] leading-tight truncate" style={{ color: '#6b5426' }}>{d.faction ?? 'Be frakcijos'} · {d.cardCount} kortų</span>
+        </span>
+        {/* lipni juostelė */}
+        <span aria-hidden className="absolute left-1/2" style={{ top: -3, width: 26, height: 7, transform: 'translateX(-50%) rotate(1.5deg)', background: 'rgba(255,255,255,0.22)', borderRadius: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.25)' }} />
+      </span>
     </button>
   )
 }
@@ -298,7 +312,7 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
     <>
       {/* Suvestinė */}
       <div className="grid grid-cols-3 gap-2">
-        <StatBox label="Kortų" value={`${stats.total}/${DECK_MIN}`} accent={valid ? '74,222,128' : '252,165,165'} />
+        <StatBox label="Kortų" value={String(stats.total)} accent={valid ? '74,222,128' : '252,165,165'} />
         <StatBox label="Aukso vid." value={stats.avg.toFixed(1)} accent={GOLD} />
         <StatBox label="Čempionai" value={String(stats.champions)} accent="139,92,246" />
       </div>

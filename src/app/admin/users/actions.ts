@@ -5,7 +5,7 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 export type UpdateRoleState = { error?: string; success?: boolean }
 
-const ALLOWED_ROLES = ['user', 'event_moderator', 'admin']
+const ALLOWED_ROLES = ['user', 'tester', 'event_moderator', 'admin']
 
 export async function updateUserRole(
   targetUserId: string,

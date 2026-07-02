@@ -25,7 +25,10 @@ export function DigitalPvE() {
       Promise.all([
         supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
         supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
-      ]).then(async ([{ data }, { data: colRows }]) => {
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+      ]).then(async ([{ data }, { data: colRows }, { data: prof }]) => {
+        const role = (prof as { role?: string } | null)?.role
+        const tester = role === 'tester' || role === 'admin'
         const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
         const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
         // kaladės su trūkstamomis kortomis — nežaidžiamos
@@ -38,7 +41,7 @@ export function DigitalPvE() {
             if (have < r.quantity) missingMap[r.deck_id] = (missingMap[r.deck_id] ?? 0) + (r.quantity - have)
           }
         }
-        const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: missingMap[d.id] ?? 0 }))
+        const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: tester ? 0 : (missingMap[d.id] ?? 0) }))
         setDecks(ds)
         const firstOk = ds.find((x) => x.missing === 0)
         if (firstOk) setSel(firstOk.id)

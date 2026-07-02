@@ -235,19 +235,29 @@ export function DigitalCollection() {
             {/* viršelio rėmas */}
             <div className="relative" style={{ clipPath: oct(14), background: `linear-gradient(160deg, rgba(${GOLD},0.55), rgba(${GOLD},0.28))`, padding: 2.5 }}>
               <div className="p-3" style={{ clipPath: oct(13), background: `radial-gradient(130% 70% at 50% 0%, rgba(${GOLD},0.09), rgba(10,8,16,0.97) 62%), linear-gradient(160deg,#1a1228,#0a0810)` }}>
-                <AnimatePresence mode="wait" initial={false} custom={dir}>
-                  <motion.div key={clamped}
-                    initial={{ rotateY: dir > 0 ? 80 : -80, opacity: 0.25 }}
-                    animate={{ rotateY: 0, opacity: 1 }}
-                    exit={{ rotateY: dir > 0 ? -80 : 80, opacity: 0.25 }}
-                    transition={{ duration: 0.38, ease: [0.3, 0.6, 0.3, 1] }}
-                    style={{ transformOrigin: dir > 0 ? 'left center' : 'right center', transformStyle: 'preserve-3d' }}
-                    className="grid grid-cols-3 gap-2">
-                    {pagedCards.map((c, i) => c
-                      ? <CardCell key={c.id} c={c} onClick={() => { playUiClick(); setPreview(c) }} />
-                      : <div key={`empty-${i}`} className="rounded-lg" style={{ aspectRatio: '2.5 / 3.5', border: `1px dashed rgba(${GOLD},0.18)`, background: `rgba(${GOLD},0.02)` }} />)}
-                  </motion.div>
-                </AnimatePresence>
+                <div className="relative" style={{ perspective: 1400 }}>
+                  {/* naujas lapas guli po senuoju; senasis SOLID verčiasi per nugarėlę */}
+                  <AnimatePresence mode="popLayout" initial={false} custom={dir}>
+                    <motion.div key={clamped} custom={dir}
+                      variants={{
+                        enter: { rotateY: 0, opacity: 1, zIndex: 0 },
+                        exit: (d: number) => ({
+                          rotateY: d > 0 ? -165 : 165,
+                          opacity: [1, 1, 1, 0],
+                          zIndex: 2,
+                          transition: { duration: 0.5, ease: [0.42, 0, 0.4, 1], opacity: { times: [0, 0.75, 0.92, 1], duration: 0.5 } },
+                        }),
+                      }}
+                      initial="enter" animate="enter" exit="exit"
+                      style={{ originX: dir > 0 ? 0 : 1, transformStyle: 'preserve-3d', backfaceVisibility: 'hidden',
+                        background: 'linear-gradient(160deg,#1a1228,#0b0812)', borderRadius: 8, boxShadow: '0 0 0 1px rgba(240,180,41,0.08)' }}
+                      className="grid grid-cols-3 gap-2">
+                      {pagedCards.map((c, i) => c
+                        ? <CardCell key={c.id} c={c} onClick={() => { playUiClick(); setPreview(c) }} />
+                        : <div key={`empty-${i}`} className="rounded-lg" style={{ aspectRatio: '2.5 / 3.5', border: `1px dashed rgba(${GOLD},0.18)`, background: `rgba(${GOLD},0.02)` }} />)}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
 
                 {/* puslapio numeris */}
                 <div className="flex items-center justify-center gap-3" style={{ marginTop: 10 }}>
