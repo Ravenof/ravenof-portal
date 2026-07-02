@@ -1,0 +1,14 @@
+warning: in the working copy of 'src/app/deck-builder/DeckBuilderClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/deck-builder/[deckId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/DeckCardPool.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/DeckCardRow.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/DeckListPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/SaveDeckButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/deck-validation.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/stores/deckBuilderStore.ts', LF will be replaced by CRLF the next time Git touches it
+[main 4026514] feat(deck-builder): atskiras prakeiksmu side deck - curse kortos i side deck (maks 20); store sideEntries, validacija, UI sekcija, save/load is_side_deck
+ 10 files changed, 197 insertions(+), 38 deletions(-)
+ create mode 100644 git-commit52.bat
+ create mode 100644 git-commit52b.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   4120139..4026514  main -> main

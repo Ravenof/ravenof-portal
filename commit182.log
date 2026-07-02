@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit182.bat', LF will be replaced by CRLF the next time Git touches it
+[main 9fdffea] feat(ranked): ejimo laikmatis (120s, kaip unranked PvP) ir prie botu - auto-baigia ejima, antrasteje + ekrano centre ispejimas <=20s (tik zaidejo ejime); botu mastymo laikas sumazintas iki ~0.5-2s per veiksma/korta (vietoj 5-20s)
+ 2 files changed, 21 insertions(+), 15 deletions(-)
+ create mode 100644 git-commit182.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   25548b4..9fdffea  main -> main

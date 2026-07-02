@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main e30d421] feat(triggers): globalus onAnySummon/onAnyPlay trigeriai + triggerSide/triggerSubtype filtrai - efektai gali suveikti nuo kitu kortu iskvietimo/suzaidimo/zuties/atakos; admine kontekstiniai varneles (kieno ivykis, koks potipis) rodomi tik pasirinkus globalu trigeri
+ 3 files changed, 61 insertions(+), 4 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   6e67653..e30d421  main -> main

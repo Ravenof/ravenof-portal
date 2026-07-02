@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/lib/game/targetResolver.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit210.bat', LF will be replaced by CRLF the next time Git touches it
+[main e2aad64] refactor(2v2 stage3): efektu taikymas komandinis - resolveTargets iteruoja friendly/enemy seat sarasus (savi=visa komanda abu komandieciai, priesas=abu priesu seat), P skaito extraSeats; 1v1 (vienas seat komandoje) identiskas. Testai 12/12: friendly efektai veikia ir ally creatures
+ 2 files changed, 44 insertions(+), 51 deletions(-)
+ create mode 100644 git-commit210.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   6ee17ef..e2aad64  main -> main

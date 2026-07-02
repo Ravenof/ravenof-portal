@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit312.bat', LF will be replaced by CRLF the next time Git touches it
+[main e2a3b76] tweak(avatars): idle video padazninti i kas 10-30s (buvo 20-60s).
+ 2 files changed, 59 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit312.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   2a8da25..e2a3b76  main -> main

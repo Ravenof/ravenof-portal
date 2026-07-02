@@ -1,0 +1,8 @@
+warning: in the working copy of 'git-commit212.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/ai.ts', LF will be replaced by CRLF the next time Git touches it
+[main 30f766e] feat(2v2 stage5a): naujas 2v2 AI (aiActFor) - zaidzia bet kuriam botu seatui per tikra varikli (playCard/attack, efektai auto-parenka komandiskai); 1v1 AI nepaliestas, tsc svarus
+ 2 files changed, 68 insertions(+)
+ create mode 100644 git-commit212.bat
+ create mode 100644 src/lib/team2v2/ai.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   4ef37f1..30f766e  main -> main

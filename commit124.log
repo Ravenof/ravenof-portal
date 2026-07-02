@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/economy.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260617_digital_economy.sql', LF will be replaced by CRLF the next time Git touches it
+[main 46aba14] feat(digital): ekonomika FAZE 1 - auksas (profiles.gold), apdovanojimai uz pergale (PvE easy10/normal20/hard50, PvP unranked 100), parduotuve (pirk pakuote uz 200 auksa), aukso+pakuociu balansas hub'e, 'Mano kortos' -> 'Virtualios kortos'. RPC rvn_award_gold/rvn_buy_pack (migracija). Pakuociu atplesimas - FAZE 2
+ 4 files changed, 190 insertions(+), 6 deletions(-)
+ create mode 100644 src/lib/economy.ts
+ create mode 100644 supabase/migrations/20260617_digital_economy.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   771ba98..46aba14  main -> main
+46aba14 feat(digital): ekonomika FAZE 1 - auksas (profiles.gold), apdovanojimai uz pergale (PvE easy10/normal20/hard50, PvP unranked 100), parduotuve (pirk pakuote uz 200 auksa), aukso+pakuociu balansas hub'e, 'Mano kortos' -> 'Virtualios kortos'. RPC rvn_award_gold/rvn_buy_pack (migracija). Pakuociu atplesimas - FAZE 2

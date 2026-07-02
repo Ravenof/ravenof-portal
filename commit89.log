@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main fc0e809] feat(aura): platesnes testines auros - global silence, raktazodziu suteikimas (taunt/shield/stealth/sprint), negali atakuoti, kainos sumazinimas; visa per recomputeAuras; admine isplestas aura editorius. (pasikartojantys efektai pvz card draw daromi per onTurnStart trigger)
+ 3 files changed, 138 insertions(+), 52 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   3556542..fc0e809  main -> main

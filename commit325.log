@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/SettingsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/NotificationsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ui/HubKit.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/notifications/NotificationCenter.tsx', LF will be replaced by CRLF the next time Git touches it
+[main f87435e] fix(ui): /digital header ir home slifavimas. 1) Dublikuotas varpelis: globalus NotificationCenter plaukiantis bell nerodomas /digital route (toast'ai lieka). 2) Header bell dabar atidaro nauja NotificationsModal (notifications lentele: sarasas, laikas, nuorodos, auto mark-read + badge nulinamas). 3) CTA 'Pradeti kova' juodi sonai pasalinti (flood-fill key su fiksuotu bg, plokste 536px permatomais krastais). 4) Prisijungimo serijos banner: trumpesnis pavadinimas nebesiliecia su atlygiu chips. 5) ProfileChip isimtas is header (nebepersidengia su auksu) - profilis (avataras, vardas, lygis, XP juosta) perkeltas i Nustatymu modala virsuje. tsc+eslint svarus
+ 7 files changed, 126 insertions(+), 16 deletions(-)
+ create mode 100644 src/components/digital/NotificationsModal.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   25f300d..f87435e  main -> main
+f87435e fix(ui): /digital header ir home slifavimas. 1) Dublikuotas varpelis: globalus NotificationCenter plaukiantis bell nerodomas /digital route (toast'ai lieka). 2) Header bell dabar atidaro nauja NotificationsModal (notifications lentele: sarasas, laikas, nuorodos, auto mark-read + badge nulinamas). 3) CTA 'Pradeti kova' juodi sonai pasalinti (flood-fill key su fiksuotu bg, plokste 536px permatomais krastais). 4) Prisijungimo serijos banner: trumpesnis pavadinimas nebesiliecia su atlygiu chips. 5) ProfileChip isimtas is header (nebepersidengia su auksu) - profilis (avataras, vardas, lygis, XP juosta) perkeltas i Nustatymu modala virsuje. tsc+eslint svarus

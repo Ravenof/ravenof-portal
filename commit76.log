@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/app/community-decks/[deckId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/my-decks/MyDecksList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/PracticeButton.tsx', LF will be replaced by CRLF the next time Git touches it
+[main b2ccabe] feat(practice): praktikos rezimas pries AI - priesas naudoja kita kalade (viesa public deck arba random is pasirinktos frakcijos), ne veidrodi; TutorialGame practice props + setup mygtukas (PracticeButton) community-decks ir my-decks
+ 5 files changed, 162 insertions(+), 8 deletions(-)
+ create mode 100644 git-commit76.bat
+ create mode 100644 src/components/tutorial/PracticeButton.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   256d368..b2ccabe  main -> main

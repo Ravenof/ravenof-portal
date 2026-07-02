@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/deck-builder/SaveDeckButton.tsx', LF will be replaced by CRLF the next time Git touches it
+[main aee80f4] fix(deck-builder): kaladdes issaugojimas veikia net jei API schema cache nemato is_side_deck stulpelio - atsarginis ideejimas be stulpelio (kortos nedingsta, viesumo keitimas veikia)
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   92961d4..aee80f4  main -> main
+aee80f4 fix(deck-builder): kaladdes issaugojimas veikia net jei API schema cache nemato is_side_deck stulpelio - atsarginis ideejimas be stulpelio (kortos nedingsta, viesumo keitimas veikia)

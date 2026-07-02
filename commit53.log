@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 7a3fca8] feat(game): suzaistu kortu log juosta su miniaturomis - hover (PC) rodo perziura, paspaudus/long-press atveria detalu korta; abieju pusiu suzaistos kortos
+ 2 files changed, 75 insertions(+)
+ create mode 100644 git-commit53.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   4026514..7a3fca8  main -> main

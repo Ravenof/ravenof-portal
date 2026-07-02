@@ -1,0 +1,28 @@
+warning: in the working copy of 'public/sounds/battle/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/soundManager.ts', LF will be replaced by CRLF the next time Git touches it
+[main 92caafe] feat(audio): ikelti musio garsu mp3 (attack/spell-cast x5, heal x3, curse, death, draw, field, freeze, impact, champion-skill, zmk-flip); soundManager variantai isplesti iki 6
+ 24 files changed, 15 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit149.bat
+ create mode 100644 public/sounds/battle/attack-1.mp3
+ create mode 100644 public/sounds/battle/attack-2.mp3
+ create mode 100644 public/sounds/battle/attack-3.mp3
+ create mode 100644 public/sounds/battle/attack-4.mp3
+ create mode 100644 public/sounds/battle/attack-5.mp3
+ create mode 100644 public/sounds/battle/champion-skill.mp3
+ create mode 100644 public/sounds/battle/curse.mp3
+ create mode 100644 public/sounds/battle/death.mp3
+ create mode 100644 public/sounds/battle/draw.mp3
+ create mode 100644 public/sounds/battle/field.mp3
+ create mode 100644 public/sounds/battle/freeze.mp3
+ create mode 100644 public/sounds/battle/heal-1.mp3
+ create mode 100644 public/sounds/battle/heal-2.mp3
+ create mode 100644 public/sounds/battle/heal-3.mp3
+ create mode 100644 public/sounds/battle/impact.mp3
+ create mode 100644 public/sounds/battle/spell-cast-1.mp3
+ create mode 100644 public/sounds/battle/spell-cast-2.mp3
+ create mode 100644 public/sounds/battle/spell-cast-3.mp3
+ create mode 100644 public/sounds/battle/spell-cast-4.mp3
+ create mode 100644 public/sounds/battle/spell-cast-5.mp3
+ create mode 100644 public/sounds/battle/zmk-flip.mp3
+To https://github.com/Ravenof/ravenof-portal.git
+   77dcc70..92caafe  main -> main

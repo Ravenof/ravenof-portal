@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/SummonBurst.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 7a421dd] feat(fx): ledas - pasalinta didele snaige, dabar issiplecianti serksno banga + tankesnis kristalu purslas; visiems efektams pridetas bendras issiplecianti svytejimo aura (vienodas expanded stilius)
+ 2 files changed, 20 insertions(+), 10 deletions(-)
+ create mode 100644 git-commit162.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   ea13155..7a421dd  main -> main

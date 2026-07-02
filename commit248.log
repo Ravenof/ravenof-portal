@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 03b6631] perf+feat(battle): (1) PERF fix - parallax pointermove nebere-renderina viso TutorialGame (tilt perkeltas i OppHandFan local state); pradines rankos traukimas staggered (nesusikraunna i centra). (2) ZMK pranasumas/nepalankumas (poison ir t.t.): engine perduoda zmkPair/zmkPicked/bias; UI rodo 2 ZMK kortas - nepanaudota subyra i gabalus, panaudota lieka ir svyti.
+ 3 files changed, 101 insertions(+), 21 deletions(-)
+ create mode 100644 git-commit248.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   50700cc..03b6631  main -> main

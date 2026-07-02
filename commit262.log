@@ -1,0 +1,9 @@
+warning: in the working copy of 'supabase/migrations/20260711_campaign_card_gameplay.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CAMPAIGN_MODE.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit262.bat', LF will be replaced by CRLF the next time Git touches it
+[main 3123f6d] feat(campaign): kortu gameplay JSON - efektai realiai veikia musyje. 20260711 nustato cards.gameplay (~38 kortu) pagal src/lib/game/types.ts GameplayConfig: battlecry (onSummon) zala/gydymas/silence/freeze/auksas; deathrattle (onDeath) buff/zala (Saldas +1/+1, Konstancijus +0/+2, Maro kirminas); burtai (onCast) AoE zala/buff (Akmenys, Balta sviesa 3+1sau, Grandines ir balista 6 bosui, Uzrakintuju sprendimas, Paskutine rikiuote); statiniai keywords/auros (taunt/sprint/stealth, Gunterio +1 atk aura); CEMPIONO skilai - Prazaras (Kelkite vartus/Rikiuote prie sienos/Niekas nepalieka spragos) ir bosas Belzatoras (Kirvio smugis/Juodo dumo banga/Plysio riaumojimas), champion_phase=3. Safe-merge (raso tik kur gameplay tuscias). Prideda gameplay/subtype/champion_group/champion_phase stulpelius if not exists. Visi 40 JSON validuoti (effect/trigger/target vardai is schemos). Paleisti PO 20260710. Likusias kortas (laukai) galima praturtinti admin Gameplay editoriuje. Docs: CAMPAIGN_MODE.md.
+ 3 files changed, 249 insertions(+)
+ create mode 100644 git-commit262.bat
+ create mode 100644 supabase/migrations/20260711_campaign_card_gameplay.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   8bdf032..3123f6d  main -> main

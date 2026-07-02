@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 0feacc6] feat(game): Hearthstone tipo mobile ranka - paspaudus korta ranka issipleciia (visos kortos matosi), kortos zaidziamos drag&drop ant lentos, taikiniui - tempimo rodykle+taikinukas, laikant svyti galimi slotai, spells i bet kuri slot; didesnes mobile kortos
+ 1 file changed, 130 insertions(+), 9 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   0fee283..0feacc6  main -> main
+0feacc6 feat(game): Hearthstone tipo mobile ranka - paspaudus korta ranka issipleciia (visos kortos matosi), kortos zaidziamos drag&drop ant lentos, taikiniui - tempimo rodykle+taikinukas, laikant svyti galimi slotai, spells i bet kuri slot; didesnes mobile kortos

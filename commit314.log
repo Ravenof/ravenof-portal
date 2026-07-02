@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit314.bat', LF will be replaced by CRLF the next time Git touches it
+[main 4c5e4c8] fix(avatars): miniaturos video atstatytas - pasalintas opacity/vidReady gating (jis ir buvo regresija nuo seamless crossfade). Video dabar rodomas tiesiai (position absolute inset0, fitStyle) virs portreto; portretas lieka apacioje kaip fallback (jokio juodo blyksnio nei play ikonos). Priverstinis play() per ref + onVid pranesa tevui esama vid (detailed view). tsc svarus.
+ 2 files changed, 21 insertions(+), 11 deletions(-)
+ create mode 100644 git-commit314.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   c37ae37..4c5e4c8  main -> main

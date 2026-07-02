@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main b802427] fix(game): ZMK auto flash padarytas fiksuotu centruotu overlay - matomas ir mobile (anksciau absolute -top-24 iseidavo uz ekrano)
+ 2 files changed, 39 insertions(+), 28 deletions(-)
+ create mode 100644 git-commit60.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   fe26cf3..b802427  main -> main

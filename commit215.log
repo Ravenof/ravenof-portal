@@ -1,0 +1,16 @@
+warning: in the working copy of 'src/app/digital/pvp2v2/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvp2v2.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/Team2v2Game.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/pvp.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260625_pvp2v2_rooms.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit215.bat', LF will be replaced by CRLF the next time Git touches it
+[main e152036] feat(2v2 PvP): 4 tikru zaideju 2v2 - pvp2v2_rooms lentele + matchmaking RPC (create/quick/join_code/join_room/leave), pvp.ts klientas (RPC apvalkalai + 1 zaidejo kalades uzkrovimas + net protokolas), Team2v2Game net rezimas (host-authoritative broadcast: hostas laiko kanonine busena, klientai siuncia veiksmus, UI persiorientuoja pagal viewSeat), DigitalPvp2v2 lobi (greita paieska/privatus/kodas + 4 vietu laukimo kambarys) + hub plytele. tsc svarus
+ 7 files changed, 614 insertions(+), 61 deletions(-)
+ create mode 100644 git-commit215.bat
+ create mode 100644 src/app/digital/pvp2v2/page.tsx
+ create mode 100644 src/components/digital/DigitalPvp2v2.tsx
+ create mode 100644 src/lib/team2v2/pvp.ts
+ create mode 100644 supabase/migrations/20260625_pvp2v2_rooms.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   1828539..e152036  main -> main

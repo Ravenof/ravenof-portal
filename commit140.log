@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/lib/economy.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260617_pack_open_v2.sql', LF will be replaced by CRLF the next time Git touches it
+[main 3ad5726] fix(digital): pakuotes atplesimas - nauja funkcija rvn_open_pack_v2 (naujas pavadinimas, tik patikrinti stulpeliai, be DROP/return-type konflikto), klientas kvieca v2
+ 2 files changed, 44 insertions(+), 1 deletion(-)
+ create mode 100644 supabase/migrations/20260617_pack_open_v2.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   2fbaecf..3ad5726  main -> main
+3ad5726 fix(digital): pakuotes atplesimas - nauja funkcija rvn_open_pack_v2 (naujas pavadinimas, tik patikrinti stulpeliai, be DROP/return-type konflikto), klientas kvieca v2

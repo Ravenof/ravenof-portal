@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/app/life-tracker/LifeTrackerClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/life-tracker/LifePanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 8350cbf] feat(hp): HP vial su skysciu - digital musyje (kompaktiskas, vietoj sirdutes) ir life-tracker irankyje (didelis su banga+burbulais); uzpildymas pagal HP/max, spalva hue 120-0 (zalia->geltona->oranzine->raudona palaipsniui), <10 HP pulsuoja
+ 5 files changed, 70 insertions(+), 20 deletions(-)
+ create mode 100644 git-commit172.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   fdcb351..8350cbf  main -> main

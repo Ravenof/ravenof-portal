@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 265520b] feat(game): zaidimas naudoja zaidejo issaugota prakeiksmu side decka (deck_cards is_side_deck), o ne visas curse kortas; main deck nebeimamas curses; DEMO islaiko fallback
+ 2 files changed, 22 insertions(+), 3 deletions(-)
+ create mode 100644 git-commit54.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   7a3fca8..265520b  main -> main

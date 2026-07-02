@@ -1,0 +1,17 @@
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvE.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvP.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/PvPLobby.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/social/FriendsClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/PracticeButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/digital/native.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ranked/client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPicker.tsx', LF will be replaced by CRLF the next time Git touches it
+[main aeec77f] feat(digital): fullscreen + custom pickers + draggable chat. (1) Immersive: StatusBar.hide per Capacitor (setNativeImmersive) - app be virsutines juostos. (2) DigitalPicker bottom-sheet (portalas, frakcijos ikona+pavadinimas) vietoj native <select> - PvE/PvP/Ranked/PvPLobby/Practice. (3) Practice popup perdarytas i rounded glass. (4) Draugu chat (FriendsClient) per portala - telpa, nelenda po nav, input matomas. (5) Kovos chat - Messenger stiliaus tampomas burbulas (drag bet kur, unread badge+preview, bakstelk atidaryk).
+ 12 files changed, 276 insertions(+), 125 deletions(-)
+ create mode 100644 git-commit245.bat
+ create mode 100644 src/components/digital/DigitalPicker.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   ef2daa7..aeec77f  main -> main

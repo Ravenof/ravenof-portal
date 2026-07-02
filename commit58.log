@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/targetResolver.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 7799a70] feat(gameplay): Phase C+D - zonu operacijos (summon su kainos/potipio filtru ir count, mill, returnGraveyardToDeck) + selfUnit taikinys; globalus ivykiu pasyvai onAnyDeath/onAnyAttack (skenuoja kovos lauka, re-entrancy apsauga)
+ 6 files changed, 144 insertions(+), 21 deletions(-)
+ create mode 100644 git-commit58.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   c8caad6..7799a70  main -> main

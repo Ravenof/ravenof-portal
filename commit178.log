@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main df8f62f] feat(ui): desktop - vienodi kortu dydziai (units/hand/field/decks ~104), dvi priespriesos kuriniu linijos centre, artefaktai+reakcijos uz ju, pile'ai card-sized kampuose, HP sonuose; ikeltos+suspaustos kortu nugareles (back/curse/zmk ~80KB)
+ 4 files changed, 11 insertions(+)
+ create mode 100644 git-commit178.bat
+ create mode 100644 public/card-backs/back.webp
+ create mode 100644 public/card-backs/curse.webp
+ create mode 100644 public/card-backs/zmk.webp
+To https://github.com/Ravenof/ravenof-portal.git
+   675b091..df8f62f  main -> main

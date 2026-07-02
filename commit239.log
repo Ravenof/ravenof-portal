@@ -1,0 +1,15 @@
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CAPACITOR-ANDROID.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'capacitor.config.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit239.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mobile-shell/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'setup-capacitor.bat', LF will be replaced by CRLF the next time Git touches it
+[main 1f41c7b] feat(android): Capacitor remote-URL shell skirtas /digital -> Google Play. capacitor.config.ts (server.url=vercel/digital, allowNavigation domenui, splash/statusbar), mobile-shell loading/offline fallback (mazas webDir), setup-capacitor.bat (npm install + cap add android + sync), CAPACITOR-ANDROID.md pilna instrukcija (signing/AAB/Play Console/IAP ispejimas/native bridge). @capacitor/* v8 paketai i package.json. Web/SSR/auth/admin nepakeisti.
+ 6 files changed, 364 insertions(+), 1 deletion(-)
+ create mode 100644 CAPACITOR-ANDROID.md
+ create mode 100644 capacitor.config.ts
+ create mode 100644 git-commit239.bat
+ create mode 100644 mobile-shell/index.html
+ create mode 100644 setup-capacitor.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   bdb1940..1f41c7b  main -> main

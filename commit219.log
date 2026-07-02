@@ -1,0 +1,28 @@
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/PackOpen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/CosmeticsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DailyDealModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/QuestsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/SeasonPassModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/cosmetics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/gamification/quests.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/gamification/rewardLabel.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/gamification/seasonPass.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260626_gamification.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260627_cosmetics_daily_deal.sql', LF will be replaced by CRLF the next time Git touches it
+[main ee6256a] feat(digital): dienos uzduotys + prisijungimo serija + sezono kelias, kosmetika (nugareles/lentos/avatarai) ir dienos korta pasiulymas (>=1 epic+, atsinaujina kasdien). RPC: quests/streak/season_pass/cosmetics/daily_deal (SECURITY DEFINER, reuse rvn__grant_payload); quest hookai i pergale/pakuotes atplesima; hub plyteles + login check-in
+ 14 files changed, 1077 insertions(+)
+ create mode 100644 git-commit219.bat
+ create mode 100644 src/components/digital/CosmeticsModal.tsx
+ create mode 100644 src/components/digital/DailyDealModal.tsx
+ create mode 100644 src/components/digital/QuestsModal.tsx
+ create mode 100644 src/components/digital/SeasonPassModal.tsx
+ create mode 100644 src/lib/cosmetics.ts
+ create mode 100644 src/lib/gamification/quests.ts
+ create mode 100644 src/lib/gamification/rewardLabel.ts
+ create mode 100644 src/lib/gamification/seasonPass.ts
+ create mode 100644 supabase/migrations/20260626_gamification.sql
+ create mode 100644 supabase/migrations/20260627_cosmetics_daily_deal.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   e807ae4..ee6256a  main -> main

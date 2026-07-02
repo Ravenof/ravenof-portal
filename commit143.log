@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 495bb47] feat(admin): branch trigger - visi 'onAny*' (globalus) trigeriai atpazystami pagal prefiksa (kieno ivykis filtras + salyga); aiskesnis aprasymas: salyga > kas triggers > efektas
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   45f2be7..495bb47  main -> main
+495bb47 feat(admin): branch trigger - visi 'onAny*' (globalus) trigeriai atpazystami pagal prefiksa (kieno ivykis filtras + salyga); aiskesnis aprasymas: salyga > kas triggers > efektas

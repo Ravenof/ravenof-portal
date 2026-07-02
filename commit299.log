@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/lib/cosmetics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit299.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260730_avatar_system.sql', LF will be replaced by CRLF the next time Git touches it
+[main 5dd828b] feat(avatars): 1 etapas - DB + audio backend. Plecia esama cosmetics (kind=avatar): nauji laukai image_url/rarity/status(active|hidden|draft)/owned_by_default/created_at/updated_at. Nauja avatar_audio lentele (event_type fightStart|hit|defeat|victory|spellCast|lowHp|selected, file_url, enabled, weight) + RLS (read all, admin write). Admin write policy cosmetics. Storage bucket'ai avatar-portraits (3MB img) + avatar-audio (2MB mp3/wav/ogg/webm) su public read + admin write. rvn_get_cosmetics praplestas (imageUrl/rarity/ownedByDefault; owned iskaito owned_by_default). rvn_equip_cosmetic leidzia equip owned_by_default. Nauja rvn_get_avatar_audio(ids[]) battle'iui. 2 default avatarai (Nekronautas owned-by-default, Inkvizitorius). cosmetics.ts: Cosmetic tipas + getAvatarAudio API. tsc svarus.
+ 3 files changed, 164 insertions(+)
+ create mode 100644 git-commit299.bat
+ create mode 100644 supabase/migrations/20260730_avatar_system.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   518423b..5dd828b  main -> main

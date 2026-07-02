@@ -1,0 +1,5 @@
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 56c2507] fix(shop/pack): booster pack pic rodomas atplesime (packImage is card_packs.image_url, fallback svarus 🎴 vietoj broken icon), shop plyteles auksciau (aspect 3/4 - booster art tilpsta), pack-open done grid platesnis (3-4 stulpeliai vietoj 5 - kortos matomos, ne tik rarity taskai)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   72dbeb7..56c2507  main -> main

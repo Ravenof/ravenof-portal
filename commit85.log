@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 188a0d6] feat(summon): summonNames whitelist - apriboti iskvietima iki konkreciu kortu (1 ar kelios pagal varda); veikia su zonu kombinacija ir su zaidejo pasirinkimu (renkasi is riboto saraso)
+ 5 files changed, 24 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit85.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   84a8f75..188a0d6  main -> main

@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/targetResolver.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 2638a20] feat(game): mapping patobulinimai - (1) reakcijos kortos kaip spastai: mapping su trigeriu/puse/salyga/effektu, suveikia ivykus ivykiui ir sunaudojamos; (2) frakcijos pasirinkimas vietoj subtype mappinge/aurose (pvz. +1 atk tik tam tikros frakcijos padarams); (3) curse mapping aiskumas - imaiso N prakeiksmu i kalade, aktyvuojasi istraukus; (4) logas atsidaro ties naujausiu ivykiu + visu kortu (ir burtu) paveikslai; (5) kortu traukimo pop-up 2s rodo ka istraukei; burtu/prakeiksmu pop-up pailgintas iki 2s
+ 6 files changed, 174 insertions(+), 76 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   af51da8..2638a20  main -> main
+2638a20 feat(game): mapping patobulinimai - (1) reakcijos kortos kaip spastai: mapping su trigeriu/puse/salyga/effektu, suveikia ivykus ivykiui ir sunaudojamos; (2) frakcijos pasirinkimas vietoj subtype mappinge/aurose (pvz. +1 atk tik tam tikros frakcijos padarams); (3) curse mapping aiskumas - imaiso N prakeiksmu i kalade, aktyvuojasi istraukus; (4) logas atsidaro ties naujausiu ivykiu + visu kortu (ir burtu) paveikslai; (5) kortu traukimo pop-up 2s rodo ka istraukei; burtu/prakeiksmu pop-up pailgintas iki 2s

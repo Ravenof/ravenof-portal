@@ -1,0 +1,20 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/recolor-tokens.py', LF will be replaced by CRLF the next time Git touches it
+[main 25e37e0] feat(battle): statusu/keyword zetonu ikonos (vietoj emoji). 10 PNG -> duotone perspalvinta pagal statusa + apskritimas + 96px WebP (public/icons/status). Token komponentas rodo .webp (degantis/nuodai/sushaldytas/apsvaigintas/nutildytas/palaimintas/magiskas skydas/pasisaipymas/sprintas/selinimas). scripts/recolor-tokens.py pakartojimui. + blessed statuso engine (is commit249).
+ 15 files changed, 102 insertions(+), 11 deletions(-)
+ create mode 100644 git-commit249.bat
+ create mode 100644 git-commit250.bat
+ create mode 100644 public/icons/status/burning.webp
+ create mode 100644 public/icons/status/frozen.webp
+ create mode 100644 public/icons/status/light.webp
+ create mode 100644 public/icons/status/poison.webp
+ create mode 100644 public/icons/status/shield_magic.webp
+ create mode 100644 public/icons/status/silenced.webp
+ create mode 100644 public/icons/status/sprint.webp
+ create mode 100644 public/icons/status/stealth.webp
+ create mode 100644 public/icons/status/stunned.webp
+ create mode 100644 public/icons/status/taunt.webp
+ create mode 100644 scripts/recolor-tokens.py
+To https://github.com/Ravenof/ravenof-portal.git
+   03b6631..25e37e0  main -> main

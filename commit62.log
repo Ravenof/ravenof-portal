@@ -1,0 +1,13 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 0e019a1] perf(game): ZMK kortu nuotraukos zaidime - mazos optimizuotos webp versijos (~30KB vietoj ~2.5MB), kad uzsikrautu ir ant mobile
+ 9 files changed, 14 insertions(+), 3 deletions(-)
+ create mode 100644 git-commit62.bat
+ create mode 100644 public/rules/zmk/card-minus1-sm.webp
+ create mode 100644 public/rules/zmk/card-minus2-sm.webp
+ create mode 100644 public/rules/zmk/card-plus0-sm.webp
+ create mode 100644 public/rules/zmk/card-plus1-sm.webp
+ create mode 100644 public/rules/zmk/card-plus2-sm.webp
+ create mode 100644 public/rules/zmk/card-x0-sm.webp
+ create mode 100644 public/rules/zmk/card-x2-sm.webp
+To https://github.com/Ravenof/ravenof-portal.git
+   faa210e..0e019a1  main -> main

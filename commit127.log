@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/app/admin/users/actions.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/users/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/UserGrantForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260617_admin_grant.sql', LF will be replaced by CRLF the next time Git touches it
+[main 8537965] feat(admin): skirti auksa ir pakuotes vartotojams is admin panel (Vartotojai lentele). RPC rvn_admin_grant (admin-only, SECURITY DEFINER), server actions adminGiveGold/adminGivePacks, UserGrantForm
+ 4 files changed, 100 insertions(+), 3 deletions(-)
+ create mode 100644 src/components/admin/UserGrantForm.tsx
+ create mode 100644 supabase/migrations/20260617_admin_grant.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   2f36a0d..8537965  main -> main
+8537965 feat(admin): skirti auksa ir pakuotes vartotojams is admin panel (Vartotojai lentele). RPC rvn_admin_grant (admin-only, SECURITY DEFINER), server actions adminGiveGold/adminGivePacks, UserGrantForm

@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+[main 779988f] feat(engine): naujas efektas Suteikti Sprinta (grant sprint keyword) - veikia su targetSummoned (Ramturas iskviestam padarui suteikia sprinta -> gali atakuoti is karto)
+ 3 files changed, 17 insertions(+), 3 deletions(-)
+ create mode 100644 git-commit225.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   093a858..779988f  main -> main

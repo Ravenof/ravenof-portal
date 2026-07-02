@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+[main d3e04ea] fix(shop): plyteliu aukstis - aspectRatio grazintas ant paties button (kaip veikusi aspect-square) + h-full vaikai, vietoj child padding-top kuris luzo del button-kaip-flex quirk. object-contain islaikytas
+ 2 files changed, 20 insertions(+), 11 deletions(-)
+ create mode 100644 git-commit229.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   d2d7496..d3e04ea  main -> main

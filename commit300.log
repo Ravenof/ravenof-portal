@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit300.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/avatarAudio.ts', LF will be replaced by CRLF the next time Git touches it
+[main 43bb154] feat(avatars): 2 etapas - battle integracija. AvatarAudioManager (avatarAudio.ts): playAvatarAudio weighted-random + rate-limit (hit 1.8s/spellCast 2s) + once-per-battle (fightStart/defeat/victory/lowHp), vienas balso kanalas, gerbia SFX volume, preload. AvatarFrame komponentas: portretas (img + emoji fallback), owner akcentas (player gold/zalia / enemy violet/raudona), HP per HpVial, damage shake + red/heal flash. hpBar dabar rodo AvatarFrame -> avataras automatiskai teisingose pusese (desktop kaire/desine rail, mobile virsus/apacia, NE top HUD); islaiko data-player target/glow/picked. Krovimas battle pradzioje: equipped avatar (getCosmetics) + enemy default + getAvatarAudio -> setAvatarAudioMap. Garsai prijungti: fightStart (turn owner pirmas), hit + lowHp + float skaicius + flash kai zaidejas gauna zala, defeat/victory per win, spellCast per burta, heal flash. tsc svarus.
+ 3 files changed, 186 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit300.bat
+ create mode 100644 src/lib/game/avatarAudio.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   5dd828b..43bb154  main -> main

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/avatarAudio.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit309.bat', LF will be replaced by CRLF the next time Git touches it
+[main 4dfce5e] feat(avatars): tapinus avatara groja 'selected' balsas. 'selected' nebe once-per-battle, o rate-limited (450ms) - groja kas tapa. hpBar avataras visada tapinamas (pasalintas disabled): tapinus savo ar prieso avatara lokaliai groja jo 'selected' garsas; jei priesas yra galiojantis taikinys - dar ir pasirenkamas. Garsas lokalus (HTMLAudio tapinancio kliente) - priesui kitam kliente NEGROJA (be broadcast). tsc svarus.
+ 3 files changed, 20 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit309.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   07c5c8f..4dfce5e  main -> main

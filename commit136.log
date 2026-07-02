@@ -1,0 +1,12 @@
+warning: in the working copy of 'src/app/digital/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/layout/MobileNav.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/Flames.tsx', LF will be replaced by CRLF the next time Git touches it
+[main db236a0] feat(digital): FAZE 1 - atskira pilno ekrano Digital aplinka. Savas nav + Iseiti mygtukas, paslepetas portalo apatinis nav, dark-fantasy liepsnu fonas + ambient muzika (po prisilietimo) + garsai ant mygtuku. Bendras Flames komponentas
+ 5 files changed, 103 insertions(+), 49 deletions(-)
+ create mode 100644 src/app/digital/layout.tsx
+ create mode 100644 src/components/digital/Flames.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   12d3e95..db236a0  main -> main
+db236a0 feat(digital): FAZE 1 - atskira pilno ekrano Digital aplinka. Savas nav + Iseiti mygtukas, paslepetas portalo apatinis nav, dark-fantasy liepsnu fonas + ambient muzika (po prisilietimo) + garsai ant mygtuku. Bendras Flames komponentas

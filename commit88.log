@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 3556542] feat(aura): pasyvi statu aura - kol korta kovos lauke buffina padarus (+ATK/+HP, scope savo/prieso/visi, potipio filtras, includeSelf); idempotentinis recomputeAuras po summon/zuties/nutildymo/ejimo pab.; admine aura editorius
+ 3 files changed, 129 insertions(+)
+To https://github.com/Ravenof/ravenof-portal.git
+   e30d421..3556542  main -> main

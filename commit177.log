@@ -1,0 +1,6 @@
+warning: in the working copy of 'public/card-backs/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 675b091] feat(ui): desktop vertikalus layout (priesas virsuj / tu apacioj), HP vial didesnis (scale) sonuose, auksas virs +100 mygtuko, kalade+ZMK greta; kortu nugareliu miniaturos (file-first: plain/curse/zmk) deck/hand/ZMK/reakcijoms desk+mobile; kapinynas rodo paskutines kortos miniatura
+ 1 file changed, 67 insertions(+), 64 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   1198899..675b091  main -> main

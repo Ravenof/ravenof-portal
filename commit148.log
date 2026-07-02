@@ -1,0 +1,15 @@
+rm 'public/sounds/music/battle-5.mp3'
+rm 'public/sounds/music/battle-6.mp3'
+warning: in the working copy of 'public/sounds/battle/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/musicManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/soundManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ui-sound.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'public/sounds/ui/README.md', LF will be replaced by CRLF the next time Git touches it
+[main 77dcc70] feat(audio): visi synth SFX -> file-first mp3 su variantais (ui-sound + battle soundManager), synth lieka tik fallback; kovos muzika 4 trekai (pasalinti battle-5/6/7); README su failu vardais
+ 9 files changed, 226 insertions(+), 124 deletions(-)
+ create mode 100644 git-commit148.bat
+ delete mode 100644 public/sounds/music/battle-5.mp3
+ delete mode 100644 public/sounds/music/battle-6.mp3
+ create mode 100644 public/sounds/ui/README.md
+To https://github.com/Ravenof/ravenof-portal.git
+   e5327bc..77dcc70  main -> main

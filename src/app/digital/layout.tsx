@@ -49,18 +49,31 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return () => { stopMusic(); setNativeImmersive(false) }
   }, [])
 
-  // Profilis + neperskaitytos notifikacijos
+  // Profilis — tik mount + focus (nebe kiekvienam route pakeitimui: mažiau užklausų)
+  useEffect(() => {
+    const loadProfile = () => {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data }) => {
+        const uid = data.user?.id; if (!uid) return
+        supabase.from('profiles').select('username, display_name, avatar_url, xp_total').eq('id', uid).maybeSingle()
+          .then(({ data: p }) => {
+            const pr = p as { username?: string; display_name?: string; avatar_url?: string | null; xp_total?: number } | null
+            if (!pr) return
+            const prog = getLevelProgress(pr.xp_total ?? 0)
+            setProfile({ name: pr.display_name || pr.username || 'Žaidėjas', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null })
+          })
+      })
+    }
+    loadProfile()
+    window.addEventListener('focus', loadProfile)
+    return () => window.removeEventListener('focus', loadProfile)
+  }, [])
+
+  // Neperskaitytos notifikacijos — pigi head-count užklausa keičiant route
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
       const uid = data.user?.id; if (!uid) return
-      supabase.from('profiles').select('username, display_name, avatar_url, xp_total').eq('id', uid).maybeSingle()
-        .then(({ data: p }) => {
-          const pr = p as { username?: string; display_name?: string; avatar_url?: string | null; xp_total?: number } | null
-          if (!pr) return
-          const prog = getLevelProgress(pr.xp_total ?? 0)
-          setProfile({ name: pr.display_name || pr.username || 'Žaidėjas', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null })
-        })
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false)
         .then(({ count }) => setUnread(count ?? 0))
     })
@@ -88,7 +101,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       {/* ── Header (game account) ── */}
       <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.82)', backdropFilter: 'blur(10px)' }}>
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/digital" onClick={() => playUiClick()} className="flex items-center shrink-0" style={{ lineHeight: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}

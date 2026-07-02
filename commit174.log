@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 27520cf] feat(hp): realistiskas stiklinis potion HP vial - clip-path forma, sluoksniuoti stiklo blikai/sesieliai, svytejimas, animuotas skystis (banguojantis pavirsius + burbuliukai), HP kaip metaline etikete ant butelio (ne sirdis); pasalintas pestinis SVG
+ 3 files changed, 43 insertions(+), 27 deletions(-)
+ create mode 100644 git-commit174.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   de25151..27520cf  main -> main

@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/app/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/layout/MobileNav.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/nav.ts', LF will be replaced by CRLF the next time Git touches it
+[main 463370c] feat(nav): Ravenof Digital home screen pagrindinis blokas + bottom nav (mobile) skiltis 'Digital' (Gamepad ikona) + quick links
+ 3 files changed, 7 insertions(+), 3 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   8919308..463370c  main -> main

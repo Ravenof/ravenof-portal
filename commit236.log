@@ -1,0 +1,12 @@
+warning: in the working copy of 'src/components/social/FriendsClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/social/TradeWindow.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/trade.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260704_card_trades.sql', LF will be replaced by CRLF the next time Git touches it
+[main bf602bb] feat(trade): realaus laiko korta<->korta mainai su pop-up. card_trades + RPC (create/accept/set_offer/confirm su atominiu apsikeitimu/cancel/get). TradeWindow (abu deda kortas, polling sync, abu patvirtina -> swap; nuosavybe validuojama vykdymo metu). Friends: Mainai mygtukas + mainu pasiulymu inbox
+ 5 files changed, 338 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit236.bat
+ create mode 100644 src/components/social/TradeWindow.tsx
+ create mode 100644 src/lib/trade.ts
+ create mode 100644 supabase/migrations/20260704_card_trades.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   b97b4ef..bf602bb  main -> main

@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/SummonBurst.tsx', LF will be replaced by CRLF the next time Git touches it
+[main fdcb351] perf(fx): mobile LOW rezimas summon efektams - telefonuose dpr=1, ~50% maziau particle/body, shadowBlur isjungtas (didziausias perf laimejimas); desktop pilna kokybe nepakeista
+ 2 files changed, 30 insertions(+), 15 deletions(-)
+ create mode 100644 git-commit171.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   0b40020..fdcb351  main -> main

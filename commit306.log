@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/app/admin/shop/AdminShopClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/cosmetics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit306.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260801_avatar_portrait_fit.sql', LF will be replaced by CRLF the next time Git touches it
+[main b1953d8] fix(avatars): end-turn mygtukas nebenusikerpa + portreto/video kadravimas. Mobile 'Priesininko ejimas' -> 'Prieso ejimas...' + mazesnis sriftas (nebeislenda uz ekrano). Naujas portrait_fit (x/y/zoom) cosmetics laukas (migracija 20260801 + rvn_get_cosmetics grazina portraitFit); cosmetics.ts + BattleAvatar.fit. AvatarFrame taiko objectPosition + scale(zoom) IR nuotraukai, IR video (nebe vien centras). Admin AdminAvatarFit: live perziura su remu, tempk-pamesk + X/Y/Zoom slankikliai, Centruoti, Issaugoti kadravima. tsc svarus.
+ 5 files changed, 102 insertions(+), 8 deletions(-)
+ create mode 100644 git-commit306.bat
+ create mode 100644 supabase/migrations/20260801_avatar_portrait_fit.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   f816ed8..b1953d8  main -> main

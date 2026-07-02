@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/RavenofCinematicOverlay.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/cinematics.ts', LF will be replaced by CRLF the next time Git touches it
+[main d15247d] feat(cinematics): PremiumCinematics - kino pop-up sistema (summon + Cempiono skill). Naujas card-cinematics bucket (WebM->MP4->poster, tik URL DB). Admin: Summon Cinematic sekcija + kiekvienam is 3 skillu atskiras kino (CinematicUpload widget, preview/replace/delete, validacija). VERTIKALUS (mobile portrait 9/16) remas, NE full screen (~60% ekrano centre, laukas matosi pakrasciuose) + admin fokuso/kadravimo selektorius (object-position X/Y, spausk-tempk). Max trukme 4 s. Botas stabteli 5 s kol rodomas kino, tada tesia ejima. Bendra eile (useCinematicQueue - be persidengimo, cap, dedupe), RavenofCinematicOverlay (themed remas, skip 0.5s, reduced-motion static, video cleanup). Trigeriai TutorialGame: summon (Legendinis/Cempionas) per play/champion event; skill per ability event (e.skillIndex) PO taikinio - nekeicia zaidimo busenos. Nustatymai: premium/summon/skill jungikliai. Deck posteriu preload, video lazy. tsc svarus.
+ 3 files changed, 73 insertions(+), 23 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   e3ed8d8..d15247d  main -> main

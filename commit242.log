@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/DigitalPvE.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvP.tsx', LF will be replaced by CRLF the next time Git touches it
+[main ba7ebf4] feat(digital): Kaladziu hub /digital/decks (Faze 2) + PvE/PvP restyle. Segment tabs Deck Builder/Mano kalades/Bendruomene; mobile builder (frakciju korteles, Tik turimos+Universalios, owned+rarity limitas, list/grid, preview, sticky summary+validacija, Privati/Viesa); Mano kalades (valid badge, truksta, redaguoti/isbandyti, dubliuoti/trinti); Bendruomenes (paieska/sort/galiu susideti, detali owned/missing grayscale, kopijuoti). Treniruote + Draugiska kova ekranai perdaryti i nauja panel stiliu. Nav -> /digital/decks; /digital/deck redirectina. Jokio portal redirect.
+ 3 files changed, 58 insertions(+), 44 deletions(-)
+ create mode 100644 git-commit242.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   5713189..ba7ebf4  main -> main

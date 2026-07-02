@@ -1,0 +1,17 @@
+rm 'src/components/digital/Team2v2Battle.tsx'
+rm 'src/lib/team2v2/cards.ts'
+rm 'src/lib/team2v2/engine.ts'
+rm 'src/lib/team2v2/setup.ts'
+rm 'src/lib/team2v2/types.ts'
+warning: in the working copy of 'src/components/digital/DigitalCoop.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit207.bat', LF will be replaced by CRLF the next time Git touches it
+[main 2b29f3d] refactor(2v2): pasalintas klaidingas realaus laiko prototipas (team2v2 engine/cards/setup/types, Team2v2Battle); DigitalCoop = placeholder. Teisingas dizainas: 2v2 = 1v1 mechanika, komandos ejimai (1=A,2=B), bendras 60HP, kiekvienas zaidejas savo auksas, draugiski efektai visai komandai. Variklio generalizacija (4 seat/2 team) - etapais
+ 7 files changed, 24 insertions(+), 733 deletions(-)
+ create mode 100644 git-commit207.bat
+ delete mode 100644 src/components/digital/Team2v2Battle.tsx
+ delete mode 100644 src/lib/team2v2/cards.ts
+ delete mode 100644 src/lib/team2v2/engine.ts
+ delete mode 100644 src/lib/team2v2/setup.ts
+ delete mode 100644 src/lib/team2v2/types.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   83f1f4d..2b29f3d  main -> main

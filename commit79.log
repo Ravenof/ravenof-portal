@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+[main 2a4a3e8] feat(admin): padaro statiniu raktazodziu pasirinkimas (Sprintas/Pasisaipymas/Magiskasis skydas/Selinimas) gameplay mapinime - gameplay.keywords, sujungiama su detektuotais zaidime
+ 4 files changed, 30 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit79.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   ad62494..2a4a3e8  main -> main

@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/market/MarketClient.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 6a38972] feat(market): kortos full-size (object-contain, auksctesnes plyteles, ne cropped); pardavejo vardas paspaudziamas -> jo stalas (filtras pagal pardaveja + banner); long-press ant kortos -> detali peržiura per CardLightbox
+ 2 files changed, 33 insertions(+), 5 deletions(-)
+ create mode 100644 git-commit237.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   bf602bb..6a38972  main -> main

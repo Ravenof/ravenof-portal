@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 0872849] feat(game): ivykiu zurnalas - X uzdarymo mygtukas (mobile); ataka tempimu - tempk savo padara ant taikinio (drag&drop rodykle + glow), klikas vis dar veikia; apsauga nuo dvigubo atakos klik po tempimo
+ 1 file changed, 59 insertions(+), 2 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   45f2ab3..0872849  main -> main
+0872849 feat(game): ivykiu zurnalas - X uzdarymo mygtukas (mobile); ataka tempimu - tempk savo padara ant taikinio (drag&drop rodykle + glow), klikas vis dar veikia; apsauga nuo dvigubo atakos klik po tempimo

@@ -1,0 +1,12 @@
+warning: in the working copy of 'src/app/admin/cards/[cardId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/cards/actions.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/CardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260613_champion_family.sql', LF will be replaced by CRLF the next time Git touches it
+[main 8edd99d] feat(champions): champion_group + champion_phase laukai (DB+modelis) ir grieztas faziu tikrinimas - phase2/3 reikia tos pacios seimos cempiono ankstesneje fazeje; admin laukai cempionams
+ 7 files changed, 63 insertions(+), 7 deletions(-)
+ create mode 100644 git-commit74.bat
+ create mode 100644 supabase/migrations/20260613_champion_family.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   69442c6..8edd99d  main -> main

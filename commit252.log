@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/digital/Flames.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/ArenaBackground.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 90a3a5e] perf(battle): (1) Flames fonas - blur 40->28 (20 telefone), 5->4 liepsnos (3 telefone), PASLEPIAMA kovoje (.rvn-in-battle, nesisuka po ArenaBackground), paiso reduced-motion. (2) OppHandFan parallax listener isjungtas touch irenginiuose (beprasmis be hover). (3) ArenaBackground daleliu 16->8 ant touch. Mazina nuolatini GPU kruvi menu ir kovose.
+ 4 files changed, 37 insertions(+), 12 deletions(-)
+ create mode 100644 git-commit252.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   40b7103..90a3a5e  main -> main

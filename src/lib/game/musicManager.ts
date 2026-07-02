@@ -31,6 +31,22 @@ type Mode = 'none' | 'menu' | 'battle'
 
 let mode: Mode = 'none'
 let current: HTMLAudioElement | null = null
+
+// Baterijos taupymas: kai app/tab fone — muzika pristabdoma, grįžus tęsiama
+let visHooked = false
+let pausedByVis = false
+function hookVisibility(): void {
+  if (visHooked || typeof document === 'undefined') return
+  visHooked = true
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (current && !current.paused) { pausedByVis = true; try { current.pause() } catch { /* */ } }
+    } else if (pausedByVis) {
+      pausedByVis = false
+      if (current) { try { void current.play() } catch { /* */ } }
+    }
+  })
+}
 let lastBattleIdx = -1
 let unlocked = false
 let subbed = false
@@ -118,6 +134,7 @@ function ensureSub(): void {
 }
 
 function startTrack(src: string, loop: boolean, onEnded?: () => void): void {
+  hookVisibility()
   const prev = current
   const el = makeEl(src, loop)
   current = el

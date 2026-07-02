@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main fe26cf3] feat(game): ZMK traukimas su realia korta ir flip animacija (kaip taisykliu ZmkSimulator) - auto flash ir draw modalas rodo /rules/zmk nuotraukas (arba zmk_cards.image_url)
+ 2 files changed, 56 insertions(+), 19 deletions(-)
+ create mode 100644 git-commit59.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   7799a70..fe26cf3  main -> main

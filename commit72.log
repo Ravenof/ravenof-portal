@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/app/cards/[cardNumber]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/community/ReadOnlyDeckList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/DeckCardPool.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 30c7a08] ui: isimti efekto/aprasymo tekstu blokai visur viesai (kortos detale, deck builderio modalas, viesu kaladziu perziura) - viskas matosi kortos paveiksle; paieska ir toliau naudoja teksta
+ 4 files changed, 11 insertions(+), 36 deletions(-)
+ create mode 100644 git-commit72.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   ece36d7..30c7a08  main -> main

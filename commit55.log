@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/deck-builder/DeckListPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/SaveDeckButton.tsx', LF will be replaced by CRLF the next time Git touches it
+[main fd7c8b8] fix(deck-builder): side deck rodomas toje pacioje scroll srityje kaip main deck (nebeuzgozia); save klaida rodo tikra prieztasti + nuoroda i migracija jei truksta is_side_deck
+ 3 files changed, 60 insertions(+), 42 deletions(-)
+ create mode 100644 git-commit55.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   265520b..fd7c8b8  main -> main

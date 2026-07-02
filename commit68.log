@@ -1,0 +1,6 @@
+warning: in the working copy of 'scripts/seed_cards_import.sql', LF will be replaced by CRLF the next time Git touches it
+[main f56d99e] fix(seed): unikalus card_number su frakcijos prefiksu (cards_card_number_unique), URL-encoded image_url (tarpai/+), tipas is failo vardo (curse/field/champion/artifact), is_champion cempionams
+ 2 files changed, 413 insertions(+), 402 deletions(-)
+ create mode 100644 git-commit68.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   b43e5ac..f56d99e  main -> main

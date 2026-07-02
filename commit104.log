@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 248f7af] fix(game): mobile ranka perdaryta - issskleista ranka = fixed apatinis overlay su scroll-snap karusele (pilnai matomos didelos skaitomos kortos, be persidengimo/nukirpimo), braukimas sonu=narsymas, tempimas AUKSTYN=zaidi; lengviau (be framer per korta) -> nelagina
+ 1 file changed, 72 insertions(+), 52 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   a8ea893..248f7af  main -> main
+248f7af fix(game): mobile ranka perdaryta - issskleista ranka = fixed apatinis overlay su scroll-snap karusele (pilnai matomos didelos skaitomos kortos, be persidengimo/nukirpimo), braukimas sonu=narsymas, tempimas AUKSTYN=zaidi; lengviau (be framer per korta) -> nelagina

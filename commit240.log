@@ -1,0 +1,19 @@
+warning: in the working copy of 'src/app/digital/album/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/collection/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/more/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalCollection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/MoreScreen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/digital/native.ts', LF will be replaced by CRLF the next time Git touches it
+[main 6456683] feat(digital): mobile app shell perdarymas (Faze 1). Header su safe-area-inset-top + RAVENOF/DIGITAL logo + gold/paku skaitliukai. Apatinis nav: Zaisti/Kolekcija/Kalades/Parduotuve/Daugiau (be Iseiti). Home hub: hero ZAISTI + 3 rezimai + 2x2 grid + mazesnes korteles (Kampanija NETRUKUS). Nauja Kolekcija /digital/collection: 2-kortu grid, Tik turimos toggle, grayscale/locked neturimoms, preview modal. Nauja Daugiau /digital/more: atskirti Atsijungti (logout) ir Iseiti (exitNativeApp + fallback, jokio portal redirect). native.ts: Capacitor exit + wallet/store event bus.
+ 10 files changed, 690 insertions(+), 155 deletions(-)
+ create mode 100644 git-commit240.bat
+ create mode 100644 src/app/digital/collection/page.tsx
+ create mode 100644 src/app/digital/more/page.tsx
+ create mode 100644 src/components/digital/DigitalCollection.tsx
+ create mode 100644 src/components/digital/MoreScreen.tsx
+ create mode 100644 src/lib/digital/native.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   50d47cf..6456683  main -> main

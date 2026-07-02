@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit298.bat', LF will be replaced by CRLF the next time Git touches it
+[main 518423b] fix(desktop): ranka -> vEduokle, rail pile'u ir lentos apkarpymo fix. (1) Ranka dabar tikra vEduokle: persidengiancios kortos (marginLeft -34%), rotacija pagal indeksa (+arc dip), transformOrigin bottom; hover pakelia tiesiai + scale 1.14; drop shadow. (2) Rail pile'ai (Kalade/ZMK/Kapinynas) nebeapkarpyti: renderPile gavo w param, rail'uose piles w=66 vietoj big(96), rail'ai platesni (236/250), maziau padding/gap. (3) Lentos apatines reakcijos nebeapkarpytos: turinys buvo ~19px aukstesnis nei talpa -> kuriniai 92, laukas h50, gap3, padding maziau. tsc svarus.
+ 2 files changed, 58 insertions(+), 38 deletions(-)
+ create mode 100644 git-commit298.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   3b18c95..518423b  main -> main

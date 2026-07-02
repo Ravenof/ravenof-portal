@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit189.bat', LF will be replaced by CRLF the next time Git touches it
+[main 7daf697] feat(admin/effects): aiskus pazymetu tipu rezimas - ARBA (zaidejas renkasi 1 is pazymetu, default) vs VISIEMS pazymetiems (AoE), applyToAllTypes veliava; engine aoe=hasTypes?applyToAllTypes:isMultiTarget; mappingNeedsSelection nereikalauja pasirinkimo AoE rezime. Mygtukai pagrindiniam efektui ir + Tada padaryk dar grandineje
+ 4 files changed, 45 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit189.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   a787e12..7daf697  main -> main

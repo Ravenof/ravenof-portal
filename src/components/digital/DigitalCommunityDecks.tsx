@@ -320,7 +320,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
                   <span className="relative block overflow-hidden rounded-md shrink-0" style={{ width: 38, height: 38, border: `1.5px solid ${ok ? col : 'rgba(120,120,140,0.4)'}` }}>
                     {e.image
                       // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={e.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ filter: ok ? undefined : 'grayscale(1) brightness(0.5)' }} />
+                      ? <img src={e.image} alt="" draggable={false} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" style={{ filter: ok ? undefined : 'grayscale(1) brightness(0.5)' }} />
                       : <span className="absolute inset-0 flex items-center justify-center text-xs" style={{ background: '#15101f' }}>🎴</span>}
                     {!ok && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.7)' }} /></span>}
                   </span>

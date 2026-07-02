@@ -1,0 +1,55 @@
+warning: in the working copy of 'supabase/migrations/20260707_campaigns.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260708_campaign_prazaras_seed.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/campaign/missionLoader.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/campaign/scenarioEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/campaign/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/campaign/validate.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/campaign/waveEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/CampaignList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/CampaignMap.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/CampaignMapScreen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/CampaignRuntime.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/CutscenePlayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/MissionIntroPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/campaign/[slug]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/campaign/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/campaign/AdminCampaignEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/campaign/AdminCampaignMapEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/campaign/AdminCampaignsList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/campaign/AdminCutsceneEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/campaign/AdminNodeEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/campaigns/[campaignId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/campaigns/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CAMPAIGN_MODE.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit259.bat', LF will be replaced by CRLF the next time Git touches it
+[main 8bdf032] feat(campaign): Campaign Mode - generic, data-driven vieno zaidejo istorijos sistema. DB: campaigns/chapters/nodes/cutscenes/progress + RLS + RPC (rvn_campaign_state, rvn_campaign_complete_node, rvn_campaign_mark_cutscene; atlygis per esama rvn__grant_payload). Lib (src/lib/campaign): types, scenarioEngine (triggeriai->efektai, objective scoring 1-3 zvaigzdes), waveEngine (turn-based bangos), missionLoader (Supabase IO + node-state), validate. Zaidejas: Kampanija plytele DigitalHub'e -> /digital/campaign (sarasas) + /digital/campaign/[slug] (Atlas zemelapis su mazgais, mission intro, cutscene player, CampaignRuntime: pre-cutscene->kova->post/fail-cutscene->atlygis->unlock; progresas issaugomas per useri). Admin: /admin/campaigns (sarasas+kurimas) + redaktorius (Nustatymai/Zemelapis ir mazgai/Cutscenes/Validacija; map editor - deti/tempti/jungti mazgus; node editor su friendly laukais + Advanced JSON; cutscene editor; validacija). TutorialGame: pridetas optional onCampaignResult prop (be jo - elgesys nepakites, 0 regresijos standartinem kovom). Sample: 'Prazaro kilme: Varnagrado uzrakinimas' (4 skyriai, 12 misiju: story-only/standard/ambush/gate/wave/boss/branch/wall/survival; Demonu orda priesas, Inkvizicijos legionas/Sviesos pulkas parama; cutscenes pre/post; custom objectives; rewards). tsc svarus, eslint be klaidu (tik img warnai kaip esamame kode). Docs: CAMPAIGN_MODE.md. SVARBU: paleisti 2 migracijas Supabase (20260707 tada 20260708).
+ 27 files changed, 3067 insertions(+), 4 deletions(-)
+ create mode 100644 CAMPAIGN_MODE.md
+ create mode 100644 git-commit259.bat
+ create mode 100644 src/app/admin/campaigns/[campaignId]/page.tsx
+ create mode 100644 src/app/admin/campaigns/page.tsx
+ create mode 100644 src/app/digital/campaign/[slug]/page.tsx
+ create mode 100644 src/app/digital/campaign/page.tsx
+ create mode 100644 src/components/admin/campaign/AdminCampaignEditor.tsx
+ create mode 100644 src/components/admin/campaign/AdminCampaignMapEditor.tsx
+ create mode 100644 src/components/admin/campaign/AdminCampaignsList.tsx
+ create mode 100644 src/components/admin/campaign/AdminCutsceneEditor.tsx
+ create mode 100644 src/components/admin/campaign/AdminNodeEditor.tsx
+ create mode 100644 src/components/digital/campaign/CampaignList.tsx
+ create mode 100644 src/components/digital/campaign/CampaignMap.tsx
+ create mode 100644 src/components/digital/campaign/CampaignMapScreen.tsx
+ create mode 100644 src/components/digital/campaign/CampaignRuntime.tsx
+ create mode 100644 src/components/digital/campaign/CutscenePlayer.tsx
+ create mode 100644 src/components/digital/campaign/MissionIntroPanel.tsx
+ create mode 100644 src/lib/campaign/missionLoader.ts
+ create mode 100644 src/lib/campaign/scenarioEngine.ts
+ create mode 100644 src/lib/campaign/types.ts
+ create mode 100644 src/lib/campaign/validate.ts
+ create mode 100644 src/lib/campaign/waveEngine.ts
+ create mode 100644 supabase/migrations/20260707_campaigns.sql
+ create mode 100644 supabase/migrations/20260708_campaign_prazaras_seed.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   d15247d..8bdf032  main -> main

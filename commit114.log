@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/targetResolver.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 92961d4] feat(game): castSpell taikinys - reakcija (onAnyCast) gali nutildyti/atsaukti dabar zaidziama burta; useAttackTarget - onAttack/onAttacked efektas taikomas i kovos taikini (pvz. padaras puola padara ir ji apsvaigina ta pati)
+ 5 files changed, 54 insertions(+), 7 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   641e87f..92961d4  main -> main
+92961d4 feat(game): castSpell taikinys - reakcija (onAnyCast) gali nutildyti/atsaukti dabar zaidziama burta; useAttackTarget - onAttack/onAttacked efektas taikomas i kovos taikini (pvz. padaras puola padara ir ji apsvaigina ta pati)

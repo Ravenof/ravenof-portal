@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/PackOpen.tsx', LF will be replaced by CRLF the next time Git touches it
+[main cc2aa2a] fix(digital): pakuotes klaida rodo tikra DB pranesima (be per placiu spejimu)
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   babaec6..cc2aa2a  main -> main
+cc2aa2a fix(digital): pakuotes klaida rodo tikra DB pranesima (be per placiu spejimu)

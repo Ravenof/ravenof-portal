@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/PvPLobby.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 4e5b83b] feat(digital): Kaladziu hub /digital/decks (Faze 2) + kovos ekranu restyle. Decks hub segment tabs (Builder/Mano/Bendruomene); mobile builder (frakciju korteles, Tik turimos+Universalios, owned+rarity limitas, list/grid, preview, sticky summary+validacija, Privati/Viesa); Mano kalades; Bendruomenes (owned/missing grayscale, kopijuoti). Treniruote/Draugiska kova/Ranked deck-select + PvPLobby modalas perdaryti i rounded glass panel stiliu (maziau neon octagon). Nav -> /digital/decks; /digital/deck redirectina. Jokio portal redirect.
+ 3 files changed, 26 insertions(+), 25 deletions(-)
+ create mode 100644 git-commit243.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   ba7ebf4..4e5b83b  main -> main

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/digital/Team2v2Game.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit216.bat', LF will be replaced by CRLF the next time Git touches it
+[main 53dd784] feat(2v2 PvP + UI): 4 tikru zaideju 2v2 (pvp2v2_rooms + matchmaking RPC, pvp.ts klientas, Team2v2Game net rezimas host-authoritative broadcast, DigitalPvp2v2 lobi, hub plytele) IR perdarytas 2v2 kovos laukas kaip 1v1 - tikros UnitTile/MiniCard/PileBack/HpVial kortos (eksportuotos is TutorialGame), laukas padalintas i dvi puses (tavo | sajungininkas; virsuj abu priesai), kiekvienas zaidejas turi sava Kalade/ZMK/Kapinyna, kapinyno perziura. tsc svarus
+ 3 files changed, 151 insertions(+), 61 deletions(-)
+ create mode 100644 git-commit216.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   e152036..53dd784  main -> main

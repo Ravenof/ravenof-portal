@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit195.bat', LF will be replaced by CRLF the next time Git touches it
+[main 10cfb1c] feat(effects): nauji reakciju blokai - overflowToPlayer (pertekline zala virs taikinio HP pereina jo zaidejui) + reflectToAttacker efektas (onAttacked: sunaikina puolanti padara ir atspindi jo ATK i puolejo zaideja); engine dealToUnit overflow param + gameApi.effectiveAtk; redaktoriuje checkbox + auto useAttackTarget + hint
+ 5 files changed, 65 insertions(+), 9 deletions(-)
+ create mode 100644 git-commit195.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   6d58025..10cfb1c  main -> main

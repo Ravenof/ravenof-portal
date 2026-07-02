@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/tutorial/PracticeButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiFocusFire.ts', LF will be replaced by CRLF the next time Git touches it
+[main a7dd160] feat(ai): focus-fire / cumulative damage planner + AI sunkumo pasirinkimas UI. AI nebeignoruoja high-HP/Taunt padaru - skaiciuoja bendra zala per seka (keli puolejai + burtas + buff + cempiono skill), nuima Taunt, daro prasminga partial damage, lygina focus-fire vs face. PracticeButton: easy/normal/hard pasirinkimas
+ 4 files changed, 209 insertions(+), 4 deletions(-)
+ create mode 100644 src/lib/tutorial/ai/aiFocusFire.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   165fff6..a7dd160  main -> main
+a7dd160 feat(ai): focus-fire / cumulative damage planner + AI sunkumo pasirinkimas UI. AI nebeignoruoja high-HP/Taunt padaru - skaiciuoja bendra zala per seka (keli puolejai + burtas + buff + cempiono skill), nuima Taunt, daro prasminga partial damage, lygina focus-fire vs face. PracticeButton: easy/normal/hard pasirinkimas

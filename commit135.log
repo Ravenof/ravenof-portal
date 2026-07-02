@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/digital/PackOpen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/economy.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260617_pack_open.sql', LF will be replaced by CRLF the next time Git touches it
+[main 12d3e95] fix(digital): perdarytas booster opening - RPC rvn_open_pack grazina uuid[] (minimalus SQL, be trapaus return join), kortu detales paima klientas ta pacia uzklausa kaip albumas; pataiso 'column does not exist'
+ 3 files changed, 46 insertions(+), 46 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   560d457..12d3e95  main -> main
+12d3e95 fix(digital): perdarytas booster opening - RPC rvn_open_pack grazina uuid[] (minimalus SQL, be trapaus return join), kortu detales paima klientas ta pacia uzklausa kaip albumas; pataiso 'column does not exist'

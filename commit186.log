@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit186.bat', LF will be replaced by CRLF the next time Git touches it
+[main e7dce7c] fix(engine): apsauga nuo begalines efektu rekursijos (Maximum call stack) - globalus __fxCascade skaitliukas applyMapping, nes killUnit onDeath/deathrattle kvieciami su depth=0 (debuff->mirtis->deathrattle->debuff ciklas apeidavo MAX_DEPTH); kaskada nutraukiama ties 200. Taiso bot kovos crash + kodel rezultatas neissisaugodavo
+ 2 files changed, 29 insertions(+)
+ create mode 100644 git-commit186.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   6a6684b..e7dce7c  main -> main

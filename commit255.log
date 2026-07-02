@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/digital/DigitalCollection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/Flames.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/ArenaBackground.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 50f1c77] revert(perf): atstatyti optimizacijos commitai 252-254 i 251 (boosteriu fix) busena. Flames/ArenaBackground/DigitalCollection/TutorialGame grazinti i 251 versija (be will-change regresijos, be GameCard removal, be demo-only fetch). Visi ankstesni feature'ai (blessed, zetonu ikonos, draw anim, ZMK shatter, chat, pickers) islieka. Toliau optimizuosim atsargiai po viena.
+ 5 files changed, 37 insertions(+), 39 deletions(-)
+ create mode 100644 git-commit255.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   b265f53..50f1c77  main -> main

@@ -1,0 +1,16 @@
+warning: in the working copy of 'src/app/deck-builder/DeckBuilderClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/deck-builder/SaveDeckButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/pve/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/pvp/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvE.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvP.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 2fbaecf] feat(digital): FAZE 4 - PvE (/digital/pve) ir PvP (/digital/pvp) puslapiai main-menu stiliumi (raizyti + liepsnos), meniu plyteles veda i juos; supaprastintas hub (be deck selektoriaus/modalu); deck builder issaugojus lieka digital aplinkoje (redirectTo); stiliaus vientisumas
+ 7 files changed, 155 insertions(+), 60 deletions(-)
+ create mode 100644 src/app/digital/pve/page.tsx
+ create mode 100644 src/app/digital/pvp/page.tsx
+ create mode 100644 src/components/digital/DigitalPvE.tsx
+ create mode 100644 src/components/digital/DigitalPvP.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   9d7e25d..2fbaecf  main -> main
+2fbaecf feat(digital): FAZE 4 - PvE (/digital/pve) ir PvP (/digital/pvp) puslapiai main-menu stiliumi (raizyti + liepsnos), meniu plyteles veda i juos; supaprastintas hub (be deck selektoriaus/modalu); deck builder issaugojus lieka digital aplinkoje (redirectTo); stiliaus vientisumas

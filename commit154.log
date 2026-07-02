@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectAnimations.ts', LF will be replaced by CRLF the next time Git touches it
+[main c915d1a] feat(gameplay-feel): Faze 1 - fizinis kortos drop (dunk/bounce/squash + impact garsas + board shake); centrinis effectAnimationMap + frakciju paletes; BattleFxLayer (canvas FX: projektilas/kirtis/spindulys/heal-stream/buff/debuff/aoe banga/curse mark/irimas/skydas/saltis); efektai prasideda nuo source kortos -> taikinys; Battlecry pacing (korta nuseda 800ms -> efektas); plaukiantys skaiciai -2/+2 + taikinio shake/flash; destroy = slash + irimas
+ 4 files changed, 470 insertions(+), 21 deletions(-)
+ create mode 100644 git-commit154.bat
+ create mode 100644 src/components/tutorial/BattleFxLayer.tsx
+ create mode 100644 src/lib/game/effectAnimations.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   2faca2a..c915d1a  main -> main

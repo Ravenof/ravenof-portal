@@ -1,0 +1,20 @@
+warning: in the working copy of 'src/lib/tutorial/ai.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiActions.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiCardRole.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiScoring.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiTargeting.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiThreatEvaluation.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiTypes.ts', LF will be replaced by CRLF the next time Git touches it
+[main 165fff6] feat(ai): scoring-based AI decision engine - board trade skaiciavimas, target value scoring, lethal + survival vertinimas, AoE/buff/heal/removal logika be bevergiu burtu, face tik kai verta, difficulty (easy/normal/hard), debug logai. Padalinta i ai/ modulius (aiEngine/aiScoring/aiActions/aiThreatEvaluation/aiTargeting/aiCardRole)
+ 8 files changed, 789 insertions(+), 205 deletions(-)
+ create mode 100644 src/lib/tutorial/ai/aiActions.ts
+ create mode 100644 src/lib/tutorial/ai/aiCardRole.ts
+ create mode 100644 src/lib/tutorial/ai/aiEngine.ts
+ create mode 100644 src/lib/tutorial/ai/aiScoring.ts
+ create mode 100644 src/lib/tutorial/ai/aiTargeting.ts
+ create mode 100644 src/lib/tutorial/ai/aiThreatEvaluation.ts
+ create mode 100644 src/lib/tutorial/ai/aiTypes.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   aee80f4..165fff6  main -> main
+165fff6 feat(ai): scoring-based AI decision engine - board trade skaiciavimas, target value scoring, lethal + survival vertinimas, AoE/buff/heal/removal logika be bevergiu burtu, face tik kai verta, difficulty (easy/normal/hard), debug logai. Padalinta i ai/ modulius (aiEngine/aiScoring/aiActions/aiThreatEvaluation/aiTargeting/aiCardRole)

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit197.bat', LF will be replaced by CRLF the next time Git touches it
+[main 630660a] feat(ui): burtu kortose rankoje zymejimai - pigesne kaina zalia (su svytejimu) per effectiveCost, ir +X zalos oranzinis zenklas kai aktyvi burtu zalos aura (auraSpellDamageBonus); MiniCard costNow+dmgBonus props
+ 3 files changed, 35 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit197.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   c5f539e..630660a  main -> main

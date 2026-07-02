@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/PackOpen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260617_pack_open.sql', LF will be replaced by CRLF the next time Git touches it
+[main 7971825] fix(digital): pakuotes atplesimas - rodo tikra klaida; rvn_open_pack insert i user_collections su updated_at (galima nesekme jei stulpelis NOT NULL be default)
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   a203b4b..7971825  main -> main
+7971825 fix(digital): pakuotes atplesimas - rodo tikra klaida; rvn_open_pack insert i user_collections su updated_at (galima nesekme jei stulpelis NOT NULL be default)

@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/PackOpen.tsx', LF will be replaced by CRLF the next time Git touches it
+[main babaec6] feat(digital): pakuotes atplesimas - kortos verciamos po viena (flip), tikro paveikslo fallback (vardas+retumas vietoj broken img), retumo efektai sparkles+garsai (didesni unikalioms/episkoms/legendinems)
+ 1 file changed, 120 insertions(+), 90 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   b49e714..babaec6  main -> main
+babaec6 feat(digital): pakuotes atplesimas - kortos verciamos po viena (flip), tikro paveikslo fallback (vardas+retumas vietoj broken img), retumo efektai sparkles+garsai (didesni unikalioms/episkoms/legendinems)

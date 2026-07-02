@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/components/admin/CardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 69442c6] feat(champions): 3 fazes + 3 skills sistema - tribute is board(1tsk)/rankos(2tsk), evoliucija reikia cempiono board (phase+1), skills atrakinami pagal faze, paspaudus cempiona popup su skills (1/ejima), AI naudoja auksciausia; admin 3-skill mapinimas (Skill1/2/3 skirtukai + pavadinimai)
+ 7 files changed, 191 insertions(+), 53 deletions(-)
+ create mode 100644 git-commit73.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   30c7a08..69442c6  main -> main

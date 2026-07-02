@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 3f7ca58] fix(game): be-taikinio efektai (drawCards, mill, gainGold, summon, tutor ir kt.) suzaidziami iskart - nereikia rinktis taikinio net jei requiresSelection paliktas true
+ 1 file changed, 9 insertions(+)
+To https://github.com/Ravenof/ravenof-portal.git
+   41527af..3f7ca58  main -> main
+3f7ca58 fix(game): be-taikinio efektai (drawCards, mill, gainGold, summon, tutor ir kt.) suzaidziami iskart - nereikia rinktis taikinio net jei requiresSelection paliktas true

@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit307.bat', LF will be replaced by CRLF the next time Git touches it
+[main b410856] feat(hand): 10 kortu telpa i ekrana + ranka-pilna sprogimas. Mobile ranka: dinaminis overlap (step pagal ekrano placio) - iki 10 kortu telpa, kortos siek tiek persidengia vietoj kropinimo uz krasto. Ranka pilna (10) ir traukia daugiau: handBurn FX - istraukta korta ~1s rodoma centre ('Ranka pilna!'), tada sprogsta i gabalus ir nuskrenda i kapinyna (flyingShatters + garsai). Prieso burn - tik garsas (neatskleidziam kortos). tsc svarus.
+ 2 files changed, 44 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit307.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   b1953d8..b410856  main -> main

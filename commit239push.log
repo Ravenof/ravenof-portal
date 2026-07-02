@@ -1,0 +1,17 @@
+warning: in the working copy of 'src/app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tsconfig.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'RAVENOF-PUSH-SETUP.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/notifications/NotificationCenter.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/notify.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/functions/send-push/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260706_notifications.sql', LF will be replaced by CRLF the next time Git touches it
+[main 50d47cf] feat(notifications): in-app pop-up toast'ai + varpelis (visur, ir Android webview) - zinutes/issukiai/mainai/aukciono pardavimai per rvn_notifications_poll; native push registracija per Capacitor bridge (be web build koreliacijos); push scaffold: send-push Edge Function (FCM v1) + user_push_tokens + setup doc (Firebase/triggeriai)
+ 8 files changed, 350 insertions(+), 2 deletions(-)
+ create mode 100644 RAVENOF-PUSH-SETUP.md
+ create mode 100644 git-commit239push.bat
+ create mode 100644 src/components/notifications/NotificationCenter.tsx
+ create mode 100644 src/lib/notify.ts
+ create mode 100644 supabase/functions/send-push/index.ts
+ create mode 100644 supabase/migrations/20260706_notifications.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   1f41c7b..50d47cf  main -> main

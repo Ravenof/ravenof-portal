@@ -1,0 +1,7 @@
+rm 'src/components/tutorial/BattleEffectOverlay.tsx'
+[main 5157811] chore(fx): pasalintas negyvas senas full-screen BattleEffectOverlay.tsx (summon efektus pilnai pakeite origin-based SummonBurst, failas niekur nebenaudojamas)
+ 2 files changed, 12 insertions(+), 415 deletions(-)
+ create mode 100644 git-commit165.bat
+ delete mode 100644 src/components/tutorial/BattleEffectOverlay.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   9562daa..5157811  main -> main

@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/tutorial/ArenaBackground.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 86b653b] fix(arena): visi 8 arenu paveiksleliai suspausti (~2.5MB -> ~250KB, greitas krovimas), dock->harbor teisingas vardas; auto-detektas - random rinks tik arenas su paveiksleliu (nerodys proceduriniu uzkrautoms)
+ 10 files changed, 29 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit175.bat
+ create mode 100644 public/arenas/cathedral.jpg
+ create mode 100644 public/arenas/dojo.jpg
+ create mode 100644 public/arenas/harbor.jpg
+ create mode 100644 public/arenas/scrapyard.jpg
+To https://github.com/Ravenof/ravenof-portal.git
+   27520cf..86b653b  main -> main

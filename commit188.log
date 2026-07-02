@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit188.bat', LF will be replaced by CRLF the next time Git touches it
+[main a787e12] feat(admin/effects): union taikiniai (padaras/artefaktas/zaidejas/cempionas su varnelemis) ir + Tada padaryk dar grandineje + greitas preset mygtukas (padaras/artefaktas/zaidejas) ir pagrindiniam efektui - pvz kovos suksnis 2 dmg creature/artefaktui/zaidejui su zaidejo pasirinkimu
+ 2 files changed, 43 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit188.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   1573253..a787e12  main -> main

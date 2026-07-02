@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit211.bat', LF will be replaced by CRLF the next time Git touches it
+[main 4ef37f1] feat(2v2 stage4): createGame2v2 (4 seat you+ally vs ai+foe2, 2 komandos po bendra 60 HP) + komandos ejimai beginTeamTurn/endTeamTurn (visi komandos seatai gauna ejimo pradzia, globalTurn per komanda); beginTurn/endTurn perskaidyti i seatBeginTurn/seatEndTurn islaikant ta pacia 1v1 seka, tsc svarus
+ 2 files changed, 77 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit211.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   e2aad64..4ef37f1  main -> main

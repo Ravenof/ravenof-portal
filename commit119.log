@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiCardRole.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiScoring.ts', LF will be replaced by CRLF the next time Git touches it
+[main af51da8] fix(ai): client-side crash kovojant pries bota. AI sprendimas apgaubtas try/catch (klaida nebegriauna zaidimo - saugiai baigiamas AI ejimas + console.error). Root cause: analyzeMappings krito ant korta su nepilnu mapping'u (m.effect undefined -> .startsWith throw) - pridetas guard
+ 4 files changed, 24 insertions(+), 7 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   64c28ca..af51da8  main -> main
+af51da8 fix(ai): client-side crash kovojant pries bota. AI sprendimas apgaubtas try/catch (klaida nebegriauna zaidimo - saugiai baigiamas AI ejimas + console.error). Root cause: analyzeMappings krito ant korta su nepilnu mapping'u (m.effect undefined -> .startsWith throw) - pridetas guard

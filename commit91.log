@@ -1,0 +1,5 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main dc91d9a] fix(game): mapping-based battlecry taikinio pasirinkimas - kortos su 'Zaidejas renkasi' mapping (onSummon/onPlay/onCast) dabar parodo taikinio pasirinkima zaidime (anksciau tikrino tik sena c.effect.targeted, tad nieko nevykdavo); target highlight pagal mapping taikini; jei nera taikiniu - auto suzaidzia
+ 1 file changed, 32 insertions(+), 3 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   6f4ba4a..dc91d9a  main -> main

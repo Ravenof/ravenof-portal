@@ -6,6 +6,7 @@ import { Volume2, VolumeX, Music, Sparkles, Clapperboard, Bell } from 'lucide-re
 import {
   getMusicVolume, getSfxVolume, isSummonFxEnabled,
   setMusicVolume, setSfxVolume, setSummonFxEnabled,
+  isBgFxEnabled, setBgFxEnabled,
   isPremiumCinematicsEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled,
   setPremiumCinematicsEnabled, setSummonCinematicsEnabled, setChampionSkillCinematicsEnabled,
   DEFAULT_SUMMON_CINEMATICS, DEFAULT_SKILL_CINEMATICS,
@@ -29,11 +30,12 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const [cineSkill, setCineSkill] = useState(DEFAULT_SKILL_CINEMATICS)
   const [reminders, setReminders] = useState(true)
   const [native, setNative] = useState(false)
+  const [bgFx, setBgFx] = useState(true)
 
   useEffect(() => {
     setMusic(getMusicVolume()); setSfx(getSfxVolume()); setSummon(isSummonFxEnabled()); setSoundOn(isUiSoundEnabled())
     setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
-    setReminders(remindersEnabled()); setNative(isNativeApp())
+    setReminders(remindersEnabled()); setNative(isNativeApp()); setBgFx(isBgFxEnabled())
     return subscribeUiSound(setSoundOn)
   }, [])
 
@@ -44,6 +46,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const onCineSummon = (v: boolean) => { playUiClick(); setCineSummon(v); setSummonCinematicsEnabled(v); saveDigitalSettings() }
   const onCineSkill = (v: boolean) => { playUiClick(); setCineSkill(v); setChampionSkillCinematicsEnabled(v); saveDigitalSettings() }
   const onReminders = (v: boolean) => { playUiClick(); setReminders(v); void setRemindersEnabled(v) }
+  const onBgFx = (v: boolean) => { playUiClick(); setBgFx(v); setBgFxEnabled(v) }
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
@@ -103,6 +106,16 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
             </button>
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Išjungus, kovose nerodomi padarų iškvietimo vizualiniai efektai (geriau silpnesniems įrenginiams).</p>
+
+          {/* Fono efektų jungiklis (baterijos taupymas) */}
+          <div className="mt-4 flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
+            <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>🔥 Fono efektai</span>
+            <button onClick={() => onBgFx(!bgFx)} className="relative w-12 h-6 rounded-full transition-colors"
+              style={{ background: bgFx ? 'rgba(240,180,41,0.4)' : 'rgba(255,255,255,0.12)' }}>
+              <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{ left: bgFx ? '26px' : '2px', background: bgFx ? 'var(--gold-bright)' : 'var(--text-muted)' }} />
+            </button>
+          </div>
+          <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Liepsnų fonas meniu. Išjunk, jei nori taupyti bateriją.</p>
 
           {/* Premium kino pop-up jungiklis */}
           <div className="mt-4 flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>

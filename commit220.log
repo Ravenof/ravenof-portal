@@ -1,0 +1,20 @@
+warning: in the working copy of 'src/app/admin/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/cosmetics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/shop/AdminShopClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/shop/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/ShopImageUpload.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/starterDecks.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260628_shop_starter_decks.sql', LF will be replaced by CRLF the next time Git touches it
+[main c97a421] feat(shop): vieninga PARDUOTUVE su kategoriju filtru (pakuotes/dienos kortos/starter kalades/kosmetika), starter kalades po 0 gold (kortos i kolekcija + paruosta kalade), admin /admin/shop CRUD (kosmetika+pakuotes+starter su kortu rinkikliu) ir paveiksliuku ikelimas. Migr 20260628: starter_decks/_cards/_claims + RPC, cosmetics.image_url + admin RLS
+ 10 files changed, 924 insertions(+), 55 deletions(-)
+ create mode 100644 git-commit220.bat
+ create mode 100644 src/app/admin/shop/AdminShopClient.tsx
+ create mode 100644 src/app/admin/shop/page.tsx
+ create mode 100644 src/components/admin/ShopImageUpload.tsx
+ create mode 100644 src/components/digital/StoreModal.tsx
+ create mode 100644 src/lib/starterDecks.ts
+ create mode 100644 supabase/migrations/20260628_shop_starter_decks.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   ee6256a..c97a421  main -> main

@@ -36,3 +36,8 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# UI asset source folders (dev only, don't deploy/commit)
+/UI elements/
+/ravenof_main_menu_cropped_assets/
+/supabase/migrations/ravenof_main_menu_cropped_assets/

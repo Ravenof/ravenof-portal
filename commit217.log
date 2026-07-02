@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/digital/Team2v2Game.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit217.bat', LF will be replaced by CRLF the next time Git touches it
+[main 5320247] feat(2v2 PvP + 1v1 pojutis): 4 zaideju 2v2 PvP (pvp2v2_rooms + matchmaking RPC, pvp.ts klientas, Team2v2Game host-authoritative broadcast net rezimas, DigitalPvp2v2 lobi, hub plytele) + 2v2 laukas perdarytas kaip 1v1: tikros UnitTile/MiniCard/PileBack/HpVial kortos, drag-and-drop kortu zaidimas (tempk aukstyn i lauka), ZMK flip animacija is log, artefaktu+reakciju eilutes, kiekvienas zaidejas su sava Kalade/ZMK/Kapinynu, laukas i dvi puses (tavo|ally; virsuj abu priesai). zmkImg/UnitTile/MiniCard/PileBack/HpVial eksportuoti is TutorialGame. tsc svarus
+ 3 files changed, 135 insertions(+), 19 deletions(-)
+ create mode 100644 git-commit217.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   53dd784..5320247  main -> main

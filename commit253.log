@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/DigitalCollection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 8e5cd4c] perf(load): (1) Kolekcija - korteles nebevyniojam i GameCard (kiekvienas dejo matchMedia listener+shine -> simtai kortu = letas mount); img loading=lazy/decoding=async. (2) Zaidimo startas - 300 kortu su pilnu gameplay JSON kraunama TIK demo kaladei (prakeiksmams), tikrom kaladem nebe -> greitesnis start. Mazina ilgus delay'us ieinant i kortas / pradedant zaidima.
+ 3 files changed, 26 insertions(+), 13 deletions(-)
+ create mode 100644 git-commit253.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   90a3a5e..8e5cd4c  main -> main

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main af4ec6f] feat(engine): ninja efektai - papildomos atakos per ejima (base/ifEnemyTaunt/perEnemyTaunt dinamine/ifNoEnemyCreatures), ignoreTaunt (pulti tiesiogiai), sinergija (kai sis+partneris pagal varda/frakcija abu lauke -> buff ATK/HP/raktazodziai). Admin editorius + zero regresiju (sim 26/3)
+ 4 files changed, 116 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit232.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   cdb52bc..af4ec6f  main -> main

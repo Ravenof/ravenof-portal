@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/social/FriendsClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/social.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260705_chat.sql', LF will be replaced by CRLF the next time Git touches it
+[main bdb1940] feat(social): draugu chat (friend_messages + rvn_send_message/conversation; chat langas /friends), kovos chat PvP metu (per esama broadcast kanala, plaukiojantis widget), ir laimejimo/pralaimejimo lange mygtukas Prideti priesininka i draugus (rvn_friend_request_id pagal opponentId)
+ 5 files changed, 171 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit238.bat
+ create mode 100644 supabase/migrations/20260705_chat.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   6a38972..bdb1940  main -> main

@@ -1,0 +1,16 @@
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvP.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/PvPLobby.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/friends/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/social/FriendsClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/social.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260702_social_friends.sql', LF will be replaced by CRLF the next time Git touches it
+[main 66145f8] feat(social): draugu sistema + iššukis. /friends puslapis (prideti pagal varda, uzklausu accept/decline, draugu sarasas, gauti issukiai). RPC friendships+friend_challenges. Issukis -> /digital/pvp?host=CODE (issaukejas hostina) / accept -> ?join=CODE (per esama pvp_matches). DigitalHub Draugai plytele
+ 8 files changed, 364 insertions(+), 9 deletions(-)
+ create mode 100644 git-commit234.bat
+ create mode 100644 src/app/friends/page.tsx
+ create mode 100644 src/components/social/FriendsClient.tsx
+ create mode 100644 src/lib/social.ts
+ create mode 100644 supabase/migrations/20260702_social_friends.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   87151a8..66145f8  main -> main

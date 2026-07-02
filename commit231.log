@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260701_daily_deal_9cards.sql', LF will be replaced by CRLF the next time Git touches it
+[main cdb52bc] feat(shop): parduotuve perdaryta nuo nulio (svari, fiksuoto px aukscio plyteles - jokio overlap) + dienos kortos dabar 9 (booster slotu 2-10 retumo logika, praleidziant 1-a korta, is visu frakciju, deterministiska per diena)
+ 3 files changed, 101 insertions(+), 34 deletions(-)
+ create mode 100644 git-commit231.bat
+ create mode 100644 supabase/migrations/20260701_daily_deal_9cards.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   d3e04ea..cdb52bc  main -> main

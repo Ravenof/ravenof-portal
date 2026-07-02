@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 2faca2a] fix(fx): ikelti summon efekto selektoriu (GameplayConfigEditor dropdown) ir trigeri+screen shake (TutorialGame) - liko neukomituoti is ankstesnio batch'o, todel dropdown nesimate admine
+ 3 files changed, 38 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit153.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   6a207ea..2faca2a  main -> main

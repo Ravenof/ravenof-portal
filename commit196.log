@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit196.bat', LF will be replaced by CRLF the next time Git touches it
+[main c5f539e] fix(spells): burtu zalos priedas = TIK pasyvi aura (auraSpellDamage, kol kurinys kovos lauke) + ZMK per taikini; pasalintas nuolatinis kaupiamas buffSpellDamage skaitiklis is zalos skaiciavimo (jis dvigubai pridedavo prie kiekvieno AoE taikinio); buffSpellDamage efektas pasalintas is redaktoriaus dropdown (naudoti pasyvia aura)
+ 3 files changed, 14 insertions(+), 5 deletions(-)
+ create mode 100644 git-commit196.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   10cfb1c..c5f539e  main -> main

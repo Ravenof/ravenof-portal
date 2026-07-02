@@ -1,0 +1,67 @@
+warning: in the working copy of 'public/digital/icons/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/friends/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ui/HubKit.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalCoop.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvE.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvP.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalCollection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalDecks.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/MoreScreen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/QuestsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/SeasonPassModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/campaign/CampaignList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial2/TutorialHub.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 25f300d] feat(ui): dark-fantasy asset paketo integracija visiems /digital puslapiams. Nauji apdoroti assets (chroma-key permatomumas): public/digital/ui3 (hero, heading, CTA, logo, divider, mode/QA korteles) + public/digital/icons (nav glifai, 13 feature ikonu, avatar, flame, bell). HubKit: ASSET->ui3, PageHero (pilnas+compact) bendra sub-puslapiu antraste su divider, GoldPlate CTA, RewardChip/MiniReward img parametrai. Layout: logo asset, resource pills su fi-coins/fi-gifts, nav glifu gold-ify filtrai. Suvienodinti: Hub, PvE, PvP, Coop, Ranked, Kampanija, Kolekcija, Kalades, Draugai, Daugiau, Mokymai, Store/Quests/Season modalai. tsc+eslint svarus
+ 61 files changed, 122 insertions(+), 78 deletions(-)
+ create mode 100644 public/digital/icons/avatar.png
+ create mode 100644 public/digital/icons/bell.png
+ create mode 100644 public/digital/icons/emblem-season.png
+ create mode 100644 public/digital/icons/emblem-tutorial.png
+ create mode 100644 public/digital/icons/fi-academy.png
+ create mode 100644 public/digital/icons/fi-bell.png
+ create mode 100644 public/digital/icons/fi-coins.png
+ create mode 100644 public/digital/icons/fi-collection.png
+ create mode 100644 public/digital/icons/fi-decks.png
+ create mode 100644 public/digital/icons/fi-gifts.png
+ create mode 100644 public/digital/icons/fi-pve.png
+ create mode 100644 public/digital/icons/fi-pvp.png
+ create mode 100644 public/digital/icons/fi-quests.png
+ create mode 100644 public/digital/icons/fi-ranked.png
+ create mode 100644 public/digital/icons/fi-season.png
+ create mode 100644 public/digital/icons/fi-settings.png
+ create mode 100644 public/digital/icons/fi-shop.png
+ create mode 100644 public/digital/icons/flame.png
+ create mode 100644 public/digital/icons/nav-collection.png
+ create mode 100644 public/digital/icons/nav-decks.png
+ create mode 100644 public/digital/icons/nav-home.png
+ create mode 100644 public/digital/icons/nav-more.png
+ create mode 100644 public/digital/icons/nav-shop.png
+ create mode 100644 public/digital/icons/settings.png
+ create mode 100644 public/digital/ui3/cta-blank.png
+ create mode 100644 public/digital/ui3/cta.png
+ create mode 100644 public/digital/ui3/divider.png
+ create mode 100644 public/digital/ui3/heading.png
+ create mode 100644 public/digital/ui3/hero.webp
+ create mode 100644 public/digital/ui3/logo.png
+ create mode 100644 public/digital/ui3/mode-free-sel.webp
+ create mode 100644 public/digital/ui3/mode-free.webp
+ create mode 100644 public/digital/ui3/mode-pve-sel.webp
+ create mode 100644 public/digital/ui3/mode-pve.webp
+ create mode 100644 public/digital/ui3/mode-ranked-sel.webp
+ create mode 100644 public/digital/ui3/mode-ranked.webp
+ create mode 100644 public/digital/ui3/panel.png
+ create mode 100644 public/digital/ui3/qa-collection-hi.webp
+ create mode 100644 public/digital/ui3/qa-collection.webp
+ create mode 100644 public/digital/ui3/qa-decks-hi.webp
+ create mode 100644 public/digital/ui3/qa-decks.webp
+ create mode 100644 public/digital/ui3/qa-quests-hi.webp
+ create mode 100644 public/digital/ui3/qa-quests.webp
+ create mode 100644 public/digital/ui3/qa-shop-hi.webp
+ create mode 100644 public/digital/ui3/qa-shop.webp
+To https://github.com/Ravenof/ravenof-portal.git
+   4572f95..25f300d  main -> main
+25f300d feat(ui): dark-fantasy asset paketo integracija visiems /digital puslapiams. Nauji apdoroti assets (chroma-key permatomumas): public/digital/ui3 (hero, heading, CTA, logo, divider, mode/QA korteles) + public/digital/icons (nav glifai, 13 feature ikonu, avatar, flame, bell). HubKit: ASSET->ui3, PageHero (pilnas+compact) bendra sub-puslapiu antraste su divider, GoldPlate CTA, RewardChip/MiniReward img parametrai. Layout: logo asset, resource pills su fi-coins/fi-gifts, nav glifu gold-ify filtrai. Suvienodinti: Hub, PvE, PvP, Coop, Ranked, Kampanija, Kolekcija, Kalades, Draugai, Daugiau, Mokymai, Store/Quests/Season modalai. tsc+eslint svarus

@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit304.bat', LF will be replaced by CRLF the next time Git touches it
+[main 8cd4627] fix(avatars): portretas uzpildo visa rema + didesnis. AvatarFrame: portreto langas praplestas (T24.5/L24.5/R24/B29) - portretas listas po remu, todel uzpildo visa matoma anga be tamsaus tarpo. Remas didesnis (102->122px base). tsc svarus.
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit304.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   7c4c2b9..8cd4627  main -> main

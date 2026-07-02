@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main ad62494] feat(gameplay): summonAdvanced efektas - iskviecia padara is pasirinktu zonu (ranka/kalade/kapinynas, gali visi 3), su kainos diapazonu (min/max), potipiu, kiekiu; laikas valdomas trigeriu (onSummon=1x, onTurnStart=kas ejima, ar bet koks)
+ 5 files changed, 77 insertions(+), 3 deletions(-)
+ create mode 100644 git-commit78.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   17580d1..ad62494  main -> main

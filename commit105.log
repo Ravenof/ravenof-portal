@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 29657bc] feat(game): kortose nebededam papildomo teksto/stats (matosi ant pacios kortos art) - readable rodo tik paveiksla; pradejus zaidima - fullscreen + screen wake lock (kiek narsykle leidzia)
+ 1 file changed, 48 insertions(+), 20 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   248f7af..29657bc  main -> main
+29657bc feat(game): kortose nebededam papildomo teksto/stats (matosi ant pacios kortos art) - readable rodo tik paveiksla; pradejus zaidima - fullscreen + screen wake lock (kiek narsykle leidzia)

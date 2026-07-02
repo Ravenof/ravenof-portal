@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/PvPLobby.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 08cc841] feat(pvp): PvP kovoje nerodomi tutorial pop-upai; header rodo varzovo varda+avatara (paspaudus - profilio popup su viesomis kaladmis ir nuoroda i profili); 60s ejimo laikmatis su auto end-turn
+ 2 files changed, 104 insertions(+), 11 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   463370c..08cc841  main -> main

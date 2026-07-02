@@ -1,0 +1,13 @@
+warning: in the working copy of 'src/app/admin/shop/AdminShopClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/cosmetics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit303.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260731_avatar_videos.sql', LF will be replaced by CRLF the next time Git touches it
+[main 7c4c2b9] feat(avatars): kvadratinis ornate rEmas + idle video. AvatarFrame perdarytas: vietoj apvalaus pic + HpVial flask -> kvadratinis frame.png remas (baltas fonas iskirptas flood-fill -> permatomas; backup frame_orig.png), portretas centre (vidinio lango insets is analizes T29/L28.5/R28/B33 jei avataras turi video, jie atsitiktinai groja vietoj portreto kas 20-60s (onEnded -> revert + reschedule). Migracija 20260731: cosmetics.videos jsonb + avatar-video bucket (mp4/webm 10MB) + rvn_get_cosmetics grazina videos. cosmetics.ts Cosmetic.videos + BattleAvatar.videos. Admin AvatarsTab: AdminAvatarVideos - multiple video ikelimas/preview/trynimas. tsc svarus.
+ 7 files changed, 150 insertions(+), 23 deletions(-)
+ create mode 100644 git-commit303.bat
+ create mode 100644 public/icons/frame.png
+ create mode 100644 public/icons/frame_orig.png
+ create mode 100644 supabase/migrations/20260731_avatar_videos.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   4dea81b..7c4c2b9  main -> main

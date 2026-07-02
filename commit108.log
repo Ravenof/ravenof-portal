@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/PvPLobby.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 45f2ab3] feat(pvp): reconnect - aktyvi partija saugoma (localStorage), host atkuria busena; presence + 30s grace (varzovui atsijungus laukiama 30s, neprisijungus - pergale); lobby 'Grizti i zaidima' mygtukas
+ 2 files changed, 118 insertions(+), 11 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   ac93f07..45f2ab3  main -> main
+45f2ab3 feat(pvp): reconnect - aktyvi partija saugoma (localStorage), host atkuria busena; presence + 30s grace (varzovui atsijungus laukiama 30s, neprisijungus - pergale); lobby 'Grizti i zaidima' mygtukas

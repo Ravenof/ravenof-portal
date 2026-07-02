@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/digital/DigitalAlbum.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/economy.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260618_booster_rarity.sql', LF will be replaced by CRLF the next time Git touches it
+[main 45f2be7] feat(digital): boosteriu retumo sistema - 2 boosteriai (Gerio gynejai / Tamsos aliansas) su frakciju ribojimu (pack_factions), slotu retumas rvn_open_pack_v3 (kortos 1-9 12/9/6/3/1, korta 10 Unikalus+ 6/3/1); parduotuve rodo abu, albume booster pasirinkimas
+ 5 files changed, 205 insertions(+), 25 deletions(-)
+ create mode 100644 git-commit142.bat
+ create mode 100644 supabase/migrations/20260618_booster_rarity.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   b7ad95e..45f2be7  main -> main

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit201.bat', LF will be replaced by CRLF the next time Git touches it
+[main d261164] polish(fx): atakos lunge letesnis (0.52s su pauze prie taikinio) + impact garsas, baltas blyksnis ir lentos drebtelejimas smugio momentu (~220ms)
+ 3 files changed, 19 insertions(+), 5 deletions(-)
+ create mode 100644 git-commit201.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   ca48aec..d261164  main -> main

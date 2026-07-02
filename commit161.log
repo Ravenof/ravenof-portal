@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/SummonBurst.tsx', LF will be replaced by CRLF the next time Git touches it
+[main ea13155] feat(fx): ugnies motyvas perdarytas - volumetric kylantis/issiplecantis pliupsnis (ne plokscios liepsnos ant tieses); didesnis bendras mastas (maxR 340->520, plinta nuo kortos placiau), tankesne body mase, svelnesnis vignette
+ 2 files changed, 272 insertions(+), 93 deletions(-)
+ create mode 100644 git-commit161.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   7d04464..ea13155  main -> main

@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 3599716] feat(triggers): onAnySummon iskvietimo saltinio filtras - 'tik is kapinyno/kalades/rankos/iprastai'; afterSummon seka origin (graveyard/deck/hand/play); admine dropdown rodomas tik prie onAnySummon. Kartu su triggerSide (savo/prieso) leidzia pvz 'kai prieso padaras prikeliamas is kapinyno'
+ 3 files changed, 27 insertions(+), 10 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   dc91d9a..3599716  main -> main

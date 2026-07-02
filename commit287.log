@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/RavenofCinematicOverlay.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/cinematics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit287.bat', LF will be replaced by CRLF the next time Git touches it
+[main 3d6ac6f] fix(cinematics): Legendiniu summon video daznai 'skip'indavo i poster. 4 priezastys pataisytos: (1) preloadCinematicVideos sukurdavo <video> be referencijos -> narsykle GC'ina ir nutraukia parsisiuntima; dabar laikom _preloadEls referencijas (cap 6). (2) preload visada eme webm, bet Safari/iOS groja mp4 -> collectDeckCinematicVideos dabar parenka pagal canPlayWebm() (webm Chrome, mp4 Safari) -> preload'inam ta pati faila, kuri overlay naudos. (3) START_TIMEOUT_MS 2600->7000 (saltam tinklui reikia laiko pradeti groti, kitaip krenta i poster). (4) overlay efekte pasalintas perteklinis v.load() - autoPlay+preload jau krauna, load() resetindavo elementa ir krautu is naujo prarandant cache/preload heads-up. tsc svarus.
+ 3 files changed, 33 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit287.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   a9f4ccd..3d6ac6f  main -> main

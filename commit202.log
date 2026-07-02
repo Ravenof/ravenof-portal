@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/lib/game/soundManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ui-sound.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit202.bat', LF will be replaced by CRLF the next time Git touches it
+[main eb3d9bb] fix(sfx): impact garsas - sintezuotas thud (zemas tonas + triuksmas) vietoj error pyptelejimo (playImpact ui-sound + soundManager fallback); itraukti atakos lunge+impact failai
+ 3 files changed, 15 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit202.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   d261164..eb3d9bb  main -> main

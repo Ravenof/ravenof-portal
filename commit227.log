@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 3dd52fb] fix(shop): prekiu plyteles nebesioverlapina - vietoj Tailwind arbitrary aspect-[3/4] (negeneruojama buildo) naudojamas inline aspectRatio paveikslo zonai + natural flow (be h-full grandines)
+ 2 files changed, 18 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit227.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   56c2507..3dd52fb  main -> main

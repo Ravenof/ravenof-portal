@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 093a858] feat(engine): 6 nauju kortu efektu galimybiu - laikinas buff (endOfTurn/untilNextTurn), prikelti butent sunaikinta taikini (reviveDestroyedTarget), summon pop-up su restrict/visi tinkami (summonChoose), card draw twist (is kapinyno/tik tipas/traukti N pasilikti K), grant raktazodi iskviestam padarui (targetSummoned). Admin editorius + zero regresiju (sim 26/3 kaip HEAD)
+ 5 files changed, 212 insertions(+), 14 deletions(-)
+ create mode 100644 git-commit224.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   e62c889..093a858  main -> main

@@ -1,0 +1,14 @@
+warning: in the working copy of 'git-commit179.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'next.config.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/ranked/RankedAdminClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260620_ranked_mode.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.eslintrc.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'check-build.bat', LF will be replaced by CRLF the next time Git touches it
+[main 93c09a5] feat(ranked): pilnas Reitingo kovos modulis - rankStep modelis (150 zingsniu, 50 numeriu x bronza/sidabras/auksas), server-authoritative RPC (sezonas/profilis/match-report su rango+loss-counter+EXP+auksas, rewards, achievements, leaderboard su tie-breakeriais, matchmaking queue, bot pick, admin set-rank/end-season), 20 botu+decks+rewards+achievements seed; UI (Ranked Home, matchmaking eile, match-found versus, rezultato ekranas, topas, atlygiai, pasiekimai, kovu/sezonu istorija, RankBadge bronze/silver/gold); admin debug irankiai (simulate win/loss, jump rank, end season, botu valdymas); TutorialGame ranked rezultato hook; bot fallback po 60s
+ 8 files changed, 65 insertions(+), 24 deletions(-)
+ create mode 100644 .eslintrc.json
+ create mode 100644 check-build.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   bfc2ff2..93c09a5  main -> main

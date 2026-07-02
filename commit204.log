@@ -1,0 +1,13 @@
+warning: in the working copy of 'src/components/digital/DigitalCoop.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit204.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/Team2v2Battle.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/cards.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main ce765c5] feat(2v2): FAZE 2 - zaidziamas realaus laiko 2v2 co-op vs botai kovos branduolys: engine (auksas laike, kuriniai, atakos su cooldown, bendras komandos HP, win), kortu uzkrovimas (zaidejo kalade + botu frakciju kuriniai), Team2v2Battle UI (4 lentos, 2 HP juostos, ranka, real-time loop, botai vienu metu), wire is lobby. Supaprastinta mechanika (be ZMK/efektu) - parity veliau
+ 5 files changed, 457 insertions(+)
+ create mode 100644 git-commit204.bat
+ create mode 100644 src/components/digital/Team2v2Battle.tsx
+ create mode 100644 src/lib/team2v2/cards.ts
+ create mode 100644 src/lib/team2v2/engine.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   c8a39d1..ce765c5  main -> main

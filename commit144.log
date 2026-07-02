@@ -1,0 +1,15 @@
+warning: in the working copy of 'src/components/admin/CardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/VoiceLinesUpload.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/voiceManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/card_audio_v1.sql', LF will be replaced by CRLF the next time Git touches it
+[main e596fb7] feat(audio): per-kortos iskvietimo balsai - kelios garso failai/kortai (gameplay.voiceLines), summon metu grojamas atsitiktinis; lag-safe voiceManager (lazy fetch+decode, LRU cache, in-flight dedup, vienas balso kanalas, prefetch ant draw); admin VoiceLinesUpload (card-audio bucket); veikia tutorial/PvE/PvP per TutorialGame; migracija supabase/card_audio_v1.sql
+ 8 files changed, 353 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit144.bat
+ create mode 100644 src/components/admin/VoiceLinesUpload.tsx
+ create mode 100644 src/lib/game/voiceManager.ts
+ create mode 100644 supabase/card_audio_v1.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   495bb47..e596fb7  main -> main

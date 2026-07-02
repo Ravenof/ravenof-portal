@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 64c28ca] fix(pvp): abu zaidejai zaide su host kalade - svecias dabar atsiuncia savo kalade host'ui per realtime (broadcast 'deck'/'reqdeck'), todel host nebereikia skaityti privacios svecio kalades is DB (RLS). Host laukia svecio kaladzes (nebenukrenta i savo kalade), su 8s saugikliu
+ 1 file changed, 41 insertions(+), 4 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   a7dd160..64c28ca  main -> main
+64c28ca fix(pvp): abu zaidejai zaide su host kalade - svecias dabar atsiuncia savo kalade host'ui per realtime (broadcast 'deck'/'reqdeck'), todel host nebereikia skaityti privacios svecio kalades is DB (RLS). Host laukia svecio kaladzes (nebenukrenta i savo kalade), su 8s saugikliu

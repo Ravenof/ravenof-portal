@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main e50373f] feat(gameplay-feel): Faze 4 - tikras HP delayed-reveal (hpHold override: HP rodmuo lieka senas kol smugis atskrieja, TADA krenta su punch animacija); engine fromZone laukas -> graveyard revive gauna graveRise efekta (vietoj portalo); AI puses kortos traukimo srautas (deck-ai/hand-ai)
+ 3 files changed, 32 insertions(+), 14 deletions(-)
+ create mode 100644 git-commit157.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   24491c8..e50373f  main -> main

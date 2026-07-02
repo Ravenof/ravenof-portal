@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main de25151] feat(hp): musio HP vial - didesnis fantasy potion butelys (kamstis, skystis, blikai) su sirdeles ikona ir HP skaiciumi virsuje; spalva pagal HP, <10 sirdele pulsuoja
+ 2 files changed, 36 insertions(+), 11 deletions(-)
+ create mode 100644 git-commit173.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   8350cbf..de25151  main -> main

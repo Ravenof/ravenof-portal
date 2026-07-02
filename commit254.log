@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/Flames.tsx', LF will be replaced by CRLF the next time Git touches it
+[main b265f53] fix(perf): pasalintas will-change nuo Flames (regresija is commit252). will-change + filter:blur + mix-blend-mode vertte GPU kiekvienam liepsnos elementui daryti atskira sluoksni + offscreen readback kas kadra -> labai stipriai stabdo vidutinio klaso telefonus (A54) ir naviguojant/kraunant. Likes tik reduced blur/elementai + paslepimas kovoje (lengvesni nei originalas).
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit254.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   8e5cd4c..b265f53  main -> main

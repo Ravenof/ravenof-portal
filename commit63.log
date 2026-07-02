@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 4df5c4c] feat(game): kapinynu perziura (hover PC / palaikius pirsta mobile - abi puses, kortos apziurai); sunaikinimo skrydzio animacija is lauko i kapinyna; traukimo animacija is kalades puses; auksas kaip moneta
+ 3 files changed, 132 insertions(+), 23 deletions(-)
+ create mode 100644 git-commit63.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   0e019a1..4df5c4c  main -> main

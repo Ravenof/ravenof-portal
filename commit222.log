@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 920e037] feat(brand): naujos kortu nugareles (back/curse/zmk webp) + naujas Ravenof logo kaip app ikona/favicon/PWA splash (pakeicia R raide): icon-192/512, maskable-512 (safe-zone), apple-touch-icon, favicon.ico
+ 10 files changed, 13 insertions(+)
+ create mode 100644 git-commit222.bat
+ create mode 100644 public/favicon.ico
+To https://github.com/Ravenof/ravenof-portal.git
+   f886781..920e037  main -> main

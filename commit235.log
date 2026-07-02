@@ -1,0 +1,14 @@
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/market/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/market/MarketClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/market.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260703_auction_house.sql', LF will be replaced by CRLF the next time Git touches it
+[main b97b4ef] feat(market): aukcionas (auction house) - fiksuota kaina auksu + escrow. /market puslapis (narsyti su paieska pagal korta/pardaveja, parduoti is kolekcijos, mano listingai su atsaukimu). RPC list/cancel/buy/browse/my (atominis pirkimas, korta+auksas persikelia). Listingai kabo nors user offline. Hub plytele
+ 6 files changed, 375 insertions(+)
+ create mode 100644 git-commit235.bat
+ create mode 100644 src/app/market/page.tsx
+ create mode 100644 src/components/market/MarketClient.tsx
+ create mode 100644 src/lib/market.ts
+ create mode 100644 supabase/migrations/20260703_auction_house.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   66145f8..b97b4ef  main -> main

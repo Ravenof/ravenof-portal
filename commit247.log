@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 50700cc] feat(battle): traukiama korta deck -> pop centre -> ranka; reveal kaip maza kortos dydzio pop-out PRIE taikinio (burtai/efektai/atakos), nebe centre. Varzovo rankos nugareliu veduokle su parallax (card-back kosmetikai). Backup _fx_backup_*/.bak.
+ 2 files changed, 45 insertions(+), 12 deletions(-)
+ create mode 100644 git-commit247.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   db67596..50700cc  main -> main

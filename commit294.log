@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit294.bat', LF will be replaced by CRLF the next time Git touches it
+[main 85de9fb] feat(ui/fx): suskleistas log + ZMK miniaturos prie taikinio + destroyed explosion (7,9,10/11). (7) Nuolatinis suskleistas spalvotas log desineje: kortu/ZMK miniaturos eiles tvarka, zalia=tu raudona=priesas, hover(desktop)/long-press(mobile) -> detalus kortos vaizdas; klik -> inspect, ZMK -> pilnas log. (9) ZMK auto-traukimo kortos dabar mazos miniaturos PRIE TAIKINIO (vietoj dideliu centre) - svariau; pozicija = damage target rect. (10) Sunaikinta korta: 3x3 kortos gabalai issilaksto i salis -> susiburia -> nuskrenda i kapinyna (flyingShatters), vietoj vien disintegrate daleliu. tsc svarus.
+ 3 files changed, 162 insertions(+), 56 deletions(-)
+ create mode 100644 git-commit293.bat
+ create mode 100644 git-commit294.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   18d7354..85de9fb  main -> main

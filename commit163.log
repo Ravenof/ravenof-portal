@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/SummonBurst.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 6b82e39] feat(fx): pakelti likusius motyvus iki expanded/volumetric lygio (full pool) - tendrils stori svytintys sluoksniuoti, rift su vidiniu sukuriu+bloom, eruption didesni/gausesni spygliai, pulse su sklindanciu desaturacijos disku, quake storesni gausesni plysiai + molten centras
+ 2 files changed, 36 insertions(+), 11 deletions(-)
+ create mode 100644 git-commit163.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   7a421dd..6b82e39  main -> main

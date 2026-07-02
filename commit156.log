@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 24491c8] feat(gameplay-feel): Faze 3 - destroy 'ghost-hold' (pasmerkta korta lieka vietoje su raudonu doom pulsavimu kol kirtis atskrieja, TADA subyra ir nuskrieja i kapinyna = delayed result readability); summon portalas efektu iskviestiems padarams; cempiono iskvietimo auksinis blyksnis; kortos traukimo srautas (deck->ranka)
+ 3 files changed, 44 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit156.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   fbddcc1..24491c8  main -> main

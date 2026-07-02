@@ -1,0 +1,16 @@
+warning: in the working copy of 'src/app/admin/cards/[cardId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/cards/actions.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/CardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/targetResolver.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260613_card_subtype.sql', LF will be replaced by CRLF the next time Git touches it
+[main c8caad6] feat(gameplay): padaru potipiai (subtype) - cards.subtype DB laukas, admin CardForm input, targetSubtype filtras effect engine'e (buffai/targeting pagal ZOMBIE/GOBLIN/DEMON)
+ 11 files changed, 53 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit57.bat
+ create mode 100644 supabase/migrations/20260613_card_subtype.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   4d6bc1f..c8caad6  main -> main

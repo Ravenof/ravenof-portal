@@ -1,0 +1,6 @@
+warning: in the working copy of 'supabase/migrations/20260617_pack_open.sql', LF will be replaced by CRLF the next time Git touches it
+[main 560d457] fix(db): rvn_open_pack unnest stulpelio aliasas u(cid) - pataiso 'column cid does not exist'
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   9d715da..560d457  main -> main
+560d457 fix(db): rvn_open_pack unnest stulpelio aliasas u(cid) - pataiso 'column cid does not exist'

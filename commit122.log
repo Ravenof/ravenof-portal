@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main d7621cf] feat(game): prakeiksmu pasirinkimo savininkas (chooseBy: caster/opponent) - chooseEffect pop-up gali rinktis auka (pvz. prakeiksmas: auka renkasi parodyt ranka ARBA patirt po 1 dmg uz korta). UI pop-up rodomas tam kas renkasi (chooser); PvP swapPerspective atnaujintas
+ 5 files changed, 26 insertions(+), 11 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   98ac86b..d7621cf  main -> main
+d7621cf feat(game): prakeiksmu pasirinkimo savininkas (chooseBy: caster/opponent) - chooseEffect pop-up gali rinktis auka (pvz. prakeiksmas: auka renkasi parodyt ranka ARBA patirt po 1 dmg uz korta). UI pop-up rodomas tam kas renkasi (chooser); PvP swapPerspective atnaujintas

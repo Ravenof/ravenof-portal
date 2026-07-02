@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectAnimations.ts', LF will be replaced by CRLF the next time Git touches it
+[main fbddcc1] feat(gameplay-feel): Faze 2 - frakciju parasai (riteriai/vagys/vejas=kirtis, inkvizicija=spindulys, kiti=projektilas) + spalvos; status FX (frozen/stunned=ledas, burning=ugnis, poisoned=nuodai, silenced=drain) ant kortos su shake; nauji burn/poison canvas efektai; field aktyvacijos banga; aukso praradimo/vagystes skaicius
+ 4 files changed, 60 insertions(+), 5 deletions(-)
+ create mode 100644 git-commit155.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   c915d1a..fbddcc1  main -> main

@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/fieldEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 0fee283] feat(game): Batch 4 UI/UX - Platusis laukas (padaru limitas 5->10), kortos hover(desktop)/palaikymas(mobile) detalus view savo+prieso, efektu glow + spalvotos busenu ikonos, taikymo etikete prie kursoriaus + mobile banner, mill pop-up animacija i kapinyna, 'Kruva'->'Kapinynas' etiketes, iPhone Safari safe-area/scroll fix
+ 5 files changed, 140 insertions(+), 31 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   1e61673..0fee283  main -> main
+0fee283 feat(game): Batch 4 UI/UX - Platusis laukas (padaru limitas 5->10), kortos hover(desktop)/palaikymas(mobile) detalus view savo+prieso, efektu glow + spalvotos busenu ikonos, taikymo etikete prie kursoriaus + mobile banner, mill pop-up animacija i kapinyna, 'Kruva'->'Kapinynas' etiketes, iPhone Safari safe-area/scroll fix

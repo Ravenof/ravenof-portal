@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/targetResolver.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+[main ac93f07] feat(game): burtai/efektai gali taikytis i kelis taikiniu TIPUS (varnelemis) - padaras+zaidejas+artefaktas+cempionas union; zaidejas renkasi is visu pazymetu (engine+UI+admin)
+ 5 files changed, 57 insertions(+), 16 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   374d4ec..ac93f07  main -> main
+ac93f07 feat(game): burtai/efektai gali taikytis i kelis taikiniu TIPUS (varnelemis) - padaras+zaidejas+artefaktas+cempionas union; zaidejas renkasi is visu pazymetu (engine+UI+admin)

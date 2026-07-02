@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'public/arenas/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/ArenaBackground.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 9562daa] feat(arena): 8 frakciju musio arenos (crypt/arcane/cathedral/citadel/inferno/scrapyard/harbor/dojo), parenkamos atsitiktinai kovos pradzioje - dangus+horizonto svytejimas+frakcijos siluetai+perspektyvines grindys+scenos sviesa+ambientas+vignette (proceduriniai, CSS/SVG). FILE-FIRST: public/arenas/<key>.jpg uzdengia procedurini jei yra
+ 4 files changed, 150 insertions(+)
+ create mode 100644 git-commit164.bat
+ create mode 100644 public/arenas/README.md
+ create mode 100644 src/components/tutorial/ArenaBackground.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   6b82e39..9562daa  main -> main

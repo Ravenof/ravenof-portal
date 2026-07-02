@@ -34,8 +34,11 @@ export function HubStyles() {
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -3px 7px rgba(120,70,0,0.5), 0 6px 18px rgba(240,180,41,0.35);
     }
     .rvn-gold-btn:disabled { filter: grayscale(0.6) brightness(0.7); }
-    .rvn-glow { animation: rvnGlow 2.4s ease-in-out infinite; }
-    @keyframes rvnGlow { 0%,100%{ box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 0 14px rgba(${GOLD},0.35); } 50%{ box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 0 26px rgba(${GOLD},0.65); } }
+    /* Glow be per-frame repaint: statinis šešėlis ant ::after, animuojama tik opacity (kompozitoriuje) */
+    .rvn-glow { position: relative; }
+    .rvn-glow::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+      box-shadow: 0 0 26px rgba(${GOLD},0.6); opacity: 0.35; animation: rvnGlowO 2.4s ease-in-out infinite; }
+    @keyframes rvnGlowO { 0%,100%{ opacity: 0.3; } 50%{ opacity: 1; } }
     .rvn-badge-pulse { animation: rvnBadge 1.8s ease-in-out infinite; }
     @keyframes rvnBadge { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.16); } }
     .rvn-sel { animation: rvnSel 2.2s ease-in-out infinite; }

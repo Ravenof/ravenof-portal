@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/app/admin/cards/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/AdminCardsTable.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/CardImageUpload.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 4ca6fd3] feat: zurnala uzdaryti braukiant i desine; detalus kortos view rodo tik korta (be papildomo teksto); admin korteliu lentele - akies ikona dideliam perziurai; admin kortos redagavime paspaudus paveiksla atsidaro detalus pop-up
+ 4 files changed, 35 insertions(+), 22 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   0872849..4ca6fd3  main -> main
+4ca6fd3 feat: zurnala uzdaryti braukiant i desine; detalus kortos view rodo tik korta (be papildomo teksto); admin korteliu lentele - akies ikona dideliam perziurai; admin kortos redagavime paspaudus paveiksla atsidaro detalus pop-up

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/app/digital/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/PracticeButton.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 771ba98] feat(digital): pagrindinio meniu vibe - judancios liepsnos fone, dideli israizyti blokai (astrus kampai + ornamentai). Blokai: Mokymasis, Kova pries AI, Kampanija (netrukus), PvP Rangin, PvP Laisva, Mano kortos, Parduotuve (netrukus). PracticeButton controlled rezimas (visa plytele triggerina)
+ 3 files changed, 168 insertions(+), 91 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   d7621cf..771ba98  main -> main
+771ba98 feat(digital): pagrindinio meniu vibe - judancios liepsnos fone, dideli israizyti blokai (astrus kampai + ornamentai). Blokai: Mokymasis, Kova pries AI, Kampanija (netrukus), PvP Rangin, PvP Laisva, Mano kortos, Parduotuve (netrukus). PracticeButton controlled rezimas (visa plytele triggerina)

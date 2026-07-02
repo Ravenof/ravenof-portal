@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 256d368] feat(gameplay): efektai revealOwnDeck / revealEnemyDeck - parodo N kalades virsutiniu kortu (tik perziurai, lieka kalades); modalas + AI pristabdymas
+ 5 files changed, 70 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit75.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   8edd99d..256d368  main -> main

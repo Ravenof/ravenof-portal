@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit209.bat', LF will be replaced by CRLF the next time Git touches it
+[main 6ee17ef] refactor(2v2 stage2): zala/gydymas/checkWin per komandos bendra HP kai mode=2v2 (applyPlayerDamage/applyPlayerHeal/winnerTeam); 1v1 helperiai krenta i ta pacia sena logika - elgsena identiska, tsc svarus
+ 2 files changed, 43 insertions(+), 8 deletions(-)
+ create mode 100644 git-commit209.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   dfaaa54..6ee17ef  main -> main

@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/app/admin/cards/[cardId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/admin/cards/new/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/CardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 6e67653] feat(admin): summon konkreciu kortu pasirinkimas dropdown'u (vietoj rasymo) - kortu sarasas uzkraunamas i editoriu, pridedi per dropdown, salini chip'ais
+ 5 files changed, 55 insertions(+), 9 deletions(-)
+ create mode 100644 git-commit86.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   188a0d6..6e67653  main -> main

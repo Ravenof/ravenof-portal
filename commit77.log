@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 17580d1] feat(gameplay): efektai selfToEnemyHand / selfToOwnHand - Paskutinio noro metu korta keliauja i prieso/savo ranka vietoj kapinyno (killUnit reroute)
+ 4 files changed, 33 insertions(+), 4 deletions(-)
+ create mode 100644 git-commit77.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   b2ccabe..17580d1  main -> main

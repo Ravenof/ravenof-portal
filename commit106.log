@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 374d4ec] feat(game): ejimo laikmatis 120s (vietoj 60); paskutines 20s - didelis raudonas laikrodis ekrano viduryje-virsuje; pasikeitus ejimui - per centra parodomas aktyvaus zaidejo nickas + 'eile'
+ 1 file changed, 51 insertions(+), 4 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   29657bc..374d4ec  main -> main
+374d4ec feat(game): ejimo laikmatis 120s (vietoj 60); paskutines 20s - didelis raudonas laikrodis ekrano viduryje-virsuje; pasikeitus ejimui - per centra parodomas aktyvaus zaidejo nickas + 'eile'

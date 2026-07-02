@@ -43,6 +43,7 @@ export function NotificationCenter() {
 
     let alive = true
     const tick = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return // fone netraukiam
       const evs = await pollNotifications(sinceRef.current)
       if (!alive || evs.length === 0) return
       const maxTs = evs.reduce((m, e) => (e.ts > m ? e.ts : m), sinceRef.current || '')

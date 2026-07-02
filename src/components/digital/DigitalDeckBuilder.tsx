@@ -577,7 +577,7 @@ function Thumb({ c, owned, size = 44 }: { c: CardWithRelations; owned: number; s
     <span className="relative block overflow-hidden rounded-md shrink-0" style={{ width: size, height: size, border: `1.5px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}` }}>
       {c.image_url && !bad
         // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={c.image_url} alt="" onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.5)' }} />
+        ? <img src={c.image_url} alt="" onError={() => setBad(true)} draggable={false} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.5)' }} />
         : <span className="absolute inset-0 flex items-center justify-center text-sm" style={{ background: '#15101f' }}>🎴</span>}
       {owned <= 0 && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.7)' }} /></span>}
     </span>

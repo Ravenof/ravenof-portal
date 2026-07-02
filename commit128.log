@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/digital/PackOpen.tsx', LF will be replaced by CRLF the next time Git touches it
+[main a203b4b] fix(digital): pakuotes atplesimas patogesnis - tempk i SONA (pusinio plesimo uztenka) arba bakstelek, plius garantuotas 'Atplesti pakuote' mygtukas; nebegali nepavykti
+ 1 file changed, 55 insertions(+), 39 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   8537965..a203b4b  main -> main
+a203b4b fix(digital): pakuotes atplesimas patogesnis - tempk i SONA (pusinio plesimo uztenka) arba bakstelek, plius garantuotas 'Atplesti pakuote' mygtukas; nebegali nepavykti

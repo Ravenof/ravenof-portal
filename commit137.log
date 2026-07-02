@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/album/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalAlbum.tsx', LF will be replaced by CRLF the next time Git touches it
+[main b7ac8de] feat(digital): FAZE 2 - kortu albumas (/digital/album) binderis su besivercianciais puslapiais (3x3 kisenes, page-flip), pakuociu atplesimas perkeltas i albuma (is parduotuves), digital nav Albumas
+ 4 files changed, 166 insertions(+), 14 deletions(-)
+ create mode 100644 src/app/digital/album/page.tsx
+ create mode 100644 src/components/digital/DigitalAlbum.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   db236a0..b7ac8de  main -> main
+b7ac8de feat(digital): FAZE 2 - kortu albumas (/digital/album) binderis su besivercianciais puslapiais (3x3 kisenes, page-flip), pakuociu atplesimas perkeltas i albuma (is parduotuves), digital nav Albumas

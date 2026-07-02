@@ -2,7 +2,7 @@
 
 // ── Kosmetika: kortų nugarėlės / lentos / avatarai (aukso sink) ───────────────
 import { useEffect, useState } from 'react'
-import { getCosmetics, buyCosmetic, equipCosmetic, type Cosmetic, type CosmeticKind, type CosmeticsState } from '@/lib/cosmetics'
+import { getCosmetics, buyCosmetic, equipCosmetic, getAvatarAudio, type Cosmetic, type CosmeticKind, type CosmeticsState, type AvatarAudioMap } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
 const KIND_LABEL: Record<CosmeticKind, string> = { card_back: 'Nugarėlės', board: 'Lentos', avatar: 'Avatarai' }
@@ -14,9 +14,23 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [localGold, setLocalGold] = useState(gold)
+  const [avAudio, setAvAudio] = useState<AvatarAudioMap>({})
+  const previewVoice = (id: string) => {
+    const evs = avAudio[id]
+    if (!evs) return
+    const clips = evs.selected ?? evs.fightStart ?? evs.victory ?? Object.values(evs)[0]
+    if (!clips?.length) return
+    playUiClick()
+    try { const a = new Audio(clips[Math.floor(Math.random() * clips.length)].url); a.volume = 0.85; void a.play().catch(() => {}) } catch { /* */ }
+  }
 
   const reload = () => getCosmetics().then(setState)
   useEffect(() => { reload() }, [])
+  useEffect(() => {
+    const avs = (state?.items ?? []).filter((c) => c.kind === 'avatar').map((c) => c.id)
+    if (avs.length === 0) return
+    getAvatarAudio(avs).then(setAvAudio)
+  }, [state])
 
   const equippedFor = (kind: CosmeticKind): string | null =>
     kind === 'card_back' ? state?.equippedCardBack ?? null
@@ -67,22 +81,32 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
               const equipped = equippedFor(c.kind) === c.id
               return (
                 <div key={c.id} className="px-2.5 py-2.5" style={{ borderRadius: 10, background: 'linear-gradient(160deg, rgba(58,42,85,0.4), rgba(21,16,31,0.7))', border: `1px solid ${equipped ? 'rgba(74,222,128,0.6)' : 'rgba(96,165,250,0.25)'}` }}>
-                  <div className="h-16 w-full mb-2 flex items-center justify-center" style={{ borderRadius: 8, background: c.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    {c.emoji && <span className="text-3xl">{c.emoji}</span>}
+                  <div className="relative h-16 w-full mb-2 flex items-center justify-center overflow-hidden" style={{ borderRadius: c.kind === 'avatar' ? 999 : 8, width: c.kind === 'avatar' ? 64 : undefined, marginLeft: c.kind === 'avatar' ? 'auto' : undefined, marginRight: c.kind === 'avatar' ? 'auto' : undefined, height: c.kind === 'avatar' ? 64 : 64, background: c.imageUrl ? '#0a0810' : (c.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)'), border: c.kind === 'avatar' ? '2px solid rgba(240,180,41,0.5)' : '1px solid rgba(255,255,255,0.08)' }}>
+                    {c.imageUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" draggable={false} />
+                      : (c.emoji && <span className="text-3xl">{c.emoji}</span>)}
+                    {c.kind === 'avatar' && avAudio[c.id] && (
+                      <button onClick={() => previewVoice(c.id)} title="Peržiūrėti balsą"
+                        className="absolute bottom-0 right-0 rounded-tl-md text-[11px] px-1.5 py-0.5" style={{ background: 'rgba(8,6,12,0.92)', color: 'var(--gold)' }}>🔊</button>
+                    )}
                   </div>
-                  <p className="text-[11px] font-bold truncate" style={{ color: '#f3ead3' }}>{c.name}</p>
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[11px] font-bold truncate" style={{ color: '#f3ead3' }}>{c.name}</p>
+                    {c.rarity && <span className="text-[8px] uppercase shrink-0" style={{ color: c.rarity === 'legendary' ? '#fbbf24' : c.rarity === 'epic' ? '#c084fc' : c.rarity === 'rare' ? '#60a5fa' : 'var(--text-muted)' }}>{c.rarity}</span>}
+                  </div>
                   <p className="text-[9px] mb-2 leading-snug h-6 overflow-hidden" style={{ color: 'var(--text-muted)' }}>{c.description}</p>
                   {owned ? (
                     <button onClick={() => doEquip(c)} disabled={busy === c.id}
                       className="w-full px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all disabled:opacity-50 hover:scale-[1.03] active:scale-95"
                       style={{ background: equipped ? 'rgba(74,222,128,0.18)' : 'rgba(96,165,250,0.22)', border: `1px solid ${equipped ? 'rgba(74,222,128,0.6)' : 'rgba(96,165,250,0.5)'}`, color: equipped ? '#4ade80' : '#93c5fd' }}>
-                      {equipped ? '✓ Naudojama' : 'Naudoti'}
+                      {equipped ? '✓ Pasirinkta' : 'Pasirinkti'}
                     </button>
                   ) : (
                     <button onClick={() => doBuy(c)} disabled={busy === c.id || localGold < c.priceGold}
                       className="w-full px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all disabled:opacity-40 hover:scale-[1.03] active:scale-95"
-                      style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)' }}>
-                      🪙 {c.priceGold}
+                      style={{ background: localGold < c.priceGold ? 'rgba(80,80,80,0.2)' : 'rgba(240,180,41,0.2)', border: `1px solid ${localGold < c.priceGold ? 'rgba(255,255,255,0.15)' : 'rgba(240,180,41,0.6)'}`, color: localGold < c.priceGold ? 'var(--text-muted)' : 'var(--gold)' }}>
+                      {localGold < c.priceGold ? 'Nepakanka aukso' : '🪙 ' + c.priceGold}
                     </button>
                   )}
                 </div>

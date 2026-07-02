@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit289.bat', LF will be replaced by CRLF the next time Git touches it
+[main 389fb22] feat(mappings): gold efektai (1/11). gainGold/loseGold gauna goldAppliesTo (Sau/Priesininkui) - visos kombinacijos pridet/atimt auksa sau ar priesui. Naujas efektas cardCostMod: sekanti korta kainuoja +/- (costModDelta), gali but pagal tipa (any/unit/spell/artifact/reaction/field) ir kam (Sau/Priesininkui); PlayerState.nextCardCostMods, effectiveCost prideda, suvartojama suzaidus tinkama korta. Naujas globalus trigeris onOpponentGoldEmpty - fire'inamas priesininko kortoms kai zaidejas isleidzia visa auksa (playCard wrapper + fireGlobalListeners). Trigeriai onPlay/onTurnStart/onTurnEnd jau buvo. Admin: appliesTo selectai + cardCostMod laukai. tsc svarus.
+ 7 files changed, 300 insertions(+), 43 deletions(-)
+ create mode 100644 git-commit288.bat
+ create mode 100644 git-commit289.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   3d6ac6f..389fb22  main -> main

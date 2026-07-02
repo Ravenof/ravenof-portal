@@ -1,0 +1,23 @@
+warning: in the working copy of 'src/app/digital/deck/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalCoop.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvE.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvP.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalPvp2v2.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/decks/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalCommunityDecks.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalDeckBuilder.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalDecks.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalMyDecks.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 5713189] feat(digital): Kaladziu hub /digital/decks (Faze 2). Segment tabs: Deck Builder / Mano kalades / Bendruomene. Mobile Deck Builder (frakciju korteles, Tik turimos + Universalios toggle, owned+rarity limito enforcement, list/grid, preview, sticky summary + validacija, Privati/Viesa). Mano kalades (valid/invalid badge, ownership truksta, redaguoti/isbandyti, dubliuoti/trinti). Bendruomenes kalades (paieska/frakcija/sort, tik kurias galiu susideti, detali su owned/missing grayscale, kopijuoti i Mano kalades). Nav Kalades -> /digital/decks; /digital/deck redirectina i nauja hub. Jokio portal redirect.
+ 14 files changed, 812 insertions(+), 56 deletions(-)
+ create mode 100644 git-commit241.bat
+ create mode 100644 src/app/digital/decks/page.tsx
+ create mode 100644 src/components/digital/DigitalCommunityDecks.tsx
+ create mode 100644 src/components/digital/DigitalDeckBuilder.tsx
+ create mode 100644 src/components/digital/DigitalDecks.tsx
+ create mode 100644 src/components/digital/DigitalMyDecks.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   6456683..5713189  main -> main

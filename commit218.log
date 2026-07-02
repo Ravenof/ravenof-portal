@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit218.bat', LF will be replaced by CRLF the next time Git touches it
+[main e807ae4] chore(2v2): isimti CO-OP 2v2 ir PVP 2v2 plyteles is hub navigacijos (nedarom 2v2). 2v2 kodas lieka repo bet nepasiekiamas is nav
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit218.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   5320247..e807ae4  main -> main

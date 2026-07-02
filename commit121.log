@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 98ac86b] feat(game): zaidejas gali perziureti savo padetas reakcijas (peek, kaip kapinyna) - paspaudus savo reakcijos korta atsidaro pop-up su kortom; prieso reakcijos lieka paslepetos
+ 1 file changed, 20 insertions(+), 6 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   2638a20..98ac86b  main -> main
+98ac86b feat(game): zaidejas gali perziureti savo padetas reakcijas (peek, kaip kapinyna) - paspaudus savo reakcijos korta atsidaro pop-up su kortom; prieso reakcijos lieka paslepetos

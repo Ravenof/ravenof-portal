@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 15a1a83] feat(game): mobile ranka - tikra korta veduokle (arc fan) su didelemis skaitomomis kortomis (pavadinimas+efekto tekstas ant kortos), palaikius/hover korta issididdina pilnam skaitymui, zaidziama tempimu; isskleidus palietimas = skaitymas
+ 1 file changed, 56 insertions(+), 22 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   0feacc6..15a1a83  main -> main
+15a1a83 feat(game): mobile ranka - tikra korta veduokle (arc fan) su didelemis skaitomomis kortomis (pavadinimas+efekto tekstas ant kortos), palaikius/hover korta issididdina pilnam skaitymui, zaidziama tempimu; isskleidus palietimas = skaitymas

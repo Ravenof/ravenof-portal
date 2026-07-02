@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 41527af] feat(game): suzaidus burta - kortos pop-up 1s (tavo/prieso); prakeiksmas - pop-up su 'IMAISOMAS' imaisant i kalade ir 'AKTYVUOJAMAS' istraukus aukai; veikia desktop+mobile (centrinis overlay)
+ 1 file changed, 34 insertions(+), 24 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   4ca6fd3..41527af  main -> main
+41527af feat(game): suzaidus burta - kortos pop-up 1s (tavo/prieso); prakeiksmas - pop-up su 'IMAISOMAS' imaisant i kalade ir 'AKTYVUOJAMAS' istraukus aukai; veikia desktop+mobile (centrinis overlay)

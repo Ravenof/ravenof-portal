@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit198.bat', LF will be replaced by CRLF the next time Git touches it
+[main 8709b63] feat(admin/aura): Burtu zala +X (auraSpellDamage) + tik tipui perkelta i pagrindini Pasyvi aura bloka (salia +ATK/+HP/scope/frakcija); itraukta i auraOn; pasalintas dublikatas is Pranasumas bloko
+ 2 files changed, 25 insertions(+), 14 deletions(-)
+ create mode 100644 git-commit198.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   630660a..8709b63  main -> main

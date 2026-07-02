@@ -1,0 +1,8 @@
+warning: in the working copy of 'git-commit185.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260623_ranked_fixes.sql', LF will be replaced by CRLF the next time Git touches it
+[main 6a6684b] fix(ranked): xp_transactions CHECK kuriamas dinamiskai (visos jau esancios source_type reiksmes + ranked_*), kad nepazeistu egzistuojanciu eiluciu - migracija praeina iki galo
+ 2 files changed, 352 insertions(+)
+ create mode 100644 git-commit185.bat
+ create mode 100644 supabase/migrations/20260623_ranked_fixes.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   a0e4158..6a6684b  main -> main

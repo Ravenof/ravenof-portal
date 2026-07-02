@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/digital/Team2v2Battle.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/cards.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit206.bat', LF will be replaced by CRLF the next time Git touches it
+[main 83f1f4d] feat(2v2): kovos suksniu (battlecry) palaikymas - onSummon/onPlay efektai parse is gameplay (damage/aoeDamage/heal/buffAtk/buffHp/draw), resolve playUnit metu su komandine taikymo logika (zaidejui ir botams); ivykiu log juosta UI
+ 4 files changed, 75 insertions(+), 3 deletions(-)
+ create mode 100644 git-commit206.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   2cc7250..83f1f4d  main -> main

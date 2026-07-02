@@ -1,0 +1,14 @@
+warning: in the working copy of 'src/lib/game/musicManager.ts', LF will be replaced by CRLF the next time Git touches it
+[main 08e25d5] feat(audio): ikelti fono muzikos mp3 (menu-theme + 7 kovos trekai) ir isplesti musicManager iki 7 random treku su error-skip
+ 10 files changed, 18 insertions(+), 3 deletions(-)
+ create mode 100644 git-commit146.bat
+ create mode 100644 public/sounds/music/battle-1.mp3
+ create mode 100644 public/sounds/music/battle-2.mp3
+ create mode 100644 public/sounds/music/battle-3.mp3
+ create mode 100644 public/sounds/music/battle-4.mp3
+ create mode 100644 public/sounds/music/battle-5.mp3
+ create mode 100644 public/sounds/music/battle-6.mp3
+ create mode 100644 public/sounds/music/battle-7.mp3
+ create mode 100644 public/sounds/music/menu-theme.mp3
+To https://github.com/Ravenof/ravenof-portal.git
+   01eb355..08e25d5  main -> main

@@ -1,0 +1,16 @@
+warning: in the working copy of 'src/app/arena/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/nav.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/PvPLobby.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260615_pvp_matches.sql', LF will be replaced by CRLF the next time Git touches it
+[main 8919308] feat(digital+pvp): Ravenof Digital sub-hub (/digital) su tutorial/praktika/AI/PvP; realaus laiko PvP - privatus kambarys (kodas) + atsitiktine eile, client-authoritative host per Supabase Realtime broadcast, swap-perspektyva svetiui; nav+arena nuorodos; SQL migracija pvp_matches (paleisti p?iam)
+ 8 files changed, 557 insertions(+), 35 deletions(-)
+ create mode 100644 src/app/digital/page.tsx
+ create mode 100644 src/components/digital/DigitalHub.tsx
+ create mode 100644 src/components/digital/PvPLobby.tsx
+ create mode 100644 supabase/migrations/20260615_pvp_matches.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   3599716..8919308  main -> main

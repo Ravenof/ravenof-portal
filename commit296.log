@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit296.bat', LF will be replaced by CRLF the next time Git touches it
+[main 9991e0f] fix(fx): explosion + ZMK target tikslinimas. (10) Sunaikintos kortos gabalai nebereasemblinasi i origin - issilaksto trumpai (0.28) tada skrenda TIESIAI i kapinyna ir TEN sukrinta i kruva (be tarpinio sugrupavimo vietoje). Pridetas garsas: smugis sprogimo metu + duslus smugis kai gabalai sukrinta kapinyne (~1s). (9) ZMK miniaturos dabar atsiranda PRIE savo taikinio, ne visos prie player: damage log neturi tgt kuriniams, todel taikinys randamas pagal cardName (kurinys/artefaktas pagal varda), player jei tiesiogine zala, fallback i paskutini pasirinkta tgt (uid->cache, veikia ir mirusiems). AoE/multi -> ZMK prie VISU taikiniu (grupuojama pagal pozicija). tsc svarus.
+ 2 files changed, 64 insertions(+), 33 deletions(-)
+ create mode 100644 git-commit296.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   03930c0..9991e0f  main -> main

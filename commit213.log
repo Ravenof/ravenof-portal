@@ -1,0 +1,12 @@
+warning: in the working copy of 'src/components/digital/DigitalCoop.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit213.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/Team2v2Game.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/load.ts', LF will be replaced by CRLF the next time Git touches it
+[main 1828539] feat(2v2 stage5b): zaidziama 2v2 co-op vs botai - legalTargets/attack komandiniai (target.side/enemySeats; 1v1 identiska), kortu uzkrovikis 4 seatams (load.ts, pilna mechanika), Team2v2Game UI (4 lentos, 2 komandu HP, komandos ejimas, ranka, ataku taikymas, AI ally+priesai), DigitalCoop lobby paleidimas. Naudoja tikra varikli (ZMK/efektai/battlecry). v1 ribos: global-listener passyvai/auros skenuoja tik you/ai
+ 5 files changed, 363 insertions(+), 19 deletions(-)
+ create mode 100644 git-commit213.bat
+ create mode 100644 src/components/digital/Team2v2Game.tsx
+ create mode 100644 src/lib/team2v2/load.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   30f766e..1828539  main -> main

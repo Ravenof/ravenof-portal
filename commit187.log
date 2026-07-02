@@ -1,0 +1,22 @@
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/musicManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/soundManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/voiceManager.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ranked/sound.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ui-sound.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit187.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/SettingsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/settings-sync.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/settings.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260624_digital_settings.sql', LF will be replaced by CRLF the next time Git touches it
+[main 1573253] feat(settings): Digital meniu nustatymai - atskiri muzikos ir SFX garsumo slankikliai + summon efektu jungiklis; issaugoma per vartotoja (localStorage + profiles.digital_settings DB sync), prisimena ir kitame irenginyje. Muzika gyvai reaguoja i garsuma; SFX/voice/ranked garsai skaliuojami; summon FX gating TutorialGame
+ 13 files changed, 265 insertions(+), 8 deletions(-)
+ create mode 100644 git-commit187.bat
+ create mode 100644 src/components/digital/SettingsModal.tsx
+ create mode 100644 src/lib/settings-sync.ts
+ create mode 100644 src/lib/settings.ts
+ create mode 100644 supabase/migrations/20260624_digital_settings.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   e7dce7c..1573253  main -> main

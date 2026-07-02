@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit292.bat', LF will be replaced by CRLF the next time Git touches it
+[main 18d7354] feat(aura): antra ataka sunaikinus padara (5/11). Naujas passiveAura.auraSecondAttack + auraSecondAttackCond (any/taunt/shield). Engine: attack() po sunaikinimo, jei puolantysis gyvas ir veikiamas tokios auros (su salyga - sunaikintas padaras turejo Pasisaipyma ar Magiska skyda, ar bet kuris), grazinam atakos teise (attacksUsed-1, attacksThisTurn-1) -> gali pulti dar karta. Sau: auraIncludesSelf. Admin: aura sekcijoje checkbox + salygos select. tsc svarus.
+ 4 files changed, 54 insertions(+), 1 deletion(-)
+ create mode 100644 git-commit292.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   1524e37..18d7354  main -> main

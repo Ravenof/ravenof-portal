@@ -1,0 +1,105 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/rules/ChampionRulesBlock.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/rules/DamageModifierDeckBlock.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/rules/RulesPageClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/data/rules.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/script.ts', LF will be replaced by CRLF the next time Git touches it
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   src/components/admin/GameplayConfigEditor.tsx
+	modified:   src/components/rules/ChampionRulesBlock.tsx
+	modified:   src/components/rules/DamageModifierDeckBlock.tsx
+	modified:   src/components/rules/RulesPageClient.tsx
+	modified:   src/data/rules.ts
+	modified:   src/lib/game/effectEngine.ts
+	modified:   src/lib/game/types.ts
+	modified:   src/lib/tutorial/engine.ts
+	modified:   src/lib/tutorial/script.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	card-images-import/
+	commit52.log
+	commit53.log
+	commit54.log
+	commit55.log
+	commit56.log
+	commit57.log
+	commit58.log
+	commit59.log
+	commit60.log
+	commit61.log
+	commit62.log
+	commit63.log
+	commit64.log
+	commit65.log
+	commit66.log
+	commit67.log
+	commit68.log
+	commit69.log
+	commit70.log
+	commit71.log
+	commit72.log
+	commit73.log
+	commit74.log
+	commit75.log
+	commit76.log
+	commit77.log
+	commit78.log
+	commit79.log
+	commit80.log
+	commit81.log
+	commit82.log
+	commit83.log
+	commit84.log
+	commit85.log
+	commit86.log
+	commit87.log
+	commit88.log
+	commit89.log
+	commit90.log
+	commit91.log
+	commit92.log
+	commit93.log
+	commit94.log
+	commit95.log
+	commit96.log
+	commit97.log
+	git-cleanup.bat
+	git-commit31.bat
+	git-commit32.bat
+	git-commit33.bat
+	git-commit34.bat
+	git-commit35.bat
+	git-commit36.bat
+	git-commit37.bat
+	git-commit38.bat
+	git-commit39.bat
+	git-commit40.bat
+	git-commit41.bat
+	git-commit42.bat
+	git-commit43.bat
+	git-commit87.bat
+	git-commit88.bat
+	git-commit89.bat
+	git-commit90.bat
+	git-commit91.bat
+	git-commit92.bat
+	git-commit93.bat
+	git-commit94.bat
+	git-commit95.bat
+	git-commit96.bat
+	git-commit97.bat
+	kortos/
+
+[main 3282ba8] feat(game): burtu tipai + busenu trukmes (silence=visam laikui) + advantage/disadvantage ZMK auros + burto nuolaida/+zala/vampyrizmas; 'kruva'->'kapinynas' visur; admin editorius (Batch 1)
+ 9 files changed, 247 insertions(+), 52 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   fdd13fe..3282ba8  main -> main
+3282ba8 feat(game): burtu tipai + busenu trukmes (silence=visam laikui) + advantage/disadvantage ZMK auros + burto nuolaida/+zala/vampyrizmas; 'kruva'->'kapinynas' visur; admin editorius (Batch 1)

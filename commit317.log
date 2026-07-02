@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit317.bat', LF will be replaced by CRLF the next time Git touches it
+[main 795bd04] feat(mobile): lauko korta -> fixed kairysis slotas (per viduri), board pastumtas i desine. Lauko korta pasalinta is vidurio juostos; dabar fixed kaireje-viduryje (veidrodis desines log juostos). Unit/zonu eiles gauna pl/pr paddingus (nesikerta su lauko slotu ir log). Kurinio slotas mobile 58->50 kad 5 tilptu be wrap tarp field ir log. Vidurio juosta = tik ivykiu tekstas (nebe overlap ant lauko kortos). tsc svarus.
+ 2 files changed, 36 insertions(+), 22 deletions(-)
+ create mode 100644 git-commit317.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   d657b11..795bd04  main -> main

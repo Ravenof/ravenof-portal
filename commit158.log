@@ -1,0 +1,10 @@
+warning: in the working copy of 'src/components/tutorial/BattleEffectOverlay.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/SummonBurst.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 7d04464] feat(fx): summon efektu remake - 22 dark-fantasy variantai (vietoj 8), ORIGIN-BASED (plinta nuo iskviestos kortos i aplinka, ne full-screen). Naujas SummonBurst canvas variklis (centrinis glow + sklindantys ziedai + teminiai particle + glifai kaukole/pentagrama/runa/akis/kryzius + formos plysiai/sesielu tendriliai/sviesos stulpas); BattleEffectOverlay atjungtas; screen shake per fxRef
+ 5 files changed, 197 insertions(+), 20 deletions(-)
+ create mode 100644 git-commit158.bat
+ create mode 100644 src/components/tutorial/SummonBurst.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   e50373f..7d04464  main -> main

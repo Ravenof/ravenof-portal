@@ -1,0 +1,16 @@
+warning: in the working copy of 'src/app/community-decks/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/my-decks/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/my-decks/MyDecksList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/community-decks/meta/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/my-decks/DeckImportButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/my-decks/ShareCodeButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/deckCode.ts', LF will be replaced by CRLF the next time Git touches it
+[main 87151a8] feat(decks): dalijimosi kodai (export/import base64 'RVN1-' binarinis) - Kodas mygtukas kaladeje (kopijuoja), Ikelti koda mano-kaladese (sukuria kalade is kodo) + meta statistikos puslapis /community-decks/meta (populiariausios frakcijos + kortos is viesu kaladziu)
+ 8 files changed, 297 insertions(+)
+ create mode 100644 git-commit233.bat
+ create mode 100644 src/app/community-decks/meta/page.tsx
+ create mode 100644 src/components/my-decks/DeckImportButton.tsx
+ create mode 100644 src/components/my-decks/ShareCodeButton.tsx
+ create mode 100644 src/lib/deckCode.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   af4ec6f..87151a8  main -> main

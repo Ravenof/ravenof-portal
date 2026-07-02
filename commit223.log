@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/economy.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260630_daily_deal_fix.sql', LF will be replaced by CRLF the next time Git touches it
+[main e62c889] fix(shop): dienos kortu fix (patikimas md5 parinkimas vietoj setseed/bit) + parduotuves redizainas - visos prekes viename tinklelyje (kvadratai: didelis pic + pavadinimas/kaina apacioj), filtrai virsuje digital-portal stiliumi, pirkimas integruotas i plytele
+ 4 files changed, 192 insertions(+), 179 deletions(-)
+ create mode 100644 git-commit223.bat
+ create mode 100644 supabase/migrations/20260630_daily_deal_fix.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   920e037..e62c889  main -> main

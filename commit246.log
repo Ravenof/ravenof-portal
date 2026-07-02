@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main db67596] feat(battle): kovos reveal/animacijos. (1) Card draw - vietoj centrinio overlap'inancio popup korta atskrieja is kalades i ranka (tavo - atversta, priesininko - nugarele). (2) Burtu/prakeiksmu reveal - mazesnis ir virsuje (nebeuzdengia lentos). (3) Varzovo ranka - kortu nugareliu veduokle kuri lenkiasi link zvilgsnio (parallax; card-back kosmetikai). Field->kapinynas skrydis jau veike. Backup: _fx_backup_*/ (.bak).
+ 2 files changed, 86 insertions(+), 19 deletions(-)
+ create mode 100644 git-commit246.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   aeec77f..db67596  main -> main

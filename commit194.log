@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit194.bat', LF will be replaced by CRLF the next time Git touches it
+[main 6d58025] fix(fx): pilno lauko AoE animacija pasileidzia jau nuo 2 taikiniu (isk. zaidejo pasirinktus), aoeMode slenkstis 3->2
+ 2 files changed, 18 insertions(+), 2 deletions(-)
+ create mode 100644 git-commit194.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   484a7e8..6d58025  main -> main

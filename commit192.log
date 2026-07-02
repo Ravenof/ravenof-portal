@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/tutorial/BattleFxLayer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit192.bat', LF will be replaced by CRLF the next time Git touches it
+[main 484a7e8] feat(fx): AoE efektai - pilno lauko sviesa+dumai+daleles pagal elementa (fire/lightning/ice/poison/arcane/holy), be linijuir ikonu; aoeWave perdarytas i particle sistema (additive glow, light wash, smoke clouds); variant laukas BattleFxLayer + perduodamas is TutorialGame pagal pasirinkta projectile elementa
+ 3 files changed, 106 insertions(+), 19 deletions(-)
+ create mode 100644 git-commit192.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   e2a8e09..484a7e8  main -> main

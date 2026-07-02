@@ -1,0 +1,6 @@
+warning: in the working copy of 'supabase/migrations/20260617_pack_open.sql', LF will be replaced by CRLF the next time Git touches it
+[main 9d715da] fix(db): rvn_open_pack nebenaudoja user_collections.updated_at (stulpelio nera) - pataiso 'column does not exist'; klaida rodo tikra teksta
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   cc2aa2a..9d715da  main -> main
+9d715da fix(db): rvn_open_pack nebenaudoja user_collections.updated_at (stulpelio nera) - pataiso 'column does not exist'; klaida rodo tikra teksta

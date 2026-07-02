@@ -1,0 +1,6 @@
+warning: in the working copy of 'git-commit290.bat', LF will be replaced by CRLF the next time Git touches it
+[main 1524e37] feat(mappings): 'Arba padaryk' OR-branch + dynamic value sekundariniams (2/11). Salia '+ Tada padaryk dar' pridetas '+ Arba padaryk' - sukuria chooseEffect then-irasa su 2 variantais (A/B), kiekvienas su efektu/taikiniu/reiksme; pop-up renkasi Tu arba Priesininkas (chooseBy). Engine chooseEffect runtime jau veike. Kiekvienas 'tada padaryk' then-irasas dabar turi 'Dinamine' reiksme (baze + perEach x metrika, pvz. lastDamageDealt) - chainDamage jau propaguojamas i then. Pvz.: skill AoE 1 visiem creature, tada +ATK self = padaryta zala. tsc svarus.
+ 1 file changed, 12 insertions(+)
+ create mode 100644 git-commit290.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   389fb22..1524e37  main -> main

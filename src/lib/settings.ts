@@ -136,3 +136,18 @@ export function subscribeSettings(cb: (s: DigitalSettings) => void): () => void 
   listeners.add(cb)
   return () => { listeners.delete(cb) }
 }
+
+
+// ── Fono efektai (liepsnos) — galima išjungti taupant bateriją ───────────────
+const K_BGFX = 'rvn-bgfx'
+let _bgfx: boolean | null = null
+export function isBgFxEnabled(): boolean {
+  if (_bgfx !== null) return _bgfx
+  try { _bgfx = window.localStorage.getItem(K_BGFX) !== '0' } catch { _bgfx = true }
+  return _bgfx
+}
+export function setBgFxEnabled(v: boolean): void {
+  _bgfx = v
+  try { window.localStorage.setItem(K_BGFX, v ? '1' : '0') } catch { /* */ }
+  try { window.dispatchEvent(new CustomEvent('rvn:bgfx', { detail: v })) } catch { /* */ }
+}

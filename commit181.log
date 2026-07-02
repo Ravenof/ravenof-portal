@@ -1,0 +1,13 @@
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai/aiTypes.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit181.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ranked/aiStrategy.ts', LF will be replaced by CRLF the next time Git touches it
+[main 25548b4] feat(ranked): per-bot strategijos modifikatoriai - aiStrategy delta ant difficulty bazes (aggro/control/tempo/curse/stealth/defensive/midrange + aggression/control/trade/risk intensyvumai) moduliuoja faceBias/tradeThreshold/spellWasteGuard/removalMinValue/jitter; mergeWeights aiTypes; aiNextAction/decideAiTurn priima weights; RankedClient paduoda boto strategija pagal slug
+ 7 files changed, 87 insertions(+), 12 deletions(-)
+ create mode 100644 git-commit181.bat
+ create mode 100644 src/lib/ranked/aiStrategy.ts
+To https://github.com/Ravenof/ravenof-portal.git
+   63a9b0b..25548b4  main -> main

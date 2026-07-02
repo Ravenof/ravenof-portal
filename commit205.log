@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/components/digital/Team2v2Battle.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/team2v2/engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit205.bat', LF will be replaced by CRLF the next time Git touches it
+[main 2cc7250] feat(2v2): ZMK zalos modifikatoriai kovose (per seat bag 20 kortu, traukiama per ataka, +0/+1/-1/+2/-2/x2/x0; veikia face ir trade), ZMK flash UI prie seat o; pergale apdovanoja +100 auksu (rvn_award_gold pvp_unranked)
+ 3 files changed, 50 insertions(+), 7 deletions(-)
+ create mode 100644 git-commit205.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   ce765c5..2cc7250  main -> main

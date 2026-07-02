@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ui/HubKit.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 444ea29] fix(ui): rezimu mygtukai perdaryti grynu CSS (oktagono clip-path + spalvotas remelis + fi-* ikonos) - visada vienodo aukscio, astrus krastai bet kokiam DPI, jokiu iskirpimo artefaktu; pasirinktam glow + raudonas deimantas. HubMode: label/sub/iconName/accent vietoj img. Bonus fix: home quick-action korteles rode i neegzistuojancius card-*.webp (ui3 turi qa-*.webp) - del to dingo 4 korteliu tinklelis po hero. tsc svarus
+ 2 files changed, 25 insertions(+), 15 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   5a2dbbd..444ea29  main -> main
+444ea29 fix(ui): rezimu mygtukai perdaryti grynu CSS (oktagono clip-path + spalvotas remelis + fi-* ikonos) - visada vienodo aukscio, astrus krastai bet kokiam DPI, jokiu iskirpimo artefaktu; pasirinktam glow + raudonas deimantas. HubMode: label/sub/iconName/accent vietoj img. Bonus fix: home quick-action korteles rode i neegzistuojancius card-*.webp (ui3 turi qa-*.webp) - del to dingo 4 korteliu tinklelis po hero. tsc svarus

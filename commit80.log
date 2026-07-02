@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 8f5dacb] fix(practice): tuscias ekranas - prieso kalades uzklausa/buildDemoDeck klaida palikdavo oppCards=null ir game neinicijuodavo; pridetas catch+try fallback i mirror ir 'Ruosiama kova' loader vietoj tuscio
+ 2 files changed, 27 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit80.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   2a4a3e8..8f5dacb  main -> main

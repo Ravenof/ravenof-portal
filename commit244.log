@@ -1,0 +1,20 @@
+warning: in the working copy of 'src/components/digital/CosmeticsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DailyDealModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/MoreScreen.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/QuestsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/SeasonPassModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/SettingsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/StoreModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/MatchFound.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedQueue.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedResult.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/_ui.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/social/FriendsClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/friends/page.tsx', LF will be replaced by CRLF the next time Git touches it
+[main ef2daa7] polish(digital): visi popup modalai (Parduotuve/Uzduotys/Sezonas/Nustatymai/Kosmetika/Dienos korta) + Ranked overlay'ai (_ui OctPanel/MatchFound/Queue/Result) perdaryti is octagon+neon i rounded glass (svelnesni borderiai, be o ornamentu). Kovos chat widget (TutorialGame) - rounded panel, burbulu uodegos, touch input, safe-area. Draugu chat: naujas /digital/friends ekranas digital shell viduje (be portal header), chat safe-area; MoreScreen Draugai -> /digital/friends.
+ 15 files changed, 74 insertions(+), 69 deletions(-)
+ create mode 100644 git-commit244.bat
+ create mode 100644 src/app/digital/friends/page.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   4e5b83b..ef2daa7  main -> main

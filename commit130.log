@@ -1,0 +1,6 @@
+warning: in the working copy of 'supabase/migrations/20260617_pack_open.sql', LF will be replaced by CRLF the next time Git touches it
+[main b49e714] fix(db): rvn_open_pack - rarities.id yra integer, ne uuid (v_rarities int[], v_rar int). Pataiso 'invalid input syntax for type uuid' atplesiant pakuote
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   7971825..b49e714  main -> main
+b49e714 fix(db): rvn_open_pack - rarities.id yra integer, ne uuid (v_rarities int[], v_rar int). Pataiso 'invalid input syntax for type uuid' atplesiant pakuote

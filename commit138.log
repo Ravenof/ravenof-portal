@@ -1,0 +1,9 @@
+warning: in the working copy of 'src/app/deck-builder/DeckBuilderClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/digital/deck/page.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 9d7e25d] feat(digital): FAZE 3 - deck builder Digital aplinkoje (/digital/deck), naudoja ta pati DeckBuilderClient su embedded (skaidrus fonas - matosi liepsnos), digital nav Kalades -> /digital/deck
+ 3 files changed, 55 insertions(+), 3 deletions(-)
+ create mode 100644 src/app/digital/deck/page.tsx
+To https://github.com/Ravenof/ravenof-portal.git
+   b7ac8de..9d7e25d  main -> main
+9d7e25d feat(digital): FAZE 3 - deck builder Digital aplinkoje (/digital/deck), naudoja ta pati DeckBuilderClient su embedded (skaidrus fonas - matosi liepsnos), digital nav Kalades -> /digital/deck

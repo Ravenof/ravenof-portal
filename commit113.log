@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/ai.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/tutorial/engine.ts', LF will be replaced by CRLF the next time Git touches it
+[main 641e87f] feat(game): nauji efektu mapping variantai - zalos -% aura, nemirtingumo aura (lieka 1 HP), atakos taikinio apribojimas, monetos metimas (zalia/raudona -> 2 efektai) su animacija, globalus onAnyCast/onAnyArtifact/onAnyChampion trigeriai, burtu zalos +X aura pagal tipa, priesas netenka aukso kito ejimo pradzioje (loseGoldNextTurn)
+ 6 files changed, 307 insertions(+), 25 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   3f7ca58..641e87f  main -> main
+641e87f feat(game): nauji efektu mapping variantai - zalos -% aura, nemirtingumo aura (lieka 1 HP), atakos taikinio apribojimas, monetos metimas (zalia/raudona -> 2 efektai) su animacija, globalus onAnyCast/onAnyArtifact/onAnyChampion trigeriai, burtu zalos +X aura pagal tipa, priesas netenka aukso kito ejimo pradzioje (loseGoldNextTurn)

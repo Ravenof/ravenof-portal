@@ -1,0 +1,12 @@
+warning: in the working copy of 'src/components/digital/ranked/RankedClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/ranked/RankedQueue.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ranked/client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'git-commit183.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260622_ranked_real_pvp.sql', LF will be replaced by CRLF the next time Git touches it
+[main a0e4158] fix(ranked): suporavus du tikrus zaidejus kova vyksta per realu realtime PvP sync (pvp_matches host/guest), o ne lokalu Ais - rvn_queue_poll sukuria kambari ir grazina matchId+isHost; RankedClient paleidzia TutorialGame su net (ne practice); meWon visada game.winner===you (host+svecias swapPerspective), kad rezultatas teisingas abiem
+ 6 files changed, 118 insertions(+), 6 deletions(-)
+ create mode 100644 git-commit183.bat
+ create mode 100644 supabase/migrations/20260622_ranked_real_pvp.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   9fdffea..a0e4158  main -> main

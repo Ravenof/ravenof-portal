@@ -1,0 +1,11 @@
+rm 'public/sounds/music/battle-7.mp3'
+warning: in the working copy of 'src/app/digital/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/digital/DigitalHub.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/musicManager.ts', LF will be replaced by CRLF the next time Git touches it
+[main e5327bc] feat(audio): main menu tema per visus /digital puslapius (layout), pasalintas senas synth ambient (kovoje ir menu); 6 kovos trekai (battle-7 pasalintas); atnaujinti battle-3/6 mp3
+ 8 files changed, 22 insertions(+), 19 deletions(-)
+ create mode 100644 git-commit147.bat
+ delete mode 100644 public/sounds/music/battle-7.mp3
+To https://github.com/Ravenof/ravenof-portal.git
+   08e25d5..e5327bc  main -> main

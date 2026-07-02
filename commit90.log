@@ -1,0 +1,7 @@
+warning: in the working copy of 'src/components/admin/GameplayConfigEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/effectEngine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/game/types.ts', LF will be replaced by CRLF the next time Git touches it
+[main 6f4ba4a] feat(effects): follow-up grandine 'tada padaryk ir X' - kiekvienas mapping gali tureti then[] sarasa, kuris ivykdomas po pagrindinio efekto (pvz champ sunaikina savo padara -> tada self heal); gylio apsauga MAX_DEPTH; admine '+ Tada padaryk dar' editorius
+ 3 files changed, 57 insertions(+)
+To https://github.com/Ravenof/ravenof-portal.git
+   fc0e809..6f4ba4a  main -> main

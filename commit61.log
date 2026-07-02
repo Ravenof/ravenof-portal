@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main faa210e] feat(game): logas pertvarkytas i event+card srauta (irgi burtai/prakeiksmai, su hover/long-press apziurai); ZMK flash rodo VISAS traukimo kortas greta (puolancio ir gynejo) su skirtingomis reiksmemis ir puses zyme
+ 2 files changed, 81 insertions(+), 63 deletions(-)
+ create mode 100644 git-commit61.bat
+To https://github.com/Ravenof/ravenof-portal.git
+   b802427..faa210e  main -> main

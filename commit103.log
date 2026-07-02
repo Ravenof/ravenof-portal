@@ -1,0 +1,6 @@
+warning: in the working copy of 'src/components/tutorial/TutorialGame.tsx', LF will be replaced by CRLF the next time Git touches it
+[main a8ea893] fix(game): mobile ranka - nebe see-through kruva: kortos persidengia tik kampais (18), netelpa -> scrollinama i sonus (pan-x); tempimas i sonus=scroll, AUKSTYN=zaidi (ranka susitraukia); ilgas paspaudimas=inspect
+ 1 file changed, 91 insertions(+), 77 deletions(-)
+To https://github.com/Ravenof/ravenof-portal.git
+   15a1a83..a8ea893  main -> main
+a8ea893 fix(game): mobile ranka - nebe see-through kruva: kortos persidengia tik kampais (18), netelpa -> scrollinama i sonus (pan-x); tempimas i sonus=scroll, AUKSTYN=zaidi (ranka susitraukia); ilgas paspaudimas=inspect

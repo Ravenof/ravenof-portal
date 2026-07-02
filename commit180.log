@@ -1,0 +1,8 @@
+warning: in the working copy of 'git-commit180.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/20260621_ranked_bots_from_zero.sql', LF will be replaced by CRLF the next time Git touches it
+[main 63a9b0b] fix(ranked): botai pradeda nuo 0 (50 Bronza) ir laiptus pasistato per rvn_simulate_bot_ladder (admin mygtukas); ranked kova nebenaudoja tutorial rezimo (practice+ranked) - rodo priesininka ir antraste 'Reitingo kova pries X', be tutorial popupu; ranked botas pagalvoja 5-20s atsitiktinai pries ejima, 0.7-1.5s tarp veiksmu
+ 2 files changed, 71 insertions(+)
+ create mode 100644 git-commit180.bat
+ create mode 100644 supabase/migrations/20260621_ranked_bots_from_zero.sql
+To https://github.com/Ravenof/ravenof-portal.git
+   93c09a5..63a9b0b  main -> main
