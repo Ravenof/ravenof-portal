@@ -380,11 +380,12 @@ function TableSpread({ cards, onClose }: { cards: OpenedCard[]; onClose: () => v
                 initial={{ opacity: 0, scale: 0.4, x: 0, y: 0, rotate: 0 }}
                 animate={{ opacity: 1, scale: 1, x: `${sp.x * 4}px`, y: `${sp.y * 3.2}px`, rotate: sp.r }}
                 transition={{ type: 'spring', stiffness: 210, damping: 20, delay: sp.d }}
-                style={{ width: 92, height: 129, marginLeft: -46, marginTop: -64, zIndex: top === i ? 30 : 10 + (i % 7) }}>
+                style={{ width: 92, marginLeft: -46, marginTop: -64, zIndex: top === i ? 30 : 10 + (i % 7) }}>
                 <GameCard glowColor={cc + '99'}>
+                  {/* aspectRatio (ne h-full): GameCard wrapper neturi aukščio, h-full sugriūdavo į 0 */}
                   <button onClick={() => { if (suppressRef.current) return; playCardFlip(); setTop(i); setZoom(i) }}
-                    className="relative block w-full h-full rounded-md overflow-hidden"
-                    style={{ border: `2px solid ${cc}`, boxShadow: `0 6px 16px rgba(0,0,0,0.65), 0 0 12px ${cc}55` }}>
+                    className="relative block w-full rounded-md overflow-hidden"
+                    style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 6px 16px rgba(0,0,0,0.65), 0 0 12px ${cc}55` }}>
                     <CardArt card={c} />
                   </button>
                 </GameCard>
