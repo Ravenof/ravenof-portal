@@ -2,12 +2,11 @@
 
 // ── Pakuotės atplėšimas — tempk į šoną / spustelėk, tada kortos verčiamos po vieną ─
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick } from '@/lib/ui-sound'
-import { GameCard } from '@/components/ui/GameCard'
 
 const PACK_W = 220
 const PACK_H = 300
@@ -302,100 +301,96 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
         </div>
       )}
 
-      {/* DONE — kortos išmėtytos ant seno medinio stalo */}
+      {/* DONE — kortos ore, sukasi ratu */}
       {done && cards && (
-        <TableSpread cards={cards} onClose={() => { playUiClick(); onClose() }} />
+        <CardCarousel cards={cards} onClose={() => { playUiClick(); onClose() }} />
       )}
     </div>
   )
 }
 
 
-// ══ Senas medinis stalas: kortos išmėtytos, batch sukiojamas pirštu, kortos
-// tiltinasi (GameCard) ir bakstelėjus priartėja apžiūrai ═════════════════════
-function TableSpread({ cards, onClose }: { cards: OpenedCard[]; onClose: () => void }) {
-  const [rot, setRot] = useState(0)
-  const [zoom, setZoom] = useState<number | null>(null)
-  const [top, setTop] = useState<number | null>(null)
-  const dragRef = useRef<{ x: number; rot: number; moved: boolean } | null>(null)
-  const suppressRef = useRef(false)
+// ══ Kortų karuselė ore: kortos sukasi ratu, tempk už bet kurios (arba fono) —
+// visas ratas sukasi su inercija; bakstelėjus kortą — priartinta apžiūra ═══════
+const CAR_W = 108
+const CAR_H = Math.round(CAR_W * 1.4)
 
-  // išsklaidytos pozicijos: laisvas ratas + jitter (deterministinės šiam atidarymui)
-  const spots = useMemo(() => {
-    const n = cards.length
-    return cards.map((_, i) => {
-      const a = (i / Math.max(1, n)) * Math.PI * 2 + 0.35
-      const ring = n <= 4 ? 22 : i % 2 === 0 ? 30 : 17
-      return {
-        x: Math.cos(a) * ring + (Math.random() * 8 - 4),
-        y: Math.sin(a) * ring * 0.78 + (Math.random() * 8 - 4),
-        r: Math.random() * 26 - 13,
-        d: Math.random() * 0.25,
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cards])
+function CarouselCard({ c, i, n, rot, radius, onTap }: {
+  c: OpenedCard; i: number; n: number; rot: MotionValue<number>; radius: number; onTap: () => void
+}) {
+  const ang = useTransform(rot, (r) => ((r + (i * 360) / n) * Math.PI) / 180)
+  const x = useTransform(ang, (v) => Math.sin(v) * radius)
+  const depth = useTransform(ang, (v) => Math.cos(v)) // 1 = priekyje, -1 = gale
+  const y = useTransform(depth, (d) => (1 - d) * 14)
+  const scale = useTransform(depth, (d) => 0.58 + 0.42 * (d + 1) / 2)
+  const opacity = useTransform(depth, (d) => 0.42 + 0.58 * (d + 1) / 2)
+  const zIndex = useTransform(depth, (d) => Math.round((d + 1) * 50))
+  const rotateY = useTransform(ang, (v) => Math.sin(v) * -16)
+  const cc = rarityColor(c.rarity)
+  return (
+    <motion.div className="absolute left-1/2 top-1/2" style={{ x, y, scale, opacity, zIndex, rotateY, width: CAR_W, marginLeft: -CAR_W / 2, marginTop: -CAR_H / 2 }}>
+      <button onClick={onTap} className="relative block w-full rounded-md overflow-hidden"
+        style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 10px 26px rgba(0,0,0,0.6), 0 0 14px ${cc}55` }}>
+        <CardArt card={c} />
+      </button>
+    </motion.div>
+  )
+}
+
+function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => void }) {
+  const rot = useMotionValue(0)
+  const [zoom, setZoom] = useState<number | null>(null)
+  const dragRef = useRef<{ x: number; t: number; v: number; moved: boolean } | null>(null)
+  const suppressRef = useRef(false)
+  const n = cards.length
+  const radius = Math.max(120, Math.min(190, n * 24))
 
   const onDown = (e: React.PointerEvent) => {
-    dragRef.current = { x: e.clientX, rot, moved: false }
+    rot.stop()
+    dragRef.current = { x: e.clientX, t: performance.now(), v: 0, moved: false }
     try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId) } catch { /* */ }
   }
   const onMove = (e: React.PointerEvent) => {
     const d = dragRef.current
     if (!d) return
+    const now = performance.now()
     const dx = e.clientX - d.x
-    if (Math.abs(dx) > 7 && !d.moved) { d.moved = true; playCardPick() }
-    if (d.moved) { setRot(d.rot + dx * 0.45); suppressRef.current = true }
+    if (Math.abs(dx) > 6 && !d.moved) { d.moved = true; playCardPick(); suppressRef.current = true }
+    if (!d.moved) return
+    const deg = dx * 0.45
+    rot.set(rot.get() + deg)
+    const dt = Math.max(1, now - d.t)
+    d.v = deg / dt * 1000 // deg/s
+    d.x = e.clientX; d.t = now
   }
   const onUp = () => {
+    const d = dragRef.current
     dragRef.current = null
+    if (d?.moved) {
+      // inercija: švelniai prislysta
+      animate(rot, rot.get() + d.v * 0.35, { duration: 0.9, ease: [0.12, 0.6, 0.25, 1] })
+    }
     setTimeout(() => { suppressRef.current = false }, 120)
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full max-w-[560px]">
+    <div className="flex flex-col items-center gap-3 w-full max-w-[560px] select-none">
       <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>TAVO KORTOS!</p>
 
-      {/* stalas iš lentų */}
+      {/* karuselė ore */}
       <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-        className="relative w-full overflow-hidden rounded-2xl cursor-grab active:cursor-grabbing select-none"
-        style={{ height: 'min(58vh, 470px)', touchAction: 'none',
-          background: [
-            'radial-gradient(120% 90% at 50% 0%, rgba(255,205,110,0.10), transparent 55%)',
-            'repeating-linear-gradient(90deg, #4a3419 0px, #5a4322 26px, #4e3a1c 55px, #3c2c12 78px, #3c2c12 80px)',
-            'linear-gradient(160deg, #4a3419, #241807)',
-          ].join(', '),
-          boxShadow: 'inset 0 0 70px rgba(0,0,0,0.75), inset 0 2px 0 rgba(240,180,41,0.25), 0 10px 30px rgba(0,0,0,0.6)' }}>
-        {/* lentų siūlės ir vinys */}
-        <div aria-hidden className="absolute inset-0" style={{ background: 'repeating-linear-gradient(90deg, transparent 0 78px, rgba(0,0,0,0.55) 78px 80px)' }} />
-        <div aria-hidden className="absolute inset-0" style={{ background: 'radial-gradient(140% 120% at 50% 50%, transparent 55%, rgba(0,0,0,0.55))' }} />
-
-        {/* sukiojamas kortų batch'as */}
-        <motion.div className="absolute left-1/2 top-1/2" animate={{ rotate: rot }} transition={{ type: 'spring', stiffness: 160, damping: 24 }} style={{ width: 0, height: 0 }}>
-          {cards.map((c, i) => {
-            const cc = rarityColor(c.rarity)
-            const sp = spots[i]
-            return (
-              <motion.div key={c.id + '-' + i} className="absolute"
-                initial={{ opacity: 0, scale: 0.4, x: 0, y: 0, rotate: 0 }}
-                animate={{ opacity: 1, scale: 1, x: `${sp.x * 4}px`, y: `${sp.y * 3.2}px`, rotate: sp.r }}
-                transition={{ type: 'spring', stiffness: 210, damping: 20, delay: sp.d }}
-                style={{ width: 92, marginLeft: -46, marginTop: -64, zIndex: top === i ? 30 : 10 + (i % 7) }}>
-                <GameCard glowColor={cc + '99'}>
-                  {/* aspectRatio (ne h-full): GameCard wrapper neturi aukščio, h-full sugriūdavo į 0 */}
-                  <button onClick={() => { if (suppressRef.current) return; playCardFlip(); setTop(i); setZoom(i) }}
-                    className="relative block w-full rounded-md overflow-hidden"
-                    style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 6px 16px rgba(0,0,0,0.65), 0 0 12px ${cc}55` }}>
-                    <CardArt card={c} />
-                  </button>
-                </GameCard>
-              </motion.div>
-            )
-          })}
-        </motion.div>
-
-        <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] pointer-events-none" style={{ color: 'rgba(240,180,41,0.55)' }}>
-          Sukiok stalą pirštu · bakstelk kortą apžiūrai
+        className="relative w-full cursor-grab active:cursor-grabbing"
+        style={{ height: 'min(52vh, 400px)', touchAction: 'none', perspective: 1000 }}>
+        {/* švelnus švytėjimas už rato */}
+        <div aria-hidden className="absolute left-1/2 top-1/2 pointer-events-none" style={{ width: radius * 2.4, height: radius * 1.6, transform: 'translate(-50%, -50%)', background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(240,180,41,0.10), transparent 70%)', filter: 'blur(6px)' }} />
+        <div className="absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
+          {cards.map((c, i) => (
+            <CarouselCard key={c.id + '-' + i} c={c} i={i} n={n} rot={rot} radius={radius}
+              onTap={() => { if (suppressRef.current) return; playCardFlip(); setZoom(i) }} />
+          ))}
+        </div>
+        <p className="absolute bottom-0 left-0 right-0 text-center text-[10px] pointer-events-none" style={{ color: 'rgba(240,180,41,0.55)' }}>
+          Tempk — kortos sukasi ratu · bakstelk kortą apžiūrai
         </p>
       </div>
 
@@ -404,7 +399,7 @@ function TableSpread({ cards, onClose }: { cards: OpenedCard[]; onClose: () => v
       {/* priartinta korta */}
       {zoom != null && cards[zoom] && (
         <div className="fixed inset-0 z-[190] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.88)' }} onClick={() => setZoom(null)}>
-          <motion.div initial={{ scale: 0.55, rotate: spots[zoom]?.r ?? 0, opacity: 0.4 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+          <motion.div initial={{ scale: 0.55, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}
             className="relative rounded-lg overflow-hidden" style={{ width: 'min(300px, 74vw)', aspectRatio: '2.5 / 3.5', border: `3px solid ${rarityColor(cards[zoom].rarity)}`, boxShadow: `0 0 34px ${rarityColor(cards[zoom].rarity)}aa` }}>
             <CardArt card={cards[zoom]} />
             <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
