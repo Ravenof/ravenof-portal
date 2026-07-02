@@ -98,9 +98,9 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
   return (
     <div className={`rvn-panel rvn-fade flex items-center gap-3 ${claimable ? 'rvn-glow' : ''}`} style={{ padding: '10px 12px', borderColor: claimable ? `rgba(${GOLD},0.5)` : undefined }}>
       <span className="flex items-center justify-center shrink-0" style={{ width: 36, height: 38, filter: 'drop-shadow(0 0 8px rgba(251,120,40,0.5))' }}><RvnIcon name="flame" size={28} fallback={<span style={{ fontSize: 24 }}>🔥</span>} /></span>
-      <span className="flex-1 min-w-0">
-        <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3' }}>{streak} d. prisijungimo serija</span>
-        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{claimable ? 'Atlygis paruoštas!' : 'Kitas atlygis rytoj'}</span>
+      <span className="flex-1 min-w-0" style={{ paddingRight: 4 }}>
+        <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3', lineHeight: 1.25 }}>{streak} d. serija</span>
+        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.3 }}>{claimable ? 'Prisijungimo atlygis paruoštas!' : 'Kitas prisijungimo atlygis rytoj'}</span>
       </span>
       <MiniReward icon="🪙" img="fi-coins" amount="x250" />
       <MiniReward icon="🎁" img="fi-gifts" amount="x1" accent="139,92,246" />

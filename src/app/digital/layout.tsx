@@ -4,11 +4,12 @@
 // Game-account header (logo + profilis + resursai + bell + settings) ir modern
 // game tab bar (Pradžia/Kolekcija/Kaladės/Parduotuvė/Daugiau). Žaisti = hero CTA.
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Home, LayoutGrid, Layers, ShoppingBag, Menu, Bell, Settings } from 'lucide-react'
 import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
+import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { StoreModal } from '@/components/digital/StoreModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
@@ -17,7 +18,7 @@ import { getWallet, type Wallet } from '@/lib/economy'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { getLevelProgress } from '@/lib/gamification/levels'
-import { HubStyles, ProfileChip, ResourcePill, IconBtn } from '@/components/digital/ui/HubKit'
+import { HubStyles, ResourcePill, IconBtn } from '@/components/digital/ui/HubKit'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 
 type NavItem = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
@@ -33,10 +34,10 @@ type Profile = { name: string; level: number; pct: number; avatarUrl: string | n
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [unread, setUnread] = useState(0)
 
@@ -93,13 +94,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/digital/ui3/logo.png" alt="Ravenof Digital" style={{ height: 34, width: 'auto', filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.35))' }} />
           </Link>
-          {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); router.push('/digital/more') }} />}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
           <ResourcePill icon={<RvnIcon name="fi-coins" size={16} fallback={<span>🪙</span>} />} value={wallet.gold.toLocaleString('lt-LT')} />
           <ResourcePill icon={<RvnIcon name="fi-gifts" size={16} fallback={<span>🎁</span>} />} value={wallet.packs} accent="251,146,60" onClick={() => { playUiClick(); setStoreOpen(true) }} />
-          <IconBtn label="Pranešimai" badge={unread || null} onClick={() => { playUiClick(); router.push('/digital/more') }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
+          <IconBtn label="Pranešimai" badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
           <IconBtn label="Nustatymai" onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
         </div>
       </header>
@@ -135,7 +135,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
         })}
       </nav>
 
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
+      {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
     </div>
   )

@@ -13,10 +13,13 @@ import {
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
 import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digital/native'
+import { RvnIcon } from './ui/RvnIcon'
 
 const ACC = '240,180,41'
 
-export function SettingsModal({ onClose }: { onClose: () => void }) {
+type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
+
+export function SettingsModal({ onClose, profile }: { onClose: () => void; profile?: Profile | null }) {
   const [music, setMusic] = useState(0.32)
   const [sfx, setSfx] = useState(1)
   const [summon, setSummon] = useState(true)
@@ -45,8 +48,26 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
       <div className="relative w-[min(420px,94vw)]" style={{ borderRadius: 18, background: `rgba(${ACC},0.32)`, padding: 2 }} onClick={(e) => e.stopPropagation()}>
-        <div className="relative px-5 py-6" style={{ borderRadius: 17, background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
-          <p className="text-lg font-bold mb-5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>⚙️ NUSTATYMAI</p>
+        <div className="relative px-5 py-6" style={{ borderRadius: 17, maxHeight: '86vh', overflowY: 'auto', background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
+          <p className="text-lg font-bold mb-4 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>⚙️ NUSTATYMAI</p>
+
+          {/* Žaidėjo profilis */}
+          {profile && (
+            <div className="mb-5 flex items-center gap-3 px-3.5 py-3 rounded-2xl" style={{ background: `radial-gradient(120% 120% at 0% 0%, rgba(${ACC},0.16), transparent 55%), rgba(10,8,16,0.7)`, border: `1px solid rgba(${ACC},0.35)` }}>
+              <span className="relative flex items-center justify-center shrink-0" style={{ width: 52, height: 52, borderRadius: '50%', border: `1.5px solid rgba(${ACC},0.65)`,
+                background: profile.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)', boxShadow: `0 0 12px rgba(${ACC},0.3), inset 0 0 8px rgba(0,0,0,0.6)` }}>
+                {!profile.avatarUrl && <RvnIcon name="avatar" size={50} round fallback={<span style={{ fontSize: 24 }}>🐦‍⬛</span>} />}
+                <span className="absolute flex items-center justify-center" style={{ bottom: -5, right: -5, minWidth: 20, height: 18, padding: '0 4px', borderRadius: 9, fontSize: 10.5, fontWeight: 800, fontFamily: 'var(--rvn-font-display)', background: 'linear-gradient(180deg,#1a1424,#0a0810)', border: `1px solid rgba(${ACC},0.8)`, color: `rgb(${ACC})` }}>{profile.level}</span>
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block truncate" style={{ fontSize: 15, fontWeight: 800, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{profile.name}</span>
+                <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Lygis {profile.level}</span>
+                <span className="block mt-1.5" style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', boxShadow: 'inset 0 0 3px rgba(0,0,0,0.6)' }}>
+                  <span style={{ display: 'block', height: '100%', width: `${Math.max(3, Math.min(100, profile.pct))}%`, background: `linear-gradient(90deg, rgba(${ACC},0.75), rgb(${ACC}))`, boxShadow: `0 0 6px rgba(${ACC},0.6)` }} />
+                </span>
+              </span>
+            </div>
+          )}
 
           {/* Bendras garso jungiklis */}
           <button onClick={() => { const n = toggleUiSound(); if (n) playUiClick() }}

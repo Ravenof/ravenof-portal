@@ -2,7 +2,7 @@
 
 // ── Globalios notifikacijos: pop-up toast'ai + varpelis (veikia ir Android appe) ─
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { pollNotifications, registerNativePush, type NotifEvent } from '@/lib/notify'
@@ -13,6 +13,8 @@ type Toast = NotifEvent & { id: number }
 
 export function NotificationCenter() {
   const router = useRouter()
+  const pathname = usePathname()
+  const onDigital = !!pathname && pathname.startsWith('/digital')
   const [authed, setAuthed] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [recent, setRecent] = useState<NotifEvent[]>([])
@@ -76,8 +78,8 @@ export function NotificationCenter() {
         ))}
       </div>
 
-      {/* Varpelis */}
-      <div className="fixed top-2.5 right-2.5 z-[290]">
+      {/* Varpelis (/digital turi savo varpelį header'yje) */}
+      {!onDigital && <div className="fixed top-2.5 right-2.5 z-[290]">
         <button onClick={() => { setOpen((o) => !o); setUnread(0) }} className="relative w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(240,180,41,0.4)' }} aria-label="Notifikacijos">
           <Bell className="w-4 h-4" style={{ color: 'var(--gold)' }} />
@@ -97,7 +99,7 @@ export function NotificationCenter() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </>
   )
 }
