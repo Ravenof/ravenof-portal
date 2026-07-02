@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
+import { awardGold, RANKED_WIN_REWARD, RANKED_LOSS_REWARD } from '@/lib/economy'
 import {
   ensureProfile, getActiveSeason, lockDeck, getRankedDecks, reportMatch,
   getFactionIdMap, type ReportMatchInput,
@@ -100,6 +101,8 @@ export function RankedClient() {
       result: r.result, playerFaction: selDeckObj?.faction ?? null, opponentFaction: opp.faction,
       durationSeconds: r.turns * 30, turnsPlayed: r.turns, stats: r.stats, clientMatchId: opp.net?.matchId ?? matchIdRef.current,
     }
+    // Fair ekonomika: ranked kova visada duoda aukso (80 pergalė / 25 pralaimėjimas)
+    void awardGold(r.result === 'win' ? 'ranked_win' : 'ranked_loss', r.result === 'win' ? RANKED_WIN_REWARD : RANKED_LOSS_REWARD)
     const res = await reportMatch(input)
     if ('error' in res) { setToast('Nepavyko įrašyti rezultato: ' + res.error); setFlow('idle'); await load(); return }
     setResult({ ...res, won: r.result === 'win' })

@@ -1,11 +1,13 @@
 // ── Sezono kelias (kliento RPC apvalkalai) ────────────────────────────────────
 import { createClient } from '@/lib/supabase/client'
 
+export type PassCard = { id: string; name: string; imageUrl: string | null; rarity: string | null }
 export type PassTier = {
   tier: number
   xpRequired: number
   title: string
   reward: Record<string, unknown>
+  card?: PassCard | null
 }
 
 export type SeasonPass = {

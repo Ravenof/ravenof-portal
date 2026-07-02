@@ -3,6 +3,7 @@
 // ── Sezono kelias ─────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react'
 import { getSeasonPass, claimPassTier, type SeasonPass } from '@/lib/gamification/seasonPass'
+import { rarityColor } from '@/lib/digital/rarity'
 import { rewardLabel } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
@@ -48,6 +49,21 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
                     <div className="flex items-center justify-center w-9 h-9 text-sm font-bold shrink-0" style={{ borderRadius: 8, background: unlocked ? 'rgba(240,180,41,0.22)' : 'rgba(0,0,0,0.4)', border: `1px solid ${unlocked ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.1)'}`, color: unlocked ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{t.tier}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold" style={{ color: '#f3ead3' }}>{rewardLabel(t.reward)}</p>
+                      {/* Šio mėnesio featured korta — rodo, KĄ konkrečiai gausi (rotuojasi kas mėnesį) */}
+                      {t.card && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="relative block overflow-hidden rounded shrink-0" style={{ width: 26, height: 36, border: `1.5px solid ${rarityColor(t.card.rarity)}` }}>
+                            {t.card.imageUrl
+                              // eslint-disable-next-line @next/next/no-img-element
+                              ? <img src={t.card.imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+                              : <span className="absolute inset-0 flex items-center justify-center text-[10px]" style={{ background: '#15101f' }}>🎴</span>}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[10px] font-bold truncate" style={{ color: rarityColor(t.card.rarity) }}>{t.card.name}</span>
+                            <span className="block text-[8.5px]" style={{ color: 'var(--text-muted)' }}>{t.card.rarity ?? ''} · šio mėnesio korta</span>
+                          </span>
+                        </div>
+                      )}
                       <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: unlocked ? '#f0b429' : '#6b7280' }} />
                       </div>

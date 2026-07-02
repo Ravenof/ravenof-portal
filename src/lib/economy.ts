@@ -4,10 +4,14 @@
 import { createClient } from '@/lib/supabase/client'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 
-export type GoldReason = 'pve_easy' | 'pve_normal' | 'pve_hard' | 'pvp_unranked'
+export type GoldReason = 'pve_easy' | 'pve_normal' | 'pve_hard' | 'pve_loss' | 'pvp_unranked' | 'pvp_loss' | 'ranked_win' | 'ranked_loss'
 
-export const PVE_REWARD: Record<AiDifficulty, number> = { easy: 10, normal: 20, hard: 50 }
-export const PVP_REWARD = 100
+export const PVE_REWARD: Record<AiDifficulty, number> = { easy: 10, normal: 25, hard: 50 }
+export const PVE_LOSS_REWARD = 10
+export const PVP_REWARD = 60
+export const PVP_LOSS_REWARD = 20
+export const RANKED_WIN_REWARD = 80
+export const RANKED_LOSS_REWARD = 25
 
 export type Wallet = { gold: number; packs: number }
 

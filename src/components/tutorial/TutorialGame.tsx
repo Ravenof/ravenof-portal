@@ -28,7 +28,7 @@ import {
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
-import { awardGold, PVE_REWARD, PVP_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
+import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
 import { getLevelForXp, getLevelProgress } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
@@ -1624,15 +1624,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
 
-  // Aukso apdovanojimas už pergalę (PvE pagal sunkumą / PvP unranked). Tik kartą; ne tutorial.
+  // Aukso apdovanojimas: pergalė pilnas, pralaimėjimas — dalyvavimo auksas. Tik kartą; ne tutorial.
   const awardedRef = useRef(false)
   useEffect(() => {
-    if (!game || game.winner !== 'you' || awardedRef.current) return
+    if (!game?.winner || awardedRef.current) return
     if (deckId === DEMO_DECK_ID) return
     awardedRef.current = true
-    if (ranked) return // ranked atlygis skiriamas per RPC (rvn_report_ranked_match)
-    if (vsRemote) awardGold('pvp_unranked', PVP_REWARD)
-    else if (practice) awardGold(('pve_' + difficulty) as GoldReason, PVE_REWARD[difficulty])
+    if (ranked) return // ranked auksas skiriamas RankedClient (ranked_win/ranked_loss)
+    const won = game.winner === 'you'
+    if (vsRemote) awardGold(won ? 'pvp_unranked' : 'pvp_loss', won ? PVP_REWARD : PVP_LOSS_REWARD)
+    else if (practice) awardGold(won ? (('pve_' + difficulty) as GoldReason) : 'pve_loss', won ? PVE_REWARD[difficulty] : PVE_LOSS_REWARD)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
 
@@ -1645,7 +1646,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     matchRewardRef.current = true
     const won = game.winner === 'you'
     const mode: MatchXpMode = vsRemote ? 'pvp' : (('pve_' + difficulty) as MatchXpMode)
-    const gold = won ? (vsRemote ? PVP_REWARD : (practice ? PVE_REWARD[difficulty] : 0)) : 0
+    const gold = won ? (vsRemote ? PVP_REWARD : (practice ? PVE_REWARD[difficulty] : 0)) : (vsRemote ? PVP_LOSS_REWARD : (practice ? PVE_LOSS_REWARD : 0))
     reportMatchXp(won, mode).then((r) => {
       const xp = r?.xpGained ?? 0
       const before = r?.totalBefore ?? 0
