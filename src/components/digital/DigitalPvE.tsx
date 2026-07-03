@@ -3,10 +3,11 @@
 // ── Ravenof Digital — Treniruotė (PvE prieš AI) ───────────────────────────────
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Target, Swords } from 'lucide-react'
+import { Target, Swords, GraduationCap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
-import { DigitalPicker } from './DigitalPicker'
+import { DeckSelect } from './DeckSelect'
+import { getStarterDecks } from '@/lib/starterDecks'
 import { PageHero } from './ui/HubKit'
 import { PracticeButton } from '@/components/tutorial/PracticeButton'
 
@@ -17,6 +18,11 @@ export function DigitalPvE() {
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [open, setOpen] = useState(false)
+  const [tutProgress, setTutProgress] = useState<{ claimed: number; total: number } | null>(null)
+
+  useEffect(() => {
+    getStarterDecks().then((d) => { if (d) setTutProgress({ claimed: d.filter((x) => x.claimed).length, total: d.length || 8 }) }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -42,9 +48,7 @@ export function DigitalPvE() {
           }
         }
         const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: tester ? 0 : (missingMap[d.id] ?? 0) }))
-        setDecks(ds)
-        const firstOk = ds.find((x) => x.missing === 0)
-        if (firstOk) setSel(firstOk.id)
+        setDecks(ds) // pradinį pasirinkimą (paskutinė naudota) atstato DeckSelect
       })
     })
   }, [])
@@ -66,8 +70,8 @@ export function DigitalPvE() {
       ) : (
         <>
           <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.3)` }}>
-            <DigitalPicker label="⚔ Tavo kaladė" accent={A} value={sel} onChange={setSel}
-              items={decks.filter((d) => d.missing === 0).map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
+            <DeckSelect mode="pve" accent={A} value={sel} onChange={setSel}
+              decks={decks.filter((d) => d.missing === 0)} />
             {decks.some((d) => d.missing > 0) && (
               <p className="text-[10px] mt-1.5" style={{ color: 'rgba(240,180,41,0.75)' }}>
                 ⚠ {decks.filter((d) => d.missing > 0).length} kaladė(-ės) paslėpta — trūksta kortų. Papildyk kolekciją arba redaguok kaladę skiltyje Mano kaladės.
@@ -82,6 +86,25 @@ export function DigitalPvE() {
           {deck && <PracticeButton deckId={deck.id} deckName={deck.name} hideTrigger open={open} onClose={() => setOpen(false)} />}
         </>
       )}
+
+      {/* Mokymai — perkelti iš pagrindinio meniu */}
+      <Link href="/digital/tutorial" onClick={() => playUiClick()}
+        className="block rounded-2xl px-4 py-3.5 transition-transform active:scale-[0.98]"
+        style={{ background: 'radial-gradient(130% 130% at 0% 0%, rgba(139,92,246,0.25), transparent 56%), linear-gradient(150deg, rgba(20,15,30,0.96), rgba(10,8,16,0.98))', border: '1px solid rgba(139,92,246,0.5)' }}>
+        <span className="flex items-center gap-3">
+          <GraduationCap className="w-7 h-7 shrink-0" style={{ color: '#c4b5fd' }} />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-bold" style={{ color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>Mokymai</span>
+            <span className="block text-[11px]" style={{ color: 'var(--text-secondary)' }}>Starter kaladės — išmok žaisti{tutProgress ? ` · ${tutProgress.claimed} / ${tutProgress.total}` : ''}</span>
+          </span>
+          <span className="text-base font-extrabold" style={{ color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>→</span>
+        </span>
+        {tutProgress && (
+          <span className="block mt-2 rounded-full overflow-hidden" style={{ height: 4, background: 'rgba(255,255,255,0.08)' }}>
+            <span className="block h-full rounded-full" style={{ width: `${Math.round((tutProgress.claimed / Math.max(1, tutProgress.total)) * 100)}%`, background: 'linear-gradient(90deg, #8b5cf6, #c4b5fd)' }} />
+          </span>
+        )}
+      </Link>
     </div>
   )
 }

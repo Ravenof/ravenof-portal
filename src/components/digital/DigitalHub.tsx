@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Medal } from 'lucide-react'
+import { Medal } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, type Wallet } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
@@ -35,7 +35,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [claimable, setClaimable] = useState(false)
   const [mode, setMode] = useState('ranked')
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
-  const [decksClaimed, setDecksClaimed] = useState(0)
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [questsPending, setQuestsPending] = useState(0)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
@@ -49,7 +48,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     refreshWallet(); refreshQuests()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }); setSeasonClaimable(p.tiers.filter((t) => p.xp >= t.xpRequired && !(p.claimedTiers ?? []).includes(t.tier)).length) })
-    getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setDecksClaimed(c); setNewPlayer(c === 0) })
+    getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) })
   }, [loggedIn, refreshWallet, refreshQuests])
 
   if (!loggedIn) {
@@ -115,15 +114,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         chips={<><RewardChip icon="🪙" img="fi-coins" amount="x500" /><RewardChip icon="📜" img="fi-quests" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
-      <StatCard emblemName="emblem-tutorial" emblemIcon={<GraduationCap className="w-6 h-6" />} title="Mokymai" sub="Starter kaladės — išmok žaisti"
-        value={`${decksClaimed} / 8`} pct={Math.round((decksClaimed / 8) * 100)} accent="139,92,246"
-        href="/digital/tutorial" onClick={() => playUiClick()} />
-
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
 
-      <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setDecksClaimed(c); setNewPlayer(c === 0) }) }} />
+      <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"

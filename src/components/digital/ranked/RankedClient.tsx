@@ -19,7 +19,7 @@ import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
 import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
-import { DigitalPicker } from '../DigitalPicker'
+import { DeckSelect } from '../DeckSelect'
 import { PageHero } from '../ui/HubKit'
 import { OctPanel, SectionTitle, RButton } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
@@ -65,7 +65,7 @@ export function RankedClient() {
       if (user) supabase.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
         .then(({ data }) => { const d = data as { display_name: string | null; username: string | null } | null; if (d) setMyName(d.display_name ?? d.username ?? 'Žaidėjas') })
     })
-    getRankedDecks().then((d) => { setDecks(d); setSelDeck((cur) => cur || d[0]?.id || '') })
+    getRankedDecks().then(setDecks) // pradinį pasirinkimą atstato DeckSelect (locked_deck_id — load() aukščiau turi pirmenybę)
     getFactionIdMap().then(setFactionIds)
     // „Lazy cron": jei reikia (≥11 val.), paleidžia botų tarpusavio kovas (K/D gyvas be pg_cron)
     createClient().rpc('rvn_maybe_simulate_bot_matches').then(() => {}, () => {})
@@ -227,8 +227,7 @@ export function RankedClient() {
           ) : (
             <div className="space-y-2.5">
               <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <DigitalPicker label="⚔ Reitingo kaladė" accent="239,68,68" value={selDeck} onChange={setSelDeck}
-                  items={decks.map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
+                <DeckSelect mode="ranked" accent="239,68,68" label="⚔ Reitingo kaladė" value={selDeck} onChange={setSelDeck} decks={decks} />
               </div>
               <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
             </div>

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Swords } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
-import { DigitalPicker } from './DigitalPicker'
+import { DeckSelect } from './DeckSelect'
 import { PvPLobby } from './PvPLobby'
 import { PageHero } from './ui/HubKit'
 
@@ -44,9 +44,7 @@ export function DigitalPvP() {
           }
         }
         const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: tester ? 0 : (missingMap[d.id] ?? 0) }))
-        setDecks(ds)
-        const firstOk = ds.find((x) => x.missing === 0)
-        if (firstOk) setSel(firstOk.id)
+        setDecks(ds) // pradinį pasirinkimą (paskutinė naudota) atstato DeckSelect
       })
     })
   }, [])
@@ -76,8 +74,8 @@ export function DigitalPvP() {
       ) : (
         <>
           <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.3)` }}>
-            <DigitalPicker label="⚔ Tavo kaladė" accent={A} value={sel} onChange={setSel}
-              items={decks.filter((d) => d.missing === 0).map((d) => ({ value: d.id, label: d.name, sub: d.faction ?? undefined, iconUrl: d.factionIcon, color: d.factionColor ?? undefined }))} />
+            <DeckSelect mode="pvp" accent={A} value={sel} onChange={setSel}
+              decks={decks.filter((d) => d.missing === 0)} />
             {decks.some((d) => d.missing > 0) && (
               <p className="text-[10px] mt-1.5" style={{ color: 'rgba(240,180,41,0.75)' }}>
                 ⚠ {decks.filter((d) => d.missing > 0).length} kaladė(-ės) paslėpta — trūksta kortų. Papildyk kolekciją arba redaguok kaladę skiltyje Mano kaladės.
