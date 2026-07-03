@@ -36,6 +36,8 @@ type ProdState = 'buy' | 'done' | 'equip' | 'equipped'
 type Prod = {
   key: string; cat: Exclude<Cat, 'all'>; title: string; sub?: string; accent: string
   img: { url?: string | null; css?: string | null; emoji?: string | null }
+  /** 'cover' – užpildo plytelę (aukšti pack/starter vaizdai), default 'contain' */
+  fit?: 'cover' | 'contain'
   actionLabel: string; state: ProdState; disabled: boolean; onAction: () => void
 }
 
@@ -99,7 +101,7 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
     const out: Prod[] = []
     for (const p of packs) out.push({
       key: 'pack:' + p.id, cat: 'packs', title: p.name, sub: '10 kortų', accent: '240,180,41',
-      img: { url: p.image_url, emoji: '🎴' }, actionLabel: `🪙 ${p.price_gold}`, state: 'buy',
+      img: { url: p.image_url, emoji: '🎴' }, fit: 'cover', actionLabel: `🪙 ${p.price_gold}`, state: 'buy',
       disabled: localGold < p.price_gold, onAction: () => doBuyPack(p),
     })
     for (const c of deal) out.push({
@@ -110,7 +112,7 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
     })
     for (const s of starters) out.push({
       key: 'sd:' + s.id, cat: 'starter', title: s.name, sub: `${s.cardCount} kortų`, accent: '34,197,94',
-      img: { url: s.imageUrl, emoji: '🃏' },
+      img: { url: s.imageUrl, emoji: '🃏' }, fit: 'cover',
       actionLabel: s.claimed ? '✓ Paimta' : (s.priceGold > 0 ? `🪙 ${s.priceGold}` : 'NEMOKAMA'),
       state: s.claimed ? 'done' : 'buy', disabled: s.claimed, onAction: () => doClaimStarter(s),
     })
@@ -198,7 +200,9 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
         <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden"
           style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
-            <SmartImg src={p.img.url} width={360} onFail={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" style={{ opacity: done ? 0.5 : 1 }} />
+            <SmartImg src={p.img.url} width={360} onFail={() => setBad(true)}
+              className={`absolute inset-0 w-full h-full ${p.fit === 'cover' ? 'object-cover' : 'object-contain'}`}
+              style={{ opacity: done ? 0.5 : 1, ...(p.fit === 'cover' ? { objectPosition: '50% 32%' } : null) }} />
           ) : p.img.emoji ? (
             <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
           ) : null}
