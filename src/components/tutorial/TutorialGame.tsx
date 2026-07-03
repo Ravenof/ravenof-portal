@@ -765,9 +765,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         try { const { data: op } = await createClient().from('profiles').select('equipped_avatar').eq('id', net.opponentId).maybeSingle(); foeId = (op as { equipped_avatar?: string } | null)?.equipped_avatar ?? null } catch { /* */ }
         if (!alive) return
       }
+      // Botai (treniruotė / ranked): random avataras kas kovą, ne visada default
+      const botPool = items.filter((c) => c.id !== mine?.id)
+      const botPick = (botPool.length ? botPool : items)
       const foe = (foeId ? items.find((c) => c.id === foeId) : null)
-        ?? items.find((c) => c.id !== mine?.id) ?? items[0] ?? null
-      const toAv = (c: typeof mine): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null } : null
+        ?? (botPick.length ? botPick[Math.floor(Math.random() * botPick.length)] : null)
+      const toAv = (c: typeof mine | null): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null } : null
       const me = toAv(mine), en = toAv(foe)
       setYouAvatar(me); setEnemyAvatar(en)
       youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null
