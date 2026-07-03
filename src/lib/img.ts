@@ -17,5 +17,7 @@ export function thumbUrl(url: string | null | undefined, width: number, quality 
   if (!url || transformsBroken) return null
   const i = url.indexOf(OBJ)
   if (i < 0) return null
-  return url.slice(0, i) + RENDER + url.slice(i + OBJ.length) + `?width=${width}&quality=${quality}`
+  // resize=contain BŪTINA: be jo Supabase keičia tik plotį, o aukštį palieka –
+  // grąžina per aukštį iškirptą juostą (pvz. 1088x1475 → 360x1475). Patikrinta check-transform.mjs
+  return url.slice(0, i) + RENDER + url.slice(i + OBJ.length) + `?width=${width}&quality=${quality}&resize=contain`
 }
