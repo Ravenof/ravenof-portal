@@ -42,6 +42,7 @@ export type GameApi = {
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
   takeControlUnit(g: GameState, newOwner: Side, owner: Side, u: BoardUnit, duration: 'permanent' | 'endOfTurn' | 'untilNextTurn', srcName: string): void
+  forceCurseActivation(g: GameState, victim: Side, count: number, srcName: string): void
   effectiveAtk(g: GameState, u: BoardUnit): number
   log(g: GameState, e: GameEvent): void
 }
@@ -70,7 +71,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
   'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
-  'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard',
+  'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard', 'forceCurseActivation',
 ])
 
 export function effectIntent(e: EffectType): 'harm' | 'help' {
@@ -179,7 +180,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker', 'forceCurseActivation'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -328,6 +329,12 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       } else {
         api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją").` })
       }
+      break
+    }
+    case 'forceCurseActivation': {
+      // Priverstinė prakeiksmo aktyvacija iš kaladės (default – priešininko).
+      const who: Side = targets[0]?.kind === 'player' ? targets[0].side : foe
+      api.forceCurseActivation(g, who, v, ctx.sourceName)
       break
     }
     case 'takeControl':

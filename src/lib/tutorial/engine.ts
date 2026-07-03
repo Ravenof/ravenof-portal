@@ -417,28 +417,7 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
     if (!c) { log(g, { t: 'deckEmpty', side: s, msg: `${sideName(s)} ${s === 'you' ? 'nebeturi' : 'nebeturi'} kortų kaladėje.` }); return }
     // Prakeiksmas (įmaišytas priešo) aktyvuojasi kai jį ištrauki – efektas tenka tau.
     if (c.type === 'curse') {
-      p.discard.push(c)
-      log(g, { t: 'curse', side: s, cardName: c.name, msg: `${sideName(s)} ${s === 'you' ? 'ištraukei' : 'ištraukė'} įmaišytą prakeiksmą „${c.name}" – efektas aktyvuojasi!`, sound: 'curse' })
-      const curseCaster: Side = other(s)
-      // Aktyvacija ištraukus = TIK 'onCurseDrawn' mapping'ai (griežtai, atskirta nuo įmaišymo).
-      const curseActivation = (c.mappings ?? []).filter((m) => m.trigger === 'onCurseDrawn')
-      if (curseActivation.length > 0) {
-        for (const m of curseActivation) {
-          applyMapping(gameApi, g, curseCaster, m, { sourceName: c.name, depth: 1 })
-          if (g.winner) return
-        }
-      } else if (!c.mappings || c.mappings.length === 0) {
-        // Visai nekonfigūruotas prakeiksmas (be mapping'ų) – tekstinio efekto fallback.
-        const dmg = c.effect?.damage ?? 1
-        dealToPlayer(g, s, dmg, curseCaster, false)
-      } else {
-        // Turi mapping'ų, bet nė vienas nepažymėtas 'onCurseDrawn' – aktyvacija neįvyksta.
-        log(g, { t: 'blocked', side: s, msg: `Prakeiksmas „${c.name}" neturi „Kai auka ištraukia" (onCurseDrawn) aktyvacijos – efektas neįvyksta.` })
-      }
-      // #1: globalus „prakeiksmas aktyvuotas" trigeris (side = auka, kuri ištraukė).
-      fireGlobalListeners(g, 'onAnyCurse', { side: s, subtype: c.subtype, faction: c.factionId })
-      // #2: kapinyno prikėlimas (onAnyCurse+revive marker'is)
-      reviveGraveyardOnCurse(g, s)
+      activateCurseCard(g, s, c, 'drawn')
       if (g.winner) return
       continue
     }
@@ -1512,6 +1491,58 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
 }
 
 // #2: prakeiksmui aktyvavus, prikelti iš kapinyno padarus, turinčius onAnyCurse+revive marker'į.
+/**
+ * Prakeiksmo aktyvacija: kortos efektas tenka VICTIM (kaladės savininkui).
+ * via='drawn' – auka ištraukė pati (drawCards); via='forced' – priverstinė
+ * aktyvacija efektu (forceCurseActivation). Abiem atvejais: onCurseDrawn
+ * mapping'ai, onAnyCurse globalus trigeris ir kapinyno prisikėlimai.
+ */
+function activateCurseCard(g: GameState, victim: Side, c: TutCard, via: 'drawn' | 'forced') {
+  const p = P(g, victim)
+  p.discard.push(c)
+  log(g, { t: 'curse', side: victim, cardName: c.name, msg: via === 'drawn'
+    ? `${sideName(victim)} ${victim === 'you' ? 'ištraukei' : 'ištraukė'} įmaišytą prakeiksmą „${c.name}" – efektas aktyvuojasi!`
+    : `🕸 Prakeiksmas „${c.name}" aktyvuojamas ${victim === 'you' ? 'tavo' : 'priešininko'} kaladėje priverstinai!`, sound: 'curse' })
+  const curseCaster: Side = other(victim)
+  // Aktyvacija = TIK 'onCurseDrawn' mapping'ai (griežtai, atskirta nuo įmaišymo).
+  const curseActivation = (c.mappings ?? []).filter((m) => m.trigger === 'onCurseDrawn')
+  if (curseActivation.length > 0) {
+    for (const m of curseActivation) {
+      applyMapping(gameApi, g, curseCaster, m, { sourceName: c.name, depth: 1 })
+      if (g.winner) return
+    }
+  } else if (!c.mappings || c.mappings.length === 0) {
+    // Visai nekonfigūruotas prakeiksmas (be mapping'ų) – tekstinio efekto fallback.
+    const dmg = c.effect?.damage ?? 1
+    dealToPlayer(g, victim, dmg, curseCaster, false)
+  } else {
+    // Turi mapping'ų, bet nė vienas nepažymėtas 'onCurseDrawn' – aktyvacija neįvyksta.
+    log(g, { t: 'blocked', side: victim, msg: `Prakeiksmas „${c.name}" neturi „Kai auka ištraukia" (onCurseDrawn) aktyvacijos – efektas neįvyksta.` })
+  }
+  // #1: globalus „prakeiksmas aktyvuotas" trigeris (side = auka).
+  fireGlobalListeners(g, 'onAnyCurse', { side: victim, subtype: c.subtype, faction: c.factionId })
+  // #2: kapinyno prikėlimas (onAnyCurse + revive/resurrectSelf marker'is)
+  reviveGraveyardOnCurse(g, victim)
+}
+
+/**
+ * Priverstinė prakeiksmo aktyvacija: iš VICTIM kaladės paimamas atsitiktinis
+ * įmaišytas prakeiksmas ir aktyvuojamas iškart (kaip būtų ištrauktas).
+ */
+function forceCurseActivationPrim(g: GameState, victim: Side, count: number, srcName: string) {
+  const p = P(g, victim)
+  for (let i = 0; i < count; i++) {
+    const idxs = p.deck.reduce<number[]>((acc, c, ix) => { if (c.type === 'curse') acc.push(ix); return acc }, [])
+    if (idxs.length === 0) {
+      log(g, { t: 'blocked', side: victim, msg: `„${srcName}": ${victim === 'you' ? 'tavo' : 'priešininko'} kaladėje nėra įmaišytų prakeiksmų.` })
+      return
+    }
+    const [c] = p.deck.splice(idxs[Math.floor(Math.random() * idxs.length)], 1)
+    activateCurseCard(g, victim, c, 'forced')
+    if (g.winner) return
+  }
+}
+
 function reviveGraveyardOnCurse(g: GameState, victim: Side) {
   if (g.winner) return
   for (const sd of allSeats(g)) {
@@ -1519,7 +1550,7 @@ function reviveGraveyardOnCurse(g: GameState, victim: Side) {
     for (let i = pp.discard.length - 1; i >= 0; i--) {
       const card = pp.discard[i]
       if (!card || card.type !== 'unit') continue
-      const trig = (card.mappings ?? []).find((m) => m.trigger === 'onAnyCurse' && (m.effect === 'revive' || m.effect === 'summonFromGraveyard'))
+      const trig = (card.mappings ?? []).find((m) => m.trigger === 'onAnyCurse' && (m.effect === 'revive' || m.effect === 'summonFromGraveyard' || m.effect === 'resurrectSelf'))
       if (!trig) continue
       const want = trig.triggerSide ?? 'any'
       if (want === 'own' && !sameTeam(g, victim, sd)) continue
@@ -1740,6 +1771,7 @@ export const gameApi: GameApi = {
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   copyEffectFromGraveyard: (g, s, sourceUid, sourceName, fromSide) => copyEffectPrim(g, s, sourceUid, sourceName, fromSide),
   takeControlUnit: takeControlUnitPrim,
+  forceCurseActivation: forceCurseActivationPrim,
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
   setSpellDiscount: setSpellDiscountPrim,

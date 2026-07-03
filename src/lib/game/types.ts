@@ -68,6 +68,7 @@ export type EffectType =
   | 'reflectToAttacker'
   | 'resurrectSelf'
   | 'takeControl'
+  | 'forceCurseActivation'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean; group: string }[] = [
   // ── Kova ──
@@ -77,7 +78,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   // ── Gydymas ──
   { value: 'heal',                label: 'Gydymas',                    needsValue: true,  group: 'Gydymas' },
   { value: 'revive',              label: 'Prikelti',                   needsValue: false, group: 'Gydymas' },
-  { value: 'resurrectSelf',       label: 'Prisikelti pačiam žūstant (Paskutinis noras)', needsValue: false, group: 'Gydymas' },
+  { value: 'resurrectSelf',       label: 'Prisikelti pačiam: onDeath – žūstant (Paskutinis noras); onAnyCurse – iš kapinyno kaskart aktyvavus prakeiksmą', needsValue: false, group: 'Gydymas' },
   // ── Statusai ──
   { value: 'burn',                label: 'Padegti',                    needsValue: false, group: 'Statusai' },
   { value: 'poison',              label: 'Apnuodyti',                  needsValue: false, group: 'Statusai' },
@@ -117,6 +118,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'triggerCurse',        label: 'Įmaišyti prakeiksmų į kaladę (aktyvuojasi ištraukus)', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'triggerZmk',          label: 'Traukti ŽMK',                needsValue: false, group: 'Kaladė ir kapinynas' },
   { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true, group: 'Kaladė ir kapinynas' },
+  { value: 'forceCurseActivation', label: 'Priverstinai aktyvuoti atsitiktinį įmaišytą prakeiksmą (iš priešo kaladės; value = kiek)', needsValue: true, group: 'Kaladė ir kapinynas' },
   // ── Auksas ir kainos ──
   { value: 'gainGold',            label: 'Gauti aukso',                needsValue: true,  group: 'Auksas ir kainos' },
   { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true,  group: 'Auksas ir kainos' },
