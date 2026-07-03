@@ -1,319 +1,615 @@
 'use client'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-// ── Iškvietimo (summon) efektai – PREMIUM, ORIGIN-BASED, DISTINCT MOTIFS ───────
-// Kiekvienas efektas turi SAVO dominuojantį motyvą (ne tą patį ratą visiems):
-//   ritual = magijos ratas+runos (tik ritualiniams), flame = kylančios liepsnos,
-//   blast = sprogimo banga+skeveldros, ice = ledo kristalų žvaigždė, bolts = šakotas
-//   žaibo tinklas, cloud = kunkuliuojantis nuodų debesis, quake = žemės plyšiai,
-//   rift = vertikalus tuštumos plyšys, tendrils = šešėlių tentakliai, souls = kylantys
-//   sielų wisp'ai+spinduliai, darkness = tamsos kupolas+korona, pulse = mirties banga,
-//   eruption = kaulų spygliai. Origin = kortos pozicija; plinta į aplinką. Charge→release
-//   timeline, sluoksniuotas bloom (shadowBlur), particle su trail+flicker. Vienas rAF.
+// ── Iškvietimo (summon) efektai v2 – KIEKVIENAS SU SAVO KINEMATOGRAFINE SCENA ──
+// Perdaryta iš pagrindų: ne bendras „žiedas+dalelės" šablonas, o unikali
+// anticipation→impact→aftermath dramaturgija kiekvienam efektui (žr. fx-summon-preview.html).
+// Technika pigi: radialiniai/linijiniai gradientai + globalCompositeOperation='lighter',
+// BE shadowBlur/ctx.filter. Tyčinės linijos tik ten, kur natūralu (žaibai, žemės plyšiai,
+// sigilo brėžiai). Vienas rAF, dalelės ~30–60 (LOW įrenginiuose ~pusė, DPR 1).
 
 import { useEffect, useRef } from 'react'
 import type { SummonEffectType } from '@/lib/game/types'
-
-type Pkind = 'ember' | 'shard' | 'wisp' | 'bone' | 'spore' | 'spark' | 'drop' | 'ash' | 'rune' | 'puff' | 'body'
-type Motif = 'ritual' | 'flame' | 'blast' | 'ice' | 'bolts' | 'cloud' | 'quake' | 'rift' | 'tendrils' | 'souls' | 'darkness' | 'pulse' | 'eruption'
-type Geom = 'hexagram' | 'pentagram' | 'star12' | 'triangle'
-
-type Cfg = {
-  motif: Motif; glow: string; ring: string; ring2?: string; core: string
-  particle: Pkind; pcolor: string; count: number; s0: number; s1: number; grav: number; rise?: boolean
-  geom?: Geom; runeN?: number; pentagram?: boolean; pillar?: boolean
-  glyph?: 'skull' | 'eye'; shake?: 'soft' | 'hard'; dur: number
-}
-
-const C: Record<SummonEffectType, Cfg> = {
-  eclipse:       { motif: 'darkness', glow: '#3a0a4a', ring: '#7c3aed', core: '#e9d5ff', particle: 'wisp', pcolor: 'rgba(80,30,110,0.85)', count: 30, s0: .4, s1: 2.4, grav: -.012, rise: true, glyph: 'eye', shake: 'soft', dur: 2400 },
-  shadowSurge:   { motif: 'tendrils', glow: '#0a0a1a', ring: '#5a5a88', core: '#b0b0e0', particle: 'wisp', pcolor: 'rgba(24,22,42,0.95)', count: 34, s0: .6, s1: 3, grav: -.01, rise: true, shake: 'soft', dur: 2200 },
-  voidRip:       { motif: 'rift', glow: '#160626', ring: '#9a4dff', ring2: '#c084fc', core: '#e9d5ff', particle: 'wisp', pcolor: 'rgba(140,70,255,0.8)', count: 32, s0: 1, s1: 4, grav: -.02, rise: true, glyph: 'eye', shake: 'hard', dur: 2400 },
-  necroticSmoke: { motif: 'ritual', glow: '#0e4a3a', ring: '#5ef0c0', core: '#d6fff0', particle: 'wisp', pcolor: 'rgba(94,240,192,0.7)', count: 34, s0: .6, s1: 3, grav: -.02, rise: true, geom: 'hexagram', runeN: 26, glyph: 'skull', shake: 'soft', dur: 2400 },
-  spectralWail:  { motif: 'souls', glow: '#22323f', ring: '#9fc8e8', core: '#eaf6ff', particle: 'wisp', pcolor: 'rgba(200,224,240,0.7)', count: 32, s0: .6, s1: 2.8, grav: -.045, rise: true, glyph: 'skull', shake: 'soft', dur: 2400 },
-  soulRelease:   { motif: 'souls', glow: '#9fd0ff', ring: '#cfe6ff', core: '#ffffff', particle: 'wisp', pcolor: 'rgba(220,238,255,0.9)', count: 34, s0: .5, s1: 2.4, grav: -.06, rise: true, pillar: true, shake: 'soft', dur: 2400 },
-  deathPulse:    { motif: 'pulse', glow: '#1e1e1e', ring: '#b0b0b0', core: '#f4f4f4', particle: 'ash', pcolor: 'rgba(180,180,180,0.85)', count: 30, s0: .8, s1: 3.2, grav: -.01, rise: true, glyph: 'skull', shake: 'soft', dur: 2300 },
-  boneEruption:  { motif: 'eruption', glow: '#4a4234', ring: '#e8e0c8', core: '#fffaf0', particle: 'bone', pcolor: '#f0ead8', count: 30, s0: 2, s1: 6, grav: .12, glyph: 'skull', shake: 'hard', dur: 2200 },
-  lightning:     { motif: 'bolts', glow: '#9fc4ff', ring: '#7db8ff', core: '#ffffff', particle: 'spark', pcolor: '#eaf4ff', count: 40, s0: 4, s1: 12, grav: 0, shake: 'soft', dur: 1900 },
-  arcaneDeto:    { motif: 'ritual', glow: '#4c1d95', ring: '#a78bfa', ring2: '#ffffff', core: '#f5f0ff', particle: 'spark', pcolor: '#c4b5fd', count: 50, s0: 3, s1: 11, grav: .04, geom: 'star12', runeN: 32, shake: 'hard', dur: 2000 },
-  cursedBrand:   { motif: 'ritual', glow: '#3a0a2a', ring: '#d4327a', core: '#ffd0e6', particle: 'rune', pcolor: '#ff3a8a', count: 28, s0: .6, s1: 2.8, grav: 0, geom: 'pentagram', runeN: 28, glyph: 'eye', shake: 'soft', dur: 2300 },
-  bloodRitual:   { motif: 'ritual', glow: '#5a0808', ring: '#c01e1e', core: '#ff8080', particle: 'drop', pcolor: '#e23a3a', count: 34, s0: 2, s1: 6, grav: .14, geom: 'pentagram', runeN: 26, shake: 'soft', dur: 2400 },
-  massFreeze:    { motif: 'ice', glow: '#5aa8e8', ring: '#cfe6ff', ring2: '#9fe1ff', core: '#ffffff', particle: 'shard', pcolor: '#dff2ff', count: 54, s0: 1.5, s1: 5, grav: .03, shake: 'soft', dur: 2100 },
-  frostNova:     { motif: 'ice', glow: '#7cc4ff', ring: '#eaf6ff', ring2: '#7cc4ff', core: '#ffffff', particle: 'shard', pcolor: '#eaf6ff', count: 62, s0: 3, s1: 8, grav: .02, shake: 'soft', dur: 2000 },
-  fire:          { motif: 'flame', glow: '#ff7a1a', ring: '#ffb24a', core: '#fff0c0', particle: 'ember', pcolor: '#ffb24a', count: 50, s0: 1.5, s1: 5, grav: -.05, rise: true, shake: 'soft', dur: 2100 },
-  hellfire:      { motif: 'flame', glow: '#6a0c0c', ring: '#ff3a1a', core: '#ffe0a0', particle: 'ember', pcolor: '#ff5a2a', count: 58, s0: 2, s1: 6.5, grav: -.05, rise: true, pentagram: true, glyph: 'eye', shake: 'hard', dur: 2300 },
-  emberStorm:    { motif: 'flame', glow: '#7a3a10', ring: '#ff9a3a', core: '#ffe0b0', particle: 'ember', pcolor: '#ffc24a', count: 64, s0: 1.5, s1: 6, grav: -.035, rise: true, shake: 'soft', dur: 2300 },
-  moltenShatter: { motif: 'quake', glow: '#7a2a0a', ring: '#ff6a1a', core: '#ffd090', particle: 'ember', pcolor: '#ff8a3a', count: 40, s0: 2, s1: 6, grav: .08, shake: 'hard', dur: 2200 },
-  explosion:     { motif: 'blast', glow: '#ffd25a', ring: '#ff7a1a', ring2: '#ffffff', core: '#ffffff', particle: 'spark', pcolor: '#ffd25a', count: 72, s0: 4, s1: 14, grav: .06, shake: 'hard', dur: 1800 },
-  poisonCloud:   { motif: 'cloud', glow: '#3a6a0a', ring: '#84cc16', core: '#d4ff80', particle: 'spore', pcolor: '#a3e635', count: 34, s0: .6, s1: 3, grav: -.02, rise: true, glyph: 'skull', shake: 'soft', dur: 2400 },
-  plague:        { motif: 'cloud', glow: '#2e3a0a', ring: '#9acd32', core: '#caff70', particle: 'spore', pcolor: '#9acd32', count: 40, s0: .7, s1: 3.2, grav: -.02, rise: true, glyph: 'skull', shake: 'soft', dur: 2500 },
-  earthquake:    { motif: 'quake', glow: '#4a3826', ring: '#8a6a44', core: '#d0a060', particle: 'ash', pcolor: 'rgba(138,104,68,0.92)', count: 40, s0: 1, s1: 4, grav: .12, shake: 'hard', dur: 2300 },
-}
-
-export const SUMMON_SHAKE: Set<SummonEffectType> = new Set(
-  (Object.keys(C) as SummonEffectType[]).filter((k) => C[k].shake === 'hard'),
-)
 
 const TAU = Math.PI * 2
 const HALF = Math.PI / 2
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const eo = (t: number) => 1 - Math.pow(1 - t, 3)
+const ei = (t: number) => t * t
 const cl = (t: number) => Math.max(0, Math.min(1, t))
-let LOW = false                                   // mobilus / silpnas įrenginys → mažiau particle, be shadowBlur
-const blur = (v: number) => (LOW ? 0 : v)         // shadowBlur off mobiliame (didžiausias perf laimėjimas)
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
-type Part = { x: number; y: number; px: number; py: number; vx: number; vy: number; size: number; rot: number; vr: number; max: number; seed: number; z: number; kind: Pkind }
-type Bolt = { x: number; y: number }[]
+const DUR: Record<SummonEffectType, number> = {
+  eclipse: 2400, shadowSurge: 2300, voidRip: 2400, necroticSmoke: 2400, spectralWail: 2400,
+  soulRelease: 2400, deathPulse: 2300, boneEruption: 2300, lightning: 2000, arcaneDeto: 2200,
+  cursedBrand: 2400, bloodRitual: 2400, massFreeze: 2300, frostNova: 2200, fire: 2200,
+  hellfire: 2400, emberStorm: 2300, moltenShatter: 2300, explosion: 1900, poisonCloud: 2400,
+  plague: 2400, earthquake: 2300,
+}
+
+// stiprus board shake šiems (kaip anksčiau)
+export const SUMMON_SHAKE: Set<SummonEffectType> = new Set([
+  'voidRip', 'boneEruption', 'arcaneDeto', 'hellfire', 'moltenShatter', 'explosion', 'earthquake',
+] as SummonEffectType[])
 
 export function SummonBurst({ type, x, y, effectKey, onDone }: {
   type: SummonEffectType; x: number; y: number; effectKey: number; onDone: () => void
 }) {
-  const cvs = useRef<HTMLCanvasElement>(null)
+  const cvs = useRef<HTMLCanvasElement | null>(null)
   const doneRef = useRef(onDone); doneRef.current = onDone
 
   useEffect(() => {
-    const cfg = C[type]; const c = cvs.current; const ctx = c?.getContext('2d')
-    const tEnd = window.setTimeout(() => doneRef.current(), cfg.dur)
-    if (!c || !ctx) return () => window.clearTimeout(tEnd)
-    LOW = window.innerWidth < 820 || (typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 8) <= 4) || (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
+    const cv = cvs.current; if (!cv) return
+    const ctx = cv.getContext('2d'); if (!ctx) return
+    const LOW = window.innerWidth < 820
+      || (typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 8) <= 4)
+      || (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
     const D = Math.min(window.devicePixelRatio || 1, LOW ? 1 : 2)
-    c.width = Math.floor(window.innerWidth * D); c.height = Math.floor(window.innerHeight * D)
-    const ox = x * D, oy = y * D
-    const maxR = 520 * D
-    const CHARGE = 0.24
-    const parts: Part[] = []
-    let bolts: Bolt[] = []
-    let released = false
-    const seedBurst = () => {
-      released = true
-      const pN = Math.round(cfg.count * (LOW ? 0.5 : 1))
-      for (let i = 0; i < pN; i++) { const a = rnd(0, TAU); const sp = rnd(cfg.s0, cfg.s1) * D; parts.push({ x: ox, y: oy, px: ox, py: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (cfg.rise ? rnd(0.5, 2) * D : 0), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: rnd(-0.18, 0.18), max: cfg.dur * rnd(0.5, 0.92), seed: rnd(0, 9), z: rnd(-1, 1), kind: cfg.particle }) }
-      // tūrio „body" sluoksnis – tankūs minkšti puff'ai gyliui
-      const mass = cfg.motif === 'cloud' || cfg.motif === 'souls' || cfg.motif === 'tendrils' || cfg.motif === 'darkness' || cfg.motif === 'ritual' || cfg.rise
-      const bodyN = mass ? (LOW ? 9 : 18) : (LOW ? 4 : 7)
-      for (let i = 0; i < bodyN; i++) { const a = rnd(0, TAU); const sp = rnd(0.3, 1.5) * D; parts.push({ x: ox, y: oy, px: ox, py: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (cfg.rise ? rnd(0.6, 1.8) * D : 0), size: rnd(44, 96) * D, rot: 0, vr: 0, max: cfg.dur * rnd(0.6, 0.95), seed: rnd(0, 9), z: rnd(-1, 1), kind: 'body' }) }
-      if (cfg.motif === 'bolts') bolts = genNet(ox, oy, maxR, D)
+    cv.width = window.innerWidth * D; cv.height = window.innerHeight * D
+    const dur = DUR[type] || 2300
+    const tEnd = window.setTimeout(() => doneRef.current(), dur)
+    const o = { x: x * D, y: y * D }
+    const st: any = {}
+    const W = () => cv.width, H = () => cv.height
+    const N = (n: number) => (LOW ? Math.ceil(n * 0.55) : n)
+
+    // ── primityvai ────────────────────────────────────────────────────────────
+    const glow = (gx: number, gy: number, r: number, color: string, a: number) => {
+      if (r <= 0 || a <= 0) return
+      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r)
+      g.addColorStop(0, color); g.addColorStop(1, 'transparent')
+      ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
+    }
+    const softRing = (gx: number, gy: number, r: number, thick: number, color: string, a: number) => {
+      if (r <= 0 || a <= 0) return
+      const g = ctx.createRadialGradient(gx, gy, Math.max(0, r - thick), gx, gy, r + thick)
+      g.addColorStop(0, 'transparent'); g.addColorStop(.5, color); g.addColorStop(1, 'transparent')
+      ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, r + thick, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
+    }
+    const dark = (gx: number, gy: number, r: number, a: number) => {
+      ctx.globalCompositeOperation = 'source-over'; glow(gx, gy, r, 'rgba(4,2,8,1)', a); ctx.globalCompositeOperation = 'lighter'
+    }
+    const washScreen = (color: string, a: number) => {
+      if (a <= 0) return
+      ctx.fillStyle = color; ctx.globalAlpha = a; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1
+    }
+    const darkVeil = (a: number) => {
+      if (a <= 0) return
+      ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(3,1,6,1)'; ctx.globalAlpha = a
+      ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
+    }
+    const pillar = (px: number, baseY: number, topY: number, w: number, color: string, a: number) => {
+      if (a <= 0) return
+      const g = ctx.createLinearGradient(0, topY, 0, baseY); g.addColorStop(0, 'transparent'); g.addColorStop(1, color)
+      ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath()
+      ctx.moveTo(px - w, baseY); ctx.lineTo(px - w * .32, topY); ctx.lineTo(px + w * .32, topY); ctx.lineTo(px + w, baseY)
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1
+    }
+    // šakotas žaibas (tyčinės linijos — žaibui natūralu)
+    const boltPath = (x0: number, y0: number, x1: number, y1: number, jag: number) => {
+      const pts: number[][] = [[x0, y0]]; const n = 7
+      for (let i = 1; i < n; i++) { const t = i / n; pts.push([lerp(x0, x1, t) + rnd(-jag, jag), lerp(y0, y1, t) + rnd(-jag * .4, jag * .4)]) }
+      pts.push([x1, y1]); return pts
+    }
+    const drawBolt = (pts: number[][], color: string, coreW: number, a: number) => {
+      ctx.globalAlpha = a; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+      ctx.strokeStyle = color; ctx.lineWidth = coreW * 3
+      ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke()
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = coreW
+      ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.globalAlpha = 1
+    }
+    // žemės plyšiai (tyčinės linijos)
+    const crack = (org: { x: number; y: number }, ang: number, len: number, segs: number) => {
+      const pts: number[][] = [[org.x, org.y]]; let px = org.x, py = org.y, a = ang
+      for (let i = 0; i < segs; i++) { a += rnd(-.35, .35); const L = len / segs; px += Math.cos(a) * L; py += Math.sin(a) * L * .4; pts.push([px, py]) }
+      return pts
+    }
+    const drawCrack = (pts: number[][], color: string, w: number, a: number, glowc: string | null) => {
+      ctx.globalAlpha = a; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round'
+      ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.globalAlpha = 1
+      if (glowc) for (let i = 1; i < pts.length; i += 2) glow(pts[i][0], pts[i][1], w * 4, glowc, a * .5)
+    }
+    const seed = (n: number, fn: (i: number) => any) => {
+      if (st.seeded) return; st.seeded = true; st.p = []
+      const nn = N(n); for (let i = 0; i < nn; i++) st.p.push(fn(i))
+    }
+    const parts = (fn: (q: any, i: number) => void) => { if (!st.p) return; for (let i = 0; i < st.p.length; i++) fn(st.p[i], i) }
+
+    // ── 22 efektai ────────────────────────────────────────────────────────────
+    const EFF: Record<SummonEffectType, (p: number, now: number) => void> = {
+
+      // 🌑 TAMSA: ekranas temsta, juoda saulė su violetine korona pakyla ir kolapsuoja į kortą
+      eclipse(p, now) {
+        darkVeil(Math.sin(cl(p) * Math.PI) * .55)
+        const sy = o.y - 170 * D
+        if (p < .62) {
+          const k = eo(cl(p / .5))
+          dark(o.x, sy, 70 * D * k, 1)
+          softRing(o.x, sy, 72 * D * k, 16 * D, '#7c3aed', .85)
+          softRing(o.x, sy, 86 * D * k, 26 * D, '#3a0a4a', .5)
+          for (let i = 0; i < 6; i++) { const a = now / 900 + i / 6 * TAU; glow(o.x + Math.cos(a) * 84 * D * k, sy + Math.sin(a) * 84 * D * k, 10 * D, '#c084fc', .5 * k) }
+        } else {
+          const q = (p - .62) / .38
+          const yy = lerp(sy, o.y, ei(q)), rr = 70 * D * (1 - q * .85)
+          dark(o.x, yy, rr, 1 - q * .3); softRing(o.x, yy, rr + 8 * D, 12 * D, '#7c3aed', (1 - q) * .9)
+          if (q > .75) { softRing(o.x, o.y, (q - .75) / .25 * 260 * D, 30 * D, '#a855f7', (1 - q) * .9); glow(o.x, o.y, 90 * D * (1 - q), '#e9d5ff', 1 - q) }
+        }
+        seed(26, () => ({ x: rnd(0, W()), y: rnd(0, H()), v: rnd(.2, .7) * D, s: rnd(1.5, 3.5) * D, ph: rnd(0, 9) }))
+        parts(q => { q.y -= q.v; if (q.y < -9) q.y = H(); glow(q.x + Math.sin(now / 700 + q.ph) * 8 * D, q.y, q.s * 2, '#6d28d9', .3 * Math.sin(cl(p) * Math.PI)) })
+      },
+
+      // 🌫️ ŠEŠĖLIŲ ANTPLŪDIS: tamsos potvynis iš abiejų pusių žeme → šešėlių geizeris
+      shadowSurge(p, now) {
+        const gy = o.y + 70 * D
+        if (p < .4) {
+          const k = eo(p / .4)
+          for (const dir of [-1, 1]) {
+            const front = lerp(dir > 0 ? W() + 80 * D : -80 * D, o.x, k)
+            for (let i = 0; i < 7; i++) { const bx = front - dir * i * 46 * D, s = (34 + i * 7) * D; dark(bx, gy + Math.sin(now / 220 + i) * 5 * D, s, .5); glow(bx, gy, s * .5, '#5a5a88', .12) }
+          }
+        } else {
+          const q = (p - .4) / .6, up = eo(cl(q * 1.3))
+          for (let i = 0; i < 12; i++) {
+            const t = i / 12, sway = Math.sin(now / 170 + i * 1.7) * 20 * D * t
+            const px = o.x + sway + (i % 2 ? -1 : 1) * t * 26 * D, py = gy - t * 230 * D * up
+            dark(px, py, (40 - t * 20) * D, (1 - q * .6) * .7); glow(px, py, (22 - t * 10) * D, '#8888c0', (1 - q) * .22)
+          }
+          softRing(o.x, gy, eo(q) * 250 * D, 26 * D, '#5a5a88', (1 - q) * .5)
+          glow(o.x, o.y, 70 * D, '#b0b0e0', Math.sin(q * Math.PI) * .4)
+        }
+        seed(20, () => ({ x: o.x + rnd(-60, 60) * D, y: gy, vx: rnd(-.6, .6) * D, vy: -rnd(1, 3.4) * D, s: rnd(2, 5) * D, b: rnd(.4, 1) }))
+        if (p > .4) parts(q => { q.x += q.vx; q.y += q.vy; glow(q.x, q.y, q.s * 2, '#b0b0e0', q.b * (1 - p) * .7) })
+      },
+
+      // 🕳️ TUŠTUMOS PLYŠYS: erdvė perplėšiama, traukia daleles Į vidų, užsitrenkia su banga
+      voidRip(p, now) {
+        const open = p < .2 ? eo(p / .2) : p < .7 ? 1 : 1 - eo((p - .7) / .3)
+        const rh = 200 * D * open, rw = 26 * D * open * (1 + Math.sin(now / 90) * .08)
+        darkVeil(open * .35)
+        ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#020108'
+        ctx.beginPath(); ctx.ellipse(o.x, o.y, Math.max(0.01, rw), Math.max(0.01, rh), 0, 0, TAU); ctx.fill()
+        ctx.globalCompositeOperation = 'lighter'
+        if (rh > 1) {
+          const eg = ctx.createRadialGradient(o.x, o.y, rh * .4, o.x, o.y, rh * 1.15)
+          eg.addColorStop(0, 'transparent'); eg.addColorStop(.8, '#9a4dff'); eg.addColorStop(1, 'transparent')
+          ctx.globalAlpha = open * .7; ctx.fillStyle = eg
+          ctx.save(); ctx.translate(o.x, o.y); ctx.scale(rw / rh * 1.6, 1)
+          ctx.beginPath(); ctx.arc(0, 0, rh * 1.1, 0, TAU); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1
+        }
+        seed(34, () => ({ a: rnd(0, TAU), r: rnd(140, 420) * D, v: rnd(.004, .012), s: rnd(1.5, 4) * D }))
+        parts(q => {
+          q.r *= (1 - q.v * (0.5 + open)); q.a += .02; if (q.r < 10 * D) q.r = rnd(240, 420) * D
+          glow(o.x + Math.cos(q.a) * q.r * 1.4, o.y + Math.sin(q.a) * q.r * .7, q.s * 2, '#c084fc', open * .6 * (1 - q.r / (430 * D)))
+        })
+        if (p >= .7) { const q = (p - .7) / .3; softRing(o.x, o.y, eo(q) * 300 * D, 26 * D, '#9a4dff', (1 - q) * .9); glow(o.x, o.y, 110 * D * (1 - q), '#e9d5ff', (1 - q) * .9) }
+      },
+
+      // 💜 NEKROTINIS DŪMAS: dūmai liejasi iš kortos ir šliaužia žeme, dūmuose kaukolių akys
+      necroticSmoke(p, now) {
+        const gy = o.y + 66 * D, k = eo(cl(p * 1.4)), fade = p < .7 ? 1 : 1 - (p - .7) / .3
+        for (let i = 0; i < 14; i++) {
+          const t = i / 14, dir = i % 2 ? 1 : -1
+          const px = o.x + dir * t * 250 * D * k + Math.sin(now / 260 + i * 2) * 10 * D, py = gy + Math.sin(now / 300 + i) * 4 * D - t * 8 * D
+          dark(px, py, (46 - t * 18) * D, fade * .55); glow(px, py, (28 - t * 12) * D, '#0e4a3a', fade * .3); glow(px, py, (12 - t * 5) * D, '#5ef0c0', fade * .14)
+        }
+        seed(22, () => ({ x: o.x + rnd(-90, 90) * D, y: gy + rnd(-10, 10) * D, vx: rnd(-.2, .2) * D, vy: -rnd(.5, 1.6) * D, s: rnd(2, 5) * D, ph: rnd(0, 9), skull: Math.random() < .25 }))
+        parts(q => {
+          q.x += q.vx + Math.sin(now / 240 + q.ph) * .4 * D; q.y += q.vy
+          if (q.skull) {
+            dark(q.x, q.y, q.s * 3.4, fade * .5); glow(q.x, q.y, q.s * 2.2, '#5ef0c0', fade * .3)
+            glow(q.x - q.s, q.y - q.s * .5, q.s * .6, '#d6fff0', fade * .5); glow(q.x + q.s, q.y - q.s * .5, q.s * .6, '#d6fff0', fade * .5)
+          } else glow(q.x, q.y, q.s * 2.2, '#5ef0c0', fade * .4)
+        })
+        glow(o.x, o.y, 60 * D, '#5ef0c0', Math.sin(cl(p) * Math.PI) * .3)
+      },
+
+      // 👻 VAIDUOKLIŲ AIMANA: vaiduokliai spirale iš kortos + „riksmo" bangos per ekraną
+      spectralWail(p) {
+        const fade = p < .72 ? 1 : 1 - (p - .72) / .28
+        for (let i = 0; i < 3; i++) { const q = cl(p * 1.1 - i * .14); if (q > 0 && q < 1) softRing(o.x, o.y, eo(q) * Math.max(W(), H()) * .42, 34 * D, '#9fc8e8', (1 - q) * .34) }
+        seed(12, i => ({ a: i / 12 * TAU + rnd(-.2, .2), r: 10 * D, v: rnd(1.2, 2.2) * D, s: rnd(8, 14) * D, ph: rnd(0, 9) }))
+        parts(q => {
+          q.r += q.v; q.a += .013
+          const px = o.x + Math.cos(q.a) * q.r, py = o.y + Math.sin(q.a) * q.r * .75 - q.r * .22
+          dark(px, py, q.s * 1.6, fade * .32)
+          glow(px, py, q.s, '#eaf6ff', fade * .5); glow(px, py + q.s * .9, q.s * .5, '#9fc8e8', fade * .35)
+          glow(px - q.s * .32, py - q.s * .18, q.s * .16, '#04040a', fade * .9); glow(px + q.s * .32, py - q.s * .18, q.s * .16, '#04040a', fade * .9)
+        })
+        glow(o.x, o.y, 80 * D, '#9fc8e8', Math.sin(cl(p) * Math.PI) * .4)
+      },
+
+      // 🕯️ SIELŲ IŠLAISVINIMAS: šviesos kolona į dangų, sielos spirale kyla jos viduje
+      soulRelease(p) {
+        const k = eo(cl(p * 1.6)), fade = p < .7 ? 1 : 1 - (p - .7) / .3
+        pillar(o.x, o.y + 50 * D, -40 * D, 60 * D * k, '#cfe6ff', fade * .3)
+        pillar(o.x, o.y + 50 * D, -40 * D, 26 * D * k, '#ffffff', fade * .4)
+        softRing(o.x, o.y + 40 * D, eo(cl(p * 1.2)) * 170 * D, 20 * D, '#9fd0ff', (1 - p) * .5)
+        seed(16, i => ({ t: rnd(0, 1), v: rnd(.004, .009), ph: i, s: rnd(2.5, 5) * D }))
+        parts(q => {
+          q.t += q.v; if (q.t > 1) q.t = 0
+          const py = lerp(o.y + 30 * D, -30 * D, q.t), px = o.x + Math.sin(q.t * 9 + q.ph) * 36 * D * (1 - q.t * .5)
+          glow(px, py, q.s * 2, '#ffffff', fade * .7 * Math.sin(q.t * Math.PI)); glow(px, py, q.s * 4, '#9fd0ff', fade * .25)
+        })
+        glow(o.x, o.y, 70 * D, '#fff7d0', Math.sin(cl(p) * Math.PI) * .5)
+      },
+
+      // ⚰️ MIRTIES BANGA: pilka gęsinanti banga, ekranas „numiršta", krenta pelenai
+      deathPulse(p, now) {
+        const r = eo(cl(p * 1.25)) * Math.max(W(), H()) * .75
+        darkVeil(cl(p * 1.2) * .28 * (1 - cl((p - .75) / .25)))
+        softRing(o.x, o.y, r, 44 * D, '#b0b0b0', (1 - p) * .8)
+        softRing(o.x, o.y, r * .86, 18 * D, '#f4f4f4', (1 - p) * .5)
+        dark(o.x, o.y, r * .5, (1 - p) * .2)
+        seed(30, () => ({ x: rnd(0, W()), y: rnd(-40, 0) * D - rnd(0, H() * .3), v: rnd(.5, 1.4) * D, s: rnd(1.5, 3.5) * D, ph: rnd(0, 9), d: rnd(.4, 1) }))
+        if (p > .3) parts(q => {
+          q.y += q.v; q.x += Math.sin(now / 500 + q.ph) * .4 * D
+          ctx.globalCompositeOperation = 'source-over'; glow(q.x, q.y, q.s * 1.8, 'rgba(150,150,150,1)', q.d * (1 - p) * .5); ctx.globalCompositeOperation = 'lighter'
+        })
+        glow(o.x, o.y, 60 * D, '#f4f4f4', Math.sin(cl(p) * Math.PI) * .4)
+      },
+
+      // 💀 KAULŲ IŠSIVERŽIMAS: žemė skyla, kaulų spygliai paeiliui iššauna su blyksniais
+      boneEruption(p) {
+        const gy = o.y + 64 * D
+        if (!st.cr) {
+          st.cr = []; for (let i = 0; i < 7; i++) st.cr.push(crack({ x: o.x, y: gy }, rnd(0, TAU), rnd(120, 260) * D, 6))
+          st.sp = []; for (let i = 0; i < 8; i++) st.sp.push({ dx: (i - 3.5) * 46 * D + rnd(-10, 10) * D, h: rnd(70, 130) * D, w: rnd(10, 16) * D, at: .14 + i * .055 })
+        }
+        for (const c of st.cr) drawCrack(c, '#0a0806', 3 * D, cl(p * 3) * (1 - cl((p - .7) / .3)), '#e8e0c8')
+        for (const s of st.sp) {
+          const q = cl((p - s.at) / .12); if (q <= 0) continue
+          const up = eo(q) * (1 - cl((p - .78) / .22) * .25)
+          const bx = o.x + s.dx, h = s.h * up
+          ctx.globalCompositeOperation = 'source-over'
+          const bg = ctx.createLinearGradient(0, gy - h, 0, gy)
+          bg.addColorStop(0, '#fffaf0'); bg.addColorStop(.25, '#e8e0c8'); bg.addColorStop(1, '#5a5244')
+          ctx.fillStyle = bg; ctx.globalAlpha = 1 - cl((p - .85) / .15)
+          ctx.beginPath(); ctx.moveTo(bx - s.w, gy)
+          ctx.quadraticCurveTo(bx - s.w * .4, gy - h * .6, bx + (s.dx > 0 ? s.w * .4 : -s.w * .4), gy - h)
+          ctx.quadraticCurveTo(bx + s.w * .5, gy - h * .5, bx + s.w, gy); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1
+          ctx.globalCompositeOperation = 'lighter'
+          if (q < .5) glow(bx, gy - h, 26 * D, '#fffaf0', 0.5 - q)
+        }
+        seed(26, () => ({ x: o.x + rnd(-170, 170) * D, y: gy, vx: rnd(-1.4, 1.4) * D, vy: -rnd(2, 5.5) * D, s: rnd(1.5, 3.5) * D }))
+        if (p > .14) parts(q => { q.vy += .11 * D; q.x += q.vx; q.y += q.vy; glow(q.x, q.y, q.s * 1.8, '#e8e0c8', (1 - p) * .7) })
+        softRing(o.x, gy, eo(cl(p * 1.4)) * 230 * D, 22 * D, '#8a6a44', (1 - p) * .4)
+      },
+
+      // ⚡ NUŽAIBAVIMAS: 3 stori šakoti žaibai paeiliui su flicker, lieka plazmos kamuolys
+      lightning(p, now) {
+        if (!st.b) {
+          st.b = []
+          for (let i = 0; i < 3; i++) {
+            const sx = o.x + rnd(-240, 240) * D
+            const main = boltPath(sx, -30 * D, o.x, o.y, 60 * D)
+            const forks: number[][][] = []
+            for (let f = 0; f < 2; f++) { const bp = main[2 + f * 2]; forks.push(boltPath(bp[0], bp[1], bp[0] + rnd(-140, 140) * D, bp[1] + rnd(80, 160) * D, 40 * D)) }
+            st.b.push({ main, forks, at: .08 + i * .16 })
+          }
+        }
+        for (const b of st.b) {
+          const q = (p - b.at) / .12
+          if (q > 0 && q < 1) {
+            const fl = q < .25 ? 1 : Math.random() < .4 ? .9 : .25
+            washScreen('#9fc4ff', fl * .12)
+            drawBolt(b.main, '#7db8ff', 3.4 * D, fl); for (const f of b.forks) drawBolt(f, '#7db8ff', 1.8 * D, fl * .7)
+            glow(o.x, o.y, 90 * D, '#eaf4ff', fl * .8)
+          }
+        }
+        if (p > .5) {
+          const q = (p - .5) / .5
+          glow(o.x, o.y, (50 + Math.sin(now / 60) * 6) * D * (1 - q * .6), '#7db8ff', (1 - q) * .8)
+          glow(o.x, o.y, 24 * D * (1 - q * .4), '#ffffff', 1 - q)
+          for (let i = 0; i < 5; i++) { const a = now / 140 + i / 5 * TAU; glow(o.x + Math.cos(a) * 40 * D * (1 - q * .5), o.y + Math.sin(a) * 40 * D * (1 - q * .5), 6 * D, '#eaf4ff', (1 - q) * .7) }
+          softRing(o.x, o.y, eo(q) * 220 * D, 18 * D, '#7db8ff', (1 - q) * .5)
+        }
+      },
+
+      // 🔮 ARKANINIS SPROGIMAS: sigilas kraunasi sukdamasis → supernova su spindulių vainiku
+      arcaneDeto(p, now) {
+        if (p < .34) {
+          const k = p / .34
+          ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(now / 500)
+          ctx.strokeStyle = '#a78bfa'; ctx.globalAlpha = k * .85; ctx.lineWidth = 2.2 * D
+          const r = 54 * D * (1 - k * .25)
+          ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke()
+          for (let i = 0; i < 6; i++) {
+            const a1 = i / 6 * TAU, a2 = (i + 2) / 6 * TAU
+            ctx.beginPath(); ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r); ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r); ctx.stroke()
+          }
+          ctx.restore(); ctx.globalAlpha = 1
+          glow(o.x, o.y, (14 + k * 26) * D, '#f5f0ff', k)
+        } else {
+          const q = (p - .34) / .66
+          if (q < .2) washScreen('#c4b5fd', (0.2 - q) * .8)
+          glow(o.x, o.y, 150 * D * (1 - q * .5), '#a78bfa', (1 - q) * .7); glow(o.x, o.y, 60 * D * (1 - q), '#ffffff', 1 - q)
+          for (let i = 0; i < 10; i++) {
+            const a = i / 10 * TAU + .3
+            const L = eo(cl(q * 1.4)) * 330 * D, x1 = o.x + Math.cos(a) * L, y1 = o.y + Math.sin(a) * L
+            ctx.globalAlpha = (1 - q) * .5; ctx.strokeStyle = '#c4b5fd'; ctx.lineWidth = (7 - 5 * q) * D; ctx.lineCap = 'round'
+            ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(x1, y1); ctx.stroke(); ctx.globalAlpha = 1
+          }
+          softRing(o.x, o.y, eo(q) * 300 * D, 24 * D, '#a78bfa', (1 - q) * .8)
+          seed(26, () => { const a = rnd(0, TAU), sp = rnd(2, 7) * D; return { x: o.x, y: o.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, s: rnd(1.5, 3.5) * D } })
+          parts(q2 => { q2.x += q2.vx; q2.y += q2.vy; glow(q2.x, q2.y, q2.s * 2, '#c4b5fd', (1 - q) * .8) })
+        }
+      },
+
+      // 🩸 PRAKEIKIMO ŽENKLAS: kruvinas sigilas įsidega žemėje segmentais, tada suliepsnoja
+      cursedBrand(p) {
+        const gy = o.y + 58 * D, k = cl(p / .55)
+        ctx.save(); ctx.translate(o.x, gy); ctx.scale(1, .4)
+        const r = 95 * D
+        const segs = Math.floor(k * 10)
+        ctx.strokeStyle = '#d4327a'; ctx.lineWidth = 3 * D
+        for (let i = 0; i < segs; i++) {
+          const a1 = i / 10 * TAU - HALF, a2 = ((i + 4) % 10) / 10 * TAU - HALF
+          ctx.globalAlpha = .9 * (1 - cl((p - .8) / .2))
+          ctx.beginPath(); ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r); ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r); ctx.stroke()
+        }
+        if (k > .1) { ctx.globalAlpha = .85 * (1 - cl((p - .8) / .2)); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU * k); ctx.stroke() }
+        ctx.restore(); ctx.globalAlpha = 1
+        glow(o.x, gy, r * .9 * k, '#3a0a2a', .5)
+        if (p > .55) {
+          const q = (p - .55) / .45
+          for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; const fx = o.x + Math.cos(a) * r, fy = gy + Math.sin(a) * r * .4; glow(fx, fy - 14 * D * Math.sin(q * Math.PI), 9 * D, '#ff3a8a', (1 - q) * .8) }
+          pillar(o.x, gy, gy - 150 * D * eo(q), 40 * D, '#d4327a', (1 - q) * .3)
+          glow(o.x, o.y, 80 * D, '#ffd0e6', Math.sin(q * Math.PI) * .5)
+        }
+      },
+
+      // ⛧ KRAUJO RITUALAS: pentagrama piešiasi, kraujo lašai traukiami Į kortą, crimson pliūpsnis
+      bloodRitual(p, now) {
+        const gy = o.y + 58 * D, k = cl(p / .5)
+        ctx.save(); ctx.translate(o.x, gy); ctx.scale(1, .4); ctx.rotate(Math.sin(now / 1400) * .06)
+        const r = 90 * D; ctx.strokeStyle = '#c01e1e'; ctx.lineWidth = 2.6 * D
+        ctx.globalAlpha = k * .9 * (1 - cl((p - .82) / .18))
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU * k); ctx.stroke()
+        const pk = Math.floor(k * 5)
+        for (let i = 0; i < pk; i++) {
+          const a1 = (i * 2) / 5 * TAU - HALF, a2 = ((i * 2 + 4) % 10 / 10) * TAU - HALF
+          ctx.beginPath(); ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r); ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r); ctx.stroke()
+        }
+        ctx.restore(); ctx.globalAlpha = 1
+        seed(26, () => ({ a: rnd(0, TAU), r: rnd(150, 380) * D, v: rnd(.01, .025), s: rnd(2, 4.5) * D }))
+        parts(q => {
+          q.r *= (1 - q.v); if (q.r < 12 * D) q.r = rnd(200, 380) * D
+          const px = o.x + Math.cos(q.a) * q.r, py = o.y + Math.sin(q.a) * q.r * .8
+          glow(px, py, q.s * 1.6, '#e23a3a', .7 * Math.sin(cl(p) * Math.PI)); glow(px, py + q.s, q.s * .7, '#7a0a0a', .5)
+        })
+        glow(o.x, gy, 70 * D * k, '#5a0808', .55)
+        if (p > .62) {
+          const q = (p - .62) / .38
+          pillar(o.x, gy, gy - 190 * D * eo(q), 50 * D, '#c01e1e', (1 - q) * .4)
+          glow(o.x, o.y, 90 * D, '#ff8080', Math.sin(q * Math.PI) * .6)
+          softRing(o.x, gy, eo(q) * 200 * D, 18 * D, '#c01e1e', (1 - q) * .6)
+        }
+      },
+
+      // 🧊 MASINIS UŽŠALIMAS: šerkšnas iš kampų → SNAP blyksnis → snaigės
+      massFreeze(p, now) {
+        const k = cl(p / .5)
+        for (const [cx, cy] of [[0, 0], [W(), 0], [0, H()], [W(), H()]]) {
+          const rr = eo(k) * Math.max(W(), H()) * .55
+          if (rr <= 0) continue
+          const g = ctx.createRadialGradient(cx, cy, rr * .4, cx, cy, rr)
+          g.addColorStop(0, 'rgba(90,168,232,0.28)'); g.addColorStop(1, 'transparent')
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, TAU); ctx.fill()
+        }
+        seed(40, () => ({ x: rnd(0, W()), y: rnd(-H() * .3, 0), v: rnd(.6, 1.8) * D, s: rnd(1.5, 3.5) * D, ph: rnd(0, 9) }))
+        if (p < .5) { if (Math.floor(p * 20) % 3 === 0) glow(o.x, o.y, (30 + k * 30) * D, '#cfe6ff', k * .6) }
+        else {
+          const q = (p - .5) / .5
+          if (q < .14) washScreen('#eaf6ff', (0.14 - q) / .14 * .5)
+          softRing(o.x, o.y, eo(q) * Math.max(W(), H()) * .6, 30 * D, '#9fe1ff', (1 - q) * .6)
+          parts(s => {
+            s.y += s.v; s.x += Math.sin(now / 400 + s.ph) * .5 * D
+            glow(s.x, s.y, s.s * 1.8, '#eaf6ff', (1 - q) * .8); glow(s.x, s.y, s.s * .6, '#ffffff', 1 - q)
+          })
+        }
+        glow(o.x, o.y, 70 * D, '#cfe6ff', Math.sin(cl(p) * Math.PI) * .4)
+      },
+
+      // ❄ ŠALČIO NOVA: kristalų šukės ratu + ledo kristalai išauga iš žemės + šalta migla
+      frostNova(p) {
+        const gy = o.y + 60 * D
+        if (p < .12) washScreen('#eaf6ff', (0.12 - p) / .12 * .4)
+        softRing(o.x, o.y, eo(cl(p * 1.2)) * 320 * D, 26 * D, '#eaf6ff', (1 - p) * .7)
+        softRing(o.x, o.y, eo(cl(p * 1.2 - .06)) * 320 * D, 12 * D, '#7cc4ff', (1 - p) * .5)
+        if (!st.cr) { st.cr = []; for (let i = 0; i < 6; i++) st.cr.push({ dx: (i - 2.5) * 56 * D + rnd(-8, 8) * D, h: rnd(50, 95) * D, w: rnd(9, 14) * D, at: .1 + i * .05, tilt: rnd(-.2, .2) }) }
+        for (const c of st.cr) {
+          const q = cl((p - c.at) / .16); if (q <= 0) continue
+          const up = eo(q), h = c.h * up, bx = o.x + c.dx
+          ctx.globalCompositeOperation = 'source-over'
+          const ig = ctx.createLinearGradient(0, gy - h, 0, gy)
+          ig.addColorStop(0, 'rgba(234,246,255,.95)'); ig.addColorStop(.5, 'rgba(124,196,255,.75)'); ig.addColorStop(1, 'rgba(40,80,140,.5)')
+          ctx.fillStyle = ig; ctx.globalAlpha = 1 - cl((p - .82) / .18)
+          ctx.save(); ctx.translate(bx, gy); ctx.rotate(c.tilt)
+          ctx.beginPath(); ctx.moveTo(-c.w, 0); ctx.lineTo(0, -h); ctx.lineTo(c.w, 0); ctx.closePath(); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1
+          ctx.globalCompositeOperation = 'lighter'
+          glow(bx, gy - h, 10 * D, '#ffffff', (1 - q) * .8)
+        }
+        seed(30, () => { const a = rnd(0, TAU), sp = rnd(3, 8) * D; return { x: o.x, y: o.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, s: rnd(1.5, 3.5) * D } })
+        parts(q => { q.vx *= .97; q.vy *= .97; q.x += q.vx; q.y += q.vy; glow(q.x, q.y, q.s * 1.8, '#dff2ff', (1 - p) * .8) })
+        dark(o.x, gy, 140 * D * cl(p * 1.4), .14)
+      },
+
+      // 🔥 UGNIS: ugnies tornado spirale aukštyn, išsisklaido kibirkštimis
+      fire(p, now) {
+        const k = eo(cl(p * 1.5)), fade = p < .7 ? 1 : 1 - (p - .7) / .3
+        for (let i = 0; i < 16; i++) {
+          const t = i / 16
+          const a = now / 240 + t * TAU * 2.2, rr = (30 + t * 22) * D * (1 - t * .25)
+          const px = o.x + Math.cos(a) * rr, py = o.y + 60 * D - t * 210 * D * k
+          const s = (34 - t * 18) * D
+          const col = t < .3 ? '#fff0c0' : t < .6 ? '#ffb24a' : '#ff7a1a'
+          glow(px, py, s, col, fade * .5 * (1 - t * .3)); dark(px, py - s * .8, s * .5, fade * .12)
+        }
+        glow(o.x, o.y + 50 * D, 80 * D * k, '#ff7a1a', fade * .5)
+        seed(26, () => ({ x: o.x + rnd(-40, 40) * D, y: o.y + rnd(20, 60) * D, vx: rnd(-.6, .6) * D, vy: -rnd(1.5, 4) * D, s: rnd(1.5, 3.5) * D, ph: rnd(0, 9) }))
+        parts(q => { q.x += q.vx + Math.sin(now / 180 + q.ph) * .5 * D; q.y += q.vy; glow(q.x, q.y, q.s * 2, '#ffc24a', fade * .75) })
+      },
+
+      // 😈 PRAGARO UGNIS: degantis ratas + liepsnų kolonos + demoniška akis + pelenai
+      hellfire(p, now) {
+        const gy = o.y + 60 * D, k = eo(cl(p * 1.3)), fade = p < .72 ? 1 : 1 - (p - .72) / .28
+        ctx.save(); ctx.translate(o.x, gy); ctx.scale(1, .38)
+        softRing(0, 0, 110 * D * k, 22 * D, '#ff3a1a', fade * .8); softRing(0, 0, 110 * D * k, 44 * D, '#6a0c0c', fade * .5)
+        ctx.restore()
+        for (let i = 0; i < 9; i++) {
+          const a = i / 9 * TAU + now / 2600
+          const bx = o.x + Math.cos(a) * 110 * D * k, by = gy + Math.sin(a) * 110 * D * k * .38
+          const hh = (50 + 30 * Math.sin(now / 170 + i * 2)) * D * k
+          pillar(bx, by, by - hh, 16 * D, '#ff5a2a', fade * .5); glow(bx, by - hh, 12 * D, '#ffe0a0', fade * .6)
+        }
+        glow(o.x, o.y, 90 * D * k, '#6a0c0c', fade * .5)
+        if (p > .3 && p < .55) glow(o.x, o.y - 30 * D, 26 * D, '#ff3a1a', Math.sin((p - .3) / .25 * Math.PI) * .9)
+        seed(30, () => ({ x: o.x + rnd(-140, 140) * D, y: gy + rnd(-8, 8) * D, vx: rnd(-.4, .4) * D, vy: -rnd(1, 3.2) * D, s: rnd(1.5, 4) * D, ash: Math.random() < .4 }))
+        parts(q => {
+          q.x += q.vx; q.y += q.vy
+          if (q.ash) { ctx.globalCompositeOperation = 'source-over'; glow(q.x, q.y, q.s * 1.6, 'rgba(60,50,50,1)', fade * .5); ctx.globalCompositeOperation = 'lighter' }
+          else glow(q.x, q.y, q.s * 2, '#ff5a2a', fade * .7)
+        })
+      },
+
+      // 🌪️ ŽARIJŲ AUDRA: horizontalus žarijų vėjas per visą ekraną, korta įsidega
+      emberStorm(p, now) {
+        const fade = p < .75 ? 1 : 1 - (p - .75) / .25
+        seed(64, () => ({ x: rnd(-W() * .2, W()), y: rnd(0, H()), v: rnd(3, 9) * D, s: rnd(1.2, 3.6) * D, ph: rnd(0, 9) }))
+        parts(q => {
+          q.x += q.v; q.y += Math.sin(now / 220 + q.ph) * 1.4 * D; if (q.x > W() + 20) q.x = -20 * D
+          glow(q.x, q.y, q.s * 2.2, '#ffc24a', fade * .55); glow(q.x - q.v * 2, q.y, q.s * 1.2, '#ff9a3a', fade * .3)
+        })
+        dark(W() * .5, H() * .5, Math.max(W(), H()) * .5, fade * .1)
+        glow(o.x, o.y, (50 + Math.sin(now / 120) * 8) * D * cl(p * 2), '#ff9a3a', fade * .6)
+        glow(o.x, o.y, 24 * D * cl(p * 2), '#ffe0b0', fade * .8)
+      },
+
+      // 🌋 LAVOS SKILIMAS: žemė švyti, plyšiai švyti lava, purslai, vėsta į tamsą
+      moltenShatter(p) {
+        const gy = o.y + 62 * D, cool = cl((p - .6) / .4)
+        if (!st.cr) { st.cr = []; for (let i = 0; i < 8; i++) st.cr.push(crack({ x: o.x, y: gy }, rnd(0, TAU), rnd(140, 280) * D, 6)) }
+        glow(o.x, gy, 180 * D * cl(p * 2), '#7a2a0a', (1 - cool) * .5)
+        for (const c of st.cr) {
+          drawCrack(c, '#2a1006', 4 * D, cl(p * 3), null)
+          for (let i = 1; i < c.length; i++) glow(c[i][0], c[i][1], 7 * D, '#ff6a1a', (1 - cool) * .8 * cl(p * 3))
+        }
+        if (!st.sp && p > .15) { st.sp = []; for (let i = 0; i < N(14); i++) st.sp.push({ x: o.x + rnd(-120, 120) * D, y: gy, vx: rnd(-1, 1) * D, vy: -rnd(3, 7) * D, s: rnd(2, 4.5) * D }) }
+        if (st.sp) for (const q of st.sp) {
+          q.vy += .12 * D; q.x += q.vx; q.y += q.vy
+          glow(q.x, q.y, q.s * 2, '#ff8a3a', (1 - cool) * .85); glow(q.x, q.y - q.s, q.s, '#ffd090', (1 - cool) * .6)
+        }
+        softRing(o.x, gy, eo(cl(p * 1.3)) * 240 * D, 20 * D, '#ff6a1a', (1 - p) * .5)
+      },
+
+      // 💥 SPROGIMAS: blyksnis → turbulentiškas ugnies kamuolys su dūmais → banga + skeveldros su dūmų uodegom
+      explosion(p, now) {
+        if (p < .08) washScreen('#fff', (0.08 - p) / .08 * .7)
+        if (p < .5) {
+          const q = p / .5, R = (30 + eo(q) * 110) * D
+          for (let i = 0; i < 10; i++) {
+            const a = i / 10 * TAU + now / 400, rr = R * (.6 + .35 * Math.sin(now / 130 + i * 2.4))
+            const px = o.x + Math.cos(a) * rr * .55, py = o.y + Math.sin(a) * rr * .45 - q * 24 * D
+            glow(px, py, rr * .6, i % 3 === 0 ? '#ffffff' : i % 2 ? '#ffd25a' : '#ff7a1a', (1 - q) * .5)
+          }
+          glow(o.x, o.y, R, '#ff7a1a', (1 - q) * .6); glow(o.x, o.y, R * .5, '#fff', (1 - q) * .8)
+          dark(o.x, o.y - R * .8, R * .7, q * .35)
+        }
+        softRing(o.x, o.y, eo(cl(p * 1.15)) * 340 * D, 30 * D, '#ffd25a', (1 - p) * .65)
+        seed(20, () => { const a = rnd(-Math.PI, 0); const sp = rnd(4, 9) * D; return { x: o.x, y: o.y, vx: Math.cos(a) * sp * rnd(.5, 1), vy: Math.sin(a) * sp, s: rnd(2, 4) * D, tr: [] as number[][] } })
+        parts(q => {
+          q.vy += .14 * D; q.x += q.vx; q.y += q.vy
+          q.tr.push([q.x, q.y]); if (q.tr.length > 6) q.tr.shift()
+          for (let i = 0; i < q.tr.length; i++) {
+            ctx.globalCompositeOperation = 'source-over'
+            glow(q.tr[i][0], q.tr[i][1], q.s * 1.5, 'rgba(80,70,66,1)', (i / q.tr.length) * (1 - p) * .4)
+            ctx.globalCompositeOperation = 'lighter'
+          }
+          glow(q.x, q.y, q.s * 1.6, '#ffd25a', (1 - p) * .85)
+        })
+      },
+
+      // ☣️ NUODŲ DEBESIS: grybo debesis išsipučia, laša nuodai, viduje pulsuoja švytėjimas
+      poisonCloud(p, now) {
+        const k = eo(cl(p * 1.2)), fade = p < .7 ? 1 : 1 - (p - .7) / .3
+        for (let i = 0; i < 12; i++) {
+          const a = i / 12 * TAU
+          const rr = (46 + 26 * Math.sin(now / 300 + i * 1.8)) * D * k
+          const px = o.x + Math.cos(a) * 70 * D * k, py = o.y - 40 * D * k + Math.sin(a) * 40 * D * k - Math.abs(Math.cos(a)) * 10 * D
+          dark(px, py, rr, fade * .5); glow(px, py, rr * .6, '#3a6a0a', fade * .4); glow(px, py, rr * .25, '#84cc16', fade * .3)
+        }
+        glow(o.x, o.y - 40 * D * k, (40 + Math.sin(now / 250) * 10) * D * k, '#d4ff80', fade * .35 * (0.7 + 0.3 * Math.sin(now / 250)))
+        seed(16, () => ({ x: o.x + rnd(-80, 80) * D, y: o.y - rnd(0, 60) * D, vy: rnd(.8, 2) * D, s: rnd(1.5, 3.5) * D, drip: Math.random() < .6 }))
+        parts(q => {
+          if (q.drip) { q.y += q.vy; glow(q.x, q.y, q.s * 1.6, '#a3e635', fade * .7); glow(q.x, q.y + q.s * 1.4, q.s * .7, '#84cc16', fade * .4) }
+          else { q.y -= q.vy * .4; glow(q.x, q.y, q.s * 2, '#84cc16', fade * .4) }
+        })
+      },
+
+      // 🦗 MARAS: gyvas spiečius-murmuracija aplink kortą + liguistas žalsvas rūkas
+      plague(p, now) {
+        const fade = p < .72 ? 1 : 1 - (p - .72) / .28
+        dark(o.x, o.y, 220 * D * cl(p * 1.5), fade * .25)
+        glow(o.x, o.y, 180 * D * cl(p * 1.5), '#2e3a0a', fade * .35)
+        seed(54, () => ({ a: rnd(0, TAU), r: rnd(30, 150) * D, v: rnd(.03, .09), ph: rnd(0, 9), s: rnd(1.2, 2.6) * D, el: rnd(.5, .9) }))
+        parts(q => {
+          q.a += q.v; q.r += Math.sin(now / 300 + q.ph) * 1.2 * D
+          const px = o.x + Math.cos(q.a + Math.sin(now / 500 + q.ph)) * q.r * 1.15
+          const py = o.y + Math.sin(q.a) * q.r * q.el
+          ctx.globalCompositeOperation = 'source-over'; glow(px, py, q.s * 1.7, 'rgba(14,16,6,1)', fade * .85); ctx.globalCompositeOperation = 'lighter'
+          glow(px, py, q.s * .8, '#9acd32', fade * .3)
+        })
+        glow(o.x, o.y, 60 * D, '#caff70', Math.sin(cl(p) * Math.PI) * .3)
+      },
+
+      // 🪨 ŽEMĖS DREBĖJIMAS: radialiniai plyšiai + dulkių geizeriai iš plyšių + mėtomi akmenys
+      earthquake(p) {
+        const gy = o.y + 62 * D
+        if (!st.cr) {
+          st.cr = []; st.gz = []
+          for (let i = 0; i < 9; i++) {
+            const c = crack({ x: o.x, y: gy }, rnd(0, TAU), rnd(150, 300) * D, 7); st.cr.push(c)
+            if (i % 2 === 0) st.gz.push({ x: c[3][0], y: c[3][1], at: .15 + i * .06 })
+          }
+          st.rk = []; for (let i = 0; i < N(10); i++) st.rk.push({ x: o.x + rnd(-160, 160) * D, y: gy, vx: rnd(-.8, .8) * D, vy: -rnd(2.5, 5.5) * D, s: rnd(2.5, 5) * D, r: rnd(0, TAU), vr: rnd(-.2, .2) })
+        }
+        for (const c of st.cr) drawCrack(c, '#1a1208', 4 * D, cl(p * 2.5) * (1 - cl((p - .75) / .25)), '#8a6a44')
+        for (const g of st.gz) {
+          const q = cl((p - g.at) / .4); if (q <= 0) continue
+          for (let i = 0; i < 5; i++) {
+            const t = i / 5
+            ctx.globalCompositeOperation = 'source-over'
+            glow(g.x + rnd(-4, 4) * D, g.y - t * 90 * D * eo(q), (16 + t * 14) * D, 'rgba(120,95,64,1)', (1 - q) * (1 - t * .4) * .5)
+            ctx.globalCompositeOperation = 'lighter'
+          }
+        }
+        for (const r of st.rk) {
+          if (p > .15) { r.vy += .12 * D; r.x += r.vx; r.y += r.vy; r.r += r.vr }
+          ctx.globalCompositeOperation = 'source-over'; ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.r)
+          ctx.fillStyle = '#5a4834'; ctx.globalAlpha = 1 - cl((p - .8) / .2)
+          ctx.fillRect(-r.s, -r.s * .7, r.s * 2, r.s * 1.4); ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
+        }
+        softRing(o.x, gy, eo(cl(p * 1.3)) * 260 * D, 22 * D, '#8a6a44', (1 - p) * .45)
+        glow(o.x, gy, 120 * D * cl(p * 2), '#4a3826', (1 - p) * .4)
+      },
     }
 
-    let raf = 0
+    const draw = EFF[type] || EFF.explosion
     const t0 = performance.now()
+    let raf = 0
     const frame = (now: number) => {
-      const p = (now - t0) / cfg.dur
-      const rt = released ? (p - CHARGE) / (1 - CHARGE) : 0
-      ctx.clearRect(0, 0, c.width, c.height)
-
-      // vignette į kortą
-      ctx.globalCompositeOperation = 'source-over'
-      const vg = ctx.createRadialGradient(ox, oy, 60 * D, ox, oy, 360 * D)
-      vg.addColorStop(0, 'transparent'); vg.addColorStop(1, `rgba(2,1,6,${cl(p < 0.5 ? p : 1 - p) * 0.4})`)
-      ctx.fillStyle = vg; ctx.fillRect(0, 0, c.width, c.height)
-      ctx.globalCompositeOperation = 'lighter'
-
-      // CHARGE: branduolys + sukantis žiedas renkasi
-      if (p < CHARGE) {
-        const k = p / CHARGE
-        orb(ctx, ox, oy, (16 + k * 42) * D, cfg.ring, cfg.core, k * 0.85, D)
-        ctx.strokeStyle = cfg.ring; ctx.globalAlpha = k * 0.7; ctx.lineWidth = 2 * D; ctx.beginPath(); ctx.arc(ox, oy, (50 - k * 26) * D, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1
-      } else if (!released) seedBurst()
-
-      // RELEASE blyksnis
-      if (released && rt < 0.16) { orb(ctx, ox, oy, (50 + rt * 200) * D, cfg.ring, '#ffffff', (1 - rt / 0.16) * 0.95, D) }
-
-      // ── DOMINUOJANTIS MOTYVAS ──
-      if (released) {
-        glow(ctx, ox, oy, eo(rt) * maxR * 0.5, cfg.glow, (1 - rt) * 0.22)   // bendra išsiplečianti aura
-        switch (cfg.motif) {
-          case 'ritual':  ritual(ctx, ox, oy, p, rt, cfg, now, D); break
-          case 'flame':   flame(ctx, ox, oy, rt, cfg, now, D); break
-          case 'blast':   blast(ctx, ox, oy, rt, cfg, maxR, D); break
-          case 'ice': {
-            ringB(ctx, ox, oy, eo(rt) * maxR, cfg.ring, (1 - rt) * 0.85, 5 * D, D)
-            if (cfg.ring2) ringB(ctx, ox, oy, eo(Math.max(0, rt - 0.08)) * maxR, cfg.ring2, (1 - rt) * 0.55, 2.5 * D, D)
-            glow(ctx, ox, oy, eo(rt) * maxR * 0.55, cfg.glow, (1 - rt) * 0.3)
-            break
-          }
-          case 'bolts':   drawBolts(ctx, bolts, rt, cfg, now, D); break
-          case 'cloud':   cloud(ctx, ox, oy, rt, cfg, now, D); break
-          case 'quake':   cracks(ctx, ox, oy, rt, maxR, cfg.ring, cfg.core, D); glow(ctx, ox, oy, (60 + eo(rt) * 90) * D * (1 - rt), cfg.glow, (1 - rt) * 0.5); break
-          case 'rift':    rift(ctx, ox, oy, p, rt, cfg, now, D); break
-          case 'tendrils':tendrils(ctx, ox, oy, rt, maxR, cfg.ring, D, now); ringB(ctx, ox, oy, eo(rt) * maxR, cfg.ring, (1 - rt) * 0.4, 2 * D, D); break
-          case 'souls':   souls(ctx, ox, oy, rt, cfg, now, D); break
-          case 'darkness':darkness(ctx, ox, oy, p, rt, cfg, D); break
-          case 'pulse': {
-            const dr = eo(rt) * maxR
-            ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#cfcfcf'; ctx.globalAlpha = (1 - rt) * 0.12; ctx.beginPath(); ctx.arc(ox, oy, dr * 0.8, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
-            ringB(ctx, ox, oy, dr, cfg.ring, (1 - rt) * 0.95, 8 * D, D); ringB(ctx, ox, oy, eo(Math.max(0, rt - 0.1)) * maxR, cfg.core, (1 - rt) * 0.5, 3 * D, D)
-            break
-          }
-          case 'eruption':eruption(ctx, ox, oy, rt, cfg, D); cracks(ctx, ox, oy, rt, maxR * 0.7, cfg.ring, cfg.core, D); break
-        }
-        // bendros dalelės virš motyvo (sutvarkytos pagal gylį – tūris)
-        parts.sort((u, v) => u.z - v.z)
-        for (const q of parts) {
-          const e = (now - t0 - CHARGE * cfg.dur) / q.max; if (e < 0 || e >= 1) continue
-          q.px = q.x; q.py = q.y; q.x += q.vx; q.y += q.vy; q.vy += cfg.grav * D; q.vx *= 0.986; q.vy *= 0.986; q.rot += q.vr
-          drawP(ctx, q, 1 - e, cfg.pcolor, cfg.glow, now, D)
-        }
-      }
-
-
-      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1
-      if (now - t0 < cfg.dur) raf = requestAnimationFrame(frame)
-      else ctx.clearRect(0, 0, c.width, c.height)
+      ctx.clearRect(0, 0, cv.width, cv.height)
+      const p = (now - t0) / dur
+      if (p < 1) {
+        ctx.globalCompositeOperation = 'lighter'
+        draw(p, now)
+        ctx.globalCompositeOperation = 'source-over'
+        raf = requestAnimationFrame(frame)
+      } else ctx.clearRect(0, 0, cv.width, cv.height)
     }
     raf = requestAnimationFrame(frame)
-    return () => { window.clearTimeout(tEnd); cancelAnimationFrame(raf) }
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(tEnd) }
   }, [type, x, y, effectKey])
 
   return <canvas ref={cvs} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 127, pointerEvents: 'none', width: '100%', height: '100%' }} />
-}
-
-// ── primityvai ────────────────────────────────────────────────────────────────
-function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
-  if (a <= 0 || r <= 0) return; const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, color); g.addColorStop(1, 'transparent')
-  ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
-}
-function orb(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, core: string, a: number, D: number) {
-  if (a <= 0) return
-  for (let i = 4; i >= 0; i--) { const rr = r * (0.5 + i * 0.17); glow(ctx, x, y - i * 2 * D, rr, i < 2 ? core : color, a * (0.28 + (4 - i) * 0.12)) }
-}
-function ringB(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number, lw: number, D: number) {
-  if (r < 1 || a <= 0) return; ctx.shadowColor = color; ctx.shadowBlur = blur(10 * D)
-  ctx.strokeStyle = color; ctx.globalAlpha = a; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke()
-  ctx.shadowBlur = 0; ctx.globalAlpha = 1
-}
-// FLAME – volumetric kylantis ugnies pliūpsnis (plūsta iš kortos aukštyn ir į šonus)
-function flame(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, now: number, D: number) {
-  const up = eo(cl(rt * 1.3)); const fade = rt < 0.78 ? 1 : 1 - (rt - 0.78) / 0.22
-  // pliūpsnio banga prie pagrindo (sklinda į šonus)
-  glow(ctx, ox, oy, (40 + up * 120) * D, cfg.glow, fade * (1 - rt) * 0.45)
-  const n = 22
-  for (let i = 0; i < n; i++) {
-    const t = (i % 11) / 11; const lobe = i < 11 ? 1 : -1
-    const sway = Math.sin(now / 190 + i * 1.4) * 26 * D * t
-    const spread = lobe * (8 + t * 70) * D * up               // platėja kylant ir į šonus
-    const px = ox + spread + sway * 0.6
-    const py = oy - t * 165 * D * up * (0.82 + 0.18 * Math.sin(now / 150 + i))
-    const s = (46 - t * 24) * D * (0.7 + 0.3 * Math.sin(now / 110 + i * 2))   // tankesnis/platus apačioje
-    const col = t < 0.34 ? cfg.core : t < 0.66 ? cfg.ring : cfg.glow
-    const g = ctx.createRadialGradient(px, py, 0, px, py, s * 1.7)
-    g.addColorStop(0, col); g.addColorStop(0.55, cfg.glow); g.addColorStop(1, 'transparent')
-    ctx.globalAlpha = fade * (1 - rt) * 0.5 * (1 - t * 0.35); ctx.fillStyle = g
-    ctx.beginPath(); ctx.arc(px, py, s * 1.7, 0, TAU); ctx.fill()
-  }
-  ctx.globalAlpha = 1; glow(ctx, ox, oy, 74 * D, cfg.core, fade * (1 - rt) * 0.7)
-}
-// BLAST – sprogimo banga + skeveldros
-function blast(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, maxR: number, D: number) {
-  ringB(ctx, ox, oy, eo(rt) * maxR, cfg.ring, (1 - rt) * 0.9, 6 * D, D)
-  if (cfg.ring2) ringB(ctx, ox, oy, eo(Math.max(0, rt - 0.08)) * maxR, cfg.ring2, (1 - rt) * 0.6, 3 * D, D)
-  ctx.save(); ctx.translate(ox, oy)
-  for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; const r0 = eo(rt) * 50 * D, r1 = eo(rt) * maxR * (0.7 + (i % 3) * 0.1); ctx.strokeStyle = cfg.ring; ctx.globalAlpha = (1 - rt) * 0.5; ctx.lineWidth = 2 * D; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); ctx.stroke() }
-  ctx.restore(); ctx.globalAlpha = 1
-}
-// BOLTS – šakotas žaibo tinklas
-function genNet(ox: number, oy: number, maxR: number, D: number): Bolt[] {
-  const bolts: Bolt[] = []; const n = 7
-  for (let i = 0; i < n; i++) { const a = i / n * TAU + rnd(-0.2, 0.2); bolts.push(genBolt(ox, oy, ox + Math.cos(a) * maxR * 0.9, oy + Math.sin(a) * maxR * 0.9, 30 * D)) }
-  return bolts
-}
-function genBolt(x1: number, y1: number, x2: number, y2: number, disp: number): Bolt {
-  let pts: Bolt = [{ x: x1, y: y1 }, { x: x2, y: y2 }]; let d = disp
-  for (let it = 0; it < 5; it++) { const np: Bolt = []; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2; const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1; const off = rnd(-d, d); np.push(a, { x: mx - dy / len * off, y: my + dx / len * off }) } np.push(pts[pts.length - 1]); pts = np; d *= 0.55 }
-  return pts
-}
-function drawBolts(ctx: CanvasRenderingContext2D, bolts: Bolt[], rt: number, cfg: Cfg, now: number, D: number) {
-  const fl = rt < 0.5 ? 1 : (Math.sin(now / 40) > 0 ? 0.8 : 0.3); const a = (1 - rt) * fl
-  ctx.lineCap = 'round'; ctx.shadowColor = cfg.ring; ctx.shadowBlur = blur(14 * D)
-  ctx.strokeStyle = cfg.ring; ctx.globalAlpha = a * 0.5; ctx.lineWidth = 5 * D; for (const b of bolts) trace(ctx, b)
-  ctx.shadowBlur = blur(7 * D); ctx.strokeStyle = cfg.core; ctx.globalAlpha = a; ctx.lineWidth = 1.6 * D; for (const b of bolts) trace(ctx, b)
-  ctx.shadowBlur = 0; ctx.globalAlpha = 1
-}
-function trace(ctx: CanvasRenderingContext2D, b: Bolt) { ctx.beginPath(); ctx.moveTo(b[0].x, b[0].y); for (let i = 1; i < b.length; i++) ctx.lineTo(b[i].x, b[i].y); ctx.stroke() }
-// CLOUD – kunkuliuojantis debesis
-function cloud(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, now: number, D: number) {
-  ctx.globalCompositeOperation = 'source-over'
-  for (let i = 0; i < 11; i++) { const a = i / 11 * TAU; const rr = eo(rt) * 100 * D + Math.sin(i * 2) * 12 * D; const cx = ox + Math.cos(a) * rr; const cy = oy + Math.sin(a) * rr * 0.7 - eo(rt) * 46 * D; const s = (32 + Math.sin(now / 280 + i) * 9) * D; const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, s); g.addColorStop(0, cfg.glow); g.addColorStop(0.6, cfg.pcolor); g.addColorStop(1, 'transparent'); ctx.globalAlpha = (1 - rt) * 0.42; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, s, 0, TAU); ctx.fill() }
-  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; glow(ctx, ox, oy, 50 * D, cfg.core, (1 - rt) * 0.35)
-}
-// QUAKE – žemės plyšiai
-function cracks(ctx: CanvasRenderingContext2D, x: number, y: number, rt: number, maxR: number, color: string, core: string, D: number) {
-  for (let i = 0; i < 14; i++) {
-    const a = i / 14 * TAU + 0.25; const r = eo(rt) * maxR * (0.6 + (i % 3) * 0.14)
-    const pts: [number, number][] = [[x, y]]; for (let k = 1; k <= 5; k++) { const rr = r * k / 5; const ja = a + Math.sin(k * 1.7 + i) * 0.2; pts.push([x + Math.cos(ja) * rr, y + Math.sin(ja) * rr]) }
-    ctx.strokeStyle = color; ctx.globalAlpha = (1 - rt) * 0.85; ctx.lineWidth = 5 * D; ctx.beginPath(); pts.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke()
-    ctx.strokeStyle = core; ctx.shadowColor = core; ctx.shadowBlur = blur(8 * D); ctx.globalAlpha = (1 - rt) * 0.95; ctx.lineWidth = 1.4 * D; ctx.beginPath(); pts.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.shadowBlur = 0
-  }
-  ctx.globalAlpha = 1
-}
-// RIFT – vertikalus tuštumos plyšys
-function rift(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, rt: number, cfg: Cfg, now: number, D: number) {
-  const fade = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15)
-  const h = (40 + eo(cl(p * 1.4)) * 150) * D * fade; const w = (9 + Math.sin(now / 200) * 3) * D * (1 - rt * 0.4)
-  ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#05010a'; ctx.globalAlpha = cl(p * 3) * fade; ctx.beginPath(); ctx.ellipse(ox, oy, w, h, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
-  ctx.strokeStyle = cfg.ring; ctx.shadowColor = cfg.ring2 ?? cfg.core; ctx.shadowBlur = blur(18 * D); ctx.globalAlpha = fade * 0.95; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.ellipse(ox, oy, w, h, 0, 0, TAU); ctx.stroke()
-  // vidinis sūkurys
-  ctx.globalAlpha = fade * 0.6; ctx.lineWidth = 1.6 * D
-  for (let i = 0; i < 4; i++) { const ph = now / 500 + i * 1.6; ctx.beginPath(); ctx.ellipse(ox, oy, w * (0.3 + i * 0.2), h * (0.3 + i * 0.2), 0, ph, ph + 2.4); ctx.stroke() }
-  ctx.shadowBlur = 0; ctx.globalAlpha = 1
-  glow(ctx, ox, oy, w * 5, cfg.ring2 ?? cfg.core, fade * 0.55); glow(ctx, ox, oy, w * 2, cfg.core, fade * 0.7)
-}
-// TENDRILS – šešėlių tentakliai
-function tendrils(ctx: CanvasRenderingContext2D, x: number, y: number, rt: number, maxR: number, color: string, D: number, now: number) {
-  const n = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(9 * D)
-  for (let i = 0; i < n; i++) {
-    const a = i / n * TAU + now / 2200; const r = eo(rt) * maxR
-    const pts: [number, number][] = [[x, y]]
-    for (let k = 1; k <= 8; k++) { const rr = r * k / 8; const wob = Math.sin(k * 1.25 + i + now / 280) * 22 * D * (k / 8); pts.push([x + Math.cos(a) * rr - Math.sin(a) * wob, y + Math.sin(a) * rr + Math.cos(a) * wob]) }
-    for (let w = 0; w < 3; w++) { ctx.lineWidth = (10 - w * 3) * D * (1 - rt * 0.3); ctx.globalAlpha = (1 - rt) * (0.22 + w * 0.16); ctx.beginPath(); pts.forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke() }
-  }
-  ctx.shadowBlur = 0; ctx.globalAlpha = 1
-}
-// SOULS – kylantys sielų wisp'ai + spinduliai
-function souls(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, now: number, D: number) {
-  ctx.save(); ctx.translate(ox, oy); ctx.rotate(now / 5000)
-  for (let i = 0; i < 12; i++) { const an = i / 12 * TAU; const w = 0.05; const R = (90 + eo(rt) * 200) * D; ctx.fillStyle = cfg.core; ctx.globalAlpha = (1 - rt) * 0.08; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(an - w) * R, Math.sin(an - w) * R); ctx.lineTo(Math.cos(an + w) * R, Math.sin(an + w) * R); ctx.closePath(); ctx.fill() }
-  ctx.restore(); ctx.globalAlpha = 1
-  if (cfg.pillar) { const ph = (60 + eo(rt) * 150) * D; const g = ctx.createLinearGradient(ox, oy, ox, oy - ph); g.addColorStop(0, cfg.core); g.addColorStop(1, 'transparent'); ctx.globalAlpha = (1 - rt) * 0.5; ctx.fillStyle = g; const w = 30 * D * (1 - rt * 0.4); ctx.fillRect(ox - w / 2, oy - ph, w, ph); ctx.globalAlpha = 1 }
-}
-// DARKNESS – tamsos kupolas + korona
-function darkness(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, rt: number, cfg: Cfg, D: number) {
-  const fade = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15); const dr = (22 + eo(cl(p / 0.4)) * 72) * D
-  ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#04020a'; ctx.globalAlpha = cl(p * 2) * fade; ctx.beginPath(); ctx.arc(ox, oy, dr, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
-  ctx.strokeStyle = cfg.core; ctx.shadowColor = cfg.ring; ctx.shadowBlur = blur(18 * D); ctx.globalAlpha = fade * 0.9; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.arc(ox, oy, dr + 4 * D, 0, TAU); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1
-  ringB(ctx, ox, oy, eo(rt) * 300 * D, cfg.ring, (1 - rt) * 0.45, 3 * D, D)
-}
-// ERUPTION – kaulų spygliai
-function eruption(ctx: CanvasRenderingContext2D, ox: number, oy: number, rt: number, cfg: Cfg, D: number) {
-  const g = eo(cl(rt * 1.4)); ctx.save(); ctx.translate(ox, oy)
-  for (let i = 0; i < 16; i++) { const a = i / 16 * TAU + (i % 2) * 0.22; const dist = (28 + (i % 4) * 24) * D * g; const len = (42 + (i % 5) * 18) * D * g; const wd = (6 + (i % 3) * 2) * D; const bx = Math.cos(a) * dist, by = Math.sin(a) * dist * 0.55; ctx.fillStyle = cfg.ring; ctx.shadowColor = cfg.core; ctx.shadowBlur = blur(6 * D); ctx.globalAlpha = (1 - rt) * 0.92; ctx.beginPath(); ctx.moveTo(bx - wd, by); ctx.lineTo(bx, by - len); ctx.lineTo(bx + wd, by); ctx.closePath(); ctx.fill() }
-  ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
-}
-// RITUAL – magijos ratas (tik ritualiniams)
-function ritual(ctx: CanvasRenderingContext2D, ox: number, oy: number, p: number, rt: number, cfg: Cfg, now: number, D: number) {
-  const R = 118 * D; const prog = cl(p / 0.24); const fade = cl(p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15)
-  if (fade <= 0) { ringB(ctx, ox, oy, eo(rt) * 320 * D, cfg.ring, (1 - rt) * 0.5, 3 * D, D); return }
-  ctx.save(); ctx.translate(ox, oy); ctx.scale(1, 0.42); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade; ctx.shadowColor = cfg.ring; ctx.shadowBlur = blur(12 * D)
-  const end = -HALF + prog * TAU; ctx.strokeStyle = cfg.ring; ctx.lineWidth = 2 * D; arc(ctx, R, end); arc(ctx, R * 0.97, end); ctx.lineWidth = 3.4 * D; arc(ctx, R * 0.8, end); ctx.lineWidth = 1.4 * D; arc(ctx, R * 0.3, end)
-  ctx.save(); ctx.rotate(now / 3400); for (let i = 0; i < 48; i++) { if (i / 48 > prog) break; const a = i / 48 * TAU; ctx.lineWidth = (i % 12 === 0 ? 3 : 1) * D; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R, Math.sin(a) * R); ctx.lineTo(Math.cos(a) * R * (i % 12 === 0 ? 0.86 : 0.92), Math.sin(a) * R * (i % 12 === 0 ? 0.86 : 0.92)); ctx.stroke() } ctx.restore()
-  const runeN = cfg.runeN ?? 24; ctx.save(); ctx.rotate(-now / 2700); ctx.strokeStyle = cfg.core; ctx.lineWidth = 1.5 * D; for (let i = 0; i < runeN; i++) { if (i / runeN > prog) break; const a = i / runeN * TAU; ctx.save(); ctx.rotate(a); ctx.translate(R * 0.88, 0); ctx.rotate(HALF); runeMark(ctx, (i * 3) % 4, 5 * D); ctx.restore() } ctx.restore()
-  ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1
-}
-function arc(ctx: CanvasRenderingContext2D, r: number, end: number) { ctx.beginPath(); ctx.arc(0, 0, r, -HALF, end); ctx.stroke() }
-function runeMark(ctx: CanvasRenderingContext2D, v: number, s: number) {
-  ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(0, s)
-  if (v === 0) { ctx.moveTo(0, -s * 0.4); ctx.lineTo(s * 0.6, -s * 0.8) } else if (v === 1) { ctx.moveTo(0, 0); ctx.lineTo(s * 0.6, -s * 0.5); ctx.moveTo(0, 0); ctx.lineTo(s * 0.6, s * 0.5) } else if (v === 2) { ctx.moveTo(-s * 0.5, -s * 0.6); ctx.lineTo(s * 0.5, -s * 0.6) } else { ctx.moveTo(0, -s * 0.3); ctx.lineTo(s * 0.5, 0); ctx.lineTo(0, s * 0.3) }
-  ctx.stroke()
-}
-function drawP(ctx: CanvasRenderingContext2D, q: Part, a: number, color: string, dark: string, now: number, D: number) {
-  const { x, y } = q
-  const zf = 0.55 + (q.z + 1) / 2 * 0.85           // gylio mastelis (priekis didesnis)
-  const s = q.size * zf
-  a *= 0.5 + (q.z + 1) / 2 * 0.5                    // priekis ryškesnis
-  if (q.kind === 'body') { ctx.globalCompositeOperation = 'source-over'; const g = ctx.createRadialGradient(x, y, 0, x, y, s); g.addColorStop(0, color); g.addColorStop(0.45, dark); g.addColorStop(1, 'transparent'); ctx.globalAlpha = a * 0.3; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
-  if (q.kind === 'ember' || q.kind === 'wisp' || q.kind === 'spore') { const fl = 0.75 + 0.25 * Math.sin(now * 0.02 + q.seed * 7); const g = ctx.createRadialGradient(x, y, 0, x, y, s * 2.8); g.addColorStop(0, color); g.addColorStop(1, 'transparent'); ctx.globalAlpha = a * 0.9 * fl; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s * 2.8, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; return }
-  if (q.kind === 'spark') { ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(6 * D); ctx.globalAlpha = a; ctx.lineWidth = s * 0.8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(q.px, q.py); ctx.lineTo(x, y); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1; return }
-  if (q.kind === 'ash' || q.kind === 'drop') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = color; ctx.globalAlpha = a; ctx.beginPath(); if (q.kind === 'drop') ctx.ellipse(x, y, s * 0.7, s * 1.4, Math.atan2(q.vy, q.vx) + HALF, 0, TAU); else ctx.arc(x, y, s, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
-  if (q.kind === 'shard') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(6 * D); ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(0, -s * 2.2); ctx.lineTo(s, s); ctx.lineTo(-s, s); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
-  if (q.kind === 'bone') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = color; ctx.globalAlpha = a; ctx.beginPath(); ctx.roundRect(-s * 0.4, -s * 1.6, s * 0.8, s * 3.2, s * 0.4); ctx.fill(); ctx.beginPath(); ctx.arc(0, -s * 1.6, s * 0.6, 0, TAU); ctx.arc(0, s * 1.6, s * 0.6, 0, TAU); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; return }
-  if (q.kind === 'rune') { ctx.save(); ctx.translate(x, y); ctx.rotate(q.rot); ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = blur(5 * D); ctx.globalAlpha = a; ctx.lineWidth = s * 0.5; ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(0, s); ctx.moveTo(0, -s * 0.4); ctx.lineTo(s * 0.7, -s * 0.9); ctx.stroke(); ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1; return }
 }
