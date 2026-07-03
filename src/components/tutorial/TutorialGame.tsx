@@ -519,6 +519,7 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
       </div>
       {/* žetonai: būsenos + skydas + sėlinimas + pasišaipymas */}
       <div className="absolute -top-2 inset-x-0 flex justify-center gap-0.5 pointer-events-none flex-wrap">
+        {u.control && <Token title={u.control.kind === 'endOfTurn' ? 'Perimtas iki ėjimo pabaigos' : 'Perimtas iki kito ėjimo pradžios'} color="#e879f9">🧠</Token>}
         {u.shield && <Token title="Magiškasis skydas" color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token>}
         {u.stealth && <Token title="Sėlinimas" color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token>}
         {u.card.keywords.includes('taunt') && <Token title="Pasišaipymas" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token>}

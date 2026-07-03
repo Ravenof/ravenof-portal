@@ -41,6 +41,7 @@ export type GameApi = {
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
+  takeControlUnit(g: GameState, newOwner: Side, owner: Side, u: BoardUnit, duration: 'permanent' | 'endOfTurn' | 'untilNextTurn', srcName: string): void
   effectiveAtk(g: GameState, u: BoardUnit): number
   log(g: GameState, e: GameEvent): void
 }
@@ -61,7 +62,7 @@ const MAX_DEPTH = 4
 // onDeath/onAnyDeath) iškviečiami su depth=0 (debuff→mirtis→deathrattle→debuff…).
 const MAX_CASCADE = 200
 
-const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard']
+const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard', 'takeControl']
 
 // Efektai, kuriems NIEKADA nereikia rankinio taikinio (sužaidžiami iškart, be pasirinkimo).
 const NO_SELECT_EFFECTS = new Set<EffectType>([
@@ -329,6 +330,14 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
       break
     }
+    case 'takeControl':
+      // Perimti priešo padarą: perkeliamas į kerėtojo pusę. Trukmė – buffDuration
+      // (permanent / endOfTurn / untilNextTurn; grąžinimą tvarko engine ėjimo ribose).
+      for (const t of targets) {
+        const f = findUnit(g, t)
+        if (f) api.takeControlUnit(g, caster, f.owner, f.u, m.buffDuration ?? 'permanent', ctx.sourceName)
+      }
+      break
     case 'spellDiscount': api.setSpellDiscount(g, caster, v); break
     case 'buffSpellDamage': api.buffSpellDamage(g, caster, v); break
     default:

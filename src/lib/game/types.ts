@@ -67,6 +67,7 @@ export type EffectType =
   | 'copyEffectFromGraveyard'
   | 'reflectToAttacker'
   | 'resurrectSelf'
+  | 'takeControl'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean; group: string }[] = [
   // ── Kova ──
@@ -125,6 +126,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   // ── Specialūs ──
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false, group: 'Specialūs' },
   { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false, group: 'Specialūs' },
+  { value: 'takeControl',         label: 'Perimti priešo padarą į savo pusę (trukmė: visam laikui / iki ėjimo pabaigos / iki kito savo ėjimo)', needsValue: false, group: 'Specialūs' },
 ]
 
 /** Grupės tvarka admin dropdown'e */
@@ -350,7 +352,7 @@ export type EffectMapping = {
   copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard: iš kurio kapinyno rinktis (default any)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   // ── Nauji card-mapping praplėtimai ──
-  buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'  // buffAttack/buffHealth: laikinas boost
+  buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'  // buffAttack/buffHealth: laikinas boost; takeControl: valdymo trukmė
   reviveDestroyedTarget?: boolean   // then po destroy/onDeath: prikelti BŪTENT sunaikintą taikinį (ne atsitiktinį)
   reviveToSide?: 'own' | 'enemy'    // kam atitenka prikeltas padaras (default own)
   drawFromGraveyard?: boolean       // drawCards: traukti iš kapinyno (atsitiktinė), o ne iš kaladės

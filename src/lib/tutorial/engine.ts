@@ -105,6 +105,7 @@ export type BoardUnit = {
   auraShield?: boolean      // skydą suteikė aura
   auraStealth?: boolean     // sėlinimą suteikė aura
   tempBuffs?: { atk: number; hp: number; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }[]  // laikini buff'ai (nuiminėjami ėjimo riboje)
+  control?: { from: Side; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }  // laikinai perimta kontrolė (takeControl); from = kam grąžinti, turn = valdytojo turnNumber
 }
 
 export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: number }
@@ -897,7 +898,9 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
     rp.hand.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja ${reroute === owner ? 'tau' : 'priešininkui'} į ranką (Paskutinis noras).`, sound: 'death', src: { side: owner, uid: u.uid } })
   } else {
-    p.discard.push(u.card)
+    // Laikinai perimtas (takeControl) padaras žūdamas grįžta į tikrojo šeimininko kapinyną
+    const graveOwner = u.control ? P(g, u.control.from) : p
+    graveOwner.discard.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja į kapinyną.`, sound: 'death', src: { side: owner, uid: u.uid } })
   }
   fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
@@ -1063,6 +1066,58 @@ function expireTempBuffs(g: GameState, s: Side, phase: 'beginTurn' | 'endTurn') 
     }
     u.tempBuffs = keep
   }
+}
+
+// ── Kontrolės perėmimas (takeControl) ────────────────────────────────────────
+// Perkelia priešo padarą į newOwner pusę. duration: 'permanent' – visam laikui;
+// 'endOfTurn' – grąžinamas valdytojo ėjimo pabaigoje; 'untilNextTurn' – kito
+// valdytojo ėjimo pradžioje. Čempionų perimti negalima. Perimtas padaras gali
+// pulti iškart (attacksUsed nunulinamas; summonedOnTurn senas, tad ne „sick").
+function takeControlUnitPrim(g: GameState, newOwner: Side, owner: Side, u: BoardUnit, duration: 'permanent' | 'endOfTurn' | 'untilNextTurn', srcName: string) {
+  if (owner === newOwner) return
+  if (u.isChampion) { log(g, { t: 'blocked', side: newOwner, msg: `„${srcName}": Čempiono perimti negalima.` }); return }
+  const from = P(g, owner), to = P(g, newOwner)
+  const idx = from.units.findIndex((x) => x?.uid === u.uid)
+  if (idx === -1) return
+  const slot = freeUnitSlot(g, to)
+  if (slot === -1) { log(g, { t: 'blocked', side: newOwner, msg: `„${srcName}": tavo padarų zona pilna – perimti nepavyksta.` }); return }
+  from.units[idx] = null
+  to.units[slot] = u
+  u.attacksUsed = 0
+  u.abilityUsed = false
+  if (duration === 'permanent') delete u.control
+  else u.control = { from: owner, kind: duration, turn: to.turnNumber }
+  const durTxt = duration === 'permanent' ? 'visam laikui' : duration === 'endOfTurn' ? 'iki ėjimo pabaigos' : 'iki kito savo ėjimo pradžios'
+  log(g, { t: 'buff', side: newOwner, cardName: u.card.name, msg: `🧠 „${srcName}": ${sideName(newOwner)} ${newOwner === 'you' ? 'perimi' : 'perima'} „${u.card.name}" ${durTxt}!`, sound: 'summon', src: { side: newOwner, uid: u.uid } })
+  recomputeAuras(g)
+}
+
+// Laikinos kontrolės pabaiga: padaras grąžinamas tikram šeimininkui.
+// 'endOfTurn' – valdytojo ėjimo pabaigoje; 'untilNextTurn' – kito valdytojo ėjimo pradžioje.
+function expireControl(g: GameState, s: Side, phase: 'beginTurn' | 'endTurn') {
+  const p = P(g, s)
+  let moved = false
+  for (const u of [...p.units]) {
+    if (!u?.control) continue
+    const c = u.control
+    const expire = phase === 'endTurn' ? (c.kind === 'endOfTurn' && c.turn >= p.turnNumber) : (c.kind === 'untilNextTurn' && c.turn < p.turnNumber)
+    if (!expire) continue
+    delete u.control
+    const idx = p.units.findIndex((x) => x?.uid === u.uid)
+    const back = P(g, c.from)
+    const slot = freeUnitSlot(g, back)
+    if (idx === -1) continue
+    if (slot === -1) {
+      log(g, { t: 'buff', side: s, cardName: u.card.name, msg: `„${u.card.name}" negrįžta šeimininkui (zona pilna) – lieka ${sideName(s)} pusėje.` })
+      continue
+    }
+    p.units[idx] = null
+    back.units[slot] = u
+    u.attacksUsed = 0
+    moved = true
+    log(g, { t: 'buff', side: c.from, cardName: u.card.name, msg: `🧠 Kontrolė baigėsi – „${u.card.name}" grįžta ${sideName(c.from)} pusėn.`, src: { side: c.from, uid: u.uid } })
+  }
+  if (moved) recomputeAuras(g)
 }
 
 function discardCardsPrim(g: GameState, s: Side, n: number) {
@@ -1684,6 +1739,7 @@ export const gameApi: GameApi = {
   reviveCards: reviveCardsPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   copyEffectFromGraveyard: (g, s, sourceUid, sourceName, fromSide) => copyEffectPrim(g, s, sourceUid, sourceName, fromSide),
+  takeControlUnit: takeControlUnitPrim,
   drawZmkVisual: drawZmkVisualPrim,
   removeZmkCard: removeZmkCardPrim,
   setSpellDiscount: setSpellDiscountPrim,
@@ -1784,6 +1840,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   const p = P(g, s)
   p.turnNumber += 1
   expireTempBuffs(g, s, 'beginTurn')
+  expireControl(g, s, 'beginTurn')
   p.discardedForGold = false
   p.attacksThisTurn = 0
   p.fieldDamageReducedThisTurn = false
@@ -1866,6 +1923,7 @@ function seatEndTurn(g: GameState, s: Side): GameState {
     }
   }
   expireTempBuffs(g, s, 'endTurn')
+  expireControl(g, s, 'endTurn')
   recomputeAuras(g)
   // onTurnEnd mapping'ai (padarai, artefaktai, laukas)
   fireTrigger(gameApi, g, s, 'onTurnEnd')
@@ -2420,6 +2478,8 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingChoice) { c.pendingChoice.caster = other(c.pendingChoice.caster); if (c.pendingChoice.chooser) c.pendingChoice.chooser = other(c.pendingChoice.chooser) }
   if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
+  // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
+  for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }
   return c
 }
 

@@ -752,7 +752,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                         onChange={(e) => setMapping(i, { value: Number(e.target.value) })} style={inputStyle} />
                     </div>
                   )}
-                  {(m.effect === 'buffAttack' || m.effect === 'buffHealth') && (
+                  {(m.effect === 'buffAttack' || m.effect === 'buffHealth' || m.effect === 'takeControl') && (
                     <div>
                       <label style={labelStyle} title="Laikinas sustiprinimas nuiminėjamas ėjimo riboje">Trukmė</label>
                       <select value={m.buffDuration ?? 'permanent'} onChange={(e) => setMapping(i, { buffDuration: e.target.value === 'permanent' ? undefined : e.target.value as 'endOfTurn' | 'untilNextTurn' })} style={inputStyle}>
@@ -1276,7 +1276,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                               onChange={(e) => setThen({ targetSummoned: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                             Iškviestam padarui
                           </label>
-                          {(fm.effect === 'buffAttack' || fm.effect === 'buffHealth') && (
+                          {(fm.effect === 'buffAttack' || fm.effect === 'buffHealth' || fm.effect === 'takeControl') && (
                             <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }}>
                               Trukmė:
                               <select value={fm.buffDuration ?? 'permanent'} onChange={(e) => setThen({ buffDuration: e.target.value === 'permanent' ? undefined : e.target.value as 'endOfTurn' | 'untilNextTurn' })} style={{ ...inputStyle, width: 130 }}>
