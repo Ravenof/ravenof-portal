@@ -2183,9 +2183,14 @@ doAction({ t: 'endTurn', actor: 'you' })
     if (!myTurn || popupBlocks || !game) return
     if (u.isChampion) return
     if (!canUnitAttack(game, 'you', u).ok) return
-    const rect = unitRectsRef.current.get(u.uid)
-    const ox = rect?.x ?? e.clientX, oy = rect?.y ?? e.clientY
     const sx = e.clientX, sy = e.clientY
+    // Rodyklės pradžia matuojama GYVAI tempimo pradžios momentu (ne iš seno snapshot,
+    // kuris pasensta laukui pasislinkus – summon banner/shake/nauji padarai).
+    const liveOrigin = () => {
+      const el = document.querySelector('[data-unit-uid="' + u.uid + '"]')
+      const r = el?.getBoundingClientRect()
+      return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : (unitRectsRef.current.get(u.uid) ?? { x: sx, y: sy })
+    }
     let started = false
     const cleanup = () => {
       window.removeEventListener('pointermove', move)
@@ -2197,7 +2202,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) return
         started = true; dragMovedRef.current = true
         if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null }
-        const d: DragState = { card: u.card, uid: u.uid, targeted: true, attackUid: u.uid, origin: { x: ox, y: oy }, x: ev.clientX, y: ev.clientY, mode: 'arrow' }
+        const d: DragState = { card: u.card, uid: u.uid, targeted: true, attackUid: u.uid, origin: liveOrigin(), x: ev.clientX, y: ev.clientY, mode: 'arrow' }
         dragRef.current = d; setDrag(d)
       }
       const d = dragRef.current; if (!d) return
