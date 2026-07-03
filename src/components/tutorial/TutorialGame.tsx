@@ -37,6 +37,7 @@ import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
+import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
 import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
@@ -316,19 +317,25 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
   const crit = hp > 0 && hp <= maxHp * 0.25
   const videos = avatar?.videos ?? []
   const [vid, setVid] = useState<string | null>(null)
+  const [vidReady, setVidReady] = useState(false) // rodom tik nuo pirmo realaus kadro (be play placeholder'io)
   const vidTimer = useRef<number | undefined>(undefined)
-  const playRandomVid = () => { setVid(videos[Math.floor(Math.random() * videos.length)]) }
+  const playRandomVid = () => {
+    const src = videos[Math.floor(Math.random() * videos.length)]
+    // grojam iš lokalaus blob cache — pasileidžia akimirksniu, be tinklo
+    void getCachedVideoUrl(src).then((local) => { setVidReady(false); setVid(local) })
+  }
   useEffect(() => {
-    setVid(null); onVid?.(null)
+    setVid(null); setVidReady(false); onVid?.(null)
     if (vidTimer.current) window.clearTimeout(vidTimer.current)
     if (!videos.length) return
+    preloadAvatarVideos(videos) // parsiunčiam į Cache Storage mūšio pradžioje
     let alive = true
     vidTimer.current = window.setTimeout(() => { if (alive) playRandomVid() }, 10000 + Math.random() * 20000)
     return () => { alive = false; if (vidTimer.current) window.clearTimeout(vidTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatar?.id, videos.length])
   const onVidEnd = () => {
-    onVid?.(null); setVid(null)
+    onVid?.(null); setVid(null); setVidReady(false)
     vidTimer.current = window.setTimeout(() => { if (videos.length) playRandomVid() }, 10000 + Math.random() * 20000)
   }
   // Vidinio lango įdubos (iš frame.png analizės)
@@ -343,14 +350,20 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
       style={{ width: size, height: size, filter: `drop-shadow(0 0 14px ${glow})` }}>
       {/* portretas / idle-video (po rėmu) */}
       <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
-        {vid
-          ? <video key={vid} src={vid} autoPlay muted playsInline preload="auto"
-              onLoadedData={() => onVid?.(vid)} onEnded={onVidEnd}
-              style={fitStyle} />
-          : avatar?.imageUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
-            : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+        {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
+        {avatar?.imageUrl
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
+          : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+        {vid && (
+          <video key={vid} src={vid} muted playsInline preload="auto" autoPlay
+            ref={(v) => { if (v && v.paused) { void v.play().catch(() => { /* blokuota – liks portretas */ }) } }}
+            onPlaying={() => { setVidReady(true); onVid?.(vid) }}
+            onEnded={onVidEnd}
+            onError={onVidEnd}
+            className="absolute inset-0"
+            style={{ ...fitStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.18s ease' }} />
+        )}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
       </div>
       {/* ornate rėmas */}
