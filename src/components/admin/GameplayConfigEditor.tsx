@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
 import { CinematicUpload, type CinematicData } from './CinematicUpload'
 import {
-  TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES,
+  TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES, EFFECT_GROUP_ORDER,
   METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SPELL_TYPES, ATTACK_RESTRICTIONS,
   type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType, type AttackRestriction,
   SUMMON_EFFECTS, type SummonEffectType,
@@ -30,6 +30,60 @@ const labelStyle: React.CSSProperties = {
 const SOUND_OPTIONS = ['', 'attack', 'spellCast', 'impact', 'draw', 'curse', 'field', 'heal', 'freeze', 'death', 'summon', 'zmkFlip', 'championSkill']
 
 const EMPTY_MAPPING: EffectMapping = { trigger: 'onPlay', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true }
+
+// ── Tvarkingi dropdown'ai: grupės + abėcėlės tvarka (lt) ─────────────────────
+const ltSort = <T extends { label: string }>(arr: T[]) => [...arr].sort((a, b) => a.label.localeCompare(b.label, 'lt'))
+
+const EFFECT_GROUPS = EFFECT_GROUP_ORDER
+  .map((g) => ({ group: g, items: ltSort(EFFECT_TYPES.filter((e) => e.group === g)) }))
+  .filter((g) => g.items.length > 0)
+
+function EffectOptions() {
+  return <>{EFFECT_GROUPS.map((g) => (
+    <optgroup key={g.group} label={`── ${g.group} ──`}>
+      {g.items.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+    </optgroup>
+  ))}</>
+}
+
+const TRIGGER_GROUPS = [
+  { group: 'Šios kortos įvykiai', items: ltSort(TRIGGER_TYPES.filter((t) => !t.value.startsWith('onAny') && t.value !== 'onOpponentGoldEmpty' && t.value !== 'custom')) },
+  { group: 'Globalūs (bet kieno įvykiai)', items: ltSort(TRIGGER_TYPES.filter((t) => t.value.startsWith('onAny') || t.value === 'onOpponentGoldEmpty')) },
+  { group: 'Kita', items: ltSort(TRIGGER_TYPES.filter((t) => t.value === 'custom')) },
+].filter((g) => g.items.length > 0)
+
+function TriggerOptions() {
+  return <>{TRIGGER_GROUPS.map((g) => (
+    <optgroup key={g.group} label={`── ${g.group} ──`}>
+      {g.items.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+    </optgroup>
+  ))}</>
+}
+
+const TARGET_GROUP_DEFS: { group: string; match: (v: string) => boolean }[] = [
+  { group: 'Žaidėjai',              match: (v) => v.endsWith('Player') || v === 'self' },
+  { group: 'Padarai',               match: (v) => v === 'ownUnit' || v === 'enemyUnit' || v === 'anyUnit' || v === 'selfUnit' },
+  { group: 'Čempionai',             match: (v) => v.endsWith('Champion') },
+  { group: 'Artefaktai ir laukas',  match: (v) => v.endsWith('Artifact') || v === 'activeField' },
+  { group: 'Grupiniai (visi)',      match: (v) => v.startsWith('all') },
+  { group: 'Kita',                  match: () => true },
+]
+const TARGET_GROUPS = (() => {
+  const used = new Set<string>()
+  return TARGET_GROUP_DEFS.map((d) => {
+    const items = ltSort(TARGET_TYPES.filter((t) => !used.has(t.value) && d.match(t.value)))
+    items.forEach((t) => used.add(t.value))
+    return { group: d.group, items }
+  }).filter((g) => g.items.length > 0)
+})()
+
+function TargetOptions() {
+  return <>{TARGET_GROUPS.map((g) => (
+    <optgroup key={g.group} label={`── ${g.group} ──`}>
+      {g.items.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+    </optgroup>
+  ))}</>
+}
 
 export function GameplayConfigEditor({ initial, isField, isChampion = false, isCurse = false, cardNames = [], hasEffectText, cardId = null, cardNumber = '' }: {
   initial: unknown
@@ -551,7 +605,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
               const isPlayerEff = ['discard', 'gainGold', 'loseGold', 'loseGoldNextTurn'].includes(eff)
               const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
-              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'revealOwnDeck', 'revealEnemyDeck'].includes(eff)
+              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'revealOwnDeck', 'revealEnemyDeck'].includes(eff)
               const isTargeted = !isSummon && !isPlayerEff && !isDeckEff && !isFixedNoTarget
               const showTarget = isTargeted || isPlayerEff || isDeckEff
               const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
@@ -572,7 +626,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   <div>
                     <label style={labelStyle}>Trigger</label>
                     <select value={m.trigger} onChange={(e) => setMapping(i, { trigger: e.target.value as EffectMapping['trigger'] })} style={inputStyle}>
-                      {TRIGGER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      <TriggerOptions />
                     </select>
                   </div>
                   {isGlobalTrigger && (
@@ -623,15 +677,30 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   )}
                   <div>
                     <label style={labelStyle}>Efektas</label>
-                    <select value={m.effect} onChange={(e) => { const ev = e.target.value as EffectMapping['effect']; setMapping(i, ev === 'reflectToAttacker' ? { effect: ev, useAttackTarget: true } : { effect: ev }) }} style={inputStyle}>
-                      {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    <select value={m.effect} onChange={(e) => { const ev = e.target.value as EffectMapping['effect']; setMapping(i, ev === 'reflectToAttacker' ? { effect: ev, useAttackTarget: true } : ev === 'resurrectSelf' ? { effect: ev, trigger: 'onDeath', target: 'selfUnit', requiresSelection: false } : { effect: ev }) }} style={inputStyle}>
+                      <EffectOptions />
                     </select>
                   </div>
+                  {eff === 'resurrectSelf' && (
+                    <div className="col-span-2 md:col-span-4 flex flex-wrap items-center gap-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>💫 Žūstant padaras prisikelia lauke (trigeris automatiškai „Žūstant"):</span>
+                      <label className="flex items-center gap-1">
+                        <input type="checkbox" checked={!!m.resurrectHp1}
+                          onChange={(e) => setMapping(i, { resurrectHp1: e.target.checked || undefined })} />
+                        Prisikelia su 1 HP (kitaip — pilnas HP)
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input type="checkbox" checked={!!m.oncePerGame}
+                          onChange={(e) => setMapping(i, { oncePerGame: e.target.checked || undefined })} />
+                        Tik kartą per žaidimą
+                      </label>
+                    </div>
+                  )}
                   {showTarget && (
                     <div>
                       <label style={labelStyle}>{isPlayerEff || isDeckEff ? 'Kam / kieno' : 'Taikinys'}</label>
                       <select value={m.target} onChange={(e) => setMapping(i, { target: e.target.value as EffectMapping['target'] })} style={inputStyle}>
-                        {targetOpts.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        {ltSort(targetOpts).map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </div>
                   )}
@@ -819,10 +888,10 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                             <div key={sideKey} className="flex flex-wrap items-end gap-2 mb-1">
                               <span className="text-[11px] font-bold" style={{ color: sideKey === 'green' ? '#4ade80' : '#f87171' }}>{sideKey === 'green' ? '🟢 ŽALIA' : '🔴 RAUDONA'}</span>
                               <select value={inner.effect} onChange={(e) => setInner({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 140 }}>
-                                {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                <EffectOptions />
                               </select>
                               <select value={inner.target} onChange={(e) => setInner({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 130 }}>
-                                {TARGET_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                <TargetOptions />
                               </select>
                               {innerDef?.needsValue && <input type="number" value={inner.value ?? 1} onChange={(e) => setInner({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 60 }} />}
                               <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
@@ -1130,7 +1199,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           <div>
                             <label style={labelStyle}>Efektas</label>
                             <select value={fm.effect} onChange={(e) => setThen({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 150 }}>
-                              {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                              <EffectOptions />
                             </select>
                           </div>
                           {!fNoTarget && (
@@ -1269,10 +1338,10 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                                     <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>{k === 0 ? 'A' : 'B'}</span>
                                     <input value={optArr[k]?.label ?? ''} placeholder={'Variantas ' + (k === 0 ? 'A' : 'B')} onChange={(e) => setOpt({ label: e.target.value })} style={{ ...inputStyle, width: 120 }} />
                                     <select value={inner.effect} onChange={(e) => setInner({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 140 }}>
-                                      {EFFECT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                      <EffectOptions />
                                     </select>
                                     <select value={inner.target} onChange={(e) => setInner({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 130 }}>
-                                      {TARGET_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                      <TargetOptions />
                                     </select>
                                     {innerDef?.needsValue && <input type="number" value={inner.value ?? 1} onChange={(e) => setInner({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 60 }} />}
                                   </div>

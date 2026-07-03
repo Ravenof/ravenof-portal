@@ -76,6 +76,8 @@ export type TutCard = {
   mappings?: EffectMapping[]
   /** Adminui: kortai reikia suvesti efektų mapping'ą */
   needsMapping?: boolean
+  /** resurrectSelf su oncePerGame: ar prisikėlimas jau panaudotas šiame žaidime */
+  _resurrectUsed?: boolean
 }
 
 export const PERMANENT = 9999
@@ -855,6 +857,29 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
     } else if (u.card.keywords.includes('lastwish') && u.card.effect) {
       log(g, { t: 'lastwish', side: owner, cardName: u.card.name, msg: `🕯 „${u.card.name}" Paskutinis noras aktyvuojasi!`, src: { side: owner, uid: u.uid } })
       applyAutoEffect(g, owner, u.card.effect, u.card.name)
+    }
+  }
+  // Paskutinis noras: PRISIKĖLIMAS vietoje mirties (resurrectSelf; ne čempionams)
+  if (!u.statuses.silenced && !u.isChampion) {
+    for (const m of (u.card.mappings ?? [])) {
+      if (m.trigger !== 'onDeath' || m.effect !== 'resurrectSelf') continue
+      if (m.oncePerGame && u.card._resurrectUsed) continue
+      if (m.oncePerGame) u.card._resurrectUsed = true
+      const nu: BoardUnit = {
+        uid: u.card.uid + '-res' + g.globalTurn + '-' + idx, card: u.card,
+        atk: u.card.attack ?? 0,
+        hp: m.resurrectHp1 ? 1 : (u.card.health ?? 1),
+        maxHp: u.card.health ?? 1,
+        shield: u.card.keywords.includes('shield'),
+        stealth: u.card.keywords.includes('stealth'),
+        statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
+        isChampion: false, phase: 0, abilityUsed: false,
+      }
+      p.units[idx] = nu
+      log(g, { t: 'lastwish', side: owner, cardName: u.card.name, msg: `💫 „${u.card.name}" žūsta ir PRISIKELIA${m.resurrectHp1 ? ' su 1 HP' : ''}${m.oncePerGame ? ' (kartą per žaidimą)' : ''} — Paskutinis noras!`, sound: 'summon', src: { side: owner, uid: nu.uid } })
+      fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
+      afterSummon(g, owner, u.card, 'graveyard')
+      return
     }
   }
   // Paskutinio noro „reroute": korta keliauja į ranką (priešo/savo), o ne į kapinyną

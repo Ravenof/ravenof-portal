@@ -66,55 +66,69 @@ export type EffectType =
   | 'coinFlip' | 'loseGoldNextTurn'
   | 'copyEffectFromGraveyard'
   | 'reflectToAttacker'
+  | 'resurrectSelf'
 
-export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean }[] = [
-  { value: 'damage',              label: 'Žala',                       needsValue: true },
-  { value: 'heal',                label: 'Gydymas',                    needsValue: true },
-  { value: 'destroy',             label: 'Sunaikinti',                 needsValue: false },
-  { value: 'silence',             label: 'Nutildyti',                  needsValue: false },
-  { value: 'freeze',              label: 'Sušaldyti',                  needsValue: false },
-  { value: 'stun',                label: 'Apsvaiginti',                needsValue: false },
-  { value: 'poison',              label: 'Apnuodyti',                  needsValue: false },
-  { value: 'burn',                label: 'Padegti',                    needsValue: false },
-  { value: 'taunt',               label: 'Suteikti Pasišaipymą',       needsValue: false },
-  { value: 'stealth',             label: 'Suteikti Sėlinimą',          needsValue: false },
-  { value: 'shield',              label: 'Suteikti Magiškąjį skydą',   needsValue: false },
-  { value: 'sprint',              label: 'Suteikti Sprintą',           needsValue: false },
-  { value: 'buffAttack',          label: '+ATK',                       needsValue: true },
-  { value: 'buffHealth',          label: '+HP',                        needsValue: true },
-  { value: 'debuffAttack',        label: '−ATK',                       needsValue: true },
-  { value: 'debuffHealth',        label: '−HP',                        needsValue: true },
-  { value: 'drawCards',           label: 'Traukti kortas',             needsValue: true },
-  { value: 'drawUntilHand',       label: 'Traukti kol rankoje bus X kortų', needsValue: true },
-  { value: 'discard',             label: 'Išmesti kortas',             needsValue: true },
-  { value: 'summonFromHand',      label: 'Iškviesti iš rankos',        needsValue: false },
-  { value: 'summonFromDeck',      label: 'Iškviesti iš kaladės',       needsValue: false },
-  { value: 'summonFromGraveyard', label: 'Iškviesti iš kapinyno',        needsValue: false },
-  { value: 'returnToHand',        label: 'Grąžinti į ranką',           needsValue: false },
-  { value: 'moveToGraveyard',     label: 'Į kapinyną',          needsValue: false },
-  { value: 'revive',              label: 'Prikelti',                   needsValue: false },
-  { value: 'gainGold',            label: 'Gauti aukso',                needsValue: true },
-  { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true },
-  { value: 'triggerCurse',        label: 'Įmaišyti prakeiksmų į kaladę (aktyvuojasi ištraukus)', needsValue: true },
-  { value: 'triggerZmk',          label: 'Traukti ŽMK',                needsValue: false },
-  { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true },
-  { value: 'mill',                label: 'Mill (kortos iš kaladės į kapinyną)', needsValue: true },
-  { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true },
-  { value: 'peekDiscard',         label: 'Peržiūrėk N → pasirink K išmesti', needsValue: true },
-  { value: 'revealOwnDeck',       label: 'Parodyk N savo kaladės viršaus', needsValue: true },
-  { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true },
-  { value: 'selfToEnemyHand',     label: 'Ši korta → priešo ranka (Paskutinis noras)', needsValue: false },
-  { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false },
-  { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false },
-  { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)',    needsValue: true },
-  { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true },
-  { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false },
-  { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true },
-  { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false },
-  { value: 'copyEffectFromGraveyard', label: 'Kopijuoti efektą iš kapinyno padaro (pop-up)', needsValue: false },
-  { value: 'reflectToAttacker', label: 'Atspindėti puolėją: sunaikinti puolantį padarą + jo ATK į jo žaidėją (onAttacked)', needsValue: false },
-  { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false },
+export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean; group: string }[] = [
+  // ── Kova ──
+  { value: 'damage',              label: 'Žala',                       needsValue: true,  group: 'Kova' },
+  { value: 'destroy',             label: 'Sunaikinti',                 needsValue: false, group: 'Kova' },
+  { value: 'reflectToAttacker',   label: 'Atspindėti puolėją: sunaikinti puolantį padarą + jo ATK į jo žaidėją (onAttacked)', needsValue: false, group: 'Kova' },
+  // ── Gydymas ──
+  { value: 'heal',                label: 'Gydymas',                    needsValue: true,  group: 'Gydymas' },
+  { value: 'revive',              label: 'Prikelti',                   needsValue: false, group: 'Gydymas' },
+  { value: 'resurrectSelf',       label: 'Prisikelti pačiam žūstant (Paskutinis noras)', needsValue: false, group: 'Gydymas' },
+  // ── Statusai ──
+  { value: 'burn',                label: 'Padegti',                    needsValue: false, group: 'Statusai' },
+  { value: 'poison',              label: 'Apnuodyti',                  needsValue: false, group: 'Statusai' },
+  { value: 'freeze',              label: 'Sušaldyti',                  needsValue: false, group: 'Statusai' },
+  { value: 'stun',                label: 'Apsvaiginti',                needsValue: false, group: 'Statusai' },
+  { value: 'silence',             label: 'Nutildyti',                  needsValue: false, group: 'Statusai' },
+  { value: 'taunt',               label: 'Suteikti Pasišaipymą',       needsValue: false, group: 'Statusai' },
+  { value: 'stealth',             label: 'Suteikti Sėlinimą',          needsValue: false, group: 'Statusai' },
+  { value: 'shield',              label: 'Suteikti Magiškąjį skydą',   needsValue: false, group: 'Statusai' },
+  { value: 'sprint',              label: 'Suteikti Sprintą',           needsValue: false, group: 'Statusai' },
+  // ── Statai ──
+  { value: 'buffAttack',          label: '+ATK',                       needsValue: true,  group: 'Statai' },
+  { value: 'buffHealth',          label: '+HP',                        needsValue: true,  group: 'Statai' },
+  { value: 'debuffAttack',        label: '−ATK',                       needsValue: true,  group: 'Statai' },
+  { value: 'debuffHealth',        label: '−HP',                        needsValue: true,  group: 'Statai' },
+  // ── Kortų traukimas ir ranka ──
+  { value: 'drawCards',           label: 'Traukti kortas',             needsValue: true,  group: 'Kortų traukimas ir ranka' },
+  { value: 'drawUntilHand',       label: 'Traukti kol rankoje bus X kortų', needsValue: true, group: 'Kortų traukimas ir ranka' },
+  { value: 'discard',             label: 'Išmesti kortas',             needsValue: true,  group: 'Kortų traukimas ir ranka' },
+  { value: 'peekDiscard',         label: 'Peržiūrėk N → pasirink K išmesti', needsValue: true, group: 'Kortų traukimas ir ranka' },
+  { value: 'returnToHand',        label: 'Grąžinti į ranką',           needsValue: false, group: 'Kortų traukimas ir ranka' },
+  { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false, group: 'Kortų traukimas ir ranka' },
+  { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false, group: 'Kortų traukimas ir ranka' },
+  { value: 'selfToEnemyHand',     label: 'Ši korta → priešo ranka (Paskutinis noras)', needsValue: false, group: 'Kortų traukimas ir ranka' },
+  // ── Iškvietimas ──
+  { value: 'summonFromHand',      label: 'Iškviesti iš rankos',        needsValue: false, group: 'Iškvietimas' },
+  { value: 'summonFromDeck',      label: 'Iškviesti iš kaladės',       needsValue: false, group: 'Iškvietimas' },
+  { value: 'summonFromGraveyard', label: 'Iškviesti iš kapinyno',      needsValue: false, group: 'Iškvietimas' },
+  { value: 'summonAdvanced',      label: 'Iškviesti padarą (zonos+kaina+potipis)', needsValue: false, group: 'Iškvietimas' },
+  // ── Kaladė ir kapinynas ──
+  { value: 'mill',                label: 'Mill (kortos iš kaladės į kapinyną)', needsValue: true, group: 'Kaladė ir kapinynas' },
+  { value: 'moveToGraveyard',     label: 'Į kapinyną',                 needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true, group: 'Kaladė ir kapinynas' },
+  { value: 'copyEffectFromGraveyard', label: 'Kopijuoti efektą iš kapinyno padaro (pop-up)', needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'revealOwnDeck',       label: 'Parodyk N savo kaladės viršaus', needsValue: true, group: 'Kaladė ir kapinynas' },
+  { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true, group: 'Kaladė ir kapinynas' },
+  { value: 'triggerCurse',        label: 'Įmaišyti prakeiksmų į kaladę (aktyvuojasi ištraukus)', needsValue: true, group: 'Kaladė ir kapinynas' },
+  { value: 'triggerZmk',          label: 'Traukti ŽMK',                needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'removeZmkCard',       label: 'Pašalinti ŽMK kortą iš kaladės', needsValue: true, group: 'Kaladė ir kapinynas' },
+  // ── Auksas ir kainos ──
+  { value: 'gainGold',            label: 'Gauti aukso',                needsValue: true,  group: 'Auksas ir kainos' },
+  { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true,  group: 'Auksas ir kainos' },
+  { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true, group: 'Auksas ir kainos' },
+  // ── Specialūs ──
+  { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false, group: 'Specialūs' },
+  { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false, group: 'Specialūs' },
 ]
+
+/** Grupės tvarka admin dropdown'e */
+export const EFFECT_GROUP_ORDER = ['Kova', 'Gydymas', 'Statusai', 'Statai', 'Kortų traukimas ir ranka', 'Iškvietimas', 'Kaladė ir kapinynas', 'Auksas ir kainos', 'Specialūs']
 
 // ── Burtų tipai (ugnies/ledo/žaibo/funkcinis/nekromantijos/sustiprinimo/susilpninimo) ─
 export type SpellType =
@@ -322,6 +336,8 @@ export type EffectMapping = {
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   sameTarget?: boolean              // follow-up (`then`): naudoti tą patį taikinį kaip tėvinis efektas
   useAttackTarget?: boolean         // onAttack/onAttacked: efektas taikomas į kovos taikinį (atakuotą padarą / atakuotoją)
+  resurrectHp1?: boolean            // resurrectSelf: prisikelia su 1 HP (vietoj pilno)
+  oncePerGame?: boolean             // resurrectSelf: suveikia tik kartą per žaidimą
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
   chooseBy?: 'caster' | 'opponent'  // chooseEffect: kas renkasi – kerėtojas (default) ar priešininkas/auka (pvz. prakeiksmui)

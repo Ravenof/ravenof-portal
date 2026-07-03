@@ -67,7 +67,7 @@ const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 's
 const NO_SELECT_EFFECTS = new Set<EffectType>([
   'drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard',
   'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
-  'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
+  'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
   'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard',
 ])
@@ -178,7 +178,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
     return false
   }
@@ -273,6 +273,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'revealEnemyDeck': api.revealDeck(g, foe, v, caster); break
     case 'summonAdvanced': api.summonAdvanced(g, caster, { zones: m.summonZones, costMin: m.summonCostMin, costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: m.summonChoose, names: m.summonNames }); break
     case 'selfToEnemyHand': case 'selfToOwnHand': break  // apdorojama killUnit (onDeath reroute)
+    case 'resurrectSelf': break  // apdorojama killUnit (prisikėlimas vietoje mirties)
     case 'returnToHand':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.returnUnitToHand(g, f.owner, f.u) }
       break
