@@ -12,6 +12,7 @@ import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/start
 import { rarityColor } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
+import { SmartImg } from '@/components/ui/SmartImg'
 
 function hexRgb(hex: string): string {
   const h = (hex || '#9ca3af').replace('#', '')
@@ -197,8 +198,7 @@ function ProductTile({ p, busy }: { p: Prod; busy: boolean }) {
         <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden"
           style={{ background: p.img.css ?? `radial-gradient(120% 100% at 50% 0%, rgba(${a},0.22), #0a0810 70%)` }}>
           {p.img.url && !bad ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.img.url} alt="" onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" draggable={false} style={{ opacity: done ? 0.5 : 1 }} />
+            <SmartImg src={p.img.url} width={360} onFail={() => setBad(true)} className="absolute inset-0 w-full h-full object-contain" style={{ opacity: done ? 0.5 : 1 }} />
           ) : p.img.emoji ? (
             <span className="text-4xl" style={{ filter: `drop-shadow(0 0 10px rgba(${a},0.5))`, opacity: done ? 0.5 : 1 }}>{p.img.emoji}</span>
           ) : null}

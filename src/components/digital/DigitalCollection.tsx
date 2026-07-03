@@ -20,6 +20,7 @@ import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
 import { EmptyState, PageHero } from './ui/HubKit'
+import { SmartImg } from '@/components/ui/SmartImg'
 
 const PER_PAGE = 9
 const GOLD = '240,180,41'
@@ -398,8 +399,7 @@ function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
       <button onClick={onClick} className="relative block w-full overflow-hidden rounded-lg"
         style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${owned ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: owned ? `0 0 10px ${col}44` : 'none' }}>
         {c.image && !bad
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false} loading="lazy"
+          ? <SmartImg src={c.image} width={240} alt={c.name} onFail={() => setBad(true)}
               className="absolute inset-0 w-full h-full object-cover"
               style={{ filter: owned ? undefined : 'grayscale(1) brightness(0.55)', opacity: owned ? 1 : 0.55 }} />
           : <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1)', opacity: owned ? 1 : 0.55 }}>

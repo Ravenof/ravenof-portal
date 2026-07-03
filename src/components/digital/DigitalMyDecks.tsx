@@ -18,6 +18,7 @@ import { PlaytestButton } from '@/components/decks/PlaytestButton'
 import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
+import { SmartImg } from '@/components/ui/SmartImg'
 
 const GOLD = '240,180,41'
 
@@ -244,8 +245,7 @@ function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick
         <span aria-hidden className="absolute inset-0 rounded-[7px]" style={{ transform: 'translate(2.5px, 2.5px) rotate(0.5deg)', background: 'linear-gradient(160deg,#241a33,#100c18)', boxShadow: '0 2px 4px rgba(0,0,0,0.45)' }} />
         <span className="absolute inset-0 rounded-[7px] overflow-hidden" style={{ boxShadow: '0 7px 18px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(0,0,0,0.45)' }}>
           {cover
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={cover} alt="" draggable={false} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+            ? <SmartImg src={cover} width={260} className="absolute inset-0 w-full h-full object-cover" />
             : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: `radial-gradient(120% 90% at 50% 20%, ${d.factionColor}33, rgba(10,8,16,0.98) 70%), linear-gradient(160deg,#1a1325,#0a0810)` }}>🎴</span>}
           {/* šviesos atspindys viršuje — fizinis paviršius */}
           <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: '30%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent)' }} />
@@ -276,8 +276,7 @@ function CoverThumb({ cover, color, size }: { cover: string | null; color: strin
   return (
     <span className="relative block overflow-hidden shrink-0" style={{ width: size, height: size * 1.33, borderRadius: 8, border: `1px solid ${color}66` }}>
       {cover
-        // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ? <SmartImg src={cover} width={120} className="absolute inset-0 w-full h-full object-cover" />
         : <span className="absolute inset-0 flex items-center justify-center text-lg" style={{ background: `linear-gradient(160deg, ${color}33, #0a0810)` }}>🎴</span>}
     </span>
   )

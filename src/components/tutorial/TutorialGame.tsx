@@ -338,6 +338,13 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
     onVid?.(null); setVid(null); setVidReady(false)
     vidTimer.current = window.setTimeout(() => { if (videos.length) playRandomVid() }, 10000 + Math.random() * 20000)
   }
+  // watchdog: jei video per 2 s nepradeda groti (pvz., HEVC kodekas, kurio WebView nedekoduoja) — atsisakom be jokių ikonų
+  useEffect(() => {
+    if (!vid || vidReady) return
+    const t = window.setTimeout(() => { if (!vidReady) onVidEnd() }, 2000)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vid, vidReady])
   // Vidinio lango įdubos (iš frame.png analizės)
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
   const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
@@ -357,6 +364,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
           : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
         {vid && (
           <video key={vid} src={vid} muted playsInline preload="auto" autoPlay
+            poster={avatar?.imageUrl ?? undefined} controls={false} disablePictureInPicture
             ref={(v) => { if (v && v.paused) { void v.play().catch(() => { /* blokuota – liks portretas */ }) } }}
             onPlaying={() => { setVidReady(true); onVid?.(vid) }}
             onEnded={onVidEnd}
