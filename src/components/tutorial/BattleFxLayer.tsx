@@ -17,7 +17,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { FxKind, FxIntensity } from '@/lib/game/effectAnimations'
 
-export type AoeVariant = 'fire' | 'lightning' | 'ice' | 'poison' | 'arcane' | 'holy' | 'generic'
+export type AoeVariant = 'fire' | 'lightning' | 'ice' | 'poison' | 'arcane' | 'holy' | 'generic' | 'heal' | 'necrotic' | 'curse'
 export type SpawnFx = {
   kind: FxKind
   variant?: AoeVariant
@@ -52,10 +52,19 @@ type Item = {
 }
 
 function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
+  if (r <= 0) return
   const g = ctx.createRadialGradient(x, y, 0, x, y, r)
   g.addColorStop(0, color); g.addColorStop(1, 'transparent')
   ctx.globalAlpha = a; ctx.fillStyle = g
   ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
+}
+/** Minkštas bangos žiedas be stroke — gradientinis „annulus" (jokių pieštinių linijų) */
+function softRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, thick: number, color: string, a: number) {
+  if (r <= 0) return
+  const g = ctx.createRadialGradient(x, y, Math.max(0, r - thick), x, y, r + thick)
+  g.addColorStop(0, 'transparent'); g.addColorStop(0.5, color); g.addColorStop(1, 'transparent')
+  ctx.globalAlpha = a; ctx.fillStyle = g
+  ctx.beginPath(); ctx.arc(x, y, r + thick, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
 }
 
 export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_props, ref) {
@@ -169,37 +178,115 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
   switch (it.kind) {
     case 'projectile': case 'curseMark': {
       const tp = 0.62
+      const v: AoeVariant = it.variant ?? 'generic'
       if (p < tp) {
         const e = easeIn(p / tp)
-        const x = lerp(from.x, to.x, e), y = lerp(from.y, to.y, e)
-        for (let k = 0; k < 6; k++) { const bk = Math.max(0, e - k * 0.04); glow(ctx, lerp(from.x, to.x, bk), lerp(from.y, to.y, bk), (10 - k) * D * im, color, (1 - k / 6) * 0.5) }
-        glow(ctx, x, y, 14 * D * im, '#ffffff', 0.9); glow(ctx, x, y, 22 * D * im, color, 0.8)
-        if (it.kind === 'curseMark') { ctx.strokeStyle = color2; ctx.globalAlpha = 0.8; ctx.lineWidth = 2 * D; ctx.beginPath(); ctx.arc(x, y, 12 * D * im * (1 + Math.sin(now / 60) * 0.1), 0, TAU); ctx.stroke(); ctx.globalAlpha = 1 }
+        // organiška trajektorija: lengvas lankas (curse — nervingas dreifas)
+        const wob = Math.sin(e * Math.PI) * -34 * D
+        const jit = v === 'curse' ? rnd(-2.5, 2.5) * D : 0
+        const x = lerp(from.x, to.x, e) + Math.cos(ang + Math.PI / 2) * wob * 0.3 + jit
+        const y = lerp(from.y, to.y, e) + Math.sin(ang + Math.PI / 2) * wob * 0.3 + wob * 0.2 + jit
+        // uodega pagal elementą: išsisklaidančios žarijos vietoj tiesios linijos
+        if (v === 'poison') { if (Math.random() < 0.7) it.parts.push({ x, y, vx: rnd(-0.2, 0.2) * D, vy: rnd(0.4, 1.4) * D, life: now, max: rnd(320, 560), size: rnd(1.5, 3) * D, rot: 1, vr: 0 }) }
+        else if (v === 'necrotic') { if (Math.random() < 0.8) it.parts.push({ x, y, vx: rnd(-0.3, 0.3) * D, vy: -rnd(0.2, 0.8) * D, life: now, max: rnd(400, 700), size: rnd(2.5, 5) * D, rot: 2, vr: 0 }) }
+        else if (Math.random() < 0.85) it.parts.push({ x, y, vx: rnd(-0.5, 0.5) * D, vy: rnd(-0.5, 0.5) * D - 0.3 * D, life: now, max: rnd(260, 480), size: rnd(1.5, 3.5) * D, rot: 0, vr: 0 })
+        for (let k = it.parts.length - 1; k >= 0; k--) {
+          const q = it.parts[k]; q.x += q.vx; q.y += q.vy
+          const e2 = (now - q.life) / q.max; if (e2 >= 1) { it.parts.splice(k, 1); continue }
+          if (q.rot === 2) { ctx.globalCompositeOperation = 'source-over'; glow(ctx, q.x, q.y, q.size * 2.6, 'rgba(10,6,18,1)', (1 - e2) * 0.35); ctx.globalCompositeOperation = 'lighter'; glow(ctx, q.x, q.y, q.size * 1.4, color, (1 - e2) * 0.45) }
+          else glow(ctx, q.x, q.y, q.size * 2.2, q.rot === 1 ? color2 : color, (1 - e2) * 0.55)
+        }
+        // galva: karšta šerdis + aureolė
+        if (v === 'heal') { glow(ctx, x, y, 24 * D * im, color, 0.3); glow(ctx, x, y, 13 * D * im, color, 0.8); glow(ctx, x, y, 6 * D * im, color2, 0.95) }
+        else if (v === 'necrotic') { glow(ctx, x, y, 28 * D * im, color2, 0.3); glow(ctx, x, y, 14 * D * im, color, 0.75); glow(ctx, x, y, 6 * D * im, '#eafff5', 0.8) }
+        else if (v === 'curse') { glow(ctx, x, y, 26 * D * im, color, 0.4); glow(ctx, x, y, 13 * D * im, color, 0.9); glow(ctx, x, y, 5 * D * im, '#ffd7d7', 0.85) }
+        else { glow(ctx, x, y, 26 * D * im, color, 0.35); glow(ctx, x, y, 15 * D * im, color, 0.85); glow(ctx, x, y, 7 * D * im, '#ffffff', 0.95) }
+        if (it.kind === 'curseMark') { glow(ctx, x, y, (12 + Math.sin(now / 60) * 2) * D * im, color2, 0.5) }
       } else {
         const q = (p - tp) / (1 - tp)
-        if (it.kind === 'curseMark') { drawRune(ctx, to.x, to.y, 26 * D * im, color, 1 - q, now) }
-        else { const r = (10 + q * 46) * D * im; ctx.strokeStyle = color; ctx.globalAlpha = (1 - q) * 0.9; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.arc(to.x, to.y, r, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1; glow(ctx, to.x, to.y, 30 * D * im * (1 - q), color, (1 - q) * 0.7); seedSparks(it, 14, color); drawSparks(ctx, it, q, D) }
+        if (it.kind === 'curseMark') { drawRune(ctx, to.x, to.y, 26 * D * im, color, 1 - q, now); break }
+        if (v === 'heal') {
+          // švelnus žydėjimas + kylančios kibirkštys, be smūgio bangos
+          glow(ctx, to.x, to.y, (20 + easeOut(q) * 26) * D * im, color, (1 - q) * 0.6)
+          glow(ctx, to.x, to.y, 12 * D * im * (1 - q * 0.4), color2, (1 - q) * 0.85)
+          if (!it.seeded) { it.seeded = true; it.parts.length = 0; for (let k = 0; k < 12; k++) it.parts.push({ x: to.x + rnd(-20, 20) * D, y: to.y + rnd(-6, 14) * D, vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.8, 2) * D, life: 0, max: 1, size: rnd(1.5, 3) * D, rot: k % 2, vr: 0 }) }
+          for (const sp of it.parts) { sp.x += sp.vx; sp.y += sp.vy; glow(ctx, sp.x, sp.y, sp.size * 2, sp.rot ? color2 : color, (1 - q) * 0.85) }
+        } else if (v === 'poison') {
+          softRing(ctx, to.x, to.y, (6 + easeOut(q) * 30) * D * im, 8 * D, color, (1 - q) * 0.5)
+          glow(ctx, to.x, to.y, 26 * D * im * (1 - q * 0.5), color, (1 - q) * 0.7)
+          if (!it.seeded) { it.seeded = true; it.parts.length = 0; for (let k = 0; k < 14; k++) { const a = rnd(-2.6, -0.5); it.parts.push({ x: to.x, y: to.y, vx: Math.cos(a) * rnd(1, 3.5) * D, vy: Math.sin(a) * rnd(1, 2.5) * D, life: 0, max: 1, size: rnd(1.5, 3.5) * D, rot: 0, vr: 0 }) } }
+          for (const sp of it.parts) { sp.vy += 0.14 * D; sp.x += sp.vx; sp.y += sp.vy; glow(ctx, sp.x, sp.y, sp.size * 2, color, (1 - q) * 0.8) }
+        } else if (v === 'necrotic') {
+          // implozija: banga traukiasi Į VIDŲ + sielos kyla
+          softRing(ctx, to.x, to.y, (46 - easeOut(q) * 40) * D * im, 10 * D, color, (1 - q) * 0.6)
+          glow(ctx, to.x, to.y, 20 * D * im * (1 - q * 0.3), color, (1 - q) * 0.75)
+          if (!it.seeded) { it.seeded = true; it.parts.length = 0; for (let k = 0; k < 8; k++) it.parts.push({ x: to.x + rnd(-18, 18) * D, y: to.y + rnd(-8, 8) * D, vx: rnd(-0.2, 0.2) * D, vy: -rnd(1, 2.2) * D, life: 0, max: 1, size: rnd(2.5, 5) * D, rot: 0, vr: 0 }) }
+          for (const sp of it.parts) { sp.x += sp.vx + Math.sin((now + sp.size * 90) / 180) * 0.5 * D; sp.y += sp.vy; ctx.globalCompositeOperation = 'source-over'; glow(ctx, sp.x, sp.y, sp.size * 2.4, 'rgba(10,6,18,1)', (1 - q) * 0.3); ctx.globalCompositeOperation = 'lighter'; glow(ctx, sp.x, sp.y, sp.size * 1.3, color, (1 - q) * 0.6) }
+        } else if (v === 'curse') {
+          // pulsuojantis tamsus sprogimas: dvi bangos + tamsos dėmė + raudonos žarijos
+          const pulse = 0.5 + 0.5 * Math.sin(q * Math.PI * 3)
+          softRing(ctx, to.x, to.y, (8 + easeOut(q) * 40) * D * im, 9 * D, color, (1 - q) * 0.65)
+          softRing(ctx, to.x, to.y, (4 + easeOut(q) * 24) * D * im, 7 * D, color, (1 - q) * 0.4 * pulse)
+          ctx.globalCompositeOperation = 'source-over'; glow(ctx, to.x, to.y, 30 * D * im * (1 - q * 0.4), 'rgba(10,4,8,1)', (1 - q) * 0.4); ctx.globalCompositeOperation = 'lighter'
+          glow(ctx, to.x, to.y, 16 * D * im * (1 - q), color, (1 - q) * 0.9)
+          if (!it.seeded) { it.seeded = true; it.parts.length = 0; for (let k = 0; k < 14; k++) { const a = rnd(0, TAU), sp2 = rnd(1.2, 4) * D; it.parts.push({ x: to.x, y: to.y, vx: Math.cos(a) * sp2, vy: Math.sin(a) * sp2 - 0.8 * D, life: 0, max: 1, size: rnd(1.2, 3) * D, rot: 0, vr: 0 }) } }
+          for (const sp of it.parts) { sp.vy += 0.08 * D; sp.x += sp.vx; sp.y += sp.vy; glow(ctx, sp.x, sp.y, sp.size * 2, color, (1 - q) * 0.8) }
+        } else {
+          // standartinis: minkšta banga (gradient žiedas) + žarijos su gravitacija
+          softRing(ctx, to.x, to.y, (8 + easeOut(q) * 44) * D * im, 10 * D, color, (1 - q) * 0.7)
+          glow(ctx, to.x, to.y, 34 * D * im * (1 - q * 0.5), color, (1 - q) * 0.8)
+          glow(ctx, to.x, to.y, 14 * D * im * (1 - q), '#ffffff', (1 - q) * 0.9)
+          if (!it.seeded) { it.seeded = true; it.parts.length = 0; for (let k = 0; k < 16; k++) { const a = rnd(0, TAU), sp2 = rnd(1.4, 4.6) * D; it.parts.push({ x: to.x, y: to.y, vx: Math.cos(a) * sp2, vy: Math.sin(a) * sp2 - 1.2 * D, life: 0, max: 1, size: rnd(1.4, 3.2) * D, rot: 0, vr: 0 }) } }
+          for (const sp of it.parts) { sp.vy += 0.10 * D; sp.x += sp.vx; sp.y += sp.vy; glow(ctx, sp.x, sp.y, sp.size * 2, color, (1 - q) * 0.8) }
+        }
       }
       break
     }
     case 'beam': {
-      const env = p < 0.25 ? p / 0.25 : 1 - (p - 0.25) / 0.75
-      ctx.strokeStyle = color; ctx.globalAlpha = env * 0.85; ctx.lineWidth = 7 * D * im; ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke()
-      ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = env; ctx.lineWidth = 2.4 * D; ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke(); ctx.globalAlpha = 1
-      const hx = lerp(from.x, to.x, p), hy = lerp(from.y, to.y, p); glow(ctx, hx, hy, 18 * D * im, color, env)
+      const env = p < 0.22 ? easeOut(p / 0.22) : 1 - easeIn((p - 0.22) / 0.78)
+      const len = Math.hypot(to.x - from.x, to.y - from.y)
+      // gradientinis spindulys minkštais kraštais (be stroke) + pulsuojantis plotis
+      ctx.save(); ctx.translate(from.x, from.y); ctx.rotate(ang)
+      const w = 16 * D * im * (0.8 + Math.sin(now / 70) * 0.12)
+      const g = ctx.createLinearGradient(0, -w, 0, w)
+      g.addColorStop(0, 'transparent'); g.addColorStop(0.35, color); g.addColorStop(0.5, '#ffffff'); g.addColorStop(0.65, color); g.addColorStop(1, 'transparent')
+      ctx.globalAlpha = env * 0.55; ctx.fillStyle = g; ctx.fillRect(0, -w, len, w * 2); ctx.globalAlpha = 1
+      ctx.restore()
+      // tekanti energija: rutuliukai palei spindulį
+      if (Math.random() < 0.9) it.parts.push({ x: Math.random(), y: rnd(-6, 6) * D, vx: 0, vy: 0, life: now, max: rnd(240, 420), size: rnd(2, 5) * D, rot: 0, vr: 0 })
+      for (let k = it.parts.length - 1; k >= 0; k--) {
+        const q = it.parts[k]; const e = (now - q.life) / q.max
+        if (e >= 1) { it.parts.splice(k, 1); continue }
+        const t = Math.min(1, q.x + e * 0.6)
+        const bx = lerp(from.x, to.x, t) + Math.cos(ang + Math.PI / 2) * q.y
+        const by = lerp(from.y, to.y, t) + Math.sin(ang + Math.PI / 2) * q.y
+        glow(ctx, bx, by, q.size * 1.8, '#ffffff', env * (1 - e) * 0.7)
+      }
+      glow(ctx, from.x, from.y, 20 * D * im, color, env * 0.8)
+      glow(ctx, to.x, to.y, 30 * D * im, color, env * 0.9); glow(ctx, to.x, to.y, 12 * D * im, '#ffffff', env)
+      softRing(ctx, to.x, to.y, (10 + p * 26) * D * im, 8 * D, color, env * 0.35)
       break
     }
     case 'slash': {
-      const q = easeOut(Math.min(1, p / 0.55)); const fade = p < 0.55 ? 1 : 1 - (p - 0.55) / 0.45
-      const len = 70 * D * im; const px = Math.cos(ang + Math.PI / 2), py = Math.sin(ang + Math.PI / 2)
-      const cx = to.x, cy = to.y
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang)
-      ctx.strokeStyle = color; ctx.globalAlpha = fade * 0.9; ctx.lineWidth = 6 * D; ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.arc(0, 0, len, -0.7, -0.7 + q * 1.4); ctx.stroke()
-      ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = fade; ctx.lineWidth = 2 * D; ctx.beginPath(); ctx.arc(0, 0, len, -0.7, -0.7 + q * 1.4); ctx.stroke()
-      ctx.restore(); ctx.globalAlpha = 1; void px; void py
-      if (p > 0.45) { seedSparks(it, 12, color); drawSparks(ctx, it, (p - 0.45) / 0.55, D) }
+      const q = easeOut(Math.min(1, p / 0.5)); const fade = p < 0.5 ? 1 : 1 - (p - 0.5) / 0.5
+      const len = 68 * D * im
+      // šviesos šuoras lanku: mažėjantys glow taškai su gęstančia uodega (storiausia viduryje)
+      const steps = 26
+      for (let k = 0; k < steps; k++) {
+        const t = k / steps; if (t > q) break
+        const taper = Math.sin(t * Math.PI)
+        const trail = Math.max(0, 1 - (q - t) * 2.2)
+        if (trail <= 0.02) continue
+        const a = -0.75 + t * 1.5 + ang
+        const x = to.x + Math.cos(a) * len, y = to.y + Math.sin(a) * len
+        glow(ctx, x, y, (4 + taper * 11) * D, color, fade * trail * 0.75)
+        glow(ctx, x, y, (2 + taper * 4.5) * D, '#ffffff', fade * trail * 0.85)
+      }
+      // kibirkštys smūgio pabaigoje su gravitacija
+      if (q > 0.75) {
+        if (!it.seeded) { it.seeded = true; for (let k = 0; k < 10; k++) { const a2 = ang + rnd(-0.8, 0.8), sp = rnd(2, 6) * D; it.parts.push({ x: to.x + Math.cos(ang + 0.75) * len, y: to.y + Math.sin(ang + 0.75) * len, vx: Math.cos(a2) * sp, vy: Math.sin(a2) * sp, life: 0, max: 1, size: rnd(1.2, 2.8) * D, rot: 0, vr: 0 }) } }
+        for (const sp of it.parts) { sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.08 * D; glow(ctx, sp.x, sp.y, sp.size * 2, color, fade * 0.8) }
+      }
       break
     }
     case 'disintegrate': case 'graveRise': {
@@ -239,6 +326,9 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
           else if (v === 'ice') it.parts.push({ x, y: rnd(-H * 0.2, H * 0.4), vx: rnd(-0.3, 0.3) * D, vy: rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
           else if (v === 'lightning') it.parts.push({ x, y, vx: 0, vy: 0, life: now + rnd(0, 700), max: rnd(90, 220), size: rnd(2, 7) * D, rot: rnd(0, TAU), vr: 0 })
           else if (v === 'poison') it.parts.push({ x, y: rnd(H * 0.4, H), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.3, 1.1) * D, life: now + rnd(0, 400), max: rnd(1000, 1700), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'heal' || v === 'holy') it.parts.push({ x, y: rnd(H * 0.35, H), vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(1.5, 4) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'necrotic') it.parts.push({ x, y: rnd(H * 0.3, H * 0.9), vx: rnd(-0.3, 0.3) * D, vy: -rnd(0.3, 1.0) * D, life: now + rnd(0, 500), max: rnd(1100, 1800), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 1 })
+          else if (v === 'curse') it.parts.push({ x, y, vx: rnd(-0.6, 0.6) * D, vy: rnd(-0.4, 0.4) * D, life: now + rnd(0, 400), max: rnd(600, 1100), size: rnd(1.5, 4) * D, rot: rnd(0, TAU), vr: 0 })
           else it.parts.push({ x, y, vx: rnd(-0.5, 0.5) * D, vy: -rnd(0.2, 1.0) * D, life: now + rnd(0, 350), max: rnd(700, 1300), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
         }
         // dūmų debesys (dideli minkšti, kyla)
@@ -248,8 +338,11 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       ctx.globalCompositeOperation = 'lighter'
       // pilno lauko šviesos banga (be linijų): centrinis žybsnis + bendras atspalvis
       const wash = Math.sin(Math.min(1, p) * Math.PI)
-      ctx.fillStyle = color; ctx.globalAlpha = wash * (v === 'lightning' ? 0.16 : 0.09); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1
+      ctx.fillStyle = color; ctx.globalAlpha = wash * (v === 'lightning' ? 0.16 : v === 'curse' ? 0.07 + 0.05 * Math.sin(now / 110) : 0.09); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1
+      if (v === 'necrotic' || v === 'curse') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(6,3,10,1)'; ctx.globalAlpha = wash * 0.22; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter' }
       glow(ctx, from.x, from.y, Math.max(W, H) * (0.35 + easeOut(p) * 0.4), color, (1 - p) * 0.16)
+      // per ekraną nuvilnijanti minkšta banga (vietoj kieto blyksnio)
+      softRing(ctx, from.x, from.y, Math.max(W, H) * easeOut(Math.min(1, p * 1.6)) * 0.6, 60 * D, color, (1 - p) * 0.22)
       if (v === 'lightning' && p < 0.18) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = (0.18 - p) / 0.18 * 0.35; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
       // dalelės / dūmai
       for (let k = it.parts.length - 1; k >= 0; k--) {
@@ -270,6 +363,13 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
           glow(ctx, q.x, q.y, q.size * (1.8 + Math.random() * 1.2), Math.random() < 0.5 ? '#ffffff' : color, a * 0.95)
         } else if (v === 'ice') {
           glow(ctx, q.x, q.y, q.size * 2.2, color, a * 0.85); glow(ctx, q.x, q.y, q.size * 0.7, '#ffffff', a * 0.7)
+        } else if (v === 'heal' || v === 'holy') {
+          glow(ctx, q.x, q.y, q.size * 2.2, color, a * 0.8); glow(ctx, q.x, q.y, q.size * 0.8, '#ffe28c', a * 0.75)
+        } else if (v === 'necrotic' && q.vr === 1) {
+          ctx.globalCompositeOperation = 'source-over'; glow(ctx, q.x, q.y, q.size * 2.6, 'rgba(8,5,16,1)', a * 0.35); ctx.globalCompositeOperation = 'lighter'; glow(ctx, q.x, q.y, q.size * 1.2, color, a * 0.6)
+        } else if (v === 'curse') {
+          const fl = Math.random() < 0.08 ? 1.8 : 1
+          glow(ctx, q.x, q.y, q.size * 2.1 * fl, color, a * 0.8)
         } else {
           glow(ctx, q.x, q.y, q.size * 2.4, color, a * 0.85)
         }
@@ -291,10 +391,33 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       break
     }
     case 'summonPortal': {
-      const grow = easeOut(Math.min(1, p / 0.5)); const fade = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4
-      ctx.save(); ctx.translate(to.x, to.y); ctx.scale(1, 0.45)
-      for (let r = 0; r < 3; r++) { ctx.strokeStyle = r % 2 ? color2 : color; ctx.globalAlpha = fade * 0.8; ctx.lineWidth = 3 * D; ctx.beginPath(); ctx.arc(0, 0, (20 + r * 12) * D * im * grow + Math.sin(now / 120 + r) * 3 * D, 0, TAU); ctx.stroke() }
-      ctx.restore(); ctx.globalAlpha = 1; glow(ctx, to.x, to.y, 30 * D * im * grow, color, fade * 0.6)
+      const grow = easeOut(Math.min(1, p / 0.4)); const fade = p < 0.62 ? 1 : 1 - (p - 0.62) / 0.38
+      const R = 42 * D * im * grow
+      ctx.save(); ctx.translate(to.x, to.y); ctx.scale(1, 0.42)
+      // minkštas portalo žiedas (gradient annulus) + gelmės švytėjimas
+      softRing(ctx, 0, 0, R, 14 * D, color, fade * 0.8)
+      softRing(ctx, 0, 0, R * 0.62, 9 * D, color2, fade * 0.5)
+      glow(ctx, 0, 0, R * 0.75, color, fade * 0.35)
+      // orbituojantys šviesos rutuliukai vietoj kontūrų
+      for (let k = 0; k < 7; k++) {
+        const a = now / 300 + k / 7 * TAU
+        const rr = R * (0.82 + Math.sin(now / 240 + k) * 0.08)
+        glow(ctx, Math.cos(a) * rr, Math.sin(a) * rr, 5.5 * D, k % 2 ? color2 : '#ffffff', fade * 0.85)
+      }
+      ctx.restore()
+      // šviesos kolona iš portalo (vertikalus gradientas)
+      const ch = 90 * D * im * grow
+      const cg = ctx.createLinearGradient(0, to.y - ch, 0, to.y)
+      cg.addColorStop(0, 'transparent'); cg.addColorStop(1, color)
+      ctx.globalAlpha = fade * 0.22; ctx.fillStyle = cg
+      ctx.beginPath(); ctx.moveTo(to.x - 26 * D * grow, to.y); ctx.lineTo(to.x - 9 * D * grow, to.y - ch); ctx.lineTo(to.x + 9 * D * grow, to.y - ch); ctx.lineTo(to.x + 26 * D * grow, to.y); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1
+      // kylančios dulkelės
+      if (Math.random() < 0.8) it.parts.push({ x: to.x + rnd(-30, 30) * D * grow, y: to.y + rnd(-6, 6) * D, vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.8, 2) * D, life: now, max: rnd(500, 900), size: rnd(1.5, 3.5) * D, rot: 0, vr: 0 })
+      for (let k = it.parts.length - 1; k >= 0; k--) {
+        const sp = it.parts[k]; sp.x += sp.vx; sp.y += sp.vy
+        const e = (now - sp.life) / sp.max; if (e >= 1) { it.parts.splice(k, 1); continue }
+        glow(ctx, sp.x, sp.y, sp.size * 2.2, k % 2 ? color2 : color, (1 - e) * fade * 0.8)
+      }
       break
     }
     case 'stealthFade': {
@@ -320,13 +443,6 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
   ctx.globalAlpha = 1
 }
 
-function seedSparks(it: Item, n: number, _color: string) {
-  if (it.seeded) return; it.seeded = true
-  for (let k = 0; k < n; k++) { const a = rnd(0, TAU), s = rnd(2, 7); it.parts.push({ x: it.to.x, y: it.to.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0, max: 1, size: rnd(1.5, 3.5), rot: 0, vr: 0 }) }
-}
-function drawSparks(ctx: CanvasRenderingContext2D, it: Item, q: number, D: number) {
-  for (const s of it.parts) { const x = it.to.x + s.vx * q * 16 * D, y = it.to.y + s.vy * q * 16 * D; glow(ctx, x, y, s.size * D, it.color, (1 - q) * 0.9) }
-}
 function drawRune(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number, now: number) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(now / 700)
   ctx.strokeStyle = color; ctx.globalAlpha = a * 0.9; ctx.lineWidth = 2.4

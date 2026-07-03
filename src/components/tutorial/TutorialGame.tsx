@@ -726,6 +726,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
+  // projectileType → FX elemento variantas (heal/poison/necrotic/curse trail+impact)
+  const projVariant = (proj?: string | null): AoeVariant | undefined =>
+    proj === 'poisonGlob' ? 'poison' : proj === 'darkCurse' ? 'curse' : proj === 'healingGlow' ? 'heal' : undefined
   const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
   const projIdRef = useRef(0)
   // Rankos padidinimas
@@ -1202,8 +1205,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'lightning': return 'lightning'
         case 'freezeBurst': return 'ice'
         case 'poisonGlob': return 'poison'
-        case 'darkCurse': return 'arcane'
-        case 'healingGlow': return 'holy'
+        case 'darkCurse': return 'curse'
+        case 'healingGlow': return 'heal'
         default: return 'generic'
       }
     }
@@ -1534,7 +1537,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
           if (from && to) {
-            fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2 })
+            fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2, variant: isAtk ? undefined : projVariant(proj) })
             if (isAtk) { playBattleSound('impact', 0.45); fxRef.current?.hitFlash(to.x, to.y, '#ffffff'); fxRef.current?.shakeBoard('soft') }
           }
         }, isAtk ? 220 : 200)

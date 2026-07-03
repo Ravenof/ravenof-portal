@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<title>Ravenof FX Preview — sena vs nauja</title>
+<style>
+  body { margin:0; background:#0a0810; color:#e8dcc0; font-family:Georgia,serif; overflow:hidden; }
+  #bar { position:fixed; top:0; left:0; right:0; display:flex; flex-wrap:wrap; gap:6px; padding:10px; background:rgba(7,5,12,.95); border-bottom:1px solid rgba(240,180,41,.3); z-index:10; align-items:center; }
+  button { background:rgba(240,180,41,.12); border:1px solid rgba(240,180,41,.45); color:#f0b429; padding:7px 12px; border-radius:9px; cursor:pointer; font-family:inherit; font-size:13px; }
+  button:hover { background:rgba(240,180,41,.25); }
+  #mode { background:rgba(139,92,246,.15); border-color:rgba(139,92,246,.6); color:#c4b5fd; font-weight:bold; min-width:150px; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; }
+  .card { position:fixed; width:92px; height:128px; border-radius:8px; border:2px solid rgba(240,180,41,.55); background:linear-gradient(160deg,#241a33,#0d0a14); box-shadow:0 6px 18px rgba(0,0,0,.6); z-index:5; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  #note { position:fixed; bottom:8px; left:0; right:0; text-align:center; font-size:12px; color:rgba(240,180,41,.5); z-index:10; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button id="mode" onclick="toggleMode()">Rodo: NAUJA ✨</button>
+  <button onclick="fx('projectile','#ff7a1a')">🔥 Projectile ugnis</button>
+  <button onclick="fx('projectile','#7cc4ff')">❄ Projectile ledas</button>
+  <button onclick="fx('projectile','#a78bfa')">🔮 Projectile arcane</button>
+  <button onclick="fx('projectile','#4ade80','#ffe28c','heal')">💚 Proj heal</button>
+  <button onclick="fx('projectile','#84cc16','#3f6212','poison')">☠ Proj poison</button>
+  <button onclick="fx('projectile','#7ef0c0','#6d28d9','necrotic')">👻 Proj necrotic</button>
+  <button onclick="fx('projectile','#ef4444','#450a0a','curse')">🩸 Proj curse</button>
+  <button onclick="fx('beam','#a78bfa')">✦ Beam (skill)</button>
+  <button onclick="fx('slash','#ffd24a')">⚔ Slash</button>
+  <button onclick="fx('summonPortal','#a78bfa','#f0b429')">🌀 Summon portalas</button>
+  <button onclick="aoe('fire','#ff7a1a')">🌋 AoE ugnis</button>
+  <button onclick="aoe('lightning','#ffe28c')">⚡ AoE žaibas</button>
+  <button onclick="aoe('ice','#7cc4ff')">❄ AoE ledas</button>
+  <button onclick="aoe('heal','#4ade80')">💚 AoE heal</button>
+  <button onclick="aoe('poison','#84cc16')">☠ AoE poison</button>
+  <button onclick="aoe('necrotic','#7ef0c0')">👻 AoE necrotic</button>
+  <button onclick="aoe('curse','#ef4444')">🩸 AoE curse</button>
+</div>
+<div class="card" id="src" style="left:12%; top:55%;">🐺</div>
+<div class="card" id="dst" style="right:12%; top:35%;">💀</div>
+<canvas id="c"></canvas>
+<div id="note">Kairė korta = šaltinis, dešinė = taikinys · perjunk SENA/NAUJA palyginimui · AoE užpildo visą ekraną</div>
+<script>
+const TAU = Math.PI*2, cv = document.getElementById('c'), ctx = cv.getContext('2d')
+let D = Math.min(devicePixelRatio||1, 2)
+function resize(){ D=Math.min(devicePixelRatio||1,2); cv.width=innerWidth*D; cv.height=innerHeight*D }
+resize(); addEventListener('resize', resize)
+const lerp=(a,b,t)=>a+(b-a)*t, easeOut=t=>1-Math.pow(1-t,3), easeIn=t=>t*t, rnd=(a,b)=>a+Math.random()*(b-a)
+function glow(x,y,r,color,a){ if(r<=0)return; const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,color); g.addColorStop(1,'transparent'); ctx.globalAlpha=a; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill(); ctx.globalAlpha=1 }
+// NAUJA: minkštas bangos žiedas be stroke — gradientinis „annulus"
+function softRing(x,y,r,thick,color,a){ if(r<=0)return; const g=ctx.createRadialGradient(x,y,Math.max(0,r-thick),x,y,r+thick); g.addColorStop(0,'transparent'); g.addColorStop(.5,color); g.addColorStop(1,'transparent'); ctx.globalAlpha=a; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r+thick,0,TAU); ctx.fill(); ctx.globalAlpha=1 }
+
+let MODE='new'
+function k2(c1,c2,seed){ return (seed*7)%2<1?c1:c2 }
+function toggleMode(){ MODE = MODE==='new'?'old':'new'; document.getElementById('mode').textContent = MODE==='new'?'Rodo: NAUJA ✨':'Rodo: SENA 📏' }
+function center(id){ const r=document.getElementById(id).getBoundingClientRect(); return {x:(r.left+r.width/2)*D, y:(r.top+r.height/2)*D} }
+
+const items=[]; let running=false
+function push(it){ items.push(Object.assign({t0:performance.now(), parts:[], seeded:false}, it)); if(!running){ running=true; requestAnimationFrame(loop) } }
+function fx(kind,color,color2,variant){ push({kind, variant, from:center('src'), to:center('dst'), color, color2:color2||color, dur: kind==='summonPortal'?1600:kind==='beam'?900:1200}) }
+function aoe(variant,color){ push({kind:'aoeWave', variant, color, color2:color, from:{x:cv.width/2,y:cv.height/2}, to:{x:cv.width/2,y:cv.height/2}, dur:1800}) }
+
+function loop(now){
+  ctx.clearRect(0,0,cv.width,cv.height)
+  for(let i=items.length-1;i>=0;i--){ const it=items[i]; const p=(now-it.t0)/it.dur; if(p>=1){items.splice(i,1);continue} draw(it,p,now) }
+  if(items.length){ requestAnimationFrame(loop) } else { running=false; ctx.clearRect(0,0,cv.width,cv.height) }
+}
+
+function draw(it,p,now){
+  const {from,to,color,color2}=it, im=1
+  const dx=to.x-from.x, dy=to.y-from.y, ang=Math.atan2(dy,dx)
+  ctx.globalCompositeOperation='lighter'
+  if(MODE==='old') drawOld(it,p,now,ang)
+  else drawNew(it,p,now,ang)
+  ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1
+}
+
+// ═══════════════ SENA (dabartinė) versija — palyginimui ═══════════════
+function drawOld(it,p,now,ang){
+  const {from,to,color,color2}=it, im=1
+  switch(it.kind){
+    case 'projectile': {
+      const tp=.62
+      if(p<tp){ const e=easeIn(p/tp); const x=lerp(from.x,to.x,e), y=lerp(from.y,to.y,e)
+        for(let k=0;k<6;k++){const bk=Math.max(0,e-k*.04); glow(lerp(from.x,to.x,bk),lerp(from.y,to.y,bk),(10-k)*D,color,(1-k/6)*.5)}
+        glow(x,y,14*D,'#fff',.9); glow(x,y,22*D,color,.8)
+      } else { const q=(p-tp)/(1-tp); const r=(10+q*46)*D
+        ctx.strokeStyle=color; ctx.globalAlpha=(1-q)*.9; ctx.lineWidth=3*D; ctx.beginPath(); ctx.arc(to.x,to.y,r,0,TAU); ctx.stroke(); ctx.globalAlpha=1
+        glow(to.x,to.y,30*D*(1-q),color,(1-q)*.7); oldSparks(it,q) }
+      break }
+    case 'beam': {
+      const env=p<.25?p/.25:1-(p-.25)/.75
+      ctx.strokeStyle=color; ctx.globalAlpha=env*.85; ctx.lineWidth=7*D; ctx.lineCap='round'
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(to.x,to.y); ctx.stroke()
+      ctx.strokeStyle='#fff'; ctx.globalAlpha=env; ctx.lineWidth=2.4*D; ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(to.x,to.y); ctx.stroke(); ctx.globalAlpha=1
+      glow(lerp(from.x,to.x,p),lerp(from.y,to.y,p),18*D,color,env)
+      break }
+    case 'slash': {
+      const q=easeOut(Math.min(1,p/.55)); const fade=p<.55?1:1-(p-.55)/.45; const len=70*D
+      ctx.save(); ctx.translate(to.x,to.y); ctx.rotate(ang)
+      ctx.strokeStyle=color; ctx.globalAlpha=fade*.9; ctx.lineWidth=6*D; ctx.lineCap='round'
+      ctx.beginPath(); ctx.arc(0,0,len,-.7,-.7+q*1.4); ctx.stroke()
+      ctx.strokeStyle='#fff'; ctx.globalAlpha=fade; ctx.lineWidth=2*D; ctx.beginPath(); ctx.arc(0,0,len,-.7,-.7+q*1.4); ctx.stroke()
+      ctx.restore(); ctx.globalAlpha=1
+      break }
+    case 'summonPortal': {
+      const grow=easeOut(Math.min(1,p/.5)); const fade=p<.6?1:1-(p-.6)/.4
+      ctx.save(); ctx.translate(to.x,to.y); ctx.scale(1,.45)
+      for(let r=0;r<3;r++){ ctx.strokeStyle=r%2?color2:color; ctx.globalAlpha=fade*.8; ctx.lineWidth=3*D; ctx.beginPath(); ctx.arc(0,0,(20+r*12)*D*grow+Math.sin(now/120+r)*3*D,0,TAU); ctx.stroke() }
+      ctx.restore(); ctx.globalAlpha=1; glow(to.x,to.y,30*D*grow,color,fade*.6)
+      break }
+    case 'aoeWave': drawAoe(it,p,now,false); break
+  }
+}
+function oldSparks(it,q){ if(!it.seeded){it.seeded=true; for(let k=0;k<14;k++){const a=rnd(0,TAU),s=rnd(2,7); it.parts.push({vx:Math.cos(a)*s,vy:Math.sin(a)*s,size:rnd(1.5,3.5)})}}
+  for(const s of it.parts){ glow(it.to.x+s.vx*q*16*D, it.to.y+s.vy*q*16*D, s.size*D, it.color, (1-q)*.9) } }
+
+// ═══════════════ NAUJA versija — be linijų, tik šviesa ═══════════════
+function drawNew(it,p,now,ang){
+  const {from,to,color,color2}=it
+  switch(it.kind){
+    case 'projectile': {
+      const tp=.62, v=it.variant||'arcane'
+      if(p<tp){
+        const e=easeIn(p/tp)
+        // organiška trajektorija: lengvas lankas (curse — nervingas dreifas)
+        const wob=Math.sin(e*Math.PI)* -34*D
+        const jit=v==='curse'?rnd(-2.5,2.5)*D:0
+        const px=lerp(from.x,to.x,e)+Math.cos(ang+Math.PI/2)*wob*.3+jit, py=lerp(from.y,to.y,e)+Math.sin(ang+Math.PI/2)*wob*.3+wob*.2+jit
+        // uodega pagal elementą
+        if(v==='poison'){ if(Math.random()<.7) it.parts.push({x:px,y:py,vx:rnd(-.2,.2)*D,vy:rnd(.4,1.4)*D,life:now,max:rnd(320,560),size:rnd(1.5,3)*D,drop:1}) }
+        else if(v==='necrotic'){ if(Math.random()<.8) it.parts.push({x:px,y:py,vx:rnd(-.3,.3)*D,vy:-rnd(.2,.8)*D,life:now,max:rnd(400,700),size:rnd(2.5,5)*D,wisp:1}) }
+        else if(Math.random()<.85) it.parts.push({x:px,y:py,vx:rnd(-.5,.5)*D,vy:rnd(-.5,.5)*D-.3*D,life:now,max:rnd(260,480),size:rnd(1.5,3.5)*D})
+        for(let k=it.parts.length-1;k>=0;k--){const q=it.parts[k];q.x+=q.vx;q.y+=q.vy;const e2=(now-q.life)/q.max;if(e2>=1){it.parts.splice(k,1);continue}
+          if(q.wisp){ ctx.globalCompositeOperation='source-over'; glow(q.x,q.y,q.size*2.6,'rgba(10,6,18,1)',(1-e2)*.35); ctx.globalCompositeOperation='lighter'; glow(q.x,q.y,q.size*1.4,color,(1-e2)*.45) }
+          else glow(q.x,q.y,q.size*2.2,q.drop?color2:color,(1-e2)*.55)}
+        // galva pagal elementą
+        if(v==='heal'){ glow(px,py,24*D,color,.3); glow(px,py,13*D,color,.8); glow(px,py,6*D,color2,.95)
+          if(Math.random()<.5){const a2=rnd(0,TAU),rr=rnd(8,16)*D; glow(px+Math.cos(a2)*rr,py+Math.sin(a2)*rr,2.2*D,color2,.9)} }
+        else if(v==='necrotic'){ glow(px,py,28*D,color2,.3); glow(px,py,14*D,color,.75); glow(px,py,6*D,'#eafff5',.8) }
+        else if(v==='curse'){ glow(px,py,26*D,color,.4); glow(px,py,13*D,color,.9); glow(px,py,5*D,'#ffd7d7',.85) }
+        else { glow(px,py,26*D,color,.35); glow(px,py,15*D,color,.85); glow(px,py,7*D,'#fff',.95) }
+      } else {
+        const q=(p-tp)/(1-tp)
+        if(v==='heal'){
+          // švelnus žydėjimas + kylančios kibirkštys, be smūgio bangos
+          glow(to.x,to.y,(20+easeOut(q)*26)*D,color,(1-q)*.6)
+          glow(to.x,to.y,12*D*(1-q*.4),color2,(1-q)*.85)
+          if(!it.seeded){it.seeded=true; it.parts.length=0; for(let k=0;k<12;k++) it.parts.push({x:to.x+rnd(-20,20)*D,y:to.y+rnd(-6,14)*D,vx:rnd(-.2,.2)*D,vy:-rnd(.8,2)*D,life:0,max:1,size:rnd(1.5,3)*D})}
+          for(const s of it.parts){ s.x+=s.vx; s.y+=s.vy; glow(s.x,s.y,s.size*2,k2(color,color2,s.size),(1-q)*.85) }
+        } else if(v==='poison'){
+          // purslai žemyn + burbuliukai
+          softRing(to.x,to.y,(6+easeOut(q)*30)*D,8*D,color,(1-q)*.5)
+          glow(to.x,to.y,26*D*(1-q*.5),color,(1-q)*.7)
+          if(!it.seeded){it.seeded=true; it.parts.length=0; for(let k=0;k<14;k++){const a=rnd(-2.6,-.5); it.parts.push({x:to.x,y:to.y,vx:Math.cos(a)*rnd(1,3.5)*D,vy:Math.sin(a)*rnd(1,2.5)*D,life:0,max:1,size:rnd(1.5,3.5)*D})}}
+          for(const s of it.parts){ s.vy+=.14*D; s.x+=s.vx; s.y+=s.vy; glow(s.x,s.y,s.size*2,color,(1-q)*.8) }
+        } else if(v==='necrotic'){
+          // implozija: banga traukiasi Į VIDŲ + sielos kyla
+          softRing(to.x,to.y,(46-easeOut(q)*40)*D,10*D,color,(1-q)*.6)
+          glow(to.x,to.y,20*D*(1-q*.3),color,(1-q)*.75)
+          if(!it.seeded){it.seeded=true; it.parts.length=0; for(let k=0;k<8;k++) it.parts.push({x:to.x+rnd(-18,18)*D,y:to.y+rnd(-8,8)*D,vx:rnd(-.2,.2)*D,vy:-rnd(1,2.2)*D,life:0,max:1,size:rnd(2.5,5)*D,wisp:1})}
+          for(const s of it.parts){ s.x+=s.vx+Math.sin((now+s.size*90)/180)*.5*D; s.y+=s.vy; ctx.globalCompositeOperation='source-over'; glow(s.x,s.y,s.size*2.4,'rgba(10,6,18,1)',(1-q)*.3); ctx.globalCompositeOperation='lighter'; glow(s.x,s.y,s.size*1.3,color,(1-q)*.6) }
+        } else if(v==='curse'){
+          // pulsuojantis tamsus sprogimas: dvi bangos + raudonos žarijos
+          const pulse=.5+.5*Math.sin(q*Math.PI*3)
+          softRing(to.x,to.y,(8+easeOut(q)*40)*D,9*D,color,(1-q)*.65)
+          softRing(to.x,to.y,(4+easeOut(q)*24)*D,7*D,color,(1-q)*.4*pulse)
+          ctx.globalCompositeOperation='source-over'; glow(to.x,to.y,30*D*(1-q*.4),'rgba(10,4,8,1)',(1-q)*.4); ctx.globalCompositeOperation='lighter'
+          glow(to.x,to.y,16*D*(1-q),color,(1-q)*.9)
+          if(!it.seeded){it.seeded=true; it.parts.length=0; for(let k=0;k<14;k++){const a=rnd(0,TAU),sp=rnd(1.2,4)*D; it.parts.push({x:to.x,y:to.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-.8*D,life:0,max:1,size:rnd(1.2,3)*D})}}
+          for(const s of it.parts){ s.vy+=.08*D; s.x+=s.vx; s.y+=s.vy; glow(s.x,s.y,s.size*2,color,(1-q)*.8) }
+        } else {
+          // standartinis: minkšta banga + žarijos
+          softRing(to.x,to.y,(8+easeOut(q)*44)*D,10*D,color,(1-q)*.7)
+          glow(to.x,to.y,34*D*(1-q*.5),color,(1-q)*.8)
+          glow(to.x,to.y,14*D*(1-q),'#fff',(1-q)*.9)
+          if(!it.seeded){it.seeded=true; for(let k=0;k<16;k++){const a=rnd(0,TAU),s=rnd(1.4,4.6)*D; it.parts.push({x:to.x,y:to.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1.2*D,life:0,max:1,size:rnd(1.4,3.2)*D})}}
+          for(const s of it.parts){ s.vy+=.10*D; s.x+=s.vx; s.y+=s.vy; glow(s.x,s.y,s.size*2,color,(1-q)*.8) }
+        }
+      }
+      break }
+    case 'beam': {
+      const env=p<.22?easeOut(p/.22):1-easeIn((p-.22)/.78)
+      const len=Math.hypot(to.x-from.x,to.y-from.y)
+      ctx.save(); ctx.translate(from.x,from.y); ctx.rotate(ang)
+      // gradientinis spindulys: minkšti kraštai skersai (be stroke)
+      const w=16*D*(0.8+Math.sin(now/70)*.12)
+      const g=ctx.createLinearGradient(0,-w,0,w)
+      g.addColorStop(0,'transparent'); g.addColorStop(.35,it.color); g.addColorStop(.5,'#fff'); g.addColorStop(.65,it.color); g.addColorStop(1,'transparent')
+      ctx.globalAlpha=env*.55; ctx.fillStyle=g; ctx.fillRect(0,-w,len,w*2); ctx.globalAlpha=1
+      ctx.restore()
+      // tekanti energija: rutuliukai palei spindulį
+      if(Math.random()<.9) it.parts.push({o:Math.random(),off:rnd(-6,6)*D,life:now,max:rnd(240,420),size:rnd(2,5)*D})
+      for(let k=it.parts.length-1;k>=0;k--){const q=it.parts[k];const e=(now-q.life)/q.max;if(e>=1){it.parts.splice(k,1);continue}
+        const t=Math.min(1,q.o+e*.6); const x=lerp(from.x,to.x,t)+Math.cos(ang+Math.PI/2)*q.off, y=lerp(from.y,to.y,t)+Math.sin(ang+Math.PI/2)*q.off
+        glow(x,y,q.size*1.8,'#fff',env*(1-e)*.7)}
+      glow(from.x,from.y,20*D,it.color,env*.8)
+      glow(to.x,to.y,30*D,it.color,env*.9); glow(to.x,to.y,12*D,'#fff',env)
+      softRing(to.x,to.y,(10+p*26)*D,8*D,it.color,env*.35)
+      break }
+    case 'slash': {
+      const q=easeOut(Math.min(1,p/.5)); const fade=p<.5?1:1-(p-.5)/.5; const len=68*D
+      // šviesos šuoras lanku: mažėjantys glow taškai vietoj stroke lanko
+      const steps=26
+      for(let k=0;k<steps;k++){
+        const t=k/steps; if(t>q) break
+        const taper=Math.sin(t*Math.PI)          // storiausia viduryje
+        const trail=Math.max(0,1-(q-t)*2.2)      // uodega gęsta
+        const a=-.75+t*1.5+ang
+        const x=to.x+Math.cos(a)*len, y=to.y+Math.sin(a)*len
+        glow(x,y,(4+taper*11)*D,it.color,fade*trail*.75)
+        glow(x,y,(2+taper*4.5)*D,'#fff',fade*trail*.85)
+      }
+      // kibirkštys smūgio pabaigoje
+      if(q>.75){ if(!it.seeded){it.seeded=true; for(let k=0;k<10;k++){const a2=ang+rnd(-.8,.8),s=rnd(2,6)*D; it.parts.push({x:to.x+Math.cos(ang+.75)*len,y:to.y+Math.sin(ang+.75)*len,vx:Math.cos(a2)*s,vy:Math.sin(a2)*s,life:0,max:1,size:rnd(1.2,2.8)*D})}}
+        for(const s of it.parts){ s.x+=s.vx; s.y+=s.vy; s.vy+=.08*D; glow(s.x,s.y,s.size*2,it.color,fade*.8) } }
+      break }
+    case 'summonPortal': {
+      const grow=easeOut(Math.min(1,p/.4)); const fade=p<.62?1:1-(p-.62)/.38
+      const R=42*D*grow
+      ctx.save(); ctx.translate(to.x,to.y); ctx.scale(1,.42)
+      // minkštas portalo žiedas (gradient annulus) + gelmės švytėjimas
+      softRing(0,0,R,14*D,it.color,fade*.8)
+      softRing(0,0,R*.62,9*D,it.color2,fade*.5)
+      glow(0,0,R*.75,it.color,fade*.35)
+      // orbituojantys šviesos rutuliukai (vietoj kontūrų)
+      for(let k=0;k<7;k++){ const a=now/300+k/7*TAU; const rr=R*(0.82+Math.sin(now/240+k)*0.08)
+        glow(Math.cos(a)*rr,Math.sin(a)*rr,5.5*D,k%2?it.color2:'#fff',fade*.85) }
+      ctx.restore()
+      // šviesos kolona iš portalo (vertikalus gradientas)
+      const ch=90*D*grow
+      const cg=ctx.createLinearGradient(0,to.y-ch,0,to.y)
+      cg.addColorStop(0,'transparent'); cg.addColorStop(1,it.color)
+      ctx.globalAlpha=fade*.22; ctx.fillStyle=cg
+      ctx.beginPath(); ctx.moveTo(to.x-26*D*grow,to.y); ctx.lineTo(to.x-9*D*grow,to.y-ch); ctx.lineTo(to.x+9*D*grow,to.y-ch); ctx.lineTo(to.x+26*D*grow,to.y); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1
+      // kylančios dulkelės
+      if(Math.random()<.8) it.parts.push({x:to.x+rnd(-30,30)*D*grow,y:to.y+rnd(-6,6)*D,vx:rnd(-.15,.15)*D,vy:-rnd(.8,2)*D,life:now,max:rnd(500,900),size:rnd(1.5,3.5)*D})
+      for(let k=it.parts.length-1;k>=0;k--){const s=it.parts[k];s.x+=s.vx;s.y+=s.vy;const e=(now-s.life)/s.max;if(e>=1){it.parts.splice(k,1);continue}
+        glow(s.x,s.y,s.size*2.2,k%2?it.color2:it.color,(1-e)*fade*.8)}
+      break }
+    case 'aoeWave': drawAoe(it,p,now,true); break
+  }
+}
+
+// AoE — jau minkštas; naujoje versijoje pridėta tik minkšta smūgio banga vietoj kieto blyksnio
+function drawAoe(it,p,now,isNew){
+  const W=cv.width,H=cv.height, v=it.variant||'generic', color=it.color
+  if(!it.seeded){ it.seeded=true; const n=64
+    for(let k=0;k<n;k++){ const x=rnd(0,W), y=rnd(0,H)
+      if(v==='fire') it.parts.push({x,y:rnd(H*.5,H),vx:rnd(-.2,.2)*D,vy:-rnd(.8,2.6)*D,life:now+rnd(0,300),max:rnd(700,1300),size:rnd(2,6)*D,rot:rnd(0,TAU)})
+      else if(v==='ice') it.parts.push({x,y:rnd(-H*.2,H*.4),vx:rnd(-.3,.3)*D,vy:rnd(.5,1.6)*D,life:now+rnd(0,400),max:rnd(900,1500),size:rnd(2,5)*D,rot:rnd(0,TAU)})
+      else if(v==='lightning') it.parts.push({x,y,vx:0,vy:0,life:now+rnd(0,700),max:rnd(90,220),size:rnd(2,7)*D,rot:rnd(0,TAU)})
+      else if(v==='heal') it.parts.push({x,y:rnd(H*.35,H),vx:rnd(-.15,.15)*D,vy:-rnd(.5,1.6)*D,life:now+rnd(0,400),max:rnd(900,1500),size:rnd(1.5,4)*D,rot:rnd(0,TAU)})
+      else if(v==='poison') it.parts.push({x,y:rnd(H*.4,H),vx:rnd(-.2,.2)*D,vy:-rnd(.3,1.1)*D,life:now+rnd(0,400),max:rnd(1000,1700),size:rnd(3,7)*D,rot:rnd(0,TAU)})
+      else if(v==='necrotic') it.parts.push({x,y:rnd(H*.3,H*.9),vx:rnd(-.3,.3)*D,vy:-rnd(.3,1)*D,life:now+rnd(0,500),max:rnd(1100,1800),size:rnd(3,7)*D,rot:rnd(0,TAU),wisp:1})
+      else if(v==='curse') it.parts.push({x,y,vx:rnd(-.6,.6)*D,vy:rnd(-.4,.4)*D,life:now+rnd(0,400),max:rnd(600,1100),size:rnd(1.5,4)*D,rot:rnd(0,TAU)})
+      else it.parts.push({x,y,vx:rnd(-.5,.5)*D,vy:-rnd(.2,1)*D,life:now+rnd(0,350),max:rnd(700,1300),size:rnd(2,5)*D,rot:rnd(0,TAU)}) }
+    for(let k=0;k<10;k++) it.parts.push({x:rnd(0,W),y:rnd(H*.45,H*1.05),vx:rnd(-.15,.15)*D,vy:-rnd(.2,.7)*D,life:now,max:rnd(1100,1700),size:rnd(40,90)*D,rot:-1}) }
+  const wash=Math.sin(Math.min(1,p)*Math.PI)
+  ctx.fillStyle=color; ctx.globalAlpha=wash*(v==='lightning'?.16:v==='curse'?.07+.05*Math.sin(now/110):.09); ctx.fillRect(0,0,W,H); ctx.globalAlpha=1
+  if(v==='necrotic'||v==='curse'){ ctx.globalCompositeOperation='source-over'; ctx.fillStyle='rgba(6,3,10,1)'; ctx.globalAlpha=wash*.22; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; ctx.globalCompositeOperation='lighter' }
+  glow(it.from.x,it.from.y,Math.max(W,H)*(.35+easeOut(p)*.4),color,(1-p)*.16)
+  if(isNew){ softRing(it.from.x,it.from.y,Math.max(W,H)*easeOut(Math.min(1,p*1.6))*.6,60*D,color,(1-p)*.22) }
+  if(v==='lightning'&&p<.18){ ctx.fillStyle='#fff'; ctx.globalAlpha=(0.18-p)/0.18*.35; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1 }
+  for(let k=it.parts.length-1;k>=0;k--){ const q=it.parts[k]; if(now<q.life) continue
+    q.x+=q.vx+Math.sin((now+(q.rot||0)*120)/320)*.25*D; q.y+=q.vy
+    const e=(now-q.life)/q.max; if(e>=1){it.parts.splice(k,1);continue}
+    const a=Math.sin(Math.min(1,e)*Math.PI)
+    if(q.rot===-1){ ctx.globalCompositeOperation='source-over'; glow(q.x,q.y,q.size*(1+e*.6),color,a*.10); ctx.globalCompositeOperation='lighter' }
+    else if(v==='fire') glow(q.x,q.y,q.size*2.6,`hsla(${18+(1-e)*30},100%,60%,1)`,a*.9)
+    else if(v==='lightning') glow(q.x,q.y,q.size*(1.8+Math.random()*1.2),Math.random()<.5?'#fff':color,a*.95)
+    else if(v==='ice'){ glow(q.x,q.y,q.size*2.2,color,a*.85); glow(q.x,q.y,q.size*.7,'#fff',a*.7) }
+    else if(v==='heal'){ glow(q.x,q.y,q.size*2.2,color,a*.8); glow(q.x,q.y,q.size*.8,'#ffe28c',a*.75) }
+    else if(v==='necrotic'&&q.wisp){ ctx.globalCompositeOperation='source-over'; glow(q.x,q.y,q.size*2.6,'rgba(8,5,16,1)',a*.35); ctx.globalCompositeOperation='lighter'; glow(q.x,q.y,q.size*1.2,color,a*.6) }
+    else if(v==='curse'){ const fl=Math.random()<.08?1.8:1; glow(q.x,q.y,q.size*2.1*fl,color,a*.8) }
+    else glow(q.x,q.y,q.size*2.4,color,a*.85) }
+}
+</script>
+</body>
+</html>
