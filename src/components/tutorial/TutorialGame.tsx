@@ -1640,10 +1640,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
     if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks) return
-    // Botas „mąsto" 2–7 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
+    // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
-    const delay = cine.current ? 5000 : (tutorial?.active ? 1000 : (2000 + Math.floor(Math.random() * 5000)))
+    const delay = cine.current ? 5000 : (tutorial?.active ? 1000 : (1000 + Math.floor(Math.random() * 2000)))
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
