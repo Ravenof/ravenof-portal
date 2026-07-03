@@ -22,7 +22,7 @@ import {
   createGame, beginTurn, endTurn,
   championSkills, canUnitAttack, legalTargets, cloneState, P,
   swapPerspective, applyNetAction, swapAction, type NetAction,
-  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard,
+  parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, type TutCardType,
   effectiveCost, auraSpellDamageBonus,
   STATUS_META, TutStatus, boardCreatureCap, type ZmkValue,
 } from '@/lib/tutorial/engine'
@@ -790,6 +790,25 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const logScrollRef = useRef<HTMLDivElement | null>(null)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
+
+  // ── Tikros kortų tipų ikonos tuščiuose slotuose (card_types.icon_url iš DB) ──
+  const [typeIcons, setTypeIcons] = useState<Partial<Record<TutCardType, string>>>({})
+  useEffect(() => {
+    createClient().from('card_types').select('name, icon_url')
+      .then(({ data }) => {
+        const m: Partial<Record<TutCardType, string>> = {}
+        for (const r of ((data as { name: string; icon_url: string | null }[]) ?? [])) {
+          if (!r.icon_url) continue
+          const t = mapCardType(r.name, false)
+          if (!m[t]) m[t] = r.icon_url
+        }
+        setTypeIcons(m)
+      })
+  }, [])
+  const slotTypeIcon = (kind: TutCardType, size: number, fallback: string, color: string) => typeIcons[kind]
+    // eslint-disable-next-line @next/next/no-img-element
+    ? <img src={typeIcons[kind]} alt="" draggable={false} style={{ width: size, height: size, objectFit: 'contain', opacity: 0.32, filter: 'grayscale(0.35)' }} />
+    : <span style={{ fontSize: Math.round(size * 0.8), opacity: 0.18, color }}>{fallback}</span>
   const [peekSel, setPeekSel] = useState<string[]>([])
   const [summonSel, setSummonSel] = useState<string[]>([])
   // PvP: varžovo profilis + ėjimo laikmatis
@@ -2361,7 +2380,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 background: myDropGlow ? 'rgba(74,222,128,0.12)' : 'linear-gradient(160deg, rgba(28,23,38,0.9), rgba(10,8,14,0.92))',
                 boxShadow: myDropGlow ? '0 0 16px rgba(74,222,128,0.6)' : 'inset 0 2px 12px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(240,180,41,0.05)',
                 transition: 'box-shadow 0.15s, border-color 0.15s',
-              }}><span style={{ fontSize: Math.round(unitW * 0.32), opacity: 0.13, color: 'var(--gold)' }}>✦</span></div>
+              }}>{slotTypeIcon('unit', Math.round(unitW * 0.44), '✦', 'var(--gold)')}</div>
           ) })}
         </AnimatePresence>
       </div>
@@ -2395,7 +2414,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center"
-              style={{ width: isTouch ? 40 : 64, height: isTouch ? 54 : 76, border: '1px solid rgba(205,160,70,0.3)', background: 'linear-gradient(160deg, rgba(34,27,16,0.8), rgba(12,9,6,0.9))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}><span style={{ fontSize: 16, opacity: 0.18, color: '#cda046' }}>⬗</span></div>
+              style={{ width: isTouch ? 40 : 64, height: isTouch ? 54 : 76, border: '1px solid rgba(205,160,70,0.3)', background: 'linear-gradient(160deg, rgba(34,27,16,0.8), rgba(12,9,6,0.9))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('artifact', isTouch ? 20 : 28, '⬗', '#cda046')}</div>
           ))}
         </div>
       </div>
@@ -2433,7 +2452,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             )
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center"
-              style={{ width: isTouch ? 40 : 56, height: isTouch ? 54 : 70, border: '1px solid rgba(139,92,246,0.4)', background: 'linear-gradient(160deg, rgba(26,19,40,0.85), rgba(10,8,16,0.92))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}><span style={{ fontSize: 14, opacity: 0.2, color: '#a78bfa' }}>⚡</span></div>
+              style={{ width: isTouch ? 40 : 56, height: isTouch ? 54 : 70, border: '1px solid rgba(139,92,246,0.4)', background: 'linear-gradient(160deg, rgba(26,19,40,0.85), rgba(10,8,16,0.92))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('reaction', isTouch ? 20 : 26, '⚡', '#a78bfa')}</div>
           ))}
         </div>
       </div>
@@ -2466,7 +2485,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             <span className="text-[12px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{game.field.card.name}</span>
           </button>
         ) : (
-          <span className="text-[12px]" style={{ color: 'rgba(240,180,41,0.4)' }}>🌍 Laukas tuščias</span>
+          <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: 'rgba(240,180,41,0.4)' }}>{slotTypeIcon('field', 22, '🌍', '#a78bfa')} Laukas tuščias</span>
         )}
       </div>
     </div>
