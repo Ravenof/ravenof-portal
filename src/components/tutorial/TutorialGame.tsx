@@ -3599,14 +3599,31 @@ doAction({ t: 'endTurn', actor: 'you' })
             <motion.div initial={{ scale: 0.92, y: 12 }} animate={{ scale: 1, y: 0 }} className="w-[min(430px,94vw)] px-4 py-4 rounded-2xl"
               style={{ background: 'radial-gradient(120% 90% at 50% 0%, rgba(167,139,250,0.16), rgba(10,8,16,0.98) 60%), linear-gradient(160deg, #15101f, #0a0810)', border: '1px solid rgba(167,139,250,0.5)' }}>
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>🌍 Lauko efektas</p>
-              <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>Pasirink SAVO padarą, kuris grįš tau į ranką.</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {P(game, 'you').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
-                  <button key={u.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
-                    <MiniCard c={u.card} w={72} />
-                  </button>
-                ))}
-              </div>
+              <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>Pasirink BET KURĮ padarą – jis grįš savo savininkui į ranką.</p>
+              {P(game, 'ai').units.some(Boolean) && (
+                <>
+                  <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Priešo padarai</p>
+                  <div className="flex flex-wrap justify-center gap-2 mb-3">
+                    {P(game, 'ai').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
+                      <button key={u.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
+                        <MiniCard c={u.card} w={72} />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {P(game, 'you').units.some(Boolean) && (
+                <>
+                  <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4ade80' }}>Tavo padarai</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {P(game, 'you').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
+                      <button key={u.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
+                        <MiniCard c={u.card} w={72} />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

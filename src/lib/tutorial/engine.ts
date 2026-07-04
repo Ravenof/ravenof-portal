@@ -1913,18 +1913,24 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   p.turnNumber += 1
   expireTempBuffs(g, s, 'beginTurn')
   expireControl(g, s, 'beginTurn')
-  // Lauko pasyvas: ėjimo pradžioje grąžink VIENĄ savo padarą į ranką.
-  // 'you' – žaidėjas renkasi (pendingReturn UI); AI/svečias – automatiškai pigiausią.
+  // Lauko pasyvas: ėjimo pradžioje aktyvus žaidėjas grąžina VIENĄ padarą iš lauko
+  // (savo ARBA priešo – korta grįžta jos savininkui į ranką).
+  // 'you' – renkasi per pendingReturn UI; AI/svečias – automatiškai: brangiausią priešo,
+  // jei priešas padarų neturi – pigiausią savo.
   if (fieldEngine.returnUnitAtTurnStart(g, s)) {
-    const fUnits = p.units.filter((x): x is BoardUnit => !!x)
-    if (fUnits.length > 0) {
+    const all: { side: Side; u: BoardUnit }[] = []
+    for (const sd of allSeats(g)) for (const x of P(g, sd).units) if (x) all.push({ side: sd, u: x })
+    if (all.length > 0) {
       if (s === 'you') {
         g.pendingReturn = { side: s }
-        log(g, { t: 'field', side: s, cardName: g.field?.card.name, msg: '🌍 Laukas: pasirink savo padarą, kurį grąžinsi į ranką.' })
+        log(g, { t: 'field', side: s, cardName: g.field?.card.name, msg: '🌍 Laukas: pasirink padarą (savo ar priešo), kuris grįš savininkui į ranką.' })
       } else {
-        const cheapest = fUnits.reduce((bst, x) => (x.card.gold < bst.card.gold ? x : bst), fUnits[0])
-        log(g, { t: 'field', side: s, cardName: g.field?.card.name, msg: `🌍 Laukas: ${sideName(s)} grąžina „${cheapest.card.name}" į ranką.` })
-        returnUnitToHandPrim(g, s, cheapest)
+        const enemies = all.filter((x) => !sameTeam(g, x.side, s))
+        const pick = enemies.length > 0
+          ? enemies.reduce((bst, x) => (x.u.card.gold > bst.u.card.gold ? x : bst), enemies[0])
+          : all.filter((x) => sameTeam(g, x.side, s)).reduce((bst, x) => (x.u.card.gold < bst.u.card.gold ? x : bst), all[0])
+        log(g, { t: 'field', side: s, cardName: g.field?.card.name, msg: `🌍 Laukas: ${sideName(s)} grąžina „${pick.u.card.name}" ${sameTeam(g, pick.side, s) ? 'sau' : 'priešininkui'} į ranką.` })
+        returnUnitToHandPrim(g, pick.side, pick.u)
         recomputeAuras(g)
       }
     }
@@ -2586,16 +2592,21 @@ export function swapPerspective(g: GameState): GameState {
   return c
 }
 
-/** Lauko pasyvo pendingReturn sprendimas: grąžina pasirinktą padarą į ranką. */
+/** Lauko pasyvo pendingReturn sprendimas: grąžina pasirinktą padarą (bet kurios pusės)
+ *  jo savininkui į ranką. */
 export function resolveReturnUnit(g: GameState, uid: string): { ok: boolean; reason?: string } {
   const pr = g.pendingReturn
   if (!pr) return { ok: false, reason: 'Nėra laukiančio grąžinimo.' }
-  const u = P(g, pr.side).units.find((x) => x?.uid === uid)
-  if (!u) return { ok: false, reason: 'Padaras nerastas.' }
-  g.pendingReturn = null
-  returnUnitToHandPrim(g, pr.side, u)
-  recomputeAuras(g)
-  return { ok: true }
+  for (const sd of allSeats(g)) {
+    const u = P(g, sd).units.find((x) => x?.uid === uid)
+    if (u) {
+      g.pendingReturn = null
+      returnUnitToHandPrim(g, sd, u)
+      recomputeAuras(g)
+      return { ok: true }
+    }
+  }
+  return { ok: false, reason: 'Padaras nerastas.' }
 }
 
 export type NetAction =
