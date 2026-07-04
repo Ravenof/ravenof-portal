@@ -812,10 +812,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         setTypeIcons(m)
       })
   }, [])
-  const slotTypeIcon = (kind: TutCardType, size: number, fallback: string, color: string) => typeIcons[kind]
-    // eslint-disable-next-line @next/next/no-img-element
-    ? <img src={typeIcons[kind]} alt="" draggable={false} style={{ width: size, height: size, objectFit: 'contain', opacity: 0.32, filter: 'grayscale(0.35)' }} />
-    : <span style={{ fontSize: Math.round(size * 0.8), opacity: 0.18, color }}>{fallback}</span>
+  // Fallback grandinė: DB card_types.icon_url → lokali /icons/card-types/*.png → emoji
+  const LOCAL_TYPE_ICON: Partial<Record<TutCardType, string>> = {
+    unit: '/icons/card-types/creature.png', spell: '/icons/card-types/spell.png',
+    artifact: '/icons/card-types/artefact.png', reaction: '/icons/card-types/reaction.png',
+    field: '/icons/card-types/field.png', champion: '/icons/card-types/champion.png',
+    curse: '/icons/card-types/curse.png',
+  }
+  const slotTypeIcon = (kind: TutCardType, size: number, fallback: string, color: string) => {
+    const url = typeIcons[kind] ?? LOCAL_TYPE_ICON[kind]
+    return url
+      // eslint-disable-next-line @next/next/no-img-element
+      ? <img src={url} alt="" draggable={false} style={{ width: size, height: size, objectFit: 'contain', opacity: 0.32, filter: 'grayscale(0.35)' }} />
+      : <span style={{ fontSize: Math.round(size * 0.8), opacity: 0.18, color }}>{fallback}</span>
+  }
   const [peekSel, setPeekSel] = useState<string[]>([])
   const [summonSel, setSummonSel] = useState<string[]>([])
   // PvP: varžovo profilis + ėjimo laikmatis
@@ -2497,14 +2507,19 @@ doAction({ t: 'endTurn', actor: 'you' })
   const dFieldRow = () => (
     <div className="flex flex-col items-center justify-center gap-0.5">
       <span style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(167,139,250,0.6)' }}>Lauko korta · bendra</span>
-      <div data-tut="field" className="flex items-center justify-center gap-2 rounded-lg" style={{ width: 244, height: 50, border: '1px solid rgba(167,139,250,0.5)', background: 'linear-gradient(120deg, rgba(42,30,62,0.6), rgba(34,27,16,0.5))', boxShadow: 'inset 0 0 26px rgba(167,139,250,0.18), 0 0 14px rgba(240,180,41,0.12)' }}>
+      <div data-tut="field" className="relative flex items-center justify-center gap-2 rounded-lg overflow-hidden" style={{ width: 244, height: 50, border: game?.field ? '1px solid rgba(167,139,250,0.85)' : '1px solid rgba(167,139,250,0.5)', background: 'linear-gradient(120deg, rgba(42,30,62,0.6), rgba(34,27,16,0.5))', boxShadow: game?.field ? 'inset 0 0 26px rgba(167,139,250,0.28), 0 0 16px rgba(167,139,250,0.3)' : 'inset 0 0 26px rgba(167,139,250,0.18), 0 0 14px rgba(240,180,41,0.12)' }}>
         {game?.field ? (
-          <button onClick={() => setInspect(game!.field!.card)} onContextMenu={(e) => { e.preventDefault(); setInspect(game!.field!.card) }} className="flex items-center gap-2 px-2">
-            <div style={{ width: 38 }}><MiniCard c={game.field.card} w={38} /></div>
-            <span className="text-[12px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{game.field.card.name}</span>
+          <button onClick={() => setInspect(game!.field!.card)} onContextMenu={(e) => { e.preventDefault(); setInspect(game!.field!.card) }} className="absolute inset-0 flex items-center justify-center">
+            {/* kortos art uždengia VISĄ slotą */}
+            {game.field.card.image
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={game.field.card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 26%', filter: 'brightness(0.9)' }} />
+              : null}
+            <span className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(10,8,16,0.75), rgba(10,8,16,0.15) 40%, rgba(10,8,16,0.15) 60%, rgba(10,8,16,0.75))' }} />
+            <span className="relative text-[12px] font-bold px-2 truncate" style={{ color: '#fff', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(167,139,250,0.5)' }}>{game.field.card.name}</span>
           </button>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: 'rgba(240,180,41,0.4)' }}>{slotTypeIcon('field', 22, '🌍', '#a78bfa')} Laukas tuščias</span>
+          <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: 'rgba(240,180,41,0.4)' }}>{slotTypeIcon('field', 26, '🌍', '#a78bfa')} Laukas tuščias</span>
         )}
       </div>
     </div>
@@ -3134,13 +3149,13 @@ doAction({ t: 'endTurn', actor: 'you' })
       {game && isTouch && (
         <div className="fixed left-1 top-1/2 -translate-y-1/2 z-[118] flex flex-col items-center gap-0.5">
           <span className="text-[7px] uppercase tracking-wide" style={{ color: 'rgba(167,139,250,0.75)' }}>Laukas</span>
-          <div data-tut="field" className="rounded-lg p-0.5" style={{ background: 'rgba(10,8,16,0.72)', border: '1px solid rgba(167,139,250,0.5)', boxShadow: '0 0 10px rgba(167,139,250,0.28)' }}>
+          <div data-tut="field" className="rounded-lg overflow-hidden" style={{ background: 'rgba(10,8,16,0.72)', border: game.field ? '1.5px solid rgba(167,139,250,0.85)' : '1px solid rgba(167,139,250,0.5)', boxShadow: game.field ? '0 0 14px rgba(167,139,250,0.45)' : '0 0 10px rgba(167,139,250,0.28)' }}>
             {game.field ? (
-              <button onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }} onClick={() => setInspect(game.field!.card)}>
-                <MiniCard c={game.field.card} w={46} />
+              <button className="block" onContextMenu={(e) => { e.preventDefault(); setInspect(game.field!.card) }} onClick={() => setInspect(game.field!.card)}>
+                <MiniCard c={game.field.card} w={48} />
               </button>
             ) : (
-              <div className="rounded-md flex items-center justify-center text-base opacity-30" style={{ width: 46, height: 61, border: '1px dashed rgba(167,139,250,0.4)' }}>🌍</div>
+              <div className="rounded-md flex items-center justify-center" style={{ width: 48, height: 64, border: '1px dashed rgba(167,139,250,0.4)', margin: 1 }}>{slotTypeIcon('field', 26, '🌍', '#a78bfa')}</div>
             )}
           </div>
         </div>
