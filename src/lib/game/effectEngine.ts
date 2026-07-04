@@ -250,11 +250,19 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'debuffHealth':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, -v) }
       break
-    case 'drawCards':
-      if (m.drawFromGraveyard || m.drawCardType || m.drawKeep != null) api.drawAdvanced(g, caster, { count: v, fromGraveyard: m.drawFromGraveyard, cardType: m.drawCardType, keep: m.drawKeep })
-      else api.drawCards(g, caster, v)
+    case 'drawCards': {
+      const sides: Side[] = m.drawAppliesTo === 'opponent' ? [foe] : m.drawAppliesTo === 'both' ? [caster, foe] : [caster]
+      for (const sd of sides) {
+        if (m.drawFromGraveyard || m.drawCardType || m.drawKeep != null) api.drawAdvanced(g, sd, { count: v, fromGraveyard: m.drawFromGraveyard, cardType: m.drawCardType, keep: m.drawKeep })
+        else api.drawCards(g, sd, v)
+      }
       break
-    case 'drawUntilHand': { const h = (caster === 'you' ? g.you : g.ai).hand.length; const need = Math.max(0, v - h); if (need > 0) api.drawCards(g, caster, need); break }
+    }
+    case 'drawUntilHand': {
+      const sides: Side[] = m.drawAppliesTo === 'opponent' ? [foe] : m.drawAppliesTo === 'both' ? [caster, foe] : [caster]
+      for (const sd of sides) { const h = (sd === 'you' ? g.you : g.ai).hand.length; const need = Math.max(0, v - h); if (need > 0) api.drawCards(g, sd, need) }
+      break
+    }
     case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v); break
     case 'gainGold': api.gainGold(g, m.goldAppliesTo === 'opponent' ? foe : m.goldAppliesTo === 'caster' ? caster : (targets[0]?.kind === 'player' ? targets[0].side : caster), v, ctx.sourceName); break
     case 'loseGold': api.loseGold(g, m.goldAppliesTo === 'caster' ? caster : m.goldAppliesTo === 'opponent' ? foe : (targets[0]?.kind === 'player' ? targets[0].side : foe), v, ctx.sourceName); break

@@ -360,6 +360,7 @@ export type EffectMapping = {
   drawFromGraveyard?: boolean       // drawCards: traukti iš kapinyno (atsitiktinė), o ne iš kaladės
   drawCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // drawCards: tik šio tipo kortą
   drawKeep?: number                 // drawCards: traukti `value`, pasilikti `drawKeep` (pop-up), kitas išmesti
+  drawAppliesTo?: 'caster' | 'opponent' | 'both'  // drawCards/drawUntilHand: kas traukia (numatyta caster = šaltinis)
   targetSummoned?: boolean          // then: taikinys = ką tik šio efekto iškviestas padaras (raktažodžiui suteikti)
   note?: string
 }

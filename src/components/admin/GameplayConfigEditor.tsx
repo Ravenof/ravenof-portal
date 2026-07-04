@@ -764,6 +764,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   )}
                   {m.effect === 'drawCards' && (
                     <div className="col-span-2 md:col-span-4 flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Kas ištraukia kortas">
+                        Kas traukia:
+                        <select value={m.drawAppliesTo ?? 'caster'} onChange={(e) => setMapping(i, { drawAppliesTo: e.target.value as 'caster' | 'opponent' | 'both' })} style={{ ...inputStyle, width: 130 }}>
+                          <option value="caster">Tu (šaltinis)</option>
+                          <option value="opponent">Priešas</option>
+                          <option value="both">Abu</option>
+                        </select>
+                      </label>
                       <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Atsitiktinė korta iš kapinyno į ranką">
                         <input type="checkbox" checked={!!m.drawFromGraveyard} onChange={(e) => setMapping(i, { drawFromGraveyard: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                         🪦 Iš kapinyno
@@ -782,6 +790,18 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Trauki tiek kortų (Reikšmė), pasilieki nurodytą skaičių (pop-up), kitas išmeti">
                         Pasilikti (keep):
                         <input type="number" min={0} value={m.drawKeep ?? ''} placeholder="—" onChange={(e) => setMapping(i, { drawKeep: e.target.value === '' ? undefined : Number(e.target.value) })} style={{ ...inputStyle, width: 60 }} />
+                      </label>
+                    </div>
+                  )}
+                  {m.effect === 'drawUntilHand' && (
+                    <div className="col-span-2 md:col-span-4 flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Kas ištraukia kortas">
+                        Kas traukia:
+                        <select value={m.drawAppliesTo ?? 'caster'} onChange={(e) => setMapping(i, { drawAppliesTo: e.target.value as 'caster' | 'opponent' | 'both' })} style={{ ...inputStyle, width: 130 }}>
+                          <option value="caster">Tu (šaltinis)</option>
+                          <option value="opponent">Priešas</option>
+                          <option value="both">Abu</option>
+                        </select>
                       </label>
                     </div>
                   )}
