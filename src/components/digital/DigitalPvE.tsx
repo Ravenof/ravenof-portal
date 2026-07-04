@@ -95,15 +95,11 @@ export function DigitalPvE() {
           <GraduationCap className="w-7 h-7 shrink-0" style={{ color: '#c4b5fd' }} />
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-bold" style={{ color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>Mokymai</span>
-            <span className="block text-[11px]" style={{ color: 'var(--text-secondary)' }}>Starter kaladės — išmok žaisti{tutProgress ? ` · ${tutProgress.claimed} / ${tutProgress.total}` : ''}</span>
+            <span className="block text-[11px]" style={{ color: 'var(--text-secondary)' }}>{tutProgress && tutProgress.claimed > 0 ? 'Vedama kova su tavo starter kalade' : 'Pasiimk nemokamą kaladę ir išmok žaisti'}</span>
           </span>
           <span className="text-base font-extrabold" style={{ color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>→</span>
         </span>
-        {tutProgress && (
-          <span className="block mt-2 rounded-full overflow-hidden" style={{ height: 4, background: 'rgba(255,255,255,0.08)' }}>
-            <span className="block h-full rounded-full" style={{ width: `${Math.round((tutProgress.claimed / Math.max(1, tutProgress.total)) * 100)}%`, background: 'linear-gradient(90deg, #8b5cf6, #c4b5fd)' }} />
-          </span>
-        )}
+
       </Link>
     </div>
   )

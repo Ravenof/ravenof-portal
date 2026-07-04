@@ -12,6 +12,7 @@ import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
 import { WelcomeReward } from './WelcomeReward'
+import { StarterOnboarding } from './StarterOnboarding'
 import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
 import { getStarterDecks } from '@/lib/starterDecks'
@@ -36,6 +37,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [mode, setMode] = useState('ranked')
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
+  const [onboardOpen, setOnboardOpen] = useState(false)
   const [questsPending, setQuestsPending] = useState(0)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
 
@@ -48,7 +50,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     refreshWallet(); refreshQuests()
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }); setSeasonClaimable(p.tiers.filter((t) => p.xp >= t.xpRequired && !(p.claimedTiers ?? []).includes(t.tier)).length) })
-    getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) })
+    getStarterDecks().then((d) => {
+      const c = (d ?? []).filter((x) => x.claimed).length
+      setNewPlayer(c === 0)
+      // Naujoko onboarding popup (kaladė + avataras) – automatiškai, kol neatmestas.
+      // WelcomeReward (z400) rodomas virš – dovana pirmiau, užsidarius matosi šis.
+      if (c === 0 && (d ?? []).length > 0 && !localStorage.getItem('rvn-starter-onboard-seen')) setOnboardOpen(true)
+    })
   }, [loggedIn, refreshWallet, refreshQuests])
 
   if (!loggedIn) {
@@ -67,7 +75,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   type NextAction = { icon: string; title: string; sub: string; accent: string; act: () => void }
   const nextAction: NextAction | null = newPlayer === null ? null
     : newPlayer
-      ? { icon: '🎓', title: 'Pradėk čia, naujoke', sub: 'Pasirink nemokamą kaladę ir išmok žaisti', accent: '240,180,41', act: () => { playUiClick(); router.push('/digital/tutorial') } }
+      ? { icon: '🎓', title: 'Pasiimk starter kaladę', sub: 'Nemokama kaladė, avataras ir mokymų kova', accent: '240,180,41', act: () => { playUiClick(); setOnboardOpen(true) } }
     : questsPending > 0
       ? { icon: '🎯', title: 'Atsiimk užduočių atlygį', sub: `Paruošta atsiimti: ${questsPending}`, accent: '52,211,153', act: () => { playUiClick(); setQuestsOpen(true) } }
     : wallet.packs > 0
@@ -117,6 +125,17 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
+
+      {onboardOpen && (
+        <StarterOnboarding
+          onClose={() => { setOnboardOpen(false); try { localStorage.setItem('rvn-starter-onboard-seen', '1') } catch {} }}
+          onDone={() => {
+            setOnboardOpen(false)
+            try { localStorage.setItem('rvn-starter-onboard-seen', '1') } catch {}
+            setNewPlayer(false)
+            router.push('/digital/tutorial?auto=1')
+          }} />
+      )}
 
       <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
 

@@ -66,7 +66,7 @@ export type TutorialHooks = {
   onEvents?: (fresh: GameEvent[], g: GameState) => void   // praneša director'iui apie naujus įvykius
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; tutorial?: TutorialHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; tutorial?: TutorialHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -687,7 +687,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, tutorial }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, tutorial }: Props) {
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
 
@@ -698,7 +698,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [])
   const isGuest = !!net && !net.isHost
   const vsRemote = !!net
-  const loadOpp = practice || isHost || !!opponentDeckId || !!opponentFaction  // priešą kraunam ir kai nurodytas opponentDeckId/Faction (pvz. tutorial guided mūšis su GUIDED_STEPS)
+  const loadOpp = practice || isHost || !!opponentDeckId || !!opponentStarterId || !!opponentFaction  // priešą kraunam ir kai nurodytas opponentDeckId/Faction (pvz. tutorial guided mūšis su GUIDED_STEPS)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [deckCards, setDeckCards] = useState<TutCard[] | null>(null)
@@ -1083,6 +1083,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           else if (!(net && isHost)) setOppCards([])
         } catch { if (!(net && isHost)) setOppCards([]) }
       }, () => { if (alive && !(net && isHost)) setOppCards([]) })
+    } else if (opponentStarterId) {
+      // Mokymai: AI žaidžia TIKRA starter kalade (starter_deck_cards – vieša lentelė)
+      supabase.from('starter_deck_cards').select(`quantity, card:cards ( ${sel} )`).eq('starter_deck_id', opponentStarterId).then(({ data }) => {
+        if (!alive) return
+        try { setOppCards(rowsToDeck(((data as unknown as DbRow[]) ?? []), 'o')) } catch { setOppCards([]) }
+      }, () => { if (alive) setOppCards([]) })
     } else if (opponentFaction) {
       supabase.from('cards').select(sel).eq('status', 'active').in('faction_id', [opponentFaction, 14]).limit(250).then(({ data }) => {
         if (!alive) return
@@ -1095,7 +1101,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       setOppCards([])
     }
     return () => { alive = false }
-  }, [loadOpp, opponentDeckId, opponentFaction])
+  }, [loadOpp, opponentDeckId, opponentStarterId, opponentFaction])
 
   const oppReady = !loadOpp || oppCards !== null
   useEffect(() => {
