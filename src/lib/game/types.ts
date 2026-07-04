@@ -379,6 +379,7 @@ export type FieldEffectConfig = {
   passive?: FieldPassiveConfig
   triggers?: EffectMapping[]     // onTurnStart / onTurnEnd / onSummon / onCast / onAttack / onDeath
   affectsBothPlayers?: boolean   // default true
+  backgroundUrl?: string | null  // arenos fonas: sužaidus lauką arena pasikeičia į šį vaizdą (admin upload)
   note?: string
 }
 

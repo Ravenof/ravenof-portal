@@ -69,8 +69,11 @@ function Silhouette({ k, accent }: { k: ArenaKey; accent: string }) {
   return <svg viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: '46%', width: '100%', height: '26%' }}>{shapes}</svg>
 }
 
-export function ArenaBackground({ arena }: { arena: ArenaKey }) {
+export function ArenaBackground({ arena, overrideUrl = null }: { arena: ArenaKey; overrideUrl?: string | null }) {
   const [imgOk, setImgOk] = useState(false)
+  const [ovOk, setOvOk] = useState(false)
+  // Lauko fonas pasikeitus URL – fade iš naujo
+  useEffect(() => { setOvOk(false) }, [overrideUrl])
   const [fxOn, setFxOn] = useState(true)
   const t = T[arena]
   const pc = t.particle
@@ -130,6 +133,16 @@ export function ArenaBackground({ arena }: { arena: ArenaKey }) {
       <img src={`/arenas/${arena}.jpg`} alt="" onLoad={() => setImgOk(true)} onError={() => setImgOk(false)}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: imgOk ? 1 : 0, transition: 'opacity 0.4s' }} />
       {imgOk && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 78% 72% at 50% 52%, transparent 45%, rgba(2,1,6,0.6) 100%)' }} />}
+
+      {/* LAUKO korta: jos fonas uždengia areną (lėtas fade sužaidus lauką) */}
+      {overrideUrl && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={overrideUrl} alt="" onLoad={() => setOvOk(true)} onError={() => setOvOk(false)}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: ovOk ? 1 : 0, transition: 'opacity 1.6s ease' }} />
+          {ovOk && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 78% 72% at 50% 52%, transparent 45%, rgba(2,1,6,0.62) 100%)', transition: 'opacity 1.6s ease' }} />}
+        </>
+      )}
     </div>
   )
 }

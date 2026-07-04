@@ -2611,8 +2611,28 @@ doAction({ t: 'endTurn', actor: 'you' })
     return () => clearTimeout(t)
   }, [game?.lastMill?.id])
 
+  // ── LAUKO kortos FX: žemės drebėjimas + arenos fono keitimas ──
+  // Sužaidus lauko kortą (bet kurio žaidėjo, veikia ir PvP sync'ui, nes stebim state):
+  // 3 s viskas dreba, arena fade'ina į lauko kortos backgroundUrl (admin upload).
+  const fieldBgUrl = game?.field?.card.gameplay?.fieldEffectConfig?.backgroundUrl ?? null
+  const [fieldQuake, setFieldQuake] = useState(false)
+  const prevFieldUid = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    const uid = game?.field?.card.uid ?? null
+    if (prevFieldUid.current === undefined) { prevFieldUid.current = uid; return }  // mount/reconnect – be drebėjimo
+    if (uid && uid !== prevFieldUid.current) {
+      prevFieldUid.current = uid
+      setFieldQuake(true)
+      try { playBattleSound('field', 0.6); playBattleSound('impact', 0.4) } catch { /* fx niekada nelaužia UI */ }
+      const t = window.setTimeout(() => setFieldQuake(false), 3000)
+      return () => window.clearTimeout(t)
+    }
+    prevFieldUid.current = uid
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.field?.card.uid])
+
   return createPortal(
-    <div data-fx-root className="fixed inset-0 z-[120] flex flex-col select-none"
+    <div data-fx-root className={`fixed inset-0 z-[120] flex flex-col select-none${fieldQuake ? ' rvn-field-quake' : ''}`}
       style={{
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingTop: 'env(safe-area-inset-top)',
@@ -2623,8 +2643,30 @@ doAction({ t: 'endTurn', actor: 'you' })
         userSelect: 'none',
         overflowX: 'hidden',
       }}>
-      {/* ── mūšio arena (atsitiktinis frakcijos fonas) ── */}
-      <ArenaBackground arena={arenaRef.current} />
+      {/* ── mūšio arena (atsitiktinis frakcijos fonas; lauko korta jį perrašo) ── */}
+      <ArenaBackground arena={arenaRef.current} overrideUrl={fieldBgUrl} />
+      {/* Žemės drebėjimas sužaidus lauko kortą: 3 s gęstanti amplitudė */}
+      <style>{`
+        @keyframes rvnFieldQuake {
+          0%   { transform: translate(0,0) rotate(0deg); }
+          4%   { transform: translate(-9px,6px) rotate(-0.55deg); }
+          8%   { transform: translate(10px,-7px) rotate(0.6deg); }
+          12%  { transform: translate(-10px,-5px) rotate(-0.5deg); }
+          16%  { transform: translate(8px,7px) rotate(0.45deg); }
+          22%  { transform: translate(-7px,4px) rotate(-0.4deg); }
+          28%  { transform: translate(6px,-5px) rotate(0.35deg); }
+          36%  { transform: translate(-5px,3px) rotate(-0.28deg); }
+          44%  { transform: translate(4px,4px) rotate(0.22deg); }
+          54%  { transform: translate(-3px,-2px) rotate(-0.16deg); }
+          64%  { transform: translate(2.5px,2px) rotate(0.12deg); }
+          74%  { transform: translate(-2px,1px) rotate(-0.08deg); }
+          84%  { transform: translate(1px,-1px) rotate(0.05deg); }
+          92%  { transform: translate(-0.5px,0.5px) rotate(-0.02deg); }
+          100% { transform: translate(0,0) rotate(0deg); }
+        }
+        .rvn-field-quake { animation: rvnFieldQuake 3s cubic-bezier(.36,.07,.19,.97) both; will-change: transform; }
+        @media (prefers-reduced-motion: reduce) { .rvn-field-quake { animation: none !important; } }
+      `}</style>
 
       {/* viršutinė juosta */}
       <div className="flex items-center justify-between px-3 py-2 shrink-0"

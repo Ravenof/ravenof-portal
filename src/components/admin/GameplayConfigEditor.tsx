@@ -1406,6 +1406,13 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                     style={inputStyle} />
                 </div>
               ))}
+              {/* Arenos fonas: sužaidus šį lauką mūšio arena pasikeičia į šį vaizdą (3 s drebėjimas + fade) */}
+              <div className="col-span-2 md:col-span-3">
+                <label style={labelStyle} title="Sužaidus lauko kortą arena sudreba ir fonas pasikeičia į šį vaizdą">🏞 Arenos fonas (sužaidus lauką)</label>
+                <FieldBgUpload
+                  url={cfg.fieldEffectConfig?.backgroundUrl ?? null}
+                  onChange={(u) => update({ ...cfg, fieldEffectConfig: { ...cfg.fieldEffectConfig, backgroundUrl: u } })} />
+              </div>
             </div>
           )}
         </>
@@ -1414,6 +1421,42 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         Be mapping'ų korta veikia fallback režimu (efektas spėjamas iš teksto). Čempiono gebėjimui naudok trigger
         „Čempiono gebėjimas", artefakto pasyvui – „Ėjimo pradžioje". Nesumapinti efektai žaidime praleidžiami su įrašu žurnale.
       </p>
+    </div>
+  )
+}
+
+
+// ── Lauko kortos arenos fono upload (card-images/fields/) ────────────────────
+function FieldBgUpload({ url, onChange }: { url: string | null; onChange: (u: string | null) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const pick = async (file: File) => {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { setErr('Tik PNG/JPG/WEBP'); return }
+    if (file.size > 6 * 1024 * 1024) { setErr('Maks. 6 MB'); return }
+    setErr(null); setBusy(true)
+    try {
+      const supabase = createClient()
+      const path = `fields/${Date.now()}-${file.name.toLowerCase().replace(/[^a-z0-9.]/g, '-').replace(/-+/g, '-')}`
+      const { error } = await supabase.storage.from('card-images').upload(path, file, { upsert: true, contentType: file.type })
+      if (error) { setErr(error.message); return }
+      const { data: { publicUrl } } = supabase.storage.from('card-images').getPublicUrl(path)
+      onChange(publicUrl)
+    } finally { setBusy(false) }
+  }
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {url
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={url} alt="" className="rounded-lg object-cover" style={{ width: 96, height: 54, border: '1px solid rgba(96,165,250,0.4)' }} />
+        : <span className="flex items-center justify-center rounded-lg text-[10px]" style={{ width: 96, height: 54, background: 'var(--bg-elevated)', border: '1px dashed var(--bg-border)', color: 'var(--text-muted)' }}>Nėra fono</span>}
+      <label className="px-3 py-1.5 rounded-lg text-xs cursor-pointer" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)' }}>
+        {busy ? 'Keliama…' : url ? 'Pakeisti' : 'Įkelti foną'}
+        <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = '' }} />
+      </label>
+      {url && <button type="button" onClick={() => onChange(null)} className="px-2 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}>Pašalinti</button>}
+      {err && <span className="text-xs" style={{ color: '#ef4444' }}>{err}</span>}
+      <span className="text-[10px] w-full" style={{ color: 'var(--text-muted)' }}>Rekomenduojama horizontali ~1920×1080 (JPG/WEBP). Žaidime: 3 s drebėjimas ir arena pasikeičia į šį vaizdą.</span>
     </div>
   )
 }
