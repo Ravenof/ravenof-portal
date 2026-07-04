@@ -22,6 +22,11 @@ export type LoginCheckin = {
   bonusBooster: boolean
 }
 
+/** Serijos dienos prizas. Veidrodis SQL rvn_login_checkin (migr. 20260626) — keiskite abu. */
+export function streakDayReward(day: number): { gold: number; booster: boolean } {
+  return { gold: Math.min(50 + (day - 1) * 25, 300), booster: day % 7 === 0 }
+}
+
 /** Užtikrina ir grąžina šiandienos užduotis (3/dieną). */
 export async function getDailyQuests(): Promise<DailyQuest[]> {
   const supabase = createClient()

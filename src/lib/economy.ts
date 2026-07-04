@@ -38,16 +38,16 @@ export async function awardGold(reason: GoldReason, amount: number): Promise<num
 }
 
 export type MatchXpMode = 'pve_easy' | 'pve_normal' | 'pve_hard' | 'pvp'
-export type MatchXpResult = { xpGained: number; totalBefore: number; totalAfter: number }
+export type MatchXpResult = { xpGained: number; totalBefore: number; totalAfter: number; levelReward?: { gold?: number; boosters?: number } | null }
 
 /** Skiria kovos XP (PvE/PvP unranked). Grąžina prieš/po sumas level-up aptikimui. */
 export async function reportMatchXp(won: boolean, mode: MatchXpMode): Promise<MatchXpResult | null> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('rvn_report_match', { p_won: won, p_mode: mode })
   if (error) { console.warn('[economy] reportMatchXp:', error.message); return null }
-  const d = data as { xpGained?: number; totalBefore?: number; totalAfter?: number } | null
+  const d = data as { xpGained?: number; totalBefore?: number; totalAfter?: number; levelReward?: { gold?: number; boosters?: number } | null } | null
   if (!d) return null
-  return { xpGained: d.xpGained ?? 0, totalBefore: d.totalBefore ?? 0, totalAfter: d.totalAfter ?? 0 }
+  return { xpGained: d.xpGained ?? 0, totalBefore: d.totalBefore ?? 0, totalAfter: d.totalAfter ?? 0, levelReward: d.levelReward ?? null }
 }
 
 /** Perka pakuotę už auksą. Grąžina naują balansą arba klaidą. */

@@ -100,6 +100,18 @@ export const RANK_GROUPS: RankGroup[] = [
 ]
 
 // ---------------------------------------------------------------------------
+// Level-up rewards — MIRROR of SQL rvn__level_reward (migration 20260804)
+// ---------------------------------------------------------------------------
+
+export type LevelReward = { gold: number; boosters: number }
+
+/** Atlygis už pasiektą lygį. VEIDRODIS SQL rvn__level_reward — keiskite abu. */
+export function levelReward(level: number): LevelReward {
+  const boosters = level % 10 === 0 ? 2 : level % 5 === 0 ? 1 : 0
+  return { gold: 100 + level * 25, boosters }
+}
+
+// ---------------------------------------------------------------------------
 // Core helpers
 // ---------------------------------------------------------------------------
 

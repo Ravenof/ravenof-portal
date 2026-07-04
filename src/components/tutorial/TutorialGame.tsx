@@ -29,7 +29,7 @@ import {
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
-import { getLevelForXp, getLevelProgress } from '@/lib/gamification/levels'
+import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
@@ -1692,7 +1692,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [game?.winner])
 
   // ── Kovos atlygis + level-up šventė (XP; ne demo/ranked/campaign) ──
-  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; before: number; after: number } | null>(null)
+  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; before: number; after: number; levelReward?: { gold?: number; boosters?: number } | null } | null>(null)
   const matchRewardRef = useRef(false)
   useEffect(() => {
     if (!game?.winner || matchRewardRef.current) return
@@ -1705,7 +1705,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const xp = r?.xpGained ?? 0
       const before = r?.totalBefore ?? 0
       const after = r?.totalAfter ?? (before + xp)
-      setMatchReward({ gold, xp, before, after })
+      setMatchReward({ gold, xp, before, after, levelReward: r?.levelReward ?? null })
       if (getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -4042,6 +4042,14 @@ doAction({ t: 'endTurn', actor: 'you' })
                         style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(240,180,41,0.28), transparent 60%), linear-gradient(160deg, rgba(46,34,64,0.92), rgba(12,9,18,0.96))', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 0 26px rgba(240,180,41,0.4)' }}>
                         <div className="text-[11px] font-extrabold tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 14px rgba(240,180,41,0.6)' }}>✦ NAUJAS LYGIS {prog.level} ✦</div>
                         <div className="text-[10px] mt-0.5" style={{ color: '#e8dcc0' }}>{prog.title}</div>
+                        {matchReward.levelReward && ((matchReward.levelReward.gold ?? 0) > 0 || (matchReward.levelReward.boosters ?? 0) > 0) && (
+                          <motion.div initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }}
+                            className="flex items-center justify-center gap-1.5 mt-1.5">
+                            <span className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Lygio atlygis:</span>
+                            {(matchReward.levelReward.gold ?? 0) > 0 && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>🪙 +{matchReward.levelReward.gold}</span>}
+                            {(matchReward.levelReward.boosters ?? 0) > 0 && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'rgba(251,146,60,0.16)', border: '1px solid rgba(251,146,60,0.5)', color: '#fdba74' }}>🎁 +{matchReward.levelReward.boosters} pak.</span>}
+                          </motion.div>
+                        )}
                       </motion.div>
                     )}
                     <div className="flex items-center justify-center gap-2 mb-2.5">
@@ -4069,6 +4077,17 @@ doAction({ t: 'endTurn', actor: 'you' })
                         <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: 0.35, duration: 0.9, ease: 'easeOut' }}
                           style={{ height: '100%', background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: '0 0 10px rgba(240,180,41,0.6)' }} />
                       </div>
+                      {/* Kas toliau: kito lygio atlygio preview */}
+                      {!prog.isMaxLevel && (() => {
+                        const nr = levelReward(prog.level + 1)
+                        return (
+                          <p className="text-[9px] mt-1 text-center" style={{ color: 'var(--text-muted)' }}>
+                            Kitas — <span style={{ color: '#e8dcc0', fontWeight: 700 }}>Lygis {prog.level + 1}</span> už {prog.xpNeededForNextLevel} XP:
+                            <span style={{ color: 'var(--gold)', fontWeight: 700 }}> 🪙 {nr.gold}</span>
+                            {nr.boosters > 0 && <span style={{ color: '#fdba74', fontWeight: 700 }}> + 🎁 {nr.boosters} pak.</span>}
+                          </p>
+                        )
+                      })()}
                     </div>
                   </div>
                 )

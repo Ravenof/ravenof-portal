@@ -10,6 +10,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
+import { streakDayReward } from '@/lib/gamification/quests'
 
 const GOLD = '240,180,41'
 export const ASSET = '/digital/ui3'
@@ -98,15 +99,19 @@ function MiniReward({ icon, img, amount, accent = GOLD }: { icon: string; img?: 
   )
 }
 export function RewardBanner({ streak, claimable, onClaim }: { streak: number; claimable: boolean; onClaim?: () => void }) {
+  // Tikri prizai iš serijos formulės: šiandienos (jei paruošta) arba rytojaus preview
+  const today = streakDayReward(Math.max(1, streak))
+  const tomorrow = streakDayReward(Math.max(1, streak) + 1)
+  const shown = claimable ? today : tomorrow
   return (
     <div className={`rvn-panel rvn-fade flex items-center gap-3 ${claimable ? 'rvn-glow' : ''}`} style={{ padding: '10px 12px', borderColor: claimable ? `rgba(${GOLD},0.5)` : undefined }}>
       <span className="flex items-center justify-center shrink-0" style={{ width: 36, height: 38, filter: 'drop-shadow(0 0 8px rgba(251,120,40,0.5))' }}><RvnIcon name="flame" size={28} fallback={<span style={{ fontSize: 24 }}>🔥</span>} /></span>
       <span className="flex-1 min-w-0" style={{ paddingRight: 4 }}>
         <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3', lineHeight: 1.25 }}>{streak} d. serija</span>
-        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.3 }}>{claimable ? 'Prisijungimo atlygis paruoštas!' : 'Kitas prisijungimo atlygis rytoj'}</span>
+        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.3 }}>{claimable ? 'Prisijungimo atlygis paruoštas!' : `Rytoj: 🪙 ${tomorrow.gold}${tomorrow.booster ? ' + 🎁 pakuotė' : ''}`}</span>
       </span>
-      <MiniReward icon="🪙" img="fi-coins" amount="x250" />
-      <MiniReward icon="🎁" img="fi-gifts" amount="x1" accent="139,92,246" />
+      <MiniReward icon="🪙" img="fi-coins" amount={`x${shown.gold}`} />
+      {shown.booster && <MiniReward icon="🎁" img="fi-gifts" amount="x1" accent="139,92,246" />}
       <button onClick={claimable ? onClaim : undefined} disabled={!claimable} className="rvn-press rvn-gold-btn shrink-0" style={{ padding: '9px 16px', fontSize: 13 }}>
         {claimable ? 'Atsiimti' : 'Atsiimta'}
       </button>
