@@ -522,8 +522,8 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
         {u.control && <Token title={u.control.kind === 'endOfTurn' ? 'Perimtas iki ėjimo pabaigos' : 'Perimtas iki kito ėjimo pradžios'} color="#e879f9">🧠</Token>}
         {u.shield && <Token title="Magiškasis skydas" color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token>}
         {u.stealth && <Token title="Sėlinimas" color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token>}
-        {u.card.keywords.includes('taunt') && <Token title="Pasišaipymas" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token>}
-        {(u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')) && u.summonedOnTurn === g.globalTurn && <Token title="Sprintas (aktyvus tik iškvietimo ėjimą)" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token>}
+        {!u.statuses.silenced && u.card.keywords.includes('taunt') && <Token title="Pasišaipymas" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token>}
+        {!u.statuses.silenced && (u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')) && u.summonedOnTurn === g.globalTurn && <Token title="Sprintas (aktyvus tik iškvietimo ėjimą)" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token>}
         {activeStatuses.map((s) => (
           <Token key={s} title={STATUS_META[s].name} color={STATUS_GLOW[s]} icon={ICON_BASE + STATUS_ICON[s] + '.webp'}>{STATUS_META[s].icon}</Token>
         ))}
@@ -917,6 +917,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const summonBlocks = !!game?.pendingSummon
   const choiceBlocks = !!game?.pendingChoice
   const copyBlocks = !!game?.pendingCopy
+  const returnBlocks = !!game?.pendingReturn
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const handW = isTouch ? 80 : 124
   const unitW = isTouch ? 50 : 92
@@ -1656,7 +1657,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || returnBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -1683,7 +1684,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -3593,6 +3594,23 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── iškvietimo pasirinkimas (summonChoose) ── */}
       <AnimatePresence>
+        {game?.pendingReturn && game.pendingReturn.side === 'you' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.82)' }}>
+            <motion.div initial={{ scale: 0.92, y: 12 }} animate={{ scale: 1, y: 0 }} className="w-[min(430px,94vw)] px-4 py-4 rounded-2xl"
+              style={{ background: 'radial-gradient(120% 90% at 50% 0%, rgba(167,139,250,0.16), rgba(10,8,16,0.98) 60%), linear-gradient(160deg, #15101f, #0a0810)', border: '1px solid rgba(167,139,250,0.5)' }}>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>🌍 Lauko efektas</p>
+              <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>Pasirink SAVO padarą, kuris grįš tau į ranką.</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {P(game, 'you').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
+                  <button key={u.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
+                    <MiniCard c={u.card} w={72} />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {game?.pendingSummon && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"

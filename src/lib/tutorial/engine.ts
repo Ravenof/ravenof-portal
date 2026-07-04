@@ -209,6 +209,7 @@ export type GameState = {
   pendingChoice?: PendingChoice | null
   /** Laukiantis efekto kopijavimas iš kapinyno (#5) */
   pendingCopy?: PendingCopy | null
+  pendingReturn?: { side: Side } | null   // laukas: ėjimo pradžioje grąžink savo padarą į ranką (žaidėjas renkasi)
   /** Trumpalaikis ŽMK traukimo kontekstas (nevalomas tarp veiksmų – išvalomas kiekvieno veiksmo pradžioje) */
   rollContext?: RollContext | null
   /** Paskutinis mill (UI animacijai: kortos iš kaladės į kapinyną) */
@@ -710,6 +711,14 @@ export function recomputeAuras(g: GameState) {
       u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false
     }
   }
+  // 1b) Lauko pasyvas: GLOBALUS NUTILDYMAS – visi paveiktų pusių padarai nutildyti,
+  // kol laukas aktyvus (auraSilence mechanizmas: laukui dingus nuimama automatiškai)
+  for (const sd of allSeats(g)) {
+    if (!fieldEngine.globalSilence(g, sd)) continue
+    for (const u of P(g, sd).units) {
+      if (u && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
+    }
+  }
   // 2) Surenkam auros šaltinius (nenutildyti padarai + artefaktai)
   type Src = { side: Side; cfg: NonNullable<TutCard['gameplay']>['passiveAura']; selfUid: string }
   const sources: Src[] = []
@@ -876,6 +885,9 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
     const rp = P(g, reroute)
     rp.hand.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir keliauja ${reroute === owner ? 'tau' : 'priešininkui'} į ranką (Paskutinis noras).`, sound: 'death', src: { side: owner, uid: u.uid } })
+  } else if (fieldEngine.exileOnDeath(g, owner)) {
+    // Lauko pasyvas: sunaikinta korta PAŠALINAMA iš žaidimo (ne į kapinyną)
+    log(g, { t: 'death', side: owner, cardName: u.card.name, msg: `„${u.card.name}" žūsta ir PAŠALINAMA iš žaidimo (laukas)!`, sound: 'death', src: { side: owner, uid: u.uid } })
   } else {
     // Laikinai perimtas (takeControl) padaras žūdamas grįžta į tikrojo šeimininko kapinyną
     const graveOwner = u.control ? P(g, u.control.from) : p
@@ -995,7 +1007,21 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
   u.statuses[st] = until
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
   fireGlobalListeners(g, 'onAnyStatus', { side: owner })
-  if (st === 'silenced') recomputeAuras(g)
+  if (st === 'silenced') {
+    // Nutildymas nuima VISUS efektus: skydą, sėlinimą, raktažodžius (per patikras) ir
+    // visus stat buffus – statai grįžta į bazinę kortą; patirta žala lieka.
+    u.shield = false
+    u.stealth = false
+    u.tempBuffs = []
+    u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraShield = false; u.auraStealth = false; u.auraCantAttack = false
+    const baseAtk = u.card.attack ?? 0
+    const baseHp = u.card.health ?? 1
+    u.atk = baseAtk
+    u.maxHp = baseHp
+    if (u.hp > baseHp) u.hp = baseHp
+    log(g, { t: 'status', side: owner, cardName: u.card.name, msg: `🔇 „${u.card.name}" praranda visus efektus ir sustiprinimus (${baseAtk} ATK / ${u.hp} HP).` })
+    recomputeAuras(g)
+  }
 }
 
 // ── Nauji primityvai + GameApi (effect engine integracijai) ─────────────────
@@ -1568,10 +1594,24 @@ function reviveGraveyardOnCurse(g: GameState, victim: Side) {
 }
 
 type SummonSource = 'graveyard' | 'deck' | 'hand' | 'play'
+
+/** Lauko pasyvas: iškviestas padaras su Paskutiniu noru (onDeath) žūsta iškart. */
+function fieldKillLastwishSummon(g: GameState, s: Side, card: TutCard) {
+  if (g.winner || !fieldEngine.destroySummonedWithLastwish(g, s)) return
+  const hasLastwish = (card.mappings ?? []).some((m) => m.trigger === 'onDeath') || card.keywords.includes('lastwish')
+  if (!hasLastwish) return
+  const u = P(g, s).units.find((x) => x && x.card === card)
+  if (!u) return
+  log(g, { t: 'field', side: s, cardName: card.name, msg: `🌍 Laukas: „${card.name}" su Paskutiniu noru žūsta vos iškviestas!` })
+  killUnit(g, s, u)
+}
+
 /** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. source = iš kur atsirado. */
 function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource = 'play') {
   recomputeAuras(g)
   fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype, faction: card.factionId, source })
+  // 'play' kelias šaukia atskirai PO battlecry (kad šūksnis spėtų įvykti)
+  if (source !== 'play') fieldKillLastwishSummon(g, s, card)
 }
 /** Kortos sužaidimo globalus trigeris. */
 function afterPlay(g: GameState, s: Side, card: TutCard) {
@@ -1873,6 +1913,22 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   p.turnNumber += 1
   expireTempBuffs(g, s, 'beginTurn')
   expireControl(g, s, 'beginTurn')
+  // Lauko pasyvas: ėjimo pradžioje grąžink VIENĄ savo padarą į ranką.
+  // 'you' – žaidėjas renkasi (pendingReturn UI); AI/svečias – automatiškai pigiausią.
+  if (fieldEngine.returnUnitAtTurnStart(g, s)) {
+    const fUnits = p.units.filter((x): x is BoardUnit => !!x)
+    if (fUnits.length > 0) {
+      if (s === 'you') {
+        g.pendingReturn = { side: s }
+        log(g, { t: 'field', side: s, cardName: g.field?.card.name, msg: '🌍 Laukas: pasirink savo padarą, kurį grąžinsi į ranką.' })
+      } else {
+        const cheapest = fUnits.reduce((bst, x) => (x.card.gold < bst.card.gold ? x : bst), fUnits[0])
+        log(g, { t: 'field', side: s, cardName: g.field?.card.name, msg: `🌍 Laukas: ${sideName(s)} grąžina „${cheapest.card.name}" į ranką.` })
+        returnUnitToHandPrim(g, s, cheapest)
+        recomputeAuras(g)
+      }
+    }
+  }
   p.discardedForGold = false
   p.attacksThisTurn = 0
   p.fieldDamageReducedThisTurn = false
@@ -1943,6 +1999,7 @@ export function endTurn(g: GameState): GameState {
 function seatEndTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
+  if (g.pendingReturn?.side === s) g.pendingReturn = null  // nespėjo pasirinkti – praleidžiama
   // pašalinam pasibaigusias būsenas (frozen/stunned/silenced iki šio ėjimo pabaigos)
   for (const u of p.units) {
     if (!u) continue
@@ -2051,19 +2108,27 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       afterSummon(g, s, card, 'play')
       afterPlay(g, s, card)
       const summonMappings = (card.mappings ?? []).filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay')
+      // Lauko pasyvas: Kovos šūksniai suveikia 2 kartus
+      const bcRounds = fieldEngine.battlecryTwice(g, s) ? 2 : 1
       if (summonMappings.length > 0) {
-        log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis!`, src: { side: s, uid: u.uid } })
-        for (const m of summonMappings) {
-          applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
-          if (g.winner) break
+        for (let bc = 0; bc < bcRounds && !g.winner; bc++) {
+          log(g, { t: 'battlecry', side: s, cardName: card.name, msg: bc === 0 ? `📣 „${card.name}" Kovos šūksnis!` : `📣📣 Kovos šūksnis kartojasi (laukas)!`, src: { side: s, uid: u.uid } })
+          for (const m of summonMappings) {
+            applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
+            if (g.winner) break
+          }
         }
       } else if (card.keywords.includes('battlecry') && card.effect) {
-        log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis!`, src: { side: s, uid: u.uid } })
-        if (card.effect.targeted && opts?.target) applyTargetedEffect(g, s, card.effect, opts.target, card.name)
-        else applyAutoEffect(g, s, card.effect, card.name)
+        for (let bc = 0; bc < bcRounds && !g.winner; bc++) {
+          log(g, { t: 'battlecry', side: s, cardName: card.name, msg: bc === 0 ? `📣 „${card.name}" Kovos šūksnis!` : `📣📣 Kovos šūksnis kartojasi (laukas)!`, src: { side: s, uid: u.uid } })
+          if (card.effect.targeted && opts?.target) applyTargetedEffect(g, s, card.effect, opts.target, card.name)
+          else applyAutoEffect(g, s, card.effect, card.name)
+        }
       }
       // lauko onSummon trigger'iai
       fireTrigger(gameApi, g, s, 'onSummon', 1)
+      // Lauko pasyvas: padaras su Paskutiniu noru žūsta iškart (po battlecry)
+      if (!g.winner) fieldKillLastwishSummon(g, s, card)
       return { ok: true }
     }
     case 'spell': {
@@ -2307,7 +2372,7 @@ function unitMaxAttacks(g: GameState, s: Side, u: BoardUnit): number {
   const ea = u.card.gameplay?.extraAttacks
   if (!ea) return 1
   const enemyUnits = enemySeats(g, s).flatMap((f) => P(g, f).units.filter((x): x is BoardUnit => !!x))
-  const tauntCount = enemyUnits.filter((x) => x.card.keywords.includes('taunt') || !!x.auraKw?.includes('taunt')).length
+  const tauntCount = enemyUnits.filter((x) => !x.statuses.silenced && (x.card.keywords.includes('taunt') || !!x.auraKw?.includes('taunt'))).length
   let extra = ea.base ?? 0
   if ((ea.ifEnemyTaunt ?? 0) > 0 && tauntCount > 0) extra += ea.ifEnemyTaunt as number
   if ((ea.perEnemyTaunt ?? 0) > 0) extra += (ea.perEnemyTaunt as number) * tauntCount
@@ -2323,7 +2388,7 @@ export function canUnitAttack(g: GameState, s: Side, u: BoardUnit): { ok: boolea
   if (u.statuses.frozen) return { ok: false, reason: '❄ Padaras sušaldytas – praleidžia veikimo galimybę.' }
   if (u.statuses.stunned) return { ok: false, reason: '✦ Padaras apsvaigintas – negali atakuoti.' }
   if (u.auraCantAttack) return { ok: false, reason: '🔗 Aura blokuoja šio padaro atakas.' }
-  if (u.summonedOnTurn === g.globalTurn && !(u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')))
+  if (u.summonedOnTurn === g.globalTurn && !(!u.statuses.silenced && (u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint'))))
     return { ok: false, reason: 'Padaras iškviestas šį ėjimą – atakuoti galės kitą ėjimą (nebent turėtų ▶ Sprintą).' }
   if (effectiveAtk(g, u) <= 0) return { ok: false, reason: 'Padaro ATK = 0.' }
   return { ok: true }
@@ -2353,14 +2418,19 @@ export function legalTargets(g: GameState, attackerSide: Side, attacker?: BoardU
   const apply = (list: TargetRef[]) => restriction ? list.filter((t) => attackTargetAllowed(g, restriction, t)) : list
   // Pasišaipymas: jei BET KURIS priešų seat'as turi taunt – privaloma pulti taunt
   const taunts: TargetRef[] = []
-  for (const foe of foes) for (const u of P(g, foe).units) if (u && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) && !u.stealth) taunts.push({ kind: 'unit', side: foe, uid: u.uid })
+  for (const foe of foes) for (const u of P(g, foe).units) if (u && !u.statuses.silenced && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) && !u.stealth) taunts.push({ kind: 'unit', side: foe, uid: u.uid })
   if (!ignoreTaunt && taunts.length > 0) return apply(taunts)
   const out: TargetRef[] = []
   for (const foe of foes) {
     for (const u of P(g, foe).units) if (u && !u.stealth) out.push({ kind: 'unit', side: foe, uid: u.uid })
     for (const a of P(g, foe).artifacts) if (a) out.push({ kind: 'artifact', side: foe, uid: a.uid })
   }
-  out.push({ kind: 'player', side: foes[0] ?? other(attackerSide) })  // priešų komandos HP
+  // Lauko pasyvas: žaidėjo pulti negalima, kol jis turi bent vieną padarą
+  const defSide = foes[0] ?? other(attackerSide)
+  const foeHasUnits = foes.some((fs) => P(g, fs).units.some(Boolean))
+  if (!(fieldEngine.unitsGuardPlayer(g, defSide) && foeHasUnits)) {
+    out.push({ kind: 'player', side: defSide })  // priešų komandos HP
+  }
   return apply(out)
 }
 
@@ -2509,10 +2579,23 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
   if (c.pendingChoice) { c.pendingChoice.caster = other(c.pendingChoice.caster); if (c.pendingChoice.chooser) c.pendingChoice.chooser = other(c.pendingChoice.chooser) }
   if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }
+  if (c.pendingReturn) c.pendingReturn.side = other(c.pendingReturn.side)
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
   // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
   for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }
   return c
+}
+
+/** Lauko pasyvo pendingReturn sprendimas: grąžina pasirinktą padarą į ranką. */
+export function resolveReturnUnit(g: GameState, uid: string): { ok: boolean; reason?: string } {
+  const pr = g.pendingReturn
+  if (!pr) return { ok: false, reason: 'Nėra laukiančio grąžinimo.' }
+  const u = P(g, pr.side).units.find((x) => x?.uid === uid)
+  if (!u) return { ok: false, reason: 'Padaras nerastas.' }
+  g.pendingReturn = null
+  returnUnitToHandPrim(g, pr.side, u)
+  recomputeAuras(g)
+  return { ok: true }
 }
 
 export type NetAction =
@@ -2525,6 +2608,7 @@ export type NetAction =
   | { t: 'resolvePeek'; uids: string[] }
   | { t: 'resolveChoice'; index: number }
   | { t: 'resolveCopy'; uid: string }
+  | { t: 'resolveReturn'; uid: string }
   | { t: 'swapChampPhase'; actor: Side; uid: string; phase: number }
   | { t: 'clearReveal' }
 
@@ -2540,6 +2624,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
     case 'resolveChoice': return resolveChoice(g, a.index)
     case 'resolveCopy': return resolveCopyEffect(g, a.uid)
+    case 'resolveReturn': return resolveReturnUnit(g, a.uid)
     case 'swapChampPhase': return swapChampionPhase(g, a.actor, a.uid, a.phase)
     case 'clearReveal': g.pendingReveal = null; return { ok: true }
   }

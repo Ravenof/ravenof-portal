@@ -1406,6 +1406,29 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                     style={inputStyle} />
                 </div>
               ))}
+              {/* Būlio pasyvai (taisyklių keitikliai) */}
+              <div className="col-span-2 md:col-span-3 flex flex-col gap-1.5 pt-1">
+                {([
+                  ['battlecryTwice', '📣📣 Kovos šūksniai suveikia 2 kartus'],
+                  ['destroySummonedWithLastwish', '🕯 Iškviestas padaras su Paskutiniu noru žūsta iškart'],
+                  ['exileOnDeath', '🕳 Sunaikintos kortos šalinamos iš žaidimo (ne į kapinyną)'],
+                  ['unitsGuardPlayer', '🛡 Negalima pulti žaidėjo, kol jis turi padarų'],
+                  ['globalSilence', '🔇 Globalus nutildymas – visi padarai nutildyti'],
+                  ['returnUnitAtTurnStart', '↩ Ėjimo pradžioje žaidėjas grąžina vieną savo padarą į ranką'],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <input type="checkbox" checked={!!cfg.fieldEffectConfig?.passive?.[key]} className="w-3.5 h-3.5 accent-blue-400"
+                      onChange={(e) => update({
+                        ...cfg,
+                        fieldEffectConfig: {
+                          ...cfg.fieldEffectConfig,
+                          passive: { ...cfg.fieldEffectConfig?.passive, [key]: e.target.checked || undefined },
+                        },
+                      })} />
+                    {label}
+                  </label>
+                ))}
+              </div>
               {/* Arenos fonas: sužaidus šį lauką mūšio arena pasikeičia į šį vaizdą (3 s drebėjimas + fade) */}
               <div className="col-span-2 md:col-span-3">
                 <label style={labelStyle} title="Sužaidus lauko kortą arena sudreba ir fonas pasikeičia į šį vaizdą">🏞 Arenos fonas (sužaidus lauką)</label>

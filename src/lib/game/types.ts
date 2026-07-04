@@ -373,6 +373,12 @@ export type FieldPassiveConfig = {
   firstDamageReduction?: number  // pirma žala per ėjimą sumažinama X
   goldBonusPerTurn?: number      // papildomas auksas ėjimo pradžioje
   creatureCap?: number           // padarų zonos limitas (Platusis laukas: 10 vietoj 5)
+  battlecryTwice?: boolean       // Kovos šūksniai (onPlay/onSummon battlecry) suveikia 2 kartus
+  destroySummonedWithLastwish?: boolean  // iškviestas padaras su Paskutiniu noru (onDeath) žūsta iškart
+  exileOnDeath?: boolean         // sunaikintos kortos PAŠALINAMOS iš žaidimo (ne į kapinyną)
+  unitsGuardPlayer?: boolean     // negalima pulti žaidėjo, kol jo pusėje yra bent vienas padaras
+  globalSilence?: boolean        // visi padarai nutildyti, kol laukas aktyvus
+  returnUnitAtTurnStart?: boolean // ėjimo pradžioje žaidėjas grąžina vieną SAVO padarą į ranką
 }
 
 export type FieldEffectConfig = {

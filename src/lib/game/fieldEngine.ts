@@ -60,6 +60,19 @@ export function applyFirstDamageReduction(g: GameState, receiverSide: Side, dmg:
   return { dmg: Math.max(0, dmg - r), reduced: true }
 }
 
+/** Kovos šūksniai kartojami 2×. */
+export function battlecryTwice(g: GameState, s: Side): boolean { return !!passive(g, s)?.battlecryTwice }
+/** Iškviestas padaras su Paskutiniu noru žūsta iškart. */
+export function destroySummonedWithLastwish(g: GameState, s: Side): boolean { return !!passive(g, s)?.destroySummonedWithLastwish }
+/** Sunaikintos kortos šalinamos iš žaidimo (ne į kapinyną). */
+export function exileOnDeath(g: GameState, s: Side): boolean { return !!passive(g, s)?.exileOnDeath }
+/** Žaidėjo pulti negalima, kol jis turi padarų. */
+export function unitsGuardPlayer(g: GameState, s: Side): boolean { return !!passive(g, s)?.unitsGuardPlayer }
+/** Visi (paveiktos pusės) padarai nutildyti, kol laukas aktyvus. */
+export function globalSilence(g: GameState, s: Side): boolean { return !!passive(g, s)?.globalSilence }
+/** Ėjimo pradžioje žaidėjas grąžina vieną savo padarą į ranką. */
+export function returnUnitAtTurnStart(g: GameState, s: Side): boolean { return !!passive(g, s)?.returnUnitAtTurnStart }
+
 /** Lauko trigger'iai pagal trigger tipą. */
 export function fieldTriggers(g: GameState, trigger: string): EffectMapping[] {
   return (fieldConfig(g)?.triggers ?? []).filter((m) => m.trigger === trigger)
