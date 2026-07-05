@@ -29,7 +29,7 @@ import {
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
-import { reportMatchV2, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
+import { reportMatchV2, recordRankedMatch, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
@@ -1738,6 +1738,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const cnt = (arr: typeof me.discard, t: string) => arr.filter((c) => c.type === t).length
     const creaturesLost = cnt(me.discard, 'unit'), creaturesKilled = cnt(opp.discard, 'unit')
     const championsLost = cnt(me.discard, 'champion'), championsKilled = cnt(opp.discard, 'champion')
+    void recordRankedMatch({ clientMatchId: clientMatchIdRef.current, result: meWon ? 'win' : 'loss',
+      durationSeconds: Math.round((Date.now() - (matchStartRef.current || Date.now())) / 1000),
+      turns: game.globalTurn, playerActions: game.globalTurn, opponentActions: game.globalTurn, opponentId: net?.opponentId ?? null })
     onRankedResult?.({
       result: meWon ? 'win' : 'loss',
       turns: game.globalTurn,

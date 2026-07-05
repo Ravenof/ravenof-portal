@@ -94,6 +94,18 @@ export async function reportMatchV2(a: ReportMatchArgs): Promise<MatchRewardResu
   return (data ?? null) as MatchRewardResult | null
 }
 
+/** Įrašo ranked kovą į matches (daily-task progresui). Ranked atlygį tvarko atskira sistema. */
+export async function recordRankedMatch(a: { clientMatchId: string; result: MatchResult; durationSeconds?: number; turns?: number; playerActions?: number; opponentActions?: number; opponentId?: string | null }): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('rvn_record_ranked_match', {
+    p_client_match_id: a.clientMatchId, p_result: a.result,
+    p_duration_seconds: a.durationSeconds ?? 0, p_turns: a.turns ?? 0,
+    p_player_actions: a.playerActions ?? 0, p_opponent_actions: a.opponentActions ?? 0,
+    p_opponent_id: a.opponentId ?? null,
+  })
+  if (error) console.warn('[economy] recordRankedMatch:', error.message)
+}
+
 /** Perka pakuotę už auksą. Grąžina naują balansą arba klaidą. */
 export async function buyPack(packId: string): Promise<{ gold: number; packs: number } | { error: string }> {
   const supabase = createClient()
