@@ -13,10 +13,12 @@ import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
+import { DailyTasksModal } from './DailyTasksModal'
 import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
 import { StarterOnboarding } from './StarterOnboarding'
 import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
+import { getDailyTasks } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
 
@@ -44,10 +46,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginClaimable, setLoginClaimable] = useState(false)
+  const [dailyOpen, setDailyOpen] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
-  const refreshQuests = useCallback(() => { getDailyQuests().then((qs) => setQuestsPending((qs ?? []).filter((q) => q.progress >= q.target && !q.claimed).length)) }, [])
+  const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { if (!s2) { setQuestsPending(0); return } setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
   const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
 
@@ -90,7 +93,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     : newPlayer
       ? { icon: '🎓', title: 'Pasiimk starter kaladę', sub: 'Nemokama kaladė, avataras ir mokymų kova', accent: '240,180,41', act: () => { playUiClick(); setOnboardOpen(true) } }
     : questsPending > 0
-      ? { icon: '🎯', title: 'Atsiimk užduočių atlygį', sub: `Paruošta atsiimti: ${questsPending}`, accent: '52,211,153', act: () => { playUiClick(); setQuestsOpen(true) } }
+      ? { icon: '🎯', title: 'Atsiimk užduočių atlygį', sub: `Paruošta atsiimti: ${questsPending}`, accent: '52,211,153', act: () => { playUiClick(); setDailyOpen(true) } }
     : wallet.packs > 0
       ? { icon: '🎁', title: 'Atplėšk pakuotę', sub: `Turi ${wallet.packs} · atidaryk albume`, accent: '251,146,60', act: () => { playUiClick(); router.push('/digital/album') } }
     : seasonClaimable > 0
@@ -158,7 +161,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       <div className="grid grid-cols-2 gap-3">
         <QuickActionCard image={`${ASSET}/qa-decks.webp`} href="/digital/decks" onClick={() => playUiClick()} />
         <QuickActionCard image={`${ASSET}/qa-collection.webp`} href="/digital/collection" onClick={() => playUiClick()} />
-        <QuickActionCard image={`${ASSET}/qa-quests.webp`} onClick={() => { playUiClick(); setQuestsOpen(true) }} />
+        <QuickActionCard image={`${ASSET}/qa-quests.webp`} onClick={() => { playUiClick(); setDailyOpen(true) }} />
         <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
@@ -182,6 +185,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           }} />
       )}
 
+      {dailyOpen && <DailyTasksModal onClose={() => { setDailyOpen(false); refreshQuests() }} onReward={() => { refreshBalances(); refreshWallet(); refreshQuests() }} />}
       {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
 
       <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
