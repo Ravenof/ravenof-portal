@@ -50,6 +50,48 @@ export async function reportMatchXp(won: boolean, mode: MatchXpMode): Promise<Ma
   return { xpGained: d.xpGained ?? 0, totalBefore: d.totalBefore ?? 0, totalAfter: d.totalAfter ?? 0, levelReward: d.levelReward ?? null }
 }
 
+// ── Ekonomikos pamatas (Phase 1): valiutos + config-driven match rewards ──────
+export type Balances = { silver: number; rubies: number; essence: number }
+
+/** Paskyros valiutų balansai (gold=Sidabras). */
+export async function getBalances(): Promise<Balances | null> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase.from('profiles').select('gold, rubies, essence').eq('id', user.id).maybeSingle()
+  const pr = data as { gold?: number; rubies?: number; essence?: number } | null
+  if (!pr) return null
+  return { silver: pr.gold ?? 0, rubies: pr.rubies ?? 0, essence: pr.essence ?? 0 }
+}
+
+export type MatchMode = 'bot' | 'unranked' | 'ranked'
+export type MatchResult = 'win' | 'loss' | 'draw'
+export type ReportMatchArgs = {
+  clientMatchId: string; mode: MatchMode; result: MatchResult
+  durationSeconds?: number; turns?: number; playerActions?: number; opponentActions?: number
+  opponentId?: string | null; opponentType?: 'human' | 'bot'
+}
+export type MatchRewardResult = {
+  valid: boolean; duplicate?: boolean
+  rewards?: { account_xp: number; season_xp: number; silver: number }
+  streak?: number; rankedDelta?: number
+  accountXpBefore?: number; accountXpAfter?: number
+  balances?: Balances
+}
+
+/** Kovos atlygis per config-driven serverio RPC (validumas, dienos cap, streak). Idempotentiška per clientMatchId. */
+export async function reportMatchV2(a: ReportMatchArgs): Promise<MatchRewardResult | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_report_match_v2', {
+    p_client_match_id: a.clientMatchId, p_mode: a.mode, p_result: a.result,
+    p_duration_seconds: a.durationSeconds ?? 0, p_turns: a.turns ?? 0,
+    p_player_actions: a.playerActions ?? 0, p_opponent_actions: a.opponentActions ?? 0,
+    p_opponent_id: a.opponentId ?? null, p_opponent_type: a.opponentType ?? 'human',
+  })
+  if (error) { console.warn('[economy] reportMatchV2:', error.message); return null }
+  return (data ?? null) as MatchRewardResult | null
+}
+
 /** Perka pakuotę už auksą. Grąžina naują balansą arba klaidą. */
 export async function buyPack(packId: string): Promise<{ gold: number; packs: number } | { error: string }> {
   const supabase = createClient()
