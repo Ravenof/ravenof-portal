@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Medal } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
-import { getWallet, type Wallet } from '@/lib/economy'
+import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
@@ -39,6 +39,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [questsPending, setQuestsPending] = useState(0)
+  const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [seasonClaimable, setSeasonClaimable] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
@@ -48,6 +49,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet(); refreshQuests()
+    getBalances().then((b) => { if (b) setBalances(b) })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }); setSeasonClaimable(p.tiers.filter((t) => p.xp >= t.xpRequired && !(p.claimedTiers ?? []).includes(t.tier)).length) })
     getStarterDecks().then((d) => {
@@ -87,6 +89,24 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   return (
     <div className="relative z-10 space-y-3">
       <HubStyles />
+
+      {/* ── Valiutų juosta ── */}
+      <div className="flex items-stretch gap-2">
+        {([
+          { key: 'silver',  icon: '🪙', label: 'Sidabras', val: balances.silver,  accent: '240,180,41' },
+          { key: 'rubies',  icon: '💎', label: 'Rubinai',  val: balances.rubies,  accent: '239,68,68' },
+          { key: 'essence', icon: '🔮', label: 'Esencija', val: balances.essence, accent: '139,92,246' },
+        ] as const).map((c) => (
+          <div key={c.key} className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2"
+            style={{ background: `linear-gradient(150deg, rgba(${c.accent},0.14), rgba(10,8,16,0.9))`, border: `1px solid rgba(${c.accent},0.4)` }}>
+            <span style={{ fontSize: 18 }}>{c.icon}</span>
+            <span className="flex flex-col leading-none min-w-0">
+              <span className="tabular-nums font-extrabold" style={{ fontSize: 14, color: '#f3ead3' }}>{c.val.toLocaleString('lt-LT')}</span>
+              <span style={{ fontSize: 8.5, letterSpacing: '0.08em', color: `rgba(${c.accent},0.9)`, fontWeight: 700 }}>{c.label.toUpperCase()}</span>
+            </span>
+          </div>
+        ))}
+      </div>
 
       {nextAction && (
         <button onClick={nextAction.act} className="rvn-press rvn-glow block w-full text-left rvn-fade" style={{ borderRadius: 16, padding: '13px 16px',
