@@ -114,19 +114,19 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       <div className="grid grid-cols-3 gap-2">
         <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="rvn-press relative flex flex-col items-center justify-center gap-1 rounded-xl py-3"
           style={{ background: 'linear-gradient(160deg, rgba(52,211,153,0.12), rgba(10,8,16,0.92))', border: '1px solid rgba(52,211,153,0.4)' }}>
-          <RvnIcon name="seg-quests" size={26} fallback={<span style={{ fontSize: 22 }}>🎯</span>} />
+          <RvnIcon name="seg-quests" size={46} fallback={<span style={{ fontSize: 22 }}>🎯</span>} />
           <span className="text-[10px] font-bold" style={{ color: '#a7f3d0' }}>Užduotys</span>
           {questsPending > 0 && <span className="absolute top-1.5 right-1.5 flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 16, height: 16, background: '#ef4444', color: '#fff' }}>{questsPending}</span>}
         </button>
         <button onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press flex flex-col items-center justify-center gap-1 rounded-xl py-3"
           style={{ background: 'linear-gradient(160deg, rgba(240,180,41,0.12), rgba(10,8,16,0.92))', border: '1px solid rgba(240,180,41,0.4)' }}>
-          <RvnIcon name="seg-season" size={26} fallback={<span style={{ fontSize: 22 }}>📜</span>} />
+          <RvnIcon name="seg-season" size={46} fallback={<span style={{ fontSize: 22 }}>📜</span>} />
           <span className="text-[10px] font-bold" style={{ color: '#f3d98c' }}>Sezonas</span>
           <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>Lygis {season.cur}/{season.total}</span>
         </button>
         <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="rvn-press relative flex flex-col items-center justify-center gap-1 rounded-xl py-3"
           style={{ background: 'linear-gradient(160deg, rgba(139,92,246,0.12), rgba(10,8,16,0.92))', border: '1px solid rgba(139,92,246,0.4)' }}>
-          <RvnIcon name="seg-login" size={26} fallback={<span style={{ fontSize: 22 }}>🎁</span>} />
+          <RvnIcon name="seg-login" size={46} fallback={<span style={{ fontSize: 22 }}>🎁</span>} />
           <span className="text-[10px] font-bold" style={{ color: '#c4b5fd' }}>Dovanos</span>
           {loginClaimable && <span className="absolute top-1.5 right-1.5 rvn-glow-pulse rounded-full" style={{ width: 9, height: 9, background: '#f3b62c', boxShadow: '0 0 8px rgba(240,180,41,0.9)' }} />}
         </button>

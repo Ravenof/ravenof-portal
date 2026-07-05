@@ -105,9 +105,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <ResourcePill icon={<RvnIcon name="cur-silver" size={16} fallback={<span>🥈</span>} />} value={balances.silver.toLocaleString('lt-LT')} accent="203,213,225" />
-          <ResourcePill icon={<RvnIcon name="cur-rubies" size={16} fallback={<span>💎</span>} />} value={balances.rubies.toLocaleString('lt-LT')} accent="239,68,68" />
-          <ResourcePill icon={<RvnIcon name="cur-essence" size={16} fallback={<span>🔮</span>} />} value={balances.essence.toLocaleString('lt-LT')} accent="139,92,246" />
+          <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={balances.silver.toLocaleString('lt-LT')} accent="203,213,225" />
+          <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={balances.rubies.toLocaleString('lt-LT')} accent="239,68,68" />
+          <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={balances.essence.toLocaleString('lt-LT')} accent="139,92,246" />
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -131,7 +131,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             <>
               <span className="relative flex items-center justify-center rvn-press" style={{ width: 32, height: 32 }}>
                 {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.34), transparent 70%)' }} />}
-                <RvnIcon name={`nav-${it.key}`} size={24} fallback={<Icon className="w-[22px] h-[22px]" />}
+                <RvnIcon name={`nav-${it.key}`} size={30} fallback={<Icon className="w-[22px] h-[22px]" />}
                   style={{ filter: it.key === 'home'
                     ? (active ? 'drop-shadow(0 0 6px rgba(240,180,41,0.55))' : 'grayscale(0.9) brightness(0.8)')
                     : (active ? 'sepia(1) saturate(4.2) hue-rotate(-9deg) brightness(1.18) drop-shadow(0 0 6px rgba(240,180,41,0.55))' : 'none') }} />
