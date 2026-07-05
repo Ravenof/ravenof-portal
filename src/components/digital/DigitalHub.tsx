@@ -112,7 +112,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {/* ── Valiutų juosta ── */}
       <div className="flex items-stretch gap-2">
         {([
-          { key: 'silver',  icon: '🪙', label: 'Sidabras', val: balances.silver,  accent: '240,180,41' },
+          { key: 'silver',  icon: '🥈', label: 'Sidabras', val: balances.silver,  accent: '203,213,225' },
           { key: 'rubies',  icon: '💎', label: 'Rubinai',  val: balances.rubies,  accent: '239,68,68' },
           { key: 'essence', icon: '🔮', label: 'Esencija', val: balances.essence, accent: '139,92,246' },
         ] as const).map((c) => (
@@ -143,7 +143,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </button>
       )}
 
-      <RewardBanner streak={streak} claimable={claimable} onClaim={claimReward} />
 
       <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="rvn-press block w-full text-left rvn-fade"
         style={{ borderRadius: 14, padding: '11px 14px', position: 'relative',
@@ -170,26 +169,14 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         <QuickActionCard image={`${ASSET}/qa-shop.webp`} onClick={() => { playUiClick(); setStoreOpen(true) }} />
       </div>
 
-      <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press block w-full text-left"
-        style={{ borderRadius: 14, padding: '11px 14px',
-          background: 'radial-gradient(120% 120% at 0% 0%, rgba(139,92,246,0.18), transparent 55%), linear-gradient(150deg, rgba(24,18,34,0.95), rgba(10,8,16,0.97))',
-          border: '1px solid rgba(139,92,246,0.35)' }}>
-        <span className="flex items-center gap-3">
-          <span style={{ fontSize: 22 }}>🎴</span>
-          <span className="flex-1 min-w-0">
-            <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 800, color: '#c4b5fd' }}>Kosmetika</span>
-            <span className="block" style={{ fontSize: 10.5, color: '#e8dcc0' }}>Kortų nugarėlės ir avatarai</span>
-          </span>
-          <span className="rvn-disp" style={{ fontSize: 14, fontWeight: 800, color: '#c4b5fd' }}>→</span>
-        </span>
-      </button>
+
 
       <StatCard emblemName="emblem-season" emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
         value={`Lygis ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
         chips={<><RewardChip icon="🪙" img="fi-coins" amount="x500" /><RewardChip icon="📜" img="fi-quests" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
-      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={() => { refreshBalances(); refreshWallet() }} />}
+      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={() => { refreshWallet(); refreshBalances() }} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
 
@@ -204,7 +191,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           }} />
       )}
 
-      {cosmeticsOpen && <CosmeticsModal gold={balances.silver} onClose={() => setCosmeticsOpen(false)} onSpent={() => { refreshBalances(); refreshWallet() }} />}
       {dailyOpen && <DailyTasksModal onClose={() => { setDailyOpen(false); refreshQuests() }} onReward={() => { refreshBalances(); refreshWallet(); refreshQuests() }} />}
       {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
 

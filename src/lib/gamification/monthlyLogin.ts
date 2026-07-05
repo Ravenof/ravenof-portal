@@ -31,7 +31,7 @@ export function rewardChip(it: LoginRewardItem): { icon: string; label: string }
   if (t === 'season_xp') return { icon: '🏵️', label: `${it.amount} Sezono` }
   if (t === 'currency') {
     const c = it.currency as string
-    const icon = c === 'silver' ? '🪙' : c === 'rubies' ? '💎' : '🔮'
+    const icon = c === 'silver' ? '🥈' : c === 'rubies' ? '💎' : '🔮'
     return { icon, label: `${it.amount}` }
   }
   if (t === 'item') {

@@ -151,7 +151,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
-      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={refreshWallet} />}
+      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
     </div>
   )
 }

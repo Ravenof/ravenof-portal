@@ -93,7 +93,7 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
 
         {!sp?.hasPass && (
           <div className="shrink-0 mb-2 flex gap-2">
-            <button onClick={() => unlock('silver')} disabled={busy} className="flex-1 py-2 rounded-lg text-[11px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atrakinti pasą · 🪙 {sp?.priceSilver ?? 8000}</button>
+            <button onClick={() => unlock('silver')} disabled={busy} className="flex-1 py-2 rounded-lg text-[11px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atrakinti pasą · 🥈 {sp?.priceSilver ?? 8000}</button>
             <button onClick={() => unlock('rubies')} disabled={busy} className="flex-1 py-2 rounded-lg text-[11px] font-extrabold" style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)' }}>💎 {sp?.priceRubies ?? 950}</button>
           </div>
         )}
