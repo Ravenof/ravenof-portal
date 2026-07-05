@@ -10,6 +10,7 @@ import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/econom
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
+import { SeasonPathModal } from './SeasonPathModal'
 import { StoreModal } from './StoreModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
@@ -18,6 +19,7 @@ import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
 import { StarterOnboarding } from './StarterOnboarding'
 import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
+import { getSeasonPath } from '@/lib/gamification/seasonPath'
 import { getDailyTasks } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
@@ -65,7 +67,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       if (claimable) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
     })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }); setSeasonClaimable(p.tiers.filter((t) => p.xp >= t.xpRequired && !(p.claimedTiers ?? []).includes(t.tier)).length) })
+    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const claimable = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(claimable) })
     getStarterDecks().then((d) => {
       const c = (d ?? []).filter((x) => x.claimed).length
       setNewPlayer(c === 0)
@@ -166,13 +168,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       <StatCard emblemName="emblem-season" emblemIcon={<Medal className="w-6 h-6" />} title="Sezono kelias" sub="Rinkite pakopas ir atlygius"
-        value={`Pakopa ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
+        value={`Lygis ${season.cur} / ${season.total}`} pct={season.pct} accent="240,180,41"
         chips={<><RewardChip icon="🪙" img="fi-coins" amount="x500" /><RewardChip icon="📜" img="fi-quests" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
-      {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} onReward={refreshWallet} />}
+      {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
 
       {onboardOpen && (
         <StarterOnboarding
