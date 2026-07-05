@@ -12,6 +12,8 @@ import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { StoreModal } from './StoreModal'
 import { WelcomeReward } from './WelcomeReward'
+import { MonthlyLoginModal } from './MonthlyLoginModal'
+import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
 import { StarterOnboarding } from './StarterOnboarding'
 import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
 import { getSeasonPass } from '@/lib/gamification/seasonPass'
@@ -40,16 +42,25 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [questsPending, setQuestsPending] = useState(0)
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [loginClaimable, setLoginClaimable] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
   const refreshQuests = useCallback(() => { getDailyQuests().then((qs) => setQuestsPending((qs ?? []).filter((q) => q.progress >= q.target && !q.claimed).length)) }, [])
+  const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
 
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet(); refreshQuests()
-    getBalances().then((b) => { if (b) setBalances(b) })
+    refreshBalances()
+    getMonthlyLogin().then((ml) => {
+      if (!ml) return
+      const claimable = !ml.claimedToday && ml.nextDay <= ml.daysInMonth
+      setLoginClaimable(claimable)
+      if (claimable) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
+    })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPass().then((p) => { if (!p?.tiers?.length) return; const total = p.tiers.length; const cur = p.tiers.filter((t) => p.xp >= t.xpRequired).length; setSeason({ cur, total, pct: Math.round((cur / total) * 100) }); setSeasonClaimable(p.tiers.filter((t) => p.xp >= t.xpRequired && !(p.claimedTiers ?? []).includes(t.tier)).length) })
     getStarterDecks().then((d) => {
@@ -59,7 +70,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       // WelcomeReward (z400) rodomas virš – dovana pirmiau, užsidarius matosi šis.
       if (c === 0 && (d ?? []).length > 0 && !localStorage.getItem('rvn-starter-onboard-seen')) setOnboardOpen(true)
     })
-  }, [loggedIn, refreshWallet, refreshQuests])
+  }, [loggedIn, refreshWallet, refreshQuests, refreshBalances])
 
   if (!loggedIn) {
     return (
@@ -126,6 +137,20 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       <RewardBanner streak={streak} claimable={claimable} onClaim={claimReward} />
 
+      <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="rvn-press block w-full text-left rvn-fade"
+        style={{ borderRadius: 14, padding: '11px 14px', position: 'relative',
+          background: 'radial-gradient(120% 120% at 0% 0%, rgba(240,180,41,0.20), transparent 55%), linear-gradient(150deg, rgba(24,18,34,0.95), rgba(10,8,16,0.97))',
+          border: `1px solid rgba(240,180,41,${loginClaimable ? '0.6' : '0.28'})` }}>
+        <span className="flex items-center gap-3">
+          <span style={{ fontSize: 22 }}>🎁</span>
+          <span className="flex-1 min-w-0">
+            <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 800, color: 'var(--gold)' }}>Prisijungimo dovanos</span>
+            <span className="block" style={{ fontSize: 10.5, color: '#e8dcc0' }}>{loginClaimable ? 'Šiandienos dovana laukia!' : 'Mėnesio kalendorius'}</span>
+          </span>
+          {loginClaimable && <span className="rvn-glow-pulse" style={{ width: 10, height: 10, borderRadius: '50%', background: '#f3b62c', boxShadow: '0 0 8px rgba(240,180,41,0.9)' }} />}
+        </span>
+      </button>
+
       <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
         <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
       </PlayHeroCard>
@@ -156,6 +181,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             router.push('/digital/tutorial?auto=1')
           }} />
       )}
+
+      {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
 
       <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
 
