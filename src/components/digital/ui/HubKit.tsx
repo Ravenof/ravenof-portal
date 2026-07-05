@@ -138,7 +138,7 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
             <span className="block" style={{ clipPath: octPath(11), padding: 1.5, background: sel ? `rgba(${A},0.95)` : `rgba(${A},0.42)` }}>
               <span className="flex items-center justify-center" style={{ clipPath: octPath(10), gap: 6, minHeight: 56, padding: '8px 5px',
                 background: `radial-gradient(120% 130% at 50% 0%, rgba(${A},0.22), transparent 60%), linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,12,0.98))` }}>
-                <RvnIcon name={m.iconName} size={30} fallback={m.iconFallback ?? null} style={{ flexShrink: 0 }} />
+                <RvnIcon name={m.iconName} size={30} fallback={m.iconFallback ?? null} style={{ flexShrink: 0, filter: 'brightness(1.45) drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }} />
                 <span className="rvn-disp min-w-0" style={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.2, color: '#f3ead3', textAlign: 'left' }}>{m.label}</span>
               </span>
             </span>
