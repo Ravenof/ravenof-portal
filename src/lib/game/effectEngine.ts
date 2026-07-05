@@ -33,7 +33,7 @@ export type GameApi = {
   setSpellDiscount(g: GameState, s: Side, n: number): void
   addCardCostMod(g: GameState, s: Side, delta: number, cardType: string | null): void
   buffSpellDamage(g: GameState, s: Side, n: number): void
-  tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; choose?: boolean }): void
+  tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; cardType?: string; choose?: boolean }): void
   chooseEffect(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[], chooser?: Side): void
   millDeck(g: GameState, s: Side, n: number): void
   returnGraveyardToDeck(g: GameState, s: Side, n: number): void
@@ -321,7 +321,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
       break
     }
-    case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, choose: m.tutorChoose }); break
+    case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, cardType: m.tutorCardType, choose: m.tutorChoose }); break
     case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
     case 'reflectToAttacker': {
       // onAttacked reakcijai (su „efektas į atakuotoją" / useAttackTarget): sunaikina puolantį padarą

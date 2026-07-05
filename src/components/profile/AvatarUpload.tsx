@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { toWebp } from '@/lib/img-optimize'
 import { updateAvatarUrl } from '@/app/profile/settings/actions'
 
 type Props = {
@@ -46,12 +47,16 @@ export function AvatarUpload({ userId, currentAvatarUrl, displayName }: Props) {
       const supabase = createClient()
 
       // File path: avatars/{userId}/{timestamp}.{ext}
-      const ext = file.name.split('.').pop() ?? 'jpg'
+      // GIF paliekam kaip yra (animacija); kitus konvertuojam į WebP
+      const opt = file.type === 'image/gif' ? null : await toWebp(file, { maxW: 640 })
+      const body = opt?.blob ?? file
+      const ext = opt?.converted ? 'webp' : (file.name.split('.').pop() ?? 'jpg')
+      const contentType = opt?.contentType ?? file.type
       const path = `${userId}/${Date.now()}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' })
+        .upload(path, body, { upsert: true, contentType, cacheControl: '31536000' })
 
       if (uploadError) {
         setError('Įkėlimo klaida: ' + uploadError.message)

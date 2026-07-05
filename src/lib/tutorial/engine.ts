@@ -1709,14 +1709,17 @@ function maybeReturnCastSpell(g: GameState, caster: Side, card: TutCard) {
 }
 
 // ── Tutor: korta/burtas pagal tipą iš kaladės/kapinyno į ranką (Milva Servilė) ─
-function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; choose?: boolean }) {
+function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; cardType?: string; choose?: boolean }) {
   const p = P(g, caster)
   const zone = opts.zone ?? 'both'
   const wantType = (opts.spellType ?? '').trim()
+  const wantCardType = (opts.cardType ?? '').trim()
   const fromZones: { arr: TutCard[]; name: 'deck' | 'discard' }[] = []
   if (zone === 'deck' || zone === 'both') fromZones.push({ arr: p.deck, name: 'deck' })
   if (zone === 'discard' || zone === 'both') fromZones.push({ arr: p.discard, name: 'discard' })
-  const eligible = (c: TutCard) => c.type !== 'curse' && (!wantType || (c.type === 'spell' && c.gameplay?.spellType === wantType))
+  const eligible = (c: TutCard) => c.type !== 'curse'
+    && (!wantCardType || c.type === wantCardType)
+    && (!wantType || (c.type === 'spell' && c.gameplay?.spellType === wantType))
   const candidates: { card: TutCard; arr: TutCard[] }[] = []
   for (const z of fromZones) for (const c of z.arr) if (eligible(c)) candidates.push({ card: c, arr: z.arr })
   if (candidates.length === 0) { log(g, { t: 'blocked', side: caster, msg: `Nėra tinkamos kortos${wantType ? ' (' + wantType + ')' : ''} – tutor neįvyksta.` }); return }

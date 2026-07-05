@@ -350,6 +350,7 @@ export type EffectMapping = {
   triggerSpellType?: SpellType      // globalus trigger (onAnyCast): tik šio tipo burtas aktyvuoja
   tutorZone?: 'deck' | 'discard' | 'both'  // tutorToHand: iš kur ieškoti (default both)
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
+  tutorCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // tutorToHand: tik šio kortos tipo (padaras/burtas/čempionas/artefaktas/laukas)
   tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
   copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard: iš kurio kapinyno rinktis (default any)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
