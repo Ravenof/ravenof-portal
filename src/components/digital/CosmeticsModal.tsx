@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react'
 import { getCosmetics, buyCosmetic, equipCosmetic, getAvatarAudio, type Cosmetic, type CosmeticKind, type CosmeticsState, type AvatarAudioMap } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
-const KIND_LABEL: Record<CosmeticKind, string> = { card_back: 'Nugarėlės', board: 'Lentos', avatar: 'Avatarai' }
-const KINDS: CosmeticKind[] = ['card_back', 'board', 'avatar']
+const KIND_LABEL: Record<CosmeticKind, string> = { card_back: 'Kortų nugarėlės', board: 'Lentos', avatar: 'Žaidėjo avatarai' }
+const KINDS: CosmeticKind[] = ['card_back', 'avatar']  // spec: tik nugarėlės + avatarai (boards paslėpti)
 
 export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClose: () => void; onSpent?: () => void }) {
   const [state, setState] = useState<CosmeticsState | null>(null)
