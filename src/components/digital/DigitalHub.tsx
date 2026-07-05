@@ -12,6 +12,7 @@ import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { SeasonPathModal } from './SeasonPathModal'
 import { StoreModal } from './StoreModal'
+import { ShopModal } from './ShopModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
@@ -172,7 +173,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         chips={<><RewardChip icon="🪙" img="fi-coins" amount="x500" /><RewardChip icon="📜" img="fi-quests" amount="x10" accent="139,92,246" /></>}
         onClick={() => { playUiClick(); setSeasonOpen(true) }} />
 
-      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
+      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={() => { refreshBalances(); refreshWallet() }} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
 

@@ -11,6 +11,7 @@ import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { StoreModal } from '@/components/digital/StoreModal'
+import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
@@ -150,7 +151,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
-      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
+      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={refreshWallet} />}
     </div>
   )
 }
