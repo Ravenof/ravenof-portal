@@ -9,6 +9,7 @@ const NAV = [
   { href: '/admin',               label: '📊 Apžvalga'    },
   { href: '/admin/cards',         label: '🃏 Kortos'        },
   { href: '/admin/shop',          label: '🛒 Parduotuvė'    },
+  { href: '/admin/economy',       label: '💰 Ekonomika'     },
   { href: '/admin/zmk',           label: '🎲 ŽMK kortos'    },
   { href: '/admin/events',        label: '📅 Renginiai'     },
   { href: '/admin/lore',          label: '📖 Atlasas'       },
