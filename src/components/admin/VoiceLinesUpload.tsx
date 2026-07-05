@@ -44,7 +44,7 @@ export function VoiceLinesUpload({ value, cardNumber, cardId, onChange }: Props)
         const path = `${folder}/${Date.now()}-${safeName(file.name)}`
         const { error: upErr } = await supabase.storage
           .from('card-audio')
-          .upload(path, file, { upsert: true, contentType: file.type })
+          .upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' })
         if (upErr) { setError(upErr.message); continue }
         const { data: { publicUrl } } = supabase.storage.from('card-audio').getPublicUrl(path)
         added.push(publicUrl)

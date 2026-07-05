@@ -4,6 +4,7 @@
 import { useRef, useState } from 'react'
 import { Upload, Loader2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 
 const MAX_SIZE = 5 * 1024 * 1024
 const ALLOWED = ['image/png', 'image/jpeg', 'image/webp']
@@ -31,8 +32,9 @@ export function ShopImageUpload({ currentUrl, folder, onUpload }: {
     setLoading(true)
     try {
       const supabase = createClient()
-      const path = `shop/${folder}/${Date.now()}-${safeName(file.name)}`
-      const { error: upErr } = await supabase.storage.from('card-images').upload(path, file, { upsert: true, contentType: file.type })
+      const { blob, ext, contentType } = await toWebp(file)
+      const path = `shop/${folder}/${Date.now()}-${safeName(file.name).replace(/\.[^.]+$/, '')}.${ext}`
+      const { error: upErr } = await supabase.storage.from('card-images').upload(path, blob, { upsert: true, contentType, cacheControl: LONG_CACHE })
       if (upErr) { setError(upErr.message); return }
       const { data: { publicUrl } } = supabase.storage.from('card-images').getPublicUrl(path)
       onUpload(publicUrl)

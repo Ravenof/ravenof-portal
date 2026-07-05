@@ -443,7 +443,7 @@ function AdminAvatarAudio({ avatarId, supabase, flash }: { avatarId: string; sup
     setBusy(true)
     try {
       const path = `${avatarId}/${ev}/${Date.now()}-${avSafe(file.name)}`
-      const { error: up } = await supabase.storage.from('avatar-audio').upload(path, file, { upsert: true, contentType: file.type })
+      const { error: up } = await supabase.storage.from('avatar-audio').upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' })
       if (up) { flash(up.message, true); return }
       const { data: { publicUrl } } = supabase.storage.from('avatar-audio').getPublicUrl(path)
       const { error: ins } = await supabase.from('avatar_audio').insert({ cosmetic_id: avatarId, event_type: ev, file_url: publicUrl, display_name: file.name, enabled: true, weight: 1 })
@@ -505,7 +505,7 @@ function AdminAvatarVideos({ avatarId, supabase, flash }: { avatarId: string; su
     setBusy(true)
     try {
       const path = `${avatarId}/${Date.now()}-${avSafe(file.name)}`
-      const { error: up } = await supabase.storage.from('avatar-video').upload(path, file, { upsert: true, contentType: file.type })
+      const { error: up } = await supabase.storage.from('avatar-video').upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' })
       if (up) { flash(up.message, true); return }
       const { data: { publicUrl } } = supabase.storage.from('avatar-video').getPublicUrl(path)
       await save([...vids, publicUrl]); flash('Video įkeltas')

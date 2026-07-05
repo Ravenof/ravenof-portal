@@ -145,7 +145,7 @@ export function CinematicUpload({
       const supabase = createClient()
       const path = `${folder()}/${Date.now()}-${slot}-${safeName(file.name)}`
       const { error: upErr } = await supabase.storage.from('card-cinematics')
-        .upload(path, file, { upsert: true, contentType: file.type })
+        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' })
       if (upErr) { setError(upErr.message); return }
       const { data: { publicUrl } } = supabase.storage.from('card-cinematics').getPublicUrl(path)
       patch({ [slot]: publicUrl, uploadedAt: v.uploadedAt ?? new Date().toISOString() } as Partial<CinematicData>)

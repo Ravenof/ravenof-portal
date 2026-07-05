@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SummonBurst } from '@/components/tutorial/SummonBurst'
 import { createClient } from '@/lib/supabase/client'
+import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
 import { CinematicUpload, type CinematicData } from './CinematicUpload'
 import {
@@ -866,7 +867,17 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                             <option value="discard">Kapinynas</option>
                           </select>
                         </label>
-                        <label className="flex items-center gap-1">Tik tipas
+                        <label className="flex items-center gap-1">Kortos tipas
+                          <select value={m.tutorCardType ?? ''} onChange={(e) => setMapping(i, { tutorCardType: (e.target.value || undefined) as EffectMapping['tutorCardType'] })} style={{ ...inputStyle, width: 130 }}>
+                            <option value="">(bet kuris)</option>
+                            <option value="unit">Padaras</option>
+                            <option value="spell">Burtas</option>
+                            <option value="champion">Čempionas</option>
+                            <option value="artifact">Artefaktas</option>
+                            <option value="field">Laukas</option>
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1">Tik burto tipas
                           <select value={m.tutorSpellType ?? ''} onChange={(e) => setMapping(i, { tutorSpellType: (e.target.value || undefined) as SpellType | undefined })} style={{ ...inputStyle, width: 130 }}>
                             <option value="">(bet kuri korta)</option>
                             {SPELL_TYPES.map((st) => <option key={st.value} value={st.value}>{st.icon} {st.label}</option>)}
@@ -1479,8 +1490,10 @@ function FieldBgUpload({ url, onChange }: { url: string | null; onChange: (u: st
     setErr(null); setBusy(true)
     try {
       const supabase = createClient()
-      const path = `fields/${Date.now()}-${file.name.toLowerCase().replace(/[^a-z0-9.]/g, '-').replace(/-+/g, '-')}`
-      const { error } = await supabase.storage.from('card-images').upload(path, file, { upsert: true, contentType: file.type })
+      const { blob, ext, contentType } = await toWebp(file, { maxW: 1920 })
+      const base = file.name.toLowerCase().replace(/[^a-z0-9.]/g, '-').replace(/-+/g, '-').replace(/\.[^.]+$/, '')
+      const path = `fields/${Date.now()}-${base}.${ext}`
+      const { error } = await supabase.storage.from('card-images').upload(path, blob, { upsert: true, contentType, cacheControl: LONG_CACHE })
       if (error) { setErr(error.message); return }
       const { data: { publicUrl } } = supabase.storage.from('card-images').getPublicUrl(path)
       onChange(publicUrl)

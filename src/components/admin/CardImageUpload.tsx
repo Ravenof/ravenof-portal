@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Upload, Loader2, X, ImageIcon, Maximize2 } from 'lucide-react'
 import { CardLightbox } from '@/components/rules/CardLightbox'
 import { createClient } from '@/lib/supabase/client'
+import { toWebp, CARD_MAX_W, LONG_CACHE } from '@/lib/img-optimize'
 
 type Props = {
   currentUrl: string
@@ -75,12 +76,14 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
         ? `cards/${cardId}`
         : `cards/temp`
 
+      const { blob, ext, contentType } = await toWebp(file, { maxW: CARD_MAX_W })
       const timestamp = Date.now()
-      const path = `${folder}/${timestamp}-${safeName(file.name)}`
+      const base = safeName(file.name).replace(/\.[^.]+$/, '')
+      const path = `${folder}/${timestamp}-${base}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from('card-images')
-        .upload(path, file, { upsert: true, contentType: file.type })
+        .upload(path, blob, { upsert: true, contentType, cacheControl: LONG_CACHE })
 
       if (uploadError) {
         setError(uploadError.message)

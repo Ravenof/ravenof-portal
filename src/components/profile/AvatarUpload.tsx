@@ -51,7 +51,7 @@ export function AvatarUpload({ userId, currentAvatarUrl, displayName }: Props) {
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, file, { upsert: true, contentType: file.type })
+        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' })
 
       if (uploadError) {
         setError('Įkėlimo klaida: ' + uploadError.message)

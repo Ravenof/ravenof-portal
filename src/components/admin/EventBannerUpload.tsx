@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Upload, Loader2, X, ImageIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 
 type Props = {
   currentUrl: string
@@ -41,10 +42,11 @@ export function EventBannerUpload({ currentUrl, onUpload }: Props) {
     setError(null); setSuccess(null); setLoading(true)
     try {
       const supabase = createClient()
-      const path = `events/${Date.now()}-${safeName(file.name)}`
+      const { blob, ext, contentType } = await toWebp(file)
+      const path = `events/${Date.now()}-${safeName(file.name).replace(/\.[^.]+$/, '')}.${ext}`
       const { error: upErr } = await supabase.storage
         .from('card-images')
-        .upload(path, file, { upsert: true, contentType: file.type })
+        .upload(path, blob, { upsert: true, contentType, cacheControl: LONG_CACHE })
       if (upErr) { setError(upErr.message); return }
       const { data: { publicUrl } } = supabase.storage.from('card-images').getPublicUrl(path)
       setSuccess('Baneris įkeltas!')
