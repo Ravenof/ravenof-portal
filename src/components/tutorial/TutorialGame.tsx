@@ -29,6 +29,7 @@ import {
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
+import { reportMatchV2, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
@@ -1061,7 +1062,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [deckId])
 
   // ── Žaidimo (per)kūrimas ──
+  const matchStartRef = useRef<number>(0)
+  const clientMatchIdRef = useRef<string>('')
   const initGame = useCallback((cards: TutCard[], opp?: TutCard[] | null) => {
+    matchStartRef.current = Date.now()
+    clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    matchRewardRef.current = false
+    questReportedRef.current = false
     const aiSource = opp && opp.length > 0 ? opp : cards
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
@@ -1689,35 +1696,32 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
 
-  // Aukso apdovanojimas: pergalė pilnas, pralaimėjimas — dalyvavimo auksas. Tik kartą; ne tutorial.
-  const awardedRef = useRef(false)
-  useEffect(() => {
-    if (!game?.winner || awardedRef.current) return
-    if (deckId === DEMO_DECK_ID) return
-    awardedRef.current = true
-    if (ranked) return // ranked auksas skiriamas RankedClient (ranked_win/ranked_loss)
-    const won = game.winner === 'you'
-    if (vsRemote) awardGold(won ? 'pvp_unranked' : 'pvp_loss', won ? PVP_REWARD : PVP_LOSS_REWARD)
-    else if (practice) awardGold(won ? (('pve_' + difficulty) as GoldReason) : 'pve_loss', won ? PVE_REWARD[difficulty] : PVE_LOSS_REWARD)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.winner])
-
-  // ── Kovos atlygis + level-up šventė (XP; ne demo/ranked/campaign) ──
-  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; before: number; after: number; levelReward?: { gold?: number; boosters?: number } | null } | null>(null)
+  // ── Kovos atlygis + level-up šventė (config-driven v2; bot/unranked; ne demo/ranked/campaign) ──
+  // Ranked atlygis skiriamas RankedClient. Bot/unranked eina per rvn_report_match_v2
+  // (config reikšmės, validumas, dienos cap, level rewards) — vienas šaltinis.
+  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[] } | null>(null)
   const matchRewardRef = useRef(false)
   useEffect(() => {
     if (!game?.winner || matchRewardRef.current) return
     if (deckId === DEMO_DECK_ID || ranked || onCampaignResult) return
     matchRewardRef.current = true
     const won = game.winner === 'you'
-    const mode: MatchXpMode = vsRemote ? 'pvp' : (('pve_' + difficulty) as MatchXpMode)
-    const gold = won ? (vsRemote ? PVP_REWARD : (practice ? PVE_REWARD[difficulty] : 0)) : (vsRemote ? PVP_LOSS_REWARD : (practice ? PVE_LOSS_REWARD : 0))
-    reportMatchXp(won, mode).then((r) => {
-      const xp = r?.xpGained ?? 0
-      const before = r?.totalBefore ?? 0
-      const after = r?.totalAfter ?? (before + xp)
-      setMatchReward({ gold, xp, before, after, levelReward: r?.levelReward ?? null })
-      if (getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
+    const mode: MatchMode = vsRemote ? 'unranked' : 'bot'
+    const durationSeconds = Math.round((Date.now() - (matchStartRef.current || Date.now())) / 1000)
+    const turns = game.globalTurn
+    reportMatchV2({
+      clientMatchId: clientMatchIdRef.current, mode, result: won ? 'win' : 'loss',
+      durationSeconds, turns, playerActions: turns, opponentActions: turns,
+      opponentId: net?.opponentId ?? null, opponentType: vsRemote ? 'human' : 'bot',
+    }).then((r) => {
+      if (!r) return
+      const before = r.accountXpBefore ?? 0
+      const after = r.accountXpAfter ?? before
+      setMatchReward({
+        gold: r.rewards?.silver ?? 0, xp: r.rewards?.account_xp ?? 0, seasonXp: r.rewards?.season_xp ?? 0,
+        before, after, valid: !!r.valid, levelRewards: r.levelRewards ?? [],
+      })
+      if (r.valid && getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
@@ -4121,7 +4125,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </p>
 
               {/* ── Atlygis + level-up šventė ── */}
-              {matchReward && (matchReward.gold > 0 || matchReward.xp > 0) && (() => {
+              {matchReward && matchReward.valid && (matchReward.gold > 0 || matchReward.xp > 0) && (() => {
                 const lvlBefore = getLevelForXp(matchReward.before)
                 const prog = getLevelProgress(matchReward.after)
                 const leveledUp = prog.level > lvlBefore
@@ -4134,14 +4138,24 @@ doAction({ t: 'endTurn', actor: 'you' })
                         style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(240,180,41,0.28), transparent 60%), linear-gradient(160deg, rgba(46,34,64,0.92), rgba(12,9,18,0.96))', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 0 26px rgba(240,180,41,0.4)' }}>
                         <div className="text-[11px] font-extrabold tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 14px rgba(240,180,41,0.6)' }}>✦ NAUJAS LYGIS {prog.level} ✦</div>
                         <div className="text-[10px] mt-0.5" style={{ color: '#e8dcc0' }}>{prog.title}</div>
-                        {matchReward.levelReward && ((matchReward.levelReward.gold ?? 0) > 0 || (matchReward.levelReward.boosters ?? 0) > 0) && (
-                          <motion.div initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }}
-                            className="flex items-center justify-center gap-1.5 mt-1.5">
-                            <span className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Lygio atlygis:</span>
-                            {(matchReward.levelReward.gold ?? 0) > 0 && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>🪙 +{matchReward.levelReward.gold}</span>}
-                            {(matchReward.levelReward.boosters ?? 0) > 0 && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'rgba(251,146,60,0.16)', border: '1px solid rgba(251,146,60,0.5)', color: '#fdba74' }}>🎁 +{matchReward.levelReward.boosters} pak.</span>}
-                          </motion.div>
-                        )}
+                        {matchReward.levelRewards.length > 0 && (() => {
+                          const agg = { silver: 0, essence: 0, rubies: 0, packs: 0, items: [] as string[] }
+                          for (const e of matchReward.levelRewards) for (const it of e.payload) {
+                            if (it.type === 'currency') { const a = Number(it.amount) || 0; if (it.currency === 'silver') agg.silver += a; else if (it.currency === 'essence') agg.essence += a; else if (it.currency === 'rubies') agg.rubies += a }
+                            else if (it.type === 'item') { if (it.item_type === 'pack') agg.packs += Number(it.quantity) || 0; else if (it.item_type === 'card_back') agg.items.push('Kortų nugarėlė') }
+                          }
+                          const chip = (bg: string, bd: string, col: string, txt: string) => (<span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: bg, border: `1px solid ${bd}`, color: col }}>{txt}</span>)
+                          return (
+                            <motion.div initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }} className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
+                              <span className="text-[9px] uppercase tracking-widest w-full text-center" style={{ color: 'var(--text-muted)' }}>Lygio atlygis</span>
+                              {agg.silver > 0 && chip('rgba(240,180,41,0.16)', 'rgba(240,180,41,0.5)', 'var(--gold)', `🪙 +${agg.silver}`)}
+                              {agg.essence > 0 && chip('rgba(139,92,246,0.16)', 'rgba(139,92,246,0.5)', '#c4b5fd', `🔮 +${agg.essence}`)}
+                              {agg.rubies > 0 && chip('rgba(239,68,68,0.16)', 'rgba(239,68,68,0.5)', '#fca5a5', `💎 +${agg.rubies}`)}
+                              {agg.packs > 0 && chip('rgba(251,146,60,0.16)', 'rgba(251,146,60,0.5)', '#fdba74', `🎁 +${agg.packs} pak.`)}
+                              {agg.items.map((n, i) => <span key={i}>{chip('rgba(96,165,250,0.16)', 'rgba(96,165,250,0.5)', '#93c5fd', `🎴 ${n}`)}</span>)}
+                            </motion.div>
+                          )
+                        })()}
                       </motion.div>
                     )}
                     <div className="flex items-center justify-center gap-2 mb-2.5">
@@ -4159,6 +4173,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                           <span>⭐</span> +{matchReward.xp} XP
                         </motion.div>
                       )}
+                      {matchReward.seasonXp > 0 && (
+                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.24 }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                          style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(139,92,246,0.4)', color: '#d6c8ff' }}>
+                          <span>🏵️</span> +{matchReward.seasonXp} Sezono
+                        </motion.div>
+                      )}
                     </div>
                     <div className="px-1">
                       <div className="flex justify-between text-[9px] mb-1" style={{ color: 'var(--text-muted)' }}>
@@ -4169,17 +4190,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                         <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: 0.35, duration: 0.9, ease: 'easeOut' }}
                           style={{ height: '100%', background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: '0 0 10px rgba(240,180,41,0.6)' }} />
                       </div>
-                      {/* Kas toliau: kito lygio atlygio preview */}
-                      {!prog.isMaxLevel && (() => {
-                        const nr = levelReward(prog.level + 1)
-                        return (
-                          <p className="text-[9px] mt-1 text-center" style={{ color: 'var(--text-muted)' }}>
-                            Kitas — <span style={{ color: '#e8dcc0', fontWeight: 700 }}>Lygis {prog.level + 1}</span> už {prog.xpNeededForNextLevel} XP:
-                            <span style={{ color: 'var(--gold)', fontWeight: 700 }}> 🪙 {nr.gold}</span>
-                            {nr.boosters > 0 && <span style={{ color: '#fdba74', fontWeight: 700 }}> + 🎁 {nr.boosters} pak.</span>}
-                          </p>
-                        )
-                      })()}
+                      {!prog.isMaxLevel && (
+                        <p className="text-[9px] mt-1 text-center" style={{ color: 'var(--text-muted)' }}>
+                          Kitas — <span style={{ color: '#e8dcc0', fontWeight: 700 }}>Lygis {prog.level + 1}</span> už {prog.xpNeededForNextLevel} XP:
+                          <span style={{ color: 'var(--gold)', fontWeight: 700 }}> 🪙 100</span>
+                          <span style={{ color: '#c4b5fd', fontWeight: 700 }}> + 🔮 25</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 )
