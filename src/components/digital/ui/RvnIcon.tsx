@@ -12,6 +12,7 @@ import type { ReactNode } from 'react'
 
 export const ICON_BASE = '/digital/icons'
 export const ICON_EXT = 'png'  // <-- vienas perjungiklis: 'png' | 'svg' | 'webp'
+export const ICON_V = '3'      // cache-busting: padidink kai keiti ikonas (priverst. re-fetch)
 
 export function RvnIcon({ name, fallback, size = 24, style, round }: {
   name: string
@@ -24,7 +25,7 @@ export function RvnIcon({ name, fallback, size = 24, style, round }: {
   if (failed) return <>{fallback}</>
   return (
     <img
-      src={`${ICON_BASE}/${name}.${ICON_EXT}`}
+      src={`${ICON_BASE}/${name}.${ICON_EXT}?v=${ICON_V}`}
       alt=""
       width={size}
       height={size}
