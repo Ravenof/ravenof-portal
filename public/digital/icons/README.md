@@ -1,47 +1,57 @@
 # Ravenof Digital — savo ikonų įkėlimas
 
-Įdėk savo ikonų failus **į šį aplanką** tiksliais pavadinimais (žemiau).
-Jie atsiras automatiškai. Jei failo nėra — UI naudoja įmontuotą (lucide) ikoną,
-tad gali dėti palaipsniui. Kodo keisti **nereikia**.
+Įdėk PNG failus **į šį aplanką** (`public/digital/icons/`) tiksliais pavadinimais
+(žemiau). Jie atsiras automatiškai. Jei failo nėra — rodoma įmontuota atsarginė
+ikona (emoji/lucide), tad gali dėti palaipsniui. Kodo keisti **nereikia**.
 
-## Formatas
-- **PNG su permatomu fonu (RGBA)** — numatytasis. (Galima ir SVG ar WEBP, žr. apačioje.)
-- Kvadratinė drobė, ikona centre, ~8–12% tarpas nuo kraštų, apkarpyta.
-- Permatomas fonas (ne juodas).
-- Vienodas stilius/storis, aukso/frakcijų paletė.
-- Patarimas: daryk 3–4× didesnį nei rodoma (retina ryškumui).
+## Formatas (visoms ikonoms)
+- **PNG su permatomu fonu (RGBA).** (Nori SVG/WEBP? `src/components/digital/ui/RvnIcon.tsx` → `ICON_EXT`.)
+- **Kvadratinė** drobė, ikona centre, ~8–12 % tarpas nuo kraštų.
+- Daryk **3–4× didesnę** nei rodoma (retina ryškumui).
+- Vientisas stilius, aukso/frakcijų paletė, permatomas fonas (ne juodas).
 
-## Failų pavadinimai ir dydžiai (kvadratas)
+## Failų sąrašas (pavadinimas → kur → dydis)
 
-| Failas | Kur naudojama | Rekomenduojamas dydis | Rodoma ~ |
-|---|---|---|---|
-| `mode-pve.png` | Hero režimas „Treniruotė" | 96×96 | 22px |
-| `mode-ranked.png` | Hero režimas „Ranginė" | 96×96 | 22px |
-| `mode-free.png` | Hero režimas „Draugiška" | 96×96 | 22px |
-| `qa-decks.png` | Greita: Kaladės | 96×96 | 24px |
-| `qa-collection.png` | Greita: Kolekcija | 96×96 | 24px |
-| `qa-quests.png` | Greita: Užduotys | 96×96 | 24px |
-| `qa-shop.png` | Greita: Parduotuvė | 96×96 | 24px |
-| `emblem-season.png` | Sezono kelio emblema | 128×128 | 30px |
-| `emblem-tutorial.png` | Mokymų emblema | 128×128 | 30px |
-| `flame.png` | Prisijungimo serijos liepsna | 96×96 | 28px |
-| `avatar.png` | Numatytasis žaidėjo avataras | 128×128 (apvalus subjektas centre) | 38px (apvalus) |
-| `bell.png` | Pranešimų mygtukas | 72×72 | 18px |
-| `settings.png` | Nustatymų mygtukas | 72×72 | 18px |
-| `nav-home.png` | Apatinė juosta: Pradžia | 96×96 | 24px |
-| `nav-collection.png` | Apatinė juosta: Kolekcija | 96×96 | 24px |
-| `nav-decks.png` | Apatinė juosta: Kaladės | 96×96 | 24px |
-| `nav-shop.png` | Apatinė juosta: Parduotuvė | 96×96 | 24px |
-| `nav-more.png` | Apatinė juosta: Daugiau | 96×96 | 24px |
+### Valiutos (viršutinė juosta)
+| Failas | Valiuta | Dydis |
+|---|---|---|
+| cur-silver.png  | Sidabras  | 96×96 |
+| cur-rubies.png  | Rubinai   | 96×96 |
+| cur-essence.png | Esencija  | 96×96 |
+
+### 3 segmentai (po valiutomis)
+| Failas | Segmentas | Dydis |
+|---|---|---|
+| seg-quests.png | Užduotys             | 96×96 |
+| seg-season.png | Sezono kelias        | 96×96 |
+| seg-login.png  | Prisijungimo dovanos | 96×96 |
+
+### Kovos režimai („Žaisti" kortoje)
+| Failas | Režimas | Dydis |
+|---|---|---|
+| fi-pve.png    | Treniruočių kova | 96×96 |
+| fi-ranked.png | Reitinginė kova  | 96×96 |
+| fi-pvp.png    | Draugiška kova   | 96×96 |
+
+### Apatinė navigacija (bottom nav)
+| Failas | Skiltis | Dydis |
+|---|---|---|
+| nav-home.png       | Pradžia    | 96×96 |
+| nav-collection.png | Kolekcija  | 96×96 |
+| nav-decks.png      | Kaladės    | 96×96 |
+| nav-shop.png       | Parduotuvė | 96×96 |
+| nav-more.png       | Daugiau    | 96×96 |
+
+### Kita
+| Failas | Kur | Dydis |
+|---|---|---|
+| pack.png     | Booster pakuotė (parduotuvė/albumas) | 96×96 |
+| bell.png     | Pranešimų mygtukas | 72×72 |
+| settings.png | Nustatymų mygtukas | 72×72 |
+| avatar.png   | Numatytasis avataras (apvalus subjektas) | 128×128 |
+| flame.png    | Prisijungimo serijos liepsna | 96×96 |
 
 ## Pastabos
-- Pavadinimai turi būti **tiksliai** tokie (mažosios raidės). Dėk į `public/digital/icons/`.
-- Po įkėlimo: commit/deploy + hard refresh (telefone išvalyk cache).
-- Trūkstamas failas = automatinis fallback į įmontuotą ikoną (jokios klaidos).
-
-## Nori SVG arba WEBP vietoj PNG?
-Pakeisk vieną eilutę: `src/components/digital/ui/RvnIcon.tsx` →
-`export const ICON_EXT = 'svg'`  (arba `'webp'`).
-Tada visi failai turi būti to formato (pvz. `mode-ranked.svg`).
-SVG rekomenduojamas (ryškus bet kokiame dydyje); jei SVG — dydis drobės nesvarbus,
-bet vis tiek daryk kvadratinį `viewBox` su centruota ikona.
+- Pavadinimai **tiksliai** tokie (mažosios raidės). Po įkėlimo: commit/deploy + hard refresh.
+- Trūkstamas failas = automatinis fallback (jokios klaidos), tad gali dėti po vieną.
+- Bottom nav aktyvi skiltis paryškinama auksu automatiškai — daryk **neutralios/šviesios** spalvos ikonas.
