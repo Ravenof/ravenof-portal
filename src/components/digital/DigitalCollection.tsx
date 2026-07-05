@@ -13,7 +13,8 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Search, Lock, X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { playUiClick, playCardFlip } from '@/lib/ui-sound'
+import { playUiClick, playCardFlip, playSuccess } from '@/lib/ui-sound'
+import { getCraftConfig, disenchantCard, craftCard, CRAFT_ERR_LT, type CraftConfig } from '@/lib/gamification/craft'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
@@ -374,7 +375,7 @@ export function DigitalCollection() {
           onOpened={() => { refreshInv(); emitWalletChanged(); load() }} />
       )}
 
-      {preview && <PreviewModal c={preview} onClose={() => setPreview(null)} />}
+      {preview && <PreviewModal c={preview} onClose={() => setPreview(null)} onChanged={load} />}
     </div>
   )
 }
@@ -425,9 +426,22 @@ function CardCell({ c, onClick }: { c: Col; onClick: () => void }) {
   )
 }
 
-function PreviewModal({ c, onClose }: { c: Col; onClose: () => void }) {
+function PreviewModal({ c, onClose, onChanged }: { c: Col; onClose: () => void; onChanged?: () => void }) {
   const [bad, setBad] = useState(false)
-  const owned = c.owned > 0
+  const [cfg, setCfg] = useState<CraftConfig | null>(null)
+  const [essence, setEssence] = useState(0)
+  const [ownedNow, setOwnedNow] = useState(c.owned)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  useEffect(() => { getCraftConfig().then((r) => { if (r) { setCfg(r.config); setEssence(r.essence) } }) }, [])
+  const tier = String((c.type && /champion|čempion/i.test(c.type)) ? 6 : Math.min(6, Math.max(1, c.raritySort || 1)))
+  const dustVal = cfg ? (cfg.disenchant[tier] ?? 0) : 0
+  const craftCost = cfg ? (cfg.craft[tier] ?? 0) : 0
+  const canDust = ownedNow > c.copyLimit
+  const canCraft = ownedNow < c.copyLimit
+  const doDust = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await disenchantCard(c.id, 1); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n - 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(CRAFT_ERR_LT[r.error] ?? 'Nepavyko'); setBusy(false) }
+  const doCraft = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await craftCard(c.id); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n + 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(CRAFT_ERR_LT[r.error] ?? 'Nepavyko'); setBusy(false) }
+  const owned = ownedNow > 0
   const col = rarityColor(c.rarity)
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-5" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
@@ -454,8 +468,20 @@ function PreviewModal({ c, onClose }: { c: Col; onClose: () => void }) {
           </div>
           {c.effect && <p className="text-xs leading-snug" style={{ color: 'var(--text-secondary)' }}>{c.effect}</p>}
           <p className="text-xs font-semibold" style={{ color: owned ? '#86efac' : '#fca5a5' }}>
-            {owned ? `Turima: ×${c.owned}` : 'Kortos dar neturi'}
+            {owned ? `Turima: ×${ownedNow}` : 'Kortos dar neturi'}
           </p>
+          <div className="flex items-center justify-between gap-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="text-[11px]" style={{ color: '#c4b5fd' }}>🔮 {essence}</span>
+            <div className="flex gap-2">
+              {canDust && (
+                <button onClick={doDust} disabled={busy} className="px-2.5 py-1 rounded-lg text-[10px] font-bold" style={{ background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd' }}>Dulkinti +🔮{dustVal}</button>
+              )}
+              {canCraft && (
+                <button onClick={doCraft} disabled={busy || essence < craftCost} className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold" style={{ background: essence >= craftCost ? 'linear-gradient(180deg,#ffe28c,#f3b62c)' : 'rgba(255,255,255,0.06)', color: essence >= craftCost ? '#3a2406' : 'var(--text-muted)' }}>Sukurti 🔮{craftCost}</button>
+              )}
+            </div>
+          </div>
+          {msg && <p className="text-[10px] text-center" style={{ color: '#fca5a5' }}>{msg}</p>}
         </div>
       </div>
     </div>
