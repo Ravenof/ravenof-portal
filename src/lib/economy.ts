@@ -71,11 +71,13 @@ export type ReportMatchArgs = {
   durationSeconds?: number; turns?: number; playerActions?: number; opponentActions?: number
   opponentId?: string | null; opponentType?: 'human' | 'bot'
 }
+export type LevelRewardEntry = { level: number; payload: Array<Record<string, unknown>> }
 export type MatchRewardResult = {
   valid: boolean; duplicate?: boolean
   rewards?: { account_xp: number; season_xp: number; silver: number }
   streak?: number; rankedDelta?: number
   accountXpBefore?: number; accountXpAfter?: number
+  levelRewards?: LevelRewardEntry[]
   balances?: Balances
 }
 
