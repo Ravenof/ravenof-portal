@@ -1,38 +1,44 @@
 'use client'
 
-// ── Ravenof Digital — pagrindinis meniu (premium CSS, gyvi duomenys) ─────────
+// ── Ravenof Digital — pagrindinis meniu, LANDSCAPE lobby (premium dark fantasy) ──
+// 3 zonos: kairė Dienos užduotys · centras Play hero + režimai · dešinė Sezono progresas.
+// Apačia: featured cosmetic / naujienos / draugai. Visa logika/duomenys/modalai išsaugoti.
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Medal } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
-import { SeasonPassModal } from './SeasonPassModal'
 import { SeasonPathModal } from './SeasonPathModal'
 import { StoreModal } from './StoreModal'
-import { ShopModal } from './ShopModal'
 import { CosmeticsModal } from './CosmeticsModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
 import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
 import { StarterOnboarding } from './StarterOnboarding'
-import { loginCheckin, getDailyQuests } from '@/lib/gamification/quests'
-import { getSeasonPass } from '@/lib/gamification/seasonPass'
+import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
-import { getDailyTasks } from '@/lib/gamification/dailyTasks'
+import { getDailyTasks, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
-import { HubStyles, RewardBanner, StatCard, RewardChip, PlayHeroCard, ModeSelector, QuickActionCard, ASSET, type HubMode } from './ui/HubKit'
+import { HubStyles, PlayHeroCard, ModeSelector, type HubMode } from './ui/HubKit'
 import { RvnIcon } from './ui/RvnIcon'
 
 const MODES: HubMode[] = [
-  { key: 'pve',    label: 'Treniruočių kova', iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
-  { key: 'ranked', label: 'Reitinginė kova',  iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
-  { key: 'free',   label: 'Draugiška kova',   iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
+  { key: 'ranked', label: 'Reitingas',  iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
+  { key: 'pve',    label: 'Prieš AI',   iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
+  { key: 'free',   label: 'Draugiška',  iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
+
+const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(18,14,26,0.96), rgba(9,7,14,0.98))', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+
+const NEWS = [
+  { tag: 'Atnaujinimas', title: 'Nauja horizontali kova', when: 'Naujiena' },
+  { tag: 'Renginys', title: 'Savaitgalio dviguba XP', when: 'Aktyvu' },
+  { tag: 'Balansas', title: 'Demonų prakeiksmų tikslinimas', when: '' },
+]
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
@@ -48,6 +54,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [questsPending, setQuestsPending] = useState(0)
+  const [tasks, setTasks] = useState<DailyTask[]>([])
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginClaimable, setLoginClaimable] = useState(false)
@@ -56,27 +63,24 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [seasonClaimable, setSeasonClaimable] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
-  const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { if (!s2) { setQuestsPending(0); return } setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
+  const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { if (!s2) { setQuestsPending(0); setTasks([]); return } setTasks(s2.tasks); setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
   const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
 
   useEffect(() => {
     if (!loggedIn) return
-    refreshWallet(); refreshQuests()
-    refreshBalances()
+    refreshWallet(); refreshQuests(); refreshBalances()
     getMonthlyLogin().then((ml) => {
       if (!ml) return
-      const claimable = !ml.claimedToday && ml.nextDay <= ml.daysInMonth
-      setLoginClaimable(claimable)
-      if (claimable) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
+      const cl = !ml.claimedToday && ml.nextDay <= ml.daysInMonth
+      setLoginClaimable(cl)
+      if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
     })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const claimable = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(claimable) })
+    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl) })
     getStarterDecks().then((d) => {
       const c = (d ?? []).filter((x) => x.claimed).length
       setNewPlayer(c === 0)
-      // Naujoko onboarding popup (kaladė + avataras) – automatiškai, kol neatmestas.
-      // WelcomeReward (z400) rodomas virš – dovana pirmiau, užsidarius matosi šis.
       if (c === 0 && (d ?? []).length > 0 && !localStorage.getItem('rvn-starter-onboard-seen')) setOnboardOpen(true)
     })
   }, [loggedIn, refreshWallet, refreshQuests, refreshBalances])
@@ -90,78 +94,113 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     )
   }
 
-  const claimReward = () => { if (!claimable) return; playUiClick(); setClaimable(false); setToast(`🔥 ${streak} d. serija — atlygis atsiimtas!`); refreshWallet() }
   const startBattle = () => { playUiClick(); router.push(MODE_HREF[mode]) }
-
-  // ── Protingas „kitas veiksmas" — viena aiški rekomendacija pagal žaidėjo būseną ──
-  type NextAction = { icon: string; title: string; sub: string; accent: string; act: () => void }
-  const nextAction: NextAction | null = newPlayer === null ? null
-    : newPlayer
-      ? { icon: '🎓', title: 'Pasiimk starter kaladę', sub: 'Nemokama kaladė, avataras ir mokymų kova', accent: '240,180,41', act: () => { playUiClick(); setOnboardOpen(true) } }
-    : questsPending > 0
-      ? { icon: '🎯', title: 'Atsiimk užduočių atlygį', sub: `Paruošta atsiimti: ${questsPending}`, accent: '52,211,153', act: () => { playUiClick(); setDailyOpen(true) } }
-    : wallet.packs > 0
-      ? { icon: '🎁', title: 'Atplėšk pakuotę', sub: `Turi ${wallet.packs} · atidaryk albume`, accent: '251,146,60', act: () => { playUiClick(); router.push('/digital/album') } }
-    : seasonClaimable > 0
-      ? { icon: '📜', title: 'Atsiimk sezono pakopą', sub: `Laukia pakopų: ${seasonClaimable}`, accent: '139,92,246', act: () => { playUiClick(); setSeasonOpen(true) } }
-      : { icon: '⚔️', title: 'Sužaisk reitingo kovą', sub: 'Kelk reitingą ir uždirbk XP', accent: '240,180,41', act: () => { playUiClick(); router.push('/digital/ranked') } }
+  const doneCount = tasks.filter((t) => t.completed).length
 
   return (
-    <div className="relative z-10 space-y-3">
+    <div className="relative z-10 flex flex-col gap-2" style={{ height: 'calc(100dvh - 148px)', minHeight: 300 }}>
       <HubStyles />
 
-      {/* ── 3 segmentai: Užduotys / Sezonas / Prisijungimas ── */}
-      <div className="grid grid-cols-3 gap-2">
-        <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="rvn-press relative flex flex-col items-center justify-center gap-1 rounded-xl py-3"
-          style={{ background: 'linear-gradient(160deg, rgba(52,211,153,0.12), rgba(10,8,16,0.92))', border: '1px solid rgba(52,211,153,0.4)' }}>
-          <RvnIcon name="seg-quests" size={46} fallback={<span style={{ fontSize: 22 }}>🎯</span>} />
-          <span className="text-[10px] font-bold" style={{ color: '#a7f3d0' }}>Užduotys</span>
-          {questsPending > 0 && <span className="absolute top-1.5 right-1.5 flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 16, height: 16, background: '#ef4444', color: '#fff' }}>{questsPending}</span>}
-        </button>
-        <button onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press flex flex-col items-center justify-center gap-1 rounded-xl py-3"
-          style={{ background: 'linear-gradient(160deg, rgba(240,180,41,0.12), rgba(10,8,16,0.92))', border: '1px solid rgba(240,180,41,0.4)' }}>
-          <RvnIcon name="seg-season" size={46} fallback={<span style={{ fontSize: 22 }}>📜</span>} />
-          <span className="text-[10px] font-bold" style={{ color: '#f3d98c' }}>Sezonas</span>
-          <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>Lygis {season.cur}/{season.total}</span>
-        </button>
-        <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="rvn-press relative flex flex-col items-center justify-center gap-1 rounded-xl py-3"
-          style={{ background: 'linear-gradient(160deg, rgba(139,92,246,0.12), rgba(10,8,16,0.92))', border: '1px solid rgba(139,92,246,0.4)' }}>
-          <RvnIcon name="seg-login" size={46} fallback={<span style={{ fontSize: 22 }}>🎁</span>} />
-          <span className="text-[10px] font-bold" style={{ color: '#c4b5fd' }}>Dovanos</span>
-          {loginClaimable && <span className="absolute top-1.5 right-1.5 rvn-glow-pulse rounded-full" style={{ width: 9, height: 9, background: '#f3b62c', boxShadow: '0 0 8px rgba(240,180,41,0.9)' }} />}
-        </button>
+      {/* ── PAGRINDINĖ ZONA: kairė quests · centras play · dešinė sezonas ── */}
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(190px,1fr) minmax(0,2.1fr) minmax(190px,1fr)' }}>
+
+        {/* ── KAIRĖ: Dienos užduotys ── */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
+          <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Dienos užduotys</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col gap-1.5">
+            {tasks.length === 0 && <span className="text-[11px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Kraunama…</span>}
+            {tasks.slice(0, 4).map((t) => {
+              const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
+              return (
+                <div key={t.id} className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(240,180,41,0.15)') }}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[11px]">{t.completed ? '✅' : '◻️'}</span>
+                    <span className="text-[11px] font-semibold flex-1 truncate" style={{ color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{t.title}</span>
+                    <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{t.progress}/{t.target}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                    <div className="h-full rounded-full" style={{ width: pct + '%', background: t.completed ? 'linear-gradient(90deg,#34d399,#a7f3d0)' : 'linear-gradient(90deg,#d4af37,#f3d98c)' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <button onClick={() => { playUiClick(); setDailyOpen(true) }}
+            className="rvn-press m-2.5 mt-1.5 py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
+            style={{ background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(240,180,41,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
+            {questsPending > 0 ? `ATSIIMTI (${questsPending})` : 'PERŽIŪRĖTI'}
+          </button>
+        </section>
+
+        {/* ── CENTRAS: Play hero ── */}
+        <div className="flex flex-col min-h-0 gap-2">
+          <div className="flex-1 min-h-0">
+            <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
+              <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
+            </PlayHeroCard>
+          </div>
+        </div>
+
+        {/* ── DEŠINĖ: Sezono progresas ── */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
+          <div className="px-3 pt-2.5 pb-1.5">
+            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Sezono progresas</span>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 flex flex-col items-center justify-center gap-2 text-center">
+            <RvnIcon name="seg-season" size={48} fallback={<span style={{ fontSize: 30 }}>📜</span>} />
+            <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>Pakopa {season.cur}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
+            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.2)' }}>
+              <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} />
+            </div>
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Kita pakopa: <span style={{ color: '#c4b5fd' }}>Pakopa {Math.min(season.cur + 1, season.total)}</span></span>
+          </div>
+          <div className="p-2.5 pt-1.5 flex flex-col gap-1.5">
+            <button onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
+              style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#6b3fa0,#3a2160)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#c4b5fd', boxShadow: seasonClaimable > 0 ? '0 0 18px rgba(139,92,246,0.4)' : 'none' }}>
+              {seasonClaimable > 0 ? `ATSIIMTI (${seasonClaimable})` : 'PERŽIŪRĖTI TAKĄ'}
+            </button>
+          </div>
+        </section>
       </div>
 
-      {nextAction && (
-        <button onClick={nextAction.act} className="rvn-press rvn-glow block w-full text-left rvn-fade" style={{ borderRadius: 16, padding: '13px 16px',
-          background: `radial-gradient(130% 130% at 0% 0%, rgba(${nextAction.accent},0.30), transparent 56%), linear-gradient(150deg, rgba(20,15,30,0.96), rgba(10,8,16,0.98))`,
-          border: `1px solid rgba(${nextAction.accent},0.6)` }}>
-          <span className="flex items-center gap-3">
-            <span style={{ fontSize: 26 }}>{nextAction.icon}</span>
-            <span className="flex-1 min-w-0">
-              <span className="block" style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.16em', color: `rgba(${nextAction.accent},0.92)` }}>KITAS VEIKSMAS</span>
-              <span className="block rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{nextAction.title}</span>
-              <span className="block" style={{ fontSize: 11.5, color: '#e8dcc0' }}>{nextAction.sub}</span>
-            </span>
-            <span className="rvn-disp" style={{ fontSize: 15, fontWeight: 800, color: `rgba(${nextAction.accent},1)` }}>→</span>
-          </span>
+      {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
+      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(70px,15vh,120px)' }}>
+        <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(139,92,246,0.22), rgba(9,7,14,0.98))' }}>
+          <div>
+            <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#c4b5fd' }}>Kosmetika</div>
+            <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>Avatarai ir rėmai</div>
+            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Peržiūrėti kolekciją →</div>
+          </div>
         </button>
-      )}
 
+        <div className="rounded-xl overflow-hidden flex flex-col p-2.5" style={PANEL}>
+          <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--gold)' }}>Naujienos</div>
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1">
+            {NEWS.map((n, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                <span className="px-1 py-0.5 rounded shrink-0" style={{ fontSize: 8, background: 'rgba(240,180,41,0.14)', color: '#f3d98c' }}>{n.tag}</span>
+                <span className="truncate flex-1" style={{ color: '#e8dcc0' }}>{n.title}</span>
+                {n.when && <span className="shrink-0" style={{ color: 'var(--text-muted)', fontSize: 9 }}>{n.when}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
 
-      <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
-        <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
-      </PlayHeroCard>
+        <Link href="/digital/friends" onClick={() => playUiClick()} className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(52,211,153,0.18), rgba(9,7,14,0.98))' }}>
+          <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#a7f3d0' }}>Draugai</div>
+          <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>Socialinis</div>
+          <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Draugai ir kvietimai →</div>
+        </Link>
+      </div>
 
-
-
-
-
-
-
+      {/* ── Modalai (visi išsaugoti) ── */}
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={() => { refreshWallet(); refreshBalances() }} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
+      {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={() => { refreshWallet(); refreshBalances() }} />}
 
       {onboardOpen && (
         <StarterOnboarding
@@ -185,6 +224,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           {toast}
         </div>
       )}
+
+      {/* nenaudojami tiesiogiai, bet paliekami stabilumui */}
+      <span className="hidden">{streak}{claimable ? '1' : '0'}{newPlayer ? '1' : '0'}{loginClaimable ? '1' : '0'}</span>
     </div>
   )
 }

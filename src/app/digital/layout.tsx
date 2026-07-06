@@ -16,10 +16,10 @@ import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
-import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders } from '@/lib/digital/native'
+import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { getLevelProgress } from '@/lib/gamification/levels'
-import { HubStyles, ResourcePill, IconBtn } from '@/components/digital/ui/HubKit'
+import { HubStyles, ResourcePill, IconBtn, ProfileChip } from '@/components/digital/ui/HubKit'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 
 type NavItem = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
@@ -42,13 +42,24 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const [notifOpen, setNotifOpen] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [unread, setUnread] = useState(0)
+  const [showRotate, setShowRotate] = useState(false)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }); getBalances().then((b) => { if (b) setBalances(b) }) }, [])
 
   useEffect(() => {
     loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
     void scheduleReturnReminders()
-    return () => { stopMusic(); setNativeImmersive(false) }
+    void lockLandscape()
+    return () => { stopMusic(); setNativeImmersive(false); void unlockOrientation() }
+  }, [])
+
+  // Visas /digital app užrakintas į landscape; jei įrenginys portrait (web neleido lock) -> „pasuk telefoną" overlay.
+  useEffect(() => {
+    const check = () => setShowRotate(isPortraitNow())
+    check()
+    window.addEventListener('resize', check)
+    window.addEventListener('orientationchange', check)
+    return () => { window.removeEventListener('resize', check); window.removeEventListener('orientationchange', check) }
   }, [])
 
   // Profilis — tik mount + focus (nebe kiekvienam route pakeitimui: mažiau užklausų)
@@ -104,7 +115,10 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {/* ── Header (game account) ── */}
       <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
+          {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setSettingsOpen(true) }} />}
+        </div>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center">
           <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={balances.silver.toLocaleString('lt-LT')} accent="203,213,225" />
           <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={balances.rubies.toLocaleString('lt-LT')} accent="239,68,68" />
           <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={balances.essence.toLocaleString('lt-LT')} accent="139,92,246" />
@@ -150,6 +164,15 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
       {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
+
+      {showRotate && (
+        <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
+          <div className="text-6xl" style={{ animation: 'rvnRotateHintApp 1.6s ease-in-out infinite' }}>🔄</div>
+          <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pasuk telefoną</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ravenof žaidžiamas gulsčiai (landscape)</p>
+          <style>{`@keyframes rvnRotateHintApp { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }`}</style>
+        </div>
+      )}
     </div>
   )
 }
