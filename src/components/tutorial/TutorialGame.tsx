@@ -2343,9 +2343,9 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) {
           if (selKind === 'discard') { onHandCardClick(card); return }
           if (!hMobile) { onHandCardClick(card); return }  // desktop: bakstelėjimas = žaisti/pasirinkti
-          // Kompaktiška ranka: 1-as bakst = išsiskleisti (didelis fanas); bakst ant kortos atvirame = žaisti + sutraukti
+          // Kompaktiška ranka: 1-as bakst = išsiskleisti; 2-as bakst = tik sutraukti (žaidžiama TIK tempiant aukštyn – drag&drop)
           if (!handExpanded) { playUiClick(); setHandExpanded(true) }
-          else { setHandExpanded(false); onHandCardClick(card) }
+          else { playUiClick(); setHandExpanded(false) }
         }
         return
       }
