@@ -2342,10 +2342,10 @@ doAction({ t: 'endTurn', actor: 'you' })
       if (!started) {
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) {
           if (selKind === 'discard') { onHandCardClick(card); return }
+          if (!hMobile) { onHandCardClick(card); return }  // desktop: bakstelėjimas = žaisti/pasirinkti
+          // Kompaktiška ranka: 1-as bakst = išsiskleisti (didelis fanas); bakst ant kortos atvirame = žaisti + sutraukti
           if (!handExpanded) { playUiClick(); setHandExpanded(true) }
-          else if (!isTouch) { setHandExpanded(false); onHandCardClick(card) }
-          else { playUiClick(); setHandExpanded(false) }
-          // touch + atvira ranka: bakstelėjimas = sutraukti (simetriška); žaidžiama tempiant AUKŠTYN
+          else { setHandExpanded(false); onHandCardClick(card) }
         }
         return
       }
@@ -2644,18 +2644,25 @@ doAction({ t: 'endTurn', actor: 'you' })
   const renderHandFanH = () => {
     if (!game) return null
     if (hMobile) {
-      // Kompaktiška ranka (Hearthstone): maži persidengiantys minikai apačioj, palietus -> handExpanded didelė peržiūra.
+      // Kompaktiška ranka: maža apačioj; tempi AUKŠTYN = žaidi (drag-to-play); bakst = išsiskleidžia didelis fanas
+      // (uždengia artefaktus + dalį padarų), bakst ant kortos = žaidi ir sutraukia. Seno handExpanded overlay nebėra.
       const n = game.you.hand.length
+      const big = handExpanded
+      const w = big ? Math.round(handW * 2.15) : handW
+      const overlap = big ? 0.26 : 0.5
       return (
-        <div data-tut="hand" ref={handRef}
-          onClick={() => { if (!handExpanded) { playUiClick(); setHandExpanded(true) } }}
-          className="flex justify-center items-end h-full pb-0.5 cursor-pointer">
+        <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-0.5">
           {n === 0 ? <span className="text-[10px] self-center" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span> : game.you.hand.map((c, i) => {
             const off = i - (n - 1) / 2
+            const afford = game.you.gold >= c.gold
+            const isDragging = drag?.uid === c.uid && dragMovedRef.current
             return (
-              <div key={c.uid} data-hand-card={c.name} className="shrink-0"
-                style={{ marginLeft: i === 0 ? 0 : -Math.round(handW * 0.52), zIndex: i, transform: `translateY(${Math.round(Math.abs(off) * 3)}px) rotate(${Math.max(-10, Math.min(10, off * 3.5))}deg)`, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.6))' }}>
-                <MiniCard c={c} w={handW} />
+              <div key={c.uid} data-hand-card={c.name}
+                onPointerDown={(e) => beginHandPointer(c, e)}
+                onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
+                className="shrink-0 cursor-grab active:cursor-grabbing"
+                style={{ marginLeft: i === 0 ? 0 : -Math.round(w * overlap), zIndex: isDragging ? 60 : i, touchAction: 'pan-x', transform: `translateY(${big ? 0 : Math.round(Math.abs(off) * 3)}px) rotate(${Math.max(-12, Math.min(12, off * (big ? 4 : 3.5)))}deg)`, opacity: isDragging ? 0.3 : 1, filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : 'drop-shadow(0 4px 10px rgba(0,0,0,0.6))', transition: 'margin-left 0.18s ease, transform 0.18s ease' }}>
+                <MiniCard c={c} w={w} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} dim={!afford && select?.kind !== 'discard'} />
               </div>
             )
           })}
@@ -2719,14 +2726,12 @@ doAction({ t: 'endTurn', actor: 'you' })
   }
   const renderEndTurnH = () => {
     if (!game) return null
-    const mana = game.you.gold
     return (
       <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
         className="relative rounded-full flex flex-col items-center justify-center font-extrabold transition-all active:scale-95 disabled:opacity-60"
         style={{ width: 92, height: 92, background: myTurn ? 'radial-gradient(circle at 50% 35%, #2a9a4c, #134f25)' : 'radial-gradient(circle at 50% 35%, #7a1f1f, #3a0f0f)', border: '2px solid ' + (myTurn ? 'rgba(74,222,128,0.8)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', boxShadow: myTurn ? '0 0 22px rgba(34,197,94,0.5)' : 'none' }}
         title={myTurn ? 'Baigti ejima' : 'Prieso ejimas'}>
-        <span className="text-[10px] leading-tight text-center px-1" style={{ whiteSpace: 'pre-line' }}>{myTurn ? 'Baigti\nejima' : 'Prieso\nejimas'}</span>
-        <span className="text-[11px] tabular-nums mt-0.5" style={{ color: 'var(--gold)' }}>{'⚜'} {mana}</span>
+        <span className="text-[11px] leading-tight text-center px-1 font-bold" style={{ whiteSpace: 'pre-line' }}>{myTurn ? 'Baigti\nėjimą' : 'Priešo\nėjimas'}</span>
       </button>
     )
   }
@@ -3970,46 +3975,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         document.body)}
 
       {/* ── išskleista ranka: scroll-snap karuselė (didelės skaitomos kortos), tempk AUKŠTYN = žaidi ── */}
-      {handExpanded && game && (() => {
-        const vh = typeof window !== 'undefined' ? window.innerHeight : 720
-        const panelH = Math.min(Math.round(vh * 0.5), 460)
-        const cardH = panelH - 92
-        const handCardW = Math.max(150, Math.round(cardH * 0.75))
-        const pad = 'calc(50% - ' + Math.round(handCardW / 2) + 'px)'
-        return (
-          <div className="fixed inset-0 z-[122]"
-            onPointerDown={(e) => { if (e.target === e.currentTarget) { playUiClick(); setHandExpanded(false) } }}>
-            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }}
-              onPointerDown={() => { playUiClick(); setHandExpanded(false) }} />
-            <div ref={handPanelRef} className="absolute left-0 right-0 bottom-0 flex flex-col"
-              style={{ height: panelH, background: 'linear-gradient(to top, #07050b 78%, rgba(7,5,11,0))', paddingBottom: 'env(safe-area-inset-bottom)' }}
-              onPointerDown={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
-                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>↑ Tempk kortą aukštyn — žaisti · braukite šonu</span>
-                <button onClick={() => { playUiClick(); setHandExpanded(false) }} className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
-              </div>
-              <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden flex items-center gap-4"
-                style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', paddingLeft: pad, paddingRight: pad }}>
-                {game.you.hand.length === 0 && <span className="mx-auto text-xs" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>}
-                {game.you.hand.map((c) => {
-                  const afford = game.you.gold >= c.gold
-                  const isDragging = drag?.uid === c.uid && dragMovedRef.current
-                  return (
-                    <div key={c.uid}
-                      onPointerDown={(e) => beginHandPointer(c, e)}
-                      onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
-                      className="shrink-0 cursor-grab active:cursor-grabbing"
-                      style={{ scrollSnapAlign: 'center', touchAction: 'pan-x', opacity: isDragging ? 0.15 : 1, filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, boxShadow: afford ? '0 0 16px rgba(240,180,41,0.25)' : undefined, borderRadius: 12 }}>
-                      <MiniCard c={c} w={handCardW} readable dim={!afford && select?.kind !== 'discard'} />
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {/* (senas handExpanded bottom-sheet overlay pašalintas – ranka dabar skleidžiasi inline) */}
 
       {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) — izoliuotas ── */}
       {(vsRemote || (ranked && game?.active === 'you')) && !game?.winner && <TurnTimer deadline={turnDeadline} variant="big" />}

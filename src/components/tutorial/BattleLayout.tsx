@@ -134,12 +134,11 @@ export default function BattleLayout(props: BattleLayoutProps) {
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
             {/* Tavo artefaktai + reakcijos — viena eilė */}
             <div className="shrink-0 flex items-center justify-center gap-2 flex-nowrap">{renderArtifactRow('you')}{renderReactionRow('you')}</div>
-            {/* Tavo avataras — apačioje-centre (virš rankos) */}
-            <div className="relative flex items-center justify-center gap-2 flex-nowrap shrink-0">
-              {renderEmoteBubble?.('you')}
-              {hpBar('you', 0.68)}
-              {goldBar('you')}
-            </div>
+          </div>
+          {/* Tavo avataras — dešinys apatinis lentos kampas (fieldo pusėj, tuščioj erdvėj prie pile'ų) */}
+          <div className="absolute right-2 bottom-1 z-[9] flex items-center gap-1.5">
+            {renderEmoteBubble?.('you')}
+            {hpBar('you', 0.74)}
           </div>
 
         </section>
@@ -153,11 +152,13 @@ export default function BattleLayout(props: BattleLayoutProps) {
             {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', w: 42 })}
           </RailCard>
           {/* apvalus BAIGTI ĖJIMĄ (su mana + laikmačio žiedu) + discard */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-1.5">
             <div className="relative flex items-center justify-center" style={{ width: 92, height: 92 }}>
               <TurnRing deadline={turnDeadline} size={92} />
               {renderEndTurn()}
             </div>
+            {/* auksas (atskirai, su monetos ikona) + parduoti kortą */}
+            {goldBar('you')}
             {renderDiscardGold()}
           </div>
           {/* Tavo pile'ai (apačia) */}
