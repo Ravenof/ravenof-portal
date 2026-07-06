@@ -22,7 +22,7 @@ import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
 import { getDailyTasks, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
-import { HubStyles, PlayHeroCard, ModeSelector, type HubMode } from './ui/HubKit'
+import { HubStyles, ModeSelector, ASSET, type HubMode } from './ui/HubKit'
 import { RvnIcon } from './ui/RvnIcon'
 
 const MODES: HubMode[] = [
@@ -55,6 +55,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [questsPending, setQuestsPending] = useState(0)
   const [tasks, setTasks] = useState<DailyTask[]>([])
+  const [questsLoaded, setQuestsLoaded] = useState(false)
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginClaimable, setLoginClaimable] = useState(false)
@@ -63,7 +64,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [seasonClaimable, setSeasonClaimable] = useState(0)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
-  const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { if (!s2) { setQuestsPending(0); setTasks([]); return } setTasks(s2.tasks); setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
+  const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { setQuestsLoaded(true); if (!s2) { setQuestsPending(0); setTasks([]); return } setTasks(s2.tasks); setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
   const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
 
@@ -98,20 +99,20 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const doneCount = tasks.filter((t) => t.completed).length
 
   return (
-    <div className="relative z-10 flex flex-col gap-2" style={{ minHeight: '100%' }}>
+    <div className="relative z-10 h-full flex flex-col gap-2 overflow-hidden">
       <HubStyles />
 
       {/* ── PAGRINDINĖ ZONA: kairė quests · centras play · dešinė sezonas ── */}
-      <div className="grid gap-2 items-stretch" style={{ gridTemplateColumns: 'minmax(180px,1fr) minmax(0,2fr) minmax(180px,1fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(170px,1fr) minmax(0,2fr) minmax(170px,1fr)' }}>
 
         {/* ── KAIRĖ: Dienos užduotys ── */}
-        <section className="rounded-2xl flex flex-col overflow-hidden" style={PANEL}>
-          <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
+          <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 shrink-0">
             <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Dienos užduotys</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
           </div>
-          <div className="overflow-y-auto px-2.5 flex flex-col gap-1.5" style={{ maxHeight: '30vh' }}>
-            {tasks.length === 0 && <span className="text-[11px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Kraunama…</span>}
+          <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col gap-1.5">
+            {tasks.length === 0 && <span className="text-[11px] text-center my-auto px-2" style={{ color: 'var(--text-muted)' }}>{questsLoaded ? 'Šiandien užduočių nėra' : 'Kraunama…'}</span>}
             {tasks.slice(0, 4).map((t) => {
               const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
               return (
@@ -136,20 +137,26 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </section>
 
         {/* ── CENTRAS: Play hero ── */}
-        <div className="flex flex-col min-h-0 items-center justify-center overflow-hidden">
-          <div className="w-full overflow-hidden" style={{ maxWidth: 520, maxHeight: '100%' }}>
-            <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
-              <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
-            </PlayHeroCard>
+        <div className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-center min-h-0"
+          style={{ border: '1px solid rgba(240,180,41,0.45)', gap: 'clamp(2px,0.9vh,9px)', padding: 'clamp(5px,1.6vh,13px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
+          <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.24) 0%, rgba(8,6,14,0.5) 55%, rgba(8,6,14,0.82) 100%)' }} />
+          <img src={`${ASSET}/heading.png`} alt="Žaisti dabar" className="relative" style={{ height: 'clamp(16px,3.6vh,34px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <span className="relative" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>Pasirink režimą ir pradėk kovą</span>
+          <button onClick={startBattle} className="rvn-press relative block" style={{ lineHeight: 0, filter: 'drop-shadow(0 4px 12px rgba(240,180,41,0.35))' }}>
+            <img src={`${ASSET}/cta2.png`} alt="Pradėti kovą" style={{ height: 'clamp(38px,8.5vh,74px)', width: 'auto', display: 'block' }} />
+          </button>
+          <div className="relative w-full" style={{ maxWidth: 460 }}>
+            <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
           </div>
         </div>
 
         {/* ── DEŠINĖ: Sezono progresas ── */}
-        <section className="rounded-2xl flex flex-col overflow-hidden" style={PANEL}>
-          <div className="px-3 pt-2.5 pb-1.5">
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
+          <div className="px-3 pt-2.5 pb-1.5 shrink-0">
             <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Sezono progresas</span>
           </div>
-          <div className="flex-1 px-3 py-1 flex flex-col items-center justify-center gap-2 text-center">
+          <div className="flex-1 min-h-0 px-3 py-1 flex flex-col items-center justify-center gap-2 text-center">
             <RvnIcon name="seg-season" size={48} fallback={<span style={{ fontSize: 30 }}>📜</span>} />
             <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>Pakopa {season.cur}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
             <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.2)' }}>
@@ -167,7 +174,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
-      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ minHeight: 62 }}>
+      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(50px,11vh,84px)' }}>
         <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(139,92,246,0.22), rgba(9,7,14,0.98))' }}>
           <div>
             <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#c4b5fd' }}>Kosmetika</div>
