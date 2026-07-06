@@ -132,18 +132,14 @@ export async function setRemindersEnabled(on: boolean): Promise<void> {
 // (jei įdiegtas — sename APK be plugin'o tyliai praleidžiam). Web fallback: Screen
 // Orientation API (veikia tik fullscreen; kitur meta -> rodom „pasukite telefoną").
 export async function lockLandscape(): Promise<void> {
-  if (isNativeApp()) {
-    // Aktyviai užrakinam per plugin'ą (patikimai veikia); NIEKADA neatrakinam (unlockOrientation = no-op native).
-    try {
-      const SO = (window as any).Capacitor?.Plugins?.ScreenOrientation
-      if (SO?.lock) await SO.lock({ orientation: 'landscape' })
-    } catch { /* sename shell'e plugin gali nebūti – manifest sensorLandscape yra atsarga */ }
-    return
-  }
+  // Native (Android APK): orientaciją 100% valdo AndroidManifest (screenOrientation="landscape").
+  // NELIEČIAM plugin'o – bet koks setRequestedOrientation (ypač unlock) perrašytų manifestą ir leistų portrait.
+  // Web (naršyklė/PWA): bandom Screen Orientation API; jei neleidžia -> „pasukite" overlay pasirūpins.
+  if (isNativeApp()) return
   try {
     const o: any = typeof screen !== 'undefined' ? (screen as any).orientation : null
     if (o?.lock) await o.lock('landscape')
-  } catch { /* naršyklė neleido – overlay „pasukite" pasirūpins */ }
+  } catch { /* naršyklė neleido */ }
 }
 
 export async function unlockOrientation(): Promise<void> {

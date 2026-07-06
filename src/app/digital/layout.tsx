@@ -55,7 +55,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   // Visas /digital app užrakintas į landscape; jei įrenginys portrait (web neleido lock) -> „pasuk telefoną" overlay.
   useEffect(() => {
-    const check = () => setShowRotate(!isNativeApp() && isPortraitNow())
+    const check = () => { void lockLandscape(); setShowRotate(!isNativeApp() && isPortraitNow()) }
     check()
     window.addEventListener('resize', check)
     window.addEventListener('orientationchange', check)
