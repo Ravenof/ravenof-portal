@@ -52,6 +52,7 @@ import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxL
 import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
+import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
@@ -835,6 +836,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [oppDecks, setOppDecks] = useState<{ id: string; name: string }[]>([])
   const [oppOpen, setOppOpen] = useState(false)
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null)
+  const [showRotate, setShowRotate] = useState(false)
   const [myName, setMyName] = useState<string | null>(null)
   const [turnBanner, setTurnBanner] = useState<{ name: string; you: boolean } | null>(null)
   const lastTurnRef = useRef(-1)
@@ -922,6 +924,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const returnBlocks = !!game?.pendingReturn
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const useHLayout = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('layout') === 'h'
+
+  // F7: landscape orientation lock native shell'e; web fallback -> „pasuk telefoną" overlay.
+  useEffect(() => {
+    if (!useHLayout || !isTouch) { setShowRotate(false); return }
+    void lockLandscape()
+    const check = () => setShowRotate(isPortraitNow())
+    check()
+    window.addEventListener('resize', check)
+    window.addEventListener('orientationchange', check)
+    return () => {
+      window.removeEventListener('resize', check)
+      window.removeEventListener('orientationchange', check)
+      void unlockOrientation()
+    }
+  }, [useHLayout, isTouch])
   const handW = isTouch ? 80 : 124
   const unitW = isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
@@ -1176,6 +1193,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
   }, [])
 
+  // FX fallback centras: kai šaltinio ref'o nėra, taikom į TIKRĄ lentos centrą (landscape'e ≠ ekrano centras).
+  // Sena vertikalė (be data-fx-board) -> ekrano centras kaip anksčiau.
+  const fxCenter = useCallback((): { x: number; y: number } => {
+    if (typeof window === 'undefined') return { x: 180, y: 320 }
+    const el = document.querySelector('[data-fx-board]')
+    if (el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } }
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+  }, [])
+
   const PROJ_EMOJI: Record<string, string> = useMemo(() => ({
     fireball: '🔥', darkCurse: '🟣', healingGlow: '✨', freezeBurst: '❄️',
     stunBurst: '💫', destroyStrike: '⚔️', arrow: '🏹', lightning: '⚡', poisonGlob: '☣️',
@@ -1314,7 +1340,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           }
           if (e.t === 'spell' && e.cardName && !e.tgt) {
             const card = findCard(e.cardName)
-            const at = (e.src ? rectOf(e.src) : null) ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.4 }
+            const at = (e.src ? rectOf(e.src) : null) ?? fxCenter()
             window.setTimeout(() => spawnPop(card, at, '#60a5fa', e.side === 'you' ? 'Burtas' : 'Priešo burtas'), 160)
           }
           break
@@ -1405,7 +1431,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'field': {
           queueTip('field'); if (!e.sound) playBattleSound('field')
           const d = SETTLE + fxSeq; fxSeq += 120
-          window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: { x: window.innerWidth / 2, y: window.innerHeight / 2 }, color: fxElemColor ?? '#ffd24a', duration: 1.7, variant: aoeVariant() }), d)
+          window.setTimeout(() => { const c = fxCenter(); fxRef.current?.spawn({ kind: 'aoeWave', from: { x: c.x, y: c.y }, color: fxElemColor ?? '#ffd24a', duration: 1.7, variant: aoeVariant() }) }, d)
           break
         }
         case 'evolve': queueTip('evolve'); playSuccess(); break
@@ -1415,8 +1441,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (e.side !== 'you') { playBattleSound('death', 0.3); break }
           const bc = e.cardName ? cardByName[e.cardName] : null
           if (!bc) break
-          const bx = (typeof window !== 'undefined' ? window.innerWidth : 360) / 2
-          const by = (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.52
+          const bcenter = fxCenter()
+          const bx = bcenter.x
+          const by = bcenter.y
           const ghostId = ++flyIdRef.current
           setDeathGhosts((gs) => [...gs, { id: ghostId, card: bc, x: bx, y: by }])
           playBattleSound('draw')
@@ -1576,12 +1603,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         void PROJ_EMOJI; void spawnProjectile
       }
     }
-    if (pendingZmk.length > 0) { const fb = (srcRef ? rectOf(srcRef) : null) ?? { x: (typeof window !== 'undefined' ? window.innerWidth : 360) / 2, y: (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.42 }; for (const z of pendingZmk) zmkPlaced.push({ ...z, x: fb.x, y: fb.y }) }
+    if (pendingZmk.length > 0) { const fb = (srcRef ? rectOf(srcRef) : null) ?? fxCenter(); for (const z of pendingZmk) zmkPlaced.push({ ...z, x: fb.x, y: fb.y }) }
     if (zmkPlaced.length > 0) setZmkFlash({ placed: zmkPlaced, n: seenRef.current })
     if (aoeMode && !aoeFired) {
       aoeFired = true
       const aCol = fxElemColor ?? palOf(srcCard).primary
-      const aFrom = (srcRef ? rectOf(srcRef) : null) ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+      const aFrom = (srcRef ? rectOf(srcRef) : null) ?? fxCenter()
       window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, color: aCol, duration: 1.7, variant: aoeVariant() }), SETTLE)
     }
 
@@ -1604,7 +1631,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         (step.require === 'any-play' && e.side === 'you' && ['play', 'spell', 'artifact'].includes(e.t)))
       if (done) setStepIdx((i) => i + 1)
     }
-  }, [game, step, queueTip, PROJ_EMOJI, rectFor, spawnProjectile, cardByName, findCard])
+  }, [game, step, queueTip, PROJ_EMOJI, rectFor, fxCenter, spawnProjectile, cardByName, findCard])
 
   // ŽMK flash dingsta
   useEffect(() => {
@@ -2807,6 +2834,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         }
         .rvn-field-quake { animation: rvnFieldQuake 3s cubic-bezier(.36,.07,.19,.97) both; will-change: transform; }
         @keyframes rvnEmotePop { 0% { transform: translateX(-50%) scale(0.3); opacity: 0; } 60% { transform: translateX(-50%) scale(1.15); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+        @keyframes rvnRotateHint { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }
         @media (prefers-reduced-motion: reduce) { .rvn-field-quake { animation: none !important; } }
       `}</style>
 
@@ -2898,6 +2926,14 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderEmoteBubble={renderEmoteBubbleH}
           onEmote={sendEmote}
         />
+      )}
+      {useHLayout && isTouch && showRotate && (
+        <div className="fixed inset-0 z-[400] flex flex-col items-center justify-center gap-4 px-6 text-center"
+          style={{ background: 'rgba(6,4,11,0.98)' }}>
+          <div className="text-6xl" style={{ animation: 'rvnRotateHint 1.6s ease-in-out infinite' }}>🔄</div>
+          <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pasuk telefoną</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Kova žaidžiama gulsčiai (landscape)</p>
+        </div>
       )}
       {game && !loading && !useHLayout && isTouch && (
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto sm:overflow-hidden px-2 py-1.5 gap-1">
@@ -3673,9 +3709,9 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── skrendančios traukiamos kortos (kaladė → ranka) ── */}
       <div className="fixed inset-0 z-[129] pointer-events-none">
         <AnimatePresence>
-          {flyingDraws.map((fc) => {
-            const cx = (typeof window !== 'undefined' ? window.innerWidth : 360) / 2
-            const cy = (typeof window !== 'undefined' ? window.innerHeight : 640) * 0.4
+          {(() => { const _c = fxCenter(); return flyingDraws.map((fc) => {
+            const cx = _c.x
+            const cy = _c.y
             return (
             <motion.div key={'draw' + fc.id}
               initial={{ left: fc.from.x - 18, top: fc.from.y - 24, opacity: 0.25, scale: 0.45, rotate: fc.side === 'you' ? -14 : 14 }}
@@ -3686,7 +3722,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               {fc.card ? <MiniCard c={fc.card} w={64} /> : <div className="relative rounded-md overflow-hidden" style={{ width: 56, height: 75, border: '1px solid rgba(240,180,41,0.45)', background: '#0d0a14' }}><PileBack kind="plain" /></div>}
             </motion.div>
             )
-          })}
+          }) })()}
         </AnimatePresence>
       </div>
 

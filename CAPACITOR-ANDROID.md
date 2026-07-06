@@ -220,3 +220,25 @@ deploy ir pasiekia appą be jokio Play submit. Admin panelę naudoji kaip dabar 
 - `package.json` — pridėti @capacitor/* paketai + `cap:sync`/`cap:open` skriptai
 
 `android/` katalogas atsiras po `setup-capacitor.bat` — jį commit'ink į git (Capacitor rekomendacija).
+
+---
+
+## Horizontal combat – landscape orientation lock (F7)
+
+Kova (`?layout=h`) žaidžiama gulsčiai. Native shell'e orientacijos užraktui reikia
+`@capacitor/screen-orientation` plugin'o. Kodas web-safe (per `window.Capacitor.Plugins`
+su guard'ais `src/lib/digital/native.ts`: `lockLandscape` / `unlockOrientation` /
+`isPortraitNow`) – be plugin'o sename APK tiesiog nieko nedaro, web naudoja Screen
+Orientation API fallback + „Pasuk telefoną" overlay.
+
+Kad APK užraktas veiktų:
+
+```bash
+npm i @capacitor/screen-orientation
+npx cap sync android
+# tada perbuildink APK (Android Studio arba gradlew)
+```
+
+`AndroidManifest.xml` activity jau turi `android:configChanges="orientation|screenSize|..."`
+(Capacitor default) – papildomai nieko keisti nereikia. Užraktas dedamas įeinant į kovą,
+nuimamas išeinant (useEffect cleanup TutorialGame'e).

@@ -76,7 +76,11 @@ export default function BattleLayout(props: BattleLayoutProps) {
           display: 'grid', height: '100%',
           gridTemplateColumns: 'clamp(150px,16vw,232px) minmax(0,1fr) clamp(120px,13vw,166px)',
           gridTemplateRows: 'minmax(0,1fr)',
-          gap: 'clamp(4px,0.8vw,10px)', padding: 'clamp(4px,1vw,10px)',
+          gap: 'clamp(4px,0.8vw,10px)',
+          paddingTop: 'max(clamp(4px,1vw,10px), env(safe-area-inset-top))',
+          paddingBottom: 'max(clamp(4px,1vw,10px), env(safe-area-inset-bottom))',
+          paddingLeft: 'max(clamp(4px,1vw,10px), env(safe-area-inset-left))',
+          paddingRight: 'max(clamp(4px,1vw,10px), env(safe-area-inset-right))',
           position: 'relative',
         }}>
 
@@ -105,7 +109,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
         </aside>
 
         {/* ── CENTRAS: lenta ── */}
-        <section className="min-h-0 rounded-2xl relative overflow-hidden">
+        <section data-fx-board className="min-h-0 rounded-2xl relative overflow-hidden">
           <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 55% at 50% 50%, rgba(240,180,41,0.05), rgba(0,0,0,0.35) 100%)', boxShadow: 'inset 0 0 90px rgba(0,0,0,0.75)', borderRadius: 16, border: '1px solid rgba(240,180,41,0.12)', pointerEvents: 'none' }} />
           {/* lauko korta – kairysis lentos kraštas (vertikalus slotas) */}
           <div className="absolute left-1 top-1/2 -translate-y-1/2 z-[8]">{dFieldRow()}</div>

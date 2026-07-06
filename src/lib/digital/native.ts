@@ -126,3 +126,41 @@ export async function setRemindersEnabled(on: boolean): Promise<void> {
   if (on) await scheduleReturnReminders()
   else await cancelReturnReminders()
 }
+
+// ── Ekrano orientacijos užraktas (horizontal combat, F7) ──────────────────────
+// Native shell'e naudojam @capacitor/screen-orientation per window.Capacitor.Plugins
+// (jei įdiegtas — sename APK be plugin'o tyliai praleidžiam). Web fallback: Screen
+// Orientation API (veikia tik fullscreen; kitur meta -> rodom „pasukite telefoną").
+export async function lockLandscape(): Promise<void> {
+  if (isNativeApp()) {
+    try {
+      const SO = (window as any).Capacitor?.Plugins?.ScreenOrientation
+      if (SO?.lock) { await SO.lock({ orientation: 'landscape' }); return }
+    } catch { /* plugin neįdiegtas sename shell'e */ }
+  }
+  try {
+    const o: any = typeof screen !== 'undefined' ? (screen as any).orientation : null
+    if (o?.lock) await o.lock('landscape')
+  } catch { /* naršyklė neleido – overlay „pasukite" pasirūpins */ }
+}
+
+export async function unlockOrientation(): Promise<void> {
+  if (isNativeApp()) {
+    try {
+      const SO = (window as any).Capacitor?.Plugins?.ScreenOrientation
+      if (SO?.unlock) { await SO.unlock(); return }
+    } catch { /* ignoruojam */ }
+  }
+  try {
+    const o: any = typeof screen !== 'undefined' ? (screen as any).orientation : null
+    if (o?.unlock) o.unlock()
+  } catch { /* ignoruojam */ }
+}
+
+/** Ar įrenginys šiuo metu vertikalioj (portrait) padėtyje? */
+export function isPortraitNow(): boolean {
+  if (typeof window === 'undefined') return false
+  const o: any = typeof screen !== 'undefined' ? (screen as any).orientation : null
+  if (o?.type) return String(o.type).startsWith('portrait')
+  return window.innerHeight > window.innerWidth
+}
