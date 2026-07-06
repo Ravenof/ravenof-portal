@@ -2489,7 +2489,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onContextMenu={(e) => { e.preventDefault(); setInspect(a.card) }}
               className="relative rounded-md overflow-hidden"
               style={{
-                width: hMobile ? 52 : isTouch ? 40 : 60, height: hMobile ? 70 : isTouch ? 54 : 72,
+                width: hMobile ? 42 : isTouch ? 40 : 60, height: hMobile ? 56 : isTouch ? 54 : 72,
                 border: pickedKeys.has('artifact:' + a.uid) ? '2px solid #22c55e' : targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
               {pickedKeys.has('artifact:' + a.uid) && (
@@ -2504,7 +2504,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center"
-              style={{ width: hMobile ? 52 : isTouch ? 40 : 64, height: hMobile ? 70 : isTouch ? 54 : 76, border: '1px solid rgba(205,160,70,0.3)', background: 'linear-gradient(160deg, rgba(34,27,16,0.8), rgba(12,9,6,0.9))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('artifact', hMobile ? 26 : isTouch ? 20 : 28, '⬗', '#cda046')}</div>
+              style={{ width: hMobile ? 42 : isTouch ? 40 : 64, height: hMobile ? 56 : isTouch ? 54 : 76, border: '1px solid rgba(205,160,70,0.3)', background: 'linear-gradient(160deg, rgba(34,27,16,0.8), rgba(12,9,6,0.9))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('artifact', hMobile ? 22 : isTouch ? 20 : 28, '⬗', '#cda046')}</div>
           ))}
         </div>
       </div>
@@ -2524,7 +2524,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 onClick={() => { playUiClick(); setPileView({ title: 'Tavo reakcijos (matai tik tu)', cards: p.reactions.filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.card) }) }}
                 title="Peržiūrėk savo padėtas reakcijas (priešas jų nemato)"
                 className="relative rounded-md overflow-hidden cursor-pointer"
-                style={{ width: hMobile ? 52 : isTouch ? 40 : 60, height: hMobile ? 70 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
+                style={{ width: hMobile ? 42 : isTouch ? 40 : 60, height: hMobile ? 56 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
@@ -2533,7 +2533,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             ) : (
               <div key={r.uid} className="relative rounded-md overflow-hidden"
-                style={{ width: hMobile ? 52 : isTouch ? 40 : 60, height: hMobile ? 70 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
+                style={{ width: hMobile ? 42 : isTouch ? 40 : 60, height: hMobile ? 56 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
@@ -2542,7 +2542,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             )
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center"
-              style={{ width: hMobile ? 52 : isTouch ? 40 : 56, height: hMobile ? 70 : isTouch ? 54 : 70, border: '1px solid rgba(139,92,246,0.4)', background: 'linear-gradient(160deg, rgba(26,19,40,0.85), rgba(10,8,16,0.92))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('reaction', hMobile ? 26 : isTouch ? 20 : 26, '⚡', '#a78bfa')}</div>
+              style={{ width: hMobile ? 42 : isTouch ? 40 : 56, height: hMobile ? 56 : isTouch ? 54 : 70, border: '1px solid rgba(139,92,246,0.4)', background: 'linear-gradient(160deg, rgba(26,19,40,0.85), rgba(10,8,16,0.92))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('reaction', hMobile ? 22 : isTouch ? 20 : 26, '⚡', '#a78bfa')}</div>
           ))}
         </div>
       </div>

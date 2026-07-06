@@ -76,7 +76,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
       <div
         style={{
           display: 'grid', height: '100%',
-          gridTemplateColumns: (logExpanded ? 'clamp(150px,16vw,232px)' : '46px') + ' minmax(0,1fr) clamp(140px,16vw,206px)',
+          gridTemplateColumns: 'clamp(132px,17vw,178px) minmax(0,1fr) clamp(140px,16vw,206px)',
           gridTemplateRows: 'minmax(0,1fr)',
           gap: 'clamp(4px,0.8vw,10px)',
           paddingTop: 'max(clamp(4px,1vw,10px), env(safe-area-inset-top))',
@@ -86,34 +86,35 @@ export default function BattleLayout(props: BattleLayoutProps) {
           position: 'relative',
         }}>
 
-        {/* ── KAIRĖ: emote + suskleidžiamas žurnalas (braukiama: → skleisti, ← sutraukti) ── */}
-        <aside className="flex flex-col gap-1.5 min-h-0 overflow-hidden"
-          onTouchStart={(e) => { logTouchX.current = e.touches[0].clientX }}
-          onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx > 30) setLogExpanded(true); else if (dx < -30) setLogExpanded(false) }}>
-          {/* emote + žurnalo skleidiklis */}
-          <RailCard style={railPanel} className={'shrink-0 flex items-center ' + (logExpanded ? 'justify-between p-1.5' : 'flex-col gap-1 p-1')}>
+        {/* ── KAIRĖ: emote + AI/tavo artefaktai/reakcijos + suskleidžiamas žurnalas ── */}
+        <aside className="flex flex-col gap-1 min-h-0 overflow-hidden">
+          <RailCard style={railPanel} className="shrink-0 flex items-center justify-between p-1">
             <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', background: emoteOpen ? 'rgba(240,180,41,0.18)' : undefined }}>😊</button>
             <button onClick={() => setLogExpanded((v) => !v)} title="Mūšio žurnalas" className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', color: 'var(--gold)', fontSize: 13 }}>{logExpanded ? '‹📜' : '📜'}</button>
           </RailCard>
-          {logExpanded ? (
-            <RailCard style={railPanel} className="p-2 flex-1 min-h-0 flex flex-col">
-              <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>Mūšio žurnalas</span>
-              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-1">{renderLog()}</div>
-            </RailCard>
-          ) : (
-            <RailCard style={railPanel} className="p-1 flex-1 min-h-0 flex flex-col items-center gap-1 overflow-y-auto cursor-pointer" onClick={() => setLogExpanded(true)} title="Braukite → arba spauskite, kad išskleistumėte žurnalą">
-              {renderLogStrip?.()}
-            </RailCard>
-          )}
+          {/* Priešo artefaktai + reakcijos */}
+          <div className="shrink-0 flex flex-col items-center gap-0.5">{renderArtifactRow('ai')}{renderReactionRow('ai')}</div>
+          {/* Žurnalas — strip (mini) arba pilnas; braukiama/spaudžiama */}
+          <div style={railPanel} className="rounded-xl p-1 flex-1 min-h-0 flex flex-col overflow-hidden"
+            onTouchStart={(e) => { logTouchX.current = e.touches[0].clientX }}
+            onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx > 30) setLogExpanded(true); else if (dx < -30) setLogExpanded(false) }}>
+            {logExpanded ? (
+              <><span className="text-[9px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>Žurnalas</span><div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-0.5">{renderLog()}</div></>
+            ) : (
+              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-1 cursor-pointer" onClick={() => setLogExpanded(true)}>{renderLogStrip?.()}</div>
+            )}
+          </div>
+          {/* Tavo reakcijos + artefaktai */}
+          <div className="shrink-0 flex flex-col items-center gap-0.5">{renderReactionRow('you')}{renderArtifactRow('you')}</div>
         </aside>
 
         {/* ── CENTRAS: lenta ── */}
         <section data-fx-board className="min-h-0 rounded-2xl relative overflow-hidden">
           <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 55% at 50% 50%, rgba(240,180,41,0.05), rgba(0,0,0,0.35) 100%)', boxShadow: 'inset 0 0 90px rgba(0,0,0,0.75)', borderRadius: 16, border: '1px solid rgba(240,180,41,0.12)', pointerEvents: 'none' }} />
-          {/* lauko korta – kairysis lentos kraštas (kompaktiškas vertikalus slotas) */}
-          <div className="absolute left-1 top-1/2 -translate-y-1/2 z-[8]">{dFieldRow()}</div>
+          {/* lauko korta – DEŠINYSIS lentos kraštas (kad nemaišytų su kairėj esančiais artefaktais/reakcijomis) */}
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 z-[8]">{dFieldRow()}</div>
 
-          <div className="relative h-full flex flex-col justify-between" style={{ gap: 'clamp(1px,0.4vh,4px)', padding: '2px clamp(8px,2.5vw,30px) clamp(58px,10vh,94px) clamp(56px,7vw,76px)' }}>
+          <div className="relative h-full flex flex-col justify-between" style={{ gap: 'clamp(1px,0.4vh,4px)', padding: '2px clamp(56px,7vw,76px) clamp(58px,10vh,94px) clamp(8px,2.5vw,30px)' }}>
             {/* Priešo avataras — viršuje-centre (ai-area = tutorial anchor: hp-ai/deck-ai/discard-ai/enemy-area) */}
             <div data-tut="ai-area" className="relative flex items-center justify-center gap-2 flex-nowrap shrink-0">
               {renderEmoteBubble?.('ai')}
@@ -121,10 +122,6 @@ export default function BattleLayout(props: BattleLayoutProps) {
               {hpBar('ai', 0.68)}
               {goldBar('ai')}
             </div>
-            {/* Priešo artefaktai — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderArtifactRow('ai')}</div>
-            {/* Priešo reakcijos — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderReactionRow('ai')}</div>
             {/* Priešo padarai */}
             <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
             {/* TAVO ĖJIMAS divideris (keičiasi + pulse priešo ėjime) */}
@@ -142,10 +139,6 @@ export default function BattleLayout(props: BattleLayoutProps) {
             </div>
             {/* Tavo padarai */}
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
-            {/* Tavo reakcijos — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderReactionRow('you')}</div>
-            {/* Tavo artefaktai — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderArtifactRow('you')}</div>
           </div>
           {/* Tavo avataras — dešinys apatinis lentos kampas (fieldo pusėj, tuščioj erdvėj prie pile'ų) */}
           <div className="absolute right-2 bottom-1 z-[9] flex items-center gap-1.5">
