@@ -941,7 +941,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }
   }, [useHLayout, isTouch])
   const hMobile = isTouch && useHLayout  // landscape mobile kova: kompaktiškesni dydžiai kad tilptų į žemą aukštį
-  const handW = hMobile ? 64 : isTouch ? 80 : 124
+  const handW = hMobile ? 54 : isTouch ? 80 : 124
   const unitW = hMobile ? 44 : isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
@@ -2845,7 +2845,8 @@ doAction({ t: 'endTurn', actor: 'you' })
         @media (prefers-reduced-motion: reduce) { .rvn-field-quake { animation: none !important; } }
       `}</style>
 
-      {/* viršutinė juosta */}
+      {/* viršutinė juosta (senas layout; H = minimalūs floating mygtukai apačioj) */}
+      {!useHLayout && (
       <div className="flex items-center justify-between px-3 py-2 shrink-0"
         style={{ borderBottom: '1px solid rgba(240,180,41,0.15)', background: 'rgba(0,0,0,0.35)' }}>
         <div className="flex items-center gap-2 min-w-0">
@@ -2892,6 +2893,15 @@ doAction({ t: 'endTurn', actor: 'you' })
           </button>
         </div>
       </div>
+      )}
+
+      {/* H minimalūs floating valdikliai (banner pašalintas – daugiau vietos lentai) */}
+      {useHLayout && (
+        <div className="fixed top-1 right-1 z-[130] flex items-center gap-1">
+          <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? 'Garsas' : 'Garsas išjungtas'} className="p-1.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.42)', border: '1px solid rgba(240,180,41,0.2)' }}>{soundOn ? <Music className="w-4 h-4" style={{ color: 'var(--gold)' }} /> : <VolumeX className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />}</button>
+          <button onClick={() => { playUiClick(); closeGame() }} title="Užverti (Esc)" className="p-1.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.42)', border: '1px solid rgba(240,180,41,0.2)' }}><X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} /></button>
+        </div>
+      )}
 
       {loading && (
         <div className="flex-1 flex items-center justify-center">

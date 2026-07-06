@@ -105,18 +105,19 @@ export default function BattleLayout(props: BattleLayoutProps) {
           {/* lauko korta – kairysis lentos kraštas (kompaktiškas vertikalus slotas) */}
           <div className="absolute left-1 top-1/2 -translate-y-1/2 z-[8]">{dFieldRow()}</div>
 
-          <div className="relative h-full flex flex-col justify-between" style={{ gap: 'clamp(2px,0.6vh,6px)', padding: '2px clamp(8px,2.5vw,30px) clamp(60px,11vh,104px) clamp(56px,7vw,76px)' }}>
-            {/* AI eilė: priešo ranka · artefaktai · avataras+mana · reakcijos (viena eilė = kompaktiška).
-                ai-area = tutorial anchor: hp-ai/deck-ai/discard-ai/enemy-area */}
-            <div data-tut="ai-area" className="relative flex items-center justify-center gap-2 flex-wrap shrink-0">
+          <div className="relative h-full flex flex-col justify-between" style={{ gap: 'clamp(1px,0.4vh,4px)', padding: '2px clamp(8px,2.5vw,30px) clamp(58px,10vh,94px) clamp(56px,7vw,76px)' }}>
+            {/* Priešo avataras — viršuje-centre (ai-area = tutorial anchor: hp-ai/deck-ai/discard-ai/enemy-area) */}
+            <div data-tut="ai-area" className="relative flex items-center justify-center gap-2 flex-nowrap shrink-0">
               {renderEmoteBubble?.('ai')}
               {renderOppHand()}
-              {renderArtifactRow('ai')}
-              {hpBar('ai', 0.7)}
+              {hpBar('ai', 0.68)}
               {goldBar('ai')}
-              {renderReactionRow('ai')}
             </div>
-            {/* AI padarai */}
+            {/* Priešo artefaktai — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderArtifactRow('ai')}</div>
+            {/* Priešo reakcijos — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderReactionRow('ai')}</div>
+            {/* Priešo padarai */}
             <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
             {/* TAVO ĖJIMAS divideris (keičiasi + pulse priešo ėjime) */}
             <div className="flex items-center justify-center gap-2 py-0.5 rounded-full shrink-0"
@@ -133,13 +134,15 @@ export default function BattleLayout(props: BattleLayoutProps) {
             </div>
             {/* Tavo padarai */}
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
-            {/* Tavo eilė: artefaktai · avataras+mana · reakcijos */}
-            <div className="relative flex items-center justify-center gap-2 flex-wrap shrink-0">
+            {/* Tavo reakcijos — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderReactionRow('you')}</div>
+            {/* Tavo artefaktai — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderArtifactRow('you')}</div>
+            {/* Tavo avataras — apačioje-centre (virš rankos) */}
+            <div className="relative flex items-center justify-center gap-2 flex-nowrap shrink-0">
               {renderEmoteBubble?.('you')}
-              {renderArtifactRow('you')}
-              {hpBar('you', 0.7)}
+              {hpBar('you', 0.68)}
               {goldBar('you')}
-              {renderReactionRow('you')}
             </div>
           </div>
 
@@ -194,9 +197,9 @@ export default function BattleLayout(props: BattleLayoutProps) {
           </>
         )}
 
-        {/* ── RANKA: apatinis overlay per visą plotį (ne overflow-hidden -> hover-lift/drag nekarpomi). Hearthstone-stiliaus persidengia su lentos apačia mažam aukščiui. ── */}
+        {/* ── RANKA: apatinis overlay (kompaktiška; tap atidaro didelę handExpanded kortų peržiūrą – Hearthstone stiliaus). ── */}
         <div className="absolute left-0 right-0 bottom-0 z-30 flex items-end justify-center pointer-events-none"
-          style={{ height: 'clamp(84px,15vh,150px)' }}>
+          style={{ height: 'clamp(52px,9vh,88px)' }}>
           <div className="pointer-events-auto w-full h-full flex items-end justify-center">{renderHand()}</div>
         </div>
       </div>
