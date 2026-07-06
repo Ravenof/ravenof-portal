@@ -923,7 +923,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const copyBlocks = !!game?.pendingCopy
   const returnBlocks = !!game?.pendingReturn
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-  const useHLayout = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('layout') === 'h'
+  // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
+  const useHLayout = typeof window === 'undefined' ? true : new URLSearchParams(window.location.search).get('layout') !== 'v'
 
   // F7: landscape orientation lock native shell'e; web fallback -> „pasuk telefoną" overlay.
   useEffect(() => {
