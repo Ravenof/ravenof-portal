@@ -204,22 +204,22 @@ export function RankedClient() {
           <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(150px,1fr) minmax(0,1.5fr) minmax(150px,1fr)' }}>
 
             {/* KAIRĖ: sezono statistika */}
-            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={RPANEL}>
-              <div className="rvn-disp font-extrabold uppercase tracking-wide mb-1.5 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Jūsų sezono statistika</div>
-              <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0">
+            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 justify-between" style={RPANEL}>
+              <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Jūsų sezono statistika</div>
+              <div className="grid grid-cols-2 gap-1.5 my-1.5">
                 {([['Pergalės', profile.wins, '#86efac'], ['Pralaimėjimai', profile.losses, '#f87171'], ['Serija', profile.win_streak, 'var(--gold)'], ['K/D', formatKD(profile.total_kills, profile.total_deaths), 'var(--text-primary)']] as [string, React.ReactNode, string][]).map(([l, v, c], i) => (
-                  <div key={i} className="rounded-lg flex flex-col items-center justify-center" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <span className="rvn-disp font-black tabular-nums" style={{ fontSize: 'clamp(15px,3vh,26px)', color: c }}>{v}</span>
+                  <div key={i} className="rounded-lg flex flex-col items-center justify-center py-1.5 gap-0.5" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span className="rvn-disp font-black tabular-nums leading-none" style={{ fontSize: 'clamp(14px,2.6vh,22px)', color: c }}>{v}</span>
                     <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>{l}</span>
                   </div>
                 ))}
               </div>
-              <div className="text-center mt-1.5 shrink-0" style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>Šį sezoną gauta: <b style={{ color: 'var(--text-secondary)' }}>{profile.portal_exp_earned} XP</b> · <b style={{ color: 'var(--gold)' }}>{profile.ranked_gold_earned} aukso</b></div>
+              <div className="text-center shrink-0" style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>Šį sezoną gauta: <b style={{ color: 'var(--text-secondary)' }}>{profile.portal_exp_earned} XP</b> · <b style={{ color: 'var(--gold)' }}>{profile.ranked_gold_earned} aukso</b></div>
             </section>
 
             {/* CENTRAS: rango ženklelis + progresas + CTA */}
-            <section className="rounded-2xl flex flex-col items-center justify-center min-h-0 overflow-hidden px-3 py-2" style={{ ...RPANEL, gap: 'clamp(3px,0.9vh,8px)' }}>
-              <RankBadge step={profile.rank_step} size={72} showLabel />
+            <section className="rounded-2xl flex flex-col items-center justify-between min-h-0 overflow-hidden px-3 py-2.5" style={RPANEL}>
+              <RankBadge step={profile.rank_step} size={54} showLabel />
               <div className="w-full" style={{ maxWidth: 340 }}>
                 <div className="flex justify-between mb-1" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'var(--text-muted)' }}>
                   <span>Dabartinis rangas</span>
@@ -243,12 +243,12 @@ export function RankedClient() {
             </section>
 
             {/* DEŠINĖ: ranked atlygiai */}
-            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 text-center" style={RPANEL}>
+            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 text-center justify-between" style={RPANEL}>
               <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Ranked atlygiai</div>
-              <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-1">
+              <div className="flex flex-col items-center justify-center gap-0.5 my-1">
                 <span style={{ fontSize: 'clamp(9px,1.2vh,11px)', color: 'var(--text-muted)' }}>Kitas atlygis</span>
                 <span className="rvn-disp font-black" style={{ fontSize: 'clamp(13px,2.4vh,20px)', color: 'var(--gold)' }}>{rv.isMax ? 'Maks. rangas' : formatRank(nextRv!.step)}</span>
-                <div className="flex items-center justify-center rounded-xl my-1" style={{ width: 'clamp(48px,9vh,76px)', height: 'clamp(48px,9vh,76px)', background: 'radial-gradient(circle at 50% 30%, rgba(139,92,246,0.35), rgba(10,8,16,0.9))', border: '1px solid rgba(139,92,246,0.4)', fontSize: 'clamp(24px,5vh,40px)' }}>🎁</div>
+                <div className="flex items-center justify-center rounded-xl my-1" style={{ width: 'clamp(40px,7vh,64px)', height: 'clamp(40px,7vh,64px)', background: 'radial-gradient(circle at 50% 30%, rgba(139,92,246,0.35), rgba(10,8,16,0.9))', border: '1px solid rgba(139,92,246,0.4)', fontSize: 'clamp(20px,4vh,34px)' }}>🎁</div>
                 <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3 }}>Sezono pabaigoje gausi atlygius pagal aukščiausią pasiektą rangą.</span>
               </div>
               <button onClick={() => { playUiClick(); setView('rewards') }} className="rvn-press rounded-xl py-2 shrink-0 font-bold" style={{ fontSize: 'clamp(9px,1.3vh,12px)', background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>Peržiūrėti atlygius →</button>
