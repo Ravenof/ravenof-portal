@@ -1797,6 +1797,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [chatLog, setChatLog] = useState<{ mine: boolean; text: string }[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatOpen, setChatOpen] = useState(false)
+  const [emoteBubble, setEmoteBubble] = useState<{ side: Side; text: string; id: number } | null>(null)
+  const emoteCdRef = useRef(0)
   const [friendAdded, setFriendAdded] = useState<'idle' | 'sent' | 'exists'>('idle')
   useEffect(() => {
     if (!net) return
@@ -1826,6 +1828,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }
     ch.on('broadcast', { event: 'chat' }, ({ payload }) => { const txt = (payload as { text?: string }).text; if (txt) setChatLog((l) => [...l.slice(-40), { mine: false, text: txt }]) })
+    ch.on('broadcast', { event: 'emote' }, ({ payload }) => { const t = (payload as { text?: string }).text; if (!t) return; const id = Date.now(); setEmoteBubble({ side: 'ai', text: t, id }); window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000) })
     ch.on('presence', { event: 'sync' }, () => {
       const st = ch.presenceState() as Record<string, { side?: Side }[]>
       let opp = false
@@ -1857,6 +1860,37 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     setChatLog((l) => [...l.slice(-40), { mine: true, text: txt }]); setChatInput('')
   }
 
+  // ── Emote (F5): 5s cooldown; bubble prie savo avataro 3s; PvP -> broadcast 'emote' (senas klientas be handler'io tyliai ignoruoja) ──
+  const sendEmote = (text: string) => {
+    const now = Date.now()
+    if (now < emoteCdRef.current) return
+    emoteCdRef.current = now + 5000
+    const id = now
+    setEmoteBubble({ side: 'you', text, id })
+    window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000)
+    if (vsRemote) channelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text } })
+  }
+  const renderPreviewH = () => {
+    if (!hoverCard) return null
+    return (
+      <div className="flex flex-col items-center gap-1.5 w-full">
+        <div className="rounded-xl overflow-hidden" style={{ border: '2px solid ' + hoverCard.card.rarityColor, boxShadow: '0 8px 24px rgba(0,0,0,0.7)' }}>
+          <MiniCard c={hoverCard.card} w={200} />
+        </div>
+        <p className="text-[11px] font-bold text-center" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
+        {hoverCard.card.effectText && <p className="text-[9px] leading-snug text-center" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>}
+      </div>
+    )
+  }
+  const renderEmoteBubbleH = (side: Side) => {
+    if (!emoteBubble || emoteBubble.side !== side) return null
+    return (
+      <div className="absolute left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-2xl text-xl whitespace-nowrap z-40 pointer-events-none"
+        style={{ [side === 'ai' ? 'top' : 'bottom']: '100%', marginTop: side === 'ai' ? 4 : undefined, marginBottom: side === 'you' ? 4 : undefined, background: 'rgba(20,14,30,0.96)', border: '1px solid rgba(240,180,41,0.55)', boxShadow: '0 6px 18px rgba(0,0,0,0.7)', animation: 'rvnEmotePop 0.25s ease-out' }}>
+        {emoteBubble.text}
+      </div>
+    )
+  }
   // Host transliuoja autoritetinę būseną po kiekvieno pasikeitimo
   useEffect(() => {
     if (isHost && game && channelRef.current) {
@@ -2772,6 +2806,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           100% { transform: translate(0,0) rotate(0deg); }
         }
         .rvn-field-quake { animation: rvnFieldQuake 3s cubic-bezier(.36,.07,.19,.97) both; will-change: transform; }
+        @keyframes rvnEmotePop { 0% { transform: translateX(-50%) scale(0.3); opacity: 0; } 60% { transform: translateX(-50%) scale(1.15); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
         @media (prefers-reduced-motion: reduce) { .rvn-field-quake { animation: none !important; } }
       `}</style>
 
@@ -2845,6 +2880,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           isTouch={isTouch}
           myTurn={myTurn}
           lastMsg={lastMsg}
+          turnDeadline={turnDeadline}
           railPanel={RAIL_PANEL}
           hpBar={hpBar}
           goldBar={goldBar}
@@ -2858,6 +2894,9 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderLog={renderLogH}
           renderEndTurn={renderEndTurnH}
           renderDiscardGold={renderDiscardGoldH}
+          renderPreview={renderPreviewH}
+          renderEmoteBubble={renderEmoteBubbleH}
+          onEmote={sendEmote}
         />
       )}
       {game && !loading && !useHLayout && isTouch && (
@@ -3364,7 +3403,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       </AnimatePresence>
 
       {/* ── sužaistos kortos hover peržiūra (PC) ── */}
-      {hoverCard && typeof document !== 'undefined' && createPortal(
+      {!useHLayout && hoverCard && typeof document !== 'undefined' && createPortal(
         <div className="fixed z-[200] pointer-events-none"
           style={{
             left: Math.min(hoverCard.x + 20, (typeof window !== 'undefined' ? window.innerWidth : 800) - 300),
