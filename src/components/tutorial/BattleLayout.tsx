@@ -3,7 +3,7 @@
 // F1 skeleton: gridas (kairė rail · lenta · dešinė pile'ai) + placeholder'iai naujom funkcijom
 // (emote ratas, preview panelė, laikmačio žiedas). VISI render helper'iai lieka TutorialGame'e ir
 // perduodami čia render-funkcijomis, kad state nereiktų kilnoti. Engine/state/FX nekeičiami.
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { GameState, Side, TutCard } from '@/lib/tutorial/engine'
 
 export interface BattleLayoutProps {
@@ -23,6 +23,7 @@ export interface BattleLayoutProps {
   renderOppHand: (big?: boolean) => React.ReactNode
   renderHand: () => React.ReactNode
   renderLog: () => React.ReactNode
+  renderLogStrip?: () => React.ReactNode
   renderEndTurn: () => React.ReactNode
   renderDiscardGold: () => React.ReactNode
   turnDeadline?: number | null
@@ -31,8 +32,8 @@ export interface BattleLayoutProps {
 }
 
 // Kompaktiškas šoninis blokas su antrašte
-function RailCard({ style, children, className }: { style: React.CSSProperties; children: React.ReactNode; className?: string }) {
-  return <div className={'rounded-xl ' + (className ?? '')} style={style}>{children}</div>
+function RailCard({ style, children, className, onClick, title }: { style: React.CSSProperties; children: React.ReactNode; className?: string; onClick?: () => void; title?: string }) {
+  return <div className={'rounded-xl ' + (className ?? '')} style={style} onClick={onClick} title={title}>{children}</div>
 }
 
 // Ėjimo laikmačio žiedas aplink apvalų BAIGTI ĖJIMĄ (tik kai yra deadline: PvP/ranked; kitur null -> nerodom).
@@ -63,9 +64,11 @@ export default function BattleLayout(props: BattleLayoutProps) {
   const {
     game, myTurn, lastMsg, railPanel,
     hpBar, goldBar, renderPile, renderUnitsRow, renderArtifactRow, renderReactionRow,
-    dFieldRow, renderOppHand, renderHand, renderLog, renderEndTurn, renderDiscardGold, onEmote, turnDeadline, renderEmoteBubble,
+    dFieldRow, renderOppHand, renderHand, renderLog, renderLogStrip, renderEndTurn, renderDiscardGold, onEmote, turnDeadline, renderEmoteBubble,
   } = props
   const [emoteOpen, setEmoteOpen] = useState(false)
+  const [logExpanded, setLogExpanded] = useState(false)
+  const logTouchX = useRef<number | null>(null)
   const EMOTES = ['👋', '😎', '🔥', '😂', '😅', '🤝']
 
   return (
@@ -73,7 +76,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
       <div
         style={{
           display: 'grid', height: '100%',
-          gridTemplateColumns: 'clamp(150px,16vw,232px) minmax(0,1fr) clamp(140px,16vw,206px)',
+          gridTemplateColumns: (logExpanded ? 'clamp(150px,16vw,232px)' : '46px') + ' minmax(0,1fr) clamp(140px,16vw,206px)',
           gridTemplateRows: 'minmax(0,1fr)',
           gap: 'clamp(4px,0.8vw,10px)',
           paddingTop: 'max(clamp(4px,1vw,10px), env(safe-area-inset-top))',
@@ -83,20 +86,25 @@ export default function BattleLayout(props: BattleLayoutProps) {
           position: 'relative',
         }}>
 
-        {/* ── KAIRĖ: ikonų rail + preview panelė + mūšio žurnalas ── */}
-        <aside className="flex flex-col gap-2 min-h-0 overflow-hidden">
-          {/* ikonų rail (emote – placeholder F5) */}
-          <RailCard style={railPanel} className="p-1.5 flex items-center gap-1.5 shrink-0">
-            <button onClick={() => setEmoteOpen((v) => !v)} title="Emote"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors hover:bg-white/5"
-              style={{ border: '1px solid rgba(240,180,41,0.3)', background: emoteOpen ? 'rgba(240,180,41,0.18)' : undefined }}>😊</button>
-            <span className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Emote</span>
+        {/* ── KAIRĖ: emote + suskleidžiamas žurnalas (braukiama: → skleisti, ← sutraukti) ── */}
+        <aside className="flex flex-col gap-1.5 min-h-0 overflow-hidden"
+          onTouchStart={(e) => { logTouchX.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx > 30) setLogExpanded(true); else if (dx < -30) setLogExpanded(false) }}>
+          {/* emote + žurnalo skleidiklis */}
+          <RailCard style={railPanel} className={'shrink-0 flex items-center ' + (logExpanded ? 'justify-between p-1.5' : 'flex-col gap-1 p-1')}>
+            <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', background: emoteOpen ? 'rgba(240,180,41,0.18)' : undefined }}>😊</button>
+            <button onClick={() => setLogExpanded((v) => !v)} title="Mūšio žurnalas" className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', color: 'var(--gold)', fontSize: 13 }}>{logExpanded ? '‹📜' : '📜'}</button>
           </RailCard>
-          {/* mūšio žurnalas (preview panelė pašalinta – long-press jau atidaro kortos detales) */}
-          <RailCard style={railPanel} className="p-2 flex-1 min-h-0 flex flex-col" >
-            <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>Mūšio žurnalas</span>
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-1">{renderLog()}</div>
-          </RailCard>
+          {logExpanded ? (
+            <RailCard style={railPanel} className="p-2 flex-1 min-h-0 flex flex-col">
+              <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>Mūšio žurnalas</span>
+              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-1">{renderLog()}</div>
+            </RailCard>
+          ) : (
+            <RailCard style={railPanel} className="p-1 flex-1 min-h-0 flex flex-col items-center gap-1 overflow-y-auto cursor-pointer" onClick={() => setLogExpanded(true)} title="Braukite → arba spauskite, kad išskleistumėte žurnalą">
+              {renderLogStrip?.()}
+            </RailCard>
+          )}
         </aside>
 
         {/* ── CENTRAS: lenta ── */}
@@ -113,8 +121,10 @@ export default function BattleLayout(props: BattleLayoutProps) {
               {hpBar('ai', 0.68)}
               {goldBar('ai')}
             </div>
-            {/* Priešo artefaktai + reakcijos — viena eilė */}
-            <div className="shrink-0 flex items-center justify-center gap-2 flex-nowrap">{renderArtifactRow('ai')}{renderReactionRow('ai')}</div>
+            {/* Priešo artefaktai — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderArtifactRow('ai')}</div>
+            {/* Priešo reakcijos — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderReactionRow('ai')}</div>
             {/* Priešo padarai */}
             <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
             {/* TAVO ĖJIMAS divideris (keičiasi + pulse priešo ėjime) */}
@@ -132,8 +142,10 @@ export default function BattleLayout(props: BattleLayoutProps) {
             </div>
             {/* Tavo padarai */}
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
-            {/* Tavo artefaktai + reakcijos — viena eilė */}
-            <div className="shrink-0 flex items-center justify-center gap-2 flex-nowrap">{renderArtifactRow('you')}{renderReactionRow('you')}</div>
+            {/* Tavo reakcijos — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderReactionRow('you')}</div>
+            {/* Tavo artefaktai — sava eilė */}
+            <div className="shrink-0 flex justify-center">{renderArtifactRow('you')}</div>
           </div>
           {/* Tavo avataras — dešinys apatinis lentos kampas (fieldo pusėj, tuščioj erdvėj prie pile'ų) */}
           <div className="absolute right-2 bottom-1 z-[9] flex items-center gap-1.5">

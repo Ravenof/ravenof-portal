@@ -942,7 +942,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [useHLayout, isTouch])
   const hMobile = useHLayout && typeof window !== 'undefined' && window.innerHeight < 640  // landscape/žemas ekranas: kompaktiški dydžiai (nesiremiam isTouch – webview'e nepatikimas)
   const handW = hMobile ? 48 : isTouch ? 80 : 124
-  const unitW = hMobile ? 44 : isTouch ? 50 : 92
+  const unitW = hMobile ? 57 : isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -2489,7 +2489,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onContextMenu={(e) => { e.preventDefault(); setInspect(a.card) }}
               className="relative rounded-md overflow-hidden"
               style={{
-                width: isTouch ? 40 : 60, height: isTouch ? 54 : 72,
+                width: hMobile ? 52 : isTouch ? 40 : 60, height: hMobile ? 70 : isTouch ? 54 : 72,
                 border: pickedKeys.has('artifact:' + a.uid) ? '2px solid #22c55e' : targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
               {pickedKeys.has('artifact:' + a.uid) && (
@@ -2504,7 +2504,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center"
-              style={{ width: isTouch ? 40 : 64, height: isTouch ? 54 : 76, border: '1px solid rgba(205,160,70,0.3)', background: 'linear-gradient(160deg, rgba(34,27,16,0.8), rgba(12,9,6,0.9))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('artifact', isTouch ? 20 : 28, '⬗', '#cda046')}</div>
+              style={{ width: hMobile ? 52 : isTouch ? 40 : 64, height: hMobile ? 70 : isTouch ? 54 : 76, border: '1px solid rgba(205,160,70,0.3)', background: 'linear-gradient(160deg, rgba(34,27,16,0.8), rgba(12,9,6,0.9))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('artifact', hMobile ? 26 : isTouch ? 20 : 28, '⬗', '#cda046')}</div>
           ))}
         </div>
       </div>
@@ -2524,7 +2524,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 onClick={() => { playUiClick(); setPileView({ title: 'Tavo reakcijos (matai tik tu)', cards: p.reactions.filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.card) }) }}
                 title="Peržiūrėk savo padėtas reakcijas (priešas jų nemato)"
                 className="relative rounded-md overflow-hidden cursor-pointer"
-                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 72, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
+                style={{ width: hMobile ? 52 : isTouch ? 40 : 60, height: hMobile ? 70 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
@@ -2533,7 +2533,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </button>
             ) : (
               <div key={r.uid} className="relative rounded-md overflow-hidden"
-                style={{ width: isTouch ? 40 : 60, height: isTouch ? 54 : 72, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
+                style={{ width: hMobile ? 52 : isTouch ? 40 : 60, height: hMobile ? 70 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
@@ -2542,7 +2542,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             )
           ) : (
             <div key={side + '-rea-' + i} className="rounded-md flex items-center justify-center"
-              style={{ width: isTouch ? 40 : 56, height: isTouch ? 54 : 70, border: '1px solid rgba(139,92,246,0.4)', background: 'linear-gradient(160deg, rgba(26,19,40,0.85), rgba(10,8,16,0.92))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('reaction', isTouch ? 20 : 26, '⚡', '#a78bfa')}</div>
+              style={{ width: hMobile ? 52 : isTouch ? 40 : 56, height: hMobile ? 70 : isTouch ? 54 : 70, border: '1px solid rgba(139,92,246,0.4)', background: 'linear-gradient(160deg, rgba(26,19,40,0.85), rgba(10,8,16,0.92))', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)' }}>{slotTypeIcon('reaction', hMobile ? 26 : isTouch ? 20 : 26, '⚡', '#a78bfa')}</div>
           ))}
         </div>
       </div>
@@ -2720,6 +2720,19 @@ doAction({ t: 'endTurn', actor: 'you' })
             </div>
           )}
           <span className="truncate" style={{ color: e.side === 'you' ? 'rgba(190,240,200,0.85)' : 'rgba(240,190,190,0.85)' }}>{e.msg}</span>
+        </div>
+      )
+    })
+  }
+  const renderLogStripH = () => {
+    if (!game) return null
+    const items = game.log.map((e, idx) => { const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName); return card ? { e, idx, card } : null }).filter((x): x is NonNullable<{ e: typeof game.log[number]; idx: number; card: TutCard }> => !!x).slice(-9)
+    if (items.length === 0) return <span className="text-[8px] text-center" style={{ color: 'var(--text-muted)' }}>—</span>
+    return items.map(({ e, idx, card }) => {
+      const col = e.side === 'you' ? '#4ade80' : '#f87171'
+      return (
+        <div key={idx} onClick={() => { playCardFlip(); setInspect(card) }} className="shrink-0 rounded overflow-hidden cursor-pointer mx-auto" style={{ width: 28, outline: '1.5px solid ' + col, boxShadow: '0 0 5px ' + col + '55' }}>
+          <MiniCard c={card} w={28} />
         </div>
       )
     })
@@ -2961,6 +2974,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderOppHand={(big) => <OppHandFan count={game.ai.hand.length} big={big} />}
           renderHand={renderHandFanH}
           renderLog={renderLogH}
+          renderLogStrip={renderLogStripH}
           renderEndTurn={renderEndTurnH}
           renderDiscardGold={renderDiscardGoldH}
           renderEmoteBubble={renderEmoteBubbleH}
