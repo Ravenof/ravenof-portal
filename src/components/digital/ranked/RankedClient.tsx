@@ -66,7 +66,7 @@ export function RankedClient() {
       if (user) supabase.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
         .then(({ data }) => { const d = data as { display_name: string | null; username: string | null } | null; if (d) setMyName(d.display_name ?? d.username ?? 'Žaidėjas') })
     })
-    getRankedDecks().then(setDecks) // pradinį pasirinkimą atstato DeckSelect (locked_deck_id — load() aukščiau turi pirmenybę)
+    getRankedDecks().then((d) => { setDecks(d); if (d && d.length) setSelDeck((cur) => cur || d[0].id) }) // auto-parenka pirmą kaladę jei nėra locked_deck_id
     getFactionIdMap().then(setFactionIds)
     // „Lazy cron": jei reikia (≥11 val.), paleidžia botų tarpusavio kovas (K/D gyvas be pg_cron)
     createClient().rpc('rvn_maybe_simulate_bot_matches').then(() => {}, () => {})

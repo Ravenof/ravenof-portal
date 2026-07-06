@@ -1,106 +1,215 @@
 'use client'
 
-// ── Ravenof Digital — Treniruotė (PvE prieš AI) ───────────────────────────────
-import { useEffect, useState } from 'react'
+// ── Ravenof Digital — Treniruotė prieš AI: VIENO ekrano landscape pasiruošimas ─
+// 3 stulpeliai: Tavo kaladė (karuselė) · Priešininko tipas (atsitiktinė/pasirinkta frakcija/viešas deck) · Santrauka+sunkumas.
+// Startas -> TutorialGame(practice) su opponentFaction ARBA opponentDeckId + difficulty.
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Target, Swords, GraduationCap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
-import { DeckSelect } from './DeckSelect'
-import { getStarterDecks } from '@/lib/starterDecks'
-import { PageHero } from './ui/HubKit'
-import { PracticeButton } from '@/components/tutorial/PracticeButton'
+import { RvnIcon } from './ui/RvnIcon'
+import type { AiDifficulty } from '@/lib/tutorial/ai'
+
+const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
+type Faction = { id: number; name: string; icon_url: string | null; color_hex: string | null }
+type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number }
+type Mode = 'random' | 'faction' | 'public'
 const A = '34,197,94'
+const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(14,20,16,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(34,197,94,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+const FACTION_DESC: Record<string, string> = { 'Mirties maršas': 'Kapinės · prisikėlimas', 'Demonų orda': 'Prakeiksmai · agresija', 'Inkvizicijos legionas': 'Kontrolė · disciplina', 'Šviesos pulkas': 'Gydymas · apsauga', 'Mistikos melodija': 'Burtai · kontrolė', 'Rytų vėjas': 'Greitis · combo', 'Plėšikų naktis': 'Vagystė · tempas', 'Vryhioko gauja': 'Žvėrys · jėga' }
 
 export function DigitalPvE() {
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
-  const [open, setOpen] = useState(false)
-  const [tutProgress, setTutProgress] = useState<{ claimed: number; total: number } | null>(null)
-
-  useEffect(() => {
-    getStarterDecks().then((d) => { if (d) setTutProgress({ claimed: d.filter((x) => x.claimed).length, total: d.length || 8 }) }).catch(() => {})
-  }, [])
+  const [factions, setFactions] = useState<Faction[]>([])
+  const [publicDecks, setPublicDecks] = useState<PublicDeck[]>([])
+  const [mode, setMode] = useState<Mode>('random')
+  const [oppFaction, setOppFaction] = useState<number | ''>('')
+  const [oppDeck, setOppDeck] = useState('')
+  const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
+  const [query, setQuery] = useState('')
+  const [filterFaction, setFilterFaction] = useState<number | ''>('')
+  const [started, setStarted] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { setDecks([]); return }
-      Promise.all([
+      const [{ data }, { data: colRows }, { data: prof }] = await Promise.all([
         supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
         supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
         supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
-      ]).then(async ([{ data }, { data: colRows }, { data: prof }]) => {
-        const role = (prof as { role?: string } | null)?.role
-        const tester = role === 'tester' || role === 'admin'
-        const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
-        const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
-        // kaladės su trūkstamomis kortomis — nežaidžiamos
-        const ids = rows.map((d) => d.id)
-        const missingMap: Record<string, number> = {}
-        if (ids.length) {
-          const { data: dc } = await supabase.from('deck_cards').select('deck_id, card_id, quantity').in('deck_id', ids)
-          for (const r of ((dc as { deck_id: string; card_id: string; quantity: number }[]) ?? [])) {
-            const have = owned[r.card_id] ?? 0
-            if (have < r.quantity) missingMap[r.deck_id] = (missingMap[r.deck_id] ?? 0) + (r.quantity - have)
-          }
-        }
-        const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: tester ? 0 : (missingMap[d.id] ?? 0) }))
-        setDecks(ds) // pradinį pasirinkimą (paskutinė naudota) atstato DeckSelect
-      })
+      ])
+      const tester = ['tester', 'admin'].includes((prof as { role?: string } | null)?.role ?? '')
+      const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
+      const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
+      const ids = rows.map((d) => d.id)
+      const missingMap: Record<string, number> = {}
+      if (ids.length) {
+        const { data: dc } = await supabase.from('deck_cards').select('deck_id, card_id, quantity').in('deck_id', ids)
+        for (const r of ((dc as { deck_id: string; card_id: string; quantity: number }[]) ?? [])) { const have = owned[r.card_id] ?? 0; if (have < r.quantity) missingMap[r.deck_id] = (missingMap[r.deck_id] ?? 0) + (r.quantity - have) }
+      }
+      const ds = rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, missing: tester ? 0 : (missingMap[d.id] ?? 0) }))
+      setDecks(ds)
+      const first = ds.find((d) => d.missing === 0); if (first) setSel(first.id)
     })
+    supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20).then(({ data }) => setFactions(((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
+    supabase.from('decks').select('id, name, user_id, score, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').order('score', { ascending: false }).limit(60)
+      .then(async ({ data }) => {
+        const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
+        const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))]
+        const authors: Record<string, string> = {}
+        if (uids.length) { const { data: profs } = await supabase.from('profiles').select('id, username, display_name').in('id', uids); for (const pr of ((profs as { id: string; username: string | null; display_name: string | null }[]) ?? [])) authors[pr.id] = pr.display_name || pr.username || 'žaidėjas' }
+        setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? 'žaidėjas', score: d.score ?? 0 })))
+      })
   }, [])
 
-  const deck = decks?.find((d) => d.id === sel)
+  const deck = decks?.find((d) => d.id === sel && d.missing === 0)
+  const playable = (decks ?? []).filter((d) => d.missing === 0)
+  const selFactionObj = factions.find((f) => f.id === oppFaction)
+  const selDeckObj = publicDecks.find((d) => d.id === oppDeck)
+  const filteredDecks = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return publicDecks.filter((d) => (!filterFaction || d.factionId === filterFaction) && (!q || d.name.toLowerCase().includes(q) || d.author.toLowerCase().includes(q) || (d.faction ?? '').toLowerCase().includes(q)))
+  }, [publicDecks, query, filterFaction])
+
+  const canStart = !!deck && (mode === 'random' || (mode === 'faction' && !!oppFaction) || (mode === 'public' && !!oppDeck))
+  const start = useCallback(() => {
+    if (!canStart) return
+    playUiClick()
+    if (mode === 'random' && factions.length && !oppFaction) setOppFaction(factions[Math.floor(Math.random() * factions.length)].id)
+    setStarted(true)
+  }, [canStart, mode, factions, oppFaction])
+
+  const oppSummary = mode === 'random' ? 'Atsitiktinė frakcija' : mode === 'faction' ? (selFactionObj ? `${selFactionObj.name} AI` : '—') : (selDeckObj ? selDeckObj.name : '—')
+
+  if (started && deck) {
+    return <TutorialGame deckId={deck.id} deckName={deck.name} practice
+      opponentDeckId={mode === 'public' ? oppDeck : null}
+      opponentFaction={mode !== 'public' && oppFaction ? Number(oppFaction) : null}
+      opponentName={mode === 'public' ? (selDeckObj?.name ?? 'Priešas') : (selFactionObj?.name ?? 'Priešas')}
+      difficulty={difficulty}
+      onClose={() => setStarted(false)} />
+  }
+
+  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>Kraunama…</span></div>
+  if (playable.length === 0) return (
+    <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+      <p style={{ color: 'var(--text-muted)' }}>Neturi žaidžiamų kaladžių.</p>
+      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+    </div>
+  )
+
+  const modeTab = (m: Mode, icon: string, label: string) => (
+    <button key={m} onClick={() => { playUiClick(); setMode(m) }} className="rvn-press flex-1 rounded-xl px-1 py-2 flex flex-col items-center gap-1"
+      style={{ minHeight: 58, border: mode === m ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: mode === m ? `linear-gradient(160deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <span className="rvn-disp font-bold uppercase text-center leading-tight" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: mode === m ? '#86efac' : 'var(--text-secondary)' }}>{label}</span>
+    </button>
+  )
+  const diffBtn = (d: AiDifficulty, lbl: string) => (
+    <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} className="flex-1 rounded-lg text-xs font-semibold" style={{ minHeight: 36, background: difficulty === d ? `rgba(${A},0.22)` : 'rgba(10,8,16,0.8)', border: '1px solid ' + (difficulty === d ? `rgba(${A},0.6)` : 'rgba(255,255,255,0.08)'), color: difficulty === d ? '#bbf7d0' : 'var(--text-muted)' }}>{lbl}</button>
+  )
+  const inputStyle: React.CSSProperties = { minHeight: 36, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', borderRadius: 10, padding: '0 10px', fontSize: 12 }
 
   return (
-    <div className="max-w-md mx-auto space-y-4">
-      <PageHero iconName="fi-pve" icon={<Target className="w-10 h-10" style={{ color: `rgb(${A})` }} />} accent={A}
-        title="TRENIRUOTĖ" sub="Treniruokis prieš botą. Sunkumas (😴 lengvas / ⚔ vidutinis / 💀 sunkus) ir priešininkas pasirenkami kitame žingsnyje. Pergalė — auksas." />
+    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
+      <div className="text-center shrink-0">
+        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(17px,3.4vh,30px)', color: '#86efac', letterSpacing: '0.04em' }}>Treniruotė prieš AI</div>
+        <div className="mx-auto" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: 'var(--text-muted)', maxWidth: 560 }}>Pasirink kaladę ir priešininką. Rangas nesikeičia · pergalė duoda auksą.</div>
+      </div>
 
-      {decks === null ? (
-        <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
-      ) : decks.length === 0 ? (
-        <div className="text-center py-6">
-          <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Neturi kaladžių.</p>
-          <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="inline-flex items-center gap-2 px-5 rounded-xl text-sm font-bold" style={{ minHeight: 48, background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
-        </div>
-      ) : (
-        <>
-          <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.3)` }}>
-            <DeckSelect mode="pve" accent={A} value={sel} onChange={setSel}
-              decks={decks.filter((d) => d.missing === 0)} />
-            {decks.some((d) => d.missing > 0) && (
-              <p className="text-[10px] mt-1.5" style={{ color: 'rgba(240,180,41,0.75)' }}>
-                ⚠ {decks.filter((d) => d.missing > 0).length} kaladė(-ės) paslėpta — trūksta kortų. Papildyk kolekciją arba redaguok kaladę skiltyje Mano kaladės.
-              </p>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(170px,1fr) minmax(0,1.5fr) minmax(190px,1.05fr)' }}>
+
+        {/* KAIRĖ: kaladė */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Tavo kaladė</div>
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
+            {playable.map((d) => { const s = d.id === sel; return (
+              <button key={d.id} onClick={() => { playUiClick(); setSel(d.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left relative"
+                style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
+                <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'rgba(240,180,41,0.3)') }}>{d.factionIcon ? <img src={d.factionIcon} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 'clamp(11px,1.5vh,13px)', color: '#fff' }}>{d.name}</span><span className="block truncate" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'var(--text-muted)' }}>{d.faction ?? '—'}</span></span>
+                {s && <span className="absolute top-1 right-1 flex items-center justify-center rounded-full" style={{ width: 15, height: 15, background: `rgb(${A})`, color: '#04210f', fontSize: 10, fontWeight: 900 }}>✓</span>}
+              </button>
+            ) })}
+          </div>
+          <Link href="/digital/decks" onClick={() => playUiClick()} className="rvn-press text-center mt-2 py-1.5 rounded-xl shrink-0" style={{ fontSize: 'clamp(9px,1.3vh,12px)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>✎ Keisti kaladę</Link>
+        </section>
+
+        {/* CENTRAS: priešininko tipas */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Priešininko tipas</div>
+          <div className="flex gap-1.5 mb-2 shrink-0">{modeTab('random', '🎲', 'Atsitiktinė frakcija')}{modeTab('faction', '🏰', 'Pasirinkta frakcija')}{modeTab('public', '🌐', 'Viešas deck')}</div>
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            {mode === 'random' && (
+              <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-4">
+                <span style={{ fontSize: 40 }}>🎲</span>
+                <div className="rvn-disp font-bold" style={{ fontSize: 15, color: '#bbf7d0' }}>Atsitiktinė frakcija</div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>Botas pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias startas.</p>
+              </div>
+            )}
+            {mode === 'faction' && (
+              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start">
+                {factions.map((f) => { const s = f.id === oppFaction; return (
+                  <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
+                    <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'rgba(240,180,41,0.3)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
+                    <span className="min-w-0"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{FACTION_DESC[f.name] ?? 'AI kaladė'}</span></span>
+                  </button>
+                ) })}
+              </div>
+            )}
+            {mode === 'public' && (
+              <div className="flex-1 min-h-0 flex flex-col">
+                <div className="flex gap-2 mb-2 shrink-0">
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ieškoti decko arba autoriaus…" className="flex-1 outline-none" style={inputStyle} />
+                  <select value={filterFaction ? String(filterFaction) : ''} onChange={(e) => setFilterFaction(e.target.value ? Number(e.target.value) : '')} style={{ ...inputStyle, maxWidth: 140 }}>
+                    <option value="">Visos frakcijos</option>{factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start">
+                  {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nerasta deck'ų.</p>}
+                  {filteredDecks.map((d) => { const s = d.id === oppDeck; return (
+                    <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="rvn-press rounded-xl p-2 flex flex-col gap-1 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'rgba(240,180,41,0.3)') }}>{d.factionIcon ? <img src={d.factionIcon} alt="" width={28} height={28} className="w-full h-full object-cover" /> : <span style={{ fontSize: 12 }}>⚔</span>}</span>
+                        <span className="min-w-0 flex-1"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{d.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{d.author}</span></span>
+                        {s ? <span style={{ color: '#86efac', fontSize: 13 }}>✓</span> : d.score > 0 ? <span className="shrink-0" style={{ fontSize: 9, color: '#fb923c' }}>🔥{d.score >= 1000 ? (d.score / 1000).toFixed(1) + 'K' : d.score}</span> : null}
+                      </div>
+                      <span className="truncate" style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{d.faction ?? '—'}</span>
+                    </button>
+                  ) })}
+                </div>
+              </div>
             )}
           </div>
-          <button onClick={() => { playUiClick(); setOpen(true) }} disabled={!deck}
-            className="flex items-center justify-center gap-2 w-full rounded-2xl text-base font-bold transition-transform active:scale-[0.98] disabled:opacity-40"
-            style={{ minHeight: 56, background: `rgba(${A},0.9)`, color: '#04210f', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>
-            <Swords className="w-5 h-5" /> Pradėti kovą
-          </button>
-          {deck && <PracticeButton deckId={deck.id} deckName={deck.name} hideTrigger open={open} onClose={() => setOpen(false)} />}
-        </>
-      )}
+        </section>
 
-      {/* Mokymai — perkelti iš pagrindinio meniu */}
-      <Link href="/digital/tutorial" onClick={() => playUiClick()}
-        className="block rounded-2xl px-4 py-3.5 transition-transform active:scale-[0.98]"
-        style={{ background: 'radial-gradient(130% 130% at 0% 0%, rgba(139,92,246,0.25), transparent 56%), linear-gradient(150deg, rgba(20,15,30,0.96), rgba(10,8,16,0.98))', border: '1px solid rgba(139,92,246,0.5)' }}>
-        <span className="flex items-center gap-3">
-          <GraduationCap className="w-7 h-7 shrink-0" style={{ color: '#c4b5fd' }} />
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-bold" style={{ color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>Mokymai</span>
-            <span className="block text-[11px]" style={{ color: 'var(--text-secondary)' }}>{tutProgress && tutProgress.claimed > 0 ? 'Vedama kova su tavo starter kalade' : 'Pasiimk nemokamą kaladę ir išmok žaisti'}</span>
-          </span>
-          <span className="text-base font-extrabold" style={{ color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>→</span>
-        </span>
+        {/* DEŠINĖ: santrauka + sunkumas */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+          <div className="rounded-xl p-2.5 flex flex-col gap-1.5 shrink-0" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.22)` }}>
+            <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#86efac' }}>Tu</div><div className="truncate" style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deck?.name ?? '—'}</div></div>
+            <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#fca5a5' }}>Priešininkas</div><div className="truncate" style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div></div>
+          </div>
+          <div className="mt-2 flex-1 min-h-0 flex flex-col">
+            <p className="rvn-disp font-semibold uppercase mb-1.5 shrink-0" style={{ fontSize: 10, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>AI sunkumas</p>
+            <div className="flex gap-1.5 shrink-0">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
+            <p className="mt-1.5" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
+          </div>
+        </section>
+      </div>
 
-      </Link>
+      {/* CTA */}
+      <div className="shrink-0 w-full flex items-center justify-center gap-2 px-1">
+        <button disabled={!canStart} onClick={start} className="rvn-press flex-1 rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"
+          style={{ minHeight: 'clamp(48px,8vh,66px)', maxWidth: 560, background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(14px,2.1vh,19px)', boxShadow: canStart ? `0 0 22px rgba(${A},0.5)` : 'none' }}>
+          ⚔ {canStart ? 'PRADĖTI KOVĄ' : 'PASIRINK PRIEŠININKĄ'}
+        </button>
+        <Link href="/digital/tutorial" onClick={() => playUiClick()} className="rvn-press rounded-2xl px-4 shrink-0 flex items-center" style={{ minHeight: 'clamp(48px,8vh,66px)', fontSize: 'clamp(11px,1.5vh,13px)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', fontFamily: 'var(--rvn-font-display)' }}>🎓 Mokymai</Link>
+      </div>
     </div>
   )
 }

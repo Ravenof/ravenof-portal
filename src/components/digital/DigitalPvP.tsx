@@ -256,9 +256,9 @@ export function DigitalPvP() {
                 {friends.map((f) => {
                   const s = f.userId === selFriend
                   return (
-                    <button key={f.id} onClick={() => { playUiClick(); setSelFriend(f.userId) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left"
+                    <button key={f.id} onClick={() => { playUiClick(); setSelFriend(f.userId) }} className="rvn-press flex items-center gap-2 rounded-lg px-2 py-1 text-left shrink-0"
                       style={{ border: s ? '1.5px solid rgba(34,197,94,0.7)' : '1px solid rgba(255,255,255,0.08)', background: s ? 'rgba(34,197,94,0.12)' : 'rgba(10,8,16,0.6)' }}>
-                      <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
+                      <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
                         {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span>🙂</span>}
                       </span>
                       <span className="min-w-0 flex-1 truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.displayName || f.username}</span>
@@ -292,16 +292,30 @@ export function DigitalPvP() {
         </section>
       </div>
 
-      {/* CTA */}
-      <div className="shrink-0 flex items-center justify-center gap-3">
-        <button disabled={cta.disabled} onClick={cta.action} className="rvn-press rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"
-          style={{ minHeight: 'clamp(48px,8vh,68px)', minWidth: 'min(440px,52vw)', background: cta.disabled ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, rgba(${A},0.95), rgba(240,180,41,0.9))`, color: cta.disabled ? 'var(--text-muted)' : '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', fontSize: 'clamp(14px,2.2vh,19px)', boxShadow: cta.disabled ? 'none' : `0 0 22px rgba(${A},0.5)` }}>
+      {/* CTA — visada matomas, niekada nekropinamas */}
+      <div className="shrink-0 w-full flex items-center justify-center gap-2 px-1">
+        <button disabled={cta.disabled} onClick={cta.action} className="rvn-press flex-1 rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"
+          style={{ minHeight: 'clamp(48px,8vh,66px)', maxWidth: 560, background: cta.disabled ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, rgba(${A},0.95), rgba(240,180,41,0.9))`, color: cta.disabled ? 'var(--text-muted)' : '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,2vh,18px)', boxShadow: cta.disabled ? 'none' : `0 0 22px rgba(${A},0.5)` }}>
           ⚔ {cta.label}
         </button>
-        <button onClick={() => { if (room) cancelRoom(); }} className="rvn-press rounded-2xl px-5" style={{ minHeight: 'clamp(48px,8vh,68px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti</button>
+        <button onClick={() => { playUiClick(); if (room) cancelRoom() }} className="rvn-press rounded-2xl px-4 shrink-0" style={{ minHeight: 'clamp(48px,8vh,66px)', fontSize: 'clamp(12px,1.6vh,14px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti</button>
       </div>
 
-      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom,0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>}
+      {room && (
+        <div className="fixed inset-0 z-[190] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }}>
+          <div className="rounded-2xl p-6 text-center flex flex-col items-center gap-3" style={{ ...PANEL, width: 'min(420px,92vw)' }}>
+            <div className="rounded-full animate-spin" style={{ width: 46, height: 46, border: `4px solid rgba(${A},0.25)`, borderTopColor: `rgb(${A})` }} />
+            <div className="rvn-disp font-bold" style={{ fontSize: 17, color: '#fdba74' }}>{room.code ? 'Laukiama varžovo' : 'Ieškoma varžovo…'}</div>
+            {room.code && (<><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kambario kodas</span>
+              <span className="rvn-disp font-black tracking-[0.25em]" style={{ fontSize: 30, color: 'var(--gold)' }}>{room.code}</span>
+              <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast('Kodas nukopijuotas') }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>📋 Kopijuoti kodą</button></>)}
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{status}</p>
+            <button onClick={() => { playUiClick(); cancelRoom() }} className="px-6 py-2 rounded-xl text-sm mt-1" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti paiešką</button>
+          </div>
+        </div>
+      )}
+
+      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom,0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>}
     </div>
   )
 }
