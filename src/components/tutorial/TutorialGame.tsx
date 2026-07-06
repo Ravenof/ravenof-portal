@@ -1898,18 +1898,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000)
     if (vsRemote) channelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text } })
   }
-  const renderPreviewH = () => {
-    if (!hoverCard) return null
-    return (
-      <div className="flex flex-col items-center gap-1.5 w-full">
-        <div className="rounded-xl overflow-hidden" style={{ border: '2px solid ' + hoverCard.card.rarityColor, boxShadow: '0 8px 24px rgba(0,0,0,0.7)' }}>
-          <MiniCard c={hoverCard.card} w={200} />
-        </div>
-        <p className="text-[11px] font-bold text-center" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
-        {hoverCard.card.effectText && <p className="text-[9px] leading-snug text-center" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>}
-      </div>
-    )
-  }
   const renderEmoteBubbleH = (side: Side) => {
     if (!emoteBubble || emoteBubble.side !== side) return null
     return (
@@ -2732,6 +2720,23 @@ doAction({ t: 'endTurn', actor: 'you' })
         title="Ismesk 1 korta is rankos ir gauk +100 aukso">{'+100⚜'}</button>
     )
   }
+  const renderFieldH = () => (
+    <div className="flex flex-col items-center gap-0.5">
+      <span style={{ fontSize: 7, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(167,139,250,0.6)' }}>Laukas</span>
+      <div data-tut="field" className="relative flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 52, height: 80, border: game?.field ? '1px solid rgba(167,139,250,0.9)' : '1px dashed rgba(167,139,250,0.45)', background: 'linear-gradient(160deg, rgba(42,30,62,0.6), rgba(34,27,16,0.5))', boxShadow: game?.field ? 'inset 0 0 18px rgba(167,139,250,0.3), 0 0 12px rgba(167,139,250,0.25)' : 'inset 0 0 14px rgba(167,139,250,0.12)' }}>
+        {game?.field ? (
+          <button onClick={() => setInspect(game!.field!.card)} onContextMenu={(e) => { e.preventDefault(); setInspect(game!.field!.card) }} className="absolute inset-0">
+            {game.field.card.image
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={game.field.card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : null}
+            <span className="absolute inset-x-0 bottom-0 text-[7px] font-bold text-center px-0.5 truncate" style={{ color: '#fff', background: 'rgba(10,8,16,0.72)' }}>{game.field.card.name}</span>
+          </button>
+        ) : (
+          <span className="text-base" style={{ color: 'rgba(167,139,250,0.5)' }}>{slotTypeIcon('field', 22, '🌍', '#a78bfa')}</span>
+        )}
+      </div>
+    </div>
+  )
 
   // Targeting kursorius: spell – projectile emoji, ataka – kardai
   const targetingCursor = useMemo(() => {
@@ -2917,13 +2922,12 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderUnitsRow={renderUnitsRow}
           renderArtifactRow={renderArtifactRow}
           renderReactionRow={renderReactionRow}
-          dFieldRow={dFieldRow}
+          dFieldRow={renderFieldH}
           renderOppHand={(big) => <OppHandFan count={game.ai.hand.length} big={big} />}
           renderHand={renderHandFanH}
           renderLog={renderLogH}
           renderEndTurn={renderEndTurnH}
           renderDiscardGold={renderDiscardGoldH}
-          renderPreview={renderPreviewH}
           renderEmoteBubble={renderEmoteBubbleH}
           onEmote={sendEmote}
         />
@@ -3350,7 +3354,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
 
-      {game && !showLog && isTouch && (() => {
+      {game && !showLog && !useHLayout && isTouch && (() => {
         const items = game.log
           .map((e, idx) => {
             const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)

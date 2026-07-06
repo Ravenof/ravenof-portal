@@ -26,7 +26,6 @@ export interface BattleLayoutProps {
   renderEndTurn: () => React.ReactNode
   renderDiscardGold: () => React.ReactNode
   turnDeadline?: number | null
-  renderPreview?: () => React.ReactNode
   renderEmoteBubble?: (side: Side) => React.ReactNode
   onEmote?: (text: string) => void
 }
@@ -64,7 +63,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
   const {
     game, myTurn, lastMsg, railPanel,
     hpBar, goldBar, renderPile, renderUnitsRow, renderArtifactRow, renderReactionRow,
-    dFieldRow, renderOppHand, renderHand, renderLog, renderEndTurn, renderDiscardGold, onEmote, turnDeadline, renderPreview, renderEmoteBubble,
+    dFieldRow, renderOppHand, renderHand, renderLog, renderEndTurn, renderDiscardGold, onEmote, turnDeadline, renderEmoteBubble,
   } = props
   const [emoteOpen, setEmoteOpen] = useState(false)
   const EMOTES = ['👋', '😎', '🔥', '😂', '😅', '🤝']
@@ -74,7 +73,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
       <div
         style={{
           display: 'grid', height: '100%',
-          gridTemplateColumns: 'clamp(150px,16vw,232px) minmax(0,1fr) clamp(120px,13vw,166px)',
+          gridTemplateColumns: 'clamp(150px,16vw,232px) minmax(0,1fr) clamp(140px,16vw,206px)',
           gridTemplateRows: 'minmax(0,1fr)',
           gap: 'clamp(4px,0.8vw,10px)',
           paddingTop: 'max(clamp(4px,1vw,10px), env(safe-area-inset-top))',
@@ -93,33 +92,25 @@ export default function BattleLayout(props: BattleLayoutProps) {
               style={{ border: '1px solid rgba(240,180,41,0.3)', background: emoteOpen ? 'rgba(240,180,41,0.18)' : undefined }}>😊</button>
             <span className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Emote</span>
           </RailCard>
-          {/* preview panelė (hoverCard) */}
-          <RailCard style={railPanel} className="p-2 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-            {renderPreview?.() ?? (
-              <span className="text-[9px] uppercase tracking-widest text-center" style={{ color: 'var(--text-muted)' }}>
-                Užvesk / palaikyk kortą<br />peržiūrai
-              </span>
-            )}
-          </RailCard>
-          {/* mūšio žurnalas */}
-          <RailCard style={railPanel} className="p-2 flex flex-col shrink-0" >
+          {/* mūšio žurnalas (preview panelė pašalinta – long-press jau atidaro kortos detales) */}
+          <RailCard style={railPanel} className="p-2 flex-1 min-h-0 flex flex-col" >
             <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>Mūšio žurnalas</span>
-            <div className="max-h-[22vh] overflow-y-auto flex flex-col gap-0.5 pr-1">{renderLog()}</div>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-1">{renderLog()}</div>
           </RailCard>
         </aside>
 
         {/* ── CENTRAS: lenta ── */}
         <section data-fx-board className="min-h-0 rounded-2xl relative overflow-hidden">
           <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 55% at 50% 50%, rgba(240,180,41,0.05), rgba(0,0,0,0.35) 100%)', boxShadow: 'inset 0 0 90px rgba(0,0,0,0.75)', borderRadius: 16, border: '1px solid rgba(240,180,41,0.12)', pointerEvents: 'none' }} />
-          {/* lauko korta – kairysis lentos kraštas (vertikalus slotas) */}
+          {/* lauko korta – kairysis lentos kraštas (kompaktiškas vertikalus slotas) */}
           <div className="absolute left-1 top-1/2 -translate-y-1/2 z-[8]">{dFieldRow()}</div>
 
-          <div className="relative h-full flex flex-col justify-center" style={{ display: 'grid', gridTemplateRows: 'auto auto auto auto auto auto auto', gap: 'clamp(2px,0.5vh,6px)', alignContent: 'center', padding: '6px clamp(8px,3vw,40px) clamp(96px,17vh,168px)' }}>
+          <div className="relative h-full flex flex-col justify-center" style={{ display: 'grid', gridTemplateRows: 'auto auto auto auto auto auto auto', gap: 'clamp(1px,0.4vh,4px)', alignContent: 'center', padding: '4px clamp(8px,2.5vw,30px) clamp(78px,14vh,132px) clamp(58px,7vw,78px)' }}>
             {/* AI: avataras + mana + priešo ranka (ai-area = tutorial anchor: hp-ai/deck-ai/discard-ai/enemy-area) */}
             <div data-tut="ai-area" className="relative flex items-center justify-center gap-3 flex-wrap">
               {renderEmoteBubble?.('ai')}
               {renderOppHand()}
-              {hpBar('ai')}
+              {hpBar('ai', 0.82)}
               {goldBar('ai')}
             </div>
             {/* AI artefaktai/reakcijos */}
@@ -144,17 +135,17 @@ export default function BattleLayout(props: BattleLayoutProps) {
             {/* Tavo artefaktai/reakcijos */}
             <div className="flex items-center justify-center gap-2">{renderArtifactRow('you')}{renderReactionRow('you')}</div>
             {/* Tavo avataras + mana */}
-            <div className="relative flex items-center justify-center gap-3">{renderEmoteBubble?.('you')}{hpBar('you')}{goldBar('you')}</div>
+            <div className="relative flex items-center justify-center gap-3">{renderEmoteBubble?.('you')}{hpBar('you', 0.82)}{goldBar('you')}</div>
           </div>
 
         </section>
 
         {/* ── DEŠINĖ: pile'ai + apvalus BAIGTI ĖJIMĄ ── */}
-        <aside className="flex flex-col gap-2 min-h-0 overflow-hidden items-center justify-between">
+        <aside className="flex flex-col gap-2 min-h-0 overflow-hidden items-stretch justify-between">
           {/* AI pile'ai (viršus) */}
-          <RailCard style={railPanel} className="px-1.5 py-2 flex justify-center gap-1 shrink-0 w-full">
-            {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 42 })}
-            {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 42 })}
+          <RailCard style={railPanel} className="px-0.5 py-2 flex justify-center gap-0.5 shrink-0 w-full">
+            {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 40 })}
+            {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 40 })}
             {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', w: 42 })}
           </RailCard>
           {/* apvalus BAIGTI ĖJIMĄ (su mana + laikmačio žiedu) + discard */}
@@ -166,10 +157,10 @@ export default function BattleLayout(props: BattleLayoutProps) {
             {renderDiscardGold()}
           </div>
           {/* Tavo pile'ai (apačia) */}
-          <RailCard style={railPanel} className="px-1.5 py-2 flex justify-center gap-1 shrink-0 w-full">
-            {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 42 })}
-            {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 42 })}
-            {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 42 })}
+          <RailCard style={railPanel} className="px-0.5 py-2 flex justify-center gap-0.5 shrink-0 w-full">
+            {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 40 })}
+            {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 40 })}
+            {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 40 })}
           </RailCard>
         </aside>
 
