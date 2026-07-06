@@ -98,19 +98,19 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const doneCount = tasks.filter((t) => t.completed).length
 
   return (
-    <div className="relative z-10 flex flex-col gap-2" style={{ height: 'calc(100dvh - 148px)', minHeight: 300 }}>
+    <div className="relative z-10 flex flex-col gap-2" style={{ minHeight: '100%' }}>
       <HubStyles />
 
       {/* ── PAGRINDINĖ ZONA: kairė quests · centras play · dešinė sezonas ── */}
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(190px,1fr) minmax(0,2.1fr) minmax(190px,1fr)' }}>
+      <div className="grid gap-2 items-stretch" style={{ gridTemplateColumns: 'minmax(180px,1fr) minmax(0,2fr) minmax(180px,1fr)' }}>
 
         {/* ── KAIRĖ: Dienos užduotys ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
+        <section className="rounded-2xl flex flex-col overflow-hidden" style={PANEL}>
           <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
             <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Dienos užduotys</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col gap-1.5">
+          <div className="overflow-y-auto px-2.5 flex flex-col gap-1.5" style={{ maxHeight: '30vh' }}>
             {tasks.length === 0 && <span className="text-[11px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>Kraunama…</span>}
             {tasks.slice(0, 4).map((t) => {
               const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
@@ -136,8 +136,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </section>
 
         {/* ── CENTRAS: Play hero ── */}
-        <div className="flex flex-col min-h-0 gap-2">
-          <div className="flex-1 min-h-0">
+        <div className="flex flex-col min-h-0 items-center justify-center overflow-hidden">
+          <div className="w-full overflow-hidden" style={{ maxWidth: 520, maxHeight: '100%' }}>
             <PlayHeroCard subtitle="Pasirink režimą ir pradėk kovą" onCta={startBattle}>
               <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
             </PlayHeroCard>
@@ -145,11 +145,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </div>
 
         {/* ── DEŠINĖ: Sezono progresas ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
+        <section className="rounded-2xl flex flex-col overflow-hidden" style={PANEL}>
           <div className="px-3 pt-2.5 pb-1.5">
             <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Sezono progresas</span>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-3 flex flex-col items-center justify-center gap-2 text-center">
+          <div className="flex-1 px-3 py-1 flex flex-col items-center justify-center gap-2 text-center">
             <RvnIcon name="seg-season" size={48} fallback={<span style={{ fontSize: 30 }}>📜</span>} />
             <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>Pakopa {season.cur}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
             <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.2)' }}>
@@ -167,7 +167,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
-      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(70px,15vh,120px)' }}>
+      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ minHeight: 62 }}>
         <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(139,92,246,0.22), rgba(9,7,14,0.98))' }}>
           <div>
             <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#c4b5fd' }}>Kosmetika</div>

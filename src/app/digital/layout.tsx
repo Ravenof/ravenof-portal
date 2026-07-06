@@ -16,7 +16,7 @@ import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
-import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
+import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { HubStyles, ResourcePill, IconBtn, ProfileChip } from '@/components/digital/ui/HubKit'
@@ -55,7 +55,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   // Visas /digital app užrakintas į landscape; jei įrenginys portrait (web neleido lock) -> „pasuk telefoną" overlay.
   useEffect(() => {
-    const check = () => setShowRotate(isPortraitNow())
+    const check = () => setShowRotate(!isNativeApp() && isPortraitNow())
     check()
     window.addEventListener('resize', check)
     window.addEventListener('orientationchange', check)
@@ -132,7 +132,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       {/* ── Turinys ── */}
       <main className="relative z-10 flex-1 overflow-y-auto px-4 py-3.5" style={{ paddingBottom: 'calc(84px + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="max-w-screen-lg mx-auto">{children}</div>
+        <div className="max-w-screen-lg mx-auto h-full">{children}</div>
       </main>
 
       {/* ── Tab bar ── */}
