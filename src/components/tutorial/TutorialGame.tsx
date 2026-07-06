@@ -940,8 +940,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       void unlockOrientation()
     }
   }, [useHLayout, isTouch])
-  const hMobile = isTouch && useHLayout  // landscape mobile kova: kompaktiškesni dydžiai kad tilptų į žemą aukštį
-  const handW = hMobile ? 54 : isTouch ? 80 : 124
+  const hMobile = useHLayout && typeof window !== 'undefined' && window.innerHeight < 640  // landscape/žemas ekranas: kompaktiški dydžiai (nesiremiam isTouch – webview'e nepatikimas)
+  const handW = hMobile ? 48 : isTouch ? 80 : 124
   const unitW = hMobile ? 44 : isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
@@ -2643,6 +2643,25 @@ doAction({ t: 'endTurn', actor: 'you' })
   // ── Horizontal (landscape) layout render helper'iai (perduodami BattleLayout'ui; state lieka čia) ──
   const renderHandFanH = () => {
     if (!game) return null
+    if (hMobile) {
+      // Kompaktiška ranka (Hearthstone): maži persidengiantys minikai apačioj, palietus -> handExpanded didelė peržiūra.
+      const n = game.you.hand.length
+      return (
+        <div data-tut="hand" ref={handRef}
+          onClick={() => { if (!handExpanded) { playUiClick(); setHandExpanded(true) } }}
+          className="flex justify-center items-end h-full pb-0.5 cursor-pointer">
+          {n === 0 ? <span className="text-[10px] self-center" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span> : game.you.hand.map((c, i) => {
+            const off = i - (n - 1) / 2
+            return (
+              <div key={c.uid} data-hand-card={c.name} className="shrink-0"
+                style={{ marginLeft: i === 0 ? 0 : -Math.round(handW * 0.52), zIndex: i, transform: `translateY(${Math.round(Math.abs(off) * 3)}px) rotate(${Math.max(-10, Math.min(10, off * 3.5))}deg)`, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.6))' }}>
+                <MiniCard c={c} w={handW} />
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
     return (
       <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-1" style={{ paddingTop: 28 }}>
         <AnimatePresence>

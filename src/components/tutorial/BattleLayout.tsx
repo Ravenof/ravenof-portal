@@ -113,10 +113,8 @@ export default function BattleLayout(props: BattleLayoutProps) {
               {hpBar('ai', 0.68)}
               {goldBar('ai')}
             </div>
-            {/* Priešo artefaktai — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderArtifactRow('ai')}</div>
-            {/* Priešo reakcijos — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderReactionRow('ai')}</div>
+            {/* Priešo artefaktai + reakcijos — viena eilė */}
+            <div className="shrink-0 flex items-center justify-center gap-2 flex-nowrap">{renderArtifactRow('ai')}{renderReactionRow('ai')}</div>
             {/* Priešo padarai */}
             <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
             {/* TAVO ĖJIMAS divideris (keičiasi + pulse priešo ėjime) */}
@@ -134,10 +132,8 @@ export default function BattleLayout(props: BattleLayoutProps) {
             </div>
             {/* Tavo padarai */}
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
-            {/* Tavo reakcijos — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderReactionRow('you')}</div>
-            {/* Tavo artefaktai — sava eilė */}
-            <div className="shrink-0 flex justify-center">{renderArtifactRow('you')}</div>
+            {/* Tavo artefaktai + reakcijos — viena eilė */}
+            <div className="shrink-0 flex items-center justify-center gap-2 flex-nowrap">{renderArtifactRow('you')}{renderReactionRow('you')}</div>
             {/* Tavo avataras — apačioje-centre (virš rankos) */}
             <div className="relative flex items-center justify-center gap-2 flex-nowrap shrink-0">
               {renderEmoteBubble?.('you')}
