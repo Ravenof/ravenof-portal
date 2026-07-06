@@ -940,8 +940,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       void unlockOrientation()
     }
   }, [useHLayout, isTouch])
-  const handW = isTouch ? 80 : 124
-  const unitW = isTouch ? 50 : 92
+  const hMobile = isTouch && useHLayout  // landscape mobile kova: kompaktiškesni dydžiai kad tilptų į žemą aukštį
+  const handW = hMobile ? 64 : isTouch ? 80 : 124
+  const unitW = hMobile ? 44 : isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -2432,7 +2433,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     const slots = Math.max(cap, p.units.length)
     const myDropGlow = side === 'you' && !!drag && !drag.targeted && (cardDropZoneOf(drag.card) === 'unit' || cardDropZoneOf(drag.card) === 'spell')
     return (
-      <div data-tut={tut} className="flex flex-wrap justify-center gap-1 sm:gap-2 min-h-[80px] sm:min-h-[124px] items-center">
+      <div data-tut={tut} className={"flex flex-wrap justify-center gap-1 sm:gap-2 items-center " + (hMobile ? "min-h-[56px]" : "min-h-[80px] sm:min-h-[124px]")}>
         <AnimatePresence>
           {Array.from({ length: slots }).map((_, i) => { const u = p.units[i]; return u ? (
             <motion.div key={u.uid} data-unit-uid={u.uid}

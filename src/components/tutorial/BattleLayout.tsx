@@ -105,20 +105,21 @@ export default function BattleLayout(props: BattleLayoutProps) {
           {/* lauko korta – kairysis lentos kraštas (kompaktiškas vertikalus slotas) */}
           <div className="absolute left-1 top-1/2 -translate-y-1/2 z-[8]">{dFieldRow()}</div>
 
-          <div className="relative h-full flex flex-col justify-center" style={{ display: 'grid', gridTemplateRows: 'auto auto auto auto auto auto auto', gap: 'clamp(1px,0.4vh,4px)', alignContent: 'center', padding: '4px clamp(8px,2.5vw,30px) clamp(78px,14vh,132px) clamp(58px,7vw,78px)' }}>
-            {/* AI: avataras + mana + priešo ranka (ai-area = tutorial anchor: hp-ai/deck-ai/discard-ai/enemy-area) */}
-            <div data-tut="ai-area" className="relative flex items-center justify-center gap-3 flex-wrap">
+          <div className="relative h-full flex flex-col justify-between" style={{ gap: 'clamp(2px,0.6vh,6px)', padding: '2px clamp(8px,2.5vw,30px) clamp(60px,11vh,104px) clamp(56px,7vw,76px)' }}>
+            {/* AI eilė: priešo ranka · artefaktai · avataras+mana · reakcijos (viena eilė = kompaktiška).
+                ai-area = tutorial anchor: hp-ai/deck-ai/discard-ai/enemy-area */}
+            <div data-tut="ai-area" className="relative flex items-center justify-center gap-2 flex-wrap shrink-0">
               {renderEmoteBubble?.('ai')}
               {renderOppHand()}
-              {hpBar('ai', 0.82)}
+              {renderArtifactRow('ai')}
+              {hpBar('ai', 0.7)}
               {goldBar('ai')}
+              {renderReactionRow('ai')}
             </div>
-            {/* AI artefaktai/reakcijos */}
-            <div className="flex items-center justify-center gap-2">{renderArtifactRow('ai')}{renderReactionRow('ai')}</div>
             {/* AI padarai */}
-            {renderUnitsRow('ai', 'units-ai')}
+            <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
             {/* TAVO ĖJIMAS divideris (keičiasi + pulse priešo ėjime) */}
-            <div className="flex items-center justify-center gap-2 py-0.5 rounded-full"
+            <div className="flex items-center justify-center gap-2 py-0.5 rounded-full shrink-0"
               style={{
                 background: myTurn ? 'linear-gradient(90deg, rgba(240,180,41,0) 0%, rgba(240,180,41,0.12) 50%, rgba(240,180,41,0) 100%)' : 'linear-gradient(90deg, rgba(139,92,246,0) 0%, rgba(139,92,246,0.14) 50%, rgba(139,92,246,0) 100%)',
                 borderTop: '1px solid ' + (myTurn ? 'rgba(240,180,41,0.18)' : 'rgba(139,92,246,0.22)'),
@@ -131,11 +132,15 @@ export default function BattleLayout(props: BattleLayoutProps) {
               <span className="text-[9px] truncate max-w-[36vw]" style={{ color: 'var(--text-muted)' }}>{lastMsg}</span>
             </div>
             {/* Tavo padarai */}
-            {renderUnitsRow('you', 'units-you')}
-            {/* Tavo artefaktai/reakcijos */}
-            <div className="flex items-center justify-center gap-2">{renderArtifactRow('you')}{renderReactionRow('you')}</div>
-            {/* Tavo avataras + mana */}
-            <div className="relative flex items-center justify-center gap-3">{renderEmoteBubble?.('you')}{hpBar('you', 0.82)}{goldBar('you')}</div>
+            <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
+            {/* Tavo eilė: artefaktai · avataras+mana · reakcijos */}
+            <div className="relative flex items-center justify-center gap-2 flex-wrap shrink-0">
+              {renderEmoteBubble?.('you')}
+              {renderArtifactRow('you')}
+              {hpBar('you', 0.7)}
+              {goldBar('you')}
+              {renderReactionRow('you')}
+            </div>
           </div>
 
         </section>
@@ -191,7 +196,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
 
         {/* ── RANKA: apatinis overlay per visą plotį (ne overflow-hidden -> hover-lift/drag nekarpomi). Hearthstone-stiliaus persidengia su lentos apačia mažam aukščiui. ── */}
         <div className="absolute left-0 right-0 bottom-0 z-30 flex items-end justify-center pointer-events-none"
-          style={{ height: 'clamp(110px,20vh,184px)' }}>
+          style={{ height: 'clamp(84px,15vh,150px)' }}>
           <div className="pointer-events-auto w-full h-full flex items-end justify-center">{renderHand()}</div>
         </div>
       </div>
