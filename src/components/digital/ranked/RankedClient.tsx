@@ -19,9 +19,8 @@ import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
 import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
-import { DeckSelect } from '../DeckSelect'
-import { PageHero } from '../ui/HubKit'
-import { OctPanel, SectionTitle, RButton } from './_ui'
+import { RvnIcon } from '../ui/RvnIcon'
+import { SectionTitle, RButton } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
 import { MatchFound } from './MatchFound'
 import { RankedResult } from './RankedResult'
@@ -37,6 +36,8 @@ type View = 'home' | 'leaderboard' | 'rewards' | 'achievements' | 'history' | 's
 type Flow = 'idle' | 'queue' | 'found' | 'playing' | 'result'
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
+
+const RPANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(26,10,12,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(239,68,68,0.26)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.55)' }
 
 export function RankedClient() {
   const [season, setSeason] = useState<RankedSeason | null>(null)
@@ -166,100 +167,121 @@ export function RankedClient() {
   }
 
   // ── Panelės ────────────────────────────────────────────────────────────────
-  const navBtn = (v: View, icon: string, label: string) => (
-    <button onClick={() => { playUiClick(); setView(v) }}
-      className="flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-lg transition-all hover:scale-[1.03] active:scale-95"
-      style={{ background: view === v ? 'rgba(240,180,41,0.16)' : 'rgba(10,8,16,0.6)', border: '1px solid ' + (view === v ? 'rgba(240,180,41,0.45)' : 'rgba(255,255,255,0.07)') }}>
-      <span className="text-lg">{icon}</span>
-      <span className="text-[10px] font-semibold" style={{ fontFamily: 'var(--rvn-font-display)', color: view === v ? 'var(--gold)' : 'var(--text-muted)', letterSpacing: '0.04em' }}>{label}</span>
-    </button>
-  )
 
   const Back = () => (
     <button onClick={() => { playUiClick(); setView('home') }} className="text-xs mb-3 inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>← Atgal į reitingą</button>
   )
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className={view === 'home' ? 'h-full min-h-0' : 'space-y-5 pb-4'}>
       {view !== 'home' && <Back />}
 
       {view === 'home' && rv && profile && (
-        <>
-          <PageHero compact iconName="fi-ranked" icon={<span style={{ fontSize: 28 }}>🏆</span>} title="REITINGO KOVA" sub="Kilk rangais, rink atlygius ir tapk sezono čempionu" />
-          {/* Sezono juosta */}
-          <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            <span>{season?.name ?? 'Sezonas'}</span>
-            {timer && <span style={{ color: timer.endingSoon ? '#fbbf24' : 'var(--text-muted)' }}>Liko laiko: {formatTimeLeft(timer)}</span>}
+        <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
+          {/* Antraštė + sezonas */}
+          <div className="flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <RvnIcon name="fi-ranked" size={30} fallback={<span style={{ fontSize: 24 }}>🏆</span>} />
+              <div className="min-w-0">
+                <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(15px,3vh,26px)', color: 'var(--gold)' }}>Reitingo kova</div>
+                <div className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,12px)', color: 'var(--text-muted)' }}>Kilk rangais, rink atlygius ir tapk sezono čempionu</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <div className="whitespace-nowrap" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-secondary)' }}>
+                <span>{season?.name ?? 'Sezonas'}</span>
+                {timer && <span style={{ color: timer.endingSoon ? '#fbbf24' : 'var(--text-muted)' }}> · Liko {formatTimeLeft(timer)}</span>}
+              </div>
+              <div className="flex gap-1">
+                {([['leaderboard', '🏆', 'Topas'], ['history', '📜', 'Kovos'], ['achievements', '🏅', 'Pasiekimai'], ['season', '📅', 'Sezonai']] as [View, string, string][]).map(([v, ic, lbl]) => (
+                  <button key={v} onClick={() => { playUiClick(); setView(v) }} title={lbl} className="rvn-press rounded-lg flex items-center justify-center" style={{ width: 26, height: 26, fontSize: 13, background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(239,68,68,0.3)' }}>{ic}</button>
+                ))}
+              </div>
+            </div>
           </div>
-          {timer?.endingSoon && (
-            <p className="text-center text-[11px] px-3 py-1.5 rounded-lg" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.35)', color: '#fcd34d' }}>
-              ⚠ Sezonas baigiasi greitai — suspėk pakilti!
-            </p>
-          )}
 
-          {/* Rango kortelė */}
-          <OctPanel b={16}>
-            <div className="px-5 py-6 flex flex-col items-center gap-3">
-              <RankBadge step={profile.rank_step} size={104} showLabel />
-              <div className="w-full max-w-[280px]">
-                <div className="flex justify-between text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
+          {/* 3 stulpeliai: statistika · rangas+CTA · atlygiai */}
+          <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(150px,1fr) minmax(0,1.5fr) minmax(150px,1fr)' }}>
+
+            {/* KAIRĖ: sezono statistika */}
+            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={RPANEL}>
+              <div className="rvn-disp font-extrabold uppercase tracking-wide mb-1.5 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Jūsų sezono statistika</div>
+              <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0">
+                {([['Pergalės', profile.wins, '#86efac'], ['Pralaimėjimai', profile.losses, '#f87171'], ['Serija', profile.win_streak, 'var(--gold)'], ['K/D', formatKD(profile.total_kills, profile.total_deaths), 'var(--text-primary)']] as [string, React.ReactNode, string][]).map(([l, v, c], i) => (
+                  <div key={i} className="rounded-lg flex flex-col items-center justify-center" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span className="rvn-disp font-black tabular-nums" style={{ fontSize: 'clamp(15px,3vh,26px)', color: c }}>{v}</span>
+                    <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-center mt-1.5 shrink-0" style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>Šį sezoną gauta: <b style={{ color: 'var(--text-secondary)' }}>{profile.portal_exp_earned} XP</b> · <b style={{ color: 'var(--gold)' }}>{profile.ranked_gold_earned} aukso</b></div>
+            </section>
+
+            {/* CENTRAS: rango ženklelis + progresas + CTA */}
+            <section className="rounded-2xl flex flex-col items-center justify-center min-h-0 overflow-hidden px-3 py-2" style={{ ...RPANEL, gap: 'clamp(3px,0.9vh,8px)' }}>
+              <RankBadge step={profile.rank_step} size={72} showLabel />
+              <div className="w-full" style={{ maxWidth: 340 }}>
+                <div className="flex justify-between mb-1" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'var(--text-muted)' }}>
                   <span>Dabartinis rangas</span>
-                  <span>{rv.isMax ? 'Maks. rangas' : `Iki: ${formatRank(nextRv!.step)}`}</span>
+                  <span>{rv.isMax ? 'Maks. rangas' : `Kitas rangas: ${formatRank(nextRv!.step)}`}</span>
                 </div>
                 <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                   <div className="h-full rounded-full" style={{ width: `${rv.isMax ? 100 : ((profile.rank_step % 3) / 3) * 100 + 16}%`, background: 'linear-gradient(90deg,#b3793f,#f0b429,#fcd34d)' }} />
                 </div>
-                <p className="text-center text-[11px] mt-2" style={{ color: profile.loss_counter > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
-                  Pralaimėjimai iki rango kritimo: {profile.loss_counter}/2
+                <p className="text-center mt-1" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: profile.loss_counter > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
+                  {profile.loss_counter > 0 ? `Iki rango kritimo: ${2 - profile.loss_counter} pralaimėjimas` : 'Apsauga nuo kritimo pilna'}
                 </p>
               </div>
-            </div>
-          </OctPanel>
+              {decks && decks.length > 0 ? (
+                <div className="w-full" style={{ maxWidth: 340 }}>
+                  <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
+                  {selDeckObj && <p className="text-center mt-1 truncate" style={{ fontSize: 'clamp(8px,1.1vh,11px)', color: 'var(--text-secondary)' }}>Pasirinkta: <b style={{ color: '#fca5a5' }}>{selDeckObj.name}</b>{selDeckObj.faction ? ` · ${selDeckObj.faction}` : ''}</p>}
+                </div>
+              ) : (
+                <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+              )}
+            </section>
 
-          {/* Kaladės pasirinkimas + Ieškoti kovos */}
-          {decks === null ? (
-            <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
-          ) : decks.length === 0 ? (
-            <div className="text-center">
-              <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Neturi kaladžių — reitingo kovai reikia bent vienos.</p>
-              <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="inline-block px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <DeckSelect mode="ranked" accent="239,68,68" label="⚔ Reitingo kaladė" value={selDeck} onChange={setSelDeck} decks={decks} />
+            {/* DEŠINĖ: ranked atlygiai */}
+            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 text-center" style={RPANEL}>
+              <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Ranked atlygiai</div>
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-1">
+                <span style={{ fontSize: 'clamp(9px,1.2vh,11px)', color: 'var(--text-muted)' }}>Kitas atlygis</span>
+                <span className="rvn-disp font-black" style={{ fontSize: 'clamp(13px,2.4vh,20px)', color: 'var(--gold)' }}>{rv.isMax ? 'Maks. rangas' : formatRank(nextRv!.step)}</span>
+                <div className="flex items-center justify-center rounded-xl my-1" style={{ width: 'clamp(48px,9vh,76px)', height: 'clamp(48px,9vh,76px)', background: 'radial-gradient(circle at 50% 30%, rgba(139,92,246,0.35), rgba(10,8,16,0.9))', border: '1px solid rgba(139,92,246,0.4)', fontSize: 'clamp(24px,5vh,40px)' }}>🎁</div>
+                <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3 }}>Sezono pabaigoje gausi atlygius pagal aukščiausią pasiektą rangą.</span>
               </div>
-              <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
+              <button onClick={() => { playUiClick(); setView('rewards') }} className="rvn-press rounded-xl py-2 shrink-0 font-bold" style={{ fontSize: 'clamp(9px,1.3vh,12px)', background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>Peržiūrėti atlygius →</button>
+            </section>
+          </div>
+
+          {/* APAČIA: reitingo kaladžių karuselė */}
+          {decks && decks.length > 0 && (
+            <div className="shrink-0">
+              <div className="rvn-disp uppercase tracking-wide mb-1" style={{ fontSize: 'clamp(9px,1.3vh,11px)', color: 'var(--gold)' }}>Reitingo kaladės</div>
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {decks.map((d) => {
+                  const sel = d.id === selDeck
+                  return (
+                    <button key={d.id} onClick={() => { playUiClick(); setSelDeck(d.id) }}
+                      className="rvn-press shrink-0 rounded-xl flex items-center gap-2 px-2.5 py-1.5 text-left relative"
+                      style={{ width: 'clamp(128px,19vw,188px)', border: sel ? '1.5px solid #ef4444' : '1px solid rgba(255,255,255,0.08)', background: sel ? 'linear-gradient(135deg, rgba(239,68,68,0.16), rgba(10,8,16,0.9))' : 'rgba(10,8,16,0.6)', boxShadow: sel ? '0 0 14px rgba(239,68,68,0.35)' : 'none' }}>
+                      <span className="shrink-0 flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 34, height: 34, background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? `rgba(${d.factionColor},0.6)` : 'rgba(240,180,41,0.3)') }}>
+                        {d.factionIcon ? <RvnIcon name={d.factionIcon} size={26} fallback={<span>⚔</span>} /> : <span style={{ fontSize: 16 }}>⚔</span>}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate rvn-disp font-bold" style={{ fontSize: 'clamp(10px,1.4vh,13px)', color: '#fff' }}>{d.name}</span>
+                        <span className="block truncate" style={{ fontSize: 'clamp(8px,1vh,10px)', color: 'var(--text-muted)' }}>{d.faction ?? '—'}</span>
+                        <span className="block" style={{ fontSize: 'clamp(7px,0.9vh,9px)', color: '#86efac' }}>Paruošta</span>
+                      </span>
+                      {sel && <span className="absolute top-1 right-1 flex items-center justify-center rounded-full" style={{ width: 15, height: 15, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 900 }}>✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
-
-          {/* Statistikos santrauka */}
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              ['Pergalės', profile.wins, '#86efac'],
-              ['Pralaimėjimai', profile.losses, '#f87171'],
-              ['Serija', profile.win_streak, 'var(--gold)'],
-              ['K/D', formatKD(profile.total_kills, profile.total_deaths), 'var(--text-primary)'],
-            ].map(([l, v, c], i) => (
-              <div key={i} className="text-center px-1 py-2.5 rounded-lg" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-base font-bold tabular-nums" style={{ color: c as string, fontFamily: 'var(--rvn-font-display)' }}>{v}</p>
-                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{l}</p>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            Geriausias rangas: <b style={{ color: 'var(--text-secondary)' }}>{formatRank(profile.best_rank_step)}</b> · Iš ranked: {profile.portal_exp_earned} EXP · {profile.ranked_gold_earned} 🪙
-          </p>
-
-          {/* Navigacija */}
-          <div className="grid grid-cols-5 gap-2">
-            {navBtn('leaderboard', '🏆', 'Topas')}
-            {navBtn('rewards', '🎁', 'Atlygiai')}
-            {navBtn('achievements', '🏅', 'Pasiekimai')}
-            {navBtn('history', '📜', 'Kovos')}
-            {navBtn('season', '📅', 'Sezonai')}
-          </div>
-        </>
+        </div>
       )}
 
       {view === 'leaderboard' && (<><SectionTitle icon="🏆">Topas</SectionTitle><Leaderboard /></>)}
