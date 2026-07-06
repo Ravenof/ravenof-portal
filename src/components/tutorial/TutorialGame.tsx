@@ -49,6 +49,7 @@ import { useCinematicQueue } from '@/lib/game/cinematicQueue'
 import { collectDeckCinematicPosters, preloadCinematicPosters, collectDeckCinematicVideos, preloadCinematicVideos, type CinematicCardInput } from '@/lib/game/cinematics'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
+import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 
@@ -920,6 +921,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const copyBlocks = !!game?.pendingCopy
   const returnBlocks = !!game?.pendingReturn
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+  const useHLayout = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('layout') === 'h'
   const handW = isTouch ? 80 : 124
   const unitW = isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
@@ -2587,6 +2589,88 @@ doAction({ t: 'endTurn', actor: 'you' })
 
   const lastMsg = game?.log[game.log.length - 1]?.msg ?? ''
 
+  // ── Horizontal (landscape) layout render helper'iai (perduodami BattleLayout'ui; state lieka čia) ──
+  const renderHandFanH = () => {
+    if (!game) return null
+    return (
+      <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-1" style={{ paddingTop: 28 }}>
+        <AnimatePresence>
+          {game.you.hand.map((c, i) => {
+            const afford = game.you.gold >= c.gold
+            const isDragging = drag?.uid === c.uid && dragMovedRef.current
+            const n = game.you.hand.length
+            const off = i - (n - 1) / 2
+            const rot = off * Math.min(4.5, 24 / Math.max(1, n))
+            const ty = Math.round(Math.pow(Math.abs(off), 1.6) * 4)
+            return (
+              <motion.div key={c.uid} data-hand-card={c.name} layout
+                initial={{ y: 70, opacity: 0 }}
+                animate={{ y: ty, rotate: rot, opacity: isDragging ? 0.25 : 1 }}
+                whileHover={{ y: ty - 36, rotate: 0, scale: 1.14, zIndex: 60 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                style={{ marginLeft: i === 0 ? 0 : -(handW * 0.34), zIndex: i, transformOrigin: 'bottom center' }}
+                onMouseEnter={(ev) => setHoverCard({ card: c, x: ev.clientX, y: ev.clientY })}
+                onMouseMove={(ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: c, x: ev.clientX, y: ev.clientY })}
+                onMouseLeave={() => setHoverCard(null)}
+                onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
+                <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                  <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing" style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1, boxShadow: '0 10px 26px rgba(0,0,0,0.65)', borderRadius: 10 }}>
+                    <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
+                  </div>
+                </GameCard>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+        {game.you.hand.length === 0 && <span className="text-xs self-center" style={{ color: 'var(--text-muted)' }}>Ranka tuščia</span>}
+      </div>
+    )
+  }
+  const renderLogH = () => {
+    if (!game) return null
+    return game.log.slice(-26).map((e, i) => {
+      const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
+      const col = e.side === 'you' ? '#4ade80' : '#f87171'
+      return (
+        <div key={i} className="flex items-center gap-1.5 text-[10px] leading-tight">
+          <span style={{ width: 3, alignSelf: 'stretch', background: col, borderRadius: 2, flexShrink: 0 }} />
+          {card && (
+            <div className="shrink-0 rounded overflow-hidden cursor-pointer" style={{ width: 18, outline: '1px solid ' + col }}
+              onClick={() => { playCardFlip(); setInspect(card) }}
+              onMouseEnter={!isTouch ? (ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY }) : undefined}
+              onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}>
+              <MiniCard c={card} w={18} />
+            </div>
+          )}
+          <span className="truncate" style={{ color: e.side === 'you' ? 'rgba(190,240,200,0.85)' : 'rgba(240,190,190,0.85)' }}>{e.msg}</span>
+        </div>
+      )
+    })
+  }
+  const renderEndTurnH = () => {
+    if (!game) return null
+    const mana = game.you.gold
+    return (
+      <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
+        className="relative rounded-full flex flex-col items-center justify-center font-extrabold transition-all active:scale-95 disabled:opacity-60"
+        style={{ width: 92, height: 92, background: myTurn ? 'radial-gradient(circle at 50% 35%, #2a9a4c, #134f25)' : 'radial-gradient(circle at 50% 35%, #7a1f1f, #3a0f0f)', border: '2px solid ' + (myTurn ? 'rgba(74,222,128,0.8)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', boxShadow: myTurn ? '0 0 22px rgba(34,197,94,0.5)' : 'none' }}
+        title={myTurn ? 'Baigti ejima' : 'Prieso ejimas'}>
+        <span className="text-[10px] leading-tight text-center px-1" style={{ whiteSpace: 'pre-line' }}>{myTurn ? 'Baigti\nejima' : 'Prieso\nejimas'}</span>
+        <span className="text-[11px] tabular-nums mt-0.5" style={{ color: 'var(--gold)' }}>{'⚜'} {mana}</span>
+      </button>
+    )
+  }
+  const renderDiscardGoldH = () => {
+    if (!game) return null
+    return (
+      <button data-tut="discard-gold"
+        onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+        className="px-2 py-1 rounded-full text-[9px] font-bold whitespace-nowrap"
+        style={{ background: game.you.discardedForGold ? 'rgba(0,0,0,0.5)' : select?.kind === 'discard' ? 'rgba(34,197,94,0.38)' : 'rgba(34,197,94,0.18)', border: '1px solid rgba(74,222,128,0.6)', color: game.you.discardedForGold ? 'var(--text-muted)' : '#86efac' }}
+        title="Ismesk 1 korta is rankos ir gauk +100 aukso">{'+100⚜'}</button>
+    )
+  }
+
   // Targeting kursorius: spell – projectile emoji, ataka – kardai
   const targetingCursor = useMemo(() => {
     if (!select || select.kind === 'discard' || select.kind === 'sacrifice') return undefined
@@ -2755,7 +2839,28 @@ doAction({ t: 'endTurn', actor: 'you' })
           <span className="text-sm animate-pulse" style={{ color: 'var(--gold)' }}>Ruošiama kova…</span>
         </div>
       )}
-      {game && !loading && isTouch && (
+      {game && !loading && useHLayout && (
+        <BattleLayout
+          game={game}
+          isTouch={isTouch}
+          myTurn={myTurn}
+          lastMsg={lastMsg}
+          railPanel={RAIL_PANEL}
+          hpBar={hpBar}
+          goldBar={goldBar}
+          renderPile={renderPile}
+          renderUnitsRow={renderUnitsRow}
+          renderArtifactRow={renderArtifactRow}
+          renderReactionRow={renderReactionRow}
+          dFieldRow={dFieldRow}
+          renderOppHand={(big) => <OppHandFan count={game.ai.hand.length} big={big} />}
+          renderHand={renderHandFanH}
+          renderLog={renderLogH}
+          renderEndTurn={renderEndTurnH}
+          renderDiscardGold={renderDiscardGoldH}
+        />
+      )}
+      {game && !loading && !useHLayout && isTouch && (
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto sm:overflow-hidden px-2 py-1.5 gap-1">
           {/* ── AI pusė ── */}
           <div data-tut="ai-area" className="shrink-0">
@@ -2855,7 +2960,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
 
-      {game && !loading && !isTouch && (
+      {game && !loading && !useHLayout && !isTouch && (
         <div className="flex-1 min-h-0 w-full" style={{ maxWidth: 1600, margin: '0 auto' }}>
           <div style={{ display: 'grid', height: '100%', gridTemplateColumns: '236px minmax(0,1fr) 250px', gridTemplateRows: 'minmax(0,1fr) 178px', gridTemplateAreas: '"left board right" "left hand command"', gap: 10, padding: '6px 14px' }}>
 
@@ -3154,7 +3259,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <AnimatePresence>
         {/* ── Nuolatinis suskleistas spalvotas log (dešinė): kortų/ŽMK miniatiūros eilės tvarka; žalia=tu, raudona=priešas ── */}
       {/* ── Lauko korta: fixed kairysis slotas (per vidurį), bendras abiem ── */}
-      {game && isTouch && (
+      {game && !useHLayout && isTouch && (
         <div className="fixed left-1 top-1/2 -translate-y-1/2 z-[118] flex flex-col items-center gap-0.5">
           <span className="text-[7px] uppercase tracking-wide" style={{ color: 'rgba(167,139,250,0.75)' }}>Laukas</span>
           <div data-tut="field" className="rounded-lg overflow-hidden" style={{ background: 'rgba(10,8,16,0.72)', border: game.field ? '1.5px solid rgba(167,139,250,0.85)' : '1px solid rgba(167,139,250,0.5)', boxShadow: game.field ? '0 0 14px rgba(167,139,250,0.45)' : '0 0 10px rgba(167,139,250,0.28)' }}>
