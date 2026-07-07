@@ -285,29 +285,16 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
   return (
     <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,8px)' }}>
-      {/* ── Antraštė ── */}
-      <div className="flex items-center gap-2 shrink-0">
-        <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label="Atgal"><ChevronLeft className="w-5 h-5" /></button>
-        <h1 className="rvn-disp font-black uppercase leading-none truncate" style={{ fontSize: 'clamp(14px,2.8vh,22px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>
-          Deck Builder
-          {tester && <span className="ml-2 align-middle font-bold px-1.5 py-0.5 rounded-full" style={{ fontSize: 9, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd', letterSpacing: '0.08em' }}>TESTER</span>}
-        </h1>
-        {selFaction && (
-          <span className="flex items-center gap-1.5 px-2 py-1 rounded-full shrink-0" style={{ background: `${selFaction.color_hex}1f`, border: `1px solid ${selFaction.color_hex}88` }}>
-            <span style={{ fontSize: 13 }}>{identityFor(selFaction.name)?.icon ?? '🛡️'}</span>
-            <span className="rvn-disp font-bold truncate" style={{ fontSize: 11, color: selFaction.color_hex ?? 'var(--gold)', maxWidth: 130 }}>{selFaction.name}</span>
-          </span>
-        )}
-        <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0" style={{ background: total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.16)' : `rgba(${GOLD},0.14)`, border: `1px solid ${total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.5)' : `rgba(${GOLD},0.4)`}`, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{total}/{DECK_MIN}</span>
-      </div>
-
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)' }}>
 
         {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           {store.factionId == null ? (
             <div className="flex-1 min-h-0 flex flex-col">
-              <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(11px,1.7vh,14px)', color: 'var(--gold)' }}>Pasirink kaladės frakciją</div>
+              <div className="relative mb-2 shrink-0">
+                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label="Atgal"><ChevronLeft className="w-5 h-5" /></button>
+                <div className="rvn-disp font-extrabold uppercase tracking-wide text-center" style={{ fontSize: 'clamp(11px,1.7vh,14px)', color: 'var(--gold)' }}>Pasirink kaladės frakciją</div>
+              </div>
               <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-2 content-start">
                 {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
                   const id = identityFor(f.name)
@@ -326,9 +313,10 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
             </div>
           ) : (
             <>
-              {/* Filtrų juosta */}
+              {/* Filtrų juosta (back čia — atskiros antraštės eilutės nebėra, plotas kortoms) */}
               <div className="shrink-0 flex items-center gap-1.5 flex-wrap mb-2">
-                <div className="relative flex-1" style={{ minWidth: 130 }}>
+                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label="Atgal"><ChevronLeft className="w-5 h-5" /></button>
+                <div className="relative flex-1" style={{ minWidth: 120 }}>
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--text-muted)' }} />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti albume…" className="w-full outline-none rounded-lg"
                     style={{ minHeight: 32, paddingLeft: 28, paddingRight: 8, fontSize: 11.5, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
@@ -383,6 +371,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
           <div className="flex items-center justify-between gap-2 mb-1.5 shrink-0">
             <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)', letterSpacing: '0.06em' }}>
               <Layers className="w-3.5 h-3.5" /> Kaladė
+              {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
             </span>
             <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>
           </div>
