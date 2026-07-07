@@ -1,44 +1,98 @@
 'use client'
 
-// ── Parduotuvė (multi-valiutė: Sidabras / Rubinai) — landscape 3 zonų overlay ─
-// kairė sekcijos · centras prekių grid · dešinė pasirinktos prekės turinys + pirkimo CTA.
+// ── PARDUOTUVĖ (vieninga; konsolidacija 2026-07-07) — landscape 3 zonų overlay:
+// kairė sekcijos · centras prekių grid · dešinė preview + pirkimo CTA (pinned).
+// DB sekcijos (shop_items: pakuotės/nugarėlės/avatarai/kaladės/rubinai) +
+// Dienos kortos (daily deal) + Starter kaladės — viskas VIENOJE vietoje.
+// Senas StoreModal (auksinė parduotuvė) išimtas — šis modalas atidaromas ir iš
+// tab bar „Parduotuvė", ir iš Hub, ir per requestOpenStore eventą.
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { rewardChip } from '@/lib/gamification/monthlyLogin'
-import { getBalances, type Balances } from '@/lib/economy'
-import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
+import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
+import { rewardChip } from '@/lib/gamification/monthlyLogin'
+import { getBalances, getPackInventory, type Balances } from '@/lib/economy'
+import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
+import { getDailyDeal, buyDailyDealCard, type DealCard } from '@/lib/cosmetics'
+import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
+import { rarityColor } from '@/lib/digital/rarity'
+import { SmartImg } from '@/components/ui/SmartImg'
 
 const RARITY_COL: Record<string, string> = { basic: '148,163,184', rare: '96,165,250', premium: '139,92,246', epic: '139,92,246', legendary: '240,180,41' }
+
+type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
+type Section = { key: string; label: string }
+const ALL_SECTIONS: Section[] = [
+  ...SHOP_SECTIONS.map((s) => ({ key: s.key, label: s.label })),
+  { key: 'daily', label: '🔥 Dienos kortos' },
+  { key: 'starter', label: '🆓 Starter kaladės' },
+]
 
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
   useEscClose(onClose)
   const [items, setItems] = useState<ShopItem[]>([])
+  const [deal, setDeal] = useState<DealCard[]>([])
+  const [starters, setStarters] = useState<StarterDeck[]>([])
   const [bal, setBal] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
+  const [packInv, setPackInv] = useState(0)
   const [section, setSection] = useState('packs')
-  const [selId, setSelId] = useState<number | null>(null)
-  const [busy, setBusy] = useState<number | null>(null)
+  const [sel, setSel] = useState<Sel | null>(null)
+  const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
-  const refresh = useCallback(() => { getShop().then(setItems); getBalances().then((b) => { if (b) setBal(b) }) }, [])
+  const refresh = useCallback(() => {
+    getShop().then(setItems)
+    getBalances().then((b) => { if (b) setBal(b) })
+    getDailyDeal().then((d) => setDeal(d?.cards ?? []))
+    getStarterDecks().then((s) => setStarters(s ?? []))
+    getPackInventory().then((inv) => setPackInv(Object.values(inv).reduce((a, b) => a + b, 0)))
+  }, [])
   useEffect(() => { refresh() }, [refresh])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2200); return () => clearTimeout(t) }, [toast])
 
-  const buy = useCallback(async (it: ShopItem, cur: 'silver' | 'rubies') => {
-    if (busy) return; setBusy(it.id); playUiClick()
+  const flash = (m: string, err = false) => { (err ? playError : playSuccess)(); setToast(m) }
+
+  const buyShop = useCallback(async (it: ShopItem, cur: 'silver' | 'rubies') => {
+    if (busy) return; setBusy(true); playUiClick()
     const r = await purchaseShopItem(it.id, cur)
-    if (r && 'ok' in r) { playSuccess(); setToast(`Nupirkta: ${it.name}`); onPurchased?.(); refresh() }
-    else if (r && 'error' in r) setToast(PURCHASE_ERR_LT[r.error] ?? 'Nepavyko nupirkti.')
-    setBusy(null)
+    if (r && 'ok' in r) { flash(`Nupirkta: ${it.name}`); onPurchased?.(); refresh() }
+    else if (r && 'error' in r) flash(PURCHASE_ERR_LT[r.error] ?? 'Nepavyko nupirkti.', true)
+    setBusy(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, refresh, onPurchased])
 
-  const shown = useMemo(() => {
+  const buyDeal = useCallback(async (c: DealCard) => {
+    if (busy) return; setBusy(true); playUiClick()
+    const r = await buyDailyDealCard(c.id)
+    if ('error' in r) flash(r.error === 'not enough gold' ? 'Per mažai sidabro.' : 'Nepavyko nupirkti.', true)
+    else { flash(`${c.name} pridėta į kolekciją!`); onPurchased?.(); refresh() }
+    setBusy(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, refresh, onPurchased])
+
+  const claimStarter = useCallback(async (s: StarterDeck) => {
+    if (busy) return; setBusy(true); playUiClick()
+    const r = await claimStarterDeck(s.id)
+    if ('error' in r) flash(r.error === 'already claimed' ? 'Jau paimta.' : 'Nepavyko paimti.', true)
+    else { flash('Kaladė sukurta „Mano kaladėse"! 🃏'); onPurchased?.(); refresh() }
+    setBusy(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, refresh, onPurchased])
+
+  const shopShown = useMemo(() => {
     const types = SHOP_SECTIONS.find((s) => s.key === section)?.types ?? []
     return items.filter((i) => types.includes(i.itemType))
   }, [items, section])
-  const selected = shown.find((i) => i.id === selId) ?? shown[0] ?? null
+
+  const selShop = sel?.t === 'shop' ? items.find((i) => i.id === sel.id) ?? null : null
+  const selDeal = sel?.t === 'deal' ? deal.find((c) => c.id === sel.id) ?? null : null
+  const selStarter = sel?.t === 'starter' ? starters.find((s) => s.id === sel.id) ?? null : null
+  // auto-select pirmas sekcijos elementas
+  const effShop = selShop ?? (section !== 'daily' && section !== 'starter' ? shopShown[0] ?? null : null)
+  const effDeal = selDeal ?? (section === 'daily' ? deal[0] ?? null : null)
+  const effStarter = selStarter ?? (section === 'starter' ? starters[0] ?? null : null)
 
   if (typeof document === 'undefined') return null
 
@@ -59,52 +113,137 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
         </div>
 
         {/* ── 3 zonos ── */}
-        <div className="flex-1 min-h-0 grid gap-2 p-2.5" style={{ gridTemplateColumns: 'minmax(120px,0.7fr) minmax(0,2.2fr) minmax(200px,1fr)' }}>
+        <div className="flex-1 min-h-0 grid gap-2 p-2.5" style={{ gridTemplateColumns: 'minmax(130px,0.72fr) minmax(0,2.2fr) minmax(210px,1fr)' }}>
 
           {/* KAIRĖ: sekcijos */}
-          <div className="min-h-0 overflow-y-auto flex flex-col gap-1.5">
-            {SHOP_SECTIONS.map((s) => (
-              <button key={s.key} onClick={() => { playUiClick(); setSection(s.key); setSelId(null); setToast(null) }}
-                className="rvn-press shrink-0 w-full text-left px-2.5 py-2 rounded-xl font-bold"
-                style={{ fontSize: 11, background: section === s.key ? 'rgba(240,180,41,0.2)' : 'rgba(10,8,16,0.8)', border: `1px solid ${section === s.key ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.08)'}`, color: section === s.key ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>{s.label}</button>
-            ))}
+          <div className="flex flex-col min-h-0 gap-1.5">
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
+              {ALL_SECTIONS.map((s) => (
+                <button key={s.key} onClick={() => { playUiClick(); setSection(s.key); setSel(null); setToast(null) }}
+                  className="rvn-press shrink-0 w-full text-left px-2.5 py-2 rounded-xl font-bold"
+                  style={{ fontSize: 11, background: section === s.key ? 'rgba(240,180,41,0.2)' : 'rgba(10,8,16,0.8)', border: `1px solid ${section === s.key ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.08)'}`, color: section === s.key ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>{s.label}</button>
+              ))}
+            </div>
+            {packInv > 0 && (
+              <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
+                className="shrink-0 block w-full px-2 py-2 rounded-xl font-bold text-center"
+                style={{ fontSize: 10, background: 'rgba(251,146,60,0.18)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>
+                🎁 Atplėšti ({packInv})
+              </Link>
+            )}
           </div>
 
           {/* CENTRAS: prekės */}
           <div className="min-h-0 overflow-y-auto">
-            {shown.length === 0 && <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Šioje kategorijoje prekių nėra.</p>}
-            <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-              {shown.map((it) => {
-                const rc = it.rarity ? RARITY_COL[it.rarity] ?? '240,180,41' : '240,180,41'
-                const sel = selected?.id === it.id
-                return (
-                  <button key={it.id} onClick={() => { playUiClick(); setSelId(it.id); setToast(null) }}
-                    className="rvn-press rounded-xl p-2.5 text-left flex flex-col gap-1"
-                    style={{ minHeight: 76, background: `linear-gradient(150deg, rgba(${rc},0.08), rgba(10,8,16,0.92))`, border: sel ? '1.5px solid rgba(240,180,41,0.9)' : `1px solid rgba(${rc},0.4)`, boxShadow: sel ? '0 0 12px rgba(240,180,41,0.35)' : 'none' }}>
-                    <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{it.name}</span>
-                    <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => { const c = rewardChip(p); return <span key={i} style={{ fontSize: 9.5, color: '#e8dcc0' }}>{c.icon} {c.label}</span> })}</span>
-                    <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
-                      {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
-                      {it.prices.rubies != null && <span style={{ color: '#fca5a5' }}>💎 {it.prices.rubies}</span>}
-                      {it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null && <span style={{ color: 'var(--text-muted)' }}>€{it.prices.real_money.toFixed(2)}</span>}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+            {section === 'daily' ? (
+              deal.length === 0 ? <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Šiandienos pasiūlymas kraunasi…</p> : (
+                <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))' }}>
+                  {deal.map((c) => {
+                    const col = rarityColor(c.rarity)
+                    const isSel = effDeal?.id === c.id
+                    return (
+                      <button key={c.id} onClick={() => { playUiClick(); setSel({ t: 'deal', id: c.id }); setToast(null) }}
+                        className="rvn-press relative rounded-xl overflow-hidden text-left"
+                        style={{ aspectRatio: '2.5/3.9', border: isSel ? '2px solid rgba(240,180,41,0.95)' : `2px solid ${col}66`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.4)' : 'none', opacity: c.bought ? 0.55 : 1 }}>
+                        {c.imageUrl ? <SmartImg src={c.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🎴</span>}
+                        <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
+                          <span className="block truncate font-bold" style={{ fontSize: 9.5, color: '#fff' }}>{c.name}</span>
+                          <span className="block font-bold" style={{ fontSize: 9.5, color: c.bought ? '#4ade80' : 'var(--gold)' }}>{c.bought ? '✓ Nupirkta' : `🪙 ${c.priceGold}`}</span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            ) : section === 'starter' ? (
+              <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                {starters.map((s) => {
+                  const isSel = effStarter?.id === s.id
+                  return (
+                    <button key={s.id} onClick={() => { playUiClick(); setSel({ t: 'starter', id: s.id }); setToast(null) }}
+                      className="rvn-press relative rounded-xl overflow-hidden text-left"
+                      style={{ aspectRatio: '3/3.6', border: isSel ? '2px solid rgba(240,180,41,0.95)' : '1px solid rgba(34,197,94,0.4)', boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.4)' : 'none', opacity: s.claimed ? 0.55 : 1 }}>
+                      {s.imageUrl ? <SmartImg src={s.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🃏</span>}
+                      <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
+                        <span className="block truncate font-bold" style={{ fontSize: 10, color: '#fff' }}>{s.name}</span>
+                        <span className="block font-bold" style={{ fontSize: 9.5, color: s.claimed ? '#4ade80' : s.priceGold > 0 ? 'var(--gold)' : '#86efac' }}>{s.claimed ? '✓ Paimta' : s.priceGold > 0 ? `🪙 ${s.priceGold}` : 'NEMOKAMA'}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <>
+                {shopShown.length === 0 && <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Šioje kategorijoje prekių nėra.</p>}
+                <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                  {shopShown.map((it) => {
+                    const rc = it.rarity ? RARITY_COL[it.rarity] ?? '240,180,41' : '240,180,41'
+                    const isSel = effShop?.id === it.id
+                    return (
+                      <button key={it.id} onClick={() => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }}
+                        className="rvn-press rounded-xl p-2.5 text-left flex flex-col gap-1"
+                        style={{ minHeight: 76, background: `linear-gradient(150deg, rgba(${rc},0.08), rgba(10,8,16,0.92))`, border: isSel ? '1.5px solid rgba(240,180,41,0.9)' : `1px solid rgba(${rc},0.4)`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.35)' : 'none' }}>
+                        <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{it.name}</span>
+                        <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => { const c = rewardChip(p); return <span key={i} style={{ fontSize: 9.5, color: '#e8dcc0' }}>{c.icon} {c.label}</span> })}</span>
+                        <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
+                          {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
+                          {it.prices.rubies != null && <span style={{ color: '#fca5a5' }}>💎 {it.prices.rubies}</span>}
+                          {it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null && <span style={{ color: 'var(--text-muted)' }}>€{it.prices.real_money.toFixed(2)}</span>}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
           {/* DEŠINĖ: pasirinkta prekė */}
           <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(240,180,41,0.22)' }}>
-            {selected ? (
+            {effDeal ? (
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-                  <p className="font-bold leading-tight" style={{ fontSize: 14, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{selected.name}</p>
-                  {selected.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{selected.description}</p>}
+                  <div className="relative w-full rounded-xl overflow-hidden shrink-0 mx-auto" style={{ aspectRatio: '2.5/3.5', maxWidth: 170, border: `2px solid ${rarityColor(effDeal.rarity)}`, boxShadow: `0 0 14px ${rarityColor(effDeal.rarity)}44` }}>
+                    {effDeal.imageUrl ? <SmartImg src={effDeal.imageUrl} width={340} className="absolute inset-0 w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: '#15101f' }}>🎴</span>}
+                  </div>
+                  <p className="font-bold text-center" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effDeal.name}</p>
+                  <p className="text-center" style={{ fontSize: 10, color: rarityColor(effDeal.rarity) }}>{effDeal.rarity ?? ''}{effDeal.faction ? ` · ${effDeal.faction}` : ''}</p>
+                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>Dienos pasiūlymas — pavienė korta tiesiai į kolekciją. Atsinaujina kasdien.</p>
+                  {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
+                </div>
+                <button onClick={() => buyDeal(effDeal)} disabled={busy || effDeal.bought || bal.silver < effDeal.priceGold}
+                  className="rvn-press shrink-0 mt-2 w-full rounded-xl font-extrabold disabled:opacity-45"
+                  style={{ minHeight: 42, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: effDeal.bought ? 'rgba(74,222,128,0.15)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: effDeal.bought ? '1px solid rgba(74,222,128,0.5)' : 'none', color: effDeal.bought ? '#86efac' : '#3a2406' }}>
+                  {busy ? '…' : effDeal.bought ? '✓ Nupirkta' : `Pirkti · 🪙 ${effDeal.priceGold}`}
+                </button>
+              </>
+            ) : effStarter ? (
+              <>
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
+                  <div className="relative w-full rounded-xl overflow-hidden shrink-0" style={{ aspectRatio: '3/3.2', border: '1.5px solid rgba(34,197,94,0.5)' }}>
+                    {effStarter.imageUrl ? <SmartImg src={effStarter.imageUrl} width={420} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: '#15101f' }}>🃏</span>}
+                  </div>
+                  <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effStarter.name}</p>
+                  <p style={{ fontSize: 10, color: '#86efac' }}>{effStarter.faction ?? ''} · {effStarter.cardCount} kortų</p>
+                  {effStarter.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{effStarter.description}</p>}
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.</p>
+                  {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
+                </div>
+                <button onClick={() => claimStarter(effStarter)} disabled={busy || effStarter.claimed || (effStarter.priceGold > 0 && bal.silver < effStarter.priceGold)}
+                  className="rvn-press shrink-0 mt-2 w-full rounded-xl font-extrabold disabled:opacity-45"
+                  style={{ minHeight: 42, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: effStarter.claimed ? 'rgba(74,222,128,0.15)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: effStarter.claimed ? '1px solid rgba(74,222,128,0.5)' : 'none', color: effStarter.claimed ? '#86efac' : '#3a2406' }}>
+                  {busy ? '…' : effStarter.claimed ? '✓ Paimta' : effStarter.priceGold > 0 ? `Pirkti · 🪙 ${effStarter.priceGold}` : 'Paimti nemokamai'}
+                </button>
+              </>
+            ) : effShop ? (
+              <>
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
+                  <p className="font-bold leading-tight" style={{ fontSize: 14, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effShop.name}</p>
+                  {effShop.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{effShop.description}</p>}
                   <div>
                     <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Turinys</p>
                     <div className="flex flex-col gap-1">
-                      {selected.payload.map((p, i) => { const c = rewardChip(p); return (
+                      {effShop.payload.map((p, i) => { const c = rewardChip(p); return (
                         <span key={i} className="px-2 py-1 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#e8dcc0' }}>{c.icon} {c.label}</span>
                       ) })}
                     </div>
@@ -112,25 +251,25 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
                 </div>
                 <div className="shrink-0 mt-2 flex flex-col gap-1.5">
-                  {selected.prices.silver != null && (
-                    <button onClick={() => buy(selected, 'silver')} disabled={busy !== null || bal.silver < selected.prices.silver}
+                  {effShop.prices.silver != null && (
+                    <button onClick={() => buyShop(effShop, 'silver')} disabled={busy || bal.silver < effShop.prices.silver}
                       className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406', fontFamily: 'var(--rvn-font-display)' }}>
-                      {busy === selected.id ? '…' : `Pirkti 🪙 ${selected.prices.silver}`}
+                      {busy ? '…' : `Pirkti · 🪙 ${effShop.prices.silver}`}
                     </button>
                   )}
-                  {selected.prices.rubies != null && (
-                    <button onClick={() => buy(selected, 'rubies')} disabled={busy !== null || bal.rubies < selected.prices.rubies}
+                  {effShop.prices.rubies != null && (
+                    <button onClick={() => buyShop(effShop, 'rubies')} disabled={busy || bal.rubies < effShop.prices.rubies}
                       className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {busy === selected.id ? '…' : `Pirkti 💎 ${selected.prices.rubies}`}
+                      {busy ? '…' : `Pirkti · 💎 ${effShop.prices.rubies}`}
                     </button>
                   )}
-                  {selected.prices.real_money != null && selected.prices.silver == null && selected.prices.rubies == null && (
-                    <button disabled className="w-full rounded-xl font-extrabold" style={{ minHeight: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>€{selected.prices.real_money.toFixed(2)} (netrukus)</button>
+                  {effShop.prices.real_money != null && effShop.prices.silver == null && effShop.prices.rubies == null && (
+                    <button disabled className="w-full rounded-xl font-extrabold" style={{ minHeight: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>€{effShop.prices.real_money.toFixed(2)} (netrukus)</button>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pasirink prekę, kad matytum turinį.</div>
+              <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pasirink prekę.</div>
             )}
           </div>
         </div>

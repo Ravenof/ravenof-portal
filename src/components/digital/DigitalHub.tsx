@@ -11,12 +11,12 @@ import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/econom
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPathModal } from './SeasonPathModal'
-import { StoreModal } from './StoreModal'
 import { CosmeticsModal } from './CosmeticsModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
 import { getMonthlyLogin, rewardChip } from '@/lib/gamification/monthlyLogin'
+import { ShopModal } from './ShopModal'
 import { getNews, type NewsItem } from '@/lib/news'
 import { friendsList } from '@/lib/social'
 import { StarterOnboarding } from './StarterOnboarding'
@@ -239,7 +239,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       {/* ── Modalai (visi išsaugoti) ── */}
-      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={() => { refreshWallet(); refreshBalances() }} />}
+      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={() => { refreshWallet(); refreshBalances() }} />}
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
       {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={() => { refreshWallet(); refreshBalances() }} />}

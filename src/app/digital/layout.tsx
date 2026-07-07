@@ -10,7 +10,6 @@ import { Home, LayoutGrid, Layers, ShoppingBag, Menu, Bell, Settings } from 'luc
 import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
-import { StoreModal } from '@/components/digital/StoreModal'
 import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
@@ -36,7 +35,7 @@ type Profile = { name: string; level: number; pct: number; avatarUrl: string | n
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
+  const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 }) // reikšmės nebe rodomos čia (ShopModal pats traukia balansus)
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
@@ -169,7 +168,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
-      {storeOpen && <StoreModal gold={wallet.gold} onClose={() => setStoreOpen(false)} onChanged={refreshWallet} />}
+      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={refreshWallet} />}
 
       {showRotate && (
         <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
