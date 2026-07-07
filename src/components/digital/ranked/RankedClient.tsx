@@ -249,9 +249,9 @@ export function RankedClient() {
             </section>
 
             {/* DEŠINĖ: ranked atlygiai */}
-            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 text-center justify-between" style={RPANEL}>
+            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 text-center" style={RPANEL}>
               <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Ranked atlygiai</div>
-              <div className="flex flex-col items-center justify-center gap-0.5 my-1">
+              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center gap-0.5 my-1">
                 <span style={{ fontSize: 'clamp(9px,1.2vh,11px)', color: 'var(--text-muted)' }}>Kitas atlygis</span>
                 <span className="rvn-disp font-black" style={{ fontSize: 'clamp(13px,2.4vh,20px)', color: 'var(--gold)' }}>{rv.isMax ? 'Maks. rangas' : formatRank(nextRv!.step)}</span>
                 <div className="flex items-center justify-center rounded-xl my-1" style={{ width: 'clamp(48px,10vh,88px)', height: 'clamp(48px,10vh,88px)', background: 'radial-gradient(circle at 50% 30%, rgba(139,92,246,0.35), rgba(10,8,16,0.9))', border: '1px solid rgba(139,92,246,0.4)', fontSize: 'clamp(24px,5.5vh,46px)' }}>🎁</div>

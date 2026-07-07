@@ -110,12 +110,12 @@ export function DigitalPvE() {
     </button>
   )
   const diffBtn = (d: AiDifficulty, lbl: string) => (
-    <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} className="flex-1 rounded-lg text-xs font-semibold" style={{ minHeight: 36, background: difficulty === d ? `rgba(${A},0.22)` : 'rgba(10,8,16,0.8)', border: '1px solid ' + (difficulty === d ? `rgba(${A},0.6)` : 'rgba(255,255,255,0.08)'), color: difficulty === d ? '#bbf7d0' : 'var(--text-muted)' }}>{lbl}</button>
+    <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} className="flex-1 rounded-lg font-semibold" style={{ fontSize: 'clamp(10px,1.5vh,12px)', minHeight: 'clamp(28px,4.8vh,36px)', background: difficulty === d ? `rgba(${A},0.22)` : 'rgba(10,8,16,0.8)', border: '1px solid ' + (difficulty === d ? `rgba(${A},0.6)` : 'rgba(255,255,255,0.08)'), color: difficulty === d ? '#bbf7d0' : 'var(--text-muted)' }}>{lbl}</button>
   )
   const inputStyle: React.CSSProperties = { minHeight: 36, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', borderRadius: 10, padding: '0 10px', fontSize: 12 }
 
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
+    <div data-pve-v="446" className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
       <div className="text-center shrink-0">
         <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(17px,3.4vh,30px)', color: '#86efac', letterSpacing: '0.04em' }}>Treniruotė prieš AI</div>
       </div>
@@ -195,35 +195,20 @@ export function DigitalPvE() {
 
         {/* DEŠINĖ: santrauka + sunkumas */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rounded-xl p-2.5 flex flex-col gap-1.5 shrink-0" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.22)` }}>
-            <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#86efac' }}>Tu</div><div className="truncate" style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deck?.name ?? '—'}</div></div>
-            <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#fca5a5' }}>Priešininkas</div><div className="truncate" style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div></div>
-          </div>
-          <div className="mt-2 shrink-0">
-            <p className="rvn-disp font-semibold uppercase mb-1.5" style={{ fontSize: 10, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>AI sunkumas</p>
-            <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
-            <p className="mt-1.5" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.3 }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
-          </div>
-          {/* Kovos atlygis — užpildo tarpą iki CTA ir parodo, už ką kovoji */}
-          <div className="flex-1 min-h-0 flex flex-col justify-center gap-1.5 py-2">
-            <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 10, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Kovos atlygis</p>
-            <div className="flex items-center gap-2 rounded-xl px-2.5 py-2" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(34,197,94,0.25)' }}>
-              <span style={{ fontSize: 18 }}>🏆</span>
-              <span className="min-w-0">
-                <span className="block font-bold" style={{ fontSize: 11.5, color: '#86efac' }}>Pergalė — 🪙 sidabras + XP</span>
-                <span className="block" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Skaitosi dienos užduotims ir sezono keliui</span>
-              </span>
+          {/* Vidurys SCROLLINASI, CTA visada prisegtas — mygtukas nepasislepia jokiam aukšty */}
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" style={{ gap: 'clamp(6px,1.2vh,10px)' }}>
+            <div className="rounded-xl flex flex-col shrink-0" style={{ padding: 'clamp(6px,1.2vh,10px)', gap: 'clamp(4px,0.8vh,6px)', background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.22)` }}>
+              <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#86efac' }}>Tu</div><div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deck?.name ?? '—'}</div></div>
+              <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#fca5a5' }}>Priešininkas</div><div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div></div>
             </div>
-            <div className="flex items-center gap-2 rounded-xl px-2.5 py-2" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontSize: 18 }}>🛡</span>
-              <span className="min-w-0">
-                <span className="block font-bold" style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>Be rizikos — rangas nesikeičia</span>
-                <span className="block" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Ir pralaimėjęs gauni dalį atlygio</span>
-              </span>
+            <div className="shrink-0">
+              <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 'clamp(3px,0.7vh,6px)' }}>AI sunkumas</p>
+              <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
+              <p style={{ marginTop: 'clamp(3px,0.7vh,6px)', fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3 }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
             </div>
           </div>
           <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
-            style={{ minHeight: 'clamp(46px,7.5vh,60px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
+            style={{ marginTop: 'clamp(4px,1vh,8px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
             ⚔ {canStart ? 'PRADĖTI KOVĄ' : 'PASIRINK PRIEŠININKĄ'}
           </button>
         </section>
