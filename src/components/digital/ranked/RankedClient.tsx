@@ -217,29 +217,35 @@ export function RankedClient() {
               <div className="text-center shrink-0" style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>Šį sezoną gauta: <b style={{ color: 'var(--text-secondary)' }}>{profile.portal_exp_earned} XP</b> · <b style={{ color: 'var(--gold)' }}>{profile.ranked_gold_earned} aukso</b></div>
             </section>
 
-            {/* CENTRAS: rango ženklelis + progresas + CTA */}
-            <section className="rounded-2xl flex flex-col items-center justify-between min-h-0 overflow-hidden px-3 py-2.5" style={RPANEL}>
-              <RankBadge step={profile.rank_step} size={54} showLabel />
-              <div className="w-full" style={{ maxWidth: 340 }}>
-                <div className="flex justify-between mb-1" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'var(--text-muted)' }}>
-                  <span>Dabartinis rangas</span>
-                  <span>{rv.isMax ? 'Maks. rangas' : `Kitas rangas: ${formatRank(nextRv!.step)}`}</span>
+            {/* CENTRAS: viršus = badge+vardas (kairė) + progresas (dešinė); apačia = PLAY mygtukas */}
+            <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden px-3 py-2.5 gap-2" style={RPANEL}>
+              {/* viršus */}
+              <div className="flex-1 min-h-0 flex items-center gap-3">
+                <div className="shrink-0"><RankBadge step={profile.rank_step} size={56} showLabel /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between mb-1" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: 'var(--text-muted)' }}>
+                    <span>Dabartinis rangas</span>
+                    <span className="truncate">{rv.isMax ? 'Maks. rangas' : `Kitas: ${formatRank(nextRv!.step)}`}</span>
+                  </div>
+                  <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${rv.isMax ? 100 : ((profile.rank_step % 3) / 3) * 100 + 16}%`, background: 'linear-gradient(90deg,#b3793f,#f0b429,#fcd34d)' }} />
+                  </div>
+                  <p className="mt-1" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: profile.loss_counter > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
+                    {profile.loss_counter > 0 ? `Iki rango kritimo: ${2 - profile.loss_counter} pralaimėjimas` : 'Apsauga nuo kritimo pilna'}
+                  </p>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${rv.isMax ? 100 : ((profile.rank_step % 3) / 3) * 100 + 16}%`, background: 'linear-gradient(90deg,#b3793f,#f0b429,#fcd34d)' }} />
-                </div>
-                <p className="text-center mt-1" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: profile.loss_counter > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
-                  {profile.loss_counter > 0 ? `Iki rango kritimo: ${2 - profile.loss_counter} pralaimėjimas` : 'Apsauga nuo kritimo pilna'}
-                </p>
               </div>
-              {decks && decks.length > 0 ? (
-                <div className="w-full" style={{ maxWidth: 340 }}>
-                  <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
-                  {selDeckObj && <p className="text-center mt-1 truncate" style={{ fontSize: 'clamp(8px,1.1vh,11px)', color: 'var(--text-secondary)' }}>Pasirinkta: <b style={{ color: '#fca5a5' }}>{selDeckObj.name}</b>{selDeckObj.faction ? ` · ${selDeckObj.faction}` : ''}</p>}
-                </div>
-              ) : (
-                <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
-              )}
+              {/* apačia: PLAY mygtukas (visada matomas) */}
+              <div className="shrink-0">
+                {decks && decks.length > 0 ? (
+                  <>
+                    <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
+                    {selDeckObj && <p className="text-center mt-1 truncate" style={{ fontSize: 'clamp(8px,1.1vh,11px)', color: 'var(--text-secondary)' }}>Pasirinkta: <b style={{ color: '#fca5a5' }}>{selDeckObj.name}</b>{selDeckObj.faction ? ` · ${selDeckObj.faction}` : ''}</p>}
+                  </>
+                ) : (
+                  <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="block text-center px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+                )}
+              </div>
             </section>
 
             {/* DEŠINĖ: ranked atlygiai */}
