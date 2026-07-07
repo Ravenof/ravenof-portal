@@ -11,7 +11,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform, useVelocity } from 'framer-motion'
-import { ChevronLeft, Search, Plus, Minus, Eye, Lock, Save, Loader2, X, Layers } from 'lucide-react'
+import { ChevronLeft, Search, Plus, Minus, Lock, Save, Loader2, X, Layers } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
 import { validateDeck, getCopyLimit, isCurseCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
@@ -52,7 +52,6 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const store = useDeckBuilderStore()
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)
-  const [view, setView] = useState<'grid' | 'list'>('grid')
   const [preview, setPreview] = useState<CardWithRelations | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -333,23 +332,14 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
                   style={{ minHeight: 32, fontSize: 10, background: showUniversal ? 'rgba(96,165,250,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${showUniversal ? 'rgba(96,165,250,0.55)' : `rgba(${GOLD},0.25)`}`, color: showUniversal ? '#93c5fd' : 'var(--text-muted)' }}>
                   Universalios
                 </button>
-                <div className="grid grid-cols-2 rounded-lg overflow-hidden shrink-0" style={{ border: `1px solid rgba(${GOLD},0.3)` }}>
-                  {(['grid', 'list'] as const).map((vw) => (
-                    <button key={vw} onClick={() => { playUiClick(); setView(vw) }} className="font-semibold px-2" style={{ minHeight: 30, fontSize: 10, background: view === vw ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.9)', color: view === vw ? 'var(--gold)' : 'var(--text-muted)' }}>{vw === 'grid' ? 'Albumas' : 'Sąrašas'}</button>
-                  ))}
-                </div>
               </div>
 
               {/* Albumo grid / sąrašas */}
               {pool.length === 0 ? (
                 <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
-              ) : view === 'grid' ? (
-                <div className="flex-1 min-h-0 overflow-y-auto grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))' }}>
-                  {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
-                </div>
               ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
-                  {pool.map((c) => <CardRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+                <div className="flex-1 min-h-0 overflow-y-auto grid gap-1.5 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))' }}>
+                  {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
                 </div>
               )}
             </>
@@ -476,27 +466,6 @@ function Thumb({ c, owned, size = 44, fill = false }: { c: CardWithRelations; ow
 }
 
 type DragHandlers = { onPointerDown: (e: React.PointerEvent) => void; onClickCapture: (e: React.MouseEvent) => void }
-
-function CardRow({ c, owned, deckQty, dragging, dragProps, onAdd, onDec, onPreview }: { c: CardWithRelations; owned: number; deckQty: number; dragging: boolean; dragProps: DragHandlers; onAdd: () => void; onDec: () => void; onPreview: () => void }) {
-  const col = rarityColor(c.rarity?.name)
-  const limit = getCopyLimit(c)
-  const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
-  return (
-    <div className="flex items-center gap-2.5 p-1.5 rounded-xl" {...dragProps}
-      style={{ background: deckQty > 0 ? `rgba(${GOLD},0.08)` : 'rgba(10,8,16,0.6)', border: `1px solid ${deckQty > 0 ? `rgba(${GOLD},0.35)` : `rgba(${GOLD},0.12)`}`, opacity: dragging ? 0.35 : 1, transition: 'opacity .15s' }}>
-      <Thumb c={c} owned={owned} />
-      <span className="flex items-center justify-center rounded-full text-[10px] font-bold shrink-0" style={{ width: 20, height: 20, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{c.gold_cost}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[12px] font-semibold leading-tight truncate" style={{ color: owned > 0 ? '#f3ead3' : 'var(--text-muted)' }}>{c.name}</span>
-        <span className="block text-[9px] leading-tight truncate" style={{ color: col }}>{c.rarity?.name ?? ''} · {c.card_type?.name ?? ''} {owned > 0 && owned < 99 ? `· turi ×${owned}` : ''}</span>
-      </span>
-      <span className="text-[10px] font-bold tabular-nums shrink-0" style={{ color: deckQty > 0 ? 'var(--gold)' : 'var(--text-muted)' }}>{deckQty}/{Math.min(limit, owned || limit)}</span>
-      <button onClick={onPreview} className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 30, height: 30, color: 'var(--text-muted)' }} aria-label="Peržiūra"><Eye className="w-4 h-4" /></button>
-      {deckQty > 0 && <button onClick={onDec} className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 30, height: 30, background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }} aria-label="Pašalinti"><Minus className="w-4 h-4" /></button>}
-      <button onClick={onAdd} disabled={addDisabled} className="flex items-center justify-center rounded-lg shrink-0 disabled:opacity-30" style={{ width: 30, height: 30, background: 'rgba(34,197,94,0.16)', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac' }} aria-label="Pridėti"><Plus className="w-4 h-4" /></button>
-    </div>
-  )
-}
 
 function CardTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview }: { c: CardWithRelations; owned: number; deckQty: number; dragging: boolean; dragProps: DragHandlers; onAdd: () => void; onPreview: () => void }) {
   const col = rarityColor(c.rarity?.name)

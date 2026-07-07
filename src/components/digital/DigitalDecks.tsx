@@ -9,7 +9,6 @@ import { DigitalDeckBuilder } from './DigitalDeckBuilder'
 import { DigitalMyDecks } from './DigitalMyDecks'
 import { DigitalCommunityDecks } from './DigitalCommunityDecks'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
-import { PageHero } from './ui/HubKit'
 
 type Tab = 'builder' | 'my' | 'community'
 type InitialDeck = {
@@ -35,11 +34,6 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {tab !== 'builder' && (
-        <div className="mb-3">
-          <PageHero compact iconName="fi-decks" icon={<span style={{ fontSize: 28 }}>📚</span>} title="KALADĖS" sub="Kurk, tvarkyk ir dalinkis kovos kaladėmis" />
-        </div>
-      )}
       {/* Segment tabs — dark fantasy oktagonai (builder'yje slepiam: kiekvienas px kortoms) */}
       {tab !== 'builder' && <div className="grid grid-cols-3 gap-1.5 mb-3 shrink-0">
         {TABS.map((t) => {
@@ -51,11 +45,11 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
               className="rvn-press block w-full"
               style={{ filter: active ? 'drop-shadow(0 0 8px rgba(240,180,41,0.35))' : 'saturate(0.7) brightness(0.8)', transition: 'filter .15s' }}>
               <span className="block" style={{ clipPath: oct(9), padding: 1.5, background: active ? 'rgba(240,180,41,0.9)' : 'rgba(240,180,41,0.28)' }}>
-                <span className="flex flex-col items-center justify-center" style={{ clipPath: oct(8), gap: 2, minHeight: 48, padding: '6px 4px',
+                <span className="flex flex-col items-center justify-center" style={{ clipPath: oct(8), gap: 2, minHeight: 36, padding: '4px 4px',
                   background: active
                     ? 'radial-gradient(120% 140% at 50% 0%, rgba(240,180,41,0.22), transparent 60%), linear-gradient(160deg, rgba(24,18,32,0.98), rgba(8,6,12,0.98))'
                     : 'linear-gradient(160deg, rgba(16,12,22,0.97), rgba(8,6,12,0.98))' }}>
-                  <Icon className="w-4 h-4" style={{ color: active ? 'var(--gold)' : 'rgba(150,160,185,0.8)' }} />
+                  <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--gold)' : 'rgba(150,160,185,0.8)' }} />
                   <span className="rvn-disp truncate" style={{ maxWidth: '100%', fontSize: 10, fontWeight: 800, letterSpacing: '0.03em', color: active ? 'var(--gold)' : 'rgba(150,160,185,0.85)' }}>{t.label}</span>
                 </span>
               </span>
