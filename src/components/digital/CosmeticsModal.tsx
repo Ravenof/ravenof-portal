@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { getCosmetics, buyCosmetic, equipCosmetic, getAvatarAudio, type Cosmetic, type CosmeticKind, type CosmeticsState, type AvatarAudioMap } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
+import { useEscClose } from '@/lib/useEscClose'
 
 const KIND_LABEL: Record<CosmeticKind, string> = { card_back: 'Kortų nugarėlės', board: 'Lentos', avatar: 'Žaidėjo avatarai' }
 const KIND_ICON: Record<CosmeticKind, string> = { card_back: '🂠', board: '▦', avatar: '😀' }
@@ -13,6 +14,7 @@ const KINDS: CosmeticKind[] = ['card_back', 'avatar']  // spec: tik nugarėlės 
 const RAR_COL: Record<string, string> = { legendary: '#fbbf24', epic: '#c084fc', rare: '#60a5fa' }
 
 export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClose: () => void; onSpent?: () => void }) {
+  useEscClose(onClose)
   const [state, setState] = useState<CosmeticsState | null>(null)
   const [tab, setTab] = useState<CosmeticKind>('card_back')
   const [selId, setSelId] = useState<string | null>(null)

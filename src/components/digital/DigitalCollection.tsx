@@ -73,10 +73,10 @@ export function DigitalCollection() {
     const ro = new ResizeObserver(() => {
       const r = el.getBoundingClientRect()
       if (r.width < 40 || r.height < 40) return
-      const rows = r.height >= 330 ? 2 : 1
+      const rows = r.height >= 300 ? 2 : 1
       const labelH = 0 // pavadinimas kortoje overlay, ne po ja
       const cardH = Math.floor((r.height - GAP * (rows - 1)) / rows) - labelH
-      const cardW = Math.max(72, Math.min(150, Math.floor(cardH / 1.42)))
+      const cardW = Math.max(72, Math.min(116, Math.floor(cardH / 1.42)))
       const cols = Math.max(3, Math.min(10, Math.floor((r.width + GAP) / (cardW + GAP))))
       setDims((d) => (d.cols === cols && d.rows === rows && d.cardW === cardW ? d : { cols, rows, cardW }))
     })

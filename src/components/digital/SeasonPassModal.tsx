@@ -19,6 +19,7 @@ import { rewardParts } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { useEscClose } from '@/lib/useEscClose'
 
 function Chip({ text }: { text: string }) {
   const accent = text.startsWith('🪙') ? '240,180,41' : text.startsWith('🎁') ? '251,146,60' : text.startsWith('🃏') ? '96,165,250' : '139,92,246'
@@ -29,6 +30,7 @@ function Chip({ text }: { text: string }) {
 }
 
 export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  useEscClose(onClose)
   const [pass, setPass] = useState<SeasonPass | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<number | 'all' | null>(null)

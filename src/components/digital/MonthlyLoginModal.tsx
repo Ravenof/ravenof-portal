@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getMonthlyLogin, claimMonthlyLogin, rewardChip, LT_MONTHS, type MonthlyLoginState } from '@/lib/gamification/monthlyLogin'
+import { useEscClose } from '@/lib/useEscClose'
 
 function fmtDur(ms: number): string {
   if (ms <= 0) return '00:00:00'
@@ -18,6 +19,7 @@ function fmtDur(ms: number): string {
 }
 
 export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void; onClaimed?: () => void }) {
+  useEscClose(onClose)
   const [state, setState] = useState<MonthlyLoginState | null>(null)
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(Date.now())

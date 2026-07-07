@@ -10,6 +10,7 @@ import { X, Lock, Check } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getSeasonPath, claimSeasonReward, unlockSeasonPass, type SeasonPath, type SeasonRow, type SeasonSide } from '@/lib/gamification/seasonPath'
+import { useEscClose } from '@/lib/useEscClose'
 
 function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; size?: number }) {
   if (!payload?.length) return <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>—</span>
@@ -21,6 +22,7 @@ function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; siz
 }
 
 export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  useEscClose(onClose)
   const [sp, setSp] = useState<SeasonPath | null>(null)
   const [busy, setBusy] = useState(false)
   const [selLevel, setSelLevel] = useState<number | null>(null)

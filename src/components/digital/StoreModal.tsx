@@ -13,6 +13,7 @@ import { rarityColor } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { useEscClose } from '@/lib/useEscClose'
 
 function hexRgb(hex: string): string {
   const h = (hex || '#9ca3af').replace('#', '')
@@ -42,6 +43,7 @@ type Prod = {
 }
 
 export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose: () => void; onChanged?: () => void }) {
+  useEscClose(onClose)
   const [cat, setCat] = useState<Cat>('all')
   const [selKey, setSelKey] = useState<string | null>(null)
   const [localGold, setLocalGold] = useState(gold)
@@ -209,7 +211,7 @@ export function StoreModal({ gold, onClose, onChanged }: { gold: number; onClose
                       background: selected.state === 'done' || selected.state === 'equipped' ? 'rgba(74,222,128,0.15)' : canAfford ? 'linear-gradient(180deg,#ffe28c,#f3b62c)' : 'rgba(255,255,255,0.06)',
                       border: selected.state === 'done' || selected.state === 'equipped' ? '1px solid rgba(74,222,128,0.5)' : 'none',
                       color: selected.state === 'done' || selected.state === 'equipped' ? '#86efac' : canAfford ? '#3a2406' : 'var(--text-muted)' }}>
-                    {busy === selected.key ? '…' : selected.actionLabel}
+                    {busy === selected.key ? '…' : selected.state === 'buy' ? (selected.actionLabel.startsWith('🪙') ? `Pirkti · ${selected.actionLabel}` : selected.actionLabel === 'NEMOKAMA' ? 'Paimti nemokamai' : selected.actionLabel) : selected.actionLabel}
                   </button>
                 </>
               ) : (

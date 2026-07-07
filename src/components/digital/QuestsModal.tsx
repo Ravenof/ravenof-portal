@@ -16,6 +16,7 @@ import { getDailyQuests, loginCheckin, claimQuest, streakDayReward, type DailyQu
 import { rewardParts } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
+import { useEscClose } from '@/lib/useEscClose'
 
 const QUEST_ICON: Record<string, string> = { win: '⚔️', pve_win: '🎯', pvp_win: '⚔️', open_pack: '🎁', play_match: '🃏' }
 
@@ -30,6 +31,7 @@ function Chip({ text, accent = '196,181,253' }: { text: string; accent?: string 
 const chipAccent = (t: string) => t.startsWith('🪙') ? '240,180,41' : t.startsWith('🎁') ? '251,146,60' : t.startsWith('🃏') ? '96,165,250' : t.startsWith('🎖') ? '139,92,246' : '196,181,253'
 
 export function QuestsModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  useEscClose(onClose)
   const [quests, setQuests] = useState<DailyQuest[]>([])
   const [streak, setStreak] = useState<LoginCheckin | null>(null)
   const [loading, setLoading] = useState(true)

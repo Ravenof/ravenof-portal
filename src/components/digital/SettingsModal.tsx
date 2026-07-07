@@ -17,6 +17,7 @@ import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
 import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digital/native'
 import { RvnIcon } from './ui/RvnIcon'
+import { useEscClose } from '@/lib/useEscClose'
 
 const ACC = '240,180,41'
 
@@ -39,6 +40,7 @@ function Row({ label, icon, on, onToggle, hint }: { label: string; icon?: React.
 }
 
 export function SettingsModal({ onClose, profile }: { onClose: () => void; profile?: Profile | null }) {
+  useEscClose(onClose)
   const [cat, setCat] = useState<Cat>('audio')
   const [music, setMusic] = useState(0.32)
   const [sfx, setSfx] = useState(1)

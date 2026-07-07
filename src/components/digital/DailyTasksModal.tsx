@@ -9,6 +9,7 @@ import { X, RefreshCw } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getDailyTasks, claimDailyTask, claimDailyChest, rerollDailyTask, DIFF_LABEL, DIFF_ACCENT, type DailyTasksState, type DailyTask } from '@/lib/gamification/dailyTasks'
+import { useEscClose } from '@/lib/useEscClose'
 
 function Chips({ payload }: { payload: Record<string, unknown>[] }) {
   return (
@@ -21,6 +22,7 @@ function Chips({ payload }: { payload: Record<string, unknown>[] }) {
 }
 
 export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  useEscClose(onClose)
   const [state, setState] = useState<DailyTasksState | null>(null)
   const [busy, setBusy] = useState<number | 'chest' | null>(null)
 

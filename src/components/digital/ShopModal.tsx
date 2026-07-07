@@ -9,10 +9,12 @@ import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getBalances, type Balances } from '@/lib/economy'
 import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
+import { useEscClose } from '@/lib/useEscClose'
 
 const RARITY_COL: Record<string, string> = { basic: '148,163,184', rare: '96,165,250', premium: '139,92,246', epic: '139,92,246', legendary: '240,180,41' }
 
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
+  useEscClose(onClose)
   const [items, setItems] = useState<ShopItem[]>([])
   const [bal, setBal] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [section, setSection] = useState('packs')

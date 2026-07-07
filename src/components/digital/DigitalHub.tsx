@@ -16,7 +16,7 @@ import { CosmeticsModal } from './CosmeticsModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
-import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
+import { getMonthlyLogin, rewardChip } from '@/lib/gamification/monthlyLogin'
 import { StarterOnboarding } from './StarterOnboarding'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
@@ -62,6 +62,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [dailyOpen, setDailyOpen] = useState(false)
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
+  const [nextReward, setNextReward] = useState<Record<string, unknown>[]>([])
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
   const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { setQuestsLoaded(true); if (!s2) { setQuestsPending(0); setTasks([]); return } setTasks(s2.tasks); setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
@@ -78,7 +79,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
     })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl) })
+    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl); const nx = sp.rows.find((r) => !r.reached); setNextReward((nx?.free.payload ?? []) as Record<string, unknown>[]) })
     getStarterDecks().then((d) => {
       const c = (d ?? []).filter((x) => x.claimed).length
       setNewPlayer(c === 0)
@@ -112,7 +113,24 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col gap-1.5">
-            {tasks.length === 0 && <span className="text-[11px] text-center my-auto px-2" style={{ color: 'var(--text-muted)' }}>{questsLoaded ? 'Šiandien užduočių nėra' : 'Kraunama…'}</span>}
+            {tasks.length === 0 && (
+              <div className="my-auto flex flex-col items-center gap-2 px-2 text-center">
+                {!questsLoaded ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Kraunama…</span> : (
+                  <>
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Šiandien užduočių nėra</span>
+                    <div className="w-full rounded-lg px-2.5 py-2" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.35)' }}>
+                      <div className="text-[12px] font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>🔥 {streak} d. serija</div>
+                      <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Prisijunk kasdien — nenutrauk serijos</div>
+                    </div>
+                    <button onClick={() => { playUiClick(); setLoginOpen(true) }}
+                      className="rvn-press w-full rounded-lg py-1.5 text-[10.5px] font-bold"
+                      style={{ background: loginClaimable ? 'rgba(240,180,41,0.18)' : 'rgba(0,0,0,0.35)', border: `1px solid rgba(240,180,41,${loginClaimable ? 0.65 : 0.3})`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                      {loginClaimable ? '🎁 Mėnesio dovana paruošta!' : '📅 Mėnesio dovanos'}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             {tasks.slice(0, 4).map((t) => {
               const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
               return (
@@ -163,6 +181,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
               <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} />
             </div>
             <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Kita pakopa: <span style={{ color: '#c4b5fd' }}>Pakopa {Math.min(season.cur + 1, season.total)}</span></span>
+            {nextReward.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-1">
+                {nextReward.slice(0, 3).map((it, i) => { const c = rewardChip(it); return (
+                  <span key={i} className="px-1.5 py-0.5 rounded-md" style={{ fontSize: 9.5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.35)', color: '#e8dcc0' }}>{c.icon} {c.label}</span>
+                ) })}
+              </div>
+            )}
           </div>
           <div className="p-2.5 pt-1.5 flex flex-col gap-1.5">
             <button onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
@@ -190,7 +215,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
               <div key={i} className="flex items-center gap-1.5 text-[10px]">
                 <span className="px-1 py-0.5 rounded shrink-0" style={{ fontSize: 8, background: 'rgba(240,180,41,0.14)', color: '#f3d98c' }}>{n.tag}</span>
                 <span className="truncate flex-1" style={{ color: '#e8dcc0' }}>{n.title}</span>
-                {n.when && <span className="shrink-0" style={{ color: 'var(--text-muted)', fontSize: 9 }}>{n.when}</span>}
+                {n.when && <span className="shrink-0 truncate" style={{ color: 'var(--text-muted)', fontSize: 9, maxWidth: 52 }}>{n.when}</span>}
               </div>
             ))}
           </div>
