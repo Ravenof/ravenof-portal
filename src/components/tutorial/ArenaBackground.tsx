@@ -69,9 +69,11 @@ function Silhouette({ k, accent }: { k: ArenaKey; accent: string }) {
   return <svg viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: '46%', width: '100%', height: '26%' }}>{shapes}</svg>
 }
 
-export function ArenaBackground({ arena, overrideUrl = null }: { arena: ArenaKey; overrideUrl?: string | null }) {
+export function ArenaBackground({ arena, overrideUrl = null, boardUrl = null }: { arena: ArenaKey; overrideUrl?: string | null; boardUrl?: string | null }) {
   const [imgOk, setImgOk] = useState(false)
   const [ovOk, setOvOk] = useState(false)
+  const [boardOk, setBoardOk] = useState(false)
+  useEffect(() => { setBoardOk(false) }, [boardUrl])
   // Lauko fonas pasikeitus URL – fade iš naujo
   useEffect(() => { setOvOk(false) }, [overrideUrl])
   const [fxOn, setFxOn] = useState(true)
@@ -91,7 +93,7 @@ export function ArenaBackground({ arena, overrideUrl = null }: { arena: ArenaKey
 
       {/* PERF: kai užsikrauna tikras arenos art, procedūriniai sluoksniai ir
           animuotos dalelės NEberenderinami (anksčiau suko GPU po nepermatomu vaizdu) */}
-      {!imgOk && (<>
+      {!imgOk && !boardOk && (<>
       {/* dangus / skliautas */}
       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, ${t.skyTop} 0%, ${t.skyTop} 30%, ${t.skyBottom} 54%, ${t.floor} 54%, ${t.floor} 100%)` }} />
       {/* horizonto švytėjimas */}
@@ -133,6 +135,16 @@ export function ArenaBackground({ arena, overrideUrl = null }: { arena: ArenaKey
       <img src={`/arenas/${arena}.jpg`} alt="" onLoad={() => setImgOk(true)} onError={() => setImgOk(false)}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: imgOk ? 1 : 0, transition: 'opacity 0.4s' }} />
       {imgOk && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 78% 72% at 50% 52%, transparent 45%, rgba(2,1,6,0.6) 100%)' }} />}
+
+      {/* LENTOS SKIN (kosmetika): uždengia areną, bet po LAUKO kortos fonu */}
+      {boardUrl && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={boardUrl} alt="" onLoad={() => setBoardOk(true)} onError={() => setBoardOk(false)}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: boardOk ? 1 : 0, transition: 'opacity 0.5s' }} />
+          {boardOk && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 78% 72% at 50% 52%, transparent 45%, rgba(2,1,6,0.62) 100%)' }} />}
+        </>
+      )}
 
       {/* LAUKO korta: jos fonas uždengia areną (lėtas fade sužaidus lauką) */}
       {overrideUrl && (

@@ -37,6 +37,7 @@ import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping,
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
+import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
 import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
@@ -170,9 +171,21 @@ const STATUS_ICON: Record<TutStatus, string> = {
 const CARD_BACK_SRC: Record<'plain' | 'curse' | 'zmk', string> = {
   plain: '/card-backs/back.webp', curse: '/card-backs/curse.webp', zmk: '/card-backs/zmk.webp',
 }
+// Pasirinkta (equipped) kortų nugarėlė — nustatoma TutorialGame mount'e; 'plain'
+// nugarėlės (kaladė, priešo ranka) rodo ją vietoj default back.webp.
+let EQUIPPED_BACK: SkinVisual | null = null
+export function setEquippedBack(v: SkinVisual | null) { EQUIPPED_BACK = v }
 export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
   const [ok, setOk] = useState(false)
-  return <img src={CARD_BACK_SRC[kind]} alt="" draggable={false} onLoad={() => setOk(true)} onError={() => setOk(false)}
+  const [customFailed, setCustomFailed] = useState(false)
+  const custom = kind === 'plain' && !customFailed ? EQUIPPED_BACK : null
+  // css-only nugarėlė (gradientas) — be <img>
+  if (custom && !custom.url && custom.css) {
+    return <div aria-hidden style={{ position: 'absolute', inset: 0, background: custom.css }} />
+  }
+  const src = custom?.url ?? CARD_BACK_SRC[kind]
+  return <img src={src} alt="" draggable={false} onLoad={() => setOk(true)}
+    onError={() => { if (custom?.url) { setCustomFailed(true); setOk(false) } else setOk(false) }}
     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: ok ? 1 : 0, transition: 'opacity .2s' }} />
 }
 
@@ -727,6 +740,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   const fxRef = useRef<BattleFxHandle>(null)
   const arenaRef = useRef<ArenaKey>(randomArena())
+  // Kosmetika kovoje: pasirinkta nugarėlė (modulio kintamasis) + lentos fonas
+  const [boardSkinUrl, setBoardSkinUrl] = useState<string | null>(null)
+  useEffect(() => {
+    const apply = (sk: { cardBack: SkinVisual | null; board: SkinVisual | null } | null) => {
+      if (!sk) return
+      setEquippedBack(sk.cardBack)
+      setBoardSkinUrl(sk.board?.url ?? null)
+      setSkinTick((t) => t + 1)
+    }
+    apply(cachedBattleSkins())
+    getEquippedBattleSkins().then(apply).catch(() => {})
+  }, [])
+  const [, setSkinTick] = useState(0)
 
   // Projectile animacijos
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
@@ -2856,7 +2882,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         overflowX: 'hidden',
       }}>
       {/* ── mūšio arena (atsitiktinis frakcijos fonas; lauko korta jį perrašo) ── */}
-      <ArenaBackground arena={arenaRef.current} overrideUrl={fieldBgUrl} />
+      <ArenaBackground arena={arenaRef.current} overrideUrl={fieldBgUrl} boardUrl={boardSkinUrl} />
       {/* Žemės drebėjimas sužaidus lauko kortą: 3 s gęstanti amplitudė */}
       <style>{`
         @keyframes rvnFieldQuake {

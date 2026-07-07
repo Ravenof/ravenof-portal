@@ -33,6 +33,29 @@ export async function getCosmetics(): Promise<CosmeticsState | null> {
   return (data as CosmeticsState) ?? null
 }
 
+// ── Kovos skins: pasirinkta nugarėlė + lentos fonas (sessionStorage cache,
+//    kad kova gautų skins iškart be RPC laukimo) ─────────────────────────────
+export type SkinVisual = { url: string | null; css: string | null }
+export type BattleSkins = { cardBack: SkinVisual | null; board: SkinVisual | null }
+const SKINS_KEY = 'rvn-battle-skins'
+
+export function cachedBattleSkins(): BattleSkins | null {
+  try { const c = sessionStorage.getItem(SKINS_KEY); return c ? (JSON.parse(c) as BattleSkins) : null } catch { return null }
+}
+
+export async function getEquippedBattleSkins(): Promise<BattleSkins> {
+  const st = await getCosmetics()
+  const find = (id: string | null): SkinVisual | null => {
+    if (!id || !st) return null
+    const it = st.items.find((i) => i.id === id)
+    if (!it || (!it.imageUrl && !it.css)) return null
+    return { url: it.imageUrl ?? null, css: it.css ?? null }
+  }
+  const out: BattleSkins = { cardBack: find(st?.equippedCardBack ?? null), board: find(st?.equippedBoard ?? null) }
+  try { sessionStorage.setItem(SKINS_KEY, JSON.stringify(out)) } catch { /* */ }
+  return out
+}
+
 export async function buyCosmetic(id: string): Promise<{ ok: true; gold: number } | { error: string }> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('rvn_buy_cosmetic', { p_id: id })
