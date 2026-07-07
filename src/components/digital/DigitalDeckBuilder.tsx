@@ -1,13 +1,13 @@
 'use client'
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Ravenof Digital — DECK BUILDER v3 (landscape, 3 zonos):
-// • KAIRĖ: paieška + filtrai + frakcijos keitimas + vaizdo režimas.
-// • CENTRAS: kortų pool'as (grid/sąrašas, scroll tik panelėje). Jei frakcija
-//   nepasirinkta — didelis frakcijos pasirinkimo ekranas centre.
+// Ravenof Digital — DECK BUILDER v4 (landscape, 2 zonos: ALBUMAS + KALADĖ):
+// • KAIRĖ (albumas): kortų albumo grid per visą plotį su kompaktiška filtrų
+//   juosta viršuje (paieška / frakcija / tik turimos / universalios / vaizdas).
+//   Jei frakcija nepasirinkta — frakcijos pasirinkimo ekranas albumo vietoje.
 // • DEŠINĖ (drop zona): kaladės sąrašas su +/-, gyva statistika (aukso kreivė),
 //   pavadinimas/matomumas, validacija ir IŠSAUGOTI — visada matomi.
-// • Fizinis drag & drop išlaikytas: tempk kortą ant dešinės panelės.
+// • Drag & drop: tempk kortą iš albumo ant kaladės panelės dešinėje.
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform, useVelocity } from 'framer-motion'
@@ -301,45 +301,9 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
         <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0" style={{ background: total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.16)' : `rgba(${GOLD},0.14)`, border: `1px solid ${total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.5)' : `rgba(${GOLD},0.4)`}`, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{total}/{DECK_MIN}</span>
       </div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(148px,0.75fr) minmax(0,2.3fr) minmax(210px,1.05fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)' }}>
 
-        {/* ── KAIRĖ: filtrai ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Filtrai</div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-            <div className="relative shrink-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti…" className="w-full outline-none rounded-lg"
-                style={{ minHeight: 36, paddingLeft: 30, paddingRight: 8, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
-            </div>
-            <SideToggle on={store.ownedOnly} onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} label="Tik turimos" color="34,197,94" />
-            <SideToggle on={showUniversal} onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} label="Universalios" color="96,165,250" />
-            <div className="grid grid-cols-2 rounded-lg overflow-hidden shrink-0" style={{ border: `1px solid rgba(${GOLD},0.3)` }}>
-              {(['grid', 'list'] as const).map((vw) => (
-                <button key={vw} onClick={() => { playUiClick(); setView(vw) }} className="font-semibold" style={{ minHeight: 30, fontSize: 10, background: view === vw ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.9)', color: view === vw ? 'var(--gold)' : 'var(--text-muted)' }}>{vw === 'grid' ? 'Tinklelis' : 'Sąrašas'}</button>
-              ))}
-            </div>
-            <div className="shrink-0">
-              <span className="block mb-1 font-bold uppercase" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Frakcija</span>
-              <div className="flex flex-col gap-1">
-                {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
-                  const sel = store.factionId === f.id
-                  const id = identityFor(f.name)
-                  return (
-                    <button key={f.id} onClick={() => pickFaction(f)} className="rvn-press w-full flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left"
-                      style={{ border: sel ? `1.5px solid ${f.color_hex ?? `rgba(${GOLD},0.9)`}` : '1px solid rgba(255,255,255,0.08)', background: sel ? `${f.color_hex}1f` : 'rgba(10,8,16,0.6)' }}>
-                      <span className="shrink-0" style={{ fontSize: 13 }}>{id?.icon ?? '🛡️'}</span>
-                      <span className="block truncate font-bold" style={{ fontSize: 10.5, color: sel ? (f.color_hex ?? 'var(--gold)') : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>{f.name}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <p className="shrink-0" style={{ fontSize: 9, color: 'rgba(150,160,185,0.55)', lineHeight: 1.35 }}>💡 Palaikyk kortą ir tempk ją ant kaladės panelės dešinėje.</p>
-          </div>
-        </section>
-
-        {/* ── CENTRAS: kortų pool'as / frakcijos pasirinkimas ── */}
+        {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           {store.factionId == null ? (
             <div className="flex-1 min-h-0 flex flex-col">
@@ -360,16 +324,47 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
                 })}
               </div>
             </div>
-          ) : pool.length === 0 ? (
-            <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
-          ) : view === 'grid' ? (
-            <div className="flex-1 min-h-0 overflow-y-auto grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))' }}>
-              {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
-            </div>
           ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
-              {pool.map((c) => <CardRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
-            </div>
+            <>
+              {/* Filtrų juosta */}
+              <div className="shrink-0 flex items-center gap-1.5 flex-wrap mb-2">
+                <div className="relative flex-1" style={{ minWidth: 130 }}>
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--text-muted)' }} />
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti albume…" className="w-full outline-none rounded-lg"
+                    style={{ minHeight: 32, paddingLeft: 28, paddingRight: 8, fontSize: 11.5, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
+                </div>
+                <select value={store.factionId ?? ''} onChange={(e) => { const f = factions.find((x) => x.id === Number(e.target.value)); if (f) pickFaction(f) }}
+                  className="rounded-lg outline-none" style={{ minHeight: 32, maxWidth: 150, fontSize: 11, padding: '0 6px', background: 'rgba(10,8,16,0.9)', border: `1px solid ${selFaction?.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.3)`}`, color: selFaction?.color_hex ?? 'var(--text-primary)' }}>
+                  {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+                <button onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} className="rvn-press rounded-lg px-2 font-semibold"
+                  style={{ minHeight: 32, fontSize: 10, background: store.ownedOnly ? 'rgba(34,197,94,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${store.ownedOnly ? 'rgba(34,197,94,0.55)' : `rgba(${GOLD},0.25)`}`, color: store.ownedOnly ? '#86efac' : 'var(--text-muted)' }}>
+                  Tik turimos
+                </button>
+                <button onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} className="rvn-press rounded-lg px-2 font-semibold"
+                  style={{ minHeight: 32, fontSize: 10, background: showUniversal ? 'rgba(96,165,250,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${showUniversal ? 'rgba(96,165,250,0.55)' : `rgba(${GOLD},0.25)`}`, color: showUniversal ? '#93c5fd' : 'var(--text-muted)' }}>
+                  Universalios
+                </button>
+                <div className="grid grid-cols-2 rounded-lg overflow-hidden shrink-0" style={{ border: `1px solid rgba(${GOLD},0.3)` }}>
+                  {(['grid', 'list'] as const).map((vw) => (
+                    <button key={vw} onClick={() => { playUiClick(); setView(vw) }} className="font-semibold px-2" style={{ minHeight: 30, fontSize: 10, background: view === vw ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.9)', color: view === vw ? 'var(--gold)' : 'var(--text-muted)' }}>{vw === 'grid' ? 'Albumas' : 'Sąrašas'}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Albumo grid / sąrašas */}
+              {pool.length === 0 ? (
+                <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
+              ) : view === 'grid' ? (
+                <div className="flex-1 min-h-0 overflow-y-auto grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))' }}>
+                  {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
+                  {pool.map((c) => <CardRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+                </div>
+              )}
+            </>
           )}
         </section>
 
@@ -474,18 +469,6 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
       {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
     </div>
-  )
-}
-
-function SideToggle({ on, onClick, label, color }: { on: boolean; onClick: () => void; label: string; color: string }) {
-  return (
-    <button onClick={onClick} className="shrink-0 w-full flex items-center justify-between px-2 py-1.5 rounded-lg font-semibold"
-      style={{ fontSize: 10.5, background: on ? `rgba(${color},0.14)` : 'rgba(10,8,16,0.7)', border: `1px solid ${on ? `rgba(${color},0.55)` : `rgba(${GOLD},0.25)`}`, color: on ? `rgb(${color})` : 'var(--text-secondary)' }}>
-      <span>{label}</span>
-      <span className="relative inline-block rounded-full" style={{ width: 26, height: 14, background: on ? `rgba(${color},0.5)` : 'rgba(255,255,255,0.12)' }}>
-        <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 10, height: 10, left: on ? 14 : 2 }} />
-      </span>
-    </button>
   )
 }
 

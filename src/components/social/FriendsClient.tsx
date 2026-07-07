@@ -70,87 +70,108 @@ export function FriendsClient() {
     getConversation(chatWith.userId).then(setChatMsgs)
   }
 
-  const card = { background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }
+  const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(96,165,250,0.25)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+  const secTitle = (txt: string, col = 'var(--gold)') => (
+    <p className="shrink-0 text-sm font-bold mb-2" style={{ color: col, fontFamily: 'var(--rvn-font-display)' }}>{txt}</p>
+  )
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* Pridėti draugą */}
-      <div className="rounded-xl p-4" style={card}>
-        <p className="text-sm font-bold mb-2" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pridėti draugą</p>
-        <div className="flex gap-2">
+    <div className="h-full min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(190px,0.95fr) minmax(0,1.9fr) minmax(190px,0.95fr)' }}>
+
+      {/* ── KAIRĖ: pridėti draugą + užklausos ── */}
+      <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
+        {secTitle('Pridėti draugą')}
+        <div className="shrink-0 flex flex-col gap-2">
           <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Naudotojo vardas"
-            className="flex-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
           <RavenofButton variant="gold" size="md" onClick={add}><UserPlus className="w-4 h-4" /> Pridėti</RavenofButton>
+          {msg && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{msg}</p>}
         </div>
-        {msg && <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>{msg}</p>}
-      </div>
-
-      {/* Gauti iššūkiai */}
-      {challenges.length > 0 && (
-        <div className="rounded-xl p-4" style={{ ...card, borderColor: 'rgba(251,146,60,0.4)' }}>
-          <p className="text-sm font-bold mb-2" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>⚔ Iššūkiai tau</p>
-          <div className="space-y-2">
-            {challenges.map((c) => (
-              <div key={c.id} className="flex items-center gap-2">
-                <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{c.displayName || c.username} kviečia į kovą</span>
-                <RavenofButton variant="gold" size="sm" onClick={() => accept(c)}><Swords className="w-3 h-3" /> Priimti</RavenofButton>
-                <RavenofButton variant="muted" size="sm" onClick={() => decline(c)}><X className="w-3 h-3" /></RavenofButton>
-              </div>
-            ))}
-          </div>
+        <div className="mt-3 flex-1 min-h-0 overflow-y-auto">
+          {secTitle('Draugystės užklausos')}
+          {pending.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Naujų užklausų nėra.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {pending.map((f) => (
+                <div key={f.id} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span className="flex-1 min-w-0 text-sm truncate" style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}</span>
+                  <RavenofButton variant="gold" size="sm" onClick={() => respond(f.id, true)}><Check className="w-3 h-3" /></RavenofButton>
+                  <RavenofButton variant="muted" size="sm" onClick={() => respond(f.id, false)}><X className="w-3 h-3" /></RavenofButton>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </section>
 
-      {/* Gauti mainų pasiūlymai */}
-      {trades.length > 0 && (
-        <div className="rounded-xl p-4" style={{ ...card, borderColor: 'rgba(96,165,250,0.4)' }}>
-          <p className="text-sm font-bold mb-2" style={{ color: '#93c5fd', fontFamily: 'var(--rvn-font-display)' }}>🔄 Mainų pasiūlymai</p>
-          <div className="space-y-2">
-            {trades.map((tr) => (
-              <div key={tr.id} className="flex items-center gap-2">
-                <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{tr.displayName || tr.username} nori mainytis</span>
-                <RavenofButton variant="gold" size="sm" onClick={() => acceptTrade(tr)}><Repeat className="w-3 h-3" /> Atidaryti</RavenofButton>
-              </div>
-            ))}
-          </div>
+      {/* ── CENTRAS: draugų sąrašas ── */}
+      <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
+        {secTitle(`Draugai (${friends.length})`)}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {friends.length === 0 ? (
+            <div className="h-full flex items-center justify-center">
+              <EmptyState icon="👥" title="Dar neturi draugų" sub="Pridėk draugą pagal naudotojo vardą ir kvieskite vienas kitą į kovą." accent="96,165,250"
+                ctaLabel="➕ Pridėti draugą" onCta={() => { const el = document.getElementById('friend-uname-input') as HTMLInputElement | null; el?.focus() }} />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {friends.map((f) => (
+                <div key={f.id} className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl flex-wrap" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(96,165,250,0.18)' }}>
+                  <span className="flex-1 min-w-0 text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}<span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>@{f.username}</span></span>
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    <RavenofButton variant="muted" size="sm" onClick={() => { setChatWith(f); setChatMsgs([]) }}><MessageCircle className="w-3 h-3" /></RavenofButton>
+                    <RavenofButton variant="secondary" size="sm" onClick={() => challenge(f)}><Swords className="w-3 h-3" /> Iššūkis</RavenofButton>
+                    <RavenofButton variant="secondary" size="sm" onClick={() => startTrade(f)}><Repeat className="w-3 h-3" /> Mainai</RavenofButton>
+                    <RavenofButton variant="muted" size="sm" onClick={() => remove(f.id)}><Trash2 className="w-3 h-3" /></RavenofButton>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </section>
 
-      {/* Laukiančios užklausos */}
-      {pending.length > 0 && (
-        <div className="rounded-xl p-4" style={card}>
-          <p className="text-sm font-bold mb-2" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Draugystės užklausos</p>
-          <div className="space-y-2">
-            {pending.map((f) => (
-              <div key={f.id} className="flex items-center gap-2">
-                <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}</span>
-                <RavenofButton variant="gold" size="sm" onClick={() => respond(f.id, true)}><Check className="w-3 h-3" /></RavenofButton>
-                <RavenofButton variant="muted" size="sm" onClick={() => respond(f.id, false)}><X className="w-3 h-3" /></RavenofButton>
+      {/* ── DEŠINĖ: iššūkiai + mainai ── */}
+      <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+          <div>
+            {secTitle('⚔ Iššūkiai tau', '#fdba74')}
+            {challenges.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Šiuo metu iššūkių nėra.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {challenges.map((c) => (
+                  <div key={c.id} className="px-2 py-2 rounded-lg" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.4)' }}>
+                    <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{c.displayName || c.username} kviečia į kovą</p>
+                    <div className="flex items-center gap-1.5">
+                      <RavenofButton variant="gold" size="sm" onClick={() => accept(c)}><Swords className="w-3 h-3" /> Priimti</RavenofButton>
+                      <RavenofButton variant="muted" size="sm" onClick={() => decline(c)}><X className="w-3 h-3" /></RavenofButton>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
+          <div>
+            {secTitle('🔄 Mainų pasiūlymai', '#93c5fd')}
+            {trades.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Mainų pasiūlymų nėra.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {trades.map((tr) => (
+                  <div key={tr.id} className="px-2 py-2 rounded-lg" style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.4)' }}>
+                    <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{tr.displayName || tr.username} nori mainytis</p>
+                    <RavenofButton variant="gold" size="sm" onClick={() => acceptTrade(tr)}><Repeat className="w-3 h-3" /> Atidaryti</RavenofButton>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>Iššūkiai ir mainai atnaujinami automatiškai kas 5 s.</p>
         </div>
-      )}
+      </section>
 
-      {/* Draugų sąrašas */}
-      <div className="rounded-xl p-4" style={card}>
-        <p className="text-sm font-bold mb-2" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Draugai ({friends.length})</p>
-        {friends.length === 0 ? (
-          <EmptyState icon="👥" title="Dar neturi draugų" sub="Pridėk draugą pagal naudotojo vardą ir kvieskite vienas kitą į kovą." accent="96,165,250"
-            ctaLabel="➕ Pridėti draugą" onCta={() => { const el = document.getElementById('friend-uname-input') as HTMLInputElement | null; el?.focus(); el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }} />
-        ) : (
-          <div className="space-y-2">
-            {friends.map((f) => (
-              <div key={f.id} className="flex items-center gap-2">
-                <span className="flex-1 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}<span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>@{f.username}</span></span>
-                <RavenofButton variant="muted" size="sm" onClick={() => { setChatWith(f); setChatMsgs([]) }}><MessageCircle className="w-3 h-3" /></RavenofButton>
-                <RavenofButton variant="secondary" size="sm" onClick={() => challenge(f)}><Swords className="w-3 h-3" /> Iššūkis</RavenofButton>
-                <RavenofButton variant="secondary" size="sm" onClick={() => startTrade(f)}><Repeat className="w-3 h-3" /> Mainai</RavenofButton>
-                <RavenofButton variant="muted" size="sm" onClick={() => remove(f.id)}><Trash2 className="w-3 h-3" /></RavenofButton>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
       {tradeId && <TradeWindow tradeId={tradeId} onClose={() => { setTradeId(null); reload() }} />}
       {chatWith && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.85)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }} onClick={() => setChatWith(null)}>

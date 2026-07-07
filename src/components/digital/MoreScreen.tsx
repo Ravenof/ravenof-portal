@@ -1,6 +1,7 @@
 'use client'
 
-// ── Ravenof Digital — „Daugiau" ekranas (nustatymai, socialinė, atsijungti, išeiti) ──
+// ── Ravenof Digital — „Daugiau" (landscape): 3 sekcijų stulpeliai su didelėmis
+//    kortelėmis (Žaidimas / Bendruomenė / Paskyra) — viskas telpa be scroll.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, ClipboardList, Award, Users, Store, LogOut, Power, ChevronRight } from 'lucide-react'
@@ -10,7 +11,6 @@ import { exitNativeApp } from '@/lib/digital/native'
 import { SettingsModal } from './SettingsModal'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
-import { PageHero } from './ui/HubKit'
 import { RvnIcon } from './ui/RvnIcon'
 
 type Row = { key: string; label: string; sub?: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; img?: string; accent: string; onClick: () => void }
@@ -55,62 +55,47 @@ export function MoreScreen() {
     },
   ]
 
+  const accountRows: Row[] = [
+    { key: 'logout', label: 'Atsijungti', sub: 'Baigti paskyros sesiją', icon: LogOut, accent: '96,165,250', onClick: doLogout },
+    { key: 'exit', label: 'Išeiti', sub: 'Uždaryti programą', icon: Power, accent: '239,68,68', onClick: () => { playUiClick(); setConfirmExit(true) } },
+  ]
+
+  const tile = (r: Row, danger = false) => {
+    const Icon = r.icon
+    return (
+      <button key={r.key} onClick={r.onClick}
+        className="rvn-press w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left"
+        style={{ minHeight: 62, background: `linear-gradient(150deg, rgba(${r.accent},0.1), rgba(10,8,16,0.9))`, border: `1px solid rgba(${r.accent},0.4)` }}>
+        <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 40, height: 40, background: `rgba(${r.accent},0.14)`, border: `1px solid rgba(${r.accent},0.45)` }}>
+          {r.img ? <RvnIcon name={r.img} size={28} fallback={<Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />} /> : <Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />}
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-bold truncate" style={{ color: danger ? '#fca5a5' : '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{r.label}</span>
+          {r.sub && <span className="block text-[10.5px] truncate" style={{ color: 'var(--text-muted)' }}>{r.sub}</span>}
+        </span>
+        <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+      </button>
+    )
+  }
+
+  const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+
   return (
-    <div className="space-y-5">
-      <PageHero compact iconName="nav-more" icon={<span style={{ fontSize: 26 }}>☰</span>} title="DAUGIAU" sub="Nustatymai, bendruomenė ir paskyra" />
+    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
+      <div className="text-center shrink-0">
+        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,3.2vh,28px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>Daugiau</div>
+        <div style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-muted)' }}>Nustatymai, bendruomenė ir paskyra</div>
+      </div>
 
-      {sections.map((sec) => (
-        <div key={sec.title} className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest px-1" style={{ color: 'var(--text-muted)', letterSpacing: '0.16em' }}>{sec.title}</p>
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(240,180,41,0.18)', background: 'rgba(10,8,16,0.7)' }}>
-            {sec.rows.map((r, i) => {
-              const Icon = r.icon
-              return (
-                <button key={r.key} onClick={r.onClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-white/5"
-                  style={{ borderTop: i === 0 ? 'none' : '1px solid rgba(240,180,41,0.1)' }}>
-                  <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 36, height: 36, background: `rgba(${r.accent},0.14)`, border: `1px solid rgba(${r.accent},0.4)` }}>
-                    {r.img ? <RvnIcon name={r.img} size={26} fallback={<Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />} /> : <Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />}
-                  </span>
-                  <span className="flex-1">
-                    <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{r.label}</span>
-                    {r.sub && <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>{r.sub}</span>}
-                  </span>
-                  <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-
-      {/* Paskyra */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest px-1" style={{ color: 'var(--text-muted)', letterSpacing: '0.16em' }}>Paskyra</p>
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(240,180,41,0.18)', background: 'rgba(10,8,16,0.7)' }}>
-          {/* Atsijungti */}
-          <button onClick={doLogout} disabled={loggingOut} className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-white/5">
-            <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 36, height: 36, background: 'rgba(96,165,250,0.14)', border: '1px solid rgba(96,165,250,0.4)' }}>
-              <LogOut className="w-5 h-5" style={{ color: '#60a5fa' }} />
-            </span>
-            <span className="flex-1">
-              <span className="block text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Atsijungti</span>
-              <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Baigti paskyros sesiją</span>
-            </span>
-            <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          </button>
-          {/* Išeiti */}
-          <button onClick={() => { playUiClick(); setConfirmExit(true) }} className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-white/5" style={{ borderTop: '1px solid rgba(240,180,41,0.1)' }}>
-            <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 36, height: 36, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.45)' }}>
-              <Power className="w-5 h-5" style={{ color: '#fca5a5' }} />
-            </span>
-            <span className="flex-1">
-              <span className="block text-sm font-bold" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Išeiti</span>
-              <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Uždaryti programą</span>
-            </span>
-            <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          </button>
-        </div>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
+        {[...sections, { title: 'Paskyra', rows: accountRows }].map((sec) => (
+          <section key={sec.title} className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+            <p className="shrink-0 rvn-disp font-extrabold uppercase tracking-wide mb-2" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{sec.title}</p>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
+              {sec.rows.map((r) => tile(r, sec.title === 'Paskyra' && r.key === 'exit'))}
+            </div>
+          </section>
+        ))}
       </div>
 
       {/* Patvirtinimas: Išeiti */}
