@@ -69,12 +69,15 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   }, [userId])
 
   useEffect(() => { load() }, [load])
-  // Starter kaladžių viršeliai pagal frakciją (iš parduotuvės)
+  // Starter kaladžių viršeliai pagal frakciją (iš parduotuvės).
+  // sessionStorage cache — viršeliai matomi iškart, be RPC laukimo.
   useEffect(() => {
+    try { const c = sessionStorage.getItem('rvn-deck-covers'); if (c) setCovers(JSON.parse(c)) } catch { /* */ }
     getStarterDecks().then((sd) => {
       const m: Record<number, string> = {}
       for (const s of sd ?? []) if (s.factionId != null && s.imageUrl) m[s.factionId] = s.imageUrl
       setCovers(m)
+      try { sessionStorage.setItem('rvn-deck-covers', JSON.stringify(m)) } catch { /* */ }
     })
   }, [])
 
@@ -246,7 +249,7 @@ function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick
         <span aria-hidden className="absolute inset-0 rounded-[7px]" style={{ transform: 'translate(2.5px, 2.5px) rotate(0.5deg)', background: 'linear-gradient(160deg,#241a33,#100c18)', boxShadow: '0 2px 4px rgba(0,0,0,0.45)' }} />
         <span className="absolute inset-0 rounded-[7px] overflow-hidden" style={{ boxShadow: '0 7px 18px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(0,0,0,0.45)' }}>
           {cover
-            ? <SmartImg src={cover} width={260} className="absolute inset-0 w-full h-full object-cover" />
+            ? <SmartImg src={cover} width={260} loading="eager" className="absolute inset-0 w-full h-full object-cover" />
             : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: `radial-gradient(120% 90% at 50% 20%, ${d.factionColor}33, rgba(10,8,16,0.98) 70%), linear-gradient(160deg,#1a1325,#0a0810)` }}>🎴</span>}
           {/* šviesos atspindys viršuje — fizinis paviršius */}
           <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: '30%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent)' }} />

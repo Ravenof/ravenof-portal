@@ -7,6 +7,7 @@ import { X, BellOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
+import { useEscClose } from '@/lib/useEscClose'
 
 type Notif = { id: string; type: string; title: string; message: string | null; link: string | null; read: boolean; created_at: string }
 
@@ -21,6 +22,7 @@ function timeAgo(ts: string): string {
 }
 
 export function NotificationsModal({ onClose, onRead }: { onClose: () => void; onRead?: () => void }) {
+  useEscClose(onClose)
   const router = useRouter()
   const [items, setItems] = useState<Notif[] | null>(null)
 
