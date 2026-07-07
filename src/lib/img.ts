@@ -17,6 +17,9 @@ export function thumbUrl(url: string | null | undefined, width: number, quality 
   if (!url || transformsBroken) return null
   const i = url.indexOf(OBJ)
   if (i < 0) return null
+  // Kanoniniai bucket'ai: 240 arba 480 — kad SW media cache'e (rvn-media-v1)
+  // vienam failui būtų max 2 variantai, o ne po vieną kiekvienam UI dydžiui.
+  width = width <= 240 ? 240 : 480
   // resize=contain BŪTINA: be jo Supabase keičia tik plotį, o aukštį palieka –
   // grąžina per aukštį iškirptą juostą (pvz. 1088x1475 → 360x1475). Patikrinta check-transform.mjs
   return url.slice(0, i) + RENDER + url.slice(i + OBJ.length) + `?width=${width}&quality=${quality}&resize=contain`

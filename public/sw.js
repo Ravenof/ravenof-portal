@@ -1,11 +1,21 @@
-// Ravenof PWA Service Worker v3
+// Ravenof PWA Service Worker v4
+//   NAUJA (v4): Supabase Storage media (kortos, video, audio, kosmetika) →
+//   cache-first į atskirą rvn-media-v1 (persistuoja tarp sesijų; failų vardai
+//   immutable, tad invalidacijos nereikia). Video Range užklausoms grąžinamas
+//   206 su blob.slice — kitaip Android WebView video iš cache užstringa.
 // Strategy:
 //   - Static assets (scripts, styles, images, fonts, audio) → Cache-first
 //   - Supabase / API requests → Network-only (never cache auth/live data)
 //   - Navigation (HTML pages) → Network-first, offline fallback /offline
 //   - Pre-cache: critical shell blocks install; sounds cached in background (non-blocking)
 
-const CACHE_NAME = 'ravenof-pwa-v3'
+const CACHE_NAME = 'ravenof-pwa-v4'
+const MEDIA_CACHE = 'rvn-media-v1'
+// Media hostai (Supabase Storage dabar; R2/CDN ateičiai — pridėti čia)
+const MEDIA_HOSTS = ['supabase.co', 'supabase.in']
+const MEDIA_PATHS = ['/storage/v1/object/public/', '/storage/v1/render/image/public/']
+const isMediaRequest = (url) =>
+  MEDIA_HOSTS.some((h) => url.hostname.includes(h)) && MEDIA_PATHS.some((p) => url.pathname.startsWith(p))
 
 // Critical shell — SW install waits for these
 const SHELL_URLS = [
@@ -60,7 +70,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key !== CACHE_NAME && key !== MEDIA_CACHE)
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
@@ -74,6 +84,12 @@ self.addEventListener('fetch', (event) => {
 
   // 1. Only handle GET — let POST/PUT/DELETE go through untouched
   if (request.method !== 'GET') return
+
+  // 2a. Supabase Storage MEDIA → cache-first į rvn-media-v1 (su Range 206)
+  if (isMediaRequest(url)) {
+    event.respondWith(mediaCacheFirst(request))
+    return
+  }
 
   // 2. Supabase or any external API → Network-only, no caching
   if (
@@ -175,5 +191,62 @@ async function networkFirstWithOfflineFallback(request) {
       status: 503,
       headers: { 'Content-Type': 'text/html' },
     })
+  }
+}
+
+
+// ─── Media cache-first (rvn-media-v1) su Range 206 palaikymu ─────────────────
+
+async function mediaCacheFirst(request) {
+  const cache = await caches.open(MEDIA_CACHE)
+  // cache raktas — URL be Range headerių (pilnas failas)
+  const key = new Request(request.url, { method: 'GET' })
+  let full = await cache.match(key)
+  if (!full) {
+    try {
+      const response = await fetch(key)
+      if (response.ok && response.status === 200) {
+        await cache.put(key, response.clone())
+        full = response
+      } else {
+        return response
+      }
+    } catch {
+      return new Response('Offline', { status: 503 })
+    }
+  }
+  const range = request.headers.get('range')
+  if (!range) return full.clone ? full.clone() : full
+  return rangeResponse(full, range)
+}
+
+// 206 atsakymas iš pilno cache'into failo — be jo <video> iš cache neveikia
+async function rangeResponse(fullResponse, rangeHeader) {
+  try {
+    const blob = await fullResponse.clone().blob()
+    const size = blob.size
+    const m = /bytes=(\d*)-(\d*)/.exec(rangeHeader)
+    if (!m) return new Response(null, { status: 416 })
+    let start = m[1] === '' ? undefined : parseInt(m[1], 10)
+    let end = m[2] === '' ? undefined : parseInt(m[2], 10)
+    if (start === undefined) { start = Math.max(0, size - (end ?? 0)); end = size - 1 }
+    else if (end === undefined) { end = size - 1 }
+    if (start > end || start >= size) {
+      return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } })
+    }
+    end = Math.min(end, size - 1)
+    const sliced = blob.slice(start, end + 1)
+    return new Response(sliced, {
+      status: 206,
+      statusText: 'Partial Content',
+      headers: {
+        'Content-Type': fullResponse.headers.get('Content-Type') || 'application/octet-stream',
+        'Content-Length': String(sliced.size),
+        'Content-Range': `bytes ${start}-${end}/${size}`,
+        'Accept-Ranges': 'bytes',
+      },
+    })
+  } catch {
+    return fullResponse
   }
 }
