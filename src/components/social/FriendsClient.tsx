@@ -118,6 +118,7 @@ export function FriendsClient() {
             <div className="space-y-1.5">
               {friends.map((f) => (
                 <div key={f.id} className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl flex-wrap" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(96,165,250,0.18)' }}>
+                  <span className="shrink-0 rounded-full" title={f.online ? 'Prisijungęs' : 'Neprisijungęs'} style={{ width: 8, height: 8, background: f.online ? '#34d399' : 'rgba(255,255,255,0.18)', boxShadow: f.online ? '0 0 7px #34d399' : 'none' }} />
                   <span className="flex-1 min-w-0 text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}<span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>@{f.username}</span></span>
                   <span className="flex items-center gap-1.5 shrink-0">
                     <RavenofButton variant="muted" size="sm" onClick={() => { setChatWith(f); setChatMsgs([]) }}><MessageCircle className="w-3 h-3" /></RavenofButton>

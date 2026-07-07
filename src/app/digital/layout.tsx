@@ -18,6 +18,7 @@ import { loadDigitalSettings } from '@/lib/settings-sync'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
+import { heartbeat } from '@/lib/social'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { HubStyles, ResourcePill, IconBtn, ProfileChip } from '@/components/digital/ui/HubKit'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
@@ -50,7 +51,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
     void scheduleReturnReminders()
     void lockLandscape()
-    return () => { stopMusic(); setNativeImmersive(false); void unlockOrientation() }
+    // Presence: „online" indikatorius draugams (last_seen_at kas 60 s + focus)
+    void heartbeat()
+    const hb = setInterval(() => { if (document.visibilityState === 'visible') void heartbeat() }, 60_000)
+    const onFocusHb = () => void heartbeat()
+    window.addEventListener('focus', onFocusHb)
+    return () => { stopMusic(); setNativeImmersive(false); void unlockOrientation(); clearInterval(hb); window.removeEventListener('focus', onFocusHb) }
   }, [])
 
   // Visas /digital app užrakintas į landscape; jei įrenginys portrait (web neleido lock) -> „pasuk telefoną" overlay.

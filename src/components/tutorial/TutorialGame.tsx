@@ -28,7 +28,7 @@ import {
 } from '@/lib/tutorial/engine'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
-import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason, reportMatchXp, type MatchXpMode } from '@/lib/economy'
+import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason } from '@/lib/economy'
 import { reportMatchV2, recordRankedMatch, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'

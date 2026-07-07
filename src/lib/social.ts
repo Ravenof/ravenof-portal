@@ -1,7 +1,12 @@
 // ── Socialinis sluoksnis: draugai + iššūkiai (kliento RPC apvalkalai) ─────────
 import { createClient } from '@/lib/supabase/client'
 
-export type Friend = { id: string; userId: string; username: string; displayName: string | null; avatar: string | null }
+export type Friend = { id: string; userId: string; username: string; displayName: string | null; avatar: string | null; online?: boolean; lastSeen?: string | null }
+
+/** Presence širdies dūžis — profiles.last_seen_at=now(). Kviesti ~kas 60 s. */
+export async function heartbeat(): Promise<void> {
+  try { await createClient().rpc('rvn_heartbeat') } catch { /* senoje DB funkcijos gali nebūti */ }
+}
 export type Challenge = { id: string; code: string; challengerId: string; username: string; displayName: string | null }
 
 export async function friendRequest(username: string): Promise<{ ok: true } | { error: string }> {

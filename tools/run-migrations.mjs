@@ -17,8 +17,8 @@ try { pg = await import('pg') } catch { console.error('❌ Trūksta „pg". Pale
 const { Client } = pg.default ?? pg
 
 const dir = 'supabase/migrations'
-// tik ekonomikos migracijos 20260810..20260819, eilės tvarka
-const files = readdirSync(dir).filter((f) => /^2026081[0-9]_.*\.sql$/.test(f)).sort()
+// tik ekonomikos migracijos 20260810..20260829, eilės tvarka
+const files = readdirSync(dir).filter((f) => /^20260(81[0-9]|82[0-9])_.*\.sql$/.test(f)).sort()
 if (files.length === 0) { console.error('❌ Nerasta migracijų 2026081x'); process.exit(1) }
 console.log('Migracijos eilės tvarka:\n  ' + files.join('\n  ') + '\n')
 
