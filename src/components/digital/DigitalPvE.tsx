@@ -8,7 +8,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
-import { RvnIcon } from './ui/RvnIcon'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -177,7 +176,7 @@ export function DigitalPvE() {
                   </select>
                 </div>
                 <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start">
-                  {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nerasta deck'ų.</p>}
+                  {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nerasta deck&apos;ų.</p>}
                   {filteredDecks.map((d) => { const s = d.id === oppDeck; return (
                     <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="rvn-press rounded-xl p-2 flex flex-col gap-1 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -205,7 +204,24 @@ export function DigitalPvE() {
             <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
             <p className="mt-1.5" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.3 }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
           </div>
-          <div className="flex-1 min-h-0" />
+          {/* Kovos atlygis — užpildo tarpą iki CTA ir parodo, už ką kovoji */}
+          <div className="flex-1 min-h-0 flex flex-col justify-center gap-1.5 py-2">
+            <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 10, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Kovos atlygis</p>
+            <div className="flex items-center gap-2 rounded-xl px-2.5 py-2" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(34,197,94,0.25)' }}>
+              <span style={{ fontSize: 18 }}>🏆</span>
+              <span className="min-w-0">
+                <span className="block font-bold" style={{ fontSize: 11.5, color: '#86efac' }}>Pergalė — 🪙 sidabras + XP</span>
+                <span className="block" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Skaitosi dienos užduotims ir sezono keliui</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl px-2.5 py-2" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <span style={{ fontSize: 18 }}>🛡</span>
+              <span className="min-w-0">
+                <span className="block font-bold" style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>Be rizikos — rangas nesikeičia</span>
+                <span className="block" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Ir pralaimėjęs gauni dalį atlygio</span>
+              </span>
+            </div>
+          </div>
           <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
             style={{ minHeight: 'clamp(46px,7.5vh,60px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
             ⚔ {canStart ? 'PRADĖTI KOVĄ' : 'PASIRINK PRIEŠININKĄ'}

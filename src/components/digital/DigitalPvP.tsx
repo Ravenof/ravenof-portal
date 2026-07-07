@@ -8,7 +8,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
-import { RvnIcon } from './ui/RvnIcon'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
 
@@ -176,7 +175,7 @@ export function DigitalPvP() {
     : mode === 'friend' ? (selFriend ? (friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || 'Draugas') + ' — pasirinktas' : '—')
     : (room?.code ? 'Kambarys ' + room.code : joinCode.trim() ? 'Kodas ' + joinCode.trim().toUpperCase() : '—')
 
-  const modeCard = (m: Mode, icon: string, title: string, desc: string) => (
+  const modeCard = (m: Mode, icon: string, title: string) => (
     <button key={m} onClick={() => { playUiClick(); setMode(m) }} className="rvn-press flex-1 rounded-xl px-2 py-2 flex flex-col items-center gap-1 text-center"
       style={{ minHeight: 66, border: mode === m ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: mode === m ? `linear-gradient(160deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)', boxShadow: mode === m ? `0 0 12px rgba(${A},0.3)` : 'none' }}>
       <span style={{ fontSize: 20 }}>{icon}</span>
@@ -224,16 +223,15 @@ export function DigitalPvP() {
               )
             })}
           </div>
-          <Link href="/digital/decks" onClick={() => playUiClick()} className="rvn-press text-center mt-2 py-1.5 rounded-xl shrink-0" style={{ fontSize: 'clamp(9px,1.3vh,12px)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>✎ Keisti kaladę</Link>
         </section>
 
         {/* CENTRAS: Priešininko tipas */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Priešininko tipas</div>
           <div className="flex gap-1.5 mb-2 shrink-0">
-            {modeCard('random', '⚔', 'Atsitiktinis', '')}
-            {modeCard('friend', '👥', 'Pakviesti draugą', '')}
-            {modeCard('code', '🔑', 'Kambario kodas', '')}
+            {modeCard('random', '⚔', 'Atsitiktinis')}
+            {modeCard('friend', '👥', 'Pakviesti draugą')}
+            {modeCard('code', '🔑', 'Kambario kodas')}
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {room ? (
@@ -252,7 +250,7 @@ export function DigitalPvP() {
             ) : mode === 'friend' ? (
               <div className="flex flex-col gap-1.5">
                 <div className="rvn-disp uppercase shrink-0" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Draugų sąrašas</div>
-                {friends.length === 0 && <p style={{ fontSize: 11, color: 'var(--text-muted)' }} className="text-center py-3">Neturi draugų. Pridėk skiltyje „Draugai".</p>}
+                {friends.length === 0 && <p style={{ fontSize: 11, color: 'var(--text-muted)' }} className="text-center py-3">Neturi draugų. Pridėk skiltyje „Draugai&quot;.</p>}
                 {friends.map((f) => {
                   const s = f.userId === selFriend
                   return (
@@ -288,17 +286,17 @@ export function DigitalPvP() {
               </div>
             ))}
           </div>
-          <p className="shrink-0 mt-1" style={{ fontSize: 9, color: 'var(--text-muted)' }}>⚜ Vieno ekrano pasiruošimas prieš kovą.</p>
+          {/* CTA — panelės apačioje (kaip Ranked/Treniruotėje), visada matomas */}
+          <div className="shrink-0 mt-2 flex flex-col gap-1.5">
+            <button disabled={cta.disabled} onClick={cta.action} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"
+              style={{ minHeight: 'clamp(44px,7.5vh,58px)', background: cta.disabled ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, rgba(${A},0.95), rgba(240,180,41,0.9))`, color: cta.disabled ? 'var(--text-muted)' : '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(12px,1.8vh,16px)', boxShadow: cta.disabled ? 'none' : `0 0 22px rgba(${A},0.45)` }}>
+              ⚔ {cta.label}
+            </button>
+            {room && (
+              <button onClick={() => { playUiClick(); cancelRoom() }} className="rvn-press w-full rounded-xl py-1.5" style={{ fontSize: 'clamp(10px,1.4vh,12px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti</button>
+            )}
+          </div>
         </section>
-      </div>
-
-      {/* CTA — visada matomas, niekada nekropinamas */}
-      <div className="shrink-0 w-full flex items-center justify-center gap-2 px-1">
-        <button disabled={cta.disabled} onClick={cta.action} className="rvn-press flex-1 rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"
-          style={{ minHeight: 'clamp(48px,8vh,66px)', maxWidth: 560, background: cta.disabled ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, rgba(${A},0.95), rgba(240,180,41,0.9))`, color: cta.disabled ? 'var(--text-muted)' : '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,2vh,18px)', boxShadow: cta.disabled ? 'none' : `0 0 22px rgba(${A},0.5)` }}>
-          ⚔ {cta.label}
-        </button>
-        <button onClick={() => { playUiClick(); if (room) cancelRoom() }} className="rvn-press rounded-2xl px-4 shrink-0" style={{ minHeight: 'clamp(48px,8vh,66px)', fontSize: 'clamp(12px,1.6vh,14px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti</button>
       </div>
 
       {room && (
