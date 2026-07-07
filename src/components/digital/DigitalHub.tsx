@@ -119,7 +119,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Dienos užduotys</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col gap-1.5">
+          <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col" style={{ gap: 'clamp(3px,0.8vh,6px)' }}>
             {tasks.length === 0 && (
               <div className="my-auto flex flex-col items-center gap-2 px-2 text-center">
                 {!questsLoaded ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Kraunama…</span> : (
@@ -141,13 +141,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             {tasks.slice(0, 4).map((t) => {
               const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
               return (
-                <div key={t.id} className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(240,180,41,0.15)') }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[11px]">{t.completed ? '✅' : '◻️'}</span>
-                    <span className="text-[11px] font-semibold flex-1 truncate" style={{ color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{t.title}</span>
-                    <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{t.progress}/{t.target}</span>
+                <div key={t.id} className="rounded-lg px-2 shrink-0" style={{ paddingTop: 'clamp(3px,0.8vh,6px)', paddingBottom: 'clamp(3px,0.8vh,6px)', background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(240,180,41,0.15)') }}>
+                  <div className="flex items-center gap-1.5" style={{ marginBottom: 'clamp(2px,0.5vh,4px)' }}>
+                    <span style={{ fontSize: 'clamp(9px,1.4vh,11px)' }}>{t.completed ? '✅' : '◻️'}</span>
+                    <span className="font-semibold flex-1 truncate" style={{ fontSize: 'clamp(10px,1.5vh,12px)', color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{t.title}</span>
+                    <span className="tabular-nums" style={{ fontSize: 'clamp(8px,1.2vh,10px)', color: 'var(--text-muted)' }}>{t.progress}/{t.target}</span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className="rounded-full overflow-hidden" style={{ height: 'clamp(3px,0.7vh,6px)', background: 'rgba(255,255,255,0.08)' }}>
                     <div className="h-full rounded-full" style={{ width: pct + '%', background: t.completed ? 'linear-gradient(90deg,#34d399,#a7f3d0)' : 'linear-gradient(90deg,#d4af37,#f3d98c)' }} />
                   </div>
                 </div>
@@ -155,8 +155,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             })}
           </div>
           <button onClick={() => { playUiClick(); setDailyOpen(true) }}
-            className="rvn-press m-2.5 mt-1.5 py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
-            style={{ background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(240,180,41,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
+            className="rvn-press m-2 mt-1 rounded-xl font-extrabold rvn-disp"
+            style={{ paddingTop: 'clamp(5px,1vh,8px)', paddingBottom: 'clamp(5px,1vh,8px)', fontSize: 'clamp(10px,1.6vh,12px)', background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(240,180,41,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
             {questsPending > 0 ? `ATSIIMTI (${questsPending})` : 'PERŽIŪRĖTI'}
           </button>
         </section>
@@ -206,10 +206,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
-      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(50px,11vh,84px)' }}>
+      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(66px,13vh,92px)' }}>
         <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(139,92,246,0.22), rgba(9,7,14,0.98))' }}>
           <div>
-            <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#c4b5fd' }}>Kosmetika</div>
+            <div className="font-bold uppercase tracking-widest" style={{ fontSize: 'clamp(8px,1.2vh,9px)', color: '#c4b5fd' }}>Kosmetika</div>
             <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>Avatarai ir rėmai</div>
             <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Peržiūrėti kolekciją →</div>
           </div>
