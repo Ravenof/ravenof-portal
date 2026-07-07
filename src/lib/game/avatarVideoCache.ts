@@ -5,7 +5,11 @@
 
 const mem = new Map<string, string>()          // url -> objectURL (šios sesijos)
 const inflight = new Map<string, Promise<string>>()
-const CACHE_NAME = 'rvn-avatar-videos-v1'
+// v2: bendras cache su SW/downloader'iu — „Išvalyti atsisiųstą turinį" ir
+// storage apskaita mato viską vienoje vietoje (offline planas F4).
+const CACHE_NAME = 'rvn-media-v1'
+// vienkartinis senojo atskiro cache išvalymas (failai persisiųs į bendrą)
+if (typeof caches !== 'undefined') { try { void caches.delete('rvn-avatar-videos-v1') } catch { /* */ } }
 
 async function fetchToObjectUrl(url: string): Promise<string> {
   // 1) Cache Storage (jei prieinamas)

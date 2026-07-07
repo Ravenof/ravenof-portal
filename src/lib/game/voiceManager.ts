@@ -17,6 +17,7 @@ import { getSfxVolume } from '@/lib/settings'
 //   6. Paiso globalaus garso jungiklio (isUiSoundEnabled) — kaip ir ui-sound.
 
 import { isUiSoundEnabled } from '@/lib/ui-sound'
+import { cachedFetch } from './mediaCache'
 
 // Maks. dekoduotų buferių talpykloje. Trumpi balsai (1–3 s, mono) ~0.2–0.5 MB.
 const MAX_CACHE = 24
@@ -74,7 +75,7 @@ function load(url: string): Promise<AudioBuffer | null> {
 
   const p = (async (): Promise<AudioBuffer | null> => {
     try {
-      const res = await fetch(url)
+      const res = await cachedFetch(url)
       if (!res.ok) throw new Error('fetch failed')
       const arr = await res.arrayBuffer()
       const buf = await ctx.decodeAudioData(arr)

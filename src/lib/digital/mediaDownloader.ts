@@ -16,7 +16,11 @@ export type DlProgress = {
 export async function getMediaManifest(): Promise<ManifestEntry[]> {
   const { data, error } = await createClient().rpc('rvn_media_manifest')
   if (error) { console.warn('[media] manifest:', error.message); return [] }
-  return (data as ManifestEntry[]) ?? []
+  const list = (data as ManifestEntry[]) ?? []
+  // Santykiniai /public keliai (pvz. /cards/x.webp) → absoliutūs su origin,
+  // kad cache raktas sutaptų su tuo, ko prašo puslapis.
+  const origin = typeof location !== 'undefined' ? location.origin : ''
+  return list.map((e) => e.url.startsWith('/') ? { ...e, url: origin + e.url } : e)
 }
 
 /** Kurių manifesto failų dar nėra cache — grąžina trūkstamus. */
