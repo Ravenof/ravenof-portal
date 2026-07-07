@@ -34,14 +34,14 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
   const [tab, setTab] = useState<Tab>(initialTab)
 
   return (
-    <div>
+    <div className="h-full flex flex-col min-h-0">
       {tab !== 'builder' && (
         <div className="mb-3">
           <PageHero compact iconName="fi-decks" icon={<span style={{ fontSize: 28 }}>📚</span>} title="KALADĖS" sub="Kurk, tvarkyk ir dalinkis kovos kaladėmis" />
         </div>
       )}
       {/* Segment tabs — dark fantasy oktagonai */}
-      <div className="grid grid-cols-3 gap-1.5 mb-3">
+      <div className="grid grid-cols-3 gap-1.5 mb-3 shrink-0">
         {TABS.map((t) => {
           const Icon = t.icon
           const active = tab === t.key
@@ -64,17 +64,19 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
         })}
       </div>
 
-      {tab === 'builder' && (
-        <DigitalDeckBuilder userId={userId} cards={cards} factions={factions} collection={collection} initialDeck={initialDeck}
-          onSaved={() => { router.push('/digital/decks?tab=my'); setTab('my') }}
-          onBack={() => setTab('my')} />
-      )}
-      {tab === 'my' && (
-        <DigitalMyDecks userId={userId}
-          onEdit={(id) => router.push('/digital/decks?tab=builder&deck=' + id)}
-          onCreate={() => router.push('/digital/decks?tab=builder')} />
-      )}
-      {tab === 'community' && <DigitalCommunityDecks userId={userId} />}
+      <div className="flex-1 min-h-0" style={{ overflowY: tab === 'builder' ? 'hidden' : 'auto' }}>
+        {tab === 'builder' && (
+          <DigitalDeckBuilder userId={userId} cards={cards} factions={factions} collection={collection} initialDeck={initialDeck}
+            onSaved={() => { router.push('/digital/decks?tab=my'); setTab('my') }}
+            onBack={() => setTab('my')} />
+        )}
+        {tab === 'my' && (
+          <DigitalMyDecks userId={userId}
+            onEdit={(id) => router.push('/digital/decks?tab=builder&deck=' + id)}
+            onCreate={() => router.push('/digital/decks?tab=builder')} />
+        )}
+        {tab === 'community' && <DigitalCommunityDecks userId={userId} />}
+      </div>
     </div>
   )
 }

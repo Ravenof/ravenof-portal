@@ -1,28 +1,29 @@
 'use client'
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Ravenof Digital — DECK BUILDER v2 „smooth & physical":
-// • Fizinis drag & drop: palaikyk kortą (touch ~190 ms / pele iškart) — ji
-//   „pakyla" (ghost su spyruokline fizika), tempk ant apatinės juostos ir
-//   paleisk — korta įskrenda į kaladę (fly-in), kitaip spyruokliškai grįžta.
-// • Kaladės panelė (bottom sheet): kortų sąrašas su +/- ir gyva statistika —
-//   animuota AUKSO KREIVĖ su vidurkio žymekliu, tipų/retumų suvestinė.
-// • Viskas su garsais, haptika ir spring animacijomis.
+// Ravenof Digital — DECK BUILDER v3 (landscape, 3 zonos):
+// • KAIRĖ: paieška + filtrai + frakcijos keitimas + vaizdo režimas.
+// • CENTRAS: kortų pool'as (grid/sąrašas, scroll tik panelėje). Jei frakcija
+//   nepasirinkta — didelis frakcijos pasirinkimo ekranas centre.
+// • DEŠINĖ (drop zona): kaladės sąrašas su +/-, gyva statistika (aukso kreivė),
+//   pavadinimas/matomumas, validacija ir IŠSAUGOTI — visada matomi.
+// • Fizinis drag & drop išlaikytas: tempk kortą ant dešinės panelės.
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform, useVelocity } from 'framer-motion'
-import { ChevronLeft, Search, Plus, Minus, Eye, Lock, Save, Loader2, ChevronDown, X, Layers } from 'lucide-react'
+import { ChevronLeft, Search, Plus, Minus, Eye, Lock, Save, Loader2, X, Layers } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
 import { validateDeck, getCopyLimit, isCurseCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { rarityColor } from '@/lib/digital/rarity'
-import { playUiClick, playSuccess, playError, playCardPick, playCardPlace, playPanelOpen } from '@/lib/ui-sound'
+import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
 
 const GOLD = '240,180,41'
 const GHOST_W = 76
 const GHOST_H = Math.round(GHOST_W * 1.4)
+const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: `1px solid rgba(${GOLD},0.22)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
 
 type InitialDeck = {
   id: string; name: string; description: string; factionId: number | null
@@ -51,10 +52,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const store = useDeckBuilderStore()
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)
-  const [view, setView] = useState<'list' | 'grid'>('list')
-  const [descOpen, setDescOpen] = useState(false)
+  const [view, setView] = useState<'grid' | 'list'>('grid')
   const [preview, setPreview] = useState<CardWithRelations | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [tester, setTester] = useState(false)
@@ -109,7 +108,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   }
   const dec = (c: CardWithRelations) => { const dq = deckQtyOf(c.id); if (dq > 0) { playUiClick(); store.setQuantity(c.id, dq - 1) } }
 
-  // ── DRAG & DROP ──────────────────────────────────────────────────────────
+  // ── DRAG & DROP (drop zona = dešinė kaladės panelė) ──────────────────────
   const [dragCard, setDragCard] = useState<CardWithRelations | null>(null)
   const [overDrop, setOverDrop] = useState(false)
   const [dropPulse, setDropPulse] = useState(0)
@@ -117,7 +116,6 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const ghostY = useMotionValue(0)
   const ghostScale = useMotionValue(1)
   const ghostOpacity = useMotionValue(1)
-  // fizinis sekimas: ghost velkasi paskui pirštą su spyruokle + pakrypsta pagal greitį
   const ghostSX = useSpring(ghostX, { stiffness: 1400, damping: 80, mass: 0.6 })
   const ghostSY = useSpring(ghostY, { stiffness: 1400, damping: 80, mass: 0.6 })
   const ghostVX = useVelocity(ghostSX)
@@ -131,7 +129,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
   const hitDrop = (x: number, y: number) => {
     const r = dropRef.current?.getBoundingClientRect()
-    return !!r && x >= r.left - 8 && x <= r.right + 8 && y >= r.top - 26 && y <= r.bottom + 8
+    return !!r && x >= r.left - 26 && x <= r.right + 8 && y >= r.top - 8 && y <= r.bottom + 8
   }
 
   const onTouchMoveBlock = useCallback((e: TouchEvent) => { if (activeRef.current) e.preventDefault() }, [])
@@ -146,7 +144,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     animate(ghostScale, 1.06, { type: 'spring', stiffness: 420, damping: 22 })
     playCardPick()
     try { navigator.vibrate?.(14) } catch { /* */ }
-  }, [ghostScale, ghostOpacity, ghostX, ghostY])
+  }, [ghostScale, ghostOpacity, ghostX, ghostY, ghostSX, ghostSY])
 
   const endDragCleanup = useCallback(() => {
     setDragCard(null); setOverDrop(false)
@@ -169,7 +167,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
       if (prev !== hit) animate(ghostScale, hit ? 1.18 : 1.06, { type: 'spring', stiffness: 500, damping: 24 })
       return hit
     })
-  }, [ghostX, ghostY, startDrag])
+  }, [ghostX, ghostY, startDrag, ghostScale])
 
   const onUp = useCallback((e: PointerEvent) => {
     const p = pendingRef.current
@@ -190,7 +188,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
         setDropPulse((k) => k + 1)
         const r = dropRef.current?.getBoundingClientRect()
         const tx = r ? r.left + r.width * 0.5 - GHOST_W / 2 : ghostX.get()
-        const ty = r ? r.top + r.height * 0.5 - GHOST_H / 2 : ghostY.get()
+        const ty = r ? r.top + r.height * 0.35 - GHOST_H / 2 : ghostY.get()
         animate(ghostX, tx, { type: 'spring', stiffness: 520, damping: 34 })
         animate(ghostY, ty, { type: 'spring', stiffness: 520, damping: 34 })
         animate(ghostScale, 0.22, { duration: 0.24 })
@@ -265,122 +263,198 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   }
 
   const dragGhostCol = dragCard ? rarityColor(dragCard.rarity?.name) : '#f0b429'
+  const selFaction = factions.find((f) => f.id === store.factionId)
+
+  const pickFaction = (f: Faction) => {
+    playUiClick()
+    if (f.id !== store.factionId && store.entries.length && !window.confirm('Pakeitus frakciją kaladės kortos bus pašalintos. Tęsti?')) return
+    store.setFaction(f.id === store.factionId ? null : f.id)
+  }
+
+  // ── Statistika dešinei panelei ────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const golds = store.entries.flatMap((e) => Array(e.quantity).fill(e.card.gold_cost ?? 0) as number[])
+    const avg = golds.length ? golds.reduce((a, b) => a + b, 0) / golds.length : 0
+    const curve = Array.from({ length: 8 }, (_, i) => store.entries.filter((e) => (i < 7 ? (e.card.gold_cost ?? 0) === i : (e.card.gold_cost ?? 0) >= 7)).reduce((a, e) => a + e.quantity, 0))
+    let champions = 0
+    for (const e of store.entries) if (e.card.is_champion) champions += e.quantity
+    return { avg, curve, champions }
+  }, [store.entries])
+  const curveMax = Math.max(1, ...stats.curve)
+  const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.entries])
 
   return (
-    <div className="space-y-3" style={{ paddingBottom: 108 }}>
-      {/* Antraštė */}
-      <div className="flex items-center gap-2">
-        <button onClick={() => { playUiClick(); onBack() }} className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 36, height: 36, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label="Atgal"><ChevronLeft className="w-5 h-5" /></button>
-        <h1 className="flex-1 text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>Deck Builder{tester && <span className="ml-2 align-middle text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd', letterSpacing: '0.08em' }}>TESTER</span>}</h1>
-        <span className="px-2.5 py-1 rounded-full text-xs font-bold tabular-nums" style={{ background: total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.16)' : `rgba(${GOLD},0.14)`, border: `1px solid ${total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.5)' : `rgba(${GOLD},0.4)`}`, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{total}/{DECK_MIN}</span>
+    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,8px)' }}>
+      {/* ── Antraštė ── */}
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label="Atgal"><ChevronLeft className="w-5 h-5" /></button>
+        <h1 className="rvn-disp font-black uppercase leading-none truncate" style={{ fontSize: 'clamp(14px,2.8vh,22px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>
+          Deck Builder
+          {tester && <span className="ml-2 align-middle font-bold px-1.5 py-0.5 rounded-full" style={{ fontSize: 9, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd', letterSpacing: '0.08em' }}>TESTER</span>}
+        </h1>
+        {selFaction && (
+          <span className="flex items-center gap-1.5 px-2 py-1 rounded-full shrink-0" style={{ background: `${selFaction.color_hex}1f`, border: `1px solid ${selFaction.color_hex}88` }}>
+            <span style={{ fontSize: 13 }}>{identityFor(selFaction.name)?.icon ?? '🛡️'}</span>
+            <span className="rvn-disp font-bold truncate" style={{ fontSize: 11, color: selFaction.color_hex ?? 'var(--gold)', maxWidth: 130 }}>{selFaction.name}</span>
+          </span>
+        )}
+        <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0" style={{ background: total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.16)' : `rgba(${GOLD},0.14)`, border: `1px solid ${total >= DECK_MIN && total <= DECK_MAX ? 'rgba(34,197,94,0.5)' : `rgba(${GOLD},0.4)`}`, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{total}/{DECK_MIN}</span>
       </div>
 
-      {/* 1 — Frakcija */}
-      <Section step={1} title="Pasirink frakciją">
-        <div className="grid grid-cols-2 gap-2">
-          {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
-            const sel = store.factionId === f.id
-            const id = identityFor(f.name)
-            return (
-              <button key={f.id} onClick={() => { playUiClick(); if (f.id !== store.factionId && store.entries.length && !window.confirm('Pakeitus frakciją kaladės kortos bus pašalintos. Tęsti?')) return; store.setFaction(sel ? null : f.id) }}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-transform active:scale-[0.98]"
-                style={{ minHeight: 58, background: sel ? `${f.color_hex}26` : 'rgba(10,8,16,0.85)', border: `1.5px solid ${sel ? f.color_hex : `rgba(${GOLD},0.18)`}`, boxShadow: sel ? `0 0 12px ${f.color_hex}55` : 'none' }}>
-                <span className="text-xl shrink-0">{id?.icon ?? '🛡️'}</span>
-                <span className="min-w-0">
-                  <span className="block text-[12px] font-bold leading-tight truncate" style={{ color: sel ? f.color_hex : '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{f.name}</span>
-                  <span className="block text-[9px] leading-tight truncate" style={{ color: 'var(--text-muted)' }}>{id?.line ?? ''}</span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </Section>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(148px,0.75fr) minmax(0,2.3fr) minmax(210px,1.05fr)' }}>
 
-      {/* 2 — Pavadinimas + matomumas */}
-      <Section step={2} title="Kaladės informacija">
-        <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder="Kaladės pavadinimas…"
-          className="w-full px-3 rounded-xl text-sm font-semibold outline-none" style={{ minHeight: 44, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(239,68,68,0.6)'}`, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
-        <div className="grid grid-cols-2 gap-2">
-          {([['private', '🔒 Privati'], ['public', '🌐 Vieša']] as const).map(([v, label]) => (
-            <button key={v} onClick={() => { playUiClick(); store.setVisibility(v as DeckVisibility) }} className="px-3 rounded-xl text-xs font-bold transition-colors" style={{ minHeight: 42, background: store.visibility === v ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid ${store.visibility === v ? `rgba(${GOLD},0.6)` : `rgba(${GOLD},0.2)`}`, color: store.visibility === v ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{label}</button>
-          ))}
-        </div>
-        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{store.visibility === 'public' ? 'Vieša kaladė bus matoma Bendruomenės kaladžių sąraše.' : 'Privati kaladė matoma tik tau.'}</p>
-        <button onClick={() => setDescOpen((v) => !v)} className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}><ChevronDown className={`w-3.5 h-3.5 transition-transform ${descOpen ? 'rotate-180' : ''}`} /> Aprašymas (neprivaloma)</button>
-        {descOpen && <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder="Trumpas aprašymas…" className="w-full px-3 rounded-xl text-sm outline-none" style={{ minHeight: 40, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.2)`, color: 'var(--text-primary)' }} />}
-      </Section>
-
-      {/* 3 — Kortos */}
-      <Section step={3} title="Pridėk kortas">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti…" className="w-full pl-9 pr-3 rounded-xl text-sm outline-none" style={{ minHeight: 44, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Toggle on={store.ownedOnly} onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} label="Tik turimos" color="34,197,94" />
-          <Toggle on={showUniversal} onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} label="Universalios" color="96,165,250" />
-          <div className="inline-flex rounded-full overflow-hidden ml-auto" style={{ border: `1px solid rgba(${GOLD},0.3)` }}>
-            {(['list', 'grid'] as const).map((vw) => (
-              <button key={vw} onClick={() => { playUiClick(); setView(vw) }} className="px-3 text-[11px] font-semibold" style={{ minHeight: 36, background: view === vw ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.9)', color: view === vw ? 'var(--gold)' : 'var(--text-muted)' }}>{vw === 'list' ? 'Sąrašas' : 'Tinklelis'}</button>
-            ))}
+        {/* ── KAIRĖ: filtrai ── */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Filtrai</div>
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
+            <div className="relative shrink-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti…" className="w-full outline-none rounded-lg"
+                style={{ minHeight: 36, paddingLeft: 30, paddingRight: 8, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
+            </div>
+            <SideToggle on={store.ownedOnly} onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} label="Tik turimos" color="34,197,94" />
+            <SideToggle on={showUniversal} onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} label="Universalios" color="96,165,250" />
+            <div className="grid grid-cols-2 rounded-lg overflow-hidden shrink-0" style={{ border: `1px solid rgba(${GOLD},0.3)` }}>
+              {(['grid', 'list'] as const).map((vw) => (
+                <button key={vw} onClick={() => { playUiClick(); setView(vw) }} className="font-semibold" style={{ minHeight: 30, fontSize: 10, background: view === vw ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.9)', color: view === vw ? 'var(--gold)' : 'var(--text-muted)' }}>{vw === 'grid' ? 'Tinklelis' : 'Sąrašas'}</button>
+              ))}
+            </div>
+            <div className="shrink-0">
+              <span className="block mb-1 font-bold uppercase" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Frakcija</span>
+              <div className="flex flex-col gap-1">
+                {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
+                  const sel = store.factionId === f.id
+                  const id = identityFor(f.name)
+                  return (
+                    <button key={f.id} onClick={() => pickFaction(f)} className="rvn-press w-full flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left"
+                      style={{ border: sel ? `1.5px solid ${f.color_hex ?? `rgba(${GOLD},0.9)`}` : '1px solid rgba(255,255,255,0.08)', background: sel ? `${f.color_hex}1f` : 'rgba(10,8,16,0.6)' }}>
+                      <span className="shrink-0" style={{ fontSize: 13 }}>{id?.icon ?? '🛡️'}</span>
+                      <span className="block truncate font-bold" style={{ fontSize: 10.5, color: sel ? (f.color_hex ?? 'var(--gold)') : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>{f.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <p className="shrink-0" style={{ fontSize: 9, color: 'rgba(150,160,185,0.55)', lineHeight: 1.35 }}>💡 Palaikyk kortą ir tempk ją ant kaladės panelės dešinėje.</p>
           </div>
-        </div>
-        <p className="text-[10px]" style={{ color: 'rgba(150,160,185,0.6)' }}>💡 Palaikyk kortą ir tempk ją ant apatinės juostos — pridėsi į kaladę</p>
+        </section>
 
-        {store.factionId == null ? (
-          <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>Pirma pasirink frakciją ↑</p>
-        ) : pool.length === 0 ? (
-          <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
-        ) : view === 'list' ? (
-          <div className="space-y-1.5">
-            {pool.map((c) => <CardRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
-          </div>
-        )}
-      </Section>
-
-      {/* ── Sticky juosta / DROP ZONA ── */}
-      <div className="fixed left-0 right-0 z-30 px-3" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
-        <motion.div ref={dropRef} key={dropPulse}
-          initial={dropPulse > 0 ? { scale: 1.035 } : false}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 14 }}
-          className="mx-auto max-w-screen-sm flex items-center gap-2 px-3 py-2 rounded-2xl"
-          style={{
-            background: overDrop ? 'rgba(24,17,8,0.98)' : 'rgba(7,5,12,0.97)',
-            border: `1.5px solid rgba(${GOLD},${dragCard ? (overDrop ? 1 : 0.65) : 0.3})`,
-            boxShadow: overDrop ? `0 0 26px rgba(${GOLD},0.5), 0 8px 24px rgba(0,0,0,0.6)` : dragCard ? `0 0 14px rgba(${GOLD},0.3), 0 8px 24px rgba(0,0,0,0.6)` : '0 8px 24px rgba(0,0,0,0.6)',
-            transition: 'box-shadow .15s ease, border-color .15s ease, background .15s ease',
-          }}>
-          {dragCard ? (
-            <div className="flex-1 flex items-center justify-center gap-2 py-1.5">
-              <Layers className="w-4 h-4" style={{ color: 'var(--gold)' }} />
-              <span className="rvn-disp" style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold)', letterSpacing: '0.04em' }}>
-                {overDrop ? 'Paleisk — į kaladę!' : 'Tempk čia — pridėti į kaladę'}
-              </span>
+        {/* ── CENTRAS: kortų pool'as / frakcijos pasirinkimas ── */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+          {store.factionId == null ? (
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(11px,1.7vh,14px)', color: 'var(--gold)' }}>Pasirink kaladės frakciją</div>
+              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-2 content-start">
+                {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
+                  const id = identityFor(f.name)
+                  return (
+                    <button key={f.id} onClick={() => pickFaction(f)} className="rvn-press flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left"
+                      style={{ minHeight: 56, background: 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '66' : `rgba(${GOLD},0.25)`}` }}>
+                      <span className="text-2xl shrink-0">{id?.icon ?? '🛡️'}</span>
+                      <span className="min-w-0">
+                        <span className="block font-bold leading-tight truncate" style={{ fontSize: 13, color: f.color_hex ?? '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{f.name}</span>
+                        <span className="block leading-tight truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{id?.line ?? ''}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : pool.length === 0 ? (
+            <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
+          ) : view === 'grid' ? (
+            <div className="flex-1 min-h-0 overflow-y-auto grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))' }}>
+              {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
             </div>
           ) : (
-            <>
-              <button onClick={() => { playPanelOpen(); setSheetOpen(true) }} className="rvn-press flex items-center gap-2 shrink-0 px-2 py-1 rounded-xl" style={{ background: `rgba(${GOLD},0.1)`, border: `1px solid rgba(${GOLD},0.35)` }}>
-                <Layers className="w-4 h-4" style={{ color: 'var(--gold)' }} />
-                <span className="leading-tight text-left">
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span key={total} initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.18 }}
-                      className="block text-sm font-bold tabular-nums" style={{ color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{total}/{DECK_MIN}</motion.span>
-                  </AnimatePresence>
-                  <span className="block text-[9px]" style={{ color: 'var(--text-muted)' }}>🪙 vid. {store.avgGold()} · statistika</span>
-                </span>
-              </button>
-              <div className="flex-1 text-[11px] truncate" style={{ color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</div>
-              <button onClick={save} disabled={!canSave} className="flex items-center gap-1.5 px-4 rounded-xl text-sm font-bold transition-transform active:scale-95 disabled:opacity-40" style={{ minHeight: 44, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Išsaugoti
-              </button>
-            </>
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
+              {pool.map((c) => <CardRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onDec={() => dec(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+            </div>
           )}
-        </motion.div>
+        </section>
+
+        {/* ── DEŠINĖ: kaladė (drop zona) + statistika + išsaugoti ── */}
+        <motion.section ref={dropRef} key={dropPulse}
+          initial={dropPulse > 0 ? { scale: 1.02 } : false}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 16 }}
+          className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5"
+          style={{
+            ...PANEL,
+            border: `1.5px solid rgba(${GOLD},${dragCard ? (overDrop ? 1 : 0.65) : 0.22})`,
+            boxShadow: overDrop ? `0 0 26px rgba(${GOLD},0.5), inset 0 0 40px rgba(0,0,0,0.5)` : dragCard ? `0 0 14px rgba(${GOLD},0.3), inset 0 0 40px rgba(0,0,0,0.5)` : 'inset 0 0 40px rgba(0,0,0,0.5)',
+            transition: 'box-shadow .15s ease, border-color .15s ease',
+          }}>
+          <div className="flex items-center justify-between gap-2 mb-1.5 shrink-0">
+            <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)', letterSpacing: '0.06em' }}>
+              <Layers className="w-3.5 h-3.5" /> Kaladė
+            </span>
+            <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>
+          </div>
+
+          <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder="Kaladės pavadinimas…"
+            className="w-full px-2.5 rounded-lg font-semibold outline-none shrink-0 mb-1.5" style={{ minHeight: 34, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(239,68,68,0.6)'}`, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
+          <div className="grid grid-cols-2 gap-1.5 shrink-0 mb-1.5">
+            {([['private', '🔒 Privati'], ['public', '🌐 Vieša']] as const).map(([v, label]) => (
+              <button key={v} onClick={() => { playUiClick(); store.setVisibility(v as DeckVisibility) }} className="rounded-lg font-bold" style={{ minHeight: 28, fontSize: 10, background: store.visibility === v ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid ${store.visibility === v ? `rgba(${GOLD},0.6)` : `rgba(${GOLD},0.2)`}`, color: store.visibility === v ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{label}</button>
+            ))}
+          </div>
+
+          <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder="Aprašymas (nebūtina)…"
+            className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--text-secondary)' }} />
+
+          {/* Mini aukso kreivė */}
+          <div className="shrink-0 rounded-lg px-1.5 pt-1 pb-0.5 mb-1.5" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
+            <div className="flex items-end gap-0.5" style={{ height: 34 }}>
+              {stats.curve.map((n, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
+                  <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                    style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)' }} />
+                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--text-muted)' }}>{i < 7 ? i : '7+'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Kaladės sąrašas */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {sortedEntries.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
+                <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
+                <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.35 }}>{dragCard ? 'Paleisk čia — į kaladę!' : 'Tempk kortas čia arba spausk +'}</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <AnimatePresence initial={false}>
+                  {sortedEntries.map((e) => {
+                    const col = rarityColor(e.card.rarity?.name)
+                    return (
+                      <motion.div key={e.card.id} layout initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14, height: 0, marginBottom: 0 }} transition={{ duration: 0.18 }}
+                        className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: `3px solid ${col}` }}>
+                        <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 17, height: 17, fontSize: 9, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{e.card.gold_cost}</span>
+                        <button onClick={() => { playUiClick(); setPreview(e.card) }} className="flex-1 min-w-0 text-left">
+                          <span className="block font-semibold truncate" style={{ fontSize: 10.5, color: '#f3ead3' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
+                        </button>
+                        <button onClick={() => dec(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }} aria-label="Mažiau"><Minus className="w-3 h-3" /></button>
+                        <span className="font-bold tabular-nums text-center shrink-0" style={{ width: 18, fontSize: 10.5, color: 'var(--gold)' }}>×{e.quantity}</span>
+                        <button onClick={() => tryAdd(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac' }} aria-label="Daugiau"><Plus className="w-3 h-3" /></button>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+
+          {/* Validacija + išsaugoti — visada matomi */}
+          <div className="shrink-0 pt-1.5 space-y-1.5">
+            <p className="truncate text-center" style={{ fontSize: 10, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</p>
+            <button onClick={save} disabled={!canSave} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl font-bold disabled:opacity-40"
+              style={{ minHeight: 40, fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Išsaugoti
+            </button>
+          </div>
+        </motion.section>
       </div>
 
       {/* ── Vilkimo „vaiduoklis" ── */}
@@ -396,177 +470,21 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
         </motion.div>
       )}
 
-      {/* ── Kaladės panelė (statistika + sąrašas) ── */}
-      <AnimatePresence>
-        {sheetOpen && (
-          <DeckSheet entries={store.entries} total={total} onClose={() => { playUiClick(); setSheetOpen(false) }}
-            onInc={(c) => tryAdd(c)} onDec={(c) => dec(c)} onCard={(c) => { playUiClick(); setPreview(c) }} />
-        )}
-      </AnimatePresence>
-
       {preview && <BuilderPreview c={preview} owned={ownedOf(preview.id)} deckQty={deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
 
-      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(120px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
+      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
     </div>
   )
 }
 
-// ── Kaladės panelė: gyva statistika + kortų valdymas ─────────────────────────
-function DeckSheet({ entries, total, onClose, onInc, onDec, onCard }: {
-  entries: { card: CardWithRelations; quantity: number }[]
-  total: number
-  onClose: () => void
-  onInc: (c: CardWithRelations) => void
-  onDec: (c: CardWithRelations) => void
-  onCard: (c: CardWithRelations) => void
-}) {
-  const sorted = useMemo(() => [...entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [entries])
-  const stats = useMemo(() => {
-    const golds = entries.flatMap((e) => Array(e.quantity).fill(e.card.gold_cost ?? 0) as number[])
-    const avg = golds.length ? golds.reduce((a, b) => a + b, 0) / golds.length : 0
-    const curve = Array.from({ length: 8 }, (_, i) => entries.filter((e) => (i < 7 ? (e.card.gold_cost ?? 0) === i : (e.card.gold_cost ?? 0) >= 7)).reduce((a, e) => a + e.quantity, 0))
-    const types = new Map<string, number>()
-    const rars = new Map<string, number>()
-    let champions = 0
-    for (const e of entries) {
-      types.set(e.card.card_type?.name ?? 'Kita', (types.get(e.card.card_type?.name ?? 'Kita') ?? 0) + e.quantity)
-      rars.set(e.card.rarity?.name ?? '—', (rars.get(e.card.rarity?.name ?? '—') ?? 0) + e.quantity)
-      if (e.card.is_champion) champions += e.quantity
-    }
-    return { avg, curve, types: Array.from(types), rars: Array.from(rars), champions }
-  }, [entries])
-  const curveMax = Math.max(1, ...stats.curve)
-  const valid = total >= DECK_MIN && total <= DECK_MAX
-
+function SideToggle({ on, onClick, label, color }: { on: boolean; onClick: () => void; label: string; color: string }) {
   return (
-    <>
-      <motion.div className="fixed inset-0 z-[150]" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(3px)' }}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div className="fixed left-0 right-0 bottom-0 z-[155] flex flex-col"
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'tween', duration: 0.3, ease: [0.3, 0.7, 0.3, 1] }}
-        style={{ maxHeight: '80vh', borderRadius: '20px 20px 0 0', background: 'linear-gradient(175deg, #171021, #0a0810)', border: `1px solid rgba(${GOLD},0.4)`, borderBottom: 'none', boxShadow: '0 -14px 50px rgba(0,0,0,0.8)' }}>
-        <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 shrink-0" style={{ borderBottom: `1px solid rgba(${GOLD},0.18)` }}>
-          <p className="text-base font-bold inline-flex items-center gap-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-            <Layers className="w-4 h-4" /> KALADĖ · {total}/{DECK_MIN}
-          </p>
-          <button onClick={onClose} aria-label="Uždaryti" className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" style={{ paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))' }}>
-          {/* Suvestinė */}
-          <div className="grid grid-cols-3 gap-2">
-            <StatBox label="Kortų" value={`${total}/${DECK_MIN}`} accent={valid ? '74,222,128' : '252,165,165'} />
-            <StatBox label="Aukso vid." value={stats.avg.toFixed(1)} accent={GOLD} />
-            <StatBox label="Čempionai" value={String(stats.champions)} accent="139,92,246" />
-          </div>
-
-          {/* Animuota aukso kreivė */}
-          <div>
-            <p className="text-[10px] font-bold uppercase mb-1.5" style={{ color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Aukso kreivė</p>
-            <div className="relative rounded-xl px-2 pt-2 pb-1" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.18)` }}>
-              <div className="flex items-end gap-1" style={{ height: 96 }}>
-                {stats.curve.map((n, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5" style={{ height: '100%' }}>
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span key={n} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}
-                        className="text-[9px] tabular-nums" style={{ color: n > 0 ? 'var(--gold)' : 'rgba(150,160,185,0.3)' }}>{n > 0 ? n : ''}</motion.span>
-                    </AnimatePresence>
-                    <motion.div className="w-full rounded-t"
-                      animate={{ height: Math.max(n > 0 ? 8 : 2, (n / curveMax) * 62) }}
-                      transition={{ type: 'spring', stiffness: 320, damping: 26, delay: i * 0.02 }}
-                      style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)',
-                        boxShadow: n > 0 ? `0 0 8px rgba(${GOLD},0.4), inset 0 1px 0 rgba(255,255,255,0.4)` : 'none' }} />
-                    <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{i < 7 ? i : '7+'}</span>
-                  </div>
-                ))}
-              </div>
-              {/* vidurkio žymeklis */}
-              {total > 0 && (
-                <motion.div className="absolute pointer-events-none" animate={{ left: `${6 + Math.min(7, stats.avg) / 7 * 88}%` }} transition={{ type: 'spring', stiffness: 200, damping: 24 }}
-                  style={{ top: 4, bottom: 16 }}>
-                  <div style={{ width: 1.5, height: '100%', background: `linear-gradient(180deg, transparent, rgba(${GOLD},0.75), transparent)` }} />
-                  <span className="absolute rvn-disp" style={{ top: -2, left: 4, fontSize: 8.5, fontWeight: 800, color: `rgba(${GOLD},0.9)`, whiteSpace: 'nowrap' }}>vid. {stats.avg.toFixed(1)}</span>
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          {/* Tipai + retumai */}
-          {(stats.types.length > 0 || stats.rars.length > 0) && (
-            <div className="flex flex-wrap gap-1.5">
-              {stats.types.map(([t, n]) => (
-                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>{t} <b style={{ color: '#f3ead3' }}>{n}</b></span>
-              ))}
-              {stats.rars.map(([r, n]) => (
-                <span key={r} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: rarityColor(r) + '14', border: `1px solid ${rarityColor(r)}55`, color: rarityColor(r) }}>{r} <b>{n}</b></span>
-              ))}
-            </div>
-          )}
-
-          {/* Kortų sąrašas su +/- */}
-          {sorted.length === 0 ? (
-            <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Kaladė tuščia — tempk kortas iš sąrašo žemyn ant juostos.</p>
-          ) : (
-            <div className="space-y-1">
-              <AnimatePresence initial={false}>
-                {sorted.map((e) => {
-                  const col = rarityColor(e.card.rarity?.name)
-                  return (
-                    <motion.div key={e.card.id} layout initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14, height: 0, marginBottom: 0 }} transition={{ duration: 0.18 }}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: `3px solid ${col}` }}>
-                      <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 20, height: 20, fontSize: 10, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{e.card.gold_cost}</span>
-                      <button onClick={() => onCard(e.card)} className="flex-1 min-w-0 text-left">
-                        <span className="block text-[12px] font-semibold truncate" style={{ color: '#f3ead3' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
-                        <span className="block text-[9.5px] truncate" style={{ color: 'var(--text-muted)' }}>{[e.card.card_type?.name, e.card.rarity?.name].filter(Boolean).join(' · ')}</span>
-                      </button>
-                      <button onClick={() => onDec(e.card)} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 30, height: 30, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }} aria-label="Mažiau"><Minus className="w-3.5 h-3.5" /></button>
-                      <AnimatePresence mode="popLayout" initial={false}>
-                        <motion.span key={e.quantity} initial={{ scale: 1.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-                          className="text-[12px] font-bold tabular-nums text-center shrink-0" style={{ width: 22, color: 'var(--gold)' }}>×{e.quantity}</motion.span>
-                      </AnimatePresence>
-                      <button onClick={() => onInc(e.card)} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 30, height: 30, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac' }} aria-label="Daugiau"><Plus className="w-3.5 h-3.5" /></button>
-                    </motion.div>
-                  )
-                })}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </>
-  )
-}
-
-function StatBox({ label, value, accent }: { label: string; value: string; accent: string }) {
-  return (
-    <div className="rounded-xl px-2 py-2 text-center" style={{ background: `rgba(${accent},0.08)`, border: `1px solid rgba(${accent},0.3)` }}>
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.p key={value} initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 8, opacity: 0 }} transition={{ duration: 0.16 }}
-          className="rvn-disp tabular-nums" style={{ fontSize: 15, fontWeight: 800, color: `rgb(${accent})`, lineHeight: 1.1 }}>{value}</motion.p>
-      </AnimatePresence>
-      <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
-    </div>
-  )
-}
-
-function Section({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl p-3 space-y-2.5" style={{ background: 'rgba(10,8,16,0.65)', border: `1px solid rgba(${GOLD},0.16)` }}>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center rounded-full text-[10px] font-bold" style={{ width: 18, height: 18, background: `rgba(${GOLD},0.18)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{step}</span>
-        <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)', letterSpacing: '0.12em' }}>{title}</span>
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Toggle({ on, onClick, label, color }: { on: boolean; onClick: () => void; label: string; color: string }) {
-  return (
-    <button onClick={onClick} className="inline-flex items-center gap-1.5 px-2.5 rounded-full text-[11px] font-semibold" style={{ minHeight: 36, background: on ? `rgba(${color},0.18)` : 'rgba(10,8,16,0.9)', border: `1px solid ${on ? `rgba(${color},0.6)` : `rgba(${GOLD},0.25)`}`, color: on ? `rgb(${color})` : 'var(--text-muted)' }}>
+    <button onClick={onClick} className="shrink-0 w-full flex items-center justify-between px-2 py-1.5 rounded-lg font-semibold"
+      style={{ fontSize: 10.5, background: on ? `rgba(${color},0.14)` : 'rgba(10,8,16,0.7)', border: `1px solid ${on ? `rgba(${color},0.55)` : `rgba(${GOLD},0.25)`}`, color: on ? `rgb(${color})` : 'var(--text-secondary)' }}>
+      <span>{label}</span>
       <span className="relative inline-block rounded-full" style={{ width: 26, height: 14, background: on ? `rgba(${color},0.5)` : 'rgba(255,255,255,0.12)' }}>
         <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 10, height: 10, left: on ? 14 : 2 }} />
-      </span>{label}
+      </span>
     </button>
   )
 }
@@ -629,26 +547,26 @@ function BuilderPreview({ c, owned, deckQty, onAdd, onClose }: { c: CardWithRela
   const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-5" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
-      <div className="relative w-[min(340px,92vw)] rounded-2xl overflow-hidden" style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-[min(560px,94vw)] max-h-[92vh] rounded-2xl overflow-hidden flex" style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
         <button onClick={() => { playUiClick(); onClose() }} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }}><X className="w-4 h-4" /></button>
-        <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5', maxHeight: '48vh' }}>
+        <div className="relative shrink-0" style={{ width: '42%', aspectRatio: '2.5 / 3.5' }}>
           {c.image_url && !bad
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={c.image_url} alt={c.name} onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full object-contain" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.6)' }} />
+            ? <img src={c.image_url} alt={c.name} onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.6)' }} />
             : <div className="absolute inset-0 flex items-center justify-center text-5xl">🎴</div>}
           {owned <= 0 && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-9 h-9" style={{ color: 'rgba(255,255,255,0.75)' }} /></span>}
         </div>
-        <div className="p-4 space-y-2">
+        <div className="flex-1 min-w-0 p-4 flex flex-col gap-2 overflow-y-auto">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{c.name}</h2>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ color: col, border: `1px solid ${col}` }}>{c.rarity?.name ?? '—'}</span>
+            <h2 className="text-base font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{c.name}</h2>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ color: col, border: `1px solid ${col}` }}>{c.rarity?.name ?? '—'}</span>
           </div>
           <div className="flex flex-wrap gap-x-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
             <span>🪙 {c.gold_cost}</span>{c.attack != null && <span>⚔️ {c.attack}</span>}{c.health != null && <span>❤️ {c.health}</span>}{c.faction?.name && <span>· {c.faction.name}</span>}{c.card_type?.name && <span>· {c.card_type.name}</span>}
           </div>
           {(c.effect_text || c.description) && <p className="text-xs leading-snug" style={{ color: 'var(--text-secondary)' }}>{c.effect_text || c.description}</p>}
-          <p className="text-[11px] font-semibold" style={{ color: owned > 0 ? '#86efac' : '#fca5a5' }}>{owned > 0 ? `Turima ×${owned} · kaladėje ${deckQty}/${Math.min(limit, owned)}` : 'Kortos dar neturi'}</p>
-          <button onClick={() => { onAdd() }} disabled={addDisabled} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ minHeight: 44, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>Pridėti į kaladę</button>
+          <p className="text-[11px] font-semibold mt-auto" style={{ color: owned > 0 ? '#86efac' : '#fca5a5' }}>{owned > 0 ? `Turima ×${owned} · kaladėje ${deckQty}/${Math.min(limit, owned)}` : 'Kortos dar neturi'}</p>
+          <button onClick={() => { onAdd() }} disabled={addDisabled} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ minHeight: 42, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>Pridėti į kaladę</button>
         </div>
       </div>
     </div>
