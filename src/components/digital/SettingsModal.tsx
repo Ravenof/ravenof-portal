@@ -3,8 +3,9 @@
 // ── Ravenof Digital — nustatymai (landscape 3 zonos): kairė kategorijos ·
 //    centras pasirinktos kategorijos nustatymai · dešinė profilis + veiksmai.
 //    Viskas saugoma iškart (localStorage + DB sync per saveDigitalSettings).
-import { useEffect, useState } from 'react'
-import { Volume2, VolumeX, Music, Sparkles, Clapperboard, Bell, X, RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Volume2, VolumeX, Music, Sparkles, Clapperboard, Bell, X, RotateCcw, Download, Trash2 } from 'lucide-react'
+import { getMediaManifest, diffMissing, downloadMedia, cachedMediaInfo, clearMediaCache, fmtMB, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
 import {
   getMusicVolume, getSfxVolume, isSummonFxEnabled,
   setMusicVolume, setSfxVolume, setSummonFxEnabled,
@@ -22,7 +23,7 @@ import { useEscClose } from '@/lib/useEscClose'
 const ACC = '240,180,41'
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
-type Cat = 'audio' | 'visual' | 'notif'
+type Cat = 'audio' | 'visual' | 'content' | 'notif'
 
 function Row({ label, icon, on, onToggle, hint }: { label: string; icon?: React.ReactNode; on: boolean; onToggle: (v: boolean) => void; hint?: string }) {
   return (
@@ -81,9 +82,32 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     saveDigitalSettings()
   }
 
+  // ── Žaidimo turinys (offline media) ──
+  const [missing, setMissing] = useState<ManifestEntry[] | null>(null)
+  const [mediaInfo, setMediaInfo] = useState<{ files: number; usageBytes: number | null } | null>(null)
+  const [dl, setDl] = useState<DlProgress | null>(null)
+  const dlRef = useRef<DlHandle | null>(null)
+  const refreshContent = async () => {
+    const [man, info] = await Promise.all([getMediaManifest(), cachedMediaInfo()])
+    setMediaInfo(info)
+    setMissing(await diffMissing(man))
+  }
+  useEffect(() => { if (cat === 'content' && missing === null) void refreshContent() }, [cat]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { dlRef.current?.cancel() }, [])
+  const startDl = (list: ManifestEntry[]) => {
+    if (dl?.running || list.length === 0) return
+    playUiClick()
+    dlRef.current = downloadMedia(list, setDl)
+    void dlRef.current.promise.then(() => refreshContent())
+  }
+  const missingNoVideo = (missing ?? []).filter((e) => e.tier <= 2)
+  const bytesAll = (missing ?? []).reduce((s2, e) => s2 + e.bytes, 0)
+  const bytesNoVideo = missingNoVideo.reduce((s2, e) => s2 + e.bytes, 0)
+
   const CATS: { key: Cat; label: string; icon: React.ReactNode; show: boolean }[] = [
     { key: 'audio',  label: 'Garsas',          icon: <Volume2 className="w-4 h-4" />,      show: true },
     { key: 'visual', label: 'Vaizdo efektai',  icon: <Sparkles className="w-4 h-4" />,     show: true },
+    { key: 'content', label: 'Žaidimo turinys', icon: <Download className="w-4 h-4" />,     show: true },
     { key: 'notif',  label: 'Pranešimai',      icon: <Bell className="w-4 h-4" />,         show: native },
   ]
 
@@ -159,6 +183,54 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
                       <input type="checkbox" checked={cineSkill} onChange={(e) => onCineSkill(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
                     </label>
                   </div>
+                </>
+              )}
+
+              {cat === 'content' && (
+                <>
+                  <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>📥 Atsisiųsti žaidimo turinį</p>
+                    <p className="mt-1" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>Kortos, garsai ir video išsaugomi telefone — žaidimas veikia greitai ir be interneto. Atsisiųsta: <b style={{ color: '#f3ead3' }}>{mediaInfo ? `${mediaInfo.files} failų` : '…'}</b>{mediaInfo?.usageBytes ? ` · užimta ~${fmtMB(mediaInfo.usageBytes)}` : ''}</p>
+                  </div>
+
+                  {missing === null ? (
+                    <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>Skaičiuojama…</p>
+                  ) : dl?.running ? (
+                    <div className="rounded-xl px-3 py-3" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${ACC},0.4)` }}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Siunčiama…</span>
+                        <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{dl.doneFiles}/{dl.totalFiles} · {fmtMB(dl.doneBytes)} / {fmtMB(dl.totalBytes)}</span>
+                      </div>
+                      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                        <div className="h-full rounded-full" style={{ width: `${dl.totalBytes ? Math.min(100, Math.round(dl.doneBytes / dl.totalBytes * 100)) : Math.round(dl.doneFiles / Math.max(1, dl.totalFiles) * 100)}%`, background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: `0 0 8px rgba(${ACC},0.6)`, transition: 'width .3s' }} />
+                      </div>
+                      {dl.failed > 0 && <p className="mt-1" style={{ fontSize: 9.5, color: '#fca5a5' }}>Nepavyko: {dl.failed} (bus bandoma kitą kartą)</p>}
+                      <button onClick={() => { playUiClick(); dlRef.current?.cancel() }} className="mt-2 w-full rounded-lg py-1.5 text-[11px] font-bold" style={{ background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>Stabdyti</button>
+                    </div>
+                  ) : missing.length === 0 ? (
+                    <p className="text-sm text-center py-3 font-semibold" style={{ color: '#86efac' }}>✓ Visas turinys atsisiųstas{dl && !dl.running ? ` (${dl.doneFiles} failų)` : ''}</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => startDl(missingNoVideo)} disabled={missingNoVideo.length === 0}
+                        className="rvn-press w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-40"
+                        style={{ background: `rgba(${ACC},0.18)`, border: `1px solid rgba(${ACC},0.5)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                        Kortos ir garsai · {fmtMB(bytesNoVideo)} ({missingNoVideo.length} failų)
+                      </button>
+                      <button onClick={() => startDl(missing)}
+                        className="rvn-press w-full rounded-xl py-2.5 text-sm font-bold"
+                        style={{ background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>
+                        Viskas + video · {fmtMB(bytesAll)} ({missing.length} failų)
+                      </button>
+                      <p style={{ fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>Video (kino intarpai, avatarų animacijos) — didžiausia dalis; siųsk per Wi-Fi.</p>
+                    </div>
+                  )}
+
+                  <button onClick={async () => { playUiClick(); await clearMediaCache(); setDl(null); await refreshContent() }}
+                    disabled={dl?.running}
+                    className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold disabled:opacity-40"
+                    style={{ background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
+                    <Trash2 className="w-3.5 h-3.5" /> Išvalyti atsisiųstą turinį
+                  </button>
                 </>
               )}
 
