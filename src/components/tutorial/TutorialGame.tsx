@@ -2753,17 +2753,17 @@ doAction({ t: 'endTurn', actor: 'you' })
       const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
       const col = e.side === 'you' ? '#4ade80' : '#f87171'
       return (
-        <div key={i} className="flex items-center gap-1.5 text-[10px] leading-tight">
+        <div key={i} className="flex items-center gap-1.5 text-[11px] leading-tight">
           <span style={{ width: 3, alignSelf: 'stretch', background: col, borderRadius: 2, flexShrink: 0 }} />
           {card && (
-            <div className="shrink-0 rounded overflow-hidden cursor-pointer" style={{ width: 18, outline: '1px solid ' + col }}
+            <div className="shrink-0 rounded overflow-hidden cursor-pointer" style={{ width: 26, outline: '1px solid ' + col }}
               onClick={() => { playCardFlip(); setInspect(card) }}
               onMouseEnter={!isTouch ? (ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY }) : undefined}
               onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}>
-              <MiniCard c={card} w={18} />
+              <MiniCard c={card} w={26} />
             </div>
           )}
-          <span className="truncate" style={{ color: e.side === 'you' ? 'rgba(190,240,200,0.85)' : 'rgba(240,190,190,0.85)' }}>{e.msg}</span>
+          <span style={{ color: e.side === 'you' ? 'rgba(190,240,200,0.85)' : 'rgba(240,190,190,0.85)' }}>{e.msg}</span>
         </div>
       )
     })
@@ -2810,8 +2810,8 @@ doAction({ t: 'endTurn', actor: 'you' })
           <button onClick={() => setInspect(game!.field!.card)} onContextMenu={(e) => { e.preventDefault(); setInspect(game!.field!.card) }} className="absolute inset-0">
             {game.field.card.image
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={game.field.card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : null}
-            <span className="absolute inset-x-0 bottom-0 text-[7px] font-bold text-center px-0.5 truncate" style={{ color: '#fff', background: 'rgba(10,8,16,0.72)' }}>{game.field.card.name}</span>
+              ? <img src={game.field.card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} />
+              : <span className="absolute inset-0 flex items-center justify-center text-center px-0.5" style={{ fontSize: 8, lineHeight: 1.15, color: '#e9ddff', background: 'linear-gradient(160deg, rgba(62,45,92,0.85), rgba(24,17,40,0.9))' }}>{game.field.card.name}</span>}
           </button>
         ) : (
           <span className="text-base" style={{ color: 'rgba(167,139,250,0.5)' }}>{slotTypeIcon('field', 22, '🌍', '#a78bfa')}</span>

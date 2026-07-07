@@ -69,6 +69,13 @@ export default function BattleLayout(props: BattleLayoutProps) {
   const [emoteOpen, setEmoteOpen] = useState(false)
   const [logExpanded, setLogExpanded] = useState(false)
   const logTouchX = useRef<number | null>(null)
+  const logScrollRef = useRef<HTMLDivElement>(null)
+  // išskleidus (ir augant įrašams) — visada rodyti naujausius (apačioje)
+  useEffect(() => {
+    if (!logExpanded) return
+    const el = logScrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [logExpanded, game?.log?.length])
   const EMOTES = ['👋', '😎', '🔥', '😂', '😅', '🤝']
 
   return (
@@ -98,15 +105,30 @@ export default function BattleLayout(props: BattleLayoutProps) {
           <div style={railPanel} className="rounded-xl p-1 flex-1 min-h-0 flex flex-col overflow-hidden"
             onTouchStart={(e) => { logTouchX.current = e.touches[0].clientX }}
             onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx > 30) setLogExpanded(true); else if (dx < -30) setLogExpanded(false) }}>
-            {logExpanded ? (
-              <><span className="text-[9px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>Žurnalas</span><div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-0.5">{renderLog()}</div></>
-            ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-1 cursor-pointer" onClick={() => setLogExpanded(true)}>{renderLogStrip?.()}</div>
-            )}
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-1 cursor-pointer" onClick={() => setLogExpanded(true)}>{renderLogStrip?.()}</div>
           </div>
           {/* Tavo reakcijos + artefaktai */}
           <div className="shrink-0 flex flex-col items-center gap-0.5">{renderReactionRow('you')}{renderArtifactRow('you')}</div>
         </aside>
+
+        {/* ── Mūšio žurnalo DRAWER (platus; tap bet kur šalia — susitraukia) ── */}
+        {logExpanded && (
+          <>
+            <div className="absolute inset-0 z-[24]" style={{ background: 'rgba(4,3,8,0.35)' }} onClick={() => setLogExpanded(false)} />
+            <div className="absolute left-0 top-0 bottom-0 z-[25] flex flex-col rounded-2xl overflow-hidden"
+              style={{ width: 'min(340px, 44vw)', background: 'linear-gradient(160deg, rgba(17,13,26,0.98), rgba(8,6,12,0.99))', border: '1px solid rgba(240,180,41,0.4)', boxShadow: '10px 0 34px rgba(0,0,0,0.65)' }}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => { logTouchX.current = e.touches[0].clientX }}
+              onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx < -30) setLogExpanded(false) }}>
+              <div className="shrink-0 flex items-center justify-between px-3 pt-2 pb-1.5" style={{ borderBottom: '1px solid rgba(240,180,41,0.2)' }}>
+                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>📜 Mūšio žurnalas</span>
+                <button onClick={() => setLogExpanded(false)} aria-label="Uždaryti" className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.35)', color: 'var(--gold)', fontSize: 11 }}>✕</button>
+              </div>
+              <div ref={logScrollRef} className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-2.5 py-2">{renderLog()}</div>
+              <div className="shrink-0 px-3 pb-1.5 text-center" style={{ fontSize: 8.5, color: 'rgba(150,160,185,0.5)' }}>Bakstelk šalia arba brauk kairėn — užsidaro</div>
+            </div>
+          </>
+        )}
 
         {/* ── CENTRAS: lenta ── */}
         <section data-fx-board className="min-h-0 rounded-2xl relative overflow-hidden">
