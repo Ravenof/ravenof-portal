@@ -15,7 +15,7 @@ import { useEscClose } from '@/lib/useEscClose'
 import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getBalances, getPackInventory, type Balances } from '@/lib/economy'
 import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
-import { getDailyDeal, buyDailyDealCard, type DealCard } from '@/lib/cosmetics'
+import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
@@ -36,6 +36,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const [deal, setDeal] = useState<DealCard[]>([])
   const [starters, setStarters] = useState<StarterDeck[]>([])
   const [bal, setBal] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
+  // kosmetikos vizualai + nuosavybė (kad parduotuvė rodytų TIKRUS daiktus)
+  const [cosVis, setCosVis] = useState<Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }>>({})
+  const [cosOwned, setCosOwned] = useState<Set<string>>(new Set())
   const [packInv, setPackInv] = useState(0)
   const [section, setSection] = useState('packs')
   const [sel, setSel] = useState<Sel | null>(null)
@@ -48,6 +51,12 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     getDailyDeal().then((d) => setDeal(d?.cards ?? []))
     getStarterDecks().then((s) => setStarters(s ?? []))
     getPackInventory().then((inv) => setPackInv(Object.values(inv).reduce((a, b) => a + b, 0)))
+    getCosmetics().then((c) => {
+      if (!c) return
+      const m: Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }> = {}
+      for (const it of c.items) m[it.id] = { imageUrl: it.imageUrl ?? null, css: it.css ?? null, emoji: it.emoji ?? null, kind: it.kind }
+      setCosVis(m); setCosOwned(new Set(c.owned))
+    })
   }, [])
   useEffect(() => { refresh() }, [refresh])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2200); return () => clearTimeout(t) }, [toast])
@@ -93,6 +102,15 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const effShop = selShop ?? (section !== 'daily' && section !== 'starter' ? shopShown[0] ?? null : null)
   const effDeal = selDeal ?? (section === 'daily' ? deal[0] ?? null : null)
   const effStarter = selStarter ?? (section === 'starter' ? starters[0] ?? null : null)
+
+  // kosmetikos prekės vizualas pagal payload item_id
+  const cosIdOf = (it: ShopItem): string | null => {
+    if (it.itemType !== 'card_back' && it.itemType !== 'player_avatar') return null
+    const pid = (it.payload[0] as { item_id?: string } | undefined)?.item_id
+    return pid ?? null
+  }
+  const visOf = (it: ShopItem) => { const id = cosIdOf(it); return id ? cosVis[id] ?? null : null }
+  const ownedShopItem = (it: ShopItem) => { const id = cosIdOf(it); return id ? cosOwned.has(id) : false }
 
   if (typeof document === 'undefined') return null
 
@@ -179,16 +197,29 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   {shopShown.map((it) => {
                     const rc = it.rarity ? RARITY_COL[it.rarity] ?? '240,180,41' : '240,180,41'
                     const isSel = effShop?.id === it.id
+                    const vis = visOf(it)
+                    const owned = ownedShopItem(it)
                     return (
                       <button key={it.id} onClick={() => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }}
                         className="rvn-press rounded-xl p-2.5 text-left flex flex-col gap-1"
-                        style={{ minHeight: 76, background: `linear-gradient(150deg, rgba(${rc},0.08), rgba(10,8,16,0.92))`, border: isSel ? '1.5px solid rgba(240,180,41,0.9)' : `1px solid rgba(${rc},0.4)`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.35)' : 'none' }}>
+                        style={{ minHeight: 76, background: `linear-gradient(150deg, rgba(${rc},0.08), rgba(10,8,16,0.92))`, border: isSel ? '1.5px solid rgba(240,180,41,0.9)' : `1px solid rgba(${rc},0.4)`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.35)' : 'none', opacity: owned ? 0.65 : 1 }}>
+                        {vis && (
+                          <span className="relative mx-auto flex items-center justify-center overflow-hidden shrink-0"
+                            style={{ width: vis.kind === 'avatar' ? 54 : 46, height: vis.kind === 'avatar' ? 54 : 64, borderRadius: vis.kind === 'avatar' ? 999 : 7,
+                              background: vis.imageUrl ? '#0a0810' : (vis.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)'), border: vis.kind === 'avatar' ? '2px solid rgba(240,180,41,0.5)' : '1px solid rgba(255,255,255,0.12)' }}>
+                            {vis.imageUrl
+                              ? <SmartImg src={vis.imageUrl} width={120} className="absolute inset-0 w-full h-full object-cover" />
+                              : (vis.emoji && <span className="text-xl">{vis.emoji}</span>)}
+                          </span>
+                        )}
                         <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{it.name}</span>
-                        <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => { const c = rewardChip(p); return <span key={i} style={{ fontSize: 9.5, color: '#e8dcc0' }}>{c.icon} {c.label}</span> })}</span>
+                        {!vis && <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => { const c = rewardChip(p); return <span key={i} style={{ fontSize: 9.5, color: '#e8dcc0' }}>{c.icon} {c.label}</span> })}</span>}
                         <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
-                          {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
-                          {it.prices.rubies != null && <span style={{ color: '#fca5a5' }}>💎 {it.prices.rubies}</span>}
-                          {it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null && <span style={{ color: 'var(--text-muted)' }}>€{it.prices.real_money.toFixed(2)}</span>}
+                          {owned ? <span style={{ color: '#4ade80' }}>✓ Turima</span> : <>
+                            {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
+                            {it.prices.rubies != null && <span style={{ color: '#fca5a5' }}>💎 {it.prices.rubies}</span>}
+                            {it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null && <span style={{ color: 'var(--text-muted)' }}>€{it.prices.real_money.toFixed(2)}</span>}
+                          </>}
                         </span>
                       </button>
                     )
@@ -238,6 +269,16 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
             ) : effShop ? (
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
+                  {(() => { const vis = visOf(effShop); return vis ? (
+                    <span className="relative mx-auto flex items-center justify-center overflow-hidden shrink-0 mt-1"
+                      style={{ width: vis.kind === 'avatar' ? 120 : 118, height: vis.kind === 'avatar' ? 120 : 160, borderRadius: vis.kind === 'avatar' ? 999 : 12,
+                        background: vis.imageUrl ? '#0a0810' : (vis.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)'),
+                        border: vis.kind === 'avatar' ? '2.5px solid rgba(240,180,41,0.6)' : '1.5px solid rgba(240,180,41,0.35)', boxShadow: '0 0 18px rgba(240,180,41,0.2)' }}>
+                      {vis.imageUrl
+                        ? <SmartImg src={vis.imageUrl} width={260} className="absolute inset-0 w-full h-full object-cover" />
+                        : (vis.emoji && <span style={{ fontSize: 46 }}>{vis.emoji}</span>)}
+                    </span>
+                  ) : null })()}
                   <p className="font-bold leading-tight" style={{ fontSize: 14, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effShop.name}</p>
                   {effShop.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{effShop.description}</p>}
                   <div>
@@ -251,13 +292,16 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
                 </div>
                 <div className="shrink-0 mt-2 flex flex-col gap-1.5">
-                  {effShop.prices.silver != null && (
+                  {ownedShopItem(effShop) && (
+                    <div className="w-full rounded-xl py-2.5 text-center font-bold" style={{ fontSize: 12, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>✓ Jau turi — užsidėk Kosmetikoje</div>
+                  )}
+                  {!ownedShopItem(effShop) && effShop.prices.silver != null && (
                     <button onClick={() => buyShop(effShop, 'silver')} disabled={busy || bal.silver < effShop.prices.silver}
                       className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406', fontFamily: 'var(--rvn-font-display)' }}>
                       {busy ? '…' : `Pirkti · 🪙 ${effShop.prices.silver}`}
                     </button>
                   )}
-                  {effShop.prices.rubies != null && (
+                  {!ownedShopItem(effShop) && effShop.prices.rubies != null && (
                     <button onClick={() => buyShop(effShop, 'rubies')} disabled={busy || bal.rubies < effShop.prices.rubies}
                       className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)', fontFamily: 'var(--rvn-font-display)' }}>
                       {busy ? '…' : `Pirkti · 💎 ${effShop.prices.rubies}`}
