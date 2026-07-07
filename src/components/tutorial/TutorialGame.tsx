@@ -172,13 +172,19 @@ const CARD_BACK_SRC: Record<'plain' | 'curse' | 'zmk', string> = {
   plain: '/card-backs/back.webp', curse: '/card-backs/curse.webp', zmk: '/card-backs/zmk.webp',
 }
 // Pasirinkta (equipped) kortų nugarėlė — nustatoma TutorialGame mount'e; 'plain'
-// nugarėlės (kaladė, priešo ranka) rodo ją vietoj default back.webp.
+// nugarėlės rodo ją vietoj default back.webp. PvP: varžovo elementai (owner='opp')
+// rodo JO nugarėlę, gautą per broadcast 'skin' (senas klientas — tyliai ignoruoja).
 let EQUIPPED_BACK: SkinVisual | null = null
+let OPP_BACK: SkinVisual | null = null
+let OPP_BACK_KNOWN = false  // ar varžovas ATSIUNTĖ savo skin (skiriamas „nežinoma" nuo „neturi")
 export function setEquippedBack(v: SkinVisual | null) { EQUIPPED_BACK = v }
-export function PileBack({ kind }: { kind: 'plain' | 'curse' | 'zmk' }) {
+export function setOppBack(v: SkinVisual | null, known = false) { OPP_BACK = v; OPP_BACK_KNOWN = known }
+export function PileBack({ kind, owner = 'me' }: { kind: 'plain' | 'curse' | 'zmk'; owner?: 'me' | 'opp' }) {
   const [ok, setOk] = useState(false)
   const [customFailed, setCustomFailed] = useState(false)
-  const custom = kind === 'plain' && !customFailed ? EQUIPPED_BACK : null
+  // opp: žinomas skin (arba žinomas „neturi" -> default); nežinoma (botai/senas klientas) -> tavo skin
+  const skin = owner === 'me' ? EQUIPPED_BACK : (OPP_BACK_KNOWN ? OPP_BACK : EQUIPPED_BACK)
+  const custom = kind === 'plain' && !customFailed ? skin : null
   // css-only nugarėlė (gradientas) — be <img>
   if (custom && !custom.url && custom.css) {
     return <div aria-hidden style={{ position: 'absolute', inset: 0, background: custom.css }} />
@@ -228,7 +234,7 @@ function OppHandFan({ count, big }: { count: number; big?: boolean }) {
           const ty = Math.abs(off) * 3 - tilt.y * 3
           return (
             <div key={i} className="absolute rounded-md overflow-hidden" style={{ left: '50%', top: 2, width: pw, height: ph, border: '1px solid rgba(240,180,41,0.35)', background: '#0d0a14', transform: `translateX(-50%) translateX(${tx}px) translateY(${ty}px) rotate(${rot}deg)`, transformOrigin: 'bottom center', transition: 'transform 0.18s ease-out', boxShadow: '0 2px 7px rgba(0,0,0,0.55)' }}>
-              <PileBack kind="plain" />
+              <PileBack kind="plain" owner="opp" />
             </div>
           )
         })}
@@ -750,7 +756,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       setSkinTick((t) => t + 1)
     }
     apply(cachedBattleSkins())
-    getEquippedBattleSkins().then(apply).catch(() => {})
+    getEquippedBattleSkins().then((sk) => {
+      apply(sk)
+      // jei PvP kanalas jau atidarytas — pranešam varžovui savo nugarėlę
+      try { channelRef.current?.send({ type: 'broadcast', event: 'skin', payload: { back: sk.cardBack } }) } catch { /* */ }
+    }).catch(() => {})
   }, [])
   const [, setSkinTick] = useState(0)
 
@@ -1866,6 +1876,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
       ch.on('broadcast', { event: 'hello' }, () => {
         setGame((prev) => { if (prev) ch.send({ type: 'broadcast', event: 'state', payload: prev }); return prev })
+        ch.send({ type: 'broadcast', event: 'skin', payload: { back: EQUIPPED_BACK } })
       })
       // Svečias atsiunčia savo (pasirinktą) kaladę – host ja sukuria AI pusę (be DB/RLS).
       ch.on('broadcast', { event: 'deck' }, ({ payload }) => {
@@ -1882,6 +1893,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards } })
       })
     }
+    // Varžovo nugarėlė (kosmetika). Backward-safe: senas klientas be handler'io ignoruoja.
+    ch.on('broadcast', { event: 'skin' }, ({ payload }) => {
+      const b = (payload as { back?: SkinVisual | null }).back ?? null
+      setOppBack(b, true); setSkinTick((t) => t + 1)
+    })
     ch.on('broadcast', { event: 'chat' }, ({ payload }) => { const txt = (payload as { text?: string }).text; if (txt) setChatLog((l) => [...l.slice(-40), { mine: false, text: txt }]) })
     ch.on('broadcast', { event: 'emote' }, ({ payload }) => { const t = (payload as { text?: string }).text; if (!t) return; const id = Date.now(); setEmoteBubble({ side: 'ai', text: t, id }); window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000) })
     ch.on('presence', { event: 'sync' }, () => {
@@ -1895,6 +1911,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (status === 'SUBSCRIBED') {
         try { await ch.track({ side: net.mySide }) } catch { /* */ }
         setChReady(true)
+        ch.send({ type: 'broadcast', event: 'skin', payload: { back: EQUIPPED_BACK } })
         if (net.isHost) {
           ch.send({ type: 'broadcast', event: 'reqdeck', payload: {} })
         } else {
@@ -1905,7 +1922,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
     })
     channelRef.current = ch
-    return () => { supabase.removeChannel(ch); channelRef.current = null }
+    setOppBack(null)
+    return () => { supabase.removeChannel(ch); channelRef.current = null; setOppBack(null) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [net?.matchId])
 
@@ -2442,7 +2460,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           onTouchEnd={interactive ? () => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } } : undefined}
           onTouchMove={interactive ? () => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } } : undefined}
           title={interactive ? `Peržiūrėti (${count}) – vesk pele / palaikyk pirštą` : undefined}>
-          {topCard ? <MiniCard c={topCard} w={pw} /> : (opts?.back && count > 0 ? <PileBack kind={opts.back} /> : null)}
+          {topCard ? <MiniCard c={topCard} w={pw} /> : (opts?.back && count > 0 ? <PileBack kind={opts.back} owner={opts?.pileKey?.includes('-ai') ? 'opp' : 'me'} /> : null)}
           <span className={hasArt ? 'absolute bottom-0 right-0 px-1 rounded-tl-md text-[10px] font-bold' : 'text-[11px] font-bold'}
             style={{ color: 'var(--gold)', background: hasArt ? 'rgba(0,0,0,0.8)' : 'transparent', lineHeight: hasArt ? '1.3' : undefined }}>{count}</span>
           {interactive && <span className="absolute -top-1.5 -right-1.5 text-[9px]">👁</span>}
@@ -3799,7 +3817,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               transition={{ duration: 1.5, ease: 'easeInOut', times: [0, 0.32, 0.62, 1] }}
               className="absolute"
               style={{ filter: 'drop-shadow(0 8px 22px rgba(0,0,0,0.72))' }}>
-              {fc.card ? <MiniCard c={fc.card} w={64} /> : <div className="relative rounded-md overflow-hidden" style={{ width: 56, height: 75, border: '1px solid rgba(240,180,41,0.45)', background: '#0d0a14' }}><PileBack kind="plain" /></div>}
+              {fc.card ? <MiniCard c={fc.card} w={64} /> : <div className="relative rounded-md overflow-hidden" style={{ width: 56, height: 75, border: '1px solid rgba(240,180,41,0.45)', background: '#0d0a14' }}><PileBack kind="plain" owner={fc.side === 'you' ? 'me' : 'opp'} /></div>}
             </motion.div>
             )
           }) })()}
