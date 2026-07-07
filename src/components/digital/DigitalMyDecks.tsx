@@ -140,16 +140,17 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
     )
   }
 
-  // lentynos po 3 (paskutinėje — „nauja kaladė" vieta)
+  // lentynos po 5 (landscape; paskutinėje — „nauja kaladė" vieta)
+  const PER_SHELF = 5
   const tiles: (Deck | 'new')[] = [...decks, 'new']
   const shelves: (Deck | 'new')[][] = []
-  for (let i = 0; i < tiles.length; i += 3) shelves.push(tiles.slice(i, i + 3))
+  for (let i = 0; i < tiles.length; i += PER_SHELF) shelves.push(tiles.slice(i, i + PER_SHELF))
 
   return (
     <div className="space-y-1">
       {shelves.map((row, si) => (
         <div key={si}>
-          <div className="grid grid-cols-3 gap-2.5 px-1" style={{ alignItems: 'start' }}>
+          <div className="grid grid-cols-5 gap-2.5 px-1" style={{ alignItems: 'start' }}>
             {row.map((t) =>
               t === 'new' ? (
                 <button key="new" onClick={() => { playUiClick(); onCreate() }} className="rvn-press block w-full">
@@ -163,7 +164,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
                 <DeckBox key={t.id} d={t} cover={t.factionId != null ? covers[t.factionId] ?? null : null} onClick={() => openDrawer(t)} />
               )
             )}
-            {row.length < 3 && Array.from({ length: 3 - row.length }, (_, i) => <div key={`pad-${i}`} />)}
+            {row.length < PER_SHELF && Array.from({ length: PER_SHELF - row.length }, (_, i) => <div key={`pad-${i}`} />)}
           </div>
           {/* lentynos lenta (lapukai užlipa ant jos) */}
           <div aria-hidden style={{ height: 18, borderRadius: 3, margin: '-30px -2px 0', position: 'relative', zIndex: 0,

@@ -472,11 +472,12 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   )
 }
 
-function Thumb({ c, owned, size = 44 }: { c: CardWithRelations; owned: number; size?: number }) {
+function Thumb({ c, owned, size = 44, fill = false }: { c: CardWithRelations; owned: number; size?: number; fill?: boolean }) {
   const [bad, setBad] = useState(false)
   const col = rarityColor(c.rarity?.name)
   return (
-    <span className="relative block overflow-hidden rounded-md shrink-0" style={{ width: size, height: size, border: `1.5px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}` }}>
+    <span className={fill ? 'absolute inset-0 block overflow-hidden' : 'relative block overflow-hidden rounded-md shrink-0'}
+      style={fill ? undefined : { width: size, height: size, border: `1.5px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}` }}>
       {c.image_url && !bad
         ? <SmartImg src={c.image_url} width={96} onFail={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.5)' }} />
         : <span className="absolute inset-0 flex items-center justify-center text-sm" style={{ background: '#15101f' }}>🎴</span>}
@@ -514,10 +515,12 @@ function CardTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview }: 
   const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
   return (
     <div className="relative" {...dragProps} style={{ opacity: dragging ? 0.35 : 1, transition: 'opacity .15s' }}>
-      <button onClick={onPreview} className="relative block w-full overflow-hidden rounded-lg" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}` }}>
-        <Thumb c={c} owned={owned} size={9999} />
+      <button onClick={onPreview} className="relative block w-full overflow-hidden rounded-lg" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: deckQty > 0 ? `0 0 10px rgba(${GOLD},0.35)` : 'none' }}>
+        <Thumb c={c} owned={owned} fill />
+        <span className="absolute flex items-center justify-center rounded-full font-bold" style={{ top: 3, left: 3, width: 18, height: 18, fontSize: 9.5, background: `rgba(${GOLD},0.95)`, color: '#1a0f04' }}>{c.gold_cost}</span>
+        <span className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center truncate" style={{ fontSize: 8, lineHeight: 1.2, background: 'rgba(0,0,0,0.8)', color: owned > 0 ? '#fff' : 'var(--text-muted)' }}>{c.name}</span>
       </button>
-      {deckQty > 0 && <span className="absolute top-1 left-1 px-1.5 rounded-full text-[10px] font-bold" style={{ background: `rgba(${GOLD},0.95)`, color: '#1a0f04' }}>{deckQty}</span>}
+      {deckQty > 0 && <span className="absolute px-1.5 rounded-full text-[10px] font-bold" style={{ top: 3, right: 3, background: `rgba(${GOLD},0.95)`, color: '#1a0f04' }}>×{deckQty}</span>}
       <button onClick={onAdd} disabled={addDisabled} className="absolute bottom-1 right-1 flex items-center justify-center rounded-full disabled:opacity-30" style={{ width: 26, height: 26, background: 'rgba(34,197,94,0.92)', color: '#04210f' }} aria-label="Pridėti"><Plus className="w-4 h-4" /></button>
     </div>
   )

@@ -105,6 +105,13 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
               )
             })}
             {!state && <p className="col-span-full text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+            {state && state.tasks.length === 0 && (
+              <div className="col-span-full h-full flex flex-col items-center justify-center gap-2 text-center">
+                <span style={{ fontSize: 36, filter: 'saturate(0.6)' }}>📜</span>
+                <p className="text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Šiandien užduočių nėra</p>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Naujos užduotys sugeneruojamos 00:00 — užsuk rytoj.</p>
+              </div>
+            )}
           </div>
 
           {/* Dienos skrynia */}
