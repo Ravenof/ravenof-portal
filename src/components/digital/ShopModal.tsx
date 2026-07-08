@@ -13,7 +13,7 @@ import { X } from 'lucide-react'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { rewardChip } from '@/lib/gamification/monthlyLogin'
-import { getBalances, getPackInventory, type Balances } from '@/lib/economy'
+import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
 import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
@@ -41,6 +41,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   // kosmetikos vizualai + nuosavybė (kad parduotuvė rodytų TIKRUS daiktus)
   const [cosVis, setCosVis] = useState<Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }>>({})
   const [cosOwned, setCosOwned] = useState<Set<string>>(new Set())
+  // tikrų card_packs vaizdai (shop pack prekės su payload item_id = pako uuid)
+  const [packImgs, setPackImgs] = useState<Record<string, string | null>>({})
   const [packInv, setPackInv] = useState(0)
   const [section, setSection] = useState('packs')
   const [sel, setSel] = useState<Sel | null>(null)
@@ -53,6 +55,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     getDailyDeal().then((d) => setDeal(d?.cards ?? []))
     getStarterDecks().then((s) => setStarters(s ?? []))
     getPackInventory().then((inv) => setPackInv(Object.values(inv).reduce((a, b) => a + b, 0)))
+    getActivePacks().then((ps) => setPackImgs(Object.fromEntries(ps.map((pk) => [pk.id, pk.image_url ?? null]))))
     getCosmetics().then((c) => {
       if (!c) return
       const m: Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }> = {}
@@ -112,6 +115,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     return pid ?? null
   }
   const visOf = (it: ShopItem) => { const id = cosIdOf(it); return id ? cosVis[id] ?? null : null }
+  const packImgOf = (it: ShopItem): string | null => {
+    if (it.itemType !== 'pack') return null
+    const pid = (it.payload[0] as { item_id?: string } | undefined)?.item_id
+    return pid ? packImgs[pid] ?? null : null
+  }
   const ownedShopItem = (it: ShopItem) => { const id = cosIdOf(it); return id ? cosOwned.has(id) : false }
 
   if (typeof document === 'undefined') return null
@@ -205,6 +213,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                       <button key={it.id} onClick={() => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }}
                         className="rvn-press rounded-xl p-2.5 text-left flex flex-col gap-1"
                         style={{ minHeight: 76, background: `linear-gradient(150deg, rgba(${rc},0.08), rgba(10,8,16,0.92))`, border: isSel ? '1.5px solid rgba(240,180,41,0.9)' : `1px solid rgba(${rc},0.4)`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.35)' : 'none', opacity: owned ? 0.65 : 1 }}>
+                        {packImgOf(it) && (
+                          <span className="relative mx-auto block overflow-hidden shrink-0 rounded-lg" style={{ width: 74, height: 96, border: '1px solid rgba(240,180,41,0.35)' }}>
+                            <SmartImg src={packImgOf(it)!} width={160} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 32%' }} />
+                          </span>
+                        )}
                         {vis && (
                           <span className="relative mx-auto flex items-center justify-center overflow-hidden shrink-0"
                             style={{ width: vis.kind === 'avatar' ? 54 : 46, height: vis.kind === 'avatar' ? 54 : 64, borderRadius: vis.kind === 'avatar' ? 999 : 7,
@@ -271,6 +284,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
             ) : effShop ? (
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
+                  {(() => { const img = packImgOf(effShop); return img ? (
+                    <span className="relative mx-auto block overflow-hidden shrink-0 mt-1 rounded-xl" style={{ width: 132, height: 172, border: '1.5px solid rgba(240,180,41,0.45)', boxShadow: '0 0 18px rgba(240,180,41,0.2)' }}>
+                      <SmartImg src={img} width={280} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 32%' }} />
+                    </span>
+                  ) : null })()}
                   {(() => { const vis = visOf(effShop); return vis ? (
                     <span className="relative mx-auto flex items-center justify-center overflow-hidden shrink-0 mt-1"
                       style={{ width: vis.kind === 'avatar' ? 120 : 118, height: vis.kind === 'avatar' ? 120 : 160, borderRadius: vis.kind === 'avatar' ? 999 : 12,
