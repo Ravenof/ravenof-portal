@@ -24,10 +24,12 @@ const RARITY_COL: Record<string, string> = { basic: '148,163,184', rare: '96,165
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; label: string }
+// 'decks' DB sekcija pašalinta (faction_deck prekių niekada nebuvo — tuščia
+// kategorija klaidino; kalades parduoda Starter sekcija žemiau)
 const ALL_SECTIONS: Section[] = [
-  ...SHOP_SECTIONS.map((s) => ({ key: s.key, label: s.label })),
+  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks').map((s) => ({ key: s.key, label: s.label })),
   { key: 'daily', label: '🔥 Dienos kortos' },
-  { key: 'starter', label: '🆓 Starter kaladės' },
+  { key: 'starter', label: '🃏 Kaladės' },
 ]
 
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
