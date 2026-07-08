@@ -429,8 +429,9 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
               className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--text-secondary)' }} />
           )}
 
-          {/* Kaladės sąrašas — SU garantuotu min aukščiu (telefone nebedingsta iki 0px) */}
-          <div className="flex-1 overflow-y-auto" style={{ minHeight: 96 }}>
+          {/* Kaladės sąrašas — min-h-0 LEIDŽIA trauktis (kitaip pilna kaladė išstumia
+              Išsaugoti už panelės), o inline minHeight:96 garantuoja, kad nesusitrauks iki 0 */}
+          <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 96 }}>
             {sortedEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
