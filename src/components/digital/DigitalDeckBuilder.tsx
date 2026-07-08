@@ -53,6 +53,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)
   const [preview, setPreview] = useState<CardWithRelations | null>(null)
+  // desktop: pelės hover — plaukiojantis kortos paveikslo preview
+  const [hover, setHover] = useState<{ card: CardWithRelations; x: number; y: number } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [tester, setTester] = useState(false)
@@ -334,12 +336,21 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
                 </button>
               </div>
 
-              {/* Albumo grid / sąrašas */}
+              {/* Kortų VARDŲ sąrašas (Hearthstone-stiliaus retumo plytelės):
+                  hover (pelė) = plaukiojantis kortos pav.; tap = didelė peržiūra su Pridėti;
+                  palaikyk+tempk = drag į kaladę; [+] = greitas pridėjimas. */}
               {pool.length === 0 ? (
                 <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--text-muted)' }}>Kortų nerasta.</p>
               ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto grid gap-1.5 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))' }}>
-                  {pool.map((c) => <CardTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id} dragProps={dragProps(c)} onAdd={() => tryAdd(c)} onPreview={() => { playUiClick(); setPreview(c) }} />)}
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-0.5">
+                  {pool.map((c) => (
+                    <NameRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
+                      dragProps={dragProps(c)}
+                      onAdd={() => tryAdd(c)}
+                      onPreview={() => { playUiClick(); setPreview(c) }}
+                      onHover={(x, y) => setHover({ card: c, x, y })}
+                      onHoverEnd={() => setHover(null)} />
+                  ))}
                 </div>
               )}
             </>
@@ -377,19 +388,6 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
           <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder="Aprašymas (nebūtina)…"
             className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--text-secondary)' }} />
 
-          {/* Mini aukso kreivė */}
-          <div className="shrink-0 rounded-lg px-1.5 pt-1 pb-0.5 mb-1.5" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
-            <div className="flex items-end gap-0.5" style={{ height: 34 }}>
-              {stats.curve.map((n, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
-                  <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-                    style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)' }} />
-                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--text-muted)' }}>{i < 7 ? i : '7+'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Kaladės sąrašas */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {sortedEntries.length === 0 ? (
@@ -420,6 +418,24 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
             )}
           </div>
 
+          {/* Statistika PO kaladės sąrašo: aukso kreivė + suvestinė */}
+          <div className="shrink-0 rounded-lg px-1.5 pt-1 pb-0.5 mt-1.5" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
+            <div className="flex items-end gap-0.5" style={{ height: 34 }}>
+              {stats.curve.map((n, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
+                  <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                    style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)' }} />
+                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--text-muted)' }}>{i < 7 ? i : '7+'}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between px-0.5 pb-0.5" style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>
+              <span>🪙 vid. <b style={{ color: 'var(--gold)' }}>{stats.avg.toFixed(1)}</b></span>
+              <span>★ čempionai: <b style={{ color: '#c4b5fd' }}>{stats.champions}</b></span>
+              <span>Σ <b style={{ color: total >= DECK_MIN ? '#86efac' : '#f3ead3' }}>{total}</b></span>
+            </div>
+          </div>
+
           {/* Validacija + išsaugoti — visada matomi */}
           <div className="shrink-0 pt-1.5 space-y-1.5">
             <p className="truncate text-center" style={{ fontSize: 10, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</p>
@@ -430,6 +446,9 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
           </div>
         </motion.section>
       </div>
+
+      {/* Desktop hover kortos preview */}
+      {hover && !dragCard && <HoverCardPreview card={hover.card} x={hover.x} y={hover.y} />}
 
       {/* ── Vilkimo „vaiduoklis" ── */}
       {dragCard && (
@@ -451,35 +470,58 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   )
 }
 
-function Thumb({ c, owned, size = 44, fill = false }: { c: CardWithRelations; owned: number; size?: number; fill?: boolean }) {
-  const [bad, setBad] = useState(false)
-  const col = rarityColor(c.rarity?.name)
-  return (
-    <span className={fill ? 'absolute inset-0 block overflow-hidden' : 'relative block overflow-hidden rounded-md shrink-0'}
-      style={fill ? undefined : { width: size, height: size, border: `1.5px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}` }}>
-      {c.image_url && !bad
-        ? <SmartImg src={c.image_url} width={96} onFail={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.5)' }} />
-        : <span className="absolute inset-0 flex items-center justify-center text-sm" style={{ background: '#15101f' }}>🎴</span>}
-      {owned <= 0 && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.7)' }} /></span>}
-    </span>
-  )
-}
-
 type DragHandlers = { onPointerDown: (e: React.PointerEvent) => void; onClickCapture: (e: React.MouseEvent) => void }
 
-function CardTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview }: { c: CardWithRelations; owned: number; deckQty: number; dragging: boolean; dragProps: DragHandlers; onAdd: () => void; onPreview: () => void }) {
+// ── Hearthstone-stiliaus kortos vardo plytelė (fonas/rėmas pagal retumą) ──────
+function NameRow({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onHover, onHoverEnd }: {
+  c: CardWithRelations; owned: number; deckQty: number; dragging: boolean; dragProps: DragHandlers
+  onAdd: () => void; onPreview: () => void; onHover: (x: number, y: number) => void; onHoverEnd: () => void
+}) {
   const col = rarityColor(c.rarity?.name)
   const limit = getCopyLimit(c)
   const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
   return (
-    <div className="relative" {...dragProps} style={{ opacity: dragging ? 0.35 : 1, transition: 'opacity .15s' }}>
-      <button onClick={onPreview} className="relative block w-full overflow-hidden rounded-lg" style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${owned > 0 ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: deckQty > 0 ? `0 0 10px rgba(${GOLD},0.35)` : 'none' }}>
-        <Thumb c={c} owned={owned} fill />
-        <span className="absolute flex items-center justify-center rounded-full font-bold" style={{ top: 3, left: 3, width: 18, height: 18, fontSize: 9.5, background: `rgba(${GOLD},0.95)`, color: '#1a0f04' }}>{c.gold_cost}</span>
-        <span className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center truncate" style={{ fontSize: 8, lineHeight: 1.2, background: 'rgba(0,0,0,0.8)', color: owned > 0 ? '#fff' : 'var(--text-muted)' }}>{c.name}</span>
+    <div className="flex items-center gap-1.5 shrink-0 rounded-lg overflow-hidden select-none" {...dragProps}
+      onMouseEnter={(e) => onHover(e.clientX, e.clientY)}
+      onMouseMove={(e) => onHover(e.clientX, e.clientY)}
+      onMouseLeave={onHoverEnd}
+      style={{
+        minHeight: 30, paddingLeft: 6, paddingRight: 4,
+        background: `linear-gradient(90deg, ${col}2e 0%, rgba(10,8,16,0.85) 55%)`,
+        border: `1px solid ${deckQty > 0 ? `rgba(${GOLD},0.55)` : col + '55'}`,
+        borderLeft: `3px solid ${col}`,
+        opacity: dragging ? 0.35 : owned > 0 ? 1 : 0.5,
+        transition: 'opacity .15s',
+      }}>
+      <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 18, height: 18, fontSize: 9.5, fontWeight: 800, background: `rgba(${GOLD},0.92)`, color: '#1a0f04' }}>{c.gold_cost}</span>
+      <button onClick={onPreview} className="flex-1 min-w-0 text-left py-1">
+        <span className="block truncate font-bold" style={{ fontSize: 11, color: owned > 0 ? '#f3ead3' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{c.is_champion ? '★ ' : ''}{c.name}</span>
       </button>
-      {deckQty > 0 && <span className="absolute px-1.5 rounded-full text-[10px] font-bold" style={{ top: 3, right: 3, background: `rgba(${GOLD},0.95)`, color: '#1a0f04' }}>×{deckQty}</span>}
-      <button onClick={onAdd} disabled={addDisabled} className="absolute bottom-1 right-1 flex items-center justify-center rounded-full disabled:opacity-30" style={{ width: 26, height: 26, background: 'rgba(34,197,94,0.92)', color: '#04210f' }} aria-label="Pridėti"><Plus className="w-4 h-4" /></button>
+      {owned <= 0 && <Lock className="w-3 h-3 shrink-0" style={{ color: 'rgba(255,255,255,0.45)' }} />}
+      {deckQty > 0 && <span className="shrink-0 font-bold tabular-nums" style={{ fontSize: 10, color: 'var(--gold)' }}>×{deckQty}</span>}
+      <button onClick={onAdd} disabled={addDisabled} className="rvn-press flex items-center justify-center rounded-md shrink-0 disabled:opacity-25"
+        style={{ width: 24, height: 24, background: 'rgba(34,197,94,0.16)', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac' }} aria-label="Pridėti"><Plus className="w-3.5 h-3.5" /></button>
+    </div>
+  )
+}
+
+// ── Plaukiojantis kortos paveikslo preview (desktop hover) ────────────────────
+function HoverCardPreview({ card, x, y }: { card: CardWithRelations; x: number; y: number }) {
+  if (typeof window === 'undefined') return null
+  const W = 210
+  const H = Math.round(W * 1.4)
+  const left = Math.min(Math.max(8, x + 18), window.innerWidth - W - 8)
+  const top = Math.min(Math.max(8, y - H / 2), window.innerHeight - H - 8)
+  const col = rarityColor(card.rarity?.name)
+  return (
+    <div className="fixed z-[220] pointer-events-none rounded-xl overflow-hidden" style={{ left, top, width: W, height: H, border: `2px solid ${col}`, boxShadow: `0 14px 40px rgba(0,0,0,0.75), 0 0 22px ${col}55`, background: '#0d0a14' }}>
+      {card.image_url
+        ? <SmartImg src={card.image_url} width={420} className="absolute inset-0 w-full h-full object-cover" />
+        : <span className="absolute inset-0 flex items-center justify-center text-4xl">🎴</span>}
+      <span className="absolute bottom-0 left-0 right-0 px-2 py-1 text-center" style={{ background: 'rgba(0,0,0,0.82)' }}>
+        <span className="block font-bold truncate" style={{ fontSize: 11.5, color: '#fff' }}>{card.name}</span>
+        <span className="block" style={{ fontSize: 9, color: col }}>{card.rarity?.name ?? ''}{card.card_type?.name ? ' · ' + card.card_type.name : ''}</span>
+      </span>
     </div>
   )
 }
