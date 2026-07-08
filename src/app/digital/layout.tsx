@@ -10,6 +10,7 @@ import { Home, LayoutGrid, Layers, ShoppingBag, Menu, Bell, Settings } from 'luc
 import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
+import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
 import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
@@ -165,6 +166,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className={cls} style={style}>{inner}</Link>
         })}
       </nav>
+
+      {/* Privalomas turinio atsisiuntimas paleidžiant žaidimą (virš visko, po „pasuk telefoną") */}
+      <ContentDownloadGate />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
