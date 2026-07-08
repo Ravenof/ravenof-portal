@@ -18,6 +18,7 @@ import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
 import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digital/native'
 import { RvnIcon } from './ui/RvnIcon'
+import { APP_VERSION } from '@/lib/version'
 import { useEscClose } from '@/lib/useEscClose'
 
 const ACC = '240,180,41'
@@ -258,6 +259,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
                   </div>
                 )}
                 <p className="mt-3 px-1 text-center" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>Nustatymai saugomi automatiškai ir sinchronizuojami tarp įrenginių.</p>
+                <p className="mt-1 text-center" style={{ fontSize: 9, color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}</p>
               </div>
               <div className="shrink-0 mt-2 flex flex-col gap-1.5">
                 <button onClick={resetDefaults} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold"
