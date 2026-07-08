@@ -21,6 +21,9 @@ import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '
 import { SmartImg } from '@/components/ui/SmartImg'
 
 const GOLD = '240,180,41'
+// hover preview tik įrenginiams su tikra pele (touch emuliuoja mouse eventus,
+// bet mouseleave niekada neįvyksta — preview užstrigdavo ekrane)
+const HOVER_OK = typeof window !== 'undefined' && !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches
 const GHOST_W = 76
 const GHOST_H = Math.round(GHOST_W * 1.4)
 const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: `1px solid rgba(${GOLD},0.22)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
@@ -123,7 +126,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const ghostTiltRaw = useTransform(ghostVX, [-1600, 0, 1600], [10, -3, -16])
   const ghostTilt = useSpring(ghostTiltRaw, { stiffness: 260, damping: 22 })
   const dropRef = useRef<HTMLDivElement>(null)
-  const pendingRef = useRef<{ card: CardWithRelations; rect: DOMRect; sx: number; sy: number; touch: boolean; timer: number | null } | null>(null)
+  const pendingRef = useRef<{ card: CardWithRelations; rect: DOMRect; sx: number; sy: number; touch: boolean; timer: number | null; fromDeck: boolean } | null>(null)
   const activeRef = useRef(false)
   const suppressClickRef = useRef(false)
   const dragCardRef = useRef<CardWithRelations | null>(null)
@@ -142,6 +145,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     ghostX.set(x - GHOST_W / 2); ghostY.set(y - GHOST_H * 0.72)
     ghostSX.jump(x - GHOST_W / 2); ghostSY.jump(y - GHOST_H * 0.72)
     setDragCard(p.card)
+    setHover(null)
     animate(ghostScale, 1.06, { type: 'spring', stiffness: 420, damping: 22 })
     playCardPick()
     try { navigator.vibrate?.(14) } catch { /* */ }
@@ -157,7 +161,12 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     if (!p) return
     const dx = e.clientX - p.sx, dy = e.clientY - p.sy
     if (!activeRef.current) {
-      if (p.touch) { if (Math.hypot(dx, dy) > 16 && p.timer != null) { clearTimeout(p.timer); p.timer = null; pendingRef.current = null } }
+      if (p.touch) {
+        const adx = Math.abs(dx), ady = Math.abs(dy)
+        // horizontalus judesys = drag IŠKART (nereikia laikyti); vertikalus = scroll
+        if (adx > 10 && adx > ady * 1.15) { if (p.timer != null) { clearTimeout(p.timer); p.timer = null } startDrag(p, e.clientX, e.clientY) }
+        else if (ady > 12 && ady > adx) { if (p.timer != null) { clearTimeout(p.timer); p.timer = null } pendingRef.current = null }
+      }
       else if (Math.hypot(dx, dy) > 6) startDrag(p, e.clientX, e.clientY)
       return
     }
@@ -182,6 +191,26 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
       suppressClickRef.current = true
       setTimeout(() => { suppressClickRef.current = false }, 320)
       const dropped = hitDrop(e.clientX, e.clientY)
+      if (p.fromDeck) {
+        // vilkimas IŠ kaladės: paleidus už jos ribų — išimam 1 kopiją
+        if (!dropped) {
+          const st = useDeckBuilderStore.getState()
+          const dq = st.entries.find((x) => x.card.id === card.id)?.quantity ?? 0
+          if (dq > 0) { playCardPlace(); st.setQuantity(card.id, dq - 1); try { navigator.vibrate?.(12) } catch { /* */ } }
+          animate(ghostScale, 0.2, { duration: 0.22 })
+          animate(ghostOpacity, 0, { duration: 0.24 })
+          window.setTimeout(endDragCleanup, 260)
+        } else {
+          animate(ghostX, p.rect.left + p.rect.width / 2 - GHOST_W / 2, { type: 'spring', stiffness: 340, damping: 26 })
+          animate(ghostY, p.rect.top + p.rect.height / 2 - GHOST_H / 2, { type: 'spring', stiffness: 340, damping: 26 })
+          animate(ghostScale, 0.6, { duration: 0.22 })
+          animate(ghostOpacity, 0, { duration: 0.24, delay: 0.06 })
+          window.setTimeout(endDragCleanup, 320)
+        }
+        pendingRef.current = null
+        activeRef.current = false
+        return
+      }
       const ok = dropped ? tryAdd(card) : false
       if (dropped && ok) {
         playCardPlace()
@@ -209,15 +238,16 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onMove, onTouchMoveBlock, endDragCleanup, ghostX, ghostY, ghostScale, ghostOpacity])
 
-  const dragProps = (card: CardWithRelations) => ({
+  const makeDragProps = (card: CardWithRelations, fromDeck: boolean) => ({
     onPointerDown: (e: React.PointerEvent) => {
-      if (ownedOf(card.id) <= 0) return
+      if (!fromDeck && ownedOf(card.id) <= 0) return
       if (dragCard) return
+      setHover(null)
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
       const touch = e.pointerType === 'touch'
-      const p = { card, rect, sx: e.clientX, sy: e.clientY, touch, timer: null as number | null }
+      const p = { card, rect, sx: e.clientX, sy: e.clientY, touch, timer: null as number | null, fromDeck }
       pendingRef.current = p
-      if (touch) p.timer = window.setTimeout(() => { if (pendingRef.current === p && !activeRef.current) startDrag(p, p.sx, p.sy) }, 130)
+      if (touch) p.timer = window.setTimeout(() => { if (pendingRef.current === p && !activeRef.current) startDrag(p, p.sx, p.sy) }, 160)
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
       window.addEventListener('pointercancel', onUp)
@@ -225,6 +255,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     },
     onClickCapture: (e: React.MouseEvent) => { if (suppressClickRef.current) { e.preventDefault(); e.stopPropagation() } },
   })
+  const dragProps = (card: CardWithRelations) => makeDragProps(card, false)
+  const dragPropsDeck = (card: CardWithRelations) => makeDragProps(card, true)
 
   // ── Validacija / summary ─────────────────────────────────────────────────
   const warnings = validateDeck(store.entries, store.factionId, store.name)
@@ -393,7 +425,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
             {sortedEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
-                <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.35 }}>{dragCard ? 'Paleisk čia — į kaladę!' : 'Tempk kortas čia arba spausk +'}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.35 }}>{dragCard ? 'Paleisk čia — į kaladę!' : 'Tempk kortas čia arba spausk +. Iš kaladės išmesi nutempęs kortą atgal.'}</p>
               </div>
             ) : (
               <div className="space-y-1">
@@ -402,7 +434,9 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
                     const col = rarityColor(e.card.rarity?.name)
                     return (
                       <motion.div key={e.card.id} layout initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14, height: 0, marginBottom: 0 }} transition={{ duration: 0.18 }}
-                        className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: `3px solid ${col}` }}>
+                        {...dragPropsDeck(e.card)}
+                        className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg select-none touch-pan-y"
+                        style={{ background: `linear-gradient(90deg, ${col}26 0%, rgba(10,8,16,0.85) 55%)`, border: `1px solid ${col}44`, borderLeft: `3px solid ${col}`, opacity: dragCard?.id === e.card.id ? 0.35 : 1, transition: 'opacity .15s' }}>
                         <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 17, height: 17, fontSize: 9, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{e.card.gold_cost}</span>
                         <button onClick={() => { playUiClick(); setPreview(e.card) }} className="flex-1 min-w-0 text-left">
                           <span className="block font-semibold truncate" style={{ fontSize: 10.5, color: '#f3ead3' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
@@ -447,8 +481,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
         </motion.section>
       </div>
 
-      {/* Desktop hover kortos preview */}
-      {hover && !dragCard && <HoverCardPreview card={hover.card} x={hover.x} y={hover.y} />}
+      {/* Desktop hover kortos preview (tik tikra pelė; touch — niekada) */}
+      {HOVER_OK && hover && !dragCard && !preview && <HoverCardPreview card={hover.card} x={hover.x} y={hover.y} />}
 
       {/* ── Vilkimo „vaiduoklis" ── */}
       {dragCard && (
@@ -481,10 +515,10 @@ function NameRow({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onH
   const limit = getCopyLimit(c)
   const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
   return (
-    <div className="flex items-center gap-1.5 shrink-0 rounded-lg overflow-hidden select-none" {...dragProps}
-      onMouseEnter={(e) => onHover(e.clientX, e.clientY)}
-      onMouseMove={(e) => onHover(e.clientX, e.clientY)}
-      onMouseLeave={onHoverEnd}
+    <div className="flex items-center gap-1.5 shrink-0 rounded-lg overflow-hidden select-none touch-pan-y" {...dragProps}
+      onMouseEnter={HOVER_OK ? (e) => onHover(e.clientX, e.clientY) : undefined}
+      onMouseMove={HOVER_OK ? (e) => onHover(e.clientX, e.clientY) : undefined}
+      onMouseLeave={HOVER_OK ? onHoverEnd : undefined}
       style={{
         minHeight: 30, paddingLeft: 6, paddingRight: 4,
         background: `linear-gradient(90deg, ${col}2e 0%, rgba(10,8,16,0.85) 55%)`,
