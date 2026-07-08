@@ -1,7 +1,7 @@
 'use client'
 
 // ── Ravenof Digital — Kaladžių hub (segment tabs: Builder / Mano / Community) ──
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Hammer, Library, Users } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
@@ -31,6 +31,9 @@ const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
 export function DigitalDecks({ userId, cards, factions, collection, initialTab, initialDeck }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>(initialTab)
+  // „Redaguoti" iš Mano kaladžių keičia tik URL query — komponentas nepersimontuoja,
+  // todėl tab/deck reikia sinchronizuoti rankiniu būdu
+  useEffect(() => { setTab(initialTab) }, [initialTab, initialDeck?.id])
 
   return (
     <div className="h-full flex flex-col min-h-0">

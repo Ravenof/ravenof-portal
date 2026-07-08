@@ -56,6 +56,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)
   const [preview, setPreview] = useState<CardWithRelations | null>(null)
+  const [descOpen, setDescOpen] = useState(false)
   // desktop: pelės hover — plaukiojantis kortos paveikslo preview
   const [hover, setHover] = useState<{ card: CardWithRelations; x: number; y: number } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -71,7 +72,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   useEffect(() => {
     if (initialDeck) store.loadExisting(initialDeck.id, initialDeck.name, initialDeck.description, initialDeck.factionId, initialDeck.visibility, initialDeck.entries, initialDeck.sideEntries ?? [])
     else store.initNew()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // deps: deck id — „Redaguoti" iš sąrašo perkrauna builder'į su ta kalade
+  }, [initialDeck?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2200); return () => clearTimeout(t) }, [toast])
   const flash = (m: string, err = false) => { (err ? playError : playUiClick)(); setToast(m) }
@@ -409,19 +411,26 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
             <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>
           </div>
 
-          <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder="Kaladės pavadinimas…"
-            className="w-full px-2.5 rounded-lg font-semibold outline-none shrink-0 mb-1.5" style={{ minHeight: 34, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(239,68,68,0.6)'}`, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
-          <div className="grid grid-cols-2 gap-1.5 shrink-0 mb-1.5">
-            {([['private', '🔒 Privati'], ['public', '🌐 Vieša']] as const).map(([v, label]) => (
-              <button key={v} onClick={() => { playUiClick(); store.setVisibility(v as DeckVisibility) }} className="rounded-lg font-bold" style={{ minHeight: 28, fontSize: 10, background: store.visibility === v ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid ${store.visibility === v ? `rgba(${GOLD},0.6)` : `rgba(${GOLD},0.2)`}`, color: store.visibility === v ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{label}</button>
-            ))}
+          {/* KOMPAKTU: vardas + matomumo ikona + ✎ vienoje eilėje — SĄRAŠUI maksimalus aukštis */}
+          <div className="flex items-center gap-1.5 shrink-0 mb-1.5">
+            <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder="Kaladės pavadinimas…"
+              className="flex-1 min-w-0 px-2.5 rounded-lg font-semibold outline-none" style={{ minHeight: 32, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(239,68,68,0.6)'}`, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
+            <button onClick={() => { playUiClick(); store.setVisibility((store.visibility === 'private' ? 'public' : 'private') as DeckVisibility) }}
+              title={store.visibility === 'private' ? 'Privati — spausk padaryti viešą' : 'Vieša — spausk padaryti privačią'}
+              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 14, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
+              {store.visibility === 'private' ? '🔒' : '🌐'}
+            </button>
+            <button onClick={() => { playUiClick(); setDescOpen((v) => !v) }} title="Aprašymas"
+              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 13, background: descOpen || store.description ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }}>✎</button>
           </div>
 
-          <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder="Aprašymas (nebūtina)…"
-            className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--text-secondary)' }} />
+          {descOpen && (
+            <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder="Aprašymas (nebūtina)…" autoFocus
+              className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--text-secondary)' }} />
+          )}
 
-          {/* Kaladės sąrašas */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Kaladės sąrašas — SU garantuotu min aukščiu (telefone nebedingsta iki 0px) */}
+          <div className="flex-1 overflow-y-auto" style={{ minHeight: 96 }}>
             {sortedEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
@@ -454,7 +463,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
           {/* Statistika PO kaladės sąrašo: aukso kreivė + suvestinė */}
           <div className="shrink-0 rounded-lg px-1.5 pt-1 pb-0.5 mt-1.5" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
-            <div className="flex items-end gap-0.5" style={{ height: 34 }}>
+            <div className="flex items-end gap-0.5" style={{ height: 'clamp(20px,4vh,34px)' }}>
               {stats.curve.map((n, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
                   <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
