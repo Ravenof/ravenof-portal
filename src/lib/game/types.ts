@@ -415,8 +415,9 @@ export type PassiveAuraConfig = {
   spellLifestealScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų žala gydo tos pusės žaidėją
   // ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ──
   returnCastSpellScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų sužaidimą gaudo (grąžina į kaladę)
-  // ── Statusų imunitetas (aura): paveikti padarai NEGAUNA neigiamų būsenų ──
-  auraStatusImmunity?: boolean         // blokuoja frozen/burning/poisoned/stunned/silenced (blessed – leidžiama)
+  // ── Statusų imunitetas (aura): paveikti padarai NEGAUNA pasirinktų būsenų ──
+  auraStatusImmunity?: boolean         // įjungia imunitetą; kurias būsenas blokuoja – žr. sąrašą žemiau
+  auraStatusImmunityStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced')[]  // TUŠČIA = visos neigiamos
   // ── Įsiūtis (savasis pasyvas): kol padaras SUŽEISTAS (hp < maxHp) — +ATK ──
   enrageAttack?: number                // +X ATK kol sužeistas; pagijus iki pilno – priedas dingsta
   // ── Herojų žalos dvigubinimas (aura): žala BET KURIAM žaidėjui ×2 ──

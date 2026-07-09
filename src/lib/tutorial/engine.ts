@@ -104,7 +104,7 @@ export type BoardUnit = {
   auraCantAttack?: boolean  // aura blokuoja atakas
   auraShield?: boolean      // skydą suteikė aura
   auraStealth?: boolean     // sėlinimą suteikė aura
-  auraStatusImmune?: boolean // aura blokuoja neigiamas būsenas (perskaičiuojama)
+  auraStatusImmune?: TutStatus[] // aura blokuoja ŠIAS būsenas (perskaičiuojama; union iš visų šaltinių)
   tempBuffs?: { atk: number; hp: number; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }[]  // laikini buff'ai (nuiminėjami ėjimo riboje)
   control?: { from: Side; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }  // laikinai perimta kontrolė (takeControl); from = kam grąžinti, turn = valdytojo turnNumber
 }
@@ -725,7 +725,7 @@ export function recomputeAuras(g: GameState) {
       if (u.auraSilence) { delete u.statuses.silenced; u.auraSilence = false }
       if (u.auraShield) { u.shield = false; u.auraShield = false }
       if (u.auraStealth) { u.stealth = false; u.auraStealth = false }
-      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false; u.auraStatusImmune = false
+      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false; u.auraStatusImmune = undefined
     }
   }
   // 1b) Lauko pasyvas: GLOBALUS NUTILDYMAS – visi paveiktų pusių padarai nutildyti,
@@ -772,7 +772,12 @@ export function recomputeAuras(g: GameState) {
         if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
         if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
         if (cfg.auraCantAttack) u.auraCantAttack = true
-        if (cfg.auraStatusImmunity) u.auraStatusImmune = true
+        if (cfg.auraStatusImmunity) {
+          const NEG: TutStatus[] = ['frozen', 'burning', 'poisoned', 'stunned', 'silenced']
+          const block = (cfg.auraStatusImmunityStatuses && cfg.auraStatusImmunityStatuses.length > 0 ? cfg.auraStatusImmunityStatuses : NEG) as TutStatus[]
+          const cur = u.auraStatusImmune ?? []
+          u.auraStatusImmune = [...new Set([...cur, ...block])]
+        }
         for (const kw of (cfg.auraKeywords ?? [])) {
           if (kw === 'shield') { if (!u.shield) { u.shield = true; u.auraShield = true } }
           else if (kw === 'stealth') { if (!u.stealth) { u.stealth = true; u.auraStealth = true } }
@@ -1025,8 +1030,8 @@ function applyTargetedEffect(g: GameState, s: Side, e: ParsedEffect, target: Tar
 }
 
 function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
-  // Statusų imuniteto aura: neigiamos būsenos blokuojamos (blessed – teigiama, praleidžiam)
-  if (st !== 'blessed' && u.auraStatusImmune) {
+  // Statusų imuniteto aura: blokuojamos TIK auros nurodytos būsenos (blessed – teigiama, niekada neblokuojama)
+  if (st !== 'blessed' && u.auraStatusImmune?.includes(st)) {
     log(g, { t: 'status', side: owner, cardName: u.card.name, msg: `🛡✨ „${u.card.name}" imunitetas būsenoms — ${STATUS_META[st].name} neveikia.` })
     return
   }

@@ -297,7 +297,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -386,11 +386,29 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                 ♾ Kiti negali mirti (nemirtingumas – lieka 1 HP)
               </label>
               <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#93c5fd' }}
-                title="Paveikti padarai NEGAUNA neigiamų būsenų: Sušaldytas, Degantis, Apnuodytas, Apsvaigintas, Nutildytas. Palaiminimas (teigiama) praleidžiamas. Taikymą valdo Kam galioja / potipis / frakcija.">
+                title="Paveikti padarai NEGAUNA pasirinktų neigiamų būsenų. Palaiminimas (teigiama) niekada neblokuojamas. Taikymą valdo Kam galioja / potipis / frakcija.">
                 <input type="checkbox" checked={!!pa?.auraStatusImmunity}
-                  onChange={(e) => setPa({ auraStatusImmunity: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-blue-400" />
-                🛡✨ Imunitetas būsenoms (šaldymas/deginimas/nuodai/svaiginimas/nutildymas)
+                  onChange={(e) => setPa({ auraStatusImmunity: e.target.checked || undefined, auraStatusImmunityStatuses: e.target.checked ? pa?.auraStatusImmunityStatuses : undefined })} className="w-3.5 h-3.5 accent-blue-400" />
+                🛡✨ Imunitetas būsenoms
               </label>
+              {pa?.auraStatusImmunity && (
+                <div className="ml-5 mt-1">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    {([['frozen', '❄ Sušaldytas'], ['burning', '🔥 Degantis'], ['poisoned', '☠ Apnuodytas'], ['stunned', '✶ Apsvaigintas'], ['silenced', '✕ Nutildytas']] as const).map(([st, lbl]) => (
+                      <label key={st} className="flex items-center gap-1">
+                        <input type="checkbox" checked={(pa?.auraStatusImmunityStatuses ?? []).includes(st)}
+                          onChange={(e) => {
+                            const cur = pa?.auraStatusImmunityStatuses ?? []
+                            const next = e.target.checked ? [...cur, st] : cur.filter((x) => x !== st)
+                            setPa({ auraStatusImmunityStatuses: next.length ? next : undefined })
+                          }} className="w-3.5 h-3.5 accent-sky-400" />
+                        {lbl}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Nieko nepažymėjus — blokuojamos VISOS neigiamos.</p>
+                </div>
+              )}
               <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#fdba74' }}
                 title="Kol ŠI korta kovos lauke – žala BET KURIAM žaidėjui (abiem!) dviguba. Veikia atakas į herojų ir burtus. Globali, taikymo laukai negalioja.">
                 <input type="checkbox" checked={!!pa?.auraHeroDamageDouble}
