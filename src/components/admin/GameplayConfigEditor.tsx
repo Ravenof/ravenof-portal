@@ -285,7 +285,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -297,7 +297,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -385,6 +385,25 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   onChange={(e) => setPa({ auraImmortal: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-red-400" />
                 ♾ Kiti negali mirti (nemirtingumas – lieka 1 HP)
               </label>
+              <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#93c5fd' }}
+                title="Paveikti padarai NEGAUNA neigiamų būsenų: Sušaldytas, Degantis, Apnuodytas, Apsvaigintas, Nutildytas. Palaiminimas (teigiama) praleidžiamas. Taikymą valdo Kam galioja / potipis / frakcija.">
+                <input type="checkbox" checked={!!pa?.auraStatusImmunity}
+                  onChange={(e) => setPa({ auraStatusImmunity: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-blue-400" />
+                🛡✨ Imunitetas būsenoms (šaldymas/deginimas/nuodai/svaiginimas/nutildymas)
+              </label>
+              <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#fdba74' }}
+                title="Kol ŠI korta kovos lauke – žala BET KURIAM žaidėjui (abiem!) dviguba. Veikia atakas į herojų ir burtus. Globali, taikymo laukai negalioja.">
+                <input type="checkbox" checked={!!pa?.auraHeroDamageDouble}
+                  onChange={(e) => setPa({ auraHeroDamageDouble: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-orange-400" />
+                ☠×2 Žala žaidėjams dviguba (abiem pusėms, kol korta lauke)
+              </label>
+              <div className="flex items-center gap-2 text-[11px] mt-2" style={{ color: '#f3d98c' }}
+                title="ĮSIŪTIS: kol ŠIS padaras sužeistas (HP žemiau maksimalaus) – gauna +X ATK. Pagijus iki pilno priedas dingsta. Savasis pasyvas – taikymo laukai negalioja.">
+                <span>😤 Įsiūtis: +ATK kol sužeistas</span>
+                <input type="number" min={0} value={pa?.enrageAttack ?? ''} placeholder="0"
+                  onChange={(e) => setPa({ enrageAttack: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
+                  className="w-14 px-1 py-0.5 rounded text-[11px]" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.35)', color: 'var(--gold)' }} />
+              </div>
               <div className="flex items-center gap-2 text-[11px] mt-2" style={{ color: '#86efac' }}>
                 <label className="flex items-center gap-1" title="Paveiktas padaras, ataka sunaikinęs priešo padarą, gali pulti dar kartą tą patį ėjimą.">
                   <input type="checkbox" checked={!!pa?.auraSecondAttack}

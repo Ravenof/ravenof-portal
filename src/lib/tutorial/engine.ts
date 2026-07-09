@@ -104,6 +104,7 @@ export type BoardUnit = {
   auraCantAttack?: boolean  // aura blokuoja atakas
   auraShield?: boolean      // skydą suteikė aura
   auraStealth?: boolean     // sėlinimą suteikė aura
+  auraStatusImmune?: boolean // aura blokuoja neigiamas būsenas (perskaičiuojama)
   tempBuffs?: { atk: number; hp: number; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }[]  // laikini buff'ai (nuiminėjami ėjimo riboje)
   control?: { from: Side; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }  // laikinai perimta kontrolė (takeControl); from = kam grąžinti, turn = valdytojo turnNumber
 }
@@ -640,12 +641,27 @@ function spellAuraBonusFor(g: GameState, actor: Side): number {
   return auraSpellDamageBonus(g, actor, c.spellType)
 }
 
+/** Ar lauke (bet kurioje pusėje) yra aktyvi „žala žaidėjams ×2" aura (padaras/artefaktas, nenutildytas). */
+function heroDamageDoubleActive(g: GameState): boolean {
+  for (const sd of allSeats(g)) {
+    const p = P(g, sd)
+    for (const u of p.units) if (u && !u.statuses.silenced && u.card.gameplay?.passiveAura?.auraHeroDamageDouble) return true
+    for (const a of p.artifacts) if (a && a.card.gameplay?.passiveAura?.auraHeroDamageDouble) return true
+  }
+  return false
+}
+
 function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, useZmk = true) {
   const base2 = base + spellAuraBonusFor(g, actor)
   let dmg = useZmk ? rollDamage(g, actor, base2, ctxBias(g, actor)) : base2
   const fr = fieldEngine.applyFirstDamageReduction(g, target, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: target, msg: `🌍 Laukas sumažina pirmą žalą iki ${dmg}.` }) }
   if (dmg <= 0) return
+  // Aura: žala žaidėjams ×2 (kol bet kurioje pusėje lauke yra nenutildyta korta su auraHeroDamageDouble)
+  if (heroDamageDoubleActive(g)) {
+    dmg *= 2
+    log(g, { t: 'damage', side: target, msg: `☠×2 Aura padvigubina žalą žaidėjui: ${dmg}.` })
+  }
   const left = applyPlayerDamage(g, target, dmg)
   log(g, { t: 'damage', side: target, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, msg: `${sideName(target)} ${target === 'you' ? 'gauni' : 'gauna'} ${dmg} žalos. Liko ${left} HP.` })
   applySpellLifesteal(g, dmg)
@@ -684,6 +700,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: owner })
   if (target.hp <= 0) killUnit(g, owner, target)
+  else if ((target.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // Įsiūtis įsijungia sužeidus
 }
 
 // Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,
@@ -708,7 +725,7 @@ export function recomputeAuras(g: GameState) {
       if (u.auraSilence) { delete u.statuses.silenced; u.auraSilence = false }
       if (u.auraShield) { u.shield = false; u.auraShield = false }
       if (u.auraStealth) { u.stealth = false; u.auraStealth = false }
-      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false
+      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false; u.auraStatusImmune = false
     }
   }
   // 1b) Lauko pasyvas: GLOBALUS NUTILDYMAS – visi paveiktų pusių padarai nutildyti,
@@ -755,6 +772,7 @@ export function recomputeAuras(g: GameState) {
         if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
         if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
         if (cfg.auraCantAttack) u.auraCantAttack = true
+        if (cfg.auraStatusImmunity) u.auraStatusImmune = true
         for (const kw of (cfg.auraKeywords ?? [])) {
           if (kw === 'shield') { if (!u.shield) { u.shield = true; u.auraShield = true } }
           else if (kw === 'stealth') { if (!u.stealth) { u.stealth = true; u.auraStealth = true } }
@@ -784,6 +802,14 @@ export function recomputeAuras(g: GameState) {
         else if (kw === 'stealth') { if (!u.stealth) { u.stealth = true; u.auraStealth = true } }
         else { (u.auraKw ??= []).push(kw) }
       }
+    }
+  }
+  // 3c) Įsiūtis: kol padaras SUŽEISTAS (hp < maxHp) — +ATK (maxHp jau po aurų)
+  for (const sd of allSeats(g)) {
+    for (const u of P(g, sd).units) {
+      if (!u || u.statuses.silenced) continue
+      const enr = u.card.gameplay?.passiveAura?.enrageAttack ?? 0
+      if (enr > 0 && u.hp < u.maxHp) { u.atk = Math.max(0, u.atk + enr); u.auraAtk = (u.auraAtk ?? 0) + enr }
     }
   }
   // 4) Jei debuff aura nuvarė HP iki 0 – žūtis
@@ -999,6 +1025,11 @@ function applyTargetedEffect(g: GameState, s: Side, e: ParsedEffect, target: Tar
 }
 
 function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
+  // Statusų imuniteto aura: neigiamos būsenos blokuojamos (blessed – teigiama, praleidžiam)
+  if (st !== 'blessed' && u.auraStatusImmune) {
+    log(g, { t: 'status', side: owner, cardName: u.card.name, msg: `🛡✨ „${u.card.name}" imunitetas būsenoms — ${STATUS_META[st].name} neveikia.` })
+    return
+  }
   const p = P(g, owner)
   // frozen/stunned/silenced: pašalinama savininko KITO ėjimo pabaigoje
   // burning/poisoned: kol pašalins efektas (PERMANENT)
@@ -1029,7 +1060,11 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
 function healUnitPrim(g: GameState, owner: Side, u: BoardUnit, n: number) {
   const b = u.hp
   u.hp = Math.min(u.maxHp, u.hp + n)
-  if (u.hp > b) { log(g, { t: 'heal', side: owner, cardName: u.card.name, value: u.hp - b, msg: `„${u.card.name}" pagydomas ${u.hp - b} HP.`, sound: 'heal' }); fireGlobalListeners(g, 'onAnyHeal', { side: owner }) }
+  if (u.hp > b) {
+    log(g, { t: 'heal', side: owner, cardName: u.card.name, value: u.hp - b, msg: `„${u.card.name}" pagydomas ${u.hp - b} HP.`, sound: 'heal' })
+    fireGlobalListeners(g, 'onAnyHeal', { side: owner })
+    if ((u.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // pagijus iki pilno – Įsiūtis dingsta
+  }
 }
 
 function healPlayerPrim(g: GameState, s: Side, n: number) {
