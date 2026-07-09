@@ -56,7 +56,12 @@ export type ApplyCtx = {
   chainDamage?: number       // #3: padaryta žala ankstesniame grandinės efekte
   chainDestroyedHp?: number  // #4: sunaikintų taikinių HP suma ankstesniame efekte
   chainDestroyedCards?: TutCard[]  // #1: ankstesniame efekte sunaikintos kortos (prikėlimui)
+  allMappings?: EffectMapping[]  // pilnas šaltinio kortos mapping sąrašas (onDestroy „kill kreditui")
 }
+
+// onDestroy kreditas: kol vykdomas šaltinio efektas, jo sukeltos žūtys kredituojamos jam.
+// killUnit (engine) pabaigoje iššauna kredituoto šaltinio onDestroy mapping'us.
+export type KillCredit = { side: Side; uid?: string; name: string; mappings: EffectMapping[]; depth: number }
 
 const MAX_DEPTH = 4
 // Globali kaskados riba: apsaugo nuo begalinės rekursijos, kai trigger'iai (pvz.
@@ -116,11 +121,19 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   // Elemento perdavimas FX'ui: žalos log'ai per šį efektą gaus m.projectile (battlecry/čempionas/burtas).
   const prevProj = gg.__fxProjectile
   if (m.projectile && m.projectile !== 'none') gg.__fxProjectile = m.projectile
+  // onDestroy kreditas: jei šaltinio korta turi onDestroy mapping'ų, jos efektų sukeltos
+  // žūtys (dealToUnit/killUnit viduje) kredituojamos šiam šaltiniui (žr. engine killUnit).
+  const gk = g as unknown as { __killCredit?: KillCredit }
+  const prevKc = gk.__killCredit
+  if (m.trigger !== 'onDestroy' && ctx.allMappings?.some((x) => x.trigger === 'onDestroy')) {
+    gk.__killCredit = { side: caster, uid: ctx.sourceUid, name: ctx.sourceName, mappings: ctx.allMappings, depth: ctx.depth }
+  }
   try {
     return applyMappingInner(api, g, caster, m, ctx)
   } finally {
     gg.__fxCascade = (gg.__fxCascade ?? 1) - 1
     gg.__fxProjectile = prevProj
+    gk.__killCredit = prevKc
   }
 }
 
@@ -422,6 +435,7 @@ function resolveCurseTarget(g: GameState, caster: Side, appliesTo: string, chose
 
 /** Pritaiko mapping'ų sąrašą pagal trigger'į (efektų eilė – iš eilės). */
 export function applyMappings(api: GameApi, g: GameState, caster: Side, mappings: EffectMapping[], trigger: string, ctx: ApplyCtx): void {
+  if (!ctx.allMappings) ctx = { ...ctx, allMappings: mappings }
   for (const m of mappings) {
     if (m.trigger !== trigger) continue
     applyMapping(api, g, caster, m, ctx)

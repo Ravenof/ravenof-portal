@@ -175,7 +175,7 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onDamageReceived',    label: 'Gavus žalą' },
   { value: 'onHeal',              label: 'Pagydžius' },
   { value: 'onDeath',             label: 'Žūstant (Paskutinis noras)' },
-  { value: 'onDestroy',           label: 'Sunaikinus' },
+  { value: 'onDestroy',           label: 'Sunaikinus taikinį (šis padaras/burtas nužudo)' },
   { value: 'onDraw',              label: 'Ištraukus kortą' },
   { value: 'onCurseDrawn',        label: 'Kai auka ištraukia šį prakeiksmą (aktyvacija)' },
   { value: 'onDiscard',           label: 'Išmetus kortą' },
