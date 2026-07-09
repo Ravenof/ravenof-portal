@@ -2,6 +2,7 @@
 
 // ── Pakuotės atplėšimas — tempk į šoną / spustelėk, tada kortos verčiamos po vieną ─
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
@@ -197,7 +198,8 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
 
   const advance = () => { playUiClick(); setRevealIdx((i) => i + 1) }
 
-  return (
+  if (typeof document === 'undefined') return null
+  return createPortal(
     <div className="fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.93)' }}>
       <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="absolute top-4 right-4 text-base px-3 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
 
@@ -305,7 +307,8 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
       {done && cards && (
         <CardCarousel cards={cards} onClose={() => { playUiClick(); onClose() }} />
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -400,7 +403,7 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
       {zoom != null && cards[zoom] && (
         <div className="fixed inset-0 z-[190] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.88)' }} onClick={() => setZoom(null)}>
           <motion.div initial={{ scale: 0.55, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-            className="relative rounded-lg overflow-hidden" style={{ width: 'min(300px, 74vw)', aspectRatio: '2.5 / 3.5', border: `3px solid ${rarityColor(cards[zoom].rarity)}`, boxShadow: `0 0 34px ${rarityColor(cards[zoom].rarity)}aa` }}>
+            className="relative rounded-lg overflow-hidden" style={{ width: 'min(300px, 74vw, 60vh)', aspectRatio: '2.5 / 3.5', border: `3px solid ${rarityColor(cards[zoom].rarity)}`, boxShadow: `0 0 34px ${rarityColor(cards[zoom].rarity)}aa` }}>
             <CardArt card={cards[zoom]} />
             <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
               <p className="text-[13px] leading-tight" style={{ color: '#fff' }}>{cards[zoom].name}</p>
