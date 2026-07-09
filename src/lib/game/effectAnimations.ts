@@ -28,6 +28,7 @@ export const effectAnimationMap: Record<string, EffectAnim> = {
   burn:       { animation: 'projectile', duration: 1.4, origin: 'sourceCard', targetReaction: 'shakeFlash',   sound: 'impact' },
   destroy:    { animation: 'slash',      duration: 1.6, origin: 'sourceCard', targetReaction: 'crackDissolve', sound: 'death' },
   heal:       { animation: 'healStream', duration: 1.4, origin: 'sourceCard', targetReaction: 'glow',          sound: 'heal' },
+  cleanse:    { animation: 'healStream', duration: 1.2, origin: 'sourceCard', targetReaction: 'glow',          sound: 'heal' },
   buff:       { animation: 'buffSurge',  duration: 1.2, origin: 'sourceCard', targetReaction: 'pop',           sound: 'heal' },
   debuff:     { animation: 'debuffDrain',duration: 1.3, origin: 'sourceCard', targetReaction: 'darken',        sound: 'freeze' },
   curse:      { animation: 'curseMark',  duration: 1.5, origin: 'sourceCard', targetReaction: 'darken',        sound: 'curse' },

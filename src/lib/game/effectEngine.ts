@@ -222,6 +222,24 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
         else if (t.kind === 'artifact') api.destroyArtifact(g, t.side, t.uid)
       }
       break
+    case 'cleanse': {
+      // Vienkartinis būsenų nuėmimas (pvz. „kibiras vandens" nuima Degantį).
+      // cleanseStatuses tuščias => visos NEIGIAMOS (frozen/burning/poisoned/stunned/silenced).
+      const NEG: TutStatus[] = ['frozen', 'burning', 'poisoned', 'stunned', 'silenced']
+      const pick: TutStatus[] = (m.cleanseStatuses && m.cleanseStatuses.length > 0 ? m.cleanseStatuses : NEG) as TutStatus[]
+      const NAMES: Record<string, string> = { frozen: 'Sušaldytas', burning: 'Degantis', poisoned: 'Apnuodytas', stunned: 'Apsvaigintas', silenced: 'Nutildytas', blessed: 'Palaimintas' }
+      for (const t of targets) {
+        const f = findUnit(g, t)
+        if (!f) continue
+        const removed: string[] = []
+        for (const st of pick) {
+          if (f.u.statuses[st] != null) { delete f.u.statuses[st]; removed.push(NAMES[st] ?? st) }
+        }
+        if (removed.length > 0) api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, msg: `💧 „${f.u.card.name}" nuimtos būsenos: ${removed.join(', ')}.` })
+        else api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, msg: `💧 „${f.u.card.name}" nuimamų būsenų neturi.` })
+      }
+      break
+    }
     case 'silence': case 'freeze': case 'stun': case 'poison': case 'burn': {
       const map: Record<string, TutStatus> = { silence: 'silenced', freeze: 'frozen', stun: 'stunned', poison: 'poisoned', burn: 'burning' }
       for (const t of targets) { const f = findUnit(g, t); if (f) api.applyStatus(g, f.owner, f.u, map[m.effect]) }

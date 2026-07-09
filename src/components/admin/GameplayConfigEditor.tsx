@@ -772,6 +772,25 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                         onChange={(e) => setMapping(i, { value: Number(e.target.value) })} style={inputStyle} />
                     </div>
                   )}
+                  {m.effect === 'cleanse' && (
+                    <div>
+                      <label style={labelStyle} title="Kurias būsenas nuimti nuo taikinio. NIEKO nepažymėjus – nuimamos VISOS NEIGIAMOS (Sušaldytas/Degantis/Apnuodytas/Apsvaigintas/Nutildytas). Palaimintas – teigiama, žymėk tik jei nori dispel'inti priešo buffą.">Nuimamos būsenos</label>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        {([['frozen', '❄ Sušaldytas'], ['burning', '🔥 Degantis'], ['poisoned', '☠ Apnuodytas'], ['stunned', '✶ Apsvaigintas'], ['silenced', '✕ Nutildytas'], ['blessed', '✨ Palaimintas']] as const).map(([st, lbl]) => (
+                          <label key={st} className="flex items-center gap-1">
+                            <input type="checkbox" checked={(m.cleanseStatuses ?? []).includes(st)}
+                              onChange={(e) => {
+                                const cur = m.cleanseStatuses ?? []
+                                const next = e.target.checked ? [...cur, st] : cur.filter((x) => x !== st)
+                                setMapping(i, { cleanseStatuses: next.length ? next : undefined })
+                              }} className="w-3.5 h-3.5 accent-sky-400" />
+                            {lbl}
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Nieko nepažymėjus — visos neigiamos.</p>
+                    </div>
+                  )}
                   {(m.effect === 'buffAttack' || m.effect === 'buffHealth' || m.effect === 'takeControl') && (
                     <div>
                       <label style={labelStyle} title="Laikinas sustiprinimas nuiminėjamas ėjimo riboje">Trukmė</label>

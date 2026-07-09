@@ -53,7 +53,7 @@ export const TARGET_TYPES: { value: TargetType; label: string }[] = [
 // ── Efektų tipai ──────────────────────────────────────────────────────────────
 export type EffectType =
   | 'damage' | 'heal' | 'destroy'
-  | 'silence' | 'freeze' | 'stun' | 'poison' | 'burn'
+  | 'silence' | 'freeze' | 'stun' | 'poison' | 'burn' | 'cleanse'
   | 'taunt' | 'stealth' | 'shield' | 'sprint'
   | 'buffAttack' | 'buffHealth' | 'debuffAttack' | 'debuffHealth'
   | 'drawCards' | 'drawUntilHand' | 'discard'
@@ -89,6 +89,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'stealth',             label: 'Suteikti Sėlinimą',          needsValue: false, group: 'Statusai' },
   { value: 'shield',              label: 'Suteikti Magiškąjį skydą',   needsValue: false, group: 'Statusai' },
   { value: 'sprint',              label: 'Suteikti Sprintą',           needsValue: false, group: 'Statusai' },
+  { value: 'cleanse',             label: 'Nuimti būsenas (vienkartinis; pvz. vanduo nuima Degantį)', needsValue: false, group: 'Statusai' },
   // ── Statai ──
   { value: 'buffAttack',          label: '+ATK',                       needsValue: true,  group: 'Statai' },
   { value: 'buffHealth',          label: '+HP',                        needsValue: true,  group: 'Statai' },
@@ -356,6 +357,7 @@ export type EffectMapping = {
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   // ── Nauji card-mapping praplėtimai ──
   buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'  // buffAttack/buffHealth: laikinas boost; takeControl: valdymo trukmė
+  cleanseStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // cleanse: kurias būsenas nuimti; TUŠČIA = visos NEIGIAMOS
   reviveDestroyedTarget?: boolean   // then po destroy/onDeath: prikelti BŪTENT sunaikintą taikinį (ne atsitiktinį)
   reviveToSide?: 'own' | 'enemy'    // kam atitenka prikeltas padaras (default own)
   drawFromGraveyard?: boolean       // drawCards: traukti iš kapinyno (atsitiktinė), o ne iš kaladės
