@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Home, LayoutGrid, Layers, ShoppingBag, Menu, Bell, Settings } from 'lucide-react'
 import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
+import { LevelRoadModal } from '@/components/digital/LevelRoadModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
 import { ShopModal } from '@/components/digital/ShopModal'
@@ -39,6 +40,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 }) // reikšmės nebe rodomos čia (ShopModal pats traukia balansus)
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [levelRoadOpen, setLevelRoadOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -122,7 +124,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
         <div className="flex items-center gap-2 min-w-0 shrink-0">
-          {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setSettingsOpen(true) }} />}
+          {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
         </div>
         <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center">
           <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={balances.silver.toLocaleString('lt-LT')} accent="203,213,225" />
@@ -171,6 +173,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <ContentDownloadGate />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
+      {levelRoadOpen && <LevelRoadModal onClose={() => setLevelRoadOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
       {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={refreshWallet} />}
 
