@@ -28,7 +28,7 @@ export function MoreScreen() {
     if (loggingOut) return
     setLoggingOut(true); playUiClick()
     try { await createClient().auth.signOut() } catch { /* ignore */ }
-    router.push('/login?next=/digital')
+    router.push('/digital/login')
   }
 
   const doExit = async () => {
@@ -41,7 +41,7 @@ export function MoreScreen() {
     {
       title: 'Žaidimas',
       rows: [
-        { key: 'settings', label: 'Nustatymai', sub: 'Garsas, muzika, efektai', icon: Settings, img: 'fi-settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
+        { key: 'settings', label: 'Nustatymai', sub: 'Garsas, muzika, efektai', icon: Settings, img: 'settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
         { key: 'quests', label: 'Užduotys', sub: 'Dienos užduotys ir serija', icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); setQuestsOpen(true) } },
         { key: 'season', label: 'Sezono kelias', sub: 'Pakopos ir apdovanojimai', icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); setSeasonOpen(true) } },
       ],

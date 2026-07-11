@@ -17,6 +17,20 @@ import { getOnboardingState } from '@/lib/digital/onboarding'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+
+// Validuotas vidinis next kelias — TIK /digital keliai (jokių išorinių/portalo redirect'ų)
+export function safeDigitalNext(raw: string | null): string | null {
+  if (!raw) return null
+  try { const d = decodeURIComponent(raw); return /^\/digital(\/|$|\?)/.test(d) ? d : null } catch { return null }
+}
+function currentNext(): string | null {
+  if (typeof window === 'undefined') return null
+  return safeDigitalNext(new URLSearchParams(window.location.search).get('next'))
+}
+function withNext(href: string): string {
+  const n = currentNext()
+  return n ? `${href}?next=${encodeURIComponent(n)}` : href
+}
 const GOLD = '240,180,41'
 
 const inputStyle: React.CSSProperties = {
@@ -63,7 +77,8 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
 
   const afterAuth = async () => {
     const st = await getOnboardingState()
-    router.replace(st === 'done' ? '/digital' : '/digital/onboarding')
+    // onboarding pirmiau; baigusiems — prašytas /digital kelias arba home
+    router.replace(st === 'done' ? (currentNext() ?? '/digital') : '/digital/onboarding')
     router.refresh()
   }
 
@@ -226,16 +241,16 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
             </form>
             <div className="mt-2 text-center" style={{ fontSize: 11 }}>
               {isReg ? (
-                <Link href="/digital/login" onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
+                <Link href={withNext('/digital/login')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
                   Jau turi paskyrą? <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Prisijunk</span>
                 </Link>
               ) : (
-                <Link href="/digital/register" onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
+                <Link href={withNext('/digital/register')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
                   Naujas žaidėjas? <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Sukurk paskyrą</span>
                 </Link>
               )}
               {!isReg && (
-                <Link href="/forgot-password" className="block mt-1" style={{ color: 'var(--text-muted)', fontSize: 10 }}>Pamiršai slaptažodį?</Link>
+                <Link href="/digital/forgot-password" className="block mt-1" style={{ color: 'var(--text-muted)', fontSize: 10 }}>Pamiršai slaptažodį?</Link>
               )}
             </div>
           </>

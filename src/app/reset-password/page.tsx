@@ -46,7 +46,9 @@ export default function ResetPasswordPage() {
     if (updateError) { setError(updateError.message); return }
 
     setDone(true)
-    setTimeout(() => router.push('/login'), 2500)
+    const raw = new URLSearchParams(window.location.search).get('next')
+    const next = raw && decodeURIComponent(raw).startsWith('/') ? decodeURIComponent(raw) : '/login'
+    setTimeout(() => router.push(next), 2500)
   }
 
   const inputStyle = {

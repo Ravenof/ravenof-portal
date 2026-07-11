@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Edit2, Trash2, Copy, Plus, Lock, Globe, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess, playError, playCardFlip } from '@/lib/ui-sound'
 import { PlaytestButton } from '@/components/decks/PlaytestButton'
 import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
@@ -47,6 +48,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const flash = (m: string, err = false) => { (err ? playError : playSuccess)(); setToast(m) }
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2000); return () => clearTimeout(t) }, [toast])
 
+  const [loadSlow, setLoadSlow] = useState(false)
   const load = useCallback(async () => {
     const supabase = createClient()
     const [{ data: deckRows }, { data: colRows }] = await Promise.all([
@@ -128,7 +130,13 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
     } catch { flash('Nepavyko ištrinti', true) } finally { setBusy(null) }
   }
 
-  if (decks === null) return <p className="text-center text-sm py-16" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
+  useEffect(() => {
+    if (decks !== null) { setLoadSlow(false); return }
+    const t = setTimeout(() => setLoadSlow(true), 10_000)
+    return () => clearTimeout(t)
+  }, [decks])
+
+  if (decks === null) return <LoadingOrRetry timedOut={loadSlow} onRetry={() => { setLoadSlow(false); void load() }} />
 
   if (decks.length === 0) {
     return (

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,6 +12,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
+  const [regHref, setRegHref] = useState('/register')
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get('next')
+    if (!raw) return
+    const next = decodeURIComponent(raw)
+    if (!next.startsWith('/')) return
+    // digital srautas → digital registracija; kitur — next išsaugomas
+    setRegHref(next.startsWith('/digital') ? `/digital/register?next=${encodeURIComponent(next)}` : `/register?next=${encodeURIComponent(next)}`)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,17 +136,17 @@ export default function LoginPage() {
 
         <div className="text-center space-y-2">
           <a
-            href="/register"
+            href={regHref}
             className="block text-sm transition-opacity hover:opacity-90"
             style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)', fontSize: '12px', letterSpacing: '0.04em' }}
           >
             Neturi paskyros?{' '}
             <span style={{ color: 'var(--gold)' }}>Registruotis</span>
           </a>
-          <a href="/cards" className="block text-sm transition-opacity hover:opacity-70"
+          <Link href="/cards" className="block text-sm transition-opacity hover:opacity-70"
             style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
             Grįžti į kortų bazę
-          </a>
+          </Link>
         </div>
       </div>
     </div>

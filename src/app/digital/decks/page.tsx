@@ -33,7 +33,7 @@ const getCachedBuilderCards = unstable_cache(
 
 export default async function DigitalDecksPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCachedUser()
-  if (!user) redirect('/login?next=/digital/decks')
+  if (!user) redirect('/digital/login?next=/digital/decks')
 
   const params = await searchParams
   const deckId = params.deck ?? null

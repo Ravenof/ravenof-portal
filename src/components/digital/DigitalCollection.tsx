@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Search, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playCardFlip, playSuccess } from '@/lib/ui-sound'
 import { getCraftConfig, disenchantCard, craftCard, CRAFT_ERR_LT, type CraftConfig } from '@/lib/gamification/craft'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
@@ -84,6 +85,7 @@ export function DigitalCollection() {
     return () => ro.disconnect()
   }, [cards, loggedOut])
 
+  const [loadSlow, setLoadSlow] = useState(false)
   const load = useCallback(async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -167,17 +169,23 @@ export function DigitalCollection() {
   const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0)
   const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(false); setQ('') }
 
-  if (cards === null) return <p className="text-center text-sm py-16" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
+  useEffect(() => {
+    if (cards !== null) { setLoadSlow(false); return }
+    const t = setTimeout(() => setLoadSlow(true), 10_000)
+    return () => clearTimeout(t)
+  }, [cards])
 
   if (loggedOut) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
         <span style={{ fontSize: 40 }}>🎴</span>
         <div className="rvn-disp font-black uppercase" style={{ fontSize: 22, color: 'var(--gold)' }}>Kolekcija</div>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/digital/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
       </div>
     )
   }
+
+  if (cards === null) return <LoadingOrRetry timedOut={loadSlow} onRetry={() => { setLoadSlow(false); void load() }} />
 
   return (
     <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>

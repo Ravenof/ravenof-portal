@@ -6,7 +6,7 @@ export const metadata = { title: 'Draugai | Ravenof Digital' }
 
 export default async function DigitalFriendsPage() {
   const user = await getCachedUser()
-  if (!user) redirect('/login?next=/digital/friends')
+  if (!user) redirect('/digital/login?next=/digital/friends')
   return (
     <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
       <div className="text-center shrink-0">
