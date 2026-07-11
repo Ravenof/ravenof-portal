@@ -37,6 +37,8 @@ import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping,
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
+import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
+import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
@@ -493,6 +495,23 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
   const ring = picked ? '#22c55e' : selected ? '#f0b429' : targetable ? '#ef4444' : canAct ? 'rgba(74,222,128,0.7)' : 'transparent'
   const activeStatuses = Object.keys(u.statuses) as TutStatus[]
   const sGlow = activeStatuses.length ? STATUS_GLOW[activeStatuses[0]] : null
+  // Status VFX idle sąrašas (statusai + kortos flag'ai)
+  const vfxActive: VfxStatusId[] = [
+    ...activeStatuses,
+    ...(u.shield ? ['shield' as const] : []),
+    ...(u.stealth ? ['stealth' as const] : []),
+    ...(u.control ? ['control' as const] : []),
+    ...(!u.statuses.silenced && (u.card.keywords.includes('taunt') || !!u.auraKw?.includes('taunt')) ? ['taunt' as const] : []),
+  ]
+  // Ikonų sąrašas (vieninga eilė; >4 sutraukiama)
+  const tokenList: { title: string; node: React.ReactNode }[] = [
+    ...(u.control ? [{ title: 'Perimta kontrolė', node: <Token key="ctl" title={u.control.kind === 'endOfTurn' ? 'Perimtas iki ėjimo pabaigos' : 'Perimtas iki kito ėjimo pradžios'} color="#e879f9">🧠</Token> }] : []),
+    ...(u.shield ? [{ title: 'Magiškasis skydas', node: <Token key="sh" title="Magiškasis skydas: anuliuoja visą vienos atakos/efekto žalą, tada dingsta" color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token> }] : []),
+    ...(u.stealth ? [{ title: 'Sėlinimas', node: <Token key="st" title="Sėlinimas: priešas negali taikytis, kol šis padaras neatakuoja" color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token> }] : []),
+    ...((!u.statuses.silenced && u.card.keywords.includes('taunt')) ? [{ title: 'Pasišaipymas', node: <Token key="tn" title="Pasišaipymas: priešo padarai privalo pulti šį padarą pirmiau" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token> }] : []),
+    ...((!u.statuses.silenced && (u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')) && u.summonedOnTurn === g.globalTurn) ? [{ title: 'Sprintas', node: <Token key="sp" title="Sprintas: gali atakuoti iškvietimo ėjimą" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token> }] : []),
+    ...activeStatuses.map((st) => ({ title: STATUS_META[st].name, node: <Token key={st} title={STATUS_META[st].name} color={STATUS_GLOW[st]} icon={ICON_BASE + STATUS_ICON[st] + '.webp'}>{STATUS_META[st].icon}</Token> })),
+  ]
   return (
     <motion.button
       layout
@@ -539,16 +558,14 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
             style={{ display: 'inline-block', background: 'rgba(0,0,0,0.85)', color: hpDisp < u.maxHp ? '#fbbf24' : '#4ade80' }}>{hpDisp}</motion.span>
         </div>
       </div>
-      {/* žetonai: būsenos + skydas + sėlinimas + pasišaipymas */}
-      <div className="absolute -top-2 inset-x-0 flex justify-center gap-0.5 pointer-events-none flex-wrap">
-        {u.control && <Token title={u.control.kind === 'endOfTurn' ? 'Perimtas iki ėjimo pabaigos' : 'Perimtas iki kito ėjimo pradžios'} color="#e879f9">🧠</Token>}
-        {u.shield && <Token title="Magiškasis skydas" color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token>}
-        {u.stealth && <Token title="Sėlinimas" color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token>}
-        {!u.statuses.silenced && u.card.keywords.includes('taunt') && <Token title="Pasišaipymas" color="#c9882f" icon={ICON_BASE + 'taunt.webp'}>⊙</Token>}
-        {!u.statuses.silenced && (u.card.keywords.includes('sprint') || !!u.auraKw?.includes('sprint')) && u.summonedOnTurn === g.globalTurn && <Token title="Sprintas (aktyvus tik iškvietimo ėjimą)" color="#5fae6a" icon={ICON_BASE + 'sprint.webp'}>»</Token>}
-        {activeStatuses.map((s) => (
-          <Token key={s} title={STATUS_META[s].name} color={STATUS_GLOW[s]} icon={ICON_BASE + STATUS_ICON[s] + '.webp'}>{STATUS_META[s].icon}</Token>
-        ))}
+      {/* ── Status VFX sluoksnis (idle + one-shot; inkaruota prie kortos) ── */}
+      <CardStatusVfxLayer uid={u.uid} active={vfxActive} />
+      {/* žetonai: būsenos + skydas + sėlinimas + pasišaipymas (>4 → +N su bendru tooltip) */}
+      <div className="absolute -top-2 inset-x-0 flex justify-center gap-0.5 pointer-events-none flex-wrap" style={{ zIndex: 30 }}>
+        {tokenList.slice(0, 4).map((tk) => tk.node)}
+        {tokenList.length > 4 && (
+          <Token title={tokenList.slice(4).map((tk) => tk.title).join(' · ')} color="#f0b429">+{tokenList.length - 4}</Token>
+        )}
       </div>
     </motion.button>
   )
@@ -1273,8 +1290,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── Naujų įvykių apdorojimas: garsai, ŽMK, patarimai, žingsnių progresas ──
   useEffect(() => {
     if (!game) return
+    const seenStart = seenRef.current
     const fresh = game.log.slice(seenRef.current)
     seenRef.current = game.log.length
+    // ── Status VFX: struktūrizuoti būsenų įvykiai → bus (seq = log indeksas, dedup) ──
+    fresh.forEach((e, i) => {
+      if (e.statusEvt && e.statusId && e.src?.uid) {
+        publishStatusVfx({ seq: seenStart + i, type: e.statusEvt, cardId: e.src.uid, statusId: e.statusId as VfxStatusId, value: e.value })
+      }
+    })
     if (tutorial?.active && tutorial.onEvents && fresh.length) { try { tutorial.onEvents(fresh, game) } catch (e) { console.error('[tutorial] onEvents', e) } }
     let zmkN = 0
     let drawSeq = 0
@@ -2025,7 +2049,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (!v.ok) { if (v.hint) pushToast(v.hint); return prev }
       }
       const r = applyNetAction(g, a)
-      if (r && !r.ok) { pushToast(r.reason ?? 'Veiksmas negalimas'); return prev }
+      if (r && !r.ok) {
+        pushToast(r.reason ?? 'Veiksmas negalimas')
+        // Status VFX: bandymas veikti su frozen/stunned → trigger animacija ant kortos
+        const aid = (a as { uid?: string; attackerUid?: string }).attackerUid ?? (a as { uid?: string }).uid
+        if (aid && r.reason) {
+          const st = r.reason.includes('sušaldytas') || r.reason.includes('❄') ? 'frozen' : r.reason.includes('apsvaigintas') || r.reason.includes('✦') ? 'stunned' : null
+          if (st) publishStatusVfx({ seq: -(Date.now() * 4 + Math.floor(Math.random() * 4)), type: 'trigger', cardId: aid, statusId: st })
+        }
+        return prev
+      }
       return g
     })
   }, [isGuest, pushToast, tutorial])

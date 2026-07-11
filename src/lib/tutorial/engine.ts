@@ -165,6 +165,10 @@ export type GameEvent = {
   zmkPicked?: ZmkValue
   bias?: RollBias
   status?: TutStatus
+  /** Status VFX sistema: struktūrizuotas būsenos įvykis (žr. statusVfx.ts) */
+  statusEvt?: 'apply' | 'trigger' | 'remove' | 'destroy'
+  /** Status VFX: platesnis nei TutStatus (shield/stealth/control/...) */
+  statusId?: string
   coin?: 'green' | 'red'
   /** Animacijoms: šaltinis (kortos uid arba žaidėjas) */
   src?: { side: Side; uid?: string }
@@ -672,7 +676,7 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
 function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk = true, overflow = false) {
   if (target.shield) {
     target.shield = false
-    log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja žalą „${target.card.name}" – ŽMK netraukiama.` })
+    log(g, { t: 'damage', side: owner, cardName: target.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: owner, uid: target.uid }, msg: `✦★ Magiškasis skydas anuliuoja žalą „${target.card.name}" – ŽMK netraukiama.` })
     return
   }
   const base2 = base + spellAuraBonusFor(g, actor)
@@ -1066,7 +1070,7 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
   // Degantis/Apnuodytas/Nutildytas/Palaimintas – kol pašalins efektas (PERMANENT)
   const until = st === 'burning' || st === 'poisoned' || st === 'silenced' || st === 'blessed' ? PERMANENT : p.turnNumber + 1
   u.statuses[st] = until
-  log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
+  log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, statusEvt: 'apply', statusId: st, src: { side: owner, uid: u.uid }, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
   fireGlobalListeners(g, 'onAnyStatus', { side: owner })
   if (st === 'silenced') {
     // Nutildymas nuima VISUS efektus: skydą, sėlinimą, raktažodžius (per patikras) ir
@@ -1158,7 +1162,7 @@ function takeControlUnitPrim(g: GameState, newOwner: Side, owner: Side, u: Board
   if (duration === 'permanent') delete u.control
   else u.control = { from: owner, kind: duration, turn: to.turnNumber }
   const durTxt = duration === 'permanent' ? 'visam laikui' : duration === 'endOfTurn' ? 'iki ėjimo pabaigos' : 'iki kito savo ėjimo pradžios'
-  log(g, { t: 'buff', side: newOwner, cardName: u.card.name, msg: `🧠 „${srcName}": ${sideName(newOwner)} ${newOwner === 'you' ? 'perimi' : 'perima'} „${u.card.name}" ${durTxt}!`, sound: 'summon', src: { side: newOwner, uid: u.uid } })
+  log(g, { t: 'buff', side: newOwner, cardName: u.card.name, statusEvt: 'apply', statusId: 'control', msg: `🧠 „${srcName}": ${sideName(newOwner)} ${newOwner === 'you' ? 'perimi' : 'perima'} „${u.card.name}" ${durTxt}!`, sound: 'summon', src: { side: newOwner, uid: u.uid } })
   recomputeAuras(g)
 }
 
@@ -1185,7 +1189,7 @@ function expireControl(g: GameState, s: Side, phase: 'beginTurn' | 'endTurn') {
     back.units[slot] = u
     u.attacksUsed = 0
     moved = true
-    log(g, { t: 'buff', side: c.from, cardName: u.card.name, msg: `🧠 Kontrolė baigėsi – „${u.card.name}" grįžta ${sideName(c.from)} pusėn.`, src: { side: c.from, uid: u.uid } })
+    log(g, { t: 'buff', side: c.from, cardName: u.card.name, statusEvt: 'remove', statusId: 'control', msg: `🧠 Kontrolė baigėsi – „${u.card.name}" grįžta ${sideName(c.from)} pusėn.`, src: { side: c.from, uid: u.uid } })
   }
   if (moved) recomputeAuras(g)
 }
@@ -1988,7 +1992,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
       const until = u.statuses[k]
       if (until !== undefined && until !== PERMANENT && p.turnNumber >= until) {
         delete u.statuses[k]
-        log(g, { t: 'status', side: s, cardName: u.card.name, status: k, msg: `„${u.card.name}" atsigauna – būsena ${STATUS_META[k].name} baigėsi.` })
+        log(g, { t: 'status', side: s, cardName: u.card.name, status: k, statusEvt: 'remove', statusId: k, src: { side: s, uid: u.uid }, msg: `„${u.card.name}" atsigauna – būsena ${STATUS_META[k].name} baigėsi.` })
       }
     }
   }
@@ -2025,12 +2029,12 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   for (const u of [...p.units]) {
     if (!u) continue
     if (u.statuses.burning) {
-      log(g, { t: 'status', side: s, cardName: u.card.name, status: 'burning', msg: `🔥 „${u.card.name}" dega – 1 bazinė žala.` })
+      log(g, { t: 'status', side: s, cardName: u.card.name, status: 'burning', statusEvt: 'trigger', statusId: 'burning', src: { side: s, uid: u.uid }, msg: `🔥 „${u.card.name}" dega – 1 bazinė žala.` })
       dealToUnit(g, u, s, 1, s)
     }
     const stillAlive = p.units.some((x) => x?.uid === u.uid)
     if (stillAlive && u.statuses.poisoned) {
-      log(g, { t: 'status', side: s, cardName: u.card.name, status: 'poisoned', msg: `☠ „${u.card.name}" apnuodytas – 1 bazinė žala.` })
+      log(g, { t: 'status', side: s, cardName: u.card.name, status: 'poisoned', statusEvt: 'trigger', statusId: 'poisoned', src: { side: s, uid: u.uid }, msg: `☠ „${u.card.name}" apnuodytas – 1 bazinė žala.` })
       dealToUnit(g, u, s, 1, s)
     }
   }
@@ -2549,8 +2553,8 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   g.rollContext = { kind: 'attack', actor: s, poisonedSides: { you: false, ai: false }, blessedSides: { you: false, ai: false } }
   if (g.rollContext.poisonedSides) g.rollContext.poisonedSides[s] = !!u.statuses.poisoned
   if (g.rollContext.blessedSides) g.rollContext.blessedSides[s] = !!u.statuses.blessed
-  if (u.statuses.blessed) { delete u.statuses.blessed; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `"${u.card.name}" Palaiminimas panaudotas - ataka palanki (advantage).` }) }
-  if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, msg: `◑ „${u.card.name}" Sėlinimas baigiasi po atakos.` }) }
+  if (u.statuses.blessed) { delete u.statuses.blessed; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'destroy', statusId: 'blessed', src: { side: s, uid: u.uid }, msg: `"${u.card.name}" Palaiminimas panaudotas - ataka palanki (advantage).` }) }
+  if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'remove', statusId: 'stealth', src: { side: s, uid: u.uid }, msg: `◑ „${u.card.name}" Sėlinimas baigiasi po atakos.` }) }
   const foe: Side = ('side' in target) ? target.side : other(s)  // 2v2: gynėjas pagal taikinio seat'ą
   const atk = effectiveAtk(g, u)
   const unfav = !!u.statuses.poisoned // Apnuodytas puola nepalankiai
@@ -2590,7 +2594,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     // abu žalą daro vienu metu: puolančiojo žala gynėjui
     if (def.shield) {
       def.shield = false
-      log(g, { t: 'damage', side: foe, cardName: def.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja žalą „${def.card.name}".` })
+      log(g, { t: 'damage', side: foe, cardName: def.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: foe, uid: def.uid }, msg: `✦★ Magiškasis skydas anuliuoja žalą „${def.card.name}".` })
     } else {
       const dmg = rollDamage(g, s, atk, ctxBias(g, s))
       def.hp -= dmg
@@ -2600,7 +2604,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     if (defRetaliates) {
       if (u.shield) {
         u.shield = false
-        log(g, { t: 'damage', side: s, cardName: u.card.name, value: 0, msg: `✦★ Magiškasis skydas anuliuoja atgalinę žalą „${u.card.name}".` })
+        log(g, { t: 'damage', side: s, cardName: u.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: s, uid: u.uid }, msg: `✦★ Magiškasis skydas anuliuoja atgalinę žalą „${u.card.name}".` })
       } else {
         const back = rollDamage(g, foe, defAtk, ctxBias(g, foe))
         u.hp -= back

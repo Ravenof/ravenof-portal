@@ -246,7 +246,11 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
         if (!f) continue
         const removed: string[] = []
         for (const st of pick) {
-          if (f.u.statuses[st] != null) { delete f.u.statuses[st]; removed.push(NAMES[st] ?? st) }
+          if (f.u.statuses[st] != null) {
+            delete f.u.statuses[st]; removed.push(NAMES[st] ?? st)
+            // Status VFX: kiekvienai nuimtai būsenai atskiras destroy įvykis
+            api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, statusEvt: 'destroy', statusId: st, src: { side: f.owner, uid: f.u.uid }, msg: `💧 ${NAMES[st] ?? st} nuimta.` })
+          }
         }
         if (removed.length > 0) api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, msg: `💧 „${f.u.card.name}" nuimtos būsenos: ${removed.join(', ')}.` })
         else api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, msg: `💧 „${f.u.card.name}" nuimamų būsenų neturi.` })
@@ -266,7 +270,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
         else if (m.effect === 'stealth') f.u.stealth = true
         else if (m.effect === 'sprint') { if (!f.u.card.keywords.includes('sprint')) f.u.card.keywords.push('sprint') }
         else if (!f.u.card.keywords.includes('taunt')) f.u.card.keywords.push('taunt')
-        api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, msg: `„${f.u.card.name}" gauna ${m.effect === 'shield' ? '✦★ Magiškąjį skydą' : m.effect === 'stealth' ? '◑ Sėlinimą' : m.effect === 'sprint' ? '▶ Sprintą' : '⊙ Pasišaipymą'}.` })
+        api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, statusEvt: 'apply', statusId: m.effect, src: { side: f.owner, uid: f.u.uid }, msg: `„${f.u.card.name}" gauna ${m.effect === 'shield' ? '✦★ Magiškąjį skydą' : m.effect === 'stealth' ? '◑ Sėlinimą' : m.effect === 'sprint' ? '▶ Sprintą' : '⊙ Pasišaipymą'}.` })
       }
       break
     case 'buffAttack':
