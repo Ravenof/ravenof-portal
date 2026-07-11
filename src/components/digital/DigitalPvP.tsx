@@ -31,6 +31,7 @@ export function DigitalPvP() {
   const [friends, setFriends] = useState<Friend[]>([])
   const [mode, setMode] = useState<Mode>('random')
   const [selFriend, setSelFriend] = useState<string>('')  // Friend.userId
+  const [friendQ, setFriendQ] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [room, setRoom] = useState<Match | null>(null)
   const [status, setStatus] = useState('')
@@ -171,7 +172,7 @@ export function DigitalPvP() {
     !deck ? { label: 'PASIRINK TINKAMĄ KALADĘ', disabled: true }
     : room ? { label: 'LAUKIAMA VARŽOVO…', disabled: true }
     : mode === 'random' ? { label: 'IEŠKOTI VARŽOVO', disabled: busy, action: findRandom }
-    : mode === 'friend' ? (!selFriend ? { label: 'PASIRINK DRAUGĄ', disabled: true } : { label: 'SIŲSTI KVIETIMĄ', disabled: busy, action: inviteFriend })
+    : mode === 'friend' ? (!selFriend ? { label: 'PASIRINK DRAUGĄ', disabled: true } : { label: `PAKVIESTI ${(friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || 'DRAUGĄ').toUpperCase()}`, disabled: busy, action: inviteFriend })
     : joinCode.trim() ? { label: 'PRISIJUNGTI', disabled: busy, action: joinByCode }
     : { label: 'SUKURTI KAMBARĮ', disabled: busy, action: createRoom }
 
@@ -233,22 +234,19 @@ export function DigitalPvP() {
                 <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rangas nesikeičia · Pergalė: +100 aukso · numatomas laukimas &lt; 30 s.</p>
               </div>
             ) : mode === 'friend' ? (
-              <div className="flex flex-col gap-1.5">
-                <div className="rvn-disp uppercase shrink-0" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Draugų sąrašas</div>
-                {friends.length === 0 && <p style={{ fontSize: 11, color: 'var(--text-muted)' }} className="text-center py-3">Neturi draugų. Pridėk skiltyje „Draugai&quot;.</p>}
-                {friends.map((f) => {
-                  const s = f.userId === selFriend
-                  return (
-                    <button key={f.id} onClick={() => { playUiClick(); setSelFriend(f.userId) }} className="rvn-press flex items-center gap-2 rounded-lg px-2 py-1 text-left shrink-0"
-                      style={{ border: s ? '1.5px solid rgba(34,197,94,0.7)' : '1px solid rgba(255,255,255,0.08)', background: s ? 'rgba(34,197,94,0.12)' : 'rgba(10,8,16,0.6)' }}>
-                      <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
-                        {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span>🙂</span>}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.displayName || f.username}</span>
-                      {s ? <span style={{ color: '#86efac', fontSize: 14 }}>✓</span> : <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Pasirinkti</span>}
-                    </button>
-                  )
-                })}
+              <div className="flex flex-col items-center justify-center gap-1.5 h-full text-center px-3">
+                <span style={{ fontSize: 34 }}>👥</span>
+                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>Pakviesk draugą</div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>Pasirink draugą sąraše dešinėje — jis gaus kvietimą į kovą. Rangas nesikeičia · Pergalė: +100 aukso.</p>
+                {(() => { const f = friends.find((x) => x.userId === selFriend); return f ? (
+                  <div className="mt-1 flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ border: '1.5px solid rgba(34,197,94,0.7)', background: 'rgba(34,197,94,0.1)' }}>
+                    <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span>🙂</span>}
+                    </span>
+                    <span className="rvn-disp font-bold" style={{ fontSize: 13, color: '#86efac' }}>✓ {f.displayName || f.username}</span>
+                  </div>
+                ) : null })()}
               </div>
             ) : (
               <div className="flex flex-col gap-2 h-full justify-center">
@@ -261,7 +259,47 @@ export function DigitalPvP() {
 
         {/* DEŠINĖ: Kovos santrauka */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Kovos santrauka</div>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{mode === 'friend' && !room ? `Draugai (${friends.length})` : 'Kovos santrauka'}</div>
+          {mode === 'friend' && !room ? (
+            <div className="flex-1 min-h-0 flex flex-col gap-1.5" data-testid="friend-panel">
+              <input value={friendQ} onChange={(e) => setFriendQ(e.target.value)} placeholder="🔍 Ieškoti draugo…" aria-label="Ieškoti draugo"
+                className="shrink-0 outline-none rounded-lg px-2.5" style={{ minHeight: 32, fontSize: 11.5, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }} />
+              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1" style={{ minHeight: 60 }}>
+                {friends.length === 0 && <p className="text-center py-4" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Neturi draugų. Pridėk skiltyje „Draugai&quot;.</p>}
+                {friends
+                  .filter((f) => { const q = friendQ.trim().toLowerCase(); return !q || f.username.toLowerCase().includes(q) || (f.displayName ?? '').toLowerCase().includes(q) })
+                  .sort((a, b) => {
+                    const rank = (x: typeof a) => x.presence === 'online' ? 0 : x.presence === 'away' ? 1 : x.presence === 'dnd' ? 2 : 3
+                    return rank(a) - rank(b) || a.username.localeCompare(b.username)
+                  })
+                  .map((f) => {
+                    const sel = f.userId === selFriend
+                    const pres = f.presence ?? (f.online ? 'online' : 'offline')
+                    const pc = pres === 'online' ? '#34d399' : pres === 'away' ? '#fbbf24' : pres === 'dnd' ? '#ef4444' : '#64748b'
+                    const pn = pres === 'online' ? 'Prisijungęs' : pres === 'away' ? 'Pasitraukęs' : pres === 'dnd' ? 'Netrukdyti' : 'Neprisijungęs'
+                    return (
+                      <button key={f.id} data-testid={`invite-friend-${f.username}`} onClick={() => { playUiClick(); setSelFriend(sel ? '' : f.userId) }}
+                        className="rvn-press w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left shrink-0"
+                        style={{ border: sel ? '1.5px solid rgba(34,197,94,0.8)' : '1px solid rgba(255,255,255,0.08)', background: sel ? 'rgba(34,197,94,0.12)' : 'rgba(10,8,16,0.6)' }}>
+                        <span className="relative shrink-0">
+                          <span className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden inline-flex" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span>🙂</span>}
+                          </span>
+                          <span className="absolute -bottom-0.5 -right-0.5 rounded-full" title={pn} style={{ width: 10, height: 10, background: pc, border: '2px solid #0d0a14' }} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.displayName || f.username}</span>
+                          <span className="block truncate" style={{ fontSize: 9.5, color: pc }}>{pn}</span>
+                        </span>
+                        {sel && <span style={{ color: '#86efac', fontSize: 14 }}>✓</span>}
+                      </button>
+                    )
+                  })}
+              </div>
+              <p className="shrink-0 text-center" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Rangas nesikeičia · Pergalė: +100 aukso</p>
+            </div>
+          ) : (
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2" style={{ fontSize: 'clamp(10px,1.4vh,13px)' }}>
             {([['🃏', 'Tavo kaladė', deck?.name ?? '—', 'var(--gold)'], ['🛡', 'Režimas', 'Draugiška', '#86efac'], ['◆', 'Rangas', 'nesikeičia', 'var(--text-secondary)'], ['🪙', 'Atlygis', '+100 aukso', 'var(--gold)'], ['⚔', 'Priešininkas', oppSummary, '#fdba74']] as [string, string, string, string][]).map(([ic, l, v, c], i) => (
               <div key={i} className="flex items-center gap-2">
@@ -271,6 +309,7 @@ export function DigitalPvP() {
               </div>
             ))}
           </div>
+          )}
           {/* CTA — panelės apačioje (kaip Ranked/Treniruotėje), visada matomas */}
           <div className="shrink-0 mt-2 flex flex-col gap-1.5">
             <button disabled={cta.disabled} onClick={cta.action} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"

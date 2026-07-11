@@ -177,7 +177,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           <div className="px-3 pt-2.5 pb-1.5 shrink-0">
             <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Sezono progresas</span>
           </div>
-          <div className="flex-1 min-h-0 px-3 py-1 flex flex-col items-center justify-center gap-2 text-center">
+          <div className="flex-1 min-h-0 px-3 py-1 flex flex-col items-center justify-center text-center overflow-hidden" style={{ gap: 'clamp(3px,0.9vh,8px)' }}>
             <RvnIcon name="seg-season" size={48} fallback={<span style={{ fontSize: 30 }}>📜</span>} />
             <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>Pakopa {season.cur}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
             <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.2)' }}>
@@ -185,15 +185,15 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             </div>
             <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Kita pakopa: <span style={{ color: '#c4b5fd' }}>Pakopa {Math.min(season.cur + 1, season.total)}</span></span>
             {nextReward.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-1">
+              <div className="flex flex-wrap justify-center gap-1 shrink-0 overflow-hidden" style={{ maxHeight: '2.2em' }}>
                 {nextReward.slice(0, 3).map((it, i) => { const c = rewardChip(it); return (
                   <span key={i} className="px-1.5 py-0.5 rounded-md" style={{ fontSize: 9.5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.35)', color: '#e8dcc0' }}>{c.icon} {c.label}</span>
                 ) })}
               </div>
             )}
           </div>
-          <div className="p-2.5 pt-1.5 flex flex-col gap-1.5">
-            <button onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
+          <div className="p-2.5 pt-1.5 flex flex-col gap-1.5 shrink-0 relative" style={{ zIndex: 2, background: 'inherit' }}>
+            <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
               style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#6b3fa0,#3a2160)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#c4b5fd', boxShadow: seasonClaimable > 0 ? '0 0 18px rgba(139,92,246,0.4)' : 'none' }}>
               {seasonClaimable > 0 ? `ATSIIMTI (${seasonClaimable})` : 'PERŽIŪRĖTI TAKĄ'}
             </button>

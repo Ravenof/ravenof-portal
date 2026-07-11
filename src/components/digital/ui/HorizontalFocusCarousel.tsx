@@ -42,18 +42,23 @@ export function HorizontalFocusCarousel<T>({ items, keyOf, renderItem, focus, on
     el.scrollTo({ left: ch.offsetLeft + ch.offsetWidth / 2 - el.clientWidth / 2, behavior: smooth && !rm ? 'smooth' : 'auto' })
   }, [rm])
 
-  // pradinis centravimas + fokuso sekimas iš išorės
+  // Fokuso kilmė: 'scroll' (vartotojas slenka — NErecentruojam programiškai,
+  // scroll-snap pats sutvarko) vs 'api' (strėlės/klaviatūra/click/init — centruojam).
+  const focusOrigin = useRef<'api' | 'scroll'>('api')
   const mounted = useRef(false)
   useEffect(() => {
+    if (focusOrigin.current === 'scroll') { focusOrigin.current = 'api'; return }
     requestAnimationFrame(() => scrollToIdx(focus, mounted.current))
     mounted.current = true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus, items.length])
 
+  const scrollRaf = useRef(0)
   const onScroll = useCallback(() => {
     const el = railRef.current
     if (!el) return
-    requestAnimationFrame(() => {
+    cancelAnimationFrame(scrollRaf.current)
+    scrollRaf.current = requestAnimationFrame(() => {
       const mid = el.scrollLeft + el.clientWidth / 2
       let best = 0; let bestD = Infinity
       Array.from(el.children).forEach((ch, i) => {
@@ -61,7 +66,7 @@ export function HorizontalFocusCarousel<T>({ items, keyOf, renderItem, focus, on
         const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid)
         if (d < bestD) { bestD = d; best = i }
       })
-      if (best !== focus) onFocus(best)
+      if (best !== focus) { focusOrigin.current = 'scroll'; onFocus(best) }
     })
   }, [focus, onFocus])
 
@@ -73,6 +78,7 @@ export function HorizontalFocusCarousel<T>({ items, keyOf, renderItem, focus, on
 
   return (
     <div className={'relative min-w-0 ' + (className ?? '')}>
+      <style>{`.rvn-hfc-rail::-webkit-scrollbar{display:none}`}</style>
       <div ref={railRef} onScroll={onScroll}
         role="listbox" aria-label={ariaLabel} tabIndex={0}
         onKeyDown={(e) => {
@@ -90,9 +96,8 @@ export function HorizontalFocusCarousel<T>({ items, keyOf, renderItem, focus, on
         }}
         onMouseUp={() => setTimeout(() => { drag.current = null }, 0)}
         onWheel={(e) => { const el = railRef.current; if (el && Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY }}
-        className="flex items-center overflow-x-auto outline-none"
+        className="rvn-hfc-rail flex items-center overflow-x-auto outline-none"
         style={{ gap, scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingLeft: edgePad, paddingRight: edgePad, WebkitOverflowScrolling: 'touch' }}>
-        <style>{`[role="listbox"]::-webkit-scrollbar{display:none}`}</style>
         {items.map((it, i) => {
           const dist = Math.abs(i - focus)
           const scale = dist === 0 ? 1 : dist === 1 ? 0.85 : 0.75

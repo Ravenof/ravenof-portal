@@ -21,18 +21,19 @@ import { useEscClose } from '@/lib/useEscClose'
 
 const GOLD = '240,180,41'
 
-function DeckTile({ d, active, focused }: { d: ActiveDeckInfo; active: boolean; focused: boolean }) {
+function DeckTile({ d, active, focused, pending }: { d: ActiveDeckInfo; active: boolean; focused: boolean; pending: boolean }) {
   const v = deckValidity(d)
   const col = d.factionColor ?? '#f0b429'
   return (
-    <div className="relative overflow-hidden" style={{ aspectRatio: '3/4', borderRadius: 14,
-      border: `2px solid ${focused ? col : 'rgba(255,255,255,0.14)'}`,
-      boxShadow: focused ? `0 10px 30px rgba(0,0,0,0.7), 0 0 22px ${col}55` : '0 6px 18px rgba(0,0,0,0.55)',
+    <div className="relative overflow-hidden" data-pending={pending || undefined} style={{ aspectRatio: '3/4', borderRadius: 14,
+      border: `2px solid ${pending ? '#4ade80' : focused ? col : 'rgba(255,255,255,0.14)'}`,
+      boxShadow: pending ? `0 10px 30px rgba(0,0,0,0.7), 0 0 22px rgba(74,222,128,0.5), inset 0 0 0 1.5px rgba(74,222,128,0.8)` : focused ? `0 10px 30px rgba(0,0,0,0.7), 0 0 22px ${col}55` : '0 6px 18px rgba(0,0,0,0.55)',
       background: `linear-gradient(165deg, ${col}22, #0d0a14 70%)` }}>
       <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.5 }}>
         {d.factionIcon ? <SmartImg src={d.factionIcon} width={140} alt="" style={{ width: '52%', objectFit: 'contain' }} /> : <span style={{ fontSize: 40 }}>🎴</span>}
       </div>
       {active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: 8.5, background: 'rgba(52,211,153,0.92)', color: '#06281c' }}>★ AKTYVI</span>}
+      {pending && !active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: 8.5, background: 'rgba(74,222,128,0.25)', border: '1px solid rgba(74,222,128,0.8)', color: '#4ade80' }}>✓ PASIRINKTA</span>}
       {d.boundAvatar && <span className="absolute top-1.5 right-1.5" title="Kaladė turi savo avatarą" style={{ fontSize: 12 }}>👤</span>}
       <div className="absolute inset-x-0 bottom-0 px-2 pt-5 pb-1.5" style={{ background: 'linear-gradient(0deg, rgba(5,4,9,0.97) 55%, transparent)' }}>
         <p className="font-extrabold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={d.name}>{d.name}</p>
@@ -47,6 +48,8 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
   const router = useRouter()
   const st = useActiveDeck()
   const [focus, setFocus] = useState(0)
+  // ATSKIRTOS būsenos: persisted (serveris) / focused (centre) / pending (sąmoningai pažymėta)
+  const [pendingId, setPendingId] = useState<string | null>(null)
   const [avatars, setAvatars] = useState<Cosmetic[]>([])
   const [avatarPick, setAvatarPick] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -71,11 +74,12 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
   const boundAvatarObj = useMemo(() => avatars.find((a) => a.id === cur?.boundAvatar) ?? null, [avatars, cur?.boundAvatar])
 
   const setActive = async () => {
-    if (!cur || busy || isActive) return
+    const target = st.decks.find((d) => d.id === (pendingId ?? cur?.id)) ?? cur
+    if (!target || busy || target.id === st.activeDeckId) return
     setBusy(true)
-    const r = await st.setActive(cur.id)
+    const r = await st.setActive(target.id)
     setBusy(false)
-    if (r.ok) { playSuccess() } else playError()
+    if (r.ok) { playSuccess(); setPendingId(null) } else playError()
   }
 
   if (typeof document === 'undefined') return null
@@ -103,9 +107,10 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
             {/* karuselė */}
             <div className="shrink-0">
               <HorizontalFocusCarousel
-                items={st.decks} keyOf={(d) => d.id} focus={focus} onFocus={setFocus} onPick={() => void setActive()}
+                items={st.decks} keyOf={(d) => d.id} focus={focus} onFocus={setFocus}
+                onPick={(d) => { setPendingId(d.id) }}
                 itemWidth={150} ariaLabel="Kaladės" edgePad="34%"
-                renderItem={(d, { focused }) => <DeckTile d={d} active={d.id === st.activeDeckId} focused={focused} />} />
+                renderItem={(d, { focused }) => <DeckTile d={d} active={d.id === st.activeDeckId} focused={focused} pending={d.id === pendingId} />} />
             </div>
 
             {/* detalės + veiksmai */}
@@ -118,12 +123,12 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
                     <p data-testid="deck-validity" className="mt-0.5 font-bold" style={{ fontSize: 11.5, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? '✓ Paruošta kovai' : `⚠ ${v.reason}`}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <button data-testid="set-active" onClick={() => void setActive()} disabled={busy || isActive}
+                    <button data-testid="set-active" onClick={() => void setActive()} disabled={busy || (pendingId ?? cur.id) === st.activeDeckId}
                       className="rvn-press px-4 rounded-xl font-extrabold disabled:opacity-50"
                       style={{ height: 40, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)',
                         background: isActive ? 'rgba(52,211,153,0.16)' : 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)',
                         color: isActive ? '#4ade80' : '#3a2406', border: isActive ? '1px solid rgba(52,211,153,0.5)' : '1px solid #ffeaa6' }}>
-                      {isActive ? '★ AKTYVI' : busy ? 'Saugoma…' : '★ NUSTATYTI AKTYVIA'}
+                      {(pendingId ?? cur.id) === st.activeDeckId ? '★ AKTYVI' : busy ? 'Saugoma…' : '★ NUSTATYTI AKTYVIA'}
                     </button>
                     <button onClick={() => { playUiClick(); onClose(); router.push('/digital/decks?tab=builder&deck=' + cur.id) }}
                       className="rvn-press px-4 rounded-xl font-bold" style={{ height: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#e8dfc8' }}>
