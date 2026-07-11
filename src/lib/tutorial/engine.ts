@@ -1065,10 +1065,17 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
     return
   }
   const p = P(g, owner)
-  // Sušaldytas/Apsvaigintas: nuimama savininko KITO ėjimo PRADŽIOJE (žr. seatBeginTurn) —
-  // veikia likusį šį ėjimą + visą priešininko ėjimą, bet naujo savo ėjimo nebekausto.
+  // Sušaldytas/Apsvaigintas — trukmė priklauso nuo to, KADA uždėta:
+  //  • savininko ėjime (pvz. užšaldai SAVO padarą): veikia likusį šį ėjimą + visą
+  //    priešininko ėjimą; nuimama savininko KITO ėjimo PRADŽIOJE (integer until).
+  //  • ne savininko ėjime (pvz. užšaldai PRIEŠO padarą savo ėjime): veikia likusį
+  //    tavo ėjimą + VISĄ jo ateinantį ėjimą; nuimama TO ėjimo PABAIGOJE (until x.5),
+  //    tad tavo kitame ėjime jis jau laisvas (gali atsakyti į atakas).
   // Degantis/Apnuodytas/Nutildytas/Palaimintas – kol pašalins efektas (PERMANENT)
-  const until = st === 'burning' || st === 'poisoned' || st === 'silenced' || st === 'blessed' ? PERMANENT : p.turnNumber + 1
+  const ownTurn = g.mode === '2v2' && g.teams ? sameTeam(g, g.active, owner) : g.active === owner
+  const until = st === 'burning' || st === 'poisoned' || st === 'silenced' || st === 'blessed'
+    ? PERMANENT
+    : ownTurn ? p.turnNumber + 1 : p.turnNumber + 1.5
   u.statuses[st] = until
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, statusEvt: 'apply', statusId: st, src: { side: owner, uid: u.uid }, msg: `${STATUS_META[st].icon} „${u.card.name}" gauna būseną: ${STATUS_META[st].name}.` })
   fireGlobalListeners(g, 'onAnyStatus', { side: owner })
@@ -1983,14 +1990,14 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
   p.turnNumber += 1
-  // Pasibaigusios būsenos (frozen/stunned) nuimamos savo ĖJIMO PRADŽIOJE:
-  // gavai užšaldymą → likusį tą ėjimą + visą priešininko ėjimą kaustytas,
-  // bet savo kito ėjimo pradžioje jau laisvas (gali pulti/atsakyt).
+  // Pasibaigusios būsenos: ĖJIMO PRADŽIOJE nuimamos TIK savo ėjime uždėtos
+  // (integer until); ne savo ėjime uždėtos (x.5) kausto visą šį ėjimą ir
+  // nuimamos jo pabaigoje (žr. seatEndTurn).
   for (const u of p.units) {
     if (!u) continue
     for (const k of Object.keys(u.statuses) as TutStatus[]) {
       const until = u.statuses[k]
-      if (until !== undefined && until !== PERMANENT && p.turnNumber >= until) {
+      if (until !== undefined && until !== PERMANENT && Number.isInteger(until) && p.turnNumber >= until) {
         delete u.statuses[k]
         log(g, { t: 'status', side: s, cardName: u.card.name, status: k, statusEvt: 'remove', statusId: k, src: { side: s, uid: u.uid }, msg: `„${u.card.name}" atsigauna – būsena ${STATUS_META[k].name} baigėsi.` })
       }
@@ -2091,6 +2098,18 @@ function seatEndTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
   if (g.pendingReturn?.side === s) g.pendingReturn = null  // nespėjo pasirinkti – praleidžiama
+  // Priešo uždėtos būsenos (until x.5): kaustė visą šį ėjimą — nuimamos jo pabaigoje,
+  // kad uždėjusiojo kitame ėjime padaras jau būtų laisvas (atsakytų į atakas).
+  for (const u of p.units) {
+    if (!u) continue
+    for (const k of Object.keys(u.statuses) as TutStatus[]) {
+      const until = u.statuses[k]
+      if (until !== undefined && until !== PERMANENT && !Number.isInteger(until) && p.turnNumber >= Math.floor(until)) {
+        delete u.statuses[k]
+        log(g, { t: 'status', side: s, cardName: u.card.name, status: k, statusEvt: 'remove', statusId: k, src: { side: s, uid: u.uid }, msg: `„${u.card.name}" atsigauna – būsena ${STATUS_META[k].name} baigėsi.` })
+      }
+    }
+  }
   expireTempBuffs(g, s, 'endTurn')
   expireControl(g, s, 'endTurn')
   recomputeAuras(g)
