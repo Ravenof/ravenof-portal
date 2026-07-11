@@ -111,13 +111,38 @@ export function DigitalPvE() {
     </div>
   )
 
-  const modeTab = (m: Mode, icon: string, label: string) => (
-    <button key={m} onClick={() => { playUiClick(); setMode(m) }} className="rvn-press w-full rounded-xl px-1 py-2 flex flex-col items-center gap-1"
-      style={{ minHeight: 52, maxHeight: 64, border: mode === m ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: mode === m ? `linear-gradient(160deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
-      <span className="rvn-disp font-bold uppercase text-center leading-tight" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: mode === m ? '#86efac' : 'var(--text-secondary)' }}>{label}</span>
-    </button>
-  )
+  // Vieninga setup plytelė: integruotas fonas+emblema+pavadinimas (ne maža ikona tuščiame bloke).
+  // Fiksuotas aukštis — selected keičia TIK glow/kontrastą, ne matmenis.
+  const TILE_ID: Record<string, { accent: string; icon: string; tex: string }> = {
+    random:  { accent: '52,211,153',  icon: '🎲', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(52,211,153,0.28), transparent 55%), linear-gradient(135deg, rgba(16,34,26,0.95), rgba(8,10,12,0.98))' },
+    faction: { accent: '240,180,41',  icon: '🏰', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(240,180,41,0.26), transparent 55%), linear-gradient(135deg, rgba(38,28,14,0.95), rgba(10,8,10,0.98))' },
+    public:  { accent: '96,165,250',  icon: '🌐', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(96,165,250,0.26), transparent 55%), linear-gradient(135deg, rgba(16,24,40,0.95), rgba(8,9,14,0.98))' },
+    tutorial:{ accent: '139,92,246',  icon: '🎓', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(139,92,246,0.28), transparent 55%), linear-gradient(135deg, rgba(26,18,40,0.95), rgba(10,8,14,0.98))' },
+  }
+  const setupTile = (key: string, label: string, opts: { selected?: boolean; onClick?: () => void; href?: string }) => {
+    const id = TILE_ID[key]
+    const sel = !!opts.selected
+    const inner = (
+      <span className="flex items-center gap-2 w-full h-full px-2.5" style={{ borderRadius: 11 }}>
+        <span className="shrink-0 flex items-center justify-center rounded-full" aria-hidden
+          style={{ width: 'clamp(26px,5vh,34px)', height: 'clamp(26px,5vh,34px)', fontSize: 'clamp(14px,2.8vh,19px)',
+            background: `radial-gradient(circle at 40% 30%, rgba(${id.accent},0.4), rgba(8,7,12,0.9))`, border: `1px solid rgba(${id.accent},${sel ? 0.9 : 0.45})`,
+            boxShadow: sel ? `0 0 12px rgba(${id.accent},0.6)` : 'none' }}>{id.icon}</span>
+        <span className="rvn-disp font-extrabold uppercase leading-tight text-left min-w-0"
+          style={{ fontSize: 'clamp(8.5px,1.4vh,11.5px)', letterSpacing: '0.04em', color: sel ? `rgb(${id.accent})` : '#e8dcc0', textShadow: '0 1px 3px #000' }}>{label}</span>
+      </span>
+    )
+    const style: React.CSSProperties = {
+      height: 'clamp(46px,8.5vh,62px)', borderRadius: 12, padding: 0, display: 'block', width: '100%',
+      background: id.tex,
+      border: `1.5px solid rgba(${id.accent},${sel ? 0.95 : 0.28})`,
+      boxShadow: sel ? `0 0 16px rgba(${id.accent},0.45), inset 0 0 18px rgba(${id.accent},0.14)` : 'inset 0 0 14px rgba(0,0,0,0.5)',
+      opacity: sel ? 1 : 0.82, filter: sel ? 'saturate(1.05)' : 'saturate(0.85)',
+      transition: 'box-shadow .18s ease, opacity .18s ease, filter .18s ease, border-color .18s ease',
+    }
+    if (opts.href) return <Link key={key} href={opts.href} onClick={() => playUiClick()} className="rvn-press" style={style} data-setup-tile={key}>{inner}</Link>
+    return <button key={key} onClick={() => { playUiClick(); opts.onClick?.() }} className="rvn-press" style={style} data-setup-tile={key} aria-pressed={sel}>{inner}</button>
+  }
   const diffBtn = (d: AiDifficulty, lbl: string) => (
     <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} className="flex-1 rounded-lg font-semibold" style={{ fontSize: 'clamp(10px,1.5vh,12px)', minHeight: 'clamp(28px,4.8vh,36px)', background: difficulty === d ? `rgba(${A},0.22)` : 'rgba(10,8,16,0.8)', border: '1px solid ' + (difficulty === d ? `rgba(${A},0.6)` : 'rgba(255,255,255,0.08)'), color: difficulty === d ? '#bbf7d0' : 'var(--text-muted)' }}>{lbl}</button>
   )
@@ -137,27 +162,16 @@ export function DigitalPvE() {
         {/* KAIRĖ: režimo pasirinkimas + AI sunkumas (Donato layout: selektoriai dešinėje, kur daugiau vietos) */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Priešininko tipas</div>
-          <div className="grid grid-cols-2 gap-1.5 mb-2 shrink-0" style={{ alignItems: 'start' }}>
-            {modeTab('random', '🎲', 'Atsitiktinė frakcija')}
-            {modeTab('faction', '🏰', 'Pasirinkta frakcija')}
-            {modeTab('public', '🌐', 'Viešas deck')}
-            <Link href="/digital/tutorial" onClick={() => playUiClick()} className="rvn-press w-full rounded-xl px-1 py-2 flex flex-col items-center gap-1" style={{ minHeight: 52, maxHeight: 64, border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.1)' }}>
-              <span style={{ fontSize: 18 }}>🎓</span>
-              <span className="rvn-disp font-bold uppercase text-center leading-tight" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: '#c4b5fd' }}>Mokymai</span>
-            </Link>
+          <div className="grid grid-cols-2 gap-1.5 mb-2 shrink-0">
+            {setupTile('random', 'Atsitiktinė frakcija', { selected: mode === 'random', onClick: () => setMode('random') })}
+            {setupTile('faction', 'Pasirinkta frakcija', { selected: mode === 'faction', onClick: () => setMode('faction') })}
+            {setupTile('public', 'Viešas deck', { selected: mode === 'public', onClick: () => setMode('public') })}
+            {setupTile('tutorial', 'Mokymai', { href: '/digital/tutorial' })}
           </div>
           <div className="shrink-0" data-testid="ai-difficulty">
             <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 'clamp(3px,0.7vh,6px)' }}>AI sunkumas</p>
             <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
             <p style={{ marginTop: 'clamp(3px,0.7vh,6px)', fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3, minHeight: '2.6em' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
-          </div>
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center gap-1 px-2">
-            <div className="rounded-xl w-full py-2 px-2" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.22)` }}>
-              <div className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#86efac' }}>Tu</div>
-              <div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deck?.name ?? '—'}</div>
-              <div className="rvn-disp font-bold uppercase mt-1" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#fca5a5' }}>Priešininkas</div>
-              <div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div>
-            </div>
           </div>
         </section>
 
@@ -205,8 +219,11 @@ export function DigitalPvE() {
               </div>
             )}
           </div>
+          <p className="shrink-0 truncate text-center" style={{ marginTop: 'clamp(3px,0.8vh,6px)', fontSize: 'clamp(8.5px,1.4vh,11px)', color: 'var(--text-secondary)' }}>
+            Tu: <b style={{ color: '#86efac' }}>{deck?.name ?? '—'}</b> · Priešininkas: <b style={{ color: '#fdba74' }}>{oppSummary}</b>
+          </p>
           <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
-            style={{ marginTop: 'clamp(4px,1vh,8px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
+            style={{ marginTop: 'clamp(3px,0.8vh,6px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
             ⚔ {canStart ? 'PRADĖTI KOVĄ' : !deck ? 'AKTYVI KALADĖ NETINKAMA' : mode === 'faction' ? 'PASIRINK FRAKCIJĄ' : mode === 'public' ? 'PASIRINK DECK’Ą' : 'PASIRINK PRIEŠININKĄ'}
           </button>
         </section>
