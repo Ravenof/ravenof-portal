@@ -68,6 +68,11 @@ export function DigitalPvE() {
       })
   }, [])
 
+  // preload asset mygtukų — be layout shift ir mirgėjimo
+  useEffect(() => {
+    for (const a of ['/digital/ai/types/random-faction.png?v=1', '/digital/ai/types/selected-faction.png?v=1', '/digital/ai/types/public-deck.png?v=1', '/digital/ai/types/tutorials.png?v=1', '/digital/ai/difficulty/easy.png?v=1', '/digital/ai/difficulty/medium.png?v=1', '/digital/ai/difficulty/hard.png?v=1']) { const im = new Image(); im.src = a }
+  }, [])
+
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
   // VIENINTELIS šaltinis — globali aktyvi kaladė. JOKIO tylaus fallback į kitą
@@ -111,41 +116,42 @@ export function DigitalPvE() {
     </div>
   )
 
-  // Vieninga setup plytelė: integruotas fonas+emblema+pavadinimas (ne maža ikona tuščiame bloke).
-  // Fiksuotas aukštis — selected keičia TIK glow/kontrastą, ne matmenis.
-  const TILE_ID: Record<string, { accent: string; icon: string; tex: string }> = {
-    random:  { accent: '52,211,153',  icon: '🎲', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(52,211,153,0.28), transparent 55%), linear-gradient(135deg, rgba(16,34,26,0.95), rgba(8,10,12,0.98))' },
-    faction: { accent: '240,180,41',  icon: '🏰', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(240,180,41,0.26), transparent 55%), linear-gradient(135deg, rgba(38,28,14,0.95), rgba(10,8,10,0.98))' },
-    public:  { accent: '96,165,250',  icon: '🌐', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(96,165,250,0.26), transparent 55%), linear-gradient(135deg, rgba(16,24,40,0.95), rgba(8,9,14,0.98))' },
-    tutorial:{ accent: '139,92,246',  icon: '🎓', tex: 'radial-gradient(90% 120% at 20% 0%, rgba(139,92,246,0.28), transparent 55%), linear-gradient(135deg, rgba(26,18,40,0.95), rgba(10,8,14,0.98))' },
+  // ── Pilno asset'o mygtukai (PNG jau turi rėmą+emblemą+LT pavadinimą — jokių
+  // papildomų ikonų/tekstų; vardas per aria-label). Selected = CSS glow, be layout shift.
+  const TYPE_ASSETS: Record<string, { asset: string; glow: string; label: string }> = {
+    random:   { asset: '/digital/ai/types/random-faction.png?v=1',   glow: 'rgba(52,211,153,0.65)', label: 'Atsitiktinė frakcija' },
+    faction:  { asset: '/digital/ai/types/selected-faction.png?v=1', glow: 'rgba(240,180,41,0.65)', label: 'Pasirinkta frakcija' },
+    public:   { asset: '/digital/ai/types/public-deck.png?v=1',      glow: 'rgba(96,165,250,0.65)', label: 'Viešas deck' },
+    tutorial: { asset: '/digital/ai/types/tutorials.png?v=1',        glow: 'rgba(139,92,246,0.65)', label: 'Mokymai' },
   }
-  const setupTile = (key: string, label: string, opts: { selected?: boolean; onClick?: () => void; href?: string }) => {
-    const id = TILE_ID[key]
-    const sel = !!opts.selected
-    const inner = (
-      <span className="flex items-center gap-2 w-full h-full px-2.5" style={{ borderRadius: 11 }}>
-        <span className="shrink-0 flex items-center justify-center rounded-full" aria-hidden
-          style={{ width: 'clamp(26px,5vh,34px)', height: 'clamp(26px,5vh,34px)', fontSize: 'clamp(14px,2.8vh,19px)',
-            background: `radial-gradient(circle at 40% 30%, rgba(${id.accent},0.4), rgba(8,7,12,0.9))`, border: `1px solid rgba(${id.accent},${sel ? 0.9 : 0.45})`,
-            boxShadow: sel ? `0 0 12px rgba(${id.accent},0.6)` : 'none' }}>{id.icon}</span>
-        <span className="rvn-disp font-extrabold uppercase leading-tight text-left min-w-0"
-          style={{ fontSize: 'clamp(8.5px,1.4vh,11.5px)', letterSpacing: '0.04em', color: sel ? `rgb(${id.accent})` : '#e8dcc0', textShadow: '0 1px 3px #000' }}>{label}</span>
-      </span>
-    )
+  const DIFF_ASSETS: Record<AiDifficulty, { asset: string; glow: string; label: string }> = {
+    easy:   { asset: '/digital/ai/difficulty/easy.png?v=1',   glow: 'rgba(52,211,153,0.6)', label: 'Lengvas' },
+    normal: { asset: '/digital/ai/difficulty/medium.png?v=1', glow: 'rgba(45,212,191,0.6)', label: 'Vidutinis' },
+    hard:   { asset: '/digital/ai/difficulty/hard.png?v=1',   glow: 'rgba(239,68,68,0.6)',  label: 'Sunkus' },
+  }
+
+  const imgBtn = (opts: { asset: string; glow: string; label: string; selected: boolean; aspect: string; onClick?: () => void; href?: string; testId?: string }) => {
     const style: React.CSSProperties = {
-      height: 'clamp(46px,8.5vh,62px)', borderRadius: 12, padding: 0, display: 'block', width: '100%',
-      background: id.tex,
-      border: `1.5px solid rgba(${id.accent},${sel ? 0.95 : 0.28})`,
-      boxShadow: sel ? `0 0 16px rgba(${id.accent},0.45), inset 0 0 18px rgba(${id.accent},0.14)` : 'inset 0 0 14px rgba(0,0,0,0.5)',
-      opacity: sel ? 1 : 0.82, filter: sel ? 'saturate(1.05)' : 'saturate(0.85)',
-      transition: 'box-shadow .18s ease, opacity .18s ease, filter .18s ease, border-color .18s ease',
+      aspectRatio: opts.aspect, width: '100%', minWidth: 0, border: 0, padding: 0, background: 'transparent',
+      display: 'block', cursor: 'pointer',
+      opacity: opts.selected ? 1 : 0.72,
+      filter: opts.selected ? `saturate(1.1) brightness(1.07) drop-shadow(0 0 9px ${opts.glow})` : 'saturate(0.72) brightness(0.82)',
+      transform: opts.selected ? 'translateY(-1px) scale(1.015)' : 'translateZ(0)',
+      transition: 'transform 160ms ease, filter 160ms ease, opacity 160ms ease',
     }
-    if (opts.href) return <Link key={key} href={opts.href} onClick={() => playUiClick()} className="rvn-press" style={style} data-setup-tile={key}>{inner}</Link>
-    return <button key={key} onClick={() => { playUiClick(); opts.onClick?.() }} className="rvn-press" style={style} data-setup-tile={key} aria-pressed={sel}>{inner}</button>
+    const img = (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img src={opts.asset} alt="" aria-hidden draggable={false}
+        onError={(e) => { const el = e.target as HTMLImageElement; if (!el.dataset.fb) { el.dataset.fb = '1'; console.warn('[PvE] trūksta asset:', opts.asset); el.src = '/digital/icons/fi-gifts.png' } }}
+        className="block w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', objectPosition: 'center' }} />
+    )
+    if (opts.href) return <Link key={opts.label} href={opts.href} onClick={() => playUiClick()} className="rvn-press" style={style} aria-label={opts.label} data-setup-tile={opts.testId}>{img}</Link>
+    return (
+      <button key={opts.label} type="button" onClick={() => { playUiClick(); opts.onClick?.() }} className="rvn-press" style={style}
+        aria-label={opts.label} aria-pressed={opts.selected} data-selected={opts.selected || undefined} data-setup-tile={opts.testId}>{img}</button>
+    )
   }
-  const diffBtn = (d: AiDifficulty, lbl: string) => (
-    <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} className="flex-1 rounded-lg font-semibold" style={{ fontSize: 'clamp(10px,1.5vh,12px)', minHeight: 'clamp(28px,4.8vh,36px)', background: difficulty === d ? `rgba(${A},0.22)` : 'rgba(10,8,16,0.8)', border: '1px solid ' + (difficulty === d ? `rgba(${A},0.6)` : 'rgba(255,255,255,0.08)'), color: difficulty === d ? '#bbf7d0' : 'var(--text-muted)' }}>{lbl}</button>
-  )
+  const diffBtn = (d: AiDifficulty) => imgBtn({ ...DIFF_ASSETS[d], selected: difficulty === d, aspect: '4.2 / 1', onClick: () => setDifficulty(d), testId: `diff-${d}` })
   const inputStyle: React.CSSProperties = { minHeight: 36, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', borderRadius: 10, padding: '0 10px', fontSize: 12 }
 
   return (
@@ -162,15 +168,15 @@ export function DigitalPvE() {
         {/* KAIRĖ: režimo pasirinkimas + AI sunkumas (Donato layout: selektoriai dešinėje, kur daugiau vietos) */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Priešininko tipas</div>
-          <div className="grid grid-cols-2 gap-1.5 mb-2 shrink-0">
-            {setupTile('random', 'Atsitiktinė frakcija', { selected: mode === 'random', onClick: () => setMode('random') })}
-            {setupTile('faction', 'Pasirinkta frakcija', { selected: mode === 'faction', onClick: () => setMode('faction') })}
-            {setupTile('public', 'Viešas deck', { selected: mode === 'public', onClick: () => setMode('public') })}
-            {setupTile('tutorial', 'Mokymai', { href: '/digital/tutorial' })}
+          <div className="grid grid-cols-2 mb-2 shrink-0" style={{ gap: 'clamp(6px,0.7vw,12px)' }}>
+            {imgBtn({ ...TYPE_ASSETS.random, selected: mode === 'random', aspect: '2.55 / 1', onClick: () => setMode('random'), testId: 'random' })}
+            {imgBtn({ ...TYPE_ASSETS.faction, selected: mode === 'faction', aspect: '2.55 / 1', onClick: () => setMode('faction'), testId: 'faction' })}
+            {imgBtn({ ...TYPE_ASSETS.public, selected: mode === 'public', aspect: '2.55 / 1', onClick: () => setMode('public'), testId: 'public' })}
+            {imgBtn({ ...TYPE_ASSETS.tutorial, selected: false, aspect: '2.55 / 1', href: '/digital/tutorial', testId: 'tutorial' })}
           </div>
           <div className="shrink-0" data-testid="ai-difficulty">
             <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 'clamp(3px,0.7vh,6px)' }}>AI sunkumas</p>
-            <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
+            <div className="grid grid-cols-3" style={{ gap: 'clamp(5px,0.6vw,10px)' }}>{diffBtn('easy')}{diffBtn('normal')}{diffBtn('hard')}</div>
             <p style={{ marginTop: 'clamp(3px,0.7vh,6px)', fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3, minHeight: '2.6em' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
           </div>
         </section>
