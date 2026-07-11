@@ -1,7 +1,13 @@
 // ── Socialinis sluoksnis: draugai + iššūkiai (kliento RPC apvalkalai) ─────────
 import { createClient } from '@/lib/supabase/client'
 
-export type Friend = { id: string; userId: string; username: string; displayName: string | null; avatar: string | null; online?: boolean; lastSeen?: string | null }
+export type FriendPresence = 'online' | 'offline' | 'away' | 'dnd'
+export type Friend = {
+  id: string; userId: string; username: string; displayName: string | null; avatar: string | null
+  online?: boolean; lastSeen?: string | null
+  presence?: FriendPresence; xp?: number; unread?: number; blockedByMe?: boolean
+}
+export type SelfPresence = 'auto' | 'away' | 'dnd' | 'hidden' 
 
 /** Presence širdies dūžis — profiles.last_seen_at=now(). Kviesti ~kas 60 s. */
 export async function heartbeat(): Promise<void> {
@@ -20,10 +26,16 @@ export async function friendRespond(id: string, accept: boolean): Promise<void> 
 export async function friendRemove(id: string): Promise<void> {
   await createClient().rpc('rvn_friend_remove', { p_id: id })
 }
-export async function friendsList(): Promise<{ friends: Friend[]; pending: Friend[] }> {
+export async function friendsList(): Promise<{ friends: Friend[]; pending: Friend[]; me?: { presenceStatus: SelfPresence } }> {
   const { data, error } = await createClient().rpc('rvn_friends_list')
   if (error) { console.warn('[social] list:', error.message); return { friends: [], pending: [] } }
-  return (data as { friends: Friend[]; pending: Friend[] }) ?? { friends: [], pending: [] }
+  return (data as { friends: Friend[]; pending: Friend[]; me?: { presenceStatus: SelfPresence } }) ?? { friends: [], pending: [] }
+}
+export async function setPresence(status: SelfPresence): Promise<void> {
+  try { await createClient().rpc('rvn_set_presence', { p_status: status }) } catch { /* */ }
+}
+export async function blockUser(userId: string, on: boolean): Promise<void> {
+  try { await createClient().rpc('rvn_block_user', { p_user: userId, p_on: on }) } catch { /* */ }
 }
 export async function challengeCreate(targetId: string, code: string): Promise<boolean> {
   const { error } = await createClient().rpc('rvn_challenge_create', { p_target: targetId, p_code: code })
@@ -48,8 +60,10 @@ export const randMatchCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLM
 
 export type ChatMessage = { id: string; fromMe: boolean; body: string; createdAt: string }
 
-export async function sendMessage(toId: string, body: string): Promise<void> {
-  await createClient().rpc('rvn_send_message', { p_to: toId, p_body: body })
+export async function sendMessage(toId: string, body: string, clientId?: string): Promise<{ id?: string; error?: string }> {
+  const { data, error } = await createClient().rpc('rvn_send_message', { p_to: toId, p_body: body, p_client_id: clientId ?? null })
+  if (error) return { error: error.message }
+  return { id: (data as { id?: string })?.id }
 }
 export async function getConversation(friendId: string): Promise<ChatMessage[]> {
   const { data, error } = await createClient().rpc('rvn_conversation', { p_friend: friendId, p_limit: 80 })

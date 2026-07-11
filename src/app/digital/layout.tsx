@@ -12,6 +12,7 @@ import { SettingsModal } from '@/components/digital/SettingsModal'
 import { LevelRoadModal } from '@/components/digital/LevelRoadModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
+import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
 import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
@@ -213,6 +214,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       {/* Privalomas turinio atsisiuntimas paleidžiant žaidimą (virš visko, po „pasuk telefoną") */}
       <ContentDownloadGate />
+
+      {/* Globalus pokalbių sluoksnis — VIENAS mount visam app (route keitimas neuždaro) */}
+      <GlobalChatLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {levelRoadOpen && <LevelRoadModal onClose={() => setLevelRoadOpen(false)} />}
