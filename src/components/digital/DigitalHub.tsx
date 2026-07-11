@@ -108,7 +108,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       <HubStyles />
 
       {/* ── PAGRINDINĖ ZONA: kairė quests · centras play · dešinė sezonas ── */}
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(170px,1fr) minmax(0,2fr) minmax(170px,1fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(165px,0.9fr) minmax(0,2.4fr) minmax(165px,0.9fr)' }}>
 
         {/* ── KAIRĖ: Dienos užduotys ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>

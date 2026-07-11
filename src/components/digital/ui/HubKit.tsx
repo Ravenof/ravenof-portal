@@ -126,9 +126,9 @@ export type HubMode = { key: string; label: string; sub?: string; iconName: stri
 // Failai: /digital/home/battle-modes/{ranked,against-ai,friendly}.png (vienodi matmenys ~3:1,
 // permatomas fonas, be baltų kraštų). Kol failo nėra — fallback į seną mode2-* asset'ą.
 const MODE_ASSET: Record<string, { src: string; fallback: string; glow: string }> = {
-  ranked: { src: '/digital/home/battle-modes/ranked.png',     fallback: '/digital/ui3/mode2-ranked.png', glow: 'rgba(239,68,68,0.55)' },
-  pve:    { src: '/digital/home/battle-modes/against-ai.png', fallback: '/digital/ui3/mode2-pve.png',    glow: 'rgba(52,211,153,0.5)' },
-  free:   { src: '/digital/home/battle-modes/friendly.png',   fallback: '/digital/ui3/mode2-free.png',   glow: 'rgba(240,180,41,0.5)' },
+  ranked: { src: '/digital/home/battle-modes/ranked.png?v=2',     fallback: '/digital/ui3/mode2-ranked.png', glow: 'rgba(239,68,68,0.55)' },
+  pve:    { src: '/digital/home/battle-modes/against-ai.png?v=2', fallback: '/digital/ui3/mode2-pve.png',    glow: 'rgba(52,211,153,0.5)' },
+  free:   { src: '/digital/home/battle-modes/friendly.png?v=2',   fallback: '/digital/ui3/mode2-free.png',   glow: 'rgba(240,180,41,0.5)' },
 }
 
 function BattleModeCard({ mode, ariaLabel, selected, locked, onSelect }: {
@@ -166,7 +166,7 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
     for (const k of Object.keys(MODE_ASSET)) { const im = new Image(); im.src = MODE_ASSET[k].src }
   }, [])
   return (
-    <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, paddingTop: 4, margin: '0 -8px -6px' }}>
+    <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, paddingTop: 4, margin: '0 -12px -8px' }}>
       {modes.map((m) => (
         <BattleModeCard key={m.key} mode={m.key} ariaLabel={m.label} selected={m.key === selected && !m.locked} locked={m.locked} onSelect={() => onSelect(m.key)} />
       ))}
