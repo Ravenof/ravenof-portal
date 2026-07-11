@@ -166,7 +166,7 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
     for (const k of Object.keys(MODE_ASSET)) { const im = new Image(); im.src = MODE_ASSET[k].src }
   }, [])
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', paddingTop: 5 }}>
+    <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, paddingTop: 4, margin: '0 -8px -6px' }}>
       {modes.map((m) => (
         <BattleModeCard key={m.key} mode={m.key} ariaLabel={m.label} selected={m.key === selected && !m.locked} locked={m.locked} onSelect={() => onSelect(m.key)} />
       ))}
@@ -180,12 +180,12 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
     <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.45)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)` }}>
       <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.22) 0%, rgba(8,6,14,0.48) 55%, rgba(8,6,14,0.82) 100%)' }} />
-      <div className="relative p-4 flex flex-col" style={{ gap: 12 }}>
-        <div className="flex flex-col items-center" style={{ gap: 5 }}>
-          <img src={`${ASSET}/heading.png`} alt="Žaisti dabar" style={{ height: 40, width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
-          <span style={{ fontSize: 12, color: '#cfc6b8', textShadow: '0 1px 4px #000', letterSpacing: '0.02em' }}>{subtitle}</span>
+      <div className="relative flex flex-col" style={{ gap: 8, padding: '12px 14px 12px' }}>
+        <div className="flex flex-col items-center" style={{ gap: 3 }}>
+          <img src={`${ASSET}/heading.png`} alt="Žaisti dabar" style={{ height: 'clamp(28px,5vh,38px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <span style={{ fontSize: 11, color: '#cfc6b8', textShadow: '0 1px 4px #000', letterSpacing: '0.02em' }}>{subtitle}</span>
         </div>
-        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 320, margin: '4px auto 2px', filter: `drop-shadow(0 4px 12px rgba(${GOLD},0.35))` }}>
+        <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 300, margin: '2px auto 0', filter: `drop-shadow(0 4px 12px rgba(${GOLD},0.35))` }}>
           <img src={`${ASSET}/cta2.png`} alt="Pradėti kovą" className="w-full block" />
         </button>
         <div>{children}</div>
