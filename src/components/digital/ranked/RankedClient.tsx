@@ -45,7 +45,6 @@ export function RankedClient() {
   const [season, setSeason] = useState<RankedSeason | null>(null)
   const [profile, setProfile] = useState<RankedProfile | null>(null)
   const [decks, setDecks] = useState<Deck[] | null>(null)
-  const [selDeck, setSelDeck] = useState('')
   const [myName, setMyName] = useState('Žaidėjas')
   const [factionIds, setFactionIds] = useState<Record<string, number>>({})
   const [view, setView] = useState<View>('home')
@@ -59,7 +58,6 @@ export function RankedClient() {
   const load = useCallback(async () => {
     const [s, p] = await Promise.all([getActiveSeason(), ensureProfile()])
     setSeason(s); setProfile(p)
-    if (p?.locked_deck_id) setSelDeck(p.locked_deck_id)
   }, [])
 
   useEffect(() => {
@@ -68,7 +66,7 @@ export function RankedClient() {
       if (user) supabase.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
         .then(({ data }) => { const d = data as { display_name: string | null; username: string | null } | null; if (d) setMyName(d.display_name ?? d.username ?? 'Žaidėjas') })
     })
-    getRankedDecks().then((d) => { setDecks(d); if (d && d.length) setSelDeck((cur) => cur || d[0].id) }) // auto-parenka pirmą kaladę jei nėra locked_deck_id
+    getRankedDecks().then(setDecks)
     getFactionIdMap().then(setFactionIds)
     // „Lazy cron": jei reikia (≥11 val.), paleidžia botų tarpusavio kovas (K/D gyvas be pg_cron)
     createClient().rpc('rvn_maybe_simulate_bot_matches').then(() => {}, () => {})
@@ -83,17 +81,16 @@ export function RankedClient() {
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
   const globalOk = deckValidity(globalDeck).valid
-  // Globali aktyvi kaladė = reitingo kaladė (jei tinkama ir yra reitingo sąraše)
-  useEffect(() => {
-    if (globalDeck && globalOk && decks?.some((d) => d.id === globalDeck.id)) setSelDeck(globalDeck.id)
-  }, [globalDeck?.id, globalOk, decks]) // eslint-disable-line react-hooks/exhaustive-deps
+  // KOVOS kaladė išvedama TIESIOGIAI iš globalios aktyvios (ne per selDeck state —
+  // locked_deck_id/auto-select efektai lenktyniaudavo ir perrašydavo pasirinkimą!)
   const rankedEligible = !!globalDeck && globalOk && !!decks?.some((d) => d.id === globalDeck.id)
-  const selDeckObj = decks?.find((d) => d.id === selDeck)
+  const battleDeck = rankedEligible ? (decks?.find((d) => d.id === globalDeck!.id) ?? null) : null
+  const selDeckObj = battleDeck
 
   const startQueue = async () => {
-    if (!selDeck) { setToast('Pirma pasirink kaladę.'); return }
+    if (!battleDeck) { setToast('Aktyvi kaladė netinkama reitingui — pakeisk per „Keisti".'); return }
     playUiClick()
-    await lockDeck(selDeck)
+    await lockDeck(battleDeck.id)
     matchIdRef.current = `rm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     setFlow('queue')
   }
@@ -123,7 +120,7 @@ export function RankedClient() {
 
   // ── Srauto overlay'ai ──────────────────────────────────────────────────────
   if (flow === 'queue') {
-    return <RankedQueue deckId={selDeck} onCancel={() => setFlow('idle')}
+    return <RankedQueue deckId={battleDeck?.id ?? ''} onCancel={() => setFlow('idle')}
       onMatch={(o) => { setOpp(o); setFlow('found') }} />
   }
   if (flow === 'found' && opp) {
@@ -136,7 +133,7 @@ export function RankedClient() {
     if (opp.net) {
       return (
         <TutorialGame
-          deckId={selDeck}
+          deckId={selDeckObj.id}
           deckName={selDeckObj.name}
           ranked
           net={opp.net}
@@ -149,7 +146,7 @@ export function RankedClient() {
     }
     return (
       <TutorialGame
-        deckId={selDeck}
+        deckId={selDeckObj.id}
         deckName={selDeckObj.name}
         ranked
         practice
@@ -245,18 +242,17 @@ export function RankedClient() {
                   </p>
                 </div>
               </div>
-              {/* apačia: PLAY mygtukas (visada matomas) */}
-              <div className="shrink-0">
+              {/* apačia: PLAY mygtukas (visada matomas); tarpas, kad nedengtų rango label */}
+              <div className="shrink-0" style={{ marginTop: 'clamp(10px,2.6vh,22px)' }}>
                 {decks && decks.length > 0 ? (
                   <>
                     <div className="mb-1.5"><ActiveDeckSummary accent="239,68,68" invalidHint={globalDeck && !rankedEligible && globalOk ? 'Kaladė netinkama reitingui' : undefined} /></div>
-                    <RButton full onClick={startQueue} disabled={!selDeck || !rankedEligible}>⚔ IEŠKOTI KOVOS</RButton>
+                    <RButton full onClick={startQueue} disabled={!battleDeck}>⚔ IEŠKOTI KOVOS</RButton>
                     {!rankedEligible && (
                       <p role="status" className="text-center mt-1" style={{ fontSize: 10, color: '#fbbf24' }}>
                         {!globalDeck ? 'Pasirink aktyvią kaladę (spausk „Keisti").' : !globalOk ? deckValidity(globalDeck).reason : 'Ši kaladė netinkama reitingo kovoms — pasirink kitą.'}
                       </p>
                     )}
-                    {selDeckObj && <p className="text-center mt-1 truncate" style={{ fontSize: 'clamp(8px,1.1vh,11px)', color: 'var(--text-secondary)' }}>Pasirinkta: <b style={{ color: '#fca5a5' }}>{selDeckObj.name}</b>{selDeckObj.faction ? ` · ${selDeckObj.faction}` : ''}</p>}
                   </>
                 ) : (
                   <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="block text-center px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
