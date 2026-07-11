@@ -315,6 +315,12 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
     for (const e of store.entries) if (e.card.is_champion) champions += e.quantity
     return { avg, curve, champions }
   }, [store.entries])
+  // Builder'yje viršutinė profilio juosta slepiama — kortų sąrašui daugiau aukščio
+  useEffect(() => {
+    document.body.dataset.rvnHideHeader = '1'
+    return () => { delete document.body.dataset.rvnHideHeader }
+  }, [])
+
   const curveMax = Math.max(1, ...stats.curve)
   const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.entries])
 

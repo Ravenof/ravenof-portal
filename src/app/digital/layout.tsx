@@ -162,9 +162,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     <div className="fixed inset-0 z-40 flex flex-col select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
       <Flames />
       <HubStyles />
+      {/* Deck builder (ir kt. fullscreen įrankiai) gali paslėpti header'į per body atributą */}
+      <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; }`}</style>
 
       {/* ── Header (game account) ── */}
-      <header className="relative z-10 flex items-center justify-between gap-2 px-3.5"
+      <header className="rvn-app-header relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
         <div className="flex items-center gap-2 min-w-0 shrink-0">
           {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
