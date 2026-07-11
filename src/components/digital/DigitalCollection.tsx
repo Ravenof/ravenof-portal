@@ -6,13 +6,12 @@
 // • CENTRAS: didelis kortų grid, puslapiuojamas ← → (swipe + mygtukai), be scroll.
 // • DEŠINĖ: pasirinktos kortos detalės + craft/disenchant + pakų CTA (visada matomas).
 // ══════════════════════════════════════════════════════════════════════════════
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Search, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
-import { playUiClick, playCardFlip, playSuccess } from '@/lib/ui-sound'
+import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCraftConfig, disenchantCard, craftCard, CRAFT_ERR_LT, type CraftConfig } from '@/lib/gamification/craft'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
@@ -60,30 +59,29 @@ export function DigitalCollection() {
   const [ownedOnly, setOwnedOnly] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
 
-  const [page, setPage] = useState(0)
-  const [dir, setDir] = useState(1)
-  const touchX = useRef<number | null>(null)
-
-  // ── centro grid matavimas: kortos kuo didesnės, telpa be scroll ──────────
-  const gridAreaRef = useRef<HTMLDivElement>(null)
-  const [dims, setDims] = useState({ cols: 4, rows: 2, cardW: 96 })
-  useLayoutEffect(() => {
-    const el = gridAreaRef.current
-    if (!el) return
-    const GAP = 8
-    const ro = new ResizeObserver(() => {
-      const r = el.getBoundingClientRect()
-      if (r.width < 40 || r.height < 40) return
-      const rows = r.height >= 300 ? 2 : 1
-      const labelH = 0 // pavadinimas kortoje overlay, ne po ja
-      const cardH = Math.floor((r.height - GAP * (rows - 1)) / rows) - labelH
-      const cardW = Math.max(72, Math.min(116, Math.floor(cardH / 1.42)))
-      const cols = Math.max(3, Math.min(10, Math.floor((r.width + GAP) / (cardW + GAP))))
-      setDims((d) => (d.cols === cols && d.rows === rows && d.cardW === cardW ? d : { cols, rows, cardW }))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [cards, loggedOut])
+  // ── Kolekcija v2: dominuojantis grid su vidiniu scroll (be puslapiavimo) ──
+  // Tankis: compact = daugiau kortų; comfortable = didesnės. Persistinama.
+  const [density, setDensity] = useState<'compact' | 'comfortable'>(() => {
+    if (typeof window === 'undefined') return 'compact'
+    const saved = localStorage.getItem('rvn-col-density')
+    if (saved === 'compact' || saved === 'comfortable') return saved
+    return window.innerHeight < 520 ? 'compact' : 'comfortable'
+  })
+  const setDensityP = (d: 'compact' | 'comfortable') => { setDensity(d); try { localStorage.setItem('rvn-col-density', d) } catch { /* */ } }
+  // Inspector: didele rezoliucija — šoninis, sutraukiamas (sesijos atmintis);
+  // mažame landscape — slide-over tik pasirinkus kortą.
+  const [inspectorOpen, setInspectorOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return sessionStorage.getItem('rvn-col-inspector') !== '0'
+  })
+  const toggleInspector = () => setInspectorOpen((v) => { try { sessionStorage.setItem('rvn-col-inspector', v ? '0' : '1') } catch { /* */ } return !v })
+  const [wide, setWide] = useState(true)
+  useEffect(() => {
+    const check = () => setWide(window.innerWidth >= 900 && window.innerHeight >= 500)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  const [mobileDetail, setMobileDetail] = useState(false)
 
   const [loadSlow, setLoadSlow] = useState(false)
   const load = useCallback(async () => {
@@ -150,20 +148,7 @@ export function DigitalCollection() {
     return [...list].sort(by[sort])
   }, [cards, q, faction, rarity, type, ownedOnly, sort])
 
-  useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, sort])
-
-  const perPage = dims.cols * dims.rows
-  const pageCount = Math.max(1, Math.ceil(filtered.length / perPage))
-  const clamped = Math.min(page, pageCount - 1)
-  const pagedCards = useMemo(() => filtered.slice(clamped * perPage, clamped * perPage + perPage), [filtered, clamped, perPage])
-
-  const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? pagedCards[0] ?? filtered[0] ?? null, [filtered, selId, pagedCards])
-
-  const go = (d: number) => {
-    const next = clamped + d
-    if (next < 0 || next >= pageCount) return
-    playCardFlip(); setDir(d); setPage(next)
-  }
+  const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? filtered[0] ?? null, [filtered, selId])
 
   const ownedCount = (cards ?? []).filter((c) => c.owned > 0).length
   const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0)
@@ -188,129 +173,106 @@ export function DigitalCollection() {
   if (cards === null) return <LoadingOrRetry timedOut={loadSlow} onRetry={() => { setLoadSlow(false); void load() }} />
 
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
-      {/* ── Antraštė ── */}
-      <div className="flex items-baseline justify-center gap-3 shrink-0">
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,3.2vh,28px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>Kolekcija</div>
-        <div style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-muted)' }}>Surinkta {ownedCount}/{cards.length} · rodoma {filtered.length}</div>
+    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,8px)' }}>
+      {/* ── Kompaktiška antraštė + filtrų juosta (viena eilė; siauram — horizontalus scroll) ── */}
+      <div className="shrink-0 flex items-center gap-1.5 overflow-x-auto pb-0.5" data-testid="collection-toolbar" style={{ scrollbarWidth: 'none' }}>
+        <div className="shrink-0 flex items-baseline gap-2 pr-1">
+          <span className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(14px,2.6vh,20px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>Kolekcija</span>
+          <span className="whitespace-nowrap" style={{ fontSize: 'clamp(8px,1.3vh,10.5px)', color: 'var(--text-muted)' }}>{ownedCount}/{cards.length} · rodoma {filtered.length}</span>
+        </div>
+        <div className="relative shrink-0" style={{ width: 'clamp(120px, 16vw, 200px)' }}>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--text-muted)' }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti…" aria-label="Ieškoti kortų"
+            className="w-full outline-none" style={{ ...SEL, paddingLeft: 26 }} />
+        </div>
+        <select value={faction} onChange={(e) => { playUiClick(); setFaction(e.target.value) }} aria-label="Frakcija" className="shrink-0" style={{ ...SEL, maxWidth: 150 }}>
+          <option value="all">Visos frakcijos</option>
+          {factions.map((f) => <option key={f.slug} value={f.slug}>{f.name}</option>)}
+        </select>
+        <select value={type} onChange={(e) => { playUiClick(); setType(e.target.value) }} aria-label="Tipas" className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
+          <option value="all">Visi tipai</option>
+          {types.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={rarity} onChange={(e) => { playUiClick(); setRarity(e.target.value) }} aria-label="Retumas" className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
+          <option value="all">Visi retumai</option>
+          {rarities.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Rikiavimas" className="shrink-0" style={{ ...SEL, maxWidth: 130 }}>
+          {SORTS.map((so) => <option key={so.key} value={so.key}>{so.label}</option>)}
+        </select>
+        <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }} data-testid="owned-toggle"
+          className="rvn-press shrink-0 px-2.5 rounded-lg font-bold whitespace-nowrap"
+          style={{ height: 30, fontSize: 10.5, background: ownedOnly ? 'rgba(34,197,94,0.16)' : 'rgba(10,8,16,0.7)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.55)' : 'rgba(255,255,255,0.12)'}`, color: ownedOnly ? '#86efac' : 'var(--text-secondary)' }}>
+          {ownedOnly ? '✓ ' : ''}Turimos
+        </button>
+        <button onClick={() => { playUiClick(); setDensityP(density === 'compact' ? 'comfortable' : 'compact') }} title={density === 'compact' ? 'Didesnės kortos' : 'Daugiau kortų'} data-testid="density-toggle"
+          className="rvn-press shrink-0 px-2 rounded-lg font-bold" style={{ height: 30, fontSize: 12, background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>
+          {density === 'compact' ? '▥' : '▦'}
+        </button>
+        {activeFilters > 0 && (
+          <button onClick={() => { playUiClick(); resetFilters() }} className="rvn-press shrink-0 px-2 rounded-lg whitespace-nowrap" style={{ height: 30, fontSize: 9.5, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>Išvalyti ({activeFilters})</button>
+        )}
+        <button onClick={openPacks} data-testid="packs-btn"
+          className="rvn-press shrink-0 ml-auto px-3 rounded-lg font-extrabold whitespace-nowrap"
+          style={{ height: 30, fontSize: 11, fontFamily: 'var(--rvn-font-display)',
+            background: totalPacks > 0 ? 'linear-gradient(180deg,#fdba74,#f59e42)' : 'rgba(10,8,16,0.7)',
+            border: totalPacks > 0 ? '1px solid #fed7aa' : '1px solid rgba(255,255,255,0.14)',
+            color: totalPacks > 0 ? '#1a0f04' : 'var(--text-muted)' }}>
+          🎁 {totalPacks > 0 ? `Pakai (${totalPacks})` : 'Į parduotuvę'}
+        </button>
       </div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(160px,0.85fr) minmax(0,2.6fr) minmax(190px,1fr)' }}>
-
-        {/* ── KAIRĖ: filtrai ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 flex items-center justify-between" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>
-            <span>Filtrai</span>
-            {activeFilters > 0 && (
-              <button onClick={() => { playUiClick(); resetFilters() }} className="rvn-press rounded-md px-1.5 py-0.5" style={{ fontSize: 9, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>Išvalyti ({activeFilters})</button>
-            )}
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-            <div className="relative shrink-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti…"
-                className="w-full outline-none" style={{ ...SEL, paddingLeft: 30 }} />
-            </div>
-            <FilterField label="Rikiuoti">
-              <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} style={SEL}>
-                {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
-            </FilterField>
-            <FilterField label="Retumas">
-              <select value={rarity} onChange={(e) => setRarity(e.target.value)} style={SEL}>
-                <option value="all">Visi retumai</option>
-                {rarities.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
-              </select>
-            </FilterField>
-            <FilterField label="Tipas">
-              <select value={type} onChange={(e) => setType(e.target.value)} style={SEL}>
-                <option value="all">Visi tipai</option>
-                {types.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </FilterField>
-            <FilterField label="Frakcija">
-              <div className="flex flex-col gap-1">
-                <FactionBtn active={faction === 'all'} label="Visos frakcijos" onClick={() => { playUiClick(); setFaction('all') }} />
-                {factions.map((f) => <FactionBtn key={f.slug} active={faction === f.slug} label={f.name} onClick={() => { playUiClick(); setFaction(f.slug) }} />)}
-              </div>
-            </FilterField>
-            <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }}
-              className="shrink-0 w-full flex items-center justify-between px-2.5 py-2 rounded-xl font-semibold"
-              style={{ fontSize: 11, background: ownedOnly ? 'rgba(34,197,94,0.14)' : 'rgba(10,8,16,0.7)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.55)' : `rgba(${GOLD},0.25)`}`, color: ownedOnly ? '#86efac' : 'var(--text-secondary)' }}>
-              <span>Tik turimos</span>
-              <span className="relative inline-block rounded-full" style={{ width: 30, height: 16, background: ownedOnly ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.12)' }}>
-                <span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 12, height: 12, left: ownedOnly ? 16 : 2 }} />
-              </span>
-            </button>
-          </div>
-        </section>
-
-        {/* ── CENTRAS: kortų grid + puslapiavimas ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+      {/* ── PAGRINDAS: dominuojantis kortų naršyklė + sutraukiamas inspector ── */}
+      <div className="flex-1 min-h-0 flex gap-2">
+        <section className="rounded-2xl flex-1 min-w-0 min-h-0 overflow-hidden p-2" style={PANEL} data-testid="card-browser">
           {filtered.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="h-full flex items-center justify-center">
               {ownedOnly
                 ? <EmptyState icon="🃏" title="Kolekcija dar tuščia" sub="Atplėšk pakuotę, kad rinktum kortas." accent="251,146,60" ctaLabel="🎁 Atplėšti pakuotę" onCta={openPacks} />
                 : <EmptyState icon="🔍" title="Nieko nerasta" sub="Pabandyk kitą paiešką ar filtrą." />}
             </div>
           ) : (
-            <>
-              <div ref={gridAreaRef} className="flex-1 min-h-0 relative overflow-hidden"
-                onTouchStart={(e) => { touchX.current = e.touches[0].clientX }}
-                onTouchEnd={(e) => {
-                  if (touchX.current == null) return
-                  const dx = e.changedTouches[0].clientX - touchX.current
-                  touchX.current = null
-                  if (Math.abs(dx) > 48) go(dx < 0 ? 1 : -1)
-                }}>
-                <AnimatePresence mode="popLayout" initial={false} custom={dir}>
-                  <motion.div key={clamped} custom={dir}
-                    initial={{ x: dir > 0 ? 60 : -60, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: dir > 0 ? -60 : 60, opacity: 0 }}
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                    className="absolute inset-0 grid content-center justify-center gap-2"
-                    style={{ gridTemplateColumns: `repeat(${dims.cols}, ${dims.cardW}px)` }}>
-                    {pagedCards.map((c) => (
-                      <CardCell key={c.id} c={c} selected={selected?.id === c.id} width={dims.cardW}
-                        onClick={() => { playUiClick(); setSelId(c.id) }} />
-                    ))}
-                  </motion.div>
-                </AnimatePresence>
+            <div className="h-full min-h-0 overflow-y-auto pr-0.5" style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
+              <div className="grid gap-2 content-start" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${density === 'compact' ? 'clamp(88px, 8vw, 118px)' : 'clamp(112px, 10.5vw, 150px)'}, 1fr))` }}>
+                {filtered.map((c) => (
+                  <CardCell key={c.id} c={c} selected={selected?.id === c.id} width={0}
+                    onClick={() => { playUiClick(); setSelId(c.id); if (!wide) setMobileDetail(true) }} />
+                ))}
               </div>
-              <div className="shrink-0 flex items-center justify-center gap-3" style={{ marginTop: 6 }}>
-                <button onClick={() => go(-1)} disabled={clamped === 0} aria-label="Ankstesnis puslapis"
-                  className="rvn-press flex items-center justify-center rounded-lg disabled:opacity-25"
-                  style={{ width: 34, height: 30, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.35)`, color: 'var(--gold)' }}>
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <span className="rvn-disp tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', minWidth: 64, textAlign: 'center' }}>
-                  {clamped + 1} / {pageCount}
-                </span>
-                <button onClick={() => go(1)} disabled={clamped >= pageCount - 1} aria-label="Kitas puslapis"
-                  className="rvn-press flex items-center justify-center rounded-lg disabled:opacity-25"
-                  style={{ width: 34, height: 30, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.35)`, color: 'var(--gold)' }}>
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </>
+            </div>
           )}
-          </section>
-
-        {/* ── DEŠINĖ: kortos detalės + pakų CTA ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {selected ? <CardDetail key={selected.id} c={selected} onChanged={load} /> : (
-              <div className="h-full flex items-center justify-center text-center px-3" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Pasirink kortą, kad matytum detales.</div>
-            )}
-          </div>
-          <button onClick={openPacks}
-            className="shrink-0 mt-2 w-full rounded-xl font-bold rvn-press"
-            style={{ minHeight: 42, fontSize: 12, background: 'linear-gradient(180deg,#fdba74,#f59e42)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>
-            {totalPacks > 0 ? `🎁 Atplėšti pakus (${totalPacks})` : '🛒 Į parduotuvę'}
-          </button>
         </section>
+
+        {/* Inspector (tik plačiame lange): kompaktiškas, sutraukiamas */}
+        {wide && (inspectorOpen ? (
+          <section className="rounded-2xl shrink-0 flex flex-col min-h-0 overflow-hidden p-2 relative" style={{ ...PANEL, width: 250 }} data-testid="inspector">
+            <button onClick={() => { playUiClick(); toggleInspector() }} aria-label="Suskleisti detales" data-testid="inspector-collapse"
+              className="rvn-press absolute top-1.5 left-1.5 z-10 flex items-center justify-center rounded-lg"
+              style={{ width: 24, height: 24, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)', fontSize: 13 }}>›</button>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {selected ? <CardDetail key={selected.id} c={selected} onChanged={load} /> : (
+                <div className="h-full flex items-center justify-center text-center px-3" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Pasirink kortą.</div>
+              )}
+            </div>
+          </section>
+        ) : (
+          <button onClick={() => { playUiClick(); toggleInspector() }} aria-label="Rodyti detales" data-testid="inspector-open"
+            className="rvn-press shrink-0 rounded-2xl flex items-center justify-center" style={{ ...PANEL, width: 26, color: 'var(--gold)', fontSize: 14 }}>‹</button>
+        ))}
       </div>
+
+      {/* Mažo landscape kortos detalės — slide-over (neuždengia nav, Esc/tap uždaro) */}
+      {!wide && mobileDetail && selected && (
+        <div className="fixed inset-0 z-[150] flex justify-end" style={{ background: 'rgba(4,3,8,0.7)' }} onClick={() => setMobileDetail(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="h-full flex flex-col overflow-hidden p-2.5"
+            style={{ width: 'min(280px, 78vw)', background: 'linear-gradient(160deg, rgba(20,16,28,0.99), rgba(9,7,12,0.99))', borderLeft: `1px solid rgba(${GOLD},0.4)`, paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}>
+            <button onClick={() => setMobileDetail(false)} className="self-end shrink-0 px-2 py-0.5 rounded-lg" style={{ fontSize: 12, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>✕ Uždaryti</button>
+            <div className="flex-1 min-h-0 overflow-y-auto mt-1">
+              <CardDetail key={selected.id} c={selected} onChanged={load} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Pakų pasirinkimo modalas ── */}
       {chooser && (
@@ -339,23 +301,7 @@ export function DigitalCollection() {
   )
 }
 
-function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block shrink-0">
-      <span className="block mb-1 font-bold uppercase" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{label}</span>
-      {children}
-    </label>
-  )
-}
 
-function FactionBtn({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="rvn-press w-full text-left rounded-lg px-2 py-1.5 truncate"
-      style={{ fontSize: 11, fontWeight: 600, border: active ? `1.5px solid rgba(${GOLD},0.9)` : '1px solid rgba(255,255,255,0.08)', background: active ? `linear-gradient(135deg, rgba(${GOLD},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)', color: active ? 'var(--gold)' : 'var(--text-secondary)' }}>
-      {label}
-    </button>
-  )
-}
 
 function CardCell({ c, selected, width, onClick }: { c: Col; selected: boolean; width: number; onClick: () => void }) {
   const [bad, setBad] = useState(false)
@@ -364,7 +310,7 @@ function CardCell({ c, selected, width, onClick }: { c: Col; selected: boolean; 
   return (
     <GameCard glowColor={owned ? col + '88' : 'rgba(120,120,140,0.3)'} sounds={owned}>
       <button onClick={onClick} className="relative block overflow-hidden rounded-lg"
-        style={{ width, aspectRatio: '2.5 / 3.5', border: selected ? `2px solid rgb(${GOLD})` : `2px solid ${owned ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: selected ? `0 0 14px rgba(${GOLD},0.55)` : owned ? `0 0 10px ${col}44` : 'none' }}>
+        style={{ width: width > 0 ? width : '100%', aspectRatio: '2.5 / 3.5', border: selected ? `2px solid rgb(${GOLD})` : `2px solid ${owned ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: selected ? `0 0 14px rgba(${GOLD},0.55)` : owned ? `0 0 10px ${col}44` : 'none' }}>
         {c.image && !bad
           ? <SmartImg src={c.image} width={240} alt={c.name} onFail={() => setBad(true)}
               className="absolute inset-0 w-full h-full object-cover"
