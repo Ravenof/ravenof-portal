@@ -432,7 +432,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
           {/* Kaladės sąrašas — min-h-0 LEIDŽIA trauktis (kitaip pilna kaladė išstumia
               Išsaugoti už panelės), o inline minHeight:96 garantuoja, kad nesusitrauks iki 0 */}
-          <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 96, overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 56, overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
             {sortedEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
@@ -465,7 +465,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
           {/* Statistika PO kaladės sąrašo: aukso kreivė + suvestinė */}
           <div className="shrink-0 rounded-lg px-1.5 pt-1 pb-0.5 mt-1.5" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
-            <div className="flex items-end gap-0.5" style={{ height: 'clamp(20px,4vh,34px)' }}>
+            <div className="flex items-end gap-0.5" style={{ height: 'clamp(14px,3.4vh,34px)' }}>
               {stats.curve.map((n, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
                   <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
@@ -483,10 +483,10 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
           {/* Validacija + išsaugoti — visada matomi (safe-area, niekada po nav) */}
           <div className="shrink-0 pt-1.5 space-y-1.5 relative" data-testid="builder-actions"
-            style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))', zIndex: 2, minHeight: 64, background: 'linear-gradient(0deg, rgba(12,9,18,0.98) 75%, transparent)' }}>
-            <p className="truncate text-center" style={{ fontSize: 10, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</p>
+            style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))', zIndex: 2, minHeight: 56, background: 'linear-gradient(0deg, rgba(12,9,18,0.98) 75%, transparent)' }}>
+            <p className="truncate text-center" style={{ fontSize: 10, lineHeight: 1.2, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</p>
             <button onClick={save} disabled={!canSave} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl font-bold disabled:opacity-40"
-              style={{ minHeight: 40, fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+              style={{ minHeight: 'clamp(36px,6vh,44px)', fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Išsaugoti
             </button>
           </div>
