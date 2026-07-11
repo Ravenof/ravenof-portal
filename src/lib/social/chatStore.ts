@@ -24,7 +24,18 @@ export type Conv = { friend: ChatFriendInfo; msgs: ChatMsg[] | null; unread: num
 type ChatUiPrefs = { side: 'left' | 'right'; yPct: number; soundOn: boolean; previewsOn: boolean; enabled: boolean; muted: string[] }
 const DEF_PREFS: ChatUiPrefs = { side: 'right', yPct: 30, soundOn: true, previewsOn: true, enabled: true, muted: [] }
 
-function loadJson<T>(k: string, d: T): T { try { const r = localStorage.getItem(k); return r ? { ...d, ...JSON.parse(r) } : d } catch { return d } }
+function loadJson<T>(k: string, d: T): T {
+  try {
+    const r = localStorage.getItem(k)
+    if (!r) return d
+    const v = JSON.parse(r) as unknown
+    // KRITIŠKA: masyvo default'ui grąžinam TIK masyvą (object spread masyvą paverstų
+    // objektu -> "openIds is not iterable" crash antrame app paleidime)
+    if (Array.isArray(d)) return (Array.isArray(v) ? v : d) as T
+    if (v && typeof v === 'object' && !Array.isArray(v)) return { ...d, ...(v as object) } as T
+    return d
+  } catch { return d }
+}
 function saveJson(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)) } catch { /* */ } }
 
 type ChatState = {
@@ -110,7 +121,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const rows = (data as { friendId: string; username: string; displayName: string | null; avatar: string | null; presence: Presence; unread: number }[] | null) ?? []
     set((s) => {
       const convs = { ...s.convs }
-      let openIds = [...s.openIds]
+      let openIds = Array.isArray(s.openIds) ? [...s.openIds] : []
       for (const r of rows) {
         const f: ChatFriendInfo = { userId: r.friendId, username: r.username, displayName: r.displayName, avatar: r.avatar, presence: r.presence }
         convs[r.friendId] = convs[r.friendId]
