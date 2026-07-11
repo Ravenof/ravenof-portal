@@ -25,7 +25,7 @@ test.describe('Registracija (/digital/register)', () => {
     await page.getByLabel('Slaptažodis', { exact: true }).fill('slaptazodis123')
     await page.getByLabel('Pakartoti').fill('kitoks-slaptazodis')
     await page.getByRole('button', { name: /Registruotis/ }).click()
-    await expect(page.getByRole('alert')).toBeVisible()
+    await expect(page.locator('[role="alert"]:not(#__next-route-announcer__)')).toBeVisible()
     expect(page.url()).toContain('/digital/register')
   })
 
@@ -37,7 +37,7 @@ test.describe('Registracija (/digital/register)', () => {
     await page.getByLabel('Slaptažodis', { exact: true }).fill('slaptazodis123')
     await page.getByLabel('Pakartoti').fill('slaptazodis123')
     await page.getByRole('button', { name: /Registruotis/ }).click()
-    await expect(page.getByRole('alert')).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('[role="alert"]:not(#__next-route-announcer__)')).toBeVisible({ timeout: 20_000 })
     expect(page.url()).not.toContain('/cards')
     expect(page.url()).toContain('/digital')
   })

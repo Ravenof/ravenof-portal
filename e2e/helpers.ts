@@ -14,8 +14,14 @@ export async function digitalLogin(page: Page, next?: string): Promise<string> {
   await page.getByLabel('El. paštas').fill(EMAIL)
   await page.getByLabel('Slaptažodis', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: /Prisijungti/ }).click()
-  // laukiam kol paliksim login puslapį
-  await page.waitForURL((u) => !u.pathname.includes('/digital/login'), { timeout: 20_000 })
+  // laukiam: arba paliekam login puslapį, arba matoma klaida (aiškus fail vietoj timeout)
+  const alert = page.locator('[role="alert"]:not(#__next-route-announcer__)')
+  await Promise.race([
+    page.waitForURL((u) => !u.pathname.includes('/digital/login'), { timeout: 30_000 }),
+    alert.waitFor({ state: 'visible', timeout: 30_000 }).then(async () => {
+      throw new Error(`Prisijungimas nepavyko: ${(await alert.textContent())?.trim()} — patikrink E2E_TEST_EMAIL/PASSWORD (paskyra turi egzistuoti su patvirtintu el. paštu).`)
+    }),
+  ])
   return page.url()
 }
 

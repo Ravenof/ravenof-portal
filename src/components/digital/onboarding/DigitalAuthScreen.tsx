@@ -8,7 +8,7 @@
 //   login    → onboarding done ? /digital : /digital/onboarding
 // Orientacijos lock + „pasuk telefoną" overlay paveldimi iš /digital layout.
 // ══════════════════════════════════════════════════════════════════════════════
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
@@ -27,10 +27,7 @@ function currentNext(): string | null {
   if (typeof window === 'undefined') return null
   return safeDigitalNext(new URLSearchParams(window.location.search).get('next'))
 }
-function withNext(href: string): string {
-  const n = currentNext()
-  return n ? `${href}?next=${encodeURIComponent(n)}` : href
-}
+
 const GOLD = '240,180,41'
 
 const inputStyle: React.CSSProperties = {
@@ -72,13 +69,17 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [needsConfirm, setNeedsConfirm] = useState(false)
+  // next iš URL — state'e, kad po hydration nuorodos persirenderintų (SSR window nėra)
+  const [nextPath, setNextPath] = useState<string | null>(null)
+  useEffect(() => { setNextPath(currentNext()) }, [])
+  const withNext = (href: string) => (nextPath ? `${href}?next=${encodeURIComponent(nextPath)}` : href)
 
   const isReg = mode === 'register'
 
   const afterAuth = async () => {
     const st = await getOnboardingState()
     // onboarding pirmiau; baigusiems — prašytas /digital kelias arba home
-    router.replace(st === 'done' ? (currentNext() ?? '/digital') : '/digital/onboarding')
+    router.replace(st === 'done' ? (currentNext() ?? nextPath ?? '/digital') : '/digital/onboarding')
     router.refresh()
   }
 
