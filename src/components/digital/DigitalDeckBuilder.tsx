@@ -320,7 +320,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
   return (
     <div className="h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: 'clamp(4px,1vh,8px)' }}>
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
 
         {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
@@ -398,6 +398,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
           transition={{ type: 'spring', stiffness: 380, damping: 16 }}
           className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5"
           style={{
+            height: '100%', maxHeight: '100%',
             ...PANEL,
             border: `1.5px solid rgba(${GOLD},${dragCard ? (overDrop ? 1 : 0.65) : 0.22})`,
             boxShadow: overDrop ? `0 0 26px rgba(${GOLD},0.5), inset 0 0 40px rgba(0,0,0,0.5)` : dragCard ? `0 0 14px rgba(${GOLD},0.3), inset 0 0 40px rgba(0,0,0,0.5)` : 'inset 0 0 40px rgba(0,0,0,0.5)',
@@ -431,7 +432,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
 
           {/* Kaladės sąrašas — min-h-0 LEIDŽIA trauktis (kitaip pilna kaladė išstumia
               Išsaugoti už panelės), o inline minHeight:96 garantuoja, kad nesusitrauks iki 0 */}
-          <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 96 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 96, overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
             {sortedEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
@@ -481,7 +482,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
           </div>
 
           {/* Validacija + išsaugoti — visada matomi (safe-area, niekada po nav) */}
-          <div className="shrink-0 pt-1.5 space-y-1.5" data-testid="builder-actions" style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))' }}>
+          <div className="shrink-0 pt-1.5 space-y-1.5 relative" data-testid="builder-actions"
+            style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))', zIndex: 2, minHeight: 64, background: 'linear-gradient(0deg, rgba(12,9,18,0.98) 75%, transparent)' }}>
             <p className="truncate text-center" style={{ fontSize: 10, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</p>
             <button onClick={save} disabled={!canSave} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl font-bold disabled:opacity-40"
               style={{ minHeight: 40, fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>

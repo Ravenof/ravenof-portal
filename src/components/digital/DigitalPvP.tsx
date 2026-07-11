@@ -216,7 +216,7 @@ export function DigitalPvP() {
       {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
       <div className="shrink-0"><ActiveDeckSummary accent="253,186,116" /></div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(190px,1fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(190px,1fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
 
 
         {/* CENTRAS: Priešininko tipas */}

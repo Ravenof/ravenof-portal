@@ -140,7 +140,7 @@ export function FriendsClient() {
         {selfStatus === 'hidden' && <span style={{ fontSize: 10, color: '#94a3b8' }}>👁 Kiti mato tave neprisijungusį</span>}
       </div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(185px,0.9fr) minmax(0,2fr) minmax(185px,0.95fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(185px,0.9fr) minmax(0,2fr) minmax(185px,0.95fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
         {/* ── KAIRĖ ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
           {secTitle('Pridėti draugą')}

@@ -132,7 +132,7 @@ export function DigitalPvE() {
       {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
       <div className="shrink-0"><ActiveDeckSummary accent={A} /></div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(220px,1fr) minmax(0,1.6fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(220px,1fr) minmax(0,1.6fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
 
         {/* KAIRĖ: režimo pasirinkimas + AI sunkumas (Donato layout: selektoriai dešinėje, kur daugiau vietos) */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
