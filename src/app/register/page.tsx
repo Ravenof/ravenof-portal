@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -83,7 +84,9 @@ export default function RegisterPage() {
 
     setDone(true)
     setTimeout(() => {
-      router.push('/cards')
+      // ?next= gerbiamas (pvz. /digital srautas); default lieka portalo kortų bazė
+      const next = new URLSearchParams(window.location.search).get('next')
+      router.push(next && next.startsWith('/') ? next : '/cards')
       router.refresh()
     }, 1500)
   }
@@ -232,10 +235,14 @@ export default function RegisterPage() {
             Jau turi paskyrą?{' '}
             <span style={{ color: 'var(--gold)' }}>Prisijungti</span>
           </a>
-          <a href="/cards" className="block text-sm transition-opacity hover:opacity-70"
+          <Link href="/digital/register" className="block text-sm transition-opacity hover:opacity-90"
+            style={{ color: 'var(--gold)', fontSize: '11px' }}>
+            ⚔ Registruojiesi žaidimui? Ravenof Digital registracija
+          </Link>
+          <Link href="/cards" className="block text-sm transition-opacity hover:opacity-70"
             style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
             Grįžti į kortų bazę
-          </a>
+          </Link>
         </div>
       </div>
     </div>

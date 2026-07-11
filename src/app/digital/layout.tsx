@@ -19,6 +19,8 @@ import { loadDigitalSettings } from '@/lib/settings-sync'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { getOnboardingState } from '@/lib/digital/onboarding'
 import { heartbeat } from '@/lib/social'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { HubStyles, ResourcePill, IconBtn, ProfileChip } from '@/components/digital/ui/HubKit'
@@ -35,8 +37,13 @@ const NAV: NavItem[] = [
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
 
+// Auth/onboarding keliai: be header/nav/gate — pilnaekranis onboarding shell.
+const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding']
+
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const bare = BARE_ROUTES.includes(pathname)
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 }) // reikšmės nebe rodomos čia (ShopModal pats traukia balansus)
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -90,6 +97,23 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return () => window.removeEventListener('focus', loadProfile)
   }, [])
 
+  // ── Onboarding route guard ──────────────────────────────────────────────
+  // pending → tik /digital/onboarding; done → onboarding/auth keliai uždrausti;
+  // anon → onboarding kelias reikalauja prisijungimo. 'unknown' (migracija
+  // nesuvesta / tinklo klaida) → NIEKO nedarom (fail-open, be softlock/loop).
+  useEffect(() => {
+    let cancel = false
+    getOnboardingState().then((st) => {
+      if (cancel) return
+      const isAuthRoute = pathname === '/digital/register' || pathname === '/digital/login'
+      const isOb = pathname === '/digital/onboarding'
+      if (st === 'pending' && !isOb && !isAuthRoute) router.replace('/digital/onboarding')
+      else if (st === 'done' && (isOb || isAuthRoute)) router.replace('/digital')
+      else if (st === 'anon' && isOb) router.replace('/digital/login')
+    })
+    return () => { cancel = true }
+  }, [pathname, router])
+
   // Neperskaitytos notifikacijos — pigi head-count užklausa keičiant route
   useEffect(() => {
     const supabase = createClient()
@@ -113,6 +137,24 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     if (it.action === 'store') return storeOpen
     if (it.href === '/digital') return pathname === '/digital'
     return !!it.href && pathname.startsWith(it.href)
+  }
+
+  if (bare) {
+    return (
+      <div className="fixed inset-0 z-40 flex flex-col select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
+        <Flames />
+        <HubStyles />
+        <main className="relative z-10 flex-1 min-h-0">{children}</main>
+        {showRotate && (
+          <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
+            <div className="text-6xl" style={{ animation: 'rvnRotateHintApp 1.6s ease-in-out infinite' }}>🔄</div>
+            <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pasuk telefoną</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ravenof Digital sukurtas žaisti gulsčiai</p>
+            <style>{`@keyframes rvnRotateHintApp { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }`}</style>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (

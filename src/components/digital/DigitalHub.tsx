@@ -19,7 +19,6 @@ import { getMonthlyLogin, rewardChip } from '@/lib/gamification/monthlyLogin'
 import { ShopModal } from './ShopModal'
 import { getNews, type NewsItem } from '@/lib/news'
 import { friendsList } from '@/lib/social'
-import { StarterOnboarding } from './StarterOnboarding'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
 import { getDailyTasks, type DailyTask } from '@/lib/gamification/dailyTasks'
@@ -55,7 +54,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [mode, setMode] = useState('ranked')
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
-  const [onboardOpen, setOnboardOpen] = useState(false)
   const [questsPending, setQuestsPending] = useState(0)
   const [tasks, setTasks] = useState<DailyTask[]>([])
   const [questsLoaded, setQuestsLoaded] = useState(false)
@@ -89,8 +87,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     friendsList().then(({ friends }) => { const on = friends.filter((f) => f.online).length; setFriendsOnline(friends.length ? on : null) })
     getStarterDecks().then((d) => {
       const c = (d ?? []).filter((x) => x.claimed).length
-      setNewPlayer(c === 0)
-      if (c === 0 && (d ?? []).length > 0 && !localStorage.getItem('rvn-starter-onboard-seen')) setOnboardOpen(true)
+      setNewPlayer(c === 0) // starter pasirinkimas dabar /digital/onboarding (route guard)
     })
   }, [loggedIn, refreshWallet, refreshQuests, refreshBalances])
 
@@ -98,7 +95,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     return (
       <div className="rounded-2xl p-6 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
         <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad galėtum žaisti skaitmenines kovas.</p>
-        <Link href="/login?next=/digital" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>Prisijungti</Link>
+        <span className="inline-flex gap-2">
+          <Link href="/digital/login" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>Prisijungti</Link>
+          <Link href="/digital/register" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', border: '1px solid #ffeaa6', color: '#3a2406' }}>Sukurti paskyrą</Link>
+        </span>
       </div>
     )
   }
@@ -243,17 +243,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
       {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={() => { refreshWallet(); refreshBalances() }} />}
-
-      {onboardOpen && (
-        <StarterOnboarding
-          onClose={() => { setOnboardOpen(false); try { localStorage.setItem('rvn-starter-onboard-seen', '1') } catch {} }}
-          onDone={() => {
-            setOnboardOpen(false)
-            try { localStorage.setItem('rvn-starter-onboard-seen', '1') } catch {}
-            setNewPlayer(false)
-            router.push('/digital/tutorial?auto=1')
-          }} />
-      )}
 
       {dailyOpen && <DailyTasksModal onClose={() => { setDailyOpen(false); refreshQuests() }} onReward={() => { refreshBalances(); refreshWallet(); refreshQuests() }} />}
       {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
