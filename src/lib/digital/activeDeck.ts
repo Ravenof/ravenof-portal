@@ -59,14 +59,15 @@ export const useActiveDeck = create<ActiveDeckState>((set, get) => ({
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { set({ loaded: true, loading: false, decks: [], activeDeckId: null }); return }
-        const tester = false
         const [{ data: prof }, { data: rows }, { data: dc }, { data: col }] = await Promise.all([
-          supabase.from('profiles').select('active_deck_id').eq('id', user.id).maybeSingle(),
+          supabase.from('profiles').select('active_deck_id, role').eq('id', user.id).maybeSingle(),
           supabase.from('decks').select('id, name, card_count, bound_avatar, updated_at, faction:factions ( name, icon_url, color_hex )')
             .eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
-          supabase.from('deck_cards').select('deck_id, card_id, quantity').eq('is_side_deck', false),
+          supabase.from('deck_cards').select('deck_id, card_id, quantity'),
           supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
         ])
+        // Tester/admin gali žaisti su bet kokia kalade, net jei kortų kolekcijoje nėra (kaip senas PvE filtras)
+        const tester = ['tester', 'admin'].includes((prof as { role?: string } | null)?.role ?? '')
         const owned: Record<string, number> = Object.fromEntries(((col as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
         const missingMap: Record<string, number> = {}
         for (const r of ((dc as { deck_id: string; card_id: string; quantity: number }[]) ?? [])) {
