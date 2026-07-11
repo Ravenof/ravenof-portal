@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
 import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
-import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
+import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
 
@@ -84,7 +84,10 @@ export function DigitalPvP() {
 
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
-  const deck = (globalDeck && deckValidity(globalDeck).valid ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined) ?? decks?.find((d) => d.id === sel && d.missing === 0)
+  // Tik globali aktyvi kaladė (be tylaus fallback) — žr. DigitalPvE komentarą
+  const deck = adState.loaded
+    ? (globalDeck ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
+    : decks?.find((d) => d.id === sel && d.missing === 0)
   const playable = (decks ?? []).filter((d) => d.missing === 0)
 
   const waitForGuest = useCallback((matchId: string) => {

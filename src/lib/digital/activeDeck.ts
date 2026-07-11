@@ -22,9 +22,11 @@ export type ActiveDeckInfo = {
 }
 
 export function deckValidity(d: ActiveDeckInfo | null | undefined): DeckValidity {
+  // REALI žaidimo taisyklė (kaip senas PvE filtras): kaladė žaidžiama, jei visos
+  // jos kortos turimos kolekcijoje (missing=0) ir ji netuščia. Kortų kiekis —
+  // informacija, NE blokatorius (builder leidžia ir >30).
   if (!d) return { valid: false, reason: 'Nepasirinkta aktyvi kaladė' }
-  if (d.cardCount < 30) return { valid: false, reason: `Per mažai kortų (${d.cardCount}/30)` }
-  if (d.cardCount > 30) return { valid: false, reason: `Per daug kortų (${d.cardCount}/30)` }
+  if (d.cardCount === 0) return { valid: false, reason: 'Kaladė tuščia' }
   if (d.missing > 0) return { valid: false, reason: `Trūksta ${d.missing} kortų kolekcijoje` }
   return { valid: true, reason: null }
 }

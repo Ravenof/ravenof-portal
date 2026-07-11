@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
-import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
+import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -70,8 +70,12 @@ export function DigitalPvE() {
 
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
-  // Globali aktyvi kaladė (jei tinkama) — vienintelis šaltinis; fallback sena vietinė
-  const deck = (globalDeck && deckValidity(globalDeck).valid ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined) ?? decks?.find((d) => d.id === sel && d.missing === 0)
+  // VIENINTELIS šaltinis — globali aktyvi kaladė. JOKIO tylaus fallback į kitą
+  // kaladę (kova privalo vykti su ta, kurią žaidėjas pasirinko). Jei netinkama —
+  // deck=null ir CTA aiškiai pasako. Fallback į seną vietinę TIK kol store kraunasi.
+  const deck = adState.loaded
+    ? (globalDeck ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
+    : decks?.find((d) => d.id === sel && d.missing === 0)
   const playable = (decks ?? []).filter((d) => d.missing === 0)
   const selFactionObj = factions.find((f) => f.id === oppFaction)
   const selDeckObj = publicDecks.find((d) => d.id === oppDeck)
@@ -203,7 +207,7 @@ export function DigitalPvE() {
           </div>
           <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
             style={{ marginTop: 'clamp(4px,1vh,8px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
-            ⚔ {canStart ? 'PRADĖTI KOVĄ' : mode === 'faction' ? 'PASIRINK FRAKCIJĄ' : mode === 'public' ? 'PASIRINK DECK’Ą' : 'PASIRINK PRIEŠININKĄ'}
+            ⚔ {canStart ? 'PRADĖTI KOVĄ' : !deck ? 'AKTYVI KALADĖ NETINKAMA' : mode === 'faction' ? 'PASIRINK FRAKCIJĄ' : mode === 'public' ? 'PASIRINK DECK’Ą' : 'PASIRINK PRIEŠININKĄ'}
           </button>
         </section>
       </div>
