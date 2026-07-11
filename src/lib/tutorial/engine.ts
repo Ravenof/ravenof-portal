@@ -5,7 +5,7 @@
 
 import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType, SpellType, AttackRestriction } from '@/lib/game/types'
 import { buildZmkDeck } from '@/lib/game/zmkEngine'
-import { applyMappings, applyMapping, type GameApi } from '@/lib/game/effectEngine'
+import { applyMappings, applyMapping, mappingNeedsSelection, type GameApi } from '@/lib/game/effectEngine'
 import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
 import * as fieldEngine from '@/lib/game/fieldEngine'
 import { fireTrigger } from '@/lib/game/triggerSystem'
@@ -215,6 +215,9 @@ export type GameState = {
   /** Laukiantis efekto kopijavimas iš kapinyno (#5) */
   pendingCopy?: PendingCopy | null
   pendingReturn?: { side: Side } | null   // laukas: ėjimo pradžioje grąžink savo padarą į ranką (žaidėjas renkasi)
+  // Special summon battlecry, kuriam reikia RANKINIO taikinio: korta švyti,
+  // paspaudus renkamasi taikinys (resolveBattlecry). idx = mapping indeksai kortoje.
+  pendingBattlecry?: { side: Side; uid: string; rounds: number; idx: number[] } | null
   /** Trumpalaikis ŽMK traukimo kontekstas (nevalomas tarp veiksmų – išvalomas kiekvieno veiksmo pradžioje) */
   rollContext?: RollContext | null
   /** Paskutinis mill (UI animacijai: kortos iš kaladės į kapinyną) */
@@ -1339,6 +1342,12 @@ function applyCopyEffect(g: GameState, s: Side, sourceUid: string, srcCard: TutC
   if (copied.length === 0) return
   u.card = { ...u.card, mappings: [...(u.card.mappings ?? []), ...copied.map((m) => ({ ...m }))] }
   log(g, { t: 'buff', side: s, cardName: u.card.name, msg: `🜏 „${u.card.name}" perima „${srcCard.name}" efektą!`, src: { side: s, uid: sourceUid } })
+  // Nukopijuoti Kovos šūksniai (onSummon/onPlay) suveikia IŠKART (mėgdžiotojas):
+  // taikinio reikalaujantys → pendingBattlecry (žaidėjas renkasi), kiti — auto.
+  const all = u.card.mappings ?? []
+  const start = all.length - copied.length
+  const copiedEntries = all.map((m, i) => ({ m, i })).slice(start).filter((x) => x.m.trigger === 'onSummon' || x.m.trigger === 'onPlay')
+  if (copiedEntries.length > 0) fireEntryMappings(g, s, u, copiedEntries)
 }
 export function resolveCopyEffect(g: GameState, chosenUid: string): { ok: boolean; reason?: string } {
   const pc = g.pendingCopy
@@ -1687,7 +1696,87 @@ function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource 
   recomputeAuras(g)
   fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype, faction: card.factionId, source })
   // 'play' kelias šaukia atskirai PO battlecry (kad šūksnis spėtų įvykti)
-  if (source !== 'play') fieldKillLastwishSummon(g, s, card)
+  if (source !== 'play') {
+    // SPECIAL SUMMON (iš kaladės/kapinyno/rankos efektu): Kovos šūksnis IRGI suveikia.
+    // Unit'as randamas pagal kortos objekto tapatybę (visi kvietėjai deda tą patį card ref).
+    const su = P(g, s).units.find((x): x is BoardUnit => !!x && x.card === card)
+    if (su) fireEntryMappings(g, s, su)
+    fieldKillLastwishSummon(g, s, card)
+  }
+}
+
+// ── Kovos šūksnis special summon'ams ir kopijoms ─────────────────────────────
+function entryMappingsOf(card: TutCard): { m: EffectMapping; i: number }[] {
+  return (card.mappings ?? []).map((m, i) => ({ m, i })).filter((x) => x.m.trigger === 'onSummon' || x.m.trigger === 'onPlay')
+}
+
+/** Neišspręstas pendingBattlecry įvykdomas AUTOMATIŠKAI (efektas nepražūva). */
+function flushPendingBattlecry(g: GameState) {
+  const pb = g.pendingBattlecry
+  if (!pb) return
+  g.pendingBattlecry = null
+  const u = P(g, pb.side).units.find((x): x is BoardUnit => !!x && x.uid === pb.uid)
+  if (!u || u.statuses.silenced) return
+  for (let bc = 0; bc < pb.rounds && !g.winner; bc++) {
+    for (const i of pb.idx) {
+      const m = (u.card.mappings ?? [])[i]
+      if (m) applyMapping(gameApi, g, pb.side, m, { sourceName: u.card.name, sourceUid: u.uid, depth: 1 })
+      if (g.winner) break
+    }
+  }
+}
+
+/** Entry (onSummon/onPlay) mapping'ų vykdymas jau LAUKE esančiam padarui.
+ *  entries nenurodžius — visi kortos entry mapping'ai (+legacy battlecry fallback).
+ *  'you' pusei taikinio reikalaujantys mapping'ai → pendingBattlecry (korta švyti,
+ *  žaidėjas renkasi); AI/svečiui — auto-pick (kaip AI žaidžiant iš rankos). */
+function fireEntryMappings(g: GameState, s: Side, u: BoardUnit, entries?: { m: EffectMapping; i: number }[]) {
+  if (g.winner || u.statuses.silenced) return
+  if (!P(g, s).units.some((x) => x?.uid === u.uid)) return
+  const card = u.card
+  const list = entries ?? entryMappingsOf(card)
+  const rounds = fieldEngine.battlecryTwice(g, s) ? 2 : 1
+  if (list.length === 0) {
+    if (!entries && card.keywords.includes('battlecry') && card.effect) {
+      for (let bc = 0; bc < rounds && !g.winner; bc++) {
+        log(g, { t: 'battlecry', side: s, cardName: card.name, msg: bc === 0 ? `📣 „${card.name}" Kovos šūksnis!` : '📣📣 Kovos šūksnis kartojasi (laukas)!', src: { side: s, uid: u.uid } })
+        applyAutoEffect(g, s, card.effect, card.name)
+      }
+    }
+    return
+  }
+  const needSel = s === 'you' ? list.filter((x) => mappingNeedsSelection(x.m)) : []
+  const auto = list.filter((x) => !needSel.some((y) => y.i === x.i))
+  if (auto.length > 0) {
+    for (let bc = 0; bc < rounds && !g.winner; bc++) {
+      log(g, { t: 'battlecry', side: s, cardName: card.name, msg: bc === 0 ? `📣 „${card.name}" Kovos šūksnis!` : '📣📣 Kovos šūksnis kartojasi (laukas)!', src: { side: s, uid: u.uid } })
+      for (const x of auto) { applyMapping(gameApi, g, s, x.m, { sourceName: card.name, sourceUid: u.uid, depth: 1 }); if (g.winner) break }
+    }
+  }
+  if (needSel.length > 0 && !g.winner && P(g, s).units.some((x) => x?.uid === u.uid)) {
+    flushPendingBattlecry(g)  // ankstesnis dar neišspręstas → auto, kad nepražūtų
+    g.pendingBattlecry = { side: s, uid: u.uid, rounds, idx: needSel.map((x) => x.i) }
+    log(g, { t: 'battlecry', side: s, cardName: card.name, msg: `📣 „${card.name}" Kovos šūksnis laukia taikinio — paspausk švytinčią kortą ir pasirink taikinį!`, src: { side: s, uid: u.uid } })
+  }
+}
+
+/** Žaidėjo pasirinktas pendingBattlecry taikinys. */
+export function resolvePendingBattlecry(g: GameState, target: TargetRef): { ok: boolean; reason?: string } {
+  const pb = g.pendingBattlecry
+  if (!pb) return { ok: true }
+  const u = P(g, pb.side).units.find((x): x is BoardUnit => !!x && x.uid === pb.uid)
+  g.pendingBattlecry = null
+  if (!u) return { ok: true }  // padaras žuvo — šūksnis nebeįvyksta
+  for (let bc = 0; bc < pb.rounds && !g.winner; bc++) {
+    log(g, { t: 'battlecry', side: pb.side, cardName: u.card.name, msg: `📣 „${u.card.name}" Kovos šūksnis!`, src: { side: pb.side, uid: u.uid } })
+    for (const i of pb.idx) {
+      const m = (u.card.mappings ?? [])[i]
+      if (m) applyMapping(gameApi, g, pb.side, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: toResolved(target), depth: 0 })
+      if (g.winner) break
+    }
+  }
+  checkWin(g)
+  return { ok: true }
 }
 /** Kortos sužaidimo globalus trigeris. */
 function afterPlay(g: GameState, s: Side, card: TutCard) {
@@ -2098,6 +2187,7 @@ function seatEndTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
   if (g.pendingReturn?.side === s) g.pendingReturn = null  // nespėjo pasirinkti – praleidžiama
+  if (g.pendingBattlecry?.side === s) flushPendingBattlecry(g)  // nepasirinko taikinio → auto
   // Priešo uždėtos būsenos (until x.5): kaustė visą šį ėjimą — nuimamos jo pabaigoje,
   // kad uždėjusiojo kitame ėjime padaras jau būtų laisvas (atsakytų į atakas).
   for (const u of p.units) {
@@ -2680,6 +2770,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingChoice) { c.pendingChoice.caster = other(c.pendingChoice.caster); if (c.pendingChoice.chooser) c.pendingChoice.chooser = other(c.pendingChoice.chooser) }
   if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }
   if (c.pendingReturn) c.pendingReturn.side = other(c.pendingReturn.side)
+  if (c.pendingBattlecry) c.pendingBattlecry.side = other(c.pendingBattlecry.side)
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
   // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
   for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }
@@ -2714,6 +2805,7 @@ export type NetAction =
   | { t: 'resolveChoice'; index: number }
   | { t: 'resolveCopy'; uid: string }
   | { t: 'resolveReturn'; uid: string }
+  | { t: 'resolveBattlecry'; target: TargetRef }
   | { t: 'swapChampPhase'; actor: Side; uid: string; phase: number }
   | { t: 'clearReveal' }
 
@@ -2730,6 +2822,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'resolveChoice': return resolveChoice(g, a.index)
     case 'resolveCopy': return resolveCopyEffect(g, a.uid)
     case 'resolveReturn': return resolveReturnUnit(g, a.uid)
+    case 'resolveBattlecry': return resolvePendingBattlecry(g, a.target)
     case 'swapChampPhase': return swapChampionPhase(g, a.actor, a.uid, a.phase)
     case 'clearReveal': g.pendingReveal = null; return { ok: true }
   }

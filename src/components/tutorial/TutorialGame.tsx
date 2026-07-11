@@ -599,6 +599,7 @@ export function Token({ children, title, color, icon }: { children: React.ReactN
 
 type SelectMode =
   | { kind: 'attacker'; uid: string }
+  | { kind: 'battlecry'; uid: string }
   | { kind: 'spell'; uid: string; picked?: TargetRef | null }
   | { kind: 'sacrifice'; cardUid: string; picked: string[] }
   | { kind: 'discard' }
@@ -2197,6 +2198,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       toggleSpellTarget({ kind: 'unit', side: 'you', uid: u.uid })
       return
     }
+    // Special summon Kovos šūksnis laukia taikinio: paspaudus švytinčią kortą → taikinio režimas
+    if (game?.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid) {
+      playUiClick()
+      setSelect(select?.kind === 'battlecry' && select.uid === u.uid ? null : { kind: 'battlecry', uid: u.uid })
+      return
+    }
     if (u.isChampion) {
       playUiClick()
       setChampPopup(u.uid)
@@ -2244,6 +2251,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const uid = select.uid
       doAction({ t: 'attack', actor: 'you', uid, target: t })
       setSelect(null)
+    } else if (select?.kind === 'battlecry') {
+      playSuccess()
+      doAction({ t: 'resolveBattlecry', target: t })
+      setSelect(null)
     } else if (select?.kind === 'spell' || select?.kind === 'spellMulti') {
       toggleSpellTarget(t)
     }
@@ -2279,6 +2290,14 @@ doAction({ t: 'endTurn', actor: 'you' })
       const atkU = game.you.units.find((u) => u?.uid === select.uid) ?? undefined
       const ts = legalTargets(game, 'you', atkU)
       return new Set(ts.map((t) => t.kind + ':' + ('uid' in t ? t.uid : t.side)))
+    }
+    if (select.kind === 'battlecry') {
+      const pb = game.pendingBattlecry
+      const un = game.you.units.find((x) => x?.uid === select.uid)
+      const m = un && pb && pb.uid === select.uid ? (un.card.mappings ?? [])[pb.idx[0]] : null
+      const st = new Set<string>()
+      if (m) for (const t of spellTargetRefs(game, 'you', m)) st.add(targetRefKey(t))
+      return st
     }
     if (select.kind === 'spell') {
       const card = game.you.hand.find((c) => c.uid === select.uid)
@@ -2528,7 +2547,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}>
               <UnitTile
                 g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
-                selected={select?.kind === 'attacker' && select.uid === u.uid}
+                selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
                 picked={pickedKeys.has('unit:' + u.uid)}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}
