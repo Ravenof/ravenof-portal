@@ -132,13 +132,12 @@ export function DigitalPvE() {
       {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
       <div className="shrink-0"><ActiveDeckSummary accent={A} /></div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.8fr) minmax(190px,1.05fr)' }}>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(220px,1fr) minmax(0,1.6fr)' }}>
 
-
-        {/* CENTRAS: priešininko tipas */}
+        {/* KAIRĖ: režimo pasirinkimas + AI sunkumas (Donato layout: selektoriai dešinėje, kur daugiau vietos) */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Priešininko tipas</div>
-          <div className="grid grid-cols-4 gap-1.5 mb-2 shrink-0" style={{ alignItems: 'start' }}>
+          <div className="grid grid-cols-2 gap-1.5 mb-2 shrink-0" style={{ alignItems: 'start' }}>
             {modeTab('random', '🎲', 'Atsitiktinė frakcija')}
             {modeTab('faction', '🏰', 'Pasirinkta frakcija')}
             {modeTab('public', '🌐', 'Viešas deck')}
@@ -147,6 +146,23 @@ export function DigitalPvE() {
               <span className="rvn-disp font-bold uppercase text-center leading-tight" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: '#c4b5fd' }}>Mokymai</span>
             </Link>
           </div>
+          <div className="shrink-0" data-testid="ai-difficulty">
+            <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 'clamp(3px,0.7vh,6px)' }}>AI sunkumas</p>
+            <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
+            <p style={{ marginTop: 'clamp(3px,0.7vh,6px)', fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3, minHeight: '2.6em' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center gap-1 px-2">
+            <div className="rounded-xl w-full py-2 px-2" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.22)` }}>
+              <div className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#86efac' }}>Tu</div>
+              <div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deck?.name ?? '—'}</div>
+              <div className="rvn-disp font-bold uppercase mt-1" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#fca5a5' }}>Priešininkas</div>
+              <div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div>
+            </div>
+          </div>
+        </section>
+
+        {/* DEŠINĖ: varžovo pasirinkimo turinys (visas aukštis scroll'ui) + CTA apačioje */}
+        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {mode === 'random' && (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-4">
@@ -156,7 +172,7 @@ export function DigitalPvE() {
               </div>
             )}
             {mode === 'faction' && (
-              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start">
+              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start" data-testid="faction-picker">
                 {factions.map((f) => { const s = f.id === oppFaction; return (
                   <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
                     <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'rgba(240,180,41,0.3)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
@@ -173,7 +189,7 @@ export function DigitalPvE() {
                     <option value="">Visos frakcijos</option>{factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
-                <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start">
+                <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start" data-testid="public-decks">
                   {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nerasta deck&apos;ų.</p>}
                   {filteredDecks.map((d) => { const s = d.id === oppDeck; return (
                     <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="rvn-press rounded-xl p-2 flex flex-col gap-1 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
@@ -188,22 +204,6 @@ export function DigitalPvE() {
                 </div>
               </div>
             )}
-          </div>
-        </section>
-
-        {/* DEŠINĖ: santrauka + sunkumas */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          {/* Stabilus grid: santrauka (1fr, scroll TIK jei labai žema) / sunkumas / CTA — sunkumas ir CTA VISADA matomi */}
-          <div className="flex-1 min-h-0 flex flex-col" style={{ gap: 'clamp(6px,1.2vh,10px)' }}>
-            <div className="rounded-xl flex flex-col flex-1 min-h-0 overflow-y-auto" style={{ padding: 'clamp(6px,1.2vh,10px)', gap: 'clamp(4px,0.8vh,6px)', background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${A},0.22)` }}>
-              <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#86efac' }}>Tu</div><div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deck?.name ?? '—'}</div></div>
-              <div><div className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: '#fca5a5' }}>Priešininkas</div><div className="truncate" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div></div>
-            </div>
-            <div className="shrink-0" data-testid="ai-difficulty">
-              <p className="rvn-disp font-semibold uppercase" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 'clamp(3px,0.7vh,6px)' }}>AI sunkumas</p>
-              <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
-              <p style={{ marginTop: 'clamp(3px,0.7vh,6px)', fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3, minHeight: '2.6em' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</p>
-            </div>
           </div>
           <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
             style={{ marginTop: 'clamp(4px,1vh,8px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
