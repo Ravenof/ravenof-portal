@@ -5,10 +5,10 @@
 // (kiekvienas lygis = stulpelis: Free viršuje, Pass apačioje). Dešinė:
 // pasirinkto lygio preview + Atsiimti + Atrakinti pasą + Atsiimti viską (pinned).
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { createPortal } from 'react-dom'
 import { X, Lock, Check } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getSeasonPath, claimSeasonReward, unlockSeasonPass, type SeasonPath, type SeasonRow, type SeasonSide } from '@/lib/gamification/seasonPath'
 import { useEscClose } from '@/lib/useEscClose'
 
@@ -16,7 +16,7 @@ function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; siz
   if (!payload?.length) return <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>—</span>
   return (
     <span className="flex flex-wrap gap-1 justify-center">
-      {payload.map((it, i) => { const c = rewardChip(it); return <span key={i} style={{ fontSize: size, color: '#f3ead3', lineHeight: 1.2 }}>{c.icon}{c.label && <b> {c.label}</b>}</span> })}
+      {payload.map((it, i) => <span key={i} style={{ lineHeight: 1.2 }}><RewardChip it={it} size={Math.round(size * 1.35)} textSize={size} color="#f3ead3" /></span>)}
     </span>
   )
 }
@@ -183,8 +183,8 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
             <div className="shrink-0 mt-2 flex flex-col gap-1.5">
               {!sp?.hasPass && (
                 <div className="flex gap-1.5">
-                  <button onClick={() => unlock('silver')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atrakinti · 🥈 {sp?.priceSilver ?? 8000}</button>
-                  <button onClick={() => unlock('rubies')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)' }}>💎 {sp?.priceRubies ?? 950}</button>
+                  <button onClick={() => unlock('silver')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atrakinti · <RewardChip it={{ type: 'currency', currency: 'silver', amount: sp?.priceSilver ?? 8000 }} size={14} textSize={10.5} color="#3a2406" /></button>
+                  <button onClick={() => unlock('rubies')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)' }}><RewardChip it={{ type: 'currency', currency: 'rubies', amount: sp?.priceRubies ?? 950 }} size={14} textSize={10.5} color="#fca5a5" /></button>
                 </div>
               )}
               <button onClick={claimAll} disabled={busy || !anyClaimable} className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-40"

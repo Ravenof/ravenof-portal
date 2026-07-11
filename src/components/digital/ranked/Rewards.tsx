@@ -2,6 +2,7 @@
 
 // ── Apdovanojimai — milestone'ai su claim/locked/claimed būsenomis. ──────────
 import { useEffect, useState } from 'react'
+import { RewardSlot } from '@/components/digital/ui/RewardBits'
 import { MILESTONE_REWARDS, summarizePayload } from '@/lib/ranked/rewards'
 import { formatRank } from '@/lib/ranked/rank'
 import { claimReward, getClaimState } from '@/lib/ranked/client'
@@ -22,7 +23,7 @@ export function Rewards({ bestRankStep, onChanged }: { bestRankStep: number; onC
     setBusy(null)
     if ('error' in r) { setToast('Nepavyko atsiimti.'); return }
     playRanked('ranked_reward_claim')
-    setToast('Atlygis atsiimtas! 🎁')
+    setToast('Atlygis atsiimtas!')
     refresh(); onChanged?.()
   }
 
@@ -34,7 +35,7 @@ export function Rewards({ bestRankStep, onChanged }: { bestRankStep: number; onC
         return (
           <div key={rw.key} className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
             style={{ background: reached ? 'rgba(10,8,16,0.6)' : 'rgba(10,8,16,0.35)', border: '1px solid ' + (isClaimed ? 'rgba(34,197,94,0.45)' : reached ? 'rgba(240,180,41,0.4)' : 'rgba(255,255,255,0.06)'), opacity: reached ? 1 : 0.65 }}>
-            <span className="text-xl">{reached ? (isClaimed ? '✅' : '🎁') : '🔒'}</span>
+            <RewardSlot payload={(rw.payload ?? []) as import('@/lib/rewards/rewardVisuals').RewardPayloadItem[]} state={reached ? (isClaimed ? 'claimed' : 'claimable') : 'locked'} size={26} max={3} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{rw.title}</p>
               <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatRank(rw.requiredRankStep)} · {summarizePayload(rw.payload)}</p>

@@ -14,6 +14,7 @@ import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { LEVEL_THRESHOLDS, MAX_LEVEL, getLevelProgress, getRankGroupForLevel } from '@/lib/gamification/levels'
 
 const GOLD = '240,180,41'
@@ -133,13 +134,13 @@ export function LevelRoadModal({ onClose }: { onClose: () => void }) {
                     <span className="block truncate rvn-disp font-bold" style={{ fontSize: milestone ? 12.5 : 11.5, color: reached ? '#f3ead3' : 'var(--text-secondary)' }}>{milestone ? `${g.icon} ` : ''}{t.title}</span>
                     <span className="block truncate tabular-nums" style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{t.requiredTotalXp.toLocaleString('lt-LT')} XP</span>
                   </span>
-                  <span className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end" style={{ fontSize: 10, fontWeight: 700 }}>
-                    {r.silver > 0 && <span style={{ color: 'var(--gold)' }}>🪙{r.silver}</span>}
-                    {r.essence > 0 && <span style={{ color: '#c4b5fd' }}>🔮{r.essence}</span>}
-                    {r.rubies > 0 && <span style={{ color: '#fca5a5' }}>💎{r.rubies}</span>}
-                    {r.packs > 0 && <span style={{ color: '#fdba74' }}>🎁{r.packs}</span>}
-                    {r.packRare > 0 && <span style={{ color: '#93c5fd' }}>🎁★{r.packRare}</span>}
-                    {r.cardBack && <span style={{ color: '#93c5fd' }}>🂠</span>}
+                  <span className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
+                    {r.silver > 0 && <RewardChip it={{ type: 'currency', currency: 'silver', amount: r.silver }} size={14} textSize={10} color="#f3d98c" />}
+                    {r.essence > 0 && <RewardChip it={{ type: 'currency', currency: 'essence', amount: r.essence }} size={14} textSize={10} color="#c4b5fd" />}
+                    {r.rubies > 0 && <RewardChip it={{ type: 'currency', currency: 'rubies', amount: r.rubies }} size={14} textSize={10} color="#fca5a5" />}
+                    {r.packs > 0 && <RewardChip it={{ type: 'item', item_type: 'pack', quantity: r.packs }} size={14} textSize={10} color="#fdba74" />}
+                    {r.packRare > 0 && <RewardChip it={{ type: 'item', item_type: 'pack', quantity: r.packRare }} size={14} textSize={10} color="#93c5fd" />}
+                    {r.cardBack && <RewardChip it={{ type: 'item', item_type: 'card_back', item_id: r.cardBack }} size={14} textSize={10} color="#93c5fd" />}
                   </span>
                   <span className="shrink-0 w-5 text-center" style={{ fontSize: 12 }}>
                     {isCur ? <span style={{ color: g.color }}>◈</span> : reached ? <span style={{ color: '#4ade80' }}>✓</span> : <span style={{ color: 'var(--text-muted)' }}>🔒</span>}

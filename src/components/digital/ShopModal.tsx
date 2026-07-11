@@ -7,12 +7,12 @@
 // Senas StoreModal (auksinė parduotuvė) išimtas — šis modalas atidaromas ir iš
 // tab bar „Parduotuvė", ir iš Hub, ir per requestOpenStore eventą.
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
-import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
 import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
@@ -228,7 +228,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                           </span>
                         )}
                         <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{it.name}</span>
-                        {!vis && <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => { const c = rewardChip(p); return <span key={i} style={{ fontSize: 9.5, color: '#e8dcc0' }}>{c.icon} {c.label}</span> })}</span>}
+                        {!vis && <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => <span key={i}><RewardChip it={p} size={13} textSize={9.5} /></span>)}</span>}
                         <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
                           {owned ? <span style={{ color: '#4ade80' }}>✓ Turima</span> : <>
                             {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
@@ -304,9 +304,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   <div>
                     <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Turinys</p>
                     <div className="flex flex-col gap-1">
-                      {effShop.payload.map((p, i) => { const c = rewardChip(p); return (
-                        <span key={i} className="px-2 py-1 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#e8dcc0' }}>{c.icon} {c.label}</span>
-                      ) })}
+                      {effShop.payload.map((p, i) => (
+                        <span key={i} className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}><RewardChip it={p} size={16} textSize={10.5} /></span>
+                      ))}
                     </div>
                   </div>
                   {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}

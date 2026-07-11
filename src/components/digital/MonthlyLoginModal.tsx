@@ -4,10 +4,11 @@
 // kairė mėnesio progresas/laikmačiai · centras 30 d. kalendorius (6 stulpeliai)
 // · dešinė šiandienos dovana + ATSIIMTI (pinned) + kitos dienos preview.
 import { useCallback, useEffect, useState } from 'react'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { getMonthlyLogin, claimMonthlyLogin, rewardChip, LT_MONTHS, type MonthlyLoginState } from '@/lib/gamification/monthlyLogin'
+import { getMonthlyLogin, claimMonthlyLogin, LT_MONTHS, type MonthlyLoginState } from '@/lib/gamification/monthlyLogin'
 import { useEscClose } from '@/lib/useEscClose'
 
 function fmtDur(ms: number): string {
@@ -99,9 +100,9 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
                       {chest ? 'DOVANA' : `${r.day} D.`}
                     </div>
                     <div className="flex flex-col items-center justify-center gap-0.5 mt-0.5">
-                      {r.payload.slice(0, 2).map((it, i) => { const c = rewardChip(it); return (
-                        <span key={i} style={{ fontSize: 9, color: '#f3ead3', lineHeight: 1.1 }}>{c.icon}{c.label && <span style={{ fontWeight: 700 }}> {c.label}</span>}</span>
-                      )})}
+                      {r.payload.slice(0, 2).map((it, i) => (
+                        <span key={i} style={{ lineHeight: 1.1 }}><RewardChip it={it} size={13} textSize={9} color="#f3ead3" /></span>
+                      ))}
                     </div>
                     {claimed && <div style={{ position: 'absolute', top: 2, right: 3, fontSize: 11, color: '#34d399' }}>✓</div>}
                   </div>
@@ -118,9 +119,9 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
                 {todayReward ? (
                   <div className="rounded-xl p-2.5 flex flex-col gap-1.5" style={{ background: 'radial-gradient(120% 100% at 50% 0%, rgba(240,180,41,0.16), transparent 70%), rgba(10,8,16,0.8)', border: '1.5px solid rgba(240,180,41,0.55)' }}>
                     <p className="rvn-disp font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{todayReward.day === 30 ? 'DIDŽIOJI SKRYNIA' : `${todayReward.day} DIENA`}</p>
-                    {todayReward.payload.map((it, i) => { const c = rewardChip(it); return (
-                      <span key={i} className="px-2 py-1 rounded-lg" style={{ fontSize: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3ead3' }}>{c.icon} <b>{c.label}</b></span>
-                    )})}
+                    {todayReward.payload.map((it, i) => (
+                      <span key={i} className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}><RewardChip it={it} size={18} textSize={11} color="#f3ead3" /></span>
+                    ))}
                   </div>
                 ) : <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</p>}
               </div>
@@ -129,9 +130,9 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
                   <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Rytoj laukia</p>
                   <div className="rounded-xl p-2 flex flex-col gap-1" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(255,255,255,0.1)', opacity: 0.85 }}>
                     <p className="rvn-disp font-bold" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{nextReward.day === 30 ? 'DIDŽIOJI SKRYNIA' : `${nextReward.day} DIENA`}</p>
-                    {nextReward.payload.slice(0, 3).map((it, i) => { const c = rewardChip(it); return (
-                      <span key={i} style={{ fontSize: 10, color: '#e8dcc0' }}>{c.icon} {c.label}</span>
-                    )})}
+                    {nextReward.payload.slice(0, 3).map((it, i) => (
+                      <span key={i}><RewardChip it={it} size={14} textSize={10} /></span>
+                    ))}
                   </div>
                 </div>
               )}

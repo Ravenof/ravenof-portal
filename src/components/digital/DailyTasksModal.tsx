@@ -4,19 +4,19 @@
 // Landscape: 3 užduočių kortelės greta (centras) + dienos skrynia dešinėje
 // (pinned CTA) — viskas telpa be scroll.
 import { useCallback, useEffect, useState } from 'react'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { createPortal } from 'react-dom'
 import { X, RefreshCw } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { rewardChip } from '@/lib/gamification/monthlyLogin'
 import { getDailyTasks, claimDailyTask, claimDailyChest, rerollDailyTask, DIFF_LABEL, DIFF_ACCENT, type DailyTasksState, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { useEscClose } from '@/lib/useEscClose'
 
 function Chips({ payload }: { payload: Record<string, unknown>[] }) {
   return (
     <span className="flex flex-wrap gap-1">
-      {payload.map((it, i) => { const c = rewardChip(it); return (
-        <span key={i} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(240,180,41,0.3)', color: '#f3ead3' }}>{c.icon} {c.label}</span>
-      )})}
+      {payload.map((it, i) => (
+        <span key={i} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(240,180,41,0.3)', color: '#f3ead3' }}><RewardChip it={it} size={13} textSize={9} color="#f3ead3" /></span>
+      ))}
     </span>
   )
 }
@@ -80,7 +80,7 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide" style={{ background: `rgba(${acc},0.18)`, color: `rgb(${acc})`, border: `1px solid rgba(${acc},0.5)` }}>{DIFF_LABEL[t.difficulty].toUpperCase()}</span>
                     {!t.completed && rerollsLeft > 0 && (
                       <button onClick={() => doReroll(t)} disabled={busy !== null} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }} title={state?.reroll.freeUsed ? 'Perrinkti (50 Sidabro)' : 'Nemokamas perrinkimas'}>
-                        <RefreshCw className="w-3 h-3" /> {state?.reroll.freeUsed ? '50🪙' : 'Perrinkti'}
+                        <RefreshCw className="w-3 h-3" /> {state?.reroll.freeUsed ? '50 sidabro' : 'Perrinkti'}
                       </button>
                     )}
                   </div>

@@ -38,6 +38,7 @@ import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
@@ -4438,15 +4439,15 @@ doAction({ t: 'endTurn', actor: 'you' })
                             if (it.type === 'currency') { const a = Number(it.amount) || 0; if (it.currency === 'silver') agg.silver += a; else if (it.currency === 'essence') agg.essence += a; else if (it.currency === 'rubies') agg.rubies += a }
                             else if (it.type === 'item') { if (it.item_type === 'pack') agg.packs += Number(it.quantity) || 0; else if (it.item_type === 'card_back') agg.items.push('Kortų nugarėlė') }
                           }
-                          const chip = (bg: string, bd: string, col: string, txt: string) => (<span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: bg, border: `1px solid ${bd}`, color: col }}>{txt}</span>)
+                          const chipEl = (bg: string, bd: string, el: React.ReactNode) => (<span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: bg, border: `1px solid ${bd}` }}>{el}</span>)
                           return (
                             <motion.div initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }} className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
                               <span className="text-[9px] uppercase tracking-widest w-full text-center" style={{ color: 'var(--text-muted)' }}>Lygio atlygis</span>
-                              {agg.silver > 0 && chip('rgba(203,213,225,0.16)', 'rgba(203,213,225,0.5)', '#cbd5e1', `🥈 +${agg.silver}`)}
-                              {agg.essence > 0 && chip('rgba(139,92,246,0.16)', 'rgba(139,92,246,0.5)', '#c4b5fd', `🔮 +${agg.essence}`)}
-                              {agg.rubies > 0 && chip('rgba(239,68,68,0.16)', 'rgba(239,68,68,0.5)', '#fca5a5', `💎 +${agg.rubies}`)}
-                              {agg.packs > 0 && chip('rgba(251,146,60,0.16)', 'rgba(251,146,60,0.5)', '#fdba74', `🎁 +${agg.packs} pak.`)}
-                              {agg.items.map((n, i) => <span key={i}>{chip('rgba(96,165,250,0.16)', 'rgba(96,165,250,0.5)', '#93c5fd', `🎴 ${n}`)}</span>)}
+                              {agg.silver > 0 && chipEl('rgba(203,213,225,0.16)', 'rgba(203,213,225,0.5)', <RewardChip it={{ type: 'currency', currency: 'silver', amount: agg.silver }} size={13} textSize={10} color="#cbd5e1" />)}
+                              {agg.essence > 0 && chipEl('rgba(139,92,246,0.16)', 'rgba(139,92,246,0.5)', <RewardChip it={{ type: 'currency', currency: 'essence', amount: agg.essence }} size={13} textSize={10} color="#c4b5fd" />)}
+                              {agg.rubies > 0 && chipEl('rgba(239,68,68,0.16)', 'rgba(239,68,68,0.5)', <RewardChip it={{ type: 'currency', currency: 'rubies', amount: agg.rubies }} size={13} textSize={10} color="#fca5a5" />)}
+                              {agg.packs > 0 && chipEl('rgba(251,146,60,0.16)', 'rgba(251,146,60,0.5)', <RewardChip it={{ type: 'item', item_type: 'pack', quantity: agg.packs }} size={13} textSize={10} color="#fdba74" />)}
+                              {agg.items.map((n, i) => <span key={i}>{chipEl('rgba(96,165,250,0.16)', 'rgba(96,165,250,0.5)', <RewardChip it={{ type: 'item', item_type: 'card_back', item_id: n }} size={13} textSize={10} color="#93c5fd" />)}</span>)}
                             </motion.div>
                           )
                         })()}
@@ -4457,21 +4458,21 @@ doAction({ t: 'endTurn', actor: 'you' })
                         <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
                           style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(240,180,41,0.4)', color: '#f3ead3' }}>
-                          <span>🥈</span> +{matchReward.gold}
+                          <RewardChip it={{ type: 'currency', currency: 'silver', amount: matchReward.gold }} size={16} textSize={12} color="#f3ead3" />
                         </motion.div>
                       )}
                       {matchReward.xp > 0 && (
                         <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
                           style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(96,165,250,0.4)', color: '#cfe0ff' }}>
-                          <span>⭐</span> +{matchReward.xp} XP
+                          <RewardChip it={{ type: 'account_xp', amount: matchReward.xp }} size={16} textSize={12} color="#cfe0ff" />
                         </motion.div>
                       )}
                       {matchReward.seasonXp > 0 && (
                         <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.24 }}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
                           style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(139,92,246,0.4)', color: '#d6c8ff' }}>
-                          <span>🏵️</span> +{matchReward.seasonXp} Sezono
+                          <RewardChip it={{ type: 'season_xp', amount: matchReward.seasonXp }} size={16} textSize={12} color="#d6c8ff" />
                         </motion.div>
                       )}
                     </div>
@@ -4487,8 +4488,8 @@ doAction({ t: 'endTurn', actor: 'you' })
                       {!prog.isMaxLevel && (
                         <p className="text-[9px] mt-1 text-center" style={{ color: 'var(--text-muted)' }}>
                           Kitas — <span style={{ color: '#e8dcc0', fontWeight: 700 }}>Lygis {prog.level + 1}</span> už {prog.xpNeededForNextLevel} XP:
-                          <span style={{ color: '#cbd5e1', fontWeight: 700 }}> 🥈 100</span>
-                          <span style={{ color: '#c4b5fd', fontWeight: 700 }}> + 🔮 25</span>
+                          {' '}<RewardChip it={{ type: 'currency', currency: 'silver', amount: 100 }} size={12} textSize={9} color="#cbd5e1" />
+                          {' '}<RewardChip it={{ type: 'currency', currency: 'essence', amount: 25 }} size={12} textSize={9} color="#c4b5fd" />
                         </p>
                       )}
                     </div>

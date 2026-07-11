@@ -4,6 +4,7 @@
 // 3 zonos: kairė Dienos užduotys · centras Play hero + režimai · dešinė Sezono progresas.
 // Apačia: featured cosmetic / naujienos / draugai. Visa logika/duomenys/modalai išsaugoti.
 import { useCallback, useEffect, useState } from 'react'
+import { RewardChip } from '@/components/digital/ui/RewardBits'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { playUiClick } from '@/lib/ui-sound'
@@ -15,7 +16,7 @@ import { CosmeticsModal } from './CosmeticsModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
-import { getMonthlyLogin, rewardChip } from '@/lib/gamification/monthlyLogin'
+import { getMonthlyLogin} from '@/lib/gamification/monthlyLogin'
 import { ShopModal } from './ShopModal'
 import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
@@ -186,9 +187,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Kita pakopa: <span style={{ color: '#c4b5fd' }}>Pakopa {Math.min(season.cur + 1, season.total)}</span></span>
             {nextReward.length > 0 && (
               <div className="flex flex-wrap justify-center gap-1 shrink-0 overflow-hidden" style={{ maxHeight: '2.2em' }}>
-                {nextReward.slice(0, 3).map((it, i) => { const c = rewardChip(it); return (
-                  <span key={i} className="px-1.5 py-0.5 rounded-md" style={{ fontSize: 9.5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.35)', color: '#e8dcc0' }}>{c.icon} {c.label}</span>
-                ) })}
+                {nextReward.slice(0, 3).map((it, i) => (
+                  <span key={i} className="px-1.5 py-0.5 rounded-md" style={{ fontSize: 9.5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.35)', color: '#e8dcc0' }}><RewardChip it={it} size={14} textSize={9.5} /></span>
+                ))}
               </div>
             )}
           </div>
