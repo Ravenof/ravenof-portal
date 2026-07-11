@@ -7,7 +7,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
 import { streakDayReward } from '@/lib/gamification/quests'
@@ -121,30 +121,55 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
 
 // ── ModeSelector ──────────────────────────────────────────────────────────────
 export type HubMode = { key: string; label: string; sub?: string; iconName: string; iconFallback?: ReactNode; accent: string; locked?: boolean }
-const octPath = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
+// Pilno asset'o kovos režimų kortelės: PNG jau turi rėmą, emblemą ir LT pavadinimą —
+// jokių papildomų ikonų/tekstų ant viršaus. Pavadinimas lieka aria-label.
+// Failai: /digital/home/battle-modes/{ranked,against-ai,friendly}.png (vienodi matmenys ~3:1,
+// permatomas fonas, be baltų kraštų). Kol failo nėra — fallback į seną mode2-* asset'ą.
+const MODE_ASSET: Record<string, { src: string; fallback: string; glow: string }> = {
+  ranked: { src: '/digital/home/battle-modes/ranked.png',     fallback: '/digital/ui3/mode2-ranked.png', glow: 'rgba(239,68,68,0.55)' },
+  pve:    { src: '/digital/home/battle-modes/against-ai.png', fallback: '/digital/ui3/mode2-pve.png',    glow: 'rgba(52,211,153,0.5)' },
+  free:   { src: '/digital/home/battle-modes/friendly.png',   fallback: '/digital/ui3/mode2-free.png',   glow: 'rgba(240,180,41,0.5)' },
+}
+
+function BattleModeCard({ mode, ariaLabel, selected, locked, onSelect }: {
+  mode: string; ariaLabel: string; selected: boolean; locked?: boolean; onSelect: () => void
+}) {
+  const def = MODE_ASSET[mode] ?? MODE_ASSET.free
+  const [src, setSrc] = useState(def.src)
   return (
-    <div className="grid grid-cols-3 gap-1.5" style={{ paddingTop: 5 }}>
-      {modes.map((m) => {
-        const sel = m.key === selected && !m.locked
-        const A = m.accent
-        return (
-          <button key={m.key} disabled={m.locked} onClick={() => !m.locked && onSelect(m.key)} className="rvn-press relative block w-full"
-            style={{ opacity: m.locked ? 0.45 : sel ? 1 : 0.74, filter: sel ? `drop-shadow(0 0 9px rgba(${A},0.5))` : 'saturate(0.75) brightness(0.82)',
-              transform: sel ? 'scale(1.045)' : 'none', transition: 'transform .15s ease, opacity .15s, filter .15s', zIndex: sel ? 1 : 0 }}>
-            {sel && <span aria-hidden className="absolute" style={{ top: -5, left: '50%', width: 9, height: 9,
-              transform: 'translateX(-50%) rotate(45deg)', background: 'linear-gradient(135deg,#ff6b5e,#a51d1d)',
-              border: '1px solid rgba(255,205,130,0.85)', boxShadow: '0 0 8px rgba(239,68,68,0.8)', zIndex: 2 }} />}
-            <span className="block" style={{ clipPath: octPath(11), padding: 1.5, background: sel ? `rgba(${A},0.95)` : `rgba(${A},0.42)` }}>
-              <span className="flex items-center justify-center" style={{ clipPath: octPath(10), gap: 6, minHeight: 56, padding: '8px 5px',
-                background: `radial-gradient(120% 130% at 50% 0%, rgba(${A},0.22), transparent 60%), linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,12,0.98))` }}>
-                <RvnIcon name={m.iconName} size={30} fallback={m.iconFallback ?? null} style={{ flexShrink: 0, filter: 'brightness(1.45) drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }} />
-                <span className="rvn-disp min-w-0" style={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.2, color: '#f3ead3', textAlign: 'left' }}>{m.label}</span>
-              </span>
-            </span>
-          </button>
-        )
-      })}
+    <button disabled={locked} onClick={() => !locked && onSelect()}
+      aria-label={ariaLabel} aria-pressed={selected} data-selected={selected || undefined} data-mode={mode}
+      className="rvn-press relative block w-full min-w-0"
+      style={{
+        aspectRatio: '3 / 1', border: 0, padding: 0, background: 'transparent', cursor: locked ? 'default' : 'pointer',
+        opacity: locked ? 0.4 : selected ? 1 : 0.72,
+        filter: selected ? `saturate(1.08) brightness(1.06) drop-shadow(0 0 12px ${def.glow})` : 'saturate(0.72) brightness(0.82)',
+        transform: selected ? 'translateY(-2px) scale(1.03)' : 'translateZ(0)',
+        transition: 'transform 180ms ease, opacity 180ms ease, filter 180ms ease',
+        zIndex: selected ? 1 : 0,
+      }}>
+      {selected && <span aria-hidden className="absolute" style={{ top: -4, left: '50%', width: 9, height: 9,
+        transform: 'translateX(-50%) rotate(45deg)', background: 'linear-gradient(135deg,#ffe28c,#c5841a)',
+        border: '1px solid rgba(255,235,180,0.9)', boxShadow: `0 0 8px ${def.glow}`, zIndex: 2 }} />}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" aria-hidden loading="eager"
+        onError={() => { if (src !== def.fallback) { console.warn('[BattleModeCard] trūksta asset:', src); setSrc(def.fallback) } }}
+        className="block w-full h-full pointer-events-none select-none"
+        style={{ objectFit: 'contain', objectPosition: 'center' }} />
+    </button>
+  )
+}
+
+export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
+  // Preload — kad seni asset'ai nemirgėtų
+  useEffect(() => {
+    for (const k of Object.keys(MODE_ASSET)) { const im = new Image(); im.src = MODE_ASSET[k].src }
+  }, [])
+  return (
+    <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', paddingTop: 5 }}>
+      {modes.map((m) => (
+        <BattleModeCard key={m.key} mode={m.key} ariaLabel={m.label} selected={m.key === selected && !m.locked} locked={m.locked} onSelect={() => onSelect(m.key)} />
+      ))}
     </div>
   )
 }
