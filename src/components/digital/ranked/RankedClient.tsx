@@ -20,6 +20,8 @@ import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { RankBadge } from './RankBadge'
 import { RvnIcon } from '../ui/RvnIcon'
+import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
+import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
 import { SectionTitle, RButton } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
 import { MatchFound } from './MatchFound'
@@ -78,6 +80,14 @@ export function RankedClient() {
   const timer = useMemo(() => season ? seasonTimer(season.end_date) : null, [season])
   const rv = profile ? rankView(profile.rank_step) : null
   const nextRv = profile ? nextStepView(profile.rank_step) : null
+  const adState = useActiveDeck()
+  const globalDeck = activeDeckOf(adState)
+  const globalOk = deckValidity(globalDeck).valid
+  // Globali aktyvi kaladė = reitingo kaladė (jei tinkama ir yra reitingo sąraše)
+  useEffect(() => {
+    if (globalDeck && globalOk && decks?.some((d) => d.id === globalDeck.id)) setSelDeck(globalDeck.id)
+  }, [globalDeck?.id, globalOk, decks]) // eslint-disable-line react-hooks/exhaustive-deps
+  const rankedEligible = !!globalDeck && globalOk && !!decks?.some((d) => d.id === globalDeck.id)
   const selDeckObj = decks?.find((d) => d.id === selDeck)
 
   const startQueue = async () => {
@@ -239,7 +249,13 @@ export function RankedClient() {
               <div className="shrink-0">
                 {decks && decks.length > 0 ? (
                   <>
-                    <RButton full onClick={startQueue} disabled={!selDeck}>⚔ IEŠKOTI KOVOS</RButton>
+                    <div className="mb-1.5"><ActiveDeckSummary accent="239,68,68" invalidHint={globalDeck && !rankedEligible && globalOk ? 'Kaladė netinkama reitingui' : undefined} /></div>
+                    <RButton full onClick={startQueue} disabled={!selDeck || !rankedEligible}>⚔ IEŠKOTI KOVOS</RButton>
+                    {!rankedEligible && (
+                      <p role="status" className="text-center mt-1" style={{ fontSize: 10, color: '#fbbf24' }}>
+                        {!globalDeck ? 'Pasirink aktyvią kaladę (spausk „Keisti").' : !globalOk ? deckValidity(globalDeck).reason : 'Ši kaladė netinkama reitingo kovoms — pasirink kitą.'}
+                      </p>
+                    )}
                     {selDeckObj && <p className="text-center mt-1 truncate" style={{ fontSize: 'clamp(8px,1.1vh,11px)', color: 'var(--text-secondary)' }}>Pasirinkta: <b style={{ color: '#fca5a5' }}>{selDeckObj.name}</b>{selDeckObj.faction ? ` · ${selDeckObj.faction}` : ''}</p>}
                   </>
                 ) : (
@@ -261,38 +277,6 @@ export function RankedClient() {
             </section>
           </div>
 
-          {/* APAČIA: reitingo kaladžių karuselė */}
-          {decks && decks.length > 0 && (
-            <div className="shrink-0">
-              <div className="flex items-center justify-between mb-1">
-                <span className="rvn-disp uppercase tracking-wide" style={{ fontSize: 'clamp(9px,1.3vh,11px)', color: 'var(--gold)' }}>Reitingo kaladės</span>
-                <span style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'rgba(150,160,185,0.55)' }}>slink →</span>
-              </div>
-              <div className="relative">
-              <div aria-hidden className="absolute inset-y-0 right-0 z-[2] pointer-events-none" style={{ width: 44, background: 'linear-gradient(90deg, transparent, rgba(6,4,11,0.92))' }} />
-              <div className="flex gap-2 overflow-x-auto pb-1 pr-8" style={{ scrollbarWidth: 'none' }}>
-                {decks.map((d) => {
-                  const sel = d.id === selDeck
-                  return (
-                    <button key={d.id} onClick={() => { playUiClick(); setSelDeck(d.id) }}
-                      className="rvn-press shrink-0 rounded-xl flex items-center gap-2 px-2.5 py-1.5 text-left relative"
-                      style={{ width: 'clamp(128px,19vw,188px)', border: sel ? '1.5px solid #ef4444' : '1px solid rgba(255,255,255,0.08)', background: sel ? 'linear-gradient(135deg, rgba(239,68,68,0.16), rgba(10,8,16,0.9))' : 'rgba(10,8,16,0.6)', boxShadow: sel ? '0 0 14px rgba(239,68,68,0.35)' : 'none' }}>
-                      <span className="shrink-0 flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 34, height: 34, background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? `rgba(${d.factionColor},0.6)` : 'rgba(240,180,41,0.3)') }}>
-                        {d.factionIcon ? <RvnIcon name={d.factionIcon} size={26} fallback={<span>⚔</span>} /> : <span style={{ fontSize: 16 }}>⚔</span>}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate rvn-disp font-bold" style={{ fontSize: 'clamp(10px,1.4vh,13px)', color: '#fff' }}>{d.name}</span>
-                        <span className="block truncate" style={{ fontSize: 'clamp(8px,1vh,10px)', color: 'var(--text-muted)' }}>{d.faction ?? '—'}</span>
-                        <span className="block" style={{ fontSize: 'clamp(7px,0.9vh,9px)', color: '#86efac' }}>Paruošta</span>
-                      </span>
-                      {sel && <span className="absolute top-1 right-1 flex items-center justify-center rounded-full" style={{ width: 15, height: 15, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 900 }}>✓</span>}
-                    </button>
-                  )
-                })}
-              </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

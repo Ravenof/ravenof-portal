@@ -17,7 +17,8 @@ import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
 import { getMonthlyLogin, rewardChip } from '@/lib/gamification/monthlyLogin'
 import { ShopModal } from './ShopModal'
-import { getNews, type NewsItem } from '@/lib/news'
+import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
+import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { friendsList } from '@/lib/social'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
@@ -35,12 +36,6 @@ const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digit
 
 const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(18,14,26,0.96), rgba(9,7,14,0.98))', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
 
-// Fallback, kol DB news lentelė tuščia / nepasiekiama
-const NEWS_FALLBACK: NewsItem[] = [
-  { tag: 'Atnaujinimas', title: 'Nauja horizontali kova', when: 'Naujiena' },
-  { tag: 'Renginys', title: 'Savaitgalio dviguba XP', when: 'Aktyvu' },
-  { tag: 'Balansas', title: 'Demonų prakeiksmų tikslinimas', when: '' },
-]
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
@@ -64,7 +59,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
   const [nextReward, setNextReward] = useState<Record<string, unknown>[]>([])
-  const [news, setNews] = useState<NewsItem[]>(NEWS_FALLBACK)
+  const [deckModalOpen, setDeckModalOpen] = useState(false)
+  const adState = useActiveDeck()
   const [friendsOnline, setFriendsOnline] = useState<number | null>(null)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
@@ -83,7 +79,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl); const nx = sp.rows.find((r) => !r.reached); setNextReward((nx?.free.payload ?? []) as Record<string, unknown>[]) })
-    getNews().then((n) => { if (n.length) setNews(n) })
+    void useActiveDeck.getState().refresh()
     friendsList().then(({ friends }) => { const on = friends.filter((f) => f.online).length; setFriendsOnline(friends.length ? on : null) })
     getStarterDecks().then((d) => {
       const c = (d ?? []).filter((x) => x.claimed).length
@@ -215,18 +211,27 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </div>
         </button>
 
-        <div className="rounded-xl overflow-hidden flex flex-col p-2.5" style={PANEL}>
-          <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--gold)' }}>Naujienos</div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1">
-            {news.map((n, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-[10px]">
-                <span className="px-1 py-0.5 rounded shrink-0" style={{ fontSize: 8, background: 'rgba(240,180,41,0.14)', color: '#f3d98c' }}>{n.tag}</span>
-                <span className="truncate flex-1" style={{ color: '#e8dcc0' }}>{n.title}</span>
-                {n.when && <span className="shrink-0 truncate" style={{ color: 'var(--text-muted)', fontSize: 9, maxWidth: 52 }}>{n.when}</span>}
+        {(() => {
+          const ad = activeDeckOf(adState)
+          const av = deckValidity(ad)
+          const col = ad?.factionColor ?? '#f0b429'
+          return (
+            <button data-testid="home-active-deck" onClick={() => { playUiClick(); setDeckModalOpen(true) }}
+              className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5"
+              style={{ ...PANEL, background: `linear-gradient(120deg, ${col}2b, rgba(9,7,14,0.98))` }}>
+              <div className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--gold)' }}>
+                Aktyvi kaladė
+                {ad?.boundAvatar && <span title="Kaladė turi savo avatarą" style={{ fontSize: 10 }}>👤</span>}
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="rvn-disp text-[13px] font-extrabold truncate" style={{ color: '#fff' }} title={ad?.name}>
+                {!adState.loaded ? 'Kraunama…' : ad ? ad.name : 'Pasirink kaladę'}
+              </div>
+              <div className="text-[9px] truncate" style={{ color: av.valid ? '#4ade80' : '#fbbf24' }}>
+                {ad ? `${ad.faction ?? '—'} · ${ad.cardCount} kortos · ` : ''}{av.valid ? '✓ Paruošta kovai' : `⚠ ${av.reason}`} <span style={{ color: 'var(--text-muted)' }}>· keisti →</span>
+              </div>
+            </button>
+          )
+        })()}
 
         <Link href="/digital/friends" onClick={() => playUiClick()} className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(52,211,153,0.18), rgba(9,7,14,0.98))' }}>
           <div className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#a7f3d0' }}>
@@ -244,6 +249,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
       {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={() => { refreshWallet(); refreshBalances() }} />}
 
+      {deckModalOpen && <ActiveDeckSelectorModal onClose={() => setDeckModalOpen(false)} />}
       {dailyOpen && <DailyTasksModal onClose={() => { setDailyOpen(false); refreshQuests() }} onReward={() => { refreshBalances(); refreshWallet(); refreshQuests() }} />}
       {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
 

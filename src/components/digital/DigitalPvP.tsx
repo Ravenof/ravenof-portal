@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
+import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
+import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
 
@@ -79,7 +81,9 @@ export function DigitalPvP() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, sel])
 
-  const deck = decks?.find((d) => d.id === sel && d.missing === 0)
+  const adState = useActiveDeck()
+  const globalDeck = activeDeckOf(adState)
+  const deck = (globalDeck && deckValidity(globalDeck).valid ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined) ?? decks?.find((d) => d.id === sel && d.missing === 0)
   const playable = (decks ?? []).filter((d) => d.missing === 0)
 
   const waitForGuest = useCallback((matchId: string) => {
@@ -200,30 +204,11 @@ export function DigitalPvP() {
       </div>
 
       {/* 3 stulpeliai */}
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(180px,1fr) minmax(0,1.35fr) minmax(180px,1fr)' }}>
+      {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
+      <div className="shrink-0"><ActiveDeckSummary accent="253,186,116" /></div>
 
-        {/* KAIRĖ: Tavo kaladė */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Tavo kaladė</div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
-            {playable.map((d) => {
-              const s = d.id === sel
-              return (
-                <button key={d.id} onClick={() => { playUiClick(); setSel(d.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left relative"
-                  style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)', boxShadow: s ? `0 0 12px rgba(${A},0.3)` : 'none' }}>
-                  <span className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'rgba(240,180,41,0.3)') }}>
-                    {d.factionIcon ? <img src={d.factionIcon} alt="" className="w-full h-full object-cover" /> : <span>⚔</span>}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate rvn-disp font-bold" style={{ fontSize: 'clamp(11px,1.5vh,14px)', color: '#fff' }}>{d.name}</span>
-                    <span className="block truncate" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'var(--text-muted)' }}>{d.faction ?? '—'} · Paruošta</span>
-                  </span>
-                  {s && <span className="absolute top-1 right-1 flex items-center justify-center rounded-full" style={{ width: 16, height: 16, background: `rgb(${A})`, color: '#04210f', fontSize: 11, fontWeight: 900 }}>✓</span>}
-                </button>
-              )
-            })}
-          </div>
-        </section>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(190px,1fr)' }}>
+
 
         {/* CENTRAS: Priešininko tipas */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>

@@ -9,6 +9,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
+import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
+import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -66,7 +68,10 @@ export function DigitalPvE() {
       })
   }, [])
 
-  const deck = decks?.find((d) => d.id === sel && d.missing === 0)
+  const adState = useActiveDeck()
+  const globalDeck = activeDeckOf(adState)
+  // Globali aktyvi kaladė (jei tinkama) — vienintelis šaltinis; fallback sena vietinė
+  const deck = (globalDeck && deckValidity(globalDeck).valid ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined) ?? decks?.find((d) => d.id === sel && d.missing === 0)
   const playable = (decks ?? []).filter((d) => d.missing === 0)
   const selFactionObj = factions.find((f) => f.id === oppFaction)
   const selDeckObj = publicDecks.find((d) => d.id === oppDeck)
@@ -120,22 +125,11 @@ export function DigitalPvE() {
         <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(17px,3.4vh,30px)', color: '#86efac', letterSpacing: '0.04em' }}>Treniruotė prieš AI</div>
       </div>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(170px,1fr) minmax(0,1.5fr) minmax(190px,1.05fr)' }}>
+      {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
+      <div className="shrink-0"><ActiveDeckSummary accent={A} /></div>
 
-        {/* KAIRĖ: kaladė */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Tavo kaladė</div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
-            {playable.map((d) => { const s = d.id === sel; return (
-              <button key={d.id} onClick={() => { playUiClick(); setSel(d.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left relative"
-                style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
-                <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'rgba(240,180,41,0.3)') }}>{d.factionIcon ? <img src={d.factionIcon} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 'clamp(11px,1.5vh,13px)', color: '#fff' }}>{d.name}</span><span className="block truncate" style={{ fontSize: 'clamp(8px,1.1vh,10px)', color: 'var(--text-muted)' }}>{d.faction ?? '—'}</span></span>
-                {s && <span className="absolute top-1 right-1 flex items-center justify-center rounded-full" style={{ width: 15, height: 15, background: `rgb(${A})`, color: '#04210f', fontSize: 10, fontWeight: 900 }}>✓</span>}
-              </button>
-            ) })}
-          </div>
-        </section>
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.8fr) minmax(190px,1.05fr)' }}>
+
 
         {/* CENTRAS: priešininko tipas */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
