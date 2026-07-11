@@ -71,23 +71,28 @@ export function DigitalPvP() {
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 1800); return () => clearTimeout(t) }, [toast])
 
-  // Draugo iššūkis: ?join=CODE (draugas priėmė) → auto-prisijungia; ?host=CODE → sukuria kambarį tuo kodu.
-  const autoRef = useRef(false)
-  useEffect(() => {
-    if (autoRef.current || !userId || !sel || typeof window === 'undefined') return
-    const sp = new URLSearchParams(window.location.search)
-    const j = sp.get('join'); const h = sp.get('host')
-    if (j) { autoRef.current = true; setMode('code'); setJoinCode(j.toUpperCase()); void joinByCode(j) }
-    else if (h) { autoRef.current = true; setMode('code'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus('Laukiama draugo. Pasidalink kodu.'); waitForGuest(m.id) } }) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, sel])
-
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
   // Tik globali aktyvi kaladė (be tylaus fallback) — žr. DigitalPvE komentarą
   const deck = adState.loaded
     ? (globalDeck ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
     : decks?.find((d) => d.id === sel && d.missing === 0)
+  // Kovos kaladės ref (stale-closure apsauga waitForGuest/poll callback'uose)
+  const battleDeckRef = useRef('')
+  useEffect(() => { battleDeckRef.current = deck?.id ?? '' }, [deck?.id])
+
+  // Draugo iššūkis: ?join=CODE (draugas priėmė) → auto-prisijungia; ?host=CODE → sukuria kambarį tuo kodu.
+  const autoRef = useRef(false)
+  useEffect(() => {
+    // laukiam kol užsikraus GLOBALI aktyvi kaladė — kitaip svečias žaistų su pirma/starter!
+    if (autoRef.current || !userId || !deck || typeof window === 'undefined') return
+    const sp = new URLSearchParams(window.location.search)
+    const j = sp.get('join'); const h = sp.get('host')
+    if (j) { autoRef.current = true; setMode('code'); setJoinCode(j.toUpperCase()); void joinByCode(j) }
+    else if (h) { autoRef.current = true; setMode('code'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus('Laukiama draugo. Pasidalink kodu.'); waitForGuest(m.id) } }) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, deck?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const playable = (decks ?? []).filter((d) => d.missing === 0)
 
   const waitForGuest = useCallback((matchId: string) => {
@@ -98,7 +103,7 @@ export function DigitalPvP() {
       const m = data as Match | null
       if (m && m.guest_id && m.guest_deck_id) {
         if (pollRef.current) clearInterval(pollRef.current)
-        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: sel, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
+        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
       }
     }, 2000)
   }, [sel])
@@ -107,7 +112,7 @@ export function DigitalPvP() {
     if (!userId) return null
     setBusy(true)
     const supabase = createClient()
-    const { data, error } = await supabase.from('pvp_matches').insert({ code, is_public: isPublic, status: 'waiting', host_id: userId, host_deck_id: sel, host_name: userName }).select('*').single()
+    const { data, error } = await supabase.from('pvp_matches').insert({ code, is_public: isPublic, status: 'waiting', host_id: userId, host_deck_id: battleDeckRef.current, host_name: userName }).select('*').single()
     setBusy(false)
     if (error || !data) { playError(); setStatus('Klaida kuriant kambarį.'); return null }
     return data as Match
@@ -120,8 +125,8 @@ export function DigitalPvP() {
     const { data: open } = await supabase.from('pvp_matches').select('*').eq('is_public', true).eq('status', 'waiting').is('guest_id', null).neq('host_id', userId).order('created_at', { ascending: true }).limit(1)
     const m = (open as Match[] | null)?.[0]
     if (m) {
-      const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: sel, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
-      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: sel, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
+      const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
+      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
     }
     const created = await createPrivate(true, null)
     if (created) { setRoom(created); setStatus('Laukiama atsitiktinio varžovo…'); waitForGuest(created.id) }
@@ -154,10 +159,10 @@ export function DigitalPvP() {
     const m = found as Match | null
     if (!m) { setBusy(false); playError(); setStatus('Kambarys nerastas arba užimtas.'); return }
     if (m.host_id === userId) { setBusy(false); playError(); setStatus('Negali jungtis į savo kambarį.'); return }
-    const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: sel, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
+    const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
     setBusy(false)
     if (error) { playError(); setStatus('Nepavyko prisijungti.'); return }
-    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: sel, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
+    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
   }
 
   const cancelRoom = async () => {

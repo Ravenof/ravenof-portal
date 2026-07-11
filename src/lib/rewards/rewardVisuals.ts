@@ -42,6 +42,8 @@ const DEFS: Record<string, Def> = {
   pack:          { asset: I + 'pack.png',        name: 'Kortų pakas',     desc: 'Atplėšk ir gauk naujų kortų.', opticalScale: 0.92 },
   card_back:     { asset: I + 'nav-decks.png',   name: 'Kortų nugarėlė',  desc: 'Kosmetinė nugarėlė tavo kaladei.' },
   player_avatar: { asset: I + 'avatar.png',      name: 'Avataras',        desc: 'Kosmetinis veidas kovoms.' },
+  card:          { asset: I + 'nav-collection.png', name: 'Korta',         desc: 'Garantuota korta kolekcijai.' },
+  badge:         { asset: I + 'fi-ranked.png',   name: 'Rango ženklelis',  desc: 'Sezono rango pasiekimo ženklas.' },
   missing:       { asset: REWARD_MISSING_ASSET,  name: 'Atlygis',         desc: 'Atlygio turinys.', opticalScale: 0.95 },
 }
 
@@ -75,6 +77,8 @@ export function resolveRewardVisual(it: RewardPayloadItem): RewardVisual {
     if (k === 'pack') return mk('pack', q > 1 ? `${q} pak.` : '1 pak.')
     if (k === 'card_back') return mk('card_back', 'Nugarėlė')
     if (k === 'player_avatar') return mk('player_avatar', 'Avataras')
+    if (k === 'card') return mk('card', String(it.item_id ?? 'Korta'))
+    if (k === 'badge') return mk('badge', 'Ženklelis')
     warnMissing(`item:${k}`, it)
     return mk('missing', String(it.item_id ?? ''))
   }

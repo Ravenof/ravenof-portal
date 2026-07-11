@@ -319,7 +319,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
   const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.entries])
 
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,8px)' }}>
+    <div className="h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: 'clamp(4px,1vh,8px)' }}>
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)' }}>
 
         {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
@@ -480,8 +480,8 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
             </div>
           </div>
 
-          {/* Validacija + išsaugoti — visada matomi */}
-          <div className="shrink-0 pt-1.5 space-y-1.5">
+          {/* Validacija + išsaugoti — visada matomi (safe-area, niekada po nav) */}
+          <div className="shrink-0 pt-1.5 space-y-1.5" data-testid="builder-actions" style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))' }}>
             <p className="truncate text-center" style={{ fontSize: 10, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? 'Kaladė galioja ✓'}</p>
             <button onClick={save} disabled={!canSave} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl font-bold disabled:opacity-40"
               style={{ minHeight: 40, fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>

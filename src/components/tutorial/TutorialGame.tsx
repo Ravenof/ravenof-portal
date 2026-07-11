@@ -2404,7 +2404,17 @@ doAction({ t: 'endTurn', actor: 'you' })
 
   // Vienas pirštas: tempimas Į ŠONUS = ranka scrollinama (native pan-x), tempimas AUKŠTYN = žaidžiama korta.
   const beginHandPointer = (card: TutCard, e: React.PointerEvent) => {
-    if (!myTurn || popupBlocks) return
+    if (popupBlocks) return
+    if (!myTurn) {
+      // Priešo ėjimo metu ranką galima IŠSKLEISTI/SUTRAUKTI (žaisti negalima)
+      const sx0 = e.clientX, sy0 = e.clientY
+      const up0 = (ev: PointerEvent) => {
+        window.removeEventListener('pointerup', up0)
+        if (Math.hypot(ev.clientX - sx0, ev.clientY - sy0) < 12 && hMobile) { playUiClick(); setHandExpanded((v) => !v) }
+      }
+      window.addEventListener('pointerup', up0)
+      return
+    }
     const sx = e.clientX, sy = e.clientY
     const selKind = select?.kind
     const wasExpanded = handExpanded
@@ -2823,13 +2833,26 @@ doAction({ t: 'endTurn', actor: 'you' })
   }
   const renderLogStripH = () => {
     if (!game) return null
-    const items = game.log.map((e, idx) => { const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName); return card ? { e, idx, card } : null }).filter((x): x is NonNullable<{ e: typeof game.log[number]; idx: number; card: TutCard }> => !!x).slice(-9)
+    // Paskutiniai įvykiai su TEKSTU: kortos thumbnail kairėje + skaitomas aprašymas šalia
+    const IGNORE = new Set(['fxSource', 'zmk', 'gold'])
+    const items = game.log
+      .map((e, idx) => (e.msg && !IGNORE.has(e.t) && !(e.t === 'draw' && e.side !== 'you') ? { e, idx, card: findCard(e.cardName) } : null))
+      .filter((x): x is NonNullable<{ e: typeof game.log[number]; idx: number; card: TutCard | null }> => !!x)
+      .slice(-4)
     if (items.length === 0) return <span className="text-[8px] text-center" style={{ color: 'var(--text-muted)' }}>—</span>
-    return items.map(({ e, idx, card }) => {
+    return items.map(({ e, idx, card }, i) => {
       const col = e.side === 'you' ? '#4ade80' : '#f87171'
+      const last = i === items.length - 1
       return (
-        <div key={idx} onClick={() => { playCardFlip(); setInspect(card) }} className="shrink-0 rounded overflow-hidden cursor-pointer mx-auto" style={{ width: 28, outline: '1.5px solid ' + col, boxShadow: '0 0 5px ' + col + '55' }}>
-          <MiniCard c={card} w={28} />
+        <div key={idx} onClick={() => { if (card) { playCardFlip(); setInspect(card) } }}
+          className="shrink-0 w-full flex items-center gap-1 rounded-md px-0.5 py-0.5"
+          style={{ cursor: card ? 'pointer' : 'default', background: last ? 'rgba(255,255,255,0.06)' : 'transparent', opacity: last ? 1 : 0.75 }}>
+          <span className="shrink-0 rounded overflow-hidden" style={{ width: 24, outline: '1.5px solid ' + col }}>
+            {card ? <MiniCard c={card} w={24} /> : <span className="flex items-center justify-center" style={{ width: 24, height: 32, background: 'rgba(10,8,16,0.8)', color: col, fontSize: 11 }}>⚔</span>}
+          </span>
+          <span className="min-w-0 flex-1 leading-tight" style={{ fontSize: 8.5, color: '#d8cfc0', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {e.msg}
+          </span>
         </div>
       )
     })
@@ -3008,7 +3031,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
                 {ranked ? `Reitingo kova · prieš ${opponentName ?? 'Priešininką'}` : practice ? `Kova · prieš ${opponentName ?? 'Priešininką'}` : `Mokomoji kova · ${deckName}`}
               </span>
-              {ranked && !game?.winner && game?.active === 'you' && (
+              {ranked && !game?.winner && (
                 <TurnTimer deadline={turnDeadline} variant="chip" />
               )}
             </>
@@ -4089,7 +4112,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* (senas handExpanded bottom-sheet overlay pašalintas – ranka dabar skleidžiasi inline) */}
 
       {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) — izoliuotas ── */}
-      {(vsRemote || (ranked && game?.active === 'you')) && !game?.winner && <TurnTimer deadline={turnDeadline} variant="big" />}
+      {(vsRemote || ranked) && !game?.winner && <TurnTimer deadline={turnDeadline} variant="big" />}
 
       {/* ── varžovas atsijungė: 30s grace ── */}
       {oppMissingLeft !== null && !game?.winner && (
