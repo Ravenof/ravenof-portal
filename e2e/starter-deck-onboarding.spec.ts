@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
-import { digitalLogin, EMAIL } from './helpers'
+import { digitalLogin, ensureOnboarded, EMAIL } from './helpers'
 
 test.describe('Starter kaladės onboarding', () => {
   test('onboarded žaidėjas iš /digital/onboarding grąžinamas į /digital', async ({ page }) => {
     test.skip(!EMAIL, 'reikia E2E_TEST_EMAIL/PASSWORD')
     await digitalLogin(page)
+    await ensureOnboarded(page) // šviežia paskyra — testas pats pereina starter flow (realus claim)
     await page.goto('/digital/onboarding')
     await page.waitForURL((u) => u.pathname === '/digital', { timeout: 20_000 })
   })

@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test'
-import { digitalLogin, dismissGates, EMAIL } from './helpers'
+import { digitalLogin, dismissGates, EMAIL, ensureOnboarded } from './helpers'
 
 test.describe('Deck Builder', () => {
   test('sukurti → redaguoti → validuoti → išsaugoti → perkrauti', async ({ page }) => {
     test.skip(!EMAIL, 'reikia E2E_TEST_EMAIL/PASSWORD')
     test.setTimeout(180_000)
     await digitalLogin(page)
+    await ensureOnboarded(page)
     await page.goto('/digital/decks')
     await dismissGates(page)
 

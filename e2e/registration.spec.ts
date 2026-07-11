@@ -37,7 +37,11 @@ test.describe('Registracija (/digital/register)', () => {
     await page.getByLabel('Slaptažodis', { exact: true }).fill('slaptazodis123')
     await page.getByLabel('Pakartoti').fill('slaptazodis123')
     await page.getByRole('button', { name: /Registruotis/ }).click()
-    await expect(page.locator('[role="alert"]:not(#__next-route-announcer__)')).toBeVisible({ timeout: 20_000 })
+    // arba klaida „jau užregistruotas", arba (jei paskyros nebuvo) patvirtinimo ekranas —
+    // abiem atvejais srautas lieka /digital, be jokio /cards
+    const alertOrConfirm = page.locator('[role="alert"]:not(#__next-route-announcer__)')
+      .or(page.getByText(/Patvirtink el\. paštą/i))
+    await expect(alertOrConfirm.first()).toBeVisible({ timeout: 20_000 })
     expect(page.url()).not.toContain('/cards')
     expect(page.url()).toContain('/digital')
   })

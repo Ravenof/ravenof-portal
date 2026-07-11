@@ -49,3 +49,18 @@ export async function expectNoPageScroll(page: Page) {
   const { sh, ih } = await page.evaluate(() => ({ sh: document.documentElement.scrollHeight, ih: window.innerHeight }))
   expect(sh, 'be vertikalaus puslapio scroll').toBeLessThanOrEqual(ih + 4)
 }
+
+/** Jei po login patenkam į onboarding — realiai pereinam starter pasirinkimą.
+ *  Testai tampa savarankiški: tinka ir šviežia (patvirtinta) paskyra. */
+export async function ensureOnboarded(page: Page) {
+  await page.waitForTimeout(1500)
+  if (!page.url().includes('/digital/onboarding')) return
+  // karuselė → apžiūrėti → pasirinkti → patvirtinti → į žaidimą
+  await page.getByRole('button', { name: /Apžiūrėti kaladę/ }).click()
+  await expect(page.getByText(/Stiprybės/i)).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: /Pasirinkti šią kaladę|Tęsti su šia kalade/ }).click()
+  await page.getByRole('button', { name: /Patvirtinti kaladę/ }).click()
+  await expect(page.getByText(/TAVO KALADĖ PARUOŠTA/i)).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('button', { name: /Žengti į Ravenof/ }).click()
+  await page.waitForURL((u) => u.pathname === '/digital', { timeout: 20_000 })
+}

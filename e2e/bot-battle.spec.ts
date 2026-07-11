@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { digitalLogin, dismissGates, EMAIL } from './helpers'
+import { digitalLogin, dismissGates, EMAIL, ensureOnboarded } from './helpers'
 
 // Reali kova su AI per data-tut inkarus (hand / gold / end-turn / hp-ai / board).
 test.describe('Kova prieš AI', () => {
@@ -7,6 +7,7 @@ test.describe('Kova prieš AI', () => {
     test.skip(!EMAIL, 'reikia E2E_TEST_EMAIL/PASSWORD')
     test.setTimeout(300_000)
     await digitalLogin(page)
+    await ensureOnboarded(page)
     await page.goto('/digital/pve')
     await dismissGates(page)
 
