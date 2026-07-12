@@ -78,5 +78,21 @@
     "claiming": "Skiriama…",
     "sub": "Pradžios dovana naujam kovotojui",
     "title": "Sveikas atvykęs!"
+  },
+  "tutorial": {
+    "title": "MOKYMAI",
+    "subWithDeck": "Viena vedama kova su tavo kalade — išmoksi visas mechanikas prieš tikrą priešininko starter kaladę.",
+    "subNoDeck": "Pirmiausia pasiimk nemokamą starter kaladę — tada sužaisi vedamą mokymų kovą.",
+    "yourDeck": "Tavo kaladė",
+    "start": "⚔ Pradėti mokymų kovą",
+    "errNoGold": "Trūksta aukso šiai kaladei.",
+    "errClaimed": "Šią kaladę jau turi – atnaujink puslapį.",
+    "errGeneric": "Nepavyko: {{error}}",
+    "readFirst": "Pirma perskaityk paaiškinimą.",
+    "pressNext": "Spausk „Toliau\".",
+    "wrongAction": "Šįkart ne tas veiksmas — sek paryškinimą.",
+    "lessonDone": "Pamoka įveikta!",
+    "continue": "Tęsti →",
+    "alreadyRewarded": "Pakartojai pamoką – atlygis jau gautas."
   }
 }

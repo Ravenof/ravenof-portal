@@ -48,6 +48,7 @@ function rewardsFor(level: number, cfg: LevelRewardsCfg | null): RewardChips {
 
 export function LevelRoadModal({ onClose }: { onClose: () => void }) {
   const t = useT()
+  const tt = t                      // alias: map'e `t` = slenkstis (shadow)
   useEscClose(onClose)
   const [xp, setXp] = useState<number | null>(null)
   const [cfg, setCfg] = useState<LevelRewardsCfg | null>(null)
@@ -97,7 +98,7 @@ export function LevelRoadModal({ onClose }: { onClose: () => void }) {
             <span style={{ fontSize: 42, filter: `drop-shadow(0 0 14px ${rg.color})` }}>{rg.icon}</span>
             <span className="rvn-disp font-black leading-none" style={{ fontSize: 'clamp(22px,4.5vh,34px)', color: rg.color }}>{prog.level}<span style={{ fontSize: 14, color: 'var(--text-muted)' }}> / {MAX_LEVEL}</span></span>
             <span className="rvn-disp font-bold" style={{ fontSize: 'clamp(12px,2vh,15px)', color: '#f3ead3' }}>{prog.title}</span>
-            <span className="px-2 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ fontSize: 9, background: rg.color + '22', border: `1px solid ${rg.color}88`, color: rg.color }}>{rg.name}</span>
+            <span className="px-2 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ fontSize: 9, background: rg.color + '22', border: `1px solid ${rg.color}88`, color: rg.color }}>{tt(rg.name)}</span>
             <div className="w-full mt-2">
               <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid rgba(${GOLD},0.2)` }}>
                 <div className="h-full rounded-full" style={{ width: `${prog.progressPercent}%`, background: `linear-gradient(90deg, ${rg.color}aa, ${rg.color})`, boxShadow: `0 0 10px ${rg.color}` }} />
@@ -133,7 +134,7 @@ export function LevelRoadModal({ onClose }: { onClose: () => void }) {
                     {t.level}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate rvn-disp font-bold" style={{ fontSize: milestone ? 12.5 : 11.5, color: reached ? '#f3ead3' : 'var(--text-secondary)' }}>{milestone ? `${g.icon} ` : ''}{t.title}</span>
+                    <span className="block truncate rvn-disp font-bold" style={{ fontSize: milestone ? 12.5 : 11.5, color: reached ? '#f3ead3' : 'var(--text-secondary)' }}>{milestone ? `${g.icon} ` : ''}{tt(t.title)}</span>
                     <span className="block truncate tabular-nums" style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{t.requiredTotalXp.toLocaleString('lt-LT')} XP</span>
                   </span>
                   <span className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">

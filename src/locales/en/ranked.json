@@ -82,5 +82,68 @@
   "winPct": "Win %:",
   "wins": "Wins",
   "winsLabel": "Wins:",
-  "yourSeasonStats": "Your season stats"
+  "yourSeasonStats": "Your season stats",
+  "player": "Player",
+  "seasonTimer": {
+    "ended": "The season has ended",
+    "daysHours": "{{days}}d {{hours}}h",
+    "hours": "{{hours}}h"
+  },
+  "rewards": {
+    "badge": "badge",
+    "packs": "{{count}} pack(s)",
+    "card": "card ({{rarity}}+)"
+  },
+  "rarity": {
+    "magic": "Magic",
+    "unique": "Unique",
+    "epic": "Epic",
+    "legendary": "Legendary"
+  },
+  "milestone": {
+    "rank45": {
+      "title": "Rank 45 reached",
+      "desc": "Reach rank 45 Bronze"
+    },
+    "rank40": {
+      "title": "Rank 40 reached",
+      "desc": "Reach rank 40 Bronze"
+    },
+    "rank35": {
+      "title": "Rank 35 reached",
+      "desc": "Reach rank 35 Bronze"
+    },
+    "rank30": {
+      "title": "Rank 30 reached",
+      "desc": "Reach rank 30 Bronze"
+    },
+    "rank25": {
+      "title": "Rank 25 reached",
+      "desc": "Reach rank 25 Bronze"
+    },
+    "rank20": {
+      "title": "Rank 20 reached",
+      "desc": "Reach rank 20 Bronze"
+    },
+    "rank15": {
+      "title": "Rank 15 reached",
+      "desc": "Reach rank 15 Bronze"
+    },
+    "rank10": {
+      "title": "Rank 10 reached",
+      "desc": "Reach rank 10 Bronze"
+    },
+    "rank5": {
+      "title": "Rank 5 reached",
+      "desc": "Reach rank 5 Bronze"
+    },
+    "rank1": {
+      "title": "Rank 1 reached",
+      "desc": "Reach rank 1 Bronze"
+    },
+    "gold1": {
+      "title": "Golden Summit",
+      "desc": "Reach rank 1 Gold — the highest rank"
+    }
+  }
 }

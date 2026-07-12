@@ -1,1 +1,10 @@
-{}
+{
+  "craft": {
+    "notEnoughEssence": "Nepakanka Esencijos.",
+    "maxCopies": "Jau turi maksimalų kiekį.",
+    "noDuplicates": "Nėra dublikatų dulkinimui.",
+    "notOwned": "Kortos neturi.",
+    "notFound": "Korta nerasta.",
+    "badCount": "Netinkamas kiekis."
+  }
+}

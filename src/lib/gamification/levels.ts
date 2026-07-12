@@ -89,17 +89,18 @@ export type RankGroup = {
   color: string
 }
 
+// `name` = i18n raktas (progression.rankGroup.*)
 export const RANK_GROUPS: RankGroup[] = [
-  { name: 'Naujokas',          minLevel:  1, maxLevel:  5, icon: '🌱', color: '#6b7280' },
-  { name: 'Žaidėjas',          minLevel:  6, maxLevel: 10, icon: '🎴', color: '#3b82f6' },
-  { name: 'Taktikas',          minLevel: 11, maxLevel: 15, icon: '⚔️',  color: '#8b5cf6' },
-  { name: 'Patyręs Žaidėjas',  minLevel: 16, maxLevel: 20, icon: '🛡️',  color: '#06b6d4' },
+  { name: 'progression.rankGroup.novice', minLevel: 1, maxLevel:  5, icon: '🌱', color: '#6b7280' },
+  { name: 'progression.rankGroup.player', minLevel: 6, maxLevel: 10, icon: '🎴', color: '#3b82f6' },
+  { name: 'progression.rankGroup.tactician', minLevel: 11, maxLevel: 15, icon: '⚔️',  color: '#8b5cf6' },
+  { name: 'progression.rankGroup.seasoned', minLevel: 16, maxLevel: 20, icon: '🛡️',  color: '#06b6d4' },
   { name: "Veteran'as",        minLevel: 21, maxLevel: 25, icon: '🏅',  color: '#10b981' },
-  { name: 'Meistras',          minLevel: 26, maxLevel: 30, icon: '⚡',  color: '#f59e0b' },
-  { name: 'Aukštasis Meistras',minLevel: 31, maxLevel: 35, icon: '🔥',  color: '#ef4444' },
-  { name: 'Legenda',           minLevel: 36, maxLevel: 40, icon: '💎',  color: '#ec4899' },
-  { name: 'Elitas',            minLevel: 41, maxLevel: 45, icon: '👑',  color: '#f97316' },
-  { name: 'Panteonas',         minLevel: 46, maxLevel: 50, icon: '✨',  color: '#d4af37' },
+  { name: 'progression.rankGroup.master', minLevel: 26, maxLevel: 30, icon: '⚡',  color: '#f59e0b' },
+  { name: 'progression.rankGroup.highMaster', minLevel: 31, maxLevel: 35, icon: '🔥',  color: '#ef4444' },
+  { name: 'progression.rankGroup.legend', minLevel: 36, maxLevel: 40, icon: '💎',  color: '#ec4899' },
+  { name: 'progression.rankGroup.elitas', minLevel: 41, maxLevel: 45, icon: '👑',  color: '#f97316' },
+  { name: 'progression.rankGroup.panteonas', minLevel: 46, maxLevel: 50, icon: '✨',  color: '#d4af37' },
 ]
 
 // ---------------------------------------------------------------------------

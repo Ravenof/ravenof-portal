@@ -31,12 +31,8 @@
   "loading": "Kraunama…",
   "no": "Ne",
   "notif": {
-    "daysAgo": "prieš {{count}} d.",
-    "empty": "Pranešimų kol kas nėra.",
-    "hoursAgo": "prieš {{count}} val.",
-    "justNow": "ką tik",
-    "minAgo": "prieš {{count}} min.",
-    "title": "PRANEŠIMAI"
+    "daily": "Tavo dienos atlygis laukia! 🔥 Neprarask serijos.",
+    "battle": "Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!"
   },
   "or": "arba",
   "picker": {

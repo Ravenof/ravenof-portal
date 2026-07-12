@@ -15,10 +15,12 @@ import { TutorialGame } from '@/components/tutorial/TutorialGame'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { playstyleFor } from '@/components/digital/StarterOnboarding'
 import { PageHero } from '@/components/digital/ui/HubKit'
+import { useT } from '@/lib/i18n/react'
 
 type Match = { deckId: string; deckName: string; enemyStarterId: string | null; enemyFaction: number | null; enemyName: string }
 
 export function TutorialHub() {
+  const t = useT()
   const [starters, setStarters] = useState<StarterDeck[] | null>(null)
   const [match, setMatch] = useState<Match | null>(null)
   const [busy, setBusy] = useState(false)
@@ -56,7 +58,7 @@ export function TutorialHub() {
     const res = await claimStarterDeck(d.id)
     setBusy(false)
     if ('error' in res) {
-      setMsg(res.error === 'not enough gold' ? 'Trūksta aukso šiai kaladei.' : res.error === 'already claimed' ? 'Šią kaladę jau turi – atnaujink puslapį.' : 'Nepavyko: ' + res.error)
+      setMsg(res.error === 'not enough gold' ? t('onboarding.tutorial.errNoGold') : res.error === 'already claimed' ? t('onboarding.tutorial.errClaimed') : t('onboarding.tutorial.errGeneric', { error: res.error }))
       void load()
       return
     }
@@ -87,9 +89,9 @@ export function TutorialHub() {
       </div>
       <div style={{ marginBottom: 12 }}>
         <PageHero iconName="fi-academy" icon={<span style={{ fontSize: 44 }}>🎓</span>} accent="139,92,246"
-          title="MOKYMAI" sub={claimedDeck
-            ? 'Viena vedama kova su tavo kalade — išmoksi visas mechanikas prieš tikrą priešininko starter kaladę.'
-            : 'Pirmiausia pasiimk nemokamą starter kaladę — tada sužaisi vedamą mokymų kovą.'} />
+          title={t('onboarding.tutorial.title')} sub={claimedDeck
+            ? t('onboarding.tutorial.subWithDeck')
+            : t('onboarding.tutorial.subNoDeck')} />
       </div>
       {msg && <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8 }}>{msg}</p>}
 
@@ -99,14 +101,14 @@ export function TutorialHub() {
       {/* Kaladė jau pasiimta → VIENAS mokymų mūšis */}
       {claimedDeck && (
         <div style={{ borderRadius: 16, padding: '18px 16px', background: 'linear-gradient(150deg, rgba(139,92,246,0.16), rgba(10,8,16,0.94))', border: '1px solid rgba(139,92,246,0.45)' }}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>Tavo kaladė</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>{t('onboarding.tutorial.yourDeck')}</p>
           <p style={{ fontSize: 17, fontWeight: 800, color: '#f3ead3', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', marginBottom: 6 }}>{claimedDeck.faction ?? claimedDeck.name}</p>
           <p style={{ fontSize: 12, color: '#c9bfa8', marginBottom: 14 }}>{playstyleFor(claimedDeck)} Priešininkas žais atsitiktine kita starter kalade.</p>
           <button disabled={busy} onClick={() => { playUiClick(); launch(claimedDeck.deckId!, claimedDeck.name, claimedDeck) }}
             style={{ width: '100%', padding: '14px', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer', fontFamily: 'var(--rvn-font-display, Cinzel, serif)',
               background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(240,180,41,0.35)' }}>
-            ⚔ Pradėti mokymų kovą
+            {t('onboarding.tutorial.start')}
           </button>
         </div>
       )}
@@ -123,7 +125,7 @@ export function TutorialHub() {
               }}>
               <span style={{ fontWeight: 800, color: '#f3ead3', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', fontSize: 15 }}>{d.faction ?? d.name}</span>
               <span style={{ fontSize: 11, color: '#c9bfa8', lineHeight: 1.35 }}>{playstyleFor(d)}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{d.cardCount} kortų</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('decks.cardsShort', { count: d.cardCount })}</span>
               <span style={{ fontSize: 12, marginTop: 4, fontWeight: 700, color: 'var(--gold)' }}>Pasirinkti (nemokamai) →</span>
             </button>
           ))}

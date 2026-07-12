@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { ActiveCinematic } from '@/lib/game/cinematics'
 import { CINEMATIC_THEME_PALETTE, prefersReducedMotion } from '@/lib/game/cinematics'
+import { t as tGlobal } from '@/lib/i18n/core'
 
 const SKIP_DELAY_MS = 500
 const END_BUFFER_MS = 350           // saugiklis virš durationMs (tik static/poster keliui)
@@ -226,7 +227,7 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
               style={{
                 position: 'absolute', top: -26, right: 2, fontSize: 11, letterSpacing: '0.1em',
                 color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', pointerEvents: 'none',
-              }}>Bakstelėk praleisti ›</motion.span>
+              }}>{tGlobal('battle.game.tapToSkip')}</motion.span>
           )}
         </AnimatePresence>
       </motion.div>

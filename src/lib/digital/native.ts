@@ -2,6 +2,7 @@
 // Remote-URL appas: Capacitor plugin'ai gyvena native shell'e ir pasiekiami per
 // window.Capacitor.Plugins. Web buildas nepaliečiamas (jokio npm importo čia).
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { t } from '@/lib/i18n/core'
 
 /** Ar veikiame native (Android/iOS) Capacitor shell'e? */
 export function isNativeApp(): boolean {
@@ -106,8 +107,8 @@ export async function scheduleReturnReminders(): Promise<void> {
     }
     await LN.cancel?.({ notifications: [{ id: RID_DAILY }, { id: RID_BATTLE }] })
     await LN.schedule({ notifications: [
-      { id: RID_DAILY,  title: 'Ravenof', body: 'Tavo dienos atlygis laukia! 🔥 Neprarask serijos.', schedule: { at: nextAt(19, 0), every: 'day', allowWhileIdle: true } },
-      { id: RID_BATTLE, title: 'Ravenof', body: 'Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!', schedule: { at: nextAt(12, 30), every: 'day', allowWhileIdle: true } },
+      { id: RID_DAILY,  title: 'Ravenof', body: t('common.notif.daily'), schedule: { at: nextAt(19, 0), every: 'day', allowWhileIdle: true } },
+      { id: RID_BATTLE, title: 'Ravenof', body: t('common.notif.battle'), schedule: { at: nextAt(12, 30), every: 'day', allowWhileIdle: true } },
     ] })
   } catch { /* niekada nelaužia UI */ }
 }

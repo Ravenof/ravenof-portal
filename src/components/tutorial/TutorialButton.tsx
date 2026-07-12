@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { playUiClick } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 /** Demo kaladės ID – TutorialGame susikuria kaladę iš aktyvių DB kortų. */
 export const DEMO_DECK_TUTORIAL = '__demo__'
@@ -21,6 +22,7 @@ export function TutorialButton({ deckId, deckName, variant = 'full' }: {
   /** 'full' — pilnas mygtukas; 'compact' — mažas (kortelių sąrašui) */
   variant?: 'full' | 'compact'
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
 
   return (
@@ -39,9 +41,9 @@ export function TutorialButton({ deckId, deckName, variant = 'full' }: {
           fontFamily: 'var(--rvn-font-display)',
           letterSpacing: '0.04em',
         }}
-        title="Mokomoji kova prieš AI: kovos laukas, auksas, ŽMK, žetonai ir patarimai žingsnis po žingsnio"
+        title={t('battle.tutorial.buttonHint')}
       >
-        🎓 Išmokyk mane žaisti
+        {t('battle.tutorial.button')}
       </button>
       {open && (
         <TutorialGame deckId={deckId} deckName={deckName} onClose={() => setOpen(false)} />

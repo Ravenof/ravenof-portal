@@ -1,6 +1,6 @@
 # RAVENOF i18n — PERDAVIMO DOKUMENTAS (handoff)
 
-Data: 2026-07-12. Fazės 1–8 BAIGTOS (commit490, 492, 493, 494, 495, 496, 497). Liko Fazė 9 (QA) + turinio suvedimas. Šis failas — tęsimo instrukcija.
+Data: 2026-07-12. **VISOS FAZĖS 1–9 BAIGTOS** (commit490–498). Liko tik faktinis EN turinio suvedimas (kortos, balsai, EN PNG). Šis failas — tęsimo instrukcija.
 Pilnas originalus spec'as ir auditas: `I18N-AUDIT.md` (repo šaknyje). Atmintis: memory `ravenof-i18n`.
 
 ## KAS PADARYTA
@@ -35,7 +35,7 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - Švieži Windows-pusės binariniai failai bash'e gali matytis truncated (pvz. nauji PNG) — apdorojimą daryti .bat viduje Windows pusėje (pvz. tools/resize-nav-icons.mjs commit491).
 
 ## LAUKIA VARTOTOJO VEIKSMŲ (patikrinti prieš tęsiant)
-1. `git-commit493.bat` (f5), `git-commit494.bat` (f4), `git-commit495.bat` (f6), `git-commit496.bat` (f7), `git-commit497.bat` (f8) — paleisti eilės tvarka, patikrinti `commitNN.log`.
+1. `git-commit493.bat` (f5), `494` (f4), `495` (f6), `496` (f7), `497` (f8), `498` (f9) — paleisti eilės tvarka, patikrinti `commitNN.log`.
 2. Supabase migracijos: `20260830_preferred_locale.sql`, `20260831_content_translations.sql`, `20260832_card_translations.sql`, `20260833_localized_audio.sql`.
 3. Po migracijos: `select owner_type, count(*) from content_translations where locale='en' group by 1;` — patikrinti, ar frakcijos/retumai/kortų tipai gavo EN (jei 0 → DB LT pavadinimai skiriasi nuo migracijoje išvardytų; pataisyti `join` reikšmes).
 4. Smoke test EN kalba: kova (log + UI), dienos užduotys/darbai, parduotuvė, kosmetika, reitingo pasiekimai, kolekcijos frakcijų filtras.
@@ -102,10 +102,26 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - **Kortos redagavimo puslapyje** (`/admin/cards/[cardId]`) — blokas „🌍 EN vertimas" (`CardTranslationPanel`): tekstai + EN vaizdas + EN balsai vienoje vietoje, su priminimu, kad variklis parsina LT tekstą.
 - **Editorial statusai:** žaidėjams rodomi TIK `approved` vertimai (resolveris filtruoja `status = 'approved'`).
 
-### Fazė 9 — QA
-- Playwright: language-selector, locale-persistence, english-* route coverage (spec sąrašas), combat-log rerender, layout 844×390…1920×1080. e2e/ katalogas jau yra; ContentDownloadGate turi webdriver skip (uncommitted pakeitimas working tree — peržiūrėti).
-- `<html lang>`: nustatomas kliente per I18nBoot tik /digital — jei reikia visam app, perkelti į root layout klientinį boot.
-- Page metadata (`app/digital/*/page.tsx` title'ai LT) — generateMetadata + cookies() padarytų routes dynamic; spręsti sąmoningai.
+### Fazė 9 — QA ✅ BAIGTA (commit498)
+- **Playwright `e2e/i18n.spec.ts`** (`npm run e2e:i18n`), 14 testų:
+  - kalbos selektorius (LT→EN be reload, `<html lang>`), persistencija (cookie + localStorage + po reload), grįžimas į LT;
+  - `navigator.language=en-US` → EN sąsaja be pasirinkimo;
+  - EN maršrutų padengimas (`/digital`, collection, decks, pve, pvp, ranked): jokių neišverstų raktų, jokių likusių LT UI tekstų (kortų/DB turinio LT fallback laikomas LEGALIU);
+  - kovos log persirenderinimas: kovoje perjungiama kalba per `window.__rvnSetLocale` (E2E kabliukas `I18nBoot`) → istoriniai log įrašai persiverčia (struktūrinis log veikia);
+  - EN teksto ilgis: 844×390 ir 1280×720 hub be page-scroll ir be raktų.
+  - Helperiai `e2e/helpers.ts`: `presetLocale`, `switchLocale`, `visibleLithuanianText`, `rawI18nKeys`.
+- **Statinis skeneris `scripts/i18n-scan-lt.mjs`** (`npm run i18n:scan`, `npm run i18n:check` = validate + scan): randa LT tekstus /digital apimties failuose. Šiuo metu **19 įtartinų eilučių 14 failų** — visos peržiūrėtos ir sąmoningai paliktos:
+  - server-komponentų `metadata.title` (LT) — vertimas padarytų route'us dynamic, spręsta palikti;
+  - LT kaip LOGIKOS raktai (`TYPE_ORDER`, ArenaBackground frakcijų vardai, STATUS_META/KEYWORD_META fallback registrai);
+  - dvikalbiai registrai (PracticeButton FACTION_DESC), botų vardai, admin/seed įrankiai, kampanija (Fazės 4 likutis).
+- **Pakeliui sutvarkyta:** tutorial2 (TutorialHub, TutorialDirector), TutorialButton, kino overlay, `craft.ts` klaidų kodai, `dailyTasks` DIFF_LABEL, `ranked` sezono laikmatis / milestone atlygiai / rarity etiketės, `levels.ts` rango grupės, mėnesio prisijungimo etiketės, native notifikacijos. **1499 raktai.**
+
+## LIKĘ DARBAI (ne kodas)
+1. EN kortų tekstai: `/admin/i18n` arba `npm run cards:i18n -- export --locale en --only-missing` → užpildyti → `import`.
+2. EN kortų PNG (tekstas įkeptas į vaizdą) → `card_assets` (admin laukas arba `cards-i18n.mjs images`).
+3. EN balsai → `localized_audio` (`cards-i18n.mjs audio`).
+4. Kampanija + tutorial lessons seed'ai (Fazės 4 likutis) ir SQL RPC `raise exception` LT žinutės → stabilūs kodai.
+5. PNG su įkeptu LT tekstu ne kortose (home/battle-modes, ai/types, cta2.png, heading.png) → EN variantai.
 
 ### Likę smulkūs LT (žinomi, sąmoningai palikti)
 - DigitalCoop / DigitalPvp2v2 / Team2v2Game — SCRAPPED iš nav (commit218), nemigruota.
@@ -118,4 +134,4 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 ## GREITAS STARTAS KITAI SESIJAI
 1. `cd "/sessions/<vm>/mnt/Ravenof kortų portalas/ravenof-portal"` (kelią žr. Shell access sekcijoje)
 2. `git log -1 --oneline` — patikrinti ar 490–492 sucommitinti; `node scripts/i18n-validate.mjs`; `npx tsc --noEmit`
-3. Liko **Fazė 9 (Playwright QA)** + faktinis turinio suvedimas per `/admin/i18n` arba `npm run cards:i18n -- export --locale en --only-missing`.
+3. Kodo darbų nebeliko — visos 9 fazės baigtos. Liko turinio suvedimas (žr. „LIKĘ DARBAI"). Prieš kiekvieną commit: `npm run i18n:check` + `npx tsc --noEmit`; E2E: `npm run e2e:i18n` (reikia E2E_TEST_EMAIL/PASSWORD).

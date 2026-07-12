@@ -40,5 +40,6 @@ export async function rerollDailyTask(id: number): Promise<Ok | null> {
   return (data ?? null) as Ok | null
 }
 
-export const DIFF_LABEL: Record<Difficulty, string> = { easy: 'Lengva', medium: 'Vidutinė', hard: 'Sunki' }
+/** i18n raktai (tekstas – per t() render'e). */
+export const DIFF_LABEL: Record<Difficulty, string> = { easy: 'quests.daily.easy', medium: 'quests.daily.medium', hard: 'quests.daily.hard' }
 export const DIFF_ACCENT: Record<Difficulty, string> = { easy: '52,211,153', medium: '96,165,250', hard: '239,68,68' }

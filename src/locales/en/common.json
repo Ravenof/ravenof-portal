@@ -31,12 +31,8 @@
   "loading": "Loading…",
   "no": "No",
   "notif": {
-    "daysAgo": "{{count}} d ago",
-    "empty": "No notifications yet.",
-    "hoursAgo": "{{count}} h ago",
-    "justNow": "just now",
-    "minAgo": "{{count}} min ago",
-    "title": "NOTIFICATIONS"
+    "daily": "Your daily reward is waiting! 🔥 Keep your streak alive.",
+    "battle": "New opponents await in the arena. ⚔️ Play a battle!"
   },
   "or": "or",
   "picker": {

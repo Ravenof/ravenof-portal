@@ -2523,7 +2523,7 @@ export function championSkills(ch: BoardUnit): { name: string; mappings: EffectM
   const cfg = ch.card.gameplay?.championSkillConfig
   let raw = cfg?.skills
   if ((!raw || raw.length === 0) && (cfg?.mappings?.length || ch.card.mappings?.length)) {
-    raw = [{ name: 'Gebėjimas', mappings: cfg?.mappings ?? ch.card.mappings ?? [] }]
+    raw = [{ name: t('battle.game.skillDefault'), mappings: cfg?.mappings ?? ch.card.mappings ?? [] }]
   }
   return (raw ?? []).slice(0, 3).map((sk, i) => ({
     name: sk.name || `Skill ${i + 1}`,

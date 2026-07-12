@@ -413,7 +413,9 @@
     "sideEnemy": "enemy",
     "nextLevelPrefix": "Next —",
     "levelN": "Level {{level}}",
-    "forXp": "for {{xp}} XP:"
+    "forXp": "for {{xp}} XP:",
+    "tapToSkip": "Tap to skip ›",
+    "skillDefault": "Skill"
   },
   "layout": {
     "log": "📜 Battle log",
@@ -454,5 +456,9 @@
     "cancel": "Cancel",
     "none": "—",
     "start": "⚔ START BATTLE"
+  },
+  "tutorial": {
+    "button": "🎓 Teach me to play",
+    "buttonHint": "Tutorial battle vs AI: the board, gold, ZMK, tokens and step-by-step tips"
   }
 }

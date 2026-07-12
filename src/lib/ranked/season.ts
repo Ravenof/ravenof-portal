@@ -2,6 +2,7 @@
 // Sezonas trunka 3 mėnesius. Sezono pabaigoje rangas resetinamas pagal galutinį rankStep.
 
 import { clampStep } from './rank'
+import { t } from '@/lib/i18n/core'
 
 export const SEASON_LENGTH_DAYS = 90
 export const SEASON_ENDING_WARN_DAYS = 7
@@ -40,8 +41,8 @@ export function seasonTimer(endDate: string | Date, now: Date = new Date()): Sea
   }
 }
 
-export function formatTimeLeft(t: SeasonTimer): string {
-  if (t.ended) return 'Sezonas baigėsi'
-  if (t.daysLeft > 0) return `${t.daysLeft} d. ${t.hoursLeft} val.`
-  return `${t.hoursLeft} val.`
+export function formatTimeLeft(timer: SeasonTimer): string {
+  if (timer.ended) return t('ranked.seasonTimer.ended')
+  if (timer.daysLeft > 0) return t('ranked.seasonTimer.daysHours', { days: timer.daysLeft, hours: timer.hoursLeft })
+  return t('ranked.seasonTimer.hours', { hours: timer.hoursLeft })
 }

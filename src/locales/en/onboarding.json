@@ -77,5 +77,21 @@
     "claiming": "Claiming…",
     "sub": "A starting gift for a new fighter",
     "title": "Welcome!"
+  },
+  "tutorial": {
+    "title": "TUTORIAL",
+    "subWithDeck": "One guided battle with your deck — you will learn every mechanic before facing a real starter deck.",
+    "subNoDeck": "First claim your free starter deck — then you can play the guided tutorial battle.",
+    "yourDeck": "Your deck",
+    "start": "⚔ Start the tutorial battle",
+    "errNoGold": "Not enough gold for this deck.",
+    "errClaimed": "You already own this deck – refresh the page.",
+    "errGeneric": "Failed: {{error}}",
+    "readFirst": "Read the explanation first.",
+    "pressNext": "Press \"Next\".",
+    "wrongAction": "Not the right action this time — follow the highlight.",
+    "lessonDone": "Lesson complete!",
+    "continue": "Continue →",
+    "alreadyRewarded": "You replayed the lesson – the reward was already granted."
   }
 }

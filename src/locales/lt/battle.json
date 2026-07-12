@@ -413,7 +413,9 @@
     "sideEnemy": "priešo",
     "nextLevelPrefix": "Kitas —",
     "levelN": "Lygis {{level}}",
-    "forXp": "už {{xp}} XP:"
+    "forXp": "už {{xp}} XP:",
+    "tapToSkip": "Bakstelėk praleisti ›",
+    "skillDefault": "Gebėjimas"
   },
   "layout": {
     "log": "📜 Mūšio žurnalas",
@@ -454,5 +456,9 @@
     "cancel": "Atšaukti",
     "none": "—",
     "start": "⚔ PRADĖTI KOVĄ"
+  },
+  "tutorial": {
+    "button": "🎓 Išmokyk mane žaisti",
+    "buttonHint": "Mokomoji kova prieš AI: kovos laukas, auksas, ŽMK, žetonai ir patarimai žingsnis po žingsnio"
   }
 }

@@ -3,6 +3,7 @@
 // pasiimami iš Apdovanojimų ekrano; pasiėmimas tikrinamas serveryje (RPC).
 
 import { stepFromRank } from './rank'
+import { t } from '@/lib/i18n/core'
 
 export type RewardPayload = {
   exp?: number
@@ -44,21 +45,21 @@ const M = (n: number, title: string, description: string, payload: RewardPayload
 })
 
 export const MILESTONE_REWARDS: RankedReward[] = [
-  M(45, 'Pasiektas 45 rangas', 'Pasiek 45 Bronza', { exp: 250, gold: 100 }),
-  M(40, 'Pasiektas 40 rangas', 'Pasiek 40 Bronza', { exp: 400, gold: 200, boosters: 1 }),
-  M(35, 'Pasiektas 35 rangas', 'Pasiek 35 Bronza', { exp: 500, gold: 250 }),
-  M(30, 'Pasiektas 30 rangas', 'Pasiek 30 Bronza', { exp: 700, gold: 300, boosters: 1 }),
-  M(25, 'Pasiektas 25 rangas', 'Pasiek 25 Bronza', { exp: 800, gold: 400 }),
-  M(20, 'Pasiektas 20 rangas', 'Pasiek 20 Bronza', { exp: 1000, gold: 500, boosters: 1, cardMin: 'magic' }),
-  M(15, 'Pasiektas 15 rangas', 'Pasiek 15 Bronza', { exp: 1200, gold: 600 }),
-  M(10, 'Pasiektas 10 rangas', 'Pasiek 10 Bronza', { exp: 1500, gold: 800, boosters: 2, cardMin: 'unique' }),
-  M(5, 'Pasiektas 5 rangas', 'Pasiek 5 Bronza', { exp: 2000, gold: 1000, boosters: 2 }),
-  M(1, 'Pasiektas 1 rangas', 'Pasiek 1 Bronza', { exp: 2500, gold: 1500, boosters: 3, cardMin: 'epic' }),
+  M(45, 'ranked.milestone.rank45.title', 'ranked.milestone.rank45.desc', { exp: 250, gold: 100 }),
+  M(40, 'ranked.milestone.rank40.title', 'ranked.milestone.rank40.desc', { exp: 400, gold: 200, boosters: 1 }),
+  M(35, 'ranked.milestone.rank35.title', 'ranked.milestone.rank35.desc', { exp: 500, gold: 250 }),
+  M(30, 'ranked.milestone.rank30.title', 'ranked.milestone.rank30.desc', { exp: 700, gold: 300, boosters: 1 }),
+  M(25, 'ranked.milestone.rank25.title', 'ranked.milestone.rank25.desc', { exp: 800, gold: 400 }),
+  M(20, 'ranked.milestone.rank20.title', 'ranked.milestone.rank20.desc', { exp: 1000, gold: 500, boosters: 1, cardMin: 'magic' }),
+  M(15, 'ranked.milestone.rank15.title', 'ranked.milestone.rank15.desc', { exp: 1200, gold: 600 }),
+  M(10, 'ranked.milestone.rank10.title', 'ranked.milestone.rank10.desc', { exp: 1500, gold: 800, boosters: 2, cardMin: 'unique' }),
+  M(5, 'ranked.milestone.rank5.title', 'ranked.milestone.rank5.desc', { exp: 2000, gold: 1000, boosters: 2 }),
+  M(1, 'ranked.milestone.rank1.title', 'ranked.milestone.rank1.desc', { exp: 2500, gold: 1500, boosters: 3, cardMin: 'epic' }),
   {
     key: 'reach_1_gold',
     requiredRankStep: stepFromRank(1, 'gold'),
-    title: 'Aukso viršūnė',
-    description: 'Pasiek 1 Auksas — aukščiausią rangą',
+    title: 'ranked.milestone.gold1.title',
+    description: 'ranked.milestone.gold1.desc',
     payload: { exp: 5000, gold: 3000, boosters: 5, cardMin: 'legendary', badge: true },
     kind: 'milestone',
   },
@@ -71,12 +72,12 @@ export function summarizePayload(p: RewardPayload): string {
   const parts: string[] = []
   if (p.exp) parts.push(`+${p.exp} EXP`)
   if (p.gold) parts.push(`+${p.gold} 🪙`)
-  if (p.boosters) parts.push(`${p.boosters} pak.`)
-  if (p.cardMin) parts.push(`korta (${cardMinLabel(p.cardMin)}+)`)
-  if (p.badge) parts.push('ženklas')
+  if (p.boosters) parts.push(t('ranked.rewards.packs', { count: p.boosters }))
+  if (p.cardMin) parts.push(t('ranked.rewards.card', { rarity: cardMinLabel(p.cardMin) }))
+  if (p.badge) parts.push(t('ranked.rewards.badge'))
   return parts.join(' · ')
 }
 
 export function cardMinLabel(m: NonNullable<RewardPayload['cardMin']>): string {
-  return { magic: 'Magiška', unique: 'Unikali', epic: 'Epiška', legendary: 'Legendinė' }[m]
+  return t(`ranked.rarity.${m}`)
 }

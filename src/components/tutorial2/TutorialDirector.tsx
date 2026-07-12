@@ -15,6 +15,7 @@ import { TutorialAnalytics } from '@/lib/tutorial2/analytics'
 import { completeLesson } from '@/lib/tutorial2/lessonLoader'
 import type { LessonRow, LessonStep, HighlightTarget, AllowedAction, ScriptedAction } from '@/lib/tutorial2/lessonTypes'
 import { TutorialOverlay, type OverlayDialogue } from './TutorialOverlay'
+import { useT } from '@/lib/i18n/react'
 
 const ANCHOR_TUT: Record<string, string> = {
   hand: 'hand', gold: 'gold', 'hp-you': 'hp', 'hp-ai': 'ai-area', 'deck-you': 'deck', 'deck-ai': 'ai-area',
@@ -24,6 +25,7 @@ const ANCHOR_TUT: Record<string, string> = {
 }
 
 export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit: (completed: boolean) => void }) {
+  const t = useT()
   const cfg = lesson.config
   const steps = useMemo(() => cfg.steps ?? [], [cfg])
   const [pool, setPool] = useState<CardPool | null>(null)
@@ -203,12 +205,12 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     applySetup,
     gate: (a, g) => {
       const s = steps[stepIdxRef.current]
-      if (dialogueActiveRef.current) return { ok: false, hint: 'Pirma perskaityk paaiškinimą.' }
+      if (dialogueActiveRef.current) return { ok: false, hint: t('onboarding.tutorial.readFirst') }
       const allow = s?.allow ?? []
-      if (allow.length === 0) return { ok: false, hint: 'Spausk „Toliau".' }
+      if (allow.length === 0) return { ok: false, hint: t('onboarding.tutorial.pressNext') }
       if (matchAction(a, allow, g)) return { ok: true }
       analytics.current?.wrongAction(s?.id ?? '?')
-      return { ok: false, hint: s?.wrongHint ?? 'Šįkart ne tas veiksmas — sek paryškinimą.' }
+      return { ok: false, hint: s?.wrongHint ?? t('onboarding.tutorial.wrongAction') }
     },
     enemyTurn: (g) => {
       const s = steps[stepIdxRef.current]
@@ -274,6 +276,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
 }
 
 function RewardScreen({ title, reward, onDone }: { title: string; reward: LessonRow['reward_payload']; onDone: () => void }) {
+  const t = useT()
   const items: { icon: string; label: string }[] = []
   if (reward.gold) items.push({ icon: '🪙', label: `+${reward.gold} aukso` })
   if (reward.exp) items.push({ icon: '✦', label: `+${reward.exp} EXP` })
@@ -284,7 +287,7 @@ function RewardScreen({ title, reward, onDone }: { title: string; reward: Lesson
     <div style={{ position: 'fixed', inset: 0, zIndex: 360, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(4px)' }}>
       <div style={{ width: 'min(440px, 92vw)', textAlign: 'center', padding: 28, borderRadius: 20, background: 'linear-gradient(160deg, rgba(20,15,28,0.98), rgba(8,6,14,0.98))', border: '1.5px solid rgba(240,180,41,0.5)', boxShadow: '0 18px 60px rgba(0,0,0,0.7)' }}>
         <div style={{ fontSize: 46 }}>🏆</div>
-        <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 22, margin: '6px 0 2px' }}>Pamoka įveikta!</h2>
+        <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 22, margin: '6px 0 2px' }}>{t('onboarding.tutorial.lessonDone')}</h2>
         <p style={{ color: 'var(--text-secondary, #c9c2d6)', fontSize: 13, marginBottom: 16 }}>{title}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
           {items.map((it, i) => (
@@ -292,9 +295,9 @@ function RewardScreen({ title, reward, onDone }: { title: string; reward: Lesson
               <span style={{ fontSize: 20 }}>{it.icon}</span> {it.label}
             </div>
           ))}
-          {items.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Pakartojai pamoką – atlygis jau gautas.</div>}
+          {items.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('onboarding.tutorial.alreadyRewarded')}</div>}
         </div>
-        <button onClick={onDone} style={{ width: '100%', padding: '12px', borderRadius: 12, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg, rgba(240,180,41,0.35), rgba(240,180,41,0.12))', border: '1.5px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', cursor: 'pointer' }}>Tęsti →</button>
+        <button onClick={onDone} style={{ width: '100%', padding: '12px', borderRadius: 12, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg, rgba(240,180,41,0.35), rgba(240,180,41,0.12))', border: '1.5px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', cursor: 'pointer' }}>{t('onboarding.tutorial.continue')}</button>
       </div>
     </div>,
     document.body,

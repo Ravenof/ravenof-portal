@@ -49,5 +49,16 @@
     "48": "Name in the Pantheon",
     "49": "Ravenof Immortal",
     "50": "Ravenof Eternal"
+  },
+  "rankGroup": {
+    "novice": "Novice",
+    "player": "Player",
+    "tactician": "Tactician",
+    "seasoned": "Seasoned Player",
+    "master": "Master",
+    "highMaster": "High Master",
+    "legend": "Legend",
+    "elitas": "Elite",
+    "panteonas": "Pantheon"
   }
 }

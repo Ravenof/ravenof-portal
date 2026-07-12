@@ -3,6 +3,7 @@
 // tik kviečia ir rodo. Boto kova paleidžiama per esamą TutorialGame engine.
 
 import { createClient } from '@/lib/supabase/client'
+import { t } from '@/lib/i18n/core'
 import type {
   RankedSeason, RankedProfile, RankedMatchRow, LeaderboardRow,
   MatchReportResult, PlayerMatchStats,
@@ -196,7 +197,7 @@ export async function getOpponentSummary(userId: string): Promise<OpponentSummar
   const pr = p.data as { display_name: string | null; username: string | null; avatar_url: string | null } | null
   const rpr = rp.data as { rank_step: number; main_faction: string | null } | null
   if (!pr) return null
-  return { name: pr.display_name ?? pr.username ?? 'Žaidėjas', avatar: pr.avatar_url, rankStep: rpr?.rank_step ?? 0, faction: rpr?.main_faction ?? null }
+  return { name: pr.display_name ?? pr.username ?? t('ranked.player'), avatar: pr.avatar_url, rankStep: rpr?.rank_step ?? 0, faction: rpr?.main_faction ?? null }
 }
 
 /** factions slug → id (kovos paleidimui per engine opponentFaction). */

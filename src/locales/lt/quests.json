@@ -17,7 +17,10 @@
     "rerollsLeft": "Perrinkimų liko: {{count}}",
     "title": "DIENOS UŽDUOTYS",
     "reroll": "Perrinkti",
-    "rerollCost": "50 sidabro"
+    "rerollCost": "50 sidabro",
+    "easy": "Lengva",
+    "medium": "Vidutinė",
+    "hard": "Sunki"
   },
   "dayN": "{{day}} diena",
   "doneOf": "{{done}}/{{total}} įvykdyta",
@@ -41,7 +44,10 @@
     "title": "PRISIJUNGIMO DOVANOS",
     "titleMonth": "{{month}} PRISIJUNGIMO DOVANOS",
     "todaysGift": "Šiandienos dovana",
-    "tomorrow": "Rytoj laukia"
+    "tomorrow": "Rytoj laukia",
+    "cardBack": "Nugarėlė",
+    "avatar": "Avataras",
+    "seasonXp": "{{amount}} Sezono"
   },
   "noQuestsToday": "Šiandien užduočių nėra.",
   "nothingToClaim": "Nėra ką atsiimti",

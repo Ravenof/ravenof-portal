@@ -17,7 +17,10 @@
     "rerollsLeft": "Rerolls left: {{count}}",
     "title": "DAILY QUESTS",
     "reroll": "Reroll",
-    "rerollCost": "50 silver"
+    "rerollCost": "50 silver",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard"
   },
   "dayN": "Day {{day}}",
   "doneOf": "{{done}}/{{total}} completed",
@@ -41,7 +44,10 @@
     "title": "LOGIN GIFTS",
     "titleMonth": "{{month}} LOGIN GIFTS",
     "todaysGift": "Today's gift",
-    "tomorrow": "Tomorrow brings"
+    "tomorrow": "Tomorrow brings",
+    "cardBack": "Card back",
+    "avatar": "Avatar",
+    "seasonXp": "{{amount}} Season XP"
   },
   "noQuestsToday": "No quests today.",
   "nothingToClaim": "Nothing to claim",

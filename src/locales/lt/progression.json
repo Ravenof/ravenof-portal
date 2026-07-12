@@ -49,5 +49,16 @@
     "48": "Legendų Saugotojas",
     "49": "Panteono Vardas",
     "50": "Ravenof Nemirtingasis"
+  },
+  "rankGroup": {
+    "novice": "Naujokas",
+    "player": "Žaidėjas",
+    "tactician": "Taktikas",
+    "seasoned": "Patyręs Žaidėjas",
+    "master": "Meistras",
+    "highMaster": "Aukštasis Meistras",
+    "legend": "Legenda",
+    "elitas": "Elitas",
+    "panteonas": "Panteonas"
   }
 }

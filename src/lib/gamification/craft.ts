@@ -25,7 +25,11 @@ export async function craftCard(cardId: string): Promise<Ok | null> {
   return (data ?? null) as Ok | null
 }
 
-export const CRAFT_ERR_LT: Record<string, string> = {
-  not_enough_essence: 'Nepakanka Esencijos.', max_copies: 'Jau turi maksimalų kiekį.', no_duplicates: 'Nėra dublikatų dulkinimui.',
-  not_owned: 'Kortos neturi.', not_found: 'Korta nerasta.', bad_count: 'Netinkamas kiekis.',
+/** Serverio klaidos kodas → i18n raktas (tekstas gimsta UI per t()). */
+export const CRAFT_ERR_KEY: Record<string, string> = {
+  not_enough_essence: 'errors.craft.notEnoughEssence', max_copies: 'errors.craft.maxCopies',
+  no_duplicates: 'errors.craft.noDuplicates', not_owned: 'errors.craft.notOwned',
+  not_found: 'errors.craft.notFound', bad_count: 'errors.craft.badCount',
 }
+/** @deprecated naudok CRAFT_ERR_KEY + t() */
+export const CRAFT_ERR_LT = CRAFT_ERR_KEY

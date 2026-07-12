@@ -64,3 +64,54 @@ export async function ensureOnboarded(page: Page) {
   await page.getByRole('button', { name: /Žengti į Ravenof/ }).click()
   await page.waitForURL((u) => u.pathname === '/digital', { timeout: 20_000 })
 }
+
+// ── i18n (Fazė 9) ────────────────────────────────────────────────────────────
+
+/** Nustato kalbą PRIEŠ pirmą render'į (cookie + localStorage) – be UI klikų. */
+export async function presetLocale(page: Page, locale: 'lt' | 'en') {
+  await page.addInitScript((loc) => {
+    try { window.localStorage.setItem('rvn_locale', loc) } catch { /* */ }
+    document.cookie = `rvn_locale=${loc}; path=/; max-age=31536000`
+  }, locale)
+}
+
+/** Perjungia kalbą per matomą LT|EN selektorių. */
+export async function switchLocale(page: Page, locale: 'lt' | 'en') {
+  const btn = page.getByRole('radio', { name: locale === 'en' ? 'English' : 'Lietuvių' }).first()
+  await btn.click()
+  await page.waitForTimeout(400)
+}
+
+/** Ar puslapyje matomas nors vienas lietuviškas diakritinis simbolis (EN režimo patikra). */
+export async function visibleLithuanianText(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const hits: string[] = []
+    const re = /[ąčęėįšųūžĄČĘĖĮŠŲŪŽ]/
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    let n: Node | null
+    while ((n = walker.nextNode())) {
+      const el = n.parentElement
+      if (!el) continue
+      const st = window.getComputedStyle(el)
+      if (st.display === 'none' || st.visibility === 'hidden') continue
+      const txt = (n.textContent ?? '').trim()
+      if (txt && re.test(txt)) hits.push(txt.slice(0, 60))
+    }
+    return hits
+  })
+}
+
+/** Neišverstų raktų paieška: matomas tekstas, atrodantis kaip `namespace.key.path`. */
+export async function rawI18nKeys(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const out: string[] = []
+    const re = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9_]+){1,4}$/
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    let n: Node | null
+    while ((n = walker.nextNode())) {
+      const txt = (n.textContent ?? '').trim()
+      if (txt && txt.length < 60 && re.test(txt) && !txt.includes(' ')) out.push(txt)
+    }
+    return out
+  })
+}

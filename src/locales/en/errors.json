@@ -1,1 +1,10 @@
-{}
+{
+  "craft": {
+    "notEnoughEssence": "Not enough Essence.",
+    "maxCopies": "You already have the maximum number of copies.",
+    "noDuplicates": "No duplicates to dust.",
+    "notOwned": "You don't own this card.",
+    "notFound": "Card not found.",
+    "badCount": "Invalid amount."
+  }
+}

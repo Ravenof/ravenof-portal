@@ -26,6 +26,12 @@ export { setLocale }
 export function I18nBoot(): null {
   const locale = useLocale()
   useEffect(() => { document.documentElement.lang = locale }, [locale])
+  // E2E kabliukas (Fazė 9): leidžia testams perjungti kalbą ten, kur nėra
+  // selektoriaus (pvz. kovos ekrane) ir patikrinti, ar viskas persirenderina.
+  useEffect(() => {
+    (window as unknown as { __rvnSetLocale?: typeof setLocale }).__rvnSetLocale = setLocale
+    return () => { delete (window as unknown as { __rvnSetLocale?: typeof setLocale }).__rvnSetLocale }
+  }, [])
   useEffect(() => { void loadProfileLocale() }, [])
   useEffect(() => { void loadContentTranslations(locale) }, [locale])
   return null
