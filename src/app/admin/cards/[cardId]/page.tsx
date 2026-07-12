@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { CardForm } from '@/components/admin/CardForm'
 import { CardLoreLinks } from '@/components/admin/CardLoreLinks'
+import { CardTranslationPanel } from '@/components/admin/i18n/CardTranslationPanel'
 
 export const metadata = { title: 'Redaguoti korta | Admin' }
 
@@ -68,6 +69,10 @@ export default async function EditCardPage({ params }: Props) {
           cardTypes={cardTypes ?? []}
           rarities={rarities ?? []}
           cardNames={cardNames}
+        />
+        <CardTranslationPanel
+          cardId={card.id}
+          lt={{ name: card.name as string, description: (card.description as string | null) ?? null, effect_text: (card.effect_text as string | null) ?? null }}
         />
         <CardLoreLinks
           cardNumber={cardNum}

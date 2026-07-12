@@ -1,6 +1,6 @@
 # RAVENOF i18n — PERDAVIMO DOKUMENTAS (handoff)
 
-Data: 2026-07-12. Fazės 1–7 BAIGTOS (commit490, 492, 493, 494, 495, 496). Šis failas — tęsimo instrukcija.
+Data: 2026-07-12. Fazės 1–8 BAIGTOS (commit490, 492, 493, 494, 495, 496, 497). Liko Fazė 9 (QA) + turinio suvedimas. Šis failas — tęsimo instrukcija.
 Pilnas originalus spec'as ir auditas: `I18N-AUDIT.md` (repo šaknyje). Atmintis: memory `ravenof-i18n`.
 
 ## KAS PADARYTA
@@ -35,7 +35,7 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - Švieži Windows-pusės binariniai failai bash'e gali matytis truncated (pvz. nauji PNG) — apdorojimą daryti .bat viduje Windows pusėje (pvz. tools/resize-nav-icons.mjs commit491).
 
 ## LAUKIA VARTOTOJO VEIKSMŲ (patikrinti prieš tęsiant)
-1. `git-commit493.bat` (f5), `git-commit494.bat` (f4), `git-commit495.bat` (f6), `git-commit496.bat` (f7) — paleisti eilės tvarka, patikrinti `commitNN.log`.
+1. `git-commit493.bat` (f5), `git-commit494.bat` (f4), `git-commit495.bat` (f6), `git-commit496.bat` (f7), `git-commit497.bat` (f8) — paleisti eilės tvarka, patikrinti `commitNN.log`.
 2. Supabase migracijos: `20260830_preferred_locale.sql`, `20260831_content_translations.sql`, `20260832_card_translations.sql`, `20260833_localized_audio.sql`.
 3. Po migracijos: `select owner_type, count(*) from content_translations where locale='en' group by 1;` — patikrinti, ar frakcijos/retumai/kortų tipai gavo EN (jei 0 → DB LT pavadinimai skiriasi nuo migracijoje išvardytų; pataisyti `join` reikšmes).
 4. Smoke test EN kalba: kova (log + UI), dienos užduotys/darbai, parduotuvė, kosmetika, reitingo pasiekimai, kolekcijos frakcijų filtras.
@@ -94,8 +94,13 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - **Įrankis:** `node tools/cards-i18n.mjs audio --owner card|avatar --locale en --in file.csv` (CSV: card_id|card_number|owner_id, trigger, url, transcript?, weight?). `status --locale en` rodo ir balsų kiekius.
 - **LIKO:** įrašyti/sugeneruoti EN balsus ir suvesti per įrankį; admin UI balsams per locale — Fazė 8.
 
-### Fazė 8 — Admin
-- Kortų redagavimas tab'ais (LT / EN / Gameplay / Assets / Audio), audio upload per locale, missing-translation ataskaitos, editorial statusai (draft/review/approved). `app/admin/*` UI pats irgi LT (~750 eil.) — žemesnė prioritetė (adminas gali likti LT, spec to nedraudžia, bet content-valdymo įrankiai EN turiniui būtini).
+### Fazė 8 — Admin ✅ BAIGTA (commit497)
+- **Naujas puslapis `/admin/i18n`** (`src/app/admin/i18n/page.tsx` + `components/admin/i18n/AdminI18nClient.tsx`), nuoroda admin NAV juostoje:
+  - **Kortos (EN):** sąrašas su filtrais (trūksta / daliniai / sutvarkyta / visos) + paieška; inline redagavimas: EN name / effect_text / description / flavor_text, `status` (draft|review|approved), EN kortos vaizdo URL (`card_assets`), EN iškvietimo balsų URL (`localized_audio`, po vieną eilutėje). Rodoma po 200 – masiniam darbui CLI.
+  - **Turinys (EN):** `content_translations` redaktorius (LT reikšmė šalia EN įvesties; tuščias laukas = vertimas ištrinamas → fallback LT).
+  - **Ataskaita:** kortų EN pilnumas (%), daliniai, trūkstami, EN vaizdai, EN balsai, turinio įrašai.
+- **Kortos redagavimo puslapyje** (`/admin/cards/[cardId]`) — blokas „🌍 EN vertimas" (`CardTranslationPanel`): tekstai + EN vaizdas + EN balsai vienoje vietoje, su priminimu, kad variklis parsina LT tekstą.
+- **Editorial statusai:** žaidėjams rodomi TIK `approved` vertimai (resolveris filtruoja `status = 'approved'`).
 
 ### Fazė 9 — QA
 - Playwright: language-selector, locale-persistence, english-* route coverage (spec sąrašas), combat-log rerender, layout 844×390…1920×1080. e2e/ katalogas jau yra; ContentDownloadGate turi webdriver skip (uncommitted pakeitimas working tree — peržiūrėti).
@@ -113,4 +118,4 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 ## GREITAS STARTAS KITAI SESIJAI
 1. `cd "/sessions/<vm>/mnt/Ravenof kortų portalas/ravenof-portal"` (kelią žr. Shell access sekcijoje)
 2. `git log -1 --oneline` — patikrinti ar 490–492 sucommitinti; `node scripts/i18n-validate.mjs`; `npx tsc --noEmit`
-3. Tęsti nuo **Fazės 8 (admin: kortų/turinio vertimų tab'ai, balsų upload per locale, completeness ataskaitos per `card_translation_status` ir `localized_audio_status`)**, tada **Fazė 9 (Playwright QA)**. Turinio suvedimas: `npm run cards:i18n -- export --locale en --only-missing`.
+3. Liko **Fazė 9 (Playwright QA)** + faktinis turinio suvedimas per `/admin/i18n` arba `npm run cards:i18n -- export --locale en --only-missing`.
