@@ -12,6 +12,10 @@ type Props = {
   cardNumber: string
   cardId: string | null
   onChange: (urls: string[]) => void
+  /** Kalba: EN balsai keliami į .../voice/en/ (LT lieka kaip buvo). */
+  locale?: 'lt' | 'en'
+  /** Antraštė (pvz. „EN iškvietimo balsai"). */
+  label?: string
 }
 
 const MAX_SIZE = 2 * 1024 * 1024 // 2 MB / failas
@@ -22,7 +26,7 @@ function safeName(filename: string): string {
   return filename.toLowerCase().replace(/[^a-z0-9.]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
 
-export function VoiceLinesUpload({ value, cardNumber, cardId, onChange }: Props) {
+export function VoiceLinesUpload({ value, cardNumber, cardId, onChange, locale = 'lt', label }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -31,9 +35,10 @@ export function VoiceLinesUpload({ value, cardNumber, cardId, onChange }: Props)
   async function handleFiles(files: FileList) {
     setError(null)
     const supabase = createClient()
-    const folder = cardNumber.trim()
+    const base0 = cardNumber.trim()
       ? `cards/${cardNumber.trim()}/voice`
       : cardId ? `cards/${cardId}/voice` : `cards/temp/voice`
+    const folder = locale === 'lt' ? base0 : `${base0}/${locale}`
 
     setLoading(true)
     const added: string[] = []
@@ -77,7 +82,7 @@ export function VoiceLinesUpload({ value, cardNumber, cardId, onChange }: Props)
       <div className="flex items-center gap-2">
         <Music className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
         <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-          Iškvietimo balsai (atsitiktinis grojamas summon metu)
+          {label ?? 'Iškvietimo balsai (atsitiktinis grojamas summon metu)'}
         </label>
       </div>
 

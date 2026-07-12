@@ -1,3 +1,6 @@
+// DEPRECATED (v503): pakeista LT|EN tabais kortos redaktoriuje
+// (components/admin/i18n/CardLocaleTabs.tsx + CardEnglishPanel.tsx).
+// Failas nenaudojamas – ištrinti.
 'use client'
 
 // ── Kortos vertimų blokas (Fazė 8) ───────────────────────────────────────────

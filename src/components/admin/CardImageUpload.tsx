@@ -12,6 +12,8 @@ type Props = {
   cardNumber: string
   cardId: string | null
   onUpload: (publicUrl: string) => void
+  /** Kalba: EN failai keliami į .../en/ (LT lieka kaip buvo). */
+  locale?: 'lt' | 'en'
 }
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
@@ -26,7 +28,7 @@ function safeName(filename: string): string {
     .replace(/^-|-$/g, '')
 }
 
-export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Props) {
+export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload, locale = 'lt' }: Props) {
   const [preview, setPreview]   = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
@@ -70,11 +72,12 @@ export function CardImageUpload({ currentUrl, cardNumber, cardId, onUpload }: Pr
       const supabase = createClient()
 
       // Determine folder path
-      const folder = cardNumber.trim()
+      const base0 = cardNumber.trim()
         ? `cards/${cardNumber.trim()}`
         : cardId
         ? `cards/${cardId}`
         : `cards/temp`
+      const folder = locale === 'lt' ? base0 : `${base0}/${locale}`
 
       const { blob, ext, contentType } = await toWebp(file, { maxW: CARD_MAX_W })
       const timestamp = Date.now()

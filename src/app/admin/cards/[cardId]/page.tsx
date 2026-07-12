@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { CardForm } from '@/components/admin/CardForm'
 import { CardLoreLinks } from '@/components/admin/CardLoreLinks'
-import { CardTranslationPanel } from '@/components/admin/i18n/CardTranslationPanel'
+import { CardLocaleTabs } from '@/components/admin/i18n/CardLocaleTabs'
+import { CardEnglishPanel } from '@/components/admin/i18n/CardEnglishPanel'
 
 export const metadata = { title: 'Redaguoti korta | Admin' }
 
@@ -22,6 +23,18 @@ export default async function EditCardPage({ params }: Props) {
   if (!card) return notFound()
 
   const cardNum = card.card_number as string
+
+  // EN vertimo būsena (tab'o ženkliukas)
+  const { data: enTr } = await supabase
+    .from('card_translations')
+    .select('name, effect_text, status')
+    .eq('card_id', cardId).eq('locale', 'en').maybeSingle()
+  const enState: 'missing' | 'partial' | 'approved' | 'draft' | 'review' =
+    !enTr || (!enTr.name && !enTr.effect_text) ? 'missing'
+    : (!enTr.name || !enTr.effect_text) ? 'partial'
+    : (enTr.status as 'approved' | 'draft' | 'review')
+
+  const ltVoiceLines = (((card.gameplay as { voiceLines?: string[] } | null)?.voiceLines) ?? []) as string[]
 
   const [
     { data: factions }, { data: cardTypes }, { data: rarities },
@@ -61,18 +74,32 @@ export default async function EditCardPage({ params }: Props) {
           </span>
         </div>
       </header>
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
-        <CardForm
-          cardId={card.id}
-          initialData={card}
-          factions={factions ?? []}
-          cardTypes={cardTypes ?? []}
-          rarities={rarities ?? []}
-          cardNames={cardNames}
-        />
-        <CardTranslationPanel
-          cardId={card.id}
-          lt={{ name: card.name as string, description: (card.description as string | null) ?? null, effect_text: (card.effect_text as string | null) ?? null }}
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        <CardLocaleTabs
+          enState={enState}
+          lt={
+            <CardForm
+              cardId={card.id}
+              initialData={card}
+              factions={factions ?? []}
+              cardTypes={cardTypes ?? []}
+              rarities={rarities ?? []}
+              cardNames={cardNames}
+            />
+          }
+          en={
+            <CardEnglishPanel
+              cardId={card.id}
+              cardNumber={cardNum}
+              lt={{
+                name: card.name as string,
+                description: (card.description as string | null) ?? null,
+                effect_text: (card.effect_text as string | null) ?? null,
+                image_url: (card.image_url as string | null) ?? null,
+                voiceLines: ltVoiceLines,
+              }}
+            />
+          }
         />
         <CardLoreLinks
           cardNumber={cardNum}
