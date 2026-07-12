@@ -15,6 +15,8 @@ import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getOnboardingState } from '@/lib/digital/onboarding'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
+import { LanguageSelector } from '@/components/digital/ui/LanguageSelector'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 
@@ -41,9 +43,10 @@ const labelStyle: React.CSSProperties = {
 }
 
 function Progress({ step }: { step: 0 | 1 | 2 }) {
-  const items = ['Paskyra', 'Kaladė', 'Į žaidimą']
+  const t = useT()
+  const items = [t('auth.steps.account'), t('auth.steps.deck'), t('auth.steps.toGame')]
   return (
-    <div className="flex items-center gap-1.5" aria-label={`Žingsnis ${step + 1} iš 3`}>
+    <div className="flex items-center gap-1.5" aria-label={t('auth.steps.stepOf', { step: step + 1, total: 3 })}>
       {items.map((t, i) => (
         <span key={t} className="flex items-center gap-1.5">
           <span className="px-2 py-0.5 rounded-full font-bold" style={{
@@ -61,6 +64,7 @@ function Progress({ step }: { step: 0 | 1 | 2 }) {
 
 export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
   const router = useRouter()
+  const t = useT()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -90,12 +94,12 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
     const supabase = createClient()
 
     if (isReg) {
-      if (!USERNAME_RE.test(username)) { setError('Slapyvardis: 3–20 simbolių, tik a–z, 0–9, _'); return }
-      if (password.length < 8) { setError('Slaptažodis turi būti bent 8 simbolių.'); return }
-      if (password !== confirm) { setError('Slaptažodžiai nesutampa.'); return }
+      if (!USERNAME_RE.test(username)) { setError(t('auth.err.usernameFormat')); return }
+      if (password.length < 8) { setError(t('auth.err.pwTooShort')); return }
+      if (password !== confirm) { setError(t('auth.err.pwMismatch')); return }
       setLoading(true)
       const { data: existing } = await supabase.from('profiles').select('id').eq('username', username).maybeSingle()
-      if (existing) { setError('Šis slapyvardis jau užimtas.'); setLoading(false); playError(); return }
+      if (existing) { setError(t('auth.err.usernameTaken')); setLoading(false); playError(); return }
       const { data, error: err } = await supabase.auth.signUp({
         email, password, options: { data: { username, display_name: username } },
       })
@@ -103,11 +107,11 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
       if (err) {
         const m = err.message.toLowerCase()
         playError()
-        if (m.includes('already registered') || m.includes('already exists') || m.includes('email address is already')) setError('Šis el. paštas jau užregistruotas. Prisijunk arba naudok kitą.')
-        else if (m.includes('database error') || m.includes('saving new user')) setError('Registracijos klaida. Bandyk dar kartą — paskyra nesukurta.')
-        else if (m.includes('password')) setError('Slaptažodis per silpnas. Naudok bent 8 simbolius.')
-        else if (m.includes('email')) setError('Neteisingas el. pašto formatas.')
-        else if (m.includes('fetch') || m.includes('network')) setError('Nėra ryšio. Patikrink internetą ir bandyk dar kartą.')
+        if (m.includes('already registered') || m.includes('already exists') || m.includes('email address is already')) setError(t('auth.err.emailTaken'))
+        else if (m.includes('database error') || m.includes('saving new user')) setError(t('auth.err.registerFailed'))
+        else if (m.includes('password')) setError(t('auth.err.pwWeak'))
+        else if (m.includes('email')) setError(t('auth.err.emailInvalid'))
+        else if (m.includes('fetch') || m.includes('network')) setError(t('auth.err.network'))
         else setError(err.message)
         return
       }
@@ -121,9 +125,9 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
       if (err) {
         playError()
         const m = err.message.toLowerCase()
-        if (m.includes('fetch') || m.includes('network')) setError('Nėra ryšio. Patikrink internetą ir bandyk dar kartą.')
-        else if (m.includes('not confirmed')) setError('El. paštas dar nepatvirtintas — patikrink pašto dėžutę.')
-        else setError('Neteisingas el. paštas arba slaptažodis.')
+        if (m.includes('fetch') || m.includes('network')) setError(t('auth.err.network'))
+        else if (m.includes('not confirmed')) setError(t('auth.err.emailNotConfirmed'))
+        else setError(t('auth.err.badCredentials'))
         return
       }
       playSuccess()
@@ -146,18 +150,18 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
           style={{ opacity: 0.34, objectPosition: '65% 20%', maskImage: 'linear-gradient(90deg, black 30%, transparent 95%)' }}
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(0deg, rgba(6,4,11,0.85), transparent 55%)' }} />
+        <div className="absolute top-3 right-3 z-10"><LanguageSelector size="sm" /></div>
         <div className="relative">
           <Progress step={0} />
           <h1 className="rvn-page-title mt-3" style={{ fontSize: 'clamp(26px, 6vh, 44px)', letterSpacing: '0.14em', lineHeight: 1 }}>RAVENOF</h1>
           <p className="mt-1 font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(11px, 2.2vh, 14px)', letterSpacing: '0.04em' }}>
-            Pasirink vardą. Atsiimk pirmąją kaladę. Ženk į Ravenof.
+            {t('auth.tagline')}
           </p>
           <p className="mt-2 max-w-md" style={{ color: 'var(--text-secondary)', fontSize: 'clamp(10px, 2vh, 12.5px)', lineHeight: 1.5 }}>
-            Tamsios fantazijos kortų mūšiai: 8 frakcijos, gyvi burtai, prakeiksmai ir kapinyno magija.
-            Kaladė, kurią pasirinksi, taps tavo pirmuoju ginklu.
+            {t('auth.intro')}
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {['⚔ PvP kovos', '🤖 Kovos su AI', '🏆 Reitingas', '🎴 Kolekcija'].map((f) => (
+            {[t('auth.features.pvp'), t('auth.features.ai'), t('auth.features.ranked'), t('auth.features.collection')].map((f) => (
               <span key={f} className="px-2 py-1 rounded-lg" style={{ fontSize: 10, background: 'rgba(8,6,13,0.7)', border: '1px solid rgba(255,255,255,0.1)', color: '#c9bfa8' }}>{f}</span>
             ))}
           </div>
@@ -170,47 +174,46 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
         {needsConfirm ? (
           <div className="text-center py-4">
             <div className="text-4xl mb-2">📧</div>
-            <p className="text-base font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>Patvirtink el. paštą</p>
+            <p className="text-base font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>{t('auth.confirmEmailTitle')}</p>
             <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Išsiuntėme nuorodą į <strong style={{ color: '#f3ead3' }}>{email}</strong>.<br />
-              Paspaudęs ją grįžk ir prisijunk — lauks tavo pirmoji kaladė.
+              {t('auth.confirmEmailBody', { email })}
             </p>
             <Link href="/digital/login" onClick={() => playUiClick()} className="inline-block mt-4 px-5 py-2 rounded-xl text-sm font-bold"
               style={{ background: `rgba(${GOLD},0.15)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-              Prisijungti
+              {t('auth.login')}
             </Link>
           </div>
         ) : (
           <>
             <h2 className="font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(14px, 3vh, 18px)', letterSpacing: '0.08em' }}>
-              {isReg ? 'SUKURK PASKYRĄ' : 'PRISIJUNK'}
+              {isReg ? t('auth.registerTitle') : t('auth.loginTitle')}
             </h2>
             <form onSubmit={submit} className="mt-2 flex flex-col gap-2" noValidate>
               {isReg && (
                 <div>
-                  <label htmlFor="rvn-user" style={labelStyle}>Slapyvardis</label>
-                  <input id="rvn-user" type="text" placeholder="a–z, 0–9, _ (3–20)" value={username}
+                  <label htmlFor="rvn-user" style={labelStyle}>{t('auth.username')}</label>
+                  <input id="rvn-user" type="text" placeholder={t('auth.usernamePlaceholder')} value={username}
                     onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                     required maxLength={20} autoComplete="username" style={inputStyle}
                     aria-invalid={username.length > 0 && !USERNAME_RE.test(username)} aria-describedby="rvn-user-hint" />
                   {username.length > 0 && !USERNAME_RE.test(username) && (
-                    <p id="rvn-user-hint" className="mt-0.5" style={{ fontSize: 10, color: '#fbbf24' }}>3–20 simbolių, tik a–z, 0–9, _</p>
+                    <p id="rvn-user-hint" className="mt-0.5" style={{ fontSize: 10, color: '#fbbf24' }}>{t('auth.usernameHint')}</p>
                   )}
                 </div>
               )}
               <div>
-                <label htmlFor="rvn-email" style={labelStyle}>El. paštas</label>
-                <input id="rvn-email" type="email" placeholder="tavo@pastas.lt" value={email}
+                <label htmlFor="rvn-email" style={labelStyle}>{t('auth.email')}</label>
+                <input id="rvn-email" type="email" placeholder={t('auth.emailPlaceholder')} value={email}
                   onChange={(e) => setEmail(e.target.value)} required autoComplete="email" style={inputStyle} />
               </div>
               <div className={isReg ? 'grid grid-cols-2 gap-2' : ''}>
                 <div>
-                  <label htmlFor="rvn-pw" style={labelStyle}>Slaptažodis</label>
+                  <label htmlFor="rvn-pw" style={labelStyle}>{t('auth.password')}</label>
                   <div className="relative">
-                    <input id="rvn-pw" type={showPw ? 'text' : 'password'} placeholder={isReg ? 'Bent 8 simboliai' : 'Slaptažodis'}
+                    <input id="rvn-pw" type={showPw ? 'text' : 'password'} placeholder={isReg ? t('auth.passwordPlaceholderReg') : t('auth.passwordPlaceholder')}
                       value={password} onChange={(e) => setPassword(e.target.value)} required minLength={isReg ? 8 : undefined}
                       autoComplete={isReg ? 'new-password' : 'current-password'} style={{ ...inputStyle, paddingRight: 36 }} />
-                    <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Slėpti slaptažodį' : 'Rodyti slaptažodį'}
+                    <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? t('auth.hidePw') : t('auth.showPw')}
                       className="absolute right-0 top-0 h-full px-2.5 flex items-center" style={{ color: 'var(--text-muted)' }}>
                       {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -218,8 +221,8 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
                 </div>
                 {isReg && (
                   <div>
-                    <label htmlFor="rvn-pw2" style={labelStyle}>Pakartoti</label>
-                    <input id="rvn-pw2" type={showPw ? 'text' : 'password'} placeholder="Pakartoti" value={confirm}
+                    <label htmlFor="rvn-pw2" style={labelStyle}>{t('auth.repeat')}</label>
+                    <input id="rvn-pw2" type={showPw ? 'text' : 'password'} placeholder={t('auth.repeat')} value={confirm}
                       onChange={(e) => setConfirm(e.target.value)} required autoComplete="new-password"
                       aria-invalid={!!confirm && confirm !== password} aria-describedby="rvn-pw2-hint"
                       style={{ ...inputStyle, borderColor: confirm && confirm !== password ? 'rgba(239,68,68,0.7)' : undefined }} />
@@ -227,7 +230,7 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
                 )}
               </div>
               {isReg && confirm && confirm !== password && (
-                <p id="rvn-pw2-hint" style={{ fontSize: 10, color: '#f87171', marginTop: -4 }}>Slaptažodžiai nesutampa</p>
+                <p id="rvn-pw2-hint" style={{ fontSize: 10, color: '#f87171', marginTop: -4 }}>{t('auth.pwMismatch')}</p>
               )}
               {error && (
                 <div role="alert" className="rounded-lg px-3 py-2 text-center" style={{ fontSize: 11.5, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)', color: '#fca5a5' }}>
@@ -237,21 +240,21 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
               <button type="submit" disabled={loading} className="rvn-press w-full rounded-xl font-extrabold transition-transform active:scale-[0.98] disabled:opacity-60"
                 style={{ height: 42, fontSize: 13.5, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em',
                   background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `0 4px 18px rgba(${GOLD},0.25)` }}>
-                {loading ? (isReg ? 'Kuriama paskyra…' : 'Jungiamasi…') : (isReg ? '⚔ Registruotis ir rinktis kaladę' : '⚔ Prisijungti')}
+                {loading ? (isReg ? t('auth.creating') : t('auth.signingIn')) : (isReg ? t('auth.registerCta') : t('auth.loginCta'))}
               </button>
             </form>
             <div className="mt-2 text-center" style={{ fontSize: 11 }}>
               {isReg ? (
                 <Link href={withNext('/digital/login')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
-                  Jau turi paskyrą? <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Prisijunk</span>
+                  {t('auth.haveAccount')} <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{t('auth.haveAccountCta')}</span>
                 </Link>
               ) : (
                 <Link href={withNext('/digital/register')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
-                  Naujas žaidėjas? <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Sukurk paskyrą</span>
+                  {t('auth.newPlayer')} <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{t('auth.newPlayerCta')}</span>
                 </Link>
               )}
               {!isReg && (
-                <Link href="/digital/forgot-password" className="block mt-1" style={{ color: 'var(--text-muted)', fontSize: 10 }}>Pamiršai slaptažodį?</Link>
+                <Link href="/digital/forgot-password" className="block mt-1" style={{ color: 'var(--text-muted)', fontSize: 10 }}>{t('auth.forgotPassword')}</Link>
               )}
             </div>
           </>

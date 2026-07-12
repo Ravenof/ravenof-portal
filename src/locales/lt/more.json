@@ -1,0 +1,27 @@
+{
+  "confirmExitBody": "Programa bus uždaryta.",
+  "confirmExitTitle": "Ar tikrai nori išeiti?",
+  "exit": "Išeiti",
+  "exitFailed": "Programos uždaryti automatiškai nepavyko. Uždarykite ją telefono navigacija.",
+  "exitSub": "Uždaryti programą",
+  "friends": "Draugai",
+  "friendsSub": "Žinutės, mainai, kvietimai",
+  "gotIt": "Supratau",
+  "logout": "Atsijungti",
+  "logoutSub": "Baigti paskyros sesiją",
+  "market": "Aukcionas",
+  "marketSub": "Pirk ir parduok kortas",
+  "quests": "Užduotys",
+  "questsSub": "Dienos užduotys ir serija",
+  "season": "Sezono kelias",
+  "seasonSub": "Pakopos ir apdovanojimai",
+  "sections": {
+    "account": "Paskyra",
+    "community": "Bendruomenė",
+    "game": "Žaidimas"
+  },
+  "settings": "Nustatymai",
+  "settingsSub": "Garsas, muzika, efektai",
+  "subtitle": "Nustatymai, bendruomenė ir paskyra",
+  "title": "Daugiau"
+}

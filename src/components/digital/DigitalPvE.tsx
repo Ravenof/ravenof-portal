@@ -11,7 +11,9 @@ import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
+import { useT } from '@/lib/i18n/react'
 
+// i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
@@ -20,9 +22,10 @@ type PublicDeck = { id: string; name: string; faction: string | null; factionIco
 type Mode = 'random' | 'faction' | 'public'
 const A = '34,197,94'
 const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(14,20,16,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(34,197,94,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
-const FACTION_DESC: Record<string, string> = { 'Mirties maršas': 'Kapinės · prisikėlimas', 'Demonų orda': 'Prakeiksmai · agresija', 'Inkvizicijos legionas': 'Kontrolė · disciplina', 'Šviesos pulkas': 'Gydymas · apsauga', 'Mistikos melodija': 'Burtai · kontrolė', 'Rytų vėjas': 'Greitis · combo', 'Plėšikų naktis': 'Vagystė · tempas', 'Vryhioko gauja': 'Žvėrys · jėga' }
+// Frakcijų aprašai — vertimai battle.factionDesc.* (raktas = DB frakcijos pavadinimas)
 
 export function DigitalPvE() {
+  const t = useT()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [factions, setFactions] = useState<Faction[]>([])
@@ -63,8 +66,8 @@ export function DigitalPvE() {
         const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
         const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))]
         const authors: Record<string, string> = {}
-        if (uids.length) { const { data: profs } = await supabase.from('profiles').select('id, username, display_name').in('id', uids); for (const pr of ((profs as { id: string; username: string | null; display_name: string | null }[]) ?? [])) authors[pr.id] = pr.display_name || pr.username || 'žaidėjas' }
-        setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? 'žaidėjas', score: d.score ?? 0 })))
+        if (uids.length) { const { data: profs } = await supabase.from('profiles').select('id, username, display_name').in('id', uids); for (const pr of ((profs as { id: string; username: string | null; display_name: string | null }[]) ?? [])) authors[pr.id] = pr.display_name || pr.username || t('battle.player') }
+        setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? t('battle.player'), score: d.score ?? 0 })))
       })
   }, [])
 
@@ -97,37 +100,37 @@ export function DigitalPvE() {
     setStarted(true)
   }, [canStart, mode, factions, oppFaction])
 
-  const oppSummary = mode === 'random' ? 'Atsitiktinė frakcija' : mode === 'faction' ? (selFactionObj ? `${selFactionObj.name} AI` : '—') : (selDeckObj ? selDeckObj.name : '—')
+  const oppSummary = mode === 'random' ? t('battle.pve.types.random') : mode === 'faction' ? (selFactionObj ? `${selFactionObj.name} AI` : '—') : (selDeckObj ? selDeckObj.name : '—')
 
   if (started && deck) {
     return <TutorialGame deckId={deck.id} deckName={deck.name} practice
       opponentDeckId={mode === 'public' ? oppDeck : null}
       opponentFaction={mode !== 'public' && oppFaction ? Number(oppFaction) : null}
-      opponentName={mode === 'public' ? (selDeckObj?.name ?? 'Priešas') : (selFactionObj?.name ?? 'Priešas')}
+      opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.pve.enemy')) : (selFactionObj?.name ?? t('battle.pve.enemy'))}
       difficulty={difficulty}
       onClose={() => setStarted(false)} />
   }
 
-  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>Kraunama…</span></div>
+  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span></div>
   if (playable.length === 0) return (
     <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-      <p style={{ color: 'var(--text-muted)' }}>Neturi žaidžiamų kaladžių.</p>
-      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+      <p style={{ color: 'var(--text-muted)' }}>{t('battle.pve.noDecks')}</p>
+      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.pve.createDeck')}</Link>
     </div>
   )
 
   // ── Pilno asset'o mygtukai (PNG jau turi rėmą+emblemą+LT pavadinimą — jokių
   // papildomų ikonų/tekstų; vardas per aria-label). Selected = CSS glow, be layout shift.
   const TYPE_ASSETS: Record<string, { asset: string; glow: string; label: string }> = {
-    random:   { asset: '/digital/ai/types/random-faction.png?v=1',   glow: 'rgba(52,211,153,0.65)', label: 'Atsitiktinė frakcija' },
-    faction:  { asset: '/digital/ai/types/selected-faction.png?v=1', glow: 'rgba(240,180,41,0.65)', label: 'Pasirinkta frakcija' },
-    public:   { asset: '/digital/ai/types/public-deck.png?v=1',      glow: 'rgba(96,165,250,0.65)', label: 'Viešas deck' },
-    tutorial: { asset: '/digital/ai/types/tutorials.png?v=1',        glow: 'rgba(139,92,246,0.65)', label: 'Mokymai' },
+    random:   { asset: '/digital/ai/types/random-faction.png?v=1',   glow: 'rgba(52,211,153,0.65)', label: t('battle.pve.types.random') },
+    faction:  { asset: '/digital/ai/types/selected-faction.png?v=1', glow: 'rgba(240,180,41,0.65)', label: t('battle.pve.types.faction') },
+    public:   { asset: '/digital/ai/types/public-deck.png?v=1',      glow: 'rgba(96,165,250,0.65)', label: t('battle.pve.types.public') },
+    tutorial: { asset: '/digital/ai/types/tutorials.png?v=1',        glow: 'rgba(139,92,246,0.65)', label: t('battle.pve.types.tutorial') },
   }
   const DIFF_ASSETS: Record<AiDifficulty, { asset: string; glow: string; label: string }> = {
-    easy:   { asset: '/digital/ai/difficulty/easy.png?v=1',   glow: 'rgba(52,211,153,0.6)', label: 'Lengvas' },
-    normal: { asset: '/digital/ai/difficulty/medium.png?v=1', glow: 'rgba(45,212,191,0.6)', label: 'Vidutinis' },
-    hard:   { asset: '/digital/ai/difficulty/hard.png?v=1',   glow: 'rgba(239,68,68,0.6)',  label: 'Sunkus' },
+    easy:   { asset: '/digital/ai/difficulty/easy.png?v=1',   glow: 'rgba(52,211,153,0.6)', label: t('battle.pve.diff.easy') },
+    normal: { asset: '/digital/ai/difficulty/medium.png?v=1', glow: 'rgba(45,212,191,0.6)', label: t('battle.pve.diff.normal') },
+    hard:   { asset: '/digital/ai/difficulty/hard.png?v=1',   glow: 'rgba(239,68,68,0.6)',  label: t('battle.pve.diff.hard') },
   }
 
   const imgBtn = (opts: { asset: string; glow: string; label: string; selected: boolean; aspect: string; onClick?: () => void; href?: string; testId?: string }) => {
@@ -157,7 +160,7 @@ export function DigitalPvE() {
   return (
     <div data-pve-v="446" className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
       <div className="text-center shrink-0">
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(17px,3.4vh,30px)', color: '#86efac', letterSpacing: '0.04em' }}>Treniruotė prieš AI</div>
+        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(17px,3.4vh,30px)', color: '#86efac', letterSpacing: '0.04em' }}>{t('battle.pve.title')}</div>
       </div>
 
       {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
@@ -167,7 +170,7 @@ export function DigitalPvE() {
 
         {/* KAIRĖ: režimo pasirinkimas + AI sunkumas (Donato layout: selektoriai dešinėje, kur daugiau vietos) */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>Priešininko tipas</div>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>{t('battle.pve.opponentType')}</div>
           <div className="grid grid-cols-2 my-auto" style={{ gap: 'clamp(8px,1vw,16px)' }}>
             {imgBtn({ ...TYPE_ASSETS.random, selected: mode === 'random', aspect: '2.55 / 1', onClick: () => setMode('random'), testId: 'random' })}
             {imgBtn({ ...TYPE_ASSETS.faction, selected: mode === 'faction', aspect: '2.55 / 1', onClick: () => setMode('faction'), testId: 'faction' })}
@@ -180,16 +183,16 @@ export function DigitalPvE() {
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           <div className="shrink-0" data-testid="ai-difficulty" style={{ marginBottom: 'clamp(4px,1vh,8px)', paddingBottom: 'clamp(4px,1vh,8px)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="flex items-baseline gap-2 min-w-0" style={{ marginBottom: 'clamp(3px,0.6vh,5px)' }}>
-              <span className="rvn-disp font-semibold uppercase shrink-0" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>AI sunkumas</span>
-              <span className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</span>
+              <span className="rvn-disp font-semibold uppercase shrink-0" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{t('battle.pve.aiDifficulty')}</span>
+              <span className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)' }}>{t(`battle.pve.diffDesc.${difficulty}`)}</span>
             </div>
             <div className="grid grid-cols-3 mx-auto w-full" style={{ gap: 'clamp(5px,0.6vw,10px)', maxWidth: 560 }}>{diffBtn('easy')}{diffBtn('normal')}{diffBtn('hard')}</div>
           </div>
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {mode === 'random' && (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-4">
-                <img src={TYPE_ASSETS.random.asset} alt="Atsitiktinė frakcija" className="object-contain" style={{ height: 'clamp(44px,11vh,84px)', maxWidth: '85%', filter: `drop-shadow(0 0 14px ${TYPE_ASSETS.random.glow})` }} />
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>Botas pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias startas.</p>
+                <img src={TYPE_ASSETS.random.asset} alt={t('battle.pve.types.random')} className="object-contain" style={{ height: 'clamp(44px,11vh,84px)', maxWidth: '85%', filter: `drop-shadow(0 0 14px ${TYPE_ASSETS.random.glow})` }} />
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>{t('battle.pve.randomInfo')}</p>
               </div>
             )}
             {mode === 'faction' && (
@@ -197,7 +200,7 @@ export function DigitalPvE() {
                 {factions.map((f) => { const s = f.id === oppFaction; return (
                   <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
                     <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'rgba(240,180,41,0.3)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
-                    <span className="min-w-0"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{FACTION_DESC[f.name] ?? 'AI kaladė'}</span></span>
+                    <span className="min-w-0"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{(() => { const k = `battle.factionDesc.${f.name}`; const v = t(k); return v === k ? t('battle.pve.aiDeck') : v })()}</span></span>
                   </button>
                 ) })}
               </div>
@@ -205,13 +208,13 @@ export function DigitalPvE() {
             {mode === 'public' && (
               <div className="flex-1 min-h-0 flex flex-col">
                 <div className="flex gap-2 mb-2 shrink-0">
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ieškoti decko arba autoriaus…" className="flex-1 outline-none" style={inputStyle} />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('battle.pve.searchDeckAuthor')} className="flex-1 outline-none" style={inputStyle} />
                   <select value={filterFaction ? String(filterFaction) : ''} onChange={(e) => setFilterFaction(e.target.value ? Number(e.target.value) : '')} style={{ ...inputStyle, maxWidth: 140 }}>
-                    <option value="">Visos frakcijos</option>{factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    <option value="">{t('battle.pve.allFactions')}</option>{factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
                 <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start" data-testid="public-decks">
-                  {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nerasta deck&apos;ų.</p>}
+                  {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('battle.pve.noDecksFound')}</p>}
                   {filteredDecks.map((d) => { const s = d.id === oppDeck; return (
                     <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="rvn-press rounded-xl p-2 flex flex-col gap-1 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -227,11 +230,11 @@ export function DigitalPvE() {
             )}
           </div>
           <p className="shrink-0 truncate text-center" style={{ marginTop: 'clamp(3px,0.8vh,6px)', fontSize: 'clamp(8.5px,1.4vh,11px)', color: 'var(--text-secondary)' }}>
-            Tu: <b style={{ color: '#86efac' }}>{deck?.name ?? '—'}</b> · Priešininkas: <b style={{ color: '#fdba74' }}>{oppSummary}</b>
+            {t('battle.pve.you')} <b style={{ color: '#86efac' }}>{deck?.name ?? '—'}</b> · {t('battle.pve.opponent')} <b style={{ color: '#fdba74' }}>{oppSummary}</b>
           </p>
           <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
             style={{ marginTop: 'clamp(3px,0.8vh,6px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
-            ⚔ {canStart ? 'PRADĖTI KOVĄ' : !deck ? 'AKTYVI KALADĖ NETINKAMA' : mode === 'faction' ? 'PASIRINK FRAKCIJĄ' : mode === 'public' ? 'PASIRINK DECK’Ą' : 'PASIRINK PRIEŠININKĄ'}
+            ⚔ {canStart ? t('battle.pve.start') : !deck ? t('battle.pve.activeDeckInvalid') : mode === 'faction' ? t('battle.pve.pickFaction') : mode === 'public' ? t('battle.pve.pickDeck') : t('battle.pve.pickOpponent')}
           </button>
         </section>
       </div>

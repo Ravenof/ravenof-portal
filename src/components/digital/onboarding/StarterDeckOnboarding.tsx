@@ -17,7 +17,9 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { getStarterDeckCards, getFactions, type StarterCard, type FactionInfo } from '@/lib/digital/onboarding'
-import { starterMetaFor, COMPLEXITY_LABEL } from '@/lib/digital/starterMeta'
+import { starterMetaFor, complexityLabel } from '@/lib/digital/starterMeta'
+import { useT } from '@/lib/i18n/react'
+import { LanguageSelector } from '@/components/digital/ui/LanguageSelector'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { SmartImg } from '@/components/ui/SmartImg'
 
@@ -50,6 +52,7 @@ function CardPreview({ card, onClose }: { card: StarterCard; onClose: () => void
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
+  const t = useT()
   return createPortal(
     <div className="fixed inset-0 z-[430] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)', backdropFilter: 'blur(3px)' }} onClick={onClose} role="dialog" aria-label={card.name}>
       <div onClick={(e) => e.stopPropagation()} className="relative flex items-center gap-4" style={{ maxWidth: '92vw' }}>
@@ -64,7 +67,7 @@ function CardPreview({ card, onClose }: { card: StarterCard; onClose: () => void
           </p>
           {card.effect && <p className="mt-2" style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>{card.effect}</p>}
         </div>
-        <button onClick={onClose} aria-label="Uždaryti" className="absolute -top-3 -right-3 flex items-center justify-center rounded-full"
+        <button onClick={onClose} aria-label={t('common.close')} className="absolute -top-3 -right-3 flex items-center justify-center rounded-full"
           style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.95)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
       </div>
     </div>, document.body)
@@ -73,6 +76,7 @@ function CardPreview({ card, onClose }: { card: StarterCard; onClose: () => void
 // ── Pagrindinis ekranas ───────────────────────────────────────────────────────
 export function StarterDeckOnboarding() {
   const router = useRouter()
+  const t = useT()
   const rm = useReducedMotion()
   const [starters, setStarters] = useState<StarterDeck[] | null | 'error'>(null)
   const [factions, setFactions] = useState<Record<number, FactionInfo>>({})
@@ -191,7 +195,7 @@ export function StarterDeckOnboarding() {
     setBusy(false)
     if ('error' in res) {
       playError()
-      setClaimErr(res.error.includes('not enough gold') ? 'Nepakanka aukso šiai kaladei.' : 'Nepavyko išsaugoti. Patikrink ryšį ir bandyk dar kartą.')
+      setClaimErr(res.error.includes('not enough gold') ? t('onboarding.claimErrGold') : t('onboarding.claimErrSave'))
       return
     }
     playSuccess()
@@ -215,11 +219,11 @@ export function StarterDeckOnboarding() {
             ? <SmartImg src={success.emblem} width={96} alt="" style={{ width: 52, height: 52, objectFit: 'contain' }} />
             : <span style={{ fontSize: 40 }}>⚔</span>}
         </div>
-        <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(18px, 4.5vh, 26px)', letterSpacing: '0.08em' }}>TAVO KALADĖ PARUOŠTA</p>
+        <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(18px, 4.5vh, 26px)', letterSpacing: '0.08em' }}>{t('onboarding.deckReady')}</p>
         <p style={{ color: '#f3ead3', fontSize: 13 }}>{success.name}</p>
         <button onClick={enterGame} className="rvn-press mt-2 px-8 rounded-xl font-extrabold"
           style={{ height: 46, fontSize: 14, fontFamily: 'var(--rvn-font-display)', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `0 6px 24px rgba(${GOLD},0.3)` }}>
-          ⚔ Žengti į Ravenof
+          {t('onboarding.enterRavenof')}
         </button>
         <style>{`@keyframes rvnObFade { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }`}</style>
       </div>
@@ -228,16 +232,16 @@ export function StarterDeckOnboarding() {
 
   // ── Kraunama / klaida ──
   if (starters === null) {
-    return <div className="h-full flex flex-col items-center justify-center gap-2"><span className="text-3xl" style={{ animation: 'rvnObSpin 1.2s linear infinite' }}>🎴</span><span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Ruošiamos kaladės…</span><style>{`@keyframes rvnObSpin { to { transform: rotate(360deg); } }`}</style></div>
+    return <div className="h-full flex flex-col items-center justify-center gap-2"><span className="text-3xl" style={{ animation: 'rvnObSpin 1.2s linear infinite' }}>🎴</span><span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t('onboarding.preparingDecks')}</span><style>{`@keyframes rvnObSpin { to { transform: rotate(360deg); } }`}</style></div>
   }
   if (starters === 'error') {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
         <span className="text-3xl">🕯</span>
-        <p className="font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Kaladžių nepavyko pažadinti</p>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Patikrink interneto ryšį ir bandyk dar kartą.</p>
+        <p className="font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('onboarding.decksFailedTitle')}</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('onboarding.decksFailedBody')}</p>
         <button onClick={() => { playUiClick(); load() }} className="rvn-press px-6 py-2.5 rounded-xl text-sm font-bold"
-          style={{ background: `rgba(${GOLD},0.15)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>↻ Bandyti dar kartą</button>
+          style={{ background: `rgba(${GOLD},0.15)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('onboarding.retry')}</button>
       </div>
     )
   }
@@ -247,12 +251,12 @@ export function StarterDeckOnboarding() {
   if (Array.isArray(curCards)) {
     const by = new Map<string, StarterCard[]>()
     for (const c of curCards) {
-      const key = c.isChampion ? 'Čempionas' : (c.type ?? 'Kita')
+      const key = c.isChampion ? t('onboarding.champion') : (c.type ?? t('onboarding.other'))
       if (!by.has(key)) by.set(key, [])
       by.get(key)!.push(c)
     }
     groups.push(...[...by.entries()]
-      .sort((a, b) => typeRank(a[0], a[0] === 'Čempionas') - typeRank(b[0], b[0] === 'Čempionas'))
+      .sort((a, b) => typeRank(a[0], a[0] === t('onboarding.champion')) - typeRank(b[0], b[0] === t('onboarding.champion')))
       .map(([title, cards]) => ({ title, cards })))
   }
 
@@ -269,16 +273,17 @@ export function StarterDeckOnboarding() {
       {/* ── Antraštė + progresas ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 px-1 pb-1.5">
         <div className="min-w-0">
-          <h1 className="font-black truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(14px, 3.4vh, 20px)', letterSpacing: '0.08em' }}>PASIRINK SAVO KALADĘ</h1>
-          <p className="truncate" style={{ color: 'var(--text-muted)', fontSize: 'clamp(9px, 1.9vh, 11px)' }}>Pirmoji kaladė nulemia tavo pradžią — bet neapribos kolekcijos.</p>
+          <h1 className="font-black truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(14px, 3.4vh, 20px)', letterSpacing: '0.08em' }}>{t('onboarding.pickYourDeck')}</h1>
+          <p className="truncate" style={{ color: 'var(--text-muted)', fontSize: 'clamp(9px, 1.9vh, 11px)' }}>{t('onboarding.pickYourDeckSub')}</p>
         </div>
-        <div className="shrink-0 flex items-center gap-1.5" aria-label="Žingsnis 2 iš 3">
-          {['Paskyra', 'Kaladė', 'Į žaidimą'].map((t, i) => (
-            <span key={t} className="flex items-center gap-1.5">
+        <div className="shrink-0 flex items-center gap-1.5" aria-label={t('auth.steps.stepOf', { step: 2, total: 3 })}>
+          <LanguageSelector size="sm" />
+          {[t('auth.steps.account'), t('auth.steps.deck'), t('auth.steps.toGame')].map((s, i) => (
+            <span key={s} className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 rounded-full font-bold" style={{ fontSize: 9, fontFamily: 'var(--rvn-font-display)',
                 background: i === 1 ? `rgba(${GOLD},0.2)` : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${i === 1 ? `rgba(${GOLD},0.7)` : i < 1 ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.12)'}`,
-                color: i === 1 ? 'var(--gold)' : i < 1 ? '#4ade80' : 'var(--text-muted)' }}>{i < 1 ? '✓ ' : ''}{t}</span>
+                color: i === 1 ? 'var(--gold)' : i < 1 ? '#4ade80' : 'var(--text-muted)' }}>{i < 1 ? '✓ ' : ''}{s}</span>
               {i < 2 && <span style={{ color: 'rgba(150,160,185,0.4)', fontSize: 9 }}>→</span>}
             </span>
           ))}
@@ -291,7 +296,7 @@ export function StarterDeckOnboarding() {
           <div ref={railRef} onScroll={onRailScroll} {...railMouse}
             className="rvn-rail flex-1 min-h-0 flex items-center gap-[3vw] overflow-x-auto"
             style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingLeft: '32vw', paddingRight: '32vw' }}
-            role="listbox" aria-label="Starter kaladės" aria-activedescendant={cur ? `rvn-sd-${cur.id}` : undefined}>
+            role="listbox" aria-label={t('onboarding.starterDecksAria')} aria-activedescendant={cur ? `rvn-sd-${cur.id}` : undefined}>
             {list.map((d, i) => {
               const meta = starterMetaFor(d.factionId, d.faction ?? d.name)
               const fac = d.factionId != null ? factions[d.factionId] : undefined
@@ -316,9 +321,9 @@ export function StarterDeckOnboarding() {
                     <span className="absolute inset-x-0 bottom-0 px-2.5 pt-6 pb-2" style={{ background: 'linear-gradient(0deg, rgba(5,4,9,0.96) 45%, transparent)' }}>
                       <span className="block font-extrabold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: 13 }}>{d.faction ?? d.name}</span>
                       <span className="block mt-0.5" style={{ fontSize: 9.5, color: col }}>{meta.label}</span>
-                      <span className="mt-1 flex items-center gap-1" aria-label={`Sudėtingumas: ${COMPLEXITY_LABEL[meta.complexity]}`}>
+                      <span className="mt-1 flex items-center gap-1" aria-label={t('onboarding.complexityAria', { label: complexityLabel(meta.complexity) })}>
                         {[1, 2, 3].map((n) => <span key={n} className="rounded-full" style={{ width: 5, height: 5, background: n <= meta.complexity ? col : 'rgba(255,255,255,0.18)' }} />)}
-                        <span style={{ fontSize: 8.5, color: 'var(--text-muted)', marginLeft: 3 }}>{COMPLEXITY_LABEL[meta.complexity]}</span>
+                        <span style={{ fontSize: 8.5, color: 'var(--text-muted)', marginLeft: 3 }}>{complexityLabel(meta.complexity)}</span>
                       </span>
                     </span>
                     {fac?.iconUrl && (
@@ -336,10 +341,10 @@ export function StarterDeckOnboarding() {
           <div className="pointer-events-none absolute inset-y-0 left-0 w-14" style={{ background: 'linear-gradient(90deg, #06040b, transparent)' }} />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-14" style={{ background: 'linear-gradient(-90deg, #06040b, transparent)' }} />
           {/* strėlės */}
-          <button onClick={() => step(-1)} disabled={idx === 0} aria-label="Ankstesnė kaladė"
+          <button onClick={() => step(-1)} disabled={idx === 0} aria-label={t('onboarding.prevDeck')}
             className="rvn-press absolute left-1 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full disabled:opacity-30"
             style={{ width: 40, height: 40, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)', zIndex: 2 }}><ChevronLeft className="w-5 h-5" /></button>
-          <button onClick={() => step(1)} disabled={idx === list.length - 1} aria-label="Kita kaladė"
+          <button onClick={() => step(1)} disabled={idx === list.length - 1} aria-label={t('onboarding.nextDeck')}
             className="rvn-press absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full disabled:opacity-30"
             style={{ width: 40, height: 40, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)', zIndex: 2 }}><ChevronRight className="w-5 h-5" /></button>
           {/* apačia: taškai + CTA */}
@@ -349,7 +354,7 @@ export function StarterDeckOnboarding() {
             </span>
             <button onClick={() => openDeck(idx)} className="rvn-press px-5 rounded-xl font-extrabold"
               style={{ height: 36, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6' }}>
-              Apžiūrėti kaladę
+              {t('onboarding.inspectDeck')}
             </button>
           </div>
         </div>
@@ -361,7 +366,7 @@ export function StarterDeckOnboarding() {
             <div className="min-h-0 flex flex-col items-center justify-between py-1">
               <button onClick={() => { playUiClick(); setOpened(false); setTimeout(() => scrollToIdx(idx, false), 0) }}
                 className="self-start rvn-press px-2.5 py-1 rounded-lg font-bold" style={{ fontSize: 10.5, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}>
-                ← Visos kaladės
+                {t('onboarding.allDecks')}
               </button>
               <div className="relative flex-1 min-h-0 flex items-center justify-center w-full" style={{ perspective: 800 }}>
                 {/* kylančios kortos iš dėžės */}
@@ -380,7 +385,7 @@ export function StarterDeckOnboarding() {
                     {cur.imageUrl && <SmartImg src={cur.imageUrl} width={420} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 65%' }} />}
                     <span className="absolute inset-x-0 bottom-0 px-2.5 pt-5 pb-2" style={{ background: 'linear-gradient(0deg, rgba(5,4,9,0.96) 40%, transparent)' }}>
                       <span className="block font-extrabold" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: 12.5 }}>{cur.faction ?? cur.name}</span>
-                      <span className="block" style={{ fontSize: 9, color: accent }}>{cur.cardCount} kortų · {curMeta.label}</span>
+                      <span className="block" style={{ fontSize: 9, color: accent }}>{t('onboarding.cardsShort', { count: cur.cardCount })} · {curMeta.label}</span>
                     </span>
                   </div>
                   {/* dangtis */}
@@ -392,10 +397,10 @@ export function StarterDeckOnboarding() {
                   </div>
                 </div>
                 {/* strėlės — palyginti kitas kalades neuždarant */}
-                <button onClick={() => step(-1)} disabled={idx === 0} aria-label="Ankstesnė kaladė"
+                <button onClick={() => step(-1)} disabled={idx === 0} aria-label={t('onboarding.prevDeck')}
                   className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full disabled:opacity-25"
                   style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(255,255,255,0.2)', color: '#f3ead3' }}><ChevronLeft className="w-4 h-4" /></button>
-                <button onClick={() => step(1)} disabled={idx === list.length - 1} aria-label="Kita kaladė"
+                <button onClick={() => step(1)} disabled={idx === list.length - 1} aria-label={t('onboarding.nextDeck')}
                   className="rvn-press absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full disabled:opacity-25"
                   style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(255,255,255,0.2)', color: '#f3ead3' }}><ChevronRight className="w-4 h-4" /></button>
               </div>
@@ -403,7 +408,7 @@ export function StarterDeckOnboarding() {
                 className="rvn-press w-full rounded-xl font-extrabold shrink-0"
                 style={{ height: 42, fontSize: 13, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em',
                   background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `0 5px 20px rgba(${GOLD},0.28)` }}>
-                {cur.claimed ? '⚔ Tęsti su šia kalade' : '⚔ Pasirinkti šią kaladę'}
+                {cur.claimed ? t('onboarding.continueWithDeck') : t('onboarding.chooseThisDeck')}
               </button>
             </div>
 
@@ -413,9 +418,9 @@ export function StarterDeckOnboarding() {
                 <div className="flex items-center gap-2">
                   {curFac?.iconUrl && <SmartImg src={curFac.iconUrl} width={40} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />}
                   <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: accent, fontSize: 'clamp(13px, 2.8vh, 16px)', letterSpacing: '0.05em' }}>{cur.faction ?? cur.name}</p>
-                  <span className="ml-auto flex items-center gap-1" aria-label={`Sudėtingumas: ${COMPLEXITY_LABEL[curMeta.complexity]}`}>
+                  <span className="ml-auto flex items-center gap-1" aria-label={t('onboarding.complexityAria', { label: complexityLabel(curMeta.complexity) })}>
                     {[1, 2, 3].map((n) => <span key={n} className="rounded-full" style={{ width: 6, height: 6, background: n <= curMeta.complexity ? accent : 'rgba(255,255,255,0.18)' }} />)}
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 3 }}>{COMPLEXITY_LABEL[curMeta.complexity]}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 3 }}>{complexityLabel(curMeta.complexity)}</span>
                   </span>
                 </div>
                 <p className="mt-1" style={{ fontSize: 'clamp(10px, 2vh, 11.5px)', color: '#e8dfc8', lineHeight: 1.45 }}>{curMeta.intro}</p>
@@ -423,11 +428,11 @@ export function StarterDeckOnboarding() {
               </div>
               <div className="shrink-0 grid grid-cols-2 gap-x-3 px-3.5 py-1.5" style={{ borderBottom: `1px solid ${accent}22` }}>
                 <div>
-                  <p className="font-bold" style={{ fontSize: 9.5, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Stiprybės</p>
+                  <p className="font-bold" style={{ fontSize: 9.5, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('onboarding.strengths')}</p>
                   {curMeta.strengths.map((s) => <p key={s} style={{ fontSize: 10, color: '#c9bfa8', lineHeight: 1.5 }}>✓ {s}</p>)}
                 </div>
                 <div>
-                  <p className="font-bold" style={{ fontSize: 9.5, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Silpnybės</p>
+                  <p className="font-bold" style={{ fontSize: 9.5, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('onboarding.weaknesses')}</p>
                   {curMeta.weaknesses.map((s) => <p key={s} style={{ fontSize: 10, color: '#c9bfa8', lineHeight: 1.5 }}>✗ {s}</p>)}
                   <p className="mt-0.5" style={{ fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>💡 {curMeta.recommendedFor}</p>
                 </div>
@@ -435,12 +440,12 @@ export function StarterDeckOnboarding() {
               {/* kortų sąrašas — vidinis scroll */}
               <div className="flex-1 min-h-0 overflow-y-auto px-2.5 py-1.5" style={{ minHeight: 60 }}>
                 {curCards === 'loading' || curCards === undefined ? (
-                  <p className="text-center py-6" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kraunamos kortos…</p>
+                  <p className="text-center py-6" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('onboarding.loadingCards')}</p>
                 ) : curCards === 'error' ? (
                   <div className="text-center py-5">
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Kortų sąrašo nepavyko įkelti.</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('onboarding.cardsLoadFailed')}</p>
                     <button onClick={() => { playUiClick(); setCardsCache((c) => { const n = { ...c }; delete n[cur.id]; return n }); ensureCards(cur.id) }}
-                      className="mt-1.5 px-3 py-1 rounded-lg text-xs font-bold" style={{ background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>↻ Bandyti vėl</button>
+                      className="mt-1.5 px-3 py-1 rounded-lg text-xs font-bold" style={{ background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>{t('onboarding.retryShort')}</button>
                   </div>
                 ) : (
                   groups.map((gr) => (
@@ -472,15 +477,14 @@ export function StarterDeckOnboarding() {
       {/* ── Patvirtinimo dialogas ── */}
       {confirmOpen && cur && createPortal(
         <div className="fixed inset-0 z-[420] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(3px)' }}
-          onClick={() => !busy && setConfirmOpen(false)} role="dialog" aria-modal="true" aria-label="Kaladės patvirtinimas">
+          onClick={() => !busy && setConfirmOpen(false)} role="dialog" aria-modal="true" aria-label={t('onboarding.confirmDeckAria')}>
           <div onClick={(e) => e.stopPropagation()} className="w-[min(420px,94vw)] rounded-2xl p-5 text-center"
             style={{ background: `radial-gradient(120% 60% at 50% 0%, ${accent}22, transparent 55%), linear-gradient(160deg, #17111f, #0a0810)`, border: `1.5px solid ${accent}` }}>
             <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 16, letterSpacing: '0.05em' }}>
-              Pradėti su „{cur.faction ?? cur.name}&ldquo;?
+              {t('onboarding.startWith', { name: cur.faction ?? cur.name })}
             </p>
             <p className="mt-2" style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Ši kaladė bus pridėta į tavo kolekciją ir taps aktyvia kalade.
-              Kitas frakcijas galėsi atsirakinti ir konstruoti vėliau.
+              {t('onboarding.confirmBody')}
             </p>
             {claimErr && (
               <div role="alert" className="mt-2.5 rounded-lg px-3 py-2" style={{ fontSize: 11, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)', color: '#fca5a5' }}>{claimErr}</div>
@@ -488,12 +492,12 @@ export function StarterDeckOnboarding() {
             <div className="mt-4 flex gap-2">
               <button onClick={() => { playUiClick(); setConfirmOpen(false) }} disabled={busy}
                 className="flex-1 rounded-xl font-bold" style={{ height: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)', color: '#c9bfa8' }}>
-                Žiūrėti toliau
+                {t('onboarding.keepLooking')}
               </button>
               <button onClick={confirm} disabled={busy}
                 className="flex-1 rounded-xl font-extrabold disabled:opacity-60" style={{ height: 40, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)',
                   background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6' }}>
-                {busy ? 'Saugoma…' : claimErr ? '↻ Bandyti dar kartą' : '✓ Patvirtinti kaladę'}
+                {busy ? t('onboarding.saving') : claimErr ? t('onboarding.retry') : t('onboarding.confirmDeck')}
               </button>
             </div>
           </div>

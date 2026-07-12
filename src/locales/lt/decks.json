@@ -1,0 +1,7 @@
+{
+  "validity": {
+    "empty": "Kaladė tuščia",
+    "missingCards": "Trūksta {{count}} kortų kolekcijoje",
+    "noActive": "Nepasirinkta aktyvi kaladė"
+  }
+}

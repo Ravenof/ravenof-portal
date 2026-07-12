@@ -12,6 +12,7 @@ import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
+import { useT } from '@/lib/i18n/react'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -24,10 +25,11 @@ const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(2
 const randCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
 
 export function DigitalPvP() {
+  const t = useT()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
-  const [userName, setUserName] = useState('Žaidėjas')
+  const [userName, setUserName] = useState(t('battle.player'))
   const [friends, setFriends] = useState<Friend[]>([])
   const [mode, setMode] = useState<Mode>('random')
   const [selFriend, setSelFriend] = useState<string>('')  // Friend.userId
@@ -45,7 +47,7 @@ export function DigitalPvP() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { setDecks([]); return }
       setUserId(user.id)
-      setUserName((user.user_metadata?.username as string) || (user.user_metadata?.display_name as string) || (user.email?.split('@')[0]) || 'Žaidėjas')
+      setUserName((user.user_metadata?.username as string) || (user.user_metadata?.display_name as string) || (user.email?.split('@')[0]) || t('battle.player'))
       friendsList().then((r) => setFriends(r.friends)).catch(() => {})
       const [{ data }, { data: colRows }, { data: prof }] = await Promise.all([
         supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
@@ -89,7 +91,7 @@ export function DigitalPvP() {
     const sp = new URLSearchParams(window.location.search)
     const j = sp.get('join'); const h = sp.get('host')
     if (j) { autoRef.current = true; setMode('code'); setJoinCode(j.toUpperCase()); void joinByCode(j) }
-    else if (h) { autoRef.current = true; setMode('code'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus('Laukiama draugo. Pasidalink kodu.'); waitForGuest(m.id) } }) }
+    else if (h) { autoRef.current = true; setMode('code'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus(t('battle.pvp.status.waitingFriendShare')); waitForGuest(m.id) } }) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, deck?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,7 +105,7 @@ export function DigitalPvP() {
       const m = data as Match | null
       if (m && m.guest_id && m.guest_deck_id) {
         if (pollRef.current) clearInterval(pollRef.current)
-        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || 'Varžovas' })
+        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || t('battle.opponentFallback') })
       }
     }, 2000)
   }, [sel])
@@ -114,22 +116,22 @@ export function DigitalPvP() {
     const supabase = createClient()
     const { data, error } = await supabase.from('pvp_matches').insert({ code, is_public: isPublic, status: 'waiting', host_id: userId, host_deck_id: battleDeckRef.current, host_name: userName }).select('*').single()
     setBusy(false)
-    if (error || !data) { playError(); setStatus('Klaida kuriant kambarį.'); return null }
+    if (error || !data) { playError(); setStatus(t('battle.pvp.err.createRoom')); return null }
     return data as Match
   }
 
   const findRandom = async () => {
     if (!userId) return
-    playUiClick(); setBusy(true); setStatus('Ieškoma varžovo…')
+    playUiClick(); setBusy(true); setStatus(t('battle.pvp.status.searching'))
     const supabase = createClient()
     const { data: open } = await supabase.from('pvp_matches').select('*').eq('is_public', true).eq('status', 'waiting').is('guest_id', null).neq('host_id', userId).order('created_at', { ascending: true }).limit(1)
     const m = (open as Match[] | null)?.[0]
     if (m) {
       const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
-      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' }); return }
+      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback') }); return }
     }
     const created = await createPrivate(true, null)
-    if (created) { setRoom(created); setStatus('Laukiama atsitiktinio varžovo…'); waitForGuest(created.id) }
+    if (created) { setRoom(created); setStatus(t('battle.pvp.status.waitingRandom')); waitForGuest(created.id) }
   }
 
   const inviteFriend = async () => {
@@ -140,29 +142,29 @@ export function DigitalPvP() {
     if (!created) return
     const ok = await challengeCreate(selFriend, code)
     setRoom(created)
-    setStatus(ok ? 'Kvietimas išsiųstas. Laukiama, kol draugas prisijungs…' : 'Kambarys sukurtas. Pasidalink kodu ' + code)
+    setStatus(ok ? t('battle.pvp.status.inviteSent') : t('battle.pvp.status.roomCreatedShare', { code }))
     waitForGuest(created.id)
   }
 
   const createRoom = async () => {
     playUiClick()
     const created = await createPrivate(false, randCode())
-    if (created) { setRoom(created); setStatus('Laukiama draugo. Pasidalink kodu.'); waitForGuest(created.id) }
+    if (created) { setRoom(created); setStatus(t('battle.pvp.status.waitingFriendShare')); waitForGuest(created.id) }
   }
 
   const joinByCode = async (codeArg?: string) => {
     const raw = (codeArg ?? joinCode).trim().toUpperCase()
     if (!userId || !raw) return
-    playUiClick(); setBusy(true); setStatus('Jungiamasi…')
+    playUiClick(); setBusy(true); setStatus(t('battle.pvp.status.joining'))
     const supabase = createClient()
     const { data: found } = await supabase.from('pvp_matches').select('*').eq('code', raw).eq('status', 'waiting').is('guest_id', null).maybeSingle()
     const m = found as Match | null
-    if (!m) { setBusy(false); playError(); setStatus('Kambarys nerastas arba užimtas.'); return }
-    if (m.host_id === userId) { setBusy(false); playError(); setStatus('Negali jungtis į savo kambarį.'); return }
+    if (!m) { setBusy(false); playError(); setStatus(t('battle.pvp.err.roomTaken')); return }
+    if (m.host_id === userId) { setBusy(false); playError(); setStatus(t('battle.pvp.err.ownRoom')); return }
     const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
     setBusy(false)
-    if (error) { playError(); setStatus('Nepavyko prisijungti.'); return }
-    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || 'Varžovas' })
+    if (error) { playError(); setStatus(t('battle.pvp.err.joinFailed')); return }
+    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback') })
   }
 
   const cancelRoom = async () => {
@@ -172,21 +174,21 @@ export function DigitalPvP() {
   }
 
   if (launch) {
-    return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? 'Kaladė'} opponentDeckId={launch.opponentDeckId} opponentName={launch.opponentName} net={launch.net} onClose={() => { setLaunch(null); setRoom(null); setStatus('') }} />
+    return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')} opponentDeckId={launch.opponentDeckId} opponentName={launch.opponentName} net={launch.net} onClose={() => { setLaunch(null); setRoom(null); setStatus('') }} />
   }
 
   // ── CTA būsena ──
   const cta: { label: string; disabled: boolean; action?: () => void } =
-    !deck ? { label: 'PASIRINK TINKAMĄ KALADĘ', disabled: true }
-    : room ? { label: 'LAUKIAMA VARŽOVO…', disabled: true }
-    : mode === 'random' ? { label: 'IEŠKOTI VARŽOVO', disabled: busy, action: findRandom }
-    : mode === 'friend' ? (!selFriend ? { label: 'PASIRINK DRAUGĄ', disabled: true } : { label: `PAKVIESTI ${(friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || 'DRAUGĄ').toUpperCase()}`, disabled: busy, action: inviteFriend })
-    : joinCode.trim() ? { label: 'PRISIJUNGTI', disabled: busy, action: joinByCode }
-    : { label: 'SUKURTI KAMBARĮ', disabled: busy, action: createRoom }
+    !deck ? { label: t('battle.pvp.cta.pickValidDeck'), disabled: true }
+    : room ? { label: t('battle.pvp.cta.waitingOpp'), disabled: true }
+    : mode === 'random' ? { label: t('battle.pvp.cta.findOpp'), disabled: busy, action: findRandom }
+    : mode === 'friend' ? (!selFriend ? { label: t('battle.pvp.cta.pickFriend'), disabled: true } : { label: t('battle.pvp.cta.inviteName', { name: (friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || t('battle.pvp.cta.friendUpper')).toUpperCase() }), disabled: busy, action: inviteFriend })
+    : joinCode.trim() ? { label: t('battle.pvp.cta.join'), disabled: busy, action: joinByCode }
+    : { label: t('battle.pvp.cta.createRoom'), disabled: busy, action: createRoom }
 
-  const oppSummary = mode === 'random' ? 'Atsitiktinis žaidėjas'
-    : mode === 'friend' ? (selFriend ? (friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || 'Draugas') + ' — pasirinktas' : '—')
-    : (room?.code ? 'Kambarys ' + room.code : joinCode.trim() ? 'Kodas ' + joinCode.trim().toUpperCase() : '—')
+  const oppSummary = mode === 'random' ? t('battle.pvp.randomPlayer')
+    : mode === 'friend' ? (selFriend ? (friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || t('battle.pvp.friendFallback')) + ' ' + t('battle.pvp.selectedSuffix') : '—')
+    : (room?.code ? t('battle.pvp.roomPrefix', { code: room.code }) : joinCode.trim() ? t('battle.pvp.codePrefix', { code: joinCode.trim().toUpperCase() }) : '—')
 
   const modeCard = (m: Mode, icon: string, title: string) => (
     <button key={m} onClick={() => { playUiClick(); setMode(m) }} className="rvn-press flex-1 rounded-xl px-2 py-2 flex flex-col items-center gap-1 text-center"
@@ -196,11 +198,11 @@ export function DigitalPvP() {
     </button>
   )
 
-  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>Kraunama…</span></div>
+  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span></div>
   if (decks.length === 0 || playable.length === 0) return (
     <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-      <p style={{ color: 'var(--text-muted)' }}>Neturi žaidžiamų kaladžių draugiškai kovai.</p>
-      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+      <p style={{ color: 'var(--text-muted)' }}>{t('battle.pvp.noDecks')}</p>
+      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.pvp.createDeck')}</Link>
     </div>
   )
 
@@ -208,8 +210,8 @@ export function DigitalPvP() {
     <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
       {/* Antraštė */}
       <div className="text-center shrink-0">
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(18px,3.6vh,34px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>Draugiška kova</div>
-        <div className="mx-auto" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: 'var(--text-muted)', maxWidth: 560 }}>Kaukis be rango rizikos prieš atsitiktinį žaidėją arba draugą. Pakviesk iš draugų sąrašo arba naudok kambario kodą.</div>
+        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(18px,3.6vh,34px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{t('battle.pvp.title')}</div>
+        <div className="mx-auto" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: 'var(--text-muted)', maxWidth: 560 }}>{t('battle.pvp.subtitle')}</div>
       </div>
 
       {/* 3 stulpeliai */}
@@ -221,31 +223,31 @@ export function DigitalPvP() {
 
         {/* CENTRAS: Priešininko tipas */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Priešininko tipas</div>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{t('battle.pvp.opponentType')}</div>
           <div className="flex gap-1.5 mb-2 shrink-0">
-            {modeCard('random', '⚔', 'Atsitiktinis')}
-            {modeCard('friend', '👥', 'Pakviesti draugą')}
-            {modeCard('code', '🔑', 'Kambario kodas')}
+            {modeCard('random', '⚔', t('battle.pvp.modeRandom'))}
+            {modeCard('friend', '👥', t('battle.pvp.modeFriend'))}
+            {modeCard('code', '🔑', t('battle.pvp.modeCode'))}
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {room ? (
               <div className="flex flex-col items-center justify-center gap-2 h-full text-center">
-                {room.code && <><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kambario kodas</span><span className="rvn-disp font-black tracking-[0.25em]" style={{ fontSize: 28, color: 'var(--gold)' }}>{room.code}</span>
-                  <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast('Kodas nukopijuotas') }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>📋 Kopijuoti</button></>}
+                {room.code && <><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.roomCode')}</span><span className="rvn-disp font-black tracking-[0.25em]" style={{ fontSize: 28, color: 'var(--gold)' }}>{room.code}</span>
+                  <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>{t('battle.pvp.copy')}</button></>}
                 <span className="flex items-center gap-2 mt-1" style={{ fontSize: 12, color: 'var(--text-secondary)' }}><span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: `rgb(${A})` }} />{status}</span>
-                <button onClick={cancelRoom} className="mt-1 px-4 py-1.5 rounded-xl text-xs" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>Atšaukti</button>
+                <button onClick={cancelRoom} className="mt-1 px-4 py-1.5 rounded-xl text-xs" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('common.cancel')}</button>
               </div>
             ) : mode === 'random' ? (
               <div className="flex flex-col items-center justify-center gap-1.5 h-full text-center px-3">
                 <span style={{ fontSize: 36 }}>⚔</span>
-                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>Greita draugiška kova</div>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rangas nesikeičia · Pergalė: +100 aukso · numatomas laukimas &lt; 30 s.</p>
+                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>{t('battle.pvp.quickTitle')}</div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.quickInfo')}</p>
               </div>
             ) : mode === 'friend' ? (
               <div className="flex flex-col items-center justify-center gap-1.5 h-full text-center px-3">
                 <span style={{ fontSize: 34 }}>👥</span>
-                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>Pakviesk draugą</div>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>Pasirink draugą sąraše dešinėje — jis gaus kvietimą į kovą. Rangas nesikeičia · Pergalė: +100 aukso.</p>
+                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>{t('battle.pvp.inviteTitle')}</div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>{t('battle.pvp.inviteInfo')}</p>
                 {(() => { const f = friends.find((x) => x.userId === selFriend); return f ? (
                   <div className="mt-1 flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ border: '1.5px solid rgba(34,197,94,0.7)', background: 'rgba(34,197,94,0.1)' }}>
                     <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
@@ -258,8 +260,8 @@ export function DigitalPvP() {
               </div>
             ) : (
               <div className="flex flex-col gap-2 h-full justify-center">
-                <p className="text-center" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sukurk privatų kambarį (gausi kodą) arba įvesk draugo kodą.</p>
-                <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={5} placeholder="ĮVESK KAMBARIO KODĄ…" className="outline-none text-center" style={{ minHeight: 42, borderRadius: 10, letterSpacing: '0.2em', background: 'rgba(10,8,16,0.85)', border: `1px solid rgba(${A},0.4)`, color: 'var(--text-primary)', fontSize: 15 }} />
+                <p className="text-center" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.codeInfo')}</p>
+                <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={5} placeholder={t('battle.pvp.codePlaceholder')} className="outline-none text-center" style={{ minHeight: 42, borderRadius: 10, letterSpacing: '0.2em', background: 'rgba(10,8,16,0.85)', border: `1px solid rgba(${A},0.4)`, color: 'var(--text-primary)', fontSize: 15 }} />
               </div>
             )}
           </div>
@@ -267,13 +269,13 @@ export function DigitalPvP() {
 
         {/* DEŠINĖ: Kovos santrauka */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{mode === 'friend' && !room ? `Draugai (${friends.length})` : 'Kovos santrauka'}</div>
+          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{mode === 'friend' && !room ? t('battle.pvp.friendsN', { count: friends.length }) : t('battle.pvp.summary')}</div>
           {mode === 'friend' && !room ? (
             <div className="flex-1 min-h-0 flex flex-col gap-1.5" data-testid="friend-panel">
-              <input value={friendQ} onChange={(e) => setFriendQ(e.target.value)} placeholder="🔍 Ieškoti draugo…" aria-label="Ieškoti draugo"
+              <input value={friendQ} onChange={(e) => setFriendQ(e.target.value)} placeholder={t('battle.pvp.searchFriend')} aria-label={t('battle.pvp.searchFriendAria')}
                 className="shrink-0 outline-none rounded-lg px-2.5" style={{ minHeight: 32, fontSize: 11.5, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }} />
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1" style={{ minHeight: 60 }}>
-                {friends.length === 0 && <p className="text-center py-4" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Neturi draugų. Pridėk skiltyje „Draugai&quot;.</p>}
+                {friends.length === 0 && <p className="text-center py-4" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.noFriends')}</p>}
                 {friends
                   .filter((f) => { const q = friendQ.trim().toLowerCase(); return !q || f.username.toLowerCase().includes(q) || (f.displayName ?? '').toLowerCase().includes(q) })
                   .sort((a, b) => {
@@ -284,7 +286,7 @@ export function DigitalPvP() {
                     const sel = f.userId === selFriend
                     const pres = f.presence ?? (f.online ? 'online' : 'offline')
                     const pc = pres === 'online' ? '#34d399' : pres === 'away' ? '#fbbf24' : pres === 'dnd' ? '#ef4444' : '#64748b'
-                    const pn = pres === 'online' ? 'Prisijungęs' : pres === 'away' ? 'Pasitraukęs' : pres === 'dnd' ? 'Netrukdyti' : 'Neprisijungęs'
+                    const pn = t(`battle.pvp.presence.${pres === 'online' ? 'online' : pres === 'away' ? 'away' : pres === 'dnd' ? 'dnd' : 'offline'}`)
                     return (
                       <button key={f.id} data-testid={`invite-friend-${f.username}`} onClick={() => { playUiClick(); setSelFriend(sel ? '' : f.userId) }}
                         className="rvn-press w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left shrink-0"
@@ -305,11 +307,11 @@ export function DigitalPvP() {
                     )
                   })}
               </div>
-              <p className="shrink-0 text-center" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Rangas nesikeičia · Pergalė: +100 aukso</p>
+              <p className="shrink-0 text-center" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>{t('battle.pvp.noRankReward')}</p>
             </div>
           ) : (
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2" style={{ fontSize: 'clamp(10px,1.4vh,13px)' }}>
-            {([['🃏', 'Tavo kaladė', deck?.name ?? '—', 'var(--gold)'], ['🛡', 'Režimas', 'Draugiška', '#86efac'], ['◆', 'Rangas', 'nesikeičia', 'var(--text-secondary)'], ['🪙', 'Atlygis', '+100 aukso', 'var(--gold)'], ['⚔', 'Priešininkas', oppSummary, '#fdba74']] as [string, string, string, string][]).map(([ic, l, v, c], i) => (
+            {([['🃏', t('battle.pvp.yourDeck'), deck?.name ?? '—', 'var(--gold)'], ['🛡', t('battle.pvp.mode'), t('battle.pvp.friendly'), '#86efac'], ['◆', t('battle.pvp.rank'), t('battle.pvp.rankUnchanged'), 'var(--text-secondary)'], ['🪙', t('battle.pvp.reward'), t('battle.pvp.goldReward'), 'var(--gold)'], ['⚔', t('battle.pvp.opponent'), oppSummary, '#fdba74']] as [string, string, string, string][]).map(([ic, l, v, c], i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="shrink-0 w-6 text-center" style={{ opacity: 0.8 }}>{ic}</span>
                 <span className="shrink-0" style={{ color: 'var(--text-muted)', minWidth: 78 }}>{l}:</span>
@@ -325,7 +327,7 @@ export function DigitalPvP() {
               ⚔ {cta.label}
             </button>
             {room && (
-              <button onClick={() => { playUiClick(); cancelRoom() }} className="rvn-press w-full rounded-xl py-1.5" style={{ fontSize: 'clamp(10px,1.4vh,12px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti</button>
+              <button onClick={() => { playUiClick(); cancelRoom() }} className="rvn-press w-full rounded-xl py-1.5" style={{ fontSize: 'clamp(10px,1.4vh,12px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>{t('common.cancel')}</button>
             )}
           </div>
         </section>
@@ -335,12 +337,12 @@ export function DigitalPvP() {
         <div className="fixed inset-0 z-[190] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }}>
           <div className="rounded-2xl p-6 text-center flex flex-col items-center gap-3" style={{ ...PANEL, width: 'min(420px,92vw)' }}>
             <div className="rounded-full animate-spin" style={{ width: 46, height: 46, border: `4px solid rgba(${A},0.25)`, borderTopColor: `rgb(${A})` }} />
-            <div className="rvn-disp font-bold" style={{ fontSize: 17, color: '#fdba74' }}>{room.code ? 'Laukiama varžovo' : 'Ieškoma varžovo…'}</div>
-            {room.code && (<><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kambario kodas</span>
+            <div className="rvn-disp font-bold" style={{ fontSize: 17, color: '#fdba74' }}>{room.code ? t('battle.pvp.waiting') : t('battle.pvp.searching')}</div>
+            {room.code && (<><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.roomCode')}</span>
               <span className="rvn-disp font-black tracking-[0.25em]" style={{ fontSize: 30, color: 'var(--gold)' }}>{room.code}</span>
-              <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast('Kodas nukopijuotas') }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>📋 Kopijuoti kodą</button></>)}
+              <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>{t('battle.pvp.copyCode')}</button></>)}
             <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{status}</p>
-            <button onClick={() => { playUiClick(); cancelRoom() }} className="px-6 py-2 rounded-xl text-sm mt-1" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>Atšaukti paiešką</button>
+            <button onClick={() => { playUiClick(); cancelRoom() }} className="px-6 py-2 rounded-xl text-sm mt-1" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.pvp.cancelSearch')}</button>
           </div>
         </div>
       )}

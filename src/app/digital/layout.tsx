@@ -25,15 +25,17 @@ import { getOnboardingState } from '@/lib/digital/onboarding'
 import { heartbeat } from '@/lib/social'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { HubStyles, ResourcePill, IconBtn, ProfileChip } from '@/components/digital/ui/HubKit'
+import { useT, I18nBoot } from '@/lib/i18n/react'
+import { formatNumber } from '@/lib/i18n/core'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 
-type NavItem = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
+type NavItem = { key: string; labelKey: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
 const NAV: NavItem[] = [
-  { key: 'home',       label: 'Pradžia',    icon: Home,        href: '/digital' },
-  { key: 'collection', label: 'Kolekcija',  icon: LayoutGrid,  href: '/digital/collection' },
-  { key: 'decks',      label: 'Kaladės',    icon: Layers,      href: '/digital/decks' },
-  { key: 'shop',       label: 'Parduotuvė', icon: ShoppingBag, action: 'store' },
-  { key: 'more',       label: 'Daugiau',    icon: Menu,        href: '/digital/more' },
+  { key: 'home',       labelKey: 'navigation.home',       icon: Home,        href: '/digital' },
+  { key: 'collection', labelKey: 'navigation.collection', icon: LayoutGrid,  href: '/digital/collection' },
+  { key: 'decks',      labelKey: 'navigation.decks',      icon: Layers,      href: '/digital/decks' },
+  { key: 'shop',       labelKey: 'navigation.shop',       icon: ShoppingBag, action: 'store' },
+  { key: 'more',       labelKey: 'navigation.more',       icon: Menu,        href: '/digital/more' },
 ]
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
@@ -43,6 +45,7 @@ const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const t = useT()
   const router = useRouter()
   const bare = BARE_ROUTES.includes(pathname)
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 }) // reikšmės nebe rodomos čia (ShopModal pats traukia balansus)
@@ -89,7 +92,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             const pr = p as { username?: string; display_name?: string; avatar_url?: string | null; xp_total?: number } | null
             if (!pr) return
             const prog = getLevelProgress(pr.xp_total ?? 0)
-            setProfile({ name: pr.display_name || pr.username || 'Žaidėjas', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null })
+            setProfile({ name: pr.display_name || pr.username || '', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null })
           })
       })
     }
@@ -145,12 +148,13 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <div className="fixed inset-0 z-40 flex flex-col select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
         <Flames />
         <HubStyles />
+        <I18nBoot />
         <main className="relative z-10 flex-1 min-h-0">{children}</main>
         {showRotate && (
           <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
             <div className="text-6xl" style={{ animation: 'rvnRotateHintApp 1.6s ease-in-out infinite' }}>🔄</div>
-            <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pasuk telefoną</p>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ravenof Digital sukurtas žaisti gulsčiai</p>
+            <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('common.rotate.title')}</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('common.rotate.subtitleOnboarding')}</p>
             <style>{`@keyframes rvnRotateHintApp { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }`}</style>
           </div>
         )}
@@ -162,6 +166,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     <div className="fixed inset-0 z-40 flex flex-col select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
       <Flames />
       <HubStyles />
+      <I18nBoot />
       {/* Deck builder (ir kt. fullscreen įrankiai) gali paslėpti header'į per body atributą */}
       <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; }`}</style>
 
@@ -169,17 +174,17 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <header className="rvn-app-header relative z-10 flex items-center justify-between gap-2 px-3.5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
         <div className="flex items-center gap-2 min-w-0 shrink-0">
-          {profile && <ProfileChip name={profile.name} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
+          {profile && <ProfileChip name={profile.name || t('common.player')} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
         </div>
         <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center">
-          <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={balances.silver.toLocaleString('lt-LT')} accent="203,213,225" />
-          <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={balances.rubies.toLocaleString('lt-LT')} accent="239,68,68" />
-          <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={balances.essence.toLocaleString('lt-LT')} accent="139,92,246" />
+          <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={formatNumber(balances.silver)} accent="203,213,225" />
+          <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={formatNumber(balances.rubies)} accent="239,68,68" />
+          <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={formatNumber(balances.essence)} accent="139,92,246" />
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <IconBtn label="Pranešimai" badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
-          <IconBtn label="Nustatymai" onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
+          <IconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
+          <IconBtn label={t('navigation.settings')} onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
         </div>
       </header>
 
@@ -203,7 +208,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                     ? 'invert(1) sepia(1) saturate(5) hue-rotate(5deg) brightness(1.1) drop-shadow(0 0 6px rgba(240,180,41,0.6))'
                     : 'invert(0.92) brightness(1.05)' }} />
               </span>
-              <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{it.label}</span>
+              <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{t(it.labelKey)}</span>
             </>
           )
           const cls = 'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors'
@@ -228,8 +233,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {showRotate && (
         <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
           <div className="text-6xl" style={{ animation: 'rvnRotateHintApp 1.6s ease-in-out infinite' }}>🔄</div>
-          <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Pasuk telefoną</p>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ravenof žaidžiamas gulsčiai (landscape)</p>
+          <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('common.rotate.title')}</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('common.rotate.subtitle')}</p>
           <style>{`@keyframes rvnRotateHintApp { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }`}</style>
         </div>
       )}

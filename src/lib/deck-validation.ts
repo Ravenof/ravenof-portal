@@ -1,5 +1,6 @@
 import type { DeckEntry, CardWithRelations } from '@/types'
 import { containsProfanity } from '@/lib/profanity'
+import { t } from '@/lib/i18n/core'
 
 export const NEUTRAL_FACTION_ID = 14   // "Universalus"
 export const DECK_MIN = 30
@@ -31,17 +32,17 @@ export function canAddSideCard(
   sideEntries: DeckEntry[],
 ): { ok: boolean; reason?: string } {
   if (!isCurseCard(card)) {
-    return { ok: false, reason: 'Į side deck galima dėti tik prakeiksmus' }
+    return { ok: false, reason: t('deckBuilder.v.sideOnlyCurses') }
   }
   const existing = sideEntries.find((e) => e.card.id === card.id)
   const currentQty = existing?.quantity ?? 0
   const limit = getCopyLimit(card)
   if (currentQty >= limit) {
-    return { ok: false, reason: 'Maksimumas ' + limit + ' kopija (-u) šiai kortai' }
+    return { ok: false, reason: t('deckBuilder.v.copyLimit', { limit }) }
   }
   const total = sideEntries.reduce((s, e) => s + e.quantity, 0)
   if (total >= SIDE_DECK_MAX) {
-    return { ok: false, reason: 'Side deck negali turėti daugiau nei ' + SIDE_DECK_MAX + ' prakeiksmų' }
+    return { ok: false, reason: t('deckBuilder.v.sideMax', { max: SIDE_DECK_MAX }) }
   }
   return { ok: true }
 }
@@ -53,14 +54,14 @@ export function canAddCard(
 ): { ok: boolean; reason?: string } {
   // Prakeiksmai į pagrindinę kaladę nededami – jie eina į atskirą side deck'ą
   if (isCurseCard(card)) {
-    return { ok: false, reason: 'Prakeiksmai dedami į prakeiksmų side deck (apačioje)' }
+    return { ok: false, reason: t('deckBuilder.v.cursesGoSide') }
   }
 
   // Faction lock
   if (factionId !== null) {
     const cf = card.faction_id
     if (cf !== factionId && cf !== NEUTRAL_FACTION_ID) {
-      return { ok: false, reason: 'Korta nepriklauso siai frakcijai' }
+      return { ok: false, reason: t('deckBuilder.v.wrongFaction') }
     }
   }
 
@@ -69,12 +70,12 @@ export function canAddCard(
   const limit = getCopyLimit(card)
 
   if (currentQty >= limit) {
-    return { ok: false, reason: 'Maksimumas ' + limit + ' kopija (-u) siai kortai' }
+    return { ok: false, reason: t('deckBuilder.v.copyLimit', { limit }) }
   }
 
   const totalCards = entries.reduce((s, e) => s + e.quantity, 0)
   if (totalCards >= DECK_MAX) {
-    return { ok: false, reason: 'Kaladė negali turėti daugiau nei ' + DECK_MAX + ' kortų' }
+    return { ok: false, reason: t('deckBuilder.v.deckMax', { max: DECK_MAX }) }
   }
 
   return { ok: true }
@@ -94,18 +95,18 @@ export function validateDeck(
   const total = entries.reduce((s, e) => s + e.quantity, 0)
 
   if (!name.trim()) {
-    warnings.push({ type: 'error', message: 'Kaladė turi turėti pavadinimą' })
+    warnings.push({ type: 'error', message: t('deckBuilder.v.nameRequired') })
   } else if (containsProfanity(name)) {
-    warnings.push({ type: 'error', message: 'Pavadinime yra netinkamų žodžių' })
+    warnings.push({ type: 'error', message: t('deckBuilder.v.nameProfanity') })
   }
   if (!factionId) {
-    warnings.push({ type: 'error', message: 'Pasirink kaladės frakciją' })
+    warnings.push({ type: 'error', message: t('deckBuilder.v.pickFaction') })
   }
   if (total < DECK_MIN) {
-    warnings.push({ type: 'error', message: 'Kaladė turi bent ' + DECK_MIN + ' kortų (dabar: ' + total + ')' })
+    warnings.push({ type: 'error', message: t('deckBuilder.v.deckMin', { min: DECK_MIN, current: total }) })
   }
   if (total > DECK_MAX) {
-    warnings.push({ type: 'error', message: 'Kaladė negali turėti daugiau nei ' + DECK_MAX + ' kortų (dabar: ' + total + ')' })
+    warnings.push({ type: 'error', message: t('deckBuilder.v.deckMaxNow', { max: DECK_MAX, current: total }) })
   }
 
   // Copy limit violations
@@ -114,7 +115,7 @@ export function validateDeck(
     if (entry.quantity > limit) {
       warnings.push({
         type: 'error',
-        message: '"' + entry.card.name + '": per daug kopiju (' + entry.quantity + '/' + limit + ')',
+        message: t('deckBuilder.v.tooManyCopies', { name: entry.card.name, qty: entry.quantity, limit }),
       })
     }
   }
@@ -126,7 +127,7 @@ export function validateDeck(
       if (cf !== null && cf !== factionId && cf !== NEUTRAL_FACTION_ID) {
         warnings.push({
           type: 'error',
-          message: '"' + entry.card.name + '" nepriklauso pasirinktai frakcijai',
+          message: t('deckBuilder.v.cardWrongFaction', { name: entry.card.name }),
         })
       }
     }

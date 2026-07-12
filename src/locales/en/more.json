@@ -1,0 +1,27 @@
+{
+  "confirmExitBody": "The app will be closed.",
+  "confirmExitTitle": "Are you sure you want to exit?",
+  "exit": "Exit",
+  "exitFailed": "Could not close the app automatically. Close it using your phone's navigation.",
+  "exitSub": "Close the app",
+  "friends": "Friends",
+  "friendsSub": "Messages, trades, invites",
+  "gotIt": "Got it",
+  "logout": "Sign out",
+  "logoutSub": "End your account session",
+  "market": "Auction house",
+  "marketSub": "Buy and sell cards",
+  "quests": "Quests",
+  "questsSub": "Daily quests and streak",
+  "season": "Season path",
+  "seasonSub": "Tiers and rewards",
+  "sections": {
+    "account": "Account",
+    "community": "Community",
+    "game": "Game"
+  },
+  "settings": "Settings",
+  "settingsSub": "Sound, music, effects",
+  "subtitle": "Settings, community and account",
+  "title": "More"
+}

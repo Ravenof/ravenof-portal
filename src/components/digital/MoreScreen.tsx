@@ -12,11 +12,14 @@ import { SettingsModal } from './SettingsModal'
 import { QuestsModal } from './QuestsModal'
 import { SeasonPassModal } from './SeasonPassModal'
 import { RvnIcon } from './ui/RvnIcon'
+import { useT } from '@/lib/i18n/react'
+import { LanguageSelector } from '@/components/digital/ui/LanguageSelector'
 
 type Row = { key: string; label: string; sub?: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; img?: string; accent: string; onClick: () => void }
 
 export function MoreScreen() {
   const router = useRouter()
+  const t = useT()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [questsOpen, setQuestsOpen] = useState(false)
   const [seasonOpen, setSeasonOpen] = useState(false)
@@ -34,30 +37,30 @@ export function MoreScreen() {
   const doExit = async () => {
     playUiClick()
     const ok = await exitNativeApp()
-    if (!ok) { setConfirmExit(false); setExitMsg('Programos uždaryti automatiškai nepavyko. Uždarykite ją telefono navigacija.') }
+    if (!ok) { setConfirmExit(false); setExitMsg(t('more.exitFailed')) }
   }
 
   const sections: { title: string; rows: Row[] }[] = [
     {
-      title: 'Žaidimas',
+      title: t('more.sections.game'),
       rows: [
-        { key: 'settings', label: 'Nustatymai', sub: 'Garsas, muzika, efektai', icon: Settings, img: 'settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
-        { key: 'quests', label: 'Užduotys', sub: 'Dienos užduotys ir serija', icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); setQuestsOpen(true) } },
-        { key: 'season', label: 'Sezono kelias', sub: 'Pakopos ir apdovanojimai', icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); setSeasonOpen(true) } },
+        { key: 'settings', label: t('more.settings'), sub: t('more.settingsSub'), icon: Settings, img: 'settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
+        { key: 'quests', label: t('more.quests'), sub: t('more.questsSub'), icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); setQuestsOpen(true) } },
+        { key: 'season', label: t('more.season'), sub: t('more.seasonSub'), icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); setSeasonOpen(true) } },
       ],
     },
     {
-      title: 'Bendruomenė',
+      title: t('more.sections.community'),
       rows: [
-        { key: 'friends', label: 'Draugai', sub: 'Žinutės, mainai, kvietimai', icon: Users, accent: '96,165,250', onClick: () => { playUiClick(); router.push('/digital/friends') } },
-        { key: 'market', label: 'Aukcionas', sub: 'Pirk ir parduok kortas', icon: Store, img: 'fi-shop', accent: '146,84,40', onClick: () => { playUiClick(); router.push('/market') } },
+        { key: 'friends', label: t('more.friends'), sub: t('more.friendsSub'), icon: Users, accent: '96,165,250', onClick: () => { playUiClick(); router.push('/digital/friends') } },
+        { key: 'market', label: t('more.market'), sub: t('more.marketSub'), icon: Store, img: 'fi-shop', accent: '146,84,40', onClick: () => { playUiClick(); router.push('/market') } },
       ],
     },
   ]
 
   const accountRows: Row[] = [
-    { key: 'logout', label: 'Atsijungti', sub: 'Baigti paskyros sesiją', icon: LogOut, accent: '96,165,250', onClick: doLogout },
-    { key: 'exit', label: 'Išeiti', sub: 'Uždaryti programą', icon: Power, accent: '239,68,68', onClick: () => { playUiClick(); setConfirmExit(true) } },
+    { key: 'logout', label: t('more.logout'), sub: t('more.logoutSub'), icon: LogOut, accent: '96,165,250', onClick: doLogout },
+    { key: 'exit', label: t('more.exit'), sub: t('more.exitSub'), icon: Power, accent: '239,68,68', onClick: () => { playUiClick(); setConfirmExit(true) } },
   ]
 
   const tile = (r: Row, danger = false) => {
@@ -82,17 +85,18 @@ export function MoreScreen() {
 
   return (
     <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
-      <div className="text-center shrink-0">
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,3.2vh,28px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>Daugiau</div>
-        <div style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-muted)' }}>Nustatymai, bendruomenė ir paskyra</div>
+      <div className="relative text-center shrink-0">
+        <div className="absolute right-0 top-1/2 -translate-y-1/2"><LanguageSelector size="sm" /></div>
+        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,3.2vh,28px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{t('more.title')}</div>
+        <div style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-muted)' }}>{t('more.subtitle')}</div>
       </div>
 
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
-        {[...sections, { title: 'Paskyra', rows: accountRows }].map((sec) => (
+        {[...sections, { title: t('more.sections.account'), rows: accountRows }].map((sec) => (
           <section key={sec.title} className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
             <p className="shrink-0 rvn-disp font-extrabold uppercase tracking-wide mb-2" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{sec.title}</p>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
-              {sec.rows.map((r) => tile(r, sec.title === 'Paskyra' && r.key === 'exit'))}
+              {sec.rows.map((r) => tile(r, r.key === 'exit'))}
             </div>
           </section>
         ))}
@@ -102,11 +106,11 @@ export function MoreScreen() {
       {confirmExit && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setConfirmExit(false)}>
           <div className="w-[min(340px,92vw)] rounded-2xl p-5 text-center" style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>Ar tikrai nori išeiti?</p>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Programa bus uždaryta.</p>
+            <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>{t('more.confirmExitTitle')}</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{t('more.confirmExitBody')}</p>
             <div className="flex gap-2">
-              <button onClick={() => { playUiClick(); setConfirmExit(false) }} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-secondary)' }}>Atšaukti</button>
-              <button onClick={doExit} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Išeiti</button>
+              <button onClick={() => { playUiClick(); setConfirmExit(false) }} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-secondary)' }}>{t('common.cancel')}</button>
+              <button onClick={doExit} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>{t('more.exit')}</button>
             </div>
           </div>
         </div>
@@ -117,7 +121,7 @@ export function MoreScreen() {
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setExitMsg(null)}>
           <div className="w-[min(340px,92vw)] rounded-2xl p-5 text-center" style={{ border: '1px solid rgba(240,180,41,0.4)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{exitMsg}</p>
-            <button onClick={() => { playUiClick(); setExitMsg(null) }} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.45)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Supratau</button>
+            <button onClick={() => { playUiClick(); setExitMsg(null) }} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.45)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('more.gotIt')}</button>
           </div>
         </div>
       )}

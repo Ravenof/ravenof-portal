@@ -1,0 +1,7 @@
+{
+  "validity": {
+    "empty": "The deck is empty",
+    "missingCards": "Missing {{count}} cards from your collection",
+    "noActive": "No active deck selected"
+  }
+}

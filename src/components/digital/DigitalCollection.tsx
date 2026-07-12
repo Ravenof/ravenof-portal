@@ -12,7 +12,8 @@ import { Search, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { getCraftConfig, disenchantCard, craftCard, CRAFT_ERR_LT, type CraftConfig } from '@/lib/gamification/craft'
+import { getCraftConfig, disenchantCard, craftCard, type CraftConfig } from '@/lib/gamification/craft'
+import { useT } from '@/lib/i18n/react'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
@@ -33,17 +34,18 @@ type Col = {
 }
 
 type SortKey = 'cost-asc' | 'cost-desc' | 'name' | 'rarity' | 'owned'
-const SORTS: { key: SortKey; label: string }[] = [
-  { key: 'cost-asc',  label: 'Kaina ↑' },
-  { key: 'cost-desc', label: 'Kaina ↓' },
-  { key: 'name',      label: 'Pavadinimas A–Ž' },
-  { key: 'rarity',    label: 'Retumas' },
-  { key: 'owned',     label: 'Turimos pirma' },
+const SORT_DEFS: { key: SortKey; labelKey: string }[] = [
+  { key: 'cost-asc',  labelKey: 'collection.sort.costAsc' },
+  { key: 'cost-desc', labelKey: 'collection.sort.costDesc' },
+  { key: 'name',      labelKey: 'collection.sort.name' },
+  { key: 'rarity',    labelKey: 'collection.sort.rarity' },
+  { key: 'owned',     labelKey: 'collection.sort.owned' },
 ]
 
 const SEL: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)', fontSize: 12, borderRadius: 10, padding: '7px 8px', minHeight: 36, width: '100%' }
 
 export function DigitalCollection() {
+  const t = useT()
   const [cards, setCards] = useState<Col[] | null>(null)
   const [loggedOut, setLoggedOut] = useState(false)
   const [packList, setPackList] = useState<Pack[]>([])
@@ -164,8 +166,8 @@ export function DigitalCollection() {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
         <span style={{ fontSize: 40 }}>🎴</span>
-        <div className="rvn-disp font-black uppercase" style={{ fontSize: 22, color: 'var(--gold)' }}>Kolekcija</div>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad matytum kolekciją. <Link href="/digital/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>Prisijungti</Link></p>
+        <div className="rvn-disp font-black uppercase" style={{ fontSize: 22, color: 'var(--gold)' }}>{t('collection.title')}</div>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('collection.loginPrompt')} <Link href="/digital/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>{t('collection.signIn')}</Link></p>
       </div>
     )
   }
@@ -177,40 +179,40 @@ export function DigitalCollection() {
       {/* ── Kompaktiška antraštė + filtrų juosta (viena eilė; siauram — horizontalus scroll) ── */}
       <div className="shrink-0 flex items-center gap-1.5 overflow-x-auto pb-0.5" data-testid="collection-toolbar" style={{ scrollbarWidth: 'none' }}>
         <div className="shrink-0 flex items-baseline gap-2 pr-1">
-          <span className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(14px,2.6vh,20px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>Kolekcija</span>
-          <span className="whitespace-nowrap" style={{ fontSize: 'clamp(8px,1.3vh,10.5px)', color: 'var(--text-muted)' }}>{ownedCount}/{cards.length} · rodoma {filtered.length}</span>
+          <span className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(14px,2.6vh,20px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{t('collection.title')}</span>
+          <span className="whitespace-nowrap" style={{ fontSize: 'clamp(8px,1.3vh,10.5px)', color: 'var(--text-muted)' }}>{ownedCount}/{cards.length} · {t('collection.shown', { count: filtered.length })}</span>
         </div>
         <div className="relative shrink-0" style={{ width: 'clamp(120px, 16vw, 200px)' }}>
           <Search className="absolute left-2 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--text-muted)' }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti…" aria-label="Ieškoti kortų"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('collection.searchPlaceholder')} aria-label={t('collection.searchAria')}
             className="w-full outline-none" style={{ ...SEL, paddingLeft: 26 }} />
         </div>
-        <select value={faction} onChange={(e) => { playUiClick(); setFaction(e.target.value) }} aria-label="Frakcija" className="shrink-0" style={{ ...SEL, maxWidth: 150 }}>
-          <option value="all">Visos frakcijos</option>
+        <select value={faction} onChange={(e) => { playUiClick(); setFaction(e.target.value) }} aria-label={t('collection.faction')} className="shrink-0" style={{ ...SEL, maxWidth: 150 }}>
+          <option value="all">{t('collection.allFactions')}</option>
           {factions.map((f) => <option key={f.slug} value={f.slug}>{f.name}</option>)}
         </select>
-        <select value={type} onChange={(e) => { playUiClick(); setType(e.target.value) }} aria-label="Tipas" className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
-          <option value="all">Visi tipai</option>
+        <select value={type} onChange={(e) => { playUiClick(); setType(e.target.value) }} aria-label={t('collection.type')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
+          <option value="all">{t('collection.allTypes')}</option>
           {types.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select value={rarity} onChange={(e) => { playUiClick(); setRarity(e.target.value) }} aria-label="Retumas" className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
-          <option value="all">Visi retumai</option>
+        <select value={rarity} onChange={(e) => { playUiClick(); setRarity(e.target.value) }} aria-label={t('collection.rarity')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
+          <option value="all">{t('collection.allRarities')}</option>
           {rarities.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Rikiavimas" className="shrink-0" style={{ ...SEL, maxWidth: 130 }}>
-          {SORTS.map((so) => <option key={so.key} value={so.key}>{so.label}</option>)}
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label={t('collection.sortAria')} className="shrink-0" style={{ ...SEL, maxWidth: 130 }}>
+          {SORT_DEFS.map((so) => <option key={so.key} value={so.key}>{t(so.labelKey)}</option>)}
         </select>
         <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }} data-testid="owned-toggle"
           className="rvn-press shrink-0 px-2.5 rounded-lg font-bold whitespace-nowrap"
           style={{ height: 30, fontSize: 10.5, background: ownedOnly ? 'rgba(34,197,94,0.16)' : 'rgba(10,8,16,0.7)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.55)' : 'rgba(255,255,255,0.12)'}`, color: ownedOnly ? '#86efac' : 'var(--text-secondary)' }}>
-          {ownedOnly ? '✓ ' : ''}Turimos
+          {ownedOnly ? '✓ ' : ''}{t('collection.owned')}
         </button>
-        <button onClick={() => { playUiClick(); setDensityP(density === 'compact' ? 'comfortable' : 'compact') }} title={density === 'compact' ? 'Didesnės kortos' : 'Daugiau kortų'} data-testid="density-toggle"
+        <button onClick={() => { playUiClick(); setDensityP(density === 'compact' ? 'comfortable' : 'compact') }} title={density === 'compact' ? t('collection.biggerCards') : t('collection.moreCards')} data-testid="density-toggle"
           className="rvn-press shrink-0 px-2 rounded-lg font-bold" style={{ height: 30, fontSize: 12, background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>
           {density === 'compact' ? '▥' : '▦'}
         </button>
         {activeFilters > 0 && (
-          <button onClick={() => { playUiClick(); resetFilters() }} className="rvn-press shrink-0 px-2 rounded-lg whitespace-nowrap" style={{ height: 30, fontSize: 9.5, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>Išvalyti ({activeFilters})</button>
+          <button onClick={() => { playUiClick(); resetFilters() }} className="rvn-press shrink-0 px-2 rounded-lg whitespace-nowrap" style={{ height: 30, fontSize: 9.5, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>{t('collection.clearFilters', { count: activeFilters })}</button>
         )}
         <button onClick={openPacks} data-testid="packs-btn"
           className="rvn-press shrink-0 ml-auto px-3 rounded-lg font-extrabold whitespace-nowrap"
@@ -218,7 +220,7 @@ export function DigitalCollection() {
             background: totalPacks > 0 ? 'linear-gradient(180deg,#fdba74,#f59e42)' : 'rgba(10,8,16,0.7)',
             border: totalPacks > 0 ? '1px solid #fed7aa' : '1px solid rgba(255,255,255,0.14)',
             color: totalPacks > 0 ? '#1a0f04' : 'var(--text-muted)' }}>
-          🎁 {totalPacks > 0 ? `Pakai (${totalPacks})` : 'Į parduotuvę'}
+          🎁 {totalPacks > 0 ? t('collection.packsN', { count: totalPacks }) : t('collection.toShop')}
         </button>
       </div>
 
@@ -228,8 +230,8 @@ export function DigitalCollection() {
           {filtered.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               {ownedOnly
-                ? <EmptyState icon="🃏" title="Kolekcija dar tuščia" sub="Atplėšk pakuotę, kad rinktum kortas." accent="251,146,60" ctaLabel="🎁 Atplėšti pakuotę" onCta={openPacks} />
-                : <EmptyState icon="🔍" title="Nieko nerasta" sub="Pabandyk kitą paiešką ar filtrą." />}
+                ? <EmptyState icon="🃏" title={t('collection.emptyTitle')} sub={t('collection.emptySub')} accent="251,146,60" ctaLabel={t('collection.openPackCta')} onCta={openPacks} />
+                : <EmptyState icon="🔍" title={t('collection.nothingFound')} sub={t('collection.nothingFoundSub')} />}
             </div>
           ) : (
             <div className="h-full min-h-0 overflow-y-auto pr-0.5" style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
@@ -251,12 +253,12 @@ export function DigitalCollection() {
               style={{ width: 24, height: 24, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)', fontSize: 13 }}>›</button>
             <div className="flex-1 min-h-0 overflow-y-auto">
               {selected ? <CardDetail key={selected.id} c={selected} onChanged={load} /> : (
-                <div className="h-full flex items-center justify-center text-center px-3" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Pasirink kortą.</div>
+                <div className="h-full flex items-center justify-center text-center px-3" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('collection.pickCard')}</div>
               )}
             </div>
           </section>
         ) : (
-          <button onClick={() => { playUiClick(); toggleInspector() }} aria-label="Rodyti detales" data-testid="inspector-open"
+          <button onClick={() => { playUiClick(); toggleInspector() }} aria-label={t('collection.showDetails')} data-testid="inspector-open"
             className="rvn-press shrink-0 rounded-2xl flex items-center justify-center" style={{ ...PANEL, width: 26, color: 'var(--gold)', fontSize: 14 }}>‹</button>
         ))}
       </div>
@@ -266,7 +268,7 @@ export function DigitalCollection() {
         <div className="fixed inset-0 z-[150] flex justify-end" style={{ background: 'rgba(4,3,8,0.7)' }} onClick={() => setMobileDetail(false)}>
           <div onClick={(e) => e.stopPropagation()} className="h-full flex flex-col overflow-hidden p-2.5"
             style={{ width: 'min(280px, 78vw)', background: 'linear-gradient(160deg, rgba(20,16,28,0.99), rgba(9,7,12,0.99))', borderLeft: `1px solid rgba(${GOLD},0.4)`, paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}>
-            <button onClick={() => setMobileDetail(false)} className="self-end shrink-0 px-2 py-0.5 rounded-lg" style={{ fontSize: 12, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>✕ Uždaryti</button>
+            <button onClick={() => setMobileDetail(false)} className="self-end shrink-0 px-2 py-0.5 rounded-lg" style={{ fontSize: 12, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('collection.closeX')}</button>
             <div className="flex-1 min-h-0 overflow-y-auto mt-1">
               <CardDetail key={selected.id} c={selected} onChanged={load} />
             </div>
@@ -278,7 +280,7 @@ export function DigitalCollection() {
       {chooser && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setChooser(false)}>
           <div className="w-[min(360px,92vw)] rounded-2xl p-5" style={{ border: '1px solid rgba(251,146,60,0.5)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.06em' }}>🎁 Kurį paką atplėšti?</p>
+            <p className="text-base font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.06em' }}>{t('collection.whichPack')}</p>
             <div className="space-y-2">
               {ownedPacks.map((pk) => (
                 <button key={pk.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(pk) }} className="w-full text-left px-3 py-2.5 rounded-xl transition-transform active:scale-[0.98]" style={{ background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.45)' }}>
@@ -287,7 +289,7 @@ export function DigitalCollection() {
                 </button>
               ))}
             </div>
-            <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full text-xs" style={{ color: 'var(--text-muted)' }}>Atšaukti</button>
+            <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full text-xs" style={{ color: 'var(--text-muted)' }}>{t('common.cancel')}</button>
           </div>
         </div>
       )}
@@ -337,6 +339,7 @@ function CardCell({ c, selected, width, onClick }: { c: Col; selected: boolean; 
 
 // ── Dešinės panelės kortos detalės (buvęs PreviewModal — dabar inline) ────────
 function CardDetail({ c, onChanged }: { c: Col; onChanged?: () => void }) {
+  const t = useT()
   const [bad, setBad] = useState(false)
   const [cfg, setCfg] = useState<CraftConfig | null>(null)
   const [essence, setEssence] = useState(0)
@@ -349,8 +352,8 @@ function CardDetail({ c, onChanged }: { c: Col; onChanged?: () => void }) {
   const craftCost = cfg ? (cfg.craft[tier] ?? 0) : 0
   const canDust = ownedNow > c.copyLimit
   const canCraft = ownedNow < c.copyLimit
-  const doDust = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await disenchantCard(c.id, 1); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n - 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(CRAFT_ERR_LT[r.error] ?? 'Nepavyko'); setBusy(false) }
-  const doCraft = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await craftCard(c.id); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n + 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(CRAFT_ERR_LT[r.error] ?? 'Nepavyko'); setBusy(false) }
+  const doDust = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await disenchantCard(c.id, 1); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n - 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
+  const doCraft = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await craftCard(c.id); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n + 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
   const owned = ownedNow > 0
   const col = rarityColor(c.rarity)
   return (
@@ -375,16 +378,16 @@ function CardDetail({ c, onChanged }: { c: Col; onChanged?: () => void }) {
       </div>
       {c.effect && <p className="leading-snug" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.effect}</p>}
       <p className="font-semibold" style={{ fontSize: 11, color: owned ? '#86efac' : '#fca5a5' }}>
-        {owned ? `Turima: ×${ownedNow}` : 'Kortos dar neturi'}
+        {owned ? t('collection.ownedCount', { count: ownedNow }) : t('collection.notOwned')}
       </p>
       <div className="flex items-center justify-between gap-2 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <span style={{ fontSize: 11, color: '#c4b5fd' }}>🔮 {essence}</span>
         <div className="flex gap-1.5">
           {canDust && (
-            <button onClick={doDust} disabled={busy} className="rvn-press px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 10, background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd' }}>Dulkinti +🔮{dustVal}</button>
+            <button onClick={doDust} disabled={busy} className="rvn-press px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 10, background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd' }}>{t('collection.disenchant')} +🔮{dustVal}</button>
           )}
           {canCraft && (
-            <button onClick={doCraft} disabled={busy || essence < craftCost} className="rvn-press px-2 py-1.5 rounded-lg font-extrabold" style={{ fontSize: 10, background: essence >= craftCost ? 'linear-gradient(180deg,#ffe28c,#f3b62c)' : 'rgba(255,255,255,0.06)', color: essence >= craftCost ? '#3a2406' : 'var(--text-muted)' }}>Sukurti 🔮{craftCost}</button>
+            <button onClick={doCraft} disabled={busy || essence < craftCost} className="rvn-press px-2 py-1.5 rounded-lg font-extrabold" style={{ fontSize: 10, background: essence >= craftCost ? 'linear-gradient(180deg,#ffe28c,#f3b62c)' : 'rgba(255,255,255,0.06)', color: essence >= craftCost ? '#3a2406' : 'var(--text-muted)' }}>{t('collection.craft')} 🔮{craftCost}</button>
           )}
         </div>
       </div>

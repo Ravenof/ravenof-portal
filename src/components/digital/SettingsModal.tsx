@@ -20,11 +20,14 @@ import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digita
 import { RvnIcon } from './ui/RvnIcon'
 import { APP_VERSION } from '@/lib/version'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT, useLocale, setLocale } from '@/lib/i18n/react'
+import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
+import { Languages } from 'lucide-react'
 
 const ACC = '240,180,41'
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
-type Cat = 'audio' | 'visual' | 'content' | 'notif'
+type Cat = 'audio' | 'visual' | 'content' | 'notif' | 'language'
 
 function Row({ label, icon, on, onToggle, hint }: { label: string; icon?: React.ReactNode; on: boolean; onToggle: (v: boolean) => void; hint?: string }) {
   return (
@@ -43,6 +46,8 @@ function Row({ label, icon, on, onToggle, hint }: { label: string; icon?: React.
 
 export function SettingsModal({ onClose, profile }: { onClose: () => void; profile?: Profile | null }) {
   useEscClose(onClose)
+  const t = useT()
+  const locale = useLocale()
   const [cat, setCat] = useState<Cat>('audio')
   const [music, setMusic] = useState(0.32)
   const [sfx, setSfx] = useState(1)
@@ -106,10 +111,11 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const bytesNoVideo = missingNoVideo.reduce((s2, e) => s2 + e.bytes, 0)
 
   const CATS: { key: Cat; label: string; icon: React.ReactNode; show: boolean }[] = [
-    { key: 'audio',  label: 'Garsas',          icon: <Volume2 className="w-4 h-4" />,      show: true },
-    { key: 'visual', label: 'Vaizdo efektai',  icon: <Sparkles className="w-4 h-4" />,     show: true },
-    { key: 'content', label: 'Žaidimo turinys', icon: <Download className="w-4 h-4" />,     show: true },
-    { key: 'notif',  label: 'Pranešimai',      icon: <Bell className="w-4 h-4" />,         show: native },
+    { key: 'audio',  label: t('settings.cat.audio'),   icon: <Volume2 className="w-4 h-4" />,  show: true },
+    { key: 'visual', label: t('settings.cat.visual'),  icon: <Sparkles className="w-4 h-4" />, show: true },
+    { key: 'content', label: t('settings.cat.content'), icon: <Download className="w-4 h-4" />, show: true },
+    { key: 'language', label: t('settings.cat.language'), icon: <Languages className="w-4 h-4" />, show: true },
+    { key: 'notif',  label: t('settings.cat.notif'),   icon: <Bell className="w-4 h-4" />,     show: native },
   ]
 
   return (
@@ -119,8 +125,8 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
 
           {/* ── Antraštė ── */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: `1px solid rgba(${ACC},0.16)` }}>
-            <p className="font-bold" style={{ fontSize: 'clamp(14px,2.6vh,18px)', fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>⚙️ NUSTATYMAI</p>
-            <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${ACC},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+            <p className="font-bold" style={{ fontSize: 'clamp(14px,2.6vh,18px)', fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>⚙️ {t('settings.title')}</p>
+            <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${ACC},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
           </div>
 
           {/* ── 3 zonos ── */}
@@ -144,20 +150,20 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
                   <button onClick={() => { const n = toggleUiSound(); if (n) playUiClick() }}
                     className="w-full px-3 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-between"
                     style={{ background: soundOn ? `rgba(${ACC},0.14)` : 'rgba(10,8,16,0.7)', border: '1px solid ' + (soundOn ? `rgba(${ACC},0.45)` : 'var(--bg-border)'), color: soundOn ? 'var(--gold)' : 'var(--text-muted)' }}>
-                    <span className="inline-flex items-center gap-2">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} Garsas {soundOn ? 'įjungtas' : 'išjungtas'}</span>
-                    <span className="text-[10px]">{soundOn ? 'IŠJUNGTI' : 'ĮJUNGTI'}</span>
+                    <span className="inline-flex items-center gap-2">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} {soundOn ? t('settings.soundOn') : t('settings.soundOff')}</span>
+                    <span className="text-[10px]">{soundOn ? t('settings.turnOff') : t('settings.turnOn')}</span>
                   </button>
                   <div className={`space-y-4 transition-opacity ${soundOn ? '' : 'opacity-40 pointer-events-none'}`}>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Music className="w-4 h-4" />Muzika</span>
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Music className="w-4 h-4" />{t('settings.music')}</span>
                         <span className="text-xs tabular-nums" style={{ color: 'var(--gold)' }}>{Math.round(music * 100)}%</span>
                       </div>
                       <input type="range" min={0} max={100} value={Math.round(music * 100)} onChange={(e) => onMusic(Number(e.target.value) / 100)} className="w-full" style={{ accentColor: 'var(--gold)' }} />
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Volume2 className="w-4 h-4" />Garso efektai</span>
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Volume2 className="w-4 h-4" />{t('settings.sfx')}</span>
                         <span className="text-xs tabular-nums" style={{ color: 'var(--gold)' }}>{Math.round(sfx * 100)}%</span>
                       </div>
                       <input type="range" min={0} max={100} value={Math.round(sfx * 100)} onChange={(e) => onSfx(Number(e.target.value) / 100)} className="w-full" style={{ accentColor: 'var(--gold)' }} />
@@ -168,19 +174,19 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
 
               {cat === 'visual' && (
                 <>
-                  <Row label="Iškvietimo efektai" icon={<Sparkles className="w-4 h-4" />} on={summon} onToggle={onSummon}
-                    hint="Išjungus, kovose nerodomi padarų iškvietimo vizualiniai efektai (geriau silpnesniems įrenginiams)." />
-                  <Row label="Fono efektai" icon={<span>🔥</span>} on={bgFx} onToggle={onBgFx}
-                    hint="Liepsnų fonas meniu. Išjunk, jei nori taupyti bateriją." />
-                  <Row label="Kino pop-up" icon={<Clapperboard className="w-4 h-4" />} on={cine} onToggle={onCine}
-                    hint="Trumpas (2–3 s) kino pop-up iškviečiant Legendinį/Čempioną ar panaudojus Čempiono skill. Praleidžiamas bakstelėjus." />
+                  <Row label={t('settings.summonFx')} icon={<Sparkles className="w-4 h-4" />} on={summon} onToggle={onSummon}
+                    hint={t('settings.summonFxHint')} />
+                  <Row label={t('settings.bgFx')} icon={<span>🔥</span>} on={bgFx} onToggle={onBgFx}
+                    hint={t('settings.bgFxHint')} />
+                  <Row label={t('settings.cinematics')} icon={<Clapperboard className="w-4 h-4" />} on={cine} onToggle={onCine}
+                    hint={t('settings.cinematicsHint')} />
                   <div className={`space-y-2 transition-opacity ${cine ? '' : 'opacity-40 pointer-events-none'}`}>
                     <label className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid var(--bg-border)' }}>
-                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Iškvietimo (Legendinis / Čempionas)</span>
+                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.cineSummon')}</span>
                       <input type="checkbox" checked={cineSummon} onChange={(e) => onCineSummon(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
                     </label>
                     <label className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid var(--bg-border)' }}>
-                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Čempiono skill</span>
+                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.cineSkill')}</span>
                       <input type="checkbox" checked={cineSkill} onChange={(e) => onCineSkill(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
                     </label>
                   </div>
@@ -190,39 +196,39 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
               {cat === 'content' && (
                 <>
                   <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>📥 Atsisiųsti žaidimo turinį</p>
-                    <p className="mt-1" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>Kortos, garsai ir video išsaugomi telefone — žaidimas veikia greitai ir be interneto. Atsisiųsta: <b style={{ color: '#f3ead3' }}>{mediaInfo ? `${mediaInfo.files} failų` : '…'}</b>{mediaInfo?.usageBytes ? ` · užimta ~${fmtMB(mediaInfo.usageBytes)}` : ''}</p>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>{t('settings.contentTitle')}</p>
+                    <p className="mt-1" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('settings.contentInfo')} <b style={{ color: '#f3ead3' }}>{mediaInfo ? t('settings.filesCount', { count: mediaInfo.files }) : '…'}</b>{mediaInfo?.usageBytes ? ` · ${t('settings.usedSpace', { size: fmtMB(mediaInfo.usageBytes) })}` : ''}</p>
                   </div>
 
                   {missing === null ? (
-                    <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>Skaičiuojama…</p>
+                    <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>{t('settings.computing')}</p>
                   ) : dl?.running ? (
                     <div className="rounded-xl px-3 py-3" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${ACC},0.4)` }}>
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Siunčiama…</span>
+                        <span className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('settings.downloading')}</span>
                         <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{dl.doneFiles}/{dl.totalFiles} · {fmtMB(dl.doneBytes)} / {fmtMB(dl.totalBytes)}</span>
                       </div>
                       <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                         <div className="h-full rounded-full" style={{ width: `${dl.totalBytes ? Math.min(100, Math.round(dl.doneBytes / dl.totalBytes * 100)) : Math.round(dl.doneFiles / Math.max(1, dl.totalFiles) * 100)}%`, background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: `0 0 8px rgba(${ACC},0.6)`, transition: 'width .3s' }} />
                       </div>
-                      {dl.failed > 0 && <p className="mt-1" style={{ fontSize: 9.5, color: '#fca5a5' }}>Nepavyko: {dl.failed} (bus bandoma kitą kartą)</p>}
-                      <button onClick={() => { playUiClick(); dlRef.current?.cancel() }} className="mt-2 w-full rounded-lg py-1.5 text-[11px] font-bold" style={{ background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>Stabdyti</button>
+                      {dl.failed > 0 && <p className="mt-1" style={{ fontSize: 9.5, color: '#fca5a5' }}>{t('settings.downloadFailed', { count: dl.failed })}</p>}
+                      <button onClick={() => { playUiClick(); dlRef.current?.cancel() }} className="mt-2 w-full rounded-lg py-1.5 text-[11px] font-bold" style={{ background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>{t('settings.stop')}</button>
                     </div>
                   ) : missing.length === 0 ? (
-                    <p className="text-sm text-center py-3 font-semibold" style={{ color: '#86efac' }}>✓ Visas turinys atsisiųstas{dl && !dl.running ? ` (${dl.doneFiles} failų)` : ''}</p>
+                    <p className="text-sm text-center py-3 font-semibold" style={{ color: '#86efac' }}>{t('settings.allDownloaded')}{dl && !dl.running ? ` (${t('settings.filesCount', { count: dl.doneFiles })})` : ''}</p>
                   ) : (
                     <div className="flex flex-col gap-2">
                       <button onClick={() => startDl(missingNoVideo)} disabled={missingNoVideo.length === 0}
                         className="rvn-press w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-40"
                         style={{ background: `rgba(${ACC},0.18)`, border: `1px solid rgba(${ACC},0.5)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                        Kortos ir garsai · {fmtMB(bytesNoVideo)} ({missingNoVideo.length} failų)
+                        {t('settings.dlCardsSounds')} · {fmtMB(bytesNoVideo)} ({t('settings.filesCount', { count: missingNoVideo.length })})
                       </button>
                       <button onClick={() => startDl(missing)}
                         className="rvn-press w-full rounded-xl py-2.5 text-sm font-bold"
                         style={{ background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>
-                        Viskas + video · {fmtMB(bytesAll)} ({missing.length} failų)
+                        {t('settings.dlAllVideo')} · {fmtMB(bytesAll)} ({t('settings.filesCount', { count: missing.length })})
                       </button>
-                      <p style={{ fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>Video (kino intarpai, avatarų animacijos) — didžiausia dalis; siųsk per Wi-Fi.</p>
+                      <p style={{ fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('settings.videoHint')}</p>
                     </div>
                   )}
 
@@ -230,14 +236,32 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
                     disabled={dl?.running}
                     className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold disabled:opacity-40"
                     style={{ background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
-                    <Trash2 className="w-3.5 h-3.5" /> Išvalyti atsisiųstą turinį
+                    <Trash2 className="w-3.5 h-3.5" /> {t('settings.clearContent')}
                   </button>
                 </>
               )}
 
+              {cat === 'language' && (
+                <div className="flex flex-col gap-2">
+                  {LANGUAGE_OPTIONS.map((opt) => {
+                    const active = opt.locale === locale
+                    return (
+                      <button key={opt.locale} type="button" role="radio" aria-checked={active}
+                        onClick={() => { if (!active) { playUiClick(); setLocale(opt.locale) } }}
+                        className="rvn-press w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between"
+                        style={{ background: active ? `rgba(${ACC},0.18)` : 'rgba(10,8,16,0.8)', border: `1px solid ${active ? `rgba(${ACC},0.6)` : 'rgba(255,255,255,0.08)'}`, color: active ? 'var(--gold)' : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>
+                        <span>{opt.nativeName}</span>
+                        <span className="text-[10px] uppercase tracking-wide" style={{ color: active ? 'var(--gold)' : 'var(--text-muted)' }}>{opt.shortName}</span>
+                      </button>
+                    )
+                  })}
+                  <p className="mt-1 px-1" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{t('settings.languageHint')}</p>
+                </div>
+              )}
+
               {cat === 'notif' && native && (
-                <Row label="Priminimai" icon={<Bell className="w-4 h-4" />} on={reminders} onToggle={onReminders}
-                  hint="Kasdienis priminimas apie dienos atlygį ir kovą, kad neprarastum serijos. Notifikacijos rodomos tik telefone." />
+                <Row label={t('settings.reminders')} icon={<Bell className="w-4 h-4" />} on={reminders} onToggle={onReminders}
+                  hint={t('settings.remindersHint')} />
               )}
             </div>
 
@@ -255,20 +279,20 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
                     <span className="block w-full" style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', boxShadow: 'inset 0 0 3px rgba(0,0,0,0.6)' }}>
                       <span style={{ display: 'block', height: '100%', width: `${Math.max(3, Math.min(100, profile.pct))}%`, background: `linear-gradient(90deg, rgba(${ACC},0.75), rgb(${ACC}))`, boxShadow: `0 0 6px rgba(${ACC},0.6)` }} />
                     </span>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Lygis {profile.level} · {Math.round(profile.pct)}% iki kito</span>
+                    <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{t('settings.levelProgress', { level: profile.level, pct: Math.round(profile.pct) })}</span>
                   </div>
                 )}
-                <p className="mt-3 px-1 text-center" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>Nustatymai saugomi automatiškai ir sinchronizuojami tarp įrenginių.</p>
+                <p className="mt-3 px-1 text-center" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>{t('settings.autoSaved')}</p>
                 <p className="mt-1 text-center" style={{ fontSize: 9, color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}</p>
               </div>
               <div className="shrink-0 mt-2 flex flex-col gap-1.5">
                 <button onClick={resetDefaults} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold"
                   style={{ minHeight: 36, background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>
-                  <RotateCcw className="w-3.5 h-3.5" /> Atstatyti numatytuosius
+                  <RotateCcw className="w-3.5 h-3.5" /> {t('settings.resetDefaults')}
                 </button>
                 <button onClick={() => { playUiClick(); onClose() }} className="rvn-press w-full rounded-xl text-sm font-bold"
                   style={{ minHeight: 40, background: `rgba(${ACC},0.2)`, border: `1px solid rgba(${ACC},0.4)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-                  Uždaryti
+                  {t('common.close')}
                 </button>
               </div>
             </div>

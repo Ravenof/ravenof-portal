@@ -1,0 +1,17 @@
+{
+  "v": {
+    "cardWrongFaction": "„{{name}}“ nepriklauso pasirinktai frakcijai",
+    "copyLimit": "Maksimumas {{limit}} kopija (-ų) šiai kortai",
+    "cursesGoSide": "Prakeiksmai dedami į prakeiksmų side deck (apačioje)",
+    "deckMax": "Kaladė negali turėti daugiau nei {{max}} kortų",
+    "deckMaxNow": "Kaladė negali turėti daugiau nei {{max}} kortų (dabar: {{current}})",
+    "deckMin": "Kaladė turi bent {{min}} kortų (dabar: {{current}})",
+    "nameProfanity": "Pavadinime yra netinkamų žodžių",
+    "nameRequired": "Kaladė turi turėti pavadinimą",
+    "pickFaction": "Pasirink kaladės frakciją",
+    "sideMax": "Side deck negali turėti daugiau nei {{max}} prakeiksmų",
+    "sideOnlyCurses": "Į side deck galima dėti tik prakeiksmus",
+    "tooManyCopies": "„{{name}}“: per daug kopijų ({{qty}}/{{limit}})",
+    "wrongFaction": "Korta nepriklauso šiai frakcijai"
+  }
+}

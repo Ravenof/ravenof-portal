@@ -1,0 +1,17 @@
+{
+  "v": {
+    "cardWrongFaction": "“{{name}}” doesn't belong to the chosen faction",
+    "copyLimit": "Maximum {{limit}} copies of this card",
+    "cursesGoSide": "Curses go into the curse side deck (below)",
+    "deckMax": "A deck can't have more than {{max}} cards",
+    "deckMaxNow": "A deck can't have more than {{max}} cards (now: {{current}})",
+    "deckMin": "A deck needs at least {{min}} cards (now: {{current}})",
+    "nameProfanity": "The name contains inappropriate words",
+    "nameRequired": "The deck needs a name",
+    "pickFaction": "Pick a faction for the deck",
+    "sideMax": "The side deck can't hold more than {{max}} curses",
+    "sideOnlyCurses": "Only curses can go into the side deck",
+    "tooManyCopies": "“{{name}}”: too many copies ({{qty}}/{{limit}})",
+    "wrongFaction": "This card doesn't belong to this faction"
+  }
+}

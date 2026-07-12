@@ -27,11 +27,14 @@ import { getDailyTasks, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, ModeSelector, ASSET, type HubMode } from './ui/HubKit'
 import { RvnIcon } from './ui/RvnIcon'
+import { useT } from '@/lib/i18n/react'
 
-const MODES: HubMode[] = [
-  { key: 'ranked', label: 'Reitingas',  iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
-  { key: 'pve',    label: 'Prieš AI',   iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
-  { key: 'free',   label: 'Draugiška',  iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
+// PASTABA (i18n): režimų PNG kortelės turi įkeptą LT pavadinimą — EN variantai bus
+// pridėti kartu su lokalizuotais kortų vaizdais (žr. I18N-AUDIT.md, Fazė 6).
+const MODE_DEFS = [
+  { key: 'ranked', labelKey: 'home.modes.ranked', iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
+  { key: 'pve',    labelKey: 'home.modes.pve',    iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
+  { key: 'free',   labelKey: 'home.modes.free',   iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
@@ -40,6 +43,8 @@ const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(1
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
+  const t = useT()
+  const MODES: HubMode[] = MODE_DEFS.map((m) => ({ ...m, label: t(m.labelKey) }))
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [storeOpen, setStoreOpen] = useState(false)
@@ -91,10 +96,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   if (!loggedIn) {
     return (
       <div className="rounded-2xl p-6 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Prisijunk, kad galėtum žaisti skaitmenines kovas.</p>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{t('home.loginPrompt')}</p>
         <span className="inline-flex gap-2">
-          <Link href="/digital/login" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>Prisijungti</Link>
-          <Link href="/digital/register" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', border: '1px solid #ffeaa6', color: '#3a2406' }}>Sukurti paskyrą</Link>
+          <Link href="/digital/login" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{t('home.signIn')}</Link>
+          <Link href="/digital/register" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', border: '1px solid #ffeaa6', color: '#3a2406' }}>{t('home.createAccount')}</Link>
         </span>
       </div>
     )
@@ -113,23 +118,23 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         {/* ── KAIRĖ: Dienos užduotys ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
           <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 shrink-0">
-            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Dienos užduotys</span>
+            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>{t('home.dailyQuests')}</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col" style={{ gap: 'clamp(3px,0.8vh,6px)' }}>
             {tasks.length === 0 && (
               <div className="my-auto flex flex-col items-center gap-2 px-2 text-center">
-                {!questsLoaded ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Kraunama…</span> : (
+                {!questsLoaded ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span> : (
                   <>
-                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Šiandien užduočių nėra</span>
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('home.noQuestsToday')}</span>
                     <div className="w-full rounded-lg px-2.5 py-2" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.35)' }}>
-                      <div className="text-[12px] font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>🔥 {streak} d. serija</div>
-                      <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Prisijunk kasdien — nenutrauk serijos</div>
+                      <div className="text-[12px] font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{t('home.streakDays', { count: streak })}</div>
+                      <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.streakHint')}</div>
                     </div>
                     <button onClick={() => { playUiClick(); setLoginOpen(true) }}
                       className="rvn-press w-full rounded-lg py-1.5 text-[10.5px] font-bold"
                       style={{ background: loginClaimable ? 'rgba(240,180,41,0.18)' : 'rgba(0,0,0,0.35)', border: `1px solid rgba(240,180,41,${loginClaimable ? 0.65 : 0.3})`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {loginClaimable ? '🎁 Mėnesio dovana paruošta!' : '📅 Mėnesio dovanos'}
+                      {loginClaimable ? t('home.monthlyReady') : t('home.monthlyGifts')}
                     </button>
                   </>
                 )}
@@ -154,7 +159,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           <button onClick={() => { playUiClick(); setDailyOpen(true) }}
             className="rvn-press m-2 mt-1 rounded-xl font-extrabold rvn-disp"
             style={{ paddingTop: 'clamp(5px,1vh,8px)', paddingBottom: 'clamp(5px,1vh,8px)', fontSize: 'clamp(10px,1.6vh,12px)', background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(240,180,41,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
-            {questsPending > 0 ? `ATSIIMTI (${questsPending})` : 'PERŽIŪRĖTI'}
+            {questsPending > 0 ? t('home.claimN', { count: questsPending }) : t('home.view')}
           </button>
         </section>
 
@@ -163,10 +168,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           style={{ border: '1px solid rgba(240,180,41,0.45)', gap: 'clamp(2px,0.9vh,9px)', padding: 'clamp(5px,1.6vh,13px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
           <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.24) 0%, rgba(8,6,14,0.5) 55%, rgba(8,6,14,0.82) 100%)' }} />
-          <img src={`${ASSET}/heading.png`} alt="Žaisti dabar" className="relative" style={{ height: 'clamp(16px,3.6vh,34px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
-          <span className="relative" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>Pasirink režimą ir pradėk kovą</span>
+          <img src={`${ASSET}/heading.png`} alt={t('home.playNow')} className="relative" style={{ height: 'clamp(16px,3.6vh,34px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <span className="relative" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>{t('home.pickModeStart')}</span>
           <button onClick={startBattle} className="rvn-press relative block" style={{ lineHeight: 0, filter: 'drop-shadow(0 4px 12px rgba(240,180,41,0.35))' }}>
-            <img src={`${ASSET}/cta2.png`} alt="Pradėti kovą" style={{ height: 'clamp(38px,8.5vh,74px)', width: 'auto', display: 'block' }} />
+            <img src={`${ASSET}/cta2.png`} alt={t('home.startBattle')} style={{ height: 'clamp(38px,8.5vh,74px)', width: 'auto', display: 'block' }} />
           </button>
           <div className="relative w-full" style={{ maxWidth: 460 }}>
             <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
@@ -176,15 +181,15 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         {/* ── DEŠINĖ: Sezono progresas ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
           <div className="px-3 pt-2.5 pb-1.5 shrink-0">
-            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>Sezono progresas</span>
+            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>{t('home.seasonProgress')}</span>
           </div>
           <div className="flex-1 min-h-0 px-3 py-1 flex flex-col items-center justify-center text-center overflow-hidden" style={{ gap: 'clamp(3px,0.9vh,8px)' }}>
             <RvnIcon name="seg-season" size={48} fallback={<span style={{ fontSize: 30 }}>📜</span>} />
-            <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>Pakopa {season.cur}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
+            <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>{t('home.tier', { n: season.cur })}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
             <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.2)' }}>
               <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} />
             </div>
-            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Kita pakopa: <span style={{ color: '#c4b5fd' }}>Pakopa {Math.min(season.cur + 1, season.total)}</span></span>
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('home.nextTier')} <span style={{ color: '#c4b5fd' }}>{t('home.tier', { n: Math.min(season.cur + 1, season.total) })}</span></span>
             {nextReward.length > 0 && (
               <div className="flex flex-wrap justify-center gap-1 shrink-0 overflow-hidden" style={{ maxHeight: '2.2em' }}>
                 {nextReward.slice(0, 3).map((it, i) => (
@@ -196,7 +201,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           <div className="p-2.5 pt-1.5 flex flex-col gap-1.5 shrink-0 relative" style={{ zIndex: 2, background: 'inherit' }}>
             <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
               style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#6b3fa0,#3a2160)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#c4b5fd', boxShadow: seasonClaimable > 0 ? '0 0 18px rgba(139,92,246,0.4)' : 'none' }}>
-              {seasonClaimable > 0 ? `ATSIIMTI (${seasonClaimable})` : 'PERŽIŪRĖTI TAKĄ'}
+              {seasonClaimable > 0 ? t('home.claimN', { count: seasonClaimable }) : t('home.viewTrack')}
             </button>
           </div>
         </section>
@@ -206,9 +211,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(66px,13vh,92px)' }}>
         <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(139,92,246,0.22), rgba(9,7,14,0.98))' }}>
           <div>
-            <div className="font-bold uppercase tracking-widest" style={{ fontSize: 'clamp(8px,1.2vh,9px)', color: '#c4b5fd' }}>Kosmetika</div>
-            <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>Avatarai ir rėmai</div>
-            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Peržiūrėti kolekciją →</div>
+            <div className="font-bold uppercase tracking-widest" style={{ fontSize: 'clamp(8px,1.2vh,9px)', color: '#c4b5fd' }}>{t('home.cosmetics')}</div>
+            <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>{t('home.avatarsFrames')}</div>
+            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.viewCollection')}</div>
           </div>
         </button>
 
@@ -221,14 +226,14 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
               className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5"
               style={{ ...PANEL, background: `linear-gradient(120deg, ${col}2b, rgba(9,7,14,0.98))` }}>
               <div className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--gold)' }}>
-                Aktyvi kaladė
-                {ad?.boundAvatar && <span title="Kaladė turi savo avatarą" style={{ fontSize: 10 }}>👤</span>}
+                {t('home.activeDeck')}
+                {ad?.boundAvatar && <span title={t('home.deckHasAvatar')} style={{ fontSize: 10 }}>👤</span>}
               </div>
               <div className="rvn-disp text-[13px] font-extrabold truncate" style={{ color: '#fff' }} title={ad?.name}>
-                {!adState.loaded ? 'Kraunama…' : ad ? ad.name : 'Pasirink kaladę'}
+                {!adState.loaded ? t('common.loading') : ad ? ad.name : t('home.pickDeck')}
               </div>
               <div className="text-[9px] truncate" style={{ color: av.valid ? '#4ade80' : '#fbbf24' }}>
-                {ad ? `${ad.faction ?? '—'} · ${ad.cardCount} kortos · ` : ''}{av.valid ? '✓ Paruošta kovai' : `⚠ ${av.reason}`} <span style={{ color: 'var(--text-muted)' }}>· keisti →</span>
+                {ad ? `${ad.faction ?? '—'} · ${t('home.cardsCount', { count: ad.cardCount })} · ` : ''}{av.valid ? t('home.readyForBattle') : `⚠ ${av.reason}`} <span style={{ color: 'var(--text-muted)' }}>· {t('home.change')}</span>
               </div>
             </button>
           )
@@ -236,11 +241,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
         <Link href="/digital/friends" onClick={() => playUiClick()} className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(52,211,153,0.18), rgba(9,7,14,0.98))' }}>
           <div className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#a7f3d0' }}>
-            Draugai
-            {friendsOnline !== null && friendsOnline > 0 && <span className="inline-flex items-center gap-1 normal-case tracking-normal font-bold px-1.5 rounded-full" style={{ fontSize: 9, background: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#6ee7b7' }}><span className="rounded-full" style={{ width: 6, height: 6, background: '#34d399', boxShadow: '0 0 6px #34d399' }} /> {friendsOnline} online</span>}
+            {t('home.friends')}
+            {friendsOnline !== null && friendsOnline > 0 && <span className="inline-flex items-center gap-1 normal-case tracking-normal font-bold px-1.5 rounded-full" style={{ fontSize: 9, background: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#6ee7b7' }}><span className="rounded-full" style={{ width: 6, height: 6, background: '#34d399', boxShadow: '0 0 6px #34d399' }} /> {t('home.online', { count: friendsOnline })}</span>}
           </div>
-          <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>Socialinis</div>
-          <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Draugai ir kvietimai →</div>
+          <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>{t('home.social')}</div>
+          <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.friendsInvites')}</div>
         </Link>
       </div>
 

@@ -1,0 +1,24 @@
+{
+  "back": "Atgal",
+  "cancel": "Atšaukti",
+  "close": "Uždaryti",
+  "confirm": "Patvirtinti",
+  "continue": "Tęsti",
+  "delete": "Ištrinti",
+  "error": "Įvyko klaida",
+  "loadTimeoutBody": "Patikrink interneto ryšį ir bandyk dar kartą.",
+  "loadTimeoutTitle": "Užtruko per ilgai",
+  "loading": "Kraunama…",
+  "no": "Ne",
+  "or": "arba",
+  "player": "Žaidėjas",
+  "retry": "Bandyti dar kartą",
+  "retryFull": "↻ Bandyti dar kartą",
+  "rotate": {
+    "subtitle": "Ravenof žaidžiamas gulsčiai (landscape)",
+    "subtitleOnboarding": "Ravenof Digital sukurtas žaisti gulsčiai",
+    "title": "Pasuk telefoną"
+  },
+  "save": "Išsaugoti",
+  "yes": "Taip"
+}
