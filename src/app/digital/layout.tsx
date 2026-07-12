@@ -204,9 +204,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
               <span className="relative flex items-center justify-center rvn-press" style={{ width: 32, height: 32 }}>
                 {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.34), transparent 70%)' }} />}
                 <RvnIcon name={`nav-${it.key}`} size={30} fallback={<Icon className="w-[22px] h-[22px]" />}
-                  style={{ filter: active
-                    ? 'invert(1) sepia(1) saturate(5) hue-rotate(5deg) brightness(1.1) drop-shadow(0 0 6px rgba(240,180,41,0.6))'
-                    : 'invert(0.92) brightness(1.05)' }} />
+                  style={active
+                    ? { filter: 'brightness(1.12) drop-shadow(0 0 6px rgba(240,180,41,0.65))' }
+                    : { filter: 'grayscale(0.35) brightness(0.82)', opacity: 0.85 }} />
               </span>
               <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{t(it.labelKey)}</span>
             </>
