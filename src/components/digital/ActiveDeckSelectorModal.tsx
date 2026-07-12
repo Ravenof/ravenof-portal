@@ -174,7 +174,7 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
 }
 
 // ── Kompaktiška aktyvios kaladės santrauka kovos setup ekranams ───────────────
-export function ActiveDeckSummary({ accent = GOLD, invalidHint }: { accent?: string; invalidHint?: string }) {
+export function ActiveDeckSummary({ accent = GOLD, invalidHint, compact }: { accent?: string; invalidHint?: string; compact?: boolean }) {
   const st = useActiveDeck()
   const [open, setOpen] = useState(false)
   useEffect(() => { if (!st.loaded && !st.loading) void st.refresh() }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -182,19 +182,29 @@ export function ActiveDeckSummary({ accent = GOLD, invalidHint }: { accent?: str
   const v = deckValidity(d)
   return (
     <>
-      <div data-testid="active-deck-summary" className="flex items-center gap-2.5 rounded-xl px-3 py-2 min-w-0"
-        style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${accent},0.35)` }}>
-        <span className="shrink-0" style={{ fontSize: 18 }}>🎴</span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-bold" style={{ fontSize: 12.5, color: '#f3ead3' }} title={d?.name ?? undefined}>
-            {!st.loaded ? 'Kraunama…' : d ? d.name : 'Nepasirinkta aktyvi kaladė'}
+      <div data-testid="active-deck-summary" className="flex items-center min-w-0" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${accent},0.35)`, borderRadius: compact ? 10 : 12, padding: compact ? '4px 10px' : '8px 12px', gap: compact ? 8 : 10 }}>
+        <span className="shrink-0" style={{ fontSize: compact ? 14 : 18 }}>🎴</span>
+        {compact ? (
+          <span className="min-w-0 flex-1 flex items-baseline gap-1.5">
+            <span className="truncate font-bold shrink-0" style={{ fontSize: 12, color: '#f3ead3', maxWidth: '45%' }} title={d?.name ?? undefined}>
+              {!st.loaded ? 'Kraunama…' : d ? d.name : 'Nepasirinkta aktyvi kaladė'}
+            </span>
+            <span className="truncate" style={{ fontSize: 10, color: v.valid ? '#4ade80' : '#fbbf24' }}>
+              {d ? `${d.faction ?? '—'} · ${d.cardCount} kortų · ` : ''}{v.valid ? '✓ Paruošta' : `⚠ ${invalidHint ?? v.reason}`}
+            </span>
           </span>
-          <span className="block truncate" style={{ fontSize: 10, color: v.valid ? '#4ade80' : '#fbbf24' }}>
-            {d ? `${d.faction ?? '—'} · ${d.cardCount} kortų · ` : ''}{v.valid ? '✓ Paruošta' : `⚠ ${invalidHint ?? v.reason}`}
+        ) : (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-bold" style={{ fontSize: 12.5, color: '#f3ead3' }} title={d?.name ?? undefined}>
+              {!st.loaded ? 'Kraunama…' : d ? d.name : 'Nepasirinkta aktyvi kaladė'}
+            </span>
+            <span className="block truncate" style={{ fontSize: 10, color: v.valid ? '#4ade80' : '#fbbf24' }}>
+              {d ? `${d.faction ?? '—'} · ${d.cardCount} kortų · ` : ''}{v.valid ? '✓ Paruošta' : `⚠ ${invalidHint ?? v.reason}`}
+            </span>
           </span>
-        </span>
+        )}
         <button data-testid="change-deck" onClick={() => { playUiClick(); setOpen(true) }}
-          className="rvn-press shrink-0 px-3 py-1.5 rounded-lg font-bold" style={{ fontSize: 11, background: `rgba(${accent},0.14)`, border: `1px solid rgba(${accent},0.5)`, color: `rgb(${accent})` }}>
+          className="rvn-press shrink-0 rounded-lg font-bold" style={{ fontSize: compact ? 10 : 11, padding: compact ? '3px 10px' : '6px 12px', background: `rgba(${accent},0.14)`, border: `1px solid rgba(${accent},0.5)`, color: `rgb(${accent})` }}>
           Keisti
         </button>
       </div>
