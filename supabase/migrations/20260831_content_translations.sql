@@ -46,8 +46,8 @@ $$;
 -- LT SNAPSHOT'AI (iš esamų lentelių; LT vis tiek lieka fallback'as)
 -- ══════════════════════════════════════════════════════════════════════════════
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'daily_quest', key, 'lt', 'title', title from public.daily_quest_defs
-union all select 'daily_quest', key, 'lt', 'description', description from public.daily_quest_defs
+select 'daily_quest', quest_key, 'lt', 'title', title from public.daily_quest_defs
+union all select 'daily_quest', quest_key, 'lt', 'description', description from public.daily_quest_defs
 union all select 'daily_task', id::text, 'lt', 'title', title from public.daily_task_templates
 union all select 'daily_task', id::text, 'lt', 'description', description from public.daily_task_templates
 union all select 'shop_item', slug, 'lt', 'name', name from public.shop_items
@@ -299,10 +299,22 @@ begin
 end $$;
 
 -- ── Frakcijų vertimai TAIP PAT pagal slug (kolekcijos filtras neturi id) ────
-insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'faction', f.slug, ct.locale, 'name', ct.value
-from public.factions f
-join public.content_translations ct
-  on ct.owner_type = 'faction' and ct.owner_id = f.id::text and ct.field = 'name'
-where f.slug is not null
-on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
+-- Apsauga: jei factions.slug stulpelio nėra – blokas praleidžiamas.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='factions' and column_name='slug'
+  ) then
+    execute $sql$
+      insert into public.content_translations (owner_type, owner_id, locale, field, value)
+      select 'faction', f.slug, ct.locale, 'name', ct.value
+      from public.factions f
+      join public.content_translations ct
+        on ct.owner_type = 'faction' and ct.owner_id = f.id::text and ct.field = 'name'
+      where f.slug is not null
+      on conflict (owner_type, owner_id, locale, field) do update
+        set value = excluded.value, updated_at = now()
+    $sql$;
+  end if;
+end $$;
