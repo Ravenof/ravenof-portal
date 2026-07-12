@@ -14,7 +14,8 @@ import { X } from 'lucide-react'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
-import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_LT, type ShopItem } from '@/lib/gamification/shop'
+import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
+import { useT } from '@/lib/i18n/react'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
@@ -23,16 +24,17 @@ import { SmartImg } from '@/components/ui/SmartImg'
 const RARITY_COL: Record<string, string> = { basic: '148,163,184', rare: '96,165,250', premium: '139,92,246', epic: '139,92,246', legendary: '240,180,41' }
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
-type Section = { key: string; label: string }
+type Section = { key: string; labelKey: string }
 // 'decks' DB sekcija pašalinta (faction_deck prekių niekada nebuvo — tuščia
 // kategorija klaidino; kalades parduoda Starter sekcija žemiau)
 const ALL_SECTIONS: Section[] = [
-  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks').map((s) => ({ key: s.key, label: s.label })),
-  { key: 'daily', label: '🔥 Dienos kortos' },
-  { key: 'starter', label: '🃏 Kaladės' },
+  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks').map((s) => ({ key: s.key, labelKey: s.labelKey })),
+  { key: 'daily', labelKey: 'shop.sections.daily' },
+  { key: 'starter', labelKey: 'shop.sections.starter' },
 ]
 
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [items, setItems] = useState<ShopItem[]>([])
   const [deal, setDeal] = useState<DealCard[]>([])
@@ -72,7 +74,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     if (busy) return; setBusy(true); playUiClick()
     const r = await purchaseShopItem(it.id, cur)
     if (r && 'ok' in r) { flash(`Nupirkta: ${it.name}`); onPurchased?.(); refresh() }
-    else if (r && 'error' in r) flash(PURCHASE_ERR_LT[r.error] ?? 'Nepavyko nupirkti.', true)
+    else if (r && 'error' in r) flash(PURCHASE_ERR_KEY[r.error] ? t(PURCHASE_ERR_KEY[r.error]) : t('shop.buyFailed'), true)
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, refresh, onPurchased])
@@ -80,8 +82,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const buyDeal = useCallback(async (c: DealCard) => {
     if (busy) return; setBusy(true); playUiClick()
     const r = await buyDailyDealCard(c.id)
-    if ('error' in r) flash(r.error === 'not enough gold' ? 'Per mažai sidabro.' : 'Nepavyko nupirkti.', true)
-    else { flash(`${c.name} pridėta į kolekciją!`); onPurchased?.(); refresh() }
+    if ('error' in r) flash(r.error === 'not enough gold' ? t('shop.notEnoughSilver') : t('shop.buyFailed'), true)
+    else { flash(t('shop.addedToCollection', { name: c.name })); onPurchased?.(); refresh() }
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, refresh, onPurchased])
@@ -89,8 +91,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const claimStarter = useCallback(async (s: StarterDeck) => {
     if (busy) return; setBusy(true); playUiClick()
     const r = await claimStarterDeck(s.id)
-    if ('error' in r) flash(r.error === 'already claimed' ? 'Jau paimta.' : 'Nepavyko paimti.', true)
-    else { flash('Kaladė sukurta „Mano kaladėse"! 🃏'); onPurchased?.(); refresh() }
+    if ('error' in r) flash(r.error === 'already claimed' ? t('shop.alreadyClaimed') : t('shop.claimFailed'), true)
+    else { flash(t('shop.deckCreated')); onPurchased?.(); refresh() }
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, refresh, onPurchased])
@@ -132,11 +134,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
         {/* ── Antraštė ── */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
-          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,19px)', letterSpacing: '0.08em' }}>PARDUOTUVĖ</h2>
+          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,19px)', letterSpacing: '0.08em' }}>{t('shop.title')}</h2>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(203,213,225,0.35)', color: '#f3ead3' }}>🪙 {bal.silver.toLocaleString('lt-LT')}</span>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>💎 {bal.rubies.toLocaleString('lt-LT')}</span>
-            <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+            <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
           </div>
         </div>
 
@@ -149,7 +151,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               {ALL_SECTIONS.map((s) => (
                 <button key={s.key} onClick={() => { playUiClick(); setSection(s.key); setSel(null); setToast(null) }}
                   className="rvn-press shrink-0 w-full text-left px-2.5 py-2 rounded-xl font-bold"
-                  style={{ fontSize: 11, background: section === s.key ? 'rgba(240,180,41,0.2)' : 'rgba(10,8,16,0.8)', border: `1px solid ${section === s.key ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.08)'}`, color: section === s.key ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>{s.label}</button>
+                  style={{ fontSize: 11, background: section === s.key ? 'rgba(240,180,41,0.2)' : 'rgba(10,8,16,0.8)', border: `1px solid ${section === s.key ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.08)'}`, color: section === s.key ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>{t(s.labelKey)}</button>
               ))}
             </div>
             {packInv > 0 && (
@@ -164,7 +166,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
           {/* CENTRAS: prekės */}
           <div className="min-h-0 overflow-y-auto">
             {section === 'daily' ? (
-              deal.length === 0 ? <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Šiandienos pasiūlymas kraunasi…</p> : (
+              deal.length === 0 ? <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>{t('shop.dealLoading')}</p> : (
                 <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))' }}>
                   {deal.map((c) => {
                     const col = rarityColor(c.rarity)
@@ -202,7 +204,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               </div>
             ) : (
               <>
-                {shopShown.length === 0 && <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Šioje kategorijoje prekių nėra.</p>}
+                {shopShown.length === 0 && <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>{t('shop.categoryEmpty')}</p>}
                 <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
                   {shopShown.map((it) => {
                     const rc = it.rarity ? RARITY_COL[it.rarity] ?? '240,180,41' : '240,180,41'
@@ -254,7 +256,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   </div>
                   <p className="font-bold text-center" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effDeal.name}</p>
                   <p className="text-center" style={{ fontSize: 10, color: rarityColor(effDeal.rarity) }}>{effDeal.rarity ?? ''}{effDeal.faction ? ` · ${effDeal.faction}` : ''}</p>
-                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>Dienos pasiūlymas — pavienė korta tiesiai į kolekciją. Atsinaujina kasdien.</p>
+                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('shop.dailyDealInfo')}</p>
                   {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
                 </div>
                 <button onClick={() => buyDeal(effDeal)} disabled={busy || effDeal.bought || bal.silver < effDeal.priceGold}
@@ -272,7 +274,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effStarter.name}</p>
                   <p style={{ fontSize: 10, color: '#86efac' }}>{effStarter.faction ?? ''} · {effStarter.cardCount} kortų</p>
                   {effStarter.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{effStarter.description}</p>}
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.</p>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('shop.starterInfo')}</p>
                   {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
                 </div>
                 <button onClick={() => claimStarter(effStarter)} disabled={busy || effStarter.claimed || (effStarter.priceGold > 0 && bal.silver < effStarter.priceGold)}
@@ -313,7 +315,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                 </div>
                 <div className="shrink-0 mt-2 flex flex-col gap-1.5">
                   {ownedShopItem(effShop) && (
-                    <div className="w-full rounded-xl py-2.5 text-center font-bold" style={{ fontSize: 12, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>✓ Jau turi — užsidėk Kosmetikoje</div>
+                    <div className="w-full rounded-xl py-2.5 text-center font-bold" style={{ fontSize: 12, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>{t('shop.ownedEquip')}</div>
                   )}
                   {!ownedShopItem(effShop) && effShop.prices.silver != null && (
                     <button onClick={() => buyShop(effShop, 'silver')} disabled={busy || bal.silver < effShop.prices.silver}
@@ -328,12 +330,12 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                     </button>
                   )}
                   {effShop.prices.real_money != null && effShop.prices.silver == null && effShop.prices.rubies == null && (
-                    <button disabled className="w-full rounded-xl font-extrabold" style={{ minHeight: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>€{effShop.prices.real_money.toFixed(2)} (netrukus)</button>
+                    <button disabled className="w-full rounded-xl font-extrabold" style={{ minHeight: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>{t('shop.comingSoon', { price: effShop.prices.real_money.toFixed(2) })}</button>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pasirink prekę.</div>
+              <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('shop.pickItem')}</div>
             )}
           </div>
         </div>

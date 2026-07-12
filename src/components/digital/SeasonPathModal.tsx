@@ -11,6 +11,7 @@ import { X, Lock, Check } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getSeasonPath, claimSeasonReward, unlockSeasonPass, type SeasonPath, type SeasonRow, type SeasonSide } from '@/lib/gamification/seasonPath'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT } from '@/lib/i18n/react'
 
 function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; size?: number }) {
   if (!payload?.length) return <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>—</span>
@@ -22,6 +23,7 @@ function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; siz
 }
 
 export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [sp, setSp] = useState<SeasonPath | null>(null)
   const [busy, setBusy] = useState(false)
@@ -94,11 +96,11 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
         <div className="px-4 pt-3 pb-2.5 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
           <div className="flex items-center justify-between gap-2">
             <h2 className="min-w-0 truncate" style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,18px)', letterSpacing: '0.06em' }}>
-              SEZONO KELIAS <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {sp?.season.title ?? ''}</span>
+              {t('quests.season.title')} <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {sp?.season.title ?? ''}</span>
             </h2>
             <div className="flex items-center gap-2 shrink-0">
-              {daysLeft !== null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>⏳ liko {daysLeft} d.</span>}
-              <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+              {daysLeft !== null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>{t('quests.season.daysLeft', { count: daysLeft })}</span>}
+              <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-1.5">
@@ -118,7 +120,7 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
             <div className="shrink-0 grid mb-1" style={{ gridTemplateColumns: '52px 1fr' }}>
               <span />
               <span className="flex justify-between px-1 text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                <span>Slink taką →</span>
+                <span>{t('quests.path.scrollTrack')}</span>
                 <span style={{ color: sp?.hasPass ? 'var(--gold)' : undefined }}>{sp?.hasPass ? '✓ Sezono pasas aktyvus' : 'Sezono pasas neaktyvus'}</span>
               </span>
             </div>
@@ -175,10 +177,10 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
                         ) : !sp?.hasPass ? <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} /> : null}
                     </div>
                   </div>
-                  {!selected.reached && <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Pasieksi šį lygį surinkęs {selected.xpRequired.toLocaleString()} XP.</p>}
+                  {!selected.reached && <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('quests.path.reachAt', { xp: selected.xpRequired.toLocaleString() })}</p>}
                 </>
-              ) : <p className="text-center py-6" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sp ? 'Pasirink lygį take.' : 'Kraunama…'}</p>}
-              <p style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>Sezono pasas atrakina apatinę atlygių eilę — pasieki abu atlygius kartu su nemokamais. Sezonas atsinaujina kas ketvirtį.</p>
+              ) : <p className="text-center py-6" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sp ? t('quests.path.pickLevel') : t('common.loading')}</p>}
+              <p style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>{t('quests.path.passInfo')}</p>
             </div>
             <div className="shrink-0 mt-2 flex flex-col gap-1.5">
               {!sp?.hasPass && (
@@ -189,7 +191,7 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
               )}
               <button onClick={claimAll} disabled={busy || !anyClaimable} className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-40"
                 style={{ minHeight: 40, fontSize: 12, background: anyClaimable ? 'linear-gradient(135deg, rgba(240,180,41,0.28), rgba(240,180,41,0.1))' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                {busy ? 'Skiriama…' : 'Atsiimti viską'}
+                {busy ? t('quests.path.claiming') : t('quests.path.claimAll')}
               </button>
             </div>
           </div>

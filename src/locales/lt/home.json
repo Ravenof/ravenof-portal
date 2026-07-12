@@ -1,6 +1,12 @@
 {
   "activeDeck": "Aktyvi kaladė",
   "avatarsFrames": "Avatarai ir rėmai",
+  "banner": {
+    "plusPack": " + 🎁 pakuotė",
+    "ready": "Prisijungimo atlygis paruoštas!",
+    "streak": "{{count}} d. serija",
+    "tomorrowGold": "Rytoj: 🪙 {{gold}}"
+  },
   "cardsCount_few": "{{count}} kortos",
   "cardsCount_one": "{{count}} korta",
   "cardsCount_other": "{{count}} kortų",

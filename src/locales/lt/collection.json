@@ -27,6 +27,17 @@
   "openPackCta": "🎁 Atplėšti pakuotę",
   "owned": "Turimos",
   "ownedCount": "Turima: ×{{count}}",
+  "pack": {
+    "carouselHint": "Tempk — kortos sukasi ratu · bakstelk kortą apžiūrai",
+    "errorPrefix": "Klaida: {{msg}}",
+    "noPack": "Nebeturi šios pakuotės.",
+    "openCta": "🎁 Atplėšti pakuotę",
+    "opening": "ATPLĖŠIAMA…",
+    "swipeToOpen": "PERBRAUK PIRŠTU PER PAKUOTĖS VIRŠŲ",
+    "tapEnd": "Spustelėk – pabaiga",
+    "tapNext": "Spustelėk – kita korta",
+    "toCollection": "Į kolekciją"
+  },
   "packsN": "Pakai ({{count}})",
   "pickCard": "Pasirink kortą.",
   "rarity": "Retumas",

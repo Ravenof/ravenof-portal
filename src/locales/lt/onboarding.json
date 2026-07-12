@@ -17,6 +17,21 @@
   "decksFailedBody": "Patikrink interneto ryšį ir bandyk dar kartą.",
   "decksFailedTitle": "Kaladžių nepavyko pažadinti",
   "enterRavenof": "⚔ Žengti į Ravenof",
+  "gate": {
+    "continueWithout": "Tęsti be atsisiuntimo (trūkstami failai bus siunčiami žaidžiant)",
+    "doneSub": "Kortos ir garsai dabar veiks akimirksniu — net be interneto.",
+    "doneTitle": "✓ Turinys atsisiųstas!",
+    "downloadCta": "⬇ ATSISIŲSTI",
+    "downloading": "Siunčiama… neišjunk programos.",
+    "failedN": "nepavyko: {{count}}",
+    "filesBytes": "{{count}} failų{{size}}",
+    "onceNote": "Siunčiama vieną kartą. Video intarpus vėliau rasi ⚙️ Nustatymuose („Viskas + video“).",
+    "progressFiles": "{{done}}/{{total}} failų",
+    "prompt": "Kad žaidimas veiktų greitai ir be interneto, reikia atsisiųsti kortas ir garsus:",
+    "retry": "↻ Bandyti dar kartą",
+    "someFailed": "Dalies failų atsisiųsti nepavyko.",
+    "title": "Žaidimo turinys"
+  },
   "inspectDeck": "Apžiūrėti kaladę",
   "keepLooking": "Žiūrėti toliau",
   "loadingCards": "Kraunamos kortos…",
@@ -30,7 +45,38 @@
   "retryShort": "↻ Bandyti vėl",
   "saving": "Saugoma…",
   "startWith": "Pradėti su „{{name}}“?",
+  "starter": {
+    "alreadyClaimed": "Šią kaladę jau turi.",
+    "claimFailed": "Nepavyko pasiimti: {{msg}}",
+    "claimFree": "🎁 Pasiimti kaladę nemokamai",
+    "noAvatars": "Avatarų dar nėra — galėsi pasirinkti vėliau parduotuvėje.",
+    "pickAvatarSub": "Avataras atstovaus tau kovose. Vėliau galėsi pakeisti parduotuvėje.",
+    "pickAvatarTitle": "😀 PASIRINK AVATARĄ",
+    "pickDeckCta": "Pasirink kaladę",
+    "pickDeckSub": "Viena starter kaladė — nemokamai. Su ja išmoksi žaisti mokymų kovoje.",
+    "pickDeckTitle": "🎓 PASIRINK SAVO KALADĘ",
+    "playstyle": {
+      "death": "Nekromantija — kapinynas yra tavo ginklas, padarai grįžta.",
+      "demons": "Agresija ir prakeiksmai — užversk priešo kaladę prakeiksmais.",
+      "east": "Technika ir tempas — tiksli žala reikiamu metu.",
+      "fallback": "Subalansuota pradžios kaladė.",
+      "inquisition": "Kontrolė ir šarvai — naikink grėsmes, bausk už burtus.",
+      "light": "Gynyba ir gydymas — atlaikyk spaudimą ir laimėk ilgą kovą.",
+      "mystic": "Burtai ir kombinacijos — valdyk kovą galingais kerais.",
+      "thieves": "Greitis ir auksas — smok pirmas ir apiplėšk priešą.",
+      "vryhiok": "Goblinų spiečius — užpildyk lentą pigiais padarais."
+    },
+    "skipFight": "Praleisti ir kautis →",
+    "toTutorial": "⚔ Į mokymų kovą!"
+  },
   "starterDecksAria": "Starter kaladės",
   "strengths": "Stiprybės",
-  "weaknesses": "Silpnybės"
+  "weaknesses": "Silpnybės",
+  "welcome": {
+    "claim": "Atsiimti dovaną",
+    "claimed": "✓ Atsiimta!",
+    "claiming": "Skiriama…",
+    "sub": "Pradžios dovana naujam kovotojui",
+    "title": "Sveikas atvykęs!"
+  }
 }

@@ -5,10 +5,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { getLeaderboard } from '@/lib/ranked/client'
 import type { LeaderboardRow } from '@/lib/ranked/types'
 import { MEDAL_LABEL_LT } from '@/lib/ranked/rank'
+import { useT } from '@/lib/i18n/react'
 
 type Filter = 'top100' | 'around' | string // faction name
 
 export function Leaderboard({ revealBots = false }: { revealBots?: boolean }) {
+  const t = useT()
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null)
   const [filter, setFilter] = useState<Filter>('top100')
 
@@ -50,9 +52,9 @@ export function Leaderboard({ revealBots = false }: { revealBots?: boolean }) {
       </div>
 
       {rows === null ? (
-        <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
+        <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
       ) : view.length === 0 ? (
-        <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>Kol kas tuščia — sužaisk kovų!</p>
+        <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>{t('ranked.leaderboardEmpty')}</p>
       ) : (
         <div className="space-y-1.5">
           {view.map((r) => (

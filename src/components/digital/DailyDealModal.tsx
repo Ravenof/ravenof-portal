@@ -6,6 +6,7 @@ import { getDailyDeal, buyDailyDealCard, type DealCard } from '@/lib/cosmetics'
 import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 function DealArt({ card }: { card: DealCard }) {
   const [bad, setBad] = useState(false)
@@ -24,6 +25,7 @@ function DealArt({ card }: { card: DealCard }) {
 }
 
 export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClose: () => void; onSpent?: () => void }) {
+  const t = useT()
   const [cards, setCards] = useState<DealCard[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -38,8 +40,8 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
     setBusy(c.id); playUiClick()
     const r = await buyDailyDealCard(c.id)
     setBusy(null)
-    if ('error' in r) { playError(); setMsg(r.error === 'not enough gold' ? 'Per mažai aukso.' : 'Nepavyko nupirkti.'); return }
-    playSuccess(); setLocalGold(r.gold); setMsg(`${c.name} pridėta į kolekciją!`)
+    if ('error' in r) { playError(); setMsg(r.error === 'not enough gold' ? t('common.cosmetics.notEnoughGold') : t('common.cosmetics.buyFailed')); return }
+    playSuccess(); setLocalGold(r.gold); setMsg(t('common.dailyDeal.added', { name: c.name }))
     setCards((prev) => prev.map((x) => x.id === c.id ? { ...x, bought: true } : x)); onSpent?.()
   }
 
@@ -47,7 +49,7 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
       <div className="relative w-[min(480px,95vw)] max-h-[88vh]" style={{ borderRadius: 18, background: 'rgba(251,146,60,0.32)', padding: 2 }} onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-6 overflow-y-auto max-h-[88vh]" style={{ borderRadius: 17, background: 'radial-gradient(120% 90% at 50% 0%, rgba(251,146,60,0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg, #15101f, #0a0810)' }}>
-          <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em' }}>🔥 DIENOS PASIŪLYMAS</p>
+          <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em' }}>{t('common.dailyDeal.title')}</p>
           <p className="text-[11px] text-center mb-4" style={{ color: 'var(--text-muted)' }}>Atsinaujina kasdien · 🪙 {localGold.toLocaleString()} aukso</p>
 
           {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
@@ -77,7 +79,7 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
           </div>
 
           {msg && <p className="text-[11px] text-center mt-3" style={{ color: '#fdba74' }}>{msg}</p>}
-          <button onClick={() => { playUiClick(); onClose() }} className="mt-4 mx-auto block text-xs" style={{ color: 'var(--text-muted)' }}>Uždaryti</button>
+          <button onClick={() => { playUiClick(); onClose() }} className="mt-4 mx-auto block text-xs" style={{ color: 'var(--text-muted)' }}>{t('common.close')}</button>
         </div>
       </div>
     </div>

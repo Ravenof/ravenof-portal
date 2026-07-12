@@ -4,16 +4,51 @@
   "close": "Close",
   "confirm": "Confirm",
   "continue": "Continue",
+  "cosmetics": {
+    "avatars": "Player avatars",
+    "boards": "Boards",
+    "buyFailed": "Purchase failed.",
+    "cardBacks": "Card backs",
+    "categoryEmpty": "Nothing in this category yet.",
+    "info": "Your chosen card back and avatar are visible in battles to you and your opponent.",
+    "notEnoughGold": "Not enough gold.",
+    "pick": "Pick a cosmetic.",
+    "title": "✨ COSMETICS",
+    "voicePreview": "🔊 Voice preview"
+  },
+  "dailyDeal": {
+    "added": "{{name}} added to your collection!",
+    "title": "🔥 DAILY DEAL"
+  },
   "delete": "Delete",
   "error": "Something went wrong",
+  "levelRoad": {
+    "info": "You earn XP from battles (wins give more) and quests. Level rewards are granted automatically when reached.",
+    "title": "⬆ LEVEL ROAD"
+  },
   "loadTimeoutBody": "Check your internet connection and try again.",
   "loadTimeoutTitle": "This is taking too long",
   "loading": "Loading…",
   "no": "No",
+  "notif": {
+    "daysAgo": "{{count}} d ago",
+    "empty": "No notifications yet.",
+    "hoursAgo": "{{count}} h ago",
+    "justNow": "just now",
+    "minAgo": "{{count}} min ago",
+    "title": "NOTIFICATIONS"
+  },
   "or": "or",
+  "picker": {
+    "empty": "No options"
+  },
   "player": "Player",
   "retry": "Try again",
   "retryFull": "↻ Try again",
+  "rewardState": {
+    "claimed": " (claimed)",
+    "locked": " (locked)"
+  },
   "rotate": {
     "subtitle": "Ravenof is played in landscape",
     "subtitleOnboarding": "Ravenof Digital is designed to be played in landscape",

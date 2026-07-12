@@ -16,6 +16,21 @@
   "decksFailedBody": "Check your internet connection and try again.",
   "decksFailedTitle": "The decks could not be awakened",
   "enterRavenof": "⚔ Step into Ravenof",
+  "gate": {
+    "continueWithout": "Continue without downloading (missing files load while playing)",
+    "doneSub": "Cards and sounds now load instantly — even offline.",
+    "doneTitle": "✓ Content downloaded!",
+    "downloadCta": "⬇ DOWNLOAD",
+    "downloading": "Downloading… don't close the app.",
+    "failedN": "failed: {{count}}",
+    "filesBytes": "{{count}} files{{size}}",
+    "onceNote": "Downloaded once. You'll find video content later in ⚙️ Settings (“Everything + video”).",
+    "progressFiles": "{{done}}/{{total}} files",
+    "prompt": "For the game to run fast and work offline, cards and sounds need to be downloaded:",
+    "retry": "↻ Try again",
+    "someFailed": "Some files failed to download.",
+    "title": "Game content"
+  },
   "inspectDeck": "Inspect deck",
   "keepLooking": "Keep looking",
   "loadingCards": "Loading cards…",
@@ -29,7 +44,38 @@
   "retryShort": "↻ Retry",
   "saving": "Saving…",
   "startWith": "Start with “{{name}}”?",
+  "starter": {
+    "alreadyClaimed": "You already own this deck.",
+    "claimFailed": "Could not claim: {{msg}}",
+    "claimFree": "🎁 Claim the deck for free",
+    "noAvatars": "No avatars yet — you can pick one later in the shop.",
+    "pickAvatarSub": "Your avatar represents you in battles. You can change it later in the shop.",
+    "pickAvatarTitle": "😀 CHOOSE AN AVATAR",
+    "pickDeckCta": "Pick a deck",
+    "pickDeckSub": "One starter deck — free. You'll learn to play with it in the tutorial battle.",
+    "pickDeckTitle": "🎓 CHOOSE YOUR DECK",
+    "playstyle": {
+      "death": "Necromancy — the graveyard is your weapon, creatures return.",
+      "demons": "Aggression and curses — flood the enemy deck with curses.",
+      "east": "Technique and tempo — precise damage at the right moment.",
+      "fallback": "A balanced starting deck.",
+      "inquisition": "Control and armor — remove threats, punish spellcasting.",
+      "light": "Defense and healing — weather the pressure and win the long battle.",
+      "mystic": "Spells and combos — control the battle with powerful magic.",
+      "thieves": "Speed and gold — strike first and rob the enemy.",
+      "vryhiok": "A goblin swarm — fill the board with cheap creatures."
+    },
+    "skipFight": "Skip and fight →",
+    "toTutorial": "⚔ To the tutorial battle!"
+  },
   "starterDecksAria": "Starter decks",
   "strengths": "Strengths",
-  "weaknesses": "Weaknesses"
+  "weaknesses": "Weaknesses",
+  "welcome": {
+    "claim": "Claim the gift",
+    "claimed": "✓ Claimed!",
+    "claiming": "Claiming…",
+    "sub": "A starting gift for a new fighter",
+    "title": "Welcome!"
+  }
 }

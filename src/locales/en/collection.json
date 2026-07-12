@@ -27,6 +27,17 @@
   "openPackCta": "🎁 Open a pack",
   "owned": "Owned",
   "ownedCount": "Owned: ×{{count}}",
+  "pack": {
+    "carouselHint": "Drag — the cards spin in a circle · tap a card to inspect",
+    "errorPrefix": "Error: {{msg}}",
+    "noPack": "You no longer have this pack.",
+    "openCta": "🎁 Open the pack",
+    "opening": "OPENING…",
+    "swipeToOpen": "SWIPE YOUR FINGER ACROSS THE TOP OF THE PACK",
+    "tapEnd": "Tap — finish",
+    "tapNext": "Tap — next card",
+    "toCollection": "To collection"
+  },
   "packsN": "Packs ({{count}})",
   "pickCard": "Pick a card.",
   "rarity": "Rarity",

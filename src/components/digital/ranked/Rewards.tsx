@@ -21,8 +21,10 @@ import { MILESTONE_REWARDS, summarizePayload } from '@/lib/ranked/rewards'
 import { formatRank } from '@/lib/ranked/rank'
 import { claimReward, getClaimState } from '@/lib/ranked/client'
 import { playRanked } from '@/lib/ranked/sound'
+import { useT } from '@/lib/i18n/react'
 
 export function Rewards({ bestRankStep, onChanged }: { bestRankStep: number; onChanged?: () => void }) {
+  const t = useT()
   const [claimed, setClaimed] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -60,10 +62,10 @@ export function Rewards({ bestRankStep, onChanged }: { bestRankStep: number; onC
               <button onClick={() => doClaim(rw.key)} disabled={busy === rw.key}
                 className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-40"
                 style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.55)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                {busy === rw.key ? '…' : 'Atsiimti'}
+                {busy === rw.key ? '…' : t('ranked.claim')}
               </button>
             ) : (
-              <span className="text-[11px] px-2.5 py-1 rounded-lg" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.08)' }}>Užrakinta</span>
+              <span className="text-[11px] px-2.5 py-1 rounded-lg" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.08)' }}>{t('ranked.locked')}</span>
             )}
           </div>
         )

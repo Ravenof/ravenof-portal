@@ -8,6 +8,7 @@ import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 const PACK_W = 220
 const PACK_H = 300
@@ -111,6 +112,7 @@ function CardArt({ card }: { card: OpenedCard }) {
 export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
   packId: string; packName: string; packImage?: string | null; onClose: () => void; onOpened?: () => void
 }) {
+  const t = useT()
   const [packImgBad, setPackImgBad] = useState(false)
   const [drag, setDrag] = useState<{ t: number; fx: number; dir: 1 | -1 }>({ t: 0, fx: 0, dir: 1 })
   const [fired, setFired] = useState(false)
@@ -134,7 +136,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
     setOpening(false)
     if ('error' in r) {
       const e = r.error || ''
-      setError(/no pack to open/i.test(e) ? 'Nebeturi šios pakuotės.' : ('Klaida: ' + e))
+      setError(/no pack to open/i.test(e) ? t('collection.pack.noPack') : t('collection.pack.errorPrefix', { msg: e }))
       firedRef.current = false
       setFired(false)
       setDrag({ t: 0, fx: 0, dir: 1 })
@@ -201,13 +203,13 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
   if (typeof document === 'undefined') return null
   return createPortal(
     <div className="fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.93)' }}>
-      <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="absolute top-4 right-4 text-base px-3 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
+      <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="absolute top-4 right-4 text-base px-3 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
 
       {/* SEALED — folija plyšta po pirštu */}
       {!cards && (
         <div className="flex flex-col items-center gap-5 select-none">
           <p className="text-sm font-bold text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-            {opening ? 'ATPLĖŠIAMA…' : 'PERBRAUK PIRŠTU PER PAKUOTĖS VIRŠŲ'}
+            {opening ? t('collection.pack.opening') : t('collection.pack.swipeToOpen')}
           </p>
           <div ref={packRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
             className="relative cursor-grab active:cursor-grabbing" style={{ width: PACK_W, height: PACK_H, touchAction: 'none' }}>
@@ -261,7 +263,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
               </motion.div>
             )}
           </div>
-          {!opening && <button onClick={doOpen} className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>🎁 Atplėšti pakuotę</button>}
+          {!opening && <button onClick={doOpen} className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em' }}>{t('collection.pack.openCta')}</button>}
           {error && <p className="text-xs text-center max-w-[260px]" style={{ color: '#fca5a5' }}>{error}</p>}
         </div>
       )}
@@ -298,7 +300,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
               </div>
             </motion.div>
           </div>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{revealIdx + 1 < cards.length ? 'Spustelėk – kita korta' : 'Spustelėk – pabaiga'}</p>
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{revealIdx + 1 < cards.length ? t('collection.pack.tapNext') : t('collection.pack.tapEnd')}</p>
           <button onClick={(e) => { e.stopPropagation(); playUiClick(); setRevealIdx(cards.length) }} className="text-[11px] underline" style={{ color: 'var(--text-muted)' }}>Praleisti</button>
         </div>
       )}
@@ -341,6 +343,7 @@ function CarouselCard({ c, i, n, rot, radius, onTap }: {
 }
 
 function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => void }) {
+  const t = useT()
   const rot = useMotionValue(0)
   const [zoom, setZoom] = useState<number | null>(null)
   const dragRef = useRef<{ x: number; t: number; v: number; moved: boolean } | null>(null)
@@ -393,11 +396,11 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
           ))}
         </div>
         <p className="absolute bottom-0 left-0 right-0 text-center text-[10px] pointer-events-none" style={{ color: 'rgba(240,180,41,0.55)' }}>
-          Tempk — kortos sukasi ratu · bakstelk kortą apžiūrai
+          {t('collection.pack.carouselHint')}
         </p>
       </div>
 
-      <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>Į kolekciją</button>
+      <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.03] active:scale-95" style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.06em' }}>{t('collection.pack.toCollection')}</button>
 
       {/* priartinta korta */}
       {zoom != null && cards[zoom] && (

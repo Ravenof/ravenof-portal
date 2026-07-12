@@ -7,14 +7,15 @@
 // ══════════════════════════════════════════════════════════════════════════════
 import { create } from 'zustand'
 import { createClient } from '@/lib/supabase/client'
+import { t } from '@/lib/i18n/core'
 
 export type Presence = 'online' | 'offline' | 'away' | 'dnd'
-export const PRESENCE_META: Record<Presence | 'hidden', { name: string; color: string }> = {
-  online:  { name: 'Prisijungęs',  color: '#34d399' },
-  away:    { name: 'Pasitraukęs',  color: '#fbbf24' },
-  dnd:     { name: 'Netrukdyti',   color: '#ef4444' },
-  offline: { name: 'Neprisijungęs', color: '#64748b' },
-  hidden:  { name: 'Nematomas',    color: '#64748b' },
+export const PRESENCE_META: Record<Presence | 'hidden', { get name(): string; color: string }> = {
+  online:  { get name() { return t('social.presence.online') },  color: '#34d399' },
+  away:    { get name() { return t('social.presence.away') },    color: '#fbbf24' },
+  dnd:     { get name() { return t('social.presence.dnd') },     color: '#ef4444' },
+  offline: { get name() { return t('social.presence.offline') }, color: '#64748b' },
+  hidden:  { get name() { return t('social.presence.hidden') },  color: '#64748b' },
 }
 
 export type ChatFriendInfo = { userId: string; username: string; displayName: string | null; avatar: string | null; presence: Presence }

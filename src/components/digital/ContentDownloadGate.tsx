@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getMediaManifest, diffMissing, downloadMedia, fmtMB, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 const SILENT_LIMIT = 10   // iki tiek trūkstamų failų — siunčiam tyliai, be popup
@@ -22,6 +23,7 @@ const SILENT_LIMIT = 10   // iki tiek trūkstamų failų — siunčiam tyliai, b
 type Phase = 'checking' | 'silent' | 'prompt' | 'downloading' | 'done-wait' | 'hidden'
 
 export function ContentDownloadGate() {
+  const t = useT()
   const [phase, setPhase] = useState<Phase>('checking')
   const [missing, setMissing] = useState<ManifestEntry[]>([])
   const [dl, setDl] = useState<DlProgress | null>(null)
@@ -32,6 +34,9 @@ export function ContentDownloadGate() {
     ;(async () => {
       try {
         if (typeof caches === 'undefined') { setPhase('hidden'); return }
+        // Automatizacija (Playwright/webdriver): gate praleidžiamas — e2e testai
+        // neturi siųstis media paketo; failai traukiami žaidžiant per SW.
+        if (typeof navigator !== 'undefined' && navigator.webdriver) { setPhase('hidden'); return }
         const manifest = await getMediaManifest()
         if (!alive) return
         if (manifest.length === 0) { setPhase('hidden'); return }   // RPC nepasiekiamas / offline — neblokuojam
@@ -89,18 +94,18 @@ export function ContentDownloadGate() {
       <div className="w-[min(560px,94vw)] rounded-2xl overflow-hidden" style={{ background: `rgba(${GOLD},0.35)`, padding: 2 }}>
         <div className="rounded-2xl px-5 py-5 text-center" style={{ background: `radial-gradient(120% 80% at 50% 0%, rgba(${GOLD},0.14), rgba(10,8,16,0.98) 60%), linear-gradient(160deg,#17111f,#0a0810)` }}>
           <div style={{ fontSize: 40, filter: `drop-shadow(0 0 14px rgba(${GOLD},0.5))` }}>📦</div>
-          <h2 className="rvn-disp font-black uppercase mt-1" style={{ fontSize: 'clamp(15px,3vh,20px)', color: 'var(--gold)', letterSpacing: '0.06em' }}>Žaidimo turinys</h2>
+          <h2 className="rvn-disp font-black uppercase mt-1" style={{ fontSize: 'clamp(15px,3vh,20px)', color: 'var(--gold)', letterSpacing: '0.06em' }}>{t('onboarding.gate.title')}</h2>
 
           {phase === 'prompt' && (
             <>
               <p className="mt-2" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                Kad žaidimas veiktų greitai ir be interneto, reikia atsisiųsti kortas ir garsus:
-                <b style={{ color: '#f3ead3' }}> {missing.length} failų{totalBytes > 0 ? ` · ~${fmtMB(totalBytes)}` : ''}</b>.
+                {t('onboarding.gate.prompt')}
+                <b style={{ color: '#f3ead3' }}> {t('onboarding.gate.filesBytes', { count: missing.length, size: totalBytes > 0 ? ` · ~${fmtMB(totalBytes)}` : '' })}</b>.
               </p>
-              <p className="mt-1" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>Siunčiama vieną kartą. Video intarpus vėliau rasi ⚙️ Nustatymuose („Viskas + video&quot;).</p>
+              <p className="mt-1" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.onceNote')}</p>
               <button onClick={start} className="rvn-press mt-4 w-full rounded-2xl font-black"
                 style={{ minHeight: 'clamp(44px,8vh,56px)', fontSize: 'clamp(13px,2vh,16px)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(${GOLD},0.35)` }}>
-                ⬇ ATSISIŲSTI{totalBytes > 0 ? ` (${fmtMB(totalBytes)})` : ''}
+                {t('onboarding.gate.downloadCta')}{totalBytes > 0 ? ` (${fmtMB(totalBytes)})` : ''}
               </button>
             </>
           )}
@@ -108,18 +113,18 @@ export function ContentDownloadGate() {
           {phase === 'downloading' && (
             <>
               <p className="mt-2" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: 'var(--text-secondary)' }}>
-                {hadFails ? 'Dalies failų atsisiųsti nepavyko.' : 'Siunčiama… neišjunk programos.'}
+                {hadFails ? t('onboarding.gate.someFailed') : t('onboarding.gate.downloading')}
               </p>
               <div className="mt-3 h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid rgba(${GOLD},0.25)` }}>
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: `0 0 10px rgba(${GOLD},0.6)`, transition: 'width .3s' }} />
               </div>
               <p className="mt-1.5 tabular-nums" style={{ fontSize: 'clamp(9px,1.5vh,11px)', color: 'var(--text-muted)' }}>
-                {dl ? `${dl.doneFiles}/${dl.totalFiles} failų${dl.totalBytes > 0 ? ` · ${fmtMB(dl.doneBytes)} / ${fmtMB(dl.totalBytes)}` : ''}${dl.failed > 0 ? ` · nepavyko: ${dl.failed}` : ''}` : '…'}
+                {dl ? `${t('onboarding.gate.progressFiles', { done: dl.doneFiles, total: dl.totalFiles })}${dl.totalBytes > 0 ? ` · ${fmtMB(dl.doneBytes)} / ${fmtMB(dl.totalBytes)}` : ''}${dl.failed > 0 ? ` · ${t('onboarding.gate.failedN', { count: dl.failed })}` : ''}` : '…'}
               </p>
               {hadFails && (
                 <div className="mt-3 flex flex-col gap-1.5">
-                  <button onClick={retry} className="rvn-press w-full rounded-xl py-2.5 font-bold" style={{ fontSize: 12, fontFamily: 'var(--rvn-font-display)', background: `rgba(${GOLD},0.18)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>↻ Bandyti dar kartą</button>
-                  <button onClick={() => { playUiClick(); setPhase('hidden') }} className="rvn-press w-full rounded-xl py-2" style={{ fontSize: 10.5, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>Tęsti be atsisiuntimo (trūkstami failai bus siunčiami žaidžiant)</button>
+                  <button onClick={retry} className="rvn-press w-full rounded-xl py-2.5 font-bold" style={{ fontSize: 12, fontFamily: 'var(--rvn-font-display)', background: `rgba(${GOLD},0.18)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{t('onboarding.gate.retry')}</button>
+                  <button onClick={() => { playUiClick(); setPhase('hidden') }} className="rvn-press w-full rounded-xl py-2" style={{ fontSize: 10.5, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('onboarding.gate.continueWithout')}</button>
                 </div>
               )}
             </>
@@ -127,8 +132,8 @@ export function ContentDownloadGate() {
 
           {phase === 'done-wait' && (
             <>
-              <p className="mt-2 font-bold" style={{ fontSize: 'clamp(12px,2vh,14px)', color: '#86efac' }}>✓ Turinys atsisiųstas!</p>
-              <p className="mt-0.5" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>Kortos ir garsai dabar veiks akimirksniu — net be interneto.</p>
+              <p className="mt-2 font-bold" style={{ fontSize: 'clamp(12px,2vh,14px)', color: '#86efac' }}>{t('onboarding.gate.doneTitle')}</p>
+              <p className="mt-0.5" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.doneSub')}</p>
               <button onClick={() => { playUiClick(); setPhase('hidden') }} className="rvn-press mt-4 w-full rounded-2xl font-black"
                 style={{ minHeight: 'clamp(44px,8vh,56px)', fontSize: 'clamp(13px,2vh,16px)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', background: 'linear-gradient(135deg,#2a9a4c,#134f25)', color: '#eafff0', border: '1px solid rgba(74,222,128,0.7)', boxShadow: '0 0 22px rgba(34,197,94,0.4)' }}>
                 ⚔ PRADĖTI ŽAISTI

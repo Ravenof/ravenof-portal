@@ -9,6 +9,7 @@ import { DigitalDeckBuilder } from './DigitalDeckBuilder'
 import { DigitalMyDecks } from './DigitalMyDecks'
 import { DigitalCommunityDecks } from './DigitalCommunityDecks'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
+import { useT } from '@/lib/i18n/react'
 
 type Tab = 'builder' | 'my' | 'community'
 type InitialDeck = {
@@ -22,14 +23,15 @@ type Props = {
   initialTab: Tab; initialDeck: InitialDeck
 }
 
-const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }[] = [
-  { key: 'builder',   label: 'Deck Builder', icon: Hammer },
-  { key: 'my',        label: 'Mano kaladės', icon: Library },
-  { key: 'community', label: 'Bendruomenė',  icon: Users },
+const TAB_DEFS: { key: Tab; labelKey: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }[] = [
+  { key: 'builder',   labelKey: 'decks.tabs.builder',   icon: Hammer },
+  { key: 'my',        labelKey: 'decks.tabs.my',        icon: Library },
+  { key: 'community', labelKey: 'decks.tabs.community', icon: Users },
 ]
 
 export function DigitalDecks({ userId, cards, factions, collection, initialTab, initialDeck }: Props) {
   const router = useRouter()
+  const t = useT()
   const [tab, setTab] = useState<Tab>(initialTab)
   // „Redaguoti" iš Mano kaladžių keičia tik URL query — komponentas nepersimontuoja,
   // todėl tab/deck reikia sinchronizuoti rankiniu būdu
@@ -39,12 +41,12 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
     <div className="h-full flex flex-col min-h-0">
       {/* Segment tabs — dark fantasy oktagonai (builder'yje slepiam: kiekvienas px kortoms) */}
       {tab !== 'builder' && <div className="grid grid-cols-3 gap-1.5 mb-3 shrink-0">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          const active = tab === t.key
+        {TAB_DEFS.map((tb) => {
+          const Icon = tb.icon
+          const active = tab === tb.key
           const oct = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
           return (
-            <button key={t.key} onClick={() => { playUiClick(); setTab(t.key) }}
+            <button key={tb.key} onClick={() => { playUiClick(); setTab(tb.key) }}
               className="rvn-press block w-full"
               style={{ filter: active ? 'drop-shadow(0 0 8px rgba(240,180,41,0.35))' : 'saturate(0.7) brightness(0.8)', transition: 'filter .15s' }}>
               <span className="block" style={{ clipPath: oct(9), padding: 1.5, background: active ? 'rgba(240,180,41,0.9)' : 'rgba(240,180,41,0.28)' }}>
@@ -53,7 +55,7 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
                     ? 'radial-gradient(120% 140% at 50% 0%, rgba(240,180,41,0.22), transparent 60%), linear-gradient(160deg, rgba(24,18,32,0.98), rgba(8,6,12,0.98))'
                     : 'linear-gradient(160deg, rgba(16,12,22,0.97), rgba(8,6,12,0.98))' }}>
                   <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--gold)' : 'rgba(150,160,185,0.8)' }} />
-                  <span className="rvn-disp truncate" style={{ maxWidth: '100%', fontSize: 10, fontWeight: 800, letterSpacing: '0.03em', color: active ? 'var(--gold)' : 'rgba(150,160,185,0.85)' }}>{t.label}</span>
+                  <span className="rvn-disp truncate" style={{ maxWidth: '100%', fontSize: 10, fontWeight: 800, letterSpacing: '0.03em', color: active ? 'var(--gold)' : 'rgba(150,160,185,0.85)' }}>{t(tb.labelKey)}</span>
                 </span>
               </span>
             </button>

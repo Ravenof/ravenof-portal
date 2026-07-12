@@ -7,13 +7,15 @@ import { X } from 'lucide-react'
 import { getCosmetics, buyCosmetic, equipCosmetic, getAvatarAudio, type Cosmetic, type CosmeticKind, type CosmeticsState, type AvatarAudioMap } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT } from '@/lib/i18n/react'
 
-const KIND_LABEL: Record<CosmeticKind, string> = { card_back: 'Kortų nugarėlės', board: 'Lentos', avatar: 'Žaidėjo avatarai' }
+const KIND_LABEL_KEY: Record<CosmeticKind, string> = { card_back: 'common.cosmetics.cardBacks', board: 'common.cosmetics.boards', avatar: 'common.cosmetics.avatars' }
 const KIND_ICON: Record<CosmeticKind, string> = { card_back: '🂠', board: '▦', avatar: '😀' }
 const KINDS: CosmeticKind[] = ['card_back', 'avatar']  // spec: tik nugarėlės + avatarai (boards paslėpti)
 const RAR_COL: Record<string, string> = { legendary: '#fbbf24', epic: '#c084fc', rare: '#60a5fa' }
 
 export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClose: () => void; onSpent?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [state, setState] = useState<CosmeticsState | null>(null)
   const [tab, setTab] = useState<CosmeticKind>('card_back')
@@ -49,7 +51,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
     setBusy(c.id); playUiClick()
     const r = await buyCosmetic(c.id)
     setBusy(null)
-    if ('error' in r) { playError(); setMsg(r.error === 'not enough gold' ? 'Per mažai aukso.' : 'Nepavyko nupirkti.'); return }
+    if ('error' in r) { playError(); setMsg(r.error === 'not enough gold' ? t('common.cosmetics.notEnoughGold') : t('common.cosmetics.buyFailed')); return }
     playSuccess(); setLocalGold(r.gold); setMsg(`${c.name} nupirkta!`); onSpent?.(); reload()
   }
 
@@ -75,10 +77,10 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
 
           {/* ── Antraštė ── */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(96,165,250,0.2)' }}>
-            <p className="font-bold" style={{ fontSize: 'clamp(14px,2.6vh,18px)', fontFamily: 'var(--rvn-font-display)', color: '#93c5fd', letterSpacing: '0.08em' }}>✨ KOSMETIKA</p>
+            <p className="font-bold" style={{ fontSize: 'clamp(14px,2.6vh,18px)', fontFamily: 'var(--rvn-font-display)', color: '#93c5fd', letterSpacing: '0.08em' }}>{t('common.cosmetics.title')}</p>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>🪙 {localGold.toLocaleString()}</span>
-              <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(96,165,250,0.4)', color: '#93c5fd' }}><X className="w-4 h-4" /></button>
+              <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(96,165,250,0.4)', color: '#93c5fd' }}><X className="w-4 h-4" /></button>
             </div>
           </div>
 
@@ -91,10 +93,10 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                 <button key={k} onClick={() => { playUiClick(); setTab(k); setSelId(null); setMsg(null) }}
                   className="rvn-press shrink-0 w-full text-left px-2.5 py-2.5 rounded-xl font-bold flex items-center gap-2"
                   style={{ fontSize: 11, background: tab === k ? 'rgba(96,165,250,0.22)' : 'rgba(10,8,16,0.8)', border: `1px solid ${tab === k ? 'rgba(96,165,250,0.6)' : 'rgba(255,255,255,0.08)'}`, color: tab === k ? '#93c5fd' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
-                  <span style={{ fontSize: 15 }}>{KIND_ICON[k]}</span> {KIND_LABEL[k]}
+                  <span style={{ fontSize: 15 }}>{KIND_ICON[k]}</span> {t(KIND_LABEL_KEY[k])}
                 </button>
               ))}
-              <p className="mt-auto" style={{ fontSize: 9, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>Pasirinkta nugarėlė ir avataras matomi kovose tau ir varžovui.</p>
+              <p className="mt-auto" style={{ fontSize: 9, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>{t('common.cosmetics.info')}</p>
             </div>
 
             {/* CENTRAS: grid */}
@@ -124,7 +126,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                     </button>
                   )
                 })}
-                {state && items.length === 0 && <p className="col-span-full text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>Šioje kategorijoje dar nieko nėra.</p>}
+                {state && items.length === 0 && <p className="col-span-full text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>{t('common.cosmetics.categoryEmpty')}</p>}
               </div>
             </div>
 
@@ -149,7 +151,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                     </div>
                     {selected.description && <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{selected.description}</p>}
                     {selected.kind === 'avatar' && avAudio[selected.id] && (
-                      <button onClick={() => previewVoice(selected.id)} className="rvn-press px-3 py-1.5 rounded-full font-bold" style={{ fontSize: 10, background: 'rgba(240,180,41,0.14)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>🔊 Balso peržiūra</button>
+                      <button onClick={() => previewVoice(selected.id)} className="rvn-press px-3 py-1.5 rounded-full font-bold" style={{ fontSize: 10, background: 'rgba(240,180,41,0.14)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{t('common.cosmetics.voicePreview')}</button>
                     )}
                     {msg && <p className="px-2 py-1.5 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(96,165,250,0.4)', color: '#93c5fd' }}>{msg}</p>}
                   </div>
@@ -170,7 +172,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{state ? 'Pasirink kosmetiką.' : 'Kraunama…'}</div>
+                <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{state ? t('common.cosmetics.pick') : t('common.loading')}</div>
               )}
             </div>
           </div>

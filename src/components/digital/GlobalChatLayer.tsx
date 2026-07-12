@@ -19,6 +19,8 @@ import { X, Minus, Send, BellOff, Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useChatStore, PRESENCE_META, type ChatMsg } from '@/lib/social/chatStore'
 import { playUiClick } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
+import { formatDate } from '@/lib/i18n/core'
 
 const GOLD = '240,180,41'
 const HEAD = 46
@@ -38,6 +40,7 @@ function Avatar({ url, name, size, ring }: { url: string | null; name: string; s
 }
 
 export function GlobalChatLayer() {
+  const t = useT()
   const pathname = usePathname()
   const st = useChatStore()
   const [drag, setDrag] = useState(false)
@@ -213,24 +216,24 @@ export function GlobalChatLayer() {
             <Avatar url={expandedConv.friend.avatar} name={expandedConv.friend.username} size={28} ring={(PRESENCE_META[expandedConv.friend.presence] ?? PRESENCE_META.offline).color + '99'} />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-bold" style={{ fontSize: 12.5, color: '#f3ead3' }}>{expandedConv.friend.displayName || expandedConv.friend.username}</span>
-              <span className="block truncate" style={{ fontSize: 9.5, color: (PRESENCE_META[expandedConv.friend.presence] ?? PRESENCE_META.offline).color }}>{(PRESENCE_META[expandedConv.friend.presence] ?? PRESENCE_META.offline).name}{battle ? ' · Kova vyksta' : ''}</span>
+              <span className="block truncate" style={{ fontSize: 9.5, color: (PRESENCE_META[expandedConv.friend.presence] ?? PRESENCE_META.offline).color }}>{(PRESENCE_META[expandedConv.friend.presence] ?? PRESENCE_META.offline).name}{battle ? ` · ${t('social.chat.battleOngoing')}` : ''}</span>
             </span>
-            <button aria-label={st.prefs.muted.includes(expandedConv.friend.userId) ? 'Įjungti garsą' : 'Nutildyti'} onClick={() => { playUiClick(); st.toggleMute(expandedConv.friend.userId) }} className="p-1.5" style={{ color: '#94a3b8' }}>
+            <button aria-label={st.prefs.muted.includes(expandedConv.friend.userId) ? t('social.chat.unmuteSound') : t('social.chat.mute')} onClick={() => { playUiClick(); st.toggleMute(expandedConv.friend.userId) }} className="p-1.5" style={{ color: '#94a3b8' }}>
               {st.prefs.muted.includes(expandedConv.friend.userId) ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
             </button>
-            <button aria-label="Minimizuoti" data-testid="chat-min" onClick={() => { playUiClick(); st.minimize() }} className="p-1.5" style={{ color: '#94a3b8' }}><Minus className="w-4 h-4" /></button>
-            <button aria-label="Uždaryti" data-testid="chat-close" onClick={() => { playUiClick(); st.closeHead(expandedConv.friend.userId) }} className="p-1.5" style={{ color: '#94a3b8' }}><X className="w-4 h-4" /></button>
+            <button aria-label={t('social.chat.minimize')} data-testid="chat-min" onClick={() => { playUiClick(); st.minimize() }} className="p-1.5" style={{ color: '#94a3b8' }}><Minus className="w-4 h-4" /></button>
+            <button aria-label={t('common.close')} data-testid="chat-close" onClick={() => { playUiClick(); st.closeHead(expandedConv.friend.userId) }} className="p-1.5" style={{ color: '#94a3b8' }}><X className="w-4 h-4" /></button>
           </div>
           {/* žinutės */}
           <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto px-2.5 py-2 flex flex-col gap-1.5">
-            {expandedConv.msgs === null && <p className="text-center my-auto" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kraunama…</p>}
-            {expandedConv.msgs?.length === 0 && <p className="text-center my-auto" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Parašyk pirmą žinutę ⚔</p>}
+            {expandedConv.msgs === null && <p className="text-center my-auto" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
+            {expandedConv.msgs?.length === 0 && <p className="text-center my-auto" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('social.chat.firstMessage')}</p>}
             {(expandedConv.msgs ?? []).map((m: ChatMsg, i: number, arr: ChatMsg[]) => {
               const newDay = i === 0 || new Date(m.createdAt).toDateString() !== new Date(arr[i - 1].createdAt).toDateString()
               const lastMineRead = m.fromMe && m.readAt && !arr.slice(i + 1).some((x) => x.fromMe)
               return (
                 <div key={m.clientId ?? m.id} className="flex flex-col">
-                  {newDay && <span className="self-center my-1 px-2 rounded-full" style={{ fontSize: 8.5, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)' }}>{new Date(m.createdAt).toLocaleDateString('lt-LT')}</span>}
+                  {newDay && <span className="self-center my-1 px-2 rounded-full" style={{ fontSize: 8.5, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)' }}>{formatDate(m.createdAt)}</span>}
                   <button disabled={m.status !== 'failed'} onClick={() => m.clientId && st.retry(expandedConv.friend.userId, m.clientId)}
                     className={'max-w-[80%] px-2.5 py-1.5 rounded-2xl text-left ' + (m.fromMe ? 'self-end' : 'self-start')}
                     style={{ fontSize: 12.5, lineHeight: 1.35, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -239,9 +242,9 @@ export function GlobalChatLayer() {
                       border: '1px solid ' + (m.status === 'failed' ? 'rgba(220,38,38,0.5)' : m.fromMe ? `rgba(${GOLD},0.3)` : 'rgba(255,255,255,0.1)'),
                       color: '#efe7d3', cursor: m.status === 'failed' ? 'pointer' : 'default' }}>
                     {m.body}
-                    {m.status === 'failed' && <span className="block" style={{ fontSize: 9, color: '#fca5a5' }}>Nepavyko — paspausk siųsti dar kartą</span>}
+                    {m.status === 'failed' && <span className="block" style={{ fontSize: 9, color: '#fca5a5' }}>{t('social.chat.sendFailed')}</span>}
                   </button>
-                  {lastMineRead && <span className="self-end" style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>✓✓ perskaityta</span>}
+                  {lastMineRead && <span className="self-end" style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{t('social.chat.read')}</span>}
                 </div>
               )
             })}
@@ -250,9 +253,9 @@ export function GlobalChatLayer() {
           <div className="shrink-0 flex items-center gap-1.5 px-2 py-2" style={{ borderTop: `1px solid rgba(${GOLD},0.18)`, paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
             <input value={expandedConv.draft} onChange={(e) => st.setDraft(expandedConv.friend.userId, e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && expandedConv.draft.trim()) { void st.send(expandedConv.friend.userId, expandedConv.draft) } }}
-              placeholder="Žinutė…" maxLength={500} aria-label="Žinutės tekstas" data-testid="chat-input"
+              placeholder={t('social.chat.placeholder')} maxLength={500} aria-label={t('social.chat.messageAria')} data-testid="chat-input"
               className="flex-1 min-w-0 rounded-xl px-3 outline-none" style={{ height: 34, fontSize: 12.5, background: 'rgba(8,6,13,0.85)', border: `1px solid rgba(${GOLD},0.25)`, color: '#f3ead3' }} />
-            <button aria-label="Siųsti" data-testid="chat-send" disabled={!expandedConv.draft.trim()}
+            <button aria-label={t('social.chat.send')} data-testid="chat-send" disabled={!expandedConv.draft.trim()}
               onClick={() => void st.send(expandedConv.friend.userId, expandedConv.draft)}
               className="rvn-press flex items-center justify-center rounded-xl disabled:opacity-40"
               style={{ width: 38, height: 34, background: `rgba(${GOLD},0.18)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>

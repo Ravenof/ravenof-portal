@@ -22,14 +22,16 @@ export async function purchaseShopItem(id: number, currency: 'silver' | 'rubies'
   return (data ?? null) as PurchaseResult | null
 }
 
-export const SHOP_SECTIONS: { key: string; label: string; types: string[] }[] = [
-  { key: 'packs',   label: 'Pakuotės',        types: ['pack'] },
-  { key: 'backs',   label: 'Kortų nugarėlės', types: ['card_back'] },
-  { key: 'avatars', label: 'Žaidėjo avatarai', types: ['player_avatar'] },
-  { key: 'decks',   label: 'Kaladės',          types: ['faction_deck', 'bundle'] },
-  { key: 'rubies',  label: 'Rubinai',          types: ['rubies_bundle'] },
+// label pakeistas labelKey (i18n): tekstas — locales shop.sections.*
+export const SHOP_SECTIONS: { key: string; labelKey: string; types: string[] }[] = [
+  { key: 'packs',   labelKey: 'shop.sections.packs',   types: ['pack'] },
+  { key: 'backs',   labelKey: 'shop.sections.backs',   types: ['card_back'] },
+  { key: 'avatars', labelKey: 'shop.sections.avatars', types: ['player_avatar'] },
+  { key: 'decks',   labelKey: 'shop.sections.decks',   types: ['faction_deck', 'bundle'] },
+  { key: 'rubies',  labelKey: 'shop.sections.rubies',  types: ['rubies_bundle'] },
 ]
-export const PURCHASE_ERR_LT: Record<string, string> = {
-  not_enough: 'Nepakanka valiutos.', no_price: 'Kaina neprieinama.', iap_required: 'Šis paketas perkamas per programėlės parduotuvę.',
-  not_found: 'Prekė nerasta.', bad_currency: 'Netinkama valiuta.',
+/** Klaidų kodai -> i18n raktai (shop.err.*). */
+export const PURCHASE_ERR_KEY: Record<string, string> = {
+  not_enough: 'shop.err.not_enough', no_price: 'shop.err.no_price', iap_required: 'shop.err.iap_required',
+  not_found: 'shop.err.not_found', bad_currency: 'shop.err.bad_currency',
 }

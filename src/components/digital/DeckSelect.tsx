@@ -12,6 +12,7 @@ import { Check, UserRound } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCosmetics, equipCosmetic, type Cosmetic } from '@/lib/cosmetics'
 import { getLastDeck, setLastDeck, getDeckAvatar, setDeckAvatar, type BattleMode } from '@/lib/deck-prefs'
+import { useT } from '@/lib/i18n/react'
 
 export type SelectDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
 
@@ -24,10 +25,12 @@ function FactionIcon({ d, size = 26 }: { d: SelectDeck; size?: number }) {
   return <span className="rounded-full inline-block" style={{ width: size * 0.55, height: size * 0.55, background: d.factionColor ?? 'var(--gold)' }} />
 }
 
-export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41', label = '⚔ Tavo kaladė' }: {
+export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41', label }: {
   mode: BattleMode; decks: SelectDeck[]; value: string; onChange: (id: string) => void
   accent?: string; label?: string
 }) {
+  const t = useT()
+  if (label === undefined) label = t('decks.select.yourDeck')
   const [avatars, setAvatars] = useState<Cosmetic[]>([])
   const [pairFor, setPairFor] = useState<SelectDeck | null>(null)
   const [pairVer, setPairVer] = useState(0) // perpiešti chip'us po poravimo keitimo
@@ -116,7 +119,7 @@ export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41'
               </button>
               {/* avataro poravimo chip'as */}
               <button onClick={(e) => { e.stopPropagation(); playUiClick(); setPairFor(d) }}
-                aria-label="Poruoti avatarą"
+                aria-label={t('decks.select.pairAvatar')}
                 className="absolute flex items-center justify-center rounded-full overflow-hidden"
                 style={{ left: 6, bottom: -6, width: 30, height: 30, background: '#0c0913',
                   border: paired ? `1.5px solid rgba(${accent},0.9)` : '1.5px dashed rgba(255,255,255,0.30)', zIndex: 2 }}>
@@ -173,7 +176,7 @@ export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41'
                 )
               })}
             </div>
-            <button onClick={() => { playUiClick(); setPairFor(null) }} className="shrink-0 py-3 text-xs font-semibold" style={{ color: 'var(--text-muted)', borderTop: `1px solid rgba(${accent},0.15)` }}>Uždaryti</button>
+            <button onClick={() => { playUiClick(); setPairFor(null) }} className="shrink-0 py-3 text-xs font-semibold" style={{ color: 'var(--text-muted)', borderTop: `1px solid rgba(${accent},0.15)` }}>{t('common.close')}</button>
           </motion.div>
         </div>, document.body)}
     </div>

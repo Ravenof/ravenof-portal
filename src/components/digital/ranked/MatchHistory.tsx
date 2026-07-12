@@ -5,19 +5,21 @@ import { useEffect, useState } from 'react'
 import { getRecentMatches } from '@/lib/ranked/client'
 import type { RankedMatchRow } from '@/lib/ranked/types'
 import { formatRank } from '@/lib/ranked/rank'
+import { useT } from '@/lib/i18n/react'
 
-const CHANGE_LABEL: Record<RankedMatchRow['rank_change'], { t: string; c: string }> = {
-  up: { t: 'Rangas pakilo', c: '#86efac' },
-  down: { t: 'Rangas nukrito', c: '#f87171' },
-  same: { t: 'Rangas nepasikeitė', c: 'var(--text-muted)' },
+const CHANGE_LABEL: Record<RankedMatchRow['rank_change'], { k: string; c: string }> = {
+  up: { k: 'ranked.rankUp', c: '#86efac' },
+  down: { k: 'ranked.rankDown', c: '#f87171' },
+  same: { k: 'ranked.result.noChange', c: 'var(--text-muted)' },
 }
 
 export function MatchHistory() {
+  const t = useT()
   const [rows, setRows] = useState<RankedMatchRow[] | null>(null)
   useEffect(() => { getRecentMatches(10).then(setRows) }, [])
 
-  if (rows === null) return <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
-  if (rows.length === 0) return <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>Dar nesužaista reitingo kovų.</p>
+  if (rows === null) return <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
+  if (rows.length === 0) return <p className="text-center text-sm py-6" style={{ color: 'var(--text-muted)' }}>{t('ranked.historyEmpty')}</p>
 
   return (
     <div className="space-y-2">
@@ -30,14 +32,14 @@ export function MatchHistory() {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold truncate" style={{ color: win ? '#86efac' : '#f87171', fontFamily: 'var(--rvn-font-display)' }}>
-                  {win ? 'Pergalė' : 'Pralaimėjimas'} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>vs {m.opponent_name}</span>
+                  {win ? t('ranked.result.win') : t('ranked.result.loss')} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>vs {m.opponent_name}</span>
                 </p>
                 <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                  {m.player_faction ?? '—'} vs {m.opponent_faction ?? '—'} · {m.turns_played} ėjimų · {Math.round((m.duration_seconds ?? 0) / 60)} min
+                  {m.player_faction ?? '—'} vs {m.opponent_faction ?? '—'} · {t('ranked.matchMeta', { turns: m.turns_played, min: Math.round((m.duration_seconds ?? 0) / 60) })}
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-[11px] font-semibold" style={{ color: ch.c }}>{ch.t}</p>
+                <p className="text-[11px] font-semibold" style={{ color: ch.c }}>{t(ch.k)}</p>
                 <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatRank(m.rank_step_before)} → {formatRank(m.rank_step_after)}</p>
               </div>
             </div>

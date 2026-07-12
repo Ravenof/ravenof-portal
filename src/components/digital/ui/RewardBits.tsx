@@ -13,6 +13,7 @@
 import { useState } from 'react'
 import { Lock, Check } from 'lucide-react'
 import { resolveRewardVisual, REWARD_MISSING_ASSET, type RewardPayloadItem } from '@/lib/rewards/rewardVisuals'
+import { t as tGlobal } from '@/lib/i18n/core'
 
 export function SafeRewardImage({ src, size, opticalScale = 1, alt = '', dimmed }: {
   src: string; size: number; opticalScale?: number; alt?: string; dimmed?: boolean
@@ -51,7 +52,7 @@ export function RewardDisplay({ it, size = 34, state = 'preview', showName }: {
   const v = resolveRewardVisual(it)
   const dim = state === 'locked' || state === 'claimed'
   return (
-    <span className="relative inline-flex flex-col items-center gap-0.5" title={`${v.name}${v.label ? ` · ${v.label}` : ''} — ${v.desc}${state === 'claimed' ? ' (atsiimta)' : state === 'locked' ? ' (užrakinta)' : ''}`}
+    <span className="relative inline-flex flex-col items-center gap-0.5" title={`${v.name}${v.label ? ` · ${v.label}` : ''} — ${v.desc}${state === 'claimed' ? tGlobal('common.rewardState.claimed') : state === 'locked' ? tGlobal('common.rewardState.locked') : ''}`}
       aria-label={`${v.name} ${v.label}`} data-reward={v.key} data-reward-state={state}>
       <span className="relative">
         <SafeRewardImage src={v.asset} size={size} opticalScale={v.opticalScale} dimmed={dim} />

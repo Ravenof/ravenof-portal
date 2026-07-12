@@ -1,1 +1,32 @@
-{}
+{
+  "addedToCollection": "{{name}} added to your collection!",
+  "alreadyClaimed": "Already claimed.",
+  "buyFailed": "Purchase failed.",
+  "categoryEmpty": "No items in this category.",
+  "claimFailed": "Could not claim.",
+  "comingSoon": "€{{price}} (coming soon)",
+  "dailyDealInfo": "The daily deal — a single card straight into your collection. Refreshes daily.",
+  "dealLoading": "Today's offer is loading…",
+  "deckCreated": "Deck created in “My decks”! 🃏",
+  "err": {
+    "bad_currency": "Invalid currency.",
+    "iap_required": "This bundle is purchased through the app store.",
+    "no_price": "Price unavailable.",
+    "not_enough": "Not enough currency.",
+    "not_found": "Item not found."
+  },
+  "notEnoughSilver": "Not enough silver.",
+  "ownedEquip": "✓ Owned — equip it in Cosmetics",
+  "pickItem": "Pick an item.",
+  "sections": {
+    "avatars": "Player avatars",
+    "backs": "Card backs",
+    "daily": "🔥 Daily cards",
+    "decks": "Decks",
+    "packs": "Packs",
+    "rubies": "Rubies",
+    "starter": "🃏 Decks"
+  },
+  "starterInfo": "Cards are added to your collection and a ready-made deck is created automatically.",
+  "title": "SHOP"
+}

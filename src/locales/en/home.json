@@ -1,6 +1,12 @@
 {
   "activeDeck": "Active deck",
   "avatarsFrames": "Avatars & frames",
+  "banner": {
+    "plusPack": " + 🎁 a pack",
+    "ready": "Login reward ready!",
+    "streak": "{{count}}-day streak",
+    "tomorrowGold": "Tomorrow: 🪙 {{gold}}"
+  },
   "cardsCount_one": "{{count}} card",
   "cardsCount_other": "{{count}} cards",
   "change": "change →",

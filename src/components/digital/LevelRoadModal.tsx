@@ -16,6 +16,7 @@ import { playUiClick } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { LEVEL_THRESHOLDS, MAX_LEVEL, getLevelProgress, getRankGroupForLevel } from '@/lib/gamification/levels'
+import { useT } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 
@@ -46,6 +47,7 @@ function rewardsFor(level: number, cfg: LevelRewardsCfg | null): RewardChips {
 }
 
 export function LevelRoadModal({ onClose }: { onClose: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [xp, setXp] = useState<number | null>(null)
   const [cfg, setCfg] = useState<LevelRewardsCfg | null>(null)
@@ -83,8 +85,8 @@ export function LevelRoadModal({ onClose }: { onClose: () => void }) {
 
         {/* ── Antraštė ── */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: `1px solid rgba(${GOLD},0.16)` }}>
-          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,19px)', letterSpacing: '0.08em' }}>⬆ LYGIŲ KELIAS</h2>
-          <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,19px)', letterSpacing: '0.08em' }}>{t('common.levelRoad.title')}</h2>
+          <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
         </div>
 
         {/* ── 2 zonos ── */}
@@ -104,7 +106,7 @@ export function LevelRoadModal({ onClose }: { onClose: () => void }) {
                 {prog.isMaxLevel ? '✦ Maksimalus lygis pasiektas!' : <>XP: <b style={{ color: '#f3ead3' }}>{prog.totalXp.toLocaleString('lt-LT')}</b> · iki kito lygio <b style={{ color: 'var(--gold)' }}>{prog.xpNeededForNextLevel.toLocaleString('lt-LT')}</b></>}
               </p>
             </div>
-            <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>XP gauni už kovas (pergalė duoda daugiau) ir užduotis. Lygio atlygiai įskiriami automatiškai jį pasiekus.</p>
+            <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>{t('common.levelRoad.info')}</p>
           </div>
 
           {/* CENTRAS: 50 lygių lentelė */}

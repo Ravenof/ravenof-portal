@@ -31,6 +31,7 @@ import { Rewards } from './Rewards'
 import { Achievements } from './Achievements'
 import { MatchHistory } from './MatchHistory'
 import { SeasonHistory } from './SeasonHistory'
+import { useT } from '@/lib/i18n/react'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -42,10 +43,11 @@ type Deck = { id: string; name: string; faction: string | null; factionIcon: str
 const RPANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(26,10,12,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(239,68,68,0.26)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.55)' }
 
 export function RankedClient() {
+  const t = useT()
   const [season, setSeason] = useState<RankedSeason | null>(null)
   const [profile, setProfile] = useState<RankedProfile | null>(null)
   const [decks, setDecks] = useState<Deck[] | null>(null)
-  const [myName, setMyName] = useState('Žaidėjas')
+  const [myName, setMyName] = useState(t('battle.player'))
   const [factionIds, setFactionIds] = useState<Record<string, number>>({})
   const [view, setView] = useState<View>('home')
   const [flow, setFlow] = useState<Flow>('idle')
@@ -64,7 +66,7 @@ export function RankedClient() {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) supabase.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
-        .then(({ data }) => { const d = data as { display_name: string | null; username: string | null } | null; if (d) setMyName(d.display_name ?? d.username ?? 'Žaidėjas') })
+        .then(({ data }) => { const d = data as { display_name: string | null; username: string | null } | null; if (d) setMyName(d.display_name ?? d.username ?? t('battle.player')) })
     })
     getRankedDecks().then(setDecks)
     getFactionIdMap().then(setFactionIds)
@@ -88,7 +90,7 @@ export function RankedClient() {
   const selDeckObj = battleDeck
 
   const startQueue = async () => {
-    if (!battleDeck) { setToast('Aktyvi kaladė netinkama reitingui — pakeisk per „Keisti".'); return }
+    if (!battleDeck) { setToast(t('ranked.deckInvalidChange')); return }
     playUiClick()
     await lockDeck(battleDeck.id)
     matchIdRef.current = `rm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -112,7 +114,7 @@ export function RankedClient() {
     // Fair ekonomika: ranked kova visada duoda aukso (80 pergalė / 25 pralaimėjimas)
     void awardGold(r.result === 'win' ? 'ranked_win' : 'ranked_loss', r.result === 'win' ? RANKED_WIN_REWARD : RANKED_LOSS_REWARD)
     const res = await reportMatch(input)
-    if ('error' in res) { setToast('Nepavyko įrašyti rezultato: ' + res.error); setFlow('idle'); await load(); return }
+    if ('error' in res) { setToast(t('ranked.reportFailed', { msg: res.error })); setFlow('idle'); await load(); return }
     setResult({ ...res, won: r.result === 'win' })
     setFlow('result')
     await load()
@@ -176,7 +178,7 @@ export function RankedClient() {
   // ── Panelės ────────────────────────────────────────────────────────────────
 
   const Back = () => (
-    <button onClick={() => { playUiClick(); setView('home') }} className="text-xs mb-3 inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>← Atgal į reitingą</button>
+    <button onClick={() => { playUiClick(); setView('home') }} className="text-xs mb-3 inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>{t('ranked.backToRanked')}</button>
   )
 
   return (
@@ -190,17 +192,17 @@ export function RankedClient() {
             <div className="flex items-center gap-2 min-w-0">
               <RvnIcon name="fi-ranked" size={30} fallback={<span style={{ fontSize: 24 }}>🏆</span>} />
               <div className="min-w-0">
-                <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(15px,3vh,26px)', color: 'var(--gold)' }}>Reitingo kova</div>
-                <div className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,12px)', color: 'var(--text-muted)' }}>Kilk rangais, rink atlygius ir tapk sezono čempionu</div>
+                <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(15px,3vh,26px)', color: 'var(--gold)' }}>{t('ranked.title')}</div>
+                <div className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,12px)', color: 'var(--text-muted)' }}>{t('ranked.subtitle')}</div>
               </div>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <div className="whitespace-nowrap" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-secondary)' }}>
-                <span>{season?.name ?? 'Sezonas'}</span>
-                {timer && <span style={{ color: timer.endingSoon ? '#fbbf24' : 'var(--text-muted)' }}> · Liko {formatTimeLeft(timer)}</span>}
+                <span>{season?.name ?? t('ranked.season')}</span>
+                {timer && <span style={{ color: timer.endingSoon ? '#fbbf24' : 'var(--text-muted)' }}> · {t('ranked.timeLeft', { time: formatTimeLeft(timer) })}</span>}
               </div>
               <div className="flex gap-1">
-                {([['leaderboard', '🏆', 'Topas'], ['history', '📜', 'Kovos'], ['achievements', '🏅', 'Pasiekimai'], ['season', '📅', 'Sezonai']] as [View, string, string][]).map(([v, ic, lbl]) => (
+                {([['leaderboard', '🏆', t('ranked.nav.leaderboard')], ['history', '📜', t('ranked.nav.history')], ['achievements', '🏅', t('ranked.nav.achievements')], ['season', '📅', t('ranked.nav.season')]] as [View, string, string][]).map(([v, ic, lbl]) => (
                   <button key={v} onClick={() => { playUiClick(); setView(v) }} title={lbl} className="rvn-press rounded-lg flex items-center justify-center" style={{ width: 26, height: 26, fontSize: 13, background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(239,68,68,0.3)' }}>{ic}</button>
                 ))}
               </div>
@@ -212,16 +214,16 @@ export function RankedClient() {
 
             {/* KAIRĖ: sezono statistika */}
             <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 justify-between" style={RPANEL}>
-              <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Jūsų sezono statistika</div>
+              <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{t('ranked.yourSeasonStats')}</div>
               <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-2 gap-1.5 my-1.5">
-                {([['Pergalės', profile.wins, '#86efac'], ['Pralaimėjimai', profile.losses, '#f87171'], ['Serija', profile.win_streak, 'var(--gold)'], ['K/D', formatKD(profile.total_kills, profile.total_deaths), 'var(--text-primary)']] as [string, React.ReactNode, string][]).map(([l, v, c], i) => (
+                {([[t('ranked.wins'), profile.wins, '#86efac'], [t('ranked.losses'), profile.losses, '#f87171'], [t('ranked.streak'), profile.win_streak, 'var(--gold)'], ['K/D', formatKD(profile.total_kills, profile.total_deaths), 'var(--text-primary)']] as [string, React.ReactNode, string][]).map(([l, v, c], i) => (
                   <div key={i} className="rounded-lg flex flex-col items-center justify-center py-1.5 gap-0.5" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <span className="rvn-disp font-black tabular-nums leading-none" style={{ fontSize: 'clamp(15px,3.4vh,30px)', color: c }}>{v}</span>
                     <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>{l}</span>
                   </div>
                 ))}
               </div>
-              <div className="text-center shrink-0" style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>Šį sezoną gauta: <b style={{ color: 'var(--text-secondary)' }}>{profile.portal_exp_earned} XP</b> · <b style={{ color: 'var(--gold)' }}>{profile.ranked_gold_earned} aukso</b></div>
+              <div className="text-center shrink-0" style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)' }}>{t('ranked.seasonEarned')} <b style={{ color: 'var(--text-secondary)' }}>{profile.portal_exp_earned} XP</b> · <b style={{ color: 'var(--gold)' }}>{profile.ranked_gold_earned} {t('ranked.gold')}</b></div>
             </section>
 
             {/* CENTRAS: viršus = badge+vardas (kairė) + progresas (dešinė); apačia = PLAY mygtukas */}
@@ -231,14 +233,14 @@ export function RankedClient() {
                 <div className="shrink-0"><RankBadge step={profile.rank_step} size={74} showLabel /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-1" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: 'var(--text-muted)' }}>
-                    <span>Dabartinis rangas</span>
-                    <span className="truncate">{rv.isMax ? 'Maks. rangas' : `Kitas: ${formatRank(nextRv!.step)}`}</span>
+                    <span>{t('ranked.currentRank')}</span>
+                    <span className="truncate">{rv.isMax ? t('ranked.maxRank') : t('ranked.next', { rank: formatRank(nextRv!.step) })}</span>
                   </div>
                   <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                     <div className="h-full rounded-full" style={{ width: `${rv.isMax ? 100 : ((profile.rank_step % 3) / 3) * 100 + 16}%`, background: 'linear-gradient(90deg,#b3793f,#f0b429,#fcd34d)' }} />
                   </div>
                   <p className="mt-1" style={{ fontSize: 'clamp(8px,1.2vh,11px)', color: profile.loss_counter > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
-                    {profile.loss_counter > 0 ? `Iki rango kritimo: ${2 - profile.loss_counter} pralaimėjimas` : 'Apsauga nuo kritimo pilna'}
+                    {profile.loss_counter > 0 ? t('ranked.lossWarning', { count: 2 - profile.loss_counter }) : t('ranked.demotionSafe')}
                   </p>
                 </div>
               </div>
@@ -246,41 +248,41 @@ export function RankedClient() {
               <div className="shrink-0" style={{ marginTop: 'clamp(10px,2.6vh,22px)' }}>
                 {decks && decks.length > 0 ? (
                   <>
-                    <div className="mb-1.5"><ActiveDeckSummary accent="239,68,68" invalidHint={globalDeck && !rankedEligible && globalOk ? 'Kaladė netinkama reitingui' : undefined} /></div>
-                    <RButton full onClick={startQueue} disabled={!battleDeck}>⚔ IEŠKOTI KOVOS</RButton>
+                    <div className="mb-1.5"><ActiveDeckSummary accent="239,68,68" invalidHint={globalDeck && !rankedEligible && globalOk ? t('ranked.deckInvalidHint') : undefined} /></div>
+                    <RButton full onClick={startQueue} disabled={!battleDeck}>{t('ranked.findMatch')}</RButton>
                     {!rankedEligible && (
                       <p role="status" className="text-center mt-1" style={{ fontSize: 10, color: '#fbbf24' }}>
-                        {!globalDeck ? 'Pasirink aktyvią kaladę (spausk „Keisti").' : !globalOk ? deckValidity(globalDeck).reason : 'Ši kaladė netinkama reitingo kovoms — pasirink kitą.'}
+                        {!globalDeck ? t('ranked.pickActiveDeck') : !globalOk ? deckValidity(globalDeck).reason : t('ranked.deckNotEligible')}
                       </p>
                     )}
                   </>
                 ) : (
-                  <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="block text-center px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Sukurti kaladę</Link>
+                  <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="block text-center px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>{t('ranked.createDeck')}</Link>
                 )}
               </div>
             </section>
 
             {/* DEŠINĖ: ranked atlygiai */}
             <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5 text-center" style={RPANEL}>
-              <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>Ranked atlygiai</div>
+              <div className="rvn-disp font-extrabold uppercase tracking-wide shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{t('ranked.rewardsTitle')}</div>
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center gap-0.5 my-1">
-                <span style={{ fontSize: 'clamp(9px,1.2vh,11px)', color: 'var(--text-muted)' }}>Kitas atlygis</span>
-                <span className="rvn-disp font-black" style={{ fontSize: 'clamp(13px,2.4vh,20px)', color: 'var(--gold)' }}>{rv.isMax ? 'Maks. rangas' : formatRank(nextRv!.step)}</span>
+                <span style={{ fontSize: 'clamp(9px,1.2vh,11px)', color: 'var(--text-muted)' }}>{t('ranked.nextReward')}</span>
+                <span className="rvn-disp font-black" style={{ fontSize: 'clamp(13px,2.4vh,20px)', color: 'var(--gold)' }}>{rv.isMax ? t('ranked.maxRank') : formatRank(nextRv!.step)}</span>
                 <div className="flex items-center justify-center rounded-xl my-1" style={{ width: 'clamp(48px,10vh,88px)', height: 'clamp(48px,10vh,88px)', background: 'radial-gradient(circle at 50% 30%, rgba(139,92,246,0.35), rgba(10,8,16,0.9))', border: '1px solid rgba(139,92,246,0.4)', fontSize: 'clamp(24px,5.5vh,46px)' }}>🎁</div>
-                <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3 }}>Sezono pabaigoje gausi atlygius pagal aukščiausią pasiektą rangą.</span>
+                <span style={{ fontSize: 'clamp(7px,1.1vh,10px)', color: 'var(--text-muted)', lineHeight: 1.3 }}>{t('ranked.seasonEndInfo')}</span>
               </div>
-              <button onClick={() => { playUiClick(); setView('rewards') }} className="rvn-press rounded-xl py-2 shrink-0 font-bold" style={{ fontSize: 'clamp(9px,1.3vh,12px)', background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>Peržiūrėti atlygius →</button>
+              <button onClick={() => { playUiClick(); setView('rewards') }} className="rvn-press rounded-xl py-2 shrink-0 font-bold" style={{ fontSize: 'clamp(9px,1.3vh,12px)', background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>{t('ranked.viewRewards')}</button>
             </section>
           </div>
 
         </div>
       )}
 
-      {view === 'leaderboard' && (<><SectionTitle icon="🏆">Topas</SectionTitle><Leaderboard /></>)}
-      {view === 'rewards' && (<><SectionTitle icon="🎁">Apdovanojimai</SectionTitle><Rewards bestRankStep={profile?.best_rank_step ?? 0} onChanged={load} /></>)}
-      {view === 'achievements' && (<><SectionTitle icon="🏅">Pasiekimai</SectionTitle><Achievements onChanged={load} /></>)}
-      {view === 'history' && (<><SectionTitle icon="📜">Kovų istorija</SectionTitle><MatchHistory /></>)}
-      {view === 'season' && (<><SectionTitle icon="📅">Sezono istorija</SectionTitle><SeasonHistory /></>)}
+      {view === 'leaderboard' && (<><SectionTitle icon="🏆">{t('ranked.sections.top')}</SectionTitle><Leaderboard /></>)}
+      {view === 'rewards' && (<><SectionTitle icon="🎁">{t('ranked.sections.rewards')}</SectionTitle><Rewards bestRankStep={profile?.best_rank_step ?? 0} onChanged={load} /></>)}
+      {view === 'achievements' && (<><SectionTitle icon="🏅">{t('ranked.sections.achievements')}</SectionTitle><Achievements onChanged={load} /></>)}
+      {view === 'history' && (<><SectionTitle icon="📜">{t('ranked.sections.history')}</SectionTitle><MatchHistory /></>)}
+      {view === 'season' && (<><SectionTitle icon="📅">{t('ranked.sections.seasonHistory')}</SectionTitle><SeasonHistory /></>)}
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>

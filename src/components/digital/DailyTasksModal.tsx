@@ -10,6 +10,7 @@ import { X, RefreshCw } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getDailyTasks, claimDailyTask, claimDailyChest, rerollDailyTask, DIFF_LABEL, DIFF_ACCENT, type DailyTasksState, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT } from '@/lib/i18n/react'
 
 function Chips({ payload }: { payload: Record<string, unknown>[] }) {
   return (
@@ -22,6 +23,7 @@ function Chips({ payload }: { payload: Record<string, unknown>[] }) {
 }
 
 export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [state, setState] = useState<DailyTasksState | null>(null)
   const [busy, setBusy] = useState<number | 'chest' | null>(null)
@@ -59,10 +61,10 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
 
         {/* ── Antraštė ── */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
-          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,18px)', letterSpacing: '0.06em' }}>DIENOS UŽDUOTYS</h2>
+          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,18px)', letterSpacing: '0.06em' }}>{t('quests.daily.title')}</h2>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>Perrinkimų liko: {rerollsLeft}</span>
-            <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>{t('quests.daily.rerollsLeft', { count: rerollsLeft })}</span>
+            <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
           </div>
         </div>
 
@@ -110,8 +112,8 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
             {state && state.tasks.length === 0 && (
               <div className="col-span-full h-full flex flex-col items-center justify-center gap-2 text-center">
                 <span style={{ fontSize: 36, filter: 'saturate(0.6)' }}>📜</span>
-                <p className="text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>Šiandien užduočių nėra</p>
-                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Naujos užduotys sugeneruojamos 00:00 — užsuk rytoj.</p>
+                <p className="text-sm font-bold" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{t('quests.daily.empty')}</p>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('quests.daily.emptySub')}</p>
               </div>
             )}
           </div>
@@ -120,19 +122,19 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
           <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={{ background: state?.allDone ? 'radial-gradient(120% 100% at 50% 0%, rgba(240,180,41,0.24), transparent), linear-gradient(160deg, rgba(46,34,64,0.95), rgba(12,9,18,0.97))' : 'linear-gradient(160deg, rgba(20,15,30,0.9), rgba(10,8,16,0.95))', border: `1px solid rgba(240,180,41,${state?.allDone ? '0.6' : '0.25'})` }}>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-2 text-center">
               <span style={{ fontSize: 44, filter: state?.allDone ? 'drop-shadow(0 0 14px rgba(240,180,41,0.6))' : 'saturate(0.6)' }}>🧰</span>
-              <div className="text-sm font-extrabold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>Dienos skrynia</div>
-              <div className="text-[10px]" style={{ color: state?.allDone ? '#86efac' : 'var(--text-muted)' }}>{state?.allDone ? '✓ Visos 3 užduotys atliktos!' : `Atlik visas 3 užduotis (${(state?.tasks ?? []).filter((t) => t.completed).length}/3)`}</div>
+              <div className="text-sm font-extrabold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('quests.daily.chest')}</div>
+              <div className="text-[10px]" style={{ color: state?.allDone ? '#86efac' : 'var(--text-muted)' }}>{state?.allDone ? t('quests.daily.allDone') : t('quests.daily.doAll', { done: (state?.tasks ?? []).filter((x) => x.completed).length })}</div>
               <div className="flex flex-col gap-1 w-full mt-1">
                 <Chips payload={[{ type: 'season_xp', amount: 250 }, { type: 'currency', currency: 'silver', amount: 200 }, { type: 'currency', currency: 'essence', amount: 100 }, { type: 'currency', currency: 'rubies', amount: 15 }, { type: 'item', item_type: 'pack', item_id: 'standard_pack', quantity: 1 }]} />
               </div>
-              <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>Skrynios atlygis kelia ir sezono kelio XP. Naujos užduotys — 00:00.</p>
+              <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>{t('quests.daily.chestInfo')}</p>
             </div>
             <button onClick={doChest} disabled={!state?.allDone || state?.chestClaimed || busy !== null}
               className="shrink-0 mt-2 w-full py-2.5 rounded-xl text-sm font-extrabold" style={{
                 background: state?.allDone && !state?.chestClaimed ? 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)' : 'rgba(52,211,153,0.12)',
                 color: state?.allDone && !state?.chestClaimed ? '#3a2406' : '#7dd3b0', border: state?.allDone && !state?.chestClaimed ? '1px solid #ffeaa6' : '1px solid rgba(52,211,153,0.4)',
                 cursor: state?.allDone && !state?.chestClaimed ? 'pointer' : 'default' }}>
-              {state?.chestClaimed ? '✓ Skrynia atsiimta' : busy === 'chest' ? 'Skiriama…' : 'Atsiimti skrynią'}
+              {state?.chestClaimed ? t('quests.daily.chestClaimed') : busy === 'chest' ? t('quests.daily.claiming') : t('quests.daily.claimChest')}
             </button>
           </div>
         </div>

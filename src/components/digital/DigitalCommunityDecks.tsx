@@ -15,6 +15,8 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { useT } from '@/lib/i18n/react'
+import { t as tGlobal } from '@/lib/i18n/core'
 
 const GOLD = '240,180,41'
 
@@ -31,13 +33,14 @@ type Comment = {
 
 function timeAgo(ts: string): string {
   const s = Math.max(0, (Date.now() - new Date(ts).getTime()) / 1000)
-  if (s < 60) return 'ką tik'
-  if (s < 3600) return `prieš ${Math.floor(s / 60)} min.`
-  if (s < 86400) return `prieš ${Math.floor(s / 3600)} val.`
-  return `prieš ${Math.floor(s / 86400)} d.`
+  if (s < 60) return tGlobal('common.notif.justNow')
+  if (s < 3600) return tGlobal('common.notif.minAgo', { count: Math.floor(s / 60) })
+  if (s < 86400) return tGlobal('common.notif.hoursAgo', { count: Math.floor(s / 3600) })
+  return tGlobal('common.notif.daysAgo', { count: Math.floor(s / 86400) })
 }
 
 export function DigitalCommunityDecks({ userId }: { userId: string }) {
+  const t = useT()
   const [decks, setDecks] = useState<CDeck[] | null>(null)
   const [myVotes, setMyVotes] = useState<Record<string, number>>({})
   const [isAdmin, setIsAdmin] = useState(false)
@@ -82,7 +85,7 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
       const entries = (byDeck[d.id] ?? []).sort((a, b) => a.gold - b.gold || a.name.localeCompare(b.name))
       const total = entries.reduce((s, e) => s + e.qty, 0)
       const have = entries.reduce((s, e) => s + Math.min(e.owned, e.qty), 0)
-      return { id: d.id, name: d.name, author: nameOf[d.user_id] ?? 'Žaidėjas', faction: d.faction?.name ?? null, factionColor: d.faction?.color_hex ?? '#f0b429', cardCount: d.card_count, score: d.score ?? 0, updated: d.updated_at, entries, total, have, missing: total - have }
+      return { id: d.id, name: d.name, author: nameOf[d.user_id] ?? tGlobal('battle.player'), faction: d.faction?.name ?? null, factionColor: d.faction?.color_hex ?? '#f0b429', cardCount: d.card_count, score: d.score ?? 0, updated: d.updated_at, entries, total, have, missing: total - have }
     }))
   }, [userId])
 
@@ -131,14 +134,14 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
     const supabase = createClient()
     const { error } = await supabase.rpc('rvn_copy_community_deck', { p_deck_id: d.id })
     setBusy(false)
-    if (error) { flash('Nepavyko nukopijuoti', true); return }
+    if (error) { flash(t('decks.community.copyFailed'), true); return }
     flash(d.missing > 0
-      ? `Nukopijuota visa kaladė — trūksta ${d.missing} kortų, žaisti galėsi jas įsigijęs`
-      : 'Kaladė nukopijuota į Mano kaladės')
+      ? t('decks.community.copiedMissing', { count: d.missing })
+      : t('decks.community.copied'))
     setDetail(null)
   }
 
-  if (decks === null) return <p className="text-center text-sm py-16" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
+  if (decks === null) return <p className="text-center text-sm py-16" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
 
   const selStyle: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)', fontSize: 12, borderRadius: 10, padding: '8px 10px', minHeight: 40 }
 
@@ -146,26 +149,26 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
     <div className="space-y-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ieškoti kaladės ar autoriaus…" className="w-full pl-9 pr-3 rounded-xl text-sm outline-none" style={{ minHeight: 44, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('decks.community.searchPlaceholder')} className="w-full pl-9 pr-3 rounded-xl text-sm outline-none" style={{ minHeight: 44, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
       </div>
       <div className="grid grid-cols-2 gap-2">
         <select value={faction} onChange={(e) => setFaction(e.target.value)} style={selStyle}>
-          <option value="all">Visos frakcijos</option>
+          <option value="all">{t('decks.community.allFactions')}</option>
           {factions.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} style={selStyle}>
-          <option value="score">TOP pagal balsus</option>
-          <option value="new">Naujausios</option>
-          <option value="cards">Daugiausiai kortų</option>
+          <option value="score">{t('decks.community.sortTop')}</option>
+          <option value="new">{t('decks.community.sortNew')}</option>
+          <option value="cards">{t('decks.community.sortCards')}</option>
         </select>
       </div>
       <button onClick={() => { playUiClick(); setCraftableOnly((v) => !v) }} className="inline-flex items-center gap-2 px-3 rounded-full text-xs font-semibold" style={{ minHeight: 40, background: craftableOnly ? 'rgba(34,197,94,0.18)' : 'rgba(10,8,16,0.9)', border: `1px solid ${craftableOnly ? 'rgba(34,197,94,0.6)' : `rgba(${GOLD},0.3)`}`, color: craftableOnly ? '#86efac' : 'var(--text-muted)' }}>
         <span className="relative inline-block rounded-full" style={{ width: 30, height: 16, background: craftableOnly ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.12)' }}><span className="absolute top-0.5 rounded-full bg-white transition-all" style={{ width: 12, height: 12, left: craftableOnly ? 16 : 2 }} /></span>
-        Tik kurias galiu susidėti
+        {t('decks.community.craftableOnly')}
       </button>
 
       {shown.length === 0 ? (
-        <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>Kaladžių nerasta.</p>
+        <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>{t('decks.community.noneFound')}</p>
       ) : shown.map((d, idx) => (
         <div key={d.id} className="rounded-2xl p-3" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid ${d.factionColor}40` }}>
           <div className="h-1 rounded-full mb-2" style={{ background: d.factionColor, opacity: 0.55 }} />
@@ -184,8 +187,8 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
                 <span className="px-1.5 py-0.5 rounded-full font-semibold" style={{ background: d.missing === 0 ? 'rgba(34,197,94,0.12)' : `rgba(${GOLD},0.08)`, color: d.missing === 0 ? '#86efac' : `rgba(${GOLD},0.85)`, border: `1px solid ${d.missing === 0 ? 'rgba(34,197,94,0.3)' : `rgba(${GOLD},0.2)`}` }}>{d.missing === 0 ? '✓ Turi visas' : `Turi ${d.have}/${d.total}`}</span>
               </div>
               <div className="flex gap-2 mt-2.5">
-                <button onClick={() => { playUiClick(); setDetail(d) }} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold" style={{ minHeight: 40, background: 'rgba(255,255,255,0.05)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)' }}><Eye className="w-3.5 h-3.5" /> Peržiūra</button>
-                <button onClick={() => copyDeck(d)} disabled={busy} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold disabled:opacity-50" style={{ minHeight: 40, background: `rgba(${GOLD},0.16)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}><Copy className="w-3.5 h-3.5" /> Kopijuoti</button>
+                <button onClick={() => { playUiClick(); setDetail(d) }} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold" style={{ minHeight: 40, background: 'rgba(255,255,255,0.05)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)' }}><Eye className="w-3.5 h-3.5" /> {t('decks.community.preview')}</button>
+                <button onClick={() => copyDeck(d)} disabled={busy} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold disabled:opacity-50" style={{ minHeight: 40, background: `rgba(${GOLD},0.16)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}><Copy className="w-3.5 h-3.5" /> {t('decks.community.copy')}</button>
               </div>
             </div>
           </div>
@@ -207,11 +210,12 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
 }
 
 function VoteBox({ score, my, onUp, onDown }: { score: number; my: number; onUp: () => void; onDown: () => void }) {
+  const fl = useT()
   return (
     <div className="flex flex-col items-center shrink-0 rounded-xl overflow-hidden" style={{ border: `1px solid rgba(${GOLD},0.25)`, background: 'rgba(0,0,0,0.35)' }}>
-      <button onClick={onUp} aria-label="Už" className="rvn-press flex items-center justify-center" style={{ width: 34, height: 30, color: my === 1 ? '#4ade80' : 'var(--text-muted)', background: my === 1 ? 'rgba(34,197,94,0.16)' : 'transparent' }}><ChevronUp className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /></button>
+      <button onClick={onUp} aria-label={fl('decks.community.voteUp')} className="rvn-press flex items-center justify-center" style={{ width: 34, height: 30, color: my === 1 ? '#4ade80' : 'var(--text-muted)', background: my === 1 ? 'rgba(34,197,94,0.16)' : 'transparent' }}><ChevronUp className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /></button>
       <span className="tabular-nums rvn-disp" style={{ fontSize: 13, fontWeight: 800, color: score > 0 ? 'var(--gold)' : score < 0 ? '#fca5a5' : 'var(--text-muted)', padding: '1px 4px' }}>{score}</span>
-      <button onClick={onDown} aria-label="Prieš" className="rvn-press flex items-center justify-center" style={{ width: 34, height: 30, color: my === -1 ? '#fca5a5' : 'var(--text-muted)', background: my === -1 ? 'rgba(239,68,68,0.14)' : 'transparent' }}><ChevronDown className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /></button>
+      <button onClick={onDown} aria-label={fl('decks.community.voteDown')} className="rvn-press flex items-center justify-center" style={{ width: 34, height: 30, color: my === -1 ? '#fca5a5' : 'var(--text-muted)', background: my === -1 ? 'rgba(239,68,68,0.14)' : 'transparent' }}><ChevronDown className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /></button>
     </div>
   )
 }
@@ -222,6 +226,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
   onVote: (v: 1 | -1) => void; onCopy: () => void; onClose: () => void
   flash: (m: string, err?: boolean) => void
 }) {
+  const fl = useT()
   const [tab, setTab] = useState<'cards' | 'comments'>('cards')
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [draft, setDraft] = useState('')
@@ -244,7 +249,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
         if (v.user_id === userId) mine[v.comment_id] = v.value
       }
     }
-    setComments(rows.map((r) => ({ id: r.id, userId: r.user_id, author: r.profile?.display_name || r.profile?.username || 'Žaidėjas', body: r.body, created: r.created_at, votes: sums[r.id] ?? 0, myVote: mine[r.id] ?? 0, removed: false })))
+    setComments(rows.map((r) => ({ id: r.id, userId: r.user_id, author: r.profile?.display_name || r.profile?.username || tGlobal('battle.player'), body: r.body, created: r.created_at, votes: sums[r.id] ?? 0, myVote: mine[r.id] ?? 0, removed: false })))
   }, [d.id, userId])
 
   useEffect(() => { loadComments() }, [loadComments])
@@ -256,7 +261,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
     const supabase = createClient()
     const { error } = await supabase.from('deck_comments').insert({ deck_id: d.id, user_id: userId, body })
     setSending(false)
-    if (error) { flash('Nepavyko išsiųsti', true); return }
+    if (error) { flash(fl('decks.community.sendFailed'), true); return }
     setDraft(''); playSuccess(); loadComments()
   }
 
@@ -279,8 +284,8 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
     playUiClick()
     const supabase = createClient()
     const { error } = await supabase.from('deck_comment_reports').upsert({ comment_id: c.id, user_id: userId })
-    if (error) flash('Nepavyko pranešti', true)
-    else flash('Pranešta — komentarą peržiūrės administratorius')
+    if (error) flash(fl('decks.community.reportFailed'), true)
+    else flash(fl('decks.community.reported'))
   }
 
   const removeComment = async (c: Comment) => {
@@ -288,9 +293,9 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
     const supabase = createClient()
     const newStatus = isAdmin && c.userId !== userId ? 'hidden' : 'deleted'
     const { error } = await supabase.from('deck_comments').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', c.id)
-    if (error) { flash('Nepavyko pašalinti', true); return }
+    if (error) { flash(fl('decks.community.removeFailed'), true); return }
     setComments((cs) => (cs ?? []).filter((x) => x.id !== c.id))
-    flash('Komentaras pašalintas')
+    flash(fl('decks.community.removed'))
   }
 
   return (
@@ -302,7 +307,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
             <h2 className="text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{d.name}</h2>
             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>nuo {d.author} · {d.total} kortų</p>
           </div>
-          <button onClick={() => { playUiClick(); onClose() }} className="flex items-center justify-center rounded-full shrink-0" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.5)', color: '#fff' }} aria-label="Uždaryti"><X className="w-4 h-4" /></button>
+          <button onClick={() => { playUiClick(); onClose() }} className="flex items-center justify-center rounded-full shrink-0" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.5)', color: '#fff' }} aria-label={fl('common.close')}><X className="w-4 h-4" /></button>
         </div>
 
         {/* Tabai */}
@@ -332,22 +337,22 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
             })
           ) : (
             <>
-              {comments === null && <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
-              {comments?.length === 0 && <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Komentarų dar nėra — būk pirmas!</p>}
+              {comments === null && <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>{fl('common.loading')}</p>}
+              {comments?.length === 0 && <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>{fl('decks.community.noComments')}</p>}
               {comments?.map((c) => (
                 <div key={c.id} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center gap-2">
                     <span className="text-[11.5px] font-bold truncate" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{c.author}</span>
                     <span className="text-[9.5px] shrink-0" style={{ color: 'var(--text-muted)' }}>{timeAgo(c.created)}</span>
                     <span className="flex-1" />
-                    {(isAdmin || c.userId === userId) && <button onClick={() => removeComment(c)} aria-label="Pašalinti" className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /></button>}
-                    {c.userId !== userId && <button onClick={() => reportComment(c)} aria-label="Pranešti" className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: 'var(--text-muted)' }}><Flag className="w-3.5 h-3.5" /></button>}
+                    {(isAdmin || c.userId === userId) && <button onClick={() => removeComment(c)} aria-label={fl('decks.community.remove')} className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /></button>}
+                    {c.userId !== userId && <button onClick={() => reportComment(c)} aria-label={fl('decks.community.report')} className="rvn-press flex items-center justify-center rounded shrink-0" style={{ width: 26, height: 26, color: 'var(--text-muted)' }}><Flag className="w-3.5 h-3.5" /></button>}
                   </div>
                   <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{c.body}</p>
                   <div className="flex items-center gap-1 mt-1.5">
-                    <button onClick={() => voteComment(c, 1)} className="rvn-press flex items-center justify-center rounded" style={{ width: 26, height: 24, color: c.myVote === 1 ? '#4ade80' : 'var(--text-muted)', background: c.myVote === 1 ? 'rgba(34,197,94,0.14)' : 'transparent' }} aria-label="Už"><ChevronUp className="w-4 h-4" /></button>
+                    <button onClick={() => voteComment(c, 1)} className="rvn-press flex items-center justify-center rounded" style={{ width: 26, height: 24, color: c.myVote === 1 ? '#4ade80' : 'var(--text-muted)', background: c.myVote === 1 ? 'rgba(34,197,94,0.14)' : 'transparent' }} aria-label={fl('decks.community.voteUp')}><ChevronUp className="w-4 h-4" /></button>
                     <span className="text-[11px] font-bold tabular-nums" style={{ color: c.votes > 0 ? '#86efac' : c.votes < 0 ? '#fca5a5' : 'var(--text-muted)', minWidth: 16, textAlign: 'center' }}>{c.votes}</span>
-                    <button onClick={() => voteComment(c, -1)} className="rvn-press flex items-center justify-center rounded" style={{ width: 26, height: 24, color: c.myVote === -1 ? '#fca5a5' : 'var(--text-muted)', background: c.myVote === -1 ? 'rgba(239,68,68,0.12)' : 'transparent' }} aria-label="Prieš"><ChevronDown className="w-4 h-4" /></button>
+                    <button onClick={() => voteComment(c, -1)} className="rvn-press flex items-center justify-center rounded" style={{ width: 26, height: 24, color: c.myVote === -1 ? '#fca5a5' : 'var(--text-muted)', background: c.myVote === -1 ? 'rgba(239,68,68,0.12)' : 'transparent' }} aria-label={fl('decks.community.voteDown')}><ChevronDown className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
@@ -358,15 +363,15 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
         <div className="px-4 py-3 shrink-0 space-y-2" style={{ borderTop: `1px solid rgba(${GOLD},0.15)`, paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
           {tab === 'comments' ? (
             <div className="flex items-end gap-2">
-              <textarea value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 1000))} placeholder="Parašyk komentarą…" rows={1}
+              <textarea value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 1000))} placeholder={fl('decks.community.commentPlaceholder')} rows={1}
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
                 style={{ background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)', minHeight: 44, maxHeight: 96 }} />
-              <button onClick={send} disabled={!draft.trim() || sending} aria-label="Siųsti" className="rvn-press flex items-center justify-center rounded-xl shrink-0 disabled:opacity-40" style={{ width: 44, height: 44, background: `rgba(${GOLD},0.92)`, color: '#1a0f04' }}><Send className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /></button>
+              <button onClick={send} disabled={!draft.trim() || sending} aria-label={fl('decks.community.send')} className="rvn-press flex items-center justify-center rounded-xl shrink-0 disabled:opacity-40" style={{ width: 44, height: 44, background: `rgba(${GOLD},0.92)`, color: '#1a0f04' }}><Send className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /></button>
             </div>
           ) : (
             <>
-              <p className="text-xs text-center font-semibold" style={{ color: d.missing === 0 ? '#86efac' : '#fca5a5' }}>{d.missing === 0 ? '✓ Turi visas kortas' : `Trūksta ${d.missing} kortų — nukopijuota kaladė bus pilna, bet žaisti galėsi tik jas įsigijęs`}</p>
-              <button onClick={onCopy} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-50" style={{ minHeight: 46, background: `rgba(${GOLD},0.92)`, color: '#1a0f04', fontFamily: 'var(--rvn-font-display)' }}><Copy className="w-4 h-4" /> Kopijuoti pilną kaladę</button>
+              <p className="text-xs text-center font-semibold" style={{ color: d.missing === 0 ? '#86efac' : '#fca5a5' }}>{d.missing === 0 ? fl('decks.community.haveAll') : fl('decks.community.missingInfo', { count: d.missing })}</p>
+              <button onClick={onCopy} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-50" style={{ minHeight: 46, background: `rgba(${GOLD},0.92)`, color: '#1a0f04', fontFamily: 'var(--rvn-font-display)' }}><Copy className="w-4 h-4" /> {fl('decks.community.copyFull')}</button>
             </>
           )}
         </div>

@@ -17,6 +17,7 @@ import { rewardParts } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT } from '@/lib/i18n/react'
 
 const QUEST_ICON: Record<string, string> = { win: '⚔️', pve_win: '🎯', pvp_win: '⚔️', open_pack: '🎁', play_match: '🃏' }
 
@@ -31,6 +32,7 @@ function Chip({ text, accent = '196,181,253' }: { text: string; accent?: string 
 const chipAccent = (t: string) => t.startsWith('🪙') ? '240,180,41' : t.startsWith('🎁') ? '251,146,60' : t.startsWith('🃏') ? '96,165,250' : t.startsWith('🎖') ? '139,92,246' : '196,181,253'
 
 export function QuestsModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [quests, setQuests] = useState<DailyQuest[]>([])
   const [streak, setStreak] = useState<LoginCheckin | null>(null)
@@ -66,7 +68,7 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
       if (!('error' in r)) { ok++; setQuests((prev) => prev.map((x) => x.quest_key === q.quest_key ? { ...x, claimed: true } : x)) }
     }
     setBusy(null)
-    if (ok > 0) { playSuccess(); setMsg(`Atsiimta atlygių: ${ok}`); onReward?.() } else { playError(); setMsg('Nepavyko atsiimti.') }
+    if (ok > 0) { playSuccess(); setMsg(t('quests.claimedN', { count: ok })); onReward?.() } else { playError(); setMsg(t('quests.claimFailed')) }
   }
 
   const doneCount = quests.filter((q) => q.progress >= q.target).length
@@ -98,10 +100,10 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
 
           {/* ── Antraštė ── */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(139,92,246,0.2)' }}>
-            <p className="font-bold inline-flex items-center gap-2" style={{ fontSize: 'clamp(14px,2.6vh,19px)', fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd', letterSpacing: '0.08em' }}><RvnIcon name="fi-quests" size={24} fallback={<span>📅</span>} /> DIENOS UŽDUOTYS</p>
+            <p className="font-bold inline-flex items-center gap-2" style={{ fontSize: 'clamp(14px,2.6vh,19px)', fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd', letterSpacing: '0.08em' }}><RvnIcon name="fi-quests" size={24} fallback={<span>📅</span>} /> {t('quests.title')}</p>
             <div className="flex items-center gap-2">
-              {!loading && quests.length > 0 && <span className="text-[11px] font-bold" style={{ color: doneCount === quests.length ? '#4ade80' : 'var(--text-muted)' }}>{doneCount}/{quests.length} įvykdyta</span>}
-              <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }}><X className="w-4 h-4" /></button>
+              {!loading && quests.length > 0 && <span className="text-[11px] font-bold" style={{ color: doneCount === quests.length ? '#4ade80' : 'var(--text-muted)' }}>{t('quests.doneOf', { done: doneCount, total: quests.length })}</span>}
+              <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }}><X className="w-4 h-4" /></button>
             </div>
           </div>
 
@@ -112,8 +114,8 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
             <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden px-3 pt-2.5 pb-3" style={{ background: 'linear-gradient(160deg, rgba(251,146,60,0.14), rgba(21,16,31,0.75))', border: '1px solid rgba(251,146,60,0.4)' }}>
               {streak ? (
                 <>
-                  <p className="shrink-0 text-sm font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>🔥 {streak.streak} d. serija</p>
-                  <p className="shrink-0 mb-2" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>Ilgiausia: {streak.longest} d. · kas 7-a diena — 🎁 pakuotė</p>
+                  <p className="shrink-0 text-sm font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{t('quests.streakDays', { count: streak.streak })}</p>
+                  <p className="shrink-0 mb-2" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>{t('quests.longest', { count: streak.longest })}</p>
                   <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1">
                     {strip.map((d) => (
                       <motion.div key={d.day} initial={{ x: -8, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: (d.day - strip[0].day) * 0.05 }}
@@ -126,8 +128,8 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
                         }}>
                         <span className="text-base leading-none shrink-0" style={{ filter: d.today ? 'none' : 'saturate(0.75)' }}>{d.booster ? '🎁' : '🪙'}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block font-bold uppercase" style={{ fontSize: 8.5, color: d.today ? '#fdba74' : 'var(--text-muted)' }}>{d.today ? 'Šiandien' : `${d.day} diena`}</span>
-                          <span className="block font-bold" style={{ fontSize: 10, color: d.booster ? '#fdba74' : 'var(--gold)' }}>{d.booster ? `🪙 ${d.gold} + pakuotė` : `🪙 ${d.gold}`}</span>
+                          <span className="block font-bold uppercase" style={{ fontSize: 8.5, color: d.today ? '#fdba74' : 'var(--text-muted)' }}>{d.today ? t('quests.today') : t('quests.dayN', { day: d.day })}</span>
+                          <span className="block font-bold" style={{ fontSize: 10, color: d.booster ? '#fdba74' : 'var(--gold)' }}>{d.booster ? t('quests.goldPlusPack', { gold: d.gold }) : `🪙 ${d.gold}`}</span>
                         </span>
                         {d.today && <span className="shrink-0 font-bold" style={{ fontSize: 10, color: '#4ade80' }}>✓</span>}
                       </motion.div>
@@ -187,25 +189,25 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
                   </motion.div>
                 )
               })}
-              {!loading && quests.length === 0 && <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>Šiandien užduočių nėra.</p>}
+              {!loading && quests.length === 0 && <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>{t('quests.noQuestsToday')}</p>}
             </div>
 
             {/* DEŠINĖ: suvestinė + atsiimti viską */}
             <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(139,92,246,0.3)' }}>
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5">
                 <div>
-                  <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Šiandien dar gali gauti</p>
+                  <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{t('quests.remainingToday')}</p>
                   {(remaining.gold > 0 || remaining.passXp > 0 || remaining.boosters > 0) ? (
                     <div className="flex flex-col gap-1.5">
-                      {remaining.gold > 0 && <span className="px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 11.5, background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>🪙 {remaining.gold} aukso</span>}
-                      {remaining.boosters > 0 && <span className="px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 11.5, background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.4)', color: '#fdba74' }}>🎁 {remaining.boosters} pakuotė(s)</span>}
+                      {remaining.gold > 0 && <span className="px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 11.5, background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{t('quests.goldAmount', { count: remaining.gold })}</span>}
+                      {remaining.boosters > 0 && <span className="px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 11.5, background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.4)', color: '#fdba74' }}>{t('quests.packsAmount', { count: remaining.boosters })}</span>}
                       {remaining.passXp > 0 && <span className="px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 11.5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }}>🎖️ {remaining.passXp} sezono kelio XP</span>}
                     </div>
                   ) : (
-                    <p style={{ fontSize: 11, color: '#4ade80', fontWeight: 700 }}>✓ Viskas atsiimta — grįžk rytoj!</p>
+                    <p style={{ fontSize: 11, color: '#4ade80', fontWeight: 700 }}>{t('quests.allClaimed')}</p>
                   )}
                 </div>
-                <p style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>Užduočių atlygiai kelia ir sezono kelio progresą. Naujos užduotys — kas dieną 00:00.</p>
+                <p style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>{t('quests.info')}</p>
                 {msg && <p className="text-center px-2 py-1.5 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }}>{msg}</p>}
               </div>
               <button onClick={doClaimAll} disabled={claimables.length === 0 || busy !== null}
@@ -215,7 +217,7 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
                   border: claimables.length > 0 ? '1px solid #ffeaa6' : '1px solid rgba(255,255,255,0.1)',
                   color: claimables.length > 0 ? '#3a2406' : 'var(--text-muted)',
                   boxShadow: claimables.length > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(240,180,41,0.35)' : 'none' }}>
-                {busy === '__all__' ? 'Skiriama…' : claimables.length > 0 ? `Atsiimti viską (${claimables.length})` : 'Nėra ką atsiimti'}
+                {busy === '__all__' ? t('quests.claiming') : claimables.length > 0 ? t('quests.claimAllN', { count: claimables.length }) : t('quests.nothingToClaim')}
               </button>
             </div>
           </div>

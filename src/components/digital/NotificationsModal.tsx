@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT } from '@/lib/i18n/react'
+import { t as tGlobal } from '@/lib/i18n/core'
 
 type Notif = { id: string; type: string; title: string; message: string | null; link: string | null; read: boolean; created_at: string }
 
@@ -15,13 +17,14 @@ const ICON: Record<string, string> = { message: '💬', friend: '👥', challeng
 
 function timeAgo(ts: string): string {
   const s = Math.max(0, (Date.now() - new Date(ts).getTime()) / 1000)
-  if (s < 60) return 'ką tik'
-  if (s < 3600) return `prieš ${Math.floor(s / 60)} min.`
-  if (s < 86400) return `prieš ${Math.floor(s / 3600)} val.`
-  return `prieš ${Math.floor(s / 86400)} d.`
+  if (s < 60) return tGlobal('common.notif.justNow')
+  if (s < 3600) return tGlobal('common.notif.minAgo', { count: Math.floor(s / 60) })
+  if (s < 86400) return tGlobal('common.notif.hoursAgo', { count: Math.floor(s / 3600) })
+  return tGlobal('common.notif.daysAgo', { count: Math.floor(s / 86400) })
 }
 
 export function NotificationsModal({ onClose, onRead }: { onClose: () => void; onRead?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const router = useRouter()
   const [items, setItems] = useState<Notif[] | null>(null)
@@ -53,16 +56,16 @@ export function NotificationsModal({ onClose, onRead }: { onClose: () => void; o
         style={{ maxHeight: '76vh', borderRadius: '18px 18px 0 0', background: 'linear-gradient(165deg, #17111f, #0a0810)', border: '1px solid rgba(240,180,41,0.35)', borderBottom: 'none', boxShadow: '0 -10px 44px rgba(0,0,0,0.8)' }}>
         <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5" style={{ borderBottom: '1px solid rgba(240,180,41,0.18)' }}>
           <p className="text-base font-bold inline-flex items-center gap-2" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-            <RvnIcon name="fi-bell" size={22} fallback={<span>🔔</span>} /> PRANEŠIMAI
+            <RvnIcon name="fi-bell" size={22} fallback={<span>🔔</span>} /> {t('common.notif.title')}
           </p>
-          <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+          <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
         </div>
         <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
-          {items === null && <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+          {items === null && <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
           {items?.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-12">
               <BellOff className="w-8 h-8" style={{ color: 'rgba(240,180,41,0.4)' }} />
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pranešimų kol kas nėra.</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.notif.empty')}</p>
             </div>
           )}
           {items?.map((n) => (

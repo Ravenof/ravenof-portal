@@ -20,6 +20,7 @@ import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { useT } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 
@@ -36,6 +37,7 @@ type DeckCard = {
 }
 
 export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; onEdit: (id: string) => void; onCreate: () => void }) {
+  const t = useT()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [covers, setCovers] = useState<Record<number, string>>({})
   const [openDeck, setOpenDeck] = useState<Deck | null>(null)
@@ -110,13 +112,13 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       const { data: orig, error: oErr } = await supabase.from('decks').select('name, description, faction_id, card_count, avg_gold_cost').eq('id', id).single()
       if (oErr || !orig) throw oErr ?? new Error('no deck')
       const o = orig as { name: string; description: string | null; faction_id: number | null; card_count: number; avg_gold_cost: number }
-      const { data: nd, error } = await supabase.from('decks').insert({ user_id: userId, name: `Kopija — ${o.name}`, description: o.description, faction_id: o.faction_id, visibility: 'private', card_count: o.card_count, avg_gold_cost: o.avg_gold_cost }).select('id').single()
+      const { data: nd, error } = await supabase.from('decks').insert({ user_id: userId, name: t('decks.my.copyPrefix', { name: o.name }), description: o.description, faction_id: o.faction_id, visibility: 'private', card_count: o.card_count, avg_gold_cost: o.avg_gold_cost }).select('id').single()
       if (error) throw error
       const { data: cards } = await supabase.from('deck_cards').select('card_id, quantity, is_side_deck').eq('deck_id', id)
       const rows = ((cards as { card_id: string; quantity: number; is_side_deck: boolean | null }[]) ?? []).map((c) => ({ deck_id: nd.id, card_id: c.card_id, quantity: c.quantity, is_side_deck: c.is_side_deck ?? false }))
       if (rows.length) await supabase.from('deck_cards').insert(rows)
-      flash('Kaladė nukopijuota'); closeDrawer(); load()
-    } catch { flash('Nepavyko nukopijuoti', true) } finally { setBusy(null) }
+      flash(t('decks.my.copied')); closeDrawer(); load()
+    } catch { flash(t('decks.my.copyFailed'), true) } finally { setBusy(null) }
   }
 
   const del = async (id: string) => {
@@ -126,8 +128,8 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       await supabase.from('deck_cards').delete().eq('deck_id', id)
       const { error } = await supabase.from('decks').delete().eq('id', id).eq('user_id', userId)
       if (error) throw error
-      flash('Kaladė ištrinta'); setConfirmDel(null); closeDrawer(); load()
-    } catch { flash('Nepavyko ištrinti', true) } finally { setBusy(null) }
+      flash(t('decks.my.deleted')); setConfirmDel(null); closeDrawer(); load()
+    } catch { flash(t('decks.my.deleteFailed'), true) } finally { setBusy(null) }
   }
 
   useEffect(() => {
@@ -143,10 +145,10 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
         <div className="text-5xl">📚</div>
         <div>
-          <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>Dar neturi kaladžių</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Sukurk pirmą Ravenof kaladę</p>
+          <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{t('decks.my.emptyTitle')}</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{t('decks.my.emptySub')}</p>
         </div>
-        <button onClick={() => { playUiClick(); onCreate() }} className="inline-flex items-center gap-2 px-5 rounded-xl text-sm font-bold" style={{ minHeight: 48, background: 'rgba(240,180,41,0.92)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)' }}><Plus className="w-4 h-4" /> Kurti kaladę</button>
+        <button onClick={() => { playUiClick(); onCreate() }} className="inline-flex items-center gap-2 px-5 rounded-xl text-sm font-bold" style={{ minHeight: 48, background: 'rgba(240,180,41,0.92)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)' }}><Plus className="w-4 h-4" /> {t('decks.my.createCta')}</button>
       </div>
     )
   }
@@ -162,17 +164,17 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       {shelves.map((row, si) => (
         <div key={si}>
           <div className="grid grid-cols-5 gap-2.5 px-1" style={{ alignItems: 'start' }}>
-            {row.map((t) =>
-              t === 'new' ? (
+            {row.map((tile) =>
+              tile === 'new' ? (
                 <button key="new" onClick={() => { playUiClick(); onCreate() }} className="rvn-press block w-full">
                   <span className="flex flex-col items-center justify-center gap-1.5" style={{ aspectRatio: '3 / 4', borderRadius: 10, border: `1.5px dashed rgba(${GOLD},0.4)`, background: `rgba(${GOLD},0.04)`, color: 'var(--gold)' }}>
                     <Plus className="w-6 h-6" />
-                    <span className="rvn-disp" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>Nauja kaladė</span>
+                    <span className="rvn-disp" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>{t('decks.my.newDeck')}</span>
                   </span>
                   <span className="block" style={{ height: 33 }} />
                 </button>
               ) : (
-                <DeckBox key={t.id} d={t} cover={t.factionId != null ? covers[t.factionId] ?? null : null} onClick={() => openDrawer(t)} />
+                <DeckBox key={tile.id} d={tile} cover={tile.factionId != null ? covers[tile.factionId] ?? null : null} onClick={() => openDrawer(tile)} />
               )
             )}
             {row.length < PER_SHELF && Array.from({ length: PER_SHELF - row.length }, (_, i) => <div key={`pad-${i}`} />)}
@@ -201,11 +203,11 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
                 <div className="flex-1 min-w-0">
                   <h2 className="text-[15px] font-bold leading-tight truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{openDeck.name}</h2>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[10.5px]" style={{ color: 'var(--text-muted)' }}>
-                    <span className="px-1.5 rounded" style={{ background: openDeck.factionColor + '22', color: openDeck.factionColor }}>{openDeck.faction ?? 'Be frakcijos'}</span>
-                    <span className="inline-flex items-center gap-0.5">{openDeck.visibility === 'public' ? <><Globe className="w-3 h-3" /> Vieša</> : <><Lock className="w-3 h-3" /> Privati</>}</span>
+                    <span className="px-1.5 rounded" style={{ background: openDeck.factionColor + '22', color: openDeck.factionColor }}>{openDeck.faction ?? t('decks.my.noFaction')}</span>
+                    <span className="inline-flex items-center gap-0.5">{openDeck.visibility === 'public' ? <><Globe className="w-3 h-3" /> {t('decks.my.public')}</> : <><Lock className="w-3 h-3" /> {t('decks.my.private')}</>}</span>
                   </div>
                 </div>
-                <button onClick={closeDrawer} aria-label="Uždaryti" className="flex items-center justify-center rounded-full shrink-0" style={{ width: 34, height: 34, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+                <button onClick={closeDrawer} aria-label={t('common.close')} className="flex items-center justify-center rounded-full shrink-0" style={{ width: 34, height: 34, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
               </div>
 
               {/* Turinys */}
@@ -214,10 +216,10 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
                 {/* Veiksmai */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button onClick={() => { playUiClick(); onEdit(openDeck.id) }} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.45)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}><Edit2 className="w-3.5 h-3.5" /> Redaguoti</button>
+                  <button onClick={() => { playUiClick(); onEdit(openDeck.id) }} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.45)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}><Edit2 className="w-3.5 h-3.5" /> {t('decks.my.edit')}</button>
                   <PlaytestButton deckId={openDeck.id} deckName={openDeck.name} variant="compact" />
-                  <button onClick={() => duplicate(openDeck.id)} disabled={busy === openDeck.id} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold disabled:opacity-40" style={{ minHeight: 44, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)' }}><Copy className="w-3.5 h-3.5" /> Kopijuoti</button>
-                  <button onClick={() => setConfirmDel(openDeck.id)} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /> Ištrinti</button>
+                  <button onClick={() => duplicate(openDeck.id)} disabled={busy === openDeck.id} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold disabled:opacity-40" style={{ minHeight: 44, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)' }}><Copy className="w-3.5 h-3.5" /> {t('decks.my.copy')}</button>
+                  <button onClick={() => setConfirmDel(openDeck.id)} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /> {t('decks.my.delete')}</button>
                 </div>
               </div>
             </motion.aside>
@@ -231,11 +233,11 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       {confirmDel && (
         <div className="fixed inset-0 z-[170] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setConfirmDel(null)}>
           <div className="w-[min(330px,92vw)] rounded-2xl p-5 text-center" style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>Ištrinti kaladę?</p>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Šio veiksmo atšaukti negalėsi.</p>
+            <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>{t('decks.my.confirmDeleteTitle')}</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{t('decks.my.confirmDeleteBody')}</p>
             <div className="flex gap-2">
-              <button onClick={() => { playUiClick(); setConfirmDel(null) }} className="flex-1 rounded-xl text-sm font-bold" style={{ minHeight: 44, background: 'rgba(255,255,255,0.06)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)' }}>Atšaukti</button>
-              <button onClick={() => del(confirmDel)} disabled={busy === confirmDel} className="flex-1 rounded-xl text-sm font-bold disabled:opacity-50" style={{ minHeight: 44, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>Ištrinti</button>
+              <button onClick={() => { playUiClick(); setConfirmDel(null) }} className="flex-1 rounded-xl text-sm font-bold" style={{ minHeight: 44, background: 'rgba(255,255,255,0.06)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-secondary)' }}>{t('common.cancel')}</button>
+              <button onClick={() => del(confirmDel)} disabled={busy === confirmDel} className="flex-1 rounded-xl text-sm font-bold disabled:opacity-50" style={{ minHeight: 44, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>{t('decks.my.delete')}</button>
             </div>
           </div>
         </div>
@@ -296,6 +298,7 @@ function CoverThumb({ cover, color, size }: { cover: string | null; color: strin
 
 // ── Drawer turinys: statistika + kortų sąrašas ────────────────────────────────
 function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | null; onCard: (c: DeckCard) => void }) {
+  const t = useT()
   const stats = useMemo(() => {
     if (!cards) return null
     const main = cards.filter((c) => !c.side)
@@ -323,19 +326,19 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
     <>
       {/* Suvestinė */}
       <div className="grid grid-cols-3 gap-2">
-        <StatBox label="Kortų" value={String(stats.total)} accent={valid ? '74,222,128' : '252,165,165'} />
-        <StatBox label="Aukso vid." value={stats.avg.toFixed(1)} accent={GOLD} />
-        <StatBox label="Čempionai" value={String(stats.champions)} accent="139,92,246" />
+        <StatBox label={t('decks.my.statCards')} value={String(stats.total)} accent={valid ? '74,222,128' : '252,165,165'} />
+        <StatBox label={t('decks.my.statAvgGold')} value={stats.avg.toFixed(1)} accent={GOLD} />
+        <StatBox label={t('decks.my.statChampions')} value={String(stats.champions)} accent="139,92,246" />
       </div>
       {deck.missing != null && deck.missing > 0 && (
         <p className="text-[11px] px-3 py-2 rounded-lg" style={{ background: 'rgba(240,180,41,0.08)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.25)' }}>
-          ⚠ Kolekcijoje trūksta {deck.missing} šios kaladės kortų
+          {t('decks.my.missingCards', { count: deck.missing })}
         </p>
       )}
 
       {/* Aukso kreivė */}
       <div>
-        <SectionLabel>Aukso kreivė</SectionLabel>
+        <SectionLabel>{t('decks.my.goldCurve')}</SectionLabel>
         <div className="flex items-end gap-1" style={{ height: 84 }}>
           {stats.curve.map((n, i) => (
             <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5" style={{ height: '100%' }}>
@@ -408,12 +411,13 @@ function CardRow({ c, onClick }: { c: DeckCard; onClick: () => void }) {
 }
 
 function CardDetail({ c, onClose }: { c: DeckCard; onClose: () => void }) {
+  const t = useT()
   const [bad, setBad] = useState(false)
   const col = rarityColor(c.rarity)
   return (
     <div className="fixed inset-0 z-[165] flex items-center justify-center p-5" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
       <div className="relative w-[min(340px,92vw)] rounded-2xl overflow-hidden" style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={() => { playUiClick(); onClose() }} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }} aria-label="Uždaryti"><X className="w-4 h-4" /></button>
+        <button onClick={() => { playUiClick(); onClose() }} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }} aria-label={t('common.close')}><X className="w-4 h-4" /></button>
         <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5', maxHeight: '50vh' }}>
           {c.image && !bad
             // eslint-disable-next-line @next/next/no-img-element

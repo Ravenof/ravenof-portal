@@ -20,6 +20,7 @@ import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT } from '@/lib/i18n/react'
 
 function Chip({ text }: { text: string }) {
   const accent = text.startsWith('🪙') ? '240,180,41' : text.startsWith('🎁') ? '251,146,60' : text.startsWith('🃏') ? '96,165,250' : '139,92,246'
@@ -30,6 +31,7 @@ function Chip({ text }: { text: string }) {
 }
 
 export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
+  const t = useT()
   useEscClose(onClose)
   const [pass, setPass] = useState<SeasonPass | null>(null)
   const [loading, setLoading] = useState(true)
@@ -91,12 +93,12 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
           <div className="px-4 pt-3 pb-2.5 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.16)' }}>
             <div className="flex items-center justify-between gap-2">
               <p className="font-bold inline-flex items-center gap-2 min-w-0" style={{ fontSize: 'clamp(14px,2.6vh,19px)', fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
-                <RvnIcon name="fi-season" size={24} fallback={<span>🎖️</span>} /> SEZONO KELIAS
+                <RvnIcon name="fi-season" size={24} fallback={<span>🎖️</span>} /> {t('quests.season.title')}
                 {pass?.season && <span className="truncate font-semibold" style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {pass.season.title}</span>}
               </p>
               <div className="flex items-center gap-2 shrink-0">
-                {daysLeft !== null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>⏳ liko {daysLeft} d.</span>}
-                <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+                {daysLeft !== null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>{t('quests.season.daysLeft', { count: daysLeft })}</span>}
+                <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
               </div>
             </div>
             {pass?.season && (
@@ -116,8 +118,8 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
 
             {/* Takas */}
             <div className="min-h-0 flex flex-col">
-              {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
-              {!loading && !pass?.season && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Aktyvaus sezono nėra.</p>}
+              {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
+              {!loading && !pass?.season && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>{t('quests.season.noActiveSeason')}</p>}
               <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
                 <div className="relative h-full flex items-center gap-2 px-2" style={{ minWidth: 'max-content' }}>
                   {/* jungiamoji linija */}
@@ -169,7 +171,7 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
                   })}
                 </div>
               </div>
-              <p className="shrink-0 text-center" style={{ fontSize: 9, color: 'var(--text-muted)' }}>Kelio XP gauni už dienos užduotis 📅 · slink taką →</p>
+              <p className="shrink-0 text-center" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('quests.season.xpInfo')}</p>
             </div>
 
             {/* DEŠINĖ: pasirinkta pakopa */}
@@ -179,7 +181,7 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
                   <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
                     <p className="rvn-disp font-bold" style={{ fontSize: 13, color: 'var(--gold)' }}>PAKOPA {selected.tier}</p>
                     <p style={{ fontSize: 10.5, color: xp >= selected.xpRequired ? '#4ade80' : 'var(--text-muted)' }}>
-                      {claimedSet.has(selected.tier) ? '✓ Atsiimta' : xp >= selected.xpRequired ? '✓ Paruošta atsiimti' : `Dar reikia ${(selected.xpRequired - xp).toLocaleString()} XP (${xp}/${selected.xpRequired})`}
+                      {claimedSet.has(selected.tier) ? t('quests.season.claimed') : xp >= selected.xpRequired ? t('quests.season.ready') : t('quests.season.needXp', { xp: selected.xpRequired - xp, cur: xp, req: selected.xpRequired })}
                     </p>
                     {selected.card && (
                       <div className="mx-auto relative rounded-lg overflow-hidden" style={{ width: 110, aspectRatio: '2.5/3.5', border: `2px solid ${rarityColor(selected.card.rarity)}`, boxShadow: `0 0 14px ${rarityColor(selected.card.rarity)}44` }}>
@@ -201,19 +203,19 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
                         background: xp >= selected.xpRequired && !claimedSet.has(selected.tier) ? 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)' : 'rgba(255,255,255,0.06)',
                         border: xp >= selected.xpRequired && !claimedSet.has(selected.tier) ? '1px solid #ffeaa6' : '1px solid rgba(255,255,255,0.1)',
                         color: xp >= selected.xpRequired && !claimedSet.has(selected.tier) ? '#3a2406' : 'var(--text-muted)' }}>
-                      {busy === selected.tier ? '…' : claimedSet.has(selected.tier) ? '✓ Atsiimta' : xp >= selected.xpRequired ? `Atsiimti ${selected.tier} pakopą` : '🔒 Užrakinta'}
+                      {busy === selected.tier ? '…' : claimedSet.has(selected.tier) ? t('quests.season.claimed') : xp >= selected.xpRequired ? t('quests.season.claimTier', { tier: selected.tier }) : t('quests.season.locked')}
                     </button>
                     {claimable.length > 1 && (
                       <button onClick={doClaimAll} disabled={busy !== null}
                         className="rvn-press w-full rounded-xl font-bold"
                         style={{ minHeight: 34, fontSize: 11, fontFamily: 'var(--rvn-font-display)', background: 'rgba(240,180,41,0.14)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
-                        {busy === 'all' ? '…' : `🎉 Atsiimti viską (${claimable.length})`}
+                        {busy === 'all' ? '…' : t('quests.season.claimAllN', { count: claimable.length })}
                       </button>
                     )}
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{loading ? 'Kraunama…' : 'Pasirink pakopą take.'}</div>
+                <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{loading ? t('common.loading') : t('quests.season.pickTier')}</div>
               )}
             </div>
           </div>

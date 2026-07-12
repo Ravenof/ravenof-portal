@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 export type PickerItem = { value: string; label: string; sub?: string; iconUrl?: string | null; emoji?: string; color?: string }
 
@@ -24,6 +25,7 @@ export function DigitalPicker({ value, onChange, items, placeholder = '— Pasir
   value: string; onChange: (v: string) => void; items: PickerItem[]
   placeholder?: string; accent?: string; label?: string; disabled?: boolean
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const sel = items.find((i) => i.value === value) ?? null
 
@@ -59,7 +61,7 @@ export function DigitalPicker({ value, onChange, items, placeholder = '— Pasir
             onClick={(e) => e.stopPropagation()}>
             {label && <div className="px-4 py-3 shrink-0 text-center text-[11px] font-bold uppercase tracking-widest" style={{ color: `rgb(${accent})`, borderBottom: `1px solid rgba(${accent},0.18)`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.14em' }}>{label}</div>}
             <div className="flex-1 min-h-0 overflow-y-auto py-1">
-              {items.length === 0 && <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>Nėra pasirinkimų</p>}
+              {items.length === 0 && <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>{t('common.picker.empty')}</p>}
               {items.map((it) => {
                 const active = it.value === value
                 return (
@@ -76,7 +78,7 @@ export function DigitalPicker({ value, onChange, items, placeholder = '— Pasir
                 )
               })}
             </div>
-            <button onClick={() => { playUiClick(); setOpen(false) }} className="shrink-0 py-3 text-xs font-semibold" style={{ color: 'var(--text-muted)', borderTop: `1px solid rgba(${accent},0.15)` }}>Uždaryti</button>
+            <button onClick={() => { playUiClick(); setOpen(false) }} className="shrink-0 py-3 text-xs font-semibold" style={{ color: 'var(--text-muted)', borderTop: `1px solid rgba(${accent},0.15)` }}>{t('common.close')}</button>
           </div>
         </div>, document.body)}
     </>

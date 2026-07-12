@@ -4,16 +4,51 @@
   "close": "Uždaryti",
   "confirm": "Patvirtinti",
   "continue": "Tęsti",
+  "cosmetics": {
+    "avatars": "Žaidėjo avatarai",
+    "boards": "Lentos",
+    "buyFailed": "Nepavyko nupirkti.",
+    "cardBacks": "Kortų nugarėlės",
+    "categoryEmpty": "Šioje kategorijoje dar nieko nėra.",
+    "info": "Pasirinkta nugarėlė ir avataras matomi kovose tau ir varžovui.",
+    "notEnoughGold": "Per mažai aukso.",
+    "pick": "Pasirink kosmetiką.",
+    "title": "✨ KOSMETIKA",
+    "voicePreview": "🔊 Balso peržiūra"
+  },
+  "dailyDeal": {
+    "added": "{{name}} pridėta į kolekciją!",
+    "title": "🔥 DIENOS PASIŪLYMAS"
+  },
   "delete": "Ištrinti",
   "error": "Įvyko klaida",
+  "levelRoad": {
+    "info": "XP gauni už kovas (pergalė duoda daugiau) ir užduotis. Lygio atlygiai įskiriami automatiškai jį pasiekus.",
+    "title": "⬆ LYGIŲ KELIAS"
+  },
   "loadTimeoutBody": "Patikrink interneto ryšį ir bandyk dar kartą.",
   "loadTimeoutTitle": "Užtruko per ilgai",
   "loading": "Kraunama…",
   "no": "Ne",
+  "notif": {
+    "daysAgo": "prieš {{count}} d.",
+    "empty": "Pranešimų kol kas nėra.",
+    "hoursAgo": "prieš {{count}} val.",
+    "justNow": "ką tik",
+    "minAgo": "prieš {{count}} min.",
+    "title": "PRANEŠIMAI"
+  },
   "or": "arba",
+  "picker": {
+    "empty": "Nėra pasirinkimų"
+  },
   "player": "Žaidėjas",
   "retry": "Bandyti dar kartą",
   "retryFull": "↻ Bandyti dar kartą",
+  "rewardState": {
+    "claimed": " (atsiimta)",
+    "locked": " (užrakinta)"
+  },
   "rotate": {
     "subtitle": "Ravenof žaidžiamas gulsčiai (landscape)",
     "subtitleOnboarding": "Ravenof Digital sukurtas žaisti gulsčiai",

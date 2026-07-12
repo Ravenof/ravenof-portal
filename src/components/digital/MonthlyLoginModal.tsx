@@ -8,8 +8,9 @@ import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { getMonthlyLogin, claimMonthlyLogin, LT_MONTHS, type MonthlyLoginState } from '@/lib/gamification/monthlyLogin'
+import { getMonthlyLogin, claimMonthlyLogin, type MonthlyLoginState } from '@/lib/gamification/monthlyLogin'
 import { useEscClose } from '@/lib/useEscClose'
+import { useT, useLocale } from '@/lib/i18n/react'
 
 function fmtDur(ms: number): string {
   if (ms <= 0) return '00:00:00'
@@ -20,6 +21,8 @@ function fmtDur(ms: number): string {
 }
 
 export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void; onClaimed?: () => void }) {
+  const t = useT()
+  const locale = useLocale()
   useEscClose(onClose)
   const [state, setState] = useState<MonthlyLoginState | null>(null)
   const [busy, setBusy] = useState(false)
@@ -56,9 +59,9 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
         {/* ── Antraštė ── */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
           <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,19px)', textShadow: '0 0 18px rgba(240,180,41,0.5)', letterSpacing: '0.05em' }}>
-            {state ? `${LT_MONTHS[state.month - 1].toUpperCase()} PRISIJUNGIMO DOVANOS` : 'PRISIJUNGIMO DOVANOS'}
+            {state ? t('quests.monthly.titleMonth', { month: new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(2000, state.month - 1, 1)).toUpperCase() }) : t('quests.monthly.title')}
           </h2>
-          <button onClick={() => { playUiClick(); onClose() }} aria-label="Uždaryti" className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+          <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
         </div>
 
         {/* ── 3 zonos ── */}
@@ -67,17 +70,17 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
           {/* KAIRĖ: mėnesio progresas */}
           <div className="rounded-2xl flex flex-col gap-3 min-h-0 overflow-y-auto p-3" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(240,180,41,0.22)' }}>
             <div>
-              <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Mėnesio progresas</p>
+              <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{t('quests.monthly.progress')}</p>
               <p className="rvn-disp font-black tabular-nums" style={{ fontSize: 26, color: 'var(--gold)', lineHeight: 1 }}>{claimedCount}<span style={{ fontSize: 14, color: 'var(--text-muted)' }}> / {state?.daysInMonth ?? 30}</span></p>
               <div className="mt-2 rounded-full overflow-hidden" style={{ height: 8, background: 'rgba(255,255,255,0.08)' }}>
                 <div className="h-full rounded-full" style={{ width: `${state ? Math.round(claimedCount / state.daysInMonth * 100) : 0}%`, background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: '0 0 8px rgba(240,180,41,0.6)' }} />
               </div>
             </div>
             <div className="space-y-1.5" style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
-              <p>{state?.claimedToday ? <>Kitas atlygis po <b className="tabular-nums" style={{ color: '#f3ead3' }}>{fmtDur(nextMidnight - now)}</b></> : <b style={{ color: '#86efac' }}>Atlygis paruoštas!</b>}</p>
-              <p>Kalendorius atsinaujina po <b style={{ color: '#f3ead3' }}>{Math.ceil((nextMonth - now) / 86400000)} d.</b></p>
+              <p>{state?.claimedToday ? <>{t('quests.monthly.nextIn')} <b className="tabular-nums" style={{ color: '#f3ead3' }}>{fmtDur(nextMidnight - now)}</b></> : <b style={{ color: '#86efac' }}>{t('quests.monthly.ready')}</b>}</p>
+              <p>{t('quests.monthly.calendarResets')} <b style={{ color: '#f3ead3' }}>{Math.ceil((nextMonth - now) / 86400000)} d.</b></p>
             </div>
-            <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>Prisijunk kasdien — 30-tą dieną laukia didžioji skrynia. Praleista diena nepradingsta: atlygiai imami iš eilės.</p>
+            <p className="mt-auto" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.55)', lineHeight: 1.4 }}>{t('quests.monthly.info')}</p>
           </div>
 
           {/* CENTRAS: kalendorius */}
@@ -115,10 +118,10 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
           <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(240,180,41,0.22)' }}>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5">
               <div>
-                <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{state?.claimedToday ? 'Šiandien atsiimta' : 'Šiandienos dovana'}</p>
+                <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{state?.claimedToday ? t('quests.monthly.claimedToday') : t('quests.monthly.todaysGift')}</p>
                 {todayReward ? (
                   <div className="rounded-xl p-2.5 flex flex-col gap-1.5" style={{ background: 'radial-gradient(120% 100% at 50% 0%, rgba(240,180,41,0.16), transparent 70%), rgba(10,8,16,0.8)', border: '1.5px solid rgba(240,180,41,0.55)' }}>
-                    <p className="rvn-disp font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{todayReward.day === 30 ? 'DIDŽIOJI SKRYNIA' : `${todayReward.day} DIENA`}</p>
+                    <p className="rvn-disp font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{todayReward.day === 30 ? t('quests.monthly.bigChest') : t('quests.monthly.dayNo', { day: todayReward.day })}</p>
                     {todayReward.payload.map((it, i) => (
                       <span key={i} className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}><RewardChip it={it} size={18} textSize={11} color="#f3ead3" /></span>
                     ))}
@@ -127,9 +130,9 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
               </div>
               {nextReward && nextReward.day <= (state?.daysInMonth ?? 30) && (
                 <div>
-                  <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Rytoj laukia</p>
+                  <p className="uppercase font-bold mb-1.5" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{t('quests.monthly.tomorrow')}</p>
                   <div className="rounded-xl p-2 flex flex-col gap-1" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(255,255,255,0.1)', opacity: 0.85 }}>
-                    <p className="rvn-disp font-bold" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{nextReward.day === 30 ? 'DIDŽIOJI SKRYNIA' : `${nextReward.day} DIENA`}</p>
+                    <p className="rvn-disp font-bold" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{nextReward.day === 30 ? t('quests.monthly.bigChest') : t('quests.monthly.dayNo', { day: nextReward.day })}</p>
                     {nextReward.payload.slice(0, 3).map((it, i) => (
                       <span key={i}><RewardChip it={it} size={14} textSize={10} /></span>
                     ))}
@@ -144,7 +147,7 @@ export function MonthlyLoginModal({ onClose, onClaimed }: { onClose: () => void;
                 background: canClaim ? 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)' : 'rgba(52,211,153,0.14)',
                 color: canClaim ? '#3a2406' : '#7dd3b0', border: canClaim ? '1px solid #ffeaa6' : '1px solid rgba(52,211,153,0.4)',
                 boxShadow: canClaim ? 'inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(240,180,41,0.35)' : 'none' }}>
-              {busy ? 'Skiriama…' : canClaim ? `Atsiimti ${state!.nextDay} d. dovaną` : state?.claimedToday ? '✓ Šiandien atsiimta' : 'Mėnuo užbaigtas'}
+              {busy ? t('quests.monthly.claiming') : canClaim ? t('quests.monthly.claimDay', { day: state!.nextDay }) : state?.claimedToday ? t('quests.monthly.claimedTodayCheck') : t('quests.monthly.monthDone')}
             </button>
           </div>
         </div>

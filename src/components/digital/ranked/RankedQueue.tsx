@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { queueJoin, queueLeave, queuePoll, pickBot, getOpponentSummary, getRankedPvpMatch } from '@/lib/ranked/client'
 import { playRanked } from '@/lib/ranked/sound'
+import { useT } from '@/lib/i18n/react'
 
 export type MatchedOpponent = {
   kind: 'bot' | 'real'
@@ -27,6 +28,7 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
   onMatch: (opp: MatchedOpponent) => void
   onCancel: () => void
 }) {
+  const t = useT()
   const [elapsed, setElapsed] = useState(0)
   const doneRef = useRef(false)
 
@@ -52,8 +54,8 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
         const isHost = !!r.isHost
         onMatch({
           kind: 'real', id: r.opponent,
-          name: summ?.name ?? 'Žaidėjas', avatar: '🛡️',
-          faction: summ?.faction ?? 'Nežinoma', factionSlug: null,
+          name: summ?.name ?? t('battle.player'), avatar: '🛡️',
+          faction: summ?.faction ?? t('ranked.queue.unknown'), factionSlug: null,
           rankStep: summ?.rankStep ?? 0, difficulty: 'normal',
           net: { isHost, mySide: isHost ? 'you' : 'ai', matchId: r.matchId, opponentId: r.opponent },
           // host'as įkrauna svečio kaladę; svečias gauna būseną per sync
@@ -81,10 +83,10 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
     return () => { alive = false; clearInterval(tick); clearInterval(poll); if (!doneRef.current) queueLeave() }
   }, [deckId, onMatch, onCancel])
 
-  const status = elapsed < 20 ? 'Ieškoma panašaus rango priešininko…'
-    : elapsed < 40 ? 'Plečiama paieška…'
-    : elapsed < BOT_FALLBACK_SEC ? 'Ieškoma bet kokio reitingo priešininko…'
-    : 'Rastas priešininkas.'
+  const status = elapsed < 20 ? t('ranked.queue.similar')
+    : elapsed < 40 ? t('ranked.queue.widening')
+    : elapsed < BOT_FALLBACK_SEC ? t('ranked.queue.any')
+    : t('ranked.queue.found')
 
   const cancel = () => { doneRef.current = true; playRanked('ranked_queue_cancel'); queueLeave(); onCancel() }
 

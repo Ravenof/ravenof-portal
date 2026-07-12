@@ -15,30 +15,34 @@ import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/start
 import { getCosmetics, equipCosmetic, type Cosmetic, type CosmeticsState } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { useT } from '@/lib/i18n/react'
+import { t as tGlobal } from '@/lib/i18n/core'
 
 // Žaidimo stiliaus fallback pagal frakciją (DB description turi pirmenybę)
-const PLAYSTYLE: { match: RegExp; text: string }[] = [
-  { match: /[šs]vies|pulk/i,     text: 'Gynyba ir gydymas — atlaikyk spaudimą ir laimėk ilgą kovą.' },
-  { match: /demon|orda/i,        text: 'Agresija ir prakeiksmai — užversk priešo kaladę prakeiksmais.' },
-  { match: /mirt|mar[šs]/i,      text: 'Nekromantija — kapinynas yra tavo ginklas, padarai grįžta.' },
-  { match: /mistik|melodij/i,    text: 'Burtai ir kombinacijos — valdyk kovą galingais kerais.' },
-  { match: /pl[ėe][šs]ik|nakt/i, text: 'Greitis ir auksas — smok pirmas ir apiplėšk priešą.' },
-  { match: /vryhiok|goblin|gauj/i, text: 'Goblinų spiečius — užpildyk lentą pigiais padarais.' },
-  { match: /inkviz|legion/i,     text: 'Kontrolė ir šarvai — naikink grėsmes, bausk už burtus.' },
-  { match: /ryt|v[ėe]j/i,        text: 'Technika ir tempas — tiksli žala reikiamu metu.' },
+const PLAYSTYLE: { match: RegExp; key: string }[] = [
+  { match: /[šs]vies|pulk/i,     key: 'onboarding.starter.playstyle.light' },
+  { match: /demon|orda/i,        key: 'onboarding.starter.playstyle.demons' },
+  { match: /mirt|mar[šs]/i,      key: 'onboarding.starter.playstyle.death' },
+  { match: /mistik|melodij/i,    key: 'onboarding.starter.playstyle.mystic' },
+  { match: /pl[ėe][šs]ik|nakt/i, key: 'onboarding.starter.playstyle.thieves' },
+  { match: /vryhiok|goblin|gauj/i, key: 'onboarding.starter.playstyle.vryhiok' },
+  { match: /inkviz|legion/i,     key: 'onboarding.starter.playstyle.inquisition' },
+  { match: /ryt|v[ėe]j/i,        key: 'onboarding.starter.playstyle.east' },
 ]
 export function playstyleFor(d: StarterDeck): string {
-  const t = d.description?.trim()
+  const desc = d.description?.trim()
   // Seed'intas generinis aprašymas („Pradžiamokslio kaladė – ...") keičiamas
   // žaidimo stiliaus tekstu; admin'o custom aprašymas turi pirmenybę.
-  if (t && !/^pradžiamokslio kaladė/i.test(t)) return t
-  return PLAYSTYLE.find((p) => p.match.test(d.faction ?? d.name))?.text ?? t ?? 'Subalansuota pradžios kaladė.'
+  if (desc && !/^pradžiamokslio kaladė/i.test(desc)) return desc
+  const key = PLAYSTYLE.find((p) => p.match.test(d.faction ?? d.name))?.key
+  return key ? tGlobal(key) : desc ?? tGlobal('onboarding.starter.playstyle.fallback')
 }
 
 export function StarterOnboarding({ onDone, onClose }: {
   onDone: (r: { deckId: string; starterId: string }) => void
   onClose: () => void
 }) {
+  const t = useT()
   const [step, setStep] = useState<'deck' | 'avatar'>('deck')
   const [starters, setStarters] = useState<StarterDeck[] | null>(null)
   const [cos, setCos] = useState<CosmeticsState | null>(null)
@@ -62,7 +66,7 @@ export function StarterOnboarding({ onDone, onClose }: {
     setBusy(true)
     const res = await claimStarterDeck(d.id)
     setBusy(false)
-    if ('error' in res) { playError(); setMsg(res.error === 'already claimed' ? 'Šią kaladę jau turi.' : 'Nepavyko pasiimti: ' + res.error); return }
+    if ('error' in res) { playError(); setMsg(res.error === 'already claimed' ? t('onboarding.starter.alreadyClaimed') : t('onboarding.starter.claimFailed', { msg: res.error })); return }
     playSuccess()
     setClaimed({ deckId: res.deckId, starterId: d.id })
     setStep('avatar')
@@ -94,12 +98,12 @@ export function StarterOnboarding({ onDone, onClose }: {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="text-lg font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.06em' }}>
-                  {step === 'deck' ? '🎓 PASIRINK SAVO KALADĘ' : '😀 PASIRINK AVATARĄ'}
+                  {step === 'deck' ? t('onboarding.starter.pickDeckTitle') : t('onboarding.starter.pickAvatarTitle')}
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {step === 'deck'
-                    ? 'Viena starter kaladė — nemokamai. Su ja išmoksi žaisti mokymų kovoje.'
-                    : 'Avataras atstovaus tau kovose. Vėliau galėsi pakeisti parduotuvėje.'}
+                    ? t('onboarding.starter.pickDeckSub')
+                    : t('onboarding.starter.pickAvatarSub')}
                 </p>
               </div>
               {step === 'deck' && (
@@ -144,7 +148,7 @@ export function StarterOnboarding({ onDone, onClose }: {
             {step === 'avatar' && (
               <>
                 {!cos && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
-                {cos && avatars.length === 0 && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>Avatarų dar nėra — galėsi pasirinkti vėliau parduotuvėje.</p>}
+                {cos && avatars.length === 0 && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>{t('onboarding.starter.noAvatars')}</p>}
                 <div className="grid grid-cols-4 gap-2.5">
                   {avatars.map((c) => {
                     const owned = avatarOwned(c)
@@ -176,13 +180,13 @@ export function StarterOnboarding({ onDone, onClose }: {
               <button onClick={confirmDeck} disabled={!sel || busy}
                 className="flex-1 py-3 rounded-xl text-sm font-extrabold transition-transform active:scale-[0.98]"
                 style={{ fontFamily: 'var(--rvn-font-display)', background: sel ? 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)' : 'rgba(255,255,255,0.06)', color: sel ? '#3a2406' : 'var(--text-muted)', border: sel ? '1px solid #ffeaa6' : '1px solid rgba(255,255,255,0.1)' }}>
-                {busy ? '…' : sel ? '🎁 Pasiimti kaladę nemokamai' : 'Pasirink kaladę'}
+                {busy ? '…' : sel ? t('onboarding.starter.claimFree') : t('onboarding.starter.pickDeckCta')}
               </button>
             ) : (
               <>
                 <button onClick={finish} disabled={busy} className="flex-1 py-3 rounded-xl text-sm font-extrabold transition-transform active:scale-[0.98]"
                   style={{ fontFamily: 'var(--rvn-font-display)', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6' }}>
-                  {busy ? '…' : avatarSel ? '⚔ Į mokymų kovą!' : 'Praleisti ir kautis →'}
+                  {busy ? '…' : avatarSel ? t('onboarding.starter.toTutorial') : t('onboarding.starter.skipFight')}
                 </button>
               </>
             )}

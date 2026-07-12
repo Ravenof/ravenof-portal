@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/digital/ui/HubKit'
 import { useChatStore, PRESENCE_META } from '@/lib/social/chatStore'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 type PresenceFilter = 'all' | 'online' | 'offline'
@@ -39,14 +40,15 @@ function Avatar({ url, name, size, presence }: { url: string | null; name: strin
   )
 }
 
-const SELF_STATUS: { v: SelfPresence; label: string; color: string; hint: string }[] = [
-  { v: 'auto',   label: 'Prisijungęs',  color: '#34d399', hint: 'Matomas draugams kaip prisijungęs' },
-  { v: 'away',   label: 'Pasitraukęs',  color: '#fbbf24', hint: 'Esi prie žaidimo, bet ne visada atsakysi' },
-  { v: 'dnd',    label: 'Netrukdyti',   color: '#ef4444', hint: 'Be garsų ir automatinių pokalbių langų' },
-  { v: 'hidden', label: 'Nematomas',    color: '#64748b', hint: 'Kiti mato tave kaip neprisijungusį (serveris tai užtikrina)' },
+const SELF_STATUS: { v: SelfPresence; labelKey: string; color: string; hintKey: string }[] = [
+  { v: 'auto',   labelKey: 'social.presence.online',  color: '#34d399', hintKey: 'social.selfStatus.autoHint' },
+  { v: 'away',   labelKey: 'social.presence.away',    color: '#fbbf24', hintKey: 'social.selfStatus.awayHint' },
+  { v: 'dnd',    labelKey: 'social.presence.dnd',     color: '#ef4444', hintKey: 'social.selfStatus.dndHint' },
+  { v: 'hidden', labelKey: 'social.presence.hidden',  color: '#64748b', hintKey: 'social.selfStatus.hiddenHint' },
 ]
 
 export function FriendsClient() {
+  const t = useT()
   const router = useRouter()
   const chat = useChatStore()
   const [friends, setFriends] = useState<Friend[]>([])
@@ -79,21 +81,21 @@ export function FriendsClient() {
     setBusy(true); setMsg(null)
     const r = await friendRequest(uname.trim())
     setBusy(false)
-    if ('error' in r) { flash(r.error || 'Nepavyko.'); return }
-    setUname(''); playSuccess(); flash('✓ Užklausa išsiųsta.'); void reload()
+    if ('error' in r) { flash(r.error || t('social.failed')); return }
+    setUname(''); playSuccess(); flash(t('social.requestSent')); void reload()
   }
   const respond = async (id: string, ok: boolean) => { playUiClick(); await friendRespond(id, ok); void reload() }
   const challenge = async (f: Friend) => {
     const code = randMatchCode()
-    if (!(await challengeCreate(f.userId, code))) { flash('Nepavyko išsiųsti iššūkio.'); return }
+    if (!(await challengeCreate(f.userId, code))) { flash(t('social.challengeFailed')); return }
     router.push(`/digital/pvp?host=${code}`)
   }
   const accept = async (c: Challenge) => {
     const code = await challengeAccept(c.id)
-    if (!code) { flash('Iššūkis nebegalioja.'); void reload(); return }
+    if (!code) { flash(t('social.challengeExpired')); void reload(); return }
     router.push(`/digital/pvp?join=${code}`)
   }
-  const startTrade = async (f: Friend) => { const id = await tradeCreate(f.userId); if (id) setTradeId(id); else flash('Nepavyko pradėti mainų.') }
+  const startTrade = async (f: Friend) => { const id = await tradeCreate(f.userId); if (id) setTradeId(id); else flash(t('social.tradeFailed')) }
   const openChat = (f: Friend) => {
     playUiClick()
     chat.openChat({ userId: f.userId, username: f.username, displayName: f.displayName, avatar: f.avatar, presence: f.presence ?? (f.online ? 'online' : 'offline') })
@@ -120,40 +122,40 @@ export function FriendsClient() {
     <p className="shrink-0 text-sm font-bold mb-2" style={{ color: col, fontFamily: 'var(--rvn-font-display)' }}>{txt}</p>
   )
   const lastSeenTxt = (f: Friend) => {
-    if (!f.lastSeen) return 'Seniai matytas'
+    if (!f.lastSeen) return t('social.seenLongAgo')
     const m = Math.max(1, Math.round((Date.now() - new Date(f.lastSeen).getTime()) / 60000))
-    return m < 60 ? `Matytas prieš ${m} min` : m < 1440 ? `Matytas prieš ${Math.round(m / 60)} val` : `Matytas prieš ${Math.round(m / 1440)} d`
+    return m < 60 ? t('social.seenMin', { count: m }) : m < 1440 ? t('social.seenHours', { count: Math.round(m / 60) }) : t('social.seenDays', { count: Math.round(m / 1440) })
   }
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-2" onClick={() => setMenuFor(null)}>
       {/* ── Savo presence juosta ── */}
       <div className="shrink-0 flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tavo būsena:</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('social.yourStatus')}</span>
         {SELF_STATUS.map((o) => (
-          <button key={o.v} onClick={() => changeSelf(o.v)} title={o.hint} data-testid={`presence-${o.v}`}
+          <button key={o.v} onClick={() => changeSelf(o.v)} title={t(o.hintKey)} data-testid={`presence-${o.v}`}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold"
             style={{ fontSize: 10.5, background: selfStatus === o.v ? o.color + '26' : 'rgba(255,255,255,0.04)', border: `1px solid ${selfStatus === o.v ? o.color : 'rgba(255,255,255,0.12)'}`, color: selfStatus === o.v ? o.color : 'var(--text-secondary)' }}>
-            <span className="rounded-full" style={{ width: 7, height: 7, background: o.color }} />{o.label}
+            <span className="rounded-full" style={{ width: 7, height: 7, background: o.color }} />{t(o.labelKey)}
           </button>
         ))}
-        {selfStatus === 'hidden' && <span style={{ fontSize: 10, color: '#94a3b8' }}>👁 Kiti mato tave neprisijungusį</span>}
+        {selfStatus === 'hidden' && <span style={{ fontSize: 10, color: '#94a3b8' }}>{t('social.hiddenNote')}</span>}
       </div>
 
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(185px,0.9fr) minmax(0,2fr) minmax(185px,0.95fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
         {/* ── KAIRĖ ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          {secTitle('Pridėti draugą')}
+          {secTitle(t('social.addFriend'))}
           <div className="shrink-0 flex flex-col gap-2">
-            <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Naudotojo vardas"
+            <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={t('social.usernamePlaceholder')}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-            <RavenofButton variant="gold" size="md" onClick={add}><UserPlus className="w-4 h-4" /> Pridėti</RavenofButton>
+            <RavenofButton variant="gold" size="md" onClick={add}><UserPlus className="w-4 h-4" /> {t('social.add')}</RavenofButton>
             {msg && <p role="status" className="text-xs" style={{ color: msg.startsWith('✓') ? '#4ade80' : '#fca5a5' }}>{msg}</p>}
           </div>
           <div className="mt-3 flex-1 min-h-0 overflow-y-auto">
-            {secTitle(`Užklausos${pending.length ? ` (${pending.length})` : ''}`)}
+            {secTitle(`${t('social.requests')}${pending.length ? ` (${pending.length})` : ''}`)}
             {pending.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Naujų užklausų nėra.</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('social.noNewRequests')}</p>
             ) : (
               <div className="space-y-1.5">
                 {pending.map((f) => (
@@ -172,22 +174,22 @@ export function FriendsClient() {
         {/* ── CENTRAS ── */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
           <div className="shrink-0 flex items-center gap-2 mb-2">
-            {secTitle(`Draugai (${onlineCount}/${friends.length} online)`)}
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Ieškoti…" aria-label="Ieškoti draugų"
+            {secTitle(t('social.friendsCount', { online: onlineCount, total: friends.length }))}
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('social.searchPlaceholder')} aria-label={t('social.searchAria')}
               className="ml-auto w-[130px] px-2.5 py-1.5 rounded-lg text-xs outline-none" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-            <select value={filter} onChange={(e) => setFilter(e.target.value as PresenceFilter)} aria-label="Filtruoti pagal būseną"
+            <select value={filter} onChange={(e) => setFilter(e.target.value as PresenceFilter)} aria-label={t('social.filterAria')}
               className="px-2 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}>
-              <option value="all">Visi</option><option value="online">Prisijungę</option><option value="offline">Neprisijungę</option>
+              <option value="all">{t('social.filterAll')}</option><option value="online">{t('social.filterOnline')}</option><option value="offline">{t('social.filterOffline')}</option>
             </select>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {friends.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <EmptyState icon="👥" title="Dar neturi draugų" sub="Pridėk draugą pagal naudotojo vardą ir kvieskite vienas kitą į kovą." accent="96,165,250"
-                  ctaLabel="➕ Pridėti draugą" onCta={() => { (document.getElementById('friend-uname-input') as HTMLInputElement | null)?.focus() }} />
+                <EmptyState icon="👥" title={t('social.noFriendsTitle')} sub={t('social.noFriendsSub')} accent="96,165,250"
+                  ctaLabel={t('social.addFriendCta')} onCta={() => { (document.getElementById('friend-uname-input') as HTMLInputElement | null)?.focus() }} />
               </div>
             ) : shown.length === 0 ? (
-              <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>Pagal paiešką/filtrą draugų nerasta.</p>
+              <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>{t('social.noneFound')}</p>
             ) : (
               <div className="space-y-1.5">
                 {shown.map((f) => {
@@ -199,23 +201,23 @@ export function FriendsClient() {
                       <Avatar url={f.avatar} name={f.username} size={34} presence={pres} />
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-semibold truncate" title={`${f.displayName || f.username} (@${f.username})`} style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}</span>
-                        <span className="block truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>@{f.username} · {lvl} lvl · <span style={{ color: pm.color }}>{pres === 'offline' ? lastSeenTxt(f) : pm.name}</span>{f.blockedByMe ? ' · 🚫 užblokuotas' : ''}</span>
+                        <span className="block truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>@{f.username} · {t('social.lvl', { lvl })} · <span style={{ color: pm.color }}>{pres === 'offline' ? lastSeenTxt(f) : pm.name}</span>{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
                       </span>
                       {(f.unread ?? 0) > 0 && (
                         <span className="shrink-0 flex items-center justify-center rounded-full font-black" style={{ minWidth: 18, height: 18, padding: '0 4px', fontSize: 10, background: '#ef4444', color: '#fff' }}>{f.unread}</span>
                       )}
-                      <RavenofButton variant="gold" size="sm" onClick={() => openChat(f)} aria-label={`Rašyti ${f.username}`}><MessageCircle className="w-3.5 h-3.5" /> Žinutė</RavenofButton>
-                      <button aria-label="Daugiau veiksmų" onClick={(e) => { e.stopPropagation(); playUiClick(); setMenuFor(menuFor === f.id ? null : f.id) }}
+                      <RavenofButton variant="gold" size="sm" onClick={() => openChat(f)} aria-label={t('social.writeTo', { name: f.username })}><MessageCircle className="w-3.5 h-3.5" /> {t('social.message')}</RavenofButton>
+                      <button aria-label={t('social.moreActions')} onClick={(e) => { e.stopPropagation(); playUiClick(); setMenuFor(menuFor === f.id ? null : f.id) }}
                         className="shrink-0 p-1.5 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}><MoreVertical className="w-3.5 h-3.5" /></button>
                       {menuFor === f.id && (
                         <div className="absolute right-1 top-full mt-1 z-30 rounded-xl overflow-hidden py-1" onClick={(e) => e.stopPropagation()}
                           style={{ minWidth: 170, background: 'linear-gradient(160deg,#1a1426,#0c0913)', border: `1px solid rgba(${GOLD},0.35)`, boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
                           {[
-                            { l: '⚔ Mesti iššūkį', fn: () => challenge(f) },
-                            { l: '🔄 Mainai', fn: () => startTrade(f) },
-                            { l: chat.prefs.muted.includes(f.userId) ? '🔔 Įjungti pranešimus' : '🔕 Nutildyti pokalbį', fn: () => chat.toggleMute(f.userId) },
-                            { l: f.blockedByMe ? '✅ Atblokuoti' : '🚫 Blokuoti', fn: () => f.blockedByMe ? (async () => { await blockUser(f.userId, false); void reload() })() : setConfirmAct({ kind: 'block', f }) },
-                            { l: '🗑 Pašalinti draugą', fn: () => setConfirmAct({ kind: 'remove', f }) },
+                            { l: t('social.menu.challenge'), fn: () => challenge(f) },
+                            { l: t('social.menu.trade'), fn: () => startTrade(f) },
+                            { l: chat.prefs.muted.includes(f.userId) ? t('social.menu.unmute') : t('social.menu.mute'), fn: () => chat.toggleMute(f.userId) },
+                            { l: f.blockedByMe ? t('social.menu.unblock') : t('social.menu.block'), fn: () => f.blockedByMe ? (async () => { await blockUser(f.userId, false); void reload() })() : setConfirmAct({ kind: 'block', f }) },
+                            { l: t('social.menu.remove'), fn: () => setConfirmAct({ kind: 'remove', f }) },
                           ].map((it) => (
                             <button key={it.l} onClick={() => { playUiClick(); setMenuFor(null); void it.fn() }}
                               className="block w-full text-left px-3 py-1.5 hover:bg-white/5" style={{ fontSize: 11.5, color: '#e8dfc8' }}>{it.l}</button>
@@ -235,13 +237,13 @@ export function FriendsClient() {
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
             {challenges.length > 0 && (
               <div>
-                {secTitle('⚔ Iššūkiai tau', '#fdba74')}
+                {secTitle(t('social.challengesForYou'), '#fdba74')}
                 <div className="space-y-1.5">
                   {challenges.map((c) => (
                     <div key={c.id} className="px-2 py-2 rounded-lg" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.4)' }}>
-                      <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{c.displayName || c.username} kviečia į kovą</p>
+                      <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('social.invitesToBattle', { name: c.displayName || c.username })}</p>
                       <div className="flex items-center gap-1.5">
-                        <RavenofButton variant="gold" size="sm" onClick={() => accept(c)}><Swords className="w-3 h-3" /> Priimti</RavenofButton>
+                        <RavenofButton variant="gold" size="sm" onClick={() => accept(c)}><Swords className="w-3 h-3" /> {t('social.accept')}</RavenofButton>
                         <RavenofButton variant="muted" size="sm" onClick={async () => { playUiClick(); await challengeCancel(c.id); void reload() }}><X className="w-3 h-3" /></RavenofButton>
                       </div>
                     </div>
@@ -251,21 +253,21 @@ export function FriendsClient() {
             )}
             {trades.length > 0 && (
               <div>
-                {secTitle('🔄 Mainų pasiūlymai', '#93c5fd')}
+                {secTitle(t('social.tradeOffers'), '#93c5fd')}
                 <div className="space-y-1.5">
                   {trades.map((tr) => (
                     <div key={tr.id} className="px-2 py-2 rounded-lg" style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.4)' }}>
-                      <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{tr.displayName || tr.username} nori mainytis</p>
-                      <RavenofButton variant="gold" size="sm" onClick={async () => { await tradeAccept(tr.id); setTradeId(tr.id); void reload() }}><Repeat className="w-3 h-3" /> Atidaryti</RavenofButton>
+                      <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('social.wantsToTrade', { name: tr.displayName || tr.username })}</p>
+                      <RavenofButton variant="gold" size="sm" onClick={async () => { await tradeAccept(tr.id); setTradeId(tr.id); void reload() }}><Repeat className="w-3 h-3" /> {t('social.open')}</RavenofButton>
                     </div>
                   ))}
                 </div>
               </div>
             )}
             <div>
-              {secTitle('💬 Paskutiniai pokalbiai', '#c4b5fd')}
+              {secTitle(t('social.recentChats'), '#c4b5fd')}
               {recentConvs.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Pokalbių dar nėra — parašyk draugui žinutę!</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('social.noChats')}</p>
               ) : (
                 <div className="space-y-1">
                   {recentConvs.map((c) => (
@@ -282,7 +284,7 @@ export function FriendsClient() {
             {challenges.length === 0 && trades.length === 0 && (
               <div className="mt-auto text-center py-2">
                 <span style={{ fontSize: 22 }}>🕯</span>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>Ramu… Mesk draugui iššūkį (⋯ meniu prie draugo) arba pradėk pokalbį.</p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('social.calm')}</p>
               </div>
             )}
           </div>
@@ -294,20 +296,20 @@ export function FriendsClient() {
         <div className="fixed inset-0 z-[320] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.85)' }} onClick={() => setConfirmAct(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-[min(360px,92vw)] rounded-2xl p-4 text-center" style={{ background: 'linear-gradient(160deg,#17111f,#0a0810)', border: '1.5px solid rgba(239,68,68,0.5)' }}>
             <p className="font-bold" style={{ fontSize: 14, color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
-              {confirmAct.kind === 'remove' ? `Pašalinti ${confirmAct.f.displayName || confirmAct.f.username}?` : `Blokuoti ${confirmAct.f.displayName || confirmAct.f.username}?`}
+              {confirmAct.kind === 'remove' ? t('social.confirmRemove', { name: confirmAct.f.displayName || confirmAct.f.username }) : t('social.confirmBlock', { name: confirmAct.f.displayName || confirmAct.f.username })}
             </p>
             <p className="mt-1.5" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-              {confirmAct.kind === 'remove' ? 'Draugystė bus nutraukta. Pokalbio istorija išliks.' : 'Užblokuotas žaidėjas negalės tau rašyti žinučių.'}
+              {confirmAct.kind === 'remove' ? t('social.removeBody') : t('social.blockBody')}
             </p>
             <div className="mt-3 flex gap-2">
-              <button onClick={() => setConfirmAct(null)} className="flex-1 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#c9bfa8' }}>Atšaukti</button>
+              <button onClick={() => setConfirmAct(null)} className="flex-1 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#c9bfa8' }}>{t('common.cancel')}</button>
               <button data-testid="confirm-danger" onClick={async () => {
                 const a = confirmAct; setConfirmAct(null); playUiClick()
                 if (a.kind === 'remove') await friendRemove(a.f.id)
                 else await blockUser(a.f.userId, true)
                 void reload()
               }} className="flex-1 py-2 rounded-xl text-xs font-extrabold" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5' }}>
-                {confirmAct.kind === 'remove' ? 'Pašalinti' : 'Blokuoti'}
+                {confirmAct.kind === 'remove' ? t('social.remove') : t('social.block')}
               </button>
             </div>
           </div>

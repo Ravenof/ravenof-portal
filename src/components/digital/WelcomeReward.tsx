@@ -7,10 +7,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
+import { useT } from '@/lib/i18n/react'
 
 type Reward = { gold?: number; boosters?: number; cardMin?: string }
 
 export function WelcomeReward({ onClaimed }: { onClaimed?: () => void }) {
+  const t = useT()
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
   const [claimed, setClaimed] = useState(false)
@@ -54,8 +56,8 @@ export function WelcomeReward({ onClaimed }: { onClaimed?: () => void }) {
         <div style={{ position: 'absolute', top: -60, left: '50%', width: 260, height: 260, marginLeft: -130, borderRadius: '50%', pointerEvents: 'none',
           background: 'conic-gradient(from 0deg, transparent, rgba(240,180,41,0.12), transparent, rgba(240,180,41,0.12), transparent)', animation: 'rvnWelSpin 14s linear infinite', opacity: 0.7 }} />
         <div style={{ position: 'relative', fontSize: 46 }}>{claimed ? '✨' : '🎁'}</div>
-        <h2 style={{ position: 'relative', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 21, margin: '6px 0 2px', textShadow: '0 0 20px rgba(240,180,41,0.5)' }}>Sveikas atvykęs!</h2>
-        <p style={{ position: 'relative', color: '#e8dcc0', fontSize: 12.5, marginBottom: 18 }}>Pradžios dovana naujam kovotojui</p>
+        <h2 style={{ position: 'relative', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 21, margin: '6px 0 2px', textShadow: '0 0 20px rgba(240,180,41,0.5)' }}>{t('onboarding.welcome.title')}</h2>
+        <p style={{ position: 'relative', color: '#e8dcc0', fontSize: 12.5, marginBottom: 18 }}>{t('onboarding.welcome.sub')}</p>
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 22 }}>
           {chips.map((c, i) => (
             <div key={i} style={{ width: 84, padding: '13px 6px', borderRadius: 12, background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(240,180,41,0.4)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }}>
@@ -69,7 +71,7 @@ export function WelcomeReward({ onClaimed }: { onClaimed?: () => void }) {
             background: claimed ? 'rgba(52,211,153,0.18)' : 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)',
             color: claimed ? '#34d399' : '#3a2406', border: claimed ? '1px solid rgba(52,211,153,0.5)' : '1px solid #ffeaa6',
             boxShadow: claimed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(240,180,41,0.35)' }}>
-          {claimed ? '✓ Atsiimta!' : (busy ? 'Skiriama…' : 'Atsiimti dovaną')}
+          {claimed ? t('onboarding.welcome.claimed') : (busy ? t('onboarding.welcome.claiming') : t('onboarding.welcome.claim'))}
         </button>
       </div>
     </div>,

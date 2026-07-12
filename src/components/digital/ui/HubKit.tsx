@@ -11,6 +11,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
 import { streakDayReward } from '@/lib/gamification/quests'
+import { useT } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 export const ASSET = '/digital/ui3'
@@ -99,6 +100,7 @@ function MiniReward({ icon, img, amount, accent = GOLD }: { icon: string; img?: 
   )
 }
 export function RewardBanner({ streak, claimable, onClaim }: { streak: number; claimable: boolean; onClaim?: () => void }) {
+  const t = useT()
   // Tikri prizai iš serijos formulės: šiandienos (jei paruošta) arba rytojaus preview
   const today = streakDayReward(Math.max(1, streak))
   const tomorrow = streakDayReward(Math.max(1, streak) + 1)
@@ -107,8 +109,8 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
     <div className={`rvn-panel rvn-fade flex items-center gap-3 ${claimable ? 'rvn-glow' : ''}`} style={{ padding: '10px 12px', borderColor: claimable ? `rgba(${GOLD},0.5)` : undefined }}>
       <span className="flex items-center justify-center shrink-0" style={{ width: 36, height: 38, filter: 'drop-shadow(0 0 8px rgba(251,120,40,0.5))' }}><RvnIcon name="flame" size={28} fallback={<span style={{ fontSize: 24 }}>🔥</span>} /></span>
       <span className="flex-1 min-w-0" style={{ paddingRight: 4 }}>
-        <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3', lineHeight: 1.25 }}>{streak} d. serija</span>
-        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.3 }}>{claimable ? 'Prisijungimo atlygis paruoštas!' : `Rytoj: 🪙 ${tomorrow.gold}${tomorrow.booster ? ' + 🎁 pakuotė' : ''}`}</span>
+        <span className="block rvn-disp" style={{ fontSize: 14, fontWeight: 700, color: '#f3ead3', lineHeight: 1.25 }}>{t('home.banner.streak', { count: streak })}</span>
+        <span className="block" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.3 }}>{claimable ? t('home.banner.ready') : `${t('home.banner.tomorrowGold', { gold: tomorrow.gold })}${tomorrow.booster ? t('home.banner.plusPack') : ''}`}</span>
       </span>
       <MiniReward icon="🪙" img="fi-coins" amount={`x${shown.gold}`} />
       {shown.booster && <MiniReward icon="🎁" img="fi-gifts" amount="x1" accent="139,92,246" />}
@@ -176,17 +178,18 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
 
 // ── PlayHeroCard ──────────────────────────────────────────────────────────────
 export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; onCta: () => void; children?: ReactNode }) {
+  const t = useT()
   return (
     <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.45)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)` }}>
       <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.22) 0%, rgba(8,6,14,0.48) 55%, rgba(8,6,14,0.82) 100%)' }} />
       <div className="relative flex flex-col" style={{ gap: 8, padding: '12px 14px 12px' }}>
         <div className="flex flex-col items-center" style={{ gap: 3 }}>
-          <img src={`${ASSET}/heading.png`} alt="Žaisti dabar" style={{ height: 'clamp(28px,5vh,38px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <img src={`${ASSET}/heading.png`} alt={t('home.playNow')} style={{ height: 'clamp(28px,5vh,38px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
           <span style={{ fontSize: 11, color: '#cfc6b8', textShadow: '0 1px 4px #000', letterSpacing: '0.02em' }}>{subtitle}</span>
         </div>
         <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 300, margin: '2px auto 0', filter: `drop-shadow(0 4px 12px rgba(${GOLD},0.35))` }}>
-          <img src={`${ASSET}/cta2.png`} alt="Pradėti kovą" className="w-full block" />
+          <img src={`${ASSET}/cta2.png`} alt={t('home.startBattle')} className="w-full block" />
         </button>
         <div>{children}</div>
       </div>

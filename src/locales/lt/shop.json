@@ -1,1 +1,32 @@
-{}
+{
+  "addedToCollection": "{{name}} pridėta į kolekciją!",
+  "alreadyClaimed": "Jau paimta.",
+  "buyFailed": "Nepavyko nupirkti.",
+  "categoryEmpty": "Šioje kategorijoje prekių nėra.",
+  "claimFailed": "Nepavyko paimti.",
+  "comingSoon": "€{{price}} (netrukus)",
+  "dailyDealInfo": "Dienos pasiūlymas — pavienė korta tiesiai į kolekciją. Atsinaujina kasdien.",
+  "dealLoading": "Šiandienos pasiūlymas kraunasi…",
+  "deckCreated": "Kaladė sukurta „Mano kaladėse“! 🃏",
+  "err": {
+    "bad_currency": "Netinkama valiuta.",
+    "iap_required": "Šis paketas perkamas per programėlės parduotuvę.",
+    "no_price": "Kaina neprieinama.",
+    "not_enough": "Nepakanka valiutos.",
+    "not_found": "Prekė nerasta."
+  },
+  "notEnoughSilver": "Per mažai sidabro.",
+  "ownedEquip": "✓ Jau turi — užsidėk Kosmetikoje",
+  "pickItem": "Pasirink prekę.",
+  "sections": {
+    "avatars": "Žaidėjo avatarai",
+    "backs": "Kortų nugarėlės",
+    "daily": "🔥 Dienos kortos",
+    "decks": "Kaladės",
+    "packs": "Pakuotės",
+    "rubies": "Rubinai",
+    "starter": "🃏 Kaladės"
+  },
+  "starterInfo": "Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.",
+  "title": "PARDUOTUVĖ"
+}

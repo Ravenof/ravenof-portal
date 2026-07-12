@@ -131,3 +131,10 @@ Metodas: skenuoti visi `.ts/.tsx/.js/.jsx` failai (be node_modules), skaičiuoti
 - **Fazė 8:** admin kalbų tab'ai, completeness ataskaitos, editorial statusai.
 - **Fazė 9:** Playwright testai (language-selector, locale-persistence, english-*), responsive patikros, EN teksto ilgio auditas.
 - **DB seed'ai LT:** tutorial lessons, kampanija, botų vardai (allowlist?), SQL RPC klaidų kodai.
+
+
+### Sesija 2 (2026-07-12, commit492) — Fazė 3 užbaigta
+
+Migruota papildomai (841 raktai LT+EN, validacija 0 klaidų): DigitalDecks (tabs), DigitalMyDecks, ActiveDeckSelectorModal + ActiveDeckSummary, DeckSelect, DigitalDeckBuilder (pilnas, incl. IDENTITY registras), ranked/* (Client, Queue, MatchFound, Result, History, Leaderboard, Rewards, SeasonHistory), FriendsClient + GlobalChatLayer + TradeWindow + chatStore PRESENCE_META (getter-based i18n), ShopModal + lib shop.ts (SHOP_SECTIONS.labelKey, PURCHASE_ERR_KEY), QuestsModal, SeasonPassModal, SeasonPathModal, LevelRoadModal, NotificationsModal (timeAgo → i18n), CosmeticsModal, DailyDealModal, DailyTasksModal, MonthlyLoginModal (LT_MONTHS → Intl.DateTimeFormat), PackOpen, WelcomeReward, StarterOnboarding (PLAYSTYLE → raktai), ContentDownloadGate, HubKit (RewardBanner/PlayHeroCard), RewardBits, DigitalPicker, DigitalCommunityDecks.
+
+Sąmoningai praleista (dokumentuota): DigitalCoop / DigitalPvp2v2 / Team2v2Game (SCRAPPED iš nav, commit218), campaign/* ekranai (Fazė 4 — DB turinys), page.tsx metadata title'ai (server komponentai — reikia generateMetadata + cookies(), padarytų route dynamic; spręsti Fazėje 25), console.warn dev žinutės (spec leidžia), TYPE_ORDER rūšiavimo raktažodžiai (DB kortų tipų LT pavadinimai — Fazė 6 kartu su card_translations).
