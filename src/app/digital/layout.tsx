@@ -201,12 +201,25 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           const Icon = it.icon
           const inner = (
             <>
-              <span className="relative flex items-center justify-center rvn-press" style={{ width: 40, height: 40 }}>
-                {active && <span className="absolute inset-0 rounded-full rvn-glow-pulse" style={{ background: 'radial-gradient(circle, rgba(240,180,41,0.34), transparent 70%)' }} />}
-                <RvnIcon name={`nav-${it.key}`} size={38} fallback={<Icon className="w-[22px] h-[22px]" />}
+              {/* Ikonos = kvadratinės su savu fonu -> renderinam kaip „tile" (be radial glow po apačia) */}
+              <span className="relative flex items-center justify-center rvn-press" style={{ width: 42, height: 42 }}>
+                <RvnIcon name={`nav-${it.key}`} size={42} fallback={<Icon className="w-[22px] h-[22px]" />}
                   style={active
-                    ? { filter: 'brightness(1.12) drop-shadow(0 0 6px rgba(240,180,41,0.65))' }
-                    : { filter: 'grayscale(0.35) brightness(0.82)', opacity: 0.85 }} />
+                    ? {
+                        borderRadius: 10,
+                        objectFit: 'cover',
+                        border: '1px solid rgba(240,180,41,0.75)',
+                        boxShadow: '0 0 0 1px rgba(240,180,41,0.25), 0 0 14px rgba(240,180,41,0.45)',
+                        filter: 'brightness(1.1) saturate(1.08)',
+                        transform: 'translateY(-1px)',
+                      }
+                    : {
+                        borderRadius: 10,
+                        objectFit: 'cover',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        filter: 'grayscale(0.45) brightness(0.72)',
+                        opacity: 0.8,
+                      }} />
               </span>
               <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{t(it.labelKey)}</span>
             </>
