@@ -33,6 +33,8 @@ import lt_errors from '@/locales/lt/errors.json'
 import en_errors from '@/locales/en/errors.json'
 import lt_more from '@/locales/lt/more.json'
 import en_more from '@/locales/en/more.json'
+import lt_progression from '@/locales/lt/progression.json'
+import en_progression from '@/locales/en/progression.json'
 import lt_battleLog from '@/locales/lt/battleLog.json'
 import en_battleLog from '@/locales/en/battleLog.json'
 import lt_statusEffects from '@/locales/lt/statusEffects.json'
@@ -58,6 +60,7 @@ export const RESOURCES = {
     quests: lt_quests,
     errors: lt_errors,
     more: lt_more,
+    progression: lt_progression,
     battleLog: lt_battleLog,
     statusEffects: lt_statusEffects,
     accessibility: lt_accessibility,
@@ -79,6 +82,7 @@ export const RESOURCES = {
     quests: en_quests,
     errors: en_errors,
     more: en_more,
+    progression: en_progression,
     battleLog: en_battleLog,
     statusEffects: en_statusEffects,
     accessibility: en_accessibility,

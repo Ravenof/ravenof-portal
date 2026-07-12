@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export type Difficulty = 'easy' | 'medium' | 'hard'
 export type DailyTask = {
-  id: number; difficulty: Difficulty; objectiveType: string; title: string; description: string
+  id: number; templateId: number; difficulty: Difficulty; objectiveType: string; title: string; description: string
   progress: number; target: number; rewardPayload: Record<string, unknown>[]; completed: boolean; claimed: boolean
 }
 export type DailyTasksState = {

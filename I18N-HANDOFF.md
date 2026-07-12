@@ -1,6 +1,6 @@
 # RAVENOF i18n — PERDAVIMO DOKUMENTAS (handoff)
 
-Data: 2026-07-12. Fazės 1–3 ir 5 BAIGTOS (commit490, 492, 493). Šis failas — tęsimo instrukcija.
+Data: 2026-07-12. Fazės 1–5 BAIGTOS (commit490, 492, 493, 494). Šis failas — tęsimo instrukcija.
 Pilnas originalus spec'as ir auditas: `I18N-AUDIT.md` (repo šaknyje). Atmintis: memory `ravenof-i18n`.
 
 ## KAS PADARYTA
@@ -35,9 +35,10 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - Švieži Windows-pusės binariniai failai bash'e gali matytis truncated (pvz. nauji PNG) — apdorojimą daryti .bat viduje Windows pusėje (pvz. tools/resize-nav-icons.mjs commit491).
 
 ## LAUKIA VARTOTOJO VEIKSMŲ (patikrinti prieš tęsiant)
-1. `git-commit493.bat` (fazė 5) — paleisti, patikrinti `commit493.log` + `git log -1 --oneline`. (490–492 jau sucommitinti.)
-2. Supabase migracija `20260830_preferred_locale.sql` — paleisti (run-migrations.bat arba SQL editor), jei dar nepaleista.
-3. Rankinis smoke test: kova (PvE/praktika) → perjungti kalbą nustatymuose → log'as ir kovos UI turi persirenderuoti EN (įskaitant senus log įrašus).
+1. `git-commit493.bat` (fazė 5) ir `git-commit494.bat` (fazė 4) — paleisti eilės tvarka, patikrinti `commitNN.log`.
+2. Supabase migracijos: `20260830_preferred_locale.sql` ir `20260831_content_translations.sql` — paleisti (run-migrations.bat arba SQL editor).
+3. Po migracijos: `select owner_type, count(*) from content_translations where locale='en' group by 1;` — patikrinti, ar frakcijos/retumai/kortų tipai gavo EN (jei 0 → DB LT pavadinimai skiriasi nuo migracijoje išvardytų; pataisyti `join` reikšmes).
+4. Smoke test EN kalba: kova (log + UI), dienos užduotys/darbai, parduotuvė, kosmetika, reitingo pasiekimai, kolekcijos frakcijų filtras.
 
 ## KĄ DARYTI TOLIAU (fazių eilė)
 
@@ -53,10 +54,17 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - Iš viso 19 namespace, **1372 raktai**. `npx tsc --noEmit` švarus, `node scripts/i18n-validate.mjs` 0 klaidų.
 - LIKO Fazėje 5: Team2v2Game/DigitalCoop UI (SCRAPPED iš nav, nemigruota), `lib/tutorial/ai.ts` dev log'ai (galima palikti).
 
-### Fazė 4 — DB turinys
-- `content_translations` lentelė (owner_type, owner_id, locale, field, value) ARBA locale stulpeliai: quests/daily tasks pavadinimai, shop items, cosmetics, seasons, achievements, factions.name, rarities, card_types. Seed'ai LT → migruoti kaip 'lt'.
-- Kampanija: `data/campaignSeeds/prazarasVarngradasCampaign.ts` (~440) + campaign/* ekranai (15 eil. UI).
-- Tutorial lessons: `data/tutorialLessons/lessonSeeds.ts` (~150).
+### Fazė 4 — DB turinys ✅ BAIGTA (commit494, migracija 20260831 PENDING)
+- **`content_translations`** (owner_type, owner_id, locale, field, value) — viena generinė lentelė visam DB turiniui. RLS: read=visi, write=admin. Helperis `rvn_set_translation(...)`.
+  - owner_type: `daily_quest` (key) · `daily_task` (template id) · `shop_item` (slug) · `cosmetic` (id) · `ranked_achievement` (key) · `faction` (id IR slug) · `rarity` (id) · `card_type` (id) · `card_pack` (id) · `starter_deck` (id) · `lore_faction` (id).
+  - LT snapshot'ai įrašomi iš esamų lentelių (admin redagavimui); LT vis tiek lieka runtime fallback'as.
+  - EN įrašyta: dienos užduotys, dienos darbai, parduotuvės prekės, kosmetika, reitingo pasiekimai, frakcijos, retumai, kortų tipai. NĖRA EN: card_packs, starter_decks (DB sukurti per admin — pildyti Fazėje 8 admin įrankiu).
+  - ⚠ frakcijų/retumų/tipų EN įrašai siejami per LT pavadinimą (`join ... on x.lt = f.name`) — jei DB pavadinimas kitoks, EN eilutė tiesiog neįsirašo → fallback LT. Po migracijos verta pasitikrinti: `select owner_type, count(*) from content_translations where locale='en' group by 1;`
+- **Kliento resolveris** `src/lib/i18n/content.ts`: `loadContentTranslations(locale)` (LT = no-op, sessionStorage cache), `tContent(...)`, React hook **`useContent()`** → `tc(ownerType, id, field, fallbackLT)`. Trūkstamas vertimas → LT + dev warning konsolėje. Užkraunama automatiškai per `I18nBoot`.
+- **Prijungta:** QuestsModal, DailyTasksModal, ShopModal, CosmeticsModal, ranked/Achievements, DigitalCollection (frakcijų filtras), DigitalDeckBuilder, DigitalPvE, PracticeButton.
+- **RPC pakeitimas:** `rvn_get_daily_tasks` dabar grąžina ir `templateId` (be jo nebūtų kaip rasti vertimo) → `DailyTask.templateId` TS tipe.
+- **Level titulai:** `lib/gamification/levels.ts` `LEVEL_THRESHOLDS[].title` = i18n raktas (`progression.levelTitle.N`, naujas namespace, 49 titulai LT+EN).
+- LIKO Fazėje 4 (sąmoningai atidėta): kampanijos seed'ai (`data/campaignSeeds/prazarasVarngradasCampaign.ts`, 641 eil.) + campaign/* ekranai; `data/tutorialLessons/lessonSeeds.ts` (295 eil.); SQL RPC `raise exception` LT žinutės → stabilūs kodai; rarity/card_type pavadinimai, naudojami kaip LOGIKOS raktai (TYPE_ORDER, spalvų map'ai) — tvarkyti kartu su Faze 6.
 
 ### Fazė 6 — Kortos
 - DB: `card_translations` (card_id, locale, name, description, effect_text, flavor_text, UNIQUE(card_id,locale)) + `card_assets` (card_id, locale, asset_type, url) — kortos vaizdas turi įkeptą LT tekstą, reikia EN vaizdo lauko.
@@ -86,4 +94,4 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 ## GREITAS STARTAS KITAI SESIJAI
 1. `cd "/sessions/<vm>/mnt/Ravenof kortų portalas/ravenof-portal"` (kelią žr. Shell access sekcijoje)
 2. `git log -1 --oneline` — patikrinti ar 490–492 sucommitinti; `node scripts/i18n-validate.mjs`; `npx tsc --noEmit`
-3. Tęsti nuo **Fazės 4 (DB turinys)** arba **Fazės 6 (kortos)** — abi remiasi tuo pačiu resolverio principu kaip `logText.ts` (raktas + fallback). Kortų/turinio vertimai yra didžiausias likęs blokas.
+3. Tęsti nuo **Fazės 6 (kortos)** — `card_translations` + `card_assets` + centrinis resolveris (tas pats principas kaip `content.ts`: raktas → vertimas → LT fallback). Tai didžiausias likęs blokas. Alternatyva: užbaigti Fazės 4 likučius (kampanija, tutorial lessons, SQL klaidų kodai).

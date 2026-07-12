@@ -7,7 +7,7 @@ import { X } from 'lucide-react'
 import { getCosmetics, buyCosmetic, equipCosmetic, getAvatarAudio, type Cosmetic, type CosmeticKind, type CosmeticsState, type AvatarAudioMap } from '@/lib/cosmetics'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 const KIND_LABEL_KEY: Record<CosmeticKind, string> = { card_back: 'common.cosmetics.cardBacks', board: 'common.cosmetics.boards', avatar: 'common.cosmetics.avatars' }
 const KIND_ICON: Record<CosmeticKind, string> = { card_back: '🂠', board: '▦', avatar: '😀' }
@@ -16,6 +16,7 @@ const RAR_COL: Record<string, string> = { legendary: '#fbbf24', epic: '#c084fc',
 
 export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClose: () => void; onSpent?: () => void }) {
   const t = useT()
+  const tc = useContent()
   useEscClose(onClose)
   const [state, setState] = useState<CosmeticsState | null>(null)
   const [tab, setTab] = useState<CosmeticKind>('card_back')
@@ -52,7 +53,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
     const r = await buyCosmetic(c.id)
     setBusy(null)
     if ('error' in r) { playError(); setMsg(r.error === 'not enough gold' ? t('common.cosmetics.notEnoughGold') : t('common.cosmetics.buyFailed')); return }
-    playSuccess(); setLocalGold(r.gold); setMsg(`${c.name} nupirkta!`); onSpent?.(); reload()
+    playSuccess(); setLocalGold(r.gold); setMsg(t('shop.purchased', { name: tc('cosmetic', c.id, 'name', c.name) })); onSpent?.(); reload()
   }
 
   const doEquip = async (c: Cosmetic) => {
@@ -121,7 +122,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                           ? <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" draggable={false} />
                           : (c.emoji && <span className="text-2xl">{c.emoji}</span>)}
                       </span>
-                      <span className="w-full text-center truncate font-bold" style={{ fontSize: 9, color: '#f3ead3' }}>{c.name}</span>
+                      <span className="w-full text-center truncate font-bold" style={{ fontSize: 9, color: '#f3ead3' }}>{tc('cosmetic', c.id, 'name', c.name)}</span>
                       <span style={{ fontSize: 8.5, fontWeight: 800, color: owned ? (equipped ? '#4ade80' : '#93c5fd') : 'var(--gold)' }}>{equipped ? '✓ Naudojama' : owned ? 'Turima' : `🪙 ${c.priceGold}`}</span>
                     </button>
                   )
@@ -146,10 +147,10 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                         : (selected.emoji && <span style={{ fontSize: 52 }}>{selected.emoji}</span>)}
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{selected.name}</p>
+                      <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('cosmetic', selected.id, 'name', selected.name)}</p>
                       {selected.rarity && <span className="uppercase font-bold" style={{ fontSize: 8, color: RAR_COL[selected.rarity] ?? 'var(--text-muted)' }}>{selected.rarity}</span>}
                     </div>
-                    {selected.description && <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{selected.description}</p>}
+                    {selected.description && <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{tc('cosmetic', selected.id, 'description', selected.description)}</p>}
                     {selected.kind === 'avatar' && avAudio[selected.id] && (
                       <button onClick={() => previewVoice(selected.id)} className="rvn-press px-3 py-1.5 rounded-full font-bold" style={{ fontSize: 10, background: 'rgba(240,180,41,0.14)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{t('common.cosmetics.voicePreview')}</button>
                     )}

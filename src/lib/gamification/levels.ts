@@ -12,63 +12,66 @@
 // Level thresholds
 // ---------------------------------------------------------------------------
 
+import { t } from '@/lib/i18n/core'
+
 export type LevelThreshold = {
   level: number
+  /** i18n raktas (progression.levelTitle.N), NE gatavas tekstas. */
   title: string
   requiredTotalXp: number
 }
 
 export const LEVEL_THRESHOLDS: LevelThreshold[] = [
-  { level:  1, title: 'Bevardis Naujokas',           requiredTotalXp:       0 },
-  { level:  2, title: 'Pirmojo Žingsnio Žaidėjas',   requiredTotalXp:     100 },
-  { level:  3, title: 'Kortų Mokinys',               requiredTotalXp:     250 },
-  { level:  4, title: 'Kaladės Pameistrys',          requiredTotalXp:     500 },
-  { level:  5, title: 'Pradedantis Strategas',       requiredTotalXp:     850 },
-  { level:  6, title: 'Arenos Stebėtojas',           requiredTotalXp:   1_250 },
-  { level:  7, title: 'Frakcijos Ieškotojas',        requiredTotalXp:   1_750 },
-  { level:  8, title: 'Jaunasis Taktikas',           requiredTotalXp:   2_350 },
-  { level:  9, title: 'Kortų Rinkėjas',              requiredTotalXp:   3_000 },
-  { level: 10, title: 'Ravenof Žaidėjas',            requiredTotalXp:   3_750 },
-  { level: 11, title: 'Kaladės Kalvis',              requiredTotalXp:   4_600 },
-  { level: 12, title: 'Arenos Dalyvis',              requiredTotalXp:   5_500 },
-  { level: 13, title: 'Frakcijos Sekėjas',           requiredTotalXp:   6_500 },
-  { level: 14, title: 'Mūšio Planuotojas',           requiredTotalXp:   7_600 },
-  { level: 15, title: 'Ravenof Taktikas',            requiredTotalXp:   8_800 },
-  { level: 16, title: 'Kolekcijos Prižiūrėtojas',   requiredTotalXp:  10_100 },
-  { level: 17, title: 'Strategijų Medžiotojas',      requiredTotalXp:  11_500 },
-  { level: 18, title: 'Turnyro Pretendentas',        requiredTotalXp:  13_000 },
-  { level: 19, title: 'Bendruomenės Veidas',         requiredTotalXp:  14_600 },
-  { level: 20, title: 'Patyręs Žaidėjas',            requiredTotalXp:  16_300 },
-  { level: 21, title: 'Frakcijos Karys',             requiredTotalXp:  18_100 },
-  { level: 22, title: 'Kaladžių Architektas',        requiredTotalXp:  20_000 },
-  { level: 23, title: 'Arenos Veteranas',            requiredTotalXp:  22_000 },
-  { level: 24, title: 'Čempionų Sekėjas',            requiredTotalXp:  24_100 },
+  { level:  1, title: 'progression.levelTitle.1',           requiredTotalXp:       0 },
+  { level:  2, title: 'progression.levelTitle.2',   requiredTotalXp:     100 },
+  { level:  3, title: 'progression.levelTitle.3',               requiredTotalXp:     250 },
+  { level:  4, title: 'progression.levelTitle.4',          requiredTotalXp:     500 },
+  { level:  5, title: 'progression.levelTitle.5',       requiredTotalXp:     850 },
+  { level:  6, title: 'progression.levelTitle.6',           requiredTotalXp:   1_250 },
+  { level:  7, title: 'progression.levelTitle.7',        requiredTotalXp:   1_750 },
+  { level:  8, title: 'progression.levelTitle.8',           requiredTotalXp:   2_350 },
+  { level:  9, title: 'progression.levelTitle.9',              requiredTotalXp:   3_000 },
+  { level: 10, title: 'progression.levelTitle.10',            requiredTotalXp:   3_750 },
+  { level: 11, title: 'progression.levelTitle.11',              requiredTotalXp:   4_600 },
+  { level: 12, title: 'progression.levelTitle.12',              requiredTotalXp:   5_500 },
+  { level: 13, title: 'progression.levelTitle.13',           requiredTotalXp:   6_500 },
+  { level: 14, title: 'progression.levelTitle.14',           requiredTotalXp:   7_600 },
+  { level: 15, title: 'progression.levelTitle.15',            requiredTotalXp:   8_800 },
+  { level: 16, title: 'progression.levelTitle.16',   requiredTotalXp:  10_100 },
+  { level: 17, title: 'progression.levelTitle.17',      requiredTotalXp:  11_500 },
+  { level: 18, title: 'progression.levelTitle.18',        requiredTotalXp:  13_000 },
+  { level: 19, title: 'progression.levelTitle.19',         requiredTotalXp:  14_600 },
+  { level: 20, title: 'progression.levelTitle.20',            requiredTotalXp:  16_300 },
+  { level: 21, title: 'progression.levelTitle.21',             requiredTotalXp:  18_100 },
+  { level: 22, title: 'progression.levelTitle.22',        requiredTotalXp:  20_000 },
+  { level: 23, title: 'progression.levelTitle.23',            requiredTotalXp:  22_000 },
+  { level: 24, title: 'progression.levelTitle.24',            requiredTotalXp:  24_100 },
   { level: 25, title: "Ravenof Veteran'as",          requiredTotalXp:  26_300 },
-  { level: 26, title: 'Kolekcijos Meistras',         requiredTotalXp:  28_600 },
-  { level: 27, title: 'Frakcijų Žinovas',            requiredTotalXp:  31_000 },
-  { level: 28, title: 'Turnyrų Reguliaras',          requiredTotalXp:  33_500 },
-  { level: 29, title: 'Bendruomenės Ramstis',        requiredTotalXp:  36_100 },
-  { level: 30, title: 'Ravenof Meistras',            requiredTotalXp:  38_800 },
-  { level: 31, title: 'Čempionų Meistras',           requiredTotalXp:  41_700 },
-  { level: 32, title: 'Meta Formuotojas',            requiredTotalXp:  44_800 },
-  { level: 33, title: 'Didysis Kolekcionierius',     requiredTotalXp:  48_100 },
-  { level: 34, title: 'Arenos Komandoras',           requiredTotalXp:  51_600 },
-  { level: 35, title: 'Frakcijos Legenda',           requiredTotalXp:  55_300 },
-  { level: 36, title: 'Turnyrų Grėsmė',             requiredTotalXp:  59_200 },
-  { level: 37, title: 'Ravenof Strategas',           requiredTotalXp:  63_300 },
-  { level: 38, title: 'Pergalių Kalvis',             requiredTotalXp:  67_600 },
-  { level: 39, title: 'Aukštasis Taktikas',          requiredTotalXp:  72_100 },
-  { level: 40, title: 'Ravenof Legenda',             requiredTotalXp:  76_800 },
-  { level: 41, title: 'Čempionų Vedlys',             requiredTotalXp:  81_500 },
-  { level: 42, title: 'Arenos Valdovas',             requiredTotalXp:  86_000 },
-  { level: 43, title: 'Frakcijų Architektas',        requiredTotalXp:  90_000 },
-  { level: 44, title: 'Senasis Meistras',            requiredTotalXp:  93_500 },
-  { level: 45, title: 'Turnyrų Karūna',              requiredTotalXp:  96_500 },
-  { level: 46, title: 'Ravenof Ikona',               requiredTotalXp:  98_000 },
-  { level: 47, title: 'Amžinasis Strategas',         requiredTotalXp:  99_000 },
-  { level: 48, title: 'Legendų Saugotojas',          requiredTotalXp:  99_500 },
-  { level: 49, title: 'Panteono Vardas',             requiredTotalXp:  99_800 },
-  { level: 50, title: 'Ravenof Nemirtingasis',       requiredTotalXp: 100_000 },
+  { level: 26, title: 'progression.levelTitle.26',         requiredTotalXp:  28_600 },
+  { level: 27, title: 'progression.levelTitle.27',            requiredTotalXp:  31_000 },
+  { level: 28, title: 'progression.levelTitle.28',          requiredTotalXp:  33_500 },
+  { level: 29, title: 'progression.levelTitle.29',        requiredTotalXp:  36_100 },
+  { level: 30, title: 'progression.levelTitle.30',            requiredTotalXp:  38_800 },
+  { level: 31, title: 'progression.levelTitle.31',           requiredTotalXp:  41_700 },
+  { level: 32, title: 'progression.levelTitle.32',            requiredTotalXp:  44_800 },
+  { level: 33, title: 'progression.levelTitle.33',     requiredTotalXp:  48_100 },
+  { level: 34, title: 'progression.levelTitle.34',           requiredTotalXp:  51_600 },
+  { level: 35, title: 'progression.levelTitle.35',           requiredTotalXp:  55_300 },
+  { level: 36, title: 'progression.levelTitle.36',             requiredTotalXp:  59_200 },
+  { level: 37, title: 'progression.levelTitle.37',           requiredTotalXp:  63_300 },
+  { level: 38, title: 'progression.levelTitle.38',             requiredTotalXp:  67_600 },
+  { level: 39, title: 'progression.levelTitle.39',          requiredTotalXp:  72_100 },
+  { level: 40, title: 'progression.levelTitle.40',             requiredTotalXp:  76_800 },
+  { level: 41, title: 'progression.levelTitle.41',             requiredTotalXp:  81_500 },
+  { level: 42, title: 'progression.levelTitle.42',             requiredTotalXp:  86_000 },
+  { level: 43, title: 'progression.levelTitle.43',        requiredTotalXp:  90_000 },
+  { level: 44, title: 'progression.levelTitle.44',            requiredTotalXp:  93_500 },
+  { level: 45, title: 'progression.levelTitle.45',              requiredTotalXp:  96_500 },
+  { level: 46, title: 'progression.levelTitle.46',               requiredTotalXp:  98_000 },
+  { level: 47, title: 'progression.levelTitle.47',         requiredTotalXp:  99_000 },
+  { level: 48, title: 'progression.levelTitle.48',          requiredTotalXp:  99_500 },
+  { level: 49, title: 'progression.levelTitle.49',             requiredTotalXp:  99_800 },
+  { level: 50, title: 'progression.levelTitle.50',       requiredTotalXp: 100_000 },
 ]
 
 export const MAX_LEVEL = 50
@@ -135,7 +138,7 @@ export function getLevelForXp(totalXp: number): number {
 /** Returns the level title for a given total XP amount. */
 export function getLevelTitleForXp(totalXp: number): string {
   const level = getLevelForXp(totalXp)
-  return LEVEL_THRESHOLDS[level - 1]?.title ?? 'Bevardis Naujokas'
+  return t(LEVEL_THRESHOLDS[level - 1]?.title ?? 'progression.levelTitle.1')
 }
 
 /** Returns the rank group for a given level. */
@@ -171,7 +174,7 @@ export function getLevelProgress(totalXp: number): LevelProgress {
   const xp = safeXp(totalXp)
   const level = getLevelForXp(xp)
   const threshold = LEVEL_THRESHOLDS[level - 1]
-  const title = threshold.title
+  const title = t(threshold.title)
   const rankGroup = getRankGroupForLevel(level)
 
   if (level >= MAX_LEVEL) {

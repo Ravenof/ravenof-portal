@@ -10,7 +10,7 @@ import { X, RefreshCw } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getDailyTasks, claimDailyTask, claimDailyChest, rerollDailyTask, DIFF_LABEL, DIFF_ACCENT, type DailyTasksState, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { useEscClose } from '@/lib/useEscClose'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 function Chips({ payload }: { payload: Record<string, unknown>[] }) {
   return (
@@ -24,6 +24,8 @@ function Chips({ payload }: { payload: Record<string, unknown>[] }) {
 
 export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const t = useT()
+  const tt = t                      // alias: map'e `t` = užduotis (shadow)
+  const tc = useContent()
   useEscClose(onClose)
   const [state, setState] = useState<DailyTasksState | null>(null)
   const [busy, setBusy] = useState<number | 'chest' | null>(null)
@@ -82,12 +84,12 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide" style={{ background: `rgba(${acc},0.18)`, color: `rgb(${acc})`, border: `1px solid rgba(${acc},0.5)` }}>{DIFF_LABEL[t.difficulty].toUpperCase()}</span>
                     {!t.completed && rerollsLeft > 0 && (
                       <button onClick={() => doReroll(t)} disabled={busy !== null} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }} title={state?.reroll.freeUsed ? 'Perrinkti (50 Sidabro)' : 'Nemokamas perrinkimas'}>
-                        <RefreshCw className="w-3 h-3" /> {state?.reroll.freeUsed ? '50 sidabro' : 'Perrinkti'}
+                        <RefreshCw className="w-3 h-3" /> {state?.reroll.freeUsed ? tt('quests.daily.rerollCost') : tt('quests.daily.reroll')}
                       </button>
                     )}
                   </div>
-                  <div className="text-sm font-bold shrink-0" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{t.title}</div>
-                  <div className="text-[11px] mb-2 shrink-0" style={{ color: 'var(--text-muted)' }}>{t.description}</div>
+                  <div className="text-sm font-bold shrink-0" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('daily_task', t.templateId, 'title', t.title)}</div>
+                  <div className="text-[11px] mb-2 shrink-0" style={{ color: 'var(--text-muted)' }}>{tc('daily_task', t.templateId, 'description', t.description)}</div>
                   <div className="h-2 rounded-full overflow-hidden mb-2 shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }}>
                     <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, rgba(${acc},0.7), rgb(${acc}))`, transition: 'width .5s' }} />
                   </div>

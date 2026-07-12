@@ -15,7 +15,9 @@
     "empty": "No quests today",
     "emptySub": "New quests are generated at 00:00 — come back tomorrow.",
     "rerollsLeft": "Rerolls left: {{count}}",
-    "title": "DAILY QUESTS"
+    "title": "DAILY QUESTS",
+    "reroll": "Reroll",
+    "rerollCost": "50 silver"
   },
   "dayN": "Day {{day}}",
   "doneOf": "{{done}}/{{total}} completed",

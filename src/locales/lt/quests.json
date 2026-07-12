@@ -15,7 +15,9 @@
     "empty": "Šiandien užduočių nėra",
     "emptySub": "Naujos užduotys sugeneruojamos 00:00 — užsuk rytoj.",
     "rerollsLeft": "Perrinkimų liko: {{count}}",
-    "title": "DIENOS UŽDUOTYS"
+    "title": "DIENOS UŽDUOTYS",
+    "reroll": "Perrinkti",
+    "rerollCost": "50 sidabro"
   },
   "dayN": "{{day}} diena",
   "doneOf": "{{done}}/{{total}} įvykdyta",

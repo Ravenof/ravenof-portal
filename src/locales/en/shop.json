@@ -28,5 +28,6 @@
     "starter": "🃏 Decks"
   },
   "starterInfo": "Cards are added to your collection and a ready-made deck is created automatically.",
-  "title": "SHOP"
+  "title": "SHOP",
+  "purchased": "Purchased: {{name}}"
 }

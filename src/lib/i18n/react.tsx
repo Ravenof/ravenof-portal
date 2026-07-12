@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { DEFAULT_LOCALE, type SupportedLocale } from './config'
 import { getLocale, loadProfileLocale, setLocale, subscribe, translate, type TParams } from './core'
+import { isContentLoaded, loadContentTranslations, subscribeContent, tContent, type ContentOwnerType } from './content'
 
 export function useLocale(): SupportedLocale {
   return useSyncExternalStore(subscribe, getLocale, () => DEFAULT_LOCALE)
@@ -25,5 +26,23 @@ export function I18nBoot(): null {
   const locale = useLocale()
   useEffect(() => { document.documentElement.lang = locale }, [locale])
   useEffect(() => { void loadProfileLocale() }, [])
+  useEffect(() => { void loadContentTranslations(locale) }, [locale])
   return null
+}
+
+/**
+ * DB turinio vertimai (Fazė 4): tc(ownerType, id, field, fallbackLT).
+ * Užkrauna `content_translations` pagal kalbą ir persirenderina, kai atkeliauja.
+ */
+export function useContent(): (
+  ownerType: ContentOwnerType, ownerId: string | number | null | undefined,
+  field: string, fallback: string | null | undefined,
+) => string {
+  const locale = useLocale()
+  useSyncExternalStore(subscribeContent, () => isContentLoaded(locale), () => true)
+  useEffect(() => { void loadContentTranslations(locale) }, [locale])
+  return useCallback(
+    (ownerType, ownerId, field, fallback) => tContent(ownerType, ownerId, field, fallback, locale),
+    [locale],
+  )
 }

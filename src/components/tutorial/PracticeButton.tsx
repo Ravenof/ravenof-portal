@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
-import { useT, useLocale } from '@/lib/i18n/react'
+import { useT, useLocale, useContent } from '@/lib/i18n/react'
 
 const TutorialGame = dynamic(() => import('./TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -41,6 +41,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
   onClose?: () => void
 }) {
   const t = useT()
+  const tc = useContent()
   const locale = useLocale()
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = hideTrigger ? !!openProp : internalOpen
@@ -178,7 +179,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
                               {f.icon_url ? <img src={f.icon_url} alt="" className="w-full h-full object-cover" /> : <span>⚔</span>}
                             </span>
                             <span className="min-w-0">
-                              <span className="block truncate rvn-disp font-bold" style={{ fontSize: 13, color: '#fff' }}>{f.name}</span>
+                              <span className="block truncate rvn-disp font-bold" style={{ fontSize: 13, color: '#fff' }}>{tc('faction', f.id, 'name', f.name)}</span>
                               <span className="block truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{FACTION_DESC[f.name]?.[locale === 'en' ? 'en' : 'lt'] ?? t('battle.practice.aiDeck')}</span>
                             </span>
                           </button>
@@ -194,7 +195,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
                       <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('battle.practice.searchPlaceholder')} className="flex-1 outline-none" style={pickerStyle} />
                       <select value={filterFaction ? String(filterFaction) : ''} onChange={(e) => setFilterFaction(e.target.value ? Number(e.target.value) : '')} style={{ ...pickerStyle, maxWidth: 150 }}>
                         <option value="">{t('battle.practice.allFactions')}</option>
-                        {factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                        {factions.map((f) => <option key={f.id} value={f.id}>{tc('faction', f.id, 'name', f.name)}</option>)}
                       </select>
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-2.5 grid grid-cols-2 gap-2 content-start">

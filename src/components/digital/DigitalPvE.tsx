@@ -11,7 +11,7 @@ import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 // i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -26,6 +26,7 @@ const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(1
 
 export function DigitalPvE() {
   const t = useT()
+  const tc = useContent()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [factions, setFactions] = useState<Faction[]>([])
@@ -200,7 +201,7 @@ export function DigitalPvE() {
                 {factions.map((f) => { const s = f.id === oppFaction; return (
                   <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
                     <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'rgba(240,180,41,0.3)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
-                    <span className="min-w-0"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{(() => { const k = `battle.factionDesc.${f.name}`; const v = t(k); return v === k ? t('battle.pve.aiDeck') : v })()}</span></span>
+                    <span className="min-w-0"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{tc('faction', f.id, 'name', f.name)}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{(() => { const k = `battle.factionDesc.${f.name}`; const v = t(k); return v === k ? t('battle.pve.aiDeck') : v })()}</span></span>
                   </button>
                 ) })}
               </div>

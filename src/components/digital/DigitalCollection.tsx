@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCraftConfig, disenchantCard, craftCard, type CraftConfig } from '@/lib/gamification/craft'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
@@ -46,6 +46,7 @@ const SEL: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px
 
 export function DigitalCollection() {
   const t = useT()
+  const tc = useContent()
   const [cards, setCards] = useState<Col[] | null>(null)
   const [loggedOut, setLoggedOut] = useState(false)
   const [packList, setPackList] = useState<Pack[]>([])
@@ -189,7 +190,7 @@ export function DigitalCollection() {
         </div>
         <select value={faction} onChange={(e) => { playUiClick(); setFaction(e.target.value) }} aria-label={t('collection.faction')} className="shrink-0" style={{ ...SEL, maxWidth: 150 }}>
           <option value="all">{t('collection.allFactions')}</option>
-          {factions.map((f) => <option key={f.slug} value={f.slug}>{f.name}</option>)}
+          {factions.map((f) => <option key={f.slug} value={f.slug}>{tc('faction', f.slug, 'name', f.name)}</option>)}
         </select>
         <select value={type} onChange={(e) => { playUiClick(); setType(e.target.value) }} aria-label={t('collection.type')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
           <option value="all">{t('collection.allTypes')}</option>

@@ -19,7 +19,7 @@ import { rarityColor } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 // hover preview tik įrenginiams su tikra pele (touch emuliuoja mouse eventus,
@@ -54,6 +54,7 @@ const identityFor = (name: string) => IDENTITY.find((x) => x.re.test(name))
 
 export function DigitalDeckBuilder({ userId, cards, factions, collection, initialDeck, onSaved, onBack }: Props) {
   const t = useT()
+  const tc = useContent()
   const store = useDeckBuilderStore()
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)
@@ -346,7 +347,7 @@ export function DigitalDeckBuilder({ userId, cards, factions, collection, initia
                       style={{ minHeight: 56, background: 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '66' : `rgba(${GOLD},0.25)`}` }}>
                       <span className="text-2xl shrink-0">{id?.icon ?? '🛡️'}</span>
                       <span className="min-w-0">
-                        <span className="block font-bold leading-tight truncate" style={{ fontSize: 13, color: f.color_hex ?? '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{f.name}</span>
+                        <span className="block font-bold leading-tight truncate" style={{ fontSize: 13, color: f.color_hex ?? '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('faction', f.id, 'name', f.name)}</span>
                         <span className="block leading-tight truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{id ? t(id.lineKey) : ''}</span>
                       </span>
                     </button>

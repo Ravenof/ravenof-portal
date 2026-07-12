@@ -15,7 +15,7 @@ import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
 import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
@@ -35,6 +35,7 @@ const ALL_SECTIONS: Section[] = [
 
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
   const t = useT()
+  const tc = useContent()
   useEscClose(onClose)
   const [items, setItems] = useState<ShopItem[]>([])
   const [deal, setDeal] = useState<DealCard[]>([])
@@ -73,7 +74,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const buyShop = useCallback(async (it: ShopItem, cur: 'silver' | 'rubies') => {
     if (busy) return; setBusy(true); playUiClick()
     const r = await purchaseShopItem(it.id, cur)
-    if (r && 'ok' in r) { flash(`Nupirkta: ${it.name}`); onPurchased?.(); refresh() }
+    if (r && 'ok' in r) { flash(t('shop.purchased', { name: tc('shop_item', it.slug, 'name', it.name) })); onPurchased?.(); refresh() }
     else if (r && 'error' in r) flash(PURCHASE_ERR_KEY[r.error] ? t(PURCHASE_ERR_KEY[r.error]) : t('shop.buyFailed'), true)
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,7 +84,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     if (busy) return; setBusy(true); playUiClick()
     const r = await buyDailyDealCard(c.id)
     if ('error' in r) flash(r.error === 'not enough gold' ? t('shop.notEnoughSilver') : t('shop.buyFailed'), true)
-    else { flash(t('shop.addedToCollection', { name: c.name })); onPurchased?.(); refresh() }
+    else { flash(t('shop.addedToCollection', { name: tc('cosmetic', c.id, 'name', c.name) })); onPurchased?.(); refresh() }
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, refresh, onPurchased])
@@ -177,7 +178,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                         style={{ aspectRatio: '2.5/3.9', border: isSel ? '2px solid rgba(240,180,41,0.95)' : `2px solid ${col}66`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.4)' : 'none', opacity: c.bought ? 0.55 : 1 }}>
                         {c.imageUrl ? <SmartImg src={c.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🎴</span>}
                         <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
-                          <span className="block truncate font-bold" style={{ fontSize: 9.5, color: '#fff' }}>{c.name}</span>
+                          <span className="block truncate font-bold" style={{ fontSize: 9.5, color: '#fff' }}>{tc('cosmetic', c.id, 'name', c.name)}</span>
                           <span className="block font-bold" style={{ fontSize: 9.5, color: c.bought ? '#4ade80' : 'var(--gold)' }}>{c.bought ? '✓ Nupirkta' : `🪙 ${c.priceGold}`}</span>
                         </span>
                       </button>
@@ -195,7 +196,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                       style={{ aspectRatio: '3/3.6', border: isSel ? '2px solid rgba(240,180,41,0.95)' : '1px solid rgba(34,197,94,0.4)', boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.4)' : 'none', opacity: s.claimed ? 0.55 : 1 }}>
                       {s.imageUrl ? <SmartImg src={s.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🃏</span>}
                       <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
-                        <span className="block truncate font-bold" style={{ fontSize: 10, color: '#fff' }}>{s.name}</span>
+                        <span className="block truncate font-bold" style={{ fontSize: 10, color: '#fff' }}>{tc('starter_deck', s.id, 'name', s.name)}</span>
                         <span className="block font-bold" style={{ fontSize: 9.5, color: s.claimed ? '#4ade80' : s.priceGold > 0 ? 'var(--gold)' : '#86efac' }}>{s.claimed ? '✓ Paimta' : s.priceGold > 0 ? `🪙 ${s.priceGold}` : 'NEMOKAMA'}</span>
                       </span>
                     </button>
@@ -229,7 +230,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                               : (vis.emoji && <span className="text-xl">{vis.emoji}</span>)}
                           </span>
                         )}
-                        <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{it.name}</span>
+                        <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('shop_item', it.slug, 'name', it.name)}</span>
                         {!vis && <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => <span key={i}><RewardChip it={p} size={13} textSize={9.5} /></span>)}</span>}
                         <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
                           {owned ? <span style={{ color: '#4ade80' }}>✓ Turima</span> : <>
@@ -271,9 +272,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   <div className="relative w-full rounded-xl overflow-hidden shrink-0" style={{ aspectRatio: '3/3.2', border: '1.5px solid rgba(34,197,94,0.5)' }}>
                     {effStarter.imageUrl ? <SmartImg src={effStarter.imageUrl} width={420} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: '#15101f' }}>🃏</span>}
                   </div>
-                  <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effStarter.name}</p>
+                  <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('starter_deck', effStarter.id, 'name', effStarter.name)}</p>
                   <p style={{ fontSize: 10, color: '#86efac' }}>{effStarter.faction ?? ''} · {effStarter.cardCount} kortų</p>
-                  {effStarter.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{effStarter.description}</p>}
+                  {effStarter.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{tc('starter_deck', effStarter.id, 'description', effStarter.description)}</p>}
                   <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('shop.starterInfo')}</p>
                   {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
                 </div>

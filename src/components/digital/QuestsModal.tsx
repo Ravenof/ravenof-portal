@@ -17,7 +17,7 @@ import { rewardParts } from '@/lib/gamification/rewardLabel'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { useEscClose } from '@/lib/useEscClose'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 const QUEST_ICON: Record<string, string> = { win: '⚔️', pve_win: '🎯', pvp_win: '⚔️', open_pack: '🎁', play_match: '🃏' }
 
@@ -33,6 +33,7 @@ const chipAccent = (t: string) => t.startsWith('🪙') ? '240,180,41' : t.starts
 
 export function QuestsModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const t = useT()
+  const tc = useContent()
   useEscClose(onClose)
   const [quests, setQuests] = useState<DailyQuest[]>([])
   const [streak, setStreak] = useState<LoginCheckin | null>(null)
@@ -158,11 +159,11 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
                     }}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-bold inline-flex items-center gap-1.5" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>
-                        <span>{QUEST_ICON[q.event_type] ?? '📜'}</span>{q.title}
+                        <span>{QUEST_ICON[q.event_type] ?? '📜'}</span>{tc('daily_quest', q.quest_key, 'title', q.title)}
                       </p>
                       <span className="text-[10px] font-bold shrink-0" style={{ color: complete ? '#4ade80' : 'var(--text-muted)' }}>{Math.min(q.progress, q.target)}/{q.target}</span>
                     </div>
-                    <p className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)' }}>{q.description}</p>
+                    <p className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)' }}>{tc('daily_quest', q.quest_key, 'description', q.description)}</p>
                     <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(0,0,0,0.5)' }}>
                       <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.25 + qi * 0.07, duration: 0.6, ease: 'easeOut' }}
                         className="h-full rounded-full" style={{ background: complete ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#8b5cf6,#c4b5fd)', boxShadow: complete ? '0 0 8px rgba(74,222,128,0.5)' : 'none' }} />
