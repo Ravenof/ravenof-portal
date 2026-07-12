@@ -178,6 +178,13 @@ export function DigitalPvE() {
 
         {/* DEŠINĖ: varžovo pasirinkimo turinys (visas aukštis scroll'ui) + CTA apačioje */}
         <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+          <div className="shrink-0" data-testid="ai-difficulty" style={{ marginBottom: 'clamp(4px,1vh,8px)', paddingBottom: 'clamp(4px,1vh,8px)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex items-baseline gap-2 min-w-0" style={{ marginBottom: 'clamp(3px,0.6vh,5px)' }}>
+              <span className="rvn-disp font-semibold uppercase shrink-0" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>AI sunkumas</span>
+              <span className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</span>
+            </div>
+            <div className="grid grid-cols-3 mx-auto w-full" style={{ gap: 'clamp(5px,0.6vw,10px)', maxWidth: 560 }}>{diffBtn('easy')}{diffBtn('normal')}{diffBtn('hard')}</div>
+          </div>
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {mode === 'random' && (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-4">
@@ -218,13 +225,6 @@ export function DigitalPvE() {
                 </div>
               </div>
             )}
-          </div>
-          <div className="shrink-0" data-testid="ai-difficulty" style={{ marginTop: 'clamp(4px,1vh,8px)' }}>
-            <div className="flex items-baseline gap-2 min-w-0" style={{ marginBottom: 'clamp(3px,0.6vh,5px)' }}>
-              <span className="rvn-disp font-semibold uppercase shrink-0" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>AI sunkumas</span>
-              <span className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)' }}>{difficulty === 'easy' ? 'Paprasti trade’ai, retai combo, kartais silpni ėjimai.' : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.' : 'Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.'}</span>
-            </div>
-            <div className="grid grid-cols-3 mx-auto w-full" style={{ gap: 'clamp(5px,0.6vw,10px)', maxWidth: 620 }}>{diffBtn('easy')}{diffBtn('normal')}{diffBtn('hard')}</div>
           </div>
           <p className="shrink-0 truncate text-center" style={{ marginTop: 'clamp(3px,0.8vh,6px)', fontSize: 'clamp(8.5px,1.4vh,11px)', color: 'var(--text-secondary)' }}>
             Tu: <b style={{ color: '#86efac' }}>{deck?.name ?? '—'}</b> · Priešininkas: <b style={{ color: '#fdba74' }}>{oppSummary}</b>
