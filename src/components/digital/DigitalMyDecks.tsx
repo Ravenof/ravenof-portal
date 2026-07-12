@@ -21,6 +21,7 @@ import { getStarterDecks } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { useT } from '@/lib/i18n/react'
+import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
 
 const GOLD = '240,180,41'
 
@@ -89,13 +90,15 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const openDrawer = useCallback(async (d: Deck) => {
     playCardFlip(); setOpenDeck(d); setDeckCards(null)
     const supabase = createClient()
+    await ensureCardTranslations()
     const { data } = await supabase.from('deck_cards')
       .select('quantity, is_side_deck, card:cards ( id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, rarity:rarities ( name ), card_type:card_types ( name ) )')
       .eq('deck_id', d.id)
     type Row = { quantity: number; is_side_deck: boolean | null; card: { id: string; name: string; image_url: string | null; gold_cost: number; attack: number | null; health: number | null; effect_text: string | null; description: string | null; is_champion: boolean; rarity: { name: string } | null; card_type: { name: string } | null } | null }
     const list: DeckCard[] = ((data as unknown as Row[]) ?? []).filter((r) => r.card).map((r) => ({
-      id: r.card!.id, name: r.card!.name, image: r.card!.image_url, gold: r.card!.gold_cost,
-      atk: r.card!.attack, hp: r.card!.health, effect: r.card!.effect_text ?? r.card!.description,
+      id: r.card!.id, name: cardText(r.card!.id, 'name', r.card!.name), image: cardImage(r.card!.id, r.card!.image_url), gold: r.card!.gold_cost,
+      atk: r.card!.attack, hp: r.card!.health,
+      effect: cardText(r.card!.id, 'effect_text', r.card!.effect_text) || cardText(r.card!.id, 'description', r.card!.description),
       rarity: r.card!.rarity?.name ?? null, type: r.card!.card_type?.name ?? null, isChampion: r.card!.is_champion,
       qty: r.quantity, side: !!r.is_side_deck,
     }))

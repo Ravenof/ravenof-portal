@@ -6,19 +6,22 @@ import { getDailyDeal, buyDailyDealCard, type DealCard } from '@/lib/cosmetics'
 import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
-import { useT } from '@/lib/i18n/react'
+import { useT, useCardI18n } from '@/lib/i18n/react'
 
 function DealArt({ card }: { card: DealCard }) {
+  const cx = useCardI18n()
   const [bad, setBad] = useState(false)
   const col = rarityColor(card.rarity)
-  if (card.imageUrl && !bad) {
+  const img = cx.image(card.id, card.imageUrl)
+  const nm = cx.name(card.id, card.name)
+  if (img && !bad) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={card.imageUrl} alt={card.name} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+    return <img src={img} alt={nm} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
   }
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg, #1a1325, #0a0810)' }}>
       <span className="text-2xl">🎴</span>
-      <span className="text-[10px] font-bold leading-tight" style={{ color: '#fff' }}>{card.name}</span>
+      <span className="text-[10px] font-bold leading-tight" style={{ color: '#fff' }}>{nm}</span>
       <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: col }}>{card.rarity ?? ''}</span>
     </div>
   )
@@ -26,6 +29,7 @@ function DealArt({ card }: { card: DealCard }) {
 
 export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClose: () => void; onSpent?: () => void }) {
   const t = useT()
+  const cx = useCardI18n()
   const [cards, setCards] = useState<DealCard[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -41,7 +45,7 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
     const r = await buyDailyDealCard(c.id)
     setBusy(null)
     if ('error' in r) { playError(); setMsg(r.error === 'not enough gold' ? t('common.cosmetics.notEnoughGold') : t('common.cosmetics.buyFailed')); return }
-    playSuccess(); setLocalGold(r.gold); setMsg(t('common.dailyDeal.added', { name: c.name }))
+    playSuccess(); setLocalGold(r.gold); setMsg(t('common.dailyDeal.added', { name: cx.name(c.id, c.name) }))
     setCards((prev) => prev.map((x) => x.id === c.id ? { ...x, bought: true } : x)); onSpent?.()
   }
 
@@ -63,7 +67,7 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
                     <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: '5 / 7', border: `2px solid ${col}`, boxShadow: `0 0 12px ${col}88`, opacity: c.bought ? 0.55 : 1 }}>
                       <DealArt card={c} />
                       <div className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.78)' }}>
-                        <p className="text-[10px] leading-tight truncate" style={{ color: '#fff' }}>{c.name}</p>
+                        <p className="text-[10px] leading-tight truncate" style={{ color: '#fff' }}>{cx.name(c.id, c.name)}</p>
                         <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: col }}>{c.rarity ?? ''}</p>
                       </div>
                     </div>

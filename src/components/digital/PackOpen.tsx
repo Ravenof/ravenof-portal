@@ -8,7 +8,7 @@ import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick } from '@/lib/ui-sound'
-import { useT } from '@/lib/i18n/react'
+import { useT, useCardI18n } from '@/lib/i18n/react'
 
 const PACK_W = 220
 const PACK_H = 300
@@ -95,15 +95,18 @@ function FoilArt({ packImage, bad }: { packImage?: string | null; bad: boolean }
 
 function CardArt({ card }: { card: OpenedCard }) {
   const [bad, setBad] = useState(false)
+  const cx = useCardI18n()
   const col = rarityColor(card.rarity)
-  if (card.image_url && !bad) {
+  const cardImg = cx.image(card.id, card.image_url)
+  const cardName = cx.name(card.id, card.name)
+  if (cardImg && !bad) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={card.image_url} alt={card.name} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+    return <img src={cardImg} alt={cardName} onError={() => setBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
   }
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center" style={{ background: 'linear-gradient(160deg, #1a1325, #0a0810)' }}>
       <span className="text-2xl">🎴</span>
-      <span className="text-[11px] font-bold leading-tight" style={{ color: '#fff' }}>{card.name}</span>
+      <span className="text-[11px] font-bold leading-tight" style={{ color: '#fff' }}>{cardName}</span>
       <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: col }}>{card.rarity ?? ''}</span>
     </div>
   )
@@ -113,6 +116,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
   packId: string; packName: string; packImage?: string | null; onClose: () => void; onOpened?: () => void
 }) {
   const t = useT()
+  const cx = useCardI18n()
   const [packImgBad, setPackImgBad] = useState(false)
   const [drag, setDrag] = useState<{ t: number; fx: number; dir: 1 | -1 }>({ t: 0, fx: 0, dir: 1 })
   const [fired, setFired] = useState(false)
@@ -294,7 +298,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
               <div className="absolute inset-0 rounded-lg overflow-hidden" style={{ border: `${2 + Math.min(2, L)}px solid ${col}`, boxShadow: `0 0 ${14 + L * 10}px ${col}${L >= 2 ? 'cc' : '88'}` }}>
                 <CardArt card={current} />
                 <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-center" style={{ background: 'rgba(0,0,0,0.78)' }}>
-                  <p className="text-[11px] leading-tight truncate" style={{ color: '#fff' }}>{current.name}</p>
+                  <p className="text-[11px] leading-tight truncate" style={{ color: '#fff' }}>{cx.name(current.id, current.name)}</p>
                   <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: col }}>{current.rarity ?? ''}</p>
                 </div>
               </div>
@@ -343,6 +347,7 @@ function CarouselCard({ c, i, n, rot, radius, onTap }: {
 }
 
 function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => void }) {
+  const cx = useCardI18n()
   const t = useT()
   const rot = useMotionValue(0)
   const [zoom, setZoom] = useState<number | null>(null)
@@ -409,7 +414,7 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
             className="relative rounded-lg overflow-hidden" style={{ width: 'min(300px, 74vw, 60vh)', aspectRatio: '2.5 / 3.5', border: `3px solid ${rarityColor(cards[zoom].rarity)}`, boxShadow: `0 0 34px ${rarityColor(cards[zoom].rarity)}aa` }}>
             <CardArt card={cards[zoom]} />
             <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
-              <p className="text-[13px] leading-tight" style={{ color: '#fff' }}>{cards[zoom].name}</p>
+              <p className="text-[13px] leading-tight" style={{ color: '#fff' }}>{cx.name(cards[zoom].id, cards[zoom].name)}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rarityColor(cards[zoom].rarity) }}>{cards[zoom].rarity ?? ''}</p>
             </div>
           </motion.div>

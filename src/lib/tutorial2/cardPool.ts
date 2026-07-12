@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { parseEffect, detectKeywords, mapCardType, type TutCard, type BoardUnit } from '@/lib/tutorial/engine'
 import { parseGameplayConfig } from '@/lib/game/types'
+import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 
 const SEL = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( name, color_hex ), faction:factions ( id, name, color_hex ), card_keywords ( keyword:keywords ( name ) )`
 
@@ -25,7 +26,8 @@ function mapRow(c: Row): Omit<TutCard, 'uid'> {
   const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
   const text = [c.effect_text, c.description].filter(Boolean).join(' ')
   const gameplay = parseGameplayConfig(c.gameplay)
-  return {
+  // Efektų parseris dirba su LT tekstu; rodomus laukus lokalizuojam po to.
+  return localizeTutCard({
     id: c.id, name: c.name, image: c.image_url, gold: c.gold_cost ?? 100,
     attack: c.attack, health: c.health, type: mapCardType(c.card_type?.name, !!c.is_champion),
     subtype: c.subtype ?? null, championGroup: c.champion_group ?? null, championPhase: c.champion_phase ?? null,
@@ -35,7 +37,7 @@ function mapRow(c: Row): Omit<TutCard, 'uid'> {
     effect: parseEffect(text), gameplay,
     mappings: gameplay?.virtualEnabled === false ? [] : gameplay?.effectMappings ?? [],
     needsMapping: !gameplay?.effectMappings?.length && !!text,
-  }
+  })
 }
 
 export class CardPool {
@@ -46,6 +48,7 @@ export class CardPool {
     const pool = new CardPool()
     try {
       const supabase = createClient()
+      await ensureCardTranslations()
       const { data } = await supabase.from('cards').select(SEL).like('card_number', 'TUT-%').limit(200)
       for (const r of (data as unknown as Row[] | null) ?? []) pool.byName.set(r.name, mapRow(r))
     } catch { /* tuščias pool – director parodys klaidą */ }

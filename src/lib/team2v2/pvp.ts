@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { mapCardType, detectKeywords, parseEffect, type TutCard, type Side, type TargetRef } from '@/lib/tutorial/engine'
 import { parseGameplayConfig } from '@/lib/game/types'
 import type { CoopSeatMeta } from '@/lib/team2v2/load'
+import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 
 export type Slot = 'a1' | 'a2' | 'b1' | 'b2'
 export const SLOT_SEAT: Record<Slot, Side> = { a1: 'you', a2: 'ally', b1: 'ai', b2: 'foe2' }
@@ -74,7 +75,7 @@ function mapCard(c: Row, uid: string): TutCard {
   const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
   const text = [c.effect_text, c.description].filter(Boolean).join(' ')
   const gameplay = parseGameplayConfig(c.gameplay)
-  return {
+  return localizeTutCard({
     uid, id: c.id, name: c.name, image: c.image_url,
     gold: c.gold_cost ?? 100, attack: c.attack, health: c.health,
     type: mapCardType(c.card_type?.name, !!c.is_champion),
@@ -85,13 +86,14 @@ function mapCard(c: Row, uid: string): TutCard {
     effect: parseEffect(text), gameplay,
     mappings: gameplay?.virtualEnabled === false ? [] : gameplay?.effectMappings ?? [],
     needsMapping: !gameplay?.effectMappings?.length && !!text,
-  }
+  })
 }
 function shuffle<T>(a: T[]): T[] { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]] } return b }
 
 /** Užkrauna žaidėjo pagrindinę kaladę su uid prefiksu = jo vietos seatas (unikalu per visus 4). */
 export async function loadDeckForSeat(deckId: string, seat: Side): Promise<TutCard[] | null> {
   const supabase = createClient()
+  await ensureCardTranslations()
   const { data } = await supabase.from('deck_cards').select(`quantity, is_side_deck, card:cards ( ${SEL} )`).eq('deck_id', deckId)
   type DR = { quantity: number; is_side_deck: boolean | null; card: Row | null }
   const out: TutCard[] = []

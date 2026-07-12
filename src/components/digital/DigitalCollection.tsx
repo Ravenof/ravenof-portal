@@ -21,6 +21,7 @@ import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
 import { EmptyState } from './ui/HubKit'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
 
 const GOLD = '240,180,41'
 const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: `1px solid rgba(${GOLD},0.22)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
@@ -102,12 +103,14 @@ export function DigitalCollection() {
     ])
     type R = { id: string; name: string; image_url: string | null; gold_cost: number; attack: number | null; health: number | null; description: string | null; effect_text: string | null; is_champion: boolean; faction: { name: string; slug: string } | null; card_type: { name: string } | null; rarity: { name: string; copy_limit: number; sort_order: number } | null }
     const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
+    await ensureCardTranslations()   // kortų EN vertimai + EN vaizdai
     const list: Col[] = ((cardRows as unknown as R[]) ?? []).map((r) => ({
-      id: r.id, name: r.name, image: r.image_url,
+      id: r.id, name: cardText(r.id, 'name', r.name), image: cardImage(r.id, r.image_url),
       faction: r.faction?.name ?? null, factionSlug: r.faction?.slug ?? null,
       type: r.card_type?.name ?? null, rarity: r.rarity?.name ?? null,
       copyLimit: r.rarity?.copy_limit ?? 2, raritySort: r.rarity?.sort_order ?? 0,
-      gold: r.gold_cost, atk: r.attack, hp: r.health, effect: r.effect_text ?? r.description, isChampion: r.is_champion,
+      gold: r.gold_cost, atk: r.attack, hp: r.health,
+      effect: cardText(r.id, 'effect_text', r.effect_text) || cardText(r.id, 'description', r.description), isChampion: r.is_champion,
       owned: owned[r.id] ?? 0,
     }))
     setCards(list)

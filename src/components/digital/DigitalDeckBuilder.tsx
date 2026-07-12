@@ -19,7 +19,7 @@ import { rarityColor } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
-import { useT, useContent } from '@/lib/i18n/react'
+import { useT, useContent, useCardI18n } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 // hover preview tik įrenginiams su tikra pele (touch emuliuoja mouse eventus,
@@ -52,9 +52,19 @@ const IDENTITY: { re: RegExp; lineKey: string; icon: string }[] = [
 ]
 const identityFor = (name: string) => IDENTITY.find((x) => x.re.test(name))
 
-export function DigitalDeckBuilder({ userId, cards, factions, collection, initialDeck, onSaved, onBack }: Props) {
+export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collection, initialDeck, onSaved, onBack }: Props) {
   const t = useT()
   const tc = useContent()
+  const cx = useCardI18n()
+  // Kortų vertimai (Fazė 6): lokalizuojam sąrašą vieną kartą – visa žemiau
+  // esanti paieška/rikiavimas/atvaizdavimas dirba su rodoma kalba.
+  const cards = useMemo(() => cardsRaw.map((c) => ({
+    ...c,
+    name: cx.name(c.id, c.name),
+    effect_text: cx.effect(c.id, c.effect_text),
+    description: cx.description(c.id, c.description),
+    image_url: cx.image(c.id, c.image_url),
+  })), [cardsRaw, cx])
   const store = useDeckBuilderStore()
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)

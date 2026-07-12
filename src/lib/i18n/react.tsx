@@ -4,10 +4,11 @@
 // useT(): t() su rerender pakeitus kalbą. Hydration saugumas: server snapshot
 // visada 'lt' (SSR HTML = LT), klientas persijungia iškart po hydration.
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { DEFAULT_LOCALE, type SupportedLocale } from './config'
 import { getLocale, loadProfileLocale, setLocale, subscribe, translate, type TParams } from './core'
 import { isContentLoaded, loadContentTranslations, subscribeContent, tContent, type ContentOwnerType } from './content'
+import { cardImage, cardText, ensureCardTranslations, isCardI18nLoaded, subscribeCardI18n } from '@/lib/cards/i18n'
 
 export function useLocale(): SupportedLocale {
   return useSyncExternalStore(subscribe, getLocale, () => DEFAULT_LOCALE)
@@ -45,4 +46,19 @@ export function useContent(): (
     (ownerType, ownerId, field, fallback) => tContent(ownerType, ownerId, field, fallback, locale),
     [locale],
   )
+}
+
+/** Kortų vertimai (Fazė 6): cx.name(id, ltName), cx.effect(...), cx.image(...). */
+export function useCardI18n() {
+  const locale = useLocale()
+  useSyncExternalStore(subscribeCardI18n, () => isCardI18nLoaded(locale), () => true)
+  useEffect(() => { void ensureCardTranslations(locale) }, [locale])
+  return useMemo(() => ({
+    locale,
+    name: (id: string | null | undefined, fb: string | null | undefined) => cardText(id, 'name', fb, locale),
+    description: (id: string | null | undefined, fb: string | null | undefined) => cardText(id, 'description', fb, locale),
+    effect: (id: string | null | undefined, fb: string | null | undefined) => cardText(id, 'effect_text', fb, locale),
+    flavor: (id: string | null | undefined, fb: string | null | undefined) => cardText(id, 'flavor_text', fb, locale),
+    image: (id: string | null | undefined, fb: string | null | undefined) => cardImage(id, fb, locale),
+  }), [locale])
 }

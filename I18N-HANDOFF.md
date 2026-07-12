@@ -1,6 +1,6 @@
 # RAVENOF i18n — PERDAVIMO DOKUMENTAS (handoff)
 
-Data: 2026-07-12. Fazės 1–5 BAIGTOS (commit490, 492, 493, 494). Šis failas — tęsimo instrukcija.
+Data: 2026-07-12. Fazės 1–6 BAIGTOS (commit490, 492, 493, 494, 495). Šis failas — tęsimo instrukcija.
 Pilnas originalus spec'as ir auditas: `I18N-AUDIT.md` (repo šaknyje). Atmintis: memory `ravenof-i18n`.
 
 ## KAS PADARYTA
@@ -35,8 +35,8 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - Švieži Windows-pusės binariniai failai bash'e gali matytis truncated (pvz. nauji PNG) — apdorojimą daryti .bat viduje Windows pusėje (pvz. tools/resize-nav-icons.mjs commit491).
 
 ## LAUKIA VARTOTOJO VEIKSMŲ (patikrinti prieš tęsiant)
-1. `git-commit493.bat` (fazė 5) ir `git-commit494.bat` (fazė 4) — paleisti eilės tvarka, patikrinti `commitNN.log`.
-2. Supabase migracijos: `20260830_preferred_locale.sql` ir `20260831_content_translations.sql` — paleisti (run-migrations.bat arba SQL editor).
+1. `git-commit493.bat` (fazė 5), `git-commit494.bat` (fazė 4), `git-commit495.bat` (fazė 6) — paleisti eilės tvarka, patikrinti `commitNN.log`.
+2. Supabase migracijos: `20260830_preferred_locale.sql`, `20260831_content_translations.sql`, `20260832_card_translations.sql`.
 3. Po migracijos: `select owner_type, count(*) from content_translations where locale='en' group by 1;` — patikrinti, ar frakcijos/retumai/kortų tipai gavo EN (jei 0 → DB LT pavadinimai skiriasi nuo migracijoje išvardytų; pataisyti `join` reikšmes).
 4. Smoke test EN kalba: kova (log + UI), dienos užduotys/darbai, parduotuvė, kosmetika, reitingo pasiekimai, kolekcijos frakcijų filtras.
 
@@ -66,11 +66,21 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - **Level titulai:** `lib/gamification/levels.ts` `LEVEL_THRESHOLDS[].title` = i18n raktas (`progression.levelTitle.N`, naujas namespace, 49 titulai LT+EN).
 - LIKO Fazėje 4 (sąmoningai atidėta): kampanijos seed'ai (`data/campaignSeeds/prazarasVarngradasCampaign.ts`, 641 eil.) + campaign/* ekranai; `data/tutorialLessons/lessonSeeds.ts` (295 eil.); SQL RPC `raise exception` LT žinutės → stabilūs kodai; rarity/card_type pavadinimai, naudojami kaip LOGIKOS raktai (TYPE_ORDER, spalvų map'ai) — tvarkyti kartu su Faze 6.
 
-### Fazė 6 — Kortos
-- DB: `card_translations` (card_id, locale, name, description, effect_text, flavor_text, UNIQUE(card_id,locale)) + `card_assets` (card_id, locale, asset_type, url) — kortos vaizdas turi įkeptą LT tekstą, reikia EN vaizdo lauko.
-- Centralizuotas resolveris (name/effect/image pagal locale su fallback LT + dev warning) — naudoti VISUR (kolekcija, builder, ranka, lenta, log, pack open, shop, admin).
-- PASTABA: cards id = uuid; rarities/factions/card_types id = integer (memory `ravenof-db-id-types`).
-- PNG su įkeptu LT tekstu (ne kortos): home/battle-modes/*.png, ai/types/*.png, ai/difficulty/*.png, cta2.png, heading.png — reikia EN variantų (pvz. `-en` sufiksas + locale resolveris).
+### Fazė 6 — Kortos ✅ INFRASTRUKTŪRA BAIGTA (commit495, migracija 20260832 PENDING; EN turinį reikia suvesti)
+- **Migracija `20260832_card_translations.sql`:**
+  - `card_translations` (card_id, locale, name, description, effect_text, flavor_text, status draft|review|approved) — PK (card_id, locale).
+  - `card_assets` (card_id, locale, asset_type, url) — EN kortos PNG (LT tekstas ĮKEPTAS į vaizdą).
+  - LT snapshot'ai iš `cards`; RPC `rvn_set_card_translation` / `rvn_set_card_asset`; view `card_translation_status` (pilnumo ataskaita adminui).
+- **Resolveris `src/lib/cards/i18n.ts`:** `ensureCardTranslations()`, `cardText()`, `cardImage()`, `localizeCardRow()`, `localizeTutCard()`; React: `useCardI18n()` → `cx.name/effect/description/image`.
+  - ⚠ **AUKSINĖ TAISYKLĖ:** variklio `parseEffect()` / `detectKeywords()` dirba su **LT** `effect_text`. Todėl kortą PIRMA suparsink iš LT teksto, tik TADA per `localizeTutCard()` perrašyk rodomus laukus (name/effectText/image). `effect`/`mappings` niekada nelokalizuojami.
+  - `CardPool.byName` raktai lieka LT (DB `r.name`), nors rodomas vardas lokalizuotas.
+- **Prijungta:** cardPool.ts, TutorialGame (mapDbCard), team2v2 load/pvp, DigitalCollection, DigitalDeckBuilder (lokalizuoja visą `cards` prop'ą → paieška/rikiavimas veikia rodoma kalba), DigitalMyDecks, PackOpen, DailyDealModal.
+- **Turinio įrankis `tools/cards-i18n.mjs`** (`npm run cards:i18n`):
+  - `export --locale en [--only-missing] [--format json]` → CSV/JSON su LT stulpeliais + tuščiais EN.
+  - `import --locale en --in tools/cards-en.csv [--status draft] [--dry]` → `card_translations` (validacija: per ilgi vardai, LT raidės EN lauke).
+  - `images --locale en --in tools/cards-en-images.csv` (card_id|card_number + url) → `card_assets`.
+  - `status --locale en` → pilnumo ataskaita. Rašymui reikia `SUPABASE_SERVICE_ROLE_KEY`.
+- **LIKO:** (a) suvesti EN kortų tekstus per įrankį; (b) EN kortų PNG (arba dinaminis tekstas ant vaizdo); (c) rarity/card_type pavadinimai, naudojami kaip LOGIKOS raktai (`mapCardType`, TYPE_ORDER, spalvų map'ai) — jei kada EN vertimai bus dedami į patį `cards` select'ą, ŠIE laukai turi likti LT; (d) PNG su įkeptu LT tekstu ne kortose (home/battle-modes, ai/types, cta2.png, heading.png).
 
 ### Fazė 7 — Audio
 - `localized_audio` modelis (owner_type card|avatar, owner_id, locale, trigger, url, transcript, sort_order). Dabar: `avatar_audio` lentelė, `gameplay.voiceLines` JSONB, card-audio bucket — LT only. Fallback politika: EN → (nustatymas) LT → tyla. voiceManager (lazy+LRU) integracija.
@@ -94,4 +104,4 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 ## GREITAS STARTAS KITAI SESIJAI
 1. `cd "/sessions/<vm>/mnt/Ravenof kortų portalas/ravenof-portal"` (kelią žr. Shell access sekcijoje)
 2. `git log -1 --oneline` — patikrinti ar 490–492 sucommitinti; `node scripts/i18n-validate.mjs`; `npx tsc --noEmit`
-3. Tęsti nuo **Fazės 6 (kortos)** — `card_translations` + `card_assets` + centrinis resolveris (tas pats principas kaip `content.ts`: raktas → vertimas → LT fallback). Tai didžiausias likęs blokas. Alternatyva: užbaigti Fazės 4 likučius (kampanija, tutorial lessons, SQL klaidų kodai).
+3. Tęsti nuo **Fazės 7 (audio)** arba **Fazės 8 (admin: kortų vertimų tab'ai + completeness ataskaita per `card_translation_status`)**. Prieš tai verta suvesti EN kortų tekstus: `npm run cards:i18n export -- --locale en --only-missing`.

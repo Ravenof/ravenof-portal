@@ -27,6 +27,7 @@ import {
   STATUS_META, TutStatus, boardCreatureCap, type ZmkValue,
 } from '@/lib/tutorial/engine'
 import { eventText, resultText } from '@/lib/tutorial/logText'
+import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 import { useT } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
 import { statusName, statusTooltip } from '@/lib/game/statusVfx'
@@ -111,9 +112,9 @@ export function zmkImg(g: GameState | null, v: string): string | null {
 
 function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
   const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
-  const text = [c.effect_text, c.description].filter(Boolean).join(' ')
+  const text = [c.effect_text, c.description].filter(Boolean).join(' ')   // LT – variklio parseriui
   const gameplay = parseGameplayConfig(c.gameplay)
-  return {
+  return localizeTutCard({
     id: c.id,
     name: c.name,
     image: c.image_url,
@@ -136,7 +137,7 @@ function mapDbCard(c: NonNullable<DbRow['card']>): Omit<TutCard, 'uid'> {
     // Admin mapping > legacy teksto parseris (mappings tušti = legacy kelias)
     mappings: gameplay?.virtualEnabled === false ? [] : gameplay?.effectMappings ?? [],
     needsMapping: !gameplay?.effectMappings?.length && !!text,
-  }
+  })
 }
 
 function rowsToDeck(rows: DbRow[], suffix: string): TutCard[] {
@@ -1120,6 +1121,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   useEffect(() => {
     let alive = true
     const supabase = createClient()
+    void ensureCardTranslations()
     Promise.all([
       supabase.from('zmk_cards').select('*').eq('active', true).order('sort_order'),
       supabase.from('cards').select(`

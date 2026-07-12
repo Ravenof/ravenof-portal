@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "cap:sync": "next build && npx cap sync android",
     "cap:open": "npx cap open android",
-    "i18n:validate": "node scripts/i18n-validate.mjs"
+    "i18n:validate": "node scripts/i18n-validate.mjs",
+    "cards:i18n": "node tools/cards-i18n.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
