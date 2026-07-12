@@ -225,6 +225,8 @@ export type GameState = {
   /** Laukiantis efekto kopijavimas iš kapinyno (#5) */
   pendingCopy?: PendingCopy | null
   pendingReturn?: { side: Side } | null   // laukas: ėjimo pradžioje grąžink savo padarą į ranką (žaidėjas renkasi)
+  /** Atidėti prisikėlimai (resurrectSelf su resurrectTiming ≠ 'immediate'). */
+  pendingResurrect?: PendingResurrect[]
   // Special summon battlecry, kuriam reikia RANKINIO taikinio: korta švyti,
   // paspaudus renkamasi taikinys (resolveBattlecry). idx = mapping indeksai kortoje.
   pendingBattlecry?: { side: Side; uid: string; rounds: number; idx: number[] } | null
@@ -260,6 +262,16 @@ export type PendingChoice = {
 }
 
 export type PendingCopy = { caster: Side; sourceUid: string; sourceName: string; options: { card: TutCard; side: Side }[] }
+
+/** Atidėtas prisikėlimas: padaras jau kapinyne, grįš nurodytu momentu. */
+export type PendingResurrect = {
+  side: Side                       // kieno pusėje prisikels
+  card: TutCard                    // kortos šaltinis (iš kapinyno pašalinamas prikeliant)
+  hp1: boolean                     // prisikelia su 1 HP
+  when: 'endOfTurn' | 'startOfNextTurn'
+  /** Ėjimo numeris (savininko), kuriame padaras žuvo — kad 'startOfNextTurn' nesuveiktų tą patį ėjimą. */
+  diedOnTurn: number
+}
 
 // ── Pagalbinės ────────────────────────────────────────────────────────────────
 
@@ -931,6 +943,25 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
       if (m.trigger !== 'onDeath' || m.effect !== 'resurrectSelf') continue
       if (m.oncePerGame && u.card._resurrectUsed) continue
       if (m.oncePerGame) u.card._resurrectUsed = true
+
+      // ATIDĖTAS prisikėlimas: padaras keliauja į kapinyną ir grįžta nurodytu momentu.
+      const timing = m.resurrectTiming ?? 'immediate'
+      if (timing !== 'immediate') {
+        p.units[idx] = null
+        p.discard.push(u.card)
+        g.pendingResurrect = [...(g.pendingResurrect ?? []), {
+          side: owner, card: u.card, hp1: !!m.resurrectHp1, when: timing, diedOnTurn: p.turnNumber,
+        }]
+        log(g, {
+          t: 'lastwish', side: owner, cardName: u.card.name,
+          key: timing === 'endOfTurn' ? 'battleLog.resurrectPendingEndOfTurn' : 'battleLog.resurrectPendingNextTurn',
+          params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid },
+        })
+        fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
+        fireOnDestroyCredit(g, u.card.name)
+        return
+      }
+
       const nu: BoardUnit = {
         uid: u.card.uid + '-res' + g.globalTurn + '-' + idx, card: u.card,
         atk: u.card.attack ?? 0,
@@ -2083,6 +2114,53 @@ export function toResolved(t: TargetRef): ResolvedTarget {
 
 // ── Ėjimo pradžia / pabaiga ───────────────────────────────────────────────────
 
+/**
+ * Atidėtų prisikėlimų sprendimas (resurrectTiming).
+ * `phase`: 'endOfTurn' – to paties seat'o ėjimo pabaiga; 'startOfTurn' – jo ėjimo pradžia.
+ * Padaras imamas IŠ KAPINYNO; jei padarų zona pilna – prisikėlimas praleidžiamas.
+ */
+function resolvePendingResurrect(g: GameState, s: Side, phase: 'endOfTurn' | 'startOfTurn'): void {
+  const queue = g.pendingResurrect
+  if (!queue?.length) return
+  const p = P(g, s)
+  const rest: PendingResurrect[] = []
+  for (const pr of queue) {
+    const mine = pr.side === s
+    const due = mine && (phase === 'endOfTurn'
+      ? pr.when === 'endOfTurn'
+      : pr.when === 'startOfNextTurn' && p.turnNumber > pr.diedOnTurn)
+    if (!due) { rest.push(pr); continue }
+
+    const slot = freeUnitSlot(g, p)
+    if (slot === -1) {
+      log(g, { t: 'blocked', side: s, key: 'battleLog.resurrectZoneFull', params: { card: pr.card.name } })
+      continue                                  // korta lieka kapinyne
+    }
+    const di = p.discard.findIndex((c) => c.uid === pr.card.uid)
+    if (di !== -1) p.discard.splice(di, 1)
+
+    const nu: BoardUnit = {
+      uid: pr.card.uid + '-res' + g.globalTurn + '-' + slot, card: pr.card,
+      atk: pr.card.attack ?? 0,
+      hp: pr.hp1 ? 1 : (pr.card.health ?? 1),
+      maxHp: pr.card.health ?? 1,
+      shield: pr.card.keywords.includes('shield'),
+      stealth: pr.card.keywords.includes('stealth'),
+      statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
+      isChampion: false, phase: 0, abilityUsed: false,
+    }
+    p.units[slot] = nu
+    log(g, {
+      t: 'lastwish', side: s, cardName: pr.card.name,
+      key: pr.hp1 ? 'battleLog.lastWishResurrectHp1' : 'battleLog.lastWishResurrect',
+      params: { card: pr.card.name }, sound: 'summon', src: { side: s, uid: nu.uid },
+    })
+    afterSummon(g, s, pr.card, 'graveyard')
+  }
+  g.pendingResurrect = rest.length ? rest : undefined
+  recomputeAuras(g)
+}
+
 export function beginTurn(g: GameState): GameState {
   if (g.winner) return g
   g.rollContext = null
@@ -2096,6 +2174,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
   p.turnNumber += 1
+  resolvePendingResurrect(g, s, 'startOfTurn')   // atidėti prisikėlimai (startOfNextTurn)
   // Pasibaigusios būsenos: ĖJIMO PRADŽIOJE nuimamos TIK savo ėjime uždėtos
   // (integer until); ne savo ėjime uždėtos (x.5) kausto visą šį ėjimą ir
   // nuimamos jo pabaigoje (žr. seatEndTurn).
@@ -2203,6 +2282,7 @@ export function endTurn(g: GameState): GameState {
 function seatEndTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
+  resolvePendingResurrect(g, s, 'endOfTurn')     // atidėti prisikėlimai (endOfTurn)
   if (g.pendingReturn?.side === s) g.pendingReturn = null  // nespėjo pasirinkti – praleidžiama
   if (g.pendingBattlecry?.side === s) flushPendingBattlecry(g)  // nepasirinko taikinio → auto
   // Priešo uždėtos būsenos (until x.5): kaustė visą šį ėjimą — nuimamos jo pabaigoje,
@@ -2789,6 +2869,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }
   if (c.pendingReturn) c.pendingReturn.side = other(c.pendingReturn.side)
   if (c.pendingBattlecry) c.pendingBattlecry.side = other(c.pendingBattlecry.side)
+  if (c.pendingResurrect) c.pendingResurrect.forEach((r) => { r.side = other(r.side) })
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
   // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
   for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }

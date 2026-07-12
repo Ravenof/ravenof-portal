@@ -371,5 +371,8 @@
     "tauntMustAttack": "⊙ Pasišaipymas! Privalai pulti padarą su Pasišaipymu.",
     "noPendingReturn": "Nėra laukiančio grąžinimo.",
     "unitNotFound": "Padaras nerastas."
-  }
+  },
+  "resurrectPendingEndOfTurn": "🕯 „{{card}}\" žūsta — prisikels šio ėjimo pabaigoje!",
+  "resurrectPendingNextTurn": "🕯 „{{card}}\" žūsta — prisikels kito ėjimo pradžioje!",
+  "resurrectZoneFull": "Padarų zona pilna — „{{card}}\" prisikėlimas neįvyksta (lieka kapinyne)."
 }

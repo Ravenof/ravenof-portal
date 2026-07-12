@@ -732,6 +732,26 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           onChange={(e) => setMapping(i, { oncePerGame: e.target.checked || undefined })} />
                         Tik kartą per žaidimą
                       </label>
+                      <label className="flex items-center gap-1.5">
+                        <span>Kada prisikelia:</span>
+                        <select
+                          value={m.resurrectTiming ?? 'immediate'}
+                          onChange={(e) => setMapping(i, {
+                            resurrectTiming: e.target.value === 'immediate'
+                              ? undefined
+                              : (e.target.value as 'endOfTurn' | 'startOfNextTurn'),
+                          })}
+                          style={{ ...inputStyle, width: 'auto', padding: '2px 6px', fontSize: 11 }}>
+                          <option value="immediate">Iškart (vietoje mirties)</option>
+                          <option value="endOfTurn">Šio ėjimo pabaigoje</option>
+                          <option value="startOfNextTurn">Kito ėjimo pradžioje</option>
+                        </select>
+                      </label>
+                      {(m.resurrectTiming ?? 'immediate') !== 'immediate' && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          Iki tol padaras guli kapinyne; jei tuo metu padarų zona pilna — prisikėlimas neįvyksta.
+                        </span>
+                      )}
                     </div>
                   )}
                   {showTarget && (

@@ -371,5 +371,8 @@
     "tauntMustAttack": "⊙ Taunt! You must attack a creature with Taunt.",
     "noPendingReturn": "There is no pending return.",
     "unitNotFound": "Creature not found."
-  }
+  },
+  "resurrectPendingEndOfTurn": "🕯 \"{{card}}\" dies — it will be resurrected at the end of this turn!",
+  "resurrectPendingNextTurn": "🕯 \"{{card}}\" dies — it will be resurrected at the start of the next turn!",
+  "resurrectZoneFull": "The creature zone is full — \"{{card}}\" is not resurrected (it stays in the graveyard)."
 }

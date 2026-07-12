@@ -343,6 +343,13 @@ export type EffectMapping = {
   useAttackTarget?: boolean         // onAttack/onAttacked: efektas taikomas į kovos taikinį (atakuotą padarą / atakuotoją)
   resurrectHp1?: boolean            // resurrectSelf: prisikelia su 1 HP (vietoj pilno)
   oncePerGame?: boolean             // resurrectSelf: suveikia tik kartą per žaidimą
+  /**
+   * resurrectSelf: KADA prisikelia.
+   *   'immediate'        – iškart vietoje mirties (numatytoji, senas elgesys)
+   *   'endOfTurn'        – šio ėjimo pabaigoje (padaras iki tol guli kapinyne)
+   *   'startOfNextTurn'  – savininko kito ėjimo pradžioje
+   */
+  resurrectTiming?: 'immediate' | 'endOfTurn' | 'startOfNextTurn'
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
   chooseBy?: 'caster' | 'opponent'  // chooseEffect: kas renkasi – kerėtojas (default) ar priešininkas/auka (pvz. prakeiksmui)
