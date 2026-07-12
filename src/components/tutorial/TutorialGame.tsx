@@ -47,6 +47,7 @@ import { RewardChip } from '@/components/digital/ui/RewardBits'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
+import { avatarMapFor, cardVoiceUrls, loadVoices } from '@/lib/game/audioI18n'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
 import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
@@ -845,9 +846,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const me = toAv(mine), en = toAv(foe)
       setYouAvatar(me); setEnemyAvatar(en)
       youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null
-      const map = await getAvatarAudio([me?.id, en?.id])
+      const ids = [me?.id, en?.id]
+      const [map] = await Promise.all([getAvatarAudio(ids), loadVoices('avatar', ids)])
       if (!alive) return
-      resetAvatarAudio(); setAvatarAudioMap(map)
+      resetAvatarAudio(); setAvatarAudioMap(avatarMapFor(ids, map))   // Fazė 7: balsai pagal kalbą + LT fallback
     })()
     return () => { alive = false; stopAvatarAudio() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -976,6 +978,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [deckCards, toCineCard])
   const shownTipsRef = useRef<Set<string>>(new Set())
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Fazė 7: kortų balsai pagal kalbą (localized_audio) – užkraunam abiejų kaladžių kortoms
+  useEffect(() => {
+    const ids = [...(deckCards ?? []), ...(oppCards ?? [])].map((c) => c.id)
+    if (ids.length) void loadVoices('card', ids)
+  }, [deckCards, oppCards])
 
   const step: TutStep | null = stepIdx < GUIDED_STEPS.length ? GUIDED_STEPS[stepIdx] : null
   const activeTip: TipKey | null = !step && tipQueue.length > 0 ? tipQueue[0] : null
@@ -1377,7 +1385,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'draw': {
           if (!e.sound) playCardDraw()
-          if (e.side === 'you' && e.cardName) { const dc = findCard(e.cardName); if (dc?.gameplay?.voiceLines?.length) prefetchCardVoice(dc.gameplay.voiceLines) }
+          if (e.side === 'you' && e.cardName) { const dc = findCard(e.cardName); if (dc) prefetchCardVoice(cardVoiceUrls(dc.id, dc.gameplay?.voiceLines)) }
           { const sd = e.side; const dnm = e.cardName; const dseq = drawSeq++; window.setTimeout(() => { const deckEl = document.querySelector(`[data-pile="deck-${sd}"]`); const handEl: Element | null = sd === 'you' ? handRef.current : document.querySelector('[data-pile="hand-ai"]'); if (deckEl && handEl) { const dr = deckEl.getBoundingClientRect(), hr = handEl.getBoundingClientRect(); const fromP = { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }; const toP = { x: hr.left + hr.width / 2, y: sd === 'you' ? hr.top + 6 : hr.bottom - 6 }; fxRef.current?.spawn({ kind: 'drawStream', from: fromP, to: toP, color: '#7cc4ff', duration: 1.0 }); const dCard = sd === 'you' && dnm ? findCard(dnm) : null; const fid = ++flyIdRef.current; setFlyingDraws((f) => [...f, { id: fid, card: dCard, from: fromP, to: toP, side: sd }]); window.setTimeout(() => setFlyingDraws((f) => f.filter((x) => x.id !== fid)), 1600) } }, 40 + dseq * 220) }
           if (e.side === 'you' && e.cardName && skipYouDraw) { skipYouDraw = false }
           break
@@ -1385,7 +1393,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'play': case 'artifact': case 'champion': {
           if (!e.sound) playBattleSound('summon')
           const sc = findCard(e.cardName)
-          if (sc?.gameplay?.voiceLines?.length) playCardVoice(sc.gameplay.voiceLines, { cardId: sc.id })
+          if (sc) playCardVoice(cardVoiceUrls(sc.id, sc.gameplay?.voiceLines), { cardId: sc.id })
           // Premium summon kino pop-up (Legendinis/Čempionas; ne fazės keitimas/artefaktas)
           if (sc && (e.t === 'play' || (e.t === 'champion' && (e.key ?? '').startsWith('battleLog.playChampion')))) {
             const csrc = e.fromZone === 'graveyard' ? 'revived'

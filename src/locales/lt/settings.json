@@ -42,5 +42,13 @@
   "turnOff": "IŠJUNGTI",
   "turnOn": "ĮJUNGTI",
   "usedSpace": "užimta ~{{size}}",
-  "videoHint": "Video (kino intarpai, avatarų animacijos) — didžiausia dalis; siųsk per Wi-Fi."
+  "videoHint": "Video (kino intarpai, avatarų animacijos) — didžiausia dalis; siųsk per Wi-Fi.",
+  "voice": {
+    "title": "Balsų kalba",
+    "auto": "Kaip sąsajos",
+    "lt": "Lietuvių",
+    "en": "English",
+    "fallback": "Nėra balso pasirinkta kalba → groti lietuvišką",
+    "hint": "Kortų ir avatarų įgarsinimas. Jei kalbos balso nėra ir perjungiklis išjungtas – balsas tiesiog negrojamas (garso efektai lieka)."
+  }
 }

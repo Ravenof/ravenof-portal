@@ -13,6 +13,7 @@ import {
   isPremiumCinematicsEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled,
   setPremiumCinematicsEnabled, setSummonCinematicsEnabled, setChampionSkillCinematicsEnabled,
   DEFAULT_SUMMON_CINEMATICS, DEFAULT_SKILL_CINEMATICS,
+  getVoiceLocale, setVoiceLocale, isVoiceFallbackLtEnabled, setVoiceFallbackLt, type VoiceLocaleSetting,
 } from '@/lib/settings'
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
@@ -59,14 +60,19 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const [reminders, setReminders] = useState(true)
   const [native, setNative] = useState(false)
   const [bgFx, setBgFx] = useState(true)
+  const [voiceLoc, setVoiceLoc] = useState<VoiceLocaleSetting>('auto')
+  const [voiceFb, setVoiceFb] = useState(true)
 
   useEffect(() => {
     setMusic(getMusicVolume()); setSfx(getSfxVolume()); setSummon(isSummonFxEnabled()); setSoundOn(isUiSoundEnabled())
     setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
     setReminders(remindersEnabled()); setNative(isNativeApp()); setBgFx(isBgFxEnabled())
+    setVoiceLoc(getVoiceLocale()); setVoiceFb(isVoiceFallbackLtEnabled())
     return subscribeUiSound(setSoundOn)
   }, [])
 
+  const onVoiceLoc = (v: VoiceLocaleSetting) => { setVoiceLoc(v); setVoiceLocale(v); saveDigitalSettings() }
+  const onVoiceFb = (v: boolean) => { setVoiceFb(v); setVoiceFallbackLt(v); saveDigitalSettings() }
   const onMusic = (v: number) => { setMusic(v); setMusicVolume(v); saveDigitalSettings() }
   const onSfx = (v: number) => { setSfx(v); setSfxVolume(v); saveDigitalSettings() }
   const onSummon = (v: boolean) => { playUiClick(); setSummon(v); setSummonFxEnabled(v); saveDigitalSettings() }
@@ -255,6 +261,24 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
                       </button>
                     )
                   })}
+                  {/* Fazė 7: balsų kalba (kortų/avatarų įgarsinimas) */}
+                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p className="px-1 mb-1.5 text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>{t('settings.voice.title')}</p>
+                    <div className="flex gap-1.5">
+                      {(['auto', 'lt', 'en'] as VoiceLocaleSetting[]).map((v) => (
+                        <button key={v} type="button" onClick={() => { if (v !== voiceLoc) { playUiClick(); onVoiceLoc(v) } }}
+                          className="rvn-press flex-1 px-2 py-2 rounded-lg text-[11px] font-bold"
+                          style={{ background: v === voiceLoc ? `rgba(${ACC},0.18)` : 'rgba(10,8,16,0.8)', border: `1px solid ${v === voiceLoc ? `rgba(${ACC},0.6)` : 'rgba(255,255,255,0.08)'}`, color: v === voiceLoc ? 'var(--gold)' : 'var(--text-secondary)' }}>
+                          {t(`settings.voice.${v}`)}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="mt-1.5 flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.7)' }}>
+                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.voice.fallback')}</span>
+                      <input type="checkbox" checked={voiceFb} onChange={(e) => onVoiceFb(e.target.checked)} className="w-4 h-4" />
+                    </label>
+                    <p className="mt-1 px-1" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{t('settings.voice.hint')}</p>
+                  </div>
                   <p className="mt-1 px-1" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{t('settings.languageHint')}</p>
                 </div>
               )}

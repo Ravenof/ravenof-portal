@@ -6,6 +6,8 @@
 
 const K_MUSIC = 'rvn-music-volume'
 const K_SFX = 'rvn-sfx-volume'
+const K_VOICE_LOCALE = 'rvn-voice-locale'      // 'auto' | 'lt' | 'en'
+const K_VOICE_FALLBACK = 'rvn-voice-fallback'  // ar groti LT balsą, kai kalbos balso nėra
 const K_SUMMON = 'rvn-summon-fx'
 const K_CINE = 'rvn-premium-cinematics'
 const K_CINE_SUMMON = 'rvn-cinematics-summon'
@@ -18,9 +20,13 @@ export const DEFAULT_PREMIUM_CINEMATICS = true
 export const DEFAULT_SUMMON_CINEMATICS = true
 export const DEFAULT_SKILL_CINEMATICS = true
 
+export type VoiceLocaleSetting = 'auto' | 'lt' | 'en'
+
 export type DigitalSettings = {
   musicVolume: number      // 0..1
   sfxVolume: number        // 0..1
+  voiceLocale: VoiceLocaleSetting          // balsų kalba ('auto' = UI kalba)
+  voiceFallbackLt: boolean                 // nėra kalbos balso → groti LT (kitaip tyla)
   summonFxEnabled: boolean
   premiumCinematicsEnabled: boolean       // bendras kino pop-up jungiklis
   summonCinematicsEnabled: boolean        // summon kino (Legendinis/Čempionas)
@@ -29,6 +35,8 @@ export type DigitalSettings = {
 
 let _music: number | null = null
 let _sfx: number | null = null
+let _voiceLocale: VoiceLocaleSetting | null = null
+let _voiceFallback: boolean | null = null
 let _summon: boolean | null = null
 let _cine: boolean | null = null
 let _cineSummon: boolean | null = null
@@ -57,6 +65,31 @@ export function getSfxVolume(): number {
   if (_sfx === null) _sfx = readNum(K_SFX, DEFAULT_SFX_VOLUME)
   return _sfx
 }
+/** Balsų kalba: 'auto' (UI kalba) | 'lt' | 'en'. */
+export function getVoiceLocale(): VoiceLocaleSetting {
+  if (_voiceLocale === null) {
+    let v: string | null = null
+    if (typeof window !== 'undefined') { try { v = window.localStorage.getItem(K_VOICE_LOCALE) } catch { /* */ } }
+    _voiceLocale = (v === 'lt' || v === 'en' || v === 'auto') ? v : 'auto'
+  }
+  return _voiceLocale
+}
+export function setVoiceLocale(v: VoiceLocaleSetting): void {
+  _voiceLocale = v
+  if (typeof window !== 'undefined') { try { window.localStorage.setItem(K_VOICE_LOCALE, v) } catch { /* */ } }
+  notify()
+}
+/** Ar groti LT balsą, kai pasirinktos kalbos balso nėra (kitaip – tyla). */
+export function isVoiceFallbackLtEnabled(): boolean {
+  if (_voiceFallback === null) _voiceFallback = readBool(K_VOICE_FALLBACK, true)
+  return _voiceFallback
+}
+export function setVoiceFallbackLt(on: boolean): void {
+  _voiceFallback = on
+  if (typeof window !== 'undefined') { try { window.localStorage.setItem(K_VOICE_FALLBACK, on ? '1' : '0') } catch { /* */ } }
+  notify()
+}
+
 export function isSummonFxEnabled(): boolean {
   if (_summon === null) _summon = readBool(K_SUMMON, DEFAULT_SUMMON_FX)
   return _summon
@@ -77,6 +110,7 @@ export function isChampionSkillCinematicsEnabled(): boolean {
 export function getSettings(): DigitalSettings {
   return {
     musicVolume: getMusicVolume(), sfxVolume: getSfxVolume(), summonFxEnabled: isSummonFxEnabled(),
+    voiceLocale: getVoiceLocale(), voiceFallbackLt: isVoiceFallbackLtEnabled(),
     premiumCinematicsEnabled: isPremiumCinematicsEnabled(),
     summonCinematicsEnabled: _cineSummon ?? DEFAULT_SUMMON_CINEMATICS,
     championSkillCinematicsEnabled: _cineSkill ?? DEFAULT_SKILL_CINEMATICS,
@@ -127,6 +161,8 @@ export function hydrateSettings(s: Partial<DigitalSettings> | null | undefined):
   if (typeof s.summonFxEnabled === 'boolean') { _summon = s.summonFxEnabled; try { window.localStorage.setItem(K_SUMMON, _summon ? '1' : '0') } catch { /* */ } }
   if (typeof s.premiumCinematicsEnabled === 'boolean') { _cine = s.premiumCinematicsEnabled; try { window.localStorage.setItem(K_CINE, _cine ? '1' : '0') } catch { /* */ } }
   if (typeof s.summonCinematicsEnabled === 'boolean') { _cineSummon = s.summonCinematicsEnabled; try { window.localStorage.setItem(K_CINE_SUMMON, _cineSummon ? '1' : '0') } catch { /* */ } }
+  if (s.voiceLocale === 'auto' || s.voiceLocale === 'lt' || s.voiceLocale === 'en') { _voiceLocale = s.voiceLocale; try { window.localStorage.setItem(K_VOICE_LOCALE, s.voiceLocale) } catch { /* */ } }
+  if (typeof s.voiceFallbackLt === 'boolean') { _voiceFallback = s.voiceFallbackLt; try { window.localStorage.setItem(K_VOICE_FALLBACK, s.voiceFallbackLt ? '1' : '0') } catch { /* */ } }
   if (typeof s.championSkillCinematicsEnabled === 'boolean') { _cineSkill = s.championSkillCinematicsEnabled; try { window.localStorage.setItem(K_CINE_SKILL, _cineSkill ? '1' : '0') } catch { /* */ } }
   notify()
 }

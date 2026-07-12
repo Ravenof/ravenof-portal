@@ -1,6 +1,6 @@
 # RAVENOF i18n — PERDAVIMO DOKUMENTAS (handoff)
 
-Data: 2026-07-12. Fazės 1–6 BAIGTOS (commit490, 492, 493, 494, 495). Šis failas — tęsimo instrukcija.
+Data: 2026-07-12. Fazės 1–7 BAIGTOS (commit490, 492, 493, 494, 495, 496). Šis failas — tęsimo instrukcija.
 Pilnas originalus spec'as ir auditas: `I18N-AUDIT.md` (repo šaknyje). Atmintis: memory `ravenof-i18n`.
 
 ## KAS PADARYTA
@@ -35,8 +35,8 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 - Švieži Windows-pusės binariniai failai bash'e gali matytis truncated (pvz. nauji PNG) — apdorojimą daryti .bat viduje Windows pusėje (pvz. tools/resize-nav-icons.mjs commit491).
 
 ## LAUKIA VARTOTOJO VEIKSMŲ (patikrinti prieš tęsiant)
-1. `git-commit493.bat` (fazė 5), `git-commit494.bat` (fazė 4), `git-commit495.bat` (fazė 6) — paleisti eilės tvarka, patikrinti `commitNN.log`.
-2. Supabase migracijos: `20260830_preferred_locale.sql`, `20260831_content_translations.sql`, `20260832_card_translations.sql`.
+1. `git-commit493.bat` (f5), `git-commit494.bat` (f4), `git-commit495.bat` (f6), `git-commit496.bat` (f7) — paleisti eilės tvarka, patikrinti `commitNN.log`.
+2. Supabase migracijos: `20260830_preferred_locale.sql`, `20260831_content_translations.sql`, `20260832_card_translations.sql`, `20260833_localized_audio.sql`.
 3. Po migracijos: `select owner_type, count(*) from content_translations where locale='en' group by 1;` — patikrinti, ar frakcijos/retumai/kortų tipai gavo EN (jei 0 → DB LT pavadinimai skiriasi nuo migracijoje išvardytų; pataisyti `join` reikšmes).
 4. Smoke test EN kalba: kova (log + UI), dienos užduotys/darbai, parduotuvė, kosmetika, reitingo pasiekimai, kolekcijos frakcijų filtras.
 
@@ -82,8 +82,17 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
   - `status --locale en` → pilnumo ataskaita. Rašymui reikia `SUPABASE_SERVICE_ROLE_KEY`.
 - **LIKO:** (a) suvesti EN kortų tekstus per įrankį; (b) EN kortų PNG (arba dinaminis tekstas ant vaizdo); (c) rarity/card_type pavadinimai, naudojami kaip LOGIKOS raktai (`mapCardType`, TYPE_ORDER, spalvų map'ai) — jei kada EN vertimai bus dedami į patį `cards` select'ą, ŠIE laukai turi likti LT; (d) PNG su įkeptu LT tekstu ne kortose (home/battle-modes, ai/types, cta2.png, heading.png).
 
-### Fazė 7 — Audio
-- `localized_audio` modelis (owner_type card|avatar, owner_id, locale, trigger, url, transcript, sort_order). Dabar: `avatar_audio` lentelė, `gameplay.voiceLines` JSONB, card-audio bucket — LT only. Fallback politika: EN → (nustatymas) LT → tyla. voiceManager (lazy+LRU) integracija.
+### Fazė 7 — Audio ✅ BAIGTA (commit496, migracija 20260833 PENDING; EN balsų dar nėra)
+- **Migracija `20260833_localized_audio.sql`:** `localized_audio` (owner_type card|avatar, owner_id, locale, trigger, url, transcript, weight, sort_order, enabled).
+  - LT duomenys AUTOMATIŠKAI perkelti: `cards.gameplay->'voiceLines'` → trigger `summon`; `avatar_audio` → trigger = event_type.
+  - RPC `rvn_get_localized_audio(owner_type, ids[], locale)` (skaitymas) ir `rvn_set_localized_audio(...)` (admin/įrankiai); view `localized_audio_status`.
+  - Senos struktūros (`gameplay.voiceLines`, `avatar_audio`) NEIŠIMTOS – lieka kaip LT fallback.
+- **Resolveris `src/lib/game/audioI18n.ts`:** `loadVoices(owner, ids)`, `cardVoiceUrls(cardId, ltFallback)`, `avatarMapFor(ids, ltMap)`, `voiceTranscript(...)`.
+  - **Fallback politika:** pasirinkta balsų kalba → (jei įjungtas nustatymas) LT → **tyla**. Garso efektai (SFX) niekada nedingsta.
+- **Nustatymai (`lib/settings.ts` + SettingsModal → „Kalba"):** `voiceLocale` ('auto' = UI kalba | 'lt' | 'en') ir `voiceFallbackLt` (bool). Sinchronizuojama į `profiles.digital_settings`.
+- **Prijungta:** TutorialGame — kortų balsai (`playCardVoice(cardVoiceUrls(...))`, prefetch ant draw) ir avatarų žemėlapis (`avatarMapFor`). Balsai užkraunami abiejų kaladžių kortoms.
+- **Įrankis:** `node tools/cards-i18n.mjs audio --owner card|avatar --locale en --in file.csv` (CSV: card_id|card_number|owner_id, trigger, url, transcript?, weight?). `status --locale en` rodo ir balsų kiekius.
+- **LIKO:** įrašyti/sugeneruoti EN balsus ir suvesti per įrankį; admin UI balsams per locale — Fazė 8.
 
 ### Fazė 8 — Admin
 - Kortų redagavimas tab'ais (LT / EN / Gameplay / Assets / Audio), audio upload per locale, missing-translation ataskaitos, editorial statusai (draft/review/approved). `app/admin/*` UI pats irgi LT (~750 eil.) — žemesnė prioritetė (adminas gali likti LT, spec to nedraudžia, bet content-valdymo įrankiai EN turiniui būtini).
@@ -104,4 +113,4 @@ Lib: deck-validation.ts, digital/activeDeck.ts, digital/starterMeta.ts (dvikalbi
 ## GREITAS STARTAS KITAI SESIJAI
 1. `cd "/sessions/<vm>/mnt/Ravenof kortų portalas/ravenof-portal"` (kelią žr. Shell access sekcijoje)
 2. `git log -1 --oneline` — patikrinti ar 490–492 sucommitinti; `node scripts/i18n-validate.mjs`; `npx tsc --noEmit`
-3. Tęsti nuo **Fazės 7 (audio)** arba **Fazės 8 (admin: kortų vertimų tab'ai + completeness ataskaita per `card_translation_status`)**. Prieš tai verta suvesti EN kortų tekstus: `npm run cards:i18n export -- --locale en --only-missing`.
+3. Tęsti nuo **Fazės 8 (admin: kortų/turinio vertimų tab'ai, balsų upload per locale, completeness ataskaitos per `card_translation_status` ir `localized_audio_status`)**, tada **Fazė 9 (Playwright QA)**. Turinio suvedimas: `npm run cards:i18n -- export --locale en --only-missing`.

@@ -14,6 +14,10 @@
  *   node tools/cards-i18n.mjs images --locale en --in tools/cards-en-images.csv
  *   (CSV stulpeliai: card_id,url  arba  card_number,url)
  *
+ * BALSAI (lokalizuotas audio → localized_audio):
+ *   node tools/cards-i18n.mjs audio --owner card --locale en --in tools/audio-card-en.csv
+ *   (CSV: card_id|card_number, trigger, url, transcript?, weight?; avatarams --owner avatar + owner_id)
+ *
  * BŪSENA:
  *   node tools/cards-i18n.mjs status --locale en
  *
@@ -192,11 +196,48 @@ async function cmdStatus() {
   console.log(`  pilni (name+effect):    ${full.length} (${pct(full.length)}%)`)
   console.log(`  approved:               ${approved.length} (${pct(approved.length)}%)`)
   console.log(`Lokalizuoti vaizdai:      ${as.length} (${pct(as.length)}%)`)
+  const au = await fetchAll('localized_audio', 'owner_id, owner_type', (q) => q.eq('locale', LOCALE))
+  const cardVoices = new Set(au.filter((a) => a.owner_type === 'card').map((a) => a.owner_id))
+  const avVoices = new Set(au.filter((a) => a.owner_type === 'avatar').map((a) => a.owner_id))
+  console.log(`Balsai (${LOCALE}): kortų ${cardVoices.size}, avatarų ${avVoices.size}`)
 }
 
-const CMDS = { export: cmdExport, import: cmdImport, images: cmdImages, status: cmdStatus }
+async function cmdAudio() {
+  // CSV: card_id|card_number|owner_id, trigger, url, transcript?, weight?
+  const owner = String(arg('owner', 'card'))
+  if (!['card', 'avatar'].includes(owner)) { console.error('--owner turi būti card arba avatar'); process.exit(1) }
+  const file = String(arg('in', `tools/audio-${owner}-${LOCALE}.csv`))
+  const rows = parseCsv(readFileSync(resolve(root, file), 'utf8'))
+  let byNumber = new Map()
+  if (owner === 'card') {
+    const cards = await fetchAll('cards', 'id, card_number')
+    byNumber = new Map(cards.map((c) => [String(c.card_number), c.id]))
+  }
+  const payload = []
+  for (const r of rows) {
+    const id = r.owner_id || r.card_id || byNumber.get(String(r.card_number))
+    const trigger = (r.trigger || (owner === 'card' ? 'summon' : '')).trim()
+    if (!id || !trigger || !r.url) continue
+    payload.push({
+      owner_type: owner, owner_id: String(id), locale: LOCALE, trigger,
+      url: r.url.trim(), transcript: (r.transcript ?? '').trim() || null,
+      weight: Number(r.weight || 1) || 1, sort_order: Number(r.sort_order || 0) || 0,
+    })
+  }
+  console.log(`Audio įrašų: ${payload.length} (owner=${owner}, locale=${LOCALE})`)
+  if (DRY) { console.log('--dry: nieko nerašau.'); return }
+  if (!CAN_WRITE) { console.error('KLAIDA: rašymui reikia SUPABASE_SERVICE_ROLE_KEY.'); process.exit(1) }
+  for (let i = 0; i < payload.length; i += 200) {
+    const { error } = await db.from('localized_audio')
+      .upsert(payload.slice(i, i + 200), { onConflict: 'owner_type,owner_id,locale,trigger,url' })
+    if (error) { console.error('KLAIDA:', error.message); process.exit(1) }
+  }
+  console.log('✓ Balsai įrašyti.')
+}
+
+const CMDS = { export: cmdExport, import: cmdImport, images: cmdImages, audio: cmdAudio, status: cmdStatus }
 if (!CMDS[cmd]) {
-  console.log('Naudojimas: node tools/cards-i18n.mjs <export|import|images|status> [--locale en] [--in|--out file] [--format csv|json] [--only-missing] [--status draft|review|approved] [--dry]')
+  console.log('Naudojimas: node tools/cards-i18n.mjs <export|import|images|audio|status> [--locale en] [--in|--out file] [--format csv|json] [--only-missing] [--status draft|review|approved] [--dry]')
   process.exit(cmd ? 1 : 0)
 }
 CMDS[cmd]().catch((e) => { console.error('KLAIDA:', e.message); process.exit(1) })
