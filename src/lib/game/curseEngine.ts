@@ -38,14 +38,15 @@ export function activateCurses(api: GameApi, g: GameState, victim: Side, count: 
   for (let i = 0; i < count; i++) {
     const curse = casterP.curses.pop()
     if (!curse) {
-      api.log(g, { t: 'blocked', side: caster, msg: `Prakeiksmų side deck tuščias – „${srcName}" prakeiksmo neįmaišo.` })
+      api.log(g, { t: 'blocked', side: caster, key: 'battleLog.curseDeckEmpty', params: { src: srcName } })
       return
     }
     const idx = Math.floor(Math.random() * (victimP.deck.length + 1))
     victimP.deck.splice(idx, 0, curse)
     api.log(g, {
       t: 'curse', side: victim, cardName: curse.name,
-      msg: `🕸 „${srcName}" įmaišo prakeiksmą „${curse.name}" į ${victim === 'you' ? 'tavo' : 'priešininko'} kaladę.`,
+      key: 'battleLog.cursePlant',
+      params: { src: srcName, card: curse.name, owner: victim === 'you' ? '$t:battleLog.sideGen.you' : '$t:battleLog.sideGen.ai' },
     })
   }
 }

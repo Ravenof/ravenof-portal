@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
+import { useT, useLocale } from '@/lib/i18n/react'
 
 const TutorialGame = dynamic(() => import('./TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -19,15 +20,16 @@ type Faction = { id: number; name: string; icon_url: string | null; color_hex: s
 type Mode = 'random' | 'faction' | 'public'
 
 const ACC = '34,197,94' // žalias
-const FACTION_DESC: Record<string, string> = {
-  'Mirties maršas': 'Kapinės · prisikėlimas',
-  'Demonų orda': 'Prakeiksmai · agresija',
-  'Inkvizicijos legionas': 'Kontrolė · disciplina',
-  'Šviesos pulkas': 'Gydymas · apsauga',
-  'Mistikos melodija': 'Burtai · kontrolė',
-  'Rytų vėjas': 'Greitis · combo',
-  'Plėšikų naktis': 'Vagystė · tempas',
-  'Vryhioko gauja': 'Žvėrys · jėga',
+// Frakcijų aprašai = DB turinys (Fazė 4); kol kas dvikalbis registras pagal LT vardą.
+const FACTION_DESC: Record<string, { lt: string; en: string }> = {
+  'Mirties maršas': { lt: 'Kapinės · prisikėlimas', en: 'Graveyard · resurrection' },
+  'Demonų orda': { lt: 'Prakeiksmai · agresija', en: 'Curses · aggression' },
+  'Inkvizicijos legionas': { lt: 'Kontrolė · disciplina', en: 'Control · discipline' },
+  'Šviesos pulkas': { lt: 'Gydymas · apsauga', en: 'Healing · protection' },
+  'Mistikos melodija': { lt: 'Burtai · kontrolė', en: 'Spells · control' },
+  'Rytų vėjas': { lt: 'Greitis · combo', en: 'Speed · combo' },
+  'Plėšikų naktis': { lt: 'Vagystė · tempas', en: 'Theft · tempo' },
+  'Vryhioko gauja': { lt: 'Žvėrys · jėga', en: 'Beasts · power' },
 }
 
 export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger = false, open: openProp, onClose }: {
@@ -38,6 +40,8 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
   open?: boolean
   onClose?: () => void
 }) {
+  const t = useT()
+  const locale = useLocale()
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = hideTrigger ? !!openProp : internalOpen
   const setOpen = (v: boolean) => { if (hideTrigger) { if (!v) onClose?.() } else setInternalOpen(v) }
@@ -79,7 +83,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
   const canStart = mode === 'random' ? true : mode === 'faction' ? !!oppFaction : !!oppDeck
   const selFactionObj = factions.find((f) => f.id === oppFaction)
   const selDeckObj = publicDecks.find((d) => d.id === oppDeck)
-  const oppSummary = mode === 'random' ? 'Atsitiktinė frakcija' : mode === 'faction' ? (selFactionObj ? `${selFactionObj.name} AI` : '—') : (selDeckObj ? selDeckObj.name : '—')
+  const oppSummary = mode === 'random' ? t('battle.practice.randomTitle') : mode === 'faction' ? (selFactionObj ? `${selFactionObj.name} AI` : t('battle.practice.none')) : (selDeckObj ? selDeckObj.name : '—')
 
   const start = () => {
     playUiClick()
@@ -111,7 +115,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
         <button onClick={() => { playUiClick(); setOpen(true) }}
           className={variant === 'full' ? 'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95' : 'inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.03] active:scale-95 w-full'}
           style={{ background: `linear-gradient(135deg, rgba(${ACC},0.18), rgba(${ACC},0.06))`, border: `1px solid rgba(${ACC},0.45)`, color: '#86efac', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-          🎯 Praktika prieš AI
+          {t('battle.practice.trigger')}
         </button>
       )}
 
@@ -119,7 +123,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
         <TutorialGame deckId={deckId} deckName={deckName} practice
           opponentDeckId={mode === 'public' ? oppDeck : null}
           opponentFaction={mode !== 'public' && oppFaction ? Number(oppFaction) : null}
-          opponentName={mode === 'public' ? (selDeckObj?.name ?? 'Priešas') : (selFactionObj?.name ?? 'Priešas')}
+          opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.practice.enemy')) : (selFactionObj?.name ?? t('battle.practice.enemy'))}
           difficulty={difficulty}
           onClose={() => { setStarted(false); setOpen(false) }} />
       )}
@@ -133,8 +137,8 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
               <div className="flex items-center gap-2 min-w-0">
                 <RvnIcon name="fi-pve" size={26} fallback={<span style={{ fontSize: 22 }}>🎯</span>} />
                 <div className="min-w-0">
-                  <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,2.6vh,24px)', color: '#86efac', letterSpacing: '0.06em' }}>Praktika</div>
-                  <div className="truncate" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: 'var(--text-muted)' }}>Tavo kaladė: <span style={{ color: 'var(--text-secondary)' }}>{deckName}</span>. Pasirink priešininko tipą.</div>
+                  <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,2.6vh,24px)', color: '#86efac', letterSpacing: '0.06em' }}>{t('battle.practice.title')}</div>
+                  <div className="truncate" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: 'var(--text-muted)' }}>{t('battle.practice.yourDeck')} <span style={{ color: 'var(--text-secondary)' }}>{deckName}</span>{t('battle.practice.pickOpponent')}</div>
                 </div>
               </div>
               <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>✕</button>
@@ -142,9 +146,9 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
 
             {/* Tabai */}
             <div className="flex gap-2 px-4 pb-2 shrink-0">
-              {tab('random', '🎲', 'Atsitiktinė frakcija')}
-              {tab('faction', '🏰', 'Pasirinkta frakcija')}
-              {tab('public', '🌐', 'Viešas deck')}
+              {tab('random', '🎲', t('battle.practice.tabRandom'))}
+              {tab('faction', '🏰', t('battle.practice.tabFaction'))}
+              {tab('public', '🌐', t('battle.practice.tabPublic'))}
             </div>
 
             {/* Kūnas: turinys + santrauka */}
@@ -155,14 +159,14 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
                 {mode === 'random' && (
                   <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-6">
                     <span style={{ fontSize: 48 }}>🎲</span>
-                    <div className="rvn-disp font-bold" style={{ fontSize: 16, color: '#bbf7d0' }}>Atsitiktinė frakcija</div>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 340 }}>Botas pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias būdas pradėti treniruotę.</p>
+                    <div className="rvn-disp font-bold" style={{ fontSize: 16, color: '#bbf7d0' }}>{t('battle.practice.randomTitle')}</div>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 340 }}>{t('battle.practice.randomText')}</p>
                   </div>
                 )}
 
                 {mode === 'faction' && (
                   <div className="flex-1 min-h-0 overflow-y-auto p-3">
-                    <p className="mb-2" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pasirink priešininko frakciją — botas gaus tos frakcijos AI kaladę.</p>
+                    <p className="mb-2" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.practice.factionHint')}</p>
                     <div className="grid grid-cols-2 gap-2">
                       {factions.map((f) => {
                         const sel = f.id === oppFaction
@@ -175,7 +179,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
                             </span>
                             <span className="min-w-0">
                               <span className="block truncate rvn-disp font-bold" style={{ fontSize: 13, color: '#fff' }}>{f.name}</span>
-                              <span className="block truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{FACTION_DESC[f.name] ?? 'AI kaladė'}</span>
+                              <span className="block truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{FACTION_DESC[f.name]?.[locale === 'en' ? 'en' : 'lt'] ?? t('battle.practice.aiDeck')}</span>
                             </span>
                           </button>
                         )
@@ -187,14 +191,14 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
                 {mode === 'public' && (
                   <div className="flex-1 min-h-0 flex flex-col">
                     <div className="flex gap-2 p-2.5 shrink-0">
-                      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ieškoti decko arba autoriaus…" className="flex-1 outline-none" style={pickerStyle} />
+                      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('battle.practice.searchPlaceholder')} className="flex-1 outline-none" style={pickerStyle} />
                       <select value={filterFaction ? String(filterFaction) : ''} onChange={(e) => setFilterFaction(e.target.value ? Number(e.target.value) : '')} style={{ ...pickerStyle, maxWidth: 150 }}>
-                        <option value="">Visos frakcijos</option>
+                        <option value="">{t('battle.practice.allFactions')}</option>
                         {factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                       </select>
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-2.5 grid grid-cols-2 gap-2 content-start">
-                      {filteredDecks.length === 0 && <p className="col-span-2 text-center py-6" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nerasta deck'ų. Pabandyk išvalyti filtrus.</p>}
+                      {filteredDecks.length === 0 && <p className="col-span-2 text-center py-6" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('battle.practice.noDecks')}</p>}
                       {filteredDecks.map((d) => {
                         const sel = d.id === oppDeck
                         return (
@@ -226,33 +230,33 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
               <div className="min-h-0 flex flex-col gap-2 overflow-y-auto">
                 <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: 'rgba(10,8,16,0.7)', border: `1px solid rgba(${ACC},0.25)` }}>
                   <div>
-                    <div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#86efac' }}>Tu</div>
+                    <div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#86efac' }}>{t('battle.practice.you')}</div>
                     <div className="truncate" style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{deckName}</div>
                   </div>
                   <div className="text-center" style={{ color: 'var(--text-muted)' }}>✕</div>
                   <div>
-                    <div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#fca5a5' }}>Priešininkas</div>
+                    <div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: '#fca5a5' }}>{t('battle.practice.opponent')}</div>
                     <div className="truncate" style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{oppSummary}</div>
                   </div>
                   <div>
-                    <div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: 'var(--gold)' }}>Sunkumas</div>
-                    <div style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{difficulty === 'easy' ? 'Lengvas' : difficulty === 'hard' ? 'Sunkus' : 'Vidutinis'}</div>
+                    <div className="rvn-disp font-bold uppercase" style={{ fontSize: 10, color: 'var(--gold)' }}>{t('battle.practice.difficulty')}</div>
+                    <div style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--rvn-font-display)' }}>{difficulty === 'easy' ? t('battle.practice.easy') : difficulty === 'hard' ? t('battle.practice.hard') : t('battle.practice.normal')}</div>
                   </div>
                 </div>
 
                 <div className="rounded-xl p-3" style={{ background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p className="rvn-disp font-semibold uppercase mb-1.5" style={{ fontSize: 10, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>AI sunkumas</p>
-                  <div className="flex gap-1.5">{diffBtn('easy', '😴 Lengvas')}{diffBtn('normal', '⚔ Vidutinis')}{diffBtn('hard', '💀 Sunkus')}</div>
+                  <p className="rvn-disp font-semibold uppercase mb-1.5" style={{ fontSize: 10, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{t('battle.practice.aiDifficulty')}</p>
+                  <div className="flex gap-1.5">{diffBtn('easy', t('battle.practice.easyBtn'))}{diffBtn('normal', t('battle.practice.normalBtn'))}{diffBtn('hard', t('battle.practice.hardBtn'))}</div>
                   <p className="mt-1.5" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>
-                    {difficulty === 'easy' ? 'Paprasti trade’ai, retai planuoja combo, kartais silpni ėjimai.'
-                      : difficulty === 'hard' ? 'Planuoja 2–3 ėjimus, skaičiuoja lethal, agresyviai baudžia silpną lentą.'
-                      : 'Skaičiuoja trade’us, naudoja removal/AoE logiškai, saugosi lethal.'}
+                    {difficulty === 'easy' ? t('battle.practice.easyText')
+                      : difficulty === 'hard' ? t('battle.practice.hardText')
+                      : t('battle.practice.normalText')}
                   </p>
                 </div>
 
                 <button disabled={!canStart} onClick={start} className="rounded-xl font-bold transition-all disabled:opacity-40 active:scale-95 shrink-0"
-                  style={{ minHeight: 50, background: canStart ? `rgba(${ACC},0.9)` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', fontSize: 15 }}>⚔ PRADĖTI KOVĄ</button>
-                <button onClick={() => setOpen(false)} className="rounded-xl text-sm shrink-0" style={{ minHeight: 40, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>Atšaukti</button>
+                  style={{ minHeight: 50, background: canStart ? `rgba(${ACC},0.9)` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', fontSize: 15 }}>{t('battle.practice.start')}</button>
+                <button onClick={() => setOpen(false)} className="rounded-xl text-sm shrink-0" style={{ minHeight: 40, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('battle.practice.cancel')}</button>
               </div>
             </div>
           </div>

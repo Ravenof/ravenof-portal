@@ -1,0 +1,375 @@
+{
+  "side": {
+    "you": "Tu",
+    "ai": "Priešininkas"
+  },
+  "sideGen": {
+    "you": "tavo",
+    "ai": "priešininko"
+  },
+  "zone": {
+    "hand": "rankoje",
+    "deck": "kaladėje",
+    "discard": "kapinyne"
+  },
+  "controlDuration": {
+    "permanent": "visam laikui",
+    "endOfTurn": "iki ėjimo pabaigos",
+    "untilNextTurn": "iki kito savo ėjimo pradžios"
+  },
+  "goldCost": "{{gold}} aukso",
+  "variant": "Variantas {{n}}",
+  "start": {
+    "you": "Pradedi tu. Tu trauki 4, jis 5.",
+    "ai": "Pradeda priešininkas. Jis traukia 4, tu 5 (kompensacija už antrą ėjimą)."
+  },
+  "start2v2": "2v2: komanda {{team}} pradeda. Bendras komandos HP 60.",
+  "teamTurnStart": "— Komanda {{team}} pradeda ėjimą —",
+  "turnStart": {
+    "you": "— Tu pradedi {{n}}-ą ėjimą —",
+    "ai": "— Priešininkas pradeda {{n}}-ą ėjimą —"
+  },
+  "turnEnd": {
+    "you": "Tu baigi ėjimą. Nepanaudotas auksas dingsta.",
+    "ai": "Priešininkas baigia ėjimą. Nepanaudotas auksas dingsta."
+  },
+  "turnGold": {
+    "you": "Tu gauni {{gold}} aukso ({{turn}} ėjimas).",
+    "ai": "Priešininkas gauna {{gold}} aukso ({{turn}} ėjimas)."
+  },
+  "turnGoldField": {
+    "you": "Tu gauni {{gold}} aukso ({{turn}} ėjimas, +{{bonus}} iš lauko).",
+    "ai": "Priešininkas gauna {{gold}} aukso ({{turn}} ėjimas, +{{bonus}} iš lauko)."
+  },
+  "draw": {
+    "you": "Tu trauki kortą.",
+    "ai": "Priešininkas traukia kortą."
+  },
+  "drawFromGrave": {
+    "you": "Tu trauki „{{card}}\" iš kapinyno.",
+    "ai": "Priešininkas traukia „{{card}}\" iš kapinyno."
+  },
+  "drawKeep": {
+    "you": "Tu trauki {{n}} ir pasilieki {{keep}}.",
+    "ai": "Priešininkas traukia {{n}} ir pasilieka {{keep}}."
+  },
+  "drawChooseDiscard": "Ištraukei {{n}} – pasirink {{discard}} išmesti (likusias pasilieki).",
+  "deckEmpty": {
+    "you": "Tu nebeturi kortų kaladėje.",
+    "ai": "Priešininkas nebeturi kortų kaladėje."
+  },
+  "deckNoDraw": "Kaladėje nėra tinkamos kortos traukimui.",
+  "graveNoDraw": "Kapinyne nėra tinkamos kortos traukimui.",
+  "handLimitBurn": "Rankos limitas 10 – „{{card}}\" keliauja į kapinyną.",
+  "handFullBurn": "Ranka pilna – „{{card}}\" keliauja į kapinyną.",
+  "handFullToGrave": "Ranka pilna – „{{card}}\" į kapinyną.",
+  "handFullStayGrave": "Ranka pilna – „{{card}}\" lieka kapinyne.",
+  "returnHand": "„{{card}}\" grąžinamas į ranką.",
+  "discard": {
+    "you": "Tu išmeti „{{card}}\".",
+    "ai": "Priešininkas išmeta „{{card}}\"."
+  },
+  "discardForGold": {
+    "you": "Tu išmeti „{{card}}\" ir gauni +100 aukso ({{gold}}).",
+    "ai": "Priešininkas išmeta „{{card}}\" ir gauna +100 aukso ({{gold}})."
+  },
+  "mill": {
+    "you": "Iš tavo kaladės {{n}} kort(os) keliauja į kapinyną (mill).",
+    "ai": "Iš priešininko kaladės {{n}} kort(os) keliauja į kapinyną (mill)."
+  },
+  "graveToDeck": {
+    "you": "Tau {{n}} kort(os) grąžinama iš kapinyno į kaladę ir permaišoma.",
+    "ai": "Priešininkui {{n}} kort(os) grąžinama iš kapinyno į kaladę ir permaišoma."
+  },
+  "zmkReshuffle": {
+    "you": "Tu permaišai ŽMK kaladę.",
+    "ai": "Priešininkas permaišo ŽMK kaladę."
+  },
+  "zmkSpecialReshuffle": "Ištraukta {{value}} – ŽMK permaišoma iš naujo.",
+  "zmkBias": {
+    "adv": "Palankiai: ŽMK {{a}} ir {{b}} – imama geresnė.",
+    "dis": "Nepalankiai: ŽMK {{a}} ir {{b}} – imama blogesnė."
+  },
+  "zmkRoll": "ŽMK: {{zmk}} → {{base}} bazinė žala tampa {{dmg}}.",
+  "zmkDraw": "ŽMK traukimas: {{zmk}}.",
+  "zmkRemoved": "Iš {{owner}} ŽMK kaladės pašalinta {{n}}× „{{card}}\" korta (iki žaidimo pabaigos).",
+  "zmkNoneRemoved": "ŽMK kaladėje nebėra „{{card}}\" kortų – nieko nepašalinta.",
+  "playUnit": {
+    "you": "Tu iškvieti „{{card}}\" ({{cost}} aukso).",
+    "ai": "Priešininkas iškviečia „{{card}}\" ({{cost}} aukso)."
+  },
+  "playUnitSprint": {
+    "you": "Tu iškvieti „{{card}}\" ({{cost}} aukso). ▶ Sprintas – gali atakuoti iš karto!",
+    "ai": "Priešininkas iškviečia „{{card}}\" ({{cost}} aukso). ▶ Sprintas – gali atakuoti iš karto!"
+  },
+  "castSpell": {
+    "you": "Tu panaudoji burtą „{{card}}\" ({{cost}} aukso).",
+    "ai": "Priešininkas panaudoja burtą „{{card}}\" ({{cost}} aukso)."
+  },
+  "playArtifact": {
+    "you": "Tu padedi artefaktą „{{card}}\".",
+    "ai": "Priešininkas padeda artefaktą „{{card}}\"."
+  },
+  "playReaction": {
+    "you": "Tu padedi užverstą reakciją su {{gold}} aukso žetonu.",
+    "ai": "Priešininkas padeda užverstą reakciją su {{gold}} aukso žetonu."
+  },
+  "playField": {
+    "you": "🌍 Tu žaidi lauko kortą „{{card}}\" – veikia abu žaidėjus.",
+    "ai": "🌍 Priešininkas žaidžia lauko kortą „{{card}}\" – veikia abu žaidėjus."
+  },
+  "playChampion": {
+    "you": "⚜ Tu iškvieti Čempioną „{{card}}\" (1 fazė)! Naudoja gebėjimus, neatakuoja.",
+    "ai": "⚜ Priešininkas iškviečia Čempioną „{{card}}\" (1 fazė)! Naudoja gebėjimus, neatakuoja."
+  },
+  "championSwap": {
+    "you": "⇩ Tu keiti „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė).",
+    "ai": "⇩ Priešininkas keičia „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė)."
+  },
+  "championEvolve": "⚜ Čempionas evoliucionuoja į {{phase}} fazę ir pilnai pagyja! Atrakintas {{phase}}-as gebėjimas.",
+  "championSkill": "⚜ „{{card}}\" naudoja „{{skill}}\" ({{phase}} fazė).",
+  "championNoControl": "„{{src}}\": Čempiono perimti negalima.",
+  "sacrificeUnit": "„{{card}}\" paaukojamas Čempionui.",
+  "sacrificeHand": "„{{card}}\" paaukojama iš rankos (2 kortos = 1 tšk Čempionui).",
+  "fieldReplaced": "Sena lauko korta „{{card}}\" keliauja į kapinyną.",
+  "fieldLastWishDeath": "🌍 Laukas: „{{card}}\" su Paskutiniu noru žūsta vos iškviestas!",
+  "fieldReduceFirst": "🌍 Laukas sumažina pirmą žalą iki {{dmg}}.",
+  "fieldChooseReturn": "🌍 Laukas: pasirink padarą (savo ar priešo), kuris grįš savininkui į ranką.",
+  "fieldReturn": {
+    "self": "🌍 Laukas: {{side}} grąžina „{{card}}\" sau į ranką.",
+    "foe": "🌍 Laukas: {{side}} grąžina „{{card}}\" priešininkui į ranką."
+  },
+  "battlecry": "📣 „{{card}}\" Kovos šūksnis!",
+  "battlecryRepeat": "📣📣 Kovos šūksnis kartojasi (laukas)!",
+  "battlecryAwaitTarget": "📣 „{{card}}\" Kovos šūksnis laukia taikinio — paspausk švytinčią kortą ir pasirink taikinį!",
+  "lastWish": "🕯 „{{card}}\" Paskutinis noras aktyvuojasi!",
+  "lastWishResurrect": "💫 „{{card}}\" žūsta ir PRISIKELIA — Paskutinis noras!",
+  "lastWishResurrectHp1": "💫 „{{card}}\" žūsta ir PRISIKELIA su 1 HP — Paskutinis noras!",
+  "lastWishResurrectOnce": "💫 „{{card}}\" žūsta ir PRISIKELIA (kartą per žaidimą) — Paskutinis noras!",
+  "lastWishResurrectHp1Once": "💫 „{{card}}\" žūsta ir PRISIKELIA su 1 HP (kartą per žaidimą) — Paskutinis noras!",
+  "killEffect": "☠ „{{card}}\" sunaikino „{{victim}}\" — efektas aktyvuojasi!",
+  "cannotDie": "🛡 „{{card}}\" negali žūti (aura) – lieka 1 HP.",
+  "deathToHand": {
+    "self": "„{{card}}\" žūsta ir keliauja tau į ranką (Paskutinis noras).",
+    "foe": "„{{card}}\" žūsta ir keliauja priešininkui į ranką (Paskutinis noras)."
+  },
+  "deathExiled": "„{{card}}\" žūsta ir PAŠALINAMA iš žaidimo (laukas)!",
+  "deathGrave": "„{{card}}\" žūsta ir keliauja į kapinyną.",
+  "attackUnit": "⚔ „{{card}}\" ({{atk}} ATK) atakuoja „{{target}}\" – abu traukia po ŽMK!",
+  "attackArtifact": "⚔ „{{card}}\" atakuoja artefaktą „{{target}}\" – atgalinės žalos negauna.",
+  "attackPlayer": {
+    "you": "⚔ „{{card}}\" atakuoja tave tiesiogiai!",
+    "ai": "⚔ „{{card}}\" atakuoja priešininką tiesiogiai!"
+  },
+  "attackAgain": "⚔↻ „{{card}}\" sunaikino padarą – gali pulti dar kartą!",
+  "counterDamage": "Atgalinė žala: „{{card}}\" gauna {{dmg}} ({{hp}}/{{maxHp}}).",
+  "frozenNoCounter": "❄ „{{card}}\" sušaldytas – atgalinės žalos nedaro.",
+  "unitDamage": "„{{card}}\" gauna {{dmg}} žalos ({{hp}}/{{maxHp}}).",
+  "noDamage": "„{{card}}\" žalos negauna (0).",
+  "artifactDamage": "Artefaktas „{{card}}\" gauna {{dmg}} žalos.",
+  "artifactDestroyed": "Artefaktas „{{card}}\" sunaikintas.",
+  "artifactTrigger": "Artefaktas „{{card}}\" suveikia.",
+  "playerDamage": {
+    "you": "Tu gauni {{dmg}} žalos. Liko {{left}} HP.",
+    "ai": "Priešininkas gauna {{dmg}} žalos. Liko {{left}} HP."
+  },
+  "overkill": {
+    "you": "↳ Perteklinė žala {{excess}} pereina tau.",
+    "ai": "↳ Perteklinė žala {{excess}} pereina priešininkui."
+  },
+  "auraDoublePlayerDmg": "☠×2 Aura padvigubina žalą žaidėjui: {{dmg}}.",
+  "auraReduceDmg": "🛡 Aura sumažina žalą −{{pct}}%: „{{card}}\" {{before}} → {{dmg}}.",
+  "shieldNullify": "✦★ Magiškasis skydas anuliuoja žalą „{{card}}\".",
+  "shieldNullifyNoZmk": "✦★ Magiškasis skydas anuliuoja žalą „{{card}}\" – ŽMK netraukiama.",
+  "shieldNullifyBack": "✦★ Magiškasis skydas anuliuoja atgalinę žalą „{{card}}\".",
+  "playerHeal": {
+    "you": "Tu atgauni {{hp}} HP.",
+    "ai": "Priešininkas atgauna {{hp}} HP."
+  },
+  "unitHealed": "„{{card}}\" pagydomas {{hp}} HP.",
+  "spellVampirism": {
+    "you": "🩸 Burto vampyrizmas: tu +{{hp}} HP (burto žala {{dmg}}).",
+    "ai": "🩸 Burto vampyrizmas: priešininkas +{{hp}} HP (burto žala {{dmg}})."
+  },
+  "passiveDamageHeal": {
+    "you": "🩸 Pasyvas: priešo padaro patirta žala ({{dmg}}) atitenka tau – +{{hp}} HP.",
+    "ai": "🩸 Pasyvas: priešo padaro patirta žala ({{dmg}}) atitenka priešininkui – +{{hp}} HP."
+  },
+  "buffAtk": "„{{card}}\" gauna +{{atk}} ATK.",
+  "loseAtk": "„{{card}}\" praranda {{atk}} ATK.",
+  "buffHp": "„{{card}}\" gauna +{{hp}} HP.",
+  "loseHp": "„{{card}}\" praranda {{hp}} HP.",
+  "tempBuffEnd": "„{{card}}\" laikinas sustiprinimas baigėsi.",
+  "silencedUnit": "🔇 „{{card}}\" praranda visus efektus ir sustiprinimus ({{atk}} ATK / {{hp}} HP).",
+  "statusApply": "{{icon}} „{{card}}\" gauna būseną: {{status}}.",
+  "statusEnd": "„{{card}}\" atsigauna – būsena {{status}} baigėsi.",
+  "statusImmune": "🛡✨ „{{card}}\" imunitetas būsenoms — {{status}} neveikia.",
+  "burningTick": "🔥 „{{card}}\" dega – 1 bazinė žala.",
+  "poisonTick": "☠ „{{card}}\" apnuodytas – 1 bazinė žala.",
+  "blessedUsed": "„{{card}}\" Palaiminimas panaudotas – ataka palanki (advantage).",
+  "stealthEnd": "◑ „{{card}}\" Sėlinimas baigiasi po atakos.",
+  "takeControl": {
+    "you": "🧠 „{{src}}\": tu perimi „{{card}}\" {{duration}}!",
+    "ai": "🧠 „{{src}}\": priešininkas perima „{{card}}\" {{duration}}!"
+  },
+  "controlZoneFull": "„{{src}}\": padarų zona pilna – perimti nepavyksta.",
+  "controlStay": {
+    "you": "„{{card}}\" negrįžta šeimininkui (zona pilna) – lieka tavo pusėje.",
+    "ai": "„{{card}}\" negrįžta šeimininkui (zona pilna) – lieka priešininko pusėje."
+  },
+  "controlEnd": {
+    "you": "🧠 Kontrolė baigėsi – „{{card}}\" grįžta tau.",
+    "ai": "🧠 Kontrolė baigėsi – „{{card}}\" grįžta priešininkui."
+  },
+  "goldGain": {
+    "you": "Tu gauni +{{gold}} aukso („{{src}}\").",
+    "ai": "Priešininkas gauna +{{gold}} aukso („{{src}}\")."
+  },
+  "goldLose": {
+    "you": "Tu praradai {{gold}} aukso („{{src}}\").",
+    "ai": "Priešininkas prarado {{gold}} aukso („{{src}}\")."
+  },
+  "goldPlus": "+{{gold}} aukso („{{src}}\").",
+  "goldPenaltyNext": {
+    "you": "🪙 Kito ėjimo pradžioje neteksi {{gold}} aukso („{{src}}\").",
+    "ai": "🪙 Priešininkas kito ėjimo pradžioje neteks {{gold}} aukso („{{src}}\")."
+  },
+  "goldPenalty": {
+    "you": "💸 Tu netenki {{gold}} aukso ėjimo pradžioje (priešo efektas). Liko {{left}}.",
+    "ai": "💸 Priešininkas netenka {{gold}} aukso ėjimo pradžioje (tavo efektas). Liko {{left}}."
+  },
+  "spellDiscount": {
+    "you": "Tavo kitas burtas kainuos {{gold}} aukso pigiau.",
+    "ai": "Priešininko kitas burtas kainuos {{gold}} aukso pigiau."
+  },
+  "nextCardCost": {
+    "you": "🪙 Tavo sekanti korta kainuoja {{delta}} aukso.",
+    "ai": "🪙 Priešininko sekanti korta kainuoja {{delta}} aukso."
+  },
+  "nextCardCostType": {
+    "you": "🪙 Tavo sekanti korta ({{type}}) kainuoja {{delta}} aukso.",
+    "ai": "🪙 Priešininko sekanti korta ({{type}}) kainuoja {{delta}} aukso."
+  },
+  "spellDamageBonus": {
+    "you": "Tavo burtai nuo šiol daro +{{n}} žalos (iš viso +{{total}}).",
+    "ai": "Priešininko burtai nuo šiol daro +{{n}} žalos (iš viso +{{total}})."
+  },
+  "spellCountered": "🚫 Burtas „{{card}}\" nutildytas – jokio efekto.",
+  "counterReady": "🚫 „{{src}}\" pasiruošęs nutildyti žaidžiamą burtą.",
+  "reaction": {
+    "you": "⚡ Reakcija! Tu atverti „{{card}}\" – ji suveikia.",
+    "ai": "⚡ Reakcija! Priešininkas atverčia „{{card}}\" – ji suveikia."
+  },
+  "reactionBeforeAttack": {
+    "you": "⚡ Reakcija! Tu atverti „{{card}}\" – ji suveikia prieš ataką.",
+    "ai": "⚡ Reakcija! Priešininkas atverčia „{{card}}\" – ji suveikia prieš ataką."
+  },
+  "coin": {
+    "green": "🪙 Monetos metimas: ŽALIA – efektas pavyksta!",
+    "red": "🪙 Monetos metimas: RAUDONA – efektas nepavyksta."
+  },
+  "curseDrawn": {
+    "you": "Tu ištraukei įmaišytą prakeiksmą „{{card}}\" – efektas aktyvuojasi!",
+    "ai": "Priešininkas ištraukė įmaišytą prakeiksmą „{{card}}\" – efektas aktyvuojasi!"
+  },
+  "curseForced": "🕸 Prakeiksmas „{{card}}\" aktyvuojamas {{owner}} kaladėje priverstinai!",
+  "curseNoActivation": "Prakeiksmas „{{card}}\" neturi „Kai auka ištraukia\" aktyvacijos – efektas neįvyksta.",
+  "curseNone": "„{{src}}\": {{owner}} kaladėje nėra įmaišytų prakeiksmų.",
+  "curseRaise": "⚰️→ „{{card}}\" prikeliamas iš kapinyno (prakeiksmo aktyvacija)!",
+  "summonByEffect": "„{{card}}\" iškviečiamas efektu!",
+  "summonChosen": "„{{card}}\" iškviečiamas (pasirinkta)!",
+  "raiseFromGrave": "🦴 „{{card}}\" prikeliamas tavo pusėje!",
+  "chooseSummon": "Pasirink {{n}} kortą(-as) iškvietimui.",
+  "zoneFull": "Padarų zona pilna.",
+  "zoneFullSummon": "Padarų zona pilna – iškvietimas neįvyksta.",
+  "zoneFullRaise": "Padarų zona pilna – prikėlimas neįvyksta.",
+  "noSummonTarget": "Nėra tinkamo padaro iškvietimui.",
+  "noSummonTargetZone": "Nėra tinkamo padaro {{zone}} – iškvietimas neįvyksta.",
+  "targetInvalid": "Taikinys nebegalioja.",
+  "targetInvalidPart": "Taikinys nebegalioja – efekto dalis neįvyksta.",
+  "copyNoSource": "„{{src}}\": nėra šaltinio padaro efektui kopijuoti.",
+  "copyNoGraveTarget": "„{{src}}\": kapinyne nėra padaro su efektu.",
+  "copyChoose": "Pasirink padarą kapinyne, kurio efektą perimti.",
+  "copySourceGone": "Efekto kopijavimas: šaltinio padaras nebe lauke.",
+  "copyEffect": "🜏 „{{card}}\" perima „{{from}}\" efektą!",
+  "tutorNone": "Nėra tinkamos kortos – tutor neįvyksta.",
+  "tutorNoneType": "Nėra tinkamos kortos ({{type}}) – tutor neįvyksta.",
+  "tutorGain": {
+    "you": "Tu gauni „{{card}}\" į ranką (tutor).",
+    "ai": "Priešininkas gauna „{{card}}\" į ranką (tutor)."
+  },
+  "tutorPick": {
+    "you": "Tu pasirenki „{{card}}\" į ranką (tutor).",
+    "ai": "Priešininkas pasirenka „{{card}}\" į ranką (tutor)."
+  },
+  "chooseCardToHand": "Pasirink kortą į ranką",
+  "chooseCardToHandType": "Pasirink kortą į ranką ({{type}})",
+  "chooseEffect": "„{{src}}\" – pasirink efektą",
+  "deckEmptyPeek": "{{victim}} kaladė tuščia – nėra ką peržiūrėti.",
+  "deckEmptyReveal": "{{owner}} kaladė tuščia – nėra ką parodyti.",
+  "peekChoose": "Peržiūri {{n}} {{victim}} kaladės kortas – pasirink {{k}} išmesti.",
+  "peekAuto": "{{caster}} peržiūri {{n}} {{victim}} kaladės kortas ir {{k}} išmeta į kapinyną.",
+  "peekResultHand": "{{kept}} korta(-os) paliktos rankoje; {{n}} išmesta.",
+  "peekResultDiscard": "{{n}} korta(-os) išmesta į {{victim}} kapinyną; likusios grąžintos ant kaladės.",
+  "revealOwn": "{{caster}} pažiūri {{n}} savo kaladės viršutines kortas.",
+  "revealOther": "{{caster}} pažiūri {{n}} {{owner}} kaladės viršutines kortas.",
+  "revealTitleOwn": "Tavo kaladės viršus",
+  "revealTitleOther": "{{owner}} kaladės viršus",
+  "alchemistFort": "🏰 Alchemikų fortas: „{{card}}\" grąžinamas į {{owner}} kaladę.",
+  "winYou": "Priešininko HP nukrito iki 0. TU LAIMĖJAI! 🏆",
+  "winAi": "Tavo HP nukrito iki 0. Priešininkas laimi!",
+  "winTeam": "Komandos {{loser}} HP = 0. Komanda {{winner}} laimi! 🏆",
+  "curseDeckEmpty": "Prakeiksmų kaladė tuščia – „{{src}}\" prakeiksmo neįmaišo.",
+  "cursePlant": "🕸 „{{src}}\" įmaišo prakeiksmą „{{card}}\" į {{owner}} kaladę.",
+  "fieldTrigger": "🌍 Laukas „{{card}}\" suveikia.",
+  "chainTooDeep": "⚠ Efektų grandinė per gili – „{{src}}\" follow-up praleistas.",
+  "chainTooLong": "⚠ Efektų kaskada per ilga – „{{src}}\" praleistas (apsauga nuo ciklo).",
+  "noSpellToCounter": "„{{src}}\": nėra žaidžiamo burto, kurį būtų galima nutildyti.",
+  "noValidTarget": "„{{src}}\": nėra galiojančio taikinio – efekto dalis neįvyksta.",
+  "noAttacker": "„{{src}}\": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją\").",
+  "unsupportedEffect": "⚠ Nepalaikomas efektas „{{effect}}\" („{{src}}\") – praleidžiama.",
+  "statusCleansedOne": "💧 {{status}} nuimta.",
+  "statusCleansed": "💧 „{{card}}\" nuimtos būsenos: {{statuses}}.",
+  "statusCleanseNone": "💧 „{{card}}\" nuimamų būsenų neturi.",
+  "keywordGained": "„{{card}}\" gauna: {{keyword}}.",
+  "err": {
+    "discardOncePerTurn": "Tik 1 kartą per ėjimą gali išmesti kortą dėl aukso.",
+    "cardNotInHand": "Kortos nėra rankoje.",
+    "gameOver": "Žaidimas baigtas.",
+    "notYourTurn": "Ne tavo ėjimas.",
+    "notEnoughGold": "Trūksta aukso: kaina {{cost}}, turi {{gold}}.",
+    "notEnoughGoldField": "Trūksta aukso: kaina {{cost}} (laukas keičia kainą), turi {{gold}}.",
+    "unitZoneFull": "Padarų zona pilna (maks. {{max}}).",
+    "unitZoneFullChampion": "Padarų zona pilna (maks. {{max}}, įskaitant Čempioną).",
+    "unitZoneFullSimple": "Padarų zona pilna.",
+    "artifactZoneFull": "Artefaktų zona pilna (maks. 2).",
+    "reactionZoneFull": "Reakcijų zona pilna (maks. 3).",
+    "tributePickUnit": "Aukai pasirink savo padarą (ne Čempioną).",
+    "tributeHandNotFound": "Tribute kortos rankoje nerastos.",
+    "tributeRequired": "Reikia tribute: 1 padaras iš lauko ARBA 2 kortos iš rankos.",
+    "championPhaseNeeded": "Ši korta – {{phase}} fazė; reikia, kad Čempionas būtų {{need}} fazėje (dabar {{current}}).",
+    "championFirstPhase": "Pirma iškviesk 1 fazės Čempioną (ši korta – {{phase}} fazė).",
+    "cursesOnlyViaEffects": "Prakeiksmai žaidžiami tik per kortų efektus.",
+    "notPhasedChampion": "Tai ne fazinis Čempionas.",
+    "onlyLowerPhase": "Galima keisti tik į mažesnę fazę.",
+    "noFamilyPhaseCard": "Kaladėje nėra šios šeimos {{phase}} fazės kortos.",
+    "noChampionOnBoard": "Neturi Čempiono kovos lauke.",
+    "skillOncePerTurn": "Gebėjimas – tik 1 kartą per ėjimą.",
+    "championStatusBlocked": "Čempionas: {{status}} – gebėjimas negalimas.",
+    "championSilenced": "Čempionas nutildytas – gebėjimai blokuojami.",
+    "skillNotConfigured": "Šis gebėjimas nesukonfigūruotas.",
+    "skillLocked": "Gebėjimas {{n}} užrakintas – reikia {{n}} fazės.",
+    "championCannotAttack": "Čempionas neturi ATK ir negali atakuoti – naudok gebėjimą.",
+    "fieldAttackLimit": "🌍 Laukas riboja atakas: maks. {{max}} per ėjimą.",
+    "alreadyAttacked": "Šis padaras jau atakavo šį ėjimą.",
+    "unitFrozen": "❄ Padaras sušaldytas – praleidžia veikimo galimybę.",
+    "unitStunned": "✦ Padaras apsvaigintas – negali atakuoti.",
+    "auraBlocksAttack": "🔗 Aura blokuoja šio padaro atakas.",
+    "summoningSickness": "Padaras iškviestas šį ėjimą – atakuoti galės kitą ėjimą (nebent turėtų ▶ Sprintą).",
+    "zeroAtk": "Padaro ATK = 0.",
+    "unitNotOnBoard": "Padaro nėra kovos lauke.",
+    "tauntMustAttack": "⊙ Pasišaipymas! Privalai pulti padarą su Pasišaipymu.",
+    "noPendingReturn": "Nėra laukiančio grąžinimo.",
+    "unitNotFound": "Padaras nerastas."
+  }
+}

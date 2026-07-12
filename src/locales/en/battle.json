@@ -141,5 +141,318 @@
     "title": "Friendly battle",
     "waiting": "Waiting for opponent",
     "yourDeck": "Your deck"
+  },
+  "guided": {
+    "welcome": {
+      "title": "Welcome to Ravenof! 🐦‍⬛",
+      "text": "This is a practice battle against an opponent who plays by the rules. I'll explain everything step by step. You can't lose badly here – it's just training!"
+    },
+    "goal": {
+      "title": "The goal of the game",
+      "text": "Both players start with 40 health points (HP). The first one to reduce the opponent's HP to 0 wins. Your HP is at the bottom, the opponent's at the top."
+    },
+    "zones": {
+      "title": "The battlefield",
+      "text": "Below is your side: hand, creature zone (5 slots), artifacts (2), reactions (3). Above is the opponent's. In the middle is the shared field card zone."
+    },
+    "hand-intro": {
+      "title": "Your hand",
+      "text": "These are your cards – the opponent can't see them. Your hand holds up to 10 cards. Hover or hold a card to inspect it up close."
+    },
+    "gold-intro": {
+      "title": "The gold system ⚜",
+      "text": "At the start of each turn you gain gold: turn 1 = 100, turn 2 = 200... up to 1000. Cards cost gold. IMPORTANT: unspent gold DISAPPEARS at the end of your turn – spend it!"
+    },
+    "zmk-intro": {
+      "title": "ZMK – the damage modifier deck",
+      "text": "Every time damage is dealt, a ZMK card is drawn: +0, +1, −1, +2, −2, ×2 or ×0. Your 4 ATK hit can become 5... or 0! This is Ravenof's die of fate."
+    },
+    "play-first-unit": {
+      "title": "Summon a creature!",
+      "text": "Tap a card in your hand that you can afford (cost ⚜ in the left corner) and it will be summoned into the creature zone. A creature cannot attack on the turn it is summoned (unless it has ▶ Sprint)."
+    },
+    "discard-gold-tip": {
+      "title": "Tip: card → gold",
+      "text": "Once per turn you can discard 1 card from your hand and gain +100 gold. Press the \"+100⚜\" button and pick a card – or skip it."
+    },
+    "end-first-turn": {
+      "title": "End your turn",
+      "text": "When you have nothing left to do (or no gold), press \"End turn\". Then the opponent plays – watch what they do!"
+    },
+    "watch-ai": {
+      "title": "The opponent's turn",
+      "text": "The opponent draws a card, gains gold and plays by the same rules. Follow their actions in the event log in the middle."
+    },
+    "turn2-attack": {
+      "title": "Time to attack! ⚔",
+      "text": "Your creature can attack now: tap YOUR creature, then choose a target – an enemy creature or the opponent. When attacking a creature both sides draw a ZMK card and deal damage simultaneously!"
+    },
+    "free-play": {
+      "title": "It's all yours now! 🎴",
+      "text": "From now on, play freely. I'll explain new mechanics the first time you meet them. Good luck – may the ZMK be in your favour!"
+    }
+  },
+  "tips": {
+    "zmk-special": {
+      "title": "ZMK ×2 / ×0!",
+      "text": "A special ZMK card was drawn! ×2 doubles the damage, ×0 negates it. Afterwards the whole ZMK deck and its discard pile are reshuffled."
+    },
+    "taunt": {
+      "title": "⊙ Taunt",
+      "text": "While a creature with Taunt is on the board, all attacks MUST target it. Spells and effects ignore this – you can aim them anywhere."
+    },
+    "sprint": {
+      "title": "▶ Sprint",
+      "text": "A creature with Sprint can attack on the turn it is summoned – no waiting!"
+    },
+    "stealth": {
+      "title": "◑ Stealth",
+      "text": "This creature cannot be targeted until it attacks. Stealth disappears after its first attack. AoE effects still hit it."
+    },
+    "shield": {
+      "title": "✦★ Magic Shield",
+      "text": "The shield negates the NEXT damage this target would take – no ZMK is even drawn. Then the shield disappears."
+    },
+    "battlecry": {
+      "title": "📣 Battlecry",
+      "text": "The effect triggers immediately when the card is summoned onto the board. If it deals damage, a ZMK card is drawn."
+    },
+    "lastwish": {
+      "title": "🕯 Last Wish",
+      "text": "The effect triggers as the creature dies, before it goes to the graveyard. A silenced creature does not trigger its Last Wish."
+    },
+    "status-frozen": {
+      "title": "❄ Frozen",
+      "text": "The creature loses its next action: it cannot attack AND deals no counter damage when attacked. The status ends at the end of its controller's next turn."
+    },
+    "status-stunned": {
+      "title": "✦ Stunned",
+      "text": "The creature cannot attack, but it still deals counter damage. That is the difference from Frozen."
+    },
+    "status-burning": {
+      "title": "🔥 Burning",
+      "text": "At the start of each of its turns the creature takes 1 base damage (+ZMK). It burns until it dies or the status is removed by an effect."
+    },
+    "status-poisoned": {
+      "title": "☠ Poisoned",
+      "text": "Like Burning (1 damage per turn + ZMK), but it also attacks at DISADVANTAGE: it draws 2 ZMK cards and takes the worse one."
+    },
+    "status-silenced": {
+      "title": "🔇 Silenced",
+      "text": "The card's abilities stop working: passive effects, Battlecry, Last Wish – everything is blocked."
+    },
+    "reaction": {
+      "title": "⚡ Reaction",
+      "text": "A face-down card with a gold token. The opponent sees the cost but not the effect. It triggers when its condition is met – e.g. before an attack. \"Last placed – first resolved.\""
+    },
+    "field": {
+      "title": "🌍 Field card",
+      "text": "A global card that affects BOTH players. Only one can be active at a time – a new one replaces the old."
+    },
+    "champion": {
+      "title": "⚜ Champion",
+      "text": "A Champion is NOT a creature: it has no ATK and never attacks, but it has powerful skills (once per turn). Summoning costs gold AND a sacrifice. It has 3 phases."
+    },
+    "evolve": {
+      "title": "⚜ Evolution",
+      "text": "The Champion evolves right on the battlefield (you need the phase card in hand + a sacrifice) and is fully healed. Skills grow stronger with each phase!"
+    },
+    "hand-burn": {
+      "title": "Hand limit!",
+      "text": "Your hand holds only 10 cards – the excess burns and goes straight to the graveyard. Don't hoard cards!"
+    },
+    "curse": {
+      "title": "🕸 Curse",
+      "text": "A curse is shuffled into YOUR deck by card effects. Draw it and the effect triggers immediately, then the card goes to the graveyard."
+    },
+    "coin": {
+      "title": "🪙 Coin flip",
+      "text": "A risk effect: GREEN side – success, RED – failure or a side effect. The card text tells you the exact outcome."
+    },
+    "artifact": {
+      "title": "⭐ Artifact",
+      "text": "A permanent card in the artifact zone (max 2). It has HP and can be attacked, but never attacks itself. It works until destroyed."
+    },
+    "unfavorable": {
+      "title": "Disadvantage",
+      "text": "2 ZMK cards are drawn and the WORSE result for the acting player is used. This is how poisoned creatures attack."
+    }
+  },
+  "game": {
+    "yourZmk": "Your ZMK",
+    "enemyZmk": "Enemy ZMK",
+    "favorable": "ADVANTAGE",
+    "unfavorable": "DISADVANTAGE",
+    "spellDamageBonusTip": "Spell damage bonus (passive aura)",
+    "controlEndOfTurn": "Controlled until end of turn",
+    "controlUntilNextTurn": "Controlled until the start of the next turn",
+    "statusesTip": "Statuses",
+    "chatTitle": "💬 Chat with your opponent",
+    "chatEmpty": "Write a message to your opponent.",
+    "chatPlaceholder": "Message…",
+    "errTutorialDeck": "Failed to load the tutorial deck cards",
+    "errDeck": "Failed to load the deck cards",
+    "spellTag": "Spell",
+    "enemySpellTag": "Enemy spell",
+    "curseTag": "Curse",
+    "curseActivated": "ACTIVATED",
+    "curseMixed": "PLANTED",
+    "tutorialGold": "🎓 Tutorial gold added – you can play a card now.",
+    "opponentNoShow": "The opponent didn't join within 30s – YOU WIN! 🏆",
+    "you": "You",
+    "opponent": "Opponent",
+    "opponentShort": "Opponent",
+    "toastWaitTurn": "Wait for your turn.",
+    "toastEndTurnNow": "Now press \"End turn\".",
+    "toastNoSacChampion": "You cannot sacrifice the Champion itself.",
+    "toastTributeHand": "Tribute from hand: {{picked}}/2 (or tap a creature on the board = 1 pt).",
+    "toastNeedPhase": "You need a phase {{phase}} Champion on the board (or hold a lower phase in your deck to swap).",
+    "toastChampionTribute": "The Champion needs a tribute: 1 creature on the board OR 2 cards in hand.",
+    "toastNotEnoughGold": "Not enough gold: cost {{cost}}, you have {{gold}}.",
+    "toastTributeHint": "Tribute: a creature on the board (1 pt) OR 2 cards in hand (0/2).",
+    "toastPickEffectTarget": "Choose a target for the effect (highlighted creatures).",
+    "toastCannotSacChampion": "The Champion cannot be sacrificed.",
+    "toastAlreadyPicked": "{{need}} already selected. Deselect one or press \"OK\".",
+    "toastPickTargetFirst": "Choose a target first.",
+    "toastPickNTargets": "Choose {{need}} target(s).",
+    "toastDoTaskFirst": "First complete the task from the tip.",
+    "toastAlreadyDiscarded": "You already discarded a card this turn.",
+    "pileInspect": "Inspect ({{count}}) – hover / hold",
+    "reactionsTip": "Check your face-down reactions (the opponent can't see them)",
+    "fieldEmpty": "Field empty",
+    "handEmpty": "Hand empty",
+    "endTurnShort": "End\nturn",
+    "enemyTurnShort": "Enemy\nturn",
+    "oppProfileTip": "Opponent profile",
+    "titleRanked": "Ranked battle · vs {{name}}",
+    "titlePractice": "Battle · vs {{name}}",
+    "titleTutorial": "Tutorial battle · {{deck}}",
+    "soundOff": "Mute sound and music",
+    "soundOn": "Unmute sound and music",
+    "sound": "Sound",
+    "soundMuted": "Sound muted",
+    "logTip": "Event log",
+    "closeTip": "Close (Esc)",
+    "close": "Close",
+    "shuffling": "Shuffling decks…",
+    "preparing": "Preparing the battle…",
+    "rotateTitle": "Rotate your phone",
+    "rotateText": "The battle is played in landscape",
+    "deck": "Deck",
+    "zmk": "ZMK",
+    "player": "Player",
+    "endTurn": "End turn",
+    "enemyTurn": "Enemy turn…",
+    "opponentTurn": "Opponent's turn…",
+    "discardForGold": "+100⚜ for a card",
+    "discardForGoldTip": "Discard 1 card from hand and gain +100 gold (1×/turn)",
+    "oppHand": "Opponent's hand · {{count}}",
+    "oppReactions": "Opponent's reactions",
+    "oppArtifacts": "Opponent's artifacts",
+    "oppUnits": "Opponent's creatures",
+    "actionLog": "Action log",
+    "hintAttacker": "⚔ Choose a target (red outline) or press Esc",
+    "hintSpell": "✨ Choose a spell target or press Esc",
+    "hintSacrifice": "⚜ Tribute: a creature on the board (1 pt) OR 2 cards in hand ({{picked}}/2)",
+    "hintDiscard": "🗑 Choose a card in hand to discard for +100 gold",
+    "publicDecks": "Public decks",
+    "noPublicDecks": "No public decks.",
+    "skipTutorial": "Skip the tutorial",
+    "collapseTip": "Collapse – you can play, the tip will wait",
+    "doAction": "Take an action…",
+    "newMechanic": "New mechanic · {{title}}",
+    "eventLog": "Event log",
+    "inspectTip": "{{card}} (tap/hold to inspect)",
+    "championPhase": "⚜ {{card}} — phase {{phase}}",
+    "skillUsed": "The skill has already been used this turn.",
+    "pickSkill": "Choose a skill (only 1 per turn)",
+    "noSkills": "This Champion has no configured skills.",
+    "skillLocked": "🔒 (phase {{phase}} required)",
+    "swapPhaseTitle": "⇩ Swap Champion phase",
+    "swapPhaseText": "\"{{card}}\" (phase {{phase}}) is swapped for a lower-phase card from your deck (the current Champion returns to the deck).",
+    "phaseN": "→ phase {{phase}}",
+    "showTipTip": "Show the tutorial tip",
+    "pickReturnUnit": "Choose ANY creature – it returns to its owner's hand.",
+    "enemyUnits": "Enemy creatures",
+    "summonPickTitle": "Choose what to summon",
+    "summonPickMark": "Select {{choose}} ({{picked}}/{{choose}})",
+    "summonPickBtn": "Summon selected",
+    "zoneHand": "Hand",
+    "zoneDeck": "Deck",
+    "zoneGrave": "Graveyard",
+    "copyTitle": "Copy an effect from the graveyard",
+    "copyText": "Choose a creature – its effect becomes your creature's effect.",
+    "opponentDisconnected": "⚠ The opponent disconnected",
+    "turnLabel": "turn",
+    "targets": "Targets: {{picked}}/{{need}}",
+    "targetPicked": "Target selected",
+    "pickTarget": "Choose a target",
+    "millYou": "🪦 {{count}} of your card(s) → graveyard",
+    "millAi": "🪦 {{count}} of the opponent's card(s) → graveyard",
+    "deckTopText": "Top cards (left = top). They stay in the deck.",
+    "peekTitle": "Looking at the opponent's deck",
+    "peekMark": "Select {{choose}} card(s) to discard to the graveyard ({{picked}}/{{choose}})",
+    "peekBtn": "Discard selected",
+    "empty": "Empty",
+    "zmkDrawTitle": "ZMK draw ({{side}} damage)",
+    "zmkSideYou": "your",
+    "zmkSideAi": "the opponent's",
+    "coinGreen": "GREEN",
+    "coinRed": "RED",
+    "victory": "Victory!",
+    "defeat": "You lost…",
+    "victoryText": "Great! Now you know how to play Ravenof. Time for a real battle!",
+    "defeatText": "No worries – this is training. Try again, now you know the rules!",
+    "cardBack": "Card back",
+    "friendSent": "✓ Request sent",
+    "friendExists": "Already friends / request pending",
+    "friendAdd": "➕ Add {{name}} as a friend",
+    "playAgain": "⚔ Play again",
+    "closeBtn": "Close",
+    "sideYours": "yours",
+    "sideEnemy": "enemy",
+    "nextLevelPrefix": "Next —",
+    "levelN": "Level {{level}}",
+    "forXp": "for {{xp}} XP:"
+  },
+  "layout": {
+    "log": "📜 Battle log",
+    "logHint": "Tap outside or swipe left — it closes",
+    "close": "Close",
+    "yourTurn": "◆ Your turn ◆",
+    "enemyTurn": "◆ Enemy turn ◆"
+  },
+  "practice": {
+    "trigger": "🎯 Practice vs AI",
+    "title": "Practice",
+    "yourDeck": "Your deck:",
+    "pickOpponent": ". Choose the opponent type.",
+    "tabRandom": "Random faction",
+    "tabFaction": "Chosen faction",
+    "tabPublic": "Public deck",
+    "randomTitle": "Random faction",
+    "randomText": "The bot will pick a random faction and an auto-built deck. The fastest way to start training.",
+    "factionHint": "Pick the opponent's faction — the bot will get an AI deck of that faction.",
+    "aiDeck": "AI deck",
+    "searchPlaceholder": "Search for a deck or author…",
+    "allFactions": "All factions",
+    "noDecks": "No decks found. Try another search.",
+    "you": "You",
+    "opponent": "Opponent",
+    "difficulty": "Difficulty",
+    "aiDifficulty": "AI difficulty",
+    "easy": "Easy",
+    "normal": "Normal",
+    "hard": "Hard",
+    "easyBtn": "😴 Easy",
+    "normalBtn": "⚔ Normal",
+    "hardBtn": "💀 Hard",
+    "easyText": "Simple trades, rarely plans combos, sometimes weak turns.",
+    "hardText": "Plans 2–3 turns ahead, counts lethal, aggressively punishes a weak board.",
+    "normalText": "Counts trades, uses removal/AoE sensibly, plays around lethal.",
+    "enemy": "Enemy",
+    "cancel": "Cancel",
+    "none": "—",
+    "start": "⚔ START BATTLE"
   }
 }

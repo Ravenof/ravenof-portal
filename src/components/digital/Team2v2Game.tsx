@@ -21,6 +21,7 @@ import type { Pvp2v2Net, Net2v2Action } from '@/lib/team2v2/pvp'
 import { playUiClick, playCardPlace, playCardPick } from '@/lib/ui-sound'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
+import { eventText } from '@/lib/tutorial/logText'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 type Meta = Record<Side, CoopSeatMeta>
@@ -400,7 +401,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
         <div className="flex justify-center"><div>{teamHp(myTeam)}</div></div>
 
         <div className="flex items-center justify-between px-1 pt-0.5">
-          <span className="text-[10px] truncate flex-1 mr-2" style={{ color: 'var(--text-muted)' }}>{g.log.length ? g.log[g.log.length - 1].msg : ''}</span>
+          <span className="text-[10px] truncate flex-1 mr-2" style={{ color: 'var(--text-muted)' }}>{g.log.length ? eventText(g.log[g.log.length - 1]) : ''}</span>
           <button onClick={endTurn} disabled={!myTurn} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-40" style={{ background: 'rgba(56,189,248,0.2)', border: '1px solid rgba(56,189,248,0.55)', color: '#7dd3fc', fontFamily: 'var(--rvn-font-display)' }}>Baigti ėjimą</button>
         </div>
         <div ref={handAreaRef} className="flex gap-1.5 overflow-x-auto pb-1 min-h-[72px] items-center" style={{ touchAction: 'pan-x' }}>

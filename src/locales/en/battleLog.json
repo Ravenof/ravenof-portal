@@ -1,0 +1,375 @@
+{
+  "side": {
+    "you": "You",
+    "ai": "The opponent"
+  },
+  "sideGen": {
+    "you": "your",
+    "ai": "the opponent's"
+  },
+  "zone": {
+    "hand": "in hand",
+    "deck": "in the deck",
+    "discard": "in the graveyard"
+  },
+  "controlDuration": {
+    "permanent": "permanently",
+    "endOfTurn": "until end of turn",
+    "untilNextTurn": "until the start of their next turn"
+  },
+  "goldCost": "{{gold}} gold",
+  "variant": "Option {{n}}",
+  "start": {
+    "you": "You go first. You draw 4, they draw 5.",
+    "ai": "The opponent goes first. They draw 4, you draw 5 (compensation for going second)."
+  },
+  "start2v2": "2v2: team {{team}} goes first. Shared team HP 60.",
+  "teamTurnStart": "— Team {{team}} begins its turn —",
+  "turnStart": {
+    "you": "— You begin turn {{n}} —",
+    "ai": "— The opponent begins turn {{n}} —"
+  },
+  "turnEnd": {
+    "you": "You end your turn. Unspent gold is lost.",
+    "ai": "The opponent ends their turn. Unspent gold is lost."
+  },
+  "turnGold": {
+    "you": "You gain {{gold}} gold (turn {{turn}}).",
+    "ai": "The opponent gains {{gold}} gold (turn {{turn}})."
+  },
+  "turnGoldField": {
+    "you": "You gain {{gold}} gold (turn {{turn}}, +{{bonus}} from the field).",
+    "ai": "The opponent gains {{gold}} gold (turn {{turn}}, +{{bonus}} from the field)."
+  },
+  "draw": {
+    "you": "You draw a card.",
+    "ai": "The opponent draws a card."
+  },
+  "drawFromGrave": {
+    "you": "You draw \"{{card}}\" from the graveyard.",
+    "ai": "The opponent draws \"{{card}}\" from the graveyard."
+  },
+  "drawKeep": {
+    "you": "You draw {{n}} and keep {{keep}}.",
+    "ai": "The opponent draws {{n}} and keeps {{keep}}."
+  },
+  "drawChooseDiscard": "You drew {{n}} – choose {{discard}} to discard (you keep the rest).",
+  "deckEmpty": {
+    "you": "You have no cards left in your deck.",
+    "ai": "The opponent has no cards left in their deck."
+  },
+  "deckNoDraw": "No suitable card in the deck to draw.",
+  "graveNoDraw": "No suitable card in the graveyard to draw.",
+  "handLimitBurn": "Hand limit is 10 – \"{{card}}\" goes to the graveyard.",
+  "handFullBurn": "Hand is full – \"{{card}}\" goes to the graveyard.",
+  "handFullToGrave": "Hand is full – \"{{card}}\" goes to the graveyard.",
+  "handFullStayGrave": "Hand is full – \"{{card}}\" stays in the graveyard.",
+  "returnHand": "\"{{card}}\" is returned to hand.",
+  "discard": {
+    "you": "You discard \"{{card}}\".",
+    "ai": "The opponent discards \"{{card}}\"."
+  },
+  "discardForGold": {
+    "you": "You discard \"{{card}}\" and gain +100 gold ({{gold}}).",
+    "ai": "The opponent discards \"{{card}}\" and gains +100 gold ({{gold}})."
+  },
+  "mill": {
+    "you": "{{n}} card(s) from your deck go to the graveyard (mill).",
+    "ai": "{{n}} card(s) from the opponent's deck go to the graveyard (mill)."
+  },
+  "graveToDeck": {
+    "you": "{{n}} of your card(s) return from the graveyard to the deck and it is reshuffled.",
+    "ai": "{{n}} of the opponent's card(s) return from the graveyard to the deck and it is reshuffled."
+  },
+  "zmkReshuffle": {
+    "you": "You reshuffle the ZMK deck.",
+    "ai": "The opponent reshuffles the ZMK deck."
+  },
+  "zmkSpecialReshuffle": "Drew {{value}} – the ZMK deck is reshuffled.",
+  "zmkBias": {
+    "adv": "Advantage: ZMK {{a}} and {{b}} – the better one is used.",
+    "dis": "Disadvantage: ZMK {{a}} and {{b}} – the worse one is used."
+  },
+  "zmkRoll": "ZMK: {{zmk}} → base damage {{base}} becomes {{dmg}}.",
+  "zmkDraw": "ZMK draw: {{zmk}}.",
+  "zmkRemoved": "{{n}}× \"{{card}}\" card removed from {{owner}} ZMK deck (for the rest of the game).",
+  "zmkNoneRemoved": "No \"{{card}}\" cards left in the ZMK deck – nothing removed.",
+  "playUnit": {
+    "you": "You summon \"{{card}}\" ({{cost}} gold).",
+    "ai": "The opponent summons \"{{card}}\" ({{cost}} gold)."
+  },
+  "playUnitSprint": {
+    "you": "You summon \"{{card}}\" ({{cost}} gold). ▶ Sprint – it can attack immediately!",
+    "ai": "The opponent summons \"{{card}}\" ({{cost}} gold). ▶ Sprint – it can attack immediately!"
+  },
+  "castSpell": {
+    "you": "You cast \"{{card}}\" ({{cost}} gold).",
+    "ai": "The opponent casts \"{{card}}\" ({{cost}} gold)."
+  },
+  "playArtifact": {
+    "you": "You place the artifact \"{{card}}\".",
+    "ai": "The opponent places the artifact \"{{card}}\"."
+  },
+  "playReaction": {
+    "you": "You set a face-down reaction with a {{gold}} gold token.",
+    "ai": "The opponent sets a face-down reaction with a {{gold}} gold token."
+  },
+  "playField": {
+    "you": "🌍 You play the field card \"{{card}}\" – it affects both players.",
+    "ai": "🌍 The opponent plays the field card \"{{card}}\" – it affects both players."
+  },
+  "playChampion": {
+    "you": "⚜ You summon Champion \"{{card}}\" (phase 1)! It uses skills and does not attack.",
+    "ai": "⚜ The opponent summons Champion \"{{card}}\" (phase 1)! It uses skills and does not attack."
+  },
+  "championSwap": {
+    "you": "⇩ You swap \"{{card}}\" (phase {{phase}}) for \"{{to}}\" (phase {{toPhase}}).",
+    "ai": "⇩ The opponent swaps \"{{card}}\" (phase {{phase}}) for \"{{to}}\" (phase {{toPhase}})."
+  },
+  "championEvolve": "⚜ The Champion evolves to phase {{phase}} and is fully healed! Skill {{phase}} unlocked.",
+  "championSkill": "⚜ \"{{card}}\" uses \"{{skill}}\" (phase {{phase}}).",
+  "championNoControl": "\"{{src}}\": a Champion cannot be taken control of.",
+  "sacrificeUnit": "\"{{card}}\" is sacrificed to the Champion.",
+  "sacrificeHand": "\"{{card}}\" is sacrificed from hand (2 cards = 1 point for the Champion).",
+  "fieldReplaced": "The old field card \"{{card}}\" goes to the graveyard.",
+  "fieldLastWishDeath": "🌍 Field: \"{{card}}\" with Last Wish dies the moment it is summoned!",
+  "fieldReduceFirst": "🌍 The field reduces the first damage to {{dmg}}.",
+  "fieldChooseReturn": "🌍 Field: choose a creature (yours or the enemy's) to return to its owner's hand.",
+  "fieldReturn": {
+    "self": "🌍 Field: {{side}} returns \"{{card}}\" to their own hand.",
+    "foe": "🌍 Field: {{side}} returns \"{{card}}\" to the opponent's hand."
+  },
+  "battlecry": "📣 \"{{card}}\" Battlecry!",
+  "battlecryRepeat": "📣📣 The Battlecry repeats (field)!",
+  "battlecryAwaitTarget": "📣 \"{{card}}\" Battlecry is waiting for a target — tap the glowing card and pick a target!",
+  "lastWish": "🕯 \"{{card}}\" Last Wish triggers!",
+  "lastWishResurrect": "💫 \"{{card}}\" dies and IS RESURRECTED — Last Wish!",
+  "lastWishResurrectHp1": "💫 \"{{card}}\" dies and IS RESURRECTED with 1 HP — Last Wish!",
+  "lastWishResurrectOnce": "💫 \"{{card}}\" dies and IS RESURRECTED (once per game) — Last Wish!",
+  "lastWishResurrectHp1Once": "💫 \"{{card}}\" dies and IS RESURRECTED with 1 HP (once per game) — Last Wish!",
+  "killEffect": "☠ \"{{card}}\" destroyed \"{{victim}}\" — its effect triggers!",
+  "cannotDie": "🛡 \"{{card}}\" cannot die (aura) – it stays at 1 HP.",
+  "deathToHand": {
+    "self": "\"{{card}}\" dies and returns to your hand (Last Wish).",
+    "foe": "\"{{card}}\" dies and goes to the opponent's hand (Last Wish)."
+  },
+  "deathExiled": "\"{{card}}\" dies and is EXILED from the game (field)!",
+  "deathGrave": "\"{{card}}\" dies and goes to the graveyard.",
+  "attackUnit": "⚔ \"{{card}}\" ({{atk}} ATK) attacks \"{{target}}\" – both draw a ZMK!",
+  "attackArtifact": "⚔ \"{{card}}\" attacks the artifact \"{{target}}\" – it takes no counter damage.",
+  "attackPlayer": {
+    "you": "⚔ \"{{card}}\" attacks you directly!",
+    "ai": "⚔ \"{{card}}\" attacks the opponent directly!"
+  },
+  "attackAgain": "⚔↻ \"{{card}}\" destroyed a creature – it can attack again!",
+  "counterDamage": "Counter damage: \"{{card}}\" takes {{dmg}} ({{hp}}/{{maxHp}}).",
+  "frozenNoCounter": "❄ \"{{card}}\" is frozen – it deals no counter damage.",
+  "unitDamage": "\"{{card}}\" takes {{dmg}} damage ({{hp}}/{{maxHp}}).",
+  "noDamage": "\"{{card}}\" takes no damage (0).",
+  "artifactDamage": "The artifact \"{{card}}\" takes {{dmg}} damage.",
+  "artifactDestroyed": "The artifact \"{{card}}\" is destroyed.",
+  "artifactTrigger": "The artifact \"{{card}}\" triggers.",
+  "playerDamage": {
+    "you": "You take {{dmg}} damage. {{left}} HP left.",
+    "ai": "The opponent takes {{dmg}} damage. {{left}} HP left."
+  },
+  "overkill": {
+    "you": "↳ {{excess}} excess damage carries over to you.",
+    "ai": "↳ {{excess}} excess damage carries over to the opponent."
+  },
+  "auraDoublePlayerDmg": "☠×2 An aura doubles the damage to the player: {{dmg}}.",
+  "auraReduceDmg": "🛡 An aura reduces damage by −{{pct}}%: \"{{card}}\" {{before}} → {{dmg}}.",
+  "shieldNullify": "✦★ Magic Shield negates the damage to \"{{card}}\".",
+  "shieldNullifyNoZmk": "✦★ Magic Shield negates the damage to \"{{card}}\" – no ZMK is drawn.",
+  "shieldNullifyBack": "✦★ Magic Shield negates the counter damage to \"{{card}}\".",
+  "playerHeal": {
+    "you": "You restore {{hp}} HP.",
+    "ai": "The opponent restores {{hp}} HP."
+  },
+  "unitHealed": "\"{{card}}\" is healed for {{hp}} HP.",
+  "spellVampirism": {
+    "you": "🩸 Spell vampirism: you +{{hp}} HP (spell damage {{dmg}}).",
+    "ai": "🩸 Spell vampirism: the opponent +{{hp}} HP (spell damage {{dmg}})."
+  },
+  "passiveDamageHeal": {
+    "you": "🩸 Passive: damage taken by an enemy creature ({{dmg}}) heals you – +{{hp}} HP.",
+    "ai": "🩸 Passive: damage taken by an enemy creature ({{dmg}}) heals the opponent – +{{hp}} HP."
+  },
+  "buffAtk": "\"{{card}}\" gains +{{atk}} ATK.",
+  "loseAtk": "\"{{card}}\" loses {{atk}} ATK.",
+  "buffHp": "\"{{card}}\" gains +{{hp}} HP.",
+  "loseHp": "\"{{card}}\" loses {{hp}} HP.",
+  "tempBuffEnd": "The temporary buff on \"{{card}}\" has ended.",
+  "silencedUnit": "🔇 \"{{card}}\" loses all effects and buffs ({{atk}} ATK / {{hp}} HP).",
+  "statusApply": "{{icon}} \"{{card}}\" gains the status: {{status}}.",
+  "statusEnd": "\"{{card}}\" recovers – the {{status}} status has ended.",
+  "statusImmune": "🛡✨ \"{{card}}\" is immune to statuses — {{status}} has no effect.",
+  "burningTick": "🔥 \"{{card}}\" is burning – 1 base damage.",
+  "poisonTick": "☠ \"{{card}}\" is poisoned – 1 base damage.",
+  "blessedUsed": "\"{{card}}\" Blessing consumed – the attack has advantage.",
+  "stealthEnd": "◑ \"{{card}}\" Stealth ends after the attack.",
+  "takeControl": {
+    "you": "🧠 \"{{src}}\": you take control of \"{{card}}\" {{duration}}!",
+    "ai": "🧠 \"{{src}}\": the opponent takes control of \"{{card}}\" {{duration}}!"
+  },
+  "controlZoneFull": "\"{{src}}\": the creature zone is full – taking control fails.",
+  "controlStay": {
+    "you": "\"{{card}}\" cannot return to its owner (zone full) – it stays on your side.",
+    "ai": "\"{{card}}\" cannot return to its owner (zone full) – it stays on the opponent's side."
+  },
+  "controlEnd": {
+    "you": "🧠 Control has ended – \"{{card}}\" returns to you.",
+    "ai": "🧠 Control has ended – \"{{card}}\" returns to the opponent."
+  },
+  "goldGain": {
+    "you": "You gain +{{gold}} gold (\"{{src}}\").",
+    "ai": "The opponent gains +{{gold}} gold (\"{{src}}\")."
+  },
+  "goldLose": {
+    "you": "You lost {{gold}} gold (\"{{src}}\").",
+    "ai": "The opponent lost {{gold}} gold (\"{{src}}\")."
+  },
+  "goldPlus": "+{{gold}} gold (\"{{src}}\").",
+  "goldPenaltyNext": {
+    "you": "🪙 You will lose {{gold}} gold at the start of your next turn (\"{{src}}\").",
+    "ai": "🪙 The opponent will lose {{gold}} gold at the start of their next turn (\"{{src}}\")."
+  },
+  "goldPenalty": {
+    "you": "💸 You lose {{gold}} gold at the start of the turn (enemy effect). {{left}} left.",
+    "ai": "💸 The opponent loses {{gold}} gold at the start of the turn (your effect). {{left}} left."
+  },
+  "spellDiscount": {
+    "you": "Your next spell will cost {{gold}} gold less.",
+    "ai": "The opponent's next spell will cost {{gold}} gold less."
+  },
+  "nextCardCost": {
+    "you": "🪙 Your next card costs {{delta}} gold.",
+    "ai": "🪙 The opponent's next card costs {{delta}} gold."
+  },
+  "nextCardCostType": {
+    "you": "🪙 Your next card ({{type}}) costs {{delta}} gold.",
+    "ai": "🪙 The opponent's next card ({{type}}) costs {{delta}} gold."
+  },
+  "spellDamageBonus": {
+    "you": "Your spells now deal +{{n}} damage (total +{{total}}).",
+    "ai": "The opponent's spells now deal +{{n}} damage (total +{{total}})."
+  },
+  "spellCountered": "🚫 The spell \"{{card}}\" is countered – no effect.",
+  "counterReady": "🚫 \"{{src}}\" is ready to counter the spell being cast.",
+  "reaction": {
+    "you": "⚡ Reaction! You flip \"{{card}}\" – it triggers.",
+    "ai": "⚡ Reaction! The opponent flips \"{{card}}\" – it triggers."
+  },
+  "reactionBeforeAttack": {
+    "you": "⚡ Reaction! You flip \"{{card}}\" – it triggers before the attack.",
+    "ai": "⚡ Reaction! The opponent flips \"{{card}}\" – it triggers before the attack."
+  },
+  "coin": {
+    "green": "🪙 Coin flip: GREEN – the effect succeeds!",
+    "red": "🪙 Coin flip: RED – the effect fails."
+  },
+  "curseDrawn": {
+    "you": "You drew the planted curse \"{{card}}\" – its effect triggers!",
+    "ai": "The opponent drew the planted curse \"{{card}}\" – its effect triggers!"
+  },
+  "curseForced": "🕸 The curse \"{{card}}\" is force-activated in {{owner}} deck!",
+  "curseNoActivation": "The curse \"{{card}}\" has no \"when the victim draws\" activation – nothing happens.",
+  "curseNone": "\"{{src}}\": there are no planted curses in {{owner}} deck.",
+  "curseRaise": "⚰️→ \"{{card}}\" is raised from the graveyard (curse activation)!",
+  "summonByEffect": "\"{{card}}\" is summoned by an effect!",
+  "summonChosen": "\"{{card}}\" is summoned (chosen)!",
+  "raiseFromGrave": "🦴 \"{{card}}\" is raised on your side!",
+  "chooseSummon": "Choose {{n}} card(s) to summon.",
+  "zoneFull": "The creature zone is full.",
+  "zoneFullSummon": "The creature zone is full – the summon fails.",
+  "zoneFullRaise": "The creature zone is full – the raise fails.",
+  "noSummonTarget": "No suitable creature to summon.",
+  "noSummonTargetZone": "No suitable creature {{zone}} – the summon fails.",
+  "targetInvalid": "The target is no longer valid.",
+  "targetInvalidPart": "The target is no longer valid – part of the effect does not happen.",
+  "copyNoSource": "\"{{src}}\": there is no source creature to copy an effect from.",
+  "copyNoGraveTarget": "\"{{src}}\": there is no creature with an effect in the graveyard.",
+  "copyChoose": "Choose a creature in the graveyard whose effect to copy.",
+  "copySourceGone": "Effect copy: the source creature is no longer on the board.",
+  "copyEffect": "🜏 \"{{card}}\" copies the effect of \"{{from}}\"!",
+  "tutorNone": "No suitable card – the tutor fails.",
+  "tutorNoneType": "No suitable card ({{type}}) – the tutor fails.",
+  "tutorGain": {
+    "you": "You get \"{{card}}\" into your hand (tutor).",
+    "ai": "The opponent gets \"{{card}}\" into their hand (tutor)."
+  },
+  "tutorPick": {
+    "you": "You pick \"{{card}}\" into your hand (tutor).",
+    "ai": "The opponent picks \"{{card}}\" into their hand (tutor)."
+  },
+  "chooseCardToHand": "Choose a card for your hand",
+  "chooseCardToHandType": "Choose a card for your hand ({{type}})",
+  "chooseEffect": "\"{{src}}\" – choose an effect",
+  "deckEmptyPeek": "{{victim}} deck is empty – nothing to look at.",
+  "deckEmptyReveal": "{{owner}} deck is empty – nothing to reveal.",
+  "peekChoose": "You look at {{n}} cards of {{victim}} deck – choose {{k}} to discard.",
+  "peekAuto": "{{caster}} looks at {{n}} cards of {{victim}} deck and discards {{k}} to the graveyard.",
+  "peekResultHand": "{{kept}} card(s) kept in hand; {{n}} discarded.",
+  "peekResultDiscard": "{{n}} card(s) discarded to {{victim}} graveyard; the rest are put back on top of the deck.",
+  "revealOwn": "{{caster}} looks at the top {{n}} cards of their own deck.",
+  "revealOther": "{{caster}} looks at the top {{n}} cards of {{owner}} deck.",
+  "revealTitleOwn": "Top of your deck",
+  "revealTitleOther": "Top of {{owner}} deck",
+  "alchemistFort": "🏰 Alchemists' Fort: \"{{card}}\" is returned to {{owner}} deck.",
+  "winYou": "The opponent's HP dropped to 0. YOU WIN! 🏆",
+  "winAi": "Your HP dropped to 0. The opponent wins!",
+  "winTeam": "Team {{loser}} HP = 0. Team {{winner}} wins! 🏆",
+  "curseDeckEmpty": "The curse side deck is empty – \"{{src}}\" plants no curse.",
+  "cursePlant": "🕸 \"{{src}}\" shuffles the curse \"{{card}}\" into {{owner}} deck.",
+  "fieldTrigger": "🌍 The field \"{{card}}\" triggers.",
+  "chainTooDeep": "⚠ Effect chain too deep – the \"{{src}}\" follow-up is skipped.",
+  "chainTooLong": "⚠ Effect cascade too long – \"{{src}}\" is skipped (loop guard).",
+  "noSpellToCounter": "\"{{src}}\": there is no spell being cast to counter.",
+  "noValidTarget": "\"{{src}}\": no valid target – part of the effect does not happen.",
+  "noAttacker": "\"{{src}}\": there is no attacker (use onAttacked + \"effect on attacker\").",
+  "unsupportedEffect": "⚠ Unsupported effect \"{{effect}}\" (\"{{src}}\") – skipped.",
+  "statusCleansedOne": "💧 {{status}} removed.",
+  "statusCleansed": "💧 \"{{card}}\" statuses removed: {{statuses}}.",
+  "statusCleanseNone": "💧 \"{{card}}\" has no removable statuses.",
+  "keywordGained": "\"{{card}}\" gains: {{keyword}}.",
+  "err": {
+    "discardOncePerTurn": "You can discard a card for gold only once per turn.",
+    "cardNotInHand": "The card is not in your hand.",
+    "gameOver": "The game is over.",
+    "notYourTurn": "It is not your turn.",
+    "notEnoughGold": "Not enough gold: cost {{cost}}, you have {{gold}}.",
+    "notEnoughGoldField": "Not enough gold: cost {{cost}} (the field changes the cost), you have {{gold}}.",
+    "unitZoneFull": "The creature zone is full (max {{max}}).",
+    "unitZoneFullChampion": "The creature zone is full (max {{max}}, including the Champion).",
+    "unitZoneFullSimple": "The creature zone is full.",
+    "artifactZoneFull": "The artifact zone is full (max 2).",
+    "reactionZoneFull": "The reaction zone is full (max 3).",
+    "tributePickUnit": "Pick one of your creatures to sacrifice (not the Champion).",
+    "tributeHandNotFound": "The tribute cards were not found in your hand.",
+    "tributeRequired": "Tribute required: 1 creature from the board OR 2 cards from hand.",
+    "championPhaseNeeded": "This card is phase {{phase}}; the Champion must be at phase {{need}} (currently {{current}}).",
+    "championFirstPhase": "Summon a phase 1 Champion first (this card is phase {{phase}}).",
+    "cursesOnlyViaEffects": "Curses can only be played through card effects.",
+    "notPhasedChampion": "This is not a phased Champion.",
+    "onlyLowerPhase": "You can only swap to a lower phase.",
+    "noFamilyPhaseCard": "There is no phase {{phase}} card of this family in your deck.",
+    "noChampionOnBoard": "You have no Champion on the board.",
+    "skillOncePerTurn": "A skill can be used only once per turn.",
+    "championStatusBlocked": "Champion: {{status}} – the skill is unavailable.",
+    "championSilenced": "The Champion is silenced – skills are blocked.",
+    "skillNotConfigured": "This skill is not configured.",
+    "skillLocked": "Skill {{n}} is locked – phase {{n}} required.",
+    "championCannotAttack": "The Champion has no ATK and cannot attack – use a skill.",
+    "fieldAttackLimit": "🌍 The field limits attacks: max {{max}} per turn.",
+    "alreadyAttacked": "This creature has already attacked this turn.",
+    "unitFrozen": "❄ The creature is frozen – it loses its action.",
+    "unitStunned": "✦ The creature is stunned – it cannot attack.",
+    "auraBlocksAttack": "🔗 An aura blocks this creature's attacks.",
+    "summoningSickness": "The creature was summoned this turn – it can attack next turn (unless it has ▶ Sprint).",
+    "zeroAtk": "The creature's ATK is 0.",
+    "unitNotOnBoard": "The creature is not on the board.",
+    "tauntMustAttack": "⊙ Taunt! You must attack a creature with Taunt.",
+    "noPendingReturn": "There is no pending return.",
+    "unitNotFound": "Creature not found."
+  }
+}

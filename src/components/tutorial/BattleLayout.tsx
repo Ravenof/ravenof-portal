@@ -5,6 +5,7 @@
 // perduodami čia render-funkcijomis, kad state nereiktų kilnoti. Engine/state/FX nekeičiami.
 import React, { useEffect, useRef, useState } from 'react'
 import type { GameState, Side, TutCard } from '@/lib/tutorial/engine'
+import { useT } from '@/lib/i18n/react'
 
 export interface BattleLayoutProps {
   game: GameState
@@ -61,6 +62,7 @@ function TurnRing({ deadline, size = 92, total = 120000 }: { deadline?: number |
 }
 
 export default function BattleLayout(props: BattleLayoutProps) {
+  const t = useT()
   const {
     game, myTurn, lastMsg, railPanel,
     hpBar, goldBar, renderPile, renderUnitsRow, renderArtifactRow, renderReactionRow,
@@ -97,7 +99,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
         <aside className="flex flex-col gap-1 min-h-0 overflow-hidden">
           <RailCard style={railPanel} className="shrink-0 flex items-center justify-between p-1">
             <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', background: emoteOpen ? 'rgba(240,180,41,0.18)' : undefined }}>😊</button>
-            <button onClick={() => setLogExpanded((v) => !v)} title="Mūšio žurnalas" className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', color: 'var(--gold)', fontSize: 13 }}>{logExpanded ? '‹📜' : '📜'}</button>
+            <button onClick={() => setLogExpanded((v) => !v)} title={t('battle.layout.log')} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', color: 'var(--gold)', fontSize: 13 }}>{logExpanded ? '‹📜' : '📜'}</button>
           </RailCard>
           {/* Priešo artefaktai + reakcijos */}
           <div className="shrink-0 flex flex-col items-center gap-0.5">{renderArtifactRow('ai')}{renderReactionRow('ai')}</div>
@@ -121,11 +123,11 @@ export default function BattleLayout(props: BattleLayoutProps) {
               onTouchStart={(e) => { logTouchX.current = e.touches[0].clientX }}
               onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx < -30) setLogExpanded(false) }}>
               <div className="shrink-0 flex items-center justify-between px-3 pt-2 pb-1.5" style={{ borderBottom: '1px solid rgba(240,180,41,0.2)' }}>
-                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>📜 Mūšio žurnalas</span>
-                <button onClick={() => setLogExpanded(false)} aria-label="Uždaryti" className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.35)', color: 'var(--gold)', fontSize: 11 }}>✕</button>
+                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.layout.log')}</span>
+                <button onClick={() => setLogExpanded(false)} aria-label={t('battle.layout.close')} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.35)', color: 'var(--gold)', fontSize: 11 }}>✕</button>
               </div>
               <div ref={logScrollRef} className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-2.5 py-2">{renderLog()}</div>
-              <div className="shrink-0 px-3 pb-1.5 text-center" style={{ fontSize: 8.5, color: 'rgba(150,160,185,0.5)' }}>Bakstelk šalia arba brauk kairėn — užsidaro</div>
+              <div className="shrink-0 px-3 pb-1.5 text-center" style={{ fontSize: 8.5, color: 'rgba(150,160,185,0.5)' }}>{t('battle.layout.logHint')}</div>
             </div>
           </>
         )}
@@ -155,7 +157,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
               }}>
               <span className={'text-[10px] font-bold uppercase tracking-[0.24em] ' + (myTurn ? '' : 'animate-pulse')}
                 style={{ color: myTurn ? 'var(--gold)' : '#a78bfa', fontFamily: 'var(--rvn-font-display)', textShadow: myTurn ? '0 0 10px rgba(240,180,41,0.4)' : '0 0 10px rgba(139,92,246,0.4)' }}>
-                {myTurn ? '◆ Tavo ėjimas ◆' : '◆ Priešo ėjimas ◆'}
+                {myTurn ? t('battle.layout.yourTurn') : t('battle.layout.enemyTurn')}
               </span>
               <span className="text-[9px] truncate max-w-[36vw]" style={{ color: 'var(--text-muted)' }}>{lastMsg}</span>
             </div>
@@ -174,9 +176,9 @@ export default function BattleLayout(props: BattleLayoutProps) {
         <aside className="flex flex-col gap-2 min-h-0 overflow-hidden items-stretch justify-between">
           {/* AI pile'ai (viršus) */}
           <RailCard style={railPanel} className="px-0.5 py-2 flex justify-center gap-0.5 shrink-0 w-full">
-            {renderPile('Kaladė', game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 40 })}
+            {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 40 })}
             {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 40 })}
-            {renderPile('ŽMK', game.ai.zmk.length, { back: 'zmk', w: 42 })}
+            {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 42 })}
           </RailCard>
           {/* apvalus BAIGTI ĖJIMĄ (su mana + laikmačio žiedu) + discard */}
           <div className="flex flex-col items-center gap-1.5">
@@ -190,9 +192,9 @@ export default function BattleLayout(props: BattleLayoutProps) {
           </div>
           {/* Tavo pile'ai (apačia) */}
           <RailCard style={railPanel} className="px-0.5 py-2 flex justify-center gap-0.5 shrink-0 w-full">
-            {renderPile('Kaladė', game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 40 })}
+            {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 40 })}
             {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 40 })}
-            {renderPile('ŽMK', game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 40 })}
+            {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 40 })}
           </RailCard>
         </aside>
 

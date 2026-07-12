@@ -12,6 +12,7 @@ export type TutRequire = 'play-unit' | 'attack' | 'end-turn' | 'any-play'
 
 export type TutStep = {
   id: string
+  /** i18n raktai (battle.guided.*) – NE gatavas tekstas. */
   title: string
   text: string
   anchor: TutAnchor
@@ -21,77 +22,77 @@ export type TutStep = {
 export const GUIDED_STEPS: TutStep[] = [
   {
     id: 'welcome',
-    title: 'Sveikas atvykęs į Ravenof! 🐦‍⬛',
-    text: 'Tai mokomoji kova prieš priešininką, kuris žaidžia pagal taisykles. Aš paaiškinsiu viską žingsnis po žingsnio. Pralaimėti čia neįmanoma blogai – tai treniruotė!',
+    title: 'battle.guided.welcome.title',
+    text: 'battle.guided.welcome.text',
     anchor: 'center',
   },
   {
     id: 'goal',
-    title: 'Žaidimo tikslas',
-    text: 'Abu žaidėjai pradeda su 40 gyvybės taškų (HP). Laimi tas, kuris pirmasis priešininko HP sumažina iki 0. Savo HP matai apačioje, priešininko – viršuje.',
+    title: 'battle.guided.goal.title',
+    text: 'battle.guided.goal.text',
     anchor: 'hp',
   },
   {
     id: 'zones',
-    title: 'Kovos laukas',
-    text: 'Apačioje – tavo pusė: ranka, padarų zona (5 vietos), artefaktai (2), reakcijos (3). Viršuje – priešininko. Viduryje – bendra lauko kortos zona.',
+    title: 'battle.guided.zones.title',
+    text: 'battle.guided.zones.text',
     anchor: 'units-you',
   },
   {
     id: 'hand-intro',
-    title: 'Tavo ranka',
-    text: 'Čia tavo kortos – priešininkas jų nemato. Rankoje telpa iki 10 kortų. Užvesk / palaikyk ant kortos, kad apžiūrėtum iš arti.',
+    title: 'battle.guided.hand-intro.title',
+    text: 'battle.guided.hand-intro.text',
     anchor: 'hand',
   },
   {
     id: 'gold-intro',
-    title: 'Aukso sistema ⚜',
-    text: 'Kiekvieno ėjimo pradžioje gauni aukso: 1 ėjimas = 100, 2 ėjimas = 200... iki 1000. Kortos kainuoja auksą. SVARBU: nepanaudotas auksas ėjimo pabaigoje DINGSTA – išleisk!',
+    title: 'battle.guided.gold-intro.title',
+    text: 'battle.guided.gold-intro.text',
     anchor: 'gold',
   },
   {
     id: 'zmk-intro',
-    title: 'ŽMK – žalos modifikatorių kaladė',
-    text: 'Kaskart, kai daroma žala, traukiama ŽMK korta: +0, +1, −1, +2, −2, ×2 arba ×0. Tavo 4 ATK smūgis gali tapti 5... arba 0! Tai – Ravenof likimo kauliukas.',
+    title: 'battle.guided.zmk-intro.title',
+    text: 'battle.guided.zmk-intro.text',
     anchor: 'zmk',
   },
   {
     id: 'play-first-unit',
-    title: 'Iškviesk padarą!',
-    text: 'Spustelėk kortą rankoje, kurią gali sau leisti (kaina ⚜ kairiame kampe), ir ji bus iškviesta į padarų zoną. Padaras negali atakuoti tą patį ėjimą, kai iškviestas (nebent turi ▶ Sprintą).',
+    title: 'battle.guided.play-first-unit.title',
+    text: 'battle.guided.play-first-unit.text',
     anchor: 'hand',
     require: 'play-unit',
   },
   {
     id: 'discard-gold-tip',
-    title: 'Patarimas: korta → auksas',
-    text: 'Kartą per ėjimą gali išmesti 1 kortą iš rankos ir gauti +100 aukso. Spausk mygtuką „+100⚜" ir pasirink kortą – arba praleisk.',
+    title: 'battle.guided.discard-gold-tip.title',
+    text: 'battle.guided.discard-gold-tip.text',
     anchor: 'discard-gold',
   },
   {
     id: 'end-first-turn',
-    title: 'Baik ėjimą',
-    text: 'Kai nebeturi ką veikti (ar aukso), spausk „Baigti ėjimą". Tada eis priešininkas – stebėk, ką jis daro!',
+    title: 'battle.guided.end-first-turn.title',
+    text: 'battle.guided.end-first-turn.text',
     anchor: 'end-turn',
     require: 'end-turn',
   },
   {
     id: 'watch-ai',
-    title: 'Priešininko ėjimas',
-    text: 'Priešininkas traukia kortą, gauna auksą ir žaidžia pagal tas pačias taisykles. Stebėk jo veiksmus įvykių juostoje viduryje.',
+    title: 'battle.guided.watch-ai.title',
+    text: 'battle.guided.watch-ai.text',
     anchor: 'ai-area',
   },
   {
     id: 'turn2-attack',
-    title: 'Laikas atakuoti! ⚔',
-    text: 'Tavo padaras jau gali pulti: spustelėk SAVO padarą, tada pasirink taikinį – priešininko padarą arba jį patį. Puolant padarą abu traukia po ŽMK kortą ir žalą daro vienu metu!',
+    title: 'battle.guided.turn2-attack.title',
+    text: 'battle.guided.turn2-attack.text',
     anchor: 'units-you',
     require: 'attack',
   },
   {
     id: 'free-play',
-    title: 'Toliau – tavo rankose! 🎴',
-    text: 'Nuo dabar žaisk laisvai. Naujas mechanikas paaiškinsiu, kai jas pirmą kartą sutiksi. Sėkmės kovoje – tegul ŽMK būna tau palanki!',
+    title: 'battle.guided.free-play.title',
+    text: 'battle.guided.free-play.text',
     anchor: 'center',
   },
 ]
@@ -105,89 +106,90 @@ export type TipKey =
   | 'reaction' | 'field' | 'champion' | 'evolve' | 'hand-burn'
   | 'curse' | 'coin' | 'artifact' | 'unfavorable'
 
+/** Reikšmės = i18n raktai (battle.tips.*). */
 export const MECHANIC_TIPS: Record<TipKey, { title: string; text: string }> = {
   'zmk-special': {
-    title: 'ŽMK ×2 / ×0!',
-    text: 'Ištraukta speciali ŽMK korta! ×2 padvigubina žalą, ×0 anuliuoja. Po jos visa ŽMK kaladė su kapinynu permaišoma iš naujo.',
+    title: 'battle.tips.zmk-special.title',
+    text: 'battle.tips.zmk-special.text',
   },
   taunt: {
-    title: '⊙ Pasišaipymas',
-    text: 'Kol lauke yra padaras su Pasišaipymu, visos atakos PRIVALO taikytis į jį. Burtams ir efektams tai negalioja – juos gali mesti kur nori.',
+    title: 'battle.tips.taunt.title',
+    text: 'battle.tips.taunt.text',
   },
   sprint: {
-    title: '▶ Sprintas',
-    text: 'Padaras su Sprintu gali atakuoti tą patį ėjimą, kai buvo iškviestas – jokio laukimo!',
+    title: 'battle.tips.sprint.title',
+    text: 'battle.tips.sprint.text',
   },
   stealth: {
-    title: '◑ Sėlinimas',
-    text: 'Šio padaro negalima pasirinkti taikiniu, kol jis pats neatakuoja. Po pirmos atakos Sėlinimas dingsta. AoE efektai jį vis tiek pasiekia.',
+    title: 'battle.tips.stealth.title',
+    text: 'battle.tips.stealth.text',
   },
   shield: {
-    title: '✦★ Magiškasis skydas',
-    text: 'Skydas anuliuoja KITĄ žalą, kurią patirtų šis taikinys – ŽMK net netraukiama. Po to skydas dingsta.',
+    title: 'battle.tips.shield.title',
+    text: 'battle.tips.shield.text',
   },
   battlecry: {
-    title: '📣 Kovos šūksnis',
-    text: 'Efektas suveikia iš karto, kai korta iškviečiama į lauką. Jei daro žalą – traukiama ŽMK korta.',
+    title: 'battle.tips.battlecry.title',
+    text: 'battle.tips.battlecry.text',
   },
   lastwish: {
-    title: '🕯 Paskutinis noras',
-    text: 'Efektas aktyvuojasi padarui žūstant, prieš jam keliaujant į kapinyną. Nutildytas padaras Paskutinio noro neaktyvuoja.',
+    title: 'battle.tips.lastwish.title',
+    text: 'battle.tips.lastwish.text',
   },
   'status-frozen': {
-    title: '❄ Sušaldytas',
-    text: 'Padaras praleidžia kitą veikimo galimybę: negali atakuoti IR nedaro atgalinės žalos, jei puolamas. Būsena baigiasi jo valdytojo kito ėjimo pabaigoje.',
+    title: 'battle.tips.status-frozen.title',
+    text: 'battle.tips.status-frozen.text',
   },
   'status-stunned': {
-    title: '✦ Apsvaigintas',
-    text: 'Padaras negali atakuoti, bet atgalinę žalą daro. Tuo ir skiriasi nuo Sušaldymo.',
+    title: 'battle.tips.status-stunned.title',
+    text: 'battle.tips.status-stunned.text',
   },
   'status-burning': {
-    title: '🔥 Degantis',
-    text: 'Kiekvieno savo ėjimo pradžioje padaras gauna 1 bazinę žalą (+ŽMK). Dega tol, kol žūsta arba būseną pašalina efektas.',
+    title: 'battle.tips.status-burning.title',
+    text: 'battle.tips.status-burning.text',
   },
   'status-poisoned': {
-    title: '☠ Apnuodytas',
-    text: 'Kaip Degantis (1 žala kas ėjimą + ŽMK), bet dar ir puola NEPALANKIAI: traukia 2 ŽMK kortas ir ima blogesnę.',
+    title: 'battle.tips.status-poisoned.title',
+    text: 'battle.tips.status-poisoned.text',
   },
   'status-silenced': {
-    title: '🔇 Nutildytas',
-    text: 'Kortos gebėjimai neveikia: pasyvūs efektai, Kovos šūksnis, Paskutinis noras – viskas blokuojama.',
+    title: 'battle.tips.status-silenced.title',
+    text: 'battle.tips.status-silenced.text',
   },
   reaction: {
-    title: '⚡ Reakcija',
-    text: 'Užversta korta su aukso žetonu. Priešininkas mato kainą, bet ne efektą. Suveikia, kai išsipildo sąlyga – pvz., prieš ataką. „Paskutinė padėta – sprendžiama pirma."',
+    title: 'battle.tips.reaction.title',
+    text: 'battle.tips.reaction.text',
   },
   field: {
-    title: '🌍 Lauko korta',
-    text: 'Globali korta, veikianti ABU žaidėjus. Vienu metu aktyvi tik viena – nauja pakeičia senąją.',
+    title: 'battle.tips.field.title',
+    text: 'battle.tips.field.text',
   },
   champion: {
-    title: '⚜ Čempionas',
-    text: 'Čempionas NĖRA padaras: neturi ATK, neatakuoja, bet turi galingus gebėjimus (1 kartą per ėjimą). Iškvietimas kainuoja auksą IR padaro auką. Turi 3 fazes.',
+    title: 'battle.tips.champion.title',
+    text: 'battle.tips.champion.text',
   },
   evolve: {
-    title: '⚜ Evoliucija',
-    text: 'Čempionas evoliucionuoja tiesiai kovos lauke (reikia fazės kortos rankoje + aukos) ir pilnai pagyja. Gebėjimai stiprėja su kiekviena faze!',
+    title: 'battle.tips.evolve.title',
+    text: 'battle.tips.evolve.text',
   },
   'hand-burn': {
-    title: 'Rankos limitas!',
-    text: 'Rankoje telpa tik 10 kortų – perteklius sudega ir keliauja tiesiai į kapinyną. Nešykštėk kortų žaisti!',
+    title: 'battle.tips.hand-burn.title',
+    text: 'battle.tips.hand-burn.text',
   },
   curse: {
-    title: '🕸 Prakeiksmas',
-    text: 'Prakeiksmas įmaišomas į TAVO kaladę kortų efektais. Ištraukei – efektas suveikia iš karto ir korta keliauja į kapinyną.',
+    title: 'battle.tips.curse.title',
+    text: 'battle.tips.curse.text',
   },
   coin: {
-    title: '🪙 Monetos metimas',
-    text: 'Rizikos efektas: ŽALIA pusė – sėkmė, RAUDONA – nesėkmė arba šalutinis poveikis. Konkretų rezultatą nurodo kortos tekstas.',
+    title: 'battle.tips.coin.title',
+    text: 'battle.tips.coin.text',
   },
   artifact: {
-    title: '⭐ Artefaktas',
-    text: 'Ilgalaikė korta artefaktų zonoje (maks. 2). Turi HP, gali būti atakuojama, bet pats neatakuoja. Veikia, kol sunaikinamas.',
+    title: 'battle.tips.artifact.title',
+    text: 'battle.tips.artifact.text',
   },
   unfavorable: {
-    title: 'Nepalankiai',
-    text: 'Traukiamos 2 ŽMK kortos ir imamas BLOGESNIS rezultatas veiksmą atliekančiam žaidėjui. Taip puola apnuodyti padarai.',
+    title: 'battle.tips.unfavorable.title',
+    text: 'battle.tips.unfavorable.text',
   },
 }

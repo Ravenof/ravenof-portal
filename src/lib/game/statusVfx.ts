@@ -12,6 +12,7 @@
 //  • Garsai per esamą soundManager (gerbia SFX garsumą), su cooldown'u.
 // ══════════════════════════════════════════════════════════════════════════════
 import { playBattleSound } from '@/lib/game/soundManager'
+import { t } from '@/lib/i18n/core'
 import type { BattleSoundType } from '@/lib/game/types'
 
 // Visi VIZUALŪS statusai (TutStatus + kortos flag'ai, kurie elgiasi kaip statusai)
@@ -37,8 +38,6 @@ export type StatusAnimationEvent = {
 
 export type StatusVfxDefinition = {
   statusId: VfxStatusId
-  name: string             // lokalizuotas pavadinimas
-  tooltip: string          // TIKROS žaidimo taisyklės (LT)
   tint: string             // pagrindinė spalva
   priority: number         // didesnis = svarbesnis (idle limitas, ikonų tvarka)
   soundApply?: BattleSoundType
@@ -50,69 +49,64 @@ export type StatusVfxDefinition = {
 
 export const STATUS_VFX_REGISTRY: Record<VfxStatusId, StatusVfxDefinition> = {
   shield: {
-    statusId: 'shield', name: 'Magiškasis skydas', negative: false, priority: 100, tint: '#fcd34d',
-    tooltip: 'Anuliuoja VISĄ vienos atakos ar efekto žalą, tada dingsta. ŽMK netraukiama.',
+    statusId: 'shield', negative: false, priority: 100, tint: '#fcd34d',
     soundApply: 'spellCast', soundTrigger: 'impact', soundDestroy: 'freeze',
   },
   frozen: {
-    statusId: 'frozen', name: 'Sušaldytas', negative: true, priority: 90, tint: '#7dd3fc',
-    tooltip: 'Negali atakuoti ir nedaro atgalinės žalos. Būsena baigiasi savininko kito ėjimo pradžioje.',
+    statusId: 'frozen', negative: true, priority: 90, tint: '#7dd3fc',
     soundApply: 'freeze', soundTrigger: 'freeze', soundRemove: 'freeze', soundDestroy: 'freeze',
   },
   stunned: {
-    statusId: 'stunned', name: 'Apsvaigintas', negative: true, priority: 88, tint: '#f0b429',
-    tooltip: 'Negali atakuoti. Būsena baigiasi savininko kito ėjimo pradžioje.',
+    statusId: 'stunned', negative: true, priority: 88, tint: '#f0b429',
     soundApply: 'impact', soundTrigger: 'impact',
   },
   burning: {
-    statusId: 'burning', name: 'Degantis', negative: true, priority: 85, tint: '#fb923c',
-    tooltip: 'Savininko ėjimo pradžioje gauna 1 bazinę žalą. Lieka, kol pašalins efektas.',
+    statusId: 'burning', negative: true, priority: 85, tint: '#fb923c',
     soundApply: 'impact', soundTrigger: 'impact',
   },
   poisoned: {
-    statusId: 'poisoned', name: 'Apnuodytas', negative: true, priority: 84, tint: '#4ade80',
-    tooltip: 'Savininko ėjimo pradžioje gauna 1 bazinę žalą; atakuoja nepalankiai (ŽMK). Lieka, kol pašalins efektas.',
+    statusId: 'poisoned', negative: true, priority: 84, tint: '#4ade80',
     soundApply: 'curse', soundTrigger: 'curse',
   },
   silenced: {
-    statusId: 'silenced', name: 'Nutildytas', negative: true, priority: 80, tint: '#a78bfa',
-    tooltip: 'Praranda VISUS efektus, raktažodžius ir sustiprinimus — statai grįžta į bazinę kortą. Negrįžtama.',
+    statusId: 'silenced', negative: true, priority: 80, tint: '#a78bfa',
     soundApply: 'curse',
   },
   blessed: {
-    statusId: 'blessed', name: 'Palaimintas', negative: false, priority: 75, tint: '#fde68a',
-    tooltip: 'Kita šio padaro ataka palanki (advantage) — traukiamos 2 ŽMK, naudojama geresnė. Panaudojama atakuojant.',
+    statusId: 'blessed', negative: false, priority: 75, tint: '#fde68a',
     soundApply: 'heal', soundDestroy: 'heal',
   },
   stealth: {
-    statusId: 'stealth', name: 'Sėlinimas', negative: false, priority: 70, tint: '#a78bfa',
-    tooltip: 'Priešas negali šio padaro taikytis, kol jis pats neatakuoja.',
+    statusId: 'stealth', negative: false, priority: 70, tint: '#a78bfa',
     soundRemove: 'draw',
   },
   taunt: {
-    statusId: 'taunt', name: 'Pasišaipymas', negative: false, priority: 60, tint: '#c9882f',
-    tooltip: 'Priešo padarai privalo pulti šį padarą pirmiau.',
+    statusId: 'taunt', negative: false, priority: 60, tint: '#c9882f',
   },
   sprint: {
-    statusId: 'sprint', name: 'Sprintas', negative: false, priority: 55, tint: '#5fae6a',
-    tooltip: 'Gali atakuoti iškart iškvietimo ėjimą.',
+    statusId: 'sprint', negative: false, priority: 55, tint: '#5fae6a',
   },
   control: {
-    statusId: 'control', name: 'Perimta kontrolė', negative: true, priority: 78, tint: '#e879f9',
-    tooltip: 'Padarą laikinai valdo priešininkas. Pasibaigus trukmei grįžta savininkui.',
+    statusId: 'control', negative: true, priority: 78, tint: '#e879f9',
     soundApply: 'curse', soundRemove: 'draw',
   },
   cantAttack: {
-    statusId: 'cantAttack', name: 'Negali atakuoti', negative: true, priority: 50, tint: '#94a3b8',
-    tooltip: 'Aura neleidžia šiam padarui atakuoti, kol auros šaltinis lauke.',
+    statusId: 'cantAttack', negative: true, priority: 50, tint: '#94a3b8',
   },
   immortal: {
-    statusId: 'immortal', name: 'Nemirtingas', negative: false, priority: 65, tint: '#f0b429',
-    tooltip: 'Negali žūti — HP nekrenta žemiau 1, kol auros šaltinis lauke.',
+    statusId: 'immortal', negative: false, priority: 65, tint: '#f0b429',
   },
 }
 
 export const STATUS_VFX_IDS = Object.keys(STATUS_VFX_REGISTRY) as VfxStatusId[]
+
+// ── Lokalizuoti pavadinimai/aprašai (statusEffects namespace) ────────────────
+/** Statuso pavadinimas dabartine kalba. */
+export function statusName(id: VfxStatusId | string): string { return t(`statusEffects.${id}.name`) }
+/** Statuso taisyklių aprašas (tooltip) dabartine kalba. */
+export function statusTooltip(id: VfxStatusId | string): string { return t(`statusEffects.${id}.tooltip`) }
+/** Rakto forma log'o įvykiams: `$t:` prefiksą išsprendžia eventText(). */
+export function statusNameRef(id: VfxStatusId | string): string { return `$t:statusEffects.${id}.name` }
 
 // ── Kokybė + reduced motion ───────────────────────────────────────────────────
 export type VfxQuality = 'low' | 'medium' | 'high'

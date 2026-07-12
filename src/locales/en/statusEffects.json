@@ -1,0 +1,58 @@
+{
+  "shield": {
+    "name": "Magic Shield",
+    "tooltip": "Negates ALL damage from one attack or effect, then disappears. No ZMK draw."
+  },
+  "frozen": {
+    "name": "Frozen",
+    "tooltip": "Cannot attack and deals no counter damage. Ends at the start of the owner's next turn."
+  },
+  "stunned": {
+    "name": "Stunned",
+    "tooltip": "Cannot attack. Ends at the start of the owner's next turn."
+  },
+  "burning": {
+    "name": "Burning",
+    "tooltip": "Takes 1 base damage at the start of the owner's turn. Persists until removed by an effect."
+  },
+  "poisoned": {
+    "name": "Poisoned",
+    "tooltip": "Takes 1 base damage at the start of the owner's turn; attacks at disadvantage (ZMK). Persists until removed by an effect."
+  },
+  "silenced": {
+    "name": "Silenced",
+    "tooltip": "Loses ALL effects, keywords and buffs — stats revert to the base card. Irreversible."
+  },
+  "blessed": {
+    "name": "Blessed",
+    "tooltip": "This creature's next attack has advantage — 2 ZMK are drawn and the better one is used. Consumed on attack."
+  },
+  "stealth": {
+    "name": "Stealth",
+    "tooltip": "The enemy cannot target this creature until it attacks."
+  },
+  "taunt": {
+    "name": "Taunt",
+    "tooltip": "Enemy creatures must attack this creature first."
+  },
+  "sprint": {
+    "name": "Sprint",
+    "tooltip": "Can attack the turn it is summoned."
+  },
+  "control": {
+    "name": "Mind Control",
+    "tooltip": "The creature is temporarily controlled by the opponent. It returns to its owner when the duration ends."
+  },
+  "cantAttack": {
+    "name": "Cannot Attack",
+    "tooltip": "An aura prevents this creature from attacking while the aura source is on the board."
+  },
+  "immortal": {
+    "name": "Immortal",
+    "tooltip": "Cannot die — HP never drops below 1 while the aura source is on the board."
+  },
+  "keyword": {
+    "battlecry": "Battlecry",
+    "lastwish": "Last Wish"
+  }
+}

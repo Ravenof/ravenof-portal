@@ -6,6 +6,7 @@
 import type { EffectMapping, EffectType } from './types'
 import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, filterFaction, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
+import { t as tGlobal } from '@/lib/i18n/core'
 
 export type GameApi = {
   dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk?: boolean, overflow?: boolean): void
@@ -108,13 +109,13 @@ function findUnit(g: GameState, t: ResolvedTarget): { u: BoardUnit; owner: Side 
  */
 export function applyMapping(api: GameApi, g: GameState, caster: Side, m: EffectMapping, ctx: ApplyCtx): boolean {
   if (ctx.depth > MAX_DEPTH) {
-    api.log(g, { t: 'blocked', side: caster, msg: `⚠ Efektų grandinė per gili – „${ctx.sourceName}" follow-up praleistas.` })
+    api.log(g, { t: 'blocked', side: caster, key: 'battleLog.chainTooDeep', params: { src: ctx.sourceName } })
     return false
   }
   // Globali kaskados apsauga (depth=0 reset'ai per killUnit→onDeath neapsaugo nuo ciklų).
   const gg = g as unknown as { __fxCascade?: number; __fxProjectile?: string }
   if ((gg.__fxCascade ?? 0) > MAX_CASCADE) {
-    api.log(g, { t: 'blocked', side: caster, msg: `⚠ Efektų kaskada per ilga – „${ctx.sourceName}" praleistas (apsauga nuo ciklo).` })
+    api.log(g, { t: 'blocked', side: caster, key: 'battleLog.chainTooLong', params: { src: ctx.sourceName } })
     return false
   }
   gg.__fxCascade = (gg.__fxCascade ?? 0) + 1
@@ -144,7 +145,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
   // Taikinys „dabar žaidžiamas burtas" (castSpell): nutildo/atšaukia žaidžiamą burtą.
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) {
     if (g.rollContext?.kind === 'spell') api.counterCurrentSpell(g, ctx.sourceName)
-    else api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra žaidžiamo burto, kurį būtų galima nutildyti.` })
+    else api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noSpellToCounter', params: { src: ctx.sourceName } })
     return true
   }
 
@@ -194,7 +195,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
   }
   if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker', 'forceCurseActivation'].includes(m.effect)) {
-    api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra galiojančio taikinio – efekto dalis neįvyksta.` })
+    api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noValidTarget', params: { src: ctx.sourceName } })
     return false
   }
 
@@ -240,20 +241,19 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       // cleanseStatuses tuščias => visos NEIGIAMOS (frozen/burning/poisoned/stunned/silenced).
       const NEG: TutStatus[] = ['frozen', 'burning', 'poisoned', 'stunned', 'silenced']
       const pick: TutStatus[] = (m.cleanseStatuses && m.cleanseStatuses.length > 0 ? m.cleanseStatuses : NEG) as TutStatus[]
-      const NAMES: Record<string, string> = { frozen: 'Sušaldytas', burning: 'Degantis', poisoned: 'Apnuodytas', stunned: 'Apsvaigintas', silenced: 'Nutildytas', blessed: 'Palaimintas' }
       for (const t of targets) {
         const f = findUnit(g, t)
         if (!f) continue
         const removed: string[] = []
         for (const st of pick) {
           if (f.u.statuses[st] != null) {
-            delete f.u.statuses[st]; removed.push(NAMES[st] ?? st)
+            delete f.u.statuses[st]; removed.push(tGlobal(`statusEffects.${st}.name`))
             // Status VFX: kiekvienai nuimtai būsenai atskiras destroy įvykis
-            api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, statusEvt: 'destroy', statusId: st, src: { side: f.owner, uid: f.u.uid }, msg: `💧 ${NAMES[st] ?? st} nuimta.` })
+            api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, statusEvt: 'destroy', statusId: st, src: { side: f.owner, uid: f.u.uid }, key: 'battleLog.statusCleansedOne', params: { status: `$t:statusEffects.${st}.name` } })
           }
         }
-        if (removed.length > 0) api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, msg: `💧 „${f.u.card.name}" nuimtos būsenos: ${removed.join(', ')}.` })
-        else api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, msg: `💧 „${f.u.card.name}" nuimamų būsenų neturi.` })
+        if (removed.length > 0) api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, key: 'battleLog.statusCleansed', params: { card: f.u.card.name, statuses: removed.join(', ') } })
+        else api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, key: 'battleLog.statusCleanseNone', params: { card: f.u.card.name } })
       }
       break
     }
@@ -270,7 +270,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
         else if (m.effect === 'stealth') f.u.stealth = true
         else if (m.effect === 'sprint') { if (!f.u.card.keywords.includes('sprint')) f.u.card.keywords.push('sprint') }
         else if (!f.u.card.keywords.includes('taunt')) f.u.card.keywords.push('taunt')
-        api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, statusEvt: 'apply', statusId: m.effect, src: { side: f.owner, uid: f.u.uid }, msg: `„${f.u.card.name}" gauna ${m.effect === 'shield' ? '✦★ Magiškąjį skydą' : m.effect === 'stealth' ? '◑ Sėlinimą' : m.effect === 'sprint' ? '▶ Sprintą' : '⊙ Pasišaipymą'}.` })
+        api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, statusEvt: 'apply', statusId: m.effect, src: { side: f.owner, uid: f.u.uid }, key: 'battleLog.keywordGained', params: { card: f.u.card.name, keyword: `$t:statusEffects.${m.effect}.name` } })
       }
       break
     case 'buffAttack':
@@ -340,7 +340,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'loseGoldNextTurn': api.scheduleGoldPenalty(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, ctx.sourceName); break
     case 'coinFlip': {
       const green = Math.random() < 0.5
-      api.log(g, { t: 'coin', side: caster, coin: green ? 'green' : 'red', msg: green ? '🪙 Monetos metimas: ŽALIA!' : '🪙 Monetos metimas: RAUDONA!' })
+      api.log(g, { t: 'coin', side: caster, coin: green ? 'green' : 'red', key: green ? 'battleLog.coin.green' : 'battleLog.coin.red' })
       const branch = green ? (m.coinGreen ?? []) : (m.coinRed ?? [])
       for (const nm of branch) {
         applyMapping(api, g, caster, nm, { ...ctx, depth: ctx.depth + 1 })
@@ -370,7 +370,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
           api.killUnit(g, f.owner, f.u)
         }
       } else {
-        api.log(g, { t: 'blocked', side: caster, msg: `„${ctx.sourceName}": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją").` })
+        api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noAttacker', params: { src: ctx.sourceName } })
       }
       break
     }
@@ -391,7 +391,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'spellDiscount': api.setSpellDiscount(g, caster, v); break
     case 'buffSpellDamage': api.buffSpellDamage(g, caster, v); break
     default:
-      api.log(g, { t: 'blocked', side: caster, msg: `⚠ Nepalaikomas efektas „${m.effect}" („${ctx.sourceName}") – praleidžiama.` })
+      api.log(g, { t: 'blocked', side: caster, key: 'battleLog.unsupportedEffect', params: { effect: m.effect, src: ctx.sourceName } })
       applied = false
   }
 

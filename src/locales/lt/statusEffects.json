@@ -1,0 +1,58 @@
+{
+  "shield": {
+    "name": "Magiškasis skydas",
+    "tooltip": "Anuliuoja VISĄ vienos atakos ar efekto žalą, tada dingsta. ŽMK netraukiama."
+  },
+  "frozen": {
+    "name": "Sušaldytas",
+    "tooltip": "Negali atakuoti ir nedaro atgalinės žalos. Būsena baigiasi savininko kito ėjimo pradžioje."
+  },
+  "stunned": {
+    "name": "Apsvaigintas",
+    "tooltip": "Negali atakuoti. Būsena baigiasi savininko kito ėjimo pradžioje."
+  },
+  "burning": {
+    "name": "Degantis",
+    "tooltip": "Savininko ėjimo pradžioje gauna 1 bazinę žalą. Lieka, kol pašalins efektas."
+  },
+  "poisoned": {
+    "name": "Apnuodytas",
+    "tooltip": "Savininko ėjimo pradžioje gauna 1 bazinę žalą; atakuoja nepalankiai (ŽMK). Lieka, kol pašalins efektas."
+  },
+  "silenced": {
+    "name": "Nutildytas",
+    "tooltip": "Praranda VISUS efektus, raktažodžius ir sustiprinimus — statai grįžta į bazinę kortą. Negrįžtama."
+  },
+  "blessed": {
+    "name": "Palaimintas",
+    "tooltip": "Kita šio padaro ataka palanki (advantage) — traukiamos 2 ŽMK, naudojama geresnė. Panaudojama atakuojant."
+  },
+  "stealth": {
+    "name": "Sėlinimas",
+    "tooltip": "Priešas negali šio padaro taikytis, kol jis pats neatakuoja."
+  },
+  "taunt": {
+    "name": "Pasišaipymas",
+    "tooltip": "Priešo padarai privalo pulti šį padarą pirmiau."
+  },
+  "sprint": {
+    "name": "Sprintas",
+    "tooltip": "Gali atakuoti iškart iškvietimo ėjimą."
+  },
+  "control": {
+    "name": "Perimta kontrolė",
+    "tooltip": "Padarą laikinai valdo priešininkas. Pasibaigus trukmei grįžta savininkui."
+  },
+  "cantAttack": {
+    "name": "Negali atakuoti",
+    "tooltip": "Aura neleidžia šiam padarui atakuoti, kol auros šaltinis lauke."
+  },
+  "immortal": {
+    "name": "Nemirtingas",
+    "tooltip": "Negali žūti — HP nekrenta žemiau 1, kol auros šaltinis lauke."
+  },
+  "keyword": {
+    "battlecry": "Kovos šūksnis",
+    "lastwish": "Paskutinis noras"
+  }
+}

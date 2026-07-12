@@ -8,7 +8,7 @@
 import { useMemo, useState } from 'react'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import {
-  STATUS_VFX_REGISTRY, STATUS_VFX_IDS, publishStatusVfx, __resetStatusVfxSeen,
+  STATUS_VFX_REGISTRY, STATUS_VFX_IDS, publishStatusVfx, __resetStatusVfxSeen, statusName, statusTooltip,
   setVfxQuality, getVfxQuality, type VfxStatusId, type StatusVfxEventType, type VfxQuality,
 } from '@/lib/game/statusVfx'
 
@@ -69,13 +69,13 @@ export default function StatusVfxDevPage() {
               <button key={s} data-testid={`pick-${s}`} onClick={() => setSel(s)}
                 className="px-2 py-1 rounded-lg text-[11px] font-bold"
                 style={{ background: sel === s ? STATUS_VFX_REGISTRY[s].tint + '33' : 'rgba(255,255,255,0.05)', border: `1px solid ${sel === s ? STATUS_VFX_REGISTRY[s].tint : 'rgba(255,255,255,0.12)'}`, color: sel === s ? STATUS_VFX_REGISTRY[s].tint : '#c9bfa8' }}>
-                {STATUS_VFX_REGISTRY[s].name}
+                {statusName(s)}
               </button>
             ))}
           </div>
           <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${def.tint}55` }}>
-            <p className="font-bold" style={{ color: def.tint }}>{def.name} <span className="text-[10px] opacity-60">({def.statusId}, prioritetas {def.priority})</span></p>
-            <p className="text-[11px] mt-1" style={{ color: '#c9bfa8' }}>{def.tooltip}</p>
+            <p className="font-bold" style={{ color: def.tint }}>{statusName(def.statusId)} <span className="text-[10px] opacity-60">({def.statusId}, prioritetas {def.priority})</span></p>
+            <p className="text-[11px] mt-1" style={{ color: '#c9bfa8' }}>{statusTooltip(def.statusId)}</p>
             <div className="flex gap-1.5 mt-2 flex-wrap">
               {(['apply', 'trigger', 'remove', 'destroy'] as const).map((t) => (
                 <button key={t} data-testid={`fire-${t}`} onClick={() => fire(t)}

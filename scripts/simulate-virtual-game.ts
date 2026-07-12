@@ -137,11 +137,11 @@ console.log('8-10. Field: pakeitimas, turn-start trigger, atakų limitas, kainos
   const u2 = summon(g, 'you', mkCard({ name: 'L2', attack: 1, health: 9 }))
   attack(g, 'you', u1.uid, { kind: 'player', side: 'ai' })
   const r2 = attack(g, 'you', u2.uid, { kind: 'player', side: 'ai' })
-  check('antra ataka užblokuota lauko limito', !r2.ok && /Laukas riboja/.test(r2.ok ? '' : (r2 as { reason: string }).reason))
+  check('antra ataka užblokuota lauko limito', !r2.ok && (r2.ok ? '' : (r2 as { reason: string }).reason) === 'battleLog.err.fieldAttackLimit')
   // turn start trigger: AI padarui 1 žala AI ėjimo pradžioje? trigger šaunamas aktyviai pusei – patikrinam kad veikia
   summon(g, 'ai', mkCard({ name: 'AiU', health: 3 }))
   endTurn(g); beginTurn(g) // AI ėjimo pradžia: laukas šauna AI vardu -> žala TAVO padarams
-  check('lauko onTurnStart trigger suveikė (log)', g.log.some(e => e.t === 'field' && /suveikia/.test(e.msg)))
+  check('lauko onTurnStart trigger suveikė (log)', g.log.some(e => e.t === 'field' && e.key === 'battleLog.fieldTrigger'))
   // pakeitimas
   endTurn(g); beginTurn(g)
   g.you.gold = 500
