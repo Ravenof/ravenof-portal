@@ -250,7 +250,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     [step, resolveSel, stepIdx, dialogueIdx])
 
   if (phase === 'loading') {
-    return <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'grid', placeItems: 'center', background: '#06040b', color: 'var(--gold)' }}>Kraunama pamoka…</div>
+    return <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'grid', placeItems: 'center', background: '#06040b', color: 'var(--gold)' }}>{t('onboarding.tutorial.loadingLesson')}</div>
   }
 
   return (

@@ -93,6 +93,8 @@
     "wrongAction": "Šįkart ne tas veiksmas — sek paryškinimą.",
     "lessonDone": "Pamoka įveikta!",
     "continue": "Tęsti →",
-    "alreadyRewarded": "Pakartojai pamoką – atlygis jau gautas."
+    "alreadyRewarded": "Pakartojai pamoką – atlygis jau gautas.",
+    "loadingLesson": "Kraunama pamoka…",
+    "noStarters": "Starterinių kaladžių nėra."
   }
 }

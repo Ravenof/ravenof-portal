@@ -14,7 +14,8 @@
     "cards:i18n": "node tools/cards-i18n.mjs",
     "i18n:scan": "node scripts/i18n-scan-lt.mjs",
     "i18n:check": "node scripts/i18n-validate.mjs && node scripts/i18n-scan-lt.mjs",
-    "e2e:i18n": "playwright test e2e/i18n.spec.ts"
+    "e2e:i18n": "playwright test e2e/i18n.spec.ts",
+    "e2e:en": "playwright test e2e/english-localization.spec.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

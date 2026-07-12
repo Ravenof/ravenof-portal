@@ -81,9 +81,9 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
               return (
                 <div key={t.id} className="flex flex-col" style={{ borderRadius: 14, padding: 12, background: `linear-gradient(150deg, rgba(${acc},0.08), rgba(10,8,16,0.92))`, border: `1px solid rgba(${acc},0.4)` }}>
                   <div className="flex items-center justify-between mb-1 shrink-0">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide" style={{ background: `rgba(${acc},0.18)`, color: `rgb(${acc})`, border: `1px solid rgba(${acc},0.5)` }}>{DIFF_LABEL[t.difficulty].toUpperCase()}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide" style={{ background: `rgba(${acc},0.18)`, color: `rgb(${acc})`, border: `1px solid rgba(${acc},0.5)` }}>{tt(DIFF_LABEL[t.difficulty]).toUpperCase()}</span>
                     {!t.completed && rerollsLeft > 0 && (
-                      <button onClick={() => doReroll(t)} disabled={busy !== null} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }} title={state?.reroll.freeUsed ? 'Perrinkti (50 Sidabro)' : 'Nemokamas perrinkimas'}>
+                      <button onClick={() => doReroll(t)} disabled={busy !== null} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }} title={state?.reroll.freeUsed ? tt('quests.daily.rerollPaid') : tt('quests.daily.rerollFree')}>
                         <RefreshCw className="w-3 h-3" /> {state?.reroll.freeUsed ? tt('quests.daily.rerollCost') : tt('quests.daily.reroll')}
                       </button>
                     )}
@@ -103,14 +103,14 @@ export function DailyTasksModal({ onClose, onReward }: { onClose: () => void; on
                         className="w-full py-2 rounded-lg text-xs font-extrabold" style={{
                           background: t.claimed ? 'rgba(52,211,153,0.14)' : 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)',
                           color: t.claimed ? '#7dd3b0' : '#3a2406', border: t.claimed ? '1px solid rgba(52,211,153,0.4)' : '1px solid #ffeaa6' }}>
-                        {t.claimed ? '✓ Atsiimta' : 'Atsiimti'}
+                        {t.claimed ? tt('quests.claimed') : tt('quests.claim')}
                       </button>
                     )}
                   </div>
                 </div>
               )
             })}
-            {!state && <p className="col-span-full text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+            {!state && <p className="col-span-full text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>{tt('common.loading')}</p>}
             {state && state.tasks.length === 0 && (
               <div className="col-span-full h-full flex flex-col items-center justify-center gap-2 text-center">
                 <span style={{ fontSize: 36, filter: 'saturate(0.6)' }}>📜</span>

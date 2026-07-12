@@ -16,6 +16,22 @@ import { RESOURCES } from './resources'
 
 export type TParams = Record<string, string | number | boolean | null | undefined>
 
+// ── EN→LT fallback registras (Fazė 10) ──────────────────────────────────────
+// Kiekvienas kartas, kai EN raktas neranda vertimo ir krentam į LT, įrašom.
+// Matoma: window.__rvnI18nFallbacks (e2e/QA) + console.warn dev režime.
+export type FallbackHit = { key: string; from: string; to: string }
+const fallbacks = new Map<string, FallbackHit>()
+export function recordFallback(key: string, from: string, to: string): void {
+  if (fallbacks.has(key)) return
+  fallbacks.set(key, { key, from, to })
+  if (typeof window !== 'undefined') {
+    ;(window as unknown as { __rvnI18nFallbacks?: FallbackHit[] }).__rvnI18nFallbacks = [...fallbacks.values()]
+  }
+  if (process.env.NODE_ENV !== 'production') console.warn(`[i18n] fallback ${from}→${to}: ${key}`)
+}
+export function i18nFallbacks(): FallbackHit[] { return [...fallbacks.values()] }
+export function __resetFallbacks(): void { fallbacks.clear() }
+
 let _locale: SupportedLocale | null = null
 let _explicitThisSession = false
 const listeners = new Set<() => void>()
@@ -145,7 +161,10 @@ export function translate(locale: SupportedLocale, key: string, params?: TParams
     else if (lookup(locale, `${key}_other`) !== undefined) k = `${key}_other`
   }
   let raw = lookup(locale, k)
-  if (raw === undefined && locale !== DEFAULT_LOCALE) raw = lookup(DEFAULT_LOCALE, k)
+  if (raw === undefined && locale !== DEFAULT_LOCALE) {
+    raw = lookup(DEFAULT_LOCALE, k)
+    if (raw !== undefined) recordFallback(k, locale, DEFAULT_LOCALE)   // EN→LT: fiksuojam
+  }
   if (raw === undefined) {
     if (process.env.NODE_ENV !== 'production' && !warned.has(k)) {
       warned.add(k)

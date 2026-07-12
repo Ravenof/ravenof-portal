@@ -12,7 +12,7 @@ import { Check, UserRound } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCosmetics, equipCosmetic, type Cosmetic } from '@/lib/cosmetics'
 import { getLastDeck, setLastDeck, getDeckAvatar, setDeckAvatar, type BattleMode } from '@/lib/deck-prefs'
-import { useT } from '@/lib/i18n/react'
+import { useT, useGameContent } from '@/lib/i18n/react'
 
 export type SelectDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
 
@@ -30,6 +30,7 @@ export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41'
   accent?: string; label?: string
 }) {
   const t = useT()
+  const gc = useGameContent()
   if (label === undefined) label = t('decks.select.yourDeck')
   const [avatars, setAvatars] = useState<Cosmetic[]>([])
   const [pairFor, setPairFor] = useState<SelectDeck | null>(null)
@@ -107,7 +108,7 @@ export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41'
                 <span className="absolute -right-1.5 -bottom-2 opacity-25" style={{ filter: 'saturate(0.8)' }}><FactionIcon d={d} size={54} /></span>
                 <span className="block px-2.5 pt-2">
                   <span className="block text-[12.5px] font-bold leading-tight" style={{ color: sel ? '#fff' : '#e8dcc0', fontFamily: 'var(--rvn-font-display)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{d.name}</span>
-                  {d.faction && <span className="block text-[9.5px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{d.faction}</span>}
+                  {d.faction && <span className="block text-[9.5px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{gc.faction(d.faction)}</span>}
                 </span>
                 {sel && (
                   <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 22 }}
@@ -142,7 +143,7 @@ export function DeckSelect({ mode, decks, value, onChange, accent = '240,180,41'
             style={{ border: `1px solid rgba(${accent},0.45)`, background: 'linear-gradient(160deg,#17111f,#0a0810)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             onClick={(e) => e.stopPropagation()}>
             <div className="px-4 py-3 shrink-0 text-center" style={{ borderBottom: `1px solid rgba(${accent},0.18)` }}>
-              <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: `rgb(${accent})`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.14em' }}>Avataras kaladei</div>
+              <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: `rgb(${accent})`, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.14em' }}>{t('decks.active.deckAvatar')}</div>
               <div className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{pairFor.name} — pasirinkus šią kaladę, avataras užsidės automatiškai</div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-3 grid grid-cols-3 gap-2.5">

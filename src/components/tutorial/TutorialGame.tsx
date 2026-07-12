@@ -3256,7 +3256,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <div className="flex items-center gap-2" style={{ fontSize: 15 }}>
                   <span title="Skydas" style={{ opacity: game.you.units.some((u) => u?.shield) ? 1 : 0.25 }}>✦</span>
                   <span title={t('battle.game.statusesTip')} style={{ opacity: game.you.units.some((u) => u && Object.keys(u.statuses).length > 0) ? 1 : 0.25 }}>✷</span>
-                  <span title="Frakcija" style={{ opacity: 0.55 }}>🜏</span>
+                  <span title={t('battle.game.faction')} style={{ opacity: 0.55 }}>🜏</span>
                 </div>
               </div>
             </aside>
@@ -3408,7 +3408,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 )}
                 <div className="min-w-0">
                   <p className="text-base font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>{oppProfile?.display_name || oppProfile?.username || opponentName || t('battle.game.opponentShort')}</p>
-                  {oppProfile?.username && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>@{oppProfile.username}{oppProfile.level != null ? ` · Lygis ${oppProfile.level}` : ''}</p>}
+                  {oppProfile?.username && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>@{oppProfile.username}{oppProfile.level != null ? ` · ${t('quests.season.levelLabel')} ${oppProfile.level}` : ''}</p>}
                 </div>
               </div>
               <p className="text-[11px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.game.publicDecks')}</p>
@@ -3705,7 +3705,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
               className="rounded-2xl p-4 w-[min(360px,92vw)] text-center" style={{ background: 'linear-gradient(145deg,#1e1729,#120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.swapPhaseTitle')}</p>
-              <p className="text-[11px] mb-3" style={{ color: 'var(--text-secondary)' }}>„{champSwap.name}" ({champSwap.phase} fazė) keičiama į žemesnės fazės kortą iš kaladės (dabar evoliucija negalima).</p>
+              <p className="text-[11px] mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.swapPhaseText', { card: champSwap.name, phase: champSwap.phase })}</p>
               <div className="flex flex-col gap-2">
                 {champSwap.options.map((tp) => (
                   <button key={tp} onClick={() => { playUiClick(); doAction({ t: 'swapChampPhase', actor: 'you', uid: champSwap.cardUid, phase: tp }); setChampSwap(null) }}
@@ -4064,7 +4064,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                     <div style={{ outline: '2px solid transparent', borderRadius: 10 }}>
                       <MiniCard c={o.card} w={isTouch ? 60 : 74} />
                     </div>
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] px-1 rounded-full" style={{ background: '#14101e', color: o.side === 'you' ? '#86efac' : '#fca5a5' }}>{o.side === 'you' ? 'Tavo' : 'Priešo'}</span>
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] px-1 rounded-full" style={{ background: '#14101e', color: o.side === 'you' ? '#86efac' : '#fca5a5' }}>{o.side === 'you' ? t('battle.game.sideYours') : t('battle.game.sideEnemy')}</span>
                   </button>
                 ))}
               </div>

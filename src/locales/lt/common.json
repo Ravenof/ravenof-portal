@@ -31,8 +31,12 @@
   "loading": "Kraunama…",
   "no": "Ne",
   "notif": {
-    "daily": "Tavo dienos atlygis laukia! 🔥 Neprarask serijos.",
-    "battle": "Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!"
+    "daysAgo": "prieš {{count}} d.",
+    "empty": "Pranešimų kol kas nėra.",
+    "hoursAgo": "prieš {{count}} val.",
+    "justNow": "ką tik",
+    "minAgo": "prieš {{count}} min.",
+    "title": "PRANEŠIMAI"
   },
   "or": "arba",
   "picker": {
@@ -51,5 +55,10 @@
     "title": "Pasuk telefoną"
   },
   "save": "Išsaugoti",
-  "yes": "Taip"
+  "yes": "Taip",
+  "saving": "Saugoma…",
+  "reminders": {
+    "daily": "Tavo dienos atlygis laukia! 🔥 Neprarask serijos.",
+    "battle": "Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!"
+  }
 }

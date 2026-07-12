@@ -31,8 +31,12 @@
   "loading": "Loading…",
   "no": "No",
   "notif": {
-    "daily": "Your daily reward is waiting! 🔥 Keep your streak alive.",
-    "battle": "New opponents await in the arena. ⚔️ Play a battle!"
+    "daysAgo": "{{count}} d ago",
+    "empty": "No notifications yet.",
+    "hoursAgo": "{{count}} h ago",
+    "justNow": "just now",
+    "minAgo": "{{count}} min ago",
+    "title": "NOTIFICATIONS"
   },
   "or": "or",
   "picker": {
@@ -51,5 +55,10 @@
     "title": "Rotate your phone"
   },
   "save": "Save",
-  "yes": "Yes"
+  "yes": "Yes",
+  "saving": "Saving…",
+  "reminders": {
+    "daily": "Your daily reward is waiting! 🔥 Keep your streak alive.",
+    "battle": "New opponents await in the arena. ⚔️ Play a battle!"
+  }
 }

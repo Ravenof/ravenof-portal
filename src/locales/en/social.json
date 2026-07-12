@@ -94,5 +94,6 @@
   "usernamePlaceholder": "Username",
   "wantsToTrade": "{{name}} wants to trade",
   "writeTo": "Message {{name}}",
-  "yourStatus": "Your status:"
+  "yourStatus": "Your status:",
+  "friendsSubtitle": "Messages, trades and battle invites"
 }

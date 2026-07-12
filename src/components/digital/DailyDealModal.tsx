@@ -56,7 +56,7 @@ export function DailyDealModal({ gold, onClose, onSpent }: { gold: number; onClo
           <p className="text-lg font-bold mb-0.5 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.08em' }}>{t('common.dailyDeal.title')}</p>
           <p className="text-[11px] text-center mb-4" style={{ color: 'var(--text-muted)' }}>Atsinaujina kasdien · 🪙 {localGold.toLocaleString()} aukso</p>
 
-          {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+          {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
 
           <div className="grid grid-cols-2 gap-3">
             {cards.map((c) => {

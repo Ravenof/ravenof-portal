@@ -1,0 +1,59 @@
+{
+  "item": {
+    "silver": {
+      "name": "Sidabras",
+      "desc": "Pagrindinė valiuta — pakams ir kaladėms pirkti."
+    },
+    "rubies": {
+      "name": "Rubinai",
+      "desc": "Premium valiuta — retoms prekėms."
+    },
+    "essence": {
+      "name": "Esencija",
+      "desc": "Naudojama kortoms kurti ir tobulinti."
+    },
+    "account_xp": {
+      "name": "Patirtis (XP)",
+      "desc": "Kelia paskyros lygį — lygiai duoda atlygius."
+    },
+    "season_xp": {
+      "name": "Sezono XP",
+      "desc": "Stumia sezono tako pakopas."
+    },
+    "pack": {
+      "name": "Kortų pakas",
+      "desc": "Atplėšk ir gauk naujų kortų."
+    },
+    "card_back": {
+      "name": "Kortų nugarėlė",
+      "desc": "Kosmetinė nugarėlė tavo kaladei."
+    },
+    "player_avatar": {
+      "name": "Avataras",
+      "desc": "Kosmetinis veidas kovoms."
+    },
+    "card": {
+      "name": "Korta",
+      "desc": "Garantuota korta kolekcijai."
+    },
+    "badge": {
+      "name": "Rango ženklelis",
+      "desc": "Sezono rango pasiekimo ženklas."
+    },
+    "missing": {
+      "name": "Atlygis",
+      "desc": "Atlygio turinys."
+    }
+  },
+  "label": {
+    "packs_one": "{{count}} pak.",
+    "packs_few": "{{count}} pak.",
+    "packs_other": "{{count}} pak.",
+    "cardBack": "Nugarėlė",
+    "avatar": "Avataras",
+    "card": "Korta",
+    "badge": "Ženklelis",
+    "cardMin": "{{rarity}} korta",
+    "pathXp": "{{xp}} kelio XP"
+  }
+}

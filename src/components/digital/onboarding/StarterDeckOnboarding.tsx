@@ -331,7 +331,7 @@ export function StarterDeckOnboarding() {
                         <SmartImg src={fac.iconUrl} width={40} alt="" style={{ width: 19, height: 19, objectFit: 'contain' }} />
                       </span>
                     )}
-                    {d.claimed && <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: 8.5, background: 'rgba(52,211,153,0.92)', color: '#06281c' }}>✓ Turima</span>}
+                    {d.claimed && <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: 8.5, background: 'rgba(52,211,153,0.92)', color: '#06281c' }}>{t('shop.owned')}</span>}
                   </span>
                 </button>
               )

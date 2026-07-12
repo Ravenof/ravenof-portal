@@ -30,7 +30,7 @@ export function SeasonHistory() {
             <span>{t('ranked.winPct')} <b style={{ color: 'var(--text-primary)' }}>{Math.round((r.win_rate ?? 0) * 100)}%</b></span>
             <span>K/D: <b style={{ color: 'var(--text-primary)' }}>{Number(r.kd_ratio ?? 0).toFixed(2)}</b></span>
           </div>
-          {r.rewards_earned?.length > 0 && <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Atsiimta atlygių: {r.rewards_earned.length}</p>}
+          {r.rewards_earned?.length > 0 && <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>{t('ranked.rewardsEarned', { count: r.rewards_earned.length })}</p>}
         </div>
       ))}
     </div>

@@ -18,7 +18,10 @@
     "picked": "✓ PICKED",
     "ready": "✓ Ready",
     "readyBattle": "✓ Ready for battle",
-    "useGlobal": "Use global"
+    "useGlobal": "Use global",
+    "isActive": "★ ACTIVE",
+    "setActive": "★ SET ACTIVE",
+    "deckAvatar": "Deck avatar"
   },
   "cardsShort_one": "{{count}} card",
   "cardsShort_other": "{{count}} cards",
@@ -88,5 +91,6 @@
     "empty": "The deck is empty",
     "missingCards": "Missing {{count}} cards from your collection",
     "noActive": "No active deck selected"
-  }
+  },
+  "edit": "✎ Edit"
 }

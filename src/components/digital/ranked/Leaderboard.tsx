@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getLeaderboard } from '@/lib/ranked/client'
 import type { LeaderboardRow } from '@/lib/ranked/types'
-import { MEDAL_LABEL_LT } from '@/lib/ranked/rank'
+import { medalLabel } from '@/lib/ranked/rank'
 import { useT } from '@/lib/i18n/react'
 
 type Filter = 'top100' | 'around' | string // faction name
@@ -74,7 +74,7 @@ export function Leaderboard({ revealBots = false }: { revealBots?: boolean }) {
               </div>
               <div className="text-right">
                 <p className="text-xs font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: medalColor(r.medal_tier) }}>
-                  {r.rank_number} {MEDAL_LABEL_LT[r.medal_tier]}
+                  {r.rank_number} {medalLabel(r.medal_tier)}
                 </p>
                 <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>K/D {r.kd_ratio.toFixed(2)} · {Math.round(r.win_rate * 100)}%</p>
               </div>

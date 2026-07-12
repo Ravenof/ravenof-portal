@@ -11,7 +11,7 @@ import { X, Lock, Check } from 'lucide-react'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getSeasonPath, claimSeasonReward, unlockSeasonPass, type SeasonPath, type SeasonRow, type SeasonSide } from '@/lib/gamification/seasonPath'
 import { useEscClose } from '@/lib/useEscClose'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; size?: number }) {
   if (!payload?.length) return <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>—</span>
@@ -24,6 +24,7 @@ function Chips({ payload, size = 10 }: { payload: Record<string, unknown>[]; siz
 
 export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const t = useT()
+  const tc = useContent()
   useEscClose(onClose)
   const [sp, setSp] = useState<SeasonPath | null>(null)
   const [busy, setBusy] = useState(false)
@@ -96,7 +97,7 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
         <div className="px-4 pt-3 pb-2.5 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
           <div className="flex items-center justify-between gap-2">
             <h2 className="min-w-0 truncate" style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,18px)', letterSpacing: '0.06em' }}>
-              {t('quests.season.title')} <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {sp?.season.title ?? ''}</span>
+              {t('quests.season.title')} <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {sp?.season ? tc('season', sp.season.id, 'title', sp.season.title) : ''}</span>
             </h2>
             <div className="flex items-center gap-2 shrink-0">
               {daysLeft !== null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>{t('quests.season.daysLeft', { count: daysLeft })}</span>}
@@ -104,7 +105,7 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
             </div>
           </div>
           <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>Lygis <b style={{ color: 'var(--gold)' }}>{sp?.level ?? 0}</b> / {sp?.levels ?? 20}</span>
+            <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>{t('quests.season.levelLabel')} <b style={{ color: 'var(--gold)' }}>{sp?.level ?? 0}</b> / {sp?.levels ?? 20}</span>
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: '0 0 8px rgba(240,180,41,0.5)' }} />
             </div>
@@ -121,14 +122,14 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
               <span />
               <span className="flex justify-between px-1 text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 <span>{t('quests.path.scrollTrack')}</span>
-                <span style={{ color: sp?.hasPass ? 'var(--gold)' : undefined }}>{sp?.hasPass ? '✓ Sezono pasas aktyvus' : 'Sezono pasas neaktyvus'}</span>
+                <span style={{ color: sp?.hasPass ? 'var(--gold)' : undefined }}>{sp?.hasPass ? t('quests.season.passActive') : t('quests.season.passInactive')}</span>
               </span>
             </div>
             <div className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: '52px 1fr' }}>
               {/* eilučių etiketės */}
               <div className="flex flex-col justify-center gap-1.5 pr-1.5" style={{ paddingTop: 22 }}>
-                <span className="flex-1 flex items-center justify-end text-[9px] font-bold uppercase text-right" style={{ color: 'var(--text-secondary)' }}>Nemok.</span>
-                <span className="flex-1 flex items-center justify-end text-[9px] font-bold uppercase text-right" style={{ color: sp?.hasPass ? 'var(--gold)' : 'var(--text-muted)' }}>Pasas</span>
+                <span className="flex-1 flex items-center justify-end text-[9px] font-bold uppercase text-right" style={{ color: 'var(--text-secondary)' }}>{t('quests.season.freeShort')}</span>
+                <span className="flex-1 flex items-center justify-end text-[9px] font-bold uppercase text-right" style={{ color: sp?.hasPass ? 'var(--gold)' : 'var(--text-muted)' }}>{t('quests.season.passShort')}</span>
               </div>
               {/* stulpeliai */}
               <div className="min-h-0 overflow-x-auto overflow-y-hidden">
@@ -156,24 +157,24 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5">
               {selected ? (
                 <>
-                  <p className="rvn-disp font-bold" style={{ fontSize: 13, color: 'var(--gold)' }}>LYGIS {selected.level} {selected.reached ? '' : '· 🔒'}</p>
+                  <p className="rvn-disp font-bold" style={{ fontSize: 13, color: 'var(--gold)' }}>{t('quests.season.levelN', { level: selected.level })} {selected.reached ? '' : '· 🔒'}</p>
                   <div>
-                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.14em' }}>Nemokamas takas</p>
+                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.14em' }}>{t('quests.season.freeTrack')}</p>
                     <div className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <Chips payload={selected.free.payload} size={11} />
                       {selected.free.claimed ? <Check className="w-4 h-4 shrink-0" style={{ color: '#34d399' }} />
                         : selected.reached && selected.free.payload.length > 0 ? (
-                          <button onClick={() => claim(selected.level, 'free')} disabled={busy} className="rvn-press shrink-0 px-2 py-1 rounded text-[10px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atsiimti</button>
+                          <button onClick={() => claim(selected.level, 'free')} disabled={busy} className="rvn-press shrink-0 px-2 py-1 rounded text-[10px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>{t('quests.claim')}</button>
                         ) : null}
                     </div>
                   </div>
                   <div>
-                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: sp?.hasPass ? 'var(--gold)' : 'var(--text-muted)', letterSpacing: '0.14em' }}>Sezono pasas {sp?.hasPass ? '' : '(neaktyvus)'}</p>
+                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: sp?.hasPass ? 'var(--gold)' : 'var(--text-muted)', letterSpacing: '0.14em' }}>{sp?.hasPass ? t('quests.season.passShortFull') : t('quests.season.passShortInactive')}</p>
                     <div className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2" style={{ background: sp?.hasPass ? 'rgba(240,180,41,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${sp?.hasPass ? 'rgba(240,180,41,0.35)' : 'rgba(255,255,255,0.08)'}`, opacity: sp?.hasPass ? 1 : 0.6 }}>
                       <Chips payload={selected.pass.payload} size={11} />
                       {selected.pass.claimed ? <Check className="w-4 h-4 shrink-0" style={{ color: '#34d399' }} />
                         : sp?.hasPass && selected.reached && selected.pass.payload.length > 0 ? (
-                          <button onClick={() => claim(selected.level, 'pass')} disabled={busy} className="rvn-press shrink-0 px-2 py-1 rounded text-[10px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atsiimti</button>
+                          <button onClick={() => claim(selected.level, 'pass')} disabled={busy} className="rvn-press shrink-0 px-2 py-1 rounded text-[10px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>{t('quests.claim')}</button>
                         ) : !sp?.hasPass ? <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} /> : null}
                     </div>
                   </div>
@@ -185,7 +186,7 @@ export function SeasonPathModal({ onClose, onReward }: { onClose: () => void; on
             <div className="shrink-0 mt-2 flex flex-col gap-1.5">
               {!sp?.hasPass && (
                 <div className="flex gap-1.5">
-                  <button onClick={() => unlock('silver')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>Atrakinti · <RewardChip it={{ type: 'currency', currency: 'silver', amount: sp?.priceSilver ?? 8000 }} size={14} textSize={10.5} color="#3a2406" /></button>
+                  <button onClick={() => unlock('silver')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406' }}>{t('quests.season.unlock')} · <RewardChip it={{ type: 'currency', currency: 'silver', amount: sp?.priceSilver ?? 8000 }} size={14} textSize={10.5} color="#3a2406" /></button>
                   <button onClick={() => unlock('rubies')} disabled={busy} className="rvn-press flex-1 py-2 rounded-lg text-[10.5px] font-extrabold" style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)' }}><RewardChip it={{ type: 'currency', currency: 'rubies', amount: sp?.priceRubies ?? 950 }} size={14} textSize={10.5} color="#fca5a5" /></button>
                 </div>
               )}

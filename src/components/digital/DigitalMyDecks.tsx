@@ -20,7 +20,7 @@ import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
-import { useT } from '@/lib/i18n/react'
+import { useT, useGameContent } from '@/lib/i18n/react'
 import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
 
 const GOLD = '240,180,41'
@@ -253,6 +253,8 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
 // ── Fizinė kaladė lentynoje: kortų šūsnis + parchment lapukas ant lentynos ────
 function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick: () => void }) {
+  const t = useT()
+  const gc = useGameContent()
   const valid = d.faction !== null && d.cardCount >= DECK_MIN && d.cardCount <= DECK_MAX
   return (
     <button onClick={onClick} className="rvn-press relative block w-full text-left">
@@ -280,7 +282,7 @@ function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick
       <span className="relative block mx-auto" style={{ width: '88%', marginTop: 1, zIndex: 3, transform: 'rotate(-1.2deg)' }}>
         <span className="block rounded-[3px] px-1.5 pt-2 pb-1 text-center" style={{ background: 'linear-gradient(170deg, #efe3c0, #d9c691 85%, #c9b478)', boxShadow: '0 2px 5px rgba(0,0,0,0.55), inset 0 0 6px rgba(120,90,30,0.25)' }}>
           <span className="block text-[9px] font-bold leading-tight truncate" style={{ color: '#3a2b12', fontFamily: 'var(--rvn-font-display)' }}>{d.name}</span>
-          <span className="block text-[8px] leading-tight truncate" style={{ color: '#6b5426' }}>{d.faction ?? 'Be frakcijos'} · {d.cardCount} kortų</span>
+          <span className="block text-[8px] leading-tight truncate" style={{ color: '#6b5426' }}>{gc.faction(d.faction) || t('decks.active.noFaction')} · {t('decks.cardsShort', { count: d.cardCount })}</span>
         </span>
         {/* lipni juostelė */}
         <span aria-hidden className="absolute left-1/2" style={{ top: -3, width: 26, height: 7, transform: 'translateX(-50%) rotate(1.5deg)', background: 'rgba(255,255,255,0.22)', borderRadius: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.25)' }} />
@@ -320,7 +322,7 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
     return { main, side, total, avg, curve, types: Array.from(types), rars: Array.from(rars), champions }
   }, [cards])
 
-  if (!cards || !stats) return <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
+  if (!cards || !stats) return <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
 
   const curveMax = Math.max(1, ...stats.curve)
   const valid = deck.faction !== null && deck.cardCount >= DECK_MIN && deck.cardCount <= DECK_MAX

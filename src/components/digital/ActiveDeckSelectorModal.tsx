@@ -18,13 +18,14 @@ import { getCosmetics, type Cosmetic } from '@/lib/cosmetics'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
-import { useT } from '@/lib/i18n/react'
+import { useT, useGameContent } from '@/lib/i18n/react'
 import { formatDate } from '@/lib/i18n/core'
 
 const GOLD = '240,180,41'
 
 function DeckTile({ d, active, focused, pending }: { d: ActiveDeckInfo; active: boolean; focused: boolean; pending: boolean }) {
   const t = useT()
+  const gc = useGameContent()
   const v = deckValidity(d)
   const col = d.factionColor ?? '#f0b429'
   return (
@@ -40,7 +41,7 @@ function DeckTile({ d, active, focused, pending }: { d: ActiveDeckInfo; active: 
       {d.boundAvatar && <span className="absolute top-1.5 right-1.5" title={t('home.deckHasAvatar')} style={{ fontSize: 12 }}>👤</span>}
       <div className="absolute inset-x-0 bottom-0 px-2 pt-5 pb-1.5" style={{ background: 'linear-gradient(0deg, rgba(5,4,9,0.97) 55%, transparent)' }}>
         <p className="font-extrabold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={d.name}>{d.name}</p>
-        <p className="truncate" style={{ fontSize: 9, color: col }}>{d.faction ?? '—'} · {t('decks.cardsShort', { count: d.cardCount })}</p>
+        <p className="truncate" style={{ fontSize: 9, color: col }}>{gc.faction(d.faction) || '—'} · {t('decks.cardsShort', { count: d.cardCount })}</p>
         <p style={{ fontSize: 9, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
       </div>
     </div>
@@ -48,6 +49,7 @@ function DeckTile({ d, active, focused, pending }: { d: ActiveDeckInfo; active: 
 }
 
 export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
+  const gc = useGameContent()
   const t = useT()
   const router = useRouter()
   const st = useActiveDeck()
@@ -123,7 +125,7 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
                 <div className="flex items-start gap-3 flex-wrap">
                   <div className="min-w-0 flex-1" style={{ minWidth: 200 }}>
                     <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: cur.factionColor ?? 'var(--gold)', fontSize: 15, lineHeight: 1.25 }}>{cur.name}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cur.faction ?? t('decks.active.noFaction')} · {t('decks.cardsShort', { count: cur.cardCount })}{cur.updatedAt ? ` · ${t('decks.active.edited', { date: formatDate(cur.updatedAt) })}` : ''}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{gc.faction(cur.faction) || t('decks.active.noFaction')} · {t('decks.cardsShort', { count: cur.cardCount })}{cur.updatedAt ? ` · ${t('decks.active.edited', { date: formatDate(cur.updatedAt) })}` : ''}</p>
                     <p data-testid="deck-validity" className="mt-0.5 font-bold" style={{ fontSize: 11.5, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -132,11 +134,11 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
                       style={{ height: 40, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)',
                         background: isActive ? 'rgba(52,211,153,0.16)' : 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)',
                         color: isActive ? '#4ade80' : '#3a2406', border: isActive ? '1px solid rgba(52,211,153,0.5)' : '1px solid #ffeaa6' }}>
-                      {(pendingId ?? cur.id) === st.activeDeckId ? '★ AKTYVI' : busy ? 'Saugoma…' : '★ NUSTATYTI AKTYVIA'}
+                      {(pendingId ?? cur.id) === st.activeDeckId ? t('decks.active.isActive') : busy ? t('common.saving') : t('decks.active.setActive')}
                     </button>
                     <button onClick={() => { playUiClick(); onClose(); router.push('/digital/decks?tab=builder&deck=' + cur.id) }}
                       className="rvn-press px-4 rounded-xl font-bold" style={{ height: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#e8dfc8' }}>
-                      ✎ Redaguoti
+                      {t('decks.edit')}
                     </button>
                   </div>
                 </div>
@@ -180,6 +182,7 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
 // ── Kompaktiška aktyvios kaladės santrauka kovos setup ekranams ───────────────
 export function ActiveDeckSummary({ accent = GOLD, invalidHint, compact }: { accent?: string; invalidHint?: string; compact?: boolean }) {
   const t = useT()
+  const gc = useGameContent()
   const st = useActiveDeck()
   const [open, setOpen] = useState(false)
   useEffect(() => { if (!st.loaded && !st.loading) void st.refresh() }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -195,7 +198,7 @@ export function ActiveDeckSummary({ accent = GOLD, invalidHint, compact }: { acc
               {!st.loaded ? t('common.loading') : d ? d.name : t('decks.active.noActive')}
             </span>
             <span className="truncate" style={{ fontSize: 10, color: v.valid ? '#4ade80' : '#fbbf24' }}>
-              {d ? `${d.faction ?? '—'} · ${t('decks.cardsShort', { count: d.cardCount })} · ` : ''}{v.valid ? t('decks.active.ready') : `⚠ ${invalidHint ?? v.reason}`}
+              {d ? `${gc.faction(d.faction) || '—'} · ${t('decks.cardsShort', { count: d.cardCount })} · ` : ''}{v.valid ? t('decks.active.ready') : `⚠ ${invalidHint ?? v.reason}`}
             </span>
           </span>
         ) : (
@@ -204,7 +207,7 @@ export function ActiveDeckSummary({ accent = GOLD, invalidHint, compact }: { acc
               {!st.loaded ? t('common.loading') : d ? d.name : t('decks.active.noActive')}
             </span>
             <span className="block truncate" style={{ fontSize: 10, color: v.valid ? '#4ade80' : '#fbbf24' }}>
-              {d ? `${d.faction ?? '—'} · ${t('decks.cardsShort', { count: d.cardCount })} · ` : ''}{v.valid ? t('decks.active.ready') : `⚠ ${invalidHint ?? v.reason}`}
+              {d ? `${gc.faction(d.faction) || '—'} · ${t('decks.cardsShort', { count: d.cardCount })} · ` : ''}{v.valid ? t('decks.active.ready') : `⚠ ${invalidHint ?? v.reason}`}
             </span>
           </span>
         )}

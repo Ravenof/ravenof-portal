@@ -20,7 +20,7 @@ import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { RvnIcon } from './ui/RvnIcon'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { useEscClose } from '@/lib/useEscClose'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 function Chip({ text }: { text: string }) {
   const accent = text.startsWith('🪙') ? '240,180,41' : text.startsWith('🎁') ? '251,146,60' : text.startsWith('🃏') ? '96,165,250' : '139,92,246'
@@ -32,6 +32,7 @@ function Chip({ text }: { text: string }) {
 
 export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; onReward?: () => void }) {
   const t = useT()
+  const tc = useContent()
   useEscClose(onClose)
   const [pass, setPass] = useState<SeasonPass | null>(null)
   const [loading, setLoading] = useState(true)
@@ -80,7 +81,7 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
       if (!('error' in r)) got++
     }
     setBusy(null)
-    if (got > 0) { playSuccess(); setMsg(`Atsiimtos ${got} pakopos!`); onReward?.() } else playError()
+    if (got > 0) { playSuccess(); setMsg(t('quests.season.tiersClaimed', { count: got })); onReward?.() } else playError()
     reload()
   }
 
@@ -94,7 +95,7 @@ export function SeasonPassModal({ onClose, onReward }: { onClose: () => void; on
             <div className="flex items-center justify-between gap-2">
               <p className="font-bold inline-flex items-center gap-2 min-w-0" style={{ fontSize: 'clamp(14px,2.6vh,19px)', fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>
                 <RvnIcon name="fi-season" size={24} fallback={<span>🎖️</span>} /> {t('quests.season.title')}
-                {pass?.season && <span className="truncate font-semibold" style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {pass.season.title}</span>}
+                {pass?.season && <span className="truncate font-semibold" style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>· {tc('season', pass.season.id, 'title', pass.season.title)}</span>}
               </p>
               <div className="flex items-center gap-2 shrink-0">
                 {daysLeft !== null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-muted)' }}>{t('quests.season.daysLeft', { count: daysLeft })}</span>}

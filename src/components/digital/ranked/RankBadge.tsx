@@ -2,7 +2,7 @@
 
 // ── Ravenof Reitingo kova — rango ženklas (Bronza / Sidabras / Auksas) ───────
 // Dark fantasy medalis su aiškiai matomu rango numeriu. Trys vizualios pakopos.
-import { medalTierFromStep, rankNumberFromStep, MEDAL_LABEL_LT, type MedalTier } from '@/lib/ranked/rank'
+import { medalTierFromStep, rankNumberFromStep, medalLabel, type MedalTier } from '@/lib/ranked/rank'
 
 const TIER_STYLE: Record<MedalTier, { ring: string; face: string; glow: string; rim: string; text: string }> = {
   bronze: {
@@ -54,7 +54,7 @@ export function RankBadge({ step, size = 88, showLabel = false, animate }: {
       </div>
       {showLabel && (
         <span className="text-[11px] font-bold tracking-wide" style={{ fontFamily: 'var(--rvn-font-display)', color: tier === 'silver' ? '#cbd5e1' : tier === 'gold' ? 'var(--gold)' : '#d9a06b', letterSpacing: '0.08em' }}>
-          {num} {MEDAL_LABEL_LT[tier]}
+          {num} {medalLabel(tier)}
         </span>
       )}
     </div>

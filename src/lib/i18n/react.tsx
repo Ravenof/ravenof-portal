@@ -9,6 +9,7 @@ import { DEFAULT_LOCALE, type SupportedLocale } from './config'
 import { getLocale, loadProfileLocale, setLocale, subscribe, translate, type TParams } from './core'
 import { isContentLoaded, loadContentTranslations, subscribeContent, tContent, type ContentOwnerType } from './content'
 import { cardImage, cardText, ensureCardTranslations, isCardI18nLoaded, subscribeCardI18n } from '@/lib/cards/i18n'
+import { factionName, rarityName, cardTypeName, loadGameContent, isGameContentLoaded, subscribeGameContent } from './gameContent'
 
 export function useLocale(): SupportedLocale {
   return useSyncExternalStore(subscribe, getLocale, () => DEFAULT_LOCALE)
@@ -66,5 +67,17 @@ export function useCardI18n() {
     effect: (id: string | null | undefined, fb: string | null | undefined) => cardText(id, 'effect_text', fb, locale),
     flavor: (id: string | null | undefined, fb: string | null | undefined) => cardText(id, 'flavor_text', fb, locale),
     image: (id: string | null | undefined, fb: string | null | undefined) => cardImage(id, fb, locale),
+  }), [locale])
+}
+
+/** Frakcijų / retumų / kortų tipų vardai (vienas šaltinis visiems ekranams). */
+export function useGameContent() {
+  const locale = useLocale()
+  useSyncExternalStore(subscribeGameContent, isGameContentLoaded, () => true)
+  useEffect(() => { void loadGameContent() }, [locale])
+  return useMemo(() => ({
+    faction: (v: string | number | null | undefined) => factionName(v),
+    rarity: (v: string | number | null | undefined) => rarityName(v),
+    cardType: (v: string | number | null | undefined) => cardTypeName(v),
   }), [locale])
 }

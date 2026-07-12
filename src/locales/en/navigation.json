@@ -5,5 +5,9 @@
   "more": "More",
   "notifications": "Notifications",
   "settings": "Settings",
-  "shop": "Shop"
+  "shop": "Shop",
+  "pve": "Battle vs AI",
+  "onboarding": "Choose your deck",
+  "forgotPassword": "Password recovery",
+  "campaign": "Campaign map"
 }

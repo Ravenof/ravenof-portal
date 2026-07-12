@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n/core'
 // ── Ravenof Reitingo kova — rangų (rankStep) modelis ─────────────────────────
 // 150 žingsnių (rankStep 0–149). 50 rango numerių × 3 medalių pakopos.
 //   rankStep 0   = 50 Bronza (žemiausias)
@@ -14,12 +15,14 @@ export type MedalTier = 'bronze' | 'silver' | 'gold'
 
 export const MEDAL_TIERS: readonly MedalTier[] = ['bronze', 'silver', 'gold'] as const
 
-/** Lietuviški medalių pavadinimai (vidinė reikšmė lieka bronze/silver/gold). */
-export const MEDAL_LABEL_LT: Record<MedalTier, string> = {
-  bronze: 'Bronza',
-  silver: 'Sidabras',
-  gold: 'Auksas',
+/** i18n raktai (vidinė reikšmė lieka bronze/silver/gold). */
+export const MEDAL_LABEL_KEY: Record<MedalTier, string> = {
+  bronze: 'ranked.medal.bronze',
+  silver: 'ranked.medal.silver',
+  gold: 'ranked.medal.gold',
 }
+/** Medalio pavadinimas dabartine kalba. */
+export function medalLabel(tier: MedalTier): string { return t(MEDAL_LABEL_KEY[tier]) }
 
 export const MEDAL_COLOR: Record<MedalTier, string> = {
   bronze: '#b3793f', // nudilęs bronza
@@ -56,7 +59,7 @@ export const isMinRank = (step: number): boolean => clampStep(step) <= MIN_RANK_
 
 /** Rodomas rango tekstas, pvz. „49 Bronza", „1 Auksas". */
 export function formatRank(step: number): string {
-  return `${rankNumberFromStep(step)} ${MEDAL_LABEL_LT[medalTierFromStep(step)]}`
+  return `${rankNumberFromStep(step)} ${medalLabel(medalTierFromStep(step))}`
 }
 
 export type RankView = {

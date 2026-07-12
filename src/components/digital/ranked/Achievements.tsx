@@ -43,7 +43,7 @@ export function Achievements({ onChanged }: { onChanged?: () => void }) {
                 <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{tc('ranked_achievement', a.key, 'description', a.description)} · {summarizePayload(a.reward)}</p>
               </div>
               {st.claimed ? (
-                <span className="text-[11px] font-semibold px-2 py-1 rounded-lg" style={{ color: '#86efac' }}>Atsiimta</span>
+                <span className="text-[11px] font-semibold px-2 py-1 rounded-lg" style={{ color: '#86efac' }}>{t('quests.claimed')}</span>
               ) : st.completed ? (
                 <button onClick={() => doClaim(a.key)} disabled={busy === a.key}
                   className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-40"

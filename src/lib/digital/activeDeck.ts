@@ -14,6 +14,8 @@ export type ActiveDeckInfo = {
   id: string
   name: string
   faction: string | null
+  /** frakcijos ID – vertimams (content_translations owner_type='faction'). */
+  factionId: number | null
   factionIcon: string | null
   factionColor: string | null
   cardCount: number
@@ -62,7 +64,7 @@ export const useActiveDeck = create<ActiveDeckState>((set, get) => ({
         if (!user) { set({ loaded: true, loading: false, decks: [], activeDeckId: null }); return }
         const [{ data: prof }, { data: rows }, { data: dc }, { data: col }] = await Promise.all([
           supabase.from('profiles').select('active_deck_id, role').eq('id', user.id).maybeSingle(),
-          supabase.from('decks').select('id, name, card_count, bound_avatar, updated_at, faction:factions ( name, icon_url, color_hex )')
+          supabase.from('decks').select('id, name, card_count, bound_avatar, updated_at, faction:factions ( id, name, icon_url, color_hex )')
             .eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
           supabase.from('deck_cards').select('deck_id, card_id, quantity'),
           supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
@@ -75,10 +77,11 @@ export const useActiveDeck = create<ActiveDeckState>((set, get) => ({
           const have = owned[r.card_id] ?? 0
           if (have < r.quantity) missingMap[r.deck_id] = (missingMap[r.deck_id] ?? 0) + (r.quantity - have)
         }
-        type Row = { id: string; name: string; card_count: number | null; bound_avatar: string | null; updated_at: string | null; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }
+        type Row = { id: string; name: string; card_count: number | null; bound_avatar: string | null; updated_at: string | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }
         const decks: ActiveDeckInfo[] = (((rows as unknown as Row[]) ?? [])).map((d) => ({
           id: d.id, name: d.name,
-          faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null,
+          faction: d.faction?.name ?? null, factionId: d.faction?.id ?? null,
+          factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null,
           cardCount: d.card_count ?? 0, missing: tester ? 0 : (missingMap[d.id] ?? 0),
           boundAvatar: d.bound_avatar ?? null, updatedAt: d.updated_at,
         }))

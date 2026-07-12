@@ -117,7 +117,7 @@ export function StarterOnboarding({ onDone, onClose }: {
           <div className="px-5 pb-3 flex-1 min-h-0 overflow-y-auto">
             {step === 'deck' && (
               <>
-                {!starters && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+                {!starters && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
                 <div className="grid grid-cols-2 gap-2.5">
                   {(starters ?? []).map((d) => {
                     const active = sel === d.id
@@ -130,7 +130,7 @@ export function StarterOnboarding({ onDone, onClose }: {
                             {d.imageUrl
                               ? <SmartImg src={d.imageUrl} width={360} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} />
                               : <span className="absolute inset-0" style={{ background: 'linear-gradient(150deg,#241a35,#0a0810)' }} />}
-                            {d.claimed && <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold" style={{ background: 'rgba(52,211,153,0.9)', color: '#06281c' }}>✓ Turima</span>}
+                            {d.claimed && <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold" style={{ background: 'rgba(52,211,153,0.9)', color: '#06281c' }}>{t('shop.owned')}</span>}
                           </span>
                           <span className="block px-2.5 pt-1.5 pb-2">
                             <span className="block text-[13px] font-extrabold truncate" style={{ color: active ? 'var(--gold)' : '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{d.faction ?? d.name}</span>
@@ -147,7 +147,7 @@ export function StarterOnboarding({ onDone, onClose }: {
 
             {step === 'avatar' && (
               <>
-                {!cos && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+                {!cos && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
                 {cos && avatars.length === 0 && <p className="text-xs text-center py-10" style={{ color: 'var(--text-muted)' }}>{t('onboarding.starter.noAvatars')}</p>}
                 <div className="grid grid-cols-4 gap-2.5">
                   {avatars.map((c) => {

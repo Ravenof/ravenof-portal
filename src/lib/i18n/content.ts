@@ -17,6 +17,7 @@ import type { SupportedLocale } from './config'
 export type ContentOwnerType =
   | 'daily_quest' | 'daily_task' | 'shop_item' | 'cosmetic' | 'ranked_achievement'
   | 'faction' | 'rarity' | 'card_type' | 'card_pack' | 'starter_deck' | 'lore_faction'
+  | 'season'
 
 type Store = Record<string, string>          // "owner_type:owner_id:field" -> value
 const cache = new Map<SupportedLocale, Store>()

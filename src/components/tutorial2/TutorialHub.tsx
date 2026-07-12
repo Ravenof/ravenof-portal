@@ -95,8 +95,8 @@ export function TutorialHub() {
       </div>
       {msg && <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8 }}>{msg}</p>}
 
-      {!starters && <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Kraunama…</p>}
-      {starters && decks.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Starter kaladžių nėra. Paleisk migraciją 20260718.</p>}
+      {!starters && <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>{t('common.loading')}</p>}
+      {starters && decks.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>{t('onboarding.tutorial.noStarters')}</p>}
 
       {/* Kaladė jau pasiimta → VIENAS mokymų mūšis */}
       {claimedDeck && (

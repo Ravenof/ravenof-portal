@@ -12,6 +12,9 @@ import { ChevronRight } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
 import { streakDayReward } from '@/lib/gamification/quests'
 import { useT } from '@/lib/i18n/react'
+import { ArtCta, ArtHeading, ArtModeCard } from './LocalizedArt'
+import { localizedAsset, type LocalizedAssetKey } from '@/lib/i18n/assets'
+import { useLocale } from '@/lib/i18n/react'
 
 const GOLD = '240,180,41'
 export const ASSET = '/digital/ui3'
@@ -115,7 +118,7 @@ export function RewardBanner({ streak, claimable, onClaim }: { streak: number; c
       <MiniReward icon="🪙" img="fi-coins" amount={`x${shown.gold}`} />
       {shown.booster && <MiniReward icon="🎁" img="fi-gifts" amount="x1" accent="139,92,246" />}
       <button onClick={claimable ? onClaim : undefined} disabled={!claimable} className="rvn-press rvn-gold-btn shrink-0" style={{ padding: '9px 16px', fontSize: 13 }}>
-        {claimable ? 'Atsiimti' : 'Atsiimta'}
+        {claimable ? t('quests.claim') : t('quests.claimed')}
       </button>
     </div>
   )
@@ -127,17 +130,19 @@ export type HubMode = { key: string; label: string; sub?: string; iconName: stri
 // jokių papildomų ikonų/tekstų ant viršaus. Pavadinimas lieka aria-label.
 // Failai: /digital/home/battle-modes/{ranked,against-ai,friendly}.png (vienodi matmenys ~3:1,
 // permatomas fonas, be baltų kraštų). Kol failo nėra — fallback į seną mode2-* asset'ą.
-const MODE_ASSET: Record<string, { src: string; fallback: string; glow: string }> = {
-  ranked: { src: '/digital/home/battle-modes/ranked.png?v=2',     fallback: '/digital/ui3/mode2-ranked.png', glow: 'rgba(239,68,68,0.55)' },
-  pve:    { src: '/digital/home/battle-modes/against-ai.png?v=2', fallback: '/digital/ui3/mode2-pve.png',    glow: 'rgba(52,211,153,0.5)' },
-  free:   { src: '/digital/home/battle-modes/friendly.png?v=2',   fallback: '/digital/ui3/mode2-free.png',   glow: 'rgba(240,180,41,0.5)' },
+// Kiekvienam režimui: lokalizuoto asset'o raktas + i18n etiketė + akcentas.
+// EN režime (kol nėra EN PNG) rodoma CSS kortelė su HTML tekstu – LT tekstas
+// niekada nelieka matomas angliškoje sąsajoje (žr. lib/i18n/assets.ts).
+const MODE_ASSET: Record<string, { assetKey: LocalizedAssetKey; labelKey: string; accent: string; glow: string }> = {
+  ranked: { assetKey: 'modeRanked',    labelKey: 'home.modes.ranked', accent: '#ef4444', glow: 'rgba(239,68,68,0.55)' },
+  pve:    { assetKey: 'modeAgainstAi', labelKey: 'home.modes.pve',    accent: '#34d399', glow: 'rgba(52,211,153,0.5)' },
+  free:   { assetKey: 'modeFriendly',  labelKey: 'home.modes.free',   accent: '#f0b429', glow: 'rgba(240,180,41,0.5)' },
 }
 
 function BattleModeCard({ mode, ariaLabel, selected, locked, onSelect }: {
   mode: string; ariaLabel: string; selected: boolean; locked?: boolean; onSelect: () => void
 }) {
   const def = MODE_ASSET[mode] ?? MODE_ASSET.free
-  const [src, setSrc] = useState(def.src)
   return (
     <button disabled={locked} onClick={() => !locked && onSelect()}
       aria-label={ariaLabel} aria-pressed={selected} data-selected={selected || undefined} data-mode={mode}
@@ -153,20 +158,20 @@ function BattleModeCard({ mode, ariaLabel, selected, locked, onSelect }: {
       {selected && <span aria-hidden className="absolute" style={{ top: -4, left: '50%', width: 9, height: 9,
         transform: 'translateX(-50%) rotate(45deg)', background: 'linear-gradient(135deg,#ffe28c,#c5841a)',
         border: '1px solid rgba(255,235,180,0.9)', boxShadow: `0 0 8px ${def.glow}`, zIndex: 2 }} />}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" aria-hidden loading="eager"
-        onError={() => { if (src !== def.fallback) { console.warn('[BattleModeCard] trūksta asset:', src); setSrc(def.fallback) } }}
-        className="block w-full h-full pointer-events-none select-none"
-        style={{ objectFit: 'contain', objectPosition: 'center' }} />
+      <ArtModeCard assetKey={def.assetKey} labelKey={def.labelKey} accent={def.accent} />
     </button>
   )
 }
 
 export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; selected: string; onSelect: (k: string) => void }) {
-  // Preload — kad seni asset'ai nemirgėtų
+  // Preload — kad asset'ai nemirgėtų (tik jei tos kalbos asset'as egzistuoja)
+  const locale = useLocale()
   useEffect(() => {
-    for (const k of Object.keys(MODE_ASSET)) { const im = new Image(); im.src = MODE_ASSET[k].src }
-  }, [])
+    for (const k of Object.keys(MODE_ASSET)) {
+      const src = localizedAsset(MODE_ASSET[k].assetKey, locale)
+      if (src) { const im = new Image(); im.src = src }
+    }
+  }, [locale])
   return (
     <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, paddingTop: 4, margin: '0 -12px -8px' }}>
       {modes.map((m) => (
@@ -185,11 +190,11 @@ export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; 
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.22) 0%, rgba(8,6,14,0.48) 55%, rgba(8,6,14,0.82) 100%)' }} />
       <div className="relative flex flex-col" style={{ gap: 8, padding: '12px 14px 12px' }}>
         <div className="flex flex-col items-center" style={{ gap: 3 }}>
-          <img src={`${ASSET}/heading.png`} alt={t('home.playNow')} style={{ height: 'clamp(28px,5vh,38px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <ArtHeading assetKey="homeHeading" labelKey="home.playNow" height="clamp(28px,5vh,38px)" style={{ filter: 'drop-shadow(0 3px 8px #000)' }} />
           <span style={{ fontSize: 11, color: '#cfc6b8', textShadow: '0 1px 4px #000', letterSpacing: '0.02em' }}>{subtitle}</span>
         </div>
         <button onClick={onCta} className="rvn-press block w-full" style={{ lineHeight: 0, maxWidth: 300, margin: '2px auto 0', filter: `drop-shadow(0 4px 12px rgba(${GOLD},0.35))` }}>
-          <img src={`${ASSET}/cta2.png`} alt={t('home.startBattle')} className="w-full block" />
+          <ArtCta assetKey="homeCta" labelKey="home.startBattle" className="w-full" imgStyle={{ width: '100%', display: 'block' }} />
         </button>
         <div>{children}</div>
       </div>

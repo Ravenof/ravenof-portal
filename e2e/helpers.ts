@@ -115,3 +115,44 @@ export async function rawI18nKeys(page: Page): Promise<string[]> {
     return out
   })
 }
+
+// ── EN lokalizacijos auditas (Fazė 10) ──────────────────────────────────────
+
+/** Bendriniai LT žodžiai, kurių EN sąsajoje būti negali (be diakritikų irgi). */
+export const LT_UI_TERMS = [
+  'Atsiimta', 'Atsiimti', 'Turima', 'Naudojama', 'Naudoti', 'PIRKTI', 'Pirkti', 'ATPLĖŠTI', 'Atplėšti',
+  'Lygis', 'LYGIS', 'Nugarėlė', 'Sezono', 'Pasas', 'PASAS', 'Nemok', 'Aktyvi', 'AKTYVI', 'Redaguoti',
+  'kortų', 'pak.', 'Pradėti', 'Reitingas', 'Draugiška', 'Prieš AI', 'Žaisti', 'Kraunama', 'Saugoma',
+  'Nepakanka', 'Paimta', 'Turinys',
+]
+
+/** Leidžiamos LT reikšmės EN režime (su priežastimi). */
+export type LocalizationAllowlistEntry = {
+  value: string
+  reason: 'card-name-managed-separately' | 'deck-name-user-generated' | 'canonical-character-name' | 'player-generated-content'
+}
+
+/** Nė vienas matomas tekstas negali atrodyti kaip vertimo raktas. */
+export async function expectNoVisibleTranslationKeys(page: Page) {
+  const raw = await page.evaluate(() => document.body.innerText)
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean)
+  const looksLikeKey = (s: string) =>
+    /^[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+){1,}$/.test(s) ||          // QUESTS.DAILY.EASY
+    (/^[a-z][a-zA-Z0-9_-]*(?:\.[a-zA-Z0-9_-]+){1,}$/.test(s) && // quests.daily.easy
+     !/\.(png|jpg|jpeg|webp|svg|mp3|mp4|json|com|lt|io|dev)$/i.test(s) && !/^\d/.test(s))
+  const hits = lines.filter((l) => !l.includes(' ') && looksLikeKey(l))
+  expect(hits, `matomi vertimo raktai: ${hits.join(', ')}`).toHaveLength(0)
+}
+
+/** EN režime nelieka lietuviškos SĄSAJOS (DB turinio LT fallback – atskirai). */
+export async function expectNoLithuanianUi(page: Page, allow: LocalizationAllowlistEntry[] = []) {
+  const text = await page.evaluate(() => document.body.innerText)
+  const allowed = new Set(allow.map((a) => a.value))
+  const hits = LT_UI_TERMS.filter((w) => text.includes(w) && !allowed.has(w))
+  expect(hits, `EN režime likę LT sąsajos tekstai: ${hits.join(' | ')}`).toHaveLength(0)
+}
+
+/** Kiek kartų EN krito į LT (matomumas, ne blokada). */
+export async function i18nFallbackCount(page: Page): Promise<number> {
+  return page.evaluate(() => ((window as unknown as { __rvnI18nFallbacks?: unknown[] }).__rvnI18nFallbacks ?? []).length)
+}

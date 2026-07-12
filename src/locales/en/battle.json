@@ -415,7 +415,8 @@
     "levelN": "Level {{level}}",
     "forXp": "for {{xp}} XP:",
     "tapToSkip": "Tap to skip ›",
-    "skillDefault": "Skill"
+    "skillDefault": "Skill",
+    "faction": "Faction"
   },
   "layout": {
     "log": "📜 Battle log",

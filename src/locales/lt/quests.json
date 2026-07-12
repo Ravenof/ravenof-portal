@@ -1,7 +1,7 @@
 {
   "allClaimed": "✓ Viskas atsiimta — grįžk rytoj!",
   "claimAllN": "Atsiimti viską ({{count}})",
-  "claimFailed": "Nepavyko atsiimti.",
+  "claimFailed": "Nepavyko atsiimti atlygio.",
   "claimedN": "Atsiimta atlygių: {{count}}",
   "claiming": "Skiriama…",
   "daily": {
@@ -20,7 +20,9 @@
     "rerollCost": "50 sidabro",
     "easy": "Lengva",
     "medium": "Vidutinė",
-    "hard": "Sunki"
+    "hard": "Sunki",
+    "rerollFree": "Nemokamas perrinkimas",
+    "rerollPaid": "Perrinkti (50 Sidabro)"
   },
   "dayN": "{{day}} diena",
   "doneOf": "{{done}}/{{total}} įvykdyta",
@@ -72,9 +74,24 @@
     "pickTier": "Pasirink pakopą take.",
     "ready": "✓ Paruošta atsiimti",
     "title": "SEZONO KELIAS",
-    "xpInfo": "Kelio XP gauni už dienos užduotis 📅 · slink taką →"
+    "xpInfo": "Kelio XP gauni už dienos užduotis 📅 · slink taką →",
+    "levelLabel": "Lygis",
+    "levelN": "LYGIS {{level}}",
+    "passActive": "✓ Sezono pasas aktyvus",
+    "passInactive": "Sezono pasas neaktyvus",
+    "freeTrack": "Nemokamas takas",
+    "freeShort": "Nemok.",
+    "passShort": "Pasas",
+    "unlock": "Atrakinti",
+    "passShortFull": "Sezono pasas",
+    "passShortInactive": "Sezono pasas (neaktyvus)",
+    "tiersClaimed": "Atsiimtos {{count}} pakopos!"
   },
   "streakDays": "🔥 {{count}} d. serija",
   "title": "DIENOS UŽDUOTYS",
-  "today": "Šiandien"
+  "today": "Šiandien",
+  "claimed": "✓ Atsiimta",
+  "claim": "Atsiimti",
+  "claimNow": "Atsiimti!",
+  "claimOk": "Atlygis atsiimtas!"
 }

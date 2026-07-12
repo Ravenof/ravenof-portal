@@ -94,5 +94,6 @@
   "usernamePlaceholder": "Naudotojo vardas",
   "wantsToTrade": "{{name}} nori mainytis",
   "writeTo": "Rašyti {{name}}",
-  "yourStatus": "Tavo būsena:"
+  "yourStatus": "Tavo būsena:",
+  "friendsSubtitle": "Žinutės, mainai ir kvietimai į kovą"
 }

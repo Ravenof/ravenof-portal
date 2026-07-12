@@ -29,5 +29,21 @@
   },
   "starterInfo": "Cards are added to your collection and a ready-made deck is created automatically.",
   "title": "SHOP",
-  "purchased": "Purchased: {{name}}"
+  "purchased": "Purchased: {{name}}",
+  "owned": "✓ Owned",
+  "contents": "Contents",
+  "openPacks_one": "🎁 Open pack ({{count}})",
+  "openPacks_other": "🎁 Open packs ({{count}})",
+  "buyGold": "Buy · 🪙 {{price}}",
+  "buyRubies": "Buy · 💎 {{price}}",
+  "purchasedShort": "✓ Purchased",
+  "notEnoughGold": "Not enough gold",
+  "free": "FREE",
+  "claimFree": "Claim for free",
+  "cosmetics": {
+    "equip": "Equip",
+    "equippedTap": "✓ Equipped (tap to unequip)",
+    "equipped": "Equipped"
+  },
+  "claimedShort": "✓ Claimed"
 }

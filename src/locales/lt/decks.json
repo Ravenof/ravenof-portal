@@ -18,7 +18,10 @@
     "picked": "✓ PASIRINKTA",
     "ready": "✓ Paruošta",
     "readyBattle": "✓ Paruošta kovai",
-    "useGlobal": "Naudoti globalų"
+    "useGlobal": "Naudoti globalų",
+    "isActive": "★ AKTYVI",
+    "setActive": "★ NUSTATYTI AKTYVIA",
+    "deckAvatar": "Avataras kaladei"
   },
   "cardsShort_few": "{{count}} kortos",
   "cardsShort_one": "{{count}} korta",
@@ -89,5 +92,6 @@
     "empty": "Kaladė tuščia",
     "missingCards": "Trūksta {{count}} kortų kolekcijoje",
     "noActive": "Nepasirinkta aktyvi kaladė"
-  }
+  },
+  "edit": "✎ Redaguoti"
 }

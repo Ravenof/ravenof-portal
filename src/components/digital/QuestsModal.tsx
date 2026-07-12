@@ -52,10 +52,10 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
     setBusy(q.quest_key); playUiClick()
     const r = await claimQuest(q.quest_key)
     setBusy(null)
-    if ('error' in r) { playError(); setMsg('Nepavyko atsiimti atlygio.'); return }
+    if ('error' in r) { playError(); setMsg(t('quests.claimFailed')); return }
     playSuccess()
     setQuests((prev) => prev.map((x) => x.quest_key === q.quest_key ? { ...x, claimed: true } : x))
-    setMsg('Atlygis atsiimtas! ' + rewardParts(q.reward_payload).join(' · '))
+    setMsg(t('quests.claimOk') + rewardParts(q.reward_payload).join(' · '))
     onReward?.()
   }
 
@@ -137,12 +137,12 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
                     ))}
                   </div>
                 </>
-              ) : <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+              ) : <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
             </div>
 
             {/* CENTRAS: užduotys */}
             <div className="min-h-0 overflow-y-auto space-y-2">
-              {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+              {loading && <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
               {quests.map((q, qi) => {
                 const pct = Math.min(100, Math.round((q.progress / q.target) * 100))
                 const complete = q.progress >= q.target
@@ -184,7 +184,7 @@ export function QuestsModal({ onClose, onReward }: { onClose: () => void; onRewa
                           border: q.claimed ? '1px solid rgba(74,222,128,0.5)' : claimable ? '1px solid #ffeaa6' : '1px solid rgba(139,92,246,0.4)',
                           color: q.claimed ? '#4ade80' : claimable ? '#3a2406' : 'var(--text-muted)',
                         }}>
-                        {q.claimed ? '✓ Atsiimta' : busy === q.quest_key ? '…' : claimable ? 'Atsiimti!' : '🔒'}
+                        {q.claimed ? t('quests.claimed') : busy === q.quest_key ? '…' : claimable ? t('quests.claimNow') : '🔒'}
                       </motion.button>
                     </div>
                   </motion.div>

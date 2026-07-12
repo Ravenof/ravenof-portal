@@ -29,5 +29,22 @@
   },
   "starterInfo": "Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.",
   "title": "PARDUOTUVĖ",
-  "purchased": "Nupirkta: {{name}}"
+  "purchased": "Nupirkta: {{name}}",
+  "owned": "✓ Turima",
+  "contents": "Turinys",
+  "openPacks_one": "🎁 Atplėšti ({{count}})",
+  "openPacks_few": "🎁 Atplėšti ({{count}})",
+  "openPacks_other": "🎁 Atplėšti ({{count}})",
+  "buyGold": "Pirkti · 🪙 {{price}}",
+  "buyRubies": "Pirkti · 💎 {{price}}",
+  "purchasedShort": "✓ Nupirkta",
+  "notEnoughGold": "Nepakanka aukso",
+  "free": "NEMOKAMA",
+  "claimFree": "Paimti nemokamai",
+  "cosmetics": {
+    "equip": "Naudoti",
+    "equippedTap": "✓ Naudojama (spausk nuimti)",
+    "equipped": "Naudojama"
+  },
+  "claimedShort": "✓ Paimta"
 }

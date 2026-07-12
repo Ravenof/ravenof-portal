@@ -11,6 +11,7 @@ import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { QuestsModal } from './QuestsModal'
+import { ArtCta, ArtHeading } from './ui/LocalizedArt'
 import { SeasonPathModal } from './SeasonPathModal'
 import { CosmeticsModal } from './CosmeticsModal'
 import { WelcomeReward } from './WelcomeReward'
@@ -27,7 +28,7 @@ import { getDailyTasks, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { HubStyles, ModeSelector, ASSET, type HubMode } from './ui/HubKit'
 import { RvnIcon } from './ui/RvnIcon'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 
 // PASTABA (i18n): režimų PNG kortelės turi įkeptą LT pavadinimą — EN variantai bus
 // pridėti kartu su lokalizuotais kortų vaizdais (žr. I18N-AUDIT.md, Fazė 6).
@@ -44,6 +45,7 @@ const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(1
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
   const t = useT()
+  const tc = useContent()
   const MODES: HubMode[] = MODE_DEFS.map((m) => ({ ...m, label: t(m.labelKey) }))
   const [toast, setToast] = useState<string | null>(null)
   const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
@@ -146,7 +148,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
                 <div key={t.id} className="rounded-lg px-2 shrink-0" style={{ paddingTop: 'clamp(3px,0.8vh,6px)', paddingBottom: 'clamp(3px,0.8vh,6px)', background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(240,180,41,0.15)') }}>
                   <div className="flex items-center gap-1.5" style={{ marginBottom: 'clamp(2px,0.5vh,4px)' }}>
                     <span style={{ fontSize: 'clamp(9px,1.4vh,11px)' }}>{t.completed ? '✅' : '◻️'}</span>
-                    <span className="font-semibold flex-1 truncate" style={{ fontSize: 'clamp(10px,1.5vh,12px)', color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{t.title}</span>
+                    <span className="font-semibold flex-1 truncate" style={{ fontSize: 'clamp(10px,1.5vh,12px)', color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{tc('daily_task', t.templateId, 'title', t.title)}</span>
                     <span className="tabular-nums" style={{ fontSize: 'clamp(8px,1.2vh,10px)', color: 'var(--text-muted)' }}>{t.progress}/{t.target}</span>
                   </div>
                   <div className="rounded-full overflow-hidden" style={{ height: 'clamp(3px,0.7vh,6px)', background: 'rgba(255,255,255,0.08)' }}>
@@ -168,10 +170,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           style={{ border: '1px solid rgba(240,180,41,0.45)', gap: 'clamp(2px,0.9vh,9px)', padding: 'clamp(5px,1.6vh,13px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
           <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.24) 0%, rgba(8,6,14,0.5) 55%, rgba(8,6,14,0.82) 100%)' }} />
-          <img src={`${ASSET}/heading.png`} alt={t('home.playNow')} className="relative" style={{ height: 'clamp(16px,3.6vh,34px)', width: 'auto', filter: 'drop-shadow(0 3px 8px #000)' }} />
+          <ArtHeading assetKey="homeHeading" labelKey="home.playNow" height="clamp(16px,3.6vh,34px)" className="relative" />
           <span className="relative" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>{t('home.pickModeStart')}</span>
           <button onClick={startBattle} className="rvn-press relative block" style={{ lineHeight: 0, filter: 'drop-shadow(0 4px 12px rgba(240,180,41,0.35))' }}>
-            <img src={`${ASSET}/cta2.png`} alt={t('home.startBattle')} style={{ height: 'clamp(38px,8.5vh,74px)', width: 'auto', display: 'block' }} />
+            <ArtCta assetKey="homeCta" labelKey="home.startBattle" imgStyle={{ height: 'clamp(38px,8.5vh,74px)', width: 'auto', display: 'block' }} />
           </button>
           <div className="relative w-full" style={{ maxWidth: 460 }}>
             <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
@@ -233,7 +235,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
                 {!adState.loaded ? t('common.loading') : ad ? ad.name : t('home.pickDeck')}
               </div>
               <div className="text-[9px] truncate" style={{ color: av.valid ? '#4ade80' : '#fbbf24' }}>
-                {ad ? `${ad.faction ?? '—'} · ${t('home.cardsCount', { count: ad.cardCount })} · ` : ''}{av.valid ? t('home.readyForBattle') : `⚠ ${av.reason}`} <span style={{ color: 'var(--text-muted)' }}>· {t('home.change')}</span>
+                {ad ? `${ad.faction ? tc('faction', ad.factionId, 'name', ad.faction) : '—'} · ${t('home.cardsCount', { count: ad.cardCount })} · ` : ''}{av.valid ? t('home.readyForBattle') : `⚠ ${av.reason}`} <span style={{ color: 'var(--text-muted)' }}>· {t('home.change')}</span>
               </div>
             </button>
           )

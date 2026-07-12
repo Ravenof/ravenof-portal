@@ -107,8 +107,8 @@ export async function scheduleReturnReminders(): Promise<void> {
     }
     await LN.cancel?.({ notifications: [{ id: RID_DAILY }, { id: RID_BATTLE }] })
     await LN.schedule({ notifications: [
-      { id: RID_DAILY,  title: 'Ravenof', body: t('common.notif.daily'), schedule: { at: nextAt(19, 0), every: 'day', allowWhileIdle: true } },
-      { id: RID_BATTLE, title: 'Ravenof', body: t('common.notif.battle'), schedule: { at: nextAt(12, 30), every: 'day', allowWhileIdle: true } },
+      { id: RID_DAILY,  title: 'Ravenof', body: t('common.reminders.daily'), schedule: { at: nextAt(19, 0), every: 'day', allowWhileIdle: true } },
+      { id: RID_BATTLE, title: 'Ravenof', body: t('common.reminders.battle'), schedule: { at: nextAt(12, 30), every: 'day', allowWhileIdle: true } },
     ] })
   } catch { /* niekada nelaužia UI */ }
 }

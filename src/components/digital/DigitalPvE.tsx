@@ -11,7 +11,7 @@ import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
-import { useT, useContent } from '@/lib/i18n/react'
+import { useT, useContent, useGameContent } from '@/lib/i18n/react'
 
 // i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -25,6 +25,7 @@ const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(1
 // Frakcijų aprašai — vertimai battle.factionDesc.* (raktas = DB frakcijos pavadinimas)
 
 export function DigitalPvE() {
+  const gc = useGameContent()
   const t = useT()
   const tc = useContent()
   const [decks, setDecks] = useState<Deck[] | null>(null)
@@ -223,7 +224,7 @@ export function DigitalPvE() {
                         <span className="min-w-0 flex-1"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{d.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{d.author}</span></span>
                         {s ? <span style={{ color: '#86efac', fontSize: 13 }}>✓</span> : d.score > 0 ? <span className="shrink-0" style={{ fontSize: 9, color: '#fb923c' }}>🔥{d.score >= 1000 ? (d.score / 1000).toFixed(1) + 'K' : d.score}</span> : null}
                       </div>
-                      <span className="truncate" style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{d.faction ?? '—'}</span>
+                      <span className="truncate" style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{gc.faction(d.faction) || '—'}</span>
                     </button>
                   ) })}
                 </div>

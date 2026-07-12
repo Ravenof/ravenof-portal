@@ -57,7 +57,7 @@ export function Rewards({ bestRankStep, onChanged }: { bestRankStep: number; onC
               <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatRank(rw.requiredRankStep)} · {summarizePayload(rw.payload)}</p>
             </div>
             {isClaimed ? (
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ color: '#86efac', border: '1px solid rgba(34,197,94,0.4)' }}>Atsiimta</span>
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ color: '#86efac', border: '1px solid rgba(34,197,94,0.4)' }}>{t('quests.claimed')}</span>
             ) : reached ? (
               <button onClick={() => doClaim(rw.key)} disabled={busy === rw.key}
                 className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-40"

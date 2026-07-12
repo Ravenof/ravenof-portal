@@ -145,5 +145,12 @@
       "title": "Golden Summit",
       "desc": "Reach rank 1 Gold — the highest rank"
     }
+  },
+  "rewardsEarned": "Rewards earned: {{count}}",
+  "loginPrompt": "Sign in to play ranked battles.",
+  "medal": {
+    "bronze": "Bronze",
+    "silver": "Silver",
+    "gold": "Gold"
   }
 }

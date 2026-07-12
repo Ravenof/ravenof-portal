@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
-import { useT } from '@/lib/i18n/react'
+import { useT, useGameContent } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
 
 const GOLD = '240,180,41'
@@ -40,6 +40,7 @@ function timeAgo(ts: string): string {
 }
 
 export function DigitalCommunityDecks({ userId }: { userId: string }) {
+  const gc = useGameContent()
   const t = useT()
   const [decks, setDecks] = useState<CDeck[] | null>(null)
   const [myVotes, setMyVotes] = useState<Record<string, number>>({})
@@ -183,7 +184,7 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
               </div>
               <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>nuo {d.author}</p>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {d.faction && <span className="px-1.5 py-0.5 rounded" style={{ background: d.factionColor + '22', color: d.factionColor }}>{d.faction}</span>}
+                {d.faction && <span className="px-1.5 py-0.5 rounded" style={{ background: d.factionColor + '22', color: d.factionColor }}>{gc.faction(d.faction)}</span>}
                 <span className="px-1.5 py-0.5 rounded-full font-semibold" style={{ background: d.missing === 0 ? 'rgba(34,197,94,0.12)' : `rgba(${GOLD},0.08)`, color: d.missing === 0 ? '#86efac' : `rgba(${GOLD},0.85)`, border: `1px solid ${d.missing === 0 ? 'rgba(34,197,94,0.3)' : `rgba(${GOLD},0.2)`}` }}>{d.missing === 0 ? '✓ Turi visas' : `Turi ${d.have}/${d.total}`}</span>
               </div>
               <div className="flex gap-2 mt-2.5">

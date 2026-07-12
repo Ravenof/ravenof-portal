@@ -415,7 +415,8 @@
     "levelN": "Lygis {{level}}",
     "forXp": "už {{xp}} XP:",
     "tapToSkip": "Bakstelėk praleisti ›",
-    "skillDefault": "Gebėjimas"
+    "skillDefault": "Gebėjimas",
+    "faction": "Frakcija"
   },
   "layout": {
     "log": "📜 Mūšio žurnalas",

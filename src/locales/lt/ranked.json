@@ -146,5 +146,12 @@
       "title": "Aukso viršūnė",
       "desc": "Pasiek 1 Auksas — aukščiausią rangą"
     }
+  },
+  "rewardsEarned": "Atsiimta atlygių: {{count}}",
+  "loginPrompt": "Prisijunk, kad galėtum žaisti reitingo kovas.",
+  "medal": {
+    "bronze": "Bronza",
+    "silver": "Sidabras",
+    "gold": "Auksas"
   }
 }

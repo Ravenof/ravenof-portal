@@ -83,7 +83,7 @@ export function RewardSlot({ payload, state = 'preview', size = 30, max = 3 }: {
     <span className="inline-flex items-center gap-1.5" data-reward-slot data-reward-state={state}>
       {shown.map((it, i) => <RewardDisplay key={i} it={it} size={size} state={state} />)}
       {extra > 0 && <span className="font-bold" style={{ fontSize: size * 0.35, color: 'var(--text-muted)' }}>+{extra}</span>}
-      {payload.length === 0 && <RewardDisplay it={{ type: 'item', item_type: '__nežinomas__' }} size={size} state={state} />}
+      {payload.length === 0 && <RewardDisplay it={{ type: 'item', item_type: '__unknown__' }} size={size} state={state} />}
     </span>
   )
 }

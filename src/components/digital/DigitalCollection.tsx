@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCraftConfig, disenchantCard, craftCard, type CraftConfig } from '@/lib/gamification/craft'
-import { useT, useContent } from '@/lib/i18n/react'
+import { useT, useContent, useGameContent } from '@/lib/i18n/react'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { rarityColor } from '@/lib/digital/rarity'
@@ -47,6 +47,7 @@ const SEL: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px
 
 export function DigitalCollection() {
   const t = useT()
+  const gc = useGameContent()
   const tc = useContent()
   const [cards, setCards] = useState<Col[] | null>(null)
   const [loggedOut, setLoggedOut] = useState(false)
@@ -197,11 +198,11 @@ export function DigitalCollection() {
         </select>
         <select value={type} onChange={(e) => { playUiClick(); setType(e.target.value) }} aria-label={t('collection.type')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
           <option value="all">{t('collection.allTypes')}</option>
-          {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          {types.map((t) => <option key={t} value={t}>{gc.cardType(t)}</option>)}
         </select>
         <select value={rarity} onChange={(e) => { playUiClick(); setRarity(e.target.value) }} aria-label={t('collection.rarity')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
           <option value="all">{t('collection.allRarities')}</option>
-          {rarities.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
+          {rarities.map((r) => <option key={r.name} value={r.name}>{gc.rarity(r.name)}</option>)}
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label={t('collection.sortAria')} className="shrink-0" style={{ ...SEL, maxWidth: 130 }}>
           {SORT_DEFS.map((so) => <option key={so.key} value={so.key}>{t(so.labelKey)}</option>)}
@@ -343,6 +344,7 @@ function CardCell({ c, selected, width, onClick }: { c: Col; selected: boolean; 
 
 // ── Dešinės panelės kortos detalės (buvęs PreviewModal — dabar inline) ────────
 function CardDetail({ c, onChanged }: { c: Col; onChanged?: () => void }) {
+  const gc = useGameContent()
   const t = useT()
   const [bad, setBad] = useState(false)
   const [cfg, setCfg] = useState<CraftConfig | null>(null)
@@ -377,8 +379,8 @@ function CardDetail({ c, onChanged }: { c: Col; onChanged?: () => void }) {
         <span>🪙 {c.gold}</span>
         {c.atk != null && <span>⚔️ {c.atk}</span>}
         {c.hp != null && <span>❤️ {c.hp}</span>}
-        {c.faction && <span>· {c.faction}</span>}
-        {c.type && <span>· {c.type}</span>}
+        {c.faction && <span>· {gc.faction(c.faction)}</span>}
+        {c.type && <span>· {gc.cardType(c.type)}</span>}
       </div>
       {c.effect && <p className="leading-snug" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.effect}</p>}
       <p className="font-semibold" style={{ fontSize: 11, color: owned ? '#86efac' : '#fca5a5' }}>

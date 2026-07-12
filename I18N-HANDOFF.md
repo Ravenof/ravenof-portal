@@ -1,6 +1,23 @@
 # RAVENOF i18n — PERDAVIMO DOKUMENTAS (handoff)
 
-Data: 2026-07-12. **VISOS FAZĖS 1–9 BAIGTOS** (commit490–498). Liko tik faktinis EN turinio suvedimas (kortos, balsai, EN PNG). Šis failas — tęsimo instrukcija.
+Data: 2026-07-12. **FAZĖS 1–9 + EN AUDITAS (v502) BAIGTI** (commit490–502). Liko faktinis EN turinio suvedimas (kortos, balsai, EN PNG). Šis failas — tęsimo instrukcija.
+
+## EN AUDITAS (commit502) — kas rasta ir pataisyta
+- **RAKTŲ NUTEKĖJIMO ŠAKNIS:** `DailyTasksModal` rodė `DIFF_LABEL[t.difficulty].toUpperCase()` — `DIFF_LABEL` po Fazės 9 grąžina i18n RAKTĄ, o `.toUpperCase()` jį paverčia į matomą `QUESTS.DAILY.EASY`. Fix: `tt(DIFF_LABEL[...]).toUpperCase()`. Validatorius dabar gaudo tokį šabloną (`WARNING: galimas rakto nutekėjimas`).
+- **REGRESIJA:** commit498 metu `common.notif` (pranešimų raktai) buvo perrašytas priminimų raktais → NotificationsModal rodė raktus. Atstatyta; priminimai perkelti į `common.reminders.*`.
+- **BAKED-TEXT PNG:** naujas registras `src/lib/i18n/assets.ts` (`lt`/`en`/`bakedText`/`labelKey`) + `components/digital/ui/LocalizedArt.tsx`. EN režime LT paveikslėlis su įkeptu tekstu **nerodomas** — vietoje jo HTML/CSS tekstas (jokio teksto ant teksto). Trūkstami EN asset'ai matomi `npm run i18n:validate` → `CONTENT MISSING`.
+- **FRAKCIJOS / RETUMAI / KORTŲ TIPAI:** vienas šaltinis `src/lib/i18n/gameContent.ts` (`useGameContent()` → `gc.faction/rarity/cardType`). Komponentai turi tik LT vardą — modulis susieja LT vardą → **ID** → `content_translations`. Prijungta: Home, Aktyvi kaladė, DeckSelect, Kaladės, Bendruomenės kaladės, PvE, Kolekcija (filtrai + detalės).
+- **KOSMETIKA + PARDUOTUVĖ:** vienas įrašų šaltinis — parduotuvės prekei, kuri yra kosmetika, pirmiausia imamas `cosmetic` vertimas, tik tada `shop_item`.
+- **ATLYGIAI:** `lib/rewards/rewardVisuals.ts` ir `rewardLabel.ts` nebeturi LT — pavadinimai/aprašai/etiketės per `rewards.*` raktus (pluralai: `{{count}} pack(s)`).
+- **SEZONAS:** sezono pavadinimas iš DB → `content_translations` (owner_type `season`); UI raktai `quests.season.*`.
+- **MEDALIAI/RANGAI:** `MEDAL_LABEL_LT` → `medalLabel()` per `ranked.medal.*`.
+- **SERVER METADATA:** `generateMetadata()` + `getServerT()` (`src/lib/i18n/server.ts`) — puslapių titulai verčiami.
+- **EN→LT FALLBACK REGISTRAS:** `core.ts` fiksuoja kiekvieną EN→LT kritimą → `window.__rvnI18nFallbacks` (e2e) + dev `console.warn`.
+- **VALIDATORIUS:** `npm run i18n:validate` dabar rikiuoja pagal `ERROR / WARNING / CONTENT MISSING / INTENTIONAL EXCLUSION`; tikrina raktų parity, interpolaciją, **nežinomus raktus kode**, **rakto nutekėjimą**, **LT tekstą kode (įsk. žodžius be diakritikų)**, LT skaičių priesagas, nenaudojamus raktus ir **EN asset'ų pilnumą**.
+- **E2E:** `e2e/english-localization.spec.ts` (`npm run e2e:en`, 20 testų): Home, modalai, maršrutų crawl, viewport matrica (844×390 … 1920×1080), `expectNoVisibleTranslationKeys`, `expectNoLithuanianUi`, fallback skaitiklis, baked-asset patikra.
+- **DB:** migracija `20260834_content_translations_v2.sql` — EN kosmetikai (Įprasta/Nuodų/Žaibo/Žarijų/Šerkšno/Elektrinė nugarėlė, Nuotykių ieškotoja/-as), pakuotėms (Gėrio gynėjai, Tamsos aljansas), sezonams (PIRMASIS SEZONAS), starteriams + `content_translation_status` view.
+
+**Būsena po v502:** 21 namespace, **1586 raktai**; `i18n:validate` → ERROR 0, WARNING 2 (ikonų/spalvų map'ai), CONTENT MISSING 5 (EN PNG). `i18n:scan` → 8 sąmoningos eilutės.
 Pilnas originalus spec'as ir auditas: `I18N-AUDIT.md` (repo šaknyje). Atmintis: memory `ravenof-i18n`.
 
 ## KAS PADARYTA

@@ -45,4 +45,3 @@ export function rewardChip(it: LoginRewardItem): { icon: string; label: string }
   return { icon: '✦', label: '' }
 }
 
-export const LT_MONTHS = ['Sausio','Vasario','Kovo','Balandžio','Gegužės','Birželio','Liepos','Rugpjūčio','Rugsėjo','Spalio','Lapkričio','Gruodžio']

@@ -1,3 +1,4 @@
+import { getServerT } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
@@ -5,7 +6,10 @@ import { createPublicClient } from '@/lib/supabase/public'
 import { DigitalDecks } from '@/components/digital/DigitalDecks'
 import type { CardWithRelations, CollectionMap, DeckEntry, DeckVisibility } from '@/types'
 
-export const metadata = { title: 'Kaladės | Ravenof Digital' }
+export async function generateMetadata() {
+  const t = await getServerT()
+  return { title: `${t('navigation.decks')} | Ravenof Digital` }
+}
 
 type Tab = 'builder' | 'my' | 'community'
 type SearchParams = Promise<{ tab?: string; deck?: string }>

@@ -74,7 +74,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const buyShop = useCallback(async (it: ShopItem, cur: 'silver' | 'rubies') => {
     if (busy) return; setBusy(true); playUiClick()
     const r = await purchaseShopItem(it.id, cur)
-    if (r && 'ok' in r) { flash(t('shop.purchased', { name: tc('shop_item', it.slug, 'name', it.name) })); onPurchased?.(); refresh() }
+    if (r && 'ok' in r) { flash(t('shop.purchased', { name: shopName(it) })); onPurchased?.(); refresh() }
     else if (r && 'error' in r) flash(PURCHASE_ERR_KEY[r.error] ? t(PURCHASE_ERR_KEY[r.error]) : t('shop.buyFailed'), true)
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,6 +125,19 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   }
   const ownedShopItem = (it: ShopItem) => { const id = cosIdOf(it); return id ? cosOwned.has(id) : false }
 
+  // Vienas vertimų šaltinis: jei prekė = kosmetika, imam KOSMETIKOS įrašą
+  // (tas pats, kurį rodo Kosmetikos kolekcija), tik tada shop_item.
+  const shopName = (it: ShopItem) => {
+    const cid = cosIdOf(it)
+    const base = tc('shop_item', it.slug, 'name', it.name)
+    return cid ? tc('cosmetic', cid, 'name', base) : base
+  }
+  const shopDesc = (it: ShopItem) => {
+    const cid = cosIdOf(it)
+    const base = tc('shop_item', it.slug, 'description', it.description)
+    return cid ? tc('cosmetic', cid, 'description', base) : base
+  }
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -159,7 +172,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
                 className="shrink-0 block w-full px-2 py-2 rounded-xl font-bold text-center"
                 style={{ fontSize: 10, background: 'rgba(251,146,60,0.18)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>
-                🎁 Atplėšti ({packInv})
+                {t('shop.openPacks', { count: packInv })}
               </Link>
             )}
           </div>
@@ -197,7 +210,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                       {s.imageUrl ? <SmartImg src={s.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🃏</span>}
                       <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
                         <span className="block truncate font-bold" style={{ fontSize: 10, color: '#fff' }}>{tc('starter_deck', s.id, 'name', s.name)}</span>
-                        <span className="block font-bold" style={{ fontSize: 9.5, color: s.claimed ? '#4ade80' : s.priceGold > 0 ? 'var(--gold)' : '#86efac' }}>{s.claimed ? '✓ Paimta' : s.priceGold > 0 ? `🪙 ${s.priceGold}` : 'NEMOKAMA'}</span>
+                        <span className="block font-bold" style={{ fontSize: 9.5, color: s.claimed ? '#4ade80' : s.priceGold > 0 ? 'var(--gold)' : '#86efac' }}>{s.claimed ? '✓ Paimta' : s.priceGold > 0 ? `🪙 ${s.priceGold}` : t('shop.free')}</span>
                       </span>
                     </button>
                   )
@@ -230,10 +243,10 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                               : (vis.emoji && <span className="text-xl">{vis.emoji}</span>)}
                           </span>
                         )}
-                        <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('shop_item', it.slug, 'name', it.name)}</span>
+                        <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{shopName(it)}</span>
                         {!vis && <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => <span key={i}><RewardChip it={p} size={13} textSize={9.5} /></span>)}</span>}
                         <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
-                          {owned ? <span style={{ color: '#4ade80' }}>✓ Turima</span> : <>
+                          {owned ? <span style={{ color: '#4ade80' }}>{t('shop.owned')}</span> : <>
                             {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
                             {it.prices.rubies != null && <span style={{ color: '#fca5a5' }}>💎 {it.prices.rubies}</span>}
                             {it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null && <span style={{ color: 'var(--text-muted)' }}>€{it.prices.real_money.toFixed(2)}</span>}
@@ -263,7 +276,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                 <button onClick={() => buyDeal(effDeal)} disabled={busy || effDeal.bought || bal.silver < effDeal.priceGold}
                   className="rvn-press shrink-0 mt-2 w-full rounded-xl font-extrabold disabled:opacity-45"
                   style={{ minHeight: 42, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: effDeal.bought ? 'rgba(74,222,128,0.15)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: effDeal.bought ? '1px solid rgba(74,222,128,0.5)' : 'none', color: effDeal.bought ? '#86efac' : '#3a2406' }}>
-                  {busy ? '…' : effDeal.bought ? '✓ Nupirkta' : `Pirkti · 🪙 ${effDeal.priceGold}`}
+                  {busy ? '…' : effDeal.bought ? t('shop.purchasedShort') : t('shop.buyGold', { price: effDeal.priceGold })}
                 </button>
               </>
             ) : effStarter ? (
@@ -281,7 +294,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                 <button onClick={() => claimStarter(effStarter)} disabled={busy || effStarter.claimed || (effStarter.priceGold > 0 && bal.silver < effStarter.priceGold)}
                   className="rvn-press shrink-0 mt-2 w-full rounded-xl font-extrabold disabled:opacity-45"
                   style={{ minHeight: 42, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: effStarter.claimed ? 'rgba(74,222,128,0.15)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: effStarter.claimed ? '1px solid rgba(74,222,128,0.5)' : 'none', color: effStarter.claimed ? '#86efac' : '#3a2406' }}>
-                  {busy ? '…' : effStarter.claimed ? '✓ Paimta' : effStarter.priceGold > 0 ? `Pirkti · 🪙 ${effStarter.priceGold}` : 'Paimti nemokamai'}
+                  {busy ? '…' : effStarter.claimed ? t('shop.claimedShort') : effStarter.priceGold > 0 ? t('shop.buyGold', { price: effStarter.priceGold }) : t('shop.claimFree')}
                 </button>
               </>
             ) : effShop ? (
@@ -302,10 +315,10 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                         : (vis.emoji && <span style={{ fontSize: 46 }}>{vis.emoji}</span>)}
                     </span>
                   ) : null })()}
-                  <p className="font-bold leading-tight" style={{ fontSize: 14, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effShop.name}</p>
-                  {effShop.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{effShop.description}</p>}
+                  <p className="font-bold leading-tight" style={{ fontSize: 14, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{shopName(effShop)}</p>
+                  {shopDesc(effShop) && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{shopDesc(effShop)}</p>}
                   <div>
-                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Turinys</p>
+                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{t('shop.contents')}</p>
                     <div className="flex flex-col gap-1">
                       {effShop.payload.map((p, i) => (
                         <span key={i} className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}><RewardChip it={p} size={16} textSize={10.5} /></span>
@@ -321,13 +334,13 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                   {!ownedShopItem(effShop) && effShop.prices.silver != null && (
                     <button onClick={() => buyShop(effShop, 'silver')} disabled={busy || bal.silver < effShop.prices.silver}
                       className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406', fontFamily: 'var(--rvn-font-display)' }}>
-                      {busy ? '…' : `Pirkti · 🪙 ${effShop.prices.silver}`}
+                      {busy ? '…' : t('shop.buyGold', { price: effShop.prices.silver })}
                     </button>
                   )}
                   {!ownedShopItem(effShop) && effShop.prices.rubies != null && (
                     <button onClick={() => buyShop(effShop, 'rubies')} disabled={busy || bal.rubies < effShop.prices.rubies}
                       className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {busy ? '…' : `Pirkti · 💎 ${effShop.prices.rubies}`}
+                      {busy ? '…' : t('shop.buyRubies', { price: effShop.prices.rubies })}
                     </button>
                   )}
                   {effShop.prices.real_money != null && effShop.prices.silver == null && effShop.prices.rubies == null && (

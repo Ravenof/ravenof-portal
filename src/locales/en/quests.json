@@ -1,7 +1,7 @@
 {
   "allClaimed": "✓ All claimed — come back tomorrow!",
   "claimAllN": "Claim all ({{count}})",
-  "claimFailed": "Could not claim.",
+  "claimFailed": "Failed to claim the reward.",
   "claimedN": "Rewards claimed: {{count}}",
   "claiming": "Claiming…",
   "daily": {
@@ -20,7 +20,9 @@
     "rerollCost": "50 silver",
     "easy": "Easy",
     "medium": "Medium",
-    "hard": "Hard"
+    "hard": "Hard",
+    "rerollFree": "Free reroll",
+    "rerollPaid": "Reroll (50 Silver)"
   },
   "dayN": "Day {{day}}",
   "doneOf": "{{done}}/{{total}} completed",
@@ -72,9 +74,24 @@
     "pickTier": "Pick a tier on the track.",
     "ready": "✓ Ready to claim",
     "title": "SEASON PATH",
-    "xpInfo": "Earn path XP from daily quests 📅 · scroll the track →"
+    "xpInfo": "Earn path XP from daily quests 📅 · scroll the track →",
+    "levelLabel": "Level",
+    "levelN": "LEVEL {{level}}",
+    "passActive": "✓ Season pass active",
+    "passInactive": "Season pass inactive",
+    "freeTrack": "Free track",
+    "freeShort": "Free",
+    "passShort": "Pass",
+    "unlock": "Unlock",
+    "passShortFull": "Season pass",
+    "passShortInactive": "Season pass (inactive)",
+    "tiersClaimed": "{{count}} tier(s) claimed!"
   },
   "streakDays": "🔥 {{count}}-day streak",
   "title": "DAILY QUESTS",
-  "today": "Today"
+  "today": "Today",
+  "claimed": "✓ Claimed",
+  "claim": "Claim",
+  "claimNow": "Claim!",
+  "claimOk": "Reward claimed!"
 }

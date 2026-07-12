@@ -92,6 +92,8 @@
     "wrongAction": "Not the right action this time — follow the highlight.",
     "lessonDone": "Lesson complete!",
     "continue": "Continue →",
-    "alreadyRewarded": "You replayed the lesson – the reward was already granted."
+    "alreadyRewarded": "You replayed the lesson – the reward was already granted.",
+    "loadingLesson": "Loading the lesson…",
+    "noStarters": "No starter decks available."
   }
 }

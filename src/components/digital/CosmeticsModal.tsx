@@ -102,7 +102,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
 
             {/* CENTRAS: grid */}
             <div className="min-h-0 overflow-y-auto">
-              {!state && <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>}
+              {!state && <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>}
               <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
                 {items.map((c) => {
                   const owned = (state?.owned ?? []).includes(c.id)
@@ -123,7 +123,7 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                           : (c.emoji && <span className="text-2xl">{c.emoji}</span>)}
                       </span>
                       <span className="w-full text-center truncate font-bold" style={{ fontSize: 9, color: '#f3ead3' }}>{tc('cosmetic', c.id, 'name', c.name)}</span>
-                      <span style={{ fontSize: 8.5, fontWeight: 800, color: owned ? (equipped ? '#4ade80' : '#93c5fd') : 'var(--gold)' }}>{equipped ? '✓ Naudojama' : owned ? 'Turima' : `🪙 ${c.priceGold}`}</span>
+                      <span style={{ fontSize: 8.5, fontWeight: 800, color: owned ? (equipped ? '#4ade80' : '#93c5fd') : 'var(--gold)' }}>{equipped ? t('shop.cosmetics.equipped') : owned ? t('shop.owned') : `🪙 ${c.priceGold}`}</span>
                     </button>
                   )
                 })}
@@ -161,13 +161,13 @@ export function CosmeticsModal({ gold, onClose, onSpent }: { gold: number; onClo
                       <button onClick={() => doEquip(selected)} disabled={busy === selected.id}
                         className="rvn-press w-full rounded-xl font-bold disabled:opacity-50"
                         style={{ minHeight: 42, fontSize: 12, fontFamily: 'var(--rvn-font-display)', background: selEquipped ? 'rgba(74,222,128,0.18)' : 'rgba(96,165,250,0.22)', border: `1px solid ${selEquipped ? 'rgba(74,222,128,0.6)' : 'rgba(96,165,250,0.5)'}`, color: selEquipped ? '#4ade80' : '#93c5fd' }}>
-                        {selEquipped ? '✓ Naudojama (spausk nuimti)' : 'Naudoti'}
+                        {selEquipped ? t('shop.cosmetics.equippedTap') : t('shop.cosmetics.equip')}
                       </button>
                     ) : (
                       <button onClick={() => doBuy(selected)} disabled={busy === selected.id || localGold < selected.priceGold}
                         className="rvn-press w-full rounded-xl font-bold disabled:opacity-40"
                         style={{ minHeight: 42, fontSize: 12, fontFamily: 'var(--rvn-font-display)', background: localGold < selected.priceGold ? 'rgba(80,80,80,0.2)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: localGold < selected.priceGold ? '1px solid rgba(255,255,255,0.15)' : '1px solid #ffeaa6', color: localGold < selected.priceGold ? 'var(--text-muted)' : '#3a2406' }}>
-                        {localGold < selected.priceGold ? 'Nepakanka aukso' : `Pirkti 🪙 ${selected.priceGold}`}
+                        {localGold < selected.priceGold ? t('shop.notEnoughGold') : t('shop.buyGold', { price: selected.priceGold })}
                       </button>
                     )}
                   </div>
