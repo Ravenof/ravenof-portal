@@ -616,6 +616,7 @@ type SelectMode =
   | { kind: 'sacrifice'; cardUid: string; picked: string[] }
   | { kind: 'discard' }
   | { kind: 'spellMulti'; uid: string; need: number; picked: TargetRef[] }
+  | { kind: 'lastwish'; need: number; picked: TargetRef[] }
   | null
 
 /** Grąžina sužaidimo/iškvietimo mapping'ą, kuriam žaidėjas turi pasirinkti taikinį (arba null). */
@@ -996,6 +997,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const summonBlocks = !!game?.pendingSummon
   const choiceBlocks = !!game?.pendingChoice
   const copyBlocks = !!game?.pendingCopy
+  const lastwishBlocks = !!game?.pendingLastwish
   const returnBlocks = !!game?.pendingReturn
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
@@ -1743,7 +1745,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!game || !step?.require || game.active !== 'you' || game.winner) return
     if (step.require === 'play-unit' || step.require === 'any-play') {
       const playable = game.you.hand.some((c) =>
-        c.type !== 'curse' && game.you.gold >= c.gold &&
+        c.type !== 'curse' && game.you.gold >= effectiveCost(game, 'you', c) &&
         (c.type !== 'unit' || game.you.units.some((u) => u === null)) &&
         (c.type !== 'champion'))
       if (!playable) {
@@ -1778,7 +1780,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || returnBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -1805,7 +1807,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -2086,6 +2088,22 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     })
   }, [isGuest, pushToast, tutorial])
 
+  // Paskutinis noras su rankiniu taikiniu: įjungiam taikinio pasirinkimo režimą.
+  // Jei tinkamų taikinių nebėra (pvz. visi jau žuvo) – auto-resolve.
+  useEffect(() => {
+    const pl = game?.pendingLastwish
+    if (!pl || pl.side !== 'you' || game?.winner) return
+    if (select?.kind === 'lastwish') return
+    const m = pl.mappings[0]
+    if (!m) return
+    const avail = spellTargetRefs(game!, 'you', m)
+    if (avail.length === 0) { doAction({ t: 'resolveLastwish', targets: [] }); return }
+    const need = Math.min(Math.max(1, m.hitCount ?? 1), avail.length)
+    setSelect({ kind: 'lastwish', need, picked: [] })
+    pushToast(t('battle.game.toastLastwishTarget', { card: pl.cardName, need }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.pendingLastwish, game?.winner])
+
   // PvP: užkraunam varžovo viešą profilį + viešas kalades
   useEffect(() => {
     if (!net?.opponentId) return
@@ -2176,7 +2194,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const hasBoardSac = game!.you.units.some((u) => u && !u.isChampion)
       const handSacCount = game!.you.hand.filter((h) => h.uid !== c.uid).length
       if (!hasBoardSac && handSacCount < 2) { pushToast(t('battle.game.toastChampionTribute')); return }
-      if (game!.you.gold < c.gold) { pushToast(t('battle.game.toastNotEnoughGold', { cost: c.gold, gold: game!.you.gold })); return }
+      { const cNow = effectiveCost(game!, 'you', c); if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); return } }
       playUiClick()
       setSelect({ kind: 'sacrifice', cardUid: c.uid, picked: [] })
       pushToast(t('battle.game.toastTributeHint'))
@@ -2185,7 +2203,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const selMap = selectionMappingFor(c)
     const legacyNeedsTarget = (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
     if (selMap || legacyNeedsTarget) {
-      if (game!.you.gold < c.gold) { pushToast(t('battle.game.toastNotEnoughGold', { cost: c.gold, gold: game!.you.gold })); return }
+      const cNow = effectiveCost(game!, 'you', c)
+      if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); return }
       // Jei mapping reikalauja taikinio, bet lauke nėra galimų taikinių – tiesiog sužaidžiam (auto).
       if (selMap && resolveTargets(game!, 'you', selMap.target).length === 0) {
         doAction({ t: 'play', actor: 'you', uid: c.uid }); setSelect(null); return
@@ -2207,7 +2226,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }
 
   const onMyUnitClick = (u: BoardUnit) => {
-    if (!myTurn || popupBlocks) return
+    if (popupBlocks) return
+    if (select?.kind === 'lastwish') { toggleSpellTarget({ kind: 'unit', side: 'you', uid: u.uid }); return }
+    if (!myTurn) return
     if (Date.now() - dragEndRef.current < 350) return
     if (select?.kind === 'sacrifice') {
       if (u.isChampion) { pushToast(t('battle.game.toastCannotSacChampion')); return }
@@ -2243,7 +2264,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const same = select.picked && targetRefKey(select.picked) === targetRefKey(tr)
       playUiClick()
       setSelect({ ...select, picked: same ? null : tr })
-    } else if (select?.kind === 'spellMulti') {
+    } else if (select?.kind === 'spellMulti' || select?.kind === 'lastwish') {
       const key = targetRefKey(tr)
       const exists = select.picked.some((p) => targetRefKey(p) === key)
       if (exists) { playUiClick(); setSelect({ ...select, picked: select.picked.filter((p) => targetRefKey(p) !== key) }); return }
@@ -2263,11 +2284,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       playUiClick()
       doAction({ t: 'play', actor: 'you', uid: select.uid, targets: select.picked })
       setSelect(null)
+    } else if (select?.kind === 'lastwish') {
+      if (select.picked.length !== select.need) { pushToast(t('battle.game.toastPickNTargets', { need: select.need })); return }
+      playSuccess()
+      doAction({ t: 'resolveLastwish', targets: select.picked })
+      setSelect(null)
     }
   }
 
   const onTargetClick = (t: TargetRef) => {
-    if (!myTurn || popupBlocks) return
+    if (popupBlocks) return
+    if (select?.kind === 'lastwish') { toggleSpellTarget(t); return }
+    if (!myTurn) return
     if (Date.now() - dragEndRef.current < 350) return
     if (select?.kind === 'attacker') {
       const uid = select.uid
@@ -2347,17 +2375,23 @@ doAction({ t: 'endTurn', actor: 'you' })
       if (sm) for (const t of spellTargetRefs(game, 'you', sm)) s.add(t.kind + ':' + ('uid' in t ? t.uid : t.side))
       return s
     }
+    if (select.kind === 'lastwish') {
+      const m = game.pendingLastwish?.mappings[0]
+      const s = new Set<string>()
+      if (m) for (const t of spellTargetRefs(game, 'you', m)) s.add(targetRefKey(t))
+      return s
+    }
     return new Set<string>()
   }, [game, select, drag])
 
   // Pažymėtų (✓) taikinių raktai burto select metu
   const pickedKeys = useMemo(() => {
     if (select?.kind === 'spell') return new Set<string>(select.picked ? [targetRefKey(select.picked)] : [])
-    if (select?.kind === 'spellMulti') return new Set<string>(select.picked.map(targetRefKey))
+    if (select?.kind === 'spellMulti' || select?.kind === 'lastwish') return new Set<string>(select.picked.map(targetRefKey))
     return new Set<string>()
   }, [select])
   const canConfirmTargets = select?.kind === 'spell' ? !!select.picked
-    : select?.kind === 'spellMulti' ? select.picked.length === select.need : false
+    : (select?.kind === 'spellMulti' || select?.kind === 'lastwish') ? select.picked.length === select.need : false
 
   // ── Drag & drop valdiklis (Hearthstone tipo: tempk kortą ant lentos) ──
   const elToTargetRef = (el: Element | null): TargetRef | null => {
@@ -2783,7 +2817,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-0.5">
           {n === 0 ? <span className="text-[10px] self-center" style={{ color: 'var(--text-muted)' }}>{t('battle.game.handEmpty')}</span> : game.you.hand.map((c, i) => {
             const off = i - (n - 1) / 2
-            const afford = game.you.gold >= c.gold
+            const afford = game.you.gold >= effectiveCost(game, 'you', c)
             const isDragging = drag?.uid === c.uid && dragMovedRef.current
             return (
               <div key={c.uid} data-hand-card={c.name}
@@ -2802,7 +2836,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-1" style={{ paddingTop: 28 }}>
         <AnimatePresence>
           {game.you.hand.map((c, i) => {
-            const afford = game.you.gold >= c.gold
+            const afford = game.you.gold >= effectiveCost(game, 'you', c)
             const isDragging = drag?.uid === c.uid && dragMovedRef.current
             const n = game.you.hand.length
             const off = i - (n - 1) / 2
@@ -2945,6 +2979,11 @@ doAction({ t: 'endTurn', actor: 'you' })
       return `✨ ${eff}${val}${cnt}`
     }
     if (select.kind === 'sacrifice') return `⚜ Tribute (${select.picked.length}/2)`
+    if (select.kind === 'lastwish') {
+      const m = game.pendingLastwish?.mappings[0]
+      const eff = m ? (EFFECT_TYPES.find((e) => e.value === m.effect)?.label ?? 'Efektas') : 'Paskutinis noras'
+      return `🕯 ${eff} (${select.picked.length}/${select.need})`
+    }
     return ''
   }, [select, game])
 
@@ -3200,7 +3239,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 {game.you.hand.map((c, i) => {
                   const n = game.you.hand.length
                   const off = i - (n - 1) / 2
-                  const afford = game.you.gold >= c.gold
+                  const afford = game.you.gold >= effectiveCost(game, 'you', c)
                   const isDragging = drag?.uid === c.uid && dragMovedRef.current
                   const vw = typeof window !== 'undefined' ? window.innerWidth : 400
                   const step = Math.min(handW * 0.96, (vw - handW - 10) / Math.max(1, n - 1))  // tarpas tarp kortų – kad ~10 tilptų ekrane
@@ -3319,7 +3358,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-2" style={{ paddingTop: 40 }}>
                 <AnimatePresence>
                   {game.you.hand.map((c, i) => {
-                    const afford = game.you.gold >= c.gold
+                    const afford = game.you.gold >= effectiveCost(game, 'you', c)
                     const isDragging = drag?.uid === c.uid && dragMovedRef.current
                     const n = game.you.hand.length
                     const off = i - (n - 1) / 2
@@ -4055,8 +4094,8 @@ doAction({ t: 'endTurn', actor: 'you' })
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
               className="rounded-2xl p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center"
               style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(167,139,250,0.5)' }}>
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>{t('battle.game.copyTitle')}</p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.copyText')}</p>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : t('battle.game.copyTitle')}</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : t('battle.game.copyText')}</p>
               <div className="flex flex-wrap gap-2 justify-center mb-1">
                 {game.pendingCopy.options.map((o) => (
                   <button key={o.card.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveCopy', uid: o.card.uid }) }}
@@ -4160,18 +4199,20 @@ doAction({ t: 'endTurn', actor: 'you' })
       </AnimatePresence>
 
       {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
-      {(select?.kind === 'spell' || select?.kind === 'spellMulti') && (
+      {(select?.kind === 'spell' || select?.kind === 'spellMulti' || select?.kind === 'lastwish') && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[121] flex items-center gap-2">
           <div className="px-4 py-2 rounded-full text-sm font-bold pointer-events-none"
             style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-            🎯 {select.kind === 'spellMulti' ? t('battle.game.targets', { picked: select.picked.length, need: select.need }) : (select.picked ? t('battle.game.targetPicked') : t('battle.game.pickTarget'))}
+            {select.kind === 'lastwish'
+              ? <>🕯 {t('battle.game.lastwishTargets', { card: game?.pendingLastwish?.cardName ?? '', picked: select.picked.length, need: select.need })}</>
+              : <>🎯 {select.kind === 'spellMulti' ? t('battle.game.targets', { picked: select.picked.length, need: select.need }) : (select.picked ? t('battle.game.targetPicked') : t('battle.game.pickTarget'))}</>}
           </div>
           <button onClick={confirmSpellTargets} disabled={!canConfirmTargets}
             className="px-4 py-2 rounded-full text-sm font-extrabold"
             style={{ background: canConfirmTargets ? 'linear-gradient(145deg,#16a34a,#15803d)' : 'rgba(40,40,46,0.8)', border: '1px solid ' + (canConfirmTargets ? '#4ade80' : 'rgba(255,255,255,0.15)'), color: canConfirmTargets ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: canConfirmTargets ? '0 0 16px rgba(34,197,94,0.55)' : 'none', cursor: canConfirmTargets ? 'pointer' : 'not-allowed' }}>
             ✓ Gerai
           </button>
-          <button onClick={() => { playUiClick(); setSelect(null) }}
+          <button onClick={() => { playUiClick(); if (select?.kind === 'lastwish') doAction({ t: 'resolveLastwish', targets: [] }); setSelect(null) }}
             className="px-3 py-2 rounded-full text-sm font-bold"
             style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>
             ✕

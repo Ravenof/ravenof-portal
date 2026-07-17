@@ -69,6 +69,8 @@ export type EffectType =
   | 'resurrectSelf'
   | 'takeControl'
   | 'forceCurseActivation'
+  | 'activateLastwishFromGraveyard'
+  | 'turnCostDiscount'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean; group: string }[] = [
   // ── Kova ──
@@ -114,6 +116,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'moveToGraveyard',     label: 'Į kapinyną',                 needsValue: false, group: 'Kaladė ir kapinynas' },
   { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'copyEffectFromGraveyard', label: 'Kopijuoti efektą iš kapinyno padaro (pop-up)', needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'activateLastwishFromGraveyard', label: 'Aktyvuoti kapinyno padaro Paskutinį norą (pop-up); jei pažymėta – šios kortos Paskutinis noras pakartoja tą patį efektą', needsValue: false, group: 'Kaladė ir kapinynas' },
   { value: 'revealOwnDeck',       label: 'Parodyk N savo kaladės viršaus', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'triggerCurse',        label: 'Įmaišyti prakeiksmų į kaladę (aktyvuojasi ištraukus)', needsValue: true, group: 'Kaladė ir kapinynas' },
@@ -126,6 +129,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'turnCostDiscount',    label: 'Šį ėjimą VISOS kortos kainuoja X pigiau (bet ne pigiau nei Y)', needsValue: true, group: 'Auksas ir kainos' },
   // ── Specialūs ──
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false, group: 'Specialūs' },
   { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false, group: 'Specialūs' },
@@ -350,6 +354,9 @@ export type EffectMapping = {
    *   'startOfNextTurn'  – savininko kito ėjimo pradžioje
    */
   resurrectTiming?: 'immediate' | 'endOfTurn' | 'startOfNextTurn'
+  resurrectAtkMod?: number          // resurrectSelf: ATK pokytis prisikėlus (+/−)
+  resurrectHpMod?: number           // resurrectSelf: HP pokytis prisikėlus (+/−; taikoma ir su resurrectHp1)
+  resurrectStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // resurrectSelf: būsenos, uždedamos prisikėlus
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
   chooseBy?: 'caster' | 'opponent'  // chooseEffect: kas renkasi – kerėtojas (default) ar priešininkas/auka (pvz. prakeiksmui)
@@ -360,10 +367,12 @@ export type EffectMapping = {
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
   tutorCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // tutorToHand: tik šio kortos tipo (padaras/burtas/čempionas/artefaktas/laukas)
   tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
-  copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard: iš kurio kapinyno rinktis (default any)
+  copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard / activateLastwishFromGraveyard: iš kurio kapinyno rinktis (default any)
+  glwRepeatOnDeath?: boolean        // activateLastwishFromGraveyard: šios kortos Paskutinis noras – aktyvuoti tą patį efektą dar kartą (default: taip)
+  costFloor?: number                // turnCostDiscount: minimali kaina Y (nuolaida nenuleis žemiau šios ribos)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   // ── Nauji card-mapping praplėtimai ──
-  buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'  // buffAttack/buffHealth: laikinas boost; takeControl: valdymo trukmė
+  buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn' | 'thisAttack'  // buffAttack/buffHealth: laikinas boost ('thisAttack' – tik šios atakos metu, onAttack); takeControl: valdymo trukmė
   cleanseStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // cleanse: kurias būsenas nuimti; TUŠČIA = visos NEIGIAMOS
   reviveDestroyedTarget?: boolean   // then po destroy/onDeath: prikelti BŪTENT sunaikintą taikinį (ne atsitiktinį)
   reviveToSide?: 'own' | 'enemy'    // kam atitenka prikeltas padaras (default own)
@@ -413,6 +422,8 @@ export type PassiveAuraConfig = {
   auraSilence?: boolean                // paveikti padarai nutildomi (efektai/raktažodžiai blokuojami)
   auraCantAttack?: boolean             // paveikti padarai negali atakuoti
   auraKeywords?: ('taunt' | 'shield' | 'stealth' | 'sprint')[]  // suteikiami raktažodžiai
+  auraStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned')[]  // paveikti padarai NUOLAT turi šias būsenas, kol aura aktyvi
+  auraFromGraveyardOnly?: boolean      // aura veikia TIK padarus, iškviestus/prikeltus iš kapinyno
   auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
   // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──
   advAttack?: 'advantage' | 'disadvantage'   // paveiktų padarų ATAKŲ ŽMK traukimas

@@ -416,7 +416,11 @@
     "forXp": "for {{xp}} XP:",
     "tapToSkip": "Tap to skip ›",
     "skillDefault": "Skill",
-    "faction": "Faction"
+    "faction": "Faction",
+    "toastLastwishTarget": "Last Wish \"{{card}}\": choose {{need}} target(s)!",
+    "lastwishTargets": "\"{{card}}\" Last Wish: {{picked}}/{{need}}",
+    "glwTitle": "Last Wish from the graveyard",
+    "glwText": "Choose a graveyard creature – its Last Wish will be activated immediately."
   },
   "layout": {
     "log": "📜 Battle log",

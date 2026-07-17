@@ -285,7 +285,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -297,7 +297,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -379,6 +379,26 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   </label>
                 ))}
               </div>
+              <div className="flex flex-wrap items-center gap-3 text-[11px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+                <span title="Paveikti padarai NUOLAT turi šias būsenas, kol aura aktyvi (aurai dingus – nuimamos)">☣ Uždeda būsenas:</span>
+                {([['frozen', '❄ Sušaldytas'], ['burning', '🔥 Degantis'], ['poisoned', '☠ Apnuodytas'], ['stunned', '✶ Apsvaigintas']] as const).map(([st, lbl]) => (
+                  <label key={st} className="flex items-center gap-1">
+                    <input type="checkbox" checked={(pa?.auraStatuses ?? []).includes(st)}
+                      onChange={(e) => {
+                        const cur = pa?.auraStatuses ?? []
+                        const next = e.target.checked ? [...cur, st] : cur.filter((x) => x !== st)
+                        setPa({ auraStatuses: next.length ? next : undefined })
+                      }} className="w-3.5 h-3.5 accent-orange-400" />
+                    {lbl}
+                  </label>
+                ))}
+              </div>
+              <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#5ef0c0' }}
+                title="Aura veikia TIK padarus, kurie buvo iškviesti / prikelti iš kapinyno (bet kurio efekto). Derinama su Kam galioja (savi / priešo / visi).">
+                <input type="checkbox" checked={!!pa?.auraFromGraveyardOnly}
+                  onChange={(e) => setPa({ auraFromGraveyardOnly: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-emerald-400" />
+                🪦 Tik iš kapinyno iškviestiems / prikeltiems padarams
+              </label>
               <label className="flex items-center gap-1 text-[11px] mt-2" style={{ color: '#fca5a5' }}
                 title="Paveikti padarai nežūsta – HP nukrenta tik iki 1. Laukai Kam galioja / Veikia ir pačią kortą / Tik frakcija nustato, kam tai galioja (pvz. visiems kitiems ne sau, arba konkrečios frakcijos).">
                 <input type="checkbox" checked={!!pa?.auraImmortal}
@@ -752,6 +772,52 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           Iki tol padaras guli kapinyne; jei tuo metu padarų zona pilna — prisikėlimas neįvyksta.
                         </span>
                       )}
+                      <label className="flex items-center gap-1" title="ATK pokytis prisikėlus: teigiamas = stipresnis, neigiamas = silpnesnis (min 0)">
+                        ATK +/−:
+                        <input type="number" value={m.resurrectAtkMod ?? 0}
+                          onChange={(e) => setMapping(i, { resurrectAtkMod: Number(e.target.value) || undefined })}
+                          style={{ ...inputStyle, width: 60 }} />
+                      </label>
+                      <label className="flex items-center gap-1" title="HP pokytis prisikėlus (taikomas prie 1 HP arba pilno HP; min 1)">
+                        HP +/−:
+                        <input type="number" value={m.resurrectHpMod ?? 0}
+                          onChange={(e) => setMapping(i, { resurrectHpMod: Number(e.target.value) || undefined })}
+                          style={{ ...inputStyle, width: 60 }} />
+                      </label>
+                      <span className="flex items-center gap-2 flex-wrap" title="Būsenos, uždedamos prisikėlusiam padarui">
+                        Būsenos prisikėlus:
+                        {([['frozen', '❄'], ['burning', '🔥'], ['poisoned', '☠'], ['stunned', '✶'], ['silenced', '🔇'], ['blessed', '🕊']] as const).map(([st, ic]) => (
+                          <label key={st} className="flex items-center gap-0.5">
+                            <input type="checkbox" checked={(m.resurrectStatuses ?? []).includes(st)}
+                              onChange={(e) => {
+                                const cur = m.resurrectStatuses ?? []
+                                const next = e.target.checked ? [...cur, st] : cur.filter((x) => x !== st)
+                                setMapping(i, { resurrectStatuses: next.length ? next : undefined })
+                              }} className="w-3.5 h-3.5 accent-purple-400" />
+                            {ic}
+                          </label>
+                        ))}
+                      </span>
+                    </div>
+                  )}
+                  {m.effect === 'activateLastwishFromGraveyard' && (
+                    <div className="col-span-2 md:col-span-4 flex flex-wrap items-center gap-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>🕯 Pop-up: pasirenkamas kapinyno padaras su Paskutiniu noru; jo efektas aktyvuojamas iškart.</span>
+                      <label className="flex items-center gap-1" title="Iš kurio kapinyno galima rinktis">
+                        Kapinynas:
+                        <select value={m.copyFromSide ?? 'any'}
+                          onChange={(e) => setMapping(i, { copyFromSide: e.target.value === 'any' ? undefined : e.target.value as 'own' | 'enemy' })}
+                          style={{ ...inputStyle, width: 130 }}>
+                          <option value="any">Bet kuris</option>
+                          <option value="own">Tik savo</option>
+                          <option value="enemy">Tik priešo</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1" title="Šios kortos Paskutinis noras – aktyvuoti tą patį pasirinktą efektą dar kartą">
+                        <input type="checkbox" checked={m.glwRepeatOnDeath !== false}
+                          onChange={(e) => setMapping(i, { glwRepeatOnDeath: e.target.checked ? undefined : false })} />
+                        Paskutinis noras: pakartoti tą patį efektą
+                      </label>
                     </div>
                   )}
                   {showTarget && (
@@ -832,10 +898,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   {(m.effect === 'buffAttack' || m.effect === 'buffHealth' || m.effect === 'takeControl') && (
                     <div>
                       <label style={labelStyle} title="Laikinas sustiprinimas nuiminėjamas ėjimo riboje">Trukmė</label>
-                      <select value={m.buffDuration ?? 'permanent'} onChange={(e) => setMapping(i, { buffDuration: e.target.value === 'permanent' ? undefined : e.target.value as 'endOfTurn' | 'untilNextTurn' })} style={inputStyle}>
+                      <select value={m.buffDuration ?? 'permanent'} onChange={(e) => setMapping(i, { buffDuration: e.target.value === 'permanent' ? undefined : e.target.value as 'endOfTurn' | 'untilNextTurn' | 'thisAttack' })} style={inputStyle}>
                         <option value="permanent">Nuolatinis</option>
                         <option value="endOfTurn">Iki ėjimo pabaigos</option>
                         <option value="untilNextTurn">Iki kito savo ėjimo</option>
+                        {m.effect !== 'takeControl' && <option value="thisAttack">Tik šios atakos metu (onAttack)</option>}
                       </select>
                     </div>
                   )}
@@ -1114,6 +1181,27 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           </select>
                         </label>
                         <span className="text-[10px] w-full" style={{ color: 'var(--text-muted)' }}>Pokytis taikomas pirmai tinkamai sekanciai kortai (suvartojama ja suzaidus).</span>
+                      </>
+                    )}
+                    {/* turnCostDiscount – šį ėjimą visos kortos kainuoja X pigiau (min Y) */}
+                    {m.effect === 'turnCostDiscount' && (
+                      <>
+                        <label className="flex items-center gap-1" title="Minimali kaina: nuolaida nenuleis kortos kainos žemiau šios ribos">
+                          Ne pigiau nei (Y):
+                          <input type="number" min={0} value={m.costFloor ?? 0}
+                            onChange={(e) => setMapping(i, { costFloor: Math.max(0, Number(e.target.value)) || undefined })}
+                            style={{ ...inputStyle, width: 70 }} />
+                        </label>
+                        <label className="flex items-center gap-1" title="Kieno kortoms taikoma nuolaida">
+                          Kam:
+                          <select value={m.costModAppliesTo ?? 'caster'}
+                            onChange={(e) => setMapping(i, { costModAppliesTo: e.target.value as 'caster' | 'opponent' })}
+                            style={{ ...inputStyle, width: 130 }}>
+                            <option value="caster">Sau</option>
+                            <option value="opponent">Priesininkui</option>
+                          </select>
+                        </label>
+                        <span className="text-[10px] w-full" style={{ color: 'var(--text-muted)' }}>Reikšmė (viršuje) = X aukso nuolaida VISOMS kortoms iki ėjimo pabaigos; kaina niekada nenukrenta žemiau Y.</span>
                       </>
                     )}
                     {/* Summon parametrai */}

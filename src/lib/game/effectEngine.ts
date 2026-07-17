@@ -21,7 +21,7 @@ export type GameApi = {
   killUnit(g: GameState, owner: Side, u: BoardUnit): void
   destroyArtifact(g: GameState, owner: Side, uid: string): void
   applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus): void
-  buffUnit(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number, duration?: 'permanent' | 'endOfTurn' | 'untilNextTurn'): void
+  buffUnit(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number, duration?: 'permanent' | 'endOfTurn' | 'untilNextTurn' | 'thisAttack'): void
   gainGold(g: GameState, s: Side, n: number, srcName: string): void
   loseGold(g: GameState, s: Side, n: number, srcName: string): void
   scheduleGoldPenalty(g: GameState, s: Side, n: number, srcName: string): void
@@ -32,6 +32,7 @@ export type GameApi = {
   drawZmkVisual(g: GameState, s: Side): void
   removeZmkCard(g: GameState, s: Side, value: string, count: number): void
   setSpellDiscount(g: GameState, s: Side, n: number): void
+  setTurnCostDiscount(g: GameState, s: Side, amount: number, floor: number): void
   addCardCostMod(g: GameState, s: Side, delta: number, cardType: string | null): void
   buffSpellDamage(g: GameState, s: Side, n: number): void
   tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; cardType?: string; choose?: boolean }): void
@@ -42,6 +43,7 @@ export type GameApi = {
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
+  activateGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean): void
   takeControlUnit(g: GameState, newOwner: Side, owner: Side, u: BoardUnit, duration: 'permanent' | 'endOfTurn' | 'untilNextTurn', srcName: string): void
   forceCurseActivation(g: GameState, victim: Side, count: number, srcName: string): void
   effectiveAtk(g: GameState, u: BoardUnit): number
@@ -78,6 +80,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
   'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard', 'forceCurseActivation',
+  'activateLastwishFromGraveyard', 'turnCostDiscount',
 ])
 
 export function effectIntent(e: EffectType): 'harm' | 'help' {
@@ -194,7 +197,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker', 'forceCurseActivation'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
     api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noValidTarget', params: { src: ctx.sourceName } })
     return false
   }
@@ -358,6 +361,8 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
     case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, cardType: m.tutorCardType, choose: m.tutorChoose }); break
     case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
+    case 'activateLastwishFromGraveyard': api.activateGraveyardLastwish(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.glwRepeatOnDeath !== false); break
+    case 'turnCostDiscount': api.setTurnCostDiscount(g, m.costModAppliesTo === 'opponent' ? foe : caster, v, Math.max(0, m.costFloor ?? 0)); break
     case 'reflectToAttacker': {
       // onAttacked reakcijai (su „efektas į atakuotoją" / useAttackTarget): sunaikina puolantį padarą
       // ir atspindi jo ATK į jo žaidėją.
@@ -385,7 +390,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       // (permanent / endOfTurn / untilNextTurn; grąžinimą tvarko engine ėjimo ribose).
       for (const t of targets) {
         const f = findUnit(g, t)
-        if (f) api.takeControlUnit(g, caster, f.owner, f.u, m.buffDuration ?? 'permanent', ctx.sourceName)
+        if (f) api.takeControlUnit(g, caster, f.owner, f.u, (m.buffDuration === 'thisAttack' ? 'permanent' : m.buffDuration) ?? 'permanent', ctx.sourceName)
       }
       break
     case 'spellDiscount': api.setSpellDiscount(g, caster, v); break

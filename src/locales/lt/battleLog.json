@@ -143,6 +143,11 @@
   "battlecryRepeat": "📣📣 Kovos šūksnis kartojasi (laukas)!",
   "battlecryAwaitTarget": "📣 „{{card}}\" Kovos šūksnis laukia taikinio — paspausk švytinčią kortą ir pasirink taikinį!",
   "lastWish": "🕯 „{{card}}\" Paskutinis noras aktyvuojasi!",
+  "lastwishChooseTarget": "🕯 „{{card}}\" Paskutinis noras: pasirink taikinį(-ius)!",
+  "glwNoGraveTarget": "„{{src}}\": kapinyne nėra padaro su Paskutiniu noru.",
+  "glwChoose": "Pasirink kapinyno padarą – jo Paskutinis noras bus aktyvuotas.",
+  "glwActivate": "🕯 „{{src}}\" aktyvuoja „{{card}}\" Paskutinį norą iš kapinyno!",
+  "glwRepeatSaved": "🕯 „{{card}}\" Paskutinis noras dabar pakartos „{{from}}\" efektą!",
   "lastWishResurrect": "💫 „{{card}}\" žūsta ir PRISIKELIA — Paskutinis noras!",
   "lastWishResurrectHp1": "💫 „{{card}}\" žūsta ir PRISIKELIA su 1 HP — Paskutinis noras!",
   "lastWishResurrectOnce": "💫 „{{card}}\" žūsta ir PRISIKELIA (kartą per žaidimą) — Paskutinis noras!",
@@ -241,6 +246,10 @@
   "spellDiscount": {
     "you": "Tavo kitas burtas kainuos {{gold}} aukso pigiau.",
     "ai": "Priešininko kitas burtas kainuos {{gold}} aukso pigiau."
+  },
+  "turnCostDiscount": {
+    "you": "🪙 Šį ėjimą TAVO kortos kainuoja {{x}} aukso pigiau (bet ne pigiau nei {{y}}).",
+    "ai": "🪙 Šį ėjimą PRIEŠININKO kortos kainuoja {{x}} aukso pigiau (bet ne pigiau nei {{y}})."
   },
   "nextCardCost": {
     "you": "🪙 Tavo sekanti korta kainuoja {{delta}} aukso.",

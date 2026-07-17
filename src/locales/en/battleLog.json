@@ -143,6 +143,11 @@
   "battlecryRepeat": "📣📣 The Battlecry repeats (field)!",
   "battlecryAwaitTarget": "📣 \"{{card}}\" Battlecry is waiting for a target — tap the glowing card and pick a target!",
   "lastWish": "🕯 \"{{card}}\" Last Wish triggers!",
+  "lastwishChooseTarget": "🕯 \"{{card}}\" Last Wish: choose target(s)!",
+  "glwNoGraveTarget": "\"{{src}}\": no creature with a Last Wish in the graveyard.",
+  "glwChoose": "Choose a graveyard creature – its Last Wish will be activated.",
+  "glwActivate": "🕯 \"{{src}}\" activates \"{{card}}\" Last Wish from the graveyard!",
+  "glwRepeatSaved": "🕯 \"{{card}}\" Last Wish will now repeat \"{{from}}\" effect!",
   "lastWishResurrect": "💫 \"{{card}}\" dies and IS RESURRECTED — Last Wish!",
   "lastWishResurrectHp1": "💫 \"{{card}}\" dies and IS RESURRECTED with 1 HP — Last Wish!",
   "lastWishResurrectOnce": "💫 \"{{card}}\" dies and IS RESURRECTED (once per game) — Last Wish!",
@@ -241,6 +246,10 @@
   "spellDiscount": {
     "you": "Your next spell will cost {{gold}} gold less.",
     "ai": "The opponent's next spell will cost {{gold}} gold less."
+  },
+  "turnCostDiscount": {
+    "you": "🪙 This turn YOUR cards cost {{x}} gold less (but not less than {{y}}).",
+    "ai": "🪙 This turn the OPPONENT's cards cost {{x}} gold less (but not less than {{y}})."
   },
   "nextCardCost": {
     "you": "🪙 Your next card costs {{delta}} gold.",

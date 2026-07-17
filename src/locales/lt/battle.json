@@ -416,7 +416,11 @@
     "forXp": "už {{xp}} XP:",
     "tapToSkip": "Bakstelėk praleisti ›",
     "skillDefault": "Gebėjimas",
-    "faction": "Frakcija"
+    "faction": "Frakcija",
+    "toastLastwishTarget": "Paskutinis noras „{{card}}\": pasirink {{need}} taikinį(-ius)!",
+    "lastwishTargets": "„{{card}}\" Paskutinis noras: {{picked}}/{{need}}",
+    "glwTitle": "Paskutinis noras iš kapinyno",
+    "glwText": "Pasirink kapinyno padarą – jo Paskutinis noras bus aktyvuotas iškart."
   },
   "layout": {
     "log": "📜 Mūšio žurnalas",
