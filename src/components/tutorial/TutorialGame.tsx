@@ -392,61 +392,90 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
       transition={{ duration: dead ? 0.55 : 0.34 }}
       className="relative pointer-events-none"
-      style={{ width: size, height: size, filter: `drop-shadow(0 0 14px ${glow})` }}>
-      {/* portretas / idle-video (po rėmu) */}
-      <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
-        {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
-        {!dead && (avatar?.imageUrl
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
-          : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>)}
-        {dead && (
-          <motion.span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: Math.round(size * 0.28) }}
-            initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.95, duration: 0.4 }}>💀</motion.span>
-        )}
-        {vid && !dead && (
-          <video key={vid} src={vid} muted playsInline preload="auto" autoPlay
-            poster={avatar?.imageUrl ?? undefined} controls={false} disablePictureInPicture
-            ref={(v) => { if (v && v.paused) { void v.play().catch(() => { /* blokuota – liks portretas */ }) } }}
-            onPlaying={() => { setVidReady(true); onVid?.(vid) }}
-            onEnded={onVidEnd}
-            onError={onVidEnd}
-            className="absolute inset-0"
-            style={{ ...fitStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.18s ease' }} />
-        )}
-        {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
-      </div>
-      {/* pralaimėjimas: sprogimo blyksnis + portretas subyra į 9 šukes */}
+      style={{ width: size, height: size, filter: dead ? 'none' : `drop-shadow(0 0 14px ${glow})` }}>
+      {/* portretas / idle-video (po rėmu); žuvus — viskas subyra, lieka tuščia vieta */}
+      {!dead && (
+        <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
+          {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
+          {avatar?.imageUrl
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
+            : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+          {vid && (
+            <video key={vid} src={vid} muted playsInline preload="auto" autoPlay
+              poster={avatar?.imageUrl ?? undefined} controls={false} disablePictureInPicture
+              ref={(v) => { if (v && v.paused) { void v.play().catch(() => { /* blokuota – liks portretas */ }) } }}
+              onPlaying={() => { setVidReady(true); onVid?.(vid) }}
+              onEnded={onVidEnd}
+              onError={onVidEnd}
+              className="absolute inset-0"
+              style={{ ...fitStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.18s ease' }} />
+          )}
+          {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
+        </div>
+      )}
+      {/* ── PRALAIMĖJIMAS: VISAS avataras (rėmas + portretas) sprogsta į 16 šukių ──
+          Kiekviena šukė – pilnos kompozicijos (portretas + frame.png) iškarpa, tad
+          atrodo, kad subyra visas rėmas. Po animacijos vieta lieka TUŠČIA. */}
       {dead && (
-        <div className="absolute pointer-events-none" style={{ ...win, zIndex: 6, overflow: 'visible' }}>
-          <motion.div className="absolute rounded-full" style={{ inset: '-35%', background: 'radial-gradient(circle, rgba(255,224,150,0.95) 0%, rgba(255,120,40,0.75) 35%, transparent 70%)' }}
-            initial={{ opacity: 0, scale: 0.3 }} animate={{ opacity: [0, 1, 0], scale: [0.3, 1.4, 1.7] }} transition={{ duration: 0.6, ease: 'easeOut' }} />
-          {Array.from({ length: 9 }).map((_, i) => {
-            const c = i % 3, r = Math.floor(i / 3)
-            const jx = Math.sin(i * 12.9898) * size * 0.12, jy = Math.cos(i * 78.233) * size * 0.12
-            const dx = (c - 1) * size * 0.6 + jx, dy = (r - 1) * size * 0.55 + jy - size * 0.1
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 6, overflow: 'visible' }}>
+          {/* didysis blyksnis */}
+          <motion.div className="absolute rounded-full" style={{ inset: '-60%', background: 'radial-gradient(circle, rgba(255,236,180,0.98) 0%, rgba(255,150,50,0.85) 30%, rgba(200,60,20,0.4) 55%, transparent 72%)' }}
+            initial={{ opacity: 0, scale: 0.25 }} animate={{ opacity: [0, 1, 0], scale: [0.25, 1.5, 1.9] }} transition={{ duration: 0.75, ease: 'easeOut' }} />
+          {/* smūginė banga */}
+          <motion.div className="absolute rounded-full" style={{ left: '50%', top: '50%', width: 12, height: 12, marginLeft: -6, marginTop: -6, border: '3px solid rgba(255,200,110,0.95)', boxShadow: '0 0 26px rgba(255,140,40,0.9), inset 0 0 12px rgba(255,180,80,0.7)' }}
+            initial={{ scale: 0.3, opacity: 1 }} animate={{ scale: size * 0.22, opacity: 0 }} transition={{ duration: 0.9, ease: 'easeOut' }} />
+          {/* 16 šukių (4×4) — rėmas + portretas kartu */}
+          {Array.from({ length: 16 }).map((_, i) => {
+            const c = i % 4, r = Math.floor(i / 4)
+            const sx = Math.sin(i * 12.9898), sy = Math.cos(i * 78.233)
+            const spread = size * (1.3 + 0.6 * Math.abs(Math.sin(i * 4.7)))
+            const dx = (c - 1.5) / 1.5 * spread + sx * size * 0.22
+            const dy = (r - 1.5) / 1.5 * spread + sy * size * 0.18 + size * 0.45  // gravitacija žemyn
+            const rot = (sx + sy) * 340 + (i % 2 ? 120 : -120)
+            const delay = 0.04 + Math.abs(Math.sin(i * 9.1)) * 0.14
             return (
-              <motion.div key={i} className="absolute" style={{
-                left: `${c * 33.34}%`, top: `${r * 33.34}%`, width: '33.4%', height: '33.4%', borderRadius: 3,
-                ...(avatar?.imageUrl
-                  ? { backgroundImage: `url(${avatar.imageUrl})`, backgroundSize: '300% 300%', backgroundPosition: `${c * 50}% ${r * 50}%` }
-                  : { background: owner === 'player' ? 'rgba(74,222,128,0.85)' : 'rgba(239,68,68,0.85)' }),
-                boxShadow: '0 0 9px rgba(255,140,50,0.85)',
-              }}
+              <motion.div key={i} className="absolute overflow-hidden" style={{ left: `${c * 25}%`, top: `${r * 25}%`, width: '25%', height: '25%', filter: 'drop-shadow(0 0 7px rgba(255,140,50,0.9))' }}
                 initial={{ x: 0, y: 0, opacity: 1, rotate: 0, scale: 1 }}
-                animate={{ x: dx, y: dy, opacity: [1, 1, 0], rotate: ((c - 1) + (r - 1)) * 150 + 55, scale: [1, 0.92, 0.35] }}
-                transition={{ duration: 1.0, delay: 0.1, ease: 'easeOut' }} />
+                animate={{ x: dx, y: dy, opacity: [1, 1, 0.85, 0], rotate: rot, scale: [1, 1.02, 0.75, 0.3] }}
+                transition={{ duration: 1.35, delay, ease: [0.16, 0.6, 0.45, 1] }}>
+                {/* pilnos kompozicijos kopija, paslinkta taip, kad šukė rodytų savo iškarpą */}
+                <div className="absolute" style={{ width: '400%', height: '400%', left: `${-c * 100}%`, top: `${-r * 100}%` }}>
+                  <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
+                    {avatar?.imageUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={avatar.imageUrl} alt="" draggable={false} style={fitStyle} />
+                      : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/icons/frame.png" alt="" draggable={false} className="absolute inset-0 w-full h-full select-none" />
+                </div>
+              </motion.div>
+            )
+          })}
+          {/* žiežirbos */}
+          {Array.from({ length: 14 }).map((_, i) => {
+            const ang = (i / 14) * Math.PI * 2 + Math.sin(i * 3.3) * 0.5
+            const dist = size * (1.1 + 0.8 * Math.abs(Math.cos(i * 5.9)))
+            const s = 3 + (i % 3) * 2
+            return (
+              <motion.span key={'e' + i} className="absolute rounded-full" style={{ left: '50%', top: '50%', width: s, height: s, background: i % 3 === 0 ? '#ffe9a8' : '#ff9a3d', boxShadow: '0 0 8px rgba(255,150,50,0.95)' }}
+                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                animate={{ x: Math.cos(ang) * dist, y: Math.sin(ang) * dist + size * 0.3, opacity: [1, 1, 0], scale: [1, 0.8, 0.2] }}
+                transition={{ duration: 0.85 + (i % 4) * 0.12, delay: 0.02, ease: 'easeOut' }} />
             )
           })}
         </div>
       )}
-      {/* ornate rėmas */}
+      {/* ornate rėmas (žuvus — subyrėjęs, nebe rodomas) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full select-none" draggable={false} />
+      {!dead && <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full select-none" draggable={false} />}
       {/* HP ant apatinio skydo */}
-      <span className="absolute" style={{ left: '50%', bottom: '9%', transform: 'translateX(-50%)',
-        fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: Math.round(size * 0.155), lineHeight: 1,
-        color: crit ? '#ff6b6b' : '#e8c84a', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}>{Math.max(0, hp)}</span>
+      {!dead && (
+        <span className="absolute" style={{ left: '50%', bottom: '9%', transform: 'translateX(-50%)',
+          fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: Math.round(size * 0.155), lineHeight: 1,
+          color: crit ? '#ff6b6b' : '#e8c84a', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}>{Math.max(0, hp)}</span>
+      )}
     </motion.div>
   )
 }
