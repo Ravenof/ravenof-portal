@@ -340,13 +340,15 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
 export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
-export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid }: {
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false }: {
   avatar: BattleAvatar | null
   hp: number; maxHp: number
   owner: 'player' | 'enemy'
   scale?: number
   flash?: 'hit' | 'heal' | null
   onVid?: (v: string | null) => void
+  /** Pralaimėjimo seka: portretas sprogsta ir subyra į šukes (žr. 'win' log įvykį). */
+  dead?: boolean
 }) {
   const size = Math.round(122 * scale)
   const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
@@ -387,18 +389,22 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
   const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: 'center' }
   return (
     <motion.div
-      animate={flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
-      transition={{ duration: 0.34 }}
+      animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
+      transition={{ duration: dead ? 0.55 : 0.34 }}
       className="relative pointer-events-none"
       style={{ width: size, height: size, filter: `drop-shadow(0 0 14px ${glow})` }}>
       {/* portretas / idle-video (po rėmu) */}
       <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
         {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
-        {avatar?.imageUrl
+        {!dead && (avatar?.imageUrl
           // eslint-disable-next-line @next/next/no-img-element
           ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
-          : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
-        {vid && (
+          : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>)}
+        {dead && (
+          <motion.span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: Math.round(size * 0.28) }}
+            initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.95, duration: 0.4 }}>💀</motion.span>
+        )}
+        {vid && !dead && (
           <video key={vid} src={vid} muted playsInline preload="auto" autoPlay
             poster={avatar?.imageUrl ?? undefined} controls={false} disablePictureInPicture
             ref={(v) => { if (v && v.paused) { void v.play().catch(() => { /* blokuota – liks portretas */ }) } }}
@@ -410,6 +416,30 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid 
         )}
         {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
       </div>
+      {/* pralaimėjimas: sprogimo blyksnis + portretas subyra į 9 šukes */}
+      {dead && (
+        <div className="absolute pointer-events-none" style={{ ...win, zIndex: 6, overflow: 'visible' }}>
+          <motion.div className="absolute rounded-full" style={{ inset: '-35%', background: 'radial-gradient(circle, rgba(255,224,150,0.95) 0%, rgba(255,120,40,0.75) 35%, transparent 70%)' }}
+            initial={{ opacity: 0, scale: 0.3 }} animate={{ opacity: [0, 1, 0], scale: [0.3, 1.4, 1.7] }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+          {Array.from({ length: 9 }).map((_, i) => {
+            const c = i % 3, r = Math.floor(i / 3)
+            const jx = Math.sin(i * 12.9898) * size * 0.12, jy = Math.cos(i * 78.233) * size * 0.12
+            const dx = (c - 1) * size * 0.6 + jx, dy = (r - 1) * size * 0.55 + jy - size * 0.1
+            return (
+              <motion.div key={i} className="absolute" style={{
+                left: `${c * 33.34}%`, top: `${r * 33.34}%`, width: '33.4%', height: '33.4%', borderRadius: 3,
+                ...(avatar?.imageUrl
+                  ? { backgroundImage: `url(${avatar.imageUrl})`, backgroundSize: '300% 300%', backgroundPosition: `${c * 50}% ${r * 50}%` }
+                  : { background: owner === 'player' ? 'rgba(74,222,128,0.85)' : 'rgba(239,68,68,0.85)' }),
+                boxShadow: '0 0 9px rgba(255,140,50,0.85)',
+              }}
+                initial={{ x: 0, y: 0, opacity: 1, rotate: 0, scale: 1 }}
+                animate={{ x: dx, y: dy, opacity: [1, 1, 0], rotate: ((c - 1) + (r - 1)) * 150 + 55, scale: [1, 0.92, 0.35] }}
+                transition={{ duration: 1.0, delay: 0.1, ease: 'easeOut' }} />
+            )
+          })}
+        </div>
+      )}
       {/* ornate rėmas */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full select-none" draggable={false} />
@@ -816,6 +846,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [youAvatar, setYouAvatar] = useState<BattleAvatar | null>(null)
   const [enemyAvatar, setEnemyAvatar] = useState<BattleAvatar | null>(null)
   const [avatarFlash, setAvatarFlash] = useState<Partial<Record<Side, 'hit' | 'heal' | null>>>({})
+  const [avatarDead, setAvatarDead] = useState<Side | null>(null)   // pralaimėjusiojo avataras subyrėjęs
+  const [endShown, setEndShown] = useState(false)                    // pabaigos modalas rodomas tik po defeat sekos
   const [youVid, setYouVid] = useState<string | null>(null)
   const [enemyVid, setEnemyVid] = useState<string | null>(null)
   const [avatarInspect, setAvatarInspect] = useState<{ avatar: BattleAvatar | null; vid: string | null } | null>(null)
@@ -1168,6 +1200,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     matchRewardRef.current = false
     questReportedRef.current = false
+    setAvatarDead(null)      // rematch: avataras vėl sveikas
+    setEndShown(false)       // rematch: pabaigos modalas paslėptas iki naujos defeat sekos
+    resetAvatarAudio()       // rematch: fightStart/defeat/victory frazės vėl gali groti
     const aiSource = opp && opp.length > 0 ? opp : cards
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
@@ -1505,11 +1540,26 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           break
         }
         case 'win': {
-          if (e.side === 'you') playSuccess(); else playError()
-          const winId = e.side === 'you' ? youAvIdRef.current : enemyAvIdRef.current
-          const loseId = e.side === 'you' ? enemyAvIdRef.current : youAvIdRef.current
-          playAvatarAudio(loseId, 'defeat')
-          window.setTimeout(() => playAvatarAudio(winId, 'victory'), 1400)
+          // Pralaimėjimo seka: 1) avataras sprogsta į šukes (+explosion garsas) →
+          // 2) pralaimėjusiojo defeat frazė → 3) laimėtojo victory frazė → 4) pabaigos ekranas.
+          const winSide = e.side
+          const loser: Side = winSide === 'you' ? 'ai' : 'you'
+          const winId = winSide === 'you' ? youAvIdRef.current : enemyAvIdRef.current
+          const loseId = winSide === 'you' ? enemyAvIdRef.current : youAvIdRef.current
+          setAvatarDead(loser)
+          playBattleSound('explosion', 0.65)
+          const avEl = document.querySelector(`[data-player="${loser}"]`)
+          if (avEl) {
+            const r = avEl.getBoundingClientRect()
+            const at = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+            fxRef.current?.spawn({ kind: 'disintegrate', to: at, color: '#ff8a3a', duration: 1.1, intensity: 'big' })
+            fxRef.current?.spawn({ kind: 'burn', to: at, color: '#ffb347', duration: 0.8, intensity: 'small' })
+            fxRef.current?.hitFlash(at.x, at.y, '#ffb347')
+          }
+          fxRef.current?.shakeBoard('hard')
+          window.setTimeout(() => playAvatarAudio(loseId, 'defeat'), 1000)
+          window.setTimeout(() => playAvatarAudio(winId, 'victory'), 3100)
+          window.setTimeout(() => { setEndShown(true); if (winSide === 'you') playSuccess(); else playError() }, 5200)
           break
         }
         case 'lastwish': queueTip('lastwish'); break
@@ -2143,6 +2193,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     })
   }, [])
 
+  // Backstop: jei dėl kokios nors priežasties 'win' įvykio seka nesuveikė – pabaigos
+  // ekranas vis tiek parodomas po 6 s (o avataras pažymimas subyrėjusiu iškart).
+  useEffect(() => {
+    if (!game?.winner || endShown) return
+    if (!avatarDead) setAvatarDead(game.winner === 'you' ? 'ai' : 'you')
+    const tm = window.setTimeout(() => setEndShown(true), 6000)
+    return () => window.clearTimeout(tm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner, endShown])
+
   // Ėjimui pasikeitus – per vidurį ekrano parodom kieno eilė (nickas + „eilė")
   useEffect(() => {
     if (!game || game.winner) return
@@ -2775,7 +2835,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {pickedKeys.has('player:' + side) && (
           <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none" style={{ width: 20, height: 20, background: '#16a34a', border: '2px solid #bbf7d0', color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>
         )}
-        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} dead={avatarDead === side} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
     )
   }
@@ -4484,7 +4544,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {vsRemote && (
           <BattleChatHead chatLog={chatLog} chatInput={chatInput} setChatInput={setChatInput} sendBattleChat={sendBattleChat} open={chatOpen} setOpen={setChatOpen} />
         )}
-        {game?.winner && (
+        {game?.winner && endShown && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="fixed inset-0 z-[140] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.8)' }}>

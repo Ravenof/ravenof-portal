@@ -29,6 +29,7 @@ const BASE: Record<BattleSoundType, string> = {
   summon:        'summon',
   zmkFlip:       'zmk-flip',
   championSkill: 'champion-skill',
+  explosion:     'explosion',
 }
 
 // Kandidatų sąrašas: base + iki 3 variantų. Random pick tarp esamų.
@@ -59,6 +60,7 @@ const SYNTH_FALLBACK: Record<BattleSoundType, () => void> = {
   summon:        playCardPlace,
   zmkFlip:       playCardFlip,
   championSkill: playDiscovery,
+  explosion:     playImpact,
 }
 
 const dead = new Set<string>()                      // 404/klaida – nebebandom

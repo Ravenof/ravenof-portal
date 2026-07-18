@@ -229,7 +229,7 @@ export const PROJECTILE_TYPES: { value: ProjectileType; label: string; emoji: st
 
 export type BattleSoundType =
   | 'attack' | 'spellCast' | 'impact' | 'draw' | 'curse' | 'field'
-  | 'heal' | 'freeze' | 'death' | 'summon' | 'zmkFlip' | 'championSkill'
+  | 'heal' | 'freeze' | 'death' | 'summon' | 'zmkFlip' | 'championSkill' | 'explosion'
 
 // ── Curse trigger konfigūracija ───────────────────────────────────────────────
 export type CurseAppliesTo = 'caster' | 'opponent' | 'targetOwner' | 'chosenTarget' | 'random'
