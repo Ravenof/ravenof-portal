@@ -162,6 +162,8 @@ export type GameEventType =
 export type GameEvent = {
   t: GameEventType
   side: Side
+  /** FX marker (fxSource): šis efektas – TIKRAS AoE (visa zona) → zoninis efektas be projektilų */
+  aoe?: boolean
   /**
    * i18n raktas (`battleLog.*`). Log'as saugomas STRUKTŪRIŠKAI – tekstas
    * sugeneruojamas render'e (eventText), tad pakeitus kalbą persirenderuoja

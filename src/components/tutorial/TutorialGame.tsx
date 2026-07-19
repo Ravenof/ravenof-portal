@@ -1426,14 +1426,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
     const SETTLE = hasPlay ? 800 : 0
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 žalos taikiniai
-    // RANKA pasirinkti keli taikiniai (spellMulti / lastwish): PO PROJEKTILĄ kiekvienam, NE zona.
-    // Tikras AoE (allEnemyUnits ir pan.): TIK zoninis efektas, be projektilų.
+    // Tikras AoE (engine markeris fxSource.aoe – mapping'as taiko VISĄ zoną): zoninis efektas, be projektilų.
+    // Visais kitais atvejais (rankinis pasirinkimas / hitCount auto) – PO PROJEKTILĄ kiekvienam taikiniui.
+    const aoeFlagBatch = fresh.some((ev) => ev.t === 'fxSource' && ev.aoe)
     const chosenMulti = chosenTargetsRef.current
     chosenTargetsRef.current = null
     const multiProj = aoeMode && !!chosenMulti && chosenMulti.length >= 2
-    const zoneAoe = aoeMode && !multiProj
-    // Masinis gydymas (≥2 padarų taikiniai) → žalias zoninis efektas vietoj atskirų srautų
-    const healAoe = fresh.filter((ev) => ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.uid).length >= 2
+    const zoneAoe = aoeMode && aoeFlagBatch && !multiProj
+    const perTargetProj = aoeMode && !zoneAoe
+    // Masinis gydymas per AoE mapping'ą → žalias zoninis efektas vietoj atskirų srautų
+    const healAoe = aoeFlagBatch && fresh.filter((ev) => ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.uid).length >= 2
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
     const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
     const spawnPop = (card: TutCard | null, at: { x: number; y: number }, color: string, tag?: string) => { const id = ++flyIdRef.current; setPopCards((pp) => [...pp, { id, card, x: at.x, y: at.y, color, tag }]); window.setTimeout(() => setPopCards((pp) => pp.filter((x) => x.id !== id)), 1300) }
@@ -1442,7 +1444,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const id = ++flyIdRef.current
       window.setTimeout(() => {
         setShowcases((s) => [...s, { id, card, from, kind }])
-        window.setTimeout(() => setShowcases((s) => s.filter((x) => x.id !== id)), 1800)
+        window.setTimeout(() => setShowcases((s) => s.filter((x) => x.id !== id)), 2550)
       }, delay)
     }
     const pileCenter = (sel: string): { x: number; y: number } | null => {
@@ -1463,7 +1465,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
-        case 'fxSource': { srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; break }
+        case 'fxSource': { if (e.src) { srcRef = e.src; srcKind = 'ability' } srcCard = findCard(e.cardName) ?? srcCard; break }
         case 'returnHand': {
           // Korta grąžinama nuo lauko į ranką: lėtai pakyla, tada greit nuskrenda į ranką.
           const uid = e.src?.uid
@@ -1527,8 +1529,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const from = pileCenter(e.side === 'you' ? '[data-tut="hand"], [data-pile="hand-you"]' : '[data-pile="hand-ai"]')
               ?? (e.side === 'you' && handRef.current ? (() => { const r = handRef.current!.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })() : fxCenter())
             spawnShowcase(card, from, 'spell', SETTLE)
-            fxSeq += 1500
-            showcaseHold = SETTLE + 1450
+            fxSeq += 2250
+            showcaseHold = SETTLE + 2200
           } else if (e.t === 'spell' && e.cardName && !e.tgt) {
             const card = findCard(e.cardName)
             const at = (e.src ? rectOf(e.src) : null) ?? fxCenter()
@@ -1539,6 +1541,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'attack'; break }
         case 'zmk':
           zmkN += 1
+          if (showcaseHold > 0) fxSeq += 800  // žalos FX ateina PO ŽMK traukimo animacijos
           if (e.zmkPair) {
             const [za, zb] = e.zmkPair
             const payload = { id: ++flyIdRef.current, side: e.side, a: za, b: zb, picked: e.zmkPicked ?? e.zmk ?? za, adv: e.bias === 'advantage' }
@@ -1642,8 +1645,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           const card = findCard(e.cardName)
           const from = pileCenter(`[data-pile="reactions-${e.side}"]`) ?? fxCenter()
           spawnShowcase(card, from, 'reaction', SETTLE + fxSeq)
-          showcaseHold = SETTLE + fxSeq + 1450
-          fxSeq += 1500
+          showcaseHold = SETTLE + fxSeq + 2200
+          fxSeq += 2250
           break
         }
         case 'field': {
@@ -1691,14 +1694,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             // Showcase: prakeiksmas atskrenda nuo kaladės, iš kurios ištrauktas (e.side = auka)
             const from = pileCenter(`[data-pile="deck-${e.side}"]`) ?? fxCenter()
             spawnShowcase(card, from, 'curse', SETTLE + fxSeq)
-            showcaseHold = SETTLE + fxSeq + 1450
-            fxSeq += 1500
+            showcaseHold = SETTLE + fxSeq + 2200
+            fxSeq += 2250
           } else {
             setCardFlash({ card, title: e.cardName ?? t('battle.game.curseTag'), tag: t('battle.game.curseMixed'), color: '#a78bfa' })
             if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
             flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
           }
-          if (srcRef) { const sref = srcRef, opp: Side = sref.side === 'you' ? 'ai' : 'you'; const d = SETTLE + fxSeq; fxSeq += 120; window.setTimeout(() => { const from = rectOf(sref), to = rectFor({ side: opp }); if (from && to) fxRef.current?.spawn({ kind: 'curseMark', from, to, color: '#a855f7', duration: 1.4 }) }, d) }
+          if (srcRef) { const sref = srcRef, opp: Side = sref.side === 'you' ? 'ai' : 'you'; const d = SETTLE + fxSeq; fxSeq += 120; window.setTimeout(() => { const from = rectOf(sref); const to = pileCenter(`[data-pile="deck-${opp}"]`) ?? rectFor({ side: opp }); if (from && to) fxRef.current?.spawn({ kind: 'curseMark', from, to, color: '#a855f7', duration: 1.4 }) }, d) }
           break
         }
         case 'coin': {
@@ -1749,12 +1752,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const srcProj = srcCard?.gameplay?.projectileType
             const elemCol = fxElemColor ?? (srcProj && srcProj !== 'none' ? (PROJECTILE_COLOR[srcProj] ?? null) : null)
             const numCol = elemCol ?? '#ff5a4a'
-            const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = zoneAoe, mm = multiProj
+            const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = zoneAoe, mm = perTargetProj
             window.setTimeout(() => {
               const to = rectOf(tgt); if (!to) return
               const from = sref ? rectOf(sref) : null
-              // multi-select: po vieną projektilą KIEKVIENAM pasirinktam taikiniui;
-              // zona (AoE): jokių projektilų; single: vienas projektilas (tik jei dar nešautas)
+              // keli taikiniai (pasirinkti ar auto): PO PROJEKTILĄ kiekvienam žalos taikiniui;
+              // zona (tikras AoE): jokių projektilų; single: vienas projektilas (jei dar nešautas)
               const fireProj = mm ? !!from : (!am && !!from && !pf)
               if (fireProj) fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 })
               window.setTimeout(() => {
@@ -4122,7 +4125,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   initial={{ x: sc.from.x - cx, y: sc.from.y - cy, scale: 0.16, opacity: 0, rotateY: sc.kind === 'reaction' ? 180 : 0 }}
                   animate={{ x: 0, y: 0, scale: 1, opacity: [0, 1, 1, 1, 0], rotateY: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 1.7, times: [0, 0.22, 0.3, 0.88, 1], ease: 'easeOut' }}
+                  transition={{ duration: 2.4, times: [0, 0.1, 0.14, 0.93, 1], ease: 'easeOut' }}
                   className="absolute"
                   style={{ transform: 'translate(-50%, -50%)', marginLeft: -w / 2, marginTop: -Math.round(w * 4 / 3) / 2 }}>
                   <div style={{ outline: '3px solid ' + col, borderRadius: 14, boxShadow: `0 0 44px ${col}88, 0 18px 50px rgba(0,0,0,0.8)` }}>
