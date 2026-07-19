@@ -49,7 +49,7 @@ export type StatusVfxDefinition = {
 
 export const STATUS_VFX_REGISTRY: Record<VfxStatusId, StatusVfxDefinition> = {
   shield: {
-    statusId: 'shield', negative: false, priority: 100, tint: '#fcd34d',
+    statusId: 'shield', negative: false, priority: 100, tint: '#6ec3ff',
     soundApply: 'spellCast', soundTrigger: 'impact', soundDestroy: 'freeze',
   },
   frozen: {
