@@ -23,6 +23,8 @@ export type SpawnFx = {
   variant?: AoeVariant
   from?: { x: number; y: number }
   to?: { x: number; y: number }
+  /** aoeWave: paveikiama zona (CSS px). Nurodžius – efektas ribojamas ŠIAI zonai (pvz. tik priešo pusė). */
+  rect?: { x: number; y: number; w: number; h: number }
   color: string
   color2?: string
   intensity?: FxIntensity
@@ -49,6 +51,8 @@ type P = { x: number; y: number; vx: number; vy: number; life: number; max: numb
 type Item = {
   id: number; kind: FxKind; from: { x: number; y: number }; to: { x: number; y: number }
   color: string; color2: string; im: number; dur: number; t0: number; parts: P[]; seeded: boolean; variant?: AoeVariant
+  rect?: { x: number; y: number; w: number; h: number }
+  bolts?: { pts: { x: number; y: number }[]; t0f: number }[]
 }
 
 function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
@@ -88,6 +92,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
         from: { x: from.x * D, y: from.y * D }, to: { x: to.x * D, y: to.y * D },
         color: fx.color, color2: fx.color2 ?? fx.color, im: intMul(fx.intensity),
         dur: (fx.duration ?? 1.4) * 1000, t0: performance.now(), parts: [], seeded: false, variant: fx.variant,
+        rect: fx.rect ? { x: fx.rect.x * D, y: fx.rect.y * D, w: fx.rect.w * D, h: fx.rect.h * D } : undefined,
       })
       ensureLoop()
     },
@@ -314,36 +319,90 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       break
     }
     case 'aoeWave': {
-      // Pilno lauko efektas: šviesa + dūmai + dalelės pagal elementą. JOKIŲ linijų/ikonų.
+      // Zoninis efektas: jei perduotas rect – ribojamas TIK paveikiamai zonai (pvz. priešo
+      // lentos pusei); be rect – visas ekranas. Šviesa + dūmai + dalelės + elementinė banga
+      // (žaibo trenksmai / ugnies frontas / šalčio plitimas). JOKIŲ projektilų.
       const W = window.innerWidth * D, H = window.innerHeight * D
       const v = it.variant ?? 'generic'
+      const zx = it.rect?.x ?? 0, zy = it.rect?.y ?? 0
+      const zw = it.rect?.w ?? W, zh = it.rect?.h ?? H
+      const zcx = zx + zw / 2, zcy = zy + zh / 2
+      const zmax = Math.max(zw, zh)
       if (!it.seeded) {
         it.seeded = true
-        const n = Math.round(64 * im)
+        const n = Math.round((it.rect ? 46 : 64) * im)
         for (let k = 0; k < n; k++) {
-          const x = rnd(0, W), y = rnd(0, H)
-          if (v === 'fire') it.parts.push({ x, y: rnd(H * 0.5, H), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.8, 2.6) * D, life: now + rnd(0, 300), max: rnd(700, 1300), size: rnd(2, 6) * D, rot: rnd(0, TAU), vr: 0 })
-          else if (v === 'ice') it.parts.push({ x, y: rnd(-H * 0.2, H * 0.4), vx: rnd(-0.3, 0.3) * D, vy: rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
-          else if (v === 'lightning') it.parts.push({ x, y, vx: 0, vy: 0, life: now + rnd(0, 700), max: rnd(90, 220), size: rnd(2, 7) * D, rot: rnd(0, TAU), vr: 0 })
-          else if (v === 'poison') it.parts.push({ x, y: rnd(H * 0.4, H), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.3, 1.1) * D, life: now + rnd(0, 400), max: rnd(1000, 1700), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 0 })
-          else if (v === 'heal' || v === 'holy') it.parts.push({ x, y: rnd(H * 0.35, H), vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(1.5, 4) * D, rot: rnd(0, TAU), vr: 0 })
-          else if (v === 'necrotic') it.parts.push({ x, y: rnd(H * 0.3, H * 0.9), vx: rnd(-0.3, 0.3) * D, vy: -rnd(0.3, 1.0) * D, life: now + rnd(0, 500), max: rnd(1100, 1800), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 1 })
-          else if (v === 'curse') it.parts.push({ x, y, vx: rnd(-0.6, 0.6) * D, vy: rnd(-0.4, 0.4) * D, life: now + rnd(0, 400), max: rnd(600, 1100), size: rnd(1.5, 4) * D, rot: rnd(0, TAU), vr: 0 })
-          else it.parts.push({ x, y, vx: rnd(-0.5, 0.5) * D, vy: -rnd(0.2, 1.0) * D, life: now + rnd(0, 350), max: rnd(700, 1300), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
+          const x = rnd(zx, zx + zw)
+          if (v === 'fire') it.parts.push({ x, y: rnd(zy + zh * 0.4, zy + zh), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.8, 2.6) * D, life: now + rnd(0, 300), max: rnd(700, 1300), size: rnd(2, 6) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'ice') it.parts.push({ x, y: rnd(zy - zh * 0.2, zy + zh * 0.4), vx: rnd(-0.3, 0.3) * D, vy: rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'lightning') it.parts.push({ x, y: rnd(zy, zy + zh), vx: 0, vy: 0, life: now + rnd(0, 700), max: rnd(90, 220), size: rnd(2, 7) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'poison') it.parts.push({ x, y: rnd(zy + zh * 0.3, zy + zh), vx: rnd(-0.2, 0.2) * D, vy: -rnd(0.2, 0.9) * D, life: now + rnd(0, 400), max: rnd(1000, 1700), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'heal' || v === 'holy') it.parts.push({ x, y: rnd(zy + zh * 0.35, zy + zh), vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.5, 1.6) * D, life: now + rnd(0, 400), max: rnd(900, 1500), size: rnd(1.5, 4) * D, rot: rnd(0, TAU), vr: 0 })
+          else if (v === 'necrotic') it.parts.push({ x, y: rnd(zy + zh * 0.3, zy + zh * 0.9), vx: rnd(-0.3, 0.3) * D, vy: -rnd(0.3, 1.0) * D, life: now + rnd(0, 500), max: rnd(1100, 1800), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: 1 })
+          else if (v === 'curse') it.parts.push({ x, y: rnd(zy, zy + zh), vx: rnd(-0.6, 0.6) * D, vy: rnd(-0.4, 0.4) * D, life: now + rnd(0, 400), max: rnd(600, 1100), size: rnd(1.5, 4) * D, rot: rnd(0, TAU), vr: 0 })
+          else it.parts.push({ x, y: rnd(zy, zy + zh), vx: rnd(-0.5, 0.5) * D, vy: -rnd(0.2, 1.0) * D, life: now + rnd(0, 350), max: rnd(700, 1300), size: rnd(2, 5) * D, rot: rnd(0, TAU), vr: 0 })
         }
-        // dūmų debesys (dideli minkšti, kyla)
-        const sn = Math.round(10 * im)
-        for (let k = 0; k < sn; k++) it.parts.push({ x: rnd(0, W), y: rnd(H * 0.45, H * 1.05), vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.2, 0.7) * D, life: now, max: rnd(1100, 1700), size: rnd(40, 90) * D, rot: -1, vr: 0 })
+        // dūmų debesys (dideli minkšti, kyla) — zonos ribose
+        const sn = Math.round((it.rect ? 7 : 10) * im)
+        for (let k = 0; k < sn; k++) it.parts.push({ x: rnd(zx, zx + zw), y: rnd(zy + zh * 0.45, zy + zh * 1.05), vx: rnd(-0.15, 0.15) * D, vy: -rnd(0.2, 0.7) * D, life: now, max: rnd(1100, 1700), size: rnd(40, 90) * D, rot: -1, vr: 0 })
+        // žaibo trenksmai: keli klaikūs dantyti smūgiai iš viršaus į zonos taškus
+        if (v === 'lightning') {
+          it.bolts = []
+          const bn = 3 + Math.round(2 * im)
+          for (let k = 0; k < bn; k++) {
+            const bx = rnd(zx + zw * 0.08, zx + zw * 0.92)
+            const endY = rnd(zy + zh * 0.35, zy + zh * 0.95)
+            const startY = zy - Math.min(120 * D, zh * 0.5)
+            const segs = 7
+            const pts: { x: number; y: number }[] = []
+            for (let s2 = 0; s2 <= segs; s2++) pts.push({ x: bx + (s2 === 0 || s2 === segs ? 0 : rnd(-zw * 0.045, zw * 0.045)), y: lerp(startY, endY, s2 / segs) })
+            it.bolts.push({ pts, t0f: rnd(0.02, 0.55) })
+          }
+        }
       }
       ctx.globalCompositeOperation = 'lighter'
-      // pilno lauko šviesos banga (be linijų): centrinis žybsnis + bendras atspalvis
+      // zonos šviesos „wash" (ribose) + bendras švytėjimas iš zonos centro
       const wash = Math.sin(Math.min(1, p) * Math.PI)
-      ctx.fillStyle = color; ctx.globalAlpha = wash * (v === 'lightning' ? 0.16 : v === 'curse' ? 0.07 + 0.05 * Math.sin(now / 110) : 0.09); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1
-      if (v === 'necrotic' || v === 'curse') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(6,3,10,1)'; ctx.globalAlpha = wash * 0.22; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter' }
-      glow(ctx, from.x, from.y, Math.max(W, H) * (0.35 + easeOut(p) * 0.4), color, (1 - p) * 0.16)
-      // per ekraną nuvilnijanti minkšta banga (vietoj kieto blyksnio)
-      softRing(ctx, from.x, from.y, Math.max(W, H) * easeOut(Math.min(1, p * 1.6)) * 0.6, 60 * D, color, (1 - p) * 0.22)
-      if (v === 'lightning' && p < 0.18) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = (0.18 - p) / 0.18 * 0.35; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
+      ctx.fillStyle = color; ctx.globalAlpha = wash * (v === 'lightning' ? 0.16 : v === 'curse' ? 0.07 + 0.05 * Math.sin(now / 110) : 0.09); ctx.fillRect(zx, zy, zw, zh); ctx.globalAlpha = 1
+      if (v === 'necrotic' || v === 'curse') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(6,3,10,1)'; ctx.globalAlpha = wash * 0.22; ctx.fillRect(zx, zy, zw, zh); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter' }
+      glow(ctx, zcx, zcy, zmax * (0.35 + easeOut(p) * 0.4), color, (1 - p) * 0.16)
+      softRing(ctx, zcx, zcy, zmax * easeOut(Math.min(1, p * 1.6)) * 0.55, 60 * D, color, (1 - p) * 0.22)
+      if (v === 'lightning' && p < 0.18) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = (0.18 - p) / 0.18 * 0.35; ctx.fillRect(zx, zy, zw, zh); ctx.globalAlpha = 1 }
+      // žaibo trenksmai (glow taškų grandinės — be kietų linijų)
+      if (v === 'lightning' && it.bolts) {
+        for (const b of it.bolts) {
+          const q = (p - b.t0f) / 0.18
+          if (q < 0 || q > 1) continue
+          const a = Math.sin(q * Math.PI)
+          for (let s2 = 0; s2 < b.pts.length - 1; s2++) {
+            const p1 = b.pts[s2], p2 = b.pts[s2 + 1]
+            for (let t2 = 0; t2 < 4; t2++) {
+              const xx = lerp(p1.x, p2.x, t2 / 4), yy = lerp(p1.y, p2.y, t2 / 4)
+              glow(ctx, xx, yy, 4.5 * D, '#ffffff', a * 0.9)
+              glow(ctx, xx, yy, 10 * D, color, a * 0.45)
+            }
+          }
+          const end = b.pts[b.pts.length - 1]
+          glow(ctx, end.x, end.y, 26 * D * a, '#ffffff', a * 0.75)
+          glow(ctx, end.x, end.y, 44 * D * a, color, a * 0.4)
+        }
+      }
+      // ugnies frontas: banga vilnija per zonos paviršių (kairė → dešinė)
+      if (v === 'fire' && p < 0.75) {
+        const bx2 = zx + easeOut(p / 0.75) * zw
+        for (let k = 0; k < 9; k++) {
+          const yy = zy + (k / 8) * zh
+          glow(ctx, bx2 + rnd(-10, 10) * D, yy + rnd(-6, 6) * D, rnd(10, 22) * D, `hsla(${20 + rnd(0, 25)},100%,58%,1)`, (1 - p) * 0.7)
+        }
+        glow(ctx, bx2, zcy, zh * 0.5, color, (1 - p) * 0.22)
+      }
+      // šalčio frontas: suplotas žiedas plinta zonos paviršiumi + blizgios kibirkštys
+      if (v === 'ice') {
+        ctx.save(); ctx.translate(zcx, zcy); ctx.scale(1, Math.max(0.22, zh / Math.max(1, zw)))
+        softRing(ctx, 0, 0, zw * 0.55 * easeOut(Math.min(1, p * 1.3)), 26 * D, color, (1 - p) * 0.5)
+        ctx.restore()
+        if (p < 0.6 && Math.random() < 0.5) glow(ctx, rnd(zx, zx + zw), rnd(zy, zy + zh), rnd(2, 5) * D, '#ffffff', 0.8)
+      }
       // dalelės / dūmai
       for (let k = it.parts.length - 1; k >= 0; k--) {
         const q = it.parts[k]
