@@ -424,6 +424,7 @@ export type PassiveAuraConfig = {
   auraKeywords?: ('taunt' | 'shield' | 'stealth' | 'sprint')[]  // suteikiami raktažodžiai
   auraStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned')[]  // paveikti padarai NUOLAT turi šias būsenas, kol aura aktyvi
   auraFromGraveyardOnly?: boolean      // aura veikia TIK padarus, iškviestus/prikeltus iš kapinyno
+  auraRequiresKeyword?: 'taunt' | 'shield' | 'stealth' | 'sprint'  // SĄLYGA: aura veikia tik padarus su šiuo raktažodžiu (pvz. +1/+1 tik taunt padarams)
   auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
   // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──
   advAttack?: 'advantage' | 'disadvantage'   // paveiktų padarų ATAKŲ ŽMK traukimas

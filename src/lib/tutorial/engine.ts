@@ -609,6 +609,13 @@ function applySpellLifesteal(g: GameState, dmg: number) {
 // ── Žalos taikymas / mirtys ───────────────────────────────────────────────────
 
 type PassiveAura = NonNullable<TutCard['gameplay']>['passiveAura']
+/** Ar padaras ŠIUO METU turi raktažodį (spausdintas / auros suteiktas / board flag). */
+function unitHasKw(u: BoardUnit, kw: 'taunt' | 'shield' | 'stealth' | 'sprint'): boolean {
+  if (kw === 'shield') return u.shield
+  if (kw === 'stealth') return u.stealth
+  if (u.statuses.silenced) return false  // nutildymas blokuoja raktažodžius
+  return u.card.keywords.includes(kw) || !!u.auraKw?.includes(kw)
+}
 /** Visos pasyvios auros (padarų/artefaktų), veikiančios konkretų padarą (uid, savininkas). */
 function aurasAffecting(g: GameState, ownerSide: Side, uid: string): PassiveAura[] {
   const out: PassiveAura[] = []
@@ -630,6 +637,7 @@ function aurasAffecting(g: GameState, ownerSide: Side, uid: string): PassiveAura
       if (cfg.auraSubtype && cfg.auraSubtype.trim().toLowerCase() !== unitSubtype) continue
       if (cfg.auraFaction && ownerUnit?.card.factionId !== cfg.auraFaction) continue
       if (cfg.auraFromGraveyardOnly && ownerUnit?.summonedFrom !== 'graveyard') continue
+      if (cfg.auraRequiresKeyword && (!ownerUnit || !unitHasKw(ownerUnit, cfg.auraRequiresKeyword))) continue
       out.push(cfg)
     }
   }
@@ -817,6 +825,9 @@ export function recomputeAuras(g: GameState) {
         if (want && (u.card.subtype ?? '').toLowerCase() !== want) continue
         if (wantFac && u.card.factionId !== wantFac) continue
         if (cfg.auraFromGraveyardOnly && u.summonedFrom !== 'graveyard') continue
+        // SĄLYGA: tik padarams su raktažodžiu (pvz. +1/+1 tik su Pasišaipymu).
+        // Tikrinama pagal spausdintus raktažodžius + jau pritaikytas auras (šaltiniai eina iš eilės).
+        if (cfg.auraRequiresKeyword && !unitHasKw(u, cfg.auraRequiresKeyword)) continue
         if (aAtk) { u.atk = Math.max(0, u.atk + aAtk); u.auraAtk = (u.auraAtk ?? 0) + aAtk }
         if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
         if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
@@ -2220,6 +2231,7 @@ function auraCostReductionFor(g: GameState, s: Side, card: TutCard): number {
       if (!sideMatch) continue
       if (cfg.auraSubtype && want(card.subtype ?? undefined) !== want(cfg.auraSubtype)) continue
       if (cfg.auraFaction && card.factionId !== cfg.auraFaction) continue
+      if (cfg.auraRequiresKeyword && !card.keywords.includes(cfg.auraRequiresKeyword)) continue
       red += cfg.auraCostReduction
     }
   }

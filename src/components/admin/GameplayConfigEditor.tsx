@@ -297,7 +297,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -335,6 +335,17 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                     onChange={(e) => setPa({ auraFaction: e.target.value ? Number(e.target.value) : undefined })} style={inputStyle}>
                     <option value="">(bet kuri frakcija)</option>
                     {factions.map((fc) => <option key={fc.id} value={fc.id}>{fc.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle} title="Sąlyga: aura veikia tik padarus, kurie turi šį raktažodį (pvz. +1/+1 tik su Pasišaipymu)">Tik su raktažodžiu</label>
+                  <select value={pa?.auraRequiresKeyword ?? ''}
+                    onChange={(e) => setPa({ auraRequiresKeyword: (e.target.value || undefined) as 'taunt' | 'shield' | 'stealth' | 'sprint' | undefined })} style={inputStyle}>
+                    <option value="">(be sąlygos)</option>
+                    <option value="taunt">⊙ Pasišaipymas (taunt)</option>
+                    <option value="shield">✦ Magiškasis skydas</option>
+                    <option value="stealth">◑ Sėlinimas</option>
+                    <option value="sprint">▶ Sprintas</option>
                   </select>
                 </div>
                 <div>
