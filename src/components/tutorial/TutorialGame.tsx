@@ -830,6 +830,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
   // Prakeiksmo aktyvacijos overlay
   const [cardFlash, setCardFlash] = useState<{ card: TutCard | null; cards?: (TutCard | null)[]; title: string; tag: string | null; color: string } | null>(null)
+  // „Showcase": prieš efektą kortos miniatiūra atskrenda į centrą, padidėja iki ~40% ekrano,
+  // 1 s parodoma ir dingsta (burtai iš rankos / prakeiksmai nuo kaladės / reakcijos iš zonos).
+  const [showcases, setShowcases] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; kind: 'spell' | 'curse' | 'reaction' }[]>([])
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Monetos metimo animacija (žalia/raudona)
   const [coinAnim, setCoinAnim] = useState<{ side: Side; coin: 'green' | 'red' } | null>(null)
@@ -1423,6 +1426,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
     const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
     const spawnPop = (card: TutCard | null, at: { x: number; y: number }, color: string, tag?: string) => { const id = ++flyIdRef.current; setPopCards((pp) => [...pp, { id, card, x: at.x, y: at.y, color, tag }]); window.setTimeout(() => setPopCards((pp) => pp.filter((x) => x.id !== id)), 1300) }
+    // Showcase: korta skrenda iš šaltinio į centrą, užauga, ~1 s palaikoma, dingsta.
+    const spawnShowcase = (card: TutCard | null, from: { x: number; y: number }, kind: 'spell' | 'curse' | 'reaction', delay = 0) => {
+      const id = ++flyIdRef.current
+      window.setTimeout(() => {
+        setShowcases((s) => [...s, { id, card, from, kind }])
+        window.setTimeout(() => setShowcases((s) => s.filter((x) => x.id !== id)), 1800)
+      }, delay)
+    }
+    const pileCenter = (sel: string): { x: number; y: number } | null => {
+      const el = document.querySelector(sel)
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    }
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
       if (e.sound) playBattleSound(e.sound)
@@ -1489,7 +1506,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const cc = findCard(e.cardName)
             if (cc) cine.enqueueChampionSkillCinematic(toCineCard(cc), e.skillIndex)
           }
-          if (e.t === 'spell' && e.cardName && !e.tgt) {
+          if (e.t === 'spell' && e.cardName && (e.key ?? '').startsWith('battleLog.castSpell')) {
+            // Showcase: burto miniatiūra iš rankos → centras (užauga iki ~40% ekrano, 1 s), tada efektai
+            const card = findCard(e.cardName)
+            const from = pileCenter(e.side === 'you' ? '[data-tut="hand"], [data-pile="hand-you"]' : '[data-pile="hand-ai"]')
+              ?? (e.side === 'you' && handRef.current ? (() => { const r = handRef.current!.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })() : fxCenter())
+            spawnShowcase(card, from, 'spell', SETTLE)
+            fxSeq += 1500
+          } else if (e.t === 'spell' && e.cardName && !e.tgt) {
             const card = findCard(e.cardName)
             const at = (e.src ? rectOf(e.src) : null) ?? fxCenter()
             window.setTimeout(() => spawnPop(card, at, '#60a5fa', e.side === 'you' ? t('battle.game.spellTag') : t('battle.game.enemySpellTag')), 160)
@@ -1593,7 +1617,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
-        case 'reactionTrigger': queueTip('reaction'); break
+        case 'reactionTrigger': {
+          queueTip('reaction')
+          const card = findCard(e.cardName)
+          const from = pileCenter(`[data-pile="reactions-${e.side}"]`) ?? fxCenter()
+          spawnShowcase(card, from, 'reaction', SETTLE + fxSeq)
+          fxSeq += 1500
+          break
+        }
         case 'field': {
           queueTip('field'); if (!e.sound) playBattleSound('field')
           const d = SETTLE + fxSeq; fxSeq += 120
@@ -1635,9 +1666,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           playBattleSound('curse')
           const card = findCard(e.cardName)
           const activated = (e.key ?? '').startsWith('battleLog.curseDrawn') || e.key === 'battleLog.curseForced'
-          setCardFlash({ card, title: e.cardName ?? t('battle.game.curseTag'), tag: activated ? t('battle.game.curseActivated') : t('battle.game.curseMixed'), color: activated ? '#ef4444' : '#a78bfa' })
-          if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
-          flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
+          if (activated) {
+            // Showcase: prakeiksmas atskrenda nuo kaladės, iš kurios ištrauktas (e.side = auka)
+            const from = pileCenter(`[data-pile="deck-${e.side}"]`) ?? fxCenter()
+            spawnShowcase(card, from, 'curse', SETTLE + fxSeq)
+            fxSeq += 1500
+          } else {
+            setCardFlash({ card, title: e.cardName ?? t('battle.game.curseTag'), tag: t('battle.game.curseMixed'), color: '#a78bfa' })
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+            flashTimerRef.current = setTimeout(() => setCardFlash(null), 2000)
+          }
           if (srcRef) { const sref = srcRef, opp: Side = sref.side === 'you' ? 'ai' : 'you'; const d = SETTLE + fxSeq; fxSeq += 120; window.setTimeout(() => { const from = rectOf(sref), to = rectFor({ side: opp }); if (from && to) fxRef.current?.spawn({ kind: 'curseMark', from, to, color: '#a855f7', duration: 1.4 }) }, d) }
           break
         }
@@ -2767,7 +2805,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     const p = P(game, side)
     return (
       <div className="flex justify-center gap-1 items-center">
-        <div data-tut={side === 'you' ? 'reactions' : undefined} className="flex gap-1">
+        <div data-tut={side === 'you' ? 'reactions' : undefined} data-pile={'reactions-' + side} className="flex gap-1">
           {p.reactions.map((r, i) => r ? (
             side === 'you' ? (
               // Savo reakcijas gali peržiūrėti (užverstas priešui). Priešo – paslėptos.
@@ -4011,6 +4049,34 @@ doAction({ t: 'endTurn', actor: 'you' })
               </motion.div>
             </div>
           ))}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Showcase: burtas/prakeiksmas/reakcija atskrenda į centrą ir užauga iki ~40% ekrano ── */}
+      <div className="fixed inset-0 z-[132] pointer-events-none">
+        <AnimatePresence>
+          {showcases.map((sc) => {
+            const cx = window.innerWidth / 2, cy = window.innerHeight * 0.46
+            const w = Math.round(window.innerHeight * 0.4 * 0.75)   // korta ~40% ekrano aukščio
+            const col = sc.kind === 'curse' ? '#a855f7' : sc.kind === 'reaction' ? '#fbbf24' : '#60a5fa'
+            return (
+              <div key={'sw' + sc.id} className="absolute" style={{ left: cx, top: cy, perspective: 900 }}>
+                <motion.div
+                  initial={{ x: sc.from.x - cx, y: sc.from.y - cy, scale: 0.16, opacity: 0, rotateY: sc.kind === 'reaction' ? 180 : 0 }}
+                  animate={{ x: 0, y: 0, scale: 1, opacity: [0, 1, 1, 1, 0], rotateY: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 1.7, times: [0, 0.22, 0.3, 0.88, 1], ease: 'easeOut' }}
+                  className="absolute"
+                  style={{ transform: 'translate(-50%, -50%)', marginLeft: -w / 2, marginTop: -Math.round(w * 4 / 3) / 2 }}>
+                  <div style={{ outline: '3px solid ' + col, borderRadius: 14, boxShadow: `0 0 44px ${col}88, 0 18px 50px rgba(0,0,0,0.8)` }}>
+                    {sc.card
+                      ? <MiniCard c={sc.card} w={w} readable />
+                      : <div className="flex items-center justify-center rounded-xl" style={{ width: w, height: Math.round(w * 4 / 3), background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid ' + col, fontSize: 40 }}>{sc.kind === 'curse' ? '☠' : sc.kind === 'reaction' ? '⚡' : '✨'}</div>}
+                  </div>
+                </motion.div>
+              </div>
+            )
+          })}
         </AnimatePresence>
       </div>
 
