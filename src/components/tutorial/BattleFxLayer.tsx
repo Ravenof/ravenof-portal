@@ -396,6 +396,13 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
         }
         glow(ctx, bx2, zcy, zh * 0.5, color, (1 - p) * 0.22)
       }
+      // gydymo šviesa: suplotas žiedas pakyla zonos apačioje + auksiniai blyksniai
+      if (v === 'heal' || v === 'holy') {
+        ctx.save(); ctx.translate(zcx, zy + zh * 0.85); ctx.scale(1, 0.3)
+        softRing(ctx, 0, 0, zw * 0.5 * easeOut(Math.min(1, p * 1.2)), 22 * D, color, (1 - p) * 0.45)
+        ctx.restore()
+        if (p < 0.7 && Math.random() < 0.6) glow(ctx, rnd(zx + zw * 0.1, zx + zw * 0.9), rnd(zy + zh * 0.2, zy + zh * 0.8), rnd(2, 4) * D, '#ffe28c', 0.85)
+      }
       // šalčio frontas: suplotas žiedas plinta zonos paviršiumi + blizgios kibirkštys
       if (v === 'ice') {
         ctx.save(); ctx.translate(zcx, zcy); ctx.scale(1, Math.max(0.22, zh / Math.max(1, zw)))

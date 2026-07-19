@@ -1432,6 +1432,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     chosenTargetsRef.current = null
     const multiProj = aoeMode && !!chosenMulti && chosenMulti.length >= 2
     const zoneAoe = aoeMode && !multiProj
+    // Masinis gydymas (≥2 padarų taikiniai) → žalias zoninis efektas vietoj atskirų srautų
+    const healAoe = fresh.filter((ev) => ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.uid).length >= 2
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
     const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
     const spawnPop = (card: TutCard | null, at: { x: number; y: number }, color: string, tag?: string) => { const id = ++flyIdRef.current; setPopCards((pp) => [...pp, { id, card, x: at.x, y: at.y, color, tag }]); window.setTimeout(() => setPopCards((pp) => pp.filter((x) => x.id !== id)), 1300) }
@@ -1775,7 +1777,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           window.setTimeout(() => {
             const to = tgt ? rectOf(tgt) : rectFor({ side: e.side }); if (!to) return
             const from = sref ? rectOf(sref) : null
-            if (from) fxRef.current?.spawn({ kind: 'healStream', from, to, color: '#5ef0c0', duration: 1.2 })
+            if (from && !healAoe) fxRef.current?.spawn({ kind: 'healStream', from, to, color: '#5ef0c0', duration: 1.2 })
             window.setTimeout(() => { if (tgt?.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) } if (val) fxRef.current?.floatNumber(to.x, to.y - 12, '+' + val, '#5ef0c0'); if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft') }, from ? 420 : 0)
           }, base)
           break
@@ -1854,6 +1856,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const aFrom = rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : ((srcRef ? rectOf(srcRef) : null) ?? fxCenter())
       const aDelay = showcaseHold > 0 ? showcaseHold : SETTLE
       window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, rect, color: aCol, duration: 1.7, variant: aoeVariant() }), aDelay)
+    }
+
+    if (healAoe) {
+      // Zona = gydomų padarų pusė (viena → tos pusės eilė; abi → visa lenta)
+      const hs = new Set<Side>()
+      for (const ev of fresh) if (ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.side) hs.add(ev.tgt.side)
+      const zEl = hs.size === 1
+        ? document.querySelector(`[data-tut="units-${[...hs][0]}"]`)
+        : document.querySelector('[data-fx-root]')
+      const zr2 = zEl?.getBoundingClientRect()
+      const rect2 = zr2 && zr2.width > 40 ? { x: zr2.left - 10, y: zr2.top - 10, w: zr2.width + 20, h: zr2.height + 20 } : undefined
+      const hFrom = rect2 ? { x: rect2.x + rect2.w / 2, y: rect2.y + rect2.h / 2 } : fxCenter()
+      const hDelay = showcaseHold > 0 ? showcaseHold : SETTLE
+      window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: hFrom, rect: rect2, color: '#5ef0c0', duration: 1.6, variant: 'heal' }), hDelay)
     }
 
     // lentos skenavimas raktažodžių patarimams
