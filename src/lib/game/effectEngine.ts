@@ -4,6 +4,7 @@
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
 import type { EffectMapping, EffectType } from './types'
+import { EFFECT_TYPES } from './types'
 import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, filterFaction, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 import { t as tGlobal } from '@/lib/i18n/core'
@@ -89,6 +90,7 @@ export function effectIntent(e: EffectType): 'harm' | 'help' {
 
 /** Ar mapping'ui reikia žaidėjo pasirinkti taikinį UI'juje? */
 export function mappingNeedsSelection(m: EffectMapping): boolean {
+  if (m.chooseAlt && m.chooseAlt.length > 0) return false  // ARBA: pirmiau pop-up pasirinkimas, taikiniai auto
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
   if (m.targetTypes && m.targetTypes.length > 0) return !m.applyToAllTypes && m.requiresSelection !== false
@@ -144,6 +146,17 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
 function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMapping, ctx: ApplyCtx): boolean {
   // Sąlyga: jei netenkinama – mapping praleidžiamas tyliai (naudojama fallback porai).
   if (m.condition && !evalCondition(g, caster, m.condition)) return false
+
+  // ARBA (chooseAlt): žaidėjas pop-up'e renkasi tarp PAGRINDINIO efekto ir alternatyvų.
+  // Kiekvienas variantas – pilnas mapping (su savo then/fallback); vykdomas pasirinktasis.
+  if (m.chooseAlt && m.chooseAlt.length > 0) {
+    const lbl = (x: EffectMapping) => x.note || (EFFECT_TYPES.find((e) => e.value === x.effect)?.label ?? x.effect)
+    const branches: EffectMapping[][] = [[{ ...m, chooseAlt: undefined }], ...m.chooseAlt.map((a) => [{ ...a, chooseAlt: undefined }])]
+    const labels = [lbl(m), ...m.chooseAlt.map(lbl)]
+    const chooser: Side = m.chooseBy === 'opponent' ? (caster === 'you' ? 'ai' : 'you') : caster
+    api.chooseEffect(g, caster, ctx.sourceName, branches, labels, chooser)
+    return true
+  }
 
   // Taikinys „dabar žaidžiamas burtas" (castSpell): nutildo/atšaukia žaidžiamą burtą.
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) {

@@ -359,6 +359,7 @@ export type EffectMapping = {
   resurrectStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // resurrectSelf: būsenos, uždedamos prisikėlus
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
+  chooseAlt?: EffectMapping[]       // ARBA: pilnos alternatyvos ŠIAM efektui – žaidėjas pop-up'e renkasi tarp pagrindinio efekto ir šių (kiekviena = atskiras variantas)
   chooseBy?: 'caster' | 'opponent'  // chooseEffect: kas renkasi – kerėtojas (default) ar priešininkas/auka (pvz. prakeiksmui)
   coinGreen?: EffectMapping[]       // coinFlip: efektai, kai iškrinta ŽALIA pusė
   coinRed?: EffectMapping[]         // coinFlip: efektai, kai iškrinta RAUDONA pusė

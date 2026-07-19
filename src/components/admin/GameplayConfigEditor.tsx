@@ -1392,16 +1392,27 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   </div>
                   {/* Follow-up grandinė: „tada padaryk ir…" */}
                   <div className="col-span-2 md:col-span-4 mt-1 pl-2" style={{ borderLeft: '2px solid rgba(240,180,41,0.4)' }}>
-                    {(m.then ?? []).map((fm, fi) => {
+                    {[
+                      ...(m.then ?? []).map((fm, fi) => ({ fm, fi, kind: 'then' as const })),
+                      ...(m.chooseAlt ?? []).map((fm, fi) => ({ fm, fi, kind: 'alt' as const })),
+                      ...(m.noTargetThen ?? []).map((fm, fi) => ({ fm, fi, kind: 'nt' as const })),
+                    ].map(({ fm, fi, kind }) => {
+                      const alt = kind === 'alt'
                       const setThen = (patch: Partial<EffectMapping>) => {
+                        if (kind === 'alt') { const arr = [...(m.chooseAlt ?? [])]; arr[fi] = { ...arr[fi], ...patch }; setMapping(i, { chooseAlt: arr }); return }
+                        if (kind === 'nt') { const arr = [...(m.noTargetThen ?? [])]; arr[fi] = { ...arr[fi], ...patch }; setMapping(i, { noTargetThen: arr }); return }
                         const arr = [...(m.then ?? [])]; arr[fi] = { ...arr[fi], ...patch }; setMapping(i, { then: arr })
                       }
                       const fEffDef = EFFECT_TYPES.find((e) => e.value === fm.effect)
                       const fPlayerOnly = ['discard', 'gainGold', 'loseGold'].includes(fm.effect)
                       const fNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'chooseEffect'].includes(fm.effect)
                       return (
-                        <div key={fi} className="flex flex-wrap items-end gap-2 mb-1">
-                          <span className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>↳ tada</span>
+                        <div key={kind + fi} className="flex flex-wrap items-end gap-2 mb-1"
+                          style={kind === 'alt' ? { background: 'rgba(147,197,253,0.07)', border: '1px dashed rgba(147,197,253,0.45)', borderRadius: 6, padding: '4px 6px' }
+                            : kind === 'nt' ? { background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.35)', borderRadius: 6, padding: '4px 6px' } : undefined}>
+                          <span className="text-[11px] font-semibold" style={{ color: kind === 'alt' ? '#93c5fd' : kind === 'nt' ? '#fca5a5' : 'var(--gold)' }}
+                            title={kind === 'alt' ? 'Žaidėjas pop-up\'e rinksis: pagrindinis efektas ARBA šis' : kind === 'nt' ? 'Įvykdomas VIETOJ pagrindinio efekto, kai šis neturi tinkamo taikinio' : undefined}>
+                            {kind === 'alt' ? '⇄ ARBA' : kind === 'nt' ? '∅ Jei NĖRA taikinio →' : '↳ tada'}</span>
                           <div>
                             <label style={labelStyle}>Efektas</label>
                             <select value={fm.effect} onChange={(e) => setThen({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 150 }}>
@@ -1555,29 +1566,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                               })}
                             </div>
                           )}
-                          <button type="button" onClick={() => { const arr = (m.then ?? []).filter((_, j) => j !== fi); setMapping(i, { then: arr.length ? arr : undefined }) }}
-                            className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
-                        </div>
-                      )
-                    })}
-                    {(m.noTargetThen ?? []).map((fm, fi) => {
-                      const setNt = (patch: Partial<EffectMapping>) => { const arr = [...(m.noTargetThen ?? [])]; arr[fi] = { ...arr[fi], ...patch }; setMapping(i, { noTargetThen: arr }) }
-                      const fmDef = EFFECT_TYPES.find((e) => e.value === fm.effect)
-                      return (
-                        <div key={'nt' + fi} className="flex flex-wrap items-end gap-2 mb-1 p-1.5 rounded" style={{ background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.35)' }}>
-                          <span className="text-[11px] font-bold" style={{ color: '#fca5a5' }} title="Įvykdomas VIETOJ pagrindinio efekto, kai šis neturi tinkamo taikinio (pvz. priešas be padarų)">Jei NĖRA taikinio →</span>
-                          <select value={fm.effect} onChange={(e) => setNt({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 160 }}>
-                            <EffectOptions />
-                          </select>
-                          <select value={fm.target} onChange={(e) => setNt({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 150 }}>
-                            <TargetOptions />
-                          </select>
-                          {fmDef?.needsValue && (
-                            <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>Reikšmė
-                              <input type="number" value={fm.value ?? 1} min={0} onChange={(e) => setNt({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 64 }} />
-                            </label>
-                          )}
-                          <button type="button" onClick={() => { const arr = (m.noTargetThen ?? []).filter((_, j) => j !== fi); setMapping(i, { noTargetThen: arr.length ? arr : undefined }) }}
+                          <button type="button" onClick={() => {
+                            if (kind === 'alt') { const arr = (m.chooseAlt ?? []).filter((_, j) => j !== fi); setMapping(i, { chooseAlt: arr.length ? arr : undefined }); return }
+                            if (kind === 'nt') { const arr = (m.noTargetThen ?? []).filter((_, j) => j !== fi); setMapping(i, { noTargetThen: arr.length ? arr : undefined }); return }
+                            const arr = (m.then ?? []).filter((_, j) => j !== fi); setMapping(i, { then: arr.length ? arr : undefined })
+                          }}
                             className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
                         </div>
                       )
@@ -1588,10 +1581,8 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       + Tada padaryk dar…
                     </button>
                     <button type="button"
-                      onClick={() => setMapping(i, { then: [...(m.then ?? []), { trigger: m.trigger, effect: 'chooseEffect', target: 'self', requiresSelection: false, chooseBy: 'caster', chooseOne: [
-                        { label: 'Variantas A', mappings: [{ trigger: m.trigger, effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: true } as EffectMapping] },
-                        { label: 'Variantas B', mappings: [{ trigger: m.trigger, effect: 'heal', target: 'ownUnit', value: 2, requiresSelection: true } as EffectMapping] },
-                      ] } as EffectMapping] })}
+                      title="Žaidėjas pop-up'e rinksis: pagrindinis šio mapping'o efektas ARBA čia sumapinta pilna alternatyva"
+                      onClick={() => setMapping(i, { chooseAlt: [...(m.chooseAlt ?? []), { trigger: m.trigger, effect: 'heal', target: 'ownUnit', value: 2, requiresSelection: false } as EffectMapping] })}
                       className="text-[11px] font-semibold ml-3" style={{ color: '#93c5fd' }}>
                       + Arba padaryk…
                     </button>
