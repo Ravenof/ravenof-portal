@@ -64,6 +64,247 @@ function VfxCss() {
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// IDLE CANVAS — „AAA flow" gyvos būsenos (per-kortos canvas + rAF particle sim).
+// Kiekvienas statusas turi painter'į; canvas dengia kortą su užlaida efektams
+// už kraštų. DOM sluoksniai lieka tik statinei bazei (tint/rėmas/varvekliai).
+// quality 'low' arba reduced-motion → canvas nepaleidžiamas (lieka DOM bazė).
+// ══════════════════════════════════════════════════════════════════════════════
+const TAU = Math.PI * 2
+const RD = (a: number, b: number) => a + Math.random() * (b - a)
+function cglow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
+  if (r <= 0 || a <= 0) return
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+  g.addColorStop(0, color); g.addColorStop(1, 'transparent')
+  ctx.globalAlpha = Math.min(1, a); ctx.fillStyle = g
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
+}
+function cstar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, rot: number) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = color
+  ctx.beginPath()
+  for (let i = 0; i < 5; i++) {
+    const a1 = i / 5 * TAU - Math.PI / 2, a2 = a1 + TAU / 10
+    ctx.lineTo(Math.cos(a1) * r, Math.sin(a1) * r)
+    ctx.lineTo(Math.cos(a2) * r * 0.45, Math.sin(a2) * r * 0.45)
+  }
+  ctx.closePath(); ctx.fill(); ctx.restore()
+}
+type PaintCtx = { ctx: CanvasRenderingContext2D; w: number; h: number; now: number; st: Record<string, unknown>; D: number; hi: boolean }
+type FirePart = { x: number; y: number; vx: number; vy: number; l: number; ml: number; s: number; ph: number }
+type Mote = { x: number; y: number; v: number; ph: number }
+type Blob2 = { x: number; y: number; s: number; v: number; ph: number; c: number; l: number }
+type Suck = { a: number; r: number; v: number }
+
+const IDLE_PAINTERS: Partial<Record<VfxStatusId, (p: PaintCtx) => void>> = {
+  burning: ({ ctx, w, h, now, st, D, hi }) => {
+    ctx.globalCompositeOperation = 'lighter'
+    const px = 7 * D, py = 9 * D, cw = w - 2 * px, base = h - py - 2 * D
+    // liepsnos kūnas: banguojantys sluoksniuoti blob'ai per visą apačią
+    const n = hi ? 7 : 5
+    for (let i = 0; i < n; i++) {
+      const fx = px + (i + 0.5) / n * cw
+      const ph = Math.sin(now / 95 + i * 1.7) * 0.5 + 0.5
+      const ph2 = Math.sin(now / 63 + i * 2.9) * 0.5 + 0.5
+      const fh = (0.13 + 0.1 * ph + 0.04 * ph2) * h
+      cglow(ctx, fx, base - fh * 0.22, fh * 0.8, 'rgba(255,61,0,1)', 0.3)
+      cglow(ctx, fx + Math.sin(now / 150 + i) * 2.4 * D, base - fh * 0.5, fh * 0.48, 'rgba(255,138,26,1)', 0.42)
+      cglow(ctx, fx + Math.sin(now / 105 + i * 2) * 2 * D, base - fh * 0.72, fh * 0.28, 'rgba(255,209,102,1)', 0.5)
+      if (ph > 0.55) cglow(ctx, fx, base - fh * 0.86, fh * 0.15, 'rgba(255,247,205,1)', 0.6 * ph)
+    }
+    // kylančios kibirkštys su vėjo svyravimu
+    const parts = (st.p ??= []) as FirePart[]
+    if (parts.length < (hi ? 20 : 12) && Math.random() < 0.55) parts.push({ x: px + Math.random() * cw, y: base, vx: RD(-0.2, 0.2) * D, vy: -RD(0.7, 1.8) * D, l: 0, ml: RD(500, 1100), s: RD(1.1, 2.4) * D, ph: RD(0, TAU) })
+    for (let k = parts.length - 1; k >= 0; k--) {
+      const p = parts[k]; p.l += 16.7; p.x += p.vx + Math.sin(now / 140 + p.ph) * 0.45 * D; p.y += p.vy
+      const e = p.l / p.ml
+      if (e >= 1) { parts.splice(k, 1); continue }
+      cglow(ctx, p.x, p.y, p.s * 2.2, `hsla(${20 + (1 - e) * 35},100%,${60 + 20 * (1 - e)}%,1)`, (1 - e) * 0.85)
+    }
+    ctx.globalCompositeOperation = 'source-over'
+  },
+  shield: ({ ctx, w, h, now, st, D, hi }) => {
+    ctx.globalCompositeOperation = 'lighter'
+    const t = '#6ec3ff', cx = w / 2, cy = h / 2
+    const rx = w / 2 - 4 * D, ry = h / 2 - 4 * D
+    // superelipsės perimetras — energijos mazgai bėga aplink kortą su uodegomis
+    const per = (u: number) => {
+      const a = u * TAU
+      const ex = Math.pow(Math.abs(Math.cos(a)), 0.62) * Math.sign(Math.cos(a))
+      const ey = Math.pow(Math.abs(Math.sin(a)), 0.62) * Math.sign(Math.sin(a))
+      return { x: cx + ex * rx, y: cy + ey * ry }
+    }
+    for (const dir of [0, 0.5]) {
+      const u = ((now / 2400) + dir) % 1
+      for (let k = 0; k < 7; k++) {
+        const p = per((u - k * 0.011 + 1) % 1)
+        cglow(ctx, p.x, p.y, (8 - k) * 1.5 * D, t, 0.4 - k * 0.05)
+        if (k < 3) cglow(ctx, p.x, p.y, (5 - k) * 1.1 * D, '#eaf6ff', 0.55 - k * 0.14)
+      }
+    }
+    // kvėpuojantis kupolo švytėjimas
+    const br = Math.sin(now / 650) * 0.5 + 0.5
+    cglow(ctx, cx, cy * 0.9, Math.max(w, h) * 0.55, t, 0.05 + br * 0.05)
+    // energijos motai viduje
+    const motes = (st.m ??= Array.from({ length: hi ? 5 : 3 }, () => ({ x: RD(8 * D, w - 8 * D), y: RD(10 * D, h - 10 * D), v: RD(0.15, 0.38), ph: RD(0, TAU) }))) as Mote[]
+    for (const m of motes) {
+      m.y -= m.v * D
+      if (m.y < 10 * D) { m.y = h - 10 * D; m.x = RD(8 * D, w - 8 * D) }
+      cglow(ctx, m.x + Math.sin(now / 480 + m.ph) * 3 * D, m.y, 1.9 * D, '#dff1ff', 0.5)
+    }
+    ctx.globalCompositeOperation = 'source-over'
+  },
+  frozen: ({ ctx, w, h, now, st, D, hi }) => {
+    ctx.globalCompositeOperation = 'lighter'
+    const t = '#7dd3fc', px = 7 * D, py = 9 * D, cw = w - 2 * px, ch = h - 2 * py
+    // šviesos refrakcija: pasvirusi juosta lėtai slenka per ledą
+    const u = ((now / 3200) % 1.3) - 0.15
+    ctx.save(); ctx.translate(px + cw * 0.5, py + ch * u); ctx.rotate(-0.45)
+    const g = ctx.createLinearGradient(0, -13 * D, 0, 13 * D)
+    g.addColorStop(0, 'transparent'); g.addColorStop(0.5, 'rgba(232,249,255,0.32)'); g.addColorStop(1, 'transparent')
+    ctx.fillStyle = g; ctx.fillRect(-cw, -13 * D, cw * 2, 26 * D)
+    ctx.restore()
+    // mirksintys kristalų blizgesiai su kryžiaus flare
+    const tw = (st.tw ??= Array.from({ length: hi ? 7 : 5 }, () => ({ x: RD(px, px + cw), y: RD(py, py + ch), v: 0, ph: RD(0, TAU) }))) as Mote[]
+    for (const s of tw) {
+      const a = Math.max(0, Math.sin(now / 380 + s.ph))
+      cglow(ctx, s.x, s.y, 4 * D, '#ffffff', a * 0.7)
+      if (a > 0.85) {
+        ctx.globalAlpha = (a - 0.85) / 0.15 * 0.6; ctx.fillStyle = '#ffffff'
+        ctx.fillRect(s.x - 4.5 * D, s.y - 0.6 * D, 9 * D, 1.2 * D)
+        ctx.fillRect(s.x - 0.6 * D, s.y - 4.5 * D, 1.2 * D, 9 * D)
+        ctx.globalAlpha = 1
+      }
+    }
+    // dreifuojančios snaigės
+    const sn = (st.sn ??= Array.from({ length: hi ? 6 : 4 }, () => ({ x: RD(px, px + cw), y: RD(py, py + ch), v: RD(0.18, 0.45), ph: RD(0, TAU) }))) as Mote[]
+    for (const s of sn) {
+      s.y += s.v * D; s.x += Math.sin(now / 700 + s.ph) * 0.32 * D
+      if (s.y > py + ch) { s.y = py; s.x = RD(px, px + cw) }
+      cglow(ctx, s.x, s.y, 1.7 * D, '#e0f2fe', 0.85)
+    }
+    // šalčio garas prie apačios
+    cglow(ctx, w / 2, h - py, cw * 0.45, t, 0.05 + (Math.sin(now / 900) * 0.5 + 0.5) * 0.05)
+    ctx.globalCompositeOperation = 'source-over'
+  },
+  poisoned: ({ ctx, w, h, now, st, D, hi }) => {
+    ctx.globalCompositeOperation = 'lighter'
+    const px = 7 * D, py = 9 * D, cw = w - 2 * px, ch = h - 2 * py, base = h - py
+    // besisukantys dūmų kamuoliai kyla banguodami
+    const blobs = (st.b ??= Array.from({ length: hi ? 7 : 5 }, (_, i) => ({ x: RD(px, px + cw), y: base - RD(0, ch * 0.25), s: RD(8, 16) * D, v: RD(0.1, 0.28), ph: RD(0, TAU), c: i % 3 === 1 ? 1 : 0, l: RD(0, 0.8) }))) as Blob2[]
+    for (const b of blobs) {
+      b.y -= b.v * D; b.l += 0.0042; b.x += Math.sin(now / 850 + b.ph) * 0.38 * D
+      if (b.y < py + ch * 0.3 || b.l > 1) { b.y = base - RD(0, 6 * D); b.x = RD(px, px + cw); b.l = 0 }
+      const a = Math.sin(Math.min(1, b.l) * Math.PI)
+      const col = b.c ? 'rgba(167,139,250,1)' : 'rgba(74,222,128,1)'
+      cglow(ctx, b.x, b.y, b.s * 1.6, col, a * 0.15)
+      cglow(ctx, b.x + Math.cos(now / 560 + b.ph) * b.s * 0.4, b.y + Math.sin(now / 560 + b.ph) * b.s * 0.24, b.s * 0.85, col, a * 0.2)
+    }
+    // burbulai su trūkimu
+    const bb = (st.bb ??= []) as FirePart[]
+    if (bb.length < 4 && Math.random() < 0.045) bb.push({ x: RD(px + 6 * D, px + cw - 6 * D), y: base - 4 * D, vx: 0, vy: -RD(0.35, 0.7) * D, l: 0, ml: 1000, s: RD(1.8, 3) * D, ph: 0 })
+    for (let k = bb.length - 1; k >= 0; k--) {
+      const b = bb[k]; b.y += b.vy; b.l += 20
+      const e = b.l / b.ml
+      if (e >= 1) { bb.splice(k, 1); continue }
+      ctx.globalAlpha = (1 - e) * 0.8; ctx.strokeStyle = '#b9f3cf'; ctx.lineWidth = 1 * D
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.s * (1 + e * 0.6), 0, TAU); ctx.stroke(); ctx.globalAlpha = 1
+    }
+    ctx.globalCompositeOperation = 'source-over'
+  },
+  silenced: ({ ctx, w, h, now, st, D }) => {
+    ctx.globalCompositeOperation = 'lighter'
+    const t = '#a78bfa', cx = w / 2, cy = h / 2, rx = w * 0.34, ry = h * 0.3
+    // runų žiedas su uodegomis (lėta orbita)
+    for (let g2 = 0; g2 < 6; g2++) {
+      const a = now / 3800 * TAU + g2 / 6 * TAU
+      for (let k = 0; k < 4; k++) {
+        const a2 = a - k * 0.07
+        cglow(ctx, cx + Math.cos(a2) * rx, cy + Math.sin(a2) * ry, (4.5 - k) * 1.25 * D, t, 0.45 - k * 0.1)
+      }
+    }
+    // magija čiulpiama Į VIDŲ — dalelės iš kraštų į sigilą
+    const suck = (st.p ??= []) as Suck[]
+    if (suck.length < 6 && Math.random() < 0.12) suck.push({ a: RD(0, TAU), r: 1, v: RD(0.005, 0.011) })
+    for (let k = suck.length - 1; k >= 0; k--) {
+      const p = suck[k]; p.r -= p.v
+      if (p.r <= 0.16) { suck.splice(k, 1); continue }
+      cglow(ctx, cx + Math.cos(p.a) * p.r * w * 0.5, cy + Math.sin(p.a) * p.r * h * 0.5, 1.9 * D, t, (1 - p.r) * 0.7)
+    }
+    // sigilo pulsavimas
+    cglow(ctx, cx, cy, Math.min(w, h) * 0.2, t, 0.07 + (Math.sin(now / 700) * 0.5 + 0.5) * 0.09)
+    ctx.globalCompositeOperation = 'source-over'
+  },
+  stunned: ({ ctx, w, h, now, st, D }) => {
+    ctx.globalCompositeOperation = 'lighter'
+    const t = '#f0b429', cx = w / 2, topY = 9 * D, rx = w * 0.27, ry = 6.5 * D
+    // žvaigždės su judesio uodegomis ant pasvirusios elipsės
+    for (let i = 0; i < 3; i++) {
+      const a = now / 1400 * TAU + i / 3 * TAU
+      for (let k = 4; k >= 1; k--) {
+        const a2 = a - k * 0.16
+        cglow(ctx, cx + Math.cos(a2) * rx, topY + Math.sin(a2) * ry, (5 - k) * 1.15 * D, t, 0.36 - k * 0.07)
+      }
+      const x = cx + Math.cos(a) * rx, y = topY + Math.sin(a) * ry
+      cglow(ctx, x, y, 6.5 * D, t, 0.5)
+      cstar(ctx, x, y, 4.6 * D, '#ffe9a8', a)
+    }
+    // atsitiktiniai elektros lankai kraštuose
+    if (now > ((st.arc as number) ?? 0)) { st.arc = now + RD(500, 1400); st.arcT = now; st.arcSide = Math.random() < 0.5 ? 0 : 1; st.arcY = RD(0.25, 0.7) }
+    const at = st.arcT as number | undefined
+    if (at && now - at < 170) {
+      const e = (now - at) / 170
+      const x0 = (st.arcSide as number) ? w - 6 * D : 6 * D
+      for (let k = 0; k < 6; k++) {
+        const y = h * (st.arcY as number) + k * 3.2 * D
+        const x = x0 + ((k % 2) ? 1 : -1) * 3 * D * ((st.arcSide as number) ? -1 : 1)
+        cglow(ctx, x, y, 2.2 * D, '#fff7cc', (1 - e) * 0.9)
+        cglow(ctx, x, y, 4.6 * D, t, (1 - e) * 0.5)
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over'
+  },
+}
+
+const CANVAS_STATUSES: VfxStatusId[] = ['shield', 'burning', 'frozen', 'poisoned', 'silenced', 'stunned']
+
+/** Gyvas idle canvas: vienas <canvas> kortai, piešia visų aktyvių statusų flow. */
+function IdleCanvas({ statuses }: { statuses: VfxStatusId[] }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const key = statuses.join(',')
+  useEffect(() => {
+    const c = ref.current
+    if (!c) return
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    let alive = true
+    let raf = 0
+    const D = Math.min(1.5, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)
+    const hi = getVfxQuality() === 'high'
+    const states: Record<string, Record<string, unknown>> = {}
+    const resize = () => {
+      const host = c.parentElement
+      if (!host) return
+      c.width = Math.max(10, (host.clientWidth + 16) * D)
+      c.height = Math.max(10, (host.clientHeight + 24) * D)
+    }
+    resize()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null
+    if (ro && c.parentElement) ro.observe(c.parentElement)
+    const loop = (now: number) => {
+      if (!alive) return
+      if (!document.hidden) {
+        ctx.clearRect(0, 0, c.width, c.height)
+        for (const s of statuses) IDLE_PAINTERS[s]?.({ ctx, w: c.width, h: c.height, now, st: (states[s] ??= {}), D, hi })
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => { alive = false; cancelAnimationFrame(raf); ro?.disconnect() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  return <canvas ref={ref} aria-hidden style={{ position: 'absolute', left: -8, top: -12, width: 'calc(100% + 16px)', height: 'calc(100% + 24px)', pointerEvents: 'none', zIndex: 6 }} />
+}
+
 // ── Idle sluoksniai pagal statusą ────────────────────────────────────────────
 function Idle({ id, q }: { id: VfxStatusId; q: 'low' | 'medium' | 'high' }) {
   const t = STATUS_VFX_REGISTRY[id].tint
@@ -71,75 +312,51 @@ function Idle({ id, q }: { id: VfxStatusId; q: 'low' | 'medium' | 'high' }) {
   switch (id) {
     case 'shield': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="shield">
-        {/* energijos membrana: kvėpuojantis dvigubas laukas + periodinis ratilas */}
-        <div data-idle style={{ position: 'absolute', inset: -3, borderRadius: 11, border: `1.5px solid ${t}88`, boxShadow: `inset 0 0 12px ${t}3c, 0 0 10px ${t}44`, animation: 'svfxBreath 2.4s ease-in-out infinite' }} />
-        <div data-idle style={{ position: 'absolute', inset: -1, borderRadius: 9, border: `1px solid ${t}44`, animation: 'svfxBreath 2.4s ease-in-out 1.2s infinite' }} />
-        <div data-idle style={{ position: 'absolute', inset: -3, borderRadius: 11, border: `1px solid ${t}66`, animation: 'svfxIdleRipple 2.8s ease-out infinite' }} />
-        {parts > 0 && <div data-idle style={{ position: 'absolute', inset: -2, borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, width: '45%', background: `linear-gradient(105deg, transparent, ${t}30, transparent)`, animation: 'svfxSheen 3.2s linear infinite' }} />
-        </div>}
-        {parts > 1 && <span data-idle style={{ position: 'absolute', top: '18%', right: -2, width: 3, height: 3, borderRadius: 3, background: '#dbeafe', boxShadow: `0 0 5px ${t}`, animation: 'svfxRise 2.1s linear infinite reverse' }} />}
+        {/* statinė bazė: kupolas + kraštas (judesį piešia IdleCanvas) */}
+        <div data-idle style={{ position: 'absolute', inset: -3, borderRadius: 11, background: `radial-gradient(ellipse at 50% 42%, ${t}10 45%, ${t}2e 78%, ${t}55 100%)`, border: `2px solid ${t}cc`, boxShadow: `0 0 14px ${t}88, inset 0 0 16px ${t}55`, animation: 'svfxBreath 2.2s ease-in-out infinite' }} />
+        {parts >= 0 && <div style={{ position: 'absolute', inset: -2, borderRadius: 10, opacity: 0.14, backgroundImage: `radial-gradient(circle at 25% 30%, ${t} 1.5px, transparent 2.5px), radial-gradient(circle at 75% 60%, ${t} 1.5px, transparent 2.5px), radial-gradient(circle at 45% 80%, ${t} 1.5px, transparent 2.5px)`, backgroundSize: '28px 28px' }} />}
       </div>)
     case 'burning': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="burning">
-        <div data-idle style={{ position: 'absolute', left: -1, right: -1, bottom: -2, height: '42%', borderRadius: '0 0 9px 9px', background: `linear-gradient(0deg, ${t}77, ${t}22 55%, transparent)`, transformOrigin: 'bottom', animation: 'svfxFlicker 1.1s ease-in-out infinite' }} />
-        {/* liepsnų liežuviai kylantys nuo apačios */}
-        {[0, 1, 2].map((i) => (
-          <span key={'f' + i} data-idle style={{ position: 'absolute', bottom: -2, left: `${14 + i * 32}%`, width: 9, height: 15, borderRadius: '50% 50% 20% 20%', background: `linear-gradient(0deg, ${t}dd, #fde04788 60%, transparent)`, transformOrigin: 'bottom', animation: `svfxFlame ${1 + i * 0.25}s ease-in-out ${i * 0.3}s infinite` }} />
-        ))}
-        <div data-idle style={{ position: 'absolute', inset: -1, borderRadius: 9, boxShadow: `inset 0 -10px 14px ${t}33`, animation: 'svfxPulse 1.6s ease-in-out infinite' }} />
-        {Array.from({ length: parts + 1 }).map((_, i) => (
-          <span key={i} data-idle style={{ position: 'absolute', bottom: 4, left: `${20 + i * 30}%`, width: 3, height: 3, borderRadius: 2, background: '#fdba74', boxShadow: '0 0 4px #fb923c', animation: `svfxRise 1.6s ease-out ${i * 0.55}s infinite` }} />
-        ))}
+        {/* statinė bazė: karščio pašvaistė + apatinis švytėjimas (liepsnas piešia IdleCanvas) */}
+        <div data-idle style={{ position: 'absolute', inset: -3, borderRadius: 11, boxShadow: `0 0 16px #ff5a0077, inset 0 -14px 20px #ff430055`, animation: 'svfxPulse 1.2s ease-in-out infinite' }} />
+        {parts >= 0 && <div style={{ position: 'absolute', left: -1, right: -1, bottom: -2, height: '30%', borderRadius: '0 0 9px 9px', background: 'linear-gradient(0deg, #ff3d0066, transparent)' }} />}
       </div>)
     case 'frozen': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="frozen">
-        {/* ledinis atspalvis ant visos kortos (artwork lieka matomas) */}
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: `${t}1f` }} />
-        <div data-idle style={{ position: 'absolute', inset: -2, borderRadius: 10, border: `2px solid ${t}99`, boxShadow: `inset 0 0 14px ${t}55, 0 0 10px ${t}44`, animation: 'svfxShimmer 3.6s ease-in-out infinite' }} />
-        {/* šerkšno kristalai kampuose */}
-        <span style={{ position: 'absolute', top: -3, left: -3, width: 10, height: 10, background: t, opacity: 0.9, clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)', filter: `drop-shadow(0 0 3px ${t})` }} />
-        <span style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, background: t, opacity: 0.75, clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)' }} />
-        <span style={{ position: 'absolute', bottom: -3, right: -3, width: 9, height: 9, background: t, opacity: 0.85, clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)', filter: `drop-shadow(0 0 3px ${t})` }} />
-        <span style={{ position: 'absolute', bottom: -2, left: -2, width: 6, height: 6, background: t, opacity: 0.7, clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)' }} />
-        {/* dreifuojančios snaigės */}
-        {Array.from({ length: parts + 1 }).map((_, i) => (
-          <span key={'s' + i} data-idle style={{ position: 'absolute', top: 0, left: `${20 + i * 34}%`, width: 2.5, height: 2.5, borderRadius: 2, background: '#e0f2fe', animation: `svfxSnow ${2.2 + i * 0.6}s linear ${i * 0.8}s infinite` }} />
-        ))}
+        {/* statinė bazė: ledo sluoksnis + varvekliai + briaunos + kampų kristalai (blizgesį/snaiges piešia IdleCanvas) */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: `linear-gradient(160deg, ${t}40 0%, ${t}1a 45%, ${t}47 100%)`, boxShadow: `inset 0 0 22px ${t}90` }} />
+        <div style={{ position: 'absolute', top: -2, left: 2, right: 2, height: 16, background: `linear-gradient(180deg, #e8f7ffe6, ${t}aa 55%, transparent)`, clipPath: 'polygon(0 0, 100% 0, 100% 34%, 92% 88%, 84% 38%, 74% 70%, 64% 36%, 55% 96%, 46% 38%, 36% 66%, 27% 36%, 17% 84%, 8% 38%, 0 30%)' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, overflow: 'hidden' }}>
+          <span style={{ position: 'absolute', top: '-12%', left: '14%', width: 3, height: '130%', background: '#ffffff', opacity: 0.3, transform: 'rotate(24deg)' }} />
+          <span style={{ position: 'absolute', top: '-12%', left: '58%', width: 2, height: '130%', background: '#ffffff', opacity: 0.22, transform: 'rotate(-18deg)' }} />
+        </div>
+        <div data-idle style={{ position: 'absolute', inset: -2, borderRadius: 10, border: `2.5px solid ${t}`, boxShadow: `0 0 14px ${t}88`, animation: 'svfxShimmer 3s ease-in-out infinite' }} />
+        <span style={{ position: 'absolute', top: -4, left: -4, width: 12, height: 12, background: '#cdeeff', clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)', filter: `drop-shadow(0 0 4px ${t})` }} />
+        <span style={{ position: 'absolute', bottom: -4, right: -4, width: 11, height: 11, background: '#cdeeff', clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)', filter: `drop-shadow(0 0 4px ${t})` }} />
+        {parts >= 0 && null}
       </div>)
     case 'poisoned': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="poisoned">
-        <div data-idle style={{ position: 'absolute', inset: -2, borderRadius: 10, border: `1.5px solid ${t}66`, boxShadow: `inset 0 -10px 14px ${t}30`, animation: 'svfxPulse 2.8s ease-in-out infinite' }} />
-        {/* garuojantys nuodų debesėliai */}
-        {[0, 1].map((i) => (
-          <span key={'g' + i} data-idle style={{ position: 'absolute', bottom: '12%', left: `${16 + i * 42}%`, width: 24, height: 15, borderRadius: '50%', background: `radial-gradient(ellipse, ${t}55, transparent 70%)`, animation: `svfxFume ${2.6 + i * 0.7}s ease-out ${i * 1.2}s infinite` }} />
-        ))}
-        {/* burbuliukai */}
-        {Array.from({ length: parts }).map((_, i) => (
-          <span key={i} data-idle style={{ position: 'absolute', bottom: 6, left: `${30 + i * 35}%`, width: 4, height: 4, borderRadius: 4, border: `1px solid ${t}`, opacity: 0.7, animation: `svfxRise 2.4s ease-in ${i * 1.1}s infinite` }} />
-        ))}
+        {/* statinė bazė: tint + rėmas (dūmus/burbulus piešia IdleCanvas) */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: `linear-gradient(0deg, ${t}33, transparent 55%)` }} />
+        <div data-idle style={{ position: 'absolute', inset: -3, borderRadius: 11, border: '2px solid #74e69d', boxShadow: `0 0 14px ${t}88, inset 0 -14px 18px ${t}44`, animation: 'svfxPulse 2s ease-in-out infinite' }} />
+        {parts >= 0 && null}
       </div>)
     case 'stunned': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="stunned">
-        <div data-idle style={{ position: 'absolute', inset: 0, animation: 'svfxTwitch 3.4s ease-in-out infinite' }}>
-          <div data-idle style={{ position: 'absolute', top: -10, left: '50%', width: 30, height: 30, marginLeft: -15, animation: 'svfxOrbit 2.6s linear infinite' }}>
-            {[0, 1, 2].slice(0, Math.max(2, parts + 1)).map((i) => (
-              <span key={i} style={{ position: 'absolute', top: i === 0 ? 0 : i === 1 ? 18 : 8, left: i === 0 ? 12 : i === 1 ? 2 : 24, width: 6, height: 6, background: t, clipPath: 'polygon(50% 0, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0 50%, 35% 35%)', filter: `drop-shadow(0 0 3px ${t})` }} />
-            ))}
-          </div>
-        </div>
-        {/* pulsuojanti shock aura */}
-        <div data-idle style={{ position: 'absolute', inset: -2, borderRadius: 10, border: `1px solid ${t}55`, animation: 'svfxIdleRipple 2.2s ease-out infinite' }} />
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'rgba(20,16,30,0.22)' }} />
+        {/* statinė bazė: pritemdymas + twitch (žvaigždes/lankus piešia IdleCanvas) */}
+        <div data-idle style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'rgba(20,16,30,0.26)', animation: 'svfxTwitch 2.8s ease-in-out infinite' }} />
+        {parts >= 0 && null}
       </div>)
     case 'silenced': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="silenced">
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'rgba(15,10,25,0.34)' }} />
-        {/* horizontali „sandarinimo" juosta – magijos užgniaužimas */}
-        <div data-idle style={{ position: 'absolute', left: -2, right: -2, top: '46%', height: 7, background: `linear-gradient(90deg, transparent, ${t}50 20%, ${t}77 50%, ${t}50 80%, transparent)`, animation: 'svfxShimmer 2.6s ease-in-out infinite' }} />
-        <div data-idle style={{ position: 'absolute', inset: '28% 22%', borderRadius: '50%', border: `1.5px solid ${t}77`, animation: 'svfxShimmer 3s ease-in-out infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ width: '70%', height: 1.5, background: `${t}aa`, transform: 'rotate(-40deg)' }} />
+        {/* statinė bazė: pritemdymas + sigilas + juosta (runų orbitą piešia IdleCanvas) */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'rgba(12,8,22,0.5)' }} />
+        <div data-idle style={{ position: 'absolute', inset: '26% 20%', borderRadius: '50%', border: `2.5px solid ${t}cc`, boxShadow: `0 0 12px ${t}88, inset 0 0 10px ${t}44`, animation: 'svfxShimmer 2.4s ease-in-out infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ width: '76%', height: 2.5, background: t, transform: 'rotate(-40deg)', boxShadow: `0 0 6px ${t}` }} />
         </div>
+        <div data-idle style={{ position: 'absolute', left: -3, right: -3, top: '47%', height: 9, background: `linear-gradient(90deg, transparent, ${t}66 18%, ${t}aa 50%, ${t}66 82%, transparent)`, boxShadow: `0 0 10px ${t}55`, animation: 'svfxShimmer 2.2s ease-in-out infinite' }} />
       </div>)
     case 'blessed': return (
       <div className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle="blessed">
@@ -335,6 +552,10 @@ export const CardStatusVfxLayer = memo(function CardStatusVfxLayer({ uid, active
     <>
       <VfxCss />
       {!rm.current && idle.map((s) => <Idle key={s} id={s} q={q.current} />)}
+      {!rm.current && q.current !== 'low' && (() => {
+        const cvs = idle.filter((s) => CANVAS_STATUSES.includes(s))
+        return cvs.length > 0 ? <IdleCanvas statuses={cvs} /> : null
+      })()}
       {rm.current && idle.slice(0, 1).map((s) => (
         <div key={s} className="rvnSvfx" style={{ zIndex: 5 }} data-vfx-idle={s}>
           <div style={{ position: 'absolute', inset: -2, borderRadius: 10, border: `1.5px solid ${STATUS_VFX_REGISTRY[s].tint}66` }} />
