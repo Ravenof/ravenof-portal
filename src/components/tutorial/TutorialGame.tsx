@@ -865,7 +865,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   // projectileType → FX elemento variantas (heal/poison/necrotic/curse trail+impact)
   const projVariant = (proj?: string | null): AoeVariant | undefined =>
-    proj === 'poisonGlob' ? 'poison' : proj === 'darkCurse' ? 'curse' : proj === 'healingGlow' ? 'heal' : undefined
+    proj === 'arrow' ? 'arrow' : proj === 'fireball' ? 'fire' : proj === 'lightning' ? 'lightning' : proj === 'freezeBurst' ? 'ice'
+      : proj === 'stunBurst' ? 'lightning' : proj === 'poisonGlob' ? 'poison' : proj === 'darkCurse' ? 'curse'
+      : proj === 'healingGlow' ? 'heal' : undefined
   const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
   const projIdRef = useRef(0)
   // Rankos padidinimas
@@ -1419,6 +1421,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'freezeBurst': return 'ice'
         case 'poisonGlob': return 'poison'
         case 'darkCurse': return 'curse'
+      case 'arrow': return 'arrow'
         case 'healingGlow': return 'heal'
         default: return 'generic'
       }
@@ -1592,7 +1595,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               let gid = 0
               if (card) { gid = ++flyIdRef.current; const gc = card, gx = from.x, gy = from.y; setDeathGhosts((gs) => [...gs, { id: gid, card: gc, x: gx, y: gy }]) }
               // 1) projektilas/kirtis NUO šaltinio iki taikinio (praleidžiam, jei žala jau jį paleido)
-              if (!hadDmg) window.setTimeout(() => fxRef.current?.spawn({ kind: projKind, from: srcR, to: from, color: projCol, duration: melee ? 0.9 : 1.0 }), base)
+              if (!hadDmg) window.setTimeout(() => fxRef.current?.spawn({ kind: projKind, from: srcR, to: from, color: projCol, duration: melee ? 0.9 : 1.0, variant: melee ? undefined : projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }), base)
               // 2) smūgis: sunaikinimas → SPROGIMAS (korta ištaškoma į gabalus); melee → įprastas suirimas
               window.setTimeout(() => {
                 if (melee) {
@@ -1759,7 +1762,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               // keli taikiniai (pasirinkti ar auto): PO PROJEKTILĄ kiekvienam žalos taikiniui;
               // zona (tikras AoE): jokių projektilų; single: vienas projektilas (jei dar nešautas)
               const fireProj = mm ? !!from : (!am && !!from && !pf)
-              if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 }) }
+              if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
               window.setTimeout(() => {
                 if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
                 fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, val >= 4)
