@@ -136,6 +136,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         }
         seed(26, () => ({ x: rnd(0, W()), y: rnd(0, H()), v: rnd(.2, .7) * D, s: rnd(1.5, 3.5) * D, ph: rnd(0, 9) }))
         parts(q => { q.y -= q.v; if (q.y < -9) q.y = H(); glow(q.x + Math.sin(now / 700 + q.ph) * 8 * D, q.y, q.s * 2, '#6d28d9', .3 * Math.sin(cl(p) * Math.PI)) })
+        // tamsoje sužimba žvaigždės; juodos saulės pusmėnulio kraštas
+        if (p > .1 && p < .8) {
+          if (!st.stars) { st.stars = []; for (let i = 0; i < N(14); i++) st.stars.push({ x: rnd(0, W()), y: rnd(0, H() * .55), ph: rnd(0, 9), s: rnd(1, 2.2) * D }) }
+          for (const s2 of st.stars) glow(s2.x, s2.y, s2.s * 2, '#e9d5ff', Math.max(0, Math.sin(now / 320 + s2.ph)) * .5)
+        }
+        if (p < .62) { const k2 = eo(cl(p / .5)); glow(o.x + 42 * D * k2, o.y - 170 * D - 24 * D * k2, 26 * D * k2, '#f5e9ff', .45) }
       },
 
       // 🌫️ ŠEŠĖLIŲ ANTPLŪDIS: tamsos potvynis iš abiejų pusių žeme → šešėlių geizeris
@@ -159,6 +165,14 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         }
         seed(20, () => ({ x: o.x + rnd(-60, 60) * D, y: gy, vx: rnd(-.6, .6) * D, vy: -rnd(1, 3.4) * D, s: rnd(2, 5) * D, b: rnd(.4, 1) }))
         if (p > .4) parts(q => { q.x += q.vx; q.y += q.vy; glow(q.x, q.y, q.s * 2, '#b0b0e0', q.b * (1 - p) * .7) })
+        // šnabždesių gijos: pailgi šešėlių siluetai cikliškai kyla geizeryje
+        if (p > .45) for (let i = 0; i < 4; i++) {
+          const t2 = (now / 900 + i * .25) % 1
+          const px2 = o.x + (i - 1.5) * 34 * D + Math.sin(now / 260 + i * 3) * 10 * D
+          const py2 = gy - t2 * 240 * D
+          dark(px2, py2, 14 * D * (1 - t2 * .5), Math.sin(t2 * Math.PI) * .5)
+          glow(px2, py2, 7 * D, '#b0b0e0', Math.sin(t2 * Math.PI) * .3)
+        }
       },
 
       // 🕳️ TUŠTUMOS PLYŠYS: erdvė perplėšiama, traukia daleles Į vidų, užsitrenkia su banga
@@ -181,6 +195,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           q.r *= (1 - q.v * (0.5 + open)); q.a += .02; if (q.r < 10 * D) q.r = rnd(240, 420) * D
           glow(o.x + Math.cos(q.a) * q.r * 1.4, o.y + Math.sin(q.a) * q.r * .7, q.s * 2, '#c084fc', open * .6 * (1 - q.r / (430 * D)))
         })
+        // kitos visatos žvaigždynas matomas PRO plyšį + krašto energijos traškesiai
+        if (rh > 8 * D) {
+          if (!st.stars) { st.stars = []; for (let i = 0; i < N(10); i++) st.stars.push({ dx: rnd(-.7, .7), dy: rnd(-.9, .9), ph: rnd(0, 9) }) }
+          for (const s2 of st.stars) glow(o.x + s2.dx * rw * .8, o.y + s2.dy * rh * .85, 1.7 * D, '#cfe0ff', open * Math.max(0, Math.sin(now / 260 + s2.ph)) * .85)
+          if (Math.random() < .3) { const ea = rnd(0, TAU); glow(o.x + Math.cos(ea) * rw * 1.5, o.y + Math.sin(ea) * rh, 5 * D, '#e9d5ff', open * .8) }
+        }
         if (p >= .7) { const q = (p - .7) / .3; softRing(o.x, o.y, eo(q) * 300 * D, 26 * D, '#9a4dff', (1 - q) * .9); glow(o.x, o.y, 110 * D * (1 - q), '#e9d5ff', (1 - q) * .9) }
       },
 
@@ -201,6 +221,8 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           } else glow(q.x, q.y, q.s * 2.2, '#5ef0c0', fade * .4)
         })
         glow(o.x, o.y, 60 * D, '#5ef0c0', Math.sin(cl(p) * Math.PI) * .3)
+        // nekrotinių runų blyksniai giliai dūmuose
+        if (Math.random() < .18) glow(o.x + rnd(-200, 200) * D * k, gy - rnd(0, 30) * D, 4 * D, '#9ff5d8', fade * .8)
       },
 
       // 👻 VAIDUOKLIŲ AIMANA: vaiduokliai spirale iš kortos + „riksmo" bangos per ekraną
@@ -216,10 +238,15 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           glow(px - q.s * .32, py - q.s * .18, q.s * .16, '#04040a', fade * .9); glow(px + q.s * .32, py - q.s * .18, q.s * .16, '#04040a', fade * .9)
         })
         glow(o.x, o.y, 80 * D, '#9fc8e8', Math.sin(cl(p) * Math.PI) * .4)
+        // ektoplazmos uodegos, velkamos paskui vaiduoklius
+        parts(q => {
+          const px = o.x + Math.cos(q.a) * q.r, py = o.y + Math.sin(q.a) * q.r * .75 - q.r * .22
+          for (let k2 = 1; k2 <= 3; k2++) glow(px - Math.cos(q.a) * k2 * 8 * D, py + k2 * 5 * D, q.s * (1 - k2 * .22), '#9fc8e8', fade * (.3 - k2 * .08))
+        })
       },
 
       // 🕯️ SIELŲ IŠLAISVINIMAS: šviesos kolona į dangų, sielos spirale kyla jos viduje
-      soulRelease(p) {
+      soulRelease(p, now) {
         const k = eo(cl(p * 1.6)), fade = p < .7 ? 1 : 1 - (p - .7) / .3
         pillar(o.x, o.y + 50 * D, -40 * D, 60 * D * k, '#cfe6ff', fade * .3)
         pillar(o.x, o.y + 50 * D, -40 * D, 26 * D * k, '#ffffff', fade * .4)
@@ -231,6 +258,14 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           glow(px, py, q.s * 2, '#ffffff', fade * .7 * Math.sin(q.t * Math.PI)); glow(px, py, q.s * 4, '#9fd0ff', fade * .25)
         })
         glow(o.x, o.y, 70 * D, '#fff7d0', Math.sin(cl(p) * Math.PI) * .5)
+        // kylantys sielų glifai kolonoje + išsilaisvinimo blyksnis viršuje
+        if (p > .2) for (let i = 0; i < 4; i++) {
+          const t2 = (now / 1200 + i * .25) % 1
+          const gy2 = lerp(o.y + 30 * D, -20 * D, t2)
+          ctx.globalAlpha = fade * Math.sin(t2 * Math.PI) * .7; ctx.fillStyle = '#dff0ff'
+          ctx.fillRect(o.x + Math.sin(i * 2.4) * 20 * D - 2 * D, gy2, 4 * D, 7 * D); ctx.globalAlpha = 1
+        }
+        if (p > .55 && p < .8) glow(o.x, 0, 60 * D, '#ffffff', Math.sin((p - .55) / .25 * Math.PI) * .45)
       },
 
       // ⚰️ MIRTIES BANGA: pilka gęsinanti banga, ekranas „numiršta", krenta pelenai
@@ -246,6 +281,11 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           ctx.globalCompositeOperation = 'source-over'; glow(q.x, q.y, q.s * 1.8, 'rgba(150,150,150,1)', q.d * (1 - p) * .5); ctx.globalCompositeOperation = 'lighter'
         })
         glow(o.x, o.y, 60 * D, '#f4f4f4', Math.sin(cl(p) * Math.PI) * .4)
+        // gyvybės gijos iš aplinkos sutraukiamos į centrą prieš mirties bangą
+        if (p < .3) for (let i = 0; i < 6; i++) {
+          const a2 = i / 6 * TAU + .4, rr2 = (1 - p / .3) * 260 * D
+          glow(o.x + Math.cos(a2) * rr2, o.y + Math.sin(a2) * rr2 * .6, 6 * D, '#d8d8d8', (p / .3) * .5)
+        }
       },
 
       // 💀 KAULŲ IŠSIVERŽIMAS: žemė skyla, kaulų spygliai paeiliui iššauna su blyksniais
@@ -273,6 +313,11 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         seed(26, () => ({ x: o.x + rnd(-170, 170) * D, y: gy, vx: rnd(-1.4, 1.4) * D, vy: -rnd(2, 5.5) * D, s: rnd(1.5, 3.5) * D }))
         if (p > .14) parts(q => { q.vy += .11 * D; q.x += q.vx; q.y += q.vy; glow(q.x, q.y, q.s * 1.8, '#e8e0c8', (1 - p) * .7) })
         softRing(o.x, gy, eo(cl(p * 1.4)) * 230 * D, 22 * D, '#8a6a44', (1 - p) * .4)
+        // žemių dulkės pratrūksta prie kiekvieno spyglio pagrindo
+        for (const s of st.sp) {
+          const q = cl((p - s.at) / .12)
+          if (q > 0 && q < .6) { ctx.globalCompositeOperation = 'source-over'; glow(o.x + s.dx, gy, 20 * D * q, 'rgba(120,100,70,1)', (0.6 - q) * .6); ctx.globalCompositeOperation = 'lighter' }
+        }
       },
 
       // ⚡ NUŽAIBAVIMAS: 3 stori šakoti žaibai paeiliui su flicker, lieka plazmos kamuolys
@@ -303,6 +348,14 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           for (let i = 0; i < 5; i++) { const a = now / 140 + i / 5 * TAU; glow(o.x + Math.cos(a) * 40 * D * (1 - q * .5), o.y + Math.sin(a) * 40 * D * (1 - q * .5), 6 * D, '#eaf4ff', (1 - q) * .7) }
           softRing(o.x, o.y, eo(q) * 220 * D, 18 * D, '#7db8ff', (1 - q) * .5)
         }
+        // jonizuoto oro stulpai smūgio vietose + kibirkščių lietus
+        for (const b of st.b) {
+          const q2 = (p - b.at - .12) / .5
+          if (q2 > 0 && q2 < 1) {
+            pillar(b.main[0][0], o.y + 40 * D, -20 * D, 18 * D, '#7db8ff', (1 - q2) * .1)
+            if (Math.random() < .4) glow(o.x + rnd(-60, 60) * D, o.y + rnd(-40, 20) * D, 3 * D, '#eaf4ff', (1 - q2) * .8)
+          }
+        }
       },
 
       // 🔮 ARKANINIS SPROGIMAS: sigilas kraunasi sukdamasis → supernova su spindulių vainiku
@@ -319,6 +372,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           }
           ctx.restore(); ctx.globalAlpha = 1
           glow(o.x, o.y, (14 + k * 26) * D, '#f5f0ff', k)
+          // orbituojantys arkanų glifai aplink sigilą
+          for (let i = 0; i < 8; i++) {
+            const a2 = now / 700 + i / 8 * TAU
+            const gx2 = o.x + Math.cos(a2) * 78 * D, gy2 = o.y + Math.sin(a2) * 78 * D
+            ctx.globalAlpha = k * .8; ctx.fillStyle = '#c4b5fd'; ctx.fillRect(gx2 - 2.2 * D, gy2 - 3.5 * D, 4.4 * D, 7 * D); ctx.globalAlpha = 1
+          }
         } else {
           const q = (p - .34) / .66
           if (q < .2) washScreen('#c4b5fd', (0.2 - q) * .8)
@@ -332,11 +391,17 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           softRing(o.x, o.y, eo(q) * 300 * D, 24 * D, '#a78bfa', (1 - q) * .8)
           seed(26, () => { const a = rnd(0, TAU), sp = rnd(2, 7) * D; return { x: o.x, y: o.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, s: rnd(1.5, 3.5) * D } })
           parts(q2 => { q2.x += q2.vx; q2.y += q2.vy; glow(q2.x, q2.y, q2.s * 2, '#c4b5fd', (1 - q) * .8) })
+          // po detonacijos lieka sklandančios runos
+          for (let i = 0; i < 6; i++) {
+            const a2 = i / 6 * TAU + q, rr2 = 90 * D + q * 60 * D
+            ctx.globalAlpha = (1 - q) * .6; ctx.fillStyle = '#e9d5ff'
+            ctx.fillRect(o.x + Math.cos(a2) * rr2 - 2 * D, o.y + Math.sin(a2) * rr2 * .7 - 3 * D, 4 * D, 6 * D); ctx.globalAlpha = 1
+          }
         }
       },
 
       // 🩸 PRAKEIKIMO ŽENKLAS: kruvinas sigilas įsidega žemėje segmentais, tada suliepsnoja
-      cursedBrand(p) {
+      cursedBrand(p, now) {
         const gy = o.y + 58 * D, k = cl(p / .55)
         ctx.save(); ctx.translate(o.x, gy); ctx.scale(1, .4)
         const r = 95 * D
@@ -356,6 +421,8 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           pillar(o.x, gy, gy - 150 * D * eo(q), 40 * D, '#d4327a', (1 - q) * .3)
           glow(o.x, o.y, 80 * D, '#ffd0e6', Math.sin(q * Math.PI) * .5)
         }
+        // sigilo širdis pulsuoja kaip gyvas prakeiksmas
+        if (k > .5) glow(o.x, gy, 40 * D * (0.7 + 0.3 * Math.sin(now / 150)), '#ff3a8a', (k - .5) * .5 * (1 - cl((p - .8) / .2)))
       },
 
       // ⛧ KRAUJO RITUALAS: pentagrama piešiasi, kraujo lašai traukiami Į kortą, crimson pliūpsnis
@@ -383,6 +450,11 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           pillar(o.x, gy, gy - 190 * D * eo(q), 50 * D, '#c01e1e', (1 - q) * .4)
           glow(o.x, o.y, 90 * D, '#ff8080', Math.sin(q * Math.PI) * .6)
           softRing(o.x, gy, eo(q) * 200 * D, 18 * D, '#c01e1e', (1 - q) * .6)
+          // kraujo lašai, traukiami aukštyn į koloną
+          for (let i = 0; i < 5; i++) {
+            const t2 = (now / 700 + i * .2) % 1
+            glow(o.x + Math.sin(i * 2.7) * 26 * D * (1 - t2), gy - t2 * 170 * D * eo(q), 4 * D, '#ff6a6a', (1 - q) * Math.sin(t2 * Math.PI) * .8)
+          }
         }
       },
 
@@ -406,6 +478,17 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
             s.y += s.v; s.x += Math.sin(now / 400 + s.ph) * .5 * D
             glow(s.x, s.y, s.s * 1.8, '#eaf6ff', (1 - q) * .8); glow(s.x, s.y, s.s * .6, '#ffffff', 1 - q)
           })
+          // užšąlančio ekrano kristalų blyksniai (kryžiaus flare)
+          if (!st.fl) { st.fl = []; for (let i = 0; i < N(8); i++) st.fl.push({ x: rnd(W() * .1, W() * .9), y: rnd(H() * .15, H() * .85), at: .5 + rnd(0, .35) }) }
+          for (const f of st.fl) {
+            const q2 = cl((p - f.at) / .2)
+            if (q2 > 0 && q2 < 1) {
+              const a2 = Math.sin(q2 * Math.PI)
+              ctx.globalAlpha = a2 * .9; ctx.fillStyle = '#fff'
+              ctx.fillRect(f.x - 7 * D, f.y - .8 * D, 14 * D, 1.6 * D); ctx.fillRect(f.x - .8 * D, f.y - 7 * D, 1.6 * D, 14 * D); ctx.globalAlpha = 1
+              glow(f.x, f.y, 6 * D, '#cfe6ff', a2 * .8)
+            }
+          }
         }
         glow(o.x, o.y, 70 * D, '#cfe6ff', Math.sin(cl(p) * Math.PI) * .4)
       },
@@ -432,6 +515,13 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         seed(30, () => { const a = rnd(0, TAU), sp = rnd(3, 8) * D; return { x: o.x, y: o.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, s: rnd(1.5, 3.5) * D } })
         parts(q => { q.vx *= .97; q.vy *= .97; q.x += q.vx; q.y += q.vy; glow(q.x, q.y, q.s * 1.8, '#dff2ff', (1 - p) * .8) })
         dark(o.x, gy, 140 * D * cl(p * 1.4), .14)
+        // šalta migla ritasi žeme į abi puses
+        for (let i = 0; i < 6; i++) {
+          const t2 = i / 6, mr = eo(cl(p * 1.2)) * 260 * D * (0.4 + t2 * .6)
+          ctx.globalCompositeOperation = 'source-over'
+          glow(o.x + (i % 2 ? 1 : -1) * mr * .8, gy + 6 * D, 26 * D, 'rgba(180,220,255,1)', (1 - p) * .12)
+          ctx.globalCompositeOperation = 'lighter'
+        }
       },
 
       // 🔥 UGNIS: ugnies tornado spirale aukštyn, išsisklaido kibirkštimis
@@ -448,6 +538,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         glow(o.x, o.y + 50 * D, 80 * D * k, '#ff7a1a', fade * .5)
         seed(26, () => ({ x: o.x + rnd(-40, 40) * D, y: o.y + rnd(20, 60) * D, vx: rnd(-.6, .6) * D, vy: -rnd(1.5, 4) * D, s: rnd(1.5, 3.5) * D, ph: rnd(0, 9) }))
         parts(q => { q.x += q.vx + Math.sin(now / 180 + q.ph) * .5 * D; q.y += q.vy; glow(q.x, q.y, q.s * 2, '#ffc24a', fade * .75) })
+        // balta karščio šerdis sukasi tornado viduje
+        for (let i = 0; i < 5; i++) {
+          const t2 = (now / 600 + i * .2) % 1
+          const a2 = now / 200 + t2 * TAU * 2.2
+          glow(o.x + Math.cos(a2) * 16 * D * (1 - t2 * .4), o.y + 55 * D - t2 * 200 * D * k, 8 * D * (1 - t2 * .5), '#fff7e0', fade * .5 * Math.sin(t2 * Math.PI))
+        }
       },
 
       // 😈 PRAGARO UGNIS: degantis ratas + liepsnų kolonos + demoniška akis + pelenai
@@ -470,6 +566,13 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           if (q.ash) { ctx.globalCompositeOperation = 'source-over'; glow(q.x, q.y, q.s * 1.6, 'rgba(60,50,50,1)', fade * .5); ctx.globalCompositeOperation = 'lighter' }
           else glow(q.x, q.y, q.s * 2, '#ff5a2a', fade * .7)
         })
+        // demoniškos runos sukasi virš degančio rato
+        for (let i = 0; i < 6; i++) {
+          const a2 = now / 1800 + i / 6 * TAU
+          const bx2 = o.x + Math.cos(a2) * 110 * D * k, by2 = gy + Math.sin(a2) * 110 * D * k * .38 - 26 * D
+          ctx.globalAlpha = fade * .75; ctx.fillStyle = '#ff5a2a'; ctx.fillRect(bx2 - 2 * D, by2 - 4 * D, 4 * D, 8 * D); ctx.globalAlpha = 1
+          glow(bx2, by2, 6 * D, '#ff8a5a', fade * .4)
+        }
       },
 
       // 🌪️ ŽARIJŲ AUDRA: horizontalus žarijų vėjas per visą ekraną, korta įsidega
@@ -483,6 +586,14 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         dark(W() * .5, H() * .5, Math.max(W(), H()) * .5, fade * .1)
         glow(o.x, o.y, (50 + Math.sin(now / 120) * 8) * D * cl(p * 2), '#ff9a3a', fade * .6)
         glow(o.x, o.y, 24 * D * cl(p * 2), '#ffe0b0', fade * .8)
+        // didžiosios žarijos su ilgomis kometų uodegomis
+        if (!st.big) { st.big = []; for (let i = 0; i < N(4); i++) st.big.push({ x: rnd(-W() * .3, 0), y: rnd(H() * .2, H() * .8), v: rnd(10, 15) * D, s: rnd(3, 5) * D }) }
+        for (const b2 of st.big) {
+          b2.x += b2.v
+          if (b2.x > W() + 40) { b2.x = -40 * D; b2.y = rnd(H() * .2, H() * .8) }
+          for (let k2 = 1; k2 <= 5; k2++) glow(b2.x - k2 * b2.v * .9, b2.y, b2.s * (1 - k2 * .15), '#ff9a3a', fade * (.5 - k2 * .08))
+          glow(b2.x, b2.y, b2.s * 1.6, '#ffe0b0', fade * .8)
+        }
       },
 
       // 🌋 LAVOS SKILIMAS: žemė švyti, plyšiai švyti lava, purslai, vėsta į tamsą
@@ -500,6 +611,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           glow(q.x, q.y, q.s * 2, '#ff8a3a', (1 - cool) * .85); glow(q.x, q.y - q.s, q.s, '#ffd090', (1 - cool) * .6)
         }
         softRing(o.x, gy, eo(cl(p * 1.3)) * 240 * D, 20 * D, '#ff6a1a', (1 - p) * .5)
+        // lavos burbulai atsitiktinai pratrūksta plyšiuose
+        if (Math.random() < .25 && p < .6 && st.cr) {
+          const c2 = st.cr[Math.floor(rnd(0, st.cr.length))]
+          const pt = c2[Math.floor(rnd(1, c2.length))]
+          glow(pt[0], pt[1], rnd(4, 9) * D, '#ffb060', .8)
+        }
       },
 
       // 💥 SPROGIMAS: blyksnis → turbulentiškas ugnies kamuolys su dūmais → banga + skeveldros su dūmų uodegom
@@ -527,6 +644,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           }
           glow(q.x, q.y, q.s * 1.6, '#ffd25a', (1 - p) * .85)
         })
+        // antriniai uždelsti mikro sprogimukai aplink epicentrą
+        if (!st.mb) { st.mb = []; for (let i = 0; i < N(4); i++) st.mb.push({ x: o.x + rnd(-90, 90) * D, y: o.y + rnd(-70, 50) * D, at: .3 + rnd(0, .3) }) }
+        for (const m of st.mb) {
+          const q2 = cl((p - m.at) / .16)
+          if (q2 > 0 && q2 < 1) { glow(m.x, m.y, 26 * D * eo(q2), '#ffd25a', (1 - q2) * .8); glow(m.x, m.y, 10 * D * (1 - q2), '#fff', 1 - q2) }
+        }
       },
 
       // ☣️ NUODŲ DEBESIS: grybo debesis išsipučia, laša nuodai, viduje pulsuoja švytėjimas
@@ -544,6 +667,11 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           if (q.drip) { q.y += q.vy; glow(q.x, q.y, q.s * 1.6, '#a3e635', fade * .7); glow(q.x, q.y + q.s * 1.4, q.s * .7, '#84cc16', fade * .4) }
           else { q.y -= q.vy * .4; glow(q.x, q.y, q.s * 2, '#84cc16', fade * .4) }
         })
+        // nukritusių lašų purslai ant žemės
+        if (Math.random() < .2) {
+          ctx.save(); ctx.translate(o.x + rnd(-70, 70) * D, o.y + 62 * D); ctx.scale(1, .3)
+          glow(0, 0, rnd(8, 14) * D, '#84cc16', .5); ctx.restore()
+        }
       },
 
       // 🦗 MARAS: gyvas spiečius-murmuracija aplink kortą + liguistas žalsvas rūkas
@@ -560,6 +688,19 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
           glow(px, py, q.s * .8, '#9acd32', fade * .3)
         })
         glow(o.x, o.y, 60 * D, '#caff70', Math.sin(cl(p) * Math.PI) * .3)
+        // pavieniai skėriai „šauna" per ekraną ilgais šuoliais
+        if (!st.dart || (st.dart.done && Math.random() < .03)) st.dart = { x: rnd(0, W()), y: rnd(H() * .2, H() * .8), a: rnd(-0.5, 0.5), t: 0, done: false }
+        if (st.dart && !st.dart.done) {
+          st.dart.t += .06
+          const dd = st.dart
+          const dx2 = dd.x + Math.cos(dd.a) * dd.t * 300 * D, dy2 = dd.y + Math.sin(dd.a) * dd.t * 300 * D
+          for (let k2 = 0; k2 < 4; k2++) {
+            ctx.globalCompositeOperation = 'source-over'
+            glow(dx2 - Math.cos(dd.a) * k2 * 10 * D, dy2 - Math.sin(dd.a) * k2 * 10 * D, 2.4 * D, 'rgba(14,16,6,1)', fade * (.8 - k2 * .18))
+            ctx.globalCompositeOperation = 'lighter'
+          }
+          if (st.dart.t >= 1) st.dart.done = true
+        }
       },
 
       // 🪨 ŽEMĖS DREBĖJIMAS: radialiniai plyšiai + dulkių geizeriai iš plyšių + mėtomi akmenys
@@ -591,6 +732,12 @@ export function SummonBurst({ type, x, y, effectKey, onDone }: {
         }
         softRing(o.x, gy, eo(cl(p * 1.3)) * 260 * D, 22 * D, '#8a6a44', (1 - p) * .45)
         glow(o.x, gy, 120 * D * cl(p * 2), '#4a3826', (1 - p) * .4)
+        // pakibusi dulkių uždanga virš sutrupėjusios žemės
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.save(); ctx.translate(o.x, gy); ctx.scale(1, .3)
+        glow(0, 0, 200 * D * cl(p * 2), 'rgba(110,90,64,1)', (1 - p) * .28)
+        ctx.restore()
+        ctx.globalCompositeOperation = 'lighter'
       },
     }
 
