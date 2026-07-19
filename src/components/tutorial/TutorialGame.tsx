@@ -38,7 +38,7 @@ import { reportMatchV2, recordRankedMatch, type MatchMode, type LevelRewardEntry
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
-import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType } from '@/lib/game/types'
+import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType, type BattleSoundType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
@@ -1759,7 +1759,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               // keli taikiniai (pasirinkti ar auto): PO PROJEKTILĄ kiekvienam žalos taikiniui;
               // zona (tikras AoE): jokių projektilų; single: vienas projektilas (jei dar nešautas)
               const fireProj = mm ? !!from : (!am && !!from && !pf)
-              if (fireProj) fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 })
+              if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0 }) }
               window.setTimeout(() => {
                 if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
                 fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, val >= 4)
@@ -1810,7 +1810,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (e.t === 'artifact') queueTip('artifact')
       if (e.t === 'play' && (e.key ?? '').startsWith('battleLog.playUnitSprint')) queueTip('sprint')
       // efekto projektilas/kirtis nuo source kortos (spell / ability / attack)
-      if (e.src && e.tgt && (e.t === 'spell' || e.t === 'ability' || e.t === 'attack')) {
+      if (e.src && e.tgt && (e.t === 'spell' || e.t === 'ability' || e.t === 'attack') && !(e.t === 'spell' && aoeMode)) {
+        // burtas su ≥2 žalos taikiniais: projektilus šauna damage įvykiai (po vieną KIEKVIENAM) – čia nešaunam
         const isAtk = e.t === 'attack'
         const proj = e.projectile
         const col = (proj && PROJECTILE_COLOR[proj]) || palOf(srcCard).primary
@@ -1858,7 +1859,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const aCol = fxElemColor ?? palOf(srcCard).primary
       const aFrom = rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : ((srcRef ? rectOf(srcRef) : null) ?? fxCenter())
       const aDelay = showcaseHold > 0 ? showcaseHold : SETTLE
-      window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, rect, color: aCol, duration: 1.7, variant: aoeVariant() }), aDelay)
+      const av = aoeVariant()
+      const aSnd: BattleSoundType = av === 'ice' ? 'freeze' : av === 'heal' || av === 'holy' ? 'heal' : av === 'curse' || av === 'necrotic' ? 'curse' : 'impact'
+      window.setTimeout(() => { playBattleSound(aSnd, 0.55); fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, rect, color: aCol, duration: 1.7, variant: av }) }, aDelay)
     }
 
     if (healAoe) {
@@ -1872,7 +1875,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const rect2 = zr2 && zr2.width > 40 ? { x: zr2.left - 10, y: zr2.top - 10, w: zr2.width + 20, h: zr2.height + 20 } : undefined
       const hFrom = rect2 ? { x: rect2.x + rect2.w / 2, y: rect2.y + rect2.h / 2 } : fxCenter()
       const hDelay = showcaseHold > 0 ? showcaseHold : SETTLE
-      window.setTimeout(() => fxRef.current?.spawn({ kind: 'aoeWave', from: hFrom, rect: rect2, color: '#5ef0c0', duration: 1.6, variant: 'heal' }), hDelay)
+      window.setTimeout(() => { playBattleSound('heal', 0.5); fxRef.current?.spawn({ kind: 'aoeWave', from: hFrom, rect: rect2, color: '#5ef0c0', duration: 1.6, variant: 'heal' }) }, hDelay)
     }
 
     // lentos skenavimas raktažodžių patarimams

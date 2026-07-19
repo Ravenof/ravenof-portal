@@ -237,11 +237,10 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
   switch (m.effect) {
     case 'damage': {
       const useZmk = m.triggersZmk !== false
-      // FX: tikras AoE (mapping'as taiko į VISĄ zoną) → UI rodys zoninį efektą be projektilų.
-      // hitCount / rankinis kelių taikinių pasirinkimas markerio NEgauna – jiems po projektilą.
-      if (targets.length >= 2) {
-        const isAoeM = (m.targetTypes && m.targetTypes.length > 0) ? !!m.applyToAllTypes : isMultiTarget(m.target)
-        if (isAoeM) api.log(g, { t: 'fxSource', side: caster, aoe: true, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
+      // FX: tikras AoE = mapping'as taiko VISĄ zoną (allEnemyUnits/allUnits/...) → zoninis efektas.
+      // targetTypes rinkiniai, hitCount ir rankinis pasirinkimas markerio NEgauna – jiems po projektilą KIEKVIENAM.
+      if (targets.length >= 2 && !(m.targetTypes && m.targetTypes.length > 0) && isMultiTarget(m.target)) {
+        api.log(g, { t: 'fxSource', side: caster, aoe: true, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
       }
       // Burtų žalos priedas dabar TIK pasyvi aura (auraSpellDamage – kol kūrinys kovos lauke),
       // pridedama dealToUnit/dealToPlayer per spellAuraBonusFor. Jokio nuolatinio kaupiamo priedo.
@@ -260,9 +259,8 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       break
     }
     case 'heal':
-      if (targets.length >= 2) {
-        const isAoeH = (m.targetTypes && m.targetTypes.length > 0) ? !!m.applyToAllTypes : isMultiTarget(m.target)
-        if (isAoeH) api.log(g, { t: 'fxSource', side: caster, aoe: true, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
+      if (targets.length >= 2 && !(m.targetTypes && m.targetTypes.length > 0) && isMultiTarget(m.target)) {
+        api.log(g, { t: 'fxSource', side: caster, aoe: true, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
       }
       for (const t of targets) {
         if (t.kind === 'player') api.healPlayer(g, t.side, v)
