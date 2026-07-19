@@ -1436,7 +1436,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     chosenTargetsRef.current = null
     const multiProj = aoeMode && !!chosenMulti && chosenMulti.length >= 2
     const zoneAoe = aoeMode && aoeFlagBatch && !multiProj
-    const perTargetProj = aoeMode && !zoneAoe
     // Masinis gydymas per AoE mapping'ą → žalias zoninis efektas vietoj atskirų srautų
     const healAoe = aoeFlagBatch && fresh.filter((ev) => ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.uid).length >= 2
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
@@ -1739,6 +1738,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             flashAvatar(sd, 'hit')
             const pat = rectFor({ side: sd })
             if (pat) { const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { fxRef.current?.floatNumber(pat.x, pat.y - 14, '-' + val, '#ff5a4a', (val ?? 0) >= 4); fxRef.current?.hitFlash(pat.x, pat.y, '#ff5a4a') }, d) }
+            // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
+            if (srcRef && srcKind === 'ability' && !zoneAoe && pat) {
+              const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
+              window.setTimeout(() => {
+                const fr = rectOf(sref2)
+                if (fr) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: fr, to: pat, color: fxElemColor ?? palOf(srcCard).primary, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
+              }, base2)
+            }
             const pp2 = P(game, sd)
             if (pp2.hp > 0 && pp2.hp <= pp2.maxHp * 0.25) playAvatarAudio(aid, 'lowHp')
           }
@@ -1755,13 +1762,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const srcProj = srcCard?.gameplay?.projectileType
             const elemCol = fxElemColor ?? (srcProj && srcProj !== 'none' ? (PROJECTILE_COLOR[srcProj] ?? null) : null)
             const numCol = elemCol ?? '#ff5a4a'
-            const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = zoneAoe, mm = perTargetProj
+            const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = zoneAoe
+            // rect'as fiksuojamas SINCHRONIŠKAI (dar prieš showcase/ŽMK delsas) – jei taikinys
+            // per tą laiką žus ir dings iš DOM, projektilas vis tiek skries į jo vietą
+            const toEarly = rectOf(tgt)
             window.setTimeout(() => {
-              const to = rectOf(tgt); if (!to) return
+              const to = rectOf(tgt) ?? toEarly; if (!to) return
               const from = sref ? rectOf(sref) : null
-              // keli taikiniai (pasirinkti ar auto): PO PROJEKTILĄ kiekvienam žalos taikiniui;
-              // zona (tikras AoE): jokių projektilų; single: vienas projektilas (jei dar nešautas)
-              const fireProj = mm ? !!from : (!am && !!from && !pf)
+              // KIEKVIENAS žalos taikinys gauna projektilą (žuvęs ar išgyvenęs);
+              // zona (tikras AoE) – be projektilų; pf blokuoja tik ability/attack dublius
+              const fireProj = !am && !!from && !pf
               if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
               window.setTimeout(() => {
                 if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
@@ -1813,14 +1823,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (e.t === 'artifact') queueTip('artifact')
       if (e.t === 'play' && (e.key ?? '').startsWith('battleLog.playUnitSprint')) queueTip('sprint')
       // efekto projektilas/kirtis nuo source kortos (spell / ability / attack)
-      if (e.src && e.tgt && (e.t === 'spell' || e.t === 'ability' || e.t === 'attack') && !(e.t === 'spell' && aoeMode)) {
-        // burtas su ≥2 žalos taikiniais: projektilus šauna damage įvykiai (po vieną KIEKVIENAM) – čia nešaunam
+      if (e.src && e.tgt && (e.t === 'ability' || e.t === 'attack')) {
+        // BURTAI projektilų čia NEšauna – jų projektilus (po vieną KIEKVIENAM žalos
+        // taikiniui, nepriklausomai ar taikinys žūsta) paleidžia damage įvykiai žemiau.
         const isAtk = e.t === 'attack'
         const proj = e.projectile
         const col = (proj && PROJECTILE_COLOR[proj]) || palOf(srcCard).primary
         const col2 = palOf(srcCard).secondary
         const src = e.src, tgt = e.tgt
-        const hold = e.t === 'spell' ? showcaseHold : 0   // burto projektilas – tik PO showcase
+        const hold = 0
         projFired = true
         // Paprastos atakos: puolėjo korta greitai nuskrieja iki taikinio ir grįžta (tik atakoms, ne efektams)
         if (isAtk && src.uid) {
@@ -1835,8 +1846,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           }
         }, (isAtk ? 220 : 200) + hold)
         const popAt = rectOf(tgt)
-        // Burtams su showcase mažo pop'o NErodome – showcase jį pakeičia (nebesidubliuoja)
-        if (popAt && !(e.t === 'spell' && showcaseHold > 0)) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col, ptag = e.t === 'spell' ? (e.side === 'you' ? t('battle.game.spellTag') : t('battle.game.enemySpellTag')) : undefined; window.setTimeout(() => spawnPop(pc, popAt, pcol, ptag), isAtk ? 260 : 220) }
+        if (popAt) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col; window.setTimeout(() => spawnPop(pc, popAt, pcol, undefined), isAtk ? 260 : 220) }
         void PROJ_EMOJI; void spawnProjectile
       }
     }
