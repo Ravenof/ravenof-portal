@@ -118,12 +118,13 @@ function CinematicFrame({ cinematic, onFinished }: { cinematic: ActiveCinematic;
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className="relative"
         style={{
-          // VERTIKALUS (portrait 9/16) rėmas ir landscape kovoje: ~70% ekrano aukščio,
-          // centre (ne full screen). maxWidth saugiklis siauriems portrait ekranams —
-          // tada aspectRatio išlaiko proporciją ir aukštis susitraukia pats.
+          // LANDSCAPE (16/9) rėmas landscape kovai: ~70% ekrano aukščio, centre (ne full
+          // screen). maxWidth saugiklis — jei plotis netelpa, aspectRatio proporcingai
+          // sumažina ir aukštį. Video (bet kokios orientacijos) pritaikomas per
+          // object-fit: cover + cropX/cropY fokusą — failų keisti nereikia.
           height: '70vh',
-          aspectRatio: '9 / 16',
-          maxWidth: '86vw',
+          aspectRatio: '16 / 9',
+          maxWidth: '92vw',
         }}
       >
         {/* Švytėjimo halo (themed) */}
