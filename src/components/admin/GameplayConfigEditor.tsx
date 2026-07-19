@@ -1560,6 +1560,28 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                         </div>
                       )
                     })}
+                    {(m.noTargetThen ?? []).map((fm, fi) => {
+                      const setNt = (patch: Partial<EffectMapping>) => { const arr = [...(m.noTargetThen ?? [])]; arr[fi] = { ...arr[fi], ...patch }; setMapping(i, { noTargetThen: arr }) }
+                      const fmDef = EFFECT_TYPES.find((e) => e.value === fm.effect)
+                      return (
+                        <div key={'nt' + fi} className="flex flex-wrap items-end gap-2 mb-1 p-1.5 rounded" style={{ background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.35)' }}>
+                          <span className="text-[11px] font-bold" style={{ color: '#fca5a5' }} title="Įvykdomas VIETOJ pagrindinio efekto, kai šis neturi tinkamo taikinio (pvz. priešas be padarų)">Jei NĖRA taikinio →</span>
+                          <select value={fm.effect} onChange={(e) => setNt({ effect: e.target.value as EffectMapping['effect'] })} style={{ ...inputStyle, width: 160 }}>
+                            <EffectOptions />
+                          </select>
+                          <select value={fm.target} onChange={(e) => setNt({ target: e.target.value as EffectMapping['target'] })} style={{ ...inputStyle, width: 150 }}>
+                            <TargetOptions />
+                          </select>
+                          {fmDef?.needsValue && (
+                            <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>Reikšmė
+                              <input type="number" value={fm.value ?? 1} min={0} onChange={(e) => setNt({ value: Number(e.target.value) })} style={{ ...inputStyle, width: 64 }} />
+                            </label>
+                          )}
+                          <button type="button" onClick={() => { const arr = (m.noTargetThen ?? []).filter((_, j) => j !== fi); setMapping(i, { noTargetThen: arr.length ? arr : undefined }) }}
+                            className="text-[11px] pb-1" style={{ color: '#ef4444' }}>✕</button>
+                        </div>
+                      )
+                    })}
                     <button type="button"
                       onClick={() => setMapping(i, { then: [...(m.then ?? []), { trigger: m.trigger, effect: 'heal', target: 'selfUnit', value: 2, requiresSelection: false } as EffectMapping] })}
                       className="text-[11px] font-semibold" style={{ color: 'var(--gold)' }}>
@@ -1572,6 +1594,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       ] } as EffectMapping] })}
                       className="text-[11px] font-semibold ml-3" style={{ color: '#93c5fd' }}>
                       + Arba padaryk…
+                    </button>
+                    <button type="button"
+                      onClick={() => setMapping(i, { noTargetThen: [...(m.noTargetThen ?? []), { trigger: m.trigger, effect: 'drawCards', target: 'self', value: 1, requiresSelection: false } as EffectMapping] })}
+                      className="text-[11px] font-semibold ml-3" style={{ color: '#fca5a5' }}>
+                      + Jei nėra taikinio…
                     </button>
                   </div>
                 </div>

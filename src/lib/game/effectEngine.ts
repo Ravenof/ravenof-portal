@@ -201,6 +201,16 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
   }
   if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
+    // Fallback: „jei nėra taikinio – padaryk kitą efektą" (noTargetThen)
+    if (m.noTargetThen && m.noTargetThen.length > 0) {
+      api.log(g, { t: 'battlecry', side: caster, key: 'battleLog.noTargetFallback', params: { src: ctx.sourceName } })
+      let ok = false
+      for (const nm of m.noTargetThen) {
+        if (applyMapping(api, g, caster, nm, { ...ctx, chosenTarget: undefined, chosenTargets: undefined, depth: ctx.depth + 1 })) ok = true
+        if (g.winner) break
+      }
+      return ok
+    }
     api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noValidTarget', params: { src: ctx.sourceName } })
     return false
   }

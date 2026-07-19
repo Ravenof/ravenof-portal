@@ -371,6 +371,7 @@ export type EffectMapping = {
   glwRepeatOnDeath?: boolean        // activateLastwishFromGraveyard: šios kortos Paskutinis noras – aktyvuoti tą patį efektą dar kartą (default: taip)
   costFloor?: number                // turnCostDiscount: minimali kaina Y (nuolaida nenuleis žemiau šios ribos)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
+  noTargetThen?: EffectMapping[]    // fallback: jei ŠIS efektas neturi tinkamo taikinio – vietoj jo įvykdyti šiuos
   // ── Nauji card-mapping praplėtimai ──
   buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn' | 'thisAttack'  // buffAttack/buffHealth: laikinas boost ('thisAttack' – tik šios atakos metu, onAttack); takeControl: valdymo trukmė
   cleanseStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed' | 'shield' | 'taunt' | 'stealth' | 'sprint')[]  // cleanse: kurias būsenas/raktažodžius nuimti (shield/taunt/stealth/sprint = pozityvų dispel); TUŠČIA = visos NEIGIAMOS būsenos

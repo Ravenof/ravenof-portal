@@ -334,6 +334,7 @@
   "chainTooDeep": "⚠ Effect chain too deep – the \"{{src}}\" follow-up is skipped.",
   "chainTooLong": "⚠ Effect cascade too long – \"{{src}}\" is skipped (loop guard).",
   "noSpellToCounter": "\"{{src}}\": there is no spell being cast to counter.",
+  "noTargetFallback": "\"{{src}}\": no target – fallback effect triggers.",
   "noValidTarget": "\"{{src}}\": no valid target – part of the effect does not happen.",
   "noAttacker": "\"{{src}}\": there is no attacker (use onAttacked + \"effect on attacker\").",
   "unsupportedEffect": "⚠ Unsupported effect \"{{effect}}\" (\"{{src}}\") – skipped.",

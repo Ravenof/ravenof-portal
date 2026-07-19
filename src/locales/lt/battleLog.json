@@ -334,6 +334,7 @@
   "chainTooDeep": "⚠ Efektų grandinė per gili – „{{src}}\" follow-up praleistas.",
   "chainTooLong": "⚠ Efektų kaskada per ilga – „{{src}}\" praleistas (apsauga nuo ciklo).",
   "noSpellToCounter": "„{{src}}\": nėra žaidžiamo burto, kurį būtų galima nutildyti.",
+  "noTargetFallback": "„{{src}}\": taikinio nėra – vykdomas atsarginis efektas.",
   "noValidTarget": "„{{src}}\": nėra galiojančio taikinio – efekto dalis neįvyksta.",
   "noAttacker": "„{{src}}\": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją\").",
   "unsupportedEffect": "⚠ Nepalaikomas efektas „{{effect}}\" („{{src}}\") – praleidžiama.",
