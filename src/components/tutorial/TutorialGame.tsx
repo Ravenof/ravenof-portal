@@ -1404,6 +1404,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let srcKind: 'attack' | 'ability' | null = null  // mirties FX: 'attack' → kirtis (melee), kitaip → projektilas + sprogimas
     const projVictims = new Set<string>()  // uid taikinių, kuriems žala JAU paleido projektilą (kad mirtis nedubliuotų)
     let fxSeq = 0
+    let showcaseHold = 0   // showcase (burtas/prakeiksmas/reakcija) rodymo trukmė – ŽMK/projektilai/pop atidedami
     let projFired = false
     let aoeFired = false
     let fxElemColor: string | null = null  // pasirinkto efekto elemento spalva (ugnis/žaibas/ledas…) AoE/žalos FX
@@ -1442,7 +1443,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą
-      if (e.sound) playBattleSound(e.sound)
+      // (ŽMK traukimas per showcase atidedamas – kad korta „suveiktų" PRIEŠ traukimą)
+      if (e.sound) {
+        if (e.t === 'zmk' && showcaseHold > 0) { const snd = e.sound, hh = showcaseHold; window.setTimeout(() => playBattleSound(snd), hh) }
+        else playBattleSound(e.sound)
+      }
       if (e.tgt) lastTgtRef = e.tgt
 
       if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
@@ -1513,6 +1518,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               ?? (e.side === 'you' && handRef.current ? (() => { const r = handRef.current!.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })() : fxCenter())
             spawnShowcase(card, from, 'spell', SETTLE)
             fxSeq += 1500
+            showcaseHold = SETTLE + 1450
           } else if (e.t === 'spell' && e.cardName && !e.tgt) {
             const card = findCard(e.cardName)
             const at = (e.src ? rectOf(e.src) : null) ?? fxCenter()
@@ -1525,9 +1531,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           zmkN += 1
           if (e.zmkPair) {
             const [za, zb] = e.zmkPair
-            setZmkRoll({ id: ++flyIdRef.current, side: e.side, a: za, b: zb, picked: e.zmkPicked ?? e.zmk ?? za, adv: e.bias === 'advantage' })
+            const payload = { id: ++flyIdRef.current, side: e.side, a: za, b: zb, picked: e.zmkPicked ?? e.zmk ?? za, adv: e.bias === 'advantage' }
+            if (showcaseHold > 0) { const hh = showcaseHold; window.setTimeout(() => setZmkRoll(payload), hh) }
+            else setZmkRoll(payload)
           } else if (game.zmkMode === 'draw') {
-            setZmkPending((q) => [...q, { v: e.zmk ?? '?', side: e.side, revealed: false }])
+            const item = { v: e.zmk ?? '?', side: e.side, revealed: false }
+            if (showcaseHold > 0) { const hh = showcaseHold; window.setTimeout(() => setZmkPending((q) => [...q, item]), hh) }
+            else setZmkPending((q) => [...q, item])
           } else {
             pendingZmk.push({ v: e.zmk ?? '?', side: e.side })
           }
@@ -1622,6 +1632,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           const card = findCard(e.cardName)
           const from = pileCenter(`[data-pile="reactions-${e.side}"]`) ?? fxCenter()
           spawnShowcase(card, from, 'reaction', SETTLE + fxSeq)
+          showcaseHold = SETTLE + fxSeq + 1450
           fxSeq += 1500
           break
         }
@@ -1670,6 +1681,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             // Showcase: prakeiksmas atskrenda nuo kaladės, iš kurios ištrauktas (e.side = auka)
             const from = pileCenter(`[data-pile="deck-${e.side}"]`) ?? fxCenter()
             spawnShowcase(card, from, 'curse', SETTLE + fxSeq)
+            showcaseHold = SETTLE + fxSeq + 1450
             fxSeq += 1500
           } else {
             setCardFlash({ card, title: e.cardName ?? t('battle.game.curseTag'), tag: t('battle.game.curseMixed'), color: '#a78bfa' })
@@ -1789,6 +1801,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         const col = (proj && PROJECTILE_COLOR[proj]) || palOf(srcCard).primary
         const col2 = palOf(srcCard).secondary
         const src = e.src, tgt = e.tgt
+        const hold = e.t === 'spell' ? showcaseHold : 0   // burto projektilas – tik PO showcase
         projFired = true
         // Paprastos atakos: puolėjo korta greitai nuskrieja iki taikinio ir grįžta (tik atakoms, ne efektams)
         if (isAtk && src.uid) {
@@ -1801,14 +1814,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2, variant: isAtk ? undefined : projVariant(proj) })
             if (isAtk) { playBattleSound('impact', 0.45); fxRef.current?.hitFlash(to.x, to.y, '#ffffff'); fxRef.current?.shakeBoard('soft') }
           }
-        }, isAtk ? 220 : 200)
+        }, (isAtk ? 220 : 200) + hold)
         const popAt = rectOf(tgt)
-        if (popAt) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col, ptag = e.t === 'spell' ? (e.side === 'you' ? t('battle.game.spellTag') : t('battle.game.enemySpellTag')) : undefined; window.setTimeout(() => spawnPop(pc, popAt, pcol, ptag), isAtk ? 260 : 220) }
+        // Burtams su showcase mažo pop'o NErodome – showcase jį pakeičia (nebesidubliuoja)
+        if (popAt && !(e.t === 'spell' && showcaseHold > 0)) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col, ptag = e.t === 'spell' ? (e.side === 'you' ? t('battle.game.spellTag') : t('battle.game.enemySpellTag')) : undefined; window.setTimeout(() => spawnPop(pc, popAt, pcol, ptag), isAtk ? 260 : 220) }
         void PROJ_EMOJI; void spawnProjectile
       }
     }
     if (pendingZmk.length > 0) { const fb = (srcRef ? rectOf(srcRef) : null) ?? fxCenter(); for (const z of pendingZmk) zmkPlaced.push({ ...z, x: fb.x, y: fb.y }) }
-    if (zmkPlaced.length > 0) setZmkFlash({ placed: zmkPlaced, n: seenRef.current })
+    if (zmkPlaced.length > 0) {
+      if (showcaseHold > 0) { const hh = showcaseHold, pl = zmkPlaced, nn = seenRef.current; window.setTimeout(() => setZmkFlash({ placed: pl, n: nn }), hh) }
+      else setZmkFlash({ placed: zmkPlaced, n: seenRef.current })
+    }
     if (aoeMode && !aoeFired) {
       aoeFired = true
       const aCol = fxElemColor ?? palOf(srcCard).primary
