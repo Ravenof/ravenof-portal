@@ -91,7 +91,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'stealth',             label: 'Suteikti Sėlinimą',          needsValue: false, group: 'Statusai' },
   { value: 'shield',              label: 'Suteikti Magiškąjį skydą',   needsValue: false, group: 'Statusai' },
   { value: 'sprint',              label: 'Suteikti Sprintą',           needsValue: false, group: 'Statusai' },
-  { value: 'cleanse',             label: 'Nuimti būsenas (vienkartinis; pvz. vanduo nuima Degantį)', needsValue: false, group: 'Statusai' },
+  { value: 'cleanse',             label: 'Nuimti būsenas / raktažodžius (dispel: gali nuimti ir Magišką skydą, Pasišaipymą, Sėlinimą, Sprintą)', needsValue: false, group: 'Statusai' },
   // ── Statai ──
   { value: 'buffAttack',          label: '+ATK',                       needsValue: true,  group: 'Statai' },
   { value: 'buffHealth',          label: '+HP',                        needsValue: true,  group: 'Statai' },
@@ -373,7 +373,7 @@ export type EffectMapping = {
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   // ── Nauji card-mapping praplėtimai ──
   buffDuration?: 'permanent' | 'endOfTurn' | 'untilNextTurn' | 'thisAttack'  // buffAttack/buffHealth: laikinas boost ('thisAttack' – tik šios atakos metu, onAttack); takeControl: valdymo trukmė
-  cleanseStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // cleanse: kurias būsenas nuimti; TUŠČIA = visos NEIGIAMOS
+  cleanseStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed' | 'shield' | 'taunt' | 'stealth' | 'sprint')[]  // cleanse: kurias būsenas/raktažodžius nuimti (shield/taunt/stealth/sprint = pozityvų dispel); TUŠČIA = visos NEIGIAMOS būsenos
   reviveDestroyedTarget?: boolean   // then po destroy/onDeath: prikelti BŪTENT sunaikintą taikinį (ne atsitiktinį)
   reviveToSide?: 'own' | 'enemy'    // kam atitenka prikeltas padaras (default own)
   drawFromGraveyard?: boolean       // drawCards: traukti iš kapinyno (atsitiktinė), o ne iš kaladės

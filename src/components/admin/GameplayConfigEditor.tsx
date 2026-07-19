@@ -891,7 +891,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                     <div>
                       <label style={labelStyle} title="Kurias būsenas nuimti nuo taikinio. NIEKO nepažymėjus – nuimamos VISOS NEIGIAMOS (Sušaldytas/Degantis/Apnuodytas/Apsvaigintas/Nutildytas). Palaimintas – teigiama, žymėk tik jei nori dispel'inti priešo buffą.">Nuimamos būsenos</label>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                        {([['frozen', '❄ Sušaldytas'], ['burning', '🔥 Degantis'], ['poisoned', '☠ Apnuodytas'], ['stunned', '✶ Apsvaigintas'], ['silenced', '✕ Nutildytas'], ['blessed', '✨ Palaimintas']] as const).map(([st, lbl]) => (
+                        {([['frozen', '❄ Sušaldytas'], ['burning', '🔥 Degantis'], ['poisoned', '☠ Apnuodytas'], ['stunned', '✶ Apsvaigintas'], ['silenced', '✕ Nutildytas'], ['blessed', '✨ Palaimintas'], ['shield', '✦ Magiškas skydas'], ['taunt', '⊙ Pasišaipymas'], ['stealth', '◑ Sėlinimas'], ['sprint', '▶ Sprintas']] as const).map(([st, lbl]) => (
                           <label key={st} className="flex items-center gap-1">
                             <input type="checkbox" checked={(m.cleanseStatuses ?? []).includes(st)}
                               onChange={(e) => {
@@ -903,7 +903,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           </label>
                         ))}
                       </div>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Nieko nepažymėjus — visos neigiamos.</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Nieko nepažymėjus — visos neigiamos būsenos. Skydas/Pasišaipymas/Sėlinimas/Sprintas — pozityvų dispel (auto-taikinys tampa priešo padaras).</p>
                     </div>
                   )}
                   {(m.effect === 'buffAttack' || m.effect === 'buffHealth' || m.effect === 'takeControl') && (

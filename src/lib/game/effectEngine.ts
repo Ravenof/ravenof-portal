@@ -192,8 +192,11 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       if (aoe) targets = all
       else {
         const n = Math.max(1, m.hitCount ?? 1)
+        // cleanse su pozityvų dispel'u (shield/taunt/stealth/sprint/blessed) — 'harm' intent (auto renkasi PRIEŠO padarą)
+        const intent = m.effect === 'cleanse' && (m.cleanseStatuses ?? []).some((s) => ['shield', 'taunt', 'stealth', 'sprint', 'blessed'].includes(s))
+          ? 'harm' : effectIntent(m.effect)
         if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
-        else targets = autoPickN(g, caster, all, effectIntent(m.effect), n, m.allowRandomTarget)
+        else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
       }
     }
   }
@@ -240,17 +243,33 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
       break
     case 'cleanse': {
-      // Vienkartinis būsenų nuėmimas (pvz. „kibiras vandens" nuima Degantį).
-      // cleanseStatuses tuščias => visos NEIGIAMOS (frozen/burning/poisoned/stunned/silenced).
+      // Vienkartinis būsenų / raktažodžių nuėmimas (dispel). cleanseStatuses tuščias =>
+      // visos NEIGIAMOS būsenos. Papildomai galima nuimti pozityvus: shield (Magiškas
+      // skydas), taunt, stealth, sprint. Auros suteiktus raktažodžius recomputeAuras
+      // uždės iš naujo (aura gyva) – nuimami tik spausdinti/efektu gauti.
       const NEG: TutStatus[] = ['frozen', 'burning', 'poisoned', 'stunned', 'silenced']
-      const pick: TutStatus[] = (m.cleanseStatuses && m.cleanseStatuses.length > 0 ? m.cleanseStatuses : NEG) as TutStatus[]
+      const KW = ['shield', 'taunt', 'stealth', 'sprint'] as const
+      const pickAll = (m.cleanseStatuses && m.cleanseStatuses.length > 0 ? m.cleanseStatuses : NEG) as string[]
       for (const t of targets) {
         const f = findUnit(g, t)
         if (!f) continue
         const removed: string[] = []
-        for (const st of pick) {
-          if (f.u.statuses[st] != null) {
-            delete f.u.statuses[st]; removed.push(tGlobal(`statusEffects.${st}.name`))
+        for (const st of pickAll) {
+          if ((KW as readonly string[]).includes(st)) {
+            let had = false
+            if (st === 'shield' && f.u.shield) { f.u.shield = false; had = true }
+            else if (st === 'stealth' && f.u.stealth) { f.u.stealth = false; had = true }
+            else if ((st === 'taunt' || st === 'sprint') && f.u.card.keywords.includes(st)) {
+              f.u.card.keywords = f.u.card.keywords.filter((k) => k !== st); had = true
+            }
+            if (had) {
+              removed.push(tGlobal(`statusEffects.${st}.name`))
+              api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, statusEvt: 'destroy', statusId: st, src: { side: f.owner, uid: f.u.uid }, key: 'battleLog.statusCleansedOne', params: { status: `$t:statusEffects.${st}.name` } })
+            }
+            continue
+          }
+          if (f.u.statuses[st as TutStatus] != null) {
+            delete f.u.statuses[st as TutStatus]; removed.push(tGlobal(`statusEffects.${st}.name`))
             // Status VFX: kiekvienai nuimtai būsenai atskiras destroy įvykis
             api.log(g, { t: 'status', side: f.owner, cardName: f.u.card.name, statusEvt: 'destroy', statusId: st, src: { side: f.owner, uid: f.u.uid }, key: 'battleLog.statusCleansedOne', params: { status: `$t:statusEffects.${st}.name` } })
           }
