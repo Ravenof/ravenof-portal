@@ -1031,6 +1031,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
+  /** Log įrašų atskleidimo riba: null = rodyti viską; skaičius = rodyti tik iki jo (kol vyksta showcase/ŽMK FX). */
+  const [logCut, setLogCut] = useState<number | null>(null)
+  const logCutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── PremiumCinematics: bendra kino eilė (summon + championSkill) ───────────
   const cine = useCinematicQueue()
@@ -1889,6 +1892,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const hFrom = rect2 ? { x: rect2.x + rect2.w / 2, y: rect2.y + rect2.h / 2 } : fxCenter()
       const hDelay = showcaseHold > 0 ? showcaseHold : SETTLE
       window.setTimeout(() => { playBattleSound('heal', 0.5); fxRef.current?.spawn({ kind: 'aoeWave', from: hFrom, rect: rect2, color: '#5ef0c0', duration: 1.6, variant: 'heal' }) }, hDelay)
+    }
+
+    // Log sinchronizacija su FX: kol vyksta showcase + ŽMK + smūgiai, nauji įrašai
+    // (žala/žūtys) NErodomi – kitaip matosi kas žus dar prieš animacijas.
+    if (showcaseHold > 0) {
+      setLogCut(seenStart)
+      if (logCutTimerRef.current) clearTimeout(logCutTimerRef.current)
+      logCutTimerRef.current = setTimeout(() => setLogCut(null), showcaseHold + Math.max(0, fxSeq - (showcaseHold - SETTLE)) + 900)
+    } else if (logCut !== null) {
+      setLogCut(null)
     }
 
     // lentos skenavimas raktažodžių patarimams
@@ -3003,7 +3016,11 @@ doAction({ t: 'endTurn', actor: 'you' })
     )
   }
 
-  const lastEvent = game?.log[game.log.length - 1]
+  const visibleLog = useMemo(() => {
+    if (!game) return []
+    return logCut === null ? game.log : game.log.slice(0, logCut)
+  }, [game, logCut])
+  const lastEvent = visibleLog[visibleLog.length - 1]
   const lastMsg = lastEvent ? eventText(lastEvent, t) : ''
 
   // ── Horizontal (landscape) layout render helper'iai (perduodami BattleLayout'ui; state lieka čia) ──
@@ -3071,7 +3088,7 @@ doAction({ t: 'endTurn', actor: 'you' })
   }
   const renderLogH = () => {
     if (!game) return null
-    return game.log.slice(-26).map((e, i) => {
+    return visibleLog.slice(-26).map((e, i) => {
       const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
       const col = e.side === 'you' ? '#4ade80' : '#f87171'
       return (
@@ -3535,7 +3552,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="rounded-xl p-2 flex-1 min-h-0 flex flex-col" style={RAIL_PANEL}>
                 <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>{t('battle.game.actionLog')}</span>
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-1">
-                  {game.log.slice(-26).map((e, i) => {
+                  {visibleLog.slice(-26).map((e, i) => {
                     const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
                     const col = e.side === 'you' ? '#4ade80' : '#f87171'
                     return (
@@ -3834,7 +3851,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <button onClick={() => { playUiClick(); setShowLog(false) }} aria-label={t('battle.game.close')} className="text-sm leading-none px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
             </div>
             <div className="space-y-1">
-              {game.log.slice(-80).map((e, i) => {
+              {visibleLog.slice(-80).map((e, i) => {
                 // Traukimo įvykiai: korta matoma TIK savininkui ('you'). Priešo (po swapPerspective – 'ai') traukimas lieka užverstas.
                 const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
                 const zImg = e.t === 'zmk' && e.zmk ? zmkImg(game, e.zmk) : null
@@ -4062,7 +4079,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.55, filter: 'grayscale(1) brightness(1.7)' }}
               transition={{ duration: 0.34, ease: 'easeIn' }}
-              className="absolute rvn-doom"
+              className="absolute"
               style={{ left: g.x - unitW / 2, top: g.y - Math.round(unitW * 4 / 3) / 2 }}>
               <MiniCard c={g.card} w={unitW} />
             </motion.div>
