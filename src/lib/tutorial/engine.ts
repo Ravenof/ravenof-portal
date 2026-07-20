@@ -747,7 +747,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   const overHpBefore = target.hp
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, key: 'battleLog.unitDamage', params: { card: target.card.name, dmg, hp: Math.max(0, target.hp), maxHp: target.maxHp } })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, tgt: { kind: 'unit', side: owner, uid: target.uid }, key: 'battleLog.unitDamage', params: { card: target.card.name, dmg, hp: Math.max(0, target.hp), maxHp: target.maxHp } })
   applyEnemyDamageLeech(g, owner, dmg)
   if (overflow) {
     const excess = Math.max(0, dmg - Math.max(0, overHpBefore))
@@ -912,7 +912,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
   if (dmg <= 0) return
   applySpellLifesteal(g, dmg)
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, tgt: { kind: 'artifact', side: owner, uid: target.uid }, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
   fireGlobalListeners(g, 'onAnyDamage', { side: owner })
   if (target.hp <= 0) {
     const p = P(g, owner)
