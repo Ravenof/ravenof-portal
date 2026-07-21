@@ -1340,7 +1340,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const rectFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number } | null => {
     if (!ref) return null
     let el: Element | null = null
-    if (ref.uid) el = document.querySelector(`[data-unit-uid="${ref.uid}"]`) ?? document.querySelector(`[data-artifact-uid="${ref.uid}"]`)
+    if (ref.uid) {
+      el = document.querySelector(`[data-unit-uid="${ref.uid}"]`) ?? document.querySelector(`[data-artifact-uid="${ref.uid}"]`)
+      // uid nurodytas, bet elementas dingęs (padaras žuvo) → NE avataras; rectOf paims cache
+      if (!el) return null
+    }
     if (!el && ref.side) el = document.querySelector(`[data-player="${ref.side}"]`)
     if (!el) return null
     const r = el.getBoundingClientRect()
@@ -1459,10 +1463,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
     }
     for (const e of fresh) {
-      // garsai: engine pateiktas sound hint > numatytasis pagal tipą
-      // (ŽMK traukimas per showcase atidedamas – kad korta „suveiktų" PRIEŠ traukimą)
+      // garsai: engine pateiktas sound hint > numatytasis pagal tipą.
+      // Sinchronizacija su vizualu: 'death' garsą groja pats death FX (smūgio momentu);
+      // per showcase delsą visi kiti atidedami, IŠSKYRUS burto cast / summon (jų vizualas iškart).
       if (e.sound) {
-        if (e.t === 'zmk' && showcaseHold > 0) { const snd = e.sound, hh = showcaseHold; window.setTimeout(() => playBattleSound(snd), hh) }
+        const immediate = e.t === 'spell' || e.t === 'play' || e.t === 'artifact' || e.t === 'champion' || e.t === 'startTurn' || e.t === 'draw'
+        if (e.t === 'death') { /* groja death FX savo momentu */ }
+        else if (showcaseHold > 0 && !immediate) { const snd = e.sound, hh = showcaseHold; window.setTimeout(() => playBattleSound(snd), hh) }
         else playBattleSound(e.sound)
       }
       if (e.tgt) lastTgtRef = e.tgt
@@ -1621,26 +1628,30 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           break
         }
         case 'win': {
-          // Pralaimėjimo seka: 1) avataras sprogsta į šukes (+explosion garsas) →
-          // 2) pralaimėjusiojo defeat frazė → 3) laimėtojo victory frazė → 4) pabaigos ekranas.
+          // Finalinė seka: final blow FX pabaiga (HP → 0) → +1 s avataro SPROGIMAS
+          // (+explosion garsas + defeat frazė) → +2 s pabaigos ekranas (+victory frazė).
           const winSide = e.side
           const loser: Side = winSide === 'you' ? 'ai' : 'you'
           const winId = winSide === 'you' ? youAvIdRef.current : enemyAvIdRef.current
           const loseId = winSide === 'you' ? enemyAvIdRef.current : youAvIdRef.current
-          setAvatarDead(loser)
-          playBattleSound('explosion', 0.65)
-          const avEl = document.querySelector(`[data-player="${loser}"]`)
-          if (avEl) {
-            const r = avEl.getBoundingClientRect()
-            const at = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-            fxRef.current?.spawn({ kind: 'disintegrate', to: at, color: '#ff8a3a', duration: 1.1, intensity: 'big' })
-            fxRef.current?.spawn({ kind: 'burn', to: at, color: '#ffb347', duration: 0.8, intensity: 'small' })
-            fxRef.current?.hitFlash(at.x, at.y, '#ffb347')
-          }
-          fxRef.current?.shakeBoard('hard')
-          window.setTimeout(() => playAvatarAudio(loseId, 'defeat'), 1000)
-          window.setTimeout(() => playAvatarAudio(winId, 'victory'), 3100)
-          window.setTimeout(() => { setEndShown(true); if (winSide === 'you') playSuccess(); else playError() }, 5200)
+          const blowEnd = SETTLE + fxSeq + 800   // kada baigiasi šio batch smūgių FX
+          const tBoom = blowEnd + 1000           // +1 s po final blow
+          window.setTimeout(() => {
+            setAvatarDead(loser)
+            playBattleSound('explosion', 0.7)
+            const avEl = document.querySelector(`[data-player="${loser}"]`)
+            if (avEl) {
+              const r = avEl.getBoundingClientRect()
+              const at = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+              fxRef.current?.spawn({ kind: 'disintegrate', to: at, color: '#ff8a3a', duration: 1.1, intensity: 'big' })
+              fxRef.current?.spawn({ kind: 'burn', to: at, color: '#ffb347', duration: 0.8, intensity: 'small' })
+              fxRef.current?.hitFlash(at.x, at.y, '#ffb347')
+            }
+            fxRef.current?.shakeBoard('hard')
+          }, tBoom)
+          window.setTimeout(() => playAvatarAudio(loseId, 'defeat'), tBoom + 800)
+          window.setTimeout(() => { setEndShown(true); if (winSide === 'you') playSuccess(); else playError() }, tBoom + 2000)
+          window.setTimeout(() => playAvatarAudio(winId, 'victory'), tBoom + 2400)
           break
         }
         case 'lastwish': queueTip('lastwish'); break
@@ -1942,7 +1953,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const r = el.getBoundingClientRect()
       m.set(id, { x: r.left + r.width / 2, y: r.top + r.height / 2 })
     })
-    unitRectsRef.current = m
+    // merge (ne replace): žuvusių padarų paskutinės pozicijos lieka cache – projektilai
+    // skrenda į buvusią kortos vietą, o ne į savininko avatarą
+    const merged = new Map(unitRectsRef.current)
+    m.forEach((v, k) => merged.set(k, v))
+    unitRectsRef.current = merged
   })
 
   // ── Tutorial fallback: žingsnis niekada neprašo neįmanomo veiksmo ──
@@ -2353,8 +2368,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ekranas vis tiek parodomas po 6 s (o avataras pažymimas subyrėjusiu iškart).
   useEffect(() => {
     if (!game?.winner || endShown) return
-    if (!avatarDead) setAvatarDead(game.winner === 'you' ? 'ai' : 'you')
-    const tm = window.setTimeout(() => setEndShown(true), 6000)
+    const tm = window.setTimeout(() => setEndShown(true), 12000)
     return () => window.clearTimeout(tm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner, endShown])
