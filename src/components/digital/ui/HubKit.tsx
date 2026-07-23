@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 // ════════════════════════════════════════════════════════════════════════════
 // HubKit — premium dark-fantasy mobile game hub, GRYNAS CSS (jokių raster assetų).
@@ -16,7 +16,7 @@ import { ArtCta, ArtHeading, ArtModeCard } from './LocalizedArt'
 import { localizedAsset, type LocalizedAssetKey } from '@/lib/i18n/assets'
 import { useLocale } from '@/lib/i18n/react'
 
-const GOLD = '240,180,41'
+const GOLD = '212,163,59'
 export const ASSET = '/digital/ui3'
 
 // ── shared CSS ────────────────────────────────────────────────────────────────

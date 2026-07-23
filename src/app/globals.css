@@ -1,4 +1,4 @@
-/* Fonts loaded via next/font/google CSS variables: --font-cinzel, --font-inter */
+﻿/* Fonts loaded via next/font/google CSS variables: --font-cinzel, --font-inter */
 
 @tailwind base;
 @tailwind components;
@@ -9,28 +9,28 @@
    ═══════════════════════════════════════════════════════════ */
 :root {
   /* --- Backgrounds --- */
-  --bg-base:     #07070f;
-  --bg-surface:  #0f0f1a;
-  --bg-elevated: #171724;
-  --bg-border:   #252538;
+  --bg-base:     #07060a;
+  --bg-surface:  #15111c;
+  --bg-elevated: #1b1522;
+  --bg-border:   #2a2531;
 
   /* --- Legacy aliases (kept for existing components) --- */
-  --rvn-bg:        #07070f;
-  --rvn-surface:   #0f0f1a;
-  --rvn-elevated:  #171724;
-  --rvn-border:    #252538;
+  --rvn-bg:        #07060a;
+  --rvn-surface:   #15111c;
+  --rvn-elevated:  #1b1522;
+  --rvn-border:    #2a2531;
 
   /* --- Gold palette --- */
-  --gold:         #f0b429;
-  --gold-dim:     #a37820;
-  --gold-bright:  #fcd34d;
-  --gold-glow:    rgba(240, 180, 41, 0.28);
-  --rvn-gold:     #f0b429;
-  --rvn-gold-dim: #a37820;
+  --gold:         #d4a33b;
+  --gold-dim:     #b5852a;
+  --gold-bright:  #f2c45a;
+  --gold-glow:    rgba(212, 163, 59, 0.30);
+  --rvn-gold:     #d4a33b;
+  --rvn-gold-dim: #b5852a;
 
   /* --- Violet / arcane palette --- */
-  --rvn-violet:      #7c3aed;
-  --rvn-violet-dim:  #4c1d95;
+  --rvn-violet:      #8152a8;
+  --rvn-violet-dim:  #4a2f63;
   --rvn-violet-glow: rgba(124, 58, 237, 0.3);
 
   /* --- Red / damage --- */
@@ -42,12 +42,12 @@
   --rvn-green-dim: #14532d;
 
   /* --- Text --- */
-  --text-primary:   #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
-  --rvn-text:       #e2e8f0;
-  --rvn-text-dim:   #94a3b8;
-  --rvn-text-muted: #64748b;
+  --text-primary:   #e8dfcc;
+  --text-secondary: #928b9d;
+  --text-muted:     #8d6b5a;
+  --rvn-text:       #e8dfcc;
+  --rvn-text-dim:   #928b9d;
+  --rvn-text-muted: #8d6b5a;
 
   /* --- Fonts --- */
   --rvn-font-display: var(--font-cinzel, 'Cinzel', Georgia, serif);
@@ -69,8 +69,8 @@ body {
   background-color: var(--bg-base);
   /* subtle radial gradient from center — gives depth without heavy GPU cost */
   background-image:
-    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(124,58,237,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 80% 40% at 100% 100%, rgba(240,180,41,0.03) 0%, transparent 50%);
+    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(129,82,168,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 40% at 100% 100%, rgba(212,163,59,0.05) 0%, transparent 50%);
   background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--rvn-font-body);
