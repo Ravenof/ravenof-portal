@@ -2,8 +2,9 @@
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Ravenof Digital — landscape-first registracija / prisijungimas.
-// Kairė: logotipas, šūkis, pasaulio įvadas. Dešinė: kompaktiška forma (telpa
-// 844×390 be vertikalaus scroll). Po sėkmės NIEKADA neišeinama iš /digital:
+// LOGIN: patvirtintas UI (ravenof-ui-handoff login-default.png) — kairė katedros
+// artas + wordmark, dešinė 372px forma. REGISTER: esama (nemigruota) UI.
+// Po sėkmės NIEKADA neišeinama iš /digital:
 //   register → /digital/onboarding
 //   login    → onboarding done ? /digital : /digital/onboarding
 // Orientacijos lock + „pasuk telefoną" overlay paveldimi iš /digital layout.
@@ -17,6 +18,9 @@ import { getOnboardingState } from '@/lib/digital/onboarding'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useT } from '@/lib/i18n/react'
 import { LanguageSelector } from '@/components/digital/ui/LanguageSelector'
+import { useLocale, setLocale } from '@/lib/i18n/react'
+import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
+import { RavenofTextField, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 
@@ -65,6 +69,8 @@ function Progress({ step }: { step: 0 | 1 | 2 }) {
 export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
   const router = useRouter()
   const t = useT()
+  const locale = useLocale()
+  const toggleLang = () => { playUiClick(); const other = LANGUAGE_OPTIONS.find((o) => o.locale !== locale) ?? LANGUAGE_OPTIONS[0]; void setLocale(other.locale) }
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -135,6 +141,82 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
     }
   }
 
+  // ════════════════════════ LOGIN — patvirtintas UI (Fazė 1) ═══════════════════
+  if (!isReg) {
+    const loginValid = /\S+@\S+\.\S+/.test(email) && password.length >= 1
+    return (
+      <div className="ravenof-body h-full w-full flex overflow-hidden ravenof-in" style={{ background: 'var(--ravenof-bg-base)' }}>
+        {/* ── Kairė: katedros artas + wordmark ── */}
+        <div className="relative flex-1 overflow-hidden min-w-0">
+          <div className="absolute inset-0" style={{ background: `url('${RAVENOF_ASSET}/backgrounds/background-cathedral-ruins.webp') center / cover no-repeat` }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(7,6,10,.35) 0%, rgba(7,6,10,.55) 55%, #0B0910 100%)' }} />
+          <button onClick={toggleLang} aria-label="Kalba / Language" className="ravenof-press absolute z-10" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)', left: 'max(14px, env(safe-area-inset-left, 0px))', font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', background: 'rgba(7,6,10,0.5)', padding: '6px 8px', borderRadius: 3, cursor: 'pointer' }}>
+            {locale.toUpperCase()}
+          </button>
+          <div className="absolute" style={{ left: 'max(30px, env(safe-area-inset-left, 0px))', bottom: 26, right: 30 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`${RAVENOF_ASSET}/logos/ravenof-wordmark.png`} alt="Ravenof" style={{ width: 210, height: 'auto', filter: 'drop-shadow(0 4px 18px rgba(0,0,0,.7))' }} />
+            <div style={{ font: "500 10px var(--ravenof-font-body)", letterSpacing: 4, textTransform: 'uppercase', color: 'var(--ravenof-gold)', marginTop: 6 }}>{t('auth.appTagline')}</div>
+          </div>
+        </div>
+
+        {/* ── Dešinė: prisijungimo forma (372px) ── */}
+        <div className="flex flex-col justify-center overflow-y-auto ravenof-scroll" style={{ width: 372, flex: 'none', background: '#0B0910', borderLeft: '1px solid var(--ravenof-border-hairline)', padding: '22px 34px', paddingRight: 'max(34px, env(safe-area-inset-right, 0px))', gap: 11 }}>
+          {needsConfirm ? (
+            <div className="text-center py-4">
+              <div className="text-4xl mb-2">📧</div>
+              <p style={{ font: '700 16px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: '0.05em' }}>{t('auth.confirmEmailTitle')}</p>
+              <p className="mt-2" style={{ font: '400 12px var(--ravenof-font-body)', lineHeight: 1.5, color: 'var(--ravenof-text-secondary)' }}>
+                {t('auth.confirmEmailBody', { email })}
+              </p>
+              <Link href="/digital/login" onClick={() => playUiClick()} className="ravenof-btn ravenof-btn-secondary inline-flex mt-4">
+                {t('auth.login')}
+              </Link>
+            </div>
+          ) : (
+            <>
+              <h1 style={{ font: '700 18px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', margin: 0 }}>{t('auth.welcomeBack')}</h1>
+              <form onSubmit={submit} className="flex flex-col" style={{ gap: 8, marginTop: 2 }} noValidate>
+                <RavenofTextField id="rvn-email" type="email" placeholder={t('auth.email')} value={email}
+                  onChange={(e) => setEmail(e.target.value)} required autoComplete="email" aria-label={t('auth.email')} />
+                <div className="relative">
+                  <RavenofTextField id="rvn-pw" type={showPw ? 'text' : 'password'} placeholder={t('auth.password')}
+                    value={password} onChange={(e) => setPassword(e.target.value)} required
+                    autoComplete="current-password" aria-label={t('auth.password')} style={{ paddingRight: 38 }} />
+                  <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? t('auth.hidePw') : t('auth.showPw')}
+                    className="absolute right-0 top-0 h-full px-2.5 flex items-center" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="flex items-center" style={{ minHeight: 15 }}>
+                  {error && <span role="alert" style={{ font: '500 11px var(--ravenof-font-body)', color: '#c65563' }}>{error}</span>}
+                  <div className="flex-1" />
+                  <Link href="/digital/forgot-password" onClick={() => playUiClick()} className="ravenof-press" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('auth.forgotPassword')}</Link>
+                </div>
+                <button type="submit" disabled={loading} className="ravenof-press w-full" style={{
+                  height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: loginValid ? 'pointer' : 'default',
+                  background: loginValid ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)',
+                  color: loginValid ? 'var(--ravenof-on-gold)' : '#5e5868',
+                  font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 2,
+                  clipPath: loginValid ? 'var(--ravenof-clip-primary)' : undefined,
+                  boxShadow: loginValid ? 'var(--ravenof-shadow-gold-btn)' : undefined,
+                  opacity: loading ? .7 : 1,
+                }}>
+                  {loading ? t('auth.signingIn') : t('auth.loginCta2')}
+                </button>
+              </form>
+              <div className="text-center" style={{ font: '400 11.5px var(--ravenof-font-body)', color: '#6b6474', marginTop: 2 }}>
+                {t('auth.noAccount')}{' '}
+                <Link href={withNext('/digital/register')} onClick={() => playUiClick()} className="ravenof-press" style={{ color: 'var(--ravenof-gold)', fontWeight: 700 }}>{t('auth.createAccount')}</Link>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ════════════════════════ REGISTER — esama (nemigruota) UI ═══════════════════
   return (
     <div className="h-full w-full grid" style={{
       gridTemplateColumns: 'minmax(260px, 1.15fr) minmax(300px, 1fr)',
@@ -186,50 +268,46 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
         ) : (
           <>
             <h2 className="font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(14px, 3vh, 18px)', letterSpacing: '0.08em' }}>
-              {isReg ? t('auth.registerTitle') : t('auth.loginTitle')}
+              {t('auth.registerTitle')}
             </h2>
             <form onSubmit={submit} className="mt-2 flex flex-col gap-2" noValidate>
-              {isReg && (
-                <div>
-                  <label htmlFor="rvn-user" style={labelStyle}>{t('auth.username')}</label>
-                  <input id="rvn-user" type="text" placeholder={t('auth.usernamePlaceholder')} value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                    required maxLength={20} autoComplete="username" style={inputStyle}
-                    aria-invalid={username.length > 0 && !USERNAME_RE.test(username)} aria-describedby="rvn-user-hint" />
-                  {username.length > 0 && !USERNAME_RE.test(username) && (
-                    <p id="rvn-user-hint" className="mt-0.5" style={{ fontSize: 10, color: '#fbbf24' }}>{t('auth.usernameHint')}</p>
-                  )}
-                </div>
-              )}
+              <div>
+                <label htmlFor="rvn-user" style={labelStyle}>{t('auth.username')}</label>
+                <input id="rvn-user" type="text" placeholder={t('auth.usernamePlaceholder')} value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  required maxLength={20} autoComplete="username" style={inputStyle}
+                  aria-invalid={username.length > 0 && !USERNAME_RE.test(username)} aria-describedby="rvn-user-hint" />
+                {username.length > 0 && !USERNAME_RE.test(username) && (
+                  <p id="rvn-user-hint" className="mt-0.5" style={{ fontSize: 10, color: '#fbbf24' }}>{t('auth.usernameHint')}</p>
+                )}
+              </div>
               <div>
                 <label htmlFor="rvn-email" style={labelStyle}>{t('auth.email')}</label>
                 <input id="rvn-email" type="email" placeholder={t('auth.emailPlaceholder')} value={email}
                   onChange={(e) => setEmail(e.target.value)} required autoComplete="email" style={inputStyle} />
               </div>
-              <div className={isReg ? 'grid grid-cols-2 gap-2' : ''}>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label htmlFor="rvn-pw" style={labelStyle}>{t('auth.password')}</label>
                   <div className="relative">
-                    <input id="rvn-pw" type={showPw ? 'text' : 'password'} placeholder={isReg ? t('auth.passwordPlaceholderReg') : t('auth.passwordPlaceholder')}
-                      value={password} onChange={(e) => setPassword(e.target.value)} required minLength={isReg ? 8 : undefined}
-                      autoComplete={isReg ? 'new-password' : 'current-password'} style={{ ...inputStyle, paddingRight: 36 }} />
+                    <input id="rvn-pw" type={showPw ? 'text' : 'password'} placeholder={t('auth.passwordPlaceholderReg')}
+                      value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
+                      autoComplete="new-password" style={{ ...inputStyle, paddingRight: 36 }} />
                     <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? t('auth.hidePw') : t('auth.showPw')}
                       className="absolute right-0 top-0 h-full px-2.5 flex items-center" style={{ color: 'var(--text-muted)' }}>
                       {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
-                {isReg && (
-                  <div>
-                    <label htmlFor="rvn-pw2" style={labelStyle}>{t('auth.repeat')}</label>
-                    <input id="rvn-pw2" type={showPw ? 'text' : 'password'} placeholder={t('auth.repeat')} value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)} required autoComplete="new-password"
-                      aria-invalid={!!confirm && confirm !== password} aria-describedby="rvn-pw2-hint"
-                      style={{ ...inputStyle, borderColor: confirm && confirm !== password ? 'rgba(239,68,68,0.7)' : undefined }} />
-                  </div>
-                )}
+                <div>
+                  <label htmlFor="rvn-pw2" style={labelStyle}>{t('auth.repeat')}</label>
+                  <input id="rvn-pw2" type={showPw ? 'text' : 'password'} placeholder={t('auth.repeat')} value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)} required autoComplete="new-password"
+                    aria-invalid={!!confirm && confirm !== password} aria-describedby="rvn-pw2-hint"
+                    style={{ ...inputStyle, borderColor: confirm && confirm !== password ? 'rgba(239,68,68,0.7)' : undefined }} />
+                </div>
               </div>
-              {isReg && confirm && confirm !== password && (
+              {confirm && confirm !== password && (
                 <p id="rvn-pw2-hint" style={{ fontSize: 10, color: '#f87171', marginTop: -4 }}>{t('auth.pwMismatch')}</p>
               )}
               {error && (
@@ -240,22 +318,13 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
               <button type="submit" disabled={loading} className="rvn-press w-full rounded-xl font-extrabold transition-transform active:scale-[0.98] disabled:opacity-60"
                 style={{ height: 42, fontSize: 13.5, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em',
                   background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `0 4px 18px rgba(${GOLD},0.25)` }}>
-                {loading ? (isReg ? t('auth.creating') : t('auth.signingIn')) : (isReg ? t('auth.registerCta') : t('auth.loginCta'))}
+                {loading ? t('auth.creating') : t('auth.registerCta')}
               </button>
             </form>
             <div className="mt-2 text-center" style={{ fontSize: 11 }}>
-              {isReg ? (
-                <Link href={withNext('/digital/login')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
-                  {t('auth.haveAccount')} <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{t('auth.haveAccountCta')}</span>
-                </Link>
-              ) : (
-                <Link href={withNext('/digital/register')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
-                  {t('auth.newPlayer')} <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{t('auth.newPlayerCta')}</span>
-                </Link>
-              )}
-              {!isReg && (
-                <Link href="/digital/forgot-password" className="block mt-1" style={{ color: 'var(--text-muted)', fontSize: 10 }}>{t('auth.forgotPassword')}</Link>
-              )}
+              <Link href={withNext('/digital/login')} onClick={() => playUiClick()} style={{ color: 'var(--text-secondary)' }}>
+                {t('auth.haveAccount')} <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{t('auth.haveAccountCta')}</span>
+              </Link>
             </div>
           </>
         )}

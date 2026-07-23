@@ -1,8 +1,10 @@
 'use client'
 
 // ── Ravenof Digital — pilno ekrano mobile app shell ───────────────────────────
-// Prototipo išdėstymas: VERTIKALUS ŠONINIS nav rail (kairė) + turinio stulpelis
-// (header viršuje + main). Visa logika/duomenys/modalai išsaugoti.
+// Patvirtintas UI (ravenof-ui-handoff, Fazė 1): VERTIKALUS ŠONINIS nav rail
+// (kairė, 92px, 24px ikonos) + turinio stulpelis (header + main).
+// Visa logika/duomenys/modalai išsaugoti. Kolekcijoje header'io nėra (prototipas).
+import '@/components/digital/ui/ravenof-ui.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -24,10 +26,13 @@ import { useRouter } from 'next/navigation'
 import { getOnboardingState } from '@/lib/digital/onboarding'
 import { heartbeat } from '@/lib/social'
 import { getLevelProgress } from '@/lib/gamification/levels'
-import { HubStyles, ResourcePill, IconBtn, ProfileChip } from '@/components/digital/ui/HubKit'
-import { useT, I18nBoot } from '@/lib/i18n/react'
+import { ensureProfile } from '@/lib/ranked/client'
+import { rankView, medalLabel, type MedalTier } from '@/lib/ranked/rank'
+import { RavenofResourcePill, RavenofIconBtn, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
+import { HubStyles } from '@/components/digital/ui/HubKit'
+import { useT, I18nBoot, useLocale, setLocale } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
-import { RvnIcon } from '@/components/digital/ui/RvnIcon'
+import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 
 type NavItem = { key: string; labelKey: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
 const NAV: NavItem[] = [
@@ -39,14 +44,32 @@ const NAV: NavItem[] = [
 ]
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
+type RankInfo = { tier: MedalTier; number: number }
 
 const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding', '/digital/forgot-password']
+// Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
+const NO_HEADER_ROUTES = ['/digital/collection']
+// Migruoti route'ai — juose fono „Flames" sluoksnis nerodomas (patvirtintas fonas = grynas ink)
+const MIGRATED_ROUTES = ['/digital', '/digital/collection']
+
+function NavGlyph({ navKey, active, fallback }: { navKey: string; active: boolean; fallback: React.ReactNode }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <span style={{ color: active ? '#F2C45A' : '#6b6474' }}>{fallback}</span>
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={`${RAVENOF_ASSET}/nav/nav-${navKey}.png`} alt="" width={24} height={24}
+      onError={() => setFailed(true)}
+      style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', filter: active ? 'drop-shadow(0 0 6px rgba(242,196,90,.55))' : 'grayscale(.9) brightness(.72)' }} />
+  )
+}
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const t = useT()
+  const locale = useLocale()
   const router = useRouter()
   const bare = BARE_ROUTES.includes(pathname)
+  const showHeader = !NO_HEADER_ROUTES.includes(pathname)
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -54,6 +77,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const [storeOpen, setStoreOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [rank, setRank] = useState<RankInfo | null>(null)
   const [unread, setUnread] = useState(0)
   const [showRotate, setShowRotate] = useState(false)
 
@@ -90,6 +114,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             const prog = getLevelProgress(pr.xp_total ?? 0)
             setProfile({ name: pr.display_name || pr.username || '', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null })
           })
+        // Rango eilutė header'yje (read-only; ta pati RPC kaip ranked ekrane)
+        ensureProfile().then((rp) => {
+          if (!rp) return
+          const rv = rankView(rp.rank_step)
+          setRank({ tier: rv.medalTier, number: rv.rankNumber })
+        })
       })
     }
     loadProfile()
@@ -134,18 +164,25 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return !!it.href && pathname.startsWith(it.href)
   }
 
+  const toggleLang = () => {
+    playUiClick()
+    const other = LANGUAGE_OPTIONS.find((o) => o.locale !== locale) ?? LANGUAGE_OPTIONS[0]
+    void setLocale(other.locale)
+  }
+
   if (bare) {
+    const isLogin = pathname === '/digital/login'
     return (
-      <div className="fixed inset-0 z-40 flex flex-col select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
-        <Flames />
+      <div className="ravenof-body fixed inset-0 z-40 flex flex-col select-none" style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
+        {!isLogin && <Flames />}
         <HubStyles />
         <I18nBoot />
         <main className="relative z-10 flex-1 min-h-0">{children}</main>
         {showRotate && (
           <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
             <div className="text-6xl" style={{ animation: 'rvnRotateHintApp 1.6s ease-in-out infinite' }}>🔄</div>
-            <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('common.rotate.title')}</p>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('common.rotate.subtitleOnboarding')}</p>
+            <p className="text-xl font-bold" style={{ color: 'var(--ravenof-gold)', fontFamily: 'var(--ravenof-font-display)' }}>{t('common.rotate.title')}</p>
+            <p className="text-sm" style={{ color: 'var(--ravenof-text-secondary)' }}>{t('common.rotate.subtitleOnboarding')}</p>
             <style>{`@keyframes rvnRotateHintApp { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }`}</style>
           </div>
         )}
@@ -154,55 +191,75 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-row select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
-      <Flames />
+    <div className="ravenof-body fixed inset-0 z-40 flex flex-row select-none" style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
+      {!MIGRATED_ROUTES.includes(pathname) && <Flames />}
       <HubStyles />
       <I18nBoot />
       <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }`}</style>
 
-      {/* ── Šoninis nav rail (prototipas) ── */}
+      {/* ── Šoninis nav rail (patvirtintas dizainas: 92px, 24px ikonos, Cinzel etiketės) ── */}
       <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
-        style={{ width: 92, background: 'linear-gradient(90deg,#0a0810,#0f0d15)', borderRight: '1px solid rgba(212,163,59,0.18)', gap: 2, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        style={{
+          width: 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))',
+          paddingLeft: 'max(18px, env(safe-area-inset-left, 0px))',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          background: 'linear-gradient(90deg,#0a0810,#0F0D15)',
+          borderRight: '1px solid rgba(212,163,59,0.18)',
+          gap: 2,
+        }}>
         {NAV.map((it) => {
           const active = isActive(it)
           const Icon = it.icon
           const inner = (
-            <span className="flex flex-col items-center justify-center gap-1 py-2" style={{ minHeight: 52 }}>
-              <span className="relative flex items-center justify-center rvn-press" style={{ width: 40, height: 40 }}>
-                <RvnIcon name={`nav-${it.key}`} size={40} fallback={<Icon className="w-[22px] h-[22px]" />}
-                  style={active
-                    ? { borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(212,163,59,0.75)', boxShadow: '0 0 0 1px rgba(212,163,59,0.25), 0 0 14px rgba(212,163,59,0.45)', filter: 'brightness(1.1) saturate(1.08)' }
-                    : { borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.06)', filter: 'grayscale(0.7) brightness(0.72)', opacity: 0.82 }} />
+            <span className="flex flex-col items-center justify-center" style={{ gap: 3, padding: '8px 0', minHeight: 48 }}>
+              <span className="relative flex items-center justify-center" style={{ width: 24, height: 24 }}>
+                <NavGlyph navKey={it.key} active={active} fallback={<Icon className="w-[18px] h-[18px]" />} />
               </span>
-              <span className="text-[9.5px] font-semibold text-center leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em', color: active ? '#f2c45a' : 'rgba(150,140,120,0.85)' }}>{t(it.labelKey)}</span>
+              <span style={{ font: '600 8.5px var(--ravenof-font-display)', letterSpacing: '.4px', textAlign: 'center', lineHeight: 1.2, color: active ? '#F2C45A' : '#6b6474', textShadow: active ? '0 0 12px rgba(242,196,90,.6)' : 'none' }}>{t(it.labelKey)}</span>
             </span>
           )
-          const style = { borderRight: `2px solid ${active ? '#f2c45a' : 'transparent'}` } as React.CSSProperties
+          const style = { borderRight: `2px solid ${active ? '#F2C45A' : 'transparent'}` } as React.CSSProperties
           return it.action === 'store'
-            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full" style={style}>{inner}</button>
-            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full" style={style}>{inner}</Link>
+            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" style={style}>{inner}</button>
+            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" style={style}>{inner}</Link>
         })}
       </nav>
 
       {/* ── Turinio stulpelis: header + main ── */}
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
-        <header className="rvn-app-header relative z-10 flex items-center justify-between gap-2 px-3.5"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(212,163,59,0.16)', background: 'rgba(7,5,12,0.96)' }}>
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
-            {profile && <ProfileChip name={profile.name || t('common.player')} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
-          </div>
-          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center">
-            <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={formatNumber(balances.silver)} accent="203,213,225" />
-            <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={formatNumber(balances.rubies)} accent="239,68,68" />
-            <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={formatNumber(balances.essence)} accent="129,82,168" />
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <IconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
-            <IconBtn label={t('navigation.settings')} onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
-          </div>
-        </header>
+        {showHeader && (
+          <header className="rvn-app-header relative z-10 flex items-center px-4"
+            style={{ gap: 9, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
+            {/* Profilio chip: avataras + vardas + rangas/lygis */}
+            <button onClick={() => { playUiClick(); setLevelRoadOpen(true) }} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
+              <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: profile?.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
+              <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
+                <span className="truncate" style={{ maxWidth: 140, font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
+                <span className="flex items-center" style={{ gap: 5, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
+                  {rank ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`${RAVENOF_ASSET}/ranks/rank-${rank.tier}.png`} alt="" style={{ width: 11, height: 13, objectFit: 'contain' }} />
+                      {medalLabel(rank.tier)} · {toRoman(rank.number)}
+                    </>
+                  ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
+                </span>
+              </span>
+            </button>
+            <div className="flex-1" />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={formatNumber(balances.silver)} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={formatNumber(balances.rubies)} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png`} value={formatNumber(balances.essence)} />
+            <button onClick={toggleLang} className="ravenof-press" style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: '6px 8px', borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
+              {locale.toUpperCase()}
+            </button>
+            <RavenofIconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><Bell className="w-4 h-4" /></RavenofIconBtn>
+            <RavenofIconBtn label={t('navigation.settings')} onClick={() => { playUiClick(); setSettingsOpen(true) }}><Settings className="w-4 h-4" /></RavenofIconBtn>
+          </header>
+        )}
 
-        <main className="relative z-10 flex-1 overflow-y-auto px-4 py-3.5" style={{ paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))' }}>
+        <main className={`relative z-10 flex-1 min-h-0 overflow-y-auto ravenof-scroll px-4 ${showHeader ? '' : 'pt-2.5'}`}
+          style={{ paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
           <div className="max-w-screen-lg mx-auto h-full">{children}</div>
         </main>
       </div>
@@ -218,11 +275,19 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {showRotate && (
         <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'rgba(6,4,11,0.98)' }}>
           <div className="text-6xl" style={{ animation: 'rvnRotateHintApp 1.6s ease-in-out infinite' }}>🔄</div>
-          <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('common.rotate.title')}</p>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('common.rotate.subtitle')}</p>
+          <p className="text-xl font-bold" style={{ color: 'var(--ravenof-gold)', fontFamily: 'var(--ravenof-font-display)' }}>{t('common.rotate.title')}</p>
+          <p className="text-sm" style={{ color: 'var(--ravenof-text-secondary)' }}>{t('common.rotate.subtitle')}</p>
           <style>{`@keyframes rvnRotateHintApp { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }`}</style>
         </div>
       )}
     </div>
   )
+}
+
+/** Rango numeris romėnišku formatu (prototipo „Sidabras · XXIII"). */
+function toRoman(n: number): string {
+  const map: [number, string][] = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+  let out = ''; let v = Math.max(1, Math.min(50, Math.round(n)))
+  for (const [num, sym] of map) while (v >= num) { out += sym; v -= num }
+  return out
 }

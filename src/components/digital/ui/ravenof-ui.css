@@ -1,0 +1,209 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   Ravenof UI — patvirtinto dizaino tokenai + šriftai (Fazė 1, mobile landscape)
+   Šaltinis: ravenof-ui-handoff/tokens/css-variables.css + DESIGN_TOKENS.md.
+   Šriftai self-host (OFL): public/ravenof-ui/fonts (Cinzel variable, Alegreya Sans).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Šriftai ── */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url('/ravenof-ui/fonts/cinzel-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url('/ravenof-ui/fonts/cinzel-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 400; src: url('/ravenof-ui/fonts/alegreya-sans-latin-ext-400-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 400; src: url('/ravenof-ui/fonts/alegreya-sans-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 500; src: url('/ravenof-ui/fonts/alegreya-sans-latin-ext-500-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 500; src: url('/ravenof-ui/fonts/alegreya-sans-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 700; src: url('/ravenof-ui/fonts/alegreya-sans-latin-ext-700-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 700; src: url('/ravenof-ui/fonts/alegreya-sans-latin-700-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 800; src: url('/ravenof-ui/fonts/alegreya-sans-latin-ext-800-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-display: swap; font-weight: 800; src: url('/ravenof-ui/fonts/alegreya-sans-latin-800-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* ── Tokenai (handoff tokens/css-variables.css) ── */
+:root {
+  --ravenof-bg-base: #07060A;
+  --ravenof-bg-base-alt: #050409;
+  --ravenof-bg-surface: #15111C;
+  --ravenof-bg-surface-2: #0F0D15;
+  --ravenof-bg-elevated: #1B1522;
+  --ravenof-border-hairline: #2A2531;
+  --ravenof-border-strong: #36323B;
+  --ravenof-border-accent: rgba(212,163,59,0.5);
+  --ravenof-gold: #D4A33B;
+  --ravenof-gold-bright: #F2C45A;
+  --ravenof-gold-dim: #B5852A;
+  --ravenof-on-gold: #07060A;
+  --ravenof-text-primary: #E8DFCC;
+  --ravenof-text-secondary: #928B9D;
+  --ravenof-text-muted: #8D6B5A;
+  --ravenof-essence: #8152A8;
+  --ravenof-success: #6F8562;
+  --ravenof-success-bright: #8BC48F;
+  --ravenof-danger: #8D2D38;
+  --ravenof-danger-bright: #B4444F;
+  --ravenof-rar-common: #928B9D;
+  --ravenof-rar-magic: #4F9E52;
+  --ravenof-rar-epic: #7650A4;
+  --ravenof-rar-legendary: #C23A3A;
+  --ravenof-rar-unique: #3F6AD1;
+  --ravenof-fac-mirties: #6F8562;
+  --ravenof-fac-plesiku: #6B6577;
+  --ravenof-fac-vryhioko: #7650A4;
+  --ravenof-fac-demonu: #8D2D38;
+  --ravenof-fac-mistikos: #526FAE;
+  --ravenof-fac-sviesos: #D4A33B;
+  --ravenof-fac-inkvizicijos: #A85C32;
+  --ravenof-fac-rytu: #4E8A7C;
+  --ravenof-fac-universalus: #B0A98F;
+  --ravenof-font-display: 'Cinzel', Georgia, serif;
+  --ravenof-font-body: 'Alegreya Sans', system-ui, sans-serif;
+  --ravenof-clip-primary: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+  --ravenof-shadow-gold-btn: 0 4px 14px rgba(212,163,59,0.35);
+  --ravenof-glow: 0 0 26px rgba(212,163,59,0.6);
+  --ravenof-shadow-panel: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 24px rgba(0,0,0,0.45), 0 6px 22px rgba(0,0,0,0.5);
+  --ravenof-grad-gold: linear-gradient(180deg, #F2C45A, #D4A33B);
+  --ravenof-grad-panel: linear-gradient(158deg, rgba(27,21,34,0.97), rgba(15,13,21,0.98));
+  --ravenof-nav-rail-w: 92px;
+  --ravenof-touch-min: 44px;
+  --ravenof-z-content: 10;
+  --ravenof-z-nav: 20;
+  --ravenof-z-toast: 160;
+  --ravenof-z-modal: 91;
+  --ravenof-z-overlay: 300;
+}
+
+/* ── Bendros klasės (prototipo elgsena) ── */
+.ravenof-body { font-family: var(--ravenof-font-body); color: var(--ravenof-text-primary); }
+.ravenof-disp { font-family: var(--ravenof-font-display); }
+
+@keyframes ravenofIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes ravenofFound { 0% { transform: scale(.7); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes ravenofSpin { to { transform: rotate(360deg); } }
+@keyframes ravenofPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.ravenof-in { animation: ravenofIn .3s ease; }
+
+.ravenof-press { transition: transform .12s ease, filter .16s ease, border-color .16s ease, color .16s ease; }
+.ravenof-press:active { transform: scale(.965); }
+
+/* Teminiai scrollbarai (ne naršyklės default) */
+.ravenof-scroll { scrollbar-width: thin; scrollbar-color: var(--ravenof-border-strong) transparent; }
+.ravenof-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.ravenof-scroll::-webkit-scrollbar-thumb { background: var(--ravenof-border-strong); border-radius: 3px; }
+.ravenof-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Text field */
+.ravenof-field {
+  width: 100%;
+  background: var(--ravenof-bg-base);
+  border: 1px solid var(--ravenof-border-strong);
+  color: var(--ravenof-text-primary);
+  font: 400 13px var(--ravenof-font-body);
+  padding: 11px 13px;
+  outline: none;
+  border-radius: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ravenof-field::placeholder { color: var(--ravenof-text-secondary); opacity: .8; }
+.ravenof-field:focus { border-color: var(--ravenof-gold); box-shadow: 0 0 0 2px rgba(212,163,59,0.15); }
+.ravenof-field[aria-invalid='true'] { border-color: var(--ravenof-danger-bright); }
+.ravenof-field:disabled { filter: grayscale(.6) brightness(.7); }
+
+/* Mygtukai */
+.ravenof-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: var(--ravenof-font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; border-radius: 0; border: none; cursor: pointer; user-select: none;
+  transition: transform .12s ease, filter .16s ease, border-color .16s ease, color .16s ease;
+}
+.ravenof-btn:active:not(:disabled) { transform: scale(.965); }
+.ravenof-btn:disabled { filter: grayscale(.6) brightness(.7); cursor: default; }
+.ravenof-btn:focus-visible { outline: 2px solid var(--ravenof-gold); outline-offset: 2px; }
+
+.ravenof-btn-primary {
+  background: var(--ravenof-grad-gold); color: var(--ravenof-on-gold);
+  clip-path: var(--ravenof-clip-primary);
+  box-shadow: var(--ravenof-shadow-gold-btn);
+  font-size: 13px; padding: 11px 22px; min-height: 44px;
+}
+.ravenof-btn-primary:hover:not(:disabled) { filter: brightness(1.07); }
+
+.ravenof-btn-secondary {
+  background: transparent; color: var(--ravenof-text-secondary);
+  border: 1px solid var(--ravenof-border-strong);
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; padding: 10px 16px; min-height: 40px;
+}
+.ravenof-btn-secondary:hover:not(:disabled) { color: var(--ravenof-text-primary); border-color: var(--ravenof-text-secondary); }
+
+.ravenof-btn-destructive {
+  background: linear-gradient(180deg, #a53a47, var(--ravenof-danger)); color: var(--ravenof-text-primary);
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 11px 16px; min-height: 40px;
+}
+
+.ravenof-iconbtn {
+  width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ravenof-border-strong); border-radius: 3px; background: transparent;
+  color: var(--ravenof-text-secondary); cursor: pointer; position: relative;
+  transition: color .16s ease, border-color .16s ease, transform .12s ease;
+}
+.ravenof-iconbtn:hover { color: var(--ravenof-text-primary); }
+.ravenof-iconbtn:active { transform: scale(.94); }
+
+/* Panelė */
+.ravenof-panel {
+  background: var(--ravenof-grad-panel);
+  border: 1px solid rgba(212,163,59,0.28);
+  box-shadow: var(--ravenof-shadow-panel);
+}
+
+/* Kampuota valiutos piliulė (prototipo header) */
+.ravenof-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--ravenof-bg-surface-2); border: 1px solid var(--ravenof-border-hairline);
+  padding: 6px 10px; clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
+  font: 700 12px var(--ravenof-font-body); color: var(--ravenof-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Deimanto spinner */
+.ravenof-spinner { position: relative; width: 40px; height: 40px; }
+.ravenof-spinner::before, .ravenof-spinner::after {
+  content: ''; position: absolute; inset: 4px; border: 1.5px solid rgba(212,163,59,0.35);
+  transform: rotate(45deg);
+}
+.ravenof-spinner::after {
+  border-color: var(--ravenof-gold-bright) transparent transparent transparent;
+  animation: ravenofSpin 1.6s linear infinite;
+  border-width: 2px; inset: 0; transform: none; border-radius: 50%;
+}
+
+/* Progress bar */
+.ravenof-progress { height: 3px; background: var(--ravenof-border-strong); position: relative; overflow: hidden; }
+.ravenof-progress > span { position: absolute; inset: 0; display: block; }
+
+/* Modal frame */
+.ravenof-overlay {
+  position: absolute; inset: 0; z-index: 75;
+  background: rgba(4,3,7,0.92); backdrop-filter: blur(4px);
+  animation: ravenofIn .25s ease;
+}
+
+/* Toast */
+.ravenof-toast {
+  background: var(--ravenof-bg-elevated); border: 1px solid #D4A33B77; color: var(--ravenof-text-primary);
+  font: 500 12px var(--ravenof-font-body); padding: 9px 18px; white-space: nowrap;
+  box-shadow: 0 8px 30px rgba(0,0,0,.6); animation: ravenofIn .25s ease;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}

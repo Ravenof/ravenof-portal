@@ -1,49 +1,41 @@
 'use client'
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Ravenof Digital — KOLEKCIJA (landscape, 3 zonos, be popup'ų):
-// • KAIRĖ: paieška + filtrai (frakcija/retumas/tipas/rikiavimas/tik turimos).
-// • CENTRAS: didelis kortų grid, puslapiuojamas ← → (swipe + mygtukai), be scroll.
-// • DEŠINĖ: pasirinktos kortos detalės + craft/disenchant + pakų CTA (visada matomas).
+// Ravenof Digital — KOLEKCIJA (patvirtintas UI, Fazė 1 — collection-default.png):
+// • Viršus: pavadinimas + paieška + „Tik turimos" + rikiavimas (+ pakų CTA kai turi).
+// • Filtrų juosta: frakcijų ikonos · retumo gemos · tipų ikonos.
+// • Centras: 6 kortų puslapis (grid 6×1) + ‹ 1/7 › puslapiavimas.
+// • Kortos detalės: RavenofCardDetailModal (craft/disenchant logika išsaugota).
+// Duomenų sluoksnis (Supabase užklausos, filtrai, vertimai) — nekeičiamas.
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
-import { playUiClick, playSuccess } from '@/lib/ui-sound'
-import { getCraftConfig, disenchantCard, craftCard, type CraftConfig } from '@/lib/gamification/craft'
+import { playUiClick } from '@/lib/ui-sound'
 import { useT, useContent, useGameContent } from '@/lib/i18n/react'
 import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
-import { rarityColor } from '@/lib/digital/rarity'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
-import { EmptyState } from './ui/HubKit'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
+import { RavenofCardDetailModal, type RavenofCardDetail } from './RavenofCardDetailModal'
+import { RavenofTextField, ravenofFactionColor, ravenofFactionIcon, ravenofRarityColor, ravenofRarityGem, ravenofCardTypeIcon } from './ui/RavenofKit'
 
-const GOLD = '240,180,41'
-const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: `1px solid rgba(${GOLD},0.22)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
-
-type Col = {
-  id: string; name: string; image: string | null
-  faction: string | null; factionSlug: string | null
-  type: string | null; rarity: string | null; copyLimit: number; raritySort: number
-  gold: number; atk: number | null; hp: number | null; effect: string | null; isChampion: boolean
-  owned: number
-}
+type Col = RavenofCardDetail
 
 type SortKey = 'cost-asc' | 'cost-desc' | 'name' | 'rarity' | 'owned'
-const SORT_DEFS: { key: SortKey; labelKey: string }[] = [
-  { key: 'cost-asc',  labelKey: 'collection.sort.costAsc' },
-  { key: 'cost-desc', labelKey: 'collection.sort.costDesc' },
-  { key: 'name',      labelKey: 'collection.sort.name' },
-  { key: 'rarity',    labelKey: 'collection.sort.rarity' },
-  { key: 'owned',     labelKey: 'collection.sort.owned' },
-]
+const SORT_ORDER: SortKey[] = ['cost-asc', 'cost-desc', 'name', 'rarity', 'owned']
+const SORT_LABEL: Record<SortKey, string> = {
+  'cost-asc': 'collection.sortShort.costAsc',
+  'cost-desc': 'collection.sortShort.costDesc',
+  'name': 'collection.sortShort.name',
+  'rarity': 'collection.sortShort.rarity',
+  'owned': 'collection.sortShort.owned',
+}
 
-const SEL: React.CSSProperties = { background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)', fontSize: 12, borderRadius: 10, padding: '7px 8px', minHeight: 36, width: '100%' }
+const PAGE_SIZE = 6
 
 export function DigitalCollection() {
   const t = useT()
@@ -63,30 +55,8 @@ export function DigitalCollection() {
   const [sort, setSort] = useState<SortKey>('cost-asc')
   const [ownedOnly, setOwnedOnly] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
-
-  // ── Kolekcija v2: dominuojantis grid su vidiniu scroll (be puslapiavimo) ──
-  // Tankis: compact = daugiau kortų; comfortable = didesnės. Persistinama.
-  const [density, setDensity] = useState<'compact' | 'comfortable'>(() => {
-    if (typeof window === 'undefined') return 'compact'
-    const saved = localStorage.getItem('rvn-col-density')
-    if (saved === 'compact' || saved === 'comfortable') return saved
-    return window.innerHeight < 520 ? 'compact' : 'comfortable'
-  })
-  const setDensityP = (d: 'compact' | 'comfortable') => { setDensity(d); try { localStorage.setItem('rvn-col-density', d) } catch { /* */ } }
-  // Inspector: didele rezoliucija — šoninis, sutraukiamas (sesijos atmintis);
-  // mažame landscape — slide-over tik pasirinkus kortą.
-  const [inspectorOpen, setInspectorOpen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true
-    return sessionStorage.getItem('rvn-col-inspector') !== '0'
-  })
-  const toggleInspector = () => setInspectorOpen((v) => { try { sessionStorage.setItem('rvn-col-inspector', v ? '0' : '1') } catch { /* */ } return !v })
-  const [wide, setWide] = useState(true)
-  useEffect(() => {
-    const check = () => setWide(window.innerWidth >= 900 && window.innerHeight >= 500)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
-  const [mobileDetail, setMobileDetail] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [page, setPage] = useState(0)
 
   const [loadSlow, setLoadSlow] = useState(false)
   const load = useCallback(async () => {
@@ -155,10 +125,17 @@ export function DigitalCollection() {
     return [...list].sort(by[sort])
   }, [cards, q, faction, rarity, type, ownedOnly, sort])
 
-  const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? filtered[0] ?? null, [filtered, selId])
+  // Puslapiavimas (prototipas: 6 kortos puslapyje)
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const curPage = Math.min(page, pages - 1)
+  const pageCards = filtered.slice(curPage * PAGE_SIZE, curPage * PAGE_SIZE + PAGE_SIZE)
+  useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, sort])
+
+  const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? null, [filtered, selId])
+  const selIdx = selected ? filtered.findIndex((c) => c.id === selected.id) : -1
 
   const ownedCount = (cards ?? []).filter((c) => c.owned > 0).length
-  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0)
+  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0) + (q.trim() ? 1 : 0)
   const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(false); setQ('') }
 
   useEffect(() => {
@@ -171,130 +148,144 @@ export function DigitalCollection() {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
         <span style={{ fontSize: 40 }}>🎴</span>
-        <div className="rvn-disp font-black uppercase" style={{ fontSize: 22, color: 'var(--gold)' }}>{t('collection.title')}</div>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('collection.loginPrompt')} <Link href="/digital/login?next=/digital/collection" className="underline" style={{ color: 'var(--gold)' }}>{t('collection.signIn')}</Link></p>
+        <div className="ravenof-disp font-black uppercase" style={{ fontSize: 22, color: 'var(--ravenof-gold)' }}>{t('collection.title')}</div>
+        <p className="text-sm" style={{ color: 'var(--ravenof-text-muted)' }}>{t('collection.loginPrompt')} <Link href="/digital/login?next=/digital/collection" className="underline" style={{ color: 'var(--ravenof-gold)' }}>{t('collection.signIn')}</Link></p>
       </div>
     )
   }
 
   if (cards === null) return <LoadingOrRetry timedOut={loadSlow} onRetry={() => { setLoadSlow(false); void load() }} />
 
+  const cycleSort = () => { playUiClick(); setSort((s) => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]) }
+
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,8px)' }}>
-      {/* ── Kompaktiška antraštė + filtrų juosta (viena eilė; siauram — horizontalus scroll) ── */}
-      <div className="shrink-0 flex items-center gap-1.5 overflow-x-auto pb-0.5" data-testid="collection-toolbar" style={{ scrollbarWidth: 'none' }}>
-        <div className="shrink-0 flex items-baseline gap-2 pr-1">
-          <span className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(14px,2.6vh,20px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{t('collection.title')}</span>
-          <span className="whitespace-nowrap" style={{ fontSize: 'clamp(8px,1.3vh,10.5px)', color: 'var(--text-muted)' }}>{ownedCount}/{cards.length} · {t('collection.shown', { count: filtered.length })}</span>
-        </div>
-        <div className="relative shrink-0" style={{ width: 'clamp(120px, 16vw, 200px)' }}>
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--text-muted)' }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('collection.searchPlaceholder')} aria-label={t('collection.searchAria')}
-            className="w-full outline-none" style={{ ...SEL, paddingLeft: 26 }} />
-        </div>
-        <select value={faction} onChange={(e) => { playUiClick(); setFaction(e.target.value) }} aria-label={t('collection.faction')} className="shrink-0" style={{ ...SEL, maxWidth: 150 }}>
-          <option value="all">{t('collection.allFactions')}</option>
-          {factions.map((f) => <option key={f.slug} value={f.slug}>{tc('faction', f.slug, 'name', f.name)}</option>)}
-        </select>
-        <select value={type} onChange={(e) => { playUiClick(); setType(e.target.value) }} aria-label={t('collection.type')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
-          <option value="all">{t('collection.allTypes')}</option>
-          {types.map((t) => <option key={t} value={t}>{gc.cardType(t)}</option>)}
-        </select>
-        <select value={rarity} onChange={(e) => { playUiClick(); setRarity(e.target.value) }} aria-label={t('collection.rarity')} className="shrink-0" style={{ ...SEL, maxWidth: 120 }}>
-          <option value="all">{t('collection.allRarities')}</option>
-          {rarities.map((r) => <option key={r.name} value={r.name}>{gc.rarity(r.name)}</option>)}
-        </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label={t('collection.sortAria')} className="shrink-0" style={{ ...SEL, maxWidth: 130 }}>
-          {SORT_DEFS.map((so) => <option key={so.key} value={so.key}>{t(so.labelKey)}</option>)}
-        </select>
-        <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }} data-testid="owned-toggle"
-          className="rvn-press shrink-0 px-2.5 rounded-lg font-bold whitespace-nowrap"
-          style={{ height: 30, fontSize: 10.5, background: ownedOnly ? 'rgba(34,197,94,0.16)' : 'rgba(10,8,16,0.7)', border: `1px solid ${ownedOnly ? 'rgba(34,197,94,0.55)' : 'rgba(255,255,255,0.12)'}`, color: ownedOnly ? '#86efac' : 'var(--text-secondary)' }}>
-          {ownedOnly ? '✓ ' : ''}{t('collection.owned')}
+    <div className="ravenof-body h-full flex flex-col min-h-0 ravenof-in">
+      {/* ── Viršutinė juosta: pavadinimas · paieška · tik turimos · rikiavimas ── */}
+      <div className="shrink-0 flex items-center" data-testid="collection-toolbar" style={{ gap: 8, paddingBottom: 8 }}>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('collection.title')}</div>
+        <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{ownedCount}/{cards.length} · {t('home.cardsCount', { count: filtered.length })}</div>
+        <div className="flex-1" />
+        {totalPacks > 0 && (
+          <button onClick={openPacks} data-testid="packs-btn" className="ravenof-press shrink-0" style={{ font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', border: 0, padding: '7px 12px', cursor: 'pointer', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
+            {t('collection.packsN', { count: totalPacks })}
+          </button>
+        )}
+        <RavenofTextField value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('collection.searchPlaceholder')} aria-label={t('collection.searchAria')}
+          style={{ width: 150, padding: '7px 10px', fontSize: 12 }} />
+        <button onClick={() => { playUiClick(); setOwnedOnly((v) => !v) }} data-testid="owned-toggle" className="ravenof-press shrink-0"
+          style={{ font: '600 10.5px var(--ravenof-font-body)', color: ownedOnly ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)', background: 'none', border: `1px solid ${ownedOnly ? 'var(--ravenof-gold)' : 'var(--ravenof-border-strong)'}`, padding: '7px 10px', cursor: 'pointer' }}>
+          {t('collection.ownedOnlyShort')}
         </button>
-        <button onClick={() => { playUiClick(); setDensityP(density === 'compact' ? 'comfortable' : 'compact') }} title={density === 'compact' ? t('collection.biggerCards') : t('collection.moreCards')} data-testid="density-toggle"
-          className="rvn-press shrink-0 px-2 rounded-lg font-bold" style={{ height: 30, fontSize: 12, background: 'rgba(10,8,16,0.7)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>
-          {density === 'compact' ? '▥' : '▦'}
+        <button onClick={cycleSort} aria-label={t('collection.sortAria')} data-testid="sort-cycle" className="ravenof-press shrink-0"
+          style={{ font: '600 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: '7px 10px', cursor: 'pointer' }}>
+          ⇅ {t(SORT_LABEL[sort])}
         </button>
         {activeFilters > 0 && (
-          <button onClick={() => { playUiClick(); resetFilters() }} className="rvn-press shrink-0 px-2 rounded-lg whitespace-nowrap" style={{ height: 30, fontSize: 9.5, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>{t('collection.clearFilters', { count: activeFilters })}</button>
+          <button onClick={() => { playUiClick(); resetFilters() }} aria-label={t('collection.clearFilters', { count: activeFilters })} className="ravenof-press shrink-0"
+            style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger)', background: 'none', border: '1px solid #8D2D3855', padding: '7px 10px', cursor: 'pointer' }}>✕</button>
         )}
-        <button onClick={openPacks} data-testid="packs-btn"
-          className="rvn-press shrink-0 ml-auto px-3 rounded-lg font-extrabold whitespace-nowrap"
-          style={{ height: 30, fontSize: 11, fontFamily: 'var(--rvn-font-display)',
-            background: totalPacks > 0 ? 'linear-gradient(180deg,#fdba74,#f59e42)' : 'rgba(10,8,16,0.7)',
-            border: totalPacks > 0 ? '1px solid #fed7aa' : '1px solid rgba(255,255,255,0.14)',
-            color: totalPacks > 0 ? '#1a0f04' : 'var(--text-muted)' }}>
-          🎁 {totalPacks > 0 ? t('collection.packsN', { count: totalPacks }) : t('collection.toShop')}
-        </button>
       </div>
 
-      {/* ── PAGRINDAS: dominuojantis kortų naršyklė + sutraukiamas inspector ── */}
-      <div className="flex-1 min-h-0 flex gap-2">
-        <section className="rounded-2xl flex-1 min-w-0 min-h-0 overflow-hidden p-2" style={PANEL} data-testid="card-browser">
-          {filtered.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              {ownedOnly
-                ? <EmptyState icon="🃏" title={t('collection.emptyTitle')} sub={t('collection.emptySub')} accent="251,146,60" ctaLabel={t('collection.openPackCta')} onCta={openPacks} />
-                : <EmptyState icon="🔍" title={t('collection.nothingFound')} sub={t('collection.nothingFoundSub')} />}
-            </div>
-          ) : (
-            <div className="h-full min-h-0 overflow-y-auto pr-0.5" style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
-              <div className="grid gap-2 content-start" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${density === 'compact' ? 'clamp(88px, 8vw, 118px)' : 'clamp(112px, 10.5vw, 150px)'}, 1fr))` }}>
-                {filtered.map((c) => (
-                  <CardCell key={c.id} c={c} selected={selected?.id === c.id} width={0}
-                    onClick={() => { playUiClick(); setSelId(c.id); if (!wide) setMobileDetail(true) }} />
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Inspector (tik plačiame lange): kompaktiškas, sutraukiamas */}
-        {wide && (inspectorOpen ? (
-          <section className="rounded-2xl shrink-0 flex flex-col min-h-0 overflow-hidden p-2 relative" style={{ ...PANEL, width: 250 }} data-testid="inspector">
-            <button onClick={() => { playUiClick(); toggleInspector() }} aria-label="Suskleisti detales" data-testid="inspector-collapse"
-              className="rvn-press absolute top-1.5 left-1.5 z-10 flex items-center justify-center rounded-lg"
-              style={{ width: 24, height: 24, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)', fontSize: 13 }}>›</button>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {selected ? <CardDetail key={selected.id} c={selected} onChanged={load} /> : (
-                <div className="h-full flex items-center justify-center text-center px-3" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('collection.pickCard')}</div>
-              )}
-            </div>
-          </section>
-        ) : (
-          <button onClick={() => { playUiClick(); toggleInspector() }} aria-label={t('collection.showDetails')} data-testid="inspector-open"
-            className="rvn-press shrink-0 rounded-2xl flex items-center justify-center" style={{ ...PANEL, width: 26, color: 'var(--gold)', fontSize: 14 }}>‹</button>
-        ))}
+      {/* ── Filtrų juosta: frakcijos · retumai · tipai ── */}
+      <div className="shrink-0 flex items-center overflow-x-auto ravenof-scroll" style={{ gap: 6, paddingBottom: 8, scrollbarWidth: 'none' }}>
+        {factions.map((f) => {
+          const active = faction === f.slug
+          return (
+            <button key={f.slug} onClick={() => { playUiClick(); setFaction(active ? 'all' : f.slug) }} title={tc('faction', f.slug, 'name', f.name)} aria-pressed={active}
+              className="ravenof-press flex items-center justify-center shrink-0"
+              style={{ width: 27, height: 27, border: `1px solid ${active ? ravenofFactionColor(f.slug) : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer' }}>
+              <span aria-hidden style={{ display: 'inline-block', width: 17, height: 17, background: `url('${ravenofFactionIcon(f.slug)}') center / contain no-repeat`, filter: active ? 'none' : 'grayscale(.85) brightness(.75)' }} />
+            </button>
+          )
+        })}
+        <span className="shrink-0" style={{ width: 1, height: 18, background: 'var(--ravenof-border-hairline)' }} />
+        {rarities.map((r) => {
+          const active = rarity === r.name
+          return (
+            <button key={r.name} onClick={() => { playUiClick(); setRarity(active ? 'all' : r.name) }} title={gc.rarity(r.name)} aria-pressed={active}
+              className="ravenof-press flex items-center justify-center shrink-0"
+              style={{ width: 26, height: 26, border: `1px solid ${active ? ravenofRarityColor(r.name) : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: active || rarity === 'all' ? 1 : 0.45 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={ravenofRarityGem(r.name)} alt="" style={{ width: 16, height: 19, objectFit: 'contain' }} />
+            </button>
+          )
+        })}
+        <span className="shrink-0" style={{ width: 1, height: 18, background: 'var(--ravenof-border-hairline)' }} />
+        {types.map((ty) => {
+          const active = type === ty
+          const icon = ravenofCardTypeIcon(ty)
+          return (
+            <button key={ty} onClick={() => { playUiClick(); setType(active ? 'all' : ty) }} title={gc.cardType(ty)} aria-pressed={active}
+              className="ravenof-press flex items-center justify-center shrink-0"
+              style={{ width: 27, height: 27, border: `1px solid ${active ? 'var(--ravenof-gold)' : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer' }}>
+              {icon
+                ? <span aria-hidden style={{ width: 16, height: 16, background: active ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)', WebkitMask: `url('${icon}') center / contain no-repeat`, mask: `url('${icon}') center / contain no-repeat`, display: 'inline-block' }} />
+                : <span style={{ font: '600 9px var(--ravenof-font-body)', color: active ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)' }}>{ty.slice(0, 2)}</span>}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Mažo landscape kortos detalės — slide-over (neuždengia nav, Esc/tap uždaro) */}
-      {!wide && mobileDetail && selected && (
-        <div className="fixed inset-0 z-[150] flex justify-end" style={{ background: 'rgba(4,3,8,0.7)' }} onClick={() => setMobileDetail(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="h-full flex flex-col overflow-hidden p-2.5"
-            style={{ width: 'min(280px, 78vw)', background: 'linear-gradient(160deg, rgba(20,16,28,0.99), rgba(9,7,12,0.99))', borderLeft: `1px solid rgba(${GOLD},0.4)`, paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}>
-            <button onClick={() => setMobileDetail(false)} className="self-end shrink-0 px-2 py-0.5 rounded-lg" style={{ fontSize: 12, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('collection.closeX')}</button>
-            <div className="flex-1 min-h-0 overflow-y-auto mt-1">
-              <CardDetail key={selected.id} c={selected} onChanged={load} />
-            </div>
+      {/* ── Kortų puslapis / tuščia būsena ── */}
+      {filtered.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center" style={{ gap: 12 }}>
+          <div className="relative" style={{ width: 56, height: 72 }}>
+            <div className="absolute inset-0" style={{ border: '1px dashed #3d3345', borderRadius: 5, transform: 'rotate(-9deg)' }} />
+            <div className="absolute inset-0" style={{ border: '1px dashed #4a4552', borderRadius: 5, transform: 'rotate(8deg)' }} />
+            <div className="absolute inset-0" style={{ border: '1px solid var(--ravenof-border-strong)', borderRadius: 5, background: 'var(--ravenof-bg-surface)' }} />
           </div>
+          <div className="text-center">
+            <div style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{ownedOnly && activeFilters === 1 ? t('collection.emptyTitle') : t('collection.nothingFound')}</div>
+            <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 3 }}>{ownedOnly && activeFilters === 1 ? t('collection.emptySub') : t('collection.nothingFoundSub')}</div>
+          </div>
+          {ownedOnly && activeFilters === 1 ? (
+            <button onClick={openPacks} className="ravenof-btn ravenof-btn-primary" style={{ fontSize: 11, letterSpacing: 1.5, padding: '9px 20px', minHeight: 0 }}>{t('collection.openPackCta')}</button>
+          ) : (
+            <button onClick={() => { playUiClick(); resetFilters() }} className="ravenof-btn ravenof-btn-primary" style={{ fontSize: 11, letterSpacing: 1.5, padding: '9px 20px', minHeight: 0 }}>{t('collection.clearFilters', { count: activeFilters })}</button>
+          )}
         </div>
+      ) : (
+        <>
+          <div className="flex-1 grid min-h-0" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'center', alignContent: 'center' }} data-testid="card-browser">
+            {pageCards.map((c) => (
+              <RavenofCardCell key={c.id} c={c} onClick={() => { playUiClick(); setSelId(c.id); setDetailOpen(true) }} notOwnedLabel={t('collection.notOwnedBadge')} />
+            ))}
+          </div>
+          <div className="shrink-0 flex items-center justify-center" style={{ gap: 14, paddingTop: 8 }}>
+            <button onClick={() => { if (curPage > 0) { playUiClick(); setPage(curPage - 1) } }} aria-label={t('collection.prevPage')} className="ravenof-press flex items-center justify-center"
+              style={{ width: 30, height: 26, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage > 0 ? 'pointer' : 'default', color: curPage > 0 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>‹</button>
+            <span style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{curPage + 1}/{pages}</span>
+            <button onClick={() => { if (curPage < pages - 1) { playUiClick(); setPage(curPage + 1) } }} aria-label={t('collection.nextPage')} className="ravenof-press flex items-center justify-center"
+              style={{ width: 30, height: 26, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage < pages - 1 ? 'pointer' : 'default', color: curPage < pages - 1 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>›</button>
+          </div>
+        </>
+      )}
+
+      {/* ── Kortos detalių modalas (patvirtintas) ── */}
+      {detailOpen && selected && (
+        <RavenofCardDetailModal
+          c={selected}
+          onClose={() => setDetailOpen(false)}
+          onPrev={filtered.length > 1 ? () => setSelId(filtered[(selIdx - 1 + filtered.length) % filtered.length].id) : undefined}
+          onNext={filtered.length > 1 ? () => setSelId(filtered[(selIdx + 1) % filtered.length].id) : undefined}
+          onChanged={load}
+        />
       )}
 
       {/* ── Pakų pasirinkimo modalas ── */}
       {chooser && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setChooser(false)}>
-          <div className="w-[min(360px,92vw)] rounded-2xl p-5" style={{ border: '1px solid rgba(251,146,60,0.5)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold mb-3 text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fdba74', letterSpacing: '0.06em' }}>{t('collection.whichPack')}</p>
+          <div className="w-[min(360px,92vw)] ravenof-panel p-5" onClick={(e) => e.stopPropagation()}>
+            <p className="text-center" style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', letterSpacing: '0.06em', marginBottom: 12 }}>{t('collection.whichPack')}</p>
             <div className="space-y-2">
               {ownedPacks.map((pk) => (
-                <button key={pk.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(pk) }} className="w-full text-left px-3 py-2.5 rounded-xl transition-transform active:scale-[0.98]" style={{ background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.45)' }}>
-                  <span className="text-sm font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{pk.name}</span>
-                  <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>×{inv[pk.id]}</span>
+                <button key={pk.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(pk) }} className="ravenof-press w-full text-left px-3 py-2.5" style={{ background: 'rgba(212,163,59,0.1)', border: '1px solid var(--ravenof-border-accent)', cursor: 'pointer' }}>
+                  <span style={{ font: '700 13px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{pk.name}</span>
+                  <span className="ml-2" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>×{inv[pk.id]}</span>
                 </button>
               ))}
             </div>
-            <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full text-xs" style={{ color: 'var(--text-muted)' }}>{t('common.cancel')}</button>
+            <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, fontSize: 10 }}>{t('common.cancel')}</button>
           </div>
         </div>
       )}
@@ -308,96 +299,28 @@ export function DigitalCollection() {
   )
 }
 
-
-
-function CardCell({ c, selected, width, onClick }: { c: Col; selected: boolean; width: number; onClick: () => void }) {
+// ── Kortos langelis (prototipo grid; GameCard = game-feel wrapper išsaugotas) ──
+function RavenofCardCell({ c, onClick, notOwnedLabel }: { c: Col; onClick: () => void; notOwnedLabel: string }) {
   const [bad, setBad] = useState(false)
   const owned = c.owned > 0
-  const col = rarityColor(c.rarity)
   return (
-    <GameCard glowColor={owned ? col + '88' : 'rgba(120,120,140,0.3)'} sounds={owned}>
-      <button onClick={onClick} className="relative block overflow-hidden rounded-lg"
-        style={{ width: width > 0 ? width : '100%', aspectRatio: '2.5 / 3.5', border: selected ? `2px solid rgb(${GOLD})` : `2px solid ${owned ? col : 'rgba(120,120,140,0.4)'}`, boxShadow: selected ? `0 0 14px rgba(${GOLD},0.55)` : owned ? `0 0 10px ${col}44` : 'none' }}>
-        {c.image && !bad
-          ? <SmartImg src={c.image} width={240} alt={c.name} onFail={() => setBad(true)}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: owned ? undefined : 'grayscale(1) brightness(0.55)', opacity: owned ? 1 : 0.55 }} />
-          : <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1)', opacity: owned ? 1 : 0.55 }}>
-              <span className="text-xl">🎴</span><span style={{ fontSize: 9, lineHeight: 1.1, color: '#fff' }}>{c.name}</span>
-            </div>}
-        {!owned && (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <Lock className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.7)', filter: 'drop-shadow(0 1px 3px #000)' }} />
-          </span>
-        )}
-        {owned && (
-          <span className="absolute top-1 left-1 px-1 rounded-full font-bold leading-tight"
-            style={{ fontSize: 9, background: 'rgba(0,0,0,0.82)', color: col, border: `1px solid ${col}` }}>×{c.owned}</span>
-        )}
-        <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5" style={{ background: 'rgba(0,0,0,0.8)' }}>
-          <p className="truncate text-center" style={{ fontSize: 8, lineHeight: 1.2, color: owned ? '#fff' : 'var(--text-muted)' }}>{c.name}</p>
-        </div>
+    <GameCard glowColor={owned ? ravenofRarityColor(c.rarity) + '88' : 'rgba(120,120,140,0.3)'} sounds={owned}>
+      <button onClick={onClick} className="ravenof-press w-full block" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', minWidth: 0 }}>
+        <span role="img" aria-label={c.name} className="relative block w-full" style={{ aspectRatio: '1044 / 1416', borderRadius: 5, border: `1px solid ${owned ? 'var(--ravenof-border-strong)' : '#221e29'}`, overflow: 'hidden' }}>
+          {c.image && !bad
+            ? <SmartImg src={c.image} width={240} alt={c.name} onFail={() => setBad(true)}
+                className="absolute inset-0 w-full h-full"
+                style={{ objectFit: 'contain', filter: owned ? undefined : 'grayscale(1) brightness(0.55)' }} />
+            : <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1) brightness(0.7)' }}>
+                <span className="text-xl">🎴</span><span style={{ fontSize: 9, lineHeight: 1.1, color: '#fff' }}>{c.name}</span>
+              </span>}
+          {owned ? (
+            <span className="absolute" style={{ bottom: 4, right: 4, font: '700 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 6px' }}>×{c.owned}</span>
+          ) : (
+            <span className="absolute whitespace-nowrap" style={{ bottom: 4, left: '50%', transform: 'translateX(-50%)', font: '600 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 7px' }}>{notOwnedLabel}</span>
+          )}
+        </span>
       </button>
     </GameCard>
-  )
-}
-
-// ── Dešinės panelės kortos detalės (buvęs PreviewModal — dabar inline) ────────
-function CardDetail({ c, onChanged }: { c: Col; onChanged?: () => void }) {
-  const gc = useGameContent()
-  const t = useT()
-  const [bad, setBad] = useState(false)
-  const [cfg, setCfg] = useState<CraftConfig | null>(null)
-  const [essence, setEssence] = useState(0)
-  const [ownedNow, setOwnedNow] = useState(c.owned)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
-  useEffect(() => { getCraftConfig().then((r) => { if (r) { setCfg(r.config); setEssence(r.essence) } }) }, [])
-  const tier = String((c.type && /champion|čempion/i.test(c.type)) ? 6 : Math.min(6, Math.max(1, c.raritySort || 1)))
-  const dustVal = cfg ? (cfg.disenchant[tier] ?? 0) : 0
-  const craftCost = cfg ? (cfg.craft[tier] ?? 0) : 0
-  const canDust = ownedNow > c.copyLimit
-  const canCraft = ownedNow < c.copyLimit
-  const doDust = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await disenchantCard(c.id, 1); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n - 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
-  const doCraft = async () => { if (busy) return; setBusy(true); playUiClick(); const r = await craftCard(c.id); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n + 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
-  const owned = ownedNow > 0
-  const col = rarityColor(c.rarity)
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="relative w-full rounded-xl overflow-hidden shrink-0 mx-auto" style={{ aspectRatio: '2.5 / 3.5', maxWidth: 190, border: `2px solid ${col}`, boxShadow: `0 0 16px ${col}33` }}>
-        {c.image && !bad
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned ? undefined : 'grayscale(1) brightness(0.6)' }} />
-          : <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>🎴</div>}
-        {!owned && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.75)' }} /></span>}
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-bold truncate" style={{ fontSize: 14, fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{c.name}</h2>
-        <span className="font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 10, color: col, border: `1px solid ${col}` }}>{c.rarity ?? '—'}</span>
-      </div>
-      <div className="flex flex-wrap gap-x-2.5 gap-y-0.5" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-        <span>🪙 {c.gold}</span>
-        {c.atk != null && <span>⚔️ {c.atk}</span>}
-        {c.hp != null && <span>❤️ {c.hp}</span>}
-        {c.faction && <span>· {gc.faction(c.faction)}</span>}
-        {c.type && <span>· {gc.cardType(c.type)}</span>}
-      </div>
-      {c.effect && <p className="leading-snug" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.effect}</p>}
-      <p className="font-semibold" style={{ fontSize: 11, color: owned ? '#86efac' : '#fca5a5' }}>
-        {owned ? t('collection.ownedCount', { count: ownedNow }) : t('collection.notOwned')}
-      </p>
-      <div className="flex items-center justify-between gap-2 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <span style={{ fontSize: 11, color: '#c4b5fd' }}>🔮 {essence}</span>
-        <div className="flex gap-1.5">
-          {canDust && (
-            <button onClick={doDust} disabled={busy} className="rvn-press px-2 py-1.5 rounded-lg font-bold" style={{ fontSize: 10, background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd' }}>{t('collection.disenchant')} +🔮{dustVal}</button>
-          )}
-          {canCraft && (
-            <button onClick={doCraft} disabled={busy || essence < craftCost} className="rvn-press px-2 py-1.5 rounded-lg font-extrabold" style={{ fontSize: 10, background: essence >= craftCost ? 'linear-gradient(180deg,#ffe28c,#f3b62c)' : 'rgba(255,255,255,0.06)', color: essence >= craftCost ? '#3a2406' : 'var(--text-muted)' }}>{t('collection.craft')} 🔮{craftCost}</button>
-          )}
-        </div>
-      </div>
-      {msg && <p className="text-center" style={{ fontSize: 10, color: '#fca5a5' }}>{msg}</p>}
-    </div>
   )
 }

@@ -7,7 +7,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import Link from 'next/link'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { RvnIcon } from './RvnIcon'
 import { streakDayReward } from '@/lib/gamification/quests'
@@ -183,7 +183,6 @@ export function ModeSelector({ modes, selected, onSelect }: { modes: HubMode[]; 
 
 // ── PlayHeroCard ──────────────────────────────────────────────────────────────
 export function PlayHeroCard({ subtitle, onCta, children }: { subtitle: string; onCta: () => void; children?: ReactNode }) {
-  const t = useT()
   return (
     <div className="relative rvn-fade overflow-hidden" style={{ borderRadius: 18, border: `1px solid rgba(${GOLD},0.45)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)` }}>
       <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />

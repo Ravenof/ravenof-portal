@@ -1,60 +1,56 @@
 'use client'
 
-// ── Ravenof Digital — pagrindinis meniu, LANDSCAPE lobby (premium dark fantasy) ──
-// 3 zonos: kairė Dienos užduotys · centras Play hero + režimai · dešinė Sezono progresas.
-// Apačia: featured cosmetic / naujienos / draugai. Visa logika/duomenys/modalai išsaugoti.
+// ── Ravenof Digital — pagrindinis meniu (patvirtintas UI, Fazė 1) ─────────────
+// ravenof-ui-handoff main-menu-default.png: kairė Reitingo hero · vidurys 3 režimų
+// kortelės (DI / Draugiška / Kampanija) · dešinė „Kas toliau" + serija/sezonas +
+// dienos užduotys. Visa logika/duomenys/modalai išsaugoti.
 import { useCallback, useEffect, useState } from 'react'
-import { RewardChip } from '@/components/digital/ui/RewardBits'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { playUiClick } from '@/lib/ui-sound'
+import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
-import { QuestsModal } from './QuestsModal'
-import { ArtCta, ArtHeading } from './ui/LocalizedArt'
 import { SeasonPathModal } from './SeasonPathModal'
-import { CosmeticsModal } from './CosmeticsModal'
 import { WelcomeReward } from './WelcomeReward'
 import { MonthlyLoginModal } from './MonthlyLoginModal'
 import { DailyTasksModal } from './DailyTasksModal'
-import { getMonthlyLogin} from '@/lib/gamification/monthlyLogin'
-import { ShopModal } from './ShopModal'
-import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
-import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
-import { friendsList } from '@/lib/social'
+import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
-import { getDailyTasks, type DailyTask } from '@/lib/gamification/dailyTasks'
+import { getDailyTasks, claimDailyTask, DIFF_ACCENT, type DailyTask } from '@/lib/gamification/dailyTasks'
 import { getStarterDecks } from '@/lib/starterDecks'
-import { HubStyles, ModeSelector, ASSET, type HubMode } from './ui/HubKit'
-import { RvnIcon } from './ui/RvnIcon'
+import { getActiveSeason, ensureProfile } from '@/lib/ranked/client'
+import { rankView, medalLabel } from '@/lib/ranked/rank'
+import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
 import { useT, useContent } from '@/lib/i18n/react'
 
-// PASTABA (i18n): režimų PNG kortelės turi įkeptą LT pavadinimą — EN variantai bus
-// pridėti kartu su lokalizuotais kortų vaizdais (žr. I18N-AUDIT.md, Fazė 6).
-const MODE_DEFS = [
-  { key: 'ranked', labelKey: 'home.modes.ranked', iconName: 'fi-ranked', iconFallback: <span style={{ fontSize: 18 }}>🏆</span>, accent: '239,68,68' },
-  { key: 'pve',    labelKey: 'home.modes.pve',    iconName: 'fi-pve',    iconFallback: <span style={{ fontSize: 18 }}>🎯</span>, accent: '34,197,94' },
-  { key: 'free',   labelKey: 'home.modes.free',   iconName: 'fi-pvp',    iconFallback: <span style={{ fontSize: 18 }}>⚔️</span>, accent: '240,180,41' },
-]
-const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
+const A = RAVENOF_ASSET
 
-const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(27,21,34,0.97), rgba(15,13,21,0.98))', border: '1px solid rgba(212,163,59,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+/** Rango numeris romėnišku formatu. */
+function toRoman(n: number): string {
+  const map: [number, string][] = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+  let out = ''; let v = Math.max(1, Math.min(50, Math.round(n)))
+  for (const [num, sym] of map) while (v >= num) { out += sym; v -= num }
+  return out
+}
 
+/** hh:mm iki vietinės paros pabaigos (dienos užduočių atsinaujinimas). */
+function timeToMidnight(): string {
+  const now = new Date()
+  const mid = new Date(now); mid.setHours(24, 0, 0, 0)
+  const mins = Math.max(0, Math.floor((mid.getTime() - now.getTime()) / 60000))
+  return `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`
+}
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
   const t = useT()
   const tc = useContent()
-  const MODES: HubMode[] = MODE_DEFS.map((m) => ({ ...m, label: t(m.labelKey) }))
   const [toast, setToast] = useState<string | null>(null)
-  const [wallet, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
-  const [storeOpen, setStoreOpen] = useState(false)
-  const [questsOpen, setQuestsOpen] = useState(false)
+  const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [seasonOpen, setSeasonOpen] = useState(false)
   const [streak, setStreak] = useState(0)
   const [claimable, setClaimable] = useState(false)
-  const [mode, setMode] = useState('ranked')
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [questsPending, setQuestsPending] = useState(0)
@@ -64,17 +60,16 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginClaimable, setLoginClaimable] = useState(false)
   const [dailyOpen, setDailyOpen] = useState(false)
-  const [cosmeticsOpen, setCosmeticsOpen] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
-  const [nextReward, setNextReward] = useState<Record<string, unknown>[]>([])
-  const [deckModalOpen, setDeckModalOpen] = useState(false)
-  const adState = useActiveDeck()
-  const [friendsOnline, setFriendsOnline] = useState<number | null>(null)
+  const [rankInfo, setRankInfo] = useState<{ step: number } | null>(null)
+  const [seasonMeta, setSeasonMeta] = useState<{ name: string; daysLeft: number } | null>(null)
+  const [countdown, setCountdown] = useState(timeToMidnight())
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
   const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { setQuestsLoaded(true); if (!s2) { setQuestsPending(0); setTasks([]); return } setTasks(s2.tasks); setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
   const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
+  useEffect(() => { const i = setInterval(() => setCountdown(timeToMidnight()), 30_000); return () => clearInterval(i) }, [])
 
   useEffect(() => {
     if (!loggedIn) return
@@ -86,9 +81,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
     })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl); const nx = sp.rows.find((r) => !r.reached); setNextReward((nx?.free.payload ?? []) as Record<string, unknown>[]) })
-    void useActiveDeck.getState().refresh()
-    friendsList().then(({ friends }) => { const on = friends.filter((f) => f.online).length; setFriendsOnline(friends.length ? on : null) })
+    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl) })
+    ensureProfile().then((rp) => { if (rp) setRankInfo({ step: rp.rank_step }) })
+    getActiveSeason().then((s) => {
+      if (!s) return
+      const days = Math.max(0, Math.ceil((new Date(s.end_date).getTime() - Date.now()) / 86_400_000))
+      setSeasonMeta({ name: s.name, daysLeft: days })
+    })
     getStarterDecks().then((d) => {
       const c = (d ?? []).filter((x) => x.claimed).length
       setNewPlayer(c === 0) // starter pasirinkimas dabar /digital/onboarding (route guard)
@@ -107,180 +106,154 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     )
   }
 
-  const startBattle = () => { playUiClick(); router.push(MODE_HREF[mode]) }
-  const doneCount = tasks.filter((t) => t.completed).length
+  const rv = rankInfo ? rankView(rankInfo.step) : null
+  const ptsToNext = rankInfo ? Math.max(1, 3 - (rankInfo.step % 3)) : null
+  const nx = rankInfo && ptsToNext ? rankView(Math.min(rankInfo.step + ptsToNext, 149)) : null
+  const claimTask = async (task: DailyTask) => {
+    playUiClick()
+    const r = await claimDailyTask(task.id)
+    if (r) { playSuccess(); setToast(t('quests.claim') + ' ✓'); refreshQuests(); refreshBalances(); refreshWallet() }
+    else setDailyOpen(true)
+  }
+
+  const modeCards: { key: string; href: string; title: string; sub: string; art: string; artPos: string; border: string; clip: string }[] = [
+    { key: 'pve', href: '/digital/pve', title: t('home.pveTitle'), sub: t('home.pveSub'), art: `${A}/modes/mode-vs-ai.webp`, artPos: '50% 25%', border: 'rgba(111,133,98,.4)', clip: 'polygon(0 10px,10px 0,100% 0,100% 100%,0 100%)' },
+    { key: 'free', href: '/digital/pvp', title: t('home.freeTitle'), sub: t('home.freeSub'), art: `${A}/modes/mode-friendly-pvp.webp`, artPos: '50% 20%', border: 'rgba(82,111,174,.4)', clip: 'polygon(0 0,100% 0,100% 100%,10px 100%,0 calc(100% - 10px))' },
+    { key: 'campaign', href: '/digital/campaign', title: t('home.campaignTitle'), sub: t('home.campaignSub'), art: `${A}/backgrounds/background-cathedral-ruins.webp`, artPos: '50% 30%', border: 'rgba(166,92,50,.45)', clip: 'polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)' },
+  ]
 
   return (
-    <div className="relative z-10 h-full flex flex-col gap-2 overflow-hidden">
-      <HubStyles />
-
-      {/* ── PAGRINDINĖ ZONA (dizaino mockup): kairė FEATURED ranked · vidurys režimai · dešinė info ── */}
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.9fr) minmax(150px,1fr) minmax(195px,1.15fr)' }}>
-
-        {/* ── KAIRĖ: FEATURED — Reitinginės kovos ── */}
-        <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
-          className="rvn-press relative rounded-2xl overflow-hidden text-left flex flex-col justify-between min-h-0"
-          style={{ border: '1px solid rgba(212,163,59,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
-          <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.18) 0%, rgba(8,6,14,0.35) 55%, rgba(8,6,14,0.9) 100%)' }} />
-          <div className="relative p-3">
-            <div className="rvn-disp uppercase tracking-widest" style={{ fontSize: 'clamp(9px,1.4vh,11px)', color: '#f2c45a', textShadow: '0 1px 4px #000' }}>{t('home.seasonProgress')} · {season.cur}/{season.total}</div>
-            <div className="rvn-disp font-black uppercase" style={{ fontSize: 'clamp(18px,4.6vh,34px)', lineHeight: 1.05, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.9)', borderBottom: '2px solid rgba(212,163,59,0.7)', display: 'inline-block', paddingBottom: 4 }}>{t('home.modes.ranked')}</div>
+    <div className="ravenof-body relative z-10 h-full flex ravenof-in" style={{ gap: 10, minHeight: 0 }}>
+      {/* ── KAIRĖ: Reitingo hero ── */}
+      <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
+        className="ravenof-press relative overflow-hidden text-left flex flex-col justify-between min-h-0"
+        style={{ flex: 1.25, border: '1px solid #3d3345', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)', cursor: 'pointer', background: 'none', padding: 0 }}>
+        <div className="absolute inset-0" style={{ background: `url('${A}/modes/mode-ranked.webp') no-repeat`, backgroundSize: 'cover', backgroundPosition: '50% 22%' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(7,6,10,.55) 0%, rgba(7,6,10,.15) 40%, rgba(7,6,10,.92) 100%)' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ border: '1px solid rgba(212,163,59,.35)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)' }} />
+        <div className="relative" style={{ padding: '12px 14px' }}>
+          <div style={{ font: '500 10px var(--ravenof-font-body)', letterSpacing: 2.5, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>
+            {seasonMeta ? <>{t('home.season')} {seasonMeta.name} · {seasonMeta.daysLeft} {t('home.daysShort')}</> : t('home.seasonProgress')}
           </div>
-          <div className="relative p-3 flex items-center gap-3">
-            <span className="rvn-disp font-extrabold uppercase rounded-lg" style={{ fontSize: 'clamp(11px,2vh,15px)', padding: 'clamp(6px,1.2vh,10px) clamp(16px,3vw,26px)', background: 'linear-gradient(180deg,#f2c45a,#d4a33b 52%,#b5852a)', border: '1px solid #f2d38a', color: '#07060a', boxShadow: '0 4px 14px rgba(212,163,59,0.35)', clipPath: 'polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%)' }}>{t('home.startBattle')}</span>
-            <span style={{ fontSize: 'clamp(9px,1.5vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>{t('home.pickModeStart')}</span>
-          </div>
-        </button>
-
-        {/* ── VIDURYS: režimų kortelės (vs AI · Draugiška · Kampanija) ── */}
-        <div className="min-h-0 grid grid-rows-3 gap-2">
-          {([
-            { href: '/digital/pve', img: 'mode-pve.webp', label: t('home.modes.pve') },
-            { href: '/digital/pvp', img: 'mode-free.webp', label: t('home.modes.free') },
-            { href: '/digital/campaign', img: 'mode-ranked.webp', label: t('navigation.campaign') },
-          ] as { href: string; img: string; label: string }[]).map((m2) => (
-            <button key={m2.href} onClick={() => { playUiClick(); router.push(m2.href) }}
-              className="rvn-press relative rounded-xl overflow-hidden text-left min-h-0"
-              style={{ border: '1px solid rgba(212,163,59,0.3)' }}>
-              <img src={`${ASSET}/${m2.img}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(8,6,14,0.82) 20%, rgba(8,6,14,0.25) 70%)' }} />
-              <div className="relative h-full flex flex-col justify-center px-3">
-                <span className="rvn-disp font-extrabold uppercase" style={{ fontSize: 'clamp(11px,2vh,15px)', color: '#fff', textShadow: '0 1px 6px #000' }}>{m2.label}</span>
-              </div>
-            </button>
-          ))}
+          <div style={{ font: '700 19px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px rgba(0,0,0,.9)', marginTop: 2 }}>{t('home.rankedTitle')}</div>
         </div>
+        <div className="relative flex items-center" style={{ padding: '12px 14px', gap: 10 }}>
+          <span style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', border: '1px solid rgba(212,163,59,.5)', padding: '7px 16px', background: 'rgba(7,6,10,.6)', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)' }}>{t('home.play')}</span>
+          {rv && <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{medalLabel(rv.medalTier)} {toRoman(rv.rankNumber)} · {rv.rankNumber}/50</span>}
+        </div>
+      </button>
 
-        {/* ── DEŠINĖ: sezono kelias + dienos užduotys ── */}
-        <div className="min-h-0 flex flex-col gap-2">
-          <section className="rounded-2xl shrink-0 overflow-hidden" style={PANEL}>
-            <div className="px-3 pt-2 pb-2 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="rvn-disp text-[11px] font-extrabold uppercase tracking-wide truncate" style={{ color: 'var(--gold)' }}>{t('home.seasonProgress')}</div>
-                <div className="rvn-disp text-[16px] font-black leading-tight" style={{ color: '#f2c45a' }}>{t('home.tier', { n: season.cur })}<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
-                <div className="w-full h-1.5 mt-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8152a8,#b98fd6)' }} />
-                </div>
-              </div>
-              <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold rvn-disp"
-                style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#5a3a86,#2e1d4a)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(129,82,168,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#b98fd6' }}>
-                {seasonClaimable > 0 ? t('home.claimN', { count: seasonClaimable }) : t('home.viewTrack')}
-              </button>
+      {/* ── VIDURYS: režimų kortelės ── */}
+      <div className="flex flex-col min-w-0" style={{ flex: 1, gap: 10 }}>
+        {modeCards.map((m) => (
+          <button key={m.key} onClick={() => { playUiClick(); router.push(m.href) }}
+            className="ravenof-press relative overflow-hidden text-left min-h-0"
+            style={{ flex: 1, clipPath: m.clip, cursor: 'pointer', background: 'none', border: 0, padding: 0 }}>
+            <div className="absolute inset-0" style={{ background: `url('${m.art}') no-repeat`, backgroundSize: 'cover', backgroundPosition: m.artPos }} />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(7,6,10,.88) 20%, rgba(7,6,10,.25) 100%)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ border: `1px solid ${m.border}`, clipPath: m.clip }} />
+            <div className="absolute" style={{ left: 12, top: '50%', transform: 'translateY(-50%)', right: 8 }}>
+              <div style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{m.title}</div>
+              <div style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{m.sub}</div>
             </div>
-          </section>
-          <section className="rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden" style={PANEL}>
-            <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 shrink-0">
-              <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>{t('home.dailyQuests')}</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col" style={{ gap: 'clamp(3px,0.8vh,6px)' }}>
-            {tasks.length === 0 && (
-              <div className="my-auto flex flex-col items-center gap-2 px-2 text-center">
-                {!questsLoaded ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span> : (
-                  <>
-                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('home.noQuestsToday')}</span>
-                    <div className="w-full rounded-lg px-2.5 py-2" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.35)' }}>
-                      <div className="text-[12px] font-bold" style={{ color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{t('home.streakDays', { count: streak })}</div>
-                      <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.streakHint')}</div>
-                    </div>
-                    <button onClick={() => { playUiClick(); setLoginOpen(true) }}
-                      className="rvn-press w-full rounded-lg py-1.5 text-[10.5px] font-bold"
-                      style={{ background: loginClaimable ? 'rgba(212,163,59,0.18)' : 'rgba(0,0,0,0.35)', border: `1px solid rgba(212,163,59,${loginClaimable ? 0.65 : 0.3})`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {loginClaimable ? t('home.monthlyReady') : t('home.monthlyGifts')}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-            {tasks.slice(0, 4).map((t) => {
-              const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
-              return (
-                <div key={t.id} className="rounded-lg px-2 shrink-0" style={{ paddingTop: 'clamp(3px,0.8vh,6px)', paddingBottom: 'clamp(3px,0.8vh,6px)', background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(212,163,59,0.15)') }}>
-                  <div className="flex items-center gap-1.5" style={{ marginBottom: 'clamp(2px,0.5vh,4px)' }}>
-                    <span style={{ fontSize: 'clamp(9px,1.4vh,11px)' }}>{t.completed ? '✅' : '◻️'}</span>
-                    <span className="font-semibold flex-1 truncate" style={{ fontSize: 'clamp(10px,1.5vh,12px)', color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{tc('daily_task', t.templateId, 'title', t.title)}</span>
-                    <span className="tabular-nums" style={{ fontSize: 'clamp(8px,1.2vh,10px)', color: 'var(--text-muted)' }}>{t.progress}/{t.target}</span>
-                  </div>
-                  <div className="rounded-full overflow-hidden" style={{ height: 'clamp(3px,0.7vh,6px)', background: 'rgba(255,255,255,0.08)' }}>
-                    <div className="h-full rounded-full" style={{ width: pct + '%', background: t.completed ? 'linear-gradient(90deg,#34d399,#a7f3d0)' : 'linear-gradient(90deg,#d4a33b,#f2c45a)' }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <button onClick={() => { playUiClick(); setDailyOpen(true) }}
-            className="rvn-press m-2 mt-1 rounded-xl font-extrabold rvn-disp"
-            style={{ paddingTop: 'clamp(5px,1vh,8px)', paddingBottom: 'clamp(5px,1vh,8px)', fontSize: 'clamp(10px,1.6vh,12px)', background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(212,163,59,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
-            {questsPending > 0 ? t('home.claimN', { count: questsPending }) : t('home.view')}
           </button>
-          </section>
-        </div>
+        ))}
       </div>
 
-      {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
-      <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(66px,13vh,92px)' }}>
-        <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(129,82,168,0.22), rgba(9,7,14,0.98))' }}>
-          <div>
-            <div className="font-bold uppercase tracking-widest" style={{ fontSize: 'clamp(8px,1.2vh,9px)', color: '#b98fd6' }}>{t('home.cosmetics')}</div>
-            <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>{t('home.avatarsFrames')}</div>
-            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.viewCollection')}</div>
-          </div>
+      {/* ── DEŠINĖ: Kas toliau · serija/sezonas · dienos užduotys ── */}
+      <div className="flex flex-col min-w-0" style={{ flex: 1.1, gap: 8 }}>
+        {/* Kas toliau */}
+        <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
+          className="ravenof-press relative overflow-hidden flex items-center text-left shrink-0"
+          style={{ gap: 10, background: 'linear-gradient(100deg,#1B1522,#241a2e)', border: '1px solid rgba(212,163,59,.5)', borderLeft: '2px solid #F2C45A', padding: '8px 11px', cursor: 'pointer' }}>
+          <span className="flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: 'rgba(242,196,90,.1)', border: '1px solid rgba(212,163,59,.4)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`${A}/ranks/rank-${nx?.medalTier ?? rv?.medalTier ?? 'silver'}.png`} alt="" style={{ width: 20, height: 'auto', objectFit: 'contain' }} />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block" style={{ font: '500 8px var(--ravenof-font-body)', letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('home.nextUp')}</span>
+            <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</span>
+            <span className="block truncate" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
+              {nx && ptsToNext ? t('home.nextRankPts', { rank: `${medalLabel(nx.medalTier)} ${toRoman(nx.rankNumber)}`, pts: ptsToNext }) : t('home.pickModeStart')}
+            </span>
+          </span>
+          <span className="shrink-0" style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>›</span>
         </button>
 
-        {(() => {
-          const ad = activeDeckOf(adState)
-          const av = deckValidity(ad)
-          const col = ad?.factionColor ?? '#f0b429'
-          return (
-            <button data-testid="home-active-deck" onClick={() => { playUiClick(); setDeckModalOpen(true) }}
-              className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5"
-              style={{ ...PANEL, background: `linear-gradient(120deg, ${col}2b, rgba(9,7,14,0.98))` }}>
-              <div className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--gold)' }}>
-                {t('home.activeDeck')}
-                {ad?.boundAvatar && <span title={t('home.deckHasAvatar')} style={{ fontSize: 10 }}>👤</span>}
-              </div>
-              <div className="rvn-disp text-[13px] font-extrabold truncate" style={{ color: '#fff' }} title={ad?.name}>
-                {!adState.loaded ? t('common.loading') : ad ? ad.name : t('home.pickDeck')}
-              </div>
-              <div className="text-[9px] truncate" style={{ color: av.valid ? '#4ade80' : '#fbbf24' }}>
-                {ad ? `${ad.faction ? tc('faction', ad.factionId, 'name', ad.faction) : '—'} · ${t('home.cardsCount', { count: ad.cardCount })} · ` : ''}{av.valid ? t('home.readyForBattle') : `⚠ ${av.reason}`} <span style={{ color: 'var(--text-muted)' }}>· {t('home.change')}</span>
-              </div>
-            </button>
-          )
-        })()}
+        {/* Serija + sezono kelias */}
+        <div className="flex shrink-0" style={{ gap: 8 }}>
+          <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="ravenof-press text-left" style={{ flex: 1, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: '2px solid var(--ravenof-gold)', padding: '8px 10px', cursor: 'pointer' }}>
+            <div style={{ font: '500 8.5px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{t('home.streakLabel')}</div>
+            <div className="flex items-baseline" style={{ gap: 4, marginTop: 2 }}>
+              <span style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{streak}</span>
+              <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.daysRow')}</span>
+            </div>
+          </button>
+          <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="ravenof-press text-left relative" style={{ flex: 1, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: '2px solid var(--ravenof-fac-vryhioko)', padding: '8px 10px', cursor: 'pointer' }}>
+            <div style={{ font: '500 8.5px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{t('home.seasonPathLabel')}</div>
+            <div className="flex items-baseline" style={{ gap: 4, marginTop: 2 }}>
+              <span style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{season.cur}</span>
+              <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>/ {season.total} {t('home.levelWord')}</span>
+            </div>
+            {seasonClaimable > 0 && <span className="absolute" style={{ top: 6, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'var(--ravenof-gold-bright)', boxShadow: '0 0 8px rgba(242,196,90,.8)' }} />}
+          </button>
+        </div>
 
-        <Link href="/digital/friends" onClick={() => playUiClick()} className="rvn-press rounded-xl overflow-hidden text-left relative flex flex-col justify-center p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(52,211,153,0.18), rgba(9,7,14,0.98))' }}>
-          <div className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#a7f3d0' }}>
-            {t('home.friends')}
-            {friendsOnline !== null && friendsOnline > 0 && <span className="inline-flex items-center gap-1 normal-case tracking-normal font-bold px-1.5 rounded-full" style={{ fontSize: 9, background: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#6ee7b7' }}><span className="rounded-full" style={{ width: 6, height: 6, background: '#34d399', boxShadow: '0 0 6px #34d399' }} /> {t('home.online', { count: friendsOnline })}</span>}
-          </div>
-          <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>{t('home.social')}</div>
-          <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.friendsInvites')}</div>
-        </Link>
+        {/* Dienos užduotys */}
+        <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="flex items-baseline justify-between shrink-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
+          <span style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
+          <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.resetsIn')} {countdown}</span>
+        </button>
+        <div className="flex-1 flex flex-col min-h-0" style={{ gap: 6 }}>
+          {tasks.length === 0 && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: 8, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '8px 10px' }}>
+              <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{!questsLoaded ? t('common.loading') : t('home.noQuestsToday')}</span>
+              {questsLoaded && (
+                <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, padding: '7px 12px', fontSize: 10 }}>
+                  {loginClaimable ? t('home.monthlyReady') : t('home.monthlyGifts')}
+                </button>
+              )}
+            </div>
+          )}
+          {tasks.slice(0, 3).map((task) => {
+            const pct = Math.min(100, Math.round((task.progress / Math.max(1, task.target)) * 100))
+            const ready = task.completed && !task.claimed
+            return (
+              <div key={task.id} className="flex items-center min-h-0" style={{ flex: 1, gap: 9, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '5px 10px' }}>
+                <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="shrink-0" style={{ width: 30, height: 30, background: 'none', border: 0, padding: 0, cursor: 'pointer' }} aria-label={t('home.dailyQuests')}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </button>
+                <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="flex-1 min-w-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
+                  <div className="truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: task.claimed ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-text-primary)' }}>{tc('daily_task', task.templateId, 'title', task.title)}</div>
+                  <div className="ravenof-progress" style={{ marginTop: 4 }}>
+                    <span style={{ width: `${pct}%`, background: task.completed ? 'var(--ravenof-gold)' : `rgb(${DIFF_ACCENT[task.difficulty] ?? '212,163,59'})` }} />
+                  </div>
+                </button>
+                {ready ? (
+                  <button onClick={() => void claimTask(task)} className="shrink-0" style={{ font: '700 9.5px var(--ravenof-font-display)', color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('quests.claim')}</button>
+                ) : (
+                  <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: task.claimed ? 'var(--ravenof-success-bright)' : 'var(--ravenof-text-secondary)' }}>{task.claimed ? '✓' : `${task.progress}/${task.target}`}</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* ── Modalai (visi išsaugoti) ── */}
-      {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={() => { refreshWallet(); refreshBalances() }} />}
-      {questsOpen && <QuestsModal onClose={() => { setQuestsOpen(false); refreshQuests() }} onReward={() => { refreshWallet(); refreshQuests() }} />}
       {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
-      {cosmeticsOpen && <CosmeticsModal gold={wallet.gold} onClose={() => setCosmeticsOpen(false)} onSpent={() => { refreshWallet(); refreshBalances() }} />}
-
-      {deckModalOpen && <ActiveDeckSelectorModal onClose={() => setDeckModalOpen(false)} />}
       {dailyOpen && <DailyTasksModal onClose={() => { setDailyOpen(false); refreshQuests() }} onReward={() => { refreshBalances(); refreshWallet(); refreshQuests() }} />}
       {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
 
       <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
 
       {toast && (
-        <div className="fixed left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
-          style={{ bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(212,163,59,0.5)', color: 'var(--gold)' }}>
-          {toast}
-        </div>
+        <RavenofToast style={{ top: 'auto', bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>{toast}</RavenofToast>
       )}
 
       {/* nenaudojami tiesiogiai, bet paliekami stabilumui */}
-      <span className="hidden">{streak}{claimable ? '1' : '0'}{newPlayer ? '1' : '0'}{loginClaimable ? '1' : '0'}</span>
+      <span className="hidden">{claimable ? '1' : '0'}{newPlayer ? '1' : '0'}{questsPending}</span>
     </div>
   )
 }
