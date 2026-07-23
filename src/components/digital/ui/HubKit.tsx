@@ -27,14 +27,14 @@ export function HubStyles() {
     .rvn-panel {
       position: relative; border-radius: 16px;
       background:
-        radial-gradient(120% 120% at 0% 0%, rgba(74,40,96,0.40), transparent 55%),
-        linear-gradient(158deg, rgba(28,20,42,0.96), rgba(11,8,18,0.98));
-      border: 1px solid rgba(${GOLD},0.26);
+        radial-gradient(120% 120% at 0% 0%, rgba(129,82,168,0.26), transparent 58%),
+        linear-gradient(158deg, rgba(27,21,34,0.97), rgba(15,13,21,0.98));
+      border: 1px solid rgba(${GOLD},0.28);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 24px rgba(0,0,0,0.45), 0 6px 22px rgba(0,0,0,0.5);
     }
     .rvn-gold-btn {
-      background: linear-gradient(180deg, #ffe28c 0%, #f3b62c 46%, #c5841a 100%);
-      color: #3a2406; border: 1px solid #ffeaa6; border-radius: 12px;
+      background: linear-gradient(180deg, #f2c45a 0%, #d4a33b 52%, #b5852a 100%);
+      color: #07060a; border: 1px solid #f2d38a; border-radius: 0; clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
       text-shadow: 0 1px 0 rgba(255,255,255,0.45); font-family: var(--rvn-font-display, Cinzel, serif); font-weight: 800;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -3px 7px rgba(120,70,0,0.5), 0 6px 18px rgba(240,180,41,0.35);
     }
