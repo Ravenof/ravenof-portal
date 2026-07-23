@@ -12,7 +12,7 @@ import type { ReactNode } from 'react'
 
 export const ICON_BASE = '/digital/icons'
 export const ICON_EXT = 'png'  // <-- vienas perjungiklis: 'png' | 'svg' | 'webp'
-export const ICON_V = '7'      // cache-busting: padidink kai keiti ikonas (priverst. re-fetch)
+export const ICON_V = '8'      // cache-busting: padidink kai keiti ikonas (priverst. re-fetch)
 
 export function RvnIcon({ name, fallback, size = 24, style, round }: {
   name: string
