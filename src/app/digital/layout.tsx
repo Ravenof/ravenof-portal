@@ -1,8 +1,8 @@
 'use client'
 
 // ── Ravenof Digital — pilno ekrano mobile app shell ───────────────────────────
-// Game-account header (logo + profilis + resursai + bell + settings) ir modern
-// game tab bar (Pradžia/Kolekcija/Kaladės/Parduotuvė/Daugiau). Žaisti = hero CTA.
+// Prototipo išdėstymas: VERTIKALUS ŠONINIS nav rail (kairė) + turinio stulpelis
+// (header viršuje + main). Visa logika/duomenys/modalai išsaugoti.
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -40,7 +40,6 @@ const NAV: NavItem[] = [
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
 
-// Auth/onboarding keliai: be header/nav/gate — pilnaekranis onboarding shell.
 const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding', '/digital/forgot-password']
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
@@ -48,7 +47,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const t = useT()
   const router = useRouter()
   const bare = BARE_ROUTES.includes(pathname)
-  const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 }) // reikšmės nebe rodomos čia (ShopModal pats traukia balansus)
+  const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [levelRoadOpen, setLevelRoadOpen] = useState(false)
@@ -64,7 +63,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
     void scheduleReturnReminders()
     void lockLandscape()
-    // Presence: „online" indikatorius draugams (last_seen_at kas 60 s + focus)
     void heartbeat()
     const hb = setInterval(() => { if (document.visibilityState === 'visible') void heartbeat() }, 60_000)
     const onFocusHb = () => void heartbeat()
@@ -72,7 +70,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return () => { stopMusic(); setNativeImmersive(false); void unlockOrientation(); clearInterval(hb); window.removeEventListener('focus', onFocusHb) }
   }, [])
 
-  // Visas /digital app užrakintas į landscape; jei įrenginys portrait (web neleido lock) -> „pasuk telefoną" overlay.
   useEffect(() => {
     const check = () => { void lockLandscape(); setShowRotate(!isNativeApp() && isPortraitNow()) }
     check()
@@ -81,7 +78,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return () => { window.removeEventListener('resize', check); window.removeEventListener('orientationchange', check) }
   }, [])
 
-  // Profilis — tik mount + focus (nebe kiekvienam route pakeitimui: mažiau užklausų)
   useEffect(() => {
     const loadProfile = () => {
       const supabase = createClient()
@@ -101,10 +97,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return () => window.removeEventListener('focus', loadProfile)
   }, [])
 
-  // ── Onboarding route guard ──────────────────────────────────────────────
-  // pending → tik /digital/onboarding; done → onboarding/auth keliai uždrausti;
-  // anon → onboarding kelias reikalauja prisijungimo. 'unknown' (migracija
-  // nesuvesta / tinklo klaida) → NIEKO nedarom (fail-open, be softlock/loop).
   useEffect(() => {
     let cancel = false
     getOnboardingState().then((st) => {
@@ -118,7 +110,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     return () => { cancel = true }
   }, [pathname, router])
 
-  // Neperskaitytos notifikacijos — pigi head-count užklausa keičiant route
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
@@ -163,79 +154,60 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
+    <div className="fixed inset-0 z-40 flex flex-row select-none" style={{ background: '#06040b', color: 'var(--text-primary)' }}>
       <Flames />
       <HubStyles />
       <I18nBoot />
-      {/* Deck builder (ir kt. fullscreen įrankiai) gali paslėpti header'į per body atributą */}
-      <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; }`}</style>
+      <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }`}</style>
 
-      {/* ── Header (game account) ── */}
-      <header className="rvn-app-header relative z-10 flex items-center justify-between gap-2 px-3.5"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(240,180,41,0.16)', background: 'rgba(7,5,12,0.96)' }}>
-        <div className="flex items-center gap-2 min-w-0 shrink-0">
-          {profile && <ProfileChip name={profile.name || t('common.player')} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
-        </div>
-        <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center">
-          <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={formatNumber(balances.silver)} accent="203,213,225" />
-          <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={formatNumber(balances.rubies)} accent="239,68,68" />
-          <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={formatNumber(balances.essence)} accent="139,92,246" />
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <IconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
-          <IconBtn label={t('navigation.settings')} onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
-        </div>
-      </header>
-
-      {/* ── Turinys ── */}
-      <main className="relative z-10 flex-1 overflow-y-auto px-4 py-3.5" style={{ paddingBottom: 'calc(84px + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="max-w-screen-lg mx-auto h-full">{children}</div>
-      </main>
-
-      {/* ── Tab bar ── */}
-      <nav className="absolute bottom-0 left-0 right-0 z-20 flex items-stretch"
-        style={{ background: 'rgba(7,5,12,0.97)', borderTop: '1px solid rgba(240,180,41,0.16)', boxShadow: '0 -4px 24px rgba(0,0,0,0.6)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* ── Šoninis nav rail (prototipas) ── */}
+      <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
+        style={{ width: 92, background: 'linear-gradient(90deg,#0a0810,#0f0d15)', borderRight: '1px solid rgba(212,163,59,0.18)', gap: 2, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {NAV.map((it) => {
           const active = isActive(it)
           const Icon = it.icon
           const inner = (
-            <>
-              {/* Ikonos = kvadratinės su savu fonu -> renderinam kaip „tile" (be radial glow po apačia) */}
-              <span className="relative flex items-center justify-center rvn-press" style={{ width: 42, height: 42 }}>
-                <RvnIcon name={`nav-${it.key}`} size={42} fallback={<Icon className="w-[22px] h-[22px]" />}
+            <span className="flex flex-col items-center justify-center gap-1 py-2" style={{ minHeight: 52 }}>
+              <span className="relative flex items-center justify-center rvn-press" style={{ width: 40, height: 40 }}>
+                <RvnIcon name={`nav-${it.key}`} size={40} fallback={<Icon className="w-[22px] h-[22px]" />}
                   style={active
-                    ? {
-                        borderRadius: 10,
-                        objectFit: 'cover',
-                        border: '1px solid rgba(240,180,41,0.75)',
-                        boxShadow: '0 0 0 1px rgba(240,180,41,0.25), 0 0 14px rgba(240,180,41,0.45)',
-                        filter: 'brightness(1.1) saturate(1.08)',
-                        transform: 'translateY(-1px)',
-                      }
-                    : {
-                        borderRadius: 10,
-                        objectFit: 'cover',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        filter: 'grayscale(0.45) brightness(0.72)',
-                        opacity: 0.8,
-                      }} />
+                    ? { borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(212,163,59,0.75)', boxShadow: '0 0 0 1px rgba(212,163,59,0.25), 0 0 14px rgba(212,163,59,0.45)', filter: 'brightness(1.1) saturate(1.08)' }
+                    : { borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.06)', filter: 'grayscale(0.7) brightness(0.72)', opacity: 0.82 }} />
               </span>
-              <span className="text-[10px] font-semibold transition-colors" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em' }}>{t(it.labelKey)}</span>
-            </>
+              <span className="text-[9.5px] font-semibold text-center leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.02em', color: active ? '#f2c45a' : 'rgba(150,140,120,0.85)' }}>{t(it.labelKey)}</span>
+            </span>
           )
-          const cls = 'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors'
-          const style = { color: active ? 'var(--gold)' : 'rgba(150,160,185,0.85)', minHeight: 52 } as React.CSSProperties
+          const style = { borderRight: `2px solid ${active ? '#f2c45a' : 'transparent'}` } as React.CSSProperties
           return it.action === 'store'
-            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className={cls} style={style}>{inner}</button>
-            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className={cls} style={style}>{inner}</Link>
+            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full" style={style}>{inner}</button>
+            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full" style={style}>{inner}</Link>
         })}
       </nav>
 
-      {/* Privalomas turinio atsisiuntimas paleidžiant žaidimą (virš visko, po „pasuk telefoną") */}
-      <ContentDownloadGate />
+      {/* ── Turinio stulpelis: header + main ── */}
+      <div className="relative z-10 flex-1 flex flex-col min-w-0">
+        <header className="rvn-app-header relative z-10 flex items-center justify-between gap-2 px-3.5"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 9px)', paddingBottom: 9, borderBottom: '1px solid rgba(212,163,59,0.16)', background: 'rgba(7,5,12,0.96)' }}>
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+            {profile && <ProfileChip name={profile.name || t('common.player')} level={profile.level} pct={profile.pct} avatarUrl={profile.avatarUrl} onClick={() => { playUiClick(); setLevelRoadOpen(true) }} />}
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center">
+            <ResourcePill icon={<RvnIcon name="cur-silver" size={22} fallback={<span>🥈</span>} />} value={formatNumber(balances.silver)} accent="203,213,225" />
+            <ResourcePill icon={<RvnIcon name="cur-rubies" size={22} fallback={<span>💎</span>} />} value={formatNumber(balances.rubies)} accent="239,68,68" />
+            <ResourcePill icon={<RvnIcon name="cur-essence" size={22} fallback={<span>🔮</span>} />} value={formatNumber(balances.essence)} accent="129,82,168" />
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <IconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><RvnIcon name="bell" size={18} fallback={<Bell className="w-4 h-4" />} /></IconBtn>
+            <IconBtn label={t('navigation.settings')} onClick={() => { playUiClick(); setSettingsOpen(true) }}><RvnIcon name="settings" size={18} fallback={<Settings className="w-4 h-4" />} /></IconBtn>
+          </div>
+        </header>
 
-      {/* Globalus pokalbių sluoksnis — VIENAS mount visam app (route keitimas neuždaro) */}
+        <main className="relative z-10 flex-1 overflow-y-auto px-4 py-3.5" style={{ paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="max-w-screen-lg mx-auto h-full">{children}</div>
+        </main>
+      </div>
+
+      <ContentDownloadGate />
       <GlobalChatLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}

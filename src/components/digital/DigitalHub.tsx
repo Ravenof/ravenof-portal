@@ -39,7 +39,7 @@ const MODE_DEFS = [
 ]
 const MODE_HREF: Record<string, string> = { pve: '/digital/pve', ranked: '/digital/ranked', free: '/digital/pvp' }
 
-const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(18,14,26,0.96), rgba(9,7,14,0.98))', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(27,21,34,0.97), rgba(15,13,21,0.98))', border: '1px solid rgba(212,163,59,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
 
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
@@ -100,8 +100,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       <div className="rounded-2xl p-6 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
         <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{t('home.loginPrompt')}</p>
         <span className="inline-flex gap-2">
-          <Link href="/digital/login" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{t('home.signIn')}</Link>
-          <Link href="/digital/register" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', border: '1px solid #ffeaa6', color: '#3a2406' }}>{t('home.createAccount')}</Link>
+          <Link href="/digital/login" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(212,163,59,0.15)', border: '1px solid rgba(212,163,59,0.4)', color: 'var(--gold)' }}>{t('home.signIn')}</Link>
+          <Link href="/digital/register" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: 'linear-gradient(180deg,#f2c45a,#d4a33b 52%,#b5852a)', border: '1px solid #f2d38a', color: '#07060a' }}>{t('home.createAccount')}</Link>
         </span>
       </div>
     )
@@ -120,15 +120,15 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         {/* ── KAIRĖ: FEATURED — Reitinginės kovos ── */}
         <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
           className="rvn-press relative rounded-2xl overflow-hidden text-left flex flex-col justify-between min-h-0"
-          style={{ border: '1px solid rgba(240,180,41,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
+          style={{ border: '1px solid rgba(212,163,59,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
           <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.18) 0%, rgba(8,6,14,0.35) 55%, rgba(8,6,14,0.9) 100%)' }} />
           <div className="relative p-3">
-            <div className="rvn-disp uppercase tracking-widest" style={{ fontSize: 'clamp(9px,1.4vh,11px)', color: '#f3d98c', textShadow: '0 1px 4px #000' }}>{t('home.seasonProgress')} · {season.cur}/{season.total}</div>
-            <div className="rvn-disp font-black uppercase" style={{ fontSize: 'clamp(18px,4.6vh,34px)', lineHeight: 1.05, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.9)', borderBottom: '2px solid rgba(240,180,41,0.7)', display: 'inline-block', paddingBottom: 4 }}>{t('home.modes.ranked')}</div>
+            <div className="rvn-disp uppercase tracking-widest" style={{ fontSize: 'clamp(9px,1.4vh,11px)', color: '#f2c45a', textShadow: '0 1px 4px #000' }}>{t('home.seasonProgress')} · {season.cur}/{season.total}</div>
+            <div className="rvn-disp font-black uppercase" style={{ fontSize: 'clamp(18px,4.6vh,34px)', lineHeight: 1.05, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.9)', borderBottom: '2px solid rgba(212,163,59,0.7)', display: 'inline-block', paddingBottom: 4 }}>{t('home.modes.ranked')}</div>
           </div>
           <div className="relative p-3 flex items-center gap-3">
-            <span className="rvn-disp font-extrabold uppercase rounded-lg" style={{ fontSize: 'clamp(11px,2vh,15px)', padding: 'clamp(6px,1.2vh,10px) clamp(16px,3vw,26px)', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', border: '1px solid #ffeaa6', color: '#3a2406', boxShadow: '0 4px 14px rgba(240,180,41,0.35)' }}>{t('home.startBattle')}</span>
+            <span className="rvn-disp font-extrabold uppercase rounded-lg" style={{ fontSize: 'clamp(11px,2vh,15px)', padding: 'clamp(6px,1.2vh,10px) clamp(16px,3vw,26px)', background: 'linear-gradient(180deg,#f2c45a,#d4a33b 52%,#b5852a)', border: '1px solid #f2d38a', color: '#07060a', boxShadow: '0 4px 14px rgba(212,163,59,0.35)', clipPath: 'polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%)' }}>{t('home.startBattle')}</span>
             <span style={{ fontSize: 'clamp(9px,1.5vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>{t('home.pickModeStart')}</span>
           </div>
         </button>
@@ -142,7 +142,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           ] as { href: string; img: string; label: string }[]).map((m2) => (
             <button key={m2.href} onClick={() => { playUiClick(); router.push(m2.href) }}
               className="rvn-press relative rounded-xl overflow-hidden text-left min-h-0"
-              style={{ border: '1px solid rgba(240,180,41,0.3)' }}>
+              style={{ border: '1px solid rgba(212,163,59,0.3)' }}>
               <img src={`${ASSET}/${m2.img}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(8,6,14,0.82) 20%, rgba(8,6,14,0.25) 70%)' }} />
               <div className="relative h-full flex flex-col justify-center px-3">
@@ -158,13 +158,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <div className="px-3 pt-2 pb-2 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <div className="rvn-disp text-[11px] font-extrabold uppercase tracking-wide truncate" style={{ color: 'var(--gold)' }}>{t('home.seasonProgress')}</div>
-                <div className="rvn-disp text-[16px] font-black leading-tight" style={{ color: '#f3d98c' }}>{t('home.tier', { n: season.cur })}<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
+                <div className="rvn-disp text-[16px] font-black leading-tight" style={{ color: '#f2c45a' }}>{t('home.tier', { n: season.cur })}<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
                 <div className="w-full h-1.5 mt-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} />
+                  <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8152a8,#b98fd6)' }} />
                 </div>
               </div>
               <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold rvn-disp"
-                style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#6b3fa0,#3a2160)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#c4b5fd' }}>
+                style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#5a3a86,#2e1d4a)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(129,82,168,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#b98fd6' }}>
                 {seasonClaimable > 0 ? t('home.claimN', { count: seasonClaimable }) : t('home.viewTrack')}
               </button>
             </div>
@@ -186,7 +186,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
                     </div>
                     <button onClick={() => { playUiClick(); setLoginOpen(true) }}
                       className="rvn-press w-full rounded-lg py-1.5 text-[10.5px] font-bold"
-                      style={{ background: loginClaimable ? 'rgba(240,180,41,0.18)' : 'rgba(0,0,0,0.35)', border: `1px solid rgba(240,180,41,${loginClaimable ? 0.65 : 0.3})`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                      style={{ background: loginClaimable ? 'rgba(212,163,59,0.18)' : 'rgba(0,0,0,0.35)', border: `1px solid rgba(212,163,59,${loginClaimable ? 0.65 : 0.3})`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                       {loginClaimable ? t('home.monthlyReady') : t('home.monthlyGifts')}
                     </button>
                   </>
@@ -196,14 +196,14 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             {tasks.slice(0, 4).map((t) => {
               const pct = Math.min(100, Math.round((t.progress / Math.max(1, t.target)) * 100))
               return (
-                <div key={t.id} className="rounded-lg px-2 shrink-0" style={{ paddingTop: 'clamp(3px,0.8vh,6px)', paddingBottom: 'clamp(3px,0.8vh,6px)', background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(240,180,41,0.15)') }}>
+                <div key={t.id} className="rounded-lg px-2 shrink-0" style={{ paddingTop: 'clamp(3px,0.8vh,6px)', paddingBottom: 'clamp(3px,0.8vh,6px)', background: 'rgba(0,0,0,0.35)', border: '1px solid ' + (t.completed ? 'rgba(52,211,153,0.4)' : 'rgba(212,163,59,0.15)') }}>
                   <div className="flex items-center gap-1.5" style={{ marginBottom: 'clamp(2px,0.5vh,4px)' }}>
                     <span style={{ fontSize: 'clamp(9px,1.4vh,11px)' }}>{t.completed ? '✅' : '◻️'}</span>
                     <span className="font-semibold flex-1 truncate" style={{ fontSize: 'clamp(10px,1.5vh,12px)', color: t.completed ? '#a7f3d0' : '#e8dcc0' }}>{tc('daily_task', t.templateId, 'title', t.title)}</span>
                     <span className="tabular-nums" style={{ fontSize: 'clamp(8px,1.2vh,10px)', color: 'var(--text-muted)' }}>{t.progress}/{t.target}</span>
                   </div>
                   <div className="rounded-full overflow-hidden" style={{ height: 'clamp(3px,0.7vh,6px)', background: 'rgba(255,255,255,0.08)' }}>
-                    <div className="h-full rounded-full" style={{ width: pct + '%', background: t.completed ? 'linear-gradient(90deg,#34d399,#a7f3d0)' : 'linear-gradient(90deg,#d4af37,#f3d98c)' }} />
+                    <div className="h-full rounded-full" style={{ width: pct + '%', background: t.completed ? 'linear-gradient(90deg,#34d399,#a7f3d0)' : 'linear-gradient(90deg,#d4a33b,#f2c45a)' }} />
                   </div>
                 </div>
               )
@@ -211,7 +211,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </div>
           <button onClick={() => { playUiClick(); setDailyOpen(true) }}
             className="rvn-press m-2 mt-1 rounded-xl font-extrabold rvn-disp"
-            style={{ paddingTop: 'clamp(5px,1vh,8px)', paddingBottom: 'clamp(5px,1vh,8px)', fontSize: 'clamp(10px,1.6vh,12px)', background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(240,180,41,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
+            style={{ paddingTop: 'clamp(5px,1vh,8px)', paddingBottom: 'clamp(5px,1vh,8px)', fontSize: 'clamp(10px,1.6vh,12px)', background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(212,163,59,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
             {questsPending > 0 ? t('home.claimN', { count: questsPending }) : t('home.view')}
           </button>
           </section>
@@ -220,9 +220,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
       <div className="shrink-0 grid grid-cols-3 gap-2" style={{ height: 'clamp(66px,13vh,92px)' }}>
-        <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(139,92,246,0.22), rgba(9,7,14,0.98))' }}>
+        <button onClick={() => { playUiClick(); setCosmeticsOpen(true) }} className="rvn-press rounded-xl overflow-hidden text-left relative flex items-end p-2.5" style={{ ...PANEL, background: 'linear-gradient(120deg, rgba(129,82,168,0.22), rgba(9,7,14,0.98))' }}>
           <div>
-            <div className="font-bold uppercase tracking-widest" style={{ fontSize: 'clamp(8px,1.2vh,9px)', color: '#c4b5fd' }}>{t('home.cosmetics')}</div>
+            <div className="font-bold uppercase tracking-widest" style={{ fontSize: 'clamp(8px,1.2vh,9px)', color: '#b98fd6' }}>{t('home.cosmetics')}</div>
             <div className="rvn-disp text-[13px] font-extrabold" style={{ color: '#fff' }}>{t('home.avatarsFrames')}</div>
             <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('home.viewCollection')}</div>
           </div>
@@ -274,7 +274,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 z-[160] px-4 py-2 rounded-full text-xs font-semibold"
-          style={{ bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+          style={{ bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(212,163,59,0.5)', color: 'var(--gold)' }}>
           {toast}
         </div>
       )}
