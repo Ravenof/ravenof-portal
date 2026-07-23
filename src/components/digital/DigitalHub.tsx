@@ -114,16 +114,67 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     <div className="relative z-10 h-full flex flex-col gap-2 overflow-hidden">
       <HubStyles />
 
-      {/* ── PAGRINDINĖ ZONA: kairė quests · centras play · dešinė sezonas ── */}
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(165px,0.9fr) minmax(0,2.4fr) minmax(165px,0.9fr)' }}>
+      {/* ── PAGRINDINĖ ZONA (dizaino mockup): kairė FEATURED ranked · vidurys režimai · dešinė info ── */}
+      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.9fr) minmax(150px,1fr) minmax(195px,1.15fr)' }}>
 
-        {/* ── KAIRĖ: Dienos užduotys ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
-          <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 shrink-0">
-            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>{t('home.dailyQuests')}</span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
+        {/* ── KAIRĖ: FEATURED — Reitinginės kovos ── */}
+        <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
+          className="rvn-press relative rounded-2xl overflow-hidden text-left flex flex-col justify-between min-h-0"
+          style={{ border: '1px solid rgba(240,180,41,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
+          <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.18) 0%, rgba(8,6,14,0.35) 55%, rgba(8,6,14,0.9) 100%)' }} />
+          <div className="relative p-3">
+            <div className="rvn-disp uppercase tracking-widest" style={{ fontSize: 'clamp(9px,1.4vh,11px)', color: '#f3d98c', textShadow: '0 1px 4px #000' }}>{t('home.seasonProgress')} · {season.cur}/{season.total}</div>
+            <div className="rvn-disp font-black uppercase" style={{ fontSize: 'clamp(18px,4.6vh,34px)', lineHeight: 1.05, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.9)', borderBottom: '2px solid rgba(240,180,41,0.7)', display: 'inline-block', paddingBottom: 4 }}>{t('home.modes.ranked')}</div>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col" style={{ gap: 'clamp(3px,0.8vh,6px)' }}>
+          <div className="relative p-3 flex items-center gap-3">
+            <span className="rvn-disp font-extrabold uppercase rounded-lg" style={{ fontSize: 'clamp(11px,2vh,15px)', padding: 'clamp(6px,1.2vh,10px) clamp(16px,3vw,26px)', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', border: '1px solid #ffeaa6', color: '#3a2406', boxShadow: '0 4px 14px rgba(240,180,41,0.35)' }}>{t('home.startBattle')}</span>
+            <span style={{ fontSize: 'clamp(9px,1.5vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>{t('home.pickModeStart')}</span>
+          </div>
+        </button>
+
+        {/* ── VIDURYS: režimų kortelės (vs AI · Draugiška · Kampanija) ── */}
+        <div className="min-h-0 grid grid-rows-3 gap-2">
+          {([
+            { href: '/digital/pve', img: 'mode-pve.webp', label: t('home.modes.pve') },
+            { href: '/digital/pvp', img: 'mode-free.webp', label: t('home.modes.free') },
+            { href: '/digital/campaign', img: 'mode-ranked.webp', label: t('navigation.campaign') },
+          ] as { href: string; img: string; label: string }[]).map((m2) => (
+            <button key={m2.href} onClick={() => { playUiClick(); router.push(m2.href) }}
+              className="rvn-press relative rounded-xl overflow-hidden text-left min-h-0"
+              style={{ border: '1px solid rgba(240,180,41,0.3)' }}>
+              <img src={`${ASSET}/${m2.img}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(8,6,14,0.82) 20%, rgba(8,6,14,0.25) 70%)' }} />
+              <div className="relative h-full flex flex-col justify-center px-3">
+                <span className="rvn-disp font-extrabold uppercase" style={{ fontSize: 'clamp(11px,2vh,15px)', color: '#fff', textShadow: '0 1px 6px #000' }}>{m2.label}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* ── DEŠINĖ: sezono kelias + dienos užduotys ── */}
+        <div className="min-h-0 flex flex-col gap-2">
+          <section className="rounded-2xl shrink-0 overflow-hidden" style={PANEL}>
+            <div className="px-3 pt-2 pb-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="rvn-disp text-[11px] font-extrabold uppercase tracking-wide truncate" style={{ color: 'var(--gold)' }}>{t('home.seasonProgress')}</div>
+                <div className="rvn-disp text-[16px] font-black leading-tight" style={{ color: '#f3d98c' }}>{t('home.tier', { n: season.cur })}<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
+                <div className="w-full h-1.5 mt-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} />
+                </div>
+              </div>
+              <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold rvn-disp"
+                style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#6b3fa0,#3a2160)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#c4b5fd' }}>
+                {seasonClaimable > 0 ? t('home.claimN', { count: seasonClaimable }) : t('home.viewTrack')}
+              </button>
+            </div>
+          </section>
+          <section className="rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden" style={PANEL}>
+            <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 shrink-0">
+              <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>{t('home.dailyQuests')}</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#a7f3d0', background: 'rgba(52,211,153,0.14)' }}>{doneCount}/{tasks.length || 3}</span>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-2.5 flex flex-col" style={{ gap: 'clamp(3px,0.8vh,6px)' }}>
             {tasks.length === 0 && (
               <div className="my-auto flex flex-col items-center gap-2 px-2 text-center">
                 {!questsLoaded ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span> : (
@@ -163,50 +214,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             style={{ paddingTop: 'clamp(5px,1vh,8px)', paddingBottom: 'clamp(5px,1vh,8px)', fontSize: 'clamp(10px,1.6vh,12px)', background: questsPending > 0 ? 'linear-gradient(135deg,#1f7a3a,#134f25)' : 'rgba(0,0,0,0.4)', border: '1px solid ' + (questsPending > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(240,180,41,0.3)'), color: questsPending > 0 ? '#eafff0' : 'var(--gold)', boxShadow: questsPending > 0 ? '0 0 18px rgba(34,197,94,0.4)' : 'none' }}>
             {questsPending > 0 ? t('home.claimN', { count: questsPending }) : t('home.view')}
           </button>
-        </section>
-
-        {/* ── CENTRAS: Play hero ── */}
-        <div className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-center min-h-0"
-          style={{ border: '1px solid rgba(240,180,41,0.45)', gap: 'clamp(2px,0.9vh,9px)', padding: 'clamp(5px,1.6vh,13px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 30px rgba(0,0,0,0.55)' }}>
-          <img src={`${ASSET}/hero.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,6,14,0.24) 0%, rgba(8,6,14,0.5) 55%, rgba(8,6,14,0.82) 100%)' }} />
-          <ArtHeading assetKey="homeHeading" labelKey="home.playNow" height="clamp(16px,3.6vh,34px)" className="relative" />
-          <span className="relative" style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: '#cfc6b8', textShadow: '0 1px 4px #000' }}>{t('home.pickModeStart')}</span>
-          <button onClick={startBattle} className="rvn-press relative block" style={{ lineHeight: 0, filter: 'drop-shadow(0 4px 12px rgba(240,180,41,0.35))' }}>
-            <ArtCta assetKey="homeCta" labelKey="home.startBattle" imgStyle={{ height: 'clamp(38px,8.5vh,74px)', width: 'auto', display: 'block' }} />
-          </button>
-          <div className="relative w-full" style={{ maxWidth: 460 }}>
-            <ModeSelector modes={MODES} selected={mode} onSelect={(k) => { playUiClick(); setMode(k) }} />
-          </div>
+          </section>
         </div>
-
-        {/* ── DEŠINĖ: Sezono progresas ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden" style={PANEL}>
-          <div className="px-3 pt-2.5 pb-1.5 shrink-0">
-            <span className="rvn-disp text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>{t('home.seasonProgress')}</span>
-          </div>
-          <div className="flex-1 min-h-0 px-3 py-1 flex flex-col items-center justify-center text-center overflow-hidden" style={{ gap: 'clamp(3px,0.9vh,8px)' }}>
-            <RvnIcon name="seg-season" size={48} fallback={<span style={{ fontSize: 30 }}>📜</span>} />
-            <div className="rvn-disp text-[20px] font-black leading-none" style={{ color: '#f3d98c' }}>{t('home.tier', { n: season.cur })}<span className="text-[13px]" style={{ color: 'var(--text-muted)' }}> / {season.total}</span></div>
-            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.2)' }}>
-              <div className="h-full rounded-full" style={{ width: season.pct + '%', background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} />
-            </div>
-            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('home.nextTier')} <span style={{ color: '#c4b5fd' }}>{t('home.tier', { n: Math.min(season.cur + 1, season.total) })}</span></span>
-            {nextReward.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-1 shrink-0 overflow-hidden" style={{ maxHeight: '2.2em' }}>
-                {nextReward.slice(0, 3).map((it, i) => (
-                  <span key={i} className="px-1.5 py-0.5 rounded-md" style={{ fontSize: 9.5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.35)', color: '#e8dcc0' }}><RewardChip it={it} size={14} textSize={9.5} /></span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="p-2.5 pt-1.5 flex flex-col gap-1.5 shrink-0 relative" style={{ zIndex: 2, background: 'inherit' }}>
-            <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="rvn-press py-2 rounded-xl text-[12px] font-extrabold rvn-disp"
-              style={{ background: seasonClaimable > 0 ? 'linear-gradient(135deg,#6b3fa0,#3a2160)' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: seasonClaimable > 0 ? '#e9deff' : '#c4b5fd', boxShadow: seasonClaimable > 0 ? '0 0 18px rgba(139,92,246,0.4)' : 'none' }}>
-              {seasonClaimable > 0 ? t('home.claimN', { count: seasonClaimable }) : t('home.viewTrack')}
-            </button>
-          </div>
-        </section>
       </div>
 
       {/* ── APAČIA: featured cosmetic · naujienos · draugai ── */}
