@@ -178,7 +178,7 @@ const STATUS_ICON: Record<TutStatus, string> = {
 }
 
 const CARD_BACK_SRC: Record<'plain' | 'curse' | 'zmk', string> = {
-  plain: '/card-backs/back.webp', curse: '/card-backs/curse.webp', zmk: '/card-backs/zmk.webp',
+  plain: '/card-backs/back.webp?v=2', curse: '/card-backs/curse.webp', zmk: '/card-backs/zmk.webp',
 }
 // Pasirinkta (equipped) kortų nugarėlė — nustatoma TutorialGame mount'e; 'plain'
 // nugarėlės rodo ją vietoj default back.webp. PvP: varžovo elementai (owner='opp')
