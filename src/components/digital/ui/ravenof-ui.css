@@ -275,3 +275,84 @@
 .combat-send:active, .combat-emote-slot:active {
   transform: translateY(1px) scale(.98); filter: brightness(.88);
 }
+.combat-end-turn:disabled, .combat-discard-gold:disabled, .combat-round-icon:disabled,
+.combat-send:disabled, .combat-target-ok:disabled {
+  opacity: .48; filter: saturate(.45); cursor: default;
+}
+
+/* ── Kovos UI assetai v1.6: taikymas, ėjimai, avatarai, režimų baneriai ────── */
+/* Taikinių skaičiaus plokštė (target-count-panel, 9-slice 54 60 54 105) */
+.combat-target-panel {
+  min-width: 300px; min-height: 60px; background: transparent !important;
+  border: 18px solid transparent; border-width: 18px 20px 18px 35px;
+  border-image: url('/ravenof-ui/combat/targeting/target-count-panel.png') 54 60 54 105 fill / 18px 20px 18px 35px;
+}
+/* Patvirtinimo mygtukas (btn-target-ok, 9-slice 45 48) — min 44px lietimo zona */
+.combat-target-ok {
+  min-width: 118px; min-height: 44px; cursor: pointer; padding: 0 14px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: transparent !important; border: 15px solid transparent; border-width: 15px 16px;
+  border-image: url('/ravenof-ui/combat/targeting/btn-target-ok.png') 45 48 45 48 fill / 15px 16px;
+}
+/* Atšaukimo mygtukas (btn-target-cancel) — 44×44 lietimo taikinys */
+.combat-target-cancel {
+  width: 44px; height: 44px; border: 0; cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent url('/ravenof-ui/combat/targeting/btn-target-cancel.png') center / contain no-repeat;
+}
+/* Ėjimo juosta (turn-banner-player/enemy, 9-slice 45 75) */
+.combat-turn-banner {
+  min-height: 50px; background: transparent !important;
+  display: flex; align-items: center; justify-content: center;
+  border: 10px solid transparent; border-width: 10px 18px;
+  border-image: url('/ravenof-ui/combat/turns/turn-banner-player.png') 45 75 45 75 fill / 10px 18px;
+}
+.combat-turn-banner[data-turn="enemy"] {
+  border-image-source: url('/ravenof-ui/combat/turns/turn-banner-enemy.png');
+}
+/* Ėjimo skelbimas (turn-announcement-player/enemy, 9-slice 105 120) */
+.combat-turn-announcement {
+  min-width: 300px; min-height: 120px; background: transparent !important;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 35px solid transparent; border-width: 35px 40px;
+  border-image: url('/ravenof-ui/combat/turns/turn-announcement-player.png') 105 120 105 120 fill / 35px 40px;
+}
+.combat-turn-announcement[data-turn="enemy"] {
+  border-image-source: url('/ravenof-ui/combat/turns/turn-announcement-enemy.png');
+}
+/* Avataro portretas po permatomu rėmu — iškirpimas pagal pako formą */
+.combat-avatar-portrait {
+  position: absolute; inset: 0; overflow: hidden;
+  clip-path: polygon(
+    50% 12.9%, 60% 13.6%, 71% 15.7%, 78% 21.4%, 82.2% 27.1%, 81.4% 47.1%, 80.6% 61.4%,
+    78.1% 64.3%, 75.6% 67.1%, 62% 68.8%, 50% 69%, 38% 68.8%, 24.4% 67.1%, 21.9% 64.3%,
+    19.4% 61.4%, 18.6% 47.1%, 17.8% 27.1%, 22% 21.4%, 29% 15.7%, 40% 13.6%
+  );
+}
+/* Kovos režimų baneriai — tekstas įkeptas paveikslėlyje (LT/EN matrica) */
+.battle-mode-banner {
+  position: relative; aspect-ratio: 1; width: 100%; border: 0; padding: 0; cursor: pointer;
+  background: transparent center / contain no-repeat; display: block;
+}
+.battle-mode-banner[data-mode="random-faction"]   { background-image: url('/ravenof-ui/combat/battle-modes/mode-random-faction.png'); }
+.battle-mode-banner[data-mode="selected-faction"] { background-image: url('/ravenof-ui/combat/battle-modes/mode-selected-faction.png'); }
+.battle-mode-banner[data-mode="public-deck"]      { background-image: url('/ravenof-ui/combat/battle-modes/mode-public-deck.png'); }
+.battle-mode-banner[data-mode="training"]         { background-image: url('/ravenof-ui/combat/battle-modes/mode-training.png'); }
+.battle-mode-banner[data-language="en"][data-mode="random-faction"]   { background-image: url('/ravenof-ui/combat/battle-modes/en/mode-random-faction.png'); }
+.battle-mode-banner[data-language="en"][data-mode="selected-faction"] { background-image: url('/ravenof-ui/combat/battle-modes/en/mode-selected-faction.png'); }
+.battle-mode-banner[data-language="en"][data-mode="public-deck"]      { background-image: url('/ravenof-ui/combat/battle-modes/en/mode-public-deck.png'); }
+.battle-mode-banner[data-language="en"][data-mode="training"]         { background-image: url('/ravenof-ui/combat/battle-modes/en/mode-training.png'); }
+.battle-mode-banner:active { transform: translateY(1px) scale(.985); filter: brightness(.9); }
+.combat-target-ok:active:not(:disabled), .combat-target-cancel:active {
+  transform: translateY(1px) scale(.98); filter: brightness(.88);
+}
+@media (prefers-reduced-motion: reduce) {
+  .combat-end-turn, .combat-discard-gold, .combat-round-icon, .combat-send, .combat-emote-slot,
+  .combat-target-ok, .combat-target-cancel, .battle-mode-banner,
+  .combat-turn-banner, .combat-turn-announcement {
+    transition: none !important; animation: none !important;
+  }
+  .combat-end-turn:active, .combat-discard-gold:active, .combat-round-icon:active,
+  .combat-send:active, .combat-emote-slot:active, .combat-target-ok:active,
+  .combat-target-cancel:active, .battle-mode-banner:active { transform: none !important; }
+}

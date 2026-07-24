@@ -167,3 +167,12 @@ export function RavenofStatTile({ value, label, color = 'var(--ravenof-text-prim
     </div>
   )
 }
+
+// ── Kovos režimų baneriai (Combat UI Asset Pack v1.6) ────────────────────────
+// Antraštės yra ĮKEPTOS į paveikslėlius, todėl kalbai keičiantis keičiam patį
+// paveikslėlį. Vienas bendras pagalbininkas — naudoti visur, kur reikia banerio.
+export type BattleMode = 'random-faction' | 'selected-faction' | 'public-deck' | 'training'
+
+export function battleModeAsset(mode: BattleMode, locale: string): string {
+  return `${RAVENOF_ASSET}/combat/battle-modes${locale === 'en' ? '/en' : ''}/mode-${mode}.png`
+}

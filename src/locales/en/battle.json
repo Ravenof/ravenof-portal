@@ -37,6 +37,7 @@
     "coinGreen": "GREEN",
     "coinRed": "RED",
     "collapseTip": "Collapse – you can play, the tip will wait",
+    "confirmOk": "OK",
     "controlEndOfTurn": "Controlled until end of turn",
     "controlUntilNextTurn": "Controlled until the start of the next turn",
     "copyText": "Choose a creature – its effect becomes your creature's effect.",

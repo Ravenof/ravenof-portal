@@ -266,3 +266,60 @@ Pakeista (logika nekeista):
 CSS: `.combat-*` klasės `ravenof-ui.css` (end-turn, discard-gold, round-icon, chat-head, send, emote-slot,
 hint-pill, timer-chip, skill-row). Patikros: tsc OK · eslint 0 naujų (nuimti nebenaudojami lucide importai) ·
 build OK · gyva kova mock aplinkoje: `artifacts/ravenof-ui-phase-5/combat-implementation.png`.
+
+---
+
+# Combat Asset Pack v1.6 — priedas (2026-07-24)
+
+Paketas `Ravenof_Combat_UI_Asset_Pack_v1` atnaujintas iki **v1.6** (`asset-manifest.json`): prie
+ankstesnių 18 PNG prisidėjo dar 21 — `targeting/` (7), `turns/` (4), `avatars/` (2),
+`battle-modes/` + `battle-modes/en/` (8). Iš viso `public/ravenof-ui/combat/` = **39 failai**.
+Žaidimo logika, Supabase kvietimai, maršrutai, garsai (`playUiClick`) ir `Escape` tvarkyklės NEKEISTI.
+
+## Pakeista
+
+- **Kovos režimų baneriai** (`DigitalPvE.tsx`) — 2×2 varžovo plytelės pakeistos į
+  `.battle-mode-banner` (aspect-ratio 1). Antraštės **įkeptos į paveikslėlį**, todėl matomo
+  teksto nebedubliuojam — liko tik `<span className="sr-only">` etiketė ekrano skaitytuvams.
+  Dešinės kolonos peržiūra taip pat naudoja paketo baneri (liko tik paaiškinamasis subtitras).
+- **Ėjimo juosta** (`BattleLayout.tsx`) — `turn-banner-player/enemy.png` per
+  `.combat-turn-banner[data-turn]`, plotis `min(500px, 56vw)`, tekstas gyvas (`battle.layout.*`).
+- **Ėjimo skelbimas** (`TutorialGame.tsx`) — `turn-announcement-player/enemy.png` per
+  `.combat-turn-announcement[data-turn]`; vardas + `battle.game.turnLabel` lieka dinamiški.
+- **Avatarų rėmai** (`AvatarFrame`) — `frame-avatar-player/enemy.png` 120×140 (`usagePx`);
+  portretas/idle-video po permatomu rėmu `.combat-avatar-portrait` (clip-path pagal išmatuotą
+  rėmo langą), rėmas `object-fit: contain` viršuje (`z-index: 2`), HP — dinaminis HTML ant
+  įkeptos plokštelės (`top: 85.7%`, kritinė būsena `#ff6b6b`). Subyrėjimo šukės naudoja tą pačią
+  kompoziciją (portretas + naujas rėmas), t. y. animacija nepakeista.
+- **Taikymo HUD** (`TutorialGame.tsx`) — `.combat-target-panel` (+ `icon-targeting.png`),
+  patvirtinimas `.combat-target-ok` (+ `icon-checkmark.png`, `battle.game.confirmOk`),
+  atšaukimas `.combat-target-cancel` 44×44 (+ `icon-cancel.png`, `aria-label=common.cancel`).
+  Emoji 🎯/🕯/✓/✕ pašalinti. **Elgsena nepakeista**: `confirmSpellTargets`, `canConfirmTargets`,
+  `resolveLastwish` ir `Escape` veikia kaip anksčiau.
+- **Pažymėti taikiniai** — žali ✓ apskritimai pakeisti į `badge-target-selected.png` (26/20/24px:
+  korta / artefaktas / avataras).
+- **Vienas bendras pagalbininkas** (`RavenofKit.tsx`):
+  `battleModeAsset(mode: BattleMode, locale: string)` → `.../battle-modes[/en]/mode-<mode>.png`.
+- **i18n** — naujas raktas `battle.game.confirmOk` (LT „Gerai" / EN „OK").
+
+## CSS (`ravenof-ui.css`)
+
+`.combat-target-panel` (9-slice 54 60 54 105), `.combat-target-ok` (45 48; min 118×44),
+`.combat-target-cancel` (44×44), `.combat-turn-banner` (45 75), `.combat-turn-announcement`
+(105 120), `.combat-avatar-portrait` (clip-path), `.battle-mode-banner` su
+`[data-mode]` × `[data-language="en"]` matrica (8 paveikslėliai), bendra `:disabled` taisyklė
+(opacity .48 / saturate .45) ir `@media (prefers-reduced-motion: reduce)`.
+
+## Patikros (2026-07-24)
+
+- `npx tsc --noEmit` — OK.
+- ESLint — **0 naujų klaidų** (bazinė šaka 11, po pakeitimų 11; visos senos:
+  `react-hooks/rules-of-hooks` po SSR guard'o + nenaudojamas `KEYWORD_LABELS`).
+- `node scripts/i18n-validate.mjs` — ERROR 0.
+- `npx next build` — sėkmingas.
+- Vizualiai (mock Supabase + dev :3100, **0 pageerror**):
+  `pve-modes-lt.png` / `pve-modes-en.png` (LT↔EN įkeptos antraštės persijungia, aukso švytėjimas
+  + deimanto žymė, jokių dvigubų antraščių), `combat-announcement.png`,
+  `combat-targeting-hud.png` (panel + OK aktyvus/neaktyvus + atšaukti + abi juostos ir skelbimai),
+  `combat-1536x768.png`, `combat-1366x768.png`, `combat-1280x720.png`, `combat-1024x600.png`
+  (visuose: `hOverflow 0`, `vOverflow 0`, juosta 500×50 centre, „Baigti ėjimą" 92×92 pasiekiamas).

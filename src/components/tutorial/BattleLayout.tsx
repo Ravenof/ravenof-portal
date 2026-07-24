@@ -148,15 +148,11 @@ export default function BattleLayout(props: BattleLayoutProps) {
             </div>
             {/* Priešo padarai */}
             <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
-            {/* TAVO ĖJIMAS divideris (keičiasi + pulse priešo ėjime) */}
-            <div className="flex items-center justify-center gap-2 py-0.5 rounded-full shrink-0"
-              style={{
-                background: myTurn ? 'linear-gradient(90deg, rgba(240,180,41,0) 0%, rgba(240,180,41,0.12) 50%, rgba(240,180,41,0) 100%)' : 'linear-gradient(90deg, rgba(139,92,246,0) 0%, rgba(139,92,246,0.14) 50%, rgba(139,92,246,0) 100%)',
-                borderTop: '1px solid ' + (myTurn ? 'rgba(240,180,41,0.18)' : 'rgba(139,92,246,0.22)'),
-                borderBottom: '1px solid ' + (myTurn ? 'rgba(240,180,41,0.18)' : 'rgba(139,92,246,0.22)'),
-              }}>
+            {/* TAVO ĖJIMAS juosta — Combat UI Asset Pack v1.6 (turn-banner-player/enemy) */}
+            <div className="combat-turn-banner gap-2 shrink-0 mx-auto"
+              data-turn={myTurn ? 'you' : 'enemy'} style={{ width: 'min(500px, 56vw)' }}>
               <span className={'text-[10px] font-bold uppercase tracking-[0.24em] ' + (myTurn ? '' : 'animate-pulse')}
-                style={{ color: myTurn ? 'var(--gold)' : '#a78bfa', fontFamily: 'var(--rvn-font-display)', textShadow: myTurn ? '0 0 10px rgba(240,180,41,0.4)' : '0 0 10px rgba(139,92,246,0.4)' }}>
+                style={{ color: myTurn ? '#c6a14f' : '#b0757d', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
                 {myTurn ? t('battle.layout.yourTurn') : t('battle.layout.enemyTurn')}
               </span>
               <span className="text-[9px] truncate max-w-[36vw]" style={{ color: 'var(--text-muted)' }}>{lastMsg}</span>

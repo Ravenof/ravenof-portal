@@ -350,7 +350,10 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   /** Pralaimėjimo seka: portretas sprogsta ir subyra į šukes (žr. 'win' log įvykį). */
   dead?: boolean
 }) {
-  const size = Math.round(122 * scale)
+  // Combat UI Asset Pack v1.6: rėmas 120×140 (usagePx), portretas po permatomu rėmu
+  const size = Math.round(120 * scale)
+  const sizeH = Math.round(140 * scale)
+  const frameSrc = `/ravenof-ui/combat/avatars/frame-avatar-${owner === 'player' ? 'player' : 'enemy'}.png`
   const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
   const crit = hp > 0 && hp <= maxHp * 0.25
   const videos = avatar?.videos ?? []
@@ -383,8 +386,6 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vid, vidReady])
-  // Vidinio lango įdubos (iš frame.png analizės)
-  const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
   const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
   const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: 'center' }
   return (
@@ -392,10 +393,10 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
       transition={{ duration: dead ? 0.55 : 0.34 }}
       className="relative pointer-events-none"
-      style={{ width: size, height: size, filter: dead ? 'none' : `drop-shadow(0 0 14px ${glow})` }}>
+      style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 14px ${glow})` }}>
       {/* portretas / idle-video (po rėmu); žuvus — viskas subyra, lieka tuščia vieta */}
       {!dead && (
-        <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
+        <div className="combat-avatar-portrait" style={{ background: '#0a0810', zIndex: 1 }}>
           {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
           {avatar?.imageUrl
             // eslint-disable-next-line @next/next/no-img-element
@@ -441,14 +442,14 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
                 transition={{ duration: 1.35, delay, ease: [0.16, 0.6, 0.45, 1] }}>
                 {/* pilnos kompozicijos kopija, paslinkta taip, kad šukė rodytų savo iškarpą */}
                 <div className="absolute" style={{ width: '400%', height: '400%', left: `${-c * 100}%`, top: `${-r * 100}%` }}>
-                  <div className="absolute overflow-hidden" style={{ ...win, borderRadius: 4, background: '#0a0810' }}>
+                  <div className="combat-avatar-portrait" style={{ background: '#0a0810' }}>
                     {avatar?.imageUrl
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={avatar.imageUrl} alt="" draggable={false} style={fitStyle} />
                       : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/icons/frame.png" alt="" draggable={false} className="absolute inset-0 w-full h-full select-none" />
+                  <img src={frameSrc} alt="" draggable={false} className="absolute inset-0 w-full h-full select-none" style={{ objectFit: 'contain' }} />
                 </div>
               </motion.div>
             )
@@ -469,12 +470,12 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       )}
       {/* ornate rėmas (žuvus — subyrėjęs, nebe rodomas) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {!dead && <img src="/icons/frame.png" alt="" className="absolute inset-0 w-full h-full select-none" draggable={false} />}
+      {!dead && <img src={frameSrc} alt="" className="absolute inset-0 w-full h-full select-none" draggable={false} style={{ objectFit: 'contain', zIndex: 2 }} />}
       {/* HP ant apatinio skydo */}
       {!dead && (
-        <span className="absolute" style={{ left: '50%', bottom: '9%', transform: 'translateX(-50%)',
+        <span className="absolute" style={{ left: '50%', top: '85.7%', transform: 'translate(-50%, -50%)', zIndex: 3,
           fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: Math.round(size * 0.155), lineHeight: 1,
-          color: crit ? '#ff6b6b' : '#e8c84a', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}>{Math.max(0, hp)}</span>
+          color: crit ? '#ff6b6b' : '#d7c7aa', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}>{Math.max(0, hp)}</span>
       )}
     </motion.div>
   )
@@ -594,8 +595,10 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
       style={{ width: w, height: h, cursor: onClick ? 'pointer' : 'default', opacity: dimmed ? 0.4 : 1, filter: dimmed ? 'grayscale(0.7)' : undefined, transition: 'opacity 0.2s, filter 0.2s' }}
     >
       {picked && (
-        <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none"
-          style={{ width: 22, height: 22, background: '#16a34a', border: '2px solid #bbf7d0', boxShadow: '0 0 10px rgba(34,197,94,0.9)', color: '#fff', fontSize: 13, fontWeight: 900 }}>✓</span>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
+          className="absolute -top-2 -right-2 z-30 pointer-events-none select-none"
+          style={{ width: 26, height: 26, objectFit: 'contain' }} />
       )}
       <div className="absolute inset-0 rounded-lg overflow-hidden"
         style={{
@@ -2889,7 +2892,9 @@ doAction({ t: 'endTurn', actor: 'you' })
                 border: pickedKeys.has('artifact:' + a.uid) ? '2px solid #22c55e' : targetSet.has('artifact:' + a.uid) ? '2px solid #ef4444' : '1px solid rgba(240,180,41,0.4)',
               }}>
               {pickedKeys.has('artifact:' + a.uid) && (
-                <span className="absolute top-0 right-0 z-30 flex items-center justify-center rounded-bl pointer-events-none" style={{ width: 16, height: 16, background: '#16a34a', color: '#fff', fontSize: 11, fontWeight: 900 }}>✓</span>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
+                  className="absolute top-0 right-0 z-30 pointer-events-none select-none" style={{ width: 20, height: 20, objectFit: 'contain' }} />
               )}
               {a.card.image
                 // eslint-disable-next-line @next/next/no-img-element
@@ -3007,7 +3012,9 @@ doAction({ t: 'endTurn', actor: 'you' })
           boxShadow: pickedKeys.has('player:' + side) ? '0 0 16px rgba(34,197,94,0.7)' : targetable ? '0 0 14px rgba(239,68,68,0.7)' : 'none',
         }}>
         {pickedKeys.has('player:' + side) && (
-          <span className="absolute -top-2 -right-2 z-30 flex items-center justify-center rounded-full pointer-events-none" style={{ width: 20, height: 20, background: '#16a34a', border: '2px solid #bbf7d0', color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
+            className="absolute -top-2 -right-2 z-30 pointer-events-none select-none" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         )}
         <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} dead={avatarDead === side} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
@@ -4452,9 +4459,9 @@ doAction({ t: 'endTurn', actor: 'you' })
         {turnBanner && (
           <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[129] flex items-center justify-center pointer-events-none">
-            <div className="px-7 py-4 rounded-2xl text-center" style={{ background: 'rgba(10,8,16,0.93)', border: '1px solid ' + (turnBanner.you ? 'rgba(74,222,128,0.6)' : 'rgba(239,68,68,0.6)'), boxShadow: '0 0 36px rgba(0,0,0,0.7)' }}>
-              <p className="text-2xl font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: turnBanner.you ? '#4ade80' : '#f87171' }}>{turnBanner.name}</p>
-              <p className="text-sm tracking-wide mt-0.5" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.turnLabel')}</p>
+            <div className="combat-turn-announcement text-center" data-turn={turnBanner.you ? 'you' : 'enemy'}>
+              <p className="text-2xl font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: turnBanner.you ? '#e8c84a' : '#e0707c', textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>{turnBanner.name}</p>
+              <p className="text-sm tracking-wide mt-0.5" style={{ color: '#d7c7aa', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>{t('battle.game.turnLabel')}</p>
             </div>
           </motion.div>
         )}
@@ -4463,21 +4470,26 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── kelių taikinių parinkimo indikatorius (1/N) ── */}
       {(select?.kind === 'spell' || select?.kind === 'spellMulti' || select?.kind === 'lastwish') && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[121] flex items-center gap-2">
-          <div className="px-4 py-2 rounded-full text-sm font-bold pointer-events-none"
-            style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-            {select.kind === 'lastwish'
-              ? <>🕯 {t('battle.game.lastwishTargets', { card: game?.pendingLastwish?.cardName ?? '', picked: select.picked.length, need: select.need })}</>
-              : <>🎯 {select.kind === 'spellMulti' ? t('battle.game.targets', { picked: select.picked.length, need: select.need }) : (select.picked ? t('battle.game.targetPicked') : t('battle.game.pickTarget'))}</>}
+          <div className="combat-target-panel flex items-center gap-2 text-sm font-bold pointer-events-none"
+            style={{ color: '#e8c84a', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ravenof-ui/combat/targeting/icon-targeting.png" alt="" aria-hidden style={{ width: 22, height: 22, objectFit: 'contain' }} />
+            <span>{select.kind === 'lastwish'
+              ? t('battle.game.lastwishTargets', { card: game?.pendingLastwish?.cardName ?? '', picked: select.picked.length, need: select.need })
+              : select.kind === 'spellMulti' ? t('battle.game.targets', { picked: select.picked.length, need: select.need })
+              : (select.picked ? t('battle.game.targetPicked') : t('battle.game.pickTarget'))}</span>
           </div>
           <button onClick={confirmSpellTargets} disabled={!canConfirmTargets}
-            className="px-4 py-2 rounded-full text-sm font-extrabold"
-            style={{ background: canConfirmTargets ? 'linear-gradient(145deg,#16a34a,#15803d)' : 'rgba(40,40,46,0.8)', border: '1px solid ' + (canConfirmTargets ? '#4ade80' : 'rgba(255,255,255,0.15)'), color: canConfirmTargets ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: canConfirmTargets ? '0 0 16px rgba(34,197,94,0.55)' : 'none', cursor: canConfirmTargets ? 'pointer' : 'not-allowed' }}>
-            ✓ Gerai
+            className="combat-target-ok text-sm font-extrabold"
+            style={{ color: canConfirmTargets ? '#e8c84a' : '#8d8878', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.9)', cursor: canConfirmTargets ? 'pointer' : 'not-allowed' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ravenof-ui/combat/targeting/icon-checkmark.png" alt="" aria-hidden style={{ width: 24, height: 24, objectFit: 'contain' }} />
+            {t('battle.game.confirmOk')}
           </button>
           <button onClick={() => { playUiClick(); if (select?.kind === 'lastwish') doAction({ t: 'resolveLastwish', targets: [] }); setSelect(null) }}
-            className="px-3 py-2 rounded-full text-sm font-bold"
-            style={{ background: 'rgba(13,10,20,0.92)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>
-            ✕
+            className="combat-target-cancel" aria-label={t('common.cancel')}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ravenof-ui/combat/targeting/icon-cancel.png" alt="" aria-hidden style={{ width: 24, height: 24, objectFit: 'contain' }} />
           </button>
         </div>
       )}

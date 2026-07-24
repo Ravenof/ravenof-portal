@@ -19,8 +19,8 @@ import { PVE_REWARD } from '@/lib/economy'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
 import { getStarterDecks } from '@/lib/starterDecks'
-import { useT, useContent, useGameContent } from '@/lib/i18n/react'
-import { RavenofBannerButton } from '@/components/digital/ui/RavenofKit'
+import { useT, useContent, useGameContent, useLocale } from '@/lib/i18n/react'
+import { RavenofBannerButton, battleModeAsset, type BattleMode } from '@/components/digital/ui/RavenofKit'
 
 // i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -30,12 +30,10 @@ type Faction = { id: number; name: string; icon_url: string | null; color_hex: s
 type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number }
 type Mode = 'random' | 'faction' | 'public'
 
-// Plytelės kampų nuopjovos (prototipo aiType tile)
-const TILE_CLIP = 'polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px))'
-
 export function DigitalPvE() {
   const gc = useGameContent()
   const t = useT()
+  const locale = useLocale()
   const tc = useContent()
   const router = useRouter()
   const [decks, setDecks] = useState<Deck[] | null>(null)
@@ -92,10 +90,11 @@ export function DigitalPvE() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // preload asset mygtukų — be layout shift ir mirgėjimo
+  // preload kovos režimų banerių (Combat UI Asset Pack v1.6) — be layout shift
   useEffect(() => {
-    for (const a of ['/digital/ai/types/random-faction.png?v=1', '/digital/ai/types/selected-faction.png?v=1', '/digital/ai/types/public-deck.png?v=1', '/digital/ai/types/tutorials.png?v=1']) { const im = new Image(); im.src = a }
-  }, [])
+    const modes: BattleMode[] = ['random-faction', 'selected-faction', 'public-deck', 'training']
+    for (const m of modes) { const im = new Image(); im.src = battleModeAsset(m, locale) }
+  }, [locale])
 
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
@@ -142,27 +141,33 @@ export function DigitalPvE() {
     <div className="shrink-0" style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{txt}</div>
   )
 
-  // ── Varžovo plytelė (esamas PNG asset — rėmas+emblema+LT pavadinimas jau arte) ──
-  const tile = (opts: { asset: string; label: string; selected: boolean; onClick?: () => void; href?: string; testId?: string }) => {
-    const frame: React.CSSProperties = {
-      position: 'relative', clipPath: TILE_CLIP, padding: 0, cursor: 'pointer', overflow: 'hidden',
-      border: 0, background: opts.selected ? 'linear-gradient(160deg, rgba(212,163,59,0.16), var(--ravenof-bg-surface))' : 'var(--ravenof-bg-surface)',
-      boxShadow: opts.selected ? 'inset 0 0 0 1.5px var(--ravenof-gold)' : 'inset 0 0 0 1px var(--ravenof-border-strong)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }
-    const img = (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={opts.asset} alt="" aria-hidden draggable={false}
-        onError={(e) => { const el = e.target as HTMLImageElement; if (!el.dataset.fb) { el.dataset.fb = '1'; console.warn('[PvE] trūksta asset:', opts.asset); el.src = '/digital/icons/fi-gifts.png' } }}
-        className="block pointer-events-none select-none" style={{ width: '92%', height: '86%', objectFit: 'contain', objectPosition: 'center', opacity: opts.selected ? 1 : 0.66, filter: opts.selected ? 'saturate(1.08) brightness(1.05)' : 'saturate(0.72) brightness(0.8)', transition: 'filter 160ms ease, opacity 160ms ease' }} />
-    )
+  // ── Varžovo plytelė = kovos režimo baneris (Combat UI Asset Pack v1.6) ──────
+  // Antraštė ĮKEPTA į paveikslėlį (LT/EN atskiri failai), todėl matomo teksto
+  // NEPIEŠIAM — pridedam tik sr-only etiketę prieinamumui.
+  const tile = (opts: { mode: BattleMode; label: string; selected: boolean; onClick?: () => void; href?: string; testId?: string }) => {
     const marker = opts.selected && (
       <span aria-hidden style={{ position: 'absolute', top: 7, right: 9, width: 11, height: 11, background: 'var(--ravenof-gold-bright)', transform: 'rotate(45deg)', boxShadow: '0 0 8px rgba(242,196,90,0.7)' }} />
     )
-    if (opts.href) return <Link key={opts.label} href={opts.href} onClick={() => playUiClick()} className="ravenof-press" style={frame} aria-label={opts.label} data-setup-tile={opts.testId}>{img}{marker}</Link>
+    const glow: React.CSSProperties = opts.selected
+      ? { filter: 'drop-shadow(0 0 10px rgba(212,163,59,0.45)) saturate(1.06) brightness(1.05)' }
+      : { filter: 'saturate(0.78) brightness(0.84)' }
+    const common = {
+      className: 'battle-mode-banner ravenof-press',
+      'data-mode': opts.mode,
+      'data-language': locale === 'en' ? 'en' : undefined,
+      'data-setup-tile': opts.testId,
+      style: { ...glow, transition: 'filter 160ms ease' } as React.CSSProperties,
+    }
+    if (opts.href) return (
+      <Link key={opts.mode} href={opts.href} onClick={() => playUiClick()} {...common}>
+        <span className="sr-only">{opts.label}</span>{marker}
+      </Link>
+    )
     return (
-      <button key={opts.label} type="button" onClick={() => { playUiClick(); opts.onClick?.() }} className="ravenof-press" style={frame}
-        aria-label={opts.label} aria-pressed={opts.selected} data-selected={opts.selected || undefined} data-setup-tile={opts.testId}>{img}{marker}</button>
+      <button key={opts.mode} type="button" onClick={() => { playUiClick(); opts.onClick?.() }} {...common}
+        aria-pressed={opts.selected} data-selected={opts.selected || undefined}>
+        <span className="sr-only">{opts.label}</span>{marker}
+      </button>
     )
   }
 
@@ -222,11 +227,11 @@ export function DigitalPvE() {
         {/* ── CENTRAS: varžovo tipas 2×2 ── */}
         <div className="flex flex-col min-w-0" style={{ flex: 1.15, gap: 8 }}>
           {label(t('battle.pve.opponentLabel'))}
-          <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-2" style={{ gap: 10 }}>
-            {tile({ asset: '/digital/ai/types/random-faction.png?v=1', label: t('battle.pve.types.random'), selected: mode === 'random', onClick: () => setMode('random'), testId: 'random' })}
-            {tile({ asset: '/digital/ai/types/selected-faction.png?v=1', label: t('battle.pve.types.faction'), selected: mode === 'faction', onClick: () => setMode('faction'), testId: 'faction' })}
-            {tile({ asset: '/digital/ai/types/public-deck.png?v=1', label: t('battle.pve.types.public'), selected: mode === 'public', onClick: () => setMode('public'), testId: 'public' })}
-            {tile({ asset: '/digital/ai/types/tutorials.png?v=1', label: t('battle.pve.types.tutorial'), selected: false, href: '/digital/tutorial', testId: 'tutorial' })}
+          <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-2 place-items-center" style={{ gap: 10 }}>
+            {tile({ mode: 'random-faction', label: t('battle.pve.types.random'), selected: mode === 'random', onClick: () => setMode('random'), testId: 'random' })}
+            {tile({ mode: 'selected-faction', label: t('battle.pve.types.faction'), selected: mode === 'faction', onClick: () => setMode('faction'), testId: 'faction' })}
+            {tile({ mode: 'public-deck', label: t('battle.pve.types.public'), selected: mode === 'public', onClick: () => setMode('public'), testId: 'public' })}
+            {tile({ mode: 'training', label: t('battle.pve.types.tutorial'), selected: false, href: '/digital/tutorial', testId: 'tutorial' })}
           </div>
         </div>
 
@@ -237,11 +242,11 @@ export function DigitalPvE() {
             {mode === 'random' && (
               <div className="flex-1 relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/digital/ai/types/random-faction.png?v=1" alt="" aria-hidden className="absolute inset-0 w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', objectPosition: 'center 38%', padding: '8%', opacity: 0.9, filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.6))' }} />
+                <img src={battleModeAsset('random-faction', locale)} alt="" aria-hidden className="absolute inset-0 w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', objectPosition: 'center 38%', padding: '8%', opacity: 0.9, filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.6))' }} />
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(7,6,10,0.94) 0%, rgba(7,6,10,0.25) 45%, transparent 70%)' }} />
+                {/* Antraštė jau įkepta banerio arte — kartojam TIK paaiškinimą */}
                 <div className="absolute inset-x-0 bottom-0" style={{ padding: '0 14px 12px' }}>
-                  <div style={{ font: '700 15px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', letterSpacing: 1, textTransform: 'uppercase' }}>{t('battle.pve.randomOpp')}</div>
-                  <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{t('battle.pve.randomOppSub')}</div>
+                  <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pve.randomOppSub')}</div>
                 </div>
               </div>
             )}
