@@ -202,6 +202,55 @@ fs.mkdirSync(OUT2, { recursive: true })
   await context.close()
 }
 
+// ── Fazė 3 ekranai ───────────────────────────────────────────────────────────
+const OUT3 = 'artifacts/ravenof-ui-phase-3'
+fs.mkdirSync(OUT3, { recursive: true })
+// Register + Forgot (bare)
+{
+  const { page, context } = await newPage(browser, { auth: false })
+  await page.goto(`${BASE}/digital/register`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1600)
+  await page.screenshot({ path: path.join(OUT3, 'register-implementation.png') })
+  await page.goto(`${BASE}/digital/forgot-password`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1400)
+  await page.screenshot({ path: path.join(OUT3, 'forgot-implementation.png') })
+  await context.close()
+}
+// Onboarding (1 žingsnis — kaladė; 2 žingsnis — avataras; sd-1 claimed → be RPC).
+// Mock profilis laikinai perjungiamas į digital_onboarded_at=null, kad layout
+// guard'as nenukreiptų į /digital.
+{
+  const MOCK = 'http://localhost:54321'
+  await fetch(`${MOCK}/__mock/profile`, { method: 'POST', body: JSON.stringify({ digital_onboarded_at: null }) }).catch(() => {})
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/onboarding`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2400)
+  await page.screenshot({ path: path.join(OUT3, 'onboarding-step1-implementation.png') })
+  await page.locator('button', { hasText: /toliau/i }).last().click()
+  await page.waitForTimeout(1600)
+  await page.screenshot({ path: path.join(OUT3, 'onboarding-step2-implementation.png') })
+  await context.close()
+  await fetch(`${MOCK}/__mock/profile`, { method: 'POST', body: JSON.stringify({ digital_onboarded_at: '2026-01-02T00:00:00Z' }) }).catch(() => {})
+}
+// PvE / PvP / Campaign (full-bleed)
+for (const [route, name] of [['/digital/pve', 'pve'], ['/digital/pvp', 'pvp'], ['/digital/campaign', 'campaign']]) {
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2400)
+  await page.screenshot({ path: path.join(OUT3, `${name}-implementation.png`) })
+  await context.close()
+}
+// Friends (+ atidarytas pokalbis)
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/friends`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2200)
+  await page.locator('[data-testid="friend-row-TamsusRitis"]').click()
+  await page.waitForTimeout(1400)
+  await page.screenshot({ path: path.join(OUT3, 'friends-implementation.png') })
+  await context.close()
+}
+
 await browser.close()
 fs.writeFileSync(path.join(OUT, 'console-errors.json'), JSON.stringify(consoleErrors, null, 2))
 console.log('screenshots done; console errors:', consoleErrors.length)

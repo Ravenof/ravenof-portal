@@ -70,6 +70,22 @@ export function RavenofButton({ variant = 'primary', small, className = '', styl
   return <button className={cls} style={{ ...sm, ...style }} {...rest}>{children}</button>
 }
 
+// ── RavenofBannerButton — raudona vėliavos juosta (prototipo primary CTA) ────
+// button-primary-normal.png tempiamas 100%/100% (ne nine-slice; patvirtinta F2).
+export function RavenofBannerButton({ disabled, style, children, className = '', ...rest }:
+  ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button disabled={disabled} className={`ravenof-press ${className}`} style={{
+      textAlign: 'center', font: '800 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+      color: disabled ? '#5e5868' : '#f6e8c6',
+      background: disabled ? 'var(--ravenof-bg-elevated)' : `url('${RAVENOF_ASSET}/buttons/button-primary-normal.png') center / 100% 100% no-repeat`,
+      padding: '13px 20px', border: 0, cursor: disabled ? 'default' : 'pointer',
+      textShadow: disabled ? 'none' : '0 1px 4px rgba(0,0,0,.8)',
+      ...style,
+    }} {...rest}>{children}</button>
+  )
+}
+
 // ── RavenofTextField ─────────────────────────────────────────────────────────
 export function RavenofTextField({ className = '', ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={`ravenof-field ${className}`} {...rest} />

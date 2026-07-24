@@ -30,6 +30,7 @@
   "filterOffline": "Neprisijungę",
   "filterOnline": "Prisijungę",
   "friendsCount": "Draugai ({{online}}/{{total}} online)",
+  "friendsSubtitle": "Žinutės, mainai ir kvietimai į kovą",
   "hiddenNote": "👁 Kiti mato tave neprisijungusį",
   "invitesToBattle": "{{name}} kviečia į kovą",
   "lvl": "{{lvl}} lvl",
@@ -43,13 +44,16 @@
     "unmute": "🔔 Įjungti pranešimus"
   },
   "message": "Žinutė",
+  "messagePlaceholder": "Rašyk žinutę…",
   "moreActions": "Daugiau veiksmų",
   "noChats": "Pokalbių dar nėra — parašyk draugui žinutę!",
   "noFriendsSub": "Pridėk draugą pagal naudotojo vardą ir kvieskite vienas kitą į kovą.",
   "noFriendsTitle": "Dar neturi draugų",
   "noNewRequests": "Naujų užklausų nėra.",
   "noneFound": "Pagal paiešką/filtrą draugų nerasta.",
+  "onlineN": "{{count}} prisijungę",
   "open": "Atidaryti",
+  "pickFriendHint": "Pasirink draugą kairėje — pokalbis atsidarys čia.",
   "presence": {
     "away": "Pasitraukęs",
     "dnd": "Netrukdyti",
@@ -74,6 +78,7 @@
     "dndHint": "Be garsų ir automatinių pokalbių langų",
     "hiddenHint": "Kiti mato tave kaip neprisijungusį (serveris tai užtikrina)"
   },
+  "title": "Draugai",
   "trade": {
     "cancel": "Atšaukti mainus",
     "cancelled": "Mainai atšaukti.",
@@ -94,6 +99,5 @@
   "usernamePlaceholder": "Naudotojo vardas",
   "wantsToTrade": "{{name}} nori mainytis",
   "writeTo": "Rašyti {{name}}",
-  "yourStatus": "Tavo būsena:",
-  "friendsSubtitle": "Žinutės, mainai ir kvietimai į kovą"
+  "yourStatus": "Tavo būsena:"
 }

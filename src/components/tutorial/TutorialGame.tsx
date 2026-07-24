@@ -5,7 +5,7 @@
 // žetonai, ŽMK, pop-up scenarijus ir dark fantasy ambient muzika.
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Swords, Music, VolumeX } from 'lucide-react'
@@ -26,14 +26,14 @@ import {
   effectiveCost, auraSpellDamageBonus,
   STATUS_META, TutStatus, boardCreatureCap, type ZmkValue,
 } from '@/lib/tutorial/engine'
-import { eventText, resultText } from '@/lib/tutorial/logText'
+import { eventText } from '@/lib/tutorial/logText'
 import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 import { useT } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
 import { statusName, statusTooltip } from '@/lib/game/statusVfx'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
-import { awardGold, PVE_REWARD, PVP_REWARD, PVE_LOSS_REWARD, PVP_LOSS_REWARD, type GoldReason } from '@/lib/economy'
+
 import { reportMatchV2, recordRankedMatch, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
@@ -1239,6 +1239,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     matchRewardRef.current = false
     questReportedRef.current = false
+    setMatchReward(null)     // rematch: atlygio/level-up būsena iš naujo
+    setLuDismissed(false)
     setAvatarDead(null)      // rematch: avataras vėl sveikas
     setEndShown(false)       // rematch: pabaigos modalas paslėptas iki naujos defeat sekos
     resetAvatarAudio()       // rematch: fightStart/defeat/victory frazės vėl gali groti
@@ -2036,6 +2038,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Ranked atlygis skiriamas RankedClient. Bot/unranked eina per rvn_report_match_v2
   // (config reikšmės, validumas, dienos cap, level rewards) — vienas šaltinis.
   const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[] } | null>(null)
+  const [luDismissed, setLuDismissed] = useState(false) // level-up šventės uždarymas (Fazė 3 overlay)
   const matchRewardRef = useRef(false)
   useEffect(() => {
     if (!game?.winner || matchRewardRef.current) return
@@ -4747,130 +4750,145 @@ doAction({ t: 'endTurn', actor: 'you' })
         {vsRemote && (
           <BattleChatHead chatLog={chatLog} chatInput={chatInput} setChatInput={setChatInput} sendBattleChat={sendBattleChat} open={chatOpen} setOpen={setChatOpen} />
         )}
-        {game?.winner && endShown && (
+        {game?.winner && endShown && (() => {
+          const won = game.winner === 'you'
+          const lvlBefore = matchReward ? getLevelForXp(matchReward.before) : 0
+          const prog = matchReward ? getLevelProgress(matchReward.after) : null
+          const leveledUp = !!matchReward && matchReward.valid && !!prog && prog.level > lvlBefore
+          const startPct = matchReward ? (leveledUp ? 0 : getLevelProgress(matchReward.before).progressPercent) : 0
+          return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[140] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.8)' }}>
-            <motion.div initial={{ scale: 0.7, y: 20 }} animate={{ scale: 1, y: 0 }}
-              className="rounded-2xl p-6 text-center w-[min(380px,90vw)]"
-              style={{
-                background: 'linear-gradient(145deg, #1e1729, #120d1c)',
-                border: '1px solid ' + (game.winner === 'you' ? 'rgba(240,180,41,0.6)' : 'rgba(239,68,68,0.5)'),
-                boxShadow: '0 16px 50px rgba(0,0,0,0.9)',
-              }}>
-              <p className="text-4xl mb-2">{game.winner === 'you' ? '🏆' : '💀'}</p>
-              <p className="text-lg font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: game.winner === 'you' ? 'var(--gold)' : '#f87171' }}>
-                {game.winner === 'you' ? t('battle.game.victory') : t('battle.game.defeat')}
+            className="ravenof-body fixed inset-0 z-[140] flex items-center justify-center p-4 overflow-hidden"
+            style={{ background: won
+              ? 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, #07060A 70%)'
+              : 'radial-gradient(120% 100% at 50% 40%, rgba(114,32,42,0.35) 0%, #0a0508 55%, #07060A 100%)' }}>
+            {won && <div aria-hidden className="ravenof-rays" />}
+            <motion.div initial={{ scale: 0.85, y: 14 }} animate={{ scale: 1, y: 0 }} className="relative text-center w-[min(440px,94vw)]">
+              <div className="ravenof-ornament" aria-hidden><i /></div>
+              <p className="mt-2" style={{ font: '700 clamp(24px, 6vh, 30px) var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: won ? 'var(--ravenof-gold-bright)' : '#B4444F', textShadow: won ? '0 0 30px rgba(242,196,90,0.35)' : '0 0 26px rgba(180,68,79,0.4)', margin: 0 }}>
+                {won ? t('battle.game.victory') : t('battle.game.defeat')}
               </p>
-              <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
-                {game.winner === 'you'
-                  ? t('battle.game.victoryText')
-                  : t('battle.game.defeatText')}
+              {opponentName && <p style={{ font: '400 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '4px 0 0' }}>{t('battle.game.vsName', { name: opponentName })}</p>}
+              <p style={{ font: 'italic 400 12px var(--ravenof-font-body)', color: won ? 'var(--ravenof-text-secondary)' : '#c9a08f', margin: '6px 0 0' }}>
+                {won ? t('battle.game.victoryText') : t('battle.game.defeatText')}
               </p>
 
-              {/* ── Atlygis + level-up šventė ── */}
-              {matchReward && matchReward.valid && (matchReward.gold > 0 || matchReward.xp > 0) && (() => {
-                const lvlBefore = getLevelForXp(matchReward.before)
-                const prog = getLevelProgress(matchReward.after)
-                const leveledUp = prog.level > lvlBefore
-                const startPct = leveledUp ? 0 : getLevelProgress(matchReward.before).progressPercent
-                return (
-                  <div className="mb-4">
-                    {leveledUp && (
-                      <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.25, type: 'spring', stiffness: 220, damping: 16 }}
-                        className="mb-3 px-3 py-2 rounded-xl relative overflow-hidden"
-                        style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(240,180,41,0.28), transparent 60%), linear-gradient(160deg, rgba(46,34,64,0.92), rgba(12,9,18,0.96))', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 0 26px rgba(240,180,41,0.4)' }}>
-                        <div className="text-[11px] font-extrabold tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', textShadow: '0 0 14px rgba(240,180,41,0.6)' }}>✦ NAUJAS LYGIS {prog.level} ✦</div>
-                        <div className="text-[10px] mt-0.5" style={{ color: '#e8dcc0' }}>{prog.title}</div>
-                        {matchReward.levelRewards.length > 0 && (() => {
-                          const agg = { silver: 0, essence: 0, rubies: 0, packs: 0, items: [] as string[] }
-                          for (const e of matchReward.levelRewards) for (const it of e.payload) {
-                            if (it.type === 'currency') { const a = Number(it.amount) || 0; if (it.currency === 'silver') agg.silver += a; else if (it.currency === 'essence') agg.essence += a; else if (it.currency === 'rubies') agg.rubies += a }
-                            else if (it.type === 'item') { if (it.item_type === 'pack') agg.packs += Number(it.quantity) || 0; else if (it.item_type === 'card_back') agg.items.push(t('battle.game.cardBack')) }
-                          }
-                          const chipEl = (bg: string, bd: string, el: React.ReactNode) => (<span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: bg, border: `1px solid ${bd}` }}>{el}</span>)
-                          return (
-                            <motion.div initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }} className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
-                              <span className="text-[9px] uppercase tracking-widest w-full text-center" style={{ color: 'var(--text-muted)' }}>Lygio atlygis</span>
-                              {agg.silver > 0 && chipEl('rgba(203,213,225,0.16)', 'rgba(203,213,225,0.5)', <RewardChip it={{ type: 'currency', currency: 'silver', amount: agg.silver }} size={13} textSize={10} color="#cbd5e1" />)}
-                              {agg.essence > 0 && chipEl('rgba(139,92,246,0.16)', 'rgba(139,92,246,0.5)', <RewardChip it={{ type: 'currency', currency: 'essence', amount: agg.essence }} size={13} textSize={10} color="#c4b5fd" />)}
-                              {agg.rubies > 0 && chipEl('rgba(239,68,68,0.16)', 'rgba(239,68,68,0.5)', <RewardChip it={{ type: 'currency', currency: 'rubies', amount: agg.rubies }} size={13} textSize={10} color="#fca5a5" />)}
-                              {agg.packs > 0 && chipEl('rgba(251,146,60,0.16)', 'rgba(251,146,60,0.5)', <RewardChip it={{ type: 'item', item_type: 'pack', quantity: agg.packs }} size={13} textSize={10} color="#fdba74" />)}
-                              {agg.items.map((n, i) => <span key={i}>{chipEl('rgba(96,165,250,0.16)', 'rgba(96,165,250,0.5)', <RewardChip it={{ type: 'item', item_type: 'card_back', item_id: n }} size={13} textSize={10} color="#93c5fd" />)}</span>)}
-                            </motion.div>
-                          )
-                        })()}
-                      </motion.div>
-                    )}
-                    <div className="flex items-center justify-center gap-2 mb-2.5">
-                      {matchReward.gold > 0 && (
-                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
-                          style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(240,180,41,0.4)', color: '#f3ead3' }}>
-                          <RewardChip it={{ type: 'currency', currency: 'silver', amount: matchReward.gold }} size={16} textSize={12} color="#f3ead3" />
-                        </motion.div>
-                      )}
-                      {matchReward.xp > 0 && (
-                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
-                          style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(96,165,250,0.4)', color: '#cfe0ff' }}>
-                          <RewardChip it={{ type: 'account_xp', amount: matchReward.xp }} size={16} textSize={12} color="#cfe0ff" />
-                        </motion.div>
-                      )}
-                      {matchReward.seasonXp > 0 && (
-                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.24 }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
-                          style={{ background: 'linear-gradient(165deg, rgba(46,34,64,0.9), rgba(12,9,18,0.95))', border: '1px solid rgba(139,92,246,0.4)', color: '#d6c8ff' }}>
-                          <RewardChip it={{ type: 'season_xp', amount: matchReward.seasonXp }} size={16} textSize={12} color="#d6c8ff" />
-                        </motion.div>
-                      )}
-                    </div>
-                    <div className="px-1">
-                      <div className="flex justify-between text-[9px] mb-1" style={{ color: 'var(--text-muted)' }}>
-                        <span>Lygis {prog.level}</span>
-                        <span>{prog.isMaxLevel ? 'MAX' : `${prog.xpIntoLevel} / ${prog.nextLevelXp - prog.currentLevelXp}`}</span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(240,180,41,0.22)' }}>
-                        <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: 0.35, duration: 0.9, ease: 'easeOut' }}
-                          style={{ height: '100%', background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: '0 0 10px rgba(240,180,41,0.6)' }} />
-                      </div>
-                      {!prog.isMaxLevel && (
-                        <p className="text-[9px] mt-1 text-center" style={{ color: 'var(--text-muted)' }}>
-                          {t('battle.game.nextLevelPrefix')} <span style={{ color: '#e8dcc0', fontWeight: 700 }}>{t('battle.game.levelN', { level: prog.level + 1 })}</span> {t('battle.game.forXp', { xp: prog.xpNeededForNextLevel })}
-                          {' '}<RewardChip it={{ type: 'currency', currency: 'silver', amount: 100 }} size={12} textSize={9} color="#cbd5e1" />
-                          {' '}<RewardChip it={{ type: 'currency', currency: 'essence', amount: 25 }} size={12} textSize={9} color="#c4b5fd" />
-                        </p>
-                      )}
-                    </div>
+              {/* ── Atlygio chip'ai ── */}
+              {matchReward && matchReward.valid && (matchReward.gold > 0 || matchReward.xp > 0) && (
+                <div className="flex items-center justify-center gap-2.5" style={{ marginTop: 14 }}>
+                  {matchReward.gold > 0 && (
+                    <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
+                      className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px' }}>
+                      <RewardChip it={{ type: 'currency', currency: 'silver', amount: matchReward.gold }} size={16} textSize={13} color="#f3ead3" />
+                    </motion.div>
+                  )}
+                  {matchReward.xp > 0 && (
+                    <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}
+                      className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px' }}>
+                      <RewardChip it={{ type: 'account_xp', amount: matchReward.xp }} size={16} textSize={13} color="#cfe0ff" />
+                    </motion.div>
+                  )}
+                  {matchReward.seasonXp > 0 && (
+                    <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.24 }}
+                      className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px' }}>
+                      <RewardChip it={{ type: 'season_xp', amount: matchReward.seasonXp }} size={16} textSize={13} color="#d6c8ff" />
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Lygio progresas ── */}
+              {matchReward && matchReward.valid && prog && (
+                <div style={{ margin: '12px auto 0', maxWidth: 300 }}>
+                  <div className="flex justify-between" style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginBottom: 3 }}>
+                    <span>{t('battle.game.levelN', { level: prog.level })}</span>
+                    <span>{prog.isMaxLevel ? 'MAX' : `${prog.xpIntoLevel} / ${prog.nextLevelXp - prog.currentLevelXp}`}</span>
                   </div>
-                )
-              })()}
+                  <div style={{ height: 4, background: 'var(--ravenof-border-strong)', overflow: 'hidden' }}>
+                    <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: 0.35, duration: 0.9, ease: 'easeOut' }}
+                      style={{ height: '100%', background: 'var(--ravenof-grad-gold)' }} />
+                  </div>
+                </div>
+              )}
+
               {net?.opponentId && (
                 <button onClick={async () => { if (friendAdded !== 'idle') return; playUiClick(); const r = await friendRequestById(net.opponentId!); setFriendAdded(r.ok ? 'sent' : 'exists') }} disabled={friendAdded !== 'idle'}
-                  className="w-full mb-3 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02] disabled:opacity-60"
-                  style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.5)', color: '#93c5fd', fontFamily: 'var(--rvn-font-display)' }}>
+                  className="ravenof-press mt-3 disabled:opacity-60"
+                  style={{ font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1, background: 'none', border: '1px solid rgba(96,165,250,0.5)', color: '#93c5fd', padding: '7px 14px', cursor: 'pointer' }}>
                   {friendAdded === 'sent' ? t('battle.game.friendSent') : friendAdded === 'exists' ? t('battle.game.friendExists') : t('battle.game.friendAdd', { name: opponentName ?? t('battle.game.opponent') })}
                 </button>
               )}
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-3 justify-center" style={{ marginTop: 18 }}>
                 <button onClick={() => { playUiClick(); if (deckCards) { shownTipsRef.current.clear(); setStepIdx(GUIDED_STEPS.length); setTipQueue([]); initGame(deckCards) } }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(240,180,41,0.3), rgba(240,180,41,0.1))',
-                    border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)',
-                    fontFamily: 'var(--rvn-font-display)',
-                  }}>
+                  className="ravenof-press"
+                  style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+                    background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: '14px 26px',
+                    clipPath: 'polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)', cursor: 'pointer' }}>
                   {t('battle.game.playAgain')}
                 </button>
                 <button onClick={() => { playUiClick(); closeGame() }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95"
-                  style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)' }}>
+                  className="ravenof-press"
+                  style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+                    background: 'none', border: 0, borderTop: '1px solid var(--ravenof-border-strong)', borderBottom: '1px solid var(--ravenof-border-strong)',
+                    color: 'var(--ravenof-text-primary)', padding: '14px 24px', cursor: 'pointer' }}>
                   {t('battle.game.closeBtn')}
                 </button>
               </div>
             </motion.div>
+
+            {/* ── Level-up šventė (prototipo level-up-modal — virš rezultato) ── */}
+            {leveledUp && prog && !luDismissed && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[150] flex items-center justify-center p-4 overflow-hidden"
+                style={{ background: 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, rgba(7,6,10,0.97) 70%)' }}
+                role="dialog" aria-modal="true" aria-label={t('battle.game.newLevelEyebrow')}>
+                <div aria-hidden className="ravenof-rays" />
+                <motion.div initial={{ scale: 0.85, y: 12 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+                  className="relative text-center w-[min(430px,94vw)]">
+                  <p style={{ font: '700 12px var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('battle.game.newLevelEyebrow')}</p>
+                  <div className="mx-auto flex items-center justify-center" style={{ width: 104, height: 104, marginTop: 22, marginBottom: 22, border: '2px solid #D4A33B', outline: '1px solid #D4A33B55', outlineOffset: 6, transform: 'rotate(45deg)', background: 'linear-gradient(160deg, #171126, #0a0810)', boxShadow: '0 0 40px rgba(212,163,59,0.3)' }}>
+                    <span style={{ transform: 'rotate(-45deg)', font: '700 44px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{prog.level}</span>
+                  </div>
+                  <p style={{ font: '700 17px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)', margin: 0 }}>{t('battle.game.levelTitle', { level: prog.level })}</p>
+                  <p style={{ font: '500 10px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: '3px 0 0' }}>{prog.title}</p>
+                  {matchReward!.levelRewards.length > 0 && (() => {
+                    const agg = { silver: 0, essence: 0, rubies: 0, packs: 0, items: [] as string[] }
+                    for (const e of matchReward!.levelRewards) for (const it of e.payload) {
+                      if (it.type === 'currency') { const a = Number(it.amount) || 0; if (it.currency === 'silver') agg.silver += a; else if (it.currency === 'essence') agg.essence += a; else if (it.currency === 'rubies') agg.rubies += a }
+                      else if (it.type === 'item') { if (it.item_type === 'pack') agg.packs += Number(it.quantity) || 0; else if (it.item_type === 'card_back') agg.items.push(t('battle.game.cardBack')) }
+                    }
+                    const tile = (el: React.ReactNode, key: string) => (
+                      <div key={key} className="flex flex-col items-center justify-center gap-1.5" style={{ width: 100, height: 88, background: '#15111C', border: '1px solid #3d3345' }}>{el}</div>
+                    )
+                    const tiles: React.ReactNode[] = []
+                    if (agg.silver > 0) tiles.push(tile(<RewardChip it={{ type: 'currency', currency: 'silver', amount: agg.silver }} size={26} textSize={11} color="#f3ead3" />, 'silver'))
+                    if (agg.essence > 0) tiles.push(tile(<RewardChip it={{ type: 'currency', currency: 'essence', amount: agg.essence }} size={26} textSize={11} color="#c4b5fd" />, 'essence'))
+                    if (agg.rubies > 0) tiles.push(tile(<RewardChip it={{ type: 'currency', currency: 'rubies', amount: agg.rubies }} size={26} textSize={11} color="#fca5a5" />, 'rubies'))
+                    if (agg.packs > 0) tiles.push(tile(<RewardChip it={{ type: 'item', item_type: 'pack', quantity: agg.packs }} size={26} textSize={11} color="#fdba74" />, 'packs'))
+                    agg.items.forEach((n, i) => tiles.push(tile(<RewardChip it={{ type: 'item', item_type: 'card_back', item_id: n }} size={26} textSize={11} color="#93c5fd" />, `item-${i}`)))
+                    return tiles.length ? (
+                      <>
+                        <div className="ravenof-ornament" style={{ marginTop: 18 }} aria-hidden>
+                          <span style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{t('battle.game.unlocked')}</span>
+                        </div>
+                        <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="flex flex-wrap items-stretch justify-center gap-2.5" style={{ marginTop: 12 }}>
+                          {tiles}
+                        </motion.div>
+                      </>
+                    ) : null
+                  })()}
+                  <button onClick={() => { playUiClick(); setLuDismissed(true) }} autoFocus
+                    className="ravenof-press mx-auto block" style={{ marginTop: 22, width: 210, textAlign: 'center',
+                      font: '800 13px var(--ravenof-font-display)', letterSpacing: 3, textTransform: 'uppercase', color: '#f6e8c6',
+                      background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
+                      padding: 13, border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)' }}>
+                    {t('battle.game.great')}
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
           </motion.div>
-        )}
+          )
+        })()}
       </AnimatePresence>
     </div>,
     document.body

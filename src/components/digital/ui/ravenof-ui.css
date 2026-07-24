@@ -207,3 +207,22 @@
   box-shadow: 0 8px 30px rgba(0,0,0,.6); animation: ravenofIn .25s ease;
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
+
+/* ── Rezultato spinduliai (Fazė 3 — result-victory/level-up prototipo fonas) ── */
+.ravenof-rays {
+  position: absolute; left: 50%; top: 50%; width: 240vmax; height: 240vmax;
+  margin: -120vmax 0 0 -120vmax; pointer-events: none;
+  background: repeating-conic-gradient(rgba(212,163,59,0.06) 0 9deg, transparent 9deg 18deg);
+  animation: ravenofSpin 26s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .ravenof-rays { animation: none; } }
+
+/* Ornamento skirtukas: — ◆ — */
+.ravenof-ornament { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.ravenof-ornament::before, .ravenof-ornament::after {
+  content: ''; height: 1px; width: 64px; background: linear-gradient(90deg, transparent, #D4A33B88);
+}
+.ravenof-ornament::after { background: linear-gradient(-90deg, transparent, #D4A33B88); }
+.ravenof-ornament > i {
+  width: 8px; height: 8px; background: var(--ravenof-gold-bright); transform: rotate(45deg); display: block;
+}

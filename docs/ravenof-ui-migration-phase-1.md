@@ -156,3 +156,56 @@ Migruoti likę keturi ekranai su patvirtintais raw reference:
 
 ## Fazė 3 rekomendacija
 PARTIAL ekranai, kai bus raw referencai: register/forgot/onboarding, PvE/PvP setup, campaign, friends, more, result/level-up/queue/match-found, offline/maintenance/expired. Deck builder + pack open — reikia raw eksportų (OPEN_QUESTIONS).
+
+---
+
+# Fazė 3 — priedas (2026-07-24)
+
+Handoff v2 (`ravenof-ui-handoff` projekto šaknyje; `validate-handoff.mjs` → errors:0 warnings:0 PASSED) pridėjo 11 naujų raw referencų. Vienintelis paketo skirtumas nuo v1 — `screenshots/raw/mobile/*.png` + manifestas (prototipas/dokai/asset'ai nepakitę).
+
+## Apimtis (migruota pagal raw referencus)
+
+| Ekranas | Gyvas komponentas / route | Raw ref |
+|---|---|---|
+| Registracija | `DigitalAuthScreen` (register šaka) | `register-default.png` |
+| Slaptažodžio atkūrimas | `DigitalForgotPassword` | `forgot-default.png` |
+| Onboarding (2 žingsniai) | `StarterDeckOnboarding` (`/digital/onboarding`) | `onboarding-step1-deck.png`, `onboarding-step2-avatar.png` |
+| Kova su DI | `DigitalPvE` (`/digital/pve`, full-bleed) | `pve-default.png` |
+| Draugiška kova | `DigitalPvP` (`/digital/pvp`, full-bleed) | `pvp-lobby.png` |
+| Kampanijų sąrašas | `CampaignList` (`/digital/campaign`, full-bleed) | `campaign-default.png` |
+| Draugai | `FriendsClient` (`/digital/friends`, rail matomas, be header) | `friends-default.png` |
+| Kovos rezultatas | `TutorialGame` pabaigos modalas (bot/unranked/PvP) + `RankedResult` | `result-victory.png`, `result-defeat.png` |
+| Naujo lygio šventė | `TutorialGame` level-up overlay | `level-up-modal.png` |
+
+Naujas bendrinis komponentas: `RavenofBannerButton` (raudona vėliavos CTA — `buttons/button-primary-normal.png`, 100%/100% stretch). Naujas assetas: `public/ravenof-ui/backgrounds/background-misty-fortress.webp` (register kairė pusė; konvertuota WebP). CSS: `.ravenof-rays` (rezultato spinduliai, reduced-motion off) + `.ravenof-ornament` (— ◆ — skirtukas).
+
+## Kas išsaugota
+- **Register/Forgot:** visa auth semantika — username RE + unikalumo patikra, `signUp` klaidų žemėlapis, email-confirm ekranas, `resetPasswordForEmail` (be egzistavimo atskleidimo), `next` param validacija, srautas lieka /digital.
+- **Onboarding:** `rvn_claim_starter_deck` (idempotentinis; jau claimed → praleidžia), klaidų tekstai, kaladės detalės („Apžiūrėti kaladę" modalas: lore/stiprybės/silpnybės/pilnas kortų sąrašas + kortos preview — perkelta iš senojo atidarytos dėžės ekrano), avataro `rvn_equip_cosmetic` (neturimi — užrakinti), klaviatūra/drag/scroll-snap/reduced-motion.
+- **PvE:** režimai random/faction/public, AI sunkumas, viešų kaladžių paieška+filtras, frakcijų picker'is, `canStart` taisyklės, TutorialGame(practice) paleidimas, testerio bypass, tik globali aktyvi kaladė (be tylaus fallback); kaladės keitimas per `ActiveDeckSelectorModal`.
+- **PvP:** `findRandom`/`createPrivate`/`createRoom`/`joinByCode`/`waitForGuest`(poll 2s)/`cancelRoom`, `?host=`/`?join=` iššūkių auto-veiksmai, kambario kodo kopijavimas, draugų iššūkis (`challengeCreate`) — dabar tiesiai iš DRAUGAI sąrašo IŠŠŪKIS mygtukais.
+- **Campaign:** `loadCampaigns` + navigacija į `/digital/campaign/[slug]` (žemėlapio ekranas nemigruotas — be raw ref); progresas/bosas — iš gyvų `loadFullCampaign`+`rvn_campaign_state`.
+- **Friends:** friendRequest/Respond/Remove, iššūkiai (priimti/atmesti → /digital/pvp?host|join), mainai (TradeWindow), block/mute, presence pasirinkimas, paieška+filtras, unread ženkliukai; pokalbis dabar įterptas ekrane per `chatStore` (`loadHistory`/`send`/`markRead`/retry; realtime — per layout'e likusį `GlobalChatLayer` subscription). Naujo pokalbio įrašas sukuriamas store, kad `loadHistory` turėtų kur rašyti.
+- **Rezultatai:** `reportMatchV2` atlygio srautas, level-up aptikimas + `levelRewards` agregacija, draugo pridėjimas po PvP, „žaisti dar"/uždaryti; RankedResult — visi 4 veiksmai, statistika, milestone/achievement pranešimai, demotion įspėjimas, garsai.
+
+## Shell pakeitimai
+- FULL_BLEED_ROUTES += `/digital/pve`, `/digital/pvp`, `/digital/campaign` (ekrano ‹ grįžta į /digital).
+- NO_HEADER_ROUTES += `/digital/friends` (rail lieka; antraštė ekrane).
+- MIGRATED_ROUTES += pve/pvp/campaign/friends (be Flames).
+
+## Sąmoningi nukrypimai
+1. **PvE varžovo plytelės** — panaudoti esami gyvi asset'ai (`/digital/ai/types/*.png` su įkeptu rėmu+pavadinimu); prototipo portretinio arto handoff'e nėra. Dešinės panelės preview random režimui — tas pats assetas.
+2. **„Numatomas atlygis"** — gyvos `PVE_REWARD` konstantos pagal sunkumą (ne prototipo „120 sidabro · 20 XP" mock); XP eilutės nėra (kliento konstantos nėra — tikras XP ateina iš `rvn_report_match_v2` config).
+3. **Campaign „UŽRAKINTA" nėra** — gyvoje sistemoje kampanijos tarpusavyje nerakinamos (rakinami mazgai žemėlapyje); 0 % progresas rodomas kaip PRADĖTI.
+4. **Onboarding step 1 ATGAL paslėptas** (nėra kur grįžti — vartotojas jau autentifikuotas); step 2 ATGAL grįžta į kaladės žingsnį. Final CTA „Į MOKOMĄJĄ KOVĄ" → `/digital/tutorial` (gyvas mokymų hub'as; anksčiau — tiesiai į /digital).
+5. **TutorialGame rezultato „Į PRADŽIĄ"** — semantika ta pati kaip senojo „Uždaryti" (grįžta į paleidusį ekraną), pavadinimas pagal approved dizainą.
+6. **PvP IŠŠŪKIS** rodomas ir away/dnd draugams (gyvas funkcionalumas platesnis nei ref, kuriame tik online).
+7. **Result/level-up screenshotai nedaryti** — ekranai pasiekiami tik sužaidus kovą; verifikuota tsc/lint/build + vizualiai peržiūrėtas kodas pagal prototipo markup (RESULT/LEVEL-UP sekcijos).
+
+## Patikros (2026-07-24)
+- `tsc --noEmit` OK · `next lint` — 0 naujų klaidų keistuose failuose (TutorialGame legacy rules-of-hooks/unused — pre-existing, nekeista; pašalinti 3 nebenaudojami importai) · i18n ERROR 0 · `next build` OK.
+- Vizuali verifikacija 844×390@2x: `artifacts/ravenof-ui-phase-3/{register,forgot,onboarding-step1,onboarding-step2,pve,pvp,campaign,friends}-implementation.png` (mock aplinka; onboarding — mock profilio `digital_onboarded_at=null` per naują `/__mock/profile` valdymo endpointą).
+- Smoke: visi route'ai (sen. + pve/pvp/campaign/friends) be pageerror, be horizontalaus overflow; login srautas, kolekcijos modalas, nav — OK. Konsolėje tik WebSocket (offline mock) + pavieniai 404 resursai.
+
+## Liko nemigruota (be raw ref)
+Deck builder, community decks turinys, pack open, campaign žemėlapis (`/digital/campaign/[slug]`), more/tutorial hub, queue/match-found, offline/maintenance ekranai.

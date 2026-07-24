@@ -1,4 +1,16 @@
 {
+  "campaign": {
+    "boss": "Bosas",
+    "chapter": "Skyrius",
+    "completed": "Įveikta",
+    "continue": "Tęsti",
+    "empty": "Kol kas nėra aktyvių kampanijų.",
+    "progressOf": "{{done}}/{{total}} kovos",
+    "replay": "Kartoti",
+    "start": "Pradėti",
+    "subtitle": "Keliauk per Ravenof žemes ir įveik kiekvieno skyriaus bosą.",
+    "title": "Kampanija"
+  },
   "factionDesc": {
     "Demonų orda": "Prakeiksmai · agresija",
     "Inkvizicijos legionas": "Kontrolė · disciplina",
@@ -8,6 +20,212 @@
     "Rytų vėjas": "Greitis · combo",
     "Vryhioko gauja": "Žvėrys · jėga",
     "Šviesos pulkas": "Gydymas · apsauga"
+  },
+  "game": {
+    "actionLog": "Veiksmų žurnalas",
+    "cardBack": "Kortų nugarėlė",
+    "championPhase": "⚜ {{card}} — {{phase}} fazė",
+    "chatEmpty": "Parašyk žinutę varžovui.",
+    "chatPlaceholder": "Žinutė…",
+    "chatTitle": "💬 Pokalbis su varžovu",
+    "close": "Uždaryti",
+    "closeBtn": "Užverti",
+    "closeTip": "Užverti (Esc)",
+    "coinGreen": "ŽALIA",
+    "coinRed": "RAUDONA",
+    "collapseTip": "Sutraukti – galėsi žaisti, patarimas lauks",
+    "controlEndOfTurn": "Perimtas iki ėjimo pabaigos",
+    "controlUntilNextTurn": "Perimtas iki kito ėjimo pradžios",
+    "copyText": "Pasirink padarą – jo efektas taps tavo padaro efektu.",
+    "copyTitle": "Perimk efektą iš kapinyno",
+    "curseActivated": "AKTYVUOJAMAS",
+    "curseMixed": "ĮMAIŠOMAS",
+    "curseTag": "Prakeiksmas",
+    "deck": "Kaladė",
+    "deckTopText": "Viršutinės kortos (kairė = viršus). Lieka kaladėje.",
+    "defeat": "Pralaimėjai…",
+    "defeatText": "Nieko tokio – tai treniruotė. Pabandyk dar kartą, dabar jau žinai taisykles!",
+    "discardForGold": "+100⚜ už kortą",
+    "discardForGoldTip": "Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)",
+    "doAction": "Atlik veiksmą…",
+    "empty": "Tuščia",
+    "endTurn": "Baigti ėjimą",
+    "endTurnShort": "Baigti\nėjimą",
+    "enemySpellTag": "Priešo burtas",
+    "enemyTurn": "Priešo ėjimas…",
+    "enemyTurnShort": "Priešo\nėjimas",
+    "enemyUnits": "Priešo padarai",
+    "enemyZmk": "Priešo ŽMK",
+    "errDeck": "Nepavyko užkrauti kaladės kortų",
+    "errTutorialDeck": "Nepavyko užkrauti mokomosios kaladės kortų",
+    "eventLog": "Įvykių žurnalas",
+    "faction": "Frakcija",
+    "favorable": "PALANKIAI",
+    "fieldEmpty": "Laukas tuščias",
+    "forXp": "už {{xp}} XP:",
+    "friendAdd": "➕ Pridėti {{name}} į draugus",
+    "friendExists": "Jau draugai / užklausa yra",
+    "friendSent": "✓ Užklausa išsiųsta",
+    "glwText": "Pasirink kapinyno padarą – jo Paskutinis noras bus aktyvuotas iškart.",
+    "glwTitle": "Paskutinis noras iš kapinyno",
+    "great": "Puiku",
+    "handEmpty": "Ranka tuščia",
+    "hintAttacker": "⚔ Pasirink taikinį (raudonas apvadas) arba spausk Esc",
+    "hintDiscard": "🗑 Pasirink kortą rankoje, kurią išmesi už +100 aukso",
+    "hintSacrifice": "⚜ Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje ({{picked}}/2)",
+    "hintSpell": "✨ Pasirink burto taikinį arba spausk Esc",
+    "inspectTip": "{{card}} (spausk/laikyk – apžiūrėti)",
+    "lastwishTargets": "„{{card}}\" Paskutinis noras: {{picked}}/{{need}}",
+    "levelN": "Lygis {{level}}",
+    "levelTitle": "{{level}} lygis",
+    "logTip": "Įvykių žurnalas",
+    "millAi": "🪦 Priešininko {{count}} korta(-os) → kapinynas",
+    "millYou": "🪦 Tavo {{count}} korta(-os) → kapinynas",
+    "newLevelEyebrow": "Naujas lygis",
+    "newMechanic": "Nauja mechanika · {{title}}",
+    "nextLevelPrefix": "Kitas —",
+    "noPublicDecks": "Nėra viešų kaladžių.",
+    "noSkills": "Šis Čempionas neturi sukonfigūruotų gebėjimų.",
+    "oppArtifacts": "Priešininko artefaktai",
+    "oppHand": "Priešininko ranka · {{count}}",
+    "oppProfileTip": "Varžovo profilis",
+    "oppReactions": "Priešininko reakcijos",
+    "oppUnits": "Priešininko padarai",
+    "opponent": "Priešininkas",
+    "opponentDisconnected": "⚠ Varžovas atsijungė",
+    "opponentNoShow": "Varžovas neprisijungė per 30s – TU LAIMĖJAI! 🏆",
+    "opponentShort": "Varžovas",
+    "opponentTurn": "Priešininko ėjimas…",
+    "peekBtn": "Išmesti pažymėtas",
+    "peekMark": "Pažymėk {{choose}} kortą(-as), kurią(-ias) išmesti į kapinyną ({{picked}}/{{choose}})",
+    "peekTitle": "Priešininko kaladės peržiūra",
+    "phaseN": "→ {{phase}} fazė",
+    "pickReturnUnit": "Pasirink BET KURĮ padarą – jis grįš savo savininkui į ranką.",
+    "pickSkill": "Pasirink gebėjimą (tik 1 per ėjimą)",
+    "pickTarget": "Pasirink taikinį",
+    "pileInspect": "Peržiūrėti ({{count}}) – vesk pele / palaikyk pirštą",
+    "playAgain": "⚔ Žaisti dar kartą",
+    "player": "Žaidėjas",
+    "preparing": "Ruošiama kova…",
+    "publicDecks": "Viešos kaladės",
+    "reactionsTip": "Peržiūrėk savo padėtas reakcijas (priešas jų nemato)",
+    "rotateText": "Kova žaidžiama gulsčiai (landscape)",
+    "rotateTitle": "Pasuk telefoną",
+    "showTipTip": "Rodyti mokymo patarimą",
+    "shuffling": "Maišomos kaladės…",
+    "sideEnemy": "priešo",
+    "sideYours": "tavo",
+    "skillDefault": "Gebėjimas",
+    "skillLocked": "🔒 (reikia {{phase}} fazės)",
+    "skillUsed": "Šį ėjimą gebėjimas jau panaudotas.",
+    "skipTutorial": "Praleisti mokymą",
+    "sound": "Garsas",
+    "soundMuted": "Garsas išjungtas",
+    "soundOff": "Išjungti garsą ir muziką",
+    "soundOn": "Įjungti garsą ir muziką",
+    "spellDamageBonusTip": "Burtų žalos priedas (pasyvi aura)",
+    "spellTag": "Burtas",
+    "statusesTip": "Būsenos",
+    "summonPickBtn": "Iškviesti pažymėtas",
+    "summonPickMark": "Pažymėk {{choose}} ({{picked}}/{{choose}})",
+    "summonPickTitle": "Pasirink iškvietimui",
+    "swapPhaseText": "„{{card}}\" ({{phase}} fazė) keičiama į žemesnės fazės kortą iš kaladės (dabar esantis Čempionas grįžta į kaladę).",
+    "swapPhaseTitle": "⇩ Keisti Čempiono fazę",
+    "tapToSkip": "Bakstelėk praleisti ›",
+    "targetPicked": "Taikinys pasirinktas",
+    "targets": "Taikiniai: {{picked}}/{{need}}",
+    "titlePractice": "Kova · prieš {{name}}",
+    "titleRanked": "Reitingo kova · prieš {{name}}",
+    "titleTutorial": "Mokomoji kova · {{deck}}",
+    "toastAlreadyDiscarded": "Jau išmetei kortą šį ėjimą.",
+    "toastAlreadyPicked": "Jau pasirinkta {{need}}. Atžymėk vieną arba spausk „Gerai\".",
+    "toastCannotSacChampion": "Čempiono paaukoti negalima.",
+    "toastChampionTribute": "Čempionui reikia tribute: 1 padaras lauke ARBA 2 kortos rankoje.",
+    "toastDoTaskFirst": "Pirmiausia atlik užduotį iš patarimo.",
+    "toastEndTurnNow": "Dabar spausk „Baigti ėjimą\".",
+    "toastLastwishTarget": "Paskutinis noras „{{card}}\": pasirink {{need}} taikinį(-ius)!",
+    "toastNeedPhase": "Reikia {{phase}} fazės Čempiono lauke (arba turėk žemesnę fazę kaladėje, kad pakeistum).",
+    "toastNoSacChampion": "Negali paaukoti paties Čempiono.",
+    "toastNotEnoughGold": "Trūksta aukso: kaina {{cost}}, turi {{gold}}.",
+    "toastPickEffectTarget": "Pasirink taikinį efektui (pažymėti padarai).",
+    "toastPickNTargets": "Pasirink {{need}} taikinį(-ius).",
+    "toastPickTargetFirst": "Pirma pasirink taikinį.",
+    "toastTributeHand": "Tribute iš rankos: {{picked}}/2 (arba paspausk padarą lauke = 1 tšk).",
+    "toastTributeHint": "Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje (0/2).",
+    "toastWaitTurn": "Palauk savo ėjimo.",
+    "turnLabel": "eilė",
+    "tutorialGold": "🎓 Mokymui pridedama aukso – dabar gali sužaisti kortą.",
+    "unfavorable": "NEPALANKIAI",
+    "unlocked": "Atrakinta",
+    "victory": "Pergalė!",
+    "victoryText": "Puiku! Dabar žinai, kaip žaisti Ravenof. Laikas tikram mūšiui!",
+    "vsName": "prieš {{name}}",
+    "you": "Tu",
+    "yourZmk": "Tavo ŽMK",
+    "zmk": "ŽMK",
+    "zmkDrawTitle": "ŽMK traukimas ({{side}} žala)",
+    "zmkSideAi": "priešininko",
+    "zmkSideYou": "tavo",
+    "zoneDeck": "Kaladė",
+    "zoneGrave": "Kapinynas",
+    "zoneHand": "Ranka"
+  },
+  "guided": {
+    "discard-gold-tip": {
+      "text": "Kartą per ėjimą gali išmesti 1 kortą iš rankos ir gauti +100 aukso. Spausk mygtuką „+100⚜\" ir pasirink kortą – arba praleisk.",
+      "title": "Patarimas: korta → auksas"
+    },
+    "end-first-turn": {
+      "text": "Kai nebeturi ką veikti (ar aukso), spausk „Baigti ėjimą\". Tada eis priešininkas – stebėk, ką jis daro!",
+      "title": "Baik ėjimą"
+    },
+    "free-play": {
+      "text": "Nuo dabar žaisk laisvai. Naujas mechanikas paaiškinsiu, kai jas pirmą kartą sutiksi. Sėkmės kovoje – tegul ŽMK būna tau palanki!",
+      "title": "Toliau – tavo rankose! 🎴"
+    },
+    "goal": {
+      "text": "Abu žaidėjai pradeda su 40 gyvybės taškų (HP). Laimi tas, kuris pirmasis priešininko HP sumažina iki 0. Savo HP matai apačioje, priešininko – viršuje.",
+      "title": "Žaidimo tikslas"
+    },
+    "gold-intro": {
+      "text": "Kiekvieno ėjimo pradžioje gauni aukso: 1 ėjimas = 100, 2 ėjimas = 200... iki 1000. Kortos kainuoja auksą. SVARBU: nepanaudotas auksas ėjimo pabaigoje DINGSTA – išleisk!",
+      "title": "Aukso sistema ⚜"
+    },
+    "hand-intro": {
+      "text": "Čia tavo kortos – priešininkas jų nemato. Rankoje telpa iki 10 kortų. Užvesk / palaikyk ant kortos, kad apžiūrėtum iš arti.",
+      "title": "Tavo ranka"
+    },
+    "play-first-unit": {
+      "text": "Spustelėk kortą rankoje, kurią gali sau leisti (kaina ⚜ kairiame kampe), ir ji bus iškviesta į padarų zoną. Padaras negali atakuoti tą patį ėjimą, kai iškviestas (nebent turi ▶ Sprintą).",
+      "title": "Iškviesk padarą!"
+    },
+    "turn2-attack": {
+      "text": "Tavo padaras jau gali pulti: spustelėk SAVO padarą, tada pasirink taikinį – priešininko padarą arba jį patį. Puolant padarą abu traukia po ŽMK kortą ir žalą daro vienu metu!",
+      "title": "Laikas atakuoti! ⚔"
+    },
+    "watch-ai": {
+      "text": "Priešininkas traukia kortą, gauna auksą ir žaidžia pagal tas pačias taisykles. Stebėk jo veiksmus įvykių juostoje viduryje.",
+      "title": "Priešininko ėjimas"
+    },
+    "welcome": {
+      "text": "Tai mokomoji kova prieš priešininką, kuris žaidžia pagal taisykles. Aš paaiškinsiu viską žingsnis po žingsnio. Pralaimėti čia neįmanoma blogai – tai treniruotė!",
+      "title": "Sveikas atvykęs į Ravenof! 🐦‍⬛"
+    },
+    "zmk-intro": {
+      "text": "Kaskart, kai daroma žala, traukiama ŽMK korta: +0, +1, −1, +2, −2, ×2 arba ×0. Tavo 4 ATK smūgis gali tapti 5... arba 0! Tai – Ravenof likimo kauliukas.",
+      "title": "ŽMK – žalos modifikatorių kaladė"
+    },
+    "zones": {
+      "text": "Apačioje – tavo pusė: ranka, padarų zona (5 vietos), artefaktai (2), reakcijos (3). Viršuje – priešininko. Viduryje – bendra lauko kortos zona.",
+      "title": "Kovos laukas"
+    }
+  },
+  "layout": {
+    "close": "Uždaryti",
+    "enemyTurn": "◆ Priešo ėjimas ◆",
+    "log": "📜 Mūšio žurnalas",
+    "logHint": "Bakstelk šalia arba brauk kairėn — užsidaro",
+    "yourTurn": "◆ Tavo ėjimas ◆"
   },
   "lobby": {
     "backToGame": "↩ Grįžti į žaidimą",
@@ -33,6 +251,39 @@
   },
   "opponentFallback": "Varžovas",
   "player": "Žaidėjas",
+  "practice": {
+    "aiDeck": "AI kaladė",
+    "aiDifficulty": "AI sunkumas",
+    "allFactions": "Visos frakcijos",
+    "cancel": "Atšaukti",
+    "difficulty": "Sunkumas",
+    "easy": "Lengvas",
+    "easyBtn": "😴 Lengvas",
+    "easyText": "Paprasti trade’ai, retai planuoja combo, kartais silpni ėjimai.",
+    "enemy": "Priešas",
+    "factionHint": "Pasirink priešininko frakciją — botas gaus tos frakcijos AI kaladę.",
+    "hard": "Sunkus",
+    "hardBtn": "💀 Sunkus",
+    "hardText": "Planuoja 2–3 ėjimus, skaičiuoja lethal, agresyviai baudžia silpną lentą.",
+    "noDecks": "Nerasta deck'ų. Pabandyk kitą paiešką.",
+    "none": "—",
+    "normal": "Vidutinis",
+    "normalBtn": "⚔ Vidutinis",
+    "normalText": "Skaičiuoja trade’us, naudoja removal/AoE logiškai, saugosi lethal.",
+    "opponent": "Priešininkas",
+    "pickOpponent": ". Pasirink priešininko tipą.",
+    "randomText": "Botas pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias būdas pradėti treniruotę.",
+    "randomTitle": "Atsitiktinė frakcija",
+    "searchPlaceholder": "Ieškoti decko arba autoriaus…",
+    "start": "⚔ PRADĖTI KOVĄ",
+    "tabFaction": "Pasirinkta frakcija",
+    "tabPublic": "Viešas deck",
+    "tabRandom": "Atsitiktinė frakcija",
+    "title": "Praktika",
+    "trigger": "🎯 Praktika prieš AI",
+    "you": "Tu",
+    "yourDeck": "Tavo kaladė:"
+  },
   "pve": {
     "activeDeckInvalid": "AKTYVI KALADĖ NETINKAMA",
     "aiDeck": "AI kaladė",
@@ -49,16 +300,23 @@
       "hard": "Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.",
       "normal": "Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal."
     },
+    "difficulty": "Sudėtingumas",
     "enemy": "Priešas",
+    "expectedReward": "Numatomas atlygis",
     "noDecks": "Neturi žaidžiamų kaladžių.",
     "noDecksFound": "Nerasta deck’ų.",
     "opponent": "Priešininkas:",
+    "opponentLabel": "Varžovas",
     "opponentType": "Priešininko tipas",
     "pickDeck": "PASIRINK DECK’Ą",
     "pickFaction": "PASIRINK FRAKCIJĄ",
     "pickOpponent": "PASIRINK PRIEŠININKĄ",
     "randomInfo": "Botas pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias startas.",
+    "randomOpp": "Atsitiktinis varžovas",
+    "randomOppSub": "DI parinks frakciją ir kaladę",
+    "screenTitle": "Kova su DI",
     "searchDeckAuthor": "Ieškoti decko arba autoriaus…",
+    "silverN": "{{n}} sidabro",
     "start": "PRADĖTI KOVĄ",
     "title": "Treniruotė prieš AI",
     "types": {
@@ -67,10 +325,12 @@
       "random": "Atsitiktinė frakcija",
       "tutorial": "Mokymai"
     },
-    "you": "Tu:"
+    "you": "Tu:",
+    "yourDeck": "Tavo kaladė"
   },
   "pvp": {
     "cancelSearch": "Atšaukti paiešką",
+    "challengeCta": "Iššūkis",
     "codeCopied": "Kodas nukopijuotas",
     "codeInfo": "Sukurk privatų kambarį (gausi kodą) arba įvesk draugo kodą.",
     "codePlaceholder": "ĮVESK KAMBARIO KODĄ…",
@@ -78,6 +338,7 @@
     "copy": "📋 Kopijuoti",
     "copyCode": "📋 Kopijuoti kodą",
     "createDeck": "Sukurti kaladę",
+    "createInfo": "Sukurk privatų kambarį ir pasidalink kodu su draugu.",
     "cta": {
       "createRoom": "SUKURTI KAMBARĮ",
       "findOpp": "IEŠKOTI VARŽOVO",
@@ -97,13 +358,18 @@
     },
     "friendFallback": "Draugas",
     "friendly": "Draugiška",
+    "friendsAll": "Visi",
     "friendsN": "Draugai ({{count}})",
+    "friendsTitle": "Draugai",
     "goldReward": "+100 aukso",
     "inviteInfo": "Pasirink draugą sąraše dešinėje — jis gaus kvietimą į kovą. Rangas nesikeičia · Pergalė: +100 aukso.",
     "inviteTitle": "Pakviesk draugą",
     "mode": "Režimas",
     "modeCode": "Kambario kodas",
+    "modeCreate": "Kurti kambarį",
     "modeFriend": "Pakviesti draugą",
+    "modeJoin": "Jungtis kodu",
+    "modeQuick": "Greita kova",
     "modeRandom": "Atsitiktinis",
     "noDecks": "Neturi žaidžiamų kaladžių draugiškai kovai.",
     "noFriends": "Neturi draugų. Pridėk skiltyje „Draugai“.",
@@ -117,6 +383,7 @@
       "online": "Prisijungęs"
     },
     "quickInfo": "Rangas nesikeičia · Pergalė: +100 aukso · numatomas laukimas < 30 s.",
+    "quickInfo2": "Greita vieša kova su atsitiktiniu žaidėju. Reitingas nesikeičia.",
     "quickTitle": "Greita draugiška kova",
     "randomPlayer": "Atsitiktinis žaidėjas",
     "rank": "Rangas",
@@ -124,6 +391,7 @@
     "reward": "Atlygis",
     "roomCode": "Kambario kodas",
     "roomPrefix": "Kambarys {{code}}",
+    "screenTitle": "Draugiška kova",
     "searchFriend": "🔍 Ieškoti draugo…",
     "searchFriendAria": "Ieškoti draugo",
     "searching": "Ieškoma varžovo…",
@@ -142,325 +410,91 @@
     "waiting": "Laukiama varžovo",
     "yourDeck": "Tavo kaladė"
   },
-  "guided": {
-    "welcome": {
-      "title": "Sveikas atvykęs į Ravenof! 🐦‍⬛",
-      "text": "Tai mokomoji kova prieš priešininką, kuris žaidžia pagal taisykles. Aš paaiškinsiu viską žingsnis po žingsnio. Pralaimėti čia neįmanoma blogai – tai treniruotė!"
-    },
-    "goal": {
-      "title": "Žaidimo tikslas",
-      "text": "Abu žaidėjai pradeda su 40 gyvybės taškų (HP). Laimi tas, kuris pirmasis priešininko HP sumažina iki 0. Savo HP matai apačioje, priešininko – viršuje."
-    },
-    "zones": {
-      "title": "Kovos laukas",
-      "text": "Apačioje – tavo pusė: ranka, padarų zona (5 vietos), artefaktai (2), reakcijos (3). Viršuje – priešininko. Viduryje – bendra lauko kortos zona."
-    },
-    "hand-intro": {
-      "title": "Tavo ranka",
-      "text": "Čia tavo kortos – priešininkas jų nemato. Rankoje telpa iki 10 kortų. Užvesk / palaikyk ant kortos, kad apžiūrėtum iš arti."
-    },
-    "gold-intro": {
-      "title": "Aukso sistema ⚜",
-      "text": "Kiekvieno ėjimo pradžioje gauni aukso: 1 ėjimas = 100, 2 ėjimas = 200... iki 1000. Kortos kainuoja auksą. SVARBU: nepanaudotas auksas ėjimo pabaigoje DINGSTA – išleisk!"
-    },
-    "zmk-intro": {
-      "title": "ŽMK – žalos modifikatorių kaladė",
-      "text": "Kaskart, kai daroma žala, traukiama ŽMK korta: +0, +1, −1, +2, −2, ×2 arba ×0. Tavo 4 ATK smūgis gali tapti 5... arba 0! Tai – Ravenof likimo kauliukas."
-    },
-    "play-first-unit": {
-      "title": "Iškviesk padarą!",
-      "text": "Spustelėk kortą rankoje, kurią gali sau leisti (kaina ⚜ kairiame kampe), ir ji bus iškviesta į padarų zoną. Padaras negali atakuoti tą patį ėjimą, kai iškviestas (nebent turi ▶ Sprintą)."
-    },
-    "discard-gold-tip": {
-      "title": "Patarimas: korta → auksas",
-      "text": "Kartą per ėjimą gali išmesti 1 kortą iš rankos ir gauti +100 aukso. Spausk mygtuką „+100⚜\" ir pasirink kortą – arba praleisk."
-    },
-    "end-first-turn": {
-      "title": "Baik ėjimą",
-      "text": "Kai nebeturi ką veikti (ar aukso), spausk „Baigti ėjimą\". Tada eis priešininkas – stebėk, ką jis daro!"
-    },
-    "watch-ai": {
-      "title": "Priešininko ėjimas",
-      "text": "Priešininkas traukia kortą, gauna auksą ir žaidžia pagal tas pačias taisykles. Stebėk jo veiksmus įvykių juostoje viduryje."
-    },
-    "turn2-attack": {
-      "title": "Laikas atakuoti! ⚔",
-      "text": "Tavo padaras jau gali pulti: spustelėk SAVO padarą, tada pasirink taikinį – priešininko padarą arba jį patį. Puolant padarą abu traukia po ŽMK kortą ir žalą daro vienu metu!"
-    },
-    "free-play": {
-      "title": "Toliau – tavo rankose! 🎴",
-      "text": "Nuo dabar žaisk laisvai. Naujas mechanikas paaiškinsiu, kai jas pirmą kartą sutiksi. Sėkmės kovoje – tegul ŽMK būna tau palanki!"
-    }
-  },
   "tips": {
-    "zmk-special": {
-      "title": "ŽMK ×2 / ×0!",
-      "text": "Ištraukta speciali ŽMK korta! ×2 padvigubina žalą, ×0 anuliuoja. Po jos visa ŽMK kaladė su kapinynu permaišoma iš naujo."
-    },
-    "taunt": {
-      "title": "⊙ Pasišaipymas",
-      "text": "Kol lauke yra padaras su Pasišaipymu, visos atakos PRIVALO taikytis į jį. Burtams ir efektams tai negalioja – juos gali mesti kur nori."
-    },
-    "sprint": {
-      "title": "▶ Sprintas",
-      "text": "Padaras su Sprintu gali atakuoti tą patį ėjimą, kai buvo iškviestas – jokio laukimo!"
-    },
-    "stealth": {
-      "title": "◑ Sėlinimas",
-      "text": "Šio padaro negalima pasirinkti taikiniu, kol jis pats neatakuoja. Po pirmos atakos Sėlinimas dingsta. AoE efektai jį vis tiek pasiekia."
-    },
-    "shield": {
-      "title": "✦★ Magiškasis skydas",
-      "text": "Skydas anuliuoja KITĄ žalą, kurią patirtų šis taikinys – ŽMK net netraukiama. Po to skydas dingsta."
+    "artifact": {
+      "text": "Ilgalaikė korta artefaktų zonoje (maks. 2). Turi HP, gali būti atakuojama, bet pats neatakuoja. Veikia, kol sunaikinamas.",
+      "title": "⭐ Artefaktas"
     },
     "battlecry": {
-      "title": "📣 Kovos šūksnis",
-      "text": "Efektas suveikia iš karto, kai korta iškviečiama į lauką. Jei daro žalą – traukiama ŽMK korta."
-    },
-    "lastwish": {
-      "title": "🕯 Paskutinis noras",
-      "text": "Efektas aktyvuojasi padarui žūstant, prieš jam keliaujant į kapinyną. Nutildytas padaras Paskutinio noro neaktyvuoja."
-    },
-    "status-frozen": {
-      "title": "❄ Sušaldytas",
-      "text": "Padaras praleidžia kitą veikimo galimybę: negali atakuoti IR nedaro atgalinės žalos, jei puolamas. Būsena baigiasi jo valdytojo kito ėjimo pabaigoje."
-    },
-    "status-stunned": {
-      "title": "✦ Apsvaigintas",
-      "text": "Padaras negali atakuoti, bet atgalinę žalą daro. Tuo ir skiriasi nuo Sušaldymo."
-    },
-    "status-burning": {
-      "title": "🔥 Degantis",
-      "text": "Kiekvieno savo ėjimo pradžioje padaras gauna 1 bazinę žalą (+ŽMK). Dega tol, kol žūsta arba būseną pašalina efektas."
-    },
-    "status-poisoned": {
-      "title": "☠ Apnuodytas",
-      "text": "Kaip Degantis (1 žala kas ėjimą + ŽMK), bet dar ir puola NEPALANKIAI: traukia 2 ŽMK kortas ir ima blogesnę."
-    },
-    "status-silenced": {
-      "title": "🔇 Nutildytas",
-      "text": "Kortos gebėjimai neveikia: pasyvūs efektai, Kovos šūksnis, Paskutinis noras – viskas blokuojama."
-    },
-    "reaction": {
-      "title": "⚡ Reakcija",
-      "text": "Užversta korta su aukso žetonu. Priešininkas mato kainą, bet ne efektą. Suveikia, kai išsipildo sąlyga – pvz., prieš ataką. „Paskutinė padėta – sprendžiama pirma.\""
-    },
-    "field": {
-      "title": "🌍 Lauko korta",
-      "text": "Globali korta, veikianti ABU žaidėjus. Vienu metu aktyvi tik viena – nauja pakeičia senąją."
+      "text": "Efektas suveikia iš karto, kai korta iškviečiama į lauką. Jei daro žalą – traukiama ŽMK korta.",
+      "title": "📣 Kovos šūksnis"
     },
     "champion": {
-      "title": "⚜ Čempionas",
-      "text": "Čempionas NĖRA padaras: neturi ATK, neatakuoja, bet turi galingus gebėjimus (1 kartą per ėjimą). Iškvietimas kainuoja auksą IR padaro auką. Turi 3 fazes."
-    },
-    "evolve": {
-      "title": "⚜ Evoliucija",
-      "text": "Čempionas evoliucionuoja tiesiai kovos lauke (reikia fazės kortos rankoje + aukos) ir pilnai pagyja. Gebėjimai stiprėja su kiekviena faze!"
-    },
-    "hand-burn": {
-      "title": "Rankos limitas!",
-      "text": "Rankoje telpa tik 10 kortų – perteklius sudega ir keliauja tiesiai į kapinyną. Nešykštėk kortų žaisti!"
-    },
-    "curse": {
-      "title": "🕸 Prakeiksmas",
-      "text": "Prakeiksmas įmaišomas į TAVO kaladę kortų efektais. Ištraukei – efektas suveikia iš karto ir korta keliauja į kapinyną."
+      "text": "Čempionas NĖRA padaras: neturi ATK, neatakuoja, bet turi galingus gebėjimus (1 kartą per ėjimą). Iškvietimas kainuoja auksą IR padaro auką. Turi 3 fazes.",
+      "title": "⚜ Čempionas"
     },
     "coin": {
-      "title": "🪙 Monetos metimas",
-      "text": "Rizikos efektas: ŽALIA pusė – sėkmė, RAUDONA – nesėkmė arba šalutinis poveikis. Konkretų rezultatą nurodo kortos tekstas."
+      "text": "Rizikos efektas: ŽALIA pusė – sėkmė, RAUDONA – nesėkmė arba šalutinis poveikis. Konkretų rezultatą nurodo kortos tekstas.",
+      "title": "🪙 Monetos metimas"
     },
-    "artifact": {
-      "title": "⭐ Artefaktas",
-      "text": "Ilgalaikė korta artefaktų zonoje (maks. 2). Turi HP, gali būti atakuojama, bet pats neatakuoja. Veikia, kol sunaikinamas."
+    "curse": {
+      "text": "Prakeiksmas įmaišomas į TAVO kaladę kortų efektais. Ištraukei – efektas suveikia iš karto ir korta keliauja į kapinyną.",
+      "title": "🕸 Prakeiksmas"
+    },
+    "evolve": {
+      "text": "Čempionas evoliucionuoja tiesiai kovos lauke (reikia fazės kortos rankoje + aukos) ir pilnai pagyja. Gebėjimai stiprėja su kiekviena faze!",
+      "title": "⚜ Evoliucija"
+    },
+    "field": {
+      "text": "Globali korta, veikianti ABU žaidėjus. Vienu metu aktyvi tik viena – nauja pakeičia senąją.",
+      "title": "🌍 Lauko korta"
+    },
+    "hand-burn": {
+      "text": "Rankoje telpa tik 10 kortų – perteklius sudega ir keliauja tiesiai į kapinyną. Nešykštėk kortų žaisti!",
+      "title": "Rankos limitas!"
+    },
+    "lastwish": {
+      "text": "Efektas aktyvuojasi padarui žūstant, prieš jam keliaujant į kapinyną. Nutildytas padaras Paskutinio noro neaktyvuoja.",
+      "title": "🕯 Paskutinis noras"
+    },
+    "reaction": {
+      "text": "Užversta korta su aukso žetonu. Priešininkas mato kainą, bet ne efektą. Suveikia, kai išsipildo sąlyga – pvz., prieš ataką. „Paskutinė padėta – sprendžiama pirma.\"",
+      "title": "⚡ Reakcija"
+    },
+    "shield": {
+      "text": "Skydas anuliuoja KITĄ žalą, kurią patirtų šis taikinys – ŽMK net netraukiama. Po to skydas dingsta.",
+      "title": "✦★ Magiškasis skydas"
+    },
+    "sprint": {
+      "text": "Padaras su Sprintu gali atakuoti tą patį ėjimą, kai buvo iškviestas – jokio laukimo!",
+      "title": "▶ Sprintas"
+    },
+    "status-burning": {
+      "text": "Kiekvieno savo ėjimo pradžioje padaras gauna 1 bazinę žalą (+ŽMK). Dega tol, kol žūsta arba būseną pašalina efektas.",
+      "title": "🔥 Degantis"
+    },
+    "status-frozen": {
+      "text": "Padaras praleidžia kitą veikimo galimybę: negali atakuoti IR nedaro atgalinės žalos, jei puolamas. Būsena baigiasi jo valdytojo kito ėjimo pabaigoje.",
+      "title": "❄ Sušaldytas"
+    },
+    "status-poisoned": {
+      "text": "Kaip Degantis (1 žala kas ėjimą + ŽMK), bet dar ir puola NEPALANKIAI: traukia 2 ŽMK kortas ir ima blogesnę.",
+      "title": "☠ Apnuodytas"
+    },
+    "status-silenced": {
+      "text": "Kortos gebėjimai neveikia: pasyvūs efektai, Kovos šūksnis, Paskutinis noras – viskas blokuojama.",
+      "title": "🔇 Nutildytas"
+    },
+    "status-stunned": {
+      "text": "Padaras negali atakuoti, bet atgalinę žalą daro. Tuo ir skiriasi nuo Sušaldymo.",
+      "title": "✦ Apsvaigintas"
+    },
+    "stealth": {
+      "text": "Šio padaro negalima pasirinkti taikiniu, kol jis pats neatakuoja. Po pirmos atakos Sėlinimas dingsta. AoE efektai jį vis tiek pasiekia.",
+      "title": "◑ Sėlinimas"
+    },
+    "taunt": {
+      "text": "Kol lauke yra padaras su Pasišaipymu, visos atakos PRIVALO taikytis į jį. Burtams ir efektams tai negalioja – juos gali mesti kur nori.",
+      "title": "⊙ Pasišaipymas"
     },
     "unfavorable": {
-      "title": "Nepalankiai",
-      "text": "Traukiamos 2 ŽMK kortos ir imamas BLOGESNIS rezultatas veiksmą atliekančiam žaidėjui. Taip puola apnuodyti padarai."
+      "text": "Traukiamos 2 ŽMK kortos ir imamas BLOGESNIS rezultatas veiksmą atliekančiam žaidėjui. Taip puola apnuodyti padarai.",
+      "title": "Nepalankiai"
+    },
+    "zmk-special": {
+      "text": "Ištraukta speciali ŽMK korta! ×2 padvigubina žalą, ×0 anuliuoja. Po jos visa ŽMK kaladė su kapinynu permaišoma iš naujo.",
+      "title": "ŽMK ×2 / ×0!"
     }
-  },
-  "game": {
-    "yourZmk": "Tavo ŽMK",
-    "enemyZmk": "Priešo ŽMK",
-    "favorable": "PALANKIAI",
-    "unfavorable": "NEPALANKIAI",
-    "spellDamageBonusTip": "Burtų žalos priedas (pasyvi aura)",
-    "controlEndOfTurn": "Perimtas iki ėjimo pabaigos",
-    "controlUntilNextTurn": "Perimtas iki kito ėjimo pradžios",
-    "statusesTip": "Būsenos",
-    "chatTitle": "💬 Pokalbis su varžovu",
-    "chatEmpty": "Parašyk žinutę varžovui.",
-    "chatPlaceholder": "Žinutė…",
-    "errTutorialDeck": "Nepavyko užkrauti mokomosios kaladės kortų",
-    "errDeck": "Nepavyko užkrauti kaladės kortų",
-    "spellTag": "Burtas",
-    "enemySpellTag": "Priešo burtas",
-    "curseTag": "Prakeiksmas",
-    "curseActivated": "AKTYVUOJAMAS",
-    "curseMixed": "ĮMAIŠOMAS",
-    "tutorialGold": "🎓 Mokymui pridedama aukso – dabar gali sužaisti kortą.",
-    "opponentNoShow": "Varžovas neprisijungė per 30s – TU LAIMĖJAI! 🏆",
-    "you": "Tu",
-    "opponent": "Priešininkas",
-    "opponentShort": "Varžovas",
-    "toastWaitTurn": "Palauk savo ėjimo.",
-    "toastEndTurnNow": "Dabar spausk „Baigti ėjimą\".",
-    "toastNoSacChampion": "Negali paaukoti paties Čempiono.",
-    "toastTributeHand": "Tribute iš rankos: {{picked}}/2 (arba paspausk padarą lauke = 1 tšk).",
-    "toastNeedPhase": "Reikia {{phase}} fazės Čempiono lauke (arba turėk žemesnę fazę kaladėje, kad pakeistum).",
-    "toastChampionTribute": "Čempionui reikia tribute: 1 padaras lauke ARBA 2 kortos rankoje.",
-    "toastNotEnoughGold": "Trūksta aukso: kaina {{cost}}, turi {{gold}}.",
-    "toastTributeHint": "Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje (0/2).",
-    "toastPickEffectTarget": "Pasirink taikinį efektui (pažymėti padarai).",
-    "toastCannotSacChampion": "Čempiono paaukoti negalima.",
-    "toastAlreadyPicked": "Jau pasirinkta {{need}}. Atžymėk vieną arba spausk „Gerai\".",
-    "toastPickTargetFirst": "Pirma pasirink taikinį.",
-    "toastPickNTargets": "Pasirink {{need}} taikinį(-ius).",
-    "toastDoTaskFirst": "Pirmiausia atlik užduotį iš patarimo.",
-    "toastAlreadyDiscarded": "Jau išmetei kortą šį ėjimą.",
-    "pileInspect": "Peržiūrėti ({{count}}) – vesk pele / palaikyk pirštą",
-    "reactionsTip": "Peržiūrėk savo padėtas reakcijas (priešas jų nemato)",
-    "fieldEmpty": "Laukas tuščias",
-    "handEmpty": "Ranka tuščia",
-    "endTurnShort": "Baigti\nėjimą",
-    "enemyTurnShort": "Priešo\nėjimas",
-    "oppProfileTip": "Varžovo profilis",
-    "titleRanked": "Reitingo kova · prieš {{name}}",
-    "titlePractice": "Kova · prieš {{name}}",
-    "titleTutorial": "Mokomoji kova · {{deck}}",
-    "soundOff": "Išjungti garsą ir muziką",
-    "soundOn": "Įjungti garsą ir muziką",
-    "sound": "Garsas",
-    "soundMuted": "Garsas išjungtas",
-    "logTip": "Įvykių žurnalas",
-    "closeTip": "Užverti (Esc)",
-    "close": "Uždaryti",
-    "shuffling": "Maišomos kaladės…",
-    "preparing": "Ruošiama kova…",
-    "rotateTitle": "Pasuk telefoną",
-    "rotateText": "Kova žaidžiama gulsčiai (landscape)",
-    "deck": "Kaladė",
-    "zmk": "ŽMK",
-    "player": "Žaidėjas",
-    "endTurn": "Baigti ėjimą",
-    "enemyTurn": "Priešo ėjimas…",
-    "opponentTurn": "Priešininko ėjimas…",
-    "discardForGold": "+100⚜ už kortą",
-    "discardForGoldTip": "Išmesk 1 kortą iš rankos ir gauk +100 aukso (1×/ėjimą)",
-    "oppHand": "Priešininko ranka · {{count}}",
-    "oppReactions": "Priešininko reakcijos",
-    "oppArtifacts": "Priešininko artefaktai",
-    "oppUnits": "Priešininko padarai",
-    "actionLog": "Veiksmų žurnalas",
-    "hintAttacker": "⚔ Pasirink taikinį (raudonas apvadas) arba spausk Esc",
-    "hintSpell": "✨ Pasirink burto taikinį arba spausk Esc",
-    "hintSacrifice": "⚜ Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje ({{picked}}/2)",
-    "hintDiscard": "🗑 Pasirink kortą rankoje, kurią išmesi už +100 aukso",
-    "publicDecks": "Viešos kaladės",
-    "noPublicDecks": "Nėra viešų kaladžių.",
-    "skipTutorial": "Praleisti mokymą",
-    "collapseTip": "Sutraukti – galėsi žaisti, patarimas lauks",
-    "doAction": "Atlik veiksmą…",
-    "newMechanic": "Nauja mechanika · {{title}}",
-    "eventLog": "Įvykių žurnalas",
-    "inspectTip": "{{card}} (spausk/laikyk – apžiūrėti)",
-    "championPhase": "⚜ {{card}} — {{phase}} fazė",
-    "skillUsed": "Šį ėjimą gebėjimas jau panaudotas.",
-    "pickSkill": "Pasirink gebėjimą (tik 1 per ėjimą)",
-    "noSkills": "Šis Čempionas neturi sukonfigūruotų gebėjimų.",
-    "skillLocked": "🔒 (reikia {{phase}} fazės)",
-    "swapPhaseTitle": "⇩ Keisti Čempiono fazę",
-    "swapPhaseText": "„{{card}}\" ({{phase}} fazė) keičiama į žemesnės fazės kortą iš kaladės (dabar esantis Čempionas grįžta į kaladę).",
-    "phaseN": "→ {{phase}} fazė",
-    "showTipTip": "Rodyti mokymo patarimą",
-    "pickReturnUnit": "Pasirink BET KURĮ padarą – jis grįš savo savininkui į ranką.",
-    "enemyUnits": "Priešo padarai",
-    "summonPickTitle": "Pasirink iškvietimui",
-    "summonPickMark": "Pažymėk {{choose}} ({{picked}}/{{choose}})",
-    "summonPickBtn": "Iškviesti pažymėtas",
-    "zoneHand": "Ranka",
-    "zoneDeck": "Kaladė",
-    "zoneGrave": "Kapinynas",
-    "copyTitle": "Perimk efektą iš kapinyno",
-    "copyText": "Pasirink padarą – jo efektas taps tavo padaro efektu.",
-    "opponentDisconnected": "⚠ Varžovas atsijungė",
-    "turnLabel": "eilė",
-    "targets": "Taikiniai: {{picked}}/{{need}}",
-    "targetPicked": "Taikinys pasirinktas",
-    "pickTarget": "Pasirink taikinį",
-    "millYou": "🪦 Tavo {{count}} korta(-os) → kapinynas",
-    "millAi": "🪦 Priešininko {{count}} korta(-os) → kapinynas",
-    "deckTopText": "Viršutinės kortos (kairė = viršus). Lieka kaladėje.",
-    "peekTitle": "Priešininko kaladės peržiūra",
-    "peekMark": "Pažymėk {{choose}} kortą(-as), kurią(-ias) išmesti į kapinyną ({{picked}}/{{choose}})",
-    "peekBtn": "Išmesti pažymėtas",
-    "empty": "Tuščia",
-    "zmkDrawTitle": "ŽMK traukimas ({{side}} žala)",
-    "zmkSideYou": "tavo",
-    "zmkSideAi": "priešininko",
-    "coinGreen": "ŽALIA",
-    "coinRed": "RAUDONA",
-    "victory": "Pergalė!",
-    "defeat": "Pralaimėjai…",
-    "victoryText": "Puiku! Dabar žinai, kaip žaisti Ravenof. Laikas tikram mūšiui!",
-    "defeatText": "Nieko tokio – tai treniruotė. Pabandyk dar kartą, dabar jau žinai taisykles!",
-    "cardBack": "Kortų nugarėlė",
-    "friendSent": "✓ Užklausa išsiųsta",
-    "friendExists": "Jau draugai / užklausa yra",
-    "friendAdd": "➕ Pridėti {{name}} į draugus",
-    "playAgain": "⚔ Žaisti dar kartą",
-    "closeBtn": "Užverti",
-    "sideYours": "tavo",
-    "sideEnemy": "priešo",
-    "nextLevelPrefix": "Kitas —",
-    "levelN": "Lygis {{level}}",
-    "forXp": "už {{xp}} XP:",
-    "tapToSkip": "Bakstelėk praleisti ›",
-    "skillDefault": "Gebėjimas",
-    "faction": "Frakcija",
-    "toastLastwishTarget": "Paskutinis noras „{{card}}\": pasirink {{need}} taikinį(-ius)!",
-    "lastwishTargets": "„{{card}}\" Paskutinis noras: {{picked}}/{{need}}",
-    "glwTitle": "Paskutinis noras iš kapinyno",
-    "glwText": "Pasirink kapinyno padarą – jo Paskutinis noras bus aktyvuotas iškart."
-  },
-  "layout": {
-    "log": "📜 Mūšio žurnalas",
-    "logHint": "Bakstelk šalia arba brauk kairėn — užsidaro",
-    "close": "Uždaryti",
-    "yourTurn": "◆ Tavo ėjimas ◆",
-    "enemyTurn": "◆ Priešo ėjimas ◆"
-  },
-  "practice": {
-    "trigger": "🎯 Praktika prieš AI",
-    "title": "Praktika",
-    "yourDeck": "Tavo kaladė:",
-    "pickOpponent": ". Pasirink priešininko tipą.",
-    "tabRandom": "Atsitiktinė frakcija",
-    "tabFaction": "Pasirinkta frakcija",
-    "tabPublic": "Viešas deck",
-    "randomTitle": "Atsitiktinė frakcija",
-    "randomText": "Botas pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias būdas pradėti treniruotę.",
-    "factionHint": "Pasirink priešininko frakciją — botas gaus tos frakcijos AI kaladę.",
-    "aiDeck": "AI kaladė",
-    "searchPlaceholder": "Ieškoti decko arba autoriaus…",
-    "allFactions": "Visos frakcijos",
-    "noDecks": "Nerasta deck'ų. Pabandyk kitą paiešką.",
-    "you": "Tu",
-    "opponent": "Priešininkas",
-    "difficulty": "Sunkumas",
-    "aiDifficulty": "AI sunkumas",
-    "easy": "Lengvas",
-    "normal": "Vidutinis",
-    "hard": "Sunkus",
-    "easyBtn": "😴 Lengvas",
-    "normalBtn": "⚔ Vidutinis",
-    "hardBtn": "💀 Sunkus",
-    "easyText": "Paprasti trade’ai, retai planuoja combo, kartais silpni ėjimai.",
-    "hardText": "Planuoja 2–3 ėjimus, skaičiuoja lethal, agresyviai baudžia silpną lentą.",
-    "normalText": "Skaičiuoja trade’us, naudoja removal/AoE logiškai, saugosi lethal.",
-    "enemy": "Priešas",
-    "cancel": "Atšaukti",
-    "none": "—",
-    "start": "⚔ PRADĖTI KOVĄ"
   },
   "tutorial": {
     "button": "🎓 Išmokyk mane žaisti",

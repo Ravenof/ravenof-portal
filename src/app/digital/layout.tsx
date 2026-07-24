@@ -48,11 +48,11 @@ type RankInfo = { tier: MedalTier; number: number }
 
 const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding', '/digital/forgot-password']
 // Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
-const NO_HEADER_ROUTES = ['/digital/collection']
+const NO_HEADER_ROUTES = ['/digital/collection', '/digital/friends']
 // Migruoti route'ai — juose fono „Flames" sluoksnis nerodomas (patvirtintas fonas = grynas ink)
-const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked']
+const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends']
 // Pilno ekrano režimų ekranai (prototipas: be rail ir be header; atgal — ekrano ‹ mygtukas)
-const FULL_BLEED_ROUTES = ['/digital/ranked']
+const FULL_BLEED_ROUTES = ['/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign']
 
 function NavGlyph({ navKey, active, fallback }: { navKey: string; active: boolean; fallback: React.ReactNode }) {
   const [failed, setFailed] = useState(false)

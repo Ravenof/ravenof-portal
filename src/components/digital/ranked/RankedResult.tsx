@@ -1,9 +1,12 @@
 'use client'
 
-// ── Reitingo kovos rezultato ekranas (po kovos). ─────────────────────────────
+// ── Reitingo kovos rezultatas — patvirtintas UI (Fazė 3, result-victory/defeat) ─
+// Pergalė: aukso spinduliai + PERGALĖ + chip'ai + dešinėje SEZONO KELIAS rango
+// pokytis (mažas → didelis herbas). Pralaimėjimas: raudonas radialas +
+// „Reitingas nepakito · X" eilutė. Visi veiksmai (dar kartą / pradžia / TOP /
+// atlygiai), statistika, milestone/achievement pranešimai ir garsai išlaikyti.
 import { useEffect } from 'react'
 import { RankBadge } from './RankBadge'
-import { RButton } from './_ui'
 import { formatRank, isMaxRank } from '@/lib/ranked/rank'
 import { MILESTONE_BY_KEY } from '@/lib/ranked/rewards'
 import { ACHIEVEMENT_BY_KEY } from '@/lib/ranked/achievements'
@@ -29,63 +32,107 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
   }, [won, result.rankChange])
 
   const lossWarn = !won && result.lossCounterAfter === 1 && result.rankChange === 'same'
+  const rankLine = result.rankChange === 'up'
+    ? `${formatRank(result.rankStepBefore)} → ${formatRank(result.rankStepAfter)}`
+    : result.rankChange === 'down'
+      ? `${formatRank(result.rankStepBefore)} → ${formatRank(result.rankStepAfter)}`
+      : `${t('ranked.result.noChange')} · ${formatRank(result.rankStepAfter)}`
+  const rankColor = result.rankChange === 'up' ? 'var(--ravenof-text-primary)' : result.rankChange === 'down' ? '#c65563' : 'var(--ravenof-text-secondary)'
+
   const stat = (label: string, value: number | string) => (
-    <div className="flex justify-between text-[11px] px-1 py-0.5"><span style={{ color: 'var(--text-muted)' }}>{label}</span><span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{value}</span></div>
+    <div className="flex justify-between" style={{ font: '400 10.5px var(--ravenof-font-body)', padding: '2px 0' }}>
+      <span style={{ color: 'var(--ravenof-text-secondary)' }}>{label}</span>
+      <span style={{ color: 'var(--ravenof-text-primary)', fontWeight: 600 }}>{value}</span>
+    </div>
   )
 
   return (
-    <div className="fixed inset-0 z-[170] flex items-center justify-center p-4 overflow-y-auto" style={{ background: 'rgba(4,3,8,0.95)' }}>
-      <div className="relative w-[min(460px,96vw)] my-6" style={{ borderRadius: 20, background: won ? 'rgba(240,180,41,0.4)' : 'rgba(239,68,68,0.32)', padding: 2 }}>
-        <div className="px-5 py-7" style={{ borderRadius: 19, background: `radial-gradient(120% 80% at 50% 0%, rgba(${won ? '240,180,41' : '239,68,68'},0.16), rgba(10,8,16,0.98) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
-          <p className="text-5xl text-center mb-1">{won ? '🏆' : '💀'}</p>
-          <h2 className="text-2xl font-bold text-center" style={{ fontFamily: 'var(--rvn-font-display)', color: won ? 'var(--gold)' : '#f87171', letterSpacing: '0.06em' }}>{won ? t('ranked.result.win') : t('ranked.result.loss')}</h2>
-          <p className="text-center text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>{t('ranked.result.vs', { name: opponentName })}</p>
-
-          {/* Rango judėjimas */}
-          <div className="flex items-center justify-center gap-4 mb-3">
-            <RankBadge step={result.rankStepBefore} size={56} />
-            <span className="text-xl" style={{ color: result.rankChange === 'up' ? '#86efac' : result.rankChange === 'down' ? '#f87171' : 'var(--text-muted)' }}>
-              {result.rankChange === 'up' ? '→' : result.rankChange === 'down' ? '→' : '='}
-            </span>
-            <RankBadge step={result.rankStepAfter} size={64} animate={result.rankChange === 'up' ? 'up' : result.rankChange === 'down' ? 'down' : null} />
-          </div>
-          <p className="text-center text-xs font-semibold mb-1" style={{ color: result.rankChange === 'up' ? '#86efac' : result.rankChange === 'down' ? '#f87171' : 'var(--text-muted)' }}>
-            {result.rankChange === 'up' ? t('ranked.result.rankUpTo', { rank: formatRank(result.rankStepAfter) }) : result.rankChange === 'down' ? t('ranked.result.rankDownTo', { rank: formatRank(result.rankStepAfter) }) : t('ranked.result.noChange')}
+    <div className="ravenof-body fixed inset-0 z-[170] flex items-center justify-center p-4 overflow-hidden"
+      style={{ background: won
+        ? 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, #07060A 70%)'
+        : 'radial-gradient(120% 100% at 50% 40%, rgba(114,32,42,0.35) 0%, #0a0508 55%, #07060A 100%)' }}>
+      {won && <div aria-hidden className="ravenof-rays" />}
+      <div className="relative flex items-center w-[min(860px,96vw)]" style={{ gap: 24 }}>
+        {/* ── KAIRĖ: rezultatas ── */}
+        <div className="flex-1 min-w-0 text-center">
+          <div className="ravenof-ornament" aria-hidden><i style={{ background: won ? 'var(--ravenof-gold-bright)' : '#B4444F' }} /></div>
+          <p className="mt-2" style={{ font: '700 clamp(24px, 6vh, 30px) var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: won ? 'var(--ravenof-gold-bright)' : '#B4444F', textShadow: won ? '0 0 30px rgba(242,196,90,0.35)' : '0 0 26px rgba(180,68,79,0.4)', margin: 0 }}>
+            {won ? t('ranked.result.win') : t('ranked.result.loss')}
           </p>
-          {isMaxRank(result.rankStepAfter) && won && <p className="text-center text-[11px] mb-2" style={{ color: 'var(--gold)' }}>{t('ranked.result.maxReached')}</p>}
-          {lossWarn && <p className="text-center text-[11px] mb-2" style={{ color: '#fbbf24' }}>{t('ranked.result.lossToDemotion')}</p>}
+          <p style={{ font: '400 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '4px 0 0' }}>{t('ranked.result.vs', { name: opponentName })}</p>
+          {!won && <p style={{ font: 'italic 400 12px var(--ravenof-font-body)', color: '#c9a08f', margin: '6px 0 0' }}>{t('ranked.result.encourage')}</p>}
 
-          {/* Atlygis */}
+          {/* atlygio chip'ai */}
           {(result.expGained > 0 || result.goldGained > 0) && (
-            <div className="flex items-center justify-center gap-3 my-3">
-              {result.expGained > 0 && <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.5)', color: '#c4b5fd' }}>+{result.expGained} EXP</span>}
-              {result.goldGained > 0 && <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(240,180,41,0.18)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>+{result.goldGained} 🪙</span>}
+            <div className="flex items-center justify-center gap-2.5" style={{ marginTop: 14 }}>
+              {result.goldGained > 0 && (
+                <span className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px', font: '700 13px var(--ravenof-font-body)', color: '#f3ead3' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/ravenof-ui/currencies/cur-silver.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                  +{result.goldGained}
+                </span>
+              )}
+              {result.expGained > 0 && (
+                <span className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px', font: '700 13px var(--ravenof-font-body)', color: '#cfe0ff' }}>
+                  <span style={{ font: '700 11px var(--ravenof-font-display)', color: '#c4b5fd' }}>XP</span> +{result.expGained}
+                </span>
+              )}
             </div>
           )}
 
-          {/* Atrakinta */}
+          {/* rango eilutė (pralaimėjus / be pokyčio — kairėje, kaip ref) */}
+          {(!won || result.rankChange === 'same') && (
+            <p style={{ font: '400 12px var(--ravenof-font-body)', color: rankColor, margin: '10px 0 0' }}>{rankLine}</p>
+          )}
+          {isMaxRank(result.rankStepAfter) && won && <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', margin: '6px 0 0' }}>{t('ranked.result.maxReached')}</p>}
+          {lossWarn && <p style={{ font: '400 11px var(--ravenof-font-body)', color: '#D4A33B', margin: '6px 0 0' }}>{t('ranked.result.lossToDemotion')}</p>}
+
+          {/* atrakinta */}
           {result.unlockedRewardKeys.length > 0 && (
-            <p className="text-center text-[11px] mb-1" style={{ color: 'var(--gold)' }}>{t('ranked.result.unlockedRewards')} {result.unlockedRewardKeys.map((k) => MILESTONE_BY_KEY.get(k)?.title ?? k).join(', ')}</p>
+            <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', margin: '8px 0 0' }}>{t('ranked.result.unlockedRewards')} {result.unlockedRewardKeys.map((k) => MILESTONE_BY_KEY.get(k)?.title ?? k).join(', ')}</p>
           )}
           {result.completedAchievementKeys.length > 0 && (
-            <p className="text-center text-[11px] mb-2" style={{ color: '#86efac' }}>{t('ranked.result.achievements')} {result.completedAchievementKeys.map((k) => ACHIEVEMENT_BY_KEY.get(k)?.name ?? k).join(', ')}</p>
+            <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-success)', margin: '4px 0 0' }}>{t('ranked.result.achievements')} {result.completedAchievementKeys.map((k) => ACHIEVEMENT_BY_KEY.get(k)?.name ?? k).join(', ')}</p>
           )}
 
-          {/* Statistika */}
-          <div className="rounded-lg px-3 py-2 my-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* statistika */}
+          <div style={{ margin: '12px auto 0', maxWidth: 280, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--ravenof-border-hairline)', padding: '8px 12px' }}>
             {stat(t('ranked.result.killsLost'), `${stats.totalKills} / ${stats.totalDeaths}`)}
             {stat(t('ranked.result.dmgDealt'), stats.damageDealtToEnemyPlayer)}
             {stat(t('ranked.result.dmgTaken'), stats.damageTaken)}
             {stat(t('ranked.result.spellsPlayed'), stats.spellsPlayed)}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <RButton onClick={onAgain} tone="gold">{t('ranked.result.playAgain')}</RButton>
-            <RButton onClick={onHome} tone="muted">{t('ranked.result.backToRanked')}</RButton>
-            <RButton onClick={onLeaderboard} tone="accent">{t('ranked.result.viewTop')}</RButton>
-            <RButton onClick={onRewards} tone="accent">{t('ranked.result.rewards')}</RButton>
+          <div className="flex gap-3 justify-center items-center" style={{ marginTop: 16 }}>
+            <button onClick={onAgain} className="ravenof-press" style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+              background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: '14px 24px',
+              clipPath: 'polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)', cursor: 'pointer' }}>
+              {t('ranked.result.playAgain')}
+            </button>
+            <button onClick={onHome} className="ravenof-press" style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+              background: 'none', border: 0, borderTop: '1px solid var(--ravenof-border-strong)', borderBottom: '1px solid var(--ravenof-border-strong)',
+              color: 'var(--ravenof-text-primary)', padding: '14px 22px', cursor: 'pointer' }}>
+              {t('ranked.result.toHome')}
+            </button>
+          </div>
+          <div className="flex gap-4 justify-center" style={{ marginTop: 10 }}>
+            <button onClick={onLeaderboard} className="ravenof-press" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', background: 'none', border: 0, cursor: 'pointer' }}>{t('ranked.result.viewTop')} ›</button>
+            <button onClick={onRewards} className="ravenof-press" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', background: 'none', border: 0, cursor: 'pointer' }}>{t('ranked.result.rewards')} ›</button>
           </div>
         </div>
+
+        {/* ── DEŠINĖ: SEZONO KELIAS — rango pokytis (kai pakito) ── */}
+        {won && result.rankChange !== 'same' && (
+          <div className="shrink-0 text-center hidden sm:block" style={{ borderLeft: '1px solid var(--ravenof-border-hairline)', paddingLeft: 24, minWidth: 220 }}>
+            <p style={{ font: '500 10px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('ranked.result.seasonPath')}</p>
+            <div className="flex items-center justify-center" style={{ gap: 16, marginTop: 18 }}>
+              <RankBadge step={result.rankStepBefore} size={54} />
+              <span aria-hidden style={{ width: 9, height: 9, background: 'var(--ravenof-gold-bright)', transform: 'rotate(45deg)' }} />
+              <RankBadge step={result.rankStepAfter} size={78} animate={result.rankChange === 'up' ? 'up' : 'down'} />
+            </div>
+            <p style={{ font: '700 14px var(--ravenof-font-display)', color: rankColor, marginTop: 16, letterSpacing: 0.5 }}>{rankLine}</p>
+          </div>
+        )}
       </div>
     </div>
   )

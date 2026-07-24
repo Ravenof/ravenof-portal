@@ -1,17 +1,26 @@
 'use client'
 
-// ── Ravenof Digital — Treniruotė prieš AI: VIENO ekrano landscape pasiruošimas ─
-// 3 stulpeliai: Tavo kaladė (karuselė) · Priešininko tipas (atsitiktinė/pasirinkta frakcija/viešas deck) · Santrauka+sunkumas.
-// Startas -> TutorialGame(practice) su opponentFaction ARBA opponentDeckId + difficulty.
+// ── Ravenof Digital — Kova su DI: patvirtintas UI (Fazė 3, pve-default.png) ───
+// Full-bleed (be rail): ‹ atgal + KOVA SU DI. 3 stulpeliai:
+//  KAIRĖ — TAVO KALADĖ eilutė (→ ActiveDeckSelectorModal), SUDĖTINGUMAS
+//  segmented, Numatomas atlygis, raudonas PRADĖTI KOVĄ banner.
+//  CENTRAS — VARŽOVAS 2×2 plytelės (atsitiktinė/pasirinkta frakcija/viešas
+//  deck/mokymai; esami asset mygtukai — portretinio arto handoff'e nėra).
+//  DEŠINĖ — pasirinkimo detalės: random santrauka / frakcijų grid / viešų
+//  kaladžių paieška. Startas → TutorialGame(practice) — logika nekeista.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
-import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
+import { PVE_REWARD } from '@/lib/economy'
+import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
+import { getStarterDecks } from '@/lib/starterDecks'
 import { useT, useContent, useGameContent } from '@/lib/i18n/react'
+import { RavenofBannerButton } from '@/components/digital/ui/RavenofKit'
 
 // i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -20,14 +29,15 @@ type Deck = { id: string; name: string; faction: string | null; factionIcon: str
 type Faction = { id: number; name: string; icon_url: string | null; color_hex: string | null }
 type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number }
 type Mode = 'random' | 'faction' | 'public'
-const A = '34,197,94'
-const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(14,20,16,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(34,197,94,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
-// Frakcijų aprašai — vertimai battle.factionDesc.* (raktas = DB frakcijos pavadinimas)
+
+// Plytelės kampų nuopjovos (prototipo aiType tile)
+const TILE_CLIP = 'polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px))'
 
 export function DigitalPvE() {
   const gc = useGameContent()
   const t = useT()
   const tc = useContent()
+  const router = useRouter()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [factions, setFactions] = useState<Faction[]>([])
@@ -39,6 +49,8 @@ export function DigitalPvE() {
   const [query, setQuery] = useState('')
   const [filterFaction, setFilterFaction] = useState<number | ''>('')
   const [started, setStarted] = useState(false)
+  const [deckSelOpen, setDeckSelOpen] = useState(false)
+  const [covers, setCovers] = useState<Record<number, string>>({})
 
   useEffect(() => {
     const supabase = createClient()
@@ -71,11 +83,18 @@ export function DigitalPvE() {
         if (uids.length) { const { data: profs } = await supabase.from('profiles').select('id, username, display_name').in('id', uids); for (const pr of ((profs as { id: string; username: string | null; display_name: string | null }[]) ?? [])) authors[pr.id] = pr.display_name || pr.username || t('battle.player') }
         setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? t('battle.player'), score: d.score ?? 0 })))
       })
+    void useActiveDeck.getState().refresh()
+    getStarterDecks().then((sd) => {
+      const m: Record<number, string> = {}
+      for (const st of sd ?? []) if (st.factionId != null && st.imageUrl) m[st.factionId] = st.imageUrl
+      setCovers(m)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // preload asset mygtukų — be layout shift ir mirgėjimo
   useEffect(() => {
-    for (const a of ['/digital/ai/types/random-faction.png?v=1', '/digital/ai/types/selected-faction.png?v=1', '/digital/ai/types/public-deck.png?v=1', '/digital/ai/types/tutorials.png?v=1', '/digital/ai/difficulty/easy.png?v=1', '/digital/ai/difficulty/medium.png?v=1', '/digital/ai/difficulty/hard.png?v=1']) { const im = new Image(); im.src = a }
+    for (const a of ['/digital/ai/types/random-faction.png?v=1', '/digital/ai/types/selected-faction.png?v=1', '/digital/ai/types/public-deck.png?v=1', '/digital/ai/types/tutorials.png?v=1']) { const im = new Image(); im.src = a }
   }, [])
 
   const adState = useActiveDeck()
@@ -102,8 +121,6 @@ export function DigitalPvE() {
     setStarted(true)
   }, [canStart, mode, factions, oppFaction])
 
-  const oppSummary = mode === 'random' ? t('battle.pve.types.random') : mode === 'faction' ? (selFactionObj ? `${selFactionObj.name} AI` : '—') : (selDeckObj ? selDeckObj.name : '—')
-
   if (started && deck) {
     return <TutorialGame deckId={deck.id} deckName={deck.name} practice
       opponentDeckId={mode === 'public' ? oppDeck : null}
@@ -113,134 +130,156 @@ export function DigitalPvE() {
       onClose={() => setStarted(false)} />
   }
 
-  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span></div>
+  if (decks === null) return <div className="ravenof-body h-full flex items-center justify-center"><span className="ravenof-spinner" style={{ width: 40, height: 40 }} /></div>
   if (playable.length === 0) return (
-    <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-      <p style={{ color: 'var(--text-muted)' }}>{t('battle.pve.noDecks')}</p>
-      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.pve.createDeck')}</Link>
+    <div className="ravenof-body h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+      <p style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pve.noDecks')}</p>
+      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="ravenof-btn ravenof-btn-secondary">{t('battle.pve.createDeck')}</Link>
     </div>
   )
 
-  // ── Pilno asset'o mygtukai (PNG jau turi rėmą+emblemą+LT pavadinimą — jokių
-  // papildomų ikonų/tekstų; vardas per aria-label). Selected = CSS glow, be layout shift.
-  const TYPE_ASSETS: Record<string, { asset: string; glow: string; label: string }> = {
-    random:   { asset: '/digital/ai/types/random-faction.png?v=1',   glow: 'rgba(52,211,153,0.65)', label: t('battle.pve.types.random') },
-    faction:  { asset: '/digital/ai/types/selected-faction.png?v=1', glow: 'rgba(240,180,41,0.65)', label: t('battle.pve.types.faction') },
-    public:   { asset: '/digital/ai/types/public-deck.png?v=1',      glow: 'rgba(96,165,250,0.65)', label: t('battle.pve.types.public') },
-    tutorial: { asset: '/digital/ai/types/tutorials.png?v=1',        glow: 'rgba(139,92,246,0.65)', label: t('battle.pve.types.tutorial') },
-  }
-  const DIFF_ASSETS: Record<AiDifficulty, { asset: string; glow: string; label: string }> = {
-    easy:   { asset: '/digital/ai/difficulty/easy.png?v=1',   glow: 'rgba(52,211,153,0.6)', label: t('battle.pve.diff.easy') },
-    normal: { asset: '/digital/ai/difficulty/medium.png?v=1', glow: 'rgba(45,212,191,0.6)', label: t('battle.pve.diff.normal') },
-    hard:   { asset: '/digital/ai/difficulty/hard.png?v=1',   glow: 'rgba(239,68,68,0.6)',  label: t('battle.pve.diff.hard') },
-  }
+  const label = (txt: string) => (
+    <div className="shrink-0" style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{txt}</div>
+  )
 
-  const imgBtn = (opts: { asset: string; glow: string; label: string; selected: boolean; aspect: string; onClick?: () => void; href?: string; testId?: string }) => {
-    const style: React.CSSProperties = {
-      aspectRatio: opts.aspect, width: '100%', minWidth: 0, border: 0, padding: 0, background: 'transparent',
-      display: 'block', cursor: 'pointer',
-      opacity: opts.selected ? 1 : 0.72,
-      filter: opts.selected ? `saturate(1.1) brightness(1.07) drop-shadow(0 0 9px ${opts.glow})` : 'saturate(0.72) brightness(0.82)',
-      transform: opts.selected ? 'translateY(-1px) scale(1.015)' : 'translateZ(0)',
-      transition: 'transform 160ms ease, filter 160ms ease, opacity 160ms ease',
+  // ── Varžovo plytelė (esamas PNG asset — rėmas+emblema+LT pavadinimas jau arte) ──
+  const tile = (opts: { asset: string; label: string; selected: boolean; onClick?: () => void; href?: string; testId?: string }) => {
+    const frame: React.CSSProperties = {
+      position: 'relative', clipPath: TILE_CLIP, padding: 0, cursor: 'pointer', overflow: 'hidden',
+      border: 0, background: opts.selected ? 'linear-gradient(160deg, rgba(212,163,59,0.16), var(--ravenof-bg-surface))' : 'var(--ravenof-bg-surface)',
+      boxShadow: opts.selected ? 'inset 0 0 0 1.5px var(--ravenof-gold)' : 'inset 0 0 0 1px var(--ravenof-border-strong)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
     }
     const img = (
       /* eslint-disable-next-line @next/next/no-img-element */
       <img src={opts.asset} alt="" aria-hidden draggable={false}
         onError={(e) => { const el = e.target as HTMLImageElement; if (!el.dataset.fb) { el.dataset.fb = '1'; console.warn('[PvE] trūksta asset:', opts.asset); el.src = '/digital/icons/fi-gifts.png' } }}
-        className="block w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', objectPosition: 'center' }} />
+        className="block pointer-events-none select-none" style={{ width: '92%', height: '86%', objectFit: 'contain', objectPosition: 'center', opacity: opts.selected ? 1 : 0.66, filter: opts.selected ? 'saturate(1.08) brightness(1.05)' : 'saturate(0.72) brightness(0.8)', transition: 'filter 160ms ease, opacity 160ms ease' }} />
     )
-    if (opts.href) return <Link key={opts.label} href={opts.href} onClick={() => playUiClick()} className="rvn-press" style={style} aria-label={opts.label} data-setup-tile={opts.testId}>{img}</Link>
+    const marker = opts.selected && (
+      <span aria-hidden style={{ position: 'absolute', top: 7, right: 9, width: 11, height: 11, background: 'var(--ravenof-gold-bright)', transform: 'rotate(45deg)', boxShadow: '0 0 8px rgba(242,196,90,0.7)' }} />
+    )
+    if (opts.href) return <Link key={opts.label} href={opts.href} onClick={() => playUiClick()} className="ravenof-press" style={frame} aria-label={opts.label} data-setup-tile={opts.testId}>{img}{marker}</Link>
     return (
-      <button key={opts.label} type="button" onClick={() => { playUiClick(); opts.onClick?.() }} className="rvn-press" style={style}
-        aria-label={opts.label} aria-pressed={opts.selected} data-selected={opts.selected || undefined} data-setup-tile={opts.testId}>{img}</button>
+      <button key={opts.label} type="button" onClick={() => { playUiClick(); opts.onClick?.() }} className="ravenof-press" style={frame}
+        aria-label={opts.label} aria-pressed={opts.selected} data-selected={opts.selected || undefined} data-setup-tile={opts.testId}>{img}{marker}</button>
     )
   }
-  const diffBtn = (d: AiDifficulty) => imgBtn({ ...DIFF_ASSETS[d], selected: difficulty === d, aspect: '4.2 / 1', onClick: () => setDifficulty(d), testId: `diff-${d}` })
-  const inputStyle: React.CSSProperties = { minHeight: 36, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', borderRadius: 10, padding: '0 10px', fontSize: 12 }
+
+  const inputStyle: React.CSSProperties = { minHeight: 34, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '0 10px', font: '400 12px var(--ravenof-font-body)', outline: 'none' }
 
   return (
-    <div data-pve-v="446" className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
-      <div className="text-center shrink-0">
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(17px,3.4vh,30px)', color: '#86efac', letterSpacing: '0.04em' }}>{t('battle.pve.title')}</div>
+    <div data-pve-v="447" className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+      {/* Antraštė: atgal + pavadinimas */}
+      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.screenTitle')}</div>
       </div>
 
-      {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
-      <div className="shrink-0"><ActiveDeckSummary accent={A} compact /></div>
+      <div className="flex-1 flex min-h-0" style={{ gap: 14 }}>
+        {/* ── KAIRĖ: kaladė + sunkumas + atlygis + CTA ── */}
+        <div className="flex flex-col min-w-0" style={{ flex: 1.05, gap: 8 }}>
+          {label(t('battle.pve.yourDeck'))}
+          <button onClick={() => { playUiClick(); setDeckSelOpen(true) }} data-testid="active-deck-summary" className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: 10, background: 'var(--ravenof-bg-surface)', border: '1px solid #3d3345', padding: '7px 10px', cursor: 'pointer' }}>
+            <span className="shrink-0 overflow-hidden relative" style={{ width: 34, height: 45, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
+            <span className="flex-1 min-w-0">
+              <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
+              {globalDeck && <span className="block truncate" style={{ font: '400 11px var(--ravenof-font-body)', color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {t('decks.cardsShort', { count: globalDeck.cardCount })}</span>}
+            </span>
+            <span style={{ color: 'var(--ravenof-text-secondary)' }}>›</span>
+          </button>
+          {adState.loaded && globalDeck && !deck && (
+            <p role="status" className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', margin: 0 }}>{t('battle.pve.activeDeckInvalid')}</p>
+          )}
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(220px,1fr) minmax(0,1.6fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
-
-        {/* KAIRĖ: režimo pasirinkimas + AI sunkumas (Donato layout: selektoriai dešinėje, kur daugiau vietos) */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: '#86efac' }}>{t('battle.pve.opponentType')}</div>
-          <div className="grid grid-cols-2 my-auto" style={{ gap: 'clamp(8px,1vw,16px)' }}>
-            {imgBtn({ ...TYPE_ASSETS.random, selected: mode === 'random', aspect: '2.55 / 1', onClick: () => setMode('random'), testId: 'random' })}
-            {imgBtn({ ...TYPE_ASSETS.faction, selected: mode === 'faction', aspect: '2.55 / 1', onClick: () => setMode('faction'), testId: 'faction' })}
-            {imgBtn({ ...TYPE_ASSETS.public, selected: mode === 'public', aspect: '2.55 / 1', onClick: () => setMode('public'), testId: 'public' })}
-            {imgBtn({ ...TYPE_ASSETS.tutorial, selected: false, aspect: '2.55 / 1', href: '/digital/tutorial', testId: 'tutorial' })}
+          {label(t('battle.pve.difficulty'))}
+          <div className="flex shrink-0" data-testid="ai-difficulty" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
+            {(['easy', 'normal', 'hard'] as AiDifficulty[]).map((d) => {
+              const s = difficulty === d
+              return (
+                <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} data-setup-tile={`diff-${d}`} aria-pressed={s}
+                  className="ravenof-press flex-1" title={t(`battle.pve.diffDesc.${d}`)} style={{
+                    padding: '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                    font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5,
+                    background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
+                    color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                  }}>{t(`battle.pve.diff.${d}`)}</button>
+              )
+            })}
           </div>
-        </section>
 
-        {/* DEŠINĖ: varžovo pasirinkimo turinys (visas aukštis scroll'ui) + CTA apačioje */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="shrink-0" data-testid="ai-difficulty" style={{ marginBottom: 'clamp(4px,1vh,8px)', paddingBottom: 'clamp(4px,1vh,8px)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <div className="flex items-baseline gap-2 min-w-0" style={{ marginBottom: 'clamp(3px,0.6vh,5px)' }}>
-              <span className="rvn-disp font-semibold uppercase shrink-0" style={{ fontSize: 'clamp(8px,1.3vh,10px)', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{t('battle.pve.aiDifficulty')}</span>
-              <span className="truncate" style={{ fontSize: 'clamp(8px,1.3vh,10px)', color: 'var(--text-muted)' }}>{t(`battle.pve.diffDesc.${difficulty}`)}</span>
-            </div>
-            <div className="grid grid-cols-3 mx-auto w-full" style={{ gap: 'clamp(5px,0.6vw,10px)', maxWidth: 560 }}>{diffBtn('easy')}{diffBtn('normal')}{diffBtn('hard')}</div>
+          <div className="flex items-center justify-between shrink-0" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '9px 12px' }}>
+            <span style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pve.expectedReward')}</span>
+            <span style={{ font: '700 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.silverN', { n: PVE_REWARD[difficulty] })}</span>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+
+          <div className="flex-1" />
+          <RavenofBannerButton onClick={start} disabled={!canStart} data-testid="pve-start" style={{ width: '100%' }}>
+            {canStart ? t('battle.pve.start') : !deck ? t('battle.pve.activeDeckInvalid') : mode === 'faction' ? t('battle.pve.pickFaction') : mode === 'public' ? t('battle.pve.pickDeck') : t('battle.pve.pickOpponent')}
+          </RavenofBannerButton>
+        </div>
+
+        {/* ── CENTRAS: varžovo tipas 2×2 ── */}
+        <div className="flex flex-col min-w-0" style={{ flex: 1.15, gap: 8 }}>
+          {label(t('battle.pve.opponentLabel'))}
+          <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-2" style={{ gap: 10 }}>
+            {tile({ asset: '/digital/ai/types/random-faction.png?v=1', label: t('battle.pve.types.random'), selected: mode === 'random', onClick: () => setMode('random'), testId: 'random' })}
+            {tile({ asset: '/digital/ai/types/selected-faction.png?v=1', label: t('battle.pve.types.faction'), selected: mode === 'faction', onClick: () => setMode('faction'), testId: 'faction' })}
+            {tile({ asset: '/digital/ai/types/public-deck.png?v=1', label: t('battle.pve.types.public'), selected: mode === 'public', onClick: () => setMode('public'), testId: 'public' })}
+            {tile({ asset: '/digital/ai/types/tutorials.png?v=1', label: t('battle.pve.types.tutorial'), selected: false, href: '/digital/tutorial', testId: 'tutorial' })}
+          </div>
+        </div>
+
+        {/* ── DEŠINĖ: pasirinkimo detalės ── */}
+        <div className="flex flex-col min-w-0" style={{ flex: 1.25, gap: 8 }}>
+          {label(t('battle.pve.opponentLabel'))}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative" style={{ border: '1px solid var(--ravenof-border-strong)', background: 'var(--ravenof-bg-surface)' }}>
             {mode === 'random' && (
-              <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-4">
-                <img src={TYPE_ASSETS.random.asset} alt={t('battle.pve.types.random')} className="object-contain" style={{ height: 'clamp(44px,11vh,84px)', maxWidth: '85%', filter: `drop-shadow(0 0 14px ${TYPE_ASSETS.random.glow})` }} />
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>{t('battle.pve.randomInfo')}</p>
+              <div className="flex-1 relative overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/digital/ai/types/random-faction.png?v=1" alt="" aria-hidden className="absolute inset-0 w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', objectPosition: 'center 38%', padding: '8%', opacity: 0.9, filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.6))' }} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(7,6,10,0.94) 0%, rgba(7,6,10,0.25) 45%, transparent 70%)' }} />
+                <div className="absolute inset-x-0 bottom-0" style={{ padding: '0 14px 12px' }}>
+                  <div style={{ font: '700 15px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', letterSpacing: 1, textTransform: 'uppercase' }}>{t('battle.pve.randomOpp')}</div>
+                  <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{t('battle.pve.randomOppSub')}</div>
+                </div>
               </div>
             )}
             {mode === 'faction' && (
-              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start" data-testid="faction-picker">
+              <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll grid grid-cols-2 gap-1.5 content-start" data-testid="faction-picker" style={{ padding: 8 }}>
                 {factions.map((f) => { const s = f.id === oppFaction; return (
-                  <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="rvn-press flex items-center gap-2 rounded-xl px-2 py-1.5 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
-                    <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'rgba(240,180,41,0.3)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
-                    <span className="min-w-0"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{tc('faction', f.id, 'name', f.name)}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{(() => { const k = `battle.factionDesc.${f.name}`; const v = t(k); return v === k ? t('battle.pve.aiDeck') : v })()}</span></span>
+                  <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="ravenof-press flex items-center gap-2 px-2 py-1.5 text-left" style={{ cursor: 'pointer', border: s ? '1.5px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-hairline)', background: s ? 'linear-gradient(135deg, rgba(212,163,59,0.14), var(--ravenof-bg-surface-2))' : 'var(--ravenof-bg-surface-2)' }}>
+                    <span className="shrink-0 w-8 h-8 flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'var(--ravenof-border-gold)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={32} height={32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
+                    <span className="min-w-0"><span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{tc('faction', f.id, 'name', f.name)}</span><span className="block truncate" style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{(() => { const k = `battle.factionDesc.${f.name}`; const v = t(k); return v === k ? t('battle.pve.aiDeck') : v })()}</span></span>
                   </button>
                 ) })}
               </div>
             )}
             {mode === 'public' && (
-              <div className="flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 flex flex-col" style={{ padding: 8 }}>
                 <div className="flex gap-2 mb-2 shrink-0">
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('battle.pve.searchDeckAuthor')} className="flex-1 outline-none" style={inputStyle} />
-                  <select value={filterFaction ? String(filterFaction) : ''} onChange={(e) => setFilterFaction(e.target.value ? Number(e.target.value) : '')} style={{ ...inputStyle, maxWidth: 140 }}>
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('battle.pve.searchDeckAuthor')} className="flex-1" style={inputStyle} />
+                  <select value={filterFaction ? String(filterFaction) : ''} onChange={(e) => setFilterFaction(e.target.value ? Number(e.target.value) : '')} style={{ ...inputStyle, maxWidth: 130 }}>
                     <option value="">{t('battle.pve.allFactions')}</option>{factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
-                <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start" data-testid="public-decks">
-                  {filteredDecks.length === 0 && <p className="col-span-2 text-center py-4" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('battle.pve.noDecksFound')}</p>}
+                <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col gap-1.5" data-testid="public-decks">
+                  {filteredDecks.length === 0 && <p className="text-center py-4" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pve.noDecksFound')}</p>}
                   {filteredDecks.map((d) => { const s = d.id === oppDeck; return (
-                    <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="rvn-press rounded-xl p-2 flex flex-col gap-1 text-left" style={{ border: s ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: s ? `linear-gradient(135deg, rgba(${A},0.14), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)' }}>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'rgba(240,180,41,0.3)') }}>{d.factionIcon ? <img src={d.factionIcon} alt="" width={28} height={28} className="w-full h-full object-cover" /> : <span style={{ fontSize: 12 }}>⚔</span>}</span>
-                        <span className="min-w-0 flex-1"><span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{d.name}</span><span className="block truncate" style={{ fontSize: 9, color: 'var(--text-muted)' }}>{d.author}</span></span>
-                        {s ? <span style={{ color: '#86efac', fontSize: 13 }}>✓</span> : d.score > 0 ? <span className="shrink-0" style={{ fontSize: 9, color: '#fb923c' }}>🔥{d.score >= 1000 ? (d.score / 1000).toFixed(1) + 'K' : d.score}</span> : null}
-                      </div>
-                      <span className="truncate" style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{gc.faction(d.faction) || '—'}</span>
+                    <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="ravenof-press p-2 flex items-center gap-1.5 text-left shrink-0" style={{ cursor: 'pointer', border: s ? '1.5px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-hairline)', background: s ? 'linear-gradient(135deg, rgba(212,163,59,0.12), var(--ravenof-bg-surface-2))' : 'var(--ravenof-bg-surface-2)' }}>
+                      <span className="shrink-0 w-7 h-7 flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'var(--ravenof-border-gold)') }}>{d.factionIcon ? <img src={d.factionIcon} alt="" width={28} height={28} className="w-full h-full object-cover" /> : <span style={{ fontSize: 12 }}>⚔</span>}</span>
+                      <span className="min-w-0 flex-1"><span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{d.name}</span><span className="block truncate" style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{d.author} · {gc.faction(d.faction) || '—'}</span></span>
+                      {s ? <span style={{ color: 'var(--ravenof-success)', fontSize: 13 }}>✓</span> : d.score > 0 ? <span className="shrink-0" style={{ font: '400 9px var(--ravenof-font-body)', color: '#fb923c' }}>🔥{d.score >= 1000 ? (d.score / 1000).toFixed(1) + 'K' : d.score}</span> : null}
                     </button>
                   ) })}
                 </div>
               </div>
             )}
           </div>
-          <p className="shrink-0 truncate text-center" style={{ marginTop: 'clamp(3px,0.8vh,6px)', fontSize: 'clamp(8.5px,1.4vh,11px)', color: 'var(--text-secondary)' }}>
-            {t('battle.pve.you')} <b style={{ color: '#86efac' }}>{deck?.name ?? '—'}</b> · {t('battle.pve.opponent')} <b style={{ color: '#fdba74' }}>{oppSummary}</b>
-          </p>
-          <button disabled={!canStart} onClick={start} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0"
-            style={{ marginTop: 'clamp(3px,0.8vh,6px)', minHeight: 'clamp(40px,7vh,58px)', background: canStart ? `linear-gradient(135deg, rgba(${A},0.95), rgba(52,211,153,0.9))` : 'rgba(255,255,255,0.06)', color: canStart ? '#04210f' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(13px,1.9vh,17px)', boxShadow: canStart ? `0 0 20px rgba(${A},0.5)` : 'none' }}>
-            ⚔ {canStart ? t('battle.pve.start') : !deck ? t('battle.pve.activeDeckInvalid') : mode === 'faction' ? t('battle.pve.pickFaction') : mode === 'public' ? t('battle.pve.pickDeck') : t('battle.pve.pickOpponent')}
-          </button>
-        </section>
+        </div>
       </div>
 
+      {deckSelOpen && <ActiveDeckSelectorModal onClose={() => setDeckSelOpen(false)} />}
     </div>
   )
 }

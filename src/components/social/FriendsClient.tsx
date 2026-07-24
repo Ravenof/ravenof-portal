@@ -1,50 +1,35 @@
 'use client'
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Draugai v2 — landscape socialinis hub'as (3 zonos):
-//  KAIRĖ: pridėti + užklausos. CENTRAS: draugų sąrašas (avatarai, presence,
-//  lygis, unread, paieška, filtras, More meniu su patvirtinimais).
-//  DEŠINĖ: veikla — iššūkiai, mainai, paskutiniai pokalbiai (be tuščios zonos).
-//  Viršuje — savo presence pasirinkimas (Online/Pasitraukęs/Netrukdyti/Nematomas).
-//  Žinutės atidaro GLOBALŲ chat sluoksnį (galvutės lieka visame app).
+// Draugai — patvirtintas UI (Fazė 3, friends-default.png). Dvi zonos:
+//  KAIRĖ — draugų sąrašas (dot + vardas + būsena + unread), paieška/filtras,
+//  užklausos, pridėti draugą. DEŠINĖ — įterptas pokalbis su pasirinktu draugu
+//  (chatStore istorija/siuntimas; realtime ateina per GlobalChatLayer sub'ą),
+//  antraštėje IŠŠŪKIS + ⋮ meniu (mainai/mute/block/šalinti). Kai draugas
+//  nepasirinktas — iššūkiai/mainų pasiūlymai + tuščia būsena.
+//  Viršuje — ‹ atgal + DRAUGAI + N prisijungę + savo presence pasirinkimas.
+// Visa gyva logika (friendRequest/Respond/Remove, challenge*, trade*, presence,
+// block, mute) išlaikyta.
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Swords, Check, X, Repeat, MessageCircle, MoreVertical } from 'lucide-react'
+import { Check, X, MoreVertical } from 'lucide-react'
 import { friendRequest, friendRespond, friendRemove, friendsList, challengeCreate, challengeIncoming, challengeAccept, challengeCancel, randMatchCode, setPresence, blockUser, type Friend, type Challenge, type SelfPresence } from '@/lib/social'
 import { tradeCreate, tradeIncoming, tradeAccept, type TradeIncoming } from '@/lib/trade'
 import { TradeWindow } from './TradeWindow'
-import { RavenofButton } from '@/components/ui/RavenofButton'
-import { EmptyState } from '@/components/digital/ui/HubKit'
 import { useChatStore, PRESENCE_META } from '@/lib/social/chatStore'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { useT } from '@/lib/i18n/react'
+import { RavenofTextField } from '@/components/digital/ui/RavenofKit'
 
-const GOLD = '240,180,41'
 type PresenceFilter = 'all' | 'online' | 'offline'
 
-function Avatar({ url, name, size, presence }: { url: string | null; name: string; size: number; presence?: string }) {
-  const [err, setErr] = useState(false)
-  const pm = presence ? (PRESENCE_META[presence as keyof typeof PRESENCE_META] ?? PRESENCE_META.offline) : null
-  return (
-    <span className="relative shrink-0">
-      <span className="inline-flex items-center justify-center rounded-full overflow-hidden" style={{ width: size, height: size, background: 'linear-gradient(160deg,#241a35,#0f0a18)', border: `1.5px solid rgba(${GOLD},0.4)` }}>
-        {url && !err
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={url} alt="" loading="lazy" onError={() => setErr(true)} className="w-full h-full object-cover" />
-          : <span style={{ fontSize: size * 0.42, color: 'var(--gold)', fontWeight: 800 }}>{(name || '?').slice(0, 1).toUpperCase()}</span>}
-      </span>
-      {pm && <span className="absolute -bottom-0.5 -right-0.5 rounded-full" title={pm.name} style={{ width: 11, height: 11, background: pm.color, border: '2px solid #0d0a14' }} />}
-    </span>
-  )
-}
-
 const SELF_STATUS: { v: SelfPresence; labelKey: string; color: string; hintKey: string }[] = [
-  { v: 'auto',   labelKey: 'social.presence.online',  color: '#34d399', hintKey: 'social.selfStatus.autoHint' },
-  { v: 'away',   labelKey: 'social.presence.away',    color: '#fbbf24', hintKey: 'social.selfStatus.awayHint' },
-  { v: 'dnd',    labelKey: 'social.presence.dnd',     color: '#ef4444', hintKey: 'social.selfStatus.dndHint' },
-  { v: 'hidden', labelKey: 'social.presence.hidden',  color: '#64748b', hintKey: 'social.selfStatus.hiddenHint' },
+  { v: 'auto',   labelKey: 'social.presence.online',  color: '#4F9E52', hintKey: 'social.selfStatus.autoHint' },
+  { v: 'away',   labelKey: 'social.presence.away',    color: '#D4A33B', hintKey: 'social.selfStatus.awayHint' },
+  { v: 'dnd',    labelKey: 'social.presence.dnd',     color: '#B4444F', hintKey: 'social.selfStatus.dndHint' },
+  { v: 'hidden', labelKey: 'social.presence.hidden',  color: '#5e5868', hintKey: 'social.selfStatus.hiddenHint' },
 ]
 
 export function FriendsClient() {
@@ -61,10 +46,12 @@ export function FriendsClient() {
   const [busy, setBusy] = useState(false)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<PresenceFilter>('all')
-  const [menuFor, setMenuFor] = useState<string | null>(null)
+  const [selId, setSelId] = useState<string | null>(null) // Friend.userId
+  const [menuOpen, setMenuOpen] = useState(false)
   const [confirmAct, setConfirmAct] = useState<{ kind: 'remove' | 'block'; f: Friend } | null>(null)
   const [selfStatus, setSelfStatusUi] = useState<SelfPresence>('auto')
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const msgsEndRef = useRef<HTMLDivElement | null>(null)
 
   const flash = (t: string) => { setMsg(t); if (msgTimer.current) clearTimeout(msgTimer.current); msgTimer.current = setTimeout(() => setMsg(null), 4000) }
 
@@ -76,6 +63,32 @@ export function FriendsClient() {
   useEffect(() => { void reload(); const t = setInterval(() => { void reload() }, 15_000); return () => clearInterval(t) }, [reload])
   useEffect(() => { void chat.loadOverview() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const selFriend = useMemo(() => friends.find((f) => f.userId === selId) ?? null, [friends, selId])
+  const conv = selId ? chat.convs[selId] : undefined
+
+  // Pasirinkus draugą — istorija + perskaityta (be globalios galvutės atidarymo).
+  // Jei pokalbio įrašo dar nėra (draugas be žinučių) — sukuriam jį store'e,
+  // kitaip loadHistory nieko neįrašytų ir liktų amžinas „kraunama".
+  useEffect(() => {
+    if (!selId || !selFriend) return
+    if (!useChatStore.getState().convs[selId]) {
+      useChatStore.setState((s) => ({ convs: { ...s.convs, [selId]: {
+        friend: { userId: selFriend.userId, username: selFriend.username, displayName: selFriend.displayName, avatar: selFriend.avatar, presence: (selFriend.presence ?? (selFriend.online ? 'online' : 'offline')) },
+        msgs: null, unread: selFriend.unread ?? 0, draft: '',
+      } } }))
+    }
+    void chat.loadHistory(selId)
+    chat.markRead(selId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId, selFriend?.userId])
+  // Nauja žinutė atėjo į atidarytą pokalbį → pažymim skaityta + scroll žemyn
+  useEffect(() => {
+    if (!selId || !conv?.msgs) return
+    chat.markRead(selId)
+    msgsEndRef.current?.scrollIntoView({ block: 'end' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId, conv?.msgs?.length])
+
   const add = async () => {
     if (!uname.trim() || busy) return
     setBusy(true); setMsg(null)
@@ -86,6 +99,7 @@ export function FriendsClient() {
   }
   const respond = async (id: string, ok: boolean) => { playUiClick(); await friendRespond(id, ok); void reload() }
   const challenge = async (f: Friend) => {
+    playUiClick()
     const code = randMatchCode()
     if (!(await challengeCreate(f.userId, code))) { flash(t('social.challengeFailed')); return }
     router.push(`/digital/pvp?host=${code}`)
@@ -96,11 +110,16 @@ export function FriendsClient() {
     router.push(`/digital/pvp?join=${code}`)
   }
   const startTrade = async (f: Friend) => { const id = await tradeCreate(f.userId); if (id) setTradeId(id); else flash(t('social.tradeFailed')) }
-  const openChat = (f: Friend) => {
-    playUiClick()
-    chat.openChat({ userId: f.userId, username: f.username, displayName: f.displayName, avatar: f.avatar, presence: f.presence ?? (f.online ? 'online' : 'offline') })
-  }
   const changeSelf = (v: SelfPresence) => { playUiClick(); setSelfStatusUi(v); chat.setSelfStatus(v); void setPresence(v) }
+
+  const sendMsg = async () => {
+    if (!selId) return
+    const body = (chat.convs[selId]?.draft ?? '').trim()
+    if (!body) return
+    playUiClick()
+    chat.setDraft(selId, '')
+    await chat.send(selId, body)
+  }
 
   const shown = useMemo(() => {
     const qq = q.trim().toLowerCase()
@@ -114,201 +133,211 @@ export function FriendsClient() {
       })
   }, [friends, q, filter])
 
-  const recentConvs = useMemo(() => Object.values(chat.convs).slice(0, 6), [chat.convs])
   const onlineCount = friends.filter((f) => f.presence && f.presence !== 'offline').length
 
-  const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(96,165,250,0.25)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
-  const secTitle = (txt: string, col = 'var(--gold)') => (
-    <p className="shrink-0 text-sm font-bold mb-2" style={{ color: col, fontFamily: 'var(--rvn-font-display)' }}>{txt}</p>
-  )
   const lastSeenTxt = (f: Friend) => {
     if (!f.lastSeen) return t('social.seenLongAgo')
     const m = Math.max(1, Math.round((Date.now() - new Date(f.lastSeen).getTime()) / 60000))
     return m < 60 ? t('social.seenMin', { count: m }) : m < 1440 ? t('social.seenHours', { count: Math.round(m / 60) }) : t('social.seenDays', { count: Math.round(m / 1440) })
   }
+  const presMeta = (f: Friend) => { const p = f.presence ?? (f.online ? 'online' : 'offline'); return { p, m: PRESENCE_META[p] ?? PRESENCE_META.offline } }
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-2" onClick={() => setMenuFor(null)}>
-      {/* ── Savo presence juosta ── */}
-      <div className="shrink-0 flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('social.yourStatus')}</span>
+    <div className="ravenof-body ravenof-in h-full min-h-0 flex flex-col" style={{ gap: 8, padding: '12px 18px 12px 18px' }} onClick={() => setMenuOpen(false)}>
+      {/* ── Antraštė: atgal + pavadinimas + presence ── */}
+      <div className="shrink-0 flex items-center" style={{ gap: 10 }}>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('social.title')}</div>
+        <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.onlineN', { count: onlineCount })}</div>
+        <div className="flex-1" />
         {SELF_STATUS.map((o) => (
-          <button key={o.v} onClick={() => changeSelf(o.v)} title={t(o.hintKey)} data-testid={`presence-${o.v}`}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold"
-            style={{ fontSize: 10.5, background: selfStatus === o.v ? o.color + '26' : 'rgba(255,255,255,0.04)', border: `1px solid ${selfStatus === o.v ? o.color : 'rgba(255,255,255,0.12)'}`, color: selfStatus === o.v ? o.color : 'var(--text-secondary)' }}>
+          <button key={o.v} onClick={() => changeSelf(o.v)} title={t(o.hintKey)} data-testid={`presence-${o.v}`} aria-label={t(o.labelKey)}
+            className="ravenof-press flex items-center gap-1.5" style={{ font: '700 9.5px var(--ravenof-font-body)', padding: '5px 8px', cursor: 'pointer',
+              background: selfStatus === o.v ? 'var(--ravenof-bg-surface-2)' : 'transparent',
+              border: `1px solid ${selfStatus === o.v ? o.color : 'var(--ravenof-border-hairline)'}`,
+              color: selfStatus === o.v ? o.color : 'var(--ravenof-text-secondary)' }}>
             <span className="rounded-full" style={{ width: 7, height: 7, background: o.color }} />{t(o.labelKey)}
           </button>
         ))}
-        {selfStatus === 'hidden' && <span style={{ fontSize: 10, color: '#94a3b8' }}>{t('social.hiddenNote')}</span>}
       </div>
+      {msg && <p role="status" className="shrink-0" style={{ font: '400 11px var(--ravenof-font-body)', color: msg.startsWith('✓') ? 'var(--ravenof-success)' : '#c65563', margin: 0 }}>{msg}</p>}
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(185px,0.9fr) minmax(0,2fr) minmax(185px,0.95fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
-        {/* ── KAIRĖ ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          {secTitle(t('social.addFriend'))}
-          <div className="shrink-0 flex flex-col gap-2">
-            <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={t('social.usernamePlaceholder')}
-              className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-            <RavenofButton variant="gold" size="md" onClick={add}><UserPlus className="w-4 h-4" /> {t('social.add')}</RavenofButton>
-            {msg && <p role="status" className="text-xs" style={{ color: msg.startsWith('✓') ? '#4ade80' : '#fca5a5' }}>{msg}</p>}
+      <div className="flex-1 min-h-0 flex" style={{ gap: 12 }}>
+        {/* ── KAIRĖ: draugų sąrašas ── */}
+        <div className="flex flex-col min-h-0 shrink-0" style={{ width: 232, gap: 6 }}>
+          <div className="flex shrink-0" style={{ gap: 6 }}>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('social.searchPlaceholder')} aria-label={t('social.searchAria')}
+              className="flex-1 min-w-0" style={{ minHeight: 30, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '0 8px', font: '400 11px var(--ravenof-font-body)', outline: 'none' }} />
+            <select value={filter} onChange={(e) => setFilter(e.target.value as PresenceFilter)} aria-label={t('social.filterAria')}
+              style={{ minHeight: 30, maxWidth: 82, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', font: '400 10.5px var(--ravenof-font-body)' }}>
+              <option value="all">{t('social.filterAll')}</option><option value="online">{t('social.filterOnline')}</option><option value="offline">{t('social.filterOffline')}</option>
+            </select>
           </div>
-          <div className="mt-3 flex-1 min-h-0 overflow-y-auto">
-            {secTitle(`${t('social.requests')}${pending.length ? ` (${pending.length})` : ''}`)}
-            {pending.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('social.noNewRequests')}</p>
-            ) : (
-              <div className="space-y-1.5">
+
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 7 }}>
+            {pending.length > 0 && (
+              <div className="shrink-0">
+                <p style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 4px' }}>{t('social.requests')} ({pending.length})</p>
                 {pending.map((f) => (
-                  <div key={f.id} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Avatar url={f.avatar} name={f.username} size={26} />
-                    <span className="flex-1 min-w-0 text-sm truncate" title={f.displayName || f.username} style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}</span>
-                    <RavenofButton variant="gold" size="sm" onClick={() => respond(f.id, true)}><Check className="w-3 h-3" /></RavenofButton>
-                    <RavenofButton variant="muted" size="sm" onClick={() => respond(f.id, false)}><X className="w-3 h-3" /></RavenofButton>
+                  <div key={f.id} className="flex items-center mb-1" style={{ gap: 6, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-gold)', padding: '6px 8px' }}>
+                    <span className="flex-1 min-w-0 truncate" title={f.displayName || f.username} style={{ font: '500 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
+                    <button onClick={() => respond(f.id, true)} aria-label={t('social.accept')} className="ravenof-press" style={{ color: 'var(--ravenof-success)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: 3, cursor: 'pointer', display: 'inline-flex' }}><Check className="w-3 h-3" /></button>
+                    <button onClick={() => respond(f.id, false)} aria-label={t('common.cancel')} className="ravenof-press" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: 3, cursor: 'pointer', display: 'inline-flex' }}><X className="w-3 h-3" /></button>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        </section>
-
-        {/* ── CENTRAS ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          <div className="shrink-0 flex items-center gap-2 mb-2">
-            {secTitle(t('social.friendsCount', { online: onlineCount, total: friends.length }))}
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('social.searchPlaceholder')} aria-label={t('social.searchAria')}
-              className="ml-auto w-[130px] px-2.5 py-1.5 rounded-lg text-xs outline-none" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
-            <select value={filter} onChange={(e) => setFilter(e.target.value as PresenceFilter)} aria-label={t('social.filterAria')}
-              className="px-2 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }}>
-              <option value="all">{t('social.filterAll')}</option><option value="online">{t('social.filterOnline')}</option><option value="offline">{t('social.filterOffline')}</option>
-            </select>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
             {friends.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <EmptyState icon="👥" title={t('social.noFriendsTitle')} sub={t('social.noFriendsSub')} accent="96,165,250"
-                  ctaLabel={t('social.addFriendCta')} onCta={() => { (document.getElementById('friend-uname-input') as HTMLInputElement | null)?.focus() }} />
-              </div>
+              <p className="text-center py-6" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.noFriendsTitle')}</p>
             ) : shown.length === 0 ? (
-              <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>{t('social.noneFound')}</p>
-            ) : (
-              <div className="space-y-1.5">
-                {shown.map((f) => {
-                  const pres = f.presence ?? (f.online ? 'online' : 'offline')
-                  const pm = PRESENCE_META[pres] ?? PRESENCE_META.offline
-                  const lvl = getLevelProgress(f.xp ?? 0).level
-                  return (
-                    <div key={f.id} data-testid={`friend-row-${f.username}`} className="relative flex items-center gap-2 px-2.5 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(96,165,250,0.18)' }}>
-                      <Avatar url={f.avatar} name={f.username} size={34} presence={pres} />
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-sm font-semibold truncate" title={`${f.displayName || f.username} (@${f.username})`} style={{ color: 'var(--text-primary)' }}>{f.displayName || f.username}</span>
-                        <span className="block truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>@{f.username} · {t('social.lvl', { lvl })} · <span style={{ color: pm.color }}>{pres === 'offline' ? lastSeenTxt(f) : pm.name}</span>{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
-                      </span>
-                      {(f.unread ?? 0) > 0 && (
-                        <span className="shrink-0 flex items-center justify-center rounded-full font-black" style={{ minWidth: 18, height: 18, padding: '0 4px', fontSize: 10, background: '#ef4444', color: '#fff' }}>{f.unread}</span>
-                      )}
-                      <RavenofButton variant="gold" size="sm" onClick={() => openChat(f)} aria-label={t('social.writeTo', { name: f.username })}><MessageCircle className="w-3.5 h-3.5" /> {t('social.message')}</RavenofButton>
-                      <button aria-label={t('social.moreActions')} onClick={(e) => { e.stopPropagation(); playUiClick(); setMenuFor(menuFor === f.id ? null : f.id) }}
-                        className="shrink-0 p-1.5 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}><MoreVertical className="w-3.5 h-3.5" /></button>
-                      {menuFor === f.id && (
-                        <div className="absolute right-1 top-full mt-1 z-30 rounded-xl overflow-hidden py-1" onClick={(e) => e.stopPropagation()}
-                          style={{ minWidth: 170, background: 'linear-gradient(160deg,#1a1426,#0c0913)', border: `1px solid rgba(${GOLD},0.35)`, boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
-                          {[
-                            { l: t('social.menu.challenge'), fn: () => challenge(f) },
-                            { l: t('social.menu.trade'), fn: () => startTrade(f) },
-                            { l: chat.prefs.muted.includes(f.userId) ? t('social.menu.unmute') : t('social.menu.mute'), fn: () => chat.toggleMute(f.userId) },
-                            { l: f.blockedByMe ? t('social.menu.unblock') : t('social.menu.block'), fn: () => f.blockedByMe ? (async () => { await blockUser(f.userId, false); void reload() })() : setConfirmAct({ kind: 'block', f }) },
-                            { l: t('social.menu.remove'), fn: () => setConfirmAct({ kind: 'remove', f }) },
-                          ].map((it) => (
-                            <button key={it.l} onClick={() => { playUiClick(); setMenuFor(null); void it.fn() }}
-                              className="block w-full text-left px-3 py-1.5 hover:bg-white/5" style={{ fontSize: 11.5, color: '#e8dfc8' }}>{it.l}</button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+              <p className="text-center py-6" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.noneFound')}</p>
+            ) : shown.map((f) => {
+              const { p, m } = presMeta(f)
+              const sel = f.userId === selId
+              const lvl = getLevelProgress(f.xp ?? 0).level
+              return (
+                <button key={f.id} data-testid={`friend-row-${f.username}`}
+                  onClick={(e) => { e.stopPropagation(); playUiClick(); setSelId(sel ? null : f.userId); setMenuOpen(false) }}
+                  className="ravenof-press w-full flex items-center text-left shrink-0"
+                  title={`${f.displayName || f.username} (@${f.username}) · ${t('social.lvl', { lvl })}`}
+                  style={{ gap: 9, padding: '9px 10px', cursor: 'pointer', background: sel ? 'var(--ravenof-bg-surface-2)' : 'var(--ravenof-bg-surface)', border: sel ? '1px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-strong)' }}>
+                  <span className="shrink-0 rounded-full" title={m.name} style={{ width: 9, height: 9, background: m.color }} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate" style={{ font: '700 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
+                    <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(f) : m.name}{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
+                  </span>
+                  {(f.unread ?? 0) > 0 && (
+                    <span className="shrink-0 flex items-center justify-center rounded-full" style={{ minWidth: 17, height: 17, padding: '0 4px', font: '800 9.5px var(--ravenof-font-body)', background: 'var(--ravenof-danger)', color: '#fff' }}>{f.unread}</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
-        </section>
 
-        {/* ── DEŠINĖ: veikla ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
-            {challenges.length > 0 && (
-              <div>
-                {secTitle(t('social.challengesForYou'), '#fdba74')}
-                <div className="space-y-1.5">
-                  {challenges.map((c) => (
-                    <div key={c.id} className="px-2 py-2 rounded-lg" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.4)' }}>
-                      <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('social.invitesToBattle', { name: c.displayName || c.username })}</p>
-                      <div className="flex items-center gap-1.5">
-                        <RavenofButton variant="gold" size="sm" onClick={() => accept(c)}><Swords className="w-3 h-3" /> {t('social.accept')}</RavenofButton>
-                        <RavenofButton variant="muted" size="sm" onClick={async () => { playUiClick(); await challengeCancel(c.id); void reload() }}><X className="w-3 h-3" /></RavenofButton>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {trades.length > 0 && (
-              <div>
-                {secTitle(t('social.tradeOffers'), '#93c5fd')}
-                <div className="space-y-1.5">
-                  {trades.map((tr) => (
-                    <div key={tr.id} className="px-2 py-2 rounded-lg" style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.4)' }}>
-                      <p className="text-xs mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('social.wantsToTrade', { name: tr.displayName || tr.username })}</p>
-                      <RavenofButton variant="gold" size="sm" onClick={async () => { await tradeAccept(tr.id); setTradeId(tr.id); void reload() }}><Repeat className="w-3 h-3" /> {t('social.open')}</RavenofButton>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div>
-              {secTitle(t('social.recentChats'), '#c4b5fd')}
-              {recentConvs.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('social.noChats')}</p>
-              ) : (
-                <div className="space-y-1">
-                  {recentConvs.map((c) => (
-                    <button key={c.friend.userId} onClick={() => { playUiClick(); chat.openChat(c.friend) }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/5" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <Avatar url={c.friend.avatar} name={c.friend.username} size={24} presence={c.friend.presence} />
-                      <span className="flex-1 min-w-0 text-xs truncate" style={{ color: 'var(--text-primary)' }}>{c.friend.displayName || c.friend.username}</span>
-                      {c.unread > 0 && <span className="shrink-0 rounded-full font-black flex items-center justify-center" style={{ minWidth: 16, height: 16, fontSize: 9, background: '#ef4444', color: '#fff' }}>{c.unread}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {challenges.length === 0 && trades.length === 0 && (
-              <div className="mt-auto text-center py-2">
-                <span style={{ fontSize: 22 }}>🕯</span>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('social.calm')}</p>
-              </div>
-            )}
+          {/* pridėti draugą */}
+          <div className="shrink-0 flex" style={{ gap: 6 }}>
+            <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={t('social.usernamePlaceholder')}
+              className="flex-1 min-w-0" style={{ minHeight: 32, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '0 8px', font: '400 11px var(--ravenof-font-body)', outline: 'none' }} />
+            <button onClick={add} disabled={busy} className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: '0 12px', cursor: 'pointer', clipPath: 'polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%)' }}>+ {t('social.add')}</button>
           </div>
-        </section>
+        </div>
+
+        {/* ── DEŠINĖ: pokalbis / veikla ── */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0" style={{ border: '1px solid var(--ravenof-border-strong)', background: 'var(--ravenof-bg-surface)' }}>
+          {/* iššūkiai + mainai — matomi visada, kai jų yra */}
+          {(challenges.length > 0 || trades.length > 0) && (
+            <div className="shrink-0 flex flex-col" style={{ gap: 6, padding: '10px 12px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+              {challenges.map((c) => (
+                <div key={c.id} className="flex items-center" style={{ gap: 8 }}>
+                  <span className="flex-1 min-w-0 truncate" style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('social.invitesToBattle', { name: c.displayName || c.username })}</span>
+                  <button onClick={() => void accept(c)} className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: '5px 9px', cursor: 'pointer' }}>{t('social.accept')}</button>
+                  <button onClick={async () => { playUiClick(); await challengeCancel(c.id); void reload() }} aria-label={t('common.cancel')} className="ravenof-press shrink-0" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: 4, cursor: 'pointer', display: 'inline-flex' }}><X className="w-3 h-3" /></button>
+                </div>
+              ))}
+              {trades.map((tr) => (
+                <div key={tr.id} className="flex items-center" style={{ gap: 8 }}>
+                  <span className="flex-1 min-w-0 truncate" style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('social.wantsToTrade', { name: tr.displayName || tr.username })}</span>
+                  <button onClick={async () => { playUiClick(); await tradeAccept(tr.id); setTradeId(tr.id); void reload() }} className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', color: '#93c5fd', background: 'none', border: '1px solid rgba(96,165,250,0.5)', padding: '5px 9px', cursor: 'pointer' }}>{t('social.open')}</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!selFriend ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: 6, padding: 20 }}>
+              <span style={{ fontSize: 26 }}>🕯</span>
+              <p style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', maxWidth: 320, lineHeight: 1.5, margin: 0 }}>
+                {friends.length === 0 ? t('social.noFriendsSub') : t('social.pickFriendHint')}
+              </p>
+            </div>
+          ) : (() => {
+            const { p, m } = presMeta(selFriend)
+            return (
+              <>
+                {/* pokalbio antraštė */}
+                <div className="shrink-0 relative flex items-center" style={{ gap: 10, padding: '11px 14px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+                  <span className="shrink-0 rounded-full" style={{ width: 9, height: 9, background: m.color }} />
+                  <span style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 0.5, color: 'var(--ravenof-text-primary)' }}>{selFriend.displayName || selFriend.username}</span>
+                  <span style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(selFriend) : m.name}</span>
+                  <div className="flex-1" />
+                  <button onClick={() => void challenge(selFriend)} className="ravenof-press shrink-0" style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: '9px 13px', cursor: 'pointer' }}>{t('battle.pvp.challengeCta')}</button>
+                  <button aria-label={t('social.moreActions')} onClick={(e) => { e.stopPropagation(); playUiClick(); setMenuOpen((v) => !v) }}
+                    className="ravenof-iconbtn shrink-0" style={{ width: 30, height: 30 }}><MoreVertical className="w-3.5 h-3.5" /></button>
+                  {menuOpen && (
+                    <div className="absolute right-3 top-full mt-1 z-30 overflow-hidden py-1" onClick={(e) => e.stopPropagation()}
+                      style={{ minWidth: 170, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-gold)', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
+                      {[
+                        { l: t('social.menu.trade'), fn: () => startTrade(selFriend) },
+                        { l: chat.prefs.muted.includes(selFriend.userId) ? t('social.menu.unmute') : t('social.menu.mute'), fn: () => chat.toggleMute(selFriend.userId) },
+                        { l: selFriend.blockedByMe ? t('social.menu.unblock') : t('social.menu.block'), fn: () => selFriend.blockedByMe ? (async () => { await blockUser(selFriend.userId, false); void reload() })() : setConfirmAct({ kind: 'block', f: selFriend }) },
+                        { l: t('social.menu.remove'), fn: () => setConfirmAct({ kind: 'remove', f: selFriend }) },
+                      ].map((it) => (
+                        <button key={it.l} onClick={() => { playUiClick(); setMenuOpen(false); void it.fn() }}
+                          className="block w-full text-left px-3 py-1.5 hover:bg-white/5" style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'none', border: 0, cursor: 'pointer' }}>{it.l}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* žinutės */}
+                <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 8, padding: '12px 14px' }}>
+                  {conv?.msgs == null ? (
+                    <p className="text-center py-4" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('common.loading')}</p>
+                  ) : conv.msgs.length === 0 ? (
+                    <p className="text-center py-4" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.chat.firstMessage')}</p>
+                  ) : conv.msgs.map((mm) => (
+                    <div key={mm.clientId ?? mm.id} className={mm.fromMe ? 'self-end' : 'self-start'} style={{
+                      maxWidth: '72%', padding: '9px 13px', font: '400 12.5px var(--ravenof-font-body)', lineHeight: 1.4,
+                      background: mm.fromMe ? 'rgba(212,163,59,0.13)' : 'var(--ravenof-bg-surface-2)',
+                      border: mm.fromMe ? '1px solid var(--ravenof-border-gold)' : '1px solid var(--ravenof-border-strong)',
+                      color: 'var(--ravenof-text-primary)', opacity: mm.status === 'sending' ? 0.65 : 1,
+                    }}>
+                      {mm.body}
+                      {mm.status === 'failed' && (
+                        <button onClick={() => mm.clientId && void chat.retry(selFriend.userId, mm.clientId)} className="block mt-1" style={{ font: '400 10px var(--ravenof-font-body)', color: '#c65563', background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>{t('social.chat.sendFailed')}</button>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={msgsEndRef} />
+                </div>
+
+                {/* įvestis */}
+                <div className="shrink-0 flex items-stretch" style={{ gap: 8, padding: '10px 14px', borderTop: '1px solid var(--ravenof-border-hairline)' }}>
+                  <RavenofTextField value={conv?.draft ?? ''} onChange={(e) => chat.setDraft(selFriend.userId, e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendMsg() } }}
+                    placeholder={t('social.messagePlaceholder')} aria-label={t('social.messagePlaceholder')} className="flex-1" />
+                  <button onClick={() => void sendMsg()} disabled={!(conv?.draft ?? '').trim()}
+                    className="ravenof-press shrink-0" style={{ font: '800 12px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase',
+                      background: (conv?.draft ?? '').trim() ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)',
+                      color: (conv?.draft ?? '').trim() ? 'var(--ravenof-on-gold)' : '#5e5868',
+                      border: 0, padding: '0 20px', cursor: 'pointer', clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)' }}>
+                    {t('social.chat.send')}
+                  </button>
+                </div>
+              </>
+            )
+          })()}
+        </div>
       </div>
 
       {/* ── Patvirtinimai ── */}
       {confirmAct && (
         <div className="fixed inset-0 z-[320] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.85)' }} onClick={() => setConfirmAct(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-[min(360px,92vw)] rounded-2xl p-4 text-center" style={{ background: 'linear-gradient(160deg,#17111f,#0a0810)', border: '1.5px solid rgba(239,68,68,0.5)' }}>
-            <p className="font-bold" style={{ fontSize: 14, color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
+          <div onClick={(e) => e.stopPropagation()} className="w-[min(360px,92vw)] p-4 text-center" style={{ background: 'var(--ravenof-bg-surface)', border: '1.5px solid rgba(180,68,79,0.6)' }}>
+            <p style={{ font: '700 14px var(--ravenof-font-display)', color: '#c65563', margin: 0 }}>
               {confirmAct.kind === 'remove' ? t('social.confirmRemove', { name: confirmAct.f.displayName || confirmAct.f.username }) : t('social.confirmBlock', { name: confirmAct.f.displayName || confirmAct.f.username })}
             </p>
-            <p className="mt-1.5" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+            <p className="mt-1.5" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
               {confirmAct.kind === 'remove' ? t('social.removeBody') : t('social.blockBody')}
             </p>
             <div className="mt-3 flex gap-2">
-              <button onClick={() => setConfirmAct(null)} className="flex-1 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#c9bfa8' }}>{t('common.cancel')}</button>
+              <button onClick={() => setConfirmAct(null)} className="ravenof-btn ravenof-btn-secondary flex-1" style={{ minHeight: 36 }}>{t('common.cancel')}</button>
               <button data-testid="confirm-danger" onClick={async () => {
                 const a = confirmAct; setConfirmAct(null); playUiClick()
-                if (a.kind === 'remove') await friendRemove(a.f.id)
+                if (a.kind === 'remove') { await friendRemove(a.f.id); if (a.f.userId === selId) setSelId(null) }
                 else await blockUser(a.f.userId, true)
                 void reload()
-              }} className="flex-1 py-2 rounded-xl text-xs font-extrabold" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5' }}>
+              }} className="ravenof-btn ravenof-btn-destructive flex-1" style={{ minHeight: 36 }}>
                 {confirmAct.kind === 'remove' ? t('social.remove') : t('social.block')}
               </button>
             </div>

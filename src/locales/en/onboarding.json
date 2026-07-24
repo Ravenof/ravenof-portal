@@ -35,6 +35,18 @@
   "keepLooking": "Keep looking",
   "loadingCards": "Loading cards…",
   "nextDeck": "Next deck",
+  "ob": {
+    "avatarSub": "Your avatar represents you in battle. Unlock more later.",
+    "avatarTitle": "Choose your avatar",
+    "avatarsAria": "Avatars",
+    "back": "Back",
+    "deckSub": "The cards will join your collection and become your first deck.",
+    "deckTitle": "Choose your starting deck",
+    "locked": "Locked",
+    "next": "Next",
+    "stepOf": "Step {{step}} / {{total}}",
+    "toTutorial": "To the tutorial battle"
+  },
   "other": "Other",
   "pickYourDeck": "CHOOSE YOUR DECK",
   "pickYourDeckSub": "Your first deck shapes your start — but it won't limit your collection.",
@@ -70,6 +82,24 @@
   },
   "starterDecksAria": "Starter decks",
   "strengths": "Strengths",
+  "tutorial": {
+    "alreadyRewarded": "You replayed the lesson – the reward was already granted.",
+    "continue": "Continue →",
+    "errClaimed": "You already own this deck – refresh the page.",
+    "errGeneric": "Failed: {{error}}",
+    "errNoGold": "Not enough gold for this deck.",
+    "lessonDone": "Lesson complete!",
+    "loadingLesson": "Loading the lesson…",
+    "noStarters": "No starter decks available.",
+    "pressNext": "Press \"Next\".",
+    "readFirst": "Read the explanation first.",
+    "start": "⚔ Start the tutorial battle",
+    "subNoDeck": "First claim your free starter deck — then you can play the guided tutorial battle.",
+    "subWithDeck": "One guided battle with your deck — you will learn every mechanic before facing a real starter deck.",
+    "title": "TUTORIAL",
+    "wrongAction": "Not the right action this time — follow the highlight.",
+    "yourDeck": "Your deck"
+  },
   "weaknesses": "Weaknesses",
   "welcome": {
     "claim": "Claim the gift",
@@ -77,23 +107,5 @@
     "claiming": "Claiming…",
     "sub": "A starting gift for a new fighter",
     "title": "Welcome!"
-  },
-  "tutorial": {
-    "title": "TUTORIAL",
-    "subWithDeck": "One guided battle with your deck — you will learn every mechanic before facing a real starter deck.",
-    "subNoDeck": "First claim your free starter deck — then you can play the guided tutorial battle.",
-    "yourDeck": "Your deck",
-    "start": "⚔ Start the tutorial battle",
-    "errNoGold": "Not enough gold for this deck.",
-    "errClaimed": "You already own this deck – refresh the page.",
-    "errGeneric": "Failed: {{error}}",
-    "readFirst": "Read the explanation first.",
-    "pressNext": "Press \"Next\".",
-    "wrongAction": "Not the right action this time — follow the highlight.",
-    "lessonDone": "Lesson complete!",
-    "continue": "Continue →",
-    "alreadyRewarded": "You replayed the lesson – the reward was already granted.",
-    "loadingLesson": "Loading the lesson…",
-    "noStarters": "No starter decks available."
   }
 }

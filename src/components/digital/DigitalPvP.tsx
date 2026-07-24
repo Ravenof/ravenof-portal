@@ -1,45 +1,52 @@
 'use client'
 
-// ── Ravenof Digital — Draugiška kova (PvP): vieno ekrano landscape pasiruošimas ─
-// 3 stulpeliai: Tavo kaladė (karuselė) · Priešininko tipas (atsitiktinis/draugas/kambario kodas) · Kovos santrauka.
-// Match logika (findRandom/createPrivate/joinByCode/waitForGuest) čia inline; startas -> TutorialGame(net).
+// ── Ravenof Digital — Draugiška kova (PvP): patvirtintas UI (Fazė 3, pvp-lobby.png) ─
+// Full-bleed (be rail): ‹ atgal + DRAUGIŠKA KOVA. Kairė — kaladės eilutė,
+// segmented GREITA KOVA / KURTI KAMBARĮ / JUNGTIS KODU, režimo turinys ir
+// raudonas banner CTA. Dešinė — DRAUGAI sąrašas su IŠŠŪKIS mygtukais + Visi ›.
+// Match logika (findRandom/createPrivate/joinByCode/waitForGuest/challengeCreate)
+// nekeista; startas -> TutorialGame(net).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
-import { ActiveDeckSummary } from '@/components/digital/ActiveDeckSelectorModal'
+import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
+import { getStarterDecks } from '@/lib/starterDecks'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
 import { useT } from '@/lib/i18n/react'
+import { RavenofBannerButton, RavenofTextField } from '@/components/digital/ui/RavenofKit'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
 type Match = { id: string; code: string | null; guest_id: string | null; guest_deck_id: string | null; guest_name: string | null; host_id: string; host_name: string | null }
 type Launch = { net: PvPNet; deckId: string; opponentDeckId: string | null; opponentName: string }
-type Mode = 'random' | 'friend' | 'code'
-const A = '251,146,60'
-const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,15,26,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+type Mode = 'random' | 'create' | 'code'
 const randCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
+
+const PRES_COLOR: Record<string, string> = { online: '#4F9E52', away: '#D4A33B', dnd: '#B4444F', offline: '#5e5868' }
 
 export function DigitalPvP() {
   const t = useT()
+  const router = useRouter()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
   const [userName, setUserName] = useState(t('battle.player'))
   const [friends, setFriends] = useState<Friend[]>([])
   const [mode, setMode] = useState<Mode>('random')
-  const [selFriend, setSelFriend] = useState<string>('')  // Friend.userId
-  const [friendQ, setFriendQ] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [room, setRoom] = useState<Match | null>(null)
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
   const [toast, setToast] = useState('')
+  const [deckSelOpen, setDeckSelOpen] = useState(false)
+  const [covers, setCovers] = useState<Record<number, string>>({})
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -68,7 +75,14 @@ export function DigitalPvP() {
       const firstValid = ds.find((d) => d.missing === 0)
       if (firstValid) setSel(firstValid.id)
     })
+    void useActiveDeck.getState().refresh()
+    getStarterDecks().then((sd) => {
+      const m: Record<number, string> = {}
+      for (const st of sd ?? []) if (st.factionId != null && st.imageUrl) m[st.factionId] = st.imageUrl
+      setCovers(m)
+    })
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 1800); return () => clearTimeout(t) }, [toast])
@@ -91,7 +105,7 @@ export function DigitalPvP() {
     const sp = new URLSearchParams(window.location.search)
     const j = sp.get('join'); const h = sp.get('host')
     if (j) { autoRef.current = true; setMode('code'); setJoinCode(j.toUpperCase()); void joinByCode(j) }
-    else if (h) { autoRef.current = true; setMode('code'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus(t('battle.pvp.status.waitingFriendShare')); waitForGuest(m.id) } }) }
+    else if (h) { autoRef.current = true; setMode('create'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus(t('battle.pvp.status.waitingFriendShare')); waitForGuest(m.id) } }) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, deck?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -108,7 +122,8 @@ export function DigitalPvP() {
         setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || t('battle.opponentFallback') })
       }
     }, 2000)
-  }, [sel])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const createPrivate = async (isPublic: boolean, code: string | null): Promise<Match | null> => {
     if (!userId) return null
@@ -134,13 +149,13 @@ export function DigitalPvP() {
     if (created) { setRoom(created); setStatus(t('battle.pvp.status.waitingRandom')); waitForGuest(created.id) }
   }
 
-  const inviteFriend = async () => {
-    if (!selFriend) return
+  const inviteFriend = async (f: Friend) => {
+    if (!deck || room || busy) return
     playUiClick()
     const code = randCode()
     const created = await createPrivate(false, code)
     if (!created) return
-    const ok = await challengeCreate(selFriend, code)
+    const ok = await challengeCreate(f.userId, code)
     setRoom(created)
     setStatus(ok ? t('battle.pvp.status.inviteSent') : t('battle.pvp.status.roomCreatedShare', { code }))
     waitForGuest(created.id)
@@ -182,172 +197,126 @@ export function DigitalPvP() {
     !deck ? { label: t('battle.pvp.cta.pickValidDeck'), disabled: true }
     : room ? { label: t('battle.pvp.cta.waitingOpp'), disabled: true }
     : mode === 'random' ? { label: t('battle.pvp.cta.findOpp'), disabled: busy, action: findRandom }
-    : mode === 'friend' ? (!selFriend ? { label: t('battle.pvp.cta.pickFriend'), disabled: true } : { label: t('battle.pvp.cta.inviteName', { name: (friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || t('battle.pvp.cta.friendUpper')).toUpperCase() }), disabled: busy, action: inviteFriend })
-    : joinCode.trim() ? { label: t('battle.pvp.cta.join'), disabled: busy, action: joinByCode }
-    : { label: t('battle.pvp.cta.createRoom'), disabled: busy, action: createRoom }
+    : mode === 'create' ? { label: t('battle.pvp.cta.createRoom'), disabled: busy, action: createRoom }
+    : { label: t('battle.pvp.cta.join'), disabled: busy || !joinCode.trim(), action: () => void joinByCode() }
 
-  const oppSummary = mode === 'random' ? t('battle.pvp.randomPlayer')
-    : mode === 'friend' ? (selFriend ? (friends.find((f) => f.userId === selFriend)?.displayName || friends.find((f) => f.userId === selFriend)?.username || t('battle.pvp.friendFallback')) + ' ' + t('battle.pvp.selectedSuffix') : '—')
-    : (room?.code ? t('battle.pvp.roomPrefix', { code: room.code }) : joinCode.trim() ? t('battle.pvp.codePrefix', { code: joinCode.trim().toUpperCase() }) : '—')
-
-  const modeCard = (m: Mode, icon: string, title: string) => (
-    <button key={m} onClick={() => { playUiClick(); setMode(m) }} className="rvn-press flex-1 rounded-xl px-2 py-2 flex flex-col items-center gap-1 text-center"
-      style={{ minHeight: 66, border: mode === m ? `1.5px solid rgba(${A},0.9)` : '1px solid rgba(255,255,255,0.08)', background: mode === m ? `linear-gradient(160deg, rgba(${A},0.16), rgba(10,8,16,0.9))` : 'rgba(10,8,16,0.6)', boxShadow: mode === m ? `0 0 12px rgba(${A},0.3)` : 'none' }}>
-      <span style={{ fontSize: 20 }}>{icon}</span>
-      <span className="rvn-disp font-bold uppercase" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: mode === m ? '#fdba74' : 'var(--text-secondary)' }}>{title}</span>
-    </button>
-  )
-
-  if (decks === null) return <div className="h-full flex items-center justify-center"><span style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span></div>
+  if (decks === null) return <div className="ravenof-body h-full flex items-center justify-center"><span className="ravenof-spinner" style={{ width: 40, height: 40 }} /></div>
   if (decks.length === 0 || playable.length === 0) return (
-    <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-      <p style={{ color: 'var(--text-muted)' }}>{t('battle.pvp.noDecks')}</p>
-      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.6)`, color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.pvp.createDeck')}</Link>
+    <div className="ravenof-body h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+      <p style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.noDecks')}</p>
+      <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="ravenof-btn ravenof-btn-secondary">{t('battle.pvp.createDeck')}</Link>
     </div>
   )
 
+  const onlineFirst = [...friends].sort((a, b) => {
+    const rank = (x: Friend) => { const p = x.presence ?? (x.online ? 'online' : 'offline'); return p === 'online' ? 0 : p === 'away' ? 1 : p === 'dnd' ? 2 : 3 }
+    return rank(a) - rank(b) || a.username.localeCompare(b.username)
+  })
+
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
-      {/* Antraštė */}
-      <div className="text-center shrink-0">
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(18px,3.6vh,34px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{t('battle.pvp.title')}</div>
-        <div className="mx-auto" style={{ fontSize: 'clamp(9px,1.3vh,12px)', color: 'var(--text-muted)', maxWidth: 560 }}>{t('battle.pvp.subtitle')}</div>
+    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+      {/* Antraštė: atgal + pavadinimas */}
+      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.screenTitle')}</div>
       </div>
 
-      {/* 3 stulpeliai */}
-      {/* Aktyvi kaladė — kompaktiška santrauka (globali; keitimas per modalą) */}
-      <div className="shrink-0"><ActiveDeckSummary accent="253,186,116" /></div>
+      <div className="flex-1 flex min-h-0" style={{ gap: 14 }}>
+        {/* ── KAIRĖ: kaladė + režimas + turinys + CTA ── */}
+        <div className="flex flex-col min-w-0" style={{ flex: 1.9, gap: 8 }}>
+          <button onClick={() => { playUiClick(); setDeckSelOpen(true) }} data-testid="active-deck-summary" className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: 10, background: 'var(--ravenof-bg-surface)', border: '1px solid #3d3345', padding: '7px 10px', cursor: 'pointer' }}>
+            <span className="shrink-0 overflow-hidden relative" style={{ width: 34, height: 45, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
+            <span className="flex-1 min-w-0">
+              <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
+              {globalDeck && <span className="block truncate" style={{ font: '400 11px var(--ravenof-font-body)', color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {t('decks.cardsShort', { count: globalDeck.cardCount })}</span>}
+            </span>
+            <span style={{ color: 'var(--ravenof-text-secondary)' }}>›</span>
+          </button>
 
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(190px,1fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
-
-
-        {/* CENTRAS: Priešininko tipas */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0 text-center" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{t('battle.pvp.opponentType')}</div>
-          <div className="flex gap-1.5 mb-2 shrink-0">
-            {modeCard('random', '⚔', t('battle.pvp.modeRandom'))}
-            {modeCard('friend', '👥', t('battle.pvp.modeFriend'))}
-            {modeCard('code', '🔑', t('battle.pvp.modeCode'))}
+          {/* Segmented režimai */}
+          <div className="flex shrink-0" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
+            {([['random', t('battle.pvp.modeQuick')], ['create', t('battle.pvp.modeCreate')], ['code', t('battle.pvp.modeJoin')]] as [Mode, string][]).map(([m, lbl]) => {
+              const s = mode === m
+              return (
+                <button key={m} onClick={() => { playUiClick(); setMode(m); setStatus('') }} aria-pressed={s} data-testid={`pvp-mode-${m}`}
+                  className="ravenof-press flex-1" style={{
+                    padding: '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                    font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5,
+                    background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
+                    color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                  }}>{lbl}</button>
+              )
+            })}
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
+
+          {/* Režimo turinys */}
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center" style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface)', padding: 16 }}>
             {room ? (
-              <div className="flex flex-col items-center justify-center gap-2 h-full text-center">
-                {room.code && <><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.roomCode')}</span><span className="rvn-disp font-black tracking-[0.25em]" style={{ fontSize: 28, color: 'var(--gold)' }}>{room.code}</span>
-                  <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>{t('battle.pvp.copy')}</button></>}
-                <span className="flex items-center gap-2 mt-1" style={{ fontSize: 12, color: 'var(--text-secondary)' }}><span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: `rgb(${A})` }} />{status}</span>
-                <button onClick={cancelRoom} className="mt-1 px-4 py-1.5 rounded-xl text-xs" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('common.cancel')}</button>
+              <div className="flex flex-col items-center gap-2">
+                {room.code && <>
+                  <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.roomCode')}</span>
+                  <span style={{ font: '700 26px var(--ravenof-font-display)', letterSpacing: 8, color: 'var(--ravenof-gold-bright)' }}>{room.code}</span>
+                  <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="ravenof-btn ravenof-btn-secondary" style={{ fontSize: 11, padding: '6px 12px', minHeight: 30 }}>{t('battle.pvp.copy')}</button>
+                </>}
+                <span className="flex items-center gap-2 mt-1" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}><span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--ravenof-gold)' }} />{status}</span>
+                <button onClick={() => { playUiClick(); void cancelRoom() }} className="ravenof-btn ravenof-btn-secondary mt-1" style={{ fontSize: 11, padding: '6px 14px', minHeight: 30 }}>{t('common.cancel')}</button>
               </div>
             ) : mode === 'random' ? (
-              <div className="flex flex-col items-center justify-center gap-1.5 h-full text-center px-3">
-                <span style={{ fontSize: 36 }}>⚔</span>
-                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>{t('battle.pvp.quickTitle')}</div>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.quickInfo')}</p>
-              </div>
-            ) : mode === 'friend' ? (
-              <div className="flex flex-col items-center justify-center gap-1.5 h-full text-center px-3">
-                <span style={{ fontSize: 34 }}>👥</span>
-                <div className="rvn-disp font-bold" style={{ fontSize: 14, color: '#fdba74' }}>{t('battle.pvp.inviteTitle')}</div>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>{t('battle.pvp.inviteInfo')}</p>
-                {(() => { const f = friends.find((x) => x.userId === selFriend); return f ? (
-                  <div className="mt-1 flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ border: '1.5px solid rgba(34,197,94,0.7)', background: 'rgba(34,197,94,0.1)' }}>
-                    <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span>🙂</span>}
-                    </span>
-                    <span className="rvn-disp font-bold" style={{ fontSize: 13, color: '#86efac' }}>✓ {f.displayName || f.username}</span>
-                  </div>
-                ) : null })()}
-              </div>
+              <p style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', maxWidth: 420, lineHeight: 1.5 }}>{t('battle.pvp.quickInfo2')}</p>
+            ) : mode === 'create' ? (
+              <p style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', maxWidth: 420, lineHeight: 1.5 }}>{t('battle.pvp.createInfo')}</p>
             ) : (
-              <div className="flex flex-col gap-2 h-full justify-center">
-                <p className="text-center" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.codeInfo')}</p>
-                <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={5} placeholder={t('battle.pvp.codePlaceholder')} className="outline-none text-center" style={{ minHeight: 42, borderRadius: 10, letterSpacing: '0.2em', background: 'rgba(10,8,16,0.85)', border: `1px solid rgba(${A},0.4)`, color: 'var(--text-primary)', fontSize: 15 }} />
+              <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: 300 }}>
+                <p style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('battle.pvp.codeInfo')}</p>
+                <RavenofTextField value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={5}
+                  placeholder={t('battle.pvp.codePlaceholder')} aria-label={t('battle.pvp.codePlaceholder')}
+                  style={{ textAlign: 'center', letterSpacing: 10, font: '700 18px var(--ravenof-font-display)', textTransform: 'uppercase', height: 46 }} />
               </div>
             )}
+            {!room && status && <p role="status" className="mt-2" style={{ font: '400 11px var(--ravenof-font-body)', color: '#c65563' }}>{status}</p>}
           </div>
-        </section>
 
-        {/* DEŠINĖ: Kovos santrauka */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={PANEL}>
-          <div className="rvn-disp font-extrabold uppercase tracking-wide mb-2 shrink-0" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{mode === 'friend' && !room ? t('battle.pvp.friendsN', { count: friends.length }) : t('battle.pvp.summary')}</div>
-          {mode === 'friend' && !room ? (
-            <div className="flex-1 min-h-0 flex flex-col gap-1.5" data-testid="friend-panel">
-              <input value={friendQ} onChange={(e) => setFriendQ(e.target.value)} placeholder={t('battle.pvp.searchFriend')} aria-label={t('battle.pvp.searchFriendAria')}
-                className="shrink-0 outline-none rounded-lg px-2.5" style={{ minHeight: 32, fontSize: 11.5, background: 'rgba(10,8,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }} />
-              <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1" style={{ minHeight: 60 }}>
-                {friends.length === 0 && <p className="text-center py-4" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.noFriends')}</p>}
-                {friends
-                  .filter((f) => { const q = friendQ.trim().toLowerCase(); return !q || f.username.toLowerCase().includes(q) || (f.displayName ?? '').toLowerCase().includes(q) })
-                  .sort((a, b) => {
-                    const rank = (x: typeof a) => x.presence === 'online' ? 0 : x.presence === 'away' ? 1 : x.presence === 'dnd' ? 2 : 3
-                    return rank(a) - rank(b) || a.username.localeCompare(b.username)
-                  })
-                  .map((f) => {
-                    const sel = f.userId === selFriend
-                    const pres = f.presence ?? (f.online ? 'online' : 'offline')
-                    const pc = pres === 'online' ? '#34d399' : pres === 'away' ? '#fbbf24' : pres === 'dnd' ? '#ef4444' : '#64748b'
-                    const pn = t(`battle.pvp.presence.${pres === 'online' ? 'online' : pres === 'away' ? 'away' : pres === 'dnd' ? 'dnd' : 'offline'}`)
-                    return (
-                      <button key={f.id} data-testid={`invite-friend-${f.username}`} onClick={() => { playUiClick(); setSelFriend(sel ? '' : f.userId) }}
-                        className="rvn-press w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left shrink-0"
-                        style={{ border: sel ? '1.5px solid rgba(34,197,94,0.8)' : '1px solid rgba(255,255,255,0.08)', background: sel ? 'rgba(34,197,94,0.12)' : 'rgba(10,8,16,0.6)' }}>
-                        <span className="relative shrink-0">
-                          <span className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden inline-flex" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(240,180,41,0.3)' }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span>🙂</span>}
-                          </span>
-                          <span className="absolute -bottom-0.5 -right-0.5 rounded-full" title={pn} style={{ width: 10, height: 10, background: pc, border: '2px solid #0d0a14' }} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate rvn-disp font-bold" style={{ fontSize: 12, color: '#fff' }}>{f.displayName || f.username}</span>
-                          <span className="block truncate" style={{ fontSize: 9.5, color: pc }}>{pn}</span>
-                        </span>
-                        {sel && <span style={{ color: '#86efac', fontSize: 14 }}>✓</span>}
-                      </button>
-                    )
-                  })}
-              </div>
-              <p className="shrink-0 text-center" style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>{t('battle.pvp.noRankReward')}</p>
-            </div>
-          ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2" style={{ fontSize: 'clamp(10px,1.4vh,13px)' }}>
-            {([['🃏', t('battle.pvp.yourDeck'), deck?.name ?? '—', 'var(--gold)'], ['🛡', t('battle.pvp.mode'), t('battle.pvp.friendly'), '#86efac'], ['◆', t('battle.pvp.rank'), t('battle.pvp.rankUnchanged'), 'var(--text-secondary)'], ['🪙', t('battle.pvp.reward'), t('battle.pvp.goldReward'), 'var(--gold)'], ['⚔', t('battle.pvp.opponent'), oppSummary, '#fdba74']] as [string, string, string, string][]).map(([ic, l, v, c], i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="shrink-0 w-6 text-center" style={{ opacity: 0.8 }}>{ic}</span>
-                <span className="shrink-0" style={{ color: 'var(--text-muted)', minWidth: 78 }}>{l}:</span>
-                <span className="truncate font-semibold" style={{ color: c }}>{v}</span>
-              </div>
-            ))}
-          </div>
-          )}
-          {/* CTA — panelės apačioje (kaip Ranked/Treniruotėje), visada matomas */}
-          <div className="shrink-0 mt-2 flex flex-col gap-1.5">
-            <button disabled={cta.disabled} onClick={cta.action} className="rvn-press w-full rounded-2xl font-black transition-all disabled:opacity-40 active:scale-[0.98] flex items-center justify-center gap-2"
-              style={{ minHeight: 'clamp(44px,7.5vh,58px)', background: cta.disabled ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, rgba(${A},0.95), rgba(240,180,41,0.9))`, color: cta.disabled ? 'var(--text-muted)' : '#1a0f04', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em', fontSize: 'clamp(12px,1.8vh,16px)', boxShadow: cta.disabled ? 'none' : `0 0 22px rgba(${A},0.45)` }}>
-              ⚔ {cta.label}
-            </button>
-            {room && (
-              <button onClick={() => { playUiClick(); cancelRoom() }} className="rvn-press w-full rounded-xl py-1.5" style={{ fontSize: 'clamp(10px,1.4vh,12px)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>{t('common.cancel')}</button>
-            )}
-          </div>
-        </section>
-      </div>
+          <RavenofBannerButton onClick={cta.action} disabled={cta.disabled} data-testid="pvp-cta" style={{ width: '100%' }}>
+            {cta.label}
+          </RavenofBannerButton>
+        </div>
 
-      {room && (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }}>
-          <div className="rounded-2xl p-6 text-center flex flex-col items-center gap-3" style={{ ...PANEL, width: 'min(420px,92vw)' }}>
-            <div className="rounded-full animate-spin" style={{ width: 46, height: 46, border: `4px solid rgba(${A},0.25)`, borderTopColor: `rgb(${A})` }} />
-            <div className="rvn-disp font-bold" style={{ fontSize: 17, color: '#fdba74' }}>{room.code ? t('battle.pvp.waiting') : t('battle.pvp.searching')}</div>
-            {room.code && (<><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('battle.pvp.roomCode')}</span>
-              <span className="rvn-disp font-black tracking-[0.25em]" style={{ fontSize: 30, color: 'var(--gold)' }}>{room.code}</span>
-              <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="px-3 py-1 rounded-lg text-xs" style={{ border: `1px solid rgba(${A},0.5)`, color: '#fdba74' }}>{t('battle.pvp.copyCode')}</button></>)}
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{status}</p>
-            <button onClick={() => { playUiClick(); cancelRoom() }} className="px-6 py-2 rounded-xl text-sm mt-1" style={{ color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.14)', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.pvp.cancelSearch')}</button>
+        {/* ── DEŠINĖ: draugai ── */}
+        <div className="flex flex-col min-w-0" style={{ flex: 1, gap: 8 }}>
+          <div className="flex items-baseline justify-between shrink-0">
+            <div style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.friendsTitle')}</div>
+            <Link href="/digital/friends" onClick={() => playUiClick()} className="ravenof-press" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>{t('battle.pvp.friendsAll')} ›</Link>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 8 }} data-testid="friend-panel">
+            {onlineFirst.length === 0 && <p className="text-center py-4" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.noFriends')}</p>}
+            {onlineFirst.map((f) => {
+              const pres = f.presence ?? (f.online ? 'online' : 'offline')
+              const pc = PRES_COLOR[pres] ?? PRES_COLOR.offline
+              const pn = t(`battle.pvp.presence.${pres === 'online' ? 'online' : pres === 'away' ? 'away' : pres === 'dnd' ? 'dnd' : 'offline'}`)
+              const canChallenge = pres !== 'offline' && !room && !!deck
+              return (
+                <div key={f.id} className="flex items-center shrink-0" style={{ gap: 10, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px' }}>
+                  <span className="shrink-0 rounded-full" title={pn} style={{ width: 9, height: 9, background: pc }} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate" style={{ font: '700 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
+                    <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{pn}</span>
+                  </span>
+                  {canChallenge && (
+                    <button data-testid={`invite-friend-${f.username}`} onClick={() => void inviteFriend(f)} disabled={busy}
+                      className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: '7px 10px', cursor: 'pointer' }}>
+                      {t('battle.pvp.challengeCta')}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            <p className="shrink-0 text-center" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.noRankReward')}</p>
           </div>
         </div>
-      )}
+      </div>
 
-      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom,0px))', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>}
+      {toast && <div className="ravenof-toast" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom,0px))', zIndex: 200 }}>{toast}</div>}
+      {deckSelOpen && <ActiveDeckSelectorModal onClose={() => setDeckSelOpen(false)} />}
     </div>
   )
 }

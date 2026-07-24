@@ -30,6 +30,7 @@
   "filterOffline": "Offline",
   "filterOnline": "Online",
   "friendsCount": "Friends ({{online}}/{{total}} online)",
+  "friendsSubtitle": "Messages, trades and battle invites",
   "hiddenNote": "👁 Others see you as offline",
   "invitesToBattle": "{{name}} challenges you to a battle",
   "lvl": "lvl {{lvl}}",
@@ -43,13 +44,16 @@
     "unmute": "🔔 Unmute notifications"
   },
   "message": "Message",
+  "messagePlaceholder": "Type a message…",
   "moreActions": "More actions",
   "noChats": "No chats yet — write a friend a message!",
   "noFriendsSub": "Add a friend by username and challenge each other to battle.",
   "noFriendsTitle": "You have no friends yet",
   "noNewRequests": "No new requests.",
   "noneFound": "No friends match your search/filter.",
+  "onlineN": "{{count}} online",
   "open": "Open",
+  "pickFriendHint": "Pick a friend on the left — the conversation opens here.",
   "presence": {
     "away": "Away",
     "dnd": "Do not disturb",
@@ -74,6 +78,7 @@
     "dndHint": "No sounds or auto-opening chat windows",
     "hiddenHint": "Others see you as offline (enforced server-side)"
   },
+  "title": "Friends",
   "trade": {
     "cancel": "Cancel trade",
     "cancelled": "Trade cancelled.",
@@ -94,6 +99,5 @@
   "usernamePlaceholder": "Username",
   "wantsToTrade": "{{name}} wants to trade",
   "writeTo": "Message {{name}}",
-  "yourStatus": "Your status:",
-  "friendsSubtitle": "Messages, trades and battle invites"
+  "yourStatus": "Your status:"
 }
