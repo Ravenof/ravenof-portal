@@ -98,8 +98,8 @@ export default function BattleLayout(props: BattleLayoutProps) {
         {/* ── KAIRĖ: emote + AI/tavo artefaktai/reakcijos + suskleidžiamas žurnalas ── */}
         <aside className="flex flex-col gap-1 min-h-0 overflow-hidden">
           <RailCard style={railPanel} className="shrink-0 flex items-center justify-between p-1">
-            <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', background: emoteOpen ? 'rgba(240,180,41,0.18)' : undefined }}>😊</button>
-            <button onClick={() => setLogExpanded((v) => !v)} title={t('battle.layout.log')} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(240,180,41,0.3)', color: 'var(--gold)', fontSize: 13 }}>{logExpanded ? '‹📜' : '📜'}</button>
+            <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="combat-round-icon text-[15px]" style={{ filter: emoteOpen ? 'brightness(1.25)' : undefined }}>😊</button>
+            <button onClick={() => setLogExpanded((v) => !v)} title={t('battle.layout.log')} className="combat-round-icon" style={{ filter: logExpanded ? 'brightness(1.25)' : undefined }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-log.png" alt="" /></button>
           </RailCard>
           {/* Priešo artefaktai + reakcijos */}
           <div className="shrink-0 flex flex-col items-center gap-0.5">{renderArtifactRow('ai')}{renderReactionRow('ai')}</div>
@@ -124,7 +124,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
               onTouchEnd={(e) => { if (logTouchX.current == null) return; const dx = e.changedTouches[0].clientX - logTouchX.current; logTouchX.current = null; if (dx < -30) setLogExpanded(false) }}>
               <div className="shrink-0 flex items-center justify-between px-3 pt-2 pb-1.5" style={{ borderBottom: '1px solid rgba(240,180,41,0.2)' }}>
                 <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.layout.log')}</span>
-                <button onClick={() => setLogExpanded(false)} aria-label={t('battle.layout.close')} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.35)', color: 'var(--gold)', fontSize: 11 }}>✕</button>
+                <button onClick={() => setLogExpanded(false)} aria-label={t('battle.layout.close')} className="combat-round-icon" style={{ width: 28, height: 28 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-close.png" alt="" style={{ width: 13, height: 13 }} /></button>
               </div>
               <div ref={logScrollRef} className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-2.5 py-2">{renderLog()}</div>
               <div className="shrink-0 px-3 pb-1.5 text-center" style={{ fontSize: 8.5, color: 'rgba(150,160,185,0.5)' }}>{t('battle.layout.logHint')}</div>
@@ -211,8 +211,8 @@ export default function BattleLayout(props: BattleLayoutProps) {
                 return (
                   <button key={i}
                     onClick={() => { onEmote?.(e); setEmoteOpen(false) }}
-                    className="absolute w-11 h-11 rounded-full flex items-center justify-center text-xl transition-transform hover:scale-125 active:scale-95"
-                    style={{ left: x, top: y, background: 'rgba(20,14,30,0.96)', border: '1px solid rgba(240,180,41,0.5)', boxShadow: '0 4px 14px rgba(0,0,0,0.7)' }}>
+                    className="combat-emote-slot absolute w-11 h-11 flex items-center justify-center text-xl transition-transform hover:scale-125 active:scale-95"
+                    style={{ left: x, top: y, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))' }}>
                     {e}
                   </button>
                 )

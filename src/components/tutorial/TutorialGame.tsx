@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, Swords, Music, VolumeX } from 'lucide-react'
+import { Swords } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { GameCard } from '@/components/ui/GameCard'
@@ -534,7 +534,7 @@ export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: {
           const pricier = costNow != null && costNow > c.gold
           const shown = costNow ?? c.gold
           const cc = cheaper ? '#4ade80' : pricier ? '#fbbf24' : 'var(--gold)'
-          return <span className="absolute top-0.5 left-0.5 rounded-full font-bold" style={{ background: 'rgba(0,0,0,0.85)', color: cc, fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px', boxShadow: cheaper ? '0 0 6px rgba(74,222,128,0.7)' : undefined }}>{shown}</span>
+          return <span className="absolute top-0.5 left-0.5 rounded-full font-bold inline-flex items-center" style={{ background: 'rgba(0,0,0,0.85)', color: cc, fontSize: badge, gap: Math.max(1, Math.round(badge * 0.15)), padding: '0 ' + Math.round(badge * 0.4) + 'px', boxShadow: cheaper ? '0 0 6px rgba(74,222,128,0.7)' : undefined }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} style={{ width: badge + 2, height: badge + 2, objectFit: 'contain' }} />{shown}</span>
         })()}
         {dmgBonus != null && dmgBonus > 0 && (
           <span className="absolute top-0.5 right-0.5 rounded font-bold" title={tGlobal('battle.game.spellDamageBonusTip')}
@@ -768,7 +768,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
           <div className="w-full sm:w-[min(420px,94vw)] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden sm:mb-6" style={{ background: 'linear-gradient(160deg,#17111f,#0a0810)', border: '1px solid rgba(240,180,41,0.35)', boxShadow: '0 -8px 40px rgba(0,0,0,0.7)', height: 'min(60vh,440px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.18)' }}>
               <span className="text-[12px] font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>{t('battle.game.chatTitle')}</span>
-              <button onClick={() => setOpen(false)} className="flex items-center justify-center rounded-full" style={{ width: 28, height: 28, color: 'var(--text-muted)' }}>✕</button>
+              <button onClick={() => setOpen(false)} className="combat-round-icon" style={{ width: 28, height: 28 }} aria-label="✕">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-close.png" alt="" style={{ width: 13, height: 13 }} /></button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-2.5 py-2 space-y-1.5 flex flex-col">
               {chatLog.length === 0 && <span className="text-[11px] text-center my-auto" style={{ color: 'var(--text-muted)' }}>{t('battle.game.chatEmpty')}</span>}
@@ -776,7 +776,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
             </div>
             <div className="flex gap-1.5 p-2 shrink-0" style={{ borderTop: '1px solid rgba(240,180,41,0.18)' }}>
               <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendBattleChat()} maxLength={200} placeholder={t('battle.game.chatPlaceholder')} className="flex-1 px-3 rounded-lg text-[13px] outline-none" style={{ minHeight: 42, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.25)', color: 'var(--text-primary)' }} />
-              <button onClick={sendBattleChat} className="flex items-center justify-center rounded-lg text-[14px] font-bold" style={{ width: 42, height: 42, background: 'rgba(240,180,41,0.92)', color: '#1a0f04' }}>➤</button>
+              <button onClick={sendBattleChat} className="combat-send" aria-label={t('battle.game.chatTitle')}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-send.png" alt="" /></button>
             </div>
           </div>
         </div>
@@ -790,10 +790,11 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
 
       {!open && (
         <button onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
-          className="fixed z-[211] flex items-center justify-center rounded-full text-xl select-none"
-          style={{ left: pos.x, top: pos.y, width: 50, height: 50, touchAction: 'none', background: 'rgba(10,8,16,0.94)', border: '1px solid rgba(240,180,41,0.5)', boxShadow: '0 6px 20px rgba(0,0,0,0.55)' }}
+          className="combat-chat-head fixed z-[211] flex items-center justify-center select-none"
+          style={{ left: pos.x, top: pos.y, width: 50, height: 50, touchAction: 'none', filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.55))' }}
           title="Pokalbis (tempk — perkelk, bakstelk — atidaryk)">
-          💬
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ravenof-ui/combat/icons/icon-chat.png" alt="" draggable={false} style={{ width: 21, height: 21, objectFit: 'contain', marginTop: -3, pointerEvents: 'none' }} />
           {unread > 0 && <span className="absolute -top-1 -right-1 flex items-center justify-center text-[10px] font-bold rounded-full" style={{ minWidth: 18, height: 18, padding: '0 4px', background: '#ef4444', color: '#fff', border: '1px solid #0a0810' }}>{unread}</span>}
         </button>
       )}
@@ -1830,7 +1831,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'gold': {
           const gv = e.value
-          if (gv && gv < 0) { const sd = e.side; const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { const at = rectFor({ side: sd }); if (at) fxRef.current?.floatNumber(at.x, at.y - 14, String(gv) + ' 🪙', '#ffd24a') }, d) }
+          if (gv && gv < 0) { const sd = e.side; const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { const at = rectFor({ side: sd }); if (at) fxRef.current?.floatNumber(at.x, at.y - 14, String(gv), '#ffd24a') }, d) }
           break
         }
         default: break
@@ -2923,16 +2924,16 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <PileBack kind="curse" />
                 <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
-                  style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}⚜</span>
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold inline-flex items-center gap-0.5"
+                  style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} style={{ width: 11, height: 11, objectFit: 'contain' }} /></span>
               </button>
             ) : (
               <div key={r.uid} className="relative rounded-md overflow-hidden"
                 style={{ width: hMobile ? 42 : isTouch ? 40 : 60, height: hMobile ? 56 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(139,92,246,0.5)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">⚡</span>
                 <PileBack kind="curse" />
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold"
-                  style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}⚜</span>
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold inline-flex items-center gap-0.5"
+                  style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} style={{ width: 11, height: 11, objectFit: 'contain' }} /></span>
               </div>
             )
           ) : (
@@ -3019,15 +3020,8 @@ doAction({ t: 'endTurn', actor: 'you' })
     return (
       <div data-tut={side === 'you' ? 'gold' : undefined} className="flex items-center gap-1.5 px-2 py-1 rounded-full"
         style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)' }}>
-        <span className="inline-flex items-center justify-center rounded-full shrink-0"
-          style={{
-            width: 22, height: 22,
-            background: 'radial-gradient(circle at 35% 30%, #fff4c2 0%, #f5c542 38%, #d49a1e 70%, #9c6b12 100%)',
-            border: '1.5px solid #fff1b0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.6), inset 0 0 3px rgba(255,255,255,0.6), inset 0 -2px 3px rgba(120,80,10,0.6)',
-            color: '#7a5210', fontSize: 11, fontWeight: 900, fontFamily: 'var(--rvn-font-display)',
-            textShadow: '0 1px 0 rgba(255,255,255,0.35)',
-          }}>⚜</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} className="shrink-0" style={{ width: 22, height: 22, objectFit: 'contain' }} />
         <span className="text-sm sm:text-lg font-bold tabular-nums" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{p.gold}</span>
       </div>
     )
@@ -3154,10 +3148,10 @@ doAction({ t: 'endTurn', actor: 'you' })
     if (!game) return null
     return (
       <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
-        className="relative rounded-full flex flex-col items-center justify-center font-extrabold transition-all active:scale-95 disabled:opacity-60"
-        style={{ width: 92, height: 92, background: myTurn ? 'radial-gradient(circle at 50% 35%, #2a9a4c, #134f25)' : 'radial-gradient(circle at 50% 35%, #7a1f1f, #3a0f0f)', border: '2px solid ' + (myTurn ? 'rgba(74,222,128,0.8)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', boxShadow: myTurn ? '0 0 22px rgba(34,197,94,0.5)' : 'none' }}
+        className="combat-end-turn relative flex flex-col items-center justify-center font-extrabold transition-all"
+        style={{ color: myTurn ? '#f6e8c6' : '#c6a3a3', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.85)', filter: myTurn ? 'drop-shadow(0 0 14px rgba(212,163,59,0.45))' : 'none' }}
         title={myTurn ? 'Baigti ejima' : 'Prieso ejimas'}>
-        <span className="text-[11px] leading-tight text-center px-1 font-bold" style={{ whiteSpace: 'pre-line' }}>{myTurn ? t('battle.game.endTurnShort') : t('battle.game.enemyTurnShort')}</span>
+        <span className="text-[11px] leading-tight text-center px-3 font-bold" style={{ whiteSpace: 'pre-line' }}>{myTurn ? t('battle.game.endTurnShort') : t('battle.game.enemyTurnShort')}</span>
       </button>
     )
   }
@@ -3166,9 +3160,10 @@ doAction({ t: 'endTurn', actor: 'you' })
     return (
       <button data-tut="discard-gold"
         onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
-        className="px-2 py-1 rounded-full text-[9px] font-bold whitespace-nowrap"
-        style={{ background: game.you.discardedForGold ? 'rgba(0,0,0,0.5)' : select?.kind === 'discard' ? 'rgba(34,197,94,0.38)' : 'rgba(34,197,94,0.18)', border: '1px solid rgba(74,222,128,0.6)', color: game.you.discardedForGold ? 'var(--text-muted)' : '#86efac' }}
-        title="Ismesk 1 korta is rankos ir gauk +100 aukso">{'+100⚜'}</button>
+        className="combat-discard-gold inline-flex items-center justify-center gap-1 text-[10px] font-bold whitespace-nowrap"
+        data-active={select?.kind === 'discard' ? 'true' : undefined}
+        style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+        title="Ismesk 1 korta is rankos ir gauk +100 aukso">{'+100'}{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} style={{ width: 13, height: 13, objectFit: 'contain' }} /></button>
     )
   }
   const renderFieldH = () => (
@@ -3336,16 +3331,14 @@ doAction({ t: 'endTurn', actor: 'you' })
           )}
         </div>
         <div className="flex items-center gap-1.5">
+          {/* eslint-disable @next/next/no-img-element */}
           <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? t('battle.game.soundOff') : t('battle.game.soundOn')}
-            className="p-1.5 rounded-lg transition-colors hover:bg-white/5">
-            {soundOn ? <Music className="w-4 h-4" style={{ color: 'var(--gold)' }} /> : <VolumeX className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />}
-          </button>
+            className="combat-round-icon"><img src={soundOn ? '/ravenof-ui/combat/icons/icon-sound-on.png' : '/ravenof-ui/combat/icons/icon-sound-off.png'} alt="" style={{ opacity: soundOn ? 1 : 0.55 }} /></button>
           <button onClick={() => { playUiClick(); setShowLog((v) => !v) }} title={t('battle.game.logTip')}
-            className="p-1.5 rounded-lg transition-colors hover:bg-white/5 text-sm">📜</button>
+            className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-log.png" alt="" /></button>
           <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')}
-            className="p-1.5 rounded-lg transition-colors hover:bg-white/5">
-            <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-          </button>
+            className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-close.png" alt="" /></button>
+          {/* eslint-enable @next/next/no-img-element */}
         </div>
       </div>
       )}
@@ -3353,8 +3346,10 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* H minimalūs floating valdikliai (banner pašalintas – daugiau vietos lentai) */}
       {useHLayout && (
         <div className="fixed top-1 right-1 z-[130] flex items-center gap-1">
-          <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? t('battle.game.sound') : t('battle.game.soundMuted')} className="p-1.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.42)', border: '1px solid rgba(240,180,41,0.2)' }}>{soundOn ? <Music className="w-4 h-4" style={{ color: 'var(--gold)' }} /> : <VolumeX className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />}</button>
-          <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')} className="p-1.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.42)', border: '1px solid rgba(240,180,41,0.2)' }}><X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} /></button>
+          {/* eslint-disable @next/next/no-img-element */}
+          <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? t('battle.game.sound') : t('battle.game.soundMuted')} className="combat-round-icon"><img src={soundOn ? '/ravenof-ui/combat/icons/icon-sound-on.png' : '/ravenof-ui/combat/icons/icon-sound-off.png'} alt="" style={{ opacity: soundOn ? 1 : 0.55 }} /></button>
+          <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')} className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-close.png" alt="" /></button>
+          {/* eslint-enable @next/next/no-img-element */}
         </div>
       )}
 
@@ -3454,8 +3449,9 @@ doAction({ t: 'endTurn', actor: 'you' })
                 {goldBar('you')}
                 <button data-tut="discard-gold"
                   onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-bold transition-all whitespace-nowrap"
-                  style={{ background: game.you.discardedForGold ? 'rgba(0,0,0,0.5)' : select?.kind === 'discard' ? 'rgba(34,197,94,0.38)' : 'rgba(34,197,94,0.18)', border: '1px solid rgba(74,222,128,0.6)', color: game.you.discardedForGold ? 'var(--text-muted)' : '#86efac' }}
+                  className="combat-discard-gold text-[10px] font-bold transition-all whitespace-nowrap"
+                  data-active={select?.kind === 'discard' ? 'true' : undefined}
+                  style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
                   title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
               </div>
               {/* centras: avataras */}
@@ -3628,7 +3624,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             <aside className="rounded-xl p-3 flex flex-col items-center justify-center gap-2" style={{ ...RAIL_PANEL, gridArea: 'command' }}>
               <div className="self-center">{goldBar('you')}</div>
               <button onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
-                className="w-full px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap" style={{ background: select?.kind === 'discard' ? 'rgba(240,180,41,0.25)' : 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: game.you.discardedForGold ? 'var(--text-muted)' : 'var(--gold)' }} title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
+                className="combat-discard-gold w-full text-[11px] font-bold whitespace-nowrap" data-active={select?.kind === 'discard' ? 'true' : undefined} style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }} title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
               <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
                 className="w-full px-4 py-3.5 rounded-xl text-base font-extrabold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 whitespace-nowrap"
                 style={{ background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'rgba(120,30,30,0.35)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', boxShadow: myTurn ? '0 0 24px rgba(34,197,94,0.45)' : 'none' }}>
@@ -3642,8 +3638,8 @@ doAction({ t: 'endTurn', actor: 'you' })
       <AnimatePresence>
         {select && select.kind !== 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
-            style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+            className="combat-hint-pill fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-2 text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
+            style={{ color: '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
             {select.kind === 'attacker' && t('battle.game.hintAttacker')}
             {select.kind === 'spell' && t('battle.game.hintSpell')}
             {select.kind === 'sacrifice' && t('battle.game.hintSacrifice', { picked: select.picked.length })}
@@ -3651,8 +3647,8 @@ doAction({ t: 'endTurn', actor: 'you' })
         )}
         {select?.kind === 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
-            style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>
+            className="combat-hint-pill fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-2 text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
+            style={{ color: '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
             {t('battle.game.hintDiscard')}
           </motion.div>
         )}
@@ -3865,7 +3861,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             onPointerCancel={() => { logSwipeRef.current = null }}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>{t('battle.game.eventLog')}</p>
-              <button onClick={() => { playUiClick(); setShowLog(false) }} aria-label={t('battle.game.close')} className="text-sm leading-none px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>✕</button>
+              <button onClick={() => { playUiClick(); setShowLog(false) }} aria-label={t('battle.game.close')} className="combat-round-icon" style={{ width: 28, height: 28 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-close.png" alt="" style={{ width: 14, height: 14 }} /></button>
             </div>
             <div className="space-y-1">
               {visibleLog.slice(-80).map((e, i) => {
@@ -3958,8 +3954,8 @@ doAction({ t: 'endTurn', actor: 'you' })
                     return (
                       <button key={i} disabled={disabled}
                         onClick={() => { setChampPopup(null); doAction({ t: 'champ', actor: 'you', skillIndex: i }) }}
-                        className="w-full text-left px-3 py-2 rounded-xl transition-all disabled:opacity-40"
-                        style={{ background: sk.unlocked ? 'rgba(240,180,41,0.12)' : 'var(--bg-elevated)', border: '1px solid ' + (sk.unlocked ? 'rgba(240,180,41,0.4)' : 'var(--bg-border)') }}>
+                        className="combat-skill-row w-full text-left transition-all disabled:opacity-40"
+                        style={{ filter: sk.unlocked ? 'none' : 'saturate(0.45)' }}>
                         <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>
                           {i + 1}. {sk.name} {!sk.unlocked && t('battle.game.skillLocked', { phase: i + 1 })}
                         </span>
@@ -4928,7 +4924,7 @@ function TurnTimer({ deadline, variant }: { deadline: number | null; variant: 'c
     )
   }
   return (
-    <span className="text-xs font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded" style={{ color: left <= 20 ? '#fca5a5' : 'var(--text-secondary)', background: left <= 20 ? 'rgba(239,68,68,0.12)' : 'transparent' }}>
+    <span className="combat-timer-chip text-xs font-bold tabular-nums shrink-0" style={{ color: left <= 20 ? '#e0707c' : '#d7c7aa', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
       ⏱ {left}s
     </span>
   )

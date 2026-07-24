@@ -240,3 +240,29 @@ Likę legacy ekranai pritraukti prie patvirtintos vizualinės kalbos **be raw re
 ## Pastabos
 - Šie ekranai neturi patvirtintų raw referencų — dizainas išvestas iš RavenofKit sistemos; atsiradus oficialiems eksportams, ekranus reikės sutikrinti ir prireikus tikslinti.
 - MatchFound/queue/pack reveal vizualiai patikrinti tik iš dalies (srauto ekranai); pack sealed + queue captures yra, reveal/karuselė — kodo peržiūra.
+
+---
+
+# Fazė 5 — kovos UI assetai (2026-07-24)
+
+`Ravenof_Combat_UI_Asset_Pack_v1` (repo šaknyje; 18 produkcinių PNG @3x + SVG šaltiniai) įdiegtas į
+`public/ravenof-ui/combat/`. Pagal paketo README: apvalūs — `contain`, tempiami — 9-slice border-image,
+pressed = CSS `translateY(1px) scale(.98) brightness(.88)`, be įkepto teksto.
+
+Pakeista (logika nekeista):
+- **Aukso moneta** `currency/coin-gold.png` — aukso juosta prie avataro (22px), kortų kainos ženkliukai
+  rankoje/lentoje (moneta + skaičius), tribute/paid chip'ai (⚜ pašalintas), gold float be 🪙 emoji.
+- **Baigti ėjimą** — `btn-end-turn-active/enemy.png` (92×92; enemy per `:disabled`), tekstas gyvas.
+- **„+100" / „Parduoti kortą"** — `btn-discard-gold(-active).png` 9-slice (H piliulė + abu legacy V mygtukai),
+  aktyvi būsena per `data-active`.
+- **Ikoniniai mygtukai** — `btn-round-small.png` + `icon-{sound-on,sound-off,close,log}.png`:
+  H floating garsas/uždaryti, legacy top bar (garsas/žurnalas/uždaryti), žurnalo overlay ✕,
+  BattleLayout emote/žurnalo mygtukai ir drawer ✕.
+- **PvP chat** — `btn-chat-head.png` + `icon-chat.png` galvutė, `btn-send.png` + `icon-send.png` siuntimas, ✕ ikona.
+- **Emote ratas** — `btn-emote-slot.png` lizdai (emoji gyvas).
+- **Optional** — `hint-pill.png` (taikinio užuominos), `timer-chip.png` (ėjimo laikmačio chip), `skill-row-frame.png`
+  (čempiono skill eilutės).
+
+CSS: `.combat-*` klasės `ravenof-ui.css` (end-turn, discard-gold, round-icon, chat-head, send, emote-slot,
+hint-pill, timer-chip, skill-row). Patikros: tsc OK · eslint 0 naujų (nuimti nebenaudojami lucide importai) ·
+build OK · gyva kova mock aplinkoje: `artifacts/ravenof-ui-phase-5/combat-implementation.png`.

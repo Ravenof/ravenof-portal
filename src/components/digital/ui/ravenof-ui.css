@@ -226,3 +226,52 @@
 .ravenof-ornament > i {
   width: 8px; height: 8px; background: var(--ravenof-gold-bright); transform: rotate(45deg); display: block;
 }
+
+/* ── Kovos UI assetai (Ravenof_Combat_UI_Asset_Pack_v1) ─────────────────────── */
+.combat-end-turn {
+  width: 92px; height: 92px; border: 0; cursor: pointer;
+  background: transparent url('/ravenof-ui/combat/buttons/btn-end-turn-active.png') center / contain no-repeat;
+}
+.combat-end-turn:disabled { background-image: url('/ravenof-ui/combat/buttons/btn-end-turn-enemy.png'); cursor: default; }
+.combat-discard-gold {
+  min-width: 84px; min-height: 26px; cursor: pointer; background: transparent;
+  border: 8px solid transparent; border-width: 8px 13px;
+  border-image: url('/ravenof-ui/combat/buttons/btn-discard-gold.png') 24 39 24 39 fill / 8px 13px;
+}
+.combat-discard-gold[data-active="true"] { border-image-source: url('/ravenof-ui/combat/buttons/btn-discard-gold-active.png'); }
+.combat-round-icon {
+  width: 32px; height: 32px; border: 0; cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent url('/ravenof-ui/combat/buttons/btn-round-small.png') center / contain no-repeat;
+}
+.combat-round-icon > img { width: 17px; height: 17px; object-fit: contain; pointer-events: none; }
+.combat-chat-head {
+  background: transparent url('/ravenof-ui/combat/buttons/btn-chat-head.png') center / contain no-repeat !important;
+  border: 0 !important; box-shadow: none !important;
+}
+.combat-send {
+  width: 42px; height: 42px; border: 0; cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent url('/ravenof-ui/combat/buttons/btn-send.png') center / contain no-repeat;
+}
+.combat-send > img { width: 18px; height: 18px; object-fit: contain; pointer-events: none; }
+.combat-emote-slot {
+  background: transparent url('/ravenof-ui/combat/buttons/btn-emote-slot.png') center / contain no-repeat !important;
+  border: 0 !important; box-shadow: none !important;
+}
+.combat-hint-pill {
+  border: 7px solid transparent; border-width: 7px 12px; background: transparent !important;
+  border-image: url('/ravenof-ui/combat/optional/hint-pill.png') 21 36 21 36 fill / 7px 12px;
+}
+.combat-timer-chip {
+  border: 7px solid transparent; border-width: 7px 11px; background: transparent !important;
+  border-image: url('/ravenof-ui/combat/optional/timer-chip.png') 21 33 21 33 fill / 7px 11px;
+}
+.combat-skill-row {
+  border: 12px solid transparent; border-width: 12px 20px 12px 35px; background: transparent !important;
+  border-image: url('/ravenof-ui/combat/optional/skill-row-frame.png') 36 60 36 105 fill / 12px 20px 12px 35px;
+}
+.combat-end-turn:active:not(:disabled), .combat-discard-gold:active, .combat-round-icon:active,
+.combat-send:active, .combat-emote-slot:active {
+  transform: translateY(1px) scale(.98); filter: brightness(.88);
+}
