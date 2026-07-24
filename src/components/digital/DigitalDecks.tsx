@@ -3,7 +3,6 @@
 // ── Ravenof Digital — Kaladžių hub (segment tabs: Builder / Mano / Community) ──
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Hammer, Library, Users } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { DigitalDeckBuilder } from './DigitalDeckBuilder'
 import { DigitalMyDecks } from './DigitalMyDecks'
@@ -23,10 +22,10 @@ type Props = {
   initialTab: Tab; initialDeck: InitialDeck
 }
 
-const TAB_DEFS: { key: Tab; labelKey: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }[] = [
-  { key: 'builder',   labelKey: 'decks.tabs.builder',   icon: Hammer },
-  { key: 'my',        labelKey: 'decks.tabs.my',        icon: Library },
-  { key: 'community', labelKey: 'decks.tabs.community', icon: Users },
+const TAB_DEFS: { key: Tab; labelKey: string }[] = [
+  { key: 'my',        labelKey: 'decks.tabs.my' },
+  { key: 'builder',   labelKey: 'decks.tabs.builder' },
+  { key: 'community', labelKey: 'decks.tabs.community' },
 ]
 
 export function DigitalDecks({ userId, cards, factions, collection, initialTab, initialDeck }: Props) {
@@ -38,29 +37,24 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
   useEffect(() => { setTab(initialTab) }, [initialTab, initialDeck?.id])
 
   return (
-    <div className="h-full flex flex-col min-h-0">
-      {/* Segment tabs — dark fantasy oktagonai (builder'yje slepiam: kiekvienas px kortoms) */}
-      {tab !== 'builder' && <div className="grid grid-cols-3 gap-1.5 mb-3 shrink-0">
-        {TAB_DEFS.map((tb) => {
-          const Icon = tb.icon
-          const active = tab === tb.key
-          const oct = (b: number) => `polygon(${b}px 0, calc(100% - ${b}px) 0, 100% ${b}px, 100% calc(100% - ${b}px), calc(100% - ${b}px) 100%, ${b}px 100%, 0 calc(100% - ${b}px), 0 ${b}px)`
-          return (
-            <button key={tb.key} onClick={() => { playUiClick(); setTab(tb.key) }}
-              className="rvn-press block w-full"
-              style={{ filter: active ? 'drop-shadow(0 0 8px rgba(240,180,41,0.35))' : 'saturate(0.7) brightness(0.8)', transition: 'filter .15s' }}>
-              <span className="block" style={{ clipPath: oct(9), padding: 1.5, background: active ? 'rgba(240,180,41,0.9)' : 'rgba(240,180,41,0.28)' }}>
-                <span className="flex flex-col items-center justify-center" style={{ clipPath: oct(8), gap: 2, minHeight: 36, padding: '4px 4px',
-                  background: active
-                    ? 'radial-gradient(120% 140% at 50% 0%, rgba(240,180,41,0.22), transparent 60%), linear-gradient(160deg, rgba(24,18,32,0.98), rgba(8,6,12,0.98))'
-                    : 'linear-gradient(160deg, rgba(16,12,22,0.97), rgba(8,6,12,0.98))' }}>
-                  <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--gold)' : 'rgba(150,160,185,0.8)' }} />
-                  <span className="rvn-disp truncate" style={{ maxWidth: '100%', fontSize: 10, fontWeight: 800, letterSpacing: '0.03em', color: active ? 'var(--gold)' : 'rgba(150,160,185,0.85)' }}>{t(tb.labelKey)}</span>
-                </span>
-              </span>
-            </button>
-          )
-        })}
+    <div className="ravenof-body h-full flex flex-col min-h-0 ravenof-in">
+      {/* Antraštė + segmentuoti tabai (patvirtintas UI; builder'yje slepiam: kiekvienas px kortoms) */}
+      {tab !== 'builder' && <div className="flex items-center shrink-0" style={{ gap: 12, paddingBottom: 10 }}>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('decks.title')}</div>
+        <div className="flex-1" />
+        <div className="flex" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
+          {TAB_DEFS.map((tb) => {
+            const active = tab === tb.key
+            return (
+              <button key={tb.key} onClick={() => { playUiClick(); setTab(tb.key) }}
+                className="ravenof-press"
+                style={{ textAlign: 'center', padding: '8px 14px', font: '700 10px var(--ravenof-font-display)', letterSpacing: '.5px', textTransform: 'uppercase',
+                  color: active ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                  background: active ? 'var(--ravenof-grad-gold)' : 'transparent',
+                  borderRight: '1px solid var(--ravenof-border-strong)', cursor: 'pointer' }}>{t(tb.labelKey)}</button>
+            )
+          })}
+        </div>
       </div>}
 
       <div className="flex-1 min-h-0" style={{ overflowY: tab === 'builder' ? 'hidden' : 'auto' }}>

@@ -1,7 +1,8 @@
 'use client'
 
-// ── PARDUOTUVĖ (vieninga; konsolidacija 2026-07-07) — landscape 3 zonų overlay:
-// kairė sekcijos · centras prekių grid · dešinė preview + pirkimo CTA (pinned).
+// ── PARDUOTUVĖ (patvirtintas UI, Fazė 2 — shop-packs.png): pilno ekrano overlay
+// (rail lieka matomas), kairė kategorijų juosta · centras dienos pasiūlymas +
+// prekių grid · pirkimas per patvirtinimo dialogą (prototipo SHOP CONFIRM).
 // DB sekcijos (shop_items: pakuotės/nugarėlės/avatarai/kaladės/rubinai) +
 // Dienos kortos (daily deal) + Starter kaladės — viskas VIENOJE vietoje.
 // Senas StoreModal (auksinė parduotuvė) išimtas — šis modalas atidaromas ir iš
@@ -10,7 +11,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RewardChip } from '@/components/digital/ui/RewardBits'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
@@ -18,10 +18,8 @@ import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopIt
 import { useT, useContent } from '@/lib/i18n/react'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
-import { rarityColor } from '@/lib/digital/rarity'
+import { RAVENOF_ASSET, ravenofRarityColor } from './ui/RavenofKit'
 import { SmartImg } from '@/components/ui/SmartImg'
-
-const RARITY_COL: Record<string, string> = { basic: '148,163,184', rare: '96,165,250', premium: '139,92,246', epic: '139,92,246', legendary: '240,180,41' }
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; labelKey: string }
@@ -51,6 +49,15 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const [sel, setSel] = useState<Sel | null>(null)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState('')
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date(); const mid = new Date(now); mid.setHours(24, 0, 0, 0)
+      const mins = Math.max(0, Math.floor((mid.getTime() - now.getTime()) / 60000))
+      setCountdown(`${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`)
+    }
+    tick(); const i = setInterval(tick, 30_000); return () => clearInterval(i)
+  }, [])
 
   const refresh = useCallback(() => {
     getShop().then(setItems)
@@ -106,10 +113,6 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const selShop = sel?.t === 'shop' ? items.find((i) => i.id === sel.id) ?? null : null
   const selDeal = sel?.t === 'deal' ? deal.find((c) => c.id === sel.id) ?? null : null
   const selStarter = sel?.t === 'starter' ? starters.find((s) => s.id === sel.id) ?? null : null
-  // auto-select pirmas sekcijos elementas
-  const effShop = selShop ?? (section !== 'daily' && section !== 'starter' ? shopShown[0] ?? null : null)
-  const effDeal = selDeal ?? (section === 'daily' ? deal[0] ?? null : null)
-  const effStarter = selStarter ?? (section === 'starter' ? starters[0] ?? null : null)
 
   // kosmetikos prekės vizualas pagal payload item_id
   const cosIdOf = (it: ShopItem): string | null => {
@@ -138,223 +141,214 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     return cid ? tc('cosmetic', cid, 'description', base) : base
   }
 
+  // Kategorijų akcentų spalvos (patvirtintas UI — kairė juosta su border-left)
+  const SEC_ACCENT: Record<string, string> = {
+    packs: 'var(--ravenof-gold)', backs: 'var(--ravenof-fac-mistikos)', avatars: 'var(--ravenof-success)',
+    rubies: 'var(--ravenof-danger)', daily: 'var(--ravenof-gold-bright)', starter: 'var(--ravenof-rar-epic)', decks: 'var(--ravenof-rar-epic)',
+  }
+
+  const priceRow = (silver?: number | null, rubies?: number | null, state?: { label: string; color: string } | null) => (
+    <div className="shrink-0 flex items-center justify-center" style={{ gap: 5, padding: '6px 4px', borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
+      {state ? <span style={{ font: '700 11px var(--ravenof-font-body)', color: state.color }}>{state.label}</span> : <>
+        {silver != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} /><span style={{ font: '700 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{silver}</span></>}
+        {silver != null && rubies != null && <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: 9 }}>/</span>}
+        {rubies != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} /><span style={{ font: '700 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{rubies}</span></>}
+      </>}
+    </div>
+  )
+
+  const tileFrame = (key: string | number, onOpen: () => void, art: React.ReactNode, name: string, sub: string | null, price: React.ReactNode, dim = false) => (
+    <button key={key} onClick={onOpen} className="ravenof-press relative flex flex-col overflow-hidden text-left" style={{ minHeight: 0, border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: dim ? 0.6 : 1, padding: 0 }}>
+      <span className="relative flex-1 block" style={{ minHeight: 90 }}>
+        {art}
+        <span className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(7,6,10,.9))' }} />
+        <span className="absolute" style={{ left: 8, bottom: 5, right: 6 }}>
+          <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)', textTransform: 'uppercase', letterSpacing: '.03em' }}>{name}</span>
+          {sub && <span className="block truncate" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{sub}</span>}
+        </span>
+      </span>
+      {price}
+    </button>
+  )
+
+  // ── Patvirtinimo dialogas (prototipo SHOP CONFIRM) ──
+  const confirmDialog = (() => {
+    if (!sel) return null
+    const close = () => { playUiClick(); setSel(null) }
+    let name = '', sub: string | null = null, body: React.ReactNode = null
+    const actions: React.ReactNode[] = []
+    if (selShop) {
+      name = shopName(selShop); sub = shopDesc(selShop)
+      body = (
+        <div className="flex flex-col" style={{ gap: 4, marginTop: 10 }}>
+          {selShop.payload.map((pl, pi) => (
+            <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)' }}><RewardChip it={pl} size={15} textSize={10.5} /></span>
+          ))}
+        </div>
+      )
+      if (ownedShopItem(selShop)) actions.push(<div key="own" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.ownedEquip')}</div>)
+      else {
+        if (selShop.prices.silver != null) {
+          const enough = bal.silver >= selShop.prices.silver
+          actions.push(<button key="s" onClick={() => { if (enough) void buyShop(selShop, 'silver').then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : t('shop.buyGold', { price: selShop.prices.silver })}</button>)
+        }
+        if (selShop.prices.rubies != null) {
+          const enough = bal.rubies >= selShop.prices.rubies
+          actions.push(<button key="r" onClick={() => { if (enough) void buyShop(selShop, 'rubies').then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-text-primary)' : '#5e5868', background: enough ? 'linear-gradient(180deg,#a53a47,var(--ravenof-danger))' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : t('shop.buyRubies', { price: selShop.prices.rubies })}</button>)
+        }
+        if (selShop.prices.real_money != null && selShop.prices.silver == null && selShop.prices.rubies == null) {
+          actions.push(<div key="rm" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: 11 }}>{t('shop.comingSoon', { price: selShop.prices.real_money.toFixed(2) })}</div>)
+        }
+      }
+    } else if (selDeal) {
+      name = tc('cosmetic', selDeal.id, 'name', selDeal.name); sub = t('shop.dailyDealInfo')
+      const enough = bal.silver >= selDeal.priceGold
+      body = selDeal.imageUrl ? (
+        <div className="relative mx-auto overflow-hidden" style={{ width: 110, aspectRatio: '2.5/3.5', marginTop: 10, border: `1px solid ${ravenofRarityColor(selDeal.rarity)}`, borderRadius: 5 }}>
+          <SmartImg src={selDeal.imageUrl} width={220} className="absolute inset-0 w-full h-full object-cover" />
+        </div>
+      ) : null
+      if (selDeal.bought) actions.push(<div key="b" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.purchasedShort')}</div>)
+      else actions.push(<button key="buy" onClick={() => { if (enough) void buyDeal(selDeal).then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : t('shop.buyGold', { price: selDeal.priceGold })}</button>)
+    } else if (selStarter) {
+      name = tc('starter_deck', selStarter.id, 'name', selStarter.name)
+      sub = selStarter.description ? tc('starter_deck', selStarter.id, 'description', selStarter.description) : t('shop.starterInfo')
+      const enough = selStarter.priceGold <= 0 || bal.silver >= selStarter.priceGold
+      if (selStarter.claimed) actions.push(<div key="c" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.claimedShort')}</div>)
+      else actions.push(<button key="buy" onClick={() => { if (enough) void claimStarter(selStarter).then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : selStarter.priceGold > 0 ? t('shop.buyGold', { price: selStarter.priceGold }) : t('shop.claimFree')}</button>)
+    }
+    const insufficient = (selShop && !ownedShopItem(selShop) && selShop.prices.silver != null && bal.silver < selShop.prices.silver && (selShop.prices.rubies == null || bal.rubies < selShop.prices.rubies))
+      || (selDeal && !selDeal.bought && bal.silver < selDeal.priceGold)
+      || (selStarter && !selStarter.claimed && selStarter.priceGold > 0 && bal.silver < selStarter.priceGold)
+    return (
+      <>
+        <div className="absolute inset-0" style={{ zIndex: 85, background: 'rgba(4,3,7,.78)', backdropFilter: 'blur(3px)' }} onClick={close} />
+        <div className="ravenof-panel" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 86, width: 330, maxWidth: '92vw', padding: '26px 28px', animation: 'ravenofFound .3s ease' }}>
+          <div style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textAlign: 'center' }}>{name}</div>
+          {sub && <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', textAlign: 'center', marginTop: 4, maxHeight: 62, overflow: 'hidden' }}>{sub}</div>}
+          {body}
+          {insufficient && <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger)', textAlign: 'center', marginTop: 8 }}>{t('shop.notEnoughSilver')}</div>}
+          {toast && <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', textAlign: 'center', marginTop: 8 }}>{toast}</div>}
+          <div className="flex" style={{ gap: 8, marginTop: 14 }}>
+            <button onClick={close} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', background: 'none', padding: 11, cursor: 'pointer', textTransform: 'uppercase' }}>{t('common.cancel')}</button>
+            {actions}
+          </div>
+        </div>
+      </>
+    )
+  })()
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.92)', backdropFilter: 'blur(4px)', padding: 8 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="flex flex-col" style={{ width: 'min(1100px, 98vw)', height: 'min(640px, 96vh)', borderRadius: 20,
-        background: 'radial-gradient(120% 60% at 50% 0%, rgba(240,180,41,0.1), transparent 55%), linear-gradient(160deg, rgba(22,16,33,0.99), rgba(9,7,15,0.99))',
-        border: '1.5px solid rgba(240,180,41,0.5)', boxShadow: '0 18px 60px rgba(0,0,0,0.7)' }}>
+    <div className="ravenof-body" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))', zIndex: 60, background: 'var(--ravenof-bg-base)', display: 'flex', flexDirection: 'column', padding: '10px 20px 12px 16px', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
+      {/* ── Antraštė ── */}
+      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 8, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('shop.title')}</div>
+        <div className="flex-1" />
+        <div className="flex items-center" style={{ gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />{bal.silver.toLocaleString('lt-LT')}
+        </div>
+        <div className="flex items-center" style={{ gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} />{bal.rubies.toLocaleString('lt-LT')}
+        </div>
+      </div>
 
-        {/* ── Antraštė ── */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid rgba(240,180,41,0.15)' }}>
-          <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 'clamp(14px,2.6vh,19px)', letterSpacing: '0.08em' }}>{t('shop.title')}</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(203,213,225,0.35)', color: '#f3ead3' }}>🪙 {bal.silver.toLocaleString('lt-LT')}</span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>💎 {bal.rubies.toLocaleString('lt-LT')}</span>
-            <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+      <div className="flex-1 flex min-h-0" style={{ gap: 12 }}>
+        {/* ── KAIRĖ: kategorijos ── */}
+        <div className="flex flex-col shrink-0" style={{ width: 128, gap: 4 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 4 }}>
+            {ALL_SECTIONS.map((sc) => {
+              const active = section === sc.key
+              return (
+                <button key={sc.key} onClick={() => { playUiClick(); setSection(sc.key); setSel(null); setToast(null) }}
+                  className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: 8, padding: '9px 10px', minHeight: 36,
+                    border: `1px solid ${active ? 'var(--ravenof-border-strong)' : 'var(--ravenof-border-hairline)'}`,
+                    borderLeft: `2px solid ${SEC_ACCENT[sc.key] ?? 'var(--ravenof-border-strong)'}`,
+                    background: active ? 'var(--ravenof-bg-surface)' : 'transparent', cursor: 'pointer' }}>
+                  <span style={{ font: '600 11px var(--ravenof-font-body)', color: active ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>{t(sc.labelKey).replace(/^[^\p{L}]+\s*/u, '')}</span>
+                </button>
+              )
+            })}
           </div>
+          {packInv > 0 && (
+            <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
+              className="ravenof-press shrink-0 block w-full text-center" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '8px 6px', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
+              {t('shop.openPacks', { count: packInv })}
+            </Link>
+          )}
         </div>
 
-        {/* ── 3 zonos ── */}
-        <div className="flex-1 min-h-0 grid gap-2 p-2.5" style={{ gridTemplateColumns: 'minmax(130px,0.72fr) minmax(0,2.2fr) minmax(210px,1fr)' }}>
+        {/* ── CENTRAS ── */}
+        <div className="flex-1 flex flex-col min-w-0" style={{ gap: 8 }}>
+          {/* Dienos pasiūlymo juosta → Dienos kortos */}
+          <button onClick={() => { playUiClick(); setSection('daily'); setSel(null) }} className="ravenof-press relative shrink-0 overflow-hidden text-left" style={{ height: 56, border: '1px solid rgba(212,163,59,.35)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)', cursor: 'pointer', background: 'none', padding: 0, width: '100%' }}>
+            <span className="absolute inset-0" style={{ background: `url('${RAVENOF_ASSET}/modes/mode-ranked.webp') no-repeat 50% 30% / cover` }} />
+            <span className="absolute inset-0" style={{ background: 'linear-gradient(90deg,rgba(7,6,10,.94) 30%,rgba(7,6,10,.4))' }} />
+            <span className="relative h-full flex items-center" style={{ gap: 12, padding: '0 14px' }}>
+              <span>
+                <span className="block" style={{ font: '500 8.5px var(--ravenof-font-body)', letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('shop.dailyOffer')}</span>
+                <span className="block" style={{ font: '700 13px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{t('shop.sections.daily').replace(/^[^\p{L}]+\s*/u, '')}</span>
+              </span>
+              <span className="flex-1" />
+              <span style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.endsIn')} {countdown}</span>
+            </span>
+          </button>
 
-          {/* KAIRĖ: sekcijos */}
-          <div className="flex flex-col min-h-0 gap-1.5">
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
-              {ALL_SECTIONS.map((s) => (
-                <button key={s.key} onClick={() => { playUiClick(); setSection(s.key); setSel(null); setToast(null) }}
-                  className="rvn-press shrink-0 w-full text-left px-2.5 py-2 rounded-xl font-bold"
-                  style={{ fontSize: 11, background: section === s.key ? 'rgba(240,180,41,0.2)' : 'rgba(10,8,16,0.8)', border: `1px solid ${section === s.key ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.08)'}`, color: section === s.key ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}>{t(s.labelKey)}</button>
-              ))}
-            </div>
-            {packInv > 0 && (
-              <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
-                className="shrink-0 block w-full px-2 py-2 rounded-xl font-bold text-center"
-                style={{ fontSize: 10, background: 'rgba(251,146,60,0.18)', border: '1px solid rgba(251,146,60,0.6)', color: '#fdba74', fontFamily: 'var(--rvn-font-display)' }}>
-                {t('shop.openPacks', { count: packInv })}
-              </Link>
-            )}
-          </div>
-
-          {/* CENTRAS: prekės */}
-          <div className="min-h-0 overflow-y-auto">
+          {/* Prekės */}
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll">
             {section === 'daily' ? (
-              deal.length === 0 ? <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>{t('shop.dealLoading')}</p> : (
-                <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))' }}>
-                  {deal.map((c) => {
-                    const col = rarityColor(c.rarity)
-                    const isSel = effDeal?.id === c.id
-                    return (
-                      <button key={c.id} onClick={() => { playUiClick(); setSel({ t: 'deal', id: c.id }); setToast(null) }}
-                        className="rvn-press relative rounded-xl overflow-hidden text-left"
-                        style={{ aspectRatio: '2.5/3.9', border: isSel ? '2px solid rgba(240,180,41,0.95)' : `2px solid ${col}66`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.4)' : 'none', opacity: c.bought ? 0.55 : 1 }}>
-                        {c.imageUrl ? <SmartImg src={c.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🎴</span>}
-                        <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
-                          <span className="block truncate font-bold" style={{ fontSize: 9.5, color: '#fff' }}>{tc('cosmetic', c.id, 'name', c.name)}</span>
-                          <span className="block font-bold" style={{ fontSize: 9.5, color: c.bought ? '#4ade80' : 'var(--gold)' }}>{c.bought ? '✓ Nupirkta' : `🪙 ${c.priceGold}`}</span>
-                        </span>
-                      </button>
-                    )
-                  })}
+              deal.length === 0 ? <p className="text-center py-8" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.dealLoading')}</p> : (
+                <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8 }}>
+                  {deal.map((c) => tileFrame(c.id, () => { playUiClick(); setSel({ t: 'deal', id: c.id }); setToast(null) },
+                    c.imageUrl ? <SmartImg src={c.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🎴</span>,
+                    tc('cosmetic', c.id, 'name', c.name), gcRarity(c.rarity),
+                    priceRow(c.bought ? null : c.priceGold, null, c.bought ? { label: t('shop.purchasedShort'), color: 'var(--ravenof-success-bright)' } : null), c.bought))}
                 </div>
               )
             ) : section === 'starter' ? (
-              <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-                {starters.map((s) => {
-                  const isSel = effStarter?.id === s.id
-                  return (
-                    <button key={s.id} onClick={() => { playUiClick(); setSel({ t: 'starter', id: s.id }); setToast(null) }}
-                      className="rvn-press relative rounded-xl overflow-hidden text-left"
-                      style={{ aspectRatio: '3/3.6', border: isSel ? '2px solid rgba(240,180,41,0.95)' : '1px solid rgba(34,197,94,0.4)', boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.4)' : 'none', opacity: s.claimed ? 0.55 : 1 }}>
-                      {s.imageUrl ? <SmartImg src={s.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: '#15101f' }}>🃏</span>}
-                      <span className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
-                        <span className="block truncate font-bold" style={{ fontSize: 10, color: '#fff' }}>{tc('starter_deck', s.id, 'name', s.name)}</span>
-                        <span className="block font-bold" style={{ fontSize: 9.5, color: s.claimed ? '#4ade80' : s.priceGold > 0 ? 'var(--gold)' : '#86efac' }}>{s.claimed ? '✓ Paimta' : s.priceGold > 0 ? `🪙 ${s.priceGold}` : t('shop.free')}</span>
-                      </span>
-                    </button>
-                  )
-                })}
+              <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                {starters.map((st) => tileFrame(st.id, () => { playUiClick(); setSel({ t: 'starter', id: st.id }); setToast(null) },
+                  st.imageUrl ? <SmartImg src={st.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🃏</span>,
+                  tc('starter_deck', st.id, 'name', st.name), st.faction ?? null,
+                  priceRow(st.claimed ? null : (st.priceGold > 0 ? st.priceGold : null), null, st.claimed ? { label: t('shop.claimedShort'), color: 'var(--ravenof-success-bright)' } : st.priceGold <= 0 ? { label: t('shop.free'), color: 'var(--ravenof-success-bright)' } : null), st.claimed))}
               </div>
             ) : (
               <>
-                {shopShown.length === 0 && <p className="text-center text-xs py-8" style={{ color: 'var(--text-muted)' }}>{t('shop.categoryEmpty')}</p>}
-                <div className="grid gap-2 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                {shopShown.length === 0 && <p className="text-center py-8" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.categoryEmpty')}</p>}
+                <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
                   {shopShown.map((it) => {
-                    const rc = it.rarity ? RARITY_COL[it.rarity] ?? '240,180,41' : '240,180,41'
-                    const isSel = effShop?.id === it.id
                     const vis = visOf(it)
+                    const packImg = packImgOf(it)
                     const owned = ownedShopItem(it)
-                    return (
-                      <button key={it.id} onClick={() => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }}
-                        className="rvn-press rounded-xl p-2.5 text-left flex flex-col gap-1"
-                        style={{ minHeight: 76, background: `linear-gradient(150deg, rgba(${rc},0.08), rgba(10,8,16,0.92))`, border: isSel ? '1.5px solid rgba(240,180,41,0.9)' : `1px solid rgba(${rc},0.4)`, boxShadow: isSel ? '0 0 12px rgba(240,180,41,0.35)' : 'none', opacity: owned ? 0.65 : 1 }}>
-                        {packImgOf(it) && (
-                          <span className="relative mx-auto block overflow-hidden shrink-0 rounded-lg" style={{ width: 74, height: 96, border: '1px solid rgba(240,180,41,0.35)' }}>
-                            <SmartImg src={packImgOf(it)!} width={160} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 32%' }} />
-                          </span>
-                        )}
-                        {vis && (
-                          <span className="relative mx-auto flex items-center justify-center overflow-hidden shrink-0"
-                            style={{ width: vis.kind === 'avatar' ? 54 : 46, height: vis.kind === 'avatar' ? 54 : 64, borderRadius: vis.kind === 'avatar' ? 999 : 7,
-                              background: vis.imageUrl ? '#0a0810' : (vis.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)'), border: vis.kind === 'avatar' ? '2px solid rgba(240,180,41,0.5)' : '1px solid rgba(255,255,255,0.12)' }}>
-                            {vis.imageUrl
-                              ? <SmartImg src={vis.imageUrl} width={120} className="absolute inset-0 w-full h-full object-cover" />
-                              : (vis.emoji && <span className="text-xl">{vis.emoji}</span>)}
-                          </span>
-                        )}
-                        <span className="block text-sm font-bold leading-tight" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{shopName(it)}</span>
-                        {!vis && <span className="flex flex-wrap gap-x-2 gap-y-0.5">{it.payload.slice(0, 3).map((p, i) => <span key={i}><RewardChip it={p} size={13} textSize={9.5} /></span>)}</span>}
-                        <span className="mt-auto flex gap-2" style={{ fontSize: 10, fontWeight: 800 }}>
-                          {owned ? <span style={{ color: '#4ade80' }}>{t('shop.owned')}</span> : <>
-                            {it.prices.silver != null && <span style={{ color: '#f3ead3' }}>🪙 {it.prices.silver}</span>}
-                            {it.prices.rubies != null && <span style={{ color: '#fca5a5' }}>💎 {it.prices.rubies}</span>}
-                            {it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null && <span style={{ color: 'var(--text-muted)' }}>€{it.prices.real_money.toFixed(2)}</span>}
-                          </>}
-                        </span>
-                      </button>
-                    )
+                    const art = packImg
+                      ? <SmartImg src={packImg} width={260} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} />
+                      : vis?.imageUrl
+                        ? <SmartImg src={vis.imageUrl} width={260} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />
+                        : vis?.css
+                          ? <span className="absolute inset-0" style={{ background: vis.css }} />
+                          : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>
+                    return tileFrame(it.id, () => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }, art,
+                      shopName(it), shopDesc(it),
+                      priceRow(owned ? null : it.prices.silver, owned ? null : it.prices.rubies, owned ? { label: t('shop.owned'), color: 'var(--ravenof-success-bright)' } : (it.prices.silver == null && it.prices.rubies == null && it.prices.real_money != null ? { label: `€${it.prices.real_money.toFixed(2)}`, color: 'var(--ravenof-text-secondary)' } : null)), owned)
                   })}
                 </div>
               </>
-            )}
-          </div>
-
-          {/* DEŠINĖ: pasirinkta prekė */}
-          <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid rgba(240,180,41,0.22)' }}>
-            {effDeal ? (
-              <>
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-                  <div className="relative w-full rounded-xl overflow-hidden shrink-0 mx-auto" style={{ aspectRatio: '2.5/3.5', maxWidth: 170, border: `2px solid ${rarityColor(effDeal.rarity)}`, boxShadow: `0 0 14px ${rarityColor(effDeal.rarity)}44` }}>
-                    {effDeal.imageUrl ? <SmartImg src={effDeal.imageUrl} width={340} className="absolute inset-0 w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: '#15101f' }}>🎴</span>}
-                  </div>
-                  <p className="font-bold text-center" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{effDeal.name}</p>
-                  <p className="text-center" style={{ fontSize: 10, color: rarityColor(effDeal.rarity) }}>{effDeal.rarity ?? ''}{effDeal.faction ? ` · ${effDeal.faction}` : ''}</p>
-                  <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('shop.dailyDealInfo')}</p>
-                  {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
-                </div>
-                <button onClick={() => buyDeal(effDeal)} disabled={busy || effDeal.bought || bal.silver < effDeal.priceGold}
-                  className="rvn-press shrink-0 mt-2 w-full rounded-xl font-extrabold disabled:opacity-45"
-                  style={{ minHeight: 42, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: effDeal.bought ? 'rgba(74,222,128,0.15)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: effDeal.bought ? '1px solid rgba(74,222,128,0.5)' : 'none', color: effDeal.bought ? '#86efac' : '#3a2406' }}>
-                  {busy ? '…' : effDeal.bought ? t('shop.purchasedShort') : t('shop.buyGold', { price: effDeal.priceGold })}
-                </button>
-              </>
-            ) : effStarter ? (
-              <>
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-                  <div className="relative w-full rounded-xl overflow-hidden shrink-0" style={{ aspectRatio: '3/3.2', border: '1.5px solid rgba(34,197,94,0.5)' }}>
-                    {effStarter.imageUrl ? <SmartImg src={effStarter.imageUrl} width={420} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 30%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: '#15101f' }}>🃏</span>}
-                  </div>
-                  <p className="font-bold" style={{ fontSize: 13, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('starter_deck', effStarter.id, 'name', effStarter.name)}</p>
-                  <p style={{ fontSize: 10, color: '#86efac' }}>{effStarter.faction ?? ''} · {effStarter.cardCount} kortų</p>
-                  {effStarter.description && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{tc('starter_deck', effStarter.id, 'description', effStarter.description)}</p>}
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('shop.starterInfo')}</p>
-                  {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
-                </div>
-                <button onClick={() => claimStarter(effStarter)} disabled={busy || effStarter.claimed || (effStarter.priceGold > 0 && bal.silver < effStarter.priceGold)}
-                  className="rvn-press shrink-0 mt-2 w-full rounded-xl font-extrabold disabled:opacity-45"
-                  style={{ minHeight: 42, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)', background: effStarter.claimed ? 'rgba(74,222,128,0.15)' : 'linear-gradient(180deg,#ffe28c,#f3b62c)', border: effStarter.claimed ? '1px solid rgba(74,222,128,0.5)' : 'none', color: effStarter.claimed ? '#86efac' : '#3a2406' }}>
-                  {busy ? '…' : effStarter.claimed ? t('shop.claimedShort') : effStarter.priceGold > 0 ? t('shop.buyGold', { price: effStarter.priceGold }) : t('shop.claimFree')}
-                </button>
-              </>
-            ) : effShop ? (
-              <>
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
-                  {(() => { const img = packImgOf(effShop); return img ? (
-                    <span className="relative mx-auto block overflow-hidden shrink-0 mt-1 rounded-xl" style={{ width: 132, height: 172, border: '1.5px solid rgba(240,180,41,0.45)', boxShadow: '0 0 18px rgba(240,180,41,0.2)' }}>
-                      <SmartImg src={img} width={280} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 32%' }} />
-                    </span>
-                  ) : null })()}
-                  {(() => { const vis = visOf(effShop); return vis ? (
-                    <span className="relative mx-auto flex items-center justify-center overflow-hidden shrink-0 mt-1"
-                      style={{ width: vis.kind === 'avatar' ? 120 : 118, height: vis.kind === 'avatar' ? 120 : 160, borderRadius: vis.kind === 'avatar' ? 999 : 12,
-                        background: vis.imageUrl ? '#0a0810' : (vis.css ?? 'linear-gradient(160deg,#1a1325,#0a0810)'),
-                        border: vis.kind === 'avatar' ? '2.5px solid rgba(240,180,41,0.6)' : '1.5px solid rgba(240,180,41,0.35)', boxShadow: '0 0 18px rgba(240,180,41,0.2)' }}>
-                      {vis.imageUrl
-                        ? <SmartImg src={vis.imageUrl} width={260} className="absolute inset-0 w-full h-full object-cover" />
-                        : (vis.emoji && <span style={{ fontSize: 46 }}>{vis.emoji}</span>)}
-                    </span>
-                  ) : null })()}
-                  <p className="font-bold leading-tight" style={{ fontSize: 14, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{shopName(effShop)}</p>
-                  {shopDesc(effShop) && <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{shopDesc(effShop)}</p>}
-                  <div>
-                    <p className="uppercase font-bold mb-1" style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{t('shop.contents')}</p>
-                    <div className="flex flex-col gap-1">
-                      {effShop.payload.map((p, i) => (
-                        <span key={i} className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}><RewardChip it={p} size={16} textSize={10.5} /></span>
-                      ))}
-                    </div>
-                  </div>
-                  {toast && <p className="text-center font-semibold py-1.5 px-2 rounded-lg" style={{ fontSize: 10.5, background: 'rgba(10,8,16,0.9)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>{toast}</p>}
-                </div>
-                <div className="shrink-0 mt-2 flex flex-col gap-1.5">
-                  {ownedShopItem(effShop) && (
-                    <div className="w-full rounded-xl py-2.5 text-center font-bold" style={{ fontSize: 12, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>{t('shop.ownedEquip')}</div>
-                  )}
-                  {!ownedShopItem(effShop) && effShop.prices.silver != null && (
-                    <button onClick={() => buyShop(effShop, 'silver')} disabled={busy || bal.silver < effShop.prices.silver}
-                      className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'linear-gradient(180deg,#ffe28c,#f3b62c)', color: '#3a2406', fontFamily: 'var(--rvn-font-display)' }}>
-                      {busy ? '…' : t('shop.buyGold', { price: effShop.prices.silver })}
-                    </button>
-                  )}
-                  {!ownedShopItem(effShop) && effShop.prices.rubies != null && (
-                    <button onClick={() => buyShop(effShop, 'rubies')} disabled={busy || bal.rubies < effShop.prices.rubies}
-                      className="rvn-press w-full rounded-xl font-extrabold disabled:opacity-45" style={{ minHeight: 40, fontSize: 12, background: 'rgba(239,68,68,0.18)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.5)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {busy ? '…' : t('shop.buyRubies', { price: effShop.prices.rubies })}
-                    </button>
-                  )}
-                  {effShop.prices.real_money != null && effShop.prices.silver == null && effShop.prices.rubies == null && (
-                    <button disabled className="w-full rounded-xl font-extrabold" style={{ minHeight: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>{t('shop.comingSoon', { price: effShop.prices.real_money.toFixed(2) })}</button>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-center px-3" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('shop.pickItem')}</div>
             )}
           </div>
         </div>
       </div>
+
+      {confirmDialog}
+      {toast && !sel && (
+        <div className="ravenof-toast" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))', zIndex: 160 }}>{toast}</div>
+      )}
     </div>,
     document.body,
   )
 }
+
+/** Retumo etiketė daily kortoms (LT pavadinimas iš DB — rodom kaip yra). */
+function gcRarity(r: string | null): string | null { return r }

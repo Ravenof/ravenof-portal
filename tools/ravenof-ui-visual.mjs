@@ -167,6 +167,41 @@ const browser = await chromium.launch({ executablePath: process.env.RVN_CHROMIUM
   await context.close()
 }
 
+// ── Fazė 2 ekranai ───────────────────────────────────────────────────────────
+const OUT2 = 'artifacts/ravenof-ui-phase-2'
+fs.mkdirSync(OUT2, { recursive: true })
+// Decks
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/decks?tab=my`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2200)
+  await page.screenshot({ path: path.join(OUT2, 'decks-implementation.png') })
+  await context.close()
+}
+// Ranked
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/ranked`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2200)
+  await page.screenshot({ path: path.join(OUT2, 'ranked-implementation.png') })
+  await context.close()
+}
+// Shop (per nav rail „Parduotuvė") + Settings (per header ⚙)
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1800)
+  await page.locator('nav button').first().click()
+  await page.waitForTimeout(1400)
+  await page.screenshot({ path: path.join(OUT2, 'shop-implementation.png') })
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(500)
+  await page.locator('header button[aria-label]').last().click()
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: path.join(OUT2, 'settings-implementation.png') })
+  await context.close()
+}
+
 await browser.close()
 fs.writeFileSync(path.join(OUT, 'console-errors.json'), JSON.stringify(consoleErrors, null, 2))
 console.log('screenshots done; console errors:', consoleErrors.length)

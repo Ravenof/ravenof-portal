@@ -116,3 +116,43 @@ register, forgot-password, onboarding, decks, deck builder, community, shop/pack
 
 ### Fazės 2 rekomendacija
 Decks (mine/community/empty) + Deck builder + Shop/PackOpen (raw ref jau yra decks-mine.png, shop-packs.png), tada Ranked + Settings (ranked-default.png, settings-default.png). Naudoti jau sukurtą RavenofKit + tokenus.
+
+---
+
+# Fazė 2 (2026-07-24) — Decks · Shop · Ranked · Settings
+
+Migruoti likę keturi ekranai su patvirtintais raw reference:
+
+| Ekranas | Kur | Reference |
+|---|---|---|
+| Kaladės (Mano) | `/digital/decks` (`DigitalDecks` + `DigitalMyDecks`) | `decks-mine.png` |
+| Parduotuvė | `ShopModal` (pilno ekrano overlay, rail lieka) | `shop-packs.png` |
+| Reitinginės kovos | `/digital/ranked` (`RankedClient` home view; full-bleed be rail/header) | `ranked-default.png` |
+| Nustatymai | `SettingsModal` (pilno ekrano overlay, rail lieka) | `settings-default.png` |
+
+**Be raw reference liko legacy (sąmoningai):** deck builder, community decks tab turinys, pack open, PvE/PvP/kampanija/friends/more/onboarding/register/forgot ir visi kiti modalai (OPEN_QUESTIONS — raw eksportai pending).
+
+## Kas išsaugota
+- Decks: deck load/covers, drawer su statistika/kortų sąrašu/Playtest (atsidaro paspaudus kaladės artą), duplicate/delete+confirm, edit/create routing, aktyvios kaladės logika per `useActiveDeck.setActive` (optimistic + RPC).
+- Shop: `getShop`/`purchaseShopItem`/`getDailyDeal`/`buyDailyDealCard`/`getStarterDecks`/`claimStarterDeck`, sekcijos iš `SHOP_SECTIONS`, pack inventorius („Atidaryti pakuotes" CTA), klaidų žemėlapis; pirkimas dabar per patvirtinimo dialogą (prototipo SHOP CONFIRM).
+- Ranked: visa srauto logika (queue→found→playing→result), `lockDeck`, `reportMatch`, ekonomika, sub-views (lyderiai/istorija/pasiekimai/sezonai/atlygiai — ikonų juosta antraštėje), aktyvios kaladės eligibilumo taisyklės; lyderių preview per `getLeaderboard(3)`.
+- Settings: visi gyvi nustatymai (UI garsai, muzikos/SFX slideriai, iškvietimo/fono FX, kino pop-up + sub-checkbox'ai, balsų kalba+fallback, priminimai native, turinio parsisiuntimas su progresu/atšaukimu/valymu, reset), `saveDigitalSettings` sync. NAUJA pagal patvirtintą dizainą: paskyros e-pašto eilutė su „Patvirtinta ✓" ir „Atsijungti" (ta pati `signOut` semantika kaip More ekrane).
+
+## Shell pakeitimai
+- `/digital/ranked` — FULL_BLEED_ROUTES (be rail/header; ‹ grįžta į /digital).
+- Shop/Settings — pilno ekrano overlay su matomu rail (left offset = rail plotis; portal į body dėl z-index stacking konteksto). Atsidarę modalai uždaromi keičiant route.
+- `/digital/decks` pridėtas prie MIGRATED_ROUTES (be Flames).
+
+## Sąmoningi nukrypimai
+1. Ranked antraštėje palikta sub-view ikonų juosta (🏆📜🏅📅🎁) + „23W · 9L" eilutė po herbu — funkcionalumo išsaugojimas (approved ekrane šito nėra).
+2. Settings turi daugiau valdiklių nei approved paveiksle (slideriai, kino, turinys, balsai) — visi pateikti patvirtinta vizualine kalba; „Grafikos kokybė" segmento gyvame nėra — nepridėta.
+3. Shop kategorijų pavadinimai — gyvi DB/sekcijų pavadinimai („Kortų nugarėlės" vs prototipo „Nugarėlės"); dienos pasiūlymo juosta veda į „Dienos kortos" sekciją (gyvo „featured offer" koncepto nėra).
+4. Deck tile fone — starter kaladės viršelis pagal frakciją (kaip gyvame), ne prototipo kortos renderis.
+
+## Patikros (2026-07-24)
+- `tsc --noEmit` OK · `next lint` (keisti failai) 0 klaidų · i18n ERROR 0 · `next build` OK (fonts mock — tik sandbox).
+- Vizuali verifikacija 844×390@2x: `artifacts/ravenof-ui-phase-2/{decks,shop,ranked,settings}-implementation.png`.
+- Smoke: drawer atsidaro, tab perjungimas, aktyvios kaladės selektorius iš ranked, shop confirm dialogas, settings toggles, back navigacija, jokio horizontalaus overflow. (Mock aplinkos artefaktas: `DigitalCommunityDecks` pageerror dėl mock RPC shape — legacy komponentas, gyvame nepasikartoja.)
+
+## Fazė 3 rekomendacija
+PARTIAL ekranai, kai bus raw referencai: register/forgot/onboarding, PvE/PvP setup, campaign, friends, more, result/level-up/queue/match-found, offline/maintenance/expired. Deck builder + pack open — reikia raw eksportų (OPEN_QUESTIONS).

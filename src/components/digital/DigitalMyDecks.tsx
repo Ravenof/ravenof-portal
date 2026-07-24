@@ -11,7 +11,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Edit2, Trash2, Copy, Plus, Lock, Globe, CheckCircle2, AlertCircle, X } from 'lucide-react'
+import { Edit2, Trash2, Copy, Lock, Globe, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess, playError, playCardFlip } from '@/lib/ui-sound'
@@ -22,6 +22,7 @@ import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { useT, useGameContent } from '@/lib/i18n/react'
 import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
+import { useActiveDeck } from '@/lib/digital/activeDeck'
 
 const GOLD = '240,180,41'
 
@@ -39,6 +40,7 @@ type DeckCard = {
 
 export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; onEdit: (id: string) => void; onCreate: () => void }) {
   const t = useT()
+  const gc = useGameContent()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [covers, setCovers] = useState<Record<number, string>>({})
   const [openDeck, setOpenDeck] = useState<Deck | null>(null)
@@ -73,7 +75,8 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
     setDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionId: d.faction_id, factionColor: d.faction?.color_hex ?? '#f0b429', visibility: d.visibility, cardCount: d.card_count, avgGold: d.avg_gold_cost, missing: ids.includes(d.id) ? (missingMap[d.id] ?? 0) : 0 })))
   }, [userId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(); void useActiveDeck.getState().refresh() }, [load])
+  const adState = useActiveDeck()
   // Starter kaladžių viršeliai pagal frakciją (iš parduotuvės).
   // sessionStorage cache — viršeliai matomi iškart, be RPC laukimo.
   useEffect(() => {
@@ -145,50 +148,64 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
   if (decks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-        <div className="text-5xl">📚</div>
-        <div>
-          <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{t('decks.my.emptyTitle')}</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{t('decks.my.emptySub')}</p>
+      <div className="ravenof-body h-full flex flex-col items-center justify-center text-center" style={{ gap: 13 }}>
+        <div className="relative" style={{ width: 66, height: 84 }}>
+          <div className="absolute inset-0" style={{ border: '1px dashed #3d3345', borderRadius: 6, transform: 'rotate(-9deg)', background: 'var(--ravenof-bg-surface-2)' }} />
+          <div className="absolute inset-0" style={{ border: '1px dashed #4a4552', borderRadius: 6, transform: 'rotate(7deg)', background: 'var(--ravenof-bg-surface-2)' }} />
+          <div className="absolute inset-0 flex items-center justify-center" style={{ border: '1px solid var(--ravenof-border-strong)', borderRadius: 6, background: 'var(--ravenof-bg-surface)', font: '300 30px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>+</div>
         </div>
-        <button onClick={() => { playUiClick(); onCreate() }} className="inline-flex items-center gap-2 px-5 rounded-xl text-sm font-bold" style={{ minHeight: 48, background: 'rgba(240,180,41,0.92)', color: '#1a0f04', fontFamily: 'var(--rvn-font-display)' }}><Plus className="w-4 h-4" /> {t('decks.my.createCta')}</button>
+        <div>
+          <p style={{ font: '700 15px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{t('decks.my.emptyTitle')}</p>
+          <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 3 }}>{t('decks.my.emptySub')}</p>
+        </div>
+        <button onClick={() => { playUiClick(); onCreate() }} className="ravenof-btn ravenof-btn-primary" style={{ fontSize: 12, padding: '11px 26px', minHeight: 0 }}>{t('decks.my.createCta')}</button>
       </div>
     )
   }
 
-  // lentynos po 5 (landscape; paskutinėje — „nauja kaladė" vieta)
-  const PER_SHELF = 5
-  const tiles: (Deck | 'new')[] = [...decks, 'new']
-  const shelves: (Deck | 'new')[][] = []
-  for (let i = 0; i < tiles.length; i += PER_SHELF) shelves.push(tiles.slice(i, i + PER_SHELF))
+  // Patvirtintas UI (decks-mine.png): horizontali kaladžių eilė + „nauja kaladė" tile.
+  // Vienintelis sąmoningas horizontalus scroll (RESPONSIVE_RULES).
+  const setActiveDeck = async (id: string) => {
+    playUiClick()
+    const r = await useActiveDeck.getState().setActive(id)
+    if (!r.ok) flash(t('decks.my.copyFailed'), true)
+  }
 
   return (
-    <div className="space-y-1">
-      {shelves.map((row, si) => (
-        <div key={si}>
-          <div className="grid grid-cols-5 gap-2.5 px-1" style={{ alignItems: 'start' }}>
-            {row.map((tile) =>
-              tile === 'new' ? (
-                <button key="new" onClick={() => { playUiClick(); onCreate() }} className="rvn-press block w-full">
-                  <span className="flex flex-col items-center justify-center gap-1.5" style={{ aspectRatio: '3 / 4', borderRadius: 10, border: `1.5px dashed rgba(${GOLD},0.4)`, background: `rgba(${GOLD},0.04)`, color: 'var(--gold)' }}>
-                    <Plus className="w-6 h-6" />
-                    <span className="rvn-disp" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>{t('decks.my.newDeck')}</span>
-                  </span>
-                  <span className="block" style={{ height: 33 }} />
-                </button>
-              ) : (
-                <DeckBox key={tile.id} d={tile} cover={tile.factionId != null ? covers[tile.factionId] ?? null : null} onClick={() => openDrawer(tile)} />
-              )
-            )}
-            {row.length < PER_SHELF && Array.from({ length: PER_SHELF - row.length }, (_, i) => <div key={`pad-${i}`} />)}
-          </div>
-          {/* lentynos lenta (lapukai užlipa ant jos) */}
-          <div aria-hidden style={{ height: 18, borderRadius: 3, margin: '-30px -2px 0', position: 'relative', zIndex: 0,
-            background: 'linear-gradient(180deg, #6b4f26 0%, #4a3419 45%, #241807 100%)',
-            borderTop: `1px solid rgba(${GOLD},0.55)`, boxShadow: '0 6px 14px rgba(0,0,0,0.55), inset 0 -2px 4px rgba(0,0,0,0.6)' }} />
-          <div aria-hidden style={{ height: 18 }} />
-        </div>
-      ))}
+    <div className="ravenof-body h-full flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 flex overflow-x-auto ravenof-scroll" style={{ gap: 10 }}>
+        {decks.map((d) => {
+          const valid = d.faction !== null && d.cardCount >= DECK_MIN && d.cardCount <= DECK_MAX && (d.missing ?? 0) === 0
+          const isActive = adState.activeDeckId === d.id
+          const cover = d.factionId != null ? covers[d.factionId] ?? null : null
+          return (
+            <div key={d.id} className="relative flex flex-col min-h-0" style={{ flex: '1 0 172px', maxWidth: 200, border: `1px solid ${isActive ? 'var(--ravenof-gold)' : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', boxShadow: isActive ? '0 0 14px rgba(212,163,59,0.25)' : 'none' }}>
+              <button onClick={() => openDrawer(d)} className="relative flex-1 min-h-0 overflow-hidden text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }} aria-label={d.name}>
+                {cover
+                  ? <span className="absolute inset-0" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}><SmartImg src={cover} width={260} loading="eager" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} /></span>
+                  : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: `radial-gradient(120% 90% at 50% 20%, ${d.factionColor}33, rgba(10,8,16,0.98) 70%), linear-gradient(160deg,#1a1325,#0a0810)` }}>🎴</span>}
+                <span className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(7,6,10,.95))' }} />
+                {isActive && <span className="absolute" style={{ top: 6, left: 6, font: '700 9px var(--ravenof-font-display)', color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '3px 8px', letterSpacing: 1 }}>{t('decks.my.activeBadge')}</span>}
+                {!valid && <span className="absolute" style={{ top: 6, right: 6, font: '700 9px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', background: 'rgba(7,6,10,.85)', border: '1px solid #8D2D3855', padding: '2px 6px' }}>{t('decks.my.invalidBadge')}</span>}
+                <span className="absolute" style={{ left: 9, bottom: 6, right: 6 }}>
+                  <span className="block truncate" style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)', textTransform: 'uppercase', letterSpacing: '.03em' }}>{d.name}</span>
+                  <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: d.factionColor }}>{gc.faction(d.faction) || t('decks.my.noFaction')} · {d.cardCount}/{DECK_MAX}</span>
+                </span>
+              </button>
+              <div className="shrink-0 grid grid-cols-2" style={{ borderTop: '1px solid var(--ravenof-border-hairline)' }}>
+                <button onClick={() => void setActiveDeck(d.id)} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: isActive ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0, borderRight: '1px solid var(--ravenof-border-hairline)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>★ {t('decks.my.setActive')}</button>
+                <button onClick={() => { playUiClick(); onEdit(d.id) }} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0, borderBottom: '1px solid var(--ravenof-border-hairline)' }}>✎ {t('decks.my.edit')}</button>
+                <button onClick={() => duplicate(d.id)} disabled={busy === d.id} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0, borderRight: '1px solid var(--ravenof-border-hairline)' }}>⧉ {t('decks.my.copyShort')}</button>
+                <button onClick={() => setConfirmDel(d.id)} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-danger)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0 }}>✕ {t('decks.my.deleteShort')}</button>
+              </div>
+            </div>
+          )
+        })}
+        <button onClick={() => { playUiClick(); onCreate() }} className="ravenof-press flex flex-col items-center justify-center shrink-0" style={{ width: 110, gap: 8, border: '1px dashed var(--ravenof-border-strong)', background: 'none', cursor: 'pointer' }}>
+          <span style={{ font: '300 26px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>+</span>
+          <span style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-secondary)', textAlign: 'center', padding: '0 8px', textTransform: 'uppercase' }}>{t('decks.my.newDeck')}</span>
+        </button>
+      </div>
 
       {/* ── ŠONINIS MENIU (drawer) ── */}
       <AnimatePresence>
@@ -248,46 +265,6 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
       {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
     </div>
-  )
-}
-
-// ── Fizinė kaladė lentynoje: kortų šūsnis + parchment lapukas ant lentynos ────
-function DeckBox({ d, cover, onClick }: { d: Deck; cover: string | null; onClick: () => void }) {
-  const t = useT()
-  const gc = useGameContent()
-  const valid = d.faction !== null && d.cardCount >= DECK_MIN && d.cardCount <= DECK_MAX
-  return (
-    <button onClick={onClick} className="rvn-press relative block w-full text-left">
-      {/* kortų šūsnis (fizinis storis) — be outline, tik vaizdas + šešėliai */}
-      <span className="relative block" style={{ aspectRatio: '3 / 4' }}>
-        <span aria-hidden className="absolute inset-0 rounded-[7px]" style={{ transform: 'translate(5px, 5px) rotate(1.2deg)', background: 'linear-gradient(160deg,#1c1526,#0b0812)', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }} />
-        <span aria-hidden className="absolute inset-0 rounded-[7px]" style={{ transform: 'translate(2.5px, 2.5px) rotate(0.5deg)', background: 'linear-gradient(160deg,#241a33,#100c18)', boxShadow: '0 2px 4px rgba(0,0,0,0.45)' }} />
-        <span className="absolute inset-0 rounded-[7px] overflow-hidden" style={{ boxShadow: '0 7px 18px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(0,0,0,0.45)' }}>
-          {cover
-            ? <SmartImg src={cover} width={260} loading="eager" className="absolute inset-0 w-full h-full object-cover" />
-            : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: `radial-gradient(120% 90% at 50% 20%, ${d.factionColor}33, rgba(10,8,16,0.98) 70%), linear-gradient(160deg,#1a1325,#0a0810)` }}>🎴</span>}
-          {/* šviesos atspindys viršuje — fizinis paviršius */}
-          <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: '30%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent)' }} />
-        </span>
-        <span className="absolute flex items-center justify-center rounded-full" style={{ top: 3, right: 3, width: 16, height: 16, background: 'rgba(0,0,0,0.7)', zIndex: 2 }}>
-          {valid
-            ? <CheckCircle2 style={{ width: 11, height: 11, color: '#4ade80' }} />
-            : <AlertCircle style={{ width: 11, height: 11, color: '#fca5a5' }} />}
-        </span>
-        {d.missing != null && d.missing > 0 && (
-          <span className="absolute px-1 rounded-full text-[8px] font-bold" style={{ top: 3, left: 3, zIndex: 2, background: 'rgba(0,0,0,0.75)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.35)' }}>-{d.missing}</span>
-        )}
-      </span>
-      {/* parchment lapukas — užklijuotas ant lentynos */}
-      <span className="relative block mx-auto" style={{ width: '88%', marginTop: 1, zIndex: 3, transform: 'rotate(-1.2deg)' }}>
-        <span className="block rounded-[3px] px-1.5 pt-2 pb-1 text-center" style={{ background: 'linear-gradient(170deg, #efe3c0, #d9c691 85%, #c9b478)', boxShadow: '0 2px 5px rgba(0,0,0,0.55), inset 0 0 6px rgba(120,90,30,0.25)' }}>
-          <span className="block text-[9px] font-bold leading-tight truncate" style={{ color: '#3a2b12', fontFamily: 'var(--rvn-font-display)' }}>{d.name}</span>
-          <span className="block text-[8px] leading-tight truncate" style={{ color: '#6b5426' }}>{gc.faction(d.faction) || t('decks.active.noFaction')} · {t('decks.cardsShort', { count: d.cardCount })}</span>
-        </span>
-        {/* lipni juostelė */}
-        <span aria-hidden className="absolute left-1/2" style={{ top: -3, width: 26, height: 7, transform: 'translateX(-50%) rotate(1.5deg)', background: 'rgba(255,255,255,0.22)', borderRadius: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.25)' }} />
-      </span>
-    </button>
   )
 }
 

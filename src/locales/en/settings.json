@@ -1,4 +1,5 @@
 {
+  "account": "Account",
   "allDownloaded": "✓ All content downloaded",
   "autoSaved": "Settings are saved automatically and synced across devices.",
   "bgFx": "Background effects",
@@ -41,13 +42,14 @@
   "turnOff": "TURN OFF",
   "turnOn": "TURN ON",
   "usedSpace": "~{{size}} used",
+  "verified": "Verified ✓",
   "videoHint": "Video (cinematics, avatar animations) is the largest part; download over Wi-Fi.",
   "voice": {
-    "title": "Voice language",
     "auto": "Same as interface",
-    "lt": "Lietuvių",
     "en": "English",
     "fallback": "No voice in the chosen language → play the Lithuanian one",
-    "hint": "Card and avatar voice lines. If there is no voice in your language and this is off, the line is simply not played (sound effects still work)."
+    "hint": "Card and avatar voice lines. If there is no voice in your language and this is off, the line is simply not played (sound effects still work).",
+    "lt": "Lietuvių",
+    "title": "Voice language"
   }
 }

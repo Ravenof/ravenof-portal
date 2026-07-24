@@ -2,12 +2,24 @@
   "addedToCollection": "{{name}} pridėta į kolekciją!",
   "alreadyClaimed": "Jau paimta.",
   "buyFailed": "Nepavyko nupirkti.",
+  "buyGold": "Pirkti · 🪙 {{price}}",
+  "buyRubies": "Pirkti · 💎 {{price}}",
   "categoryEmpty": "Šioje kategorijoje prekių nėra.",
   "claimFailed": "Nepavyko paimti.",
+  "claimFree": "Paimti nemokamai",
+  "claimedShort": "✓ Paimta",
   "comingSoon": "€{{price}} (netrukus)",
+  "contents": "Turinys",
+  "cosmetics": {
+    "equip": "Naudoti",
+    "equipped": "Naudojama",
+    "equippedTap": "✓ Naudojama (spausk nuimti)"
+  },
   "dailyDealInfo": "Dienos pasiūlymas — pavienė korta tiesiai į kolekciją. Atsinaujina kasdien.",
+  "dailyOffer": "Dienos pasiūlymas",
   "dealLoading": "Šiandienos pasiūlymas kraunasi…",
   "deckCreated": "Kaladė sukurta „Mano kaladėse“! 🃏",
+  "endsIn": "Baigsis už",
   "err": {
     "bad_currency": "Netinkama valiuta.",
     "iap_required": "Šis paketas perkamas per programėlės parduotuvę.",
@@ -15,9 +27,17 @@
     "not_enough": "Nepakanka valiutos.",
     "not_found": "Prekė nerasta."
   },
+  "free": "NEMOKAMA",
+  "notEnoughGold": "Nepakanka aukso",
   "notEnoughSilver": "Per mažai sidabro.",
+  "openPacks_few": "🎁 Atplėšti ({{count}})",
+  "openPacks_one": "🎁 Atplėšti ({{count}})",
+  "openPacks_other": "🎁 Atplėšti ({{count}})",
+  "owned": "✓ Turima",
   "ownedEquip": "✓ Jau turi — užsidėk Kosmetikoje",
   "pickItem": "Pasirink prekę.",
+  "purchased": "Nupirkta: {{name}}",
+  "purchasedShort": "✓ Nupirkta",
   "sections": {
     "avatars": "Žaidėjo avatarai",
     "backs": "Kortų nugarėlės",
@@ -28,23 +48,5 @@
     "starter": "🃏 Kaladės"
   },
   "starterInfo": "Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.",
-  "title": "PARDUOTUVĖ",
-  "purchased": "Nupirkta: {{name}}",
-  "owned": "✓ Turima",
-  "contents": "Turinys",
-  "openPacks_one": "🎁 Atplėšti ({{count}})",
-  "openPacks_few": "🎁 Atplėšti ({{count}})",
-  "openPacks_other": "🎁 Atplėšti ({{count}})",
-  "buyGold": "Pirkti · 🪙 {{price}}",
-  "buyRubies": "Pirkti · 💎 {{price}}",
-  "purchasedShort": "✓ Nupirkta",
-  "notEnoughGold": "Nepakanka aukso",
-  "free": "NEMOKAMA",
-  "claimFree": "Paimti nemokamai",
-  "cosmetics": {
-    "equip": "Naudoti",
-    "equippedTap": "✓ Naudojama (spausk nuimti)",
-    "equipped": "Naudojama"
-  },
-  "claimedShort": "✓ Paimta"
+  "title": "PARDUOTUVĖ"
 }

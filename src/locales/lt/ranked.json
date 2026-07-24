@@ -4,6 +4,7 @@
   "claim": "Atsiimti",
   "createDeck": "Sukurti kaladę",
   "currentRank": "Dabartinis rangas",
+  "daysLeftShort": "{{n}} d.",
   "deckInvalidChange": "Aktyvi kaladė netinkama reitingui — pakeisk per „Keisti“.",
   "deckInvalidHint": "Kaladė netinkama reitingui",
   "deckNotEligible": "Ši kaladė netinkama reitingo kovoms — pasirink kitą.",
@@ -12,8 +13,11 @@
   "findMatch": "⚔ IEŠKOTI KOVOS",
   "gold": "aukso",
   "historyEmpty": "Dar nesužaista reitingo kovų.",
+  "invalidChip": "Netinkama",
   "leaderboardEmpty": "Kol kas tuščia — sužaisk kovų!",
+  "leaders": "Lyderiai",
   "locked": "Užrakinta",
+  "loginPrompt": "Prisijunk, kad galėtum žaisti reitingo kovas.",
   "lossWarning_few": "Iki rango kritimo: {{count}} pralaimėjimai",
   "lossWarning_one": "Iki rango kritimo: {{count}} pralaimėjimas",
   "lossWarning_other": "Iki rango kritimo: {{count}} pralaimėjimų",
@@ -23,6 +27,58 @@
   "matchMeta": "{{turns}} ėjimų · {{min}} min",
   "matchPreparing": "Kova ruošiama…",
   "maxRank": "Maks. rangas",
+  "medal": {
+    "bronze": "Bronza",
+    "gold": "Auksas",
+    "silver": "Sidabras"
+  },
+  "milestone": {
+    "gold1": {
+      "desc": "Pasiek 1 Auksas — aukščiausią rangą",
+      "title": "Aukso viršūnė"
+    },
+    "rank1": {
+      "desc": "Pasiek 1 Bronza",
+      "title": "Pasiektas 1 rangas"
+    },
+    "rank10": {
+      "desc": "Pasiek 10 Bronza",
+      "title": "Pasiektas 10 rangas"
+    },
+    "rank15": {
+      "desc": "Pasiek 15 Bronza",
+      "title": "Pasiektas 15 rangas"
+    },
+    "rank20": {
+      "desc": "Pasiek 20 Bronza",
+      "title": "Pasiektas 20 rangas"
+    },
+    "rank25": {
+      "desc": "Pasiek 25 Bronza",
+      "title": "Pasiektas 25 rangas"
+    },
+    "rank30": {
+      "desc": "Pasiek 30 Bronza",
+      "title": "Pasiektas 30 rangas"
+    },
+    "rank35": {
+      "desc": "Pasiek 35 Bronza",
+      "title": "Pasiektas 35 rangas"
+    },
+    "rank40": {
+      "desc": "Pasiek 40 Bronza",
+      "title": "Pasiektas 40 rangas"
+    },
+    "rank45": {
+      "desc": "Pasiek 45 Bronza",
+      "title": "Pasiektas 45 rangas"
+    },
+    "rank5": {
+      "desc": "Pasiek 5 Bronza",
+      "title": "Pasiektas 5 rangas"
+    }
+  },
+  "monthsShort": "mėn.",
   "nav": {
     "achievements": "Pasiekimai",
     "history": "Kovos",
@@ -32,7 +88,10 @@
   "next": "Kitas: {{rank}}",
   "nextReward": "Kitas atlygis",
   "noSeasons": "Dar nebaigtas nė vienas sezonas.",
+  "perLosses": "už 2 pralaim.",
+  "perWin": "už pergalę",
   "pickActiveDeck": "Pasirink aktyvią kaladę (spausk „Keisti“).",
+  "player": "Žaidėjas",
   "preparing": "Kova ruošiama…",
   "queue": {
     "any": "Ieškoma bet kokio reitingo priešininko…",
@@ -43,6 +102,12 @@
   },
   "rankDown": "Rangas nukrito",
   "rankUp": "Rangas pakilo",
+  "rarity": {
+    "epic": "Epiška",
+    "legendary": "Legendinė",
+    "magic": "Magiška",
+    "unique": "Unikali"
+  },
   "reportFailed": "Nepavyko įrašyti rezultato: {{msg}}",
   "result": {
     "achievements": "🏅 Pasiekimai:",
@@ -64,10 +129,22 @@
     "vs": "prieš {{name}}",
     "win": "Pergalė"
   },
+  "rewards": {
+    "badge": "ženklas",
+    "card": "korta ({{rarity}}+)",
+    "packs": "{{count}} pak."
+  },
+  "rewardsEarned": "Atsiimta atlygių: {{count}}",
   "rewardsTitle": "Ranked atlygiai",
   "season": "Sezonas",
   "seasonEarned": "Šį sezoną gauta:",
   "seasonEndInfo": "Sezono pabaigoje gausi atlygius pagal aukščiausią pasiektą rangą.",
+  "seasonLen": "sezono trukmė",
+  "seasonTimer": {
+    "daysHours": "{{days}} d. {{hours}} val.",
+    "ended": "Sezonas baigėsi",
+    "hours": "{{hours}} val."
+  },
   "sections": {
     "achievements": "Pasiekimai",
     "history": "Kovų istorija",
@@ -75,83 +152,17 @@
     "seasonHistory": "Sezono istorija",
     "top": "Topas"
   },
+  "stepOf": "Pakopa {{n}} / 50",
   "streak": "Serija",
   "subtitle": "Kilk rangais, rink atlygius ir tapk sezono čempionu",
   "timeLeft": "Liko {{time}}",
   "title": "Reitingo kova",
+  "validChip": "Tinkama",
+  "viewAll": "Visi",
   "viewRewards": "Peržiūrėti atlygius →",
   "winPct": "Pergalių %:",
   "wins": "Pergalės",
   "winsLabel": "Pergalės:",
-  "yourSeasonStats": "Jūsų sezono statistika",
-  "player": "Žaidėjas",
-  "seasonTimer": {
-    "ended": "Sezonas baigėsi",
-    "daysHours": "{{days}} d. {{hours}} val.",
-    "hours": "{{hours}} val."
-  },
-  "rewards": {
-    "badge": "ženklas",
-    "packs": "{{count}} pak.",
-    "card": "korta ({{rarity}}+)"
-  },
-  "rarity": {
-    "magic": "Magiška",
-    "unique": "Unikali",
-    "epic": "Epiška",
-    "legendary": "Legendinė"
-  },
-  "milestone": {
-    "rank45": {
-      "title": "Pasiektas 45 rangas",
-      "desc": "Pasiek 45 Bronza"
-    },
-    "rank40": {
-      "title": "Pasiektas 40 rangas",
-      "desc": "Pasiek 40 Bronza"
-    },
-    "rank35": {
-      "title": "Pasiektas 35 rangas",
-      "desc": "Pasiek 35 Bronza"
-    },
-    "rank30": {
-      "title": "Pasiektas 30 rangas",
-      "desc": "Pasiek 30 Bronza"
-    },
-    "rank25": {
-      "title": "Pasiektas 25 rangas",
-      "desc": "Pasiek 25 Bronza"
-    },
-    "rank20": {
-      "title": "Pasiektas 20 rangas",
-      "desc": "Pasiek 20 Bronza"
-    },
-    "rank15": {
-      "title": "Pasiektas 15 rangas",
-      "desc": "Pasiek 15 Bronza"
-    },
-    "rank10": {
-      "title": "Pasiektas 10 rangas",
-      "desc": "Pasiek 10 Bronza"
-    },
-    "rank5": {
-      "title": "Pasiektas 5 rangas",
-      "desc": "Pasiek 5 Bronza"
-    },
-    "rank1": {
-      "title": "Pasiektas 1 rangas",
-      "desc": "Pasiek 1 Bronza"
-    },
-    "gold1": {
-      "title": "Aukso viršūnė",
-      "desc": "Pasiek 1 Auksas — aukščiausią rangą"
-    }
-  },
-  "rewardsEarned": "Atsiimta atlygių: {{count}}",
-  "loginPrompt": "Prisijunk, kad galėtum žaisti reitingo kovas.",
-  "medal": {
-    "bronze": "Bronza",
-    "silver": "Sidabras",
-    "gold": "Auksas"
-  }
+  "yourDeck": "Tavo kaladė",
+  "yourSeasonStats": "Jūsų sezono statistika"
 }

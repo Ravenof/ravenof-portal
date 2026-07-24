@@ -1,4 +1,5 @@
 {
+  "account": "Paskyra",
   "allDownloaded": "✓ Visas turinys atsisiųstas",
   "autoSaved": "Nustatymai saugomi automatiškai ir sinchronizuojami tarp įrenginių.",
   "bgFx": "Fono efektai",
@@ -42,13 +43,14 @@
   "turnOff": "IŠJUNGTI",
   "turnOn": "ĮJUNGTI",
   "usedSpace": "užimta ~{{size}}",
+  "verified": "Patvirtinta ✓",
   "videoHint": "Video (kino intarpai, avatarų animacijos) — didžiausia dalis; siųsk per Wi-Fi.",
   "voice": {
-    "title": "Balsų kalba",
     "auto": "Kaip sąsajos",
-    "lt": "Lietuvių",
     "en": "English",
     "fallback": "Nėra balso pasirinkta kalba → groti lietuvišką",
-    "hint": "Kortų ir avatarų įgarsinimas. Jei kalbos balso nėra ir perjungiklis išjungtas – balsas tiesiog negrojamas (garso efektai lieka)."
+    "hint": "Kortų ir avatarų įgarsinimas. Jei kalbos balso nėra ir perjungiklis išjungtas – balsas tiesiog negrojamas (garso efektai lieka).",
+    "lt": "Lietuvių",
+    "title": "Balsų kalba"
   }
 }

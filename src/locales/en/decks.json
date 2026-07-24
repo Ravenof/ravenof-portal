@@ -6,8 +6,10 @@
     "change": "Change",
     "collapse": "Collapse",
     "createDeck": "Create a deck",
+    "deckAvatar": "Deck avatar",
     "edited": "edited {{date}}",
     "globalAvatarUsed": "Using the global avatar",
+    "isActive": "★ ACTIVE",
     "modalAria": "Active deck selection",
     "modalTitle": "🎴 ACTIVE DECK",
     "noActive": "No active deck selected",
@@ -18,10 +20,8 @@
     "picked": "✓ PICKED",
     "ready": "✓ Ready",
     "readyBattle": "✓ Ready for battle",
-    "useGlobal": "Use global",
-    "isActive": "★ ACTIVE",
     "setActive": "★ SET ACTIVE",
-    "deckAvatar": "Deck avatar"
+    "useGlobal": "Use global"
   },
   "cardsShort_one": "{{count}} card",
   "cardsShort_other": "{{count}} cards",
@@ -54,26 +54,32 @@
     "voteDown": "Downvote",
     "voteUp": "Upvote"
   },
+  "edit": "✎ Edit",
   "my": {
+    "activeBadge": "ACTIVE",
     "confirmDeleteBody": "This action cannot be undone.",
     "confirmDeleteTitle": "Delete this deck?",
     "copied": "Deck copied",
     "copy": "Copy",
     "copyFailed": "Could not copy",
     "copyPrefix": "Copy — {{name}}",
+    "copyShort": "Copy",
     "createCta": "Create a deck",
     "delete": "Delete",
     "deleteFailed": "Could not delete",
+    "deleteShort": "Delete",
     "deleted": "Deck deleted",
     "edit": "Edit",
     "emptySub": "Create your first Ravenof deck",
     "emptyTitle": "You have no decks yet",
     "goldCurve": "Gold curve",
+    "invalidBadge": "Not ready",
     "missingCards": "⚠ Your collection is missing {{count}} cards from this deck",
     "newDeck": "New deck",
     "noFaction": "No faction",
     "private": "Private",
     "public": "Public",
+    "setActive": "Set active",
     "statAvgGold": "Avg. gold",
     "statCards": "Cards",
     "statChampions": "Champions"
@@ -83,14 +89,14 @@
     "yourDeck": "⚔ Your deck"
   },
   "tabs": {
-    "builder": "Deck Builder",
+    "builder": "Builder",
     "community": "Community",
     "my": "My decks"
   },
+  "title": "Decks",
   "validity": {
     "empty": "The deck is empty",
     "missingCards": "Missing {{count}} cards from your collection",
     "noActive": "No active deck selected"
-  },
-  "edit": "✎ Edit"
+  }
 }

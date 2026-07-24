@@ -8,8 +8,8 @@ import fs from 'node:fs'
 
 const PORT = Number(process.env.PORT ?? 54321)
 
-export const USER = { id: '11111111-1111-4111-8111-111111111111', email: 'vejobrolis@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: { username: 'vejobrolis' }, created_at: '2026-01-01T00:00:00Z' }
-const PROFILE = { username: 'vejobrolis', display_name: 'VėjoBrolis', avatar_url: null, xp_total: 4200, gold: 12450, rubies: 320, essence: 1840, digital_onboarded_at: '2026-01-02T00:00:00Z', welcome_reward_claimed: true }
+export const USER = { id: '11111111-1111-4111-8111-111111111111', email: 'vejobrolis@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: { username: 'vejobrolis' }, created_at: '2026-01-01T00:00:00Z', email_confirmed_at: '2026-01-01T00:00:00Z' }
+const PROFILE = { username: 'vejobrolis', display_name: 'VėjoBrolis', avatar_url: null, xp_total: 4200, gold: 12450, rubies: 320, essence: 1840, digital_onboarded_at: '2026-01-02T00:00:00Z', welcome_reward_claimed: true, active_deck_id: 'deck-1', role: 'user', email: 'vejobrolis@example.com' }
 
 const CARD_NAMES = ['Vilnė Saulinė', 'Skausmo šauklys', 'Vėlių šauklė', 'Markas Žalvarnis', 'Servina Sidabrė', 'Nakties klajūnas']
 const CARD_IMGS = [
@@ -53,6 +53,29 @@ const CARDS = Array.from({ length: 40 }, (_, i) => ({
 }))
 const COLLECTION_ROWS = CARDS.map((c, i) => ({ card_id: c.id, quantity: OWNED[i % OWNED.length] }))
 
+
+// ── Fazė 2 fixtūros ──
+const DECKS = [
+  { id: 'deck-1', name: 'Šalčio giesmė', faction_id: 5, visibility: 'private', card_count: 30, avg_gold_cost: 210, bound_avatar: null, updated_at: '2026-07-20T10:00:00Z', faction: { id: 5, name: 'Mistikos melodija', slug: 'mistikos-melodija', color_hex: '#526FAE', icon_url: null } },
+  { id: 'deck-2', name: 'Kapų šauksmas', faction_id: 1, visibility: 'private', card_count: 30, avg_gold_cost: 240, bound_avatar: null, updated_at: '2026-07-19T10:00:00Z', faction: { id: 1, name: 'Mirties maršas', slug: 'mirties-marsas', color_hex: '#6F8562', icon_url: null } },
+  { id: 'deck-3', name: 'Nebaigta kaladė', faction_id: 1, visibility: 'private', card_count: 22, avg_gold_cost: 300, bound_avatar: null, updated_at: '2026-07-18T10:00:00Z', faction: { id: 1, name: 'Mirties maršas', slug: 'mirties-marsas', color_hex: '#6F8562', icon_url: null } },
+]
+const FACTION_ROWS = FACTIONS.map((f, i) => ({ id: i + 1, name: f.name, slug: f.slug, color_hex: '#6F8562', icon_url: null, sort_order: i }))
+const STARTERS = [
+  { id: 'sd-1', name: 'Mistikos starteris', description: 'Pradinė Mistikos melodijos kaladė.', imageUrl: '/cards/mistikos-melodija/Mistikos_Melodija_153.webp', priceGold: 0, faction: 'Mistikos melodija', factionId: 5, cardCount: 30, claimed: true, deckId: 'deck-1' },
+  { id: 'sd-2', name: 'Mirties starteris', description: 'Pradinė Mirties maršo kaladė.', imageUrl: '/cards/mistikos-melodija/Mistikos_Melodija_154.webp', priceGold: 1500, faction: 'Mirties maršas', factionId: 1, cardCount: 30, claimed: false, deckId: null },
+]
+const SHOP_ITEMS = [
+  { id: 1, slug: 'mistikos-pakuote', itemType: 'pack', name: 'Mistikos pakuotė', description: '5 kortos · bent 1 magiška', rarity: null, payload: [{ item_id: 'pack-1', type: 'pack', qty: 1 }], sortOrder: 1, prices: { silver: 500, rubies: null, real_money: null } },
+  { id: 2, slug: 'mirties-pakuote', itemType: 'pack', name: 'Mirties pakuotė', description: '5 kortos · bent 1 magiška', rarity: null, payload: [{ item_id: 'pack-2', type: 'pack', qty: 1 }], sortOrder: 2, prices: { silver: 500, rubies: null, real_money: null } },
+  { id: 3, slug: 'didzioji-pakuote', itemType: 'pack', name: 'Didžioji pakuotė', description: '5 kortos · bent 1 epiška+', rarity: null, payload: [{ item_id: 'pack-3', type: 'pack', qty: 1 }], sortOrder: 3, prices: { silver: null, rubies: 300, real_money: null } },
+]
+const CARD_PACKS = [
+  { id: 'pack-1', name: 'Mistikos pakuotė', description: null, price_gold: 500, sort_order: 1, image_url: '/cards/mistikos-melodija/Mistikos_Melodija_159.webp' },
+  { id: 'pack-2', name: 'Mirties pakuotė', description: null, price_gold: 500, sort_order: 2, image_url: '/cards/mistikos-melodija/Mistikos_Melodija_154.webp' },
+  { id: 'pack-3', name: 'Didžioji pakuotė', description: null, price_gold: 0, sort_order: 3, image_url: '/cards/mistikos-melodija/Mistikos_Melodija_153.webp' },
+]
+
 const RPC = {
   rvn_get_daily_tasks: {
     dateKey: '2026-07-23',
@@ -72,7 +95,18 @@ const RPC = {
   rvn_friends_list: { friends: [], incoming: [], outgoing: [] },
   rvn_heartbeat: null,
   rvn_challenge_incoming: [],
-  rvn_get_starter_decks: [{ id: 'sd1', claimed: true }],
+  rvn_get_starter_decks: { decks: STARTERS },
+  rvn_get_shop: SHOP_ITEMS,
+  rvn_leaderboard: [
+    { position: 1, is_bot: true, entity_id: 'b1', name: 'JuodasisKrankly', avatar: null, rank_step: 141, rank_number: 3, medal_tier: 'gold', wins: 60, losses: 10 },
+    { position: 2, is_bot: true, entity_id: 'b2', name: 'RagananėVirš', avatar: null, rank_step: 135, rank_number: 5, medal_tier: 'gold', wins: 55, losses: 12 },
+    { position: 3, is_bot: true, entity_id: 'b3', name: 'Šešėlis_LT', avatar: null, rank_step: 126, rank_number: 8, medal_tier: 'gold', wins: 50, losses: 14 },
+  ],
+  rvn_get_ranked_decks: DECKS.map((d) => ({ id: d.id, name: d.name, faction: d.faction.name, factionIcon: null, factionColor: d.faction.color_hex })),
+  rvn_get_cosmetics: { items: [], owned: [], equipped: {} },
+  rvn_get_daily_deal: { cards: [] },
+  rvn_maybe_simulate_bot_matches: null,
+  rvn_set_active_deck: { ok: true },
 }
 
 const CORS = {
@@ -104,6 +138,10 @@ http.createServer((req, res) => {
     return send([], 200, { 'content-range': '*/3' })
   }
   if (p.startsWith('/rest/v1/cards')) return send(CARDS)
+  if (p.startsWith('/rest/v1/decks')) return send(DECKS)
+  if (p.startsWith('/rest/v1/deck_cards')) return send([])
+  if (p.startsWith('/rest/v1/factions')) return send(FACTION_ROWS)
+  if (p.startsWith('/rest/v1/card_packs')) return send(CARD_PACKS)
   if (p.startsWith('/rest/v1/user_collections')) return send(COLLECTION_ROWS)
   if (p.startsWith('/rest/v1/')) return send([])
   return send([])

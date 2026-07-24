@@ -4,6 +4,7 @@
   "claim": "Claim",
   "createDeck": "Create a deck",
   "currentRank": "Current rank",
+  "daysLeftShort": "{{n}} d",
   "deckInvalidChange": "Your active deck isn't eligible for ranked — change it via “Change”.",
   "deckInvalidHint": "Deck not eligible for ranked",
   "deckNotEligible": "This deck isn't eligible for ranked — pick another.",
@@ -12,8 +13,11 @@
   "findMatch": "⚔ FIND MATCH",
   "gold": "gold",
   "historyEmpty": "No ranked matches played yet.",
+  "invalidChip": "Not ready",
   "leaderboardEmpty": "Empty for now — go play some matches!",
+  "leaders": "Leaders",
   "locked": "Locked",
+  "loginPrompt": "Sign in to play ranked battles.",
   "lossWarning_one": "{{count}} loss until demotion",
   "lossWarning_other": "{{count}} losses until demotion",
   "losses": "Losses",
@@ -22,6 +26,58 @@
   "matchMeta": "{{turns}} turns · {{min}} min",
   "matchPreparing": "Preparing the battle…",
   "maxRank": "Max rank",
+  "medal": {
+    "bronze": "Bronze",
+    "gold": "Gold",
+    "silver": "Silver"
+  },
+  "milestone": {
+    "gold1": {
+      "desc": "Reach rank 1 Gold — the highest rank",
+      "title": "Golden Summit"
+    },
+    "rank1": {
+      "desc": "Reach rank 1 Bronze",
+      "title": "Rank 1 reached"
+    },
+    "rank10": {
+      "desc": "Reach rank 10 Bronze",
+      "title": "Rank 10 reached"
+    },
+    "rank15": {
+      "desc": "Reach rank 15 Bronze",
+      "title": "Rank 15 reached"
+    },
+    "rank20": {
+      "desc": "Reach rank 20 Bronze",
+      "title": "Rank 20 reached"
+    },
+    "rank25": {
+      "desc": "Reach rank 25 Bronze",
+      "title": "Rank 25 reached"
+    },
+    "rank30": {
+      "desc": "Reach rank 30 Bronze",
+      "title": "Rank 30 reached"
+    },
+    "rank35": {
+      "desc": "Reach rank 35 Bronze",
+      "title": "Rank 35 reached"
+    },
+    "rank40": {
+      "desc": "Reach rank 40 Bronze",
+      "title": "Rank 40 reached"
+    },
+    "rank45": {
+      "desc": "Reach rank 45 Bronze",
+      "title": "Rank 45 reached"
+    },
+    "rank5": {
+      "desc": "Reach rank 5 Bronze",
+      "title": "Rank 5 reached"
+    }
+  },
+  "monthsShort": "mo",
   "nav": {
     "achievements": "Achievements",
     "history": "Matches",
@@ -31,7 +87,10 @@
   "next": "Next: {{rank}}",
   "nextReward": "Next reward",
   "noSeasons": "No season finished yet.",
+  "perLosses": "per 2 losses",
+  "perWin": "per win",
   "pickActiveDeck": "Pick an active deck (press “Change”).",
+  "player": "Player",
   "preparing": "Preparing the battle…",
   "queue": {
     "any": "Searching for an opponent of any rank…",
@@ -42,6 +101,12 @@
   },
   "rankDown": "Rank down",
   "rankUp": "Rank up",
+  "rarity": {
+    "epic": "Epic",
+    "legendary": "Legendary",
+    "magic": "Magic",
+    "unique": "Unique"
+  },
   "reportFailed": "Could not save the result: {{msg}}",
   "result": {
     "achievements": "🏅 Achievements:",
@@ -63,10 +128,22 @@
     "vs": "vs {{name}}",
     "win": "Victory"
   },
+  "rewards": {
+    "badge": "badge",
+    "card": "card ({{rarity}}+)",
+    "packs": "{{count}} pack(s)"
+  },
+  "rewardsEarned": "Rewards earned: {{count}}",
   "rewardsTitle": "Ranked rewards",
   "season": "Season",
   "seasonEarned": "Earned this season:",
   "seasonEndInfo": "At season's end you'll receive rewards based on your highest rank reached.",
+  "seasonLen": "season length",
+  "seasonTimer": {
+    "daysHours": "{{days}}d {{hours}}h",
+    "ended": "The season has ended",
+    "hours": "{{hours}}h"
+  },
   "sections": {
     "achievements": "Achievements",
     "history": "Match history",
@@ -74,83 +151,17 @@
     "seasonHistory": "Season history",
     "top": "Leaderboard"
   },
+  "stepOf": "Step {{n}} / 50",
   "streak": "Streak",
   "subtitle": "Climb the ranks, collect rewards and become the season champion",
   "timeLeft": "{{time}} left",
   "title": "Ranked battle",
+  "validChip": "Valid",
+  "viewAll": "All",
   "viewRewards": "View rewards →",
   "winPct": "Win %:",
   "wins": "Wins",
   "winsLabel": "Wins:",
-  "yourSeasonStats": "Your season stats",
-  "player": "Player",
-  "seasonTimer": {
-    "ended": "The season has ended",
-    "daysHours": "{{days}}d {{hours}}h",
-    "hours": "{{hours}}h"
-  },
-  "rewards": {
-    "badge": "badge",
-    "packs": "{{count}} pack(s)",
-    "card": "card ({{rarity}}+)"
-  },
-  "rarity": {
-    "magic": "Magic",
-    "unique": "Unique",
-    "epic": "Epic",
-    "legendary": "Legendary"
-  },
-  "milestone": {
-    "rank45": {
-      "title": "Rank 45 reached",
-      "desc": "Reach rank 45 Bronze"
-    },
-    "rank40": {
-      "title": "Rank 40 reached",
-      "desc": "Reach rank 40 Bronze"
-    },
-    "rank35": {
-      "title": "Rank 35 reached",
-      "desc": "Reach rank 35 Bronze"
-    },
-    "rank30": {
-      "title": "Rank 30 reached",
-      "desc": "Reach rank 30 Bronze"
-    },
-    "rank25": {
-      "title": "Rank 25 reached",
-      "desc": "Reach rank 25 Bronze"
-    },
-    "rank20": {
-      "title": "Rank 20 reached",
-      "desc": "Reach rank 20 Bronze"
-    },
-    "rank15": {
-      "title": "Rank 15 reached",
-      "desc": "Reach rank 15 Bronze"
-    },
-    "rank10": {
-      "title": "Rank 10 reached",
-      "desc": "Reach rank 10 Bronze"
-    },
-    "rank5": {
-      "title": "Rank 5 reached",
-      "desc": "Reach rank 5 Bronze"
-    },
-    "rank1": {
-      "title": "Rank 1 reached",
-      "desc": "Reach rank 1 Bronze"
-    },
-    "gold1": {
-      "title": "Golden Summit",
-      "desc": "Reach rank 1 Gold — the highest rank"
-    }
-  },
-  "rewardsEarned": "Rewards earned: {{count}}",
-  "loginPrompt": "Sign in to play ranked battles.",
-  "medal": {
-    "bronze": "Bronze",
-    "silver": "Silver",
-    "gold": "Gold"
-  }
+  "yourDeck": "Your deck",
+  "yourSeasonStats": "Your season stats"
 }

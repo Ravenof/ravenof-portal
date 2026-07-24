@@ -50,7 +50,9 @@ const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding
 // Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
 const NO_HEADER_ROUTES = ['/digital/collection']
 // Migruoti route'ai — juose fono „Flames" sluoksnis nerodomas (patvirtintas fonas = grynas ink)
-const MIGRATED_ROUTES = ['/digital', '/digital/collection']
+const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked']
+// Pilno ekrano režimų ekranai (prototipas: be rail ir be header; atgal — ekrano ‹ mygtukas)
+const FULL_BLEED_ROUTES = ['/digital/ranked']
 
 function NavGlyph({ navKey, active, fallback }: { navKey: string; active: boolean; fallback: React.ReactNode }) {
   const [failed, setFailed] = useState(false)
@@ -69,7 +71,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const locale = useLocale()
   const router = useRouter()
   const bare = BARE_ROUTES.includes(pathname)
-  const showHeader = !NO_HEADER_ROUTES.includes(pathname)
+  const fullBleed = FULL_BLEED_ROUTES.includes(pathname)
+  const showHeader = !NO_HEADER_ROUTES.includes(pathname) && !fullBleed
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -150,6 +153,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }, [pathname])
 
   useEffect(() => { refreshWallet() }, [refreshWallet, pathname])
+  useEffect(() => { setStoreOpen(false); setSettingsOpen(false) }, [pathname])
   useEffect(() => {
     const onFocus = () => refreshWallet()
     window.addEventListener('focus', onFocus)
@@ -198,7 +202,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }`}</style>
 
       {/* ── Šoninis nav rail (patvirtintas dizainas: 92px, 24px ikonos, Cinzel etiketės) ── */}
-      <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
+      {!fullBleed && <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
         style={{
           width: 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))',
           paddingLeft: 'max(18px, env(safe-area-inset-left, 0px))',
@@ -223,7 +227,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" style={style}>{inner}</button>
             : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" style={style}>{inner}</Link>
         })}
-      </nav>
+      </nav>}
 
       {/* ── Turinio stulpelis: header + main ── */}
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
@@ -258,9 +262,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           </header>
         )}
 
-        <main className={`relative z-10 flex-1 min-h-0 overflow-y-auto ravenof-scroll px-4 ${showHeader ? '' : 'pt-2.5'}`}
-          style={{ paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
-          <div className="max-w-screen-lg mx-auto h-full">{children}</div>
+        <main className={`relative z-10 flex-1 min-h-0 overflow-y-auto ravenof-scroll ${fullBleed ? '' : 'px-4'}`}
+          style={fullBleed
+            ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' }
+            : { paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
+          <div className={fullBleed ? 'h-full' : 'max-w-screen-lg mx-auto h-full'}>{children}</div>
         </main>
       </div>
 

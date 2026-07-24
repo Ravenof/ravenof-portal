@@ -1,10 +1,12 @@
 'use client'
 
-// ── Ravenof Digital — nustatymai (landscape 3 zonos): kairė kategorijos ·
-//    centras pasirinktos kategorijos nustatymai · dešinė profilis + veiksmai.
-//    Viskas saugoma iškart (localStorage + DB sync per saveDigitalSettings).
+// ── Ravenof Digital — nustatymai (patvirtintas UI, Fazė 2 — settings-default.png):
+//    pilno ekrano overlay (rail lieka matomas), ‹ atgal + NUSTATYMAI antraštė,
+//    dvi kolonos: garsas/vaizdas · kalba/paskyra/turinys + Atsijungti.
+//    Visa esama logika išsaugota (localStorage + DB sync per saveDigitalSettings).
 import { useEffect, useRef, useState } from 'react'
-import { Volume2, VolumeX, Music, Sparkles, Clapperboard, Bell, X, RotateCcw, Download, Trash2 } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import { getMediaManifest, diffMissing, downloadMedia, cachedMediaInfo, clearMediaCache, fmtMB, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
 import {
   getMusicVolume, getSfxVolume, isSummonFxEnabled,
@@ -18,29 +20,56 @@ import {
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
 import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digital/native'
-import { RvnIcon } from './ui/RvnIcon'
+import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION } from '@/lib/version'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
-import { Languages } from 'lucide-react'
-
-const ACC = '240,180,41'
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
-type Cat = 'audio' | 'visual' | 'content' | 'notif' | 'language'
 
-function Row({ label, icon, on, onToggle, hint }: { label: string; icon?: React.ReactNode; on: boolean; onToggle: (v: boolean) => void; hint?: string }) {
+// ── Patvirtinti UI elementai ─────────────────────────────────────────────────
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <div className="shrink-0" style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{children}</div>
+}
+
+function ToggleRow({ label, on, onToggle, hint }: { label: string; on: boolean; onToggle: (v: boolean) => void; hint?: string }) {
   return (
-    <div>
-      <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
-        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>{icon}{label}</span>
-        <button onClick={() => onToggle(!on)} className="relative w-12 h-6 rounded-full transition-colors shrink-0"
-          style={{ background: on ? `rgba(${ACC},0.4)` : 'rgba(255,255,255,0.12)' }}>
-          <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{ left: on ? '26px' : '2px', background: on ? 'var(--gold-bright)' : 'var(--text-muted)' }} />
-        </button>
-      </div>
-      {hint && <p className="mt-1 px-1" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{hint}</p>}
+    <div className="shrink-0">
+      <button onClick={() => onToggle(!on)} className="w-full flex items-center text-left" role="switch" aria-checked={on}
+        style={{ gap: 10, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px', cursor: 'pointer' }}>
+        <span className="flex-1" style={{ font: '500 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{label}</span>
+        <span className="shrink-0 relative" style={{ width: 34, height: 18, borderRadius: 9, background: on ? 'var(--ravenof-success)' : 'var(--ravenof-border-strong)', transition: 'background .2s' }}>
+          <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 14, height: 14, borderRadius: '50%', background: 'var(--ravenof-text-primary)', transition: 'left .2s' }} />
+        </span>
+      </button>
+      {hint && <p style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.35, margin: '4px 2px 0' }}>{hint}</p>}
+    </div>
+  )
+}
+
+function Segmented<T extends string>({ options, value, onPick, big }: { options: { key: T; label: string }[]; value: T; onPick: (v: T) => void; big?: boolean }) {
+  return (
+    <div className="flex shrink-0" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
+      {options.map((o) => {
+        const active = o.key === value
+        return (
+          <button key={o.key} onClick={() => { if (!active) { playUiClick(); onPick(o.key) } }}
+            style={{ flex: 1, textAlign: 'center', padding: big ? '12px 2px' : '9px 2px', font: `700 ${big ? 12 : 10}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase',
+              color: active ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)', background: active ? 'var(--ravenof-grad-gold)' : 'transparent',
+              borderRight: '1px solid var(--ravenof-border-strong)', cursor: 'pointer' }}>{o.label}</button>
+        )
+      })}
+    </div>
+  )
+}
+
+function SliderRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="shrink-0 flex items-center" style={{ gap: 10, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px' }}>
+      <span className="flex-1" style={{ font: '500 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{label}</span>
+      <input type="range" min={0} max={100} value={Math.round(value * 100)} onChange={(e) => onChange(Number(e.target.value) / 100)} style={{ accentColor: 'var(--ravenof-gold)', width: 110 }} />
+      <span className="shrink-0 tabular-nums" style={{ font: '700 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', width: 34, textAlign: 'right' }}>{Math.round(value * 100)}%</span>
     </div>
   )
 }
@@ -49,7 +78,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   useEscClose(onClose)
   const t = useT()
   const locale = useLocale()
-  const [cat, setCat] = useState<Cat>('audio')
+  const router = useRouter()
   const [music, setMusic] = useState(0.32)
   const [sfx, setSfx] = useState(1)
   const [summon, setSummon] = useState(true)
@@ -62,12 +91,18 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const [bgFx, setBgFx] = useState(true)
   const [voiceLoc, setVoiceLoc] = useState<VoiceLocaleSetting>('auto')
   const [voiceFb, setVoiceFb] = useState(true)
+  const [email, setEmail] = useState<string | null>(null)
+  const [emailVerified, setEmailVerified] = useState(false)
 
   useEffect(() => {
     setMusic(getMusicVolume()); setSfx(getSfxVolume()); setSummon(isSummonFxEnabled()); setSoundOn(isUiSoundEnabled())
     setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
     setReminders(remindersEnabled()); setNative(isNativeApp()); setBgFx(isBgFxEnabled())
     setVoiceLoc(getVoiceLocale()); setVoiceFb(isVoiceFallbackLtEnabled())
+    createClient().auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null)
+      setEmailVerified(!!data.user?.email_confirmed_at)
+    })
     return subscribeUiSound(setSoundOn)
   }, [])
 
@@ -94,6 +129,13 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     saveDigitalSettings()
   }
 
+  const doLogout = async () => {
+    playUiClick()
+    try { await createClient().auth.signOut() } catch { /* ignore */ }
+    onClose()
+    router.push('/digital/login')
+  }
+
   // ── Žaidimo turinys (offline media) ──
   const [missing, setMissing] = useState<ManifestEntry[] | null>(null)
   const [mediaInfo, setMediaInfo] = useState<{ files: number; usageBytes: number | null } | null>(null)
@@ -104,7 +146,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     setMediaInfo(info)
     setMissing(await diffMissing(man))
   }
-  useEffect(() => { if (cat === 'content' && missing === null) void refreshContent() }, [cat]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void refreshContent() }, [])
   useEffect(() => () => { dlRef.current?.cancel() }, [])
   const startDl = (list: ManifestEntry[]) => {
     if (dl?.running || list.length === 0) return
@@ -116,213 +158,100 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const bytesAll = (missing ?? []).reduce((s2, e) => s2 + e.bytes, 0)
   const bytesNoVideo = missingNoVideo.reduce((s2, e) => s2 + e.bytes, 0)
 
-  const CATS: { key: Cat; label: string; icon: React.ReactNode; show: boolean }[] = [
-    { key: 'audio',  label: t('settings.cat.audio'),   icon: <Volume2 className="w-4 h-4" />,  show: true },
-    { key: 'visual', label: t('settings.cat.visual'),  icon: <Sparkles className="w-4 h-4" />, show: true },
-    { key: 'content', label: t('settings.cat.content'), icon: <Download className="w-4 h-4" />, show: true },
-    { key: 'language', label: t('settings.cat.language'), icon: <Languages className="w-4 h-4" />, show: true },
-    { key: 'notif',  label: t('settings.cat.notif'),   icon: <Bell className="w-4 h-4" />,     show: native },
-  ]
+  if (typeof document === 'undefined') return null
 
-  return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-2" style={{ background: 'rgba(4,3,8,0.9)', backdropFilter: 'blur(3px)' }} onClick={onClose}>
-      <div className="relative w-[min(980px,98vw)] h-[min(560px,96vh)]" style={{ borderRadius: 18, background: `rgba(${ACC},0.32)`, padding: 2 }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-col h-full" style={{ borderRadius: 17, background: `radial-gradient(120% 90% at 50% 0%, rgba(${ACC},0.14), rgba(10,8,16,0.97) 60%), linear-gradient(160deg,#15101f,#0a0810)` }}>
+  return createPortal(
+    <div className="ravenof-body flex flex-col" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))', zIndex: 60, background: 'var(--ravenof-bg-base)', padding: '10px 20px 12px 16px', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
+      {/* ── Antraštė ── */}
+      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 8, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
+        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('settings.title')}</div>
+        <div className="flex-1" />
+        <div style={{ font: '400 9px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}{profile ? ` · ${profile.name}` : ''}</div>
+      </div>
 
-          {/* ── Antraštė ── */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: `1px solid rgba(${ACC},0.16)` }}>
-            <p className="font-bold" style={{ fontSize: 'clamp(14px,2.6vh,18px)', fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em' }}>⚙️ {t('settings.title')}</p>
-            <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${ACC},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+      <div className="flex-1 flex min-h-0" style={{ gap: 12 }}>
+        {/* ── KAIRĖ: garsas + vaizdas ── */}
+        <div className="flex-1 min-w-0 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 6, paddingRight: 2 }}>
+          <SectionLabel>{t('settings.cat.audio')}</SectionLabel>
+          <ToggleRow label={t('settings.soundOn')} on={soundOn} onToggle={() => { const n = toggleUiSound(); if (n) playUiClick() }} />
+          <div className={soundOn ? 'flex flex-col' : 'flex flex-col opacity-40 pointer-events-none'} style={{ gap: 6 }}>
+            <SliderRow label={t('settings.music')} value={music} onChange={onMusic} />
+            <SliderRow label={t('settings.sfx')} value={sfx} onChange={onSfx} />
           </div>
+          {native && <ToggleRow label={t('settings.reminders')} on={reminders} onToggle={onReminders} hint={t('settings.remindersHint')} />}
 
-          {/* ── 3 zonos ── */}
-          <div className="flex-1 min-h-0 grid gap-2 p-2.5" style={{ gridTemplateColumns: 'minmax(140px,0.75fr) minmax(0,2fr) minmax(210px,1fr)' }}>
+          <div style={{ height: 4 }} />
+          <SectionLabel>{t('settings.cat.visual')}</SectionLabel>
+          <ToggleRow label={t('settings.summonFx')} on={summon} onToggle={onSummon} />
+          <ToggleRow label={t('settings.bgFx')} on={bgFx} onToggle={onBgFx} />
+          <ToggleRow label={t('settings.cinematics')} on={cine} onToggle={onCine} hint={t('settings.cinematicsHint')} />
+          <div className={cine ? 'flex flex-col' : 'flex flex-col opacity-40 pointer-events-none'} style={{ gap: 6 }}>
+            <ToggleRow label={t('settings.cineSummon')} on={cineSummon} onToggle={onCineSummon} />
+            <ToggleRow label={t('settings.cineSkill')} on={cineSkill} onToggle={onCineSkill} />
+          </div>
+          <button onClick={resetDefaults} className="ravenof-btn ravenof-btn-secondary shrink-0" style={{ marginTop: 4, minHeight: 36, fontSize: 10 }}>{t('settings.resetDefaults')}</button>
+        </div>
 
-            {/* KAIRĖ: kategorijos */}
-            <div className="min-h-0 overflow-y-auto flex flex-col gap-1.5">
-              {CATS.filter((c) => c.show).map((c) => (
-                <button key={c.key} onClick={() => { playUiClick(); setCat(c.key) }}
-                  className="rvn-press shrink-0 w-full text-left px-2.5 py-2.5 rounded-xl font-bold flex items-center gap-2"
-                  style={{ fontSize: 11.5, background: cat === c.key ? `rgba(${ACC},0.18)` : 'rgba(10,8,16,0.8)', border: `1px solid ${cat === c.key ? `rgba(${ACC},0.6)` : 'rgba(255,255,255,0.08)'}`, color: cat === c.key ? 'var(--gold)' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
-                  {c.icon} {c.label}
-                </button>
-              ))}
+        {/* ── DEŠINĖ: kalba + paskyra + turinys + atsijungti ── */}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col" style={{ gap: 6 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 6, paddingRight: 2 }}>
+            <SectionLabel>{t('settings.cat.language')}</SectionLabel>
+            <Segmented big options={LANGUAGE_OPTIONS.map((o) => ({ key: o.locale, label: o.nativeName }))} value={locale} onPick={(l) => setLocale(l)} />
+            <div className="flex items-center shrink-0" style={{ gap: 8 }}>
+              <span style={{ font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', whiteSpace: 'nowrap' }}>{t('settings.voice.title')}</span>
+              <div className="flex-1"><Segmented options={(['auto', 'lt', 'en'] as VoiceLocaleSetting[]).map((v) => ({ key: v, label: t(`settings.voice.${v}`) }))} value={voiceLoc} onPick={onVoiceLoc} /></div>
+            </div>
+            <ToggleRow label={t('settings.voice.fallback')} on={voiceFb} onToggle={onVoiceFb} />
+
+            <div style={{ height: 4 }} />
+            <SectionLabel>{t('settings.account')}</SectionLabel>
+            <div className="flex items-center shrink-0" style={{ gap: 10, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px' }}>
+              <span className="flex-1 truncate" style={{ font: '500 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{email ?? (profile?.name || '—')}</span>
+              {emailVerified && <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-success)' }}>{t('settings.verified')}</span>}
             </div>
 
-            {/* CENTRAS: nustatymai */}
-            <div className="min-h-0 overflow-y-auto flex flex-col gap-3 pr-1">
-              {cat === 'audio' && (
-                <>
-                  <button onClick={() => { const n = toggleUiSound(); if (n) playUiClick() }}
-                    className="w-full px-3 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-between"
-                    style={{ background: soundOn ? `rgba(${ACC},0.14)` : 'rgba(10,8,16,0.7)', border: '1px solid ' + (soundOn ? `rgba(${ACC},0.45)` : 'var(--bg-border)'), color: soundOn ? 'var(--gold)' : 'var(--text-muted)' }}>
-                    <span className="inline-flex items-center gap-2">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} {soundOn ? t('settings.soundOn') : t('settings.soundOff')}</span>
-                    <span className="text-[10px]">{soundOn ? t('settings.turnOff') : t('settings.turnOn')}</span>
+            <div style={{ height: 4 }} />
+            <SectionLabel>{t('settings.cat.content')}</SectionLabel>
+            <div className="shrink-0" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px' }}>
+              <p style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.4 }}>{t('settings.contentInfo')} <b style={{ color: 'var(--ravenof-text-primary)' }}>{mediaInfo ? t('settings.filesCount', { count: mediaInfo.files }) : '…'}</b>{mediaInfo?.usageBytes ? ` · ${t('settings.usedSpace', { size: fmtMB(mediaInfo.usageBytes) })}` : ''}</p>
+              {missing === null ? (
+                <p style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 6 }}>{t('settings.computing')}</p>
+              ) : dl?.running ? (
+                <div style={{ marginTop: 8 }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
+                    <span style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', textTransform: 'uppercase', letterSpacing: 1 }}>{t('settings.downloading')}</span>
+                    <span className="tabular-nums" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{dl.doneFiles}/{dl.totalFiles} · {fmtMB(dl.doneBytes)} / {fmtMB(dl.totalBytes)}</span>
+                  </div>
+                  <div className="ravenof-progress" style={{ height: 4 }}>
+                    <span style={{ width: `${dl.totalBytes ? Math.min(100, Math.round(dl.doneBytes / dl.totalBytes * 100)) : Math.round(dl.doneFiles / Math.max(1, dl.totalFiles) * 100)}%`, background: 'var(--ravenof-grad-gold)', transition: 'width .3s' }} />
+                  </div>
+                  {dl.failed > 0 && <p style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', marginTop: 4 }}>{t('settings.downloadFailed', { count: dl.failed })}</p>}
+                  <button onClick={() => { playUiClick(); dlRef.current?.cancel() }} className="ravenof-btn ravenof-btn-destructive w-full" style={{ marginTop: 8, minHeight: 32, fontSize: 10, padding: '7px 10px' }}>{t('settings.stop')}</button>
+                </div>
+              ) : missing.length === 0 ? (
+                <p style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-success-bright)', marginTop: 6 }}>{t('settings.allDownloaded')}{dl && !dl.running ? ` (${t('settings.filesCount', { count: dl.doneFiles })})` : ''}</p>
+              ) : (
+                <div className="flex flex-col" style={{ gap: 6, marginTop: 8 }}>
+                  <button onClick={() => startDl(missingNoVideo)} disabled={missingNoVideo.length === 0} className="ravenof-btn ravenof-btn-primary w-full" style={{ minHeight: 34, fontSize: 10, letterSpacing: 1, padding: '8px 10px' }}>
+                    {t('settings.dlCardsSounds')} · {fmtMB(bytesNoVideo)}
                   </button>
-                  <div className={`space-y-4 transition-opacity ${soundOn ? '' : 'opacity-40 pointer-events-none'}`}>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Music className="w-4 h-4" />{t('settings.music')}</span>
-                        <span className="text-xs tabular-nums" style={{ color: 'var(--gold)' }}>{Math.round(music * 100)}%</span>
-                      </div>
-                      <input type="range" min={0} max={100} value={Math.round(music * 100)} onChange={(e) => onMusic(Number(e.target.value) / 100)} className="w-full" style={{ accentColor: 'var(--gold)' }} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}><Volume2 className="w-4 h-4" />{t('settings.sfx')}</span>
-                        <span className="text-xs tabular-nums" style={{ color: 'var(--gold)' }}>{Math.round(sfx * 100)}%</span>
-                      </div>
-                      <input type="range" min={0} max={100} value={Math.round(sfx * 100)} onChange={(e) => onSfx(Number(e.target.value) / 100)} className="w-full" style={{ accentColor: 'var(--gold)' }} />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {cat === 'visual' && (
-                <>
-                  <Row label={t('settings.summonFx')} icon={<Sparkles className="w-4 h-4" />} on={summon} onToggle={onSummon}
-                    hint={t('settings.summonFxHint')} />
-                  <Row label={t('settings.bgFx')} icon={<span>🔥</span>} on={bgFx} onToggle={onBgFx}
-                    hint={t('settings.bgFxHint')} />
-                  <Row label={t('settings.cinematics')} icon={<Clapperboard className="w-4 h-4" />} on={cine} onToggle={onCine}
-                    hint={t('settings.cinematicsHint')} />
-                  <div className={`space-y-2 transition-opacity ${cine ? '' : 'opacity-40 pointer-events-none'}`}>
-                    <label className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid var(--bg-border)' }}>
-                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.cineSummon')}</span>
-                      <input type="checkbox" checked={cineSummon} onChange={(e) => onCineSummon(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
-                    </label>
-                    <label className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.5)', border: '1px solid var(--bg-border)' }}>
-                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.cineSkill')}</span>
-                      <input type="checkbox" checked={cineSkill} onChange={(e) => onCineSkill(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
-                    </label>
-                  </div>
-                </>
-              )}
-
-              {cat === 'content' && (
-                <>
-                  <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(10,8,16,0.6)', border: '1px solid var(--bg-border)' }}>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>{t('settings.contentTitle')}</p>
-                    <p className="mt-1" style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('settings.contentInfo')} <b style={{ color: '#f3ead3' }}>{mediaInfo ? t('settings.filesCount', { count: mediaInfo.files }) : '…'}</b>{mediaInfo?.usageBytes ? ` · ${t('settings.usedSpace', { size: fmtMB(mediaInfo.usageBytes) })}` : ''}</p>
-                  </div>
-
-                  {missing === null ? (
-                    <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>{t('settings.computing')}</p>
-                  ) : dl?.running ? (
-                    <div className="rounded-xl px-3 py-3" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${ACC},0.4)` }}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('settings.downloading')}</span>
-                        <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{dl.doneFiles}/{dl.totalFiles} · {fmtMB(dl.doneBytes)} / {fmtMB(dl.totalBytes)}</span>
-                      </div>
-                      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${dl.totalBytes ? Math.min(100, Math.round(dl.doneBytes / dl.totalBytes * 100)) : Math.round(dl.doneFiles / Math.max(1, dl.totalFiles) * 100)}%`, background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: `0 0 8px rgba(${ACC},0.6)`, transition: 'width .3s' }} />
-                      </div>
-                      {dl.failed > 0 && <p className="mt-1" style={{ fontSize: 9.5, color: '#fca5a5' }}>{t('settings.downloadFailed', { count: dl.failed })}</p>}
-                      <button onClick={() => { playUiClick(); dlRef.current?.cancel() }} className="mt-2 w-full rounded-lg py-1.5 text-[11px] font-bold" style={{ background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}>{t('settings.stop')}</button>
-                    </div>
-                  ) : missing.length === 0 ? (
-                    <p className="text-sm text-center py-3 font-semibold" style={{ color: '#86efac' }}>{t('settings.allDownloaded')}{dl && !dl.running ? ` (${t('settings.filesCount', { count: dl.doneFiles })})` : ''}</p>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <button onClick={() => startDl(missingNoVideo)} disabled={missingNoVideo.length === 0}
-                        className="rvn-press w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-40"
-                        style={{ background: `rgba(${ACC},0.18)`, border: `1px solid rgba(${ACC},0.5)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                        {t('settings.dlCardsSounds')} · {fmtMB(bytesNoVideo)} ({t('settings.filesCount', { count: missingNoVideo.length })})
-                      </button>
-                      <button onClick={() => startDl(missing)}
-                        className="rvn-press w-full rounded-xl py-2.5 text-sm font-bold"
-                        style={{ background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd', fontFamily: 'var(--rvn-font-display)' }}>
-                        {t('settings.dlAllVideo')} · {fmtMB(bytesAll)} ({t('settings.filesCount', { count: missing.length })})
-                      </button>
-                      <p style={{ fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('settings.videoHint')}</p>
-                    </div>
-                  )}
-
-                  <button onClick={async () => { playUiClick(); await clearMediaCache(); setDl(null); await refreshContent() }}
-                    disabled={dl?.running}
-                    className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold disabled:opacity-40"
-                    style={{ background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
-                    <Trash2 className="w-3.5 h-3.5" /> {t('settings.clearContent')}
+                  <button onClick={() => startDl(missing)} className="ravenof-btn ravenof-btn-secondary w-full" style={{ minHeight: 32, fontSize: 10, padding: '7px 10px' }}>
+                    {t('settings.dlAllVideo')} · {fmtMB(bytesAll)}
                   </button>
-                </>
-              )}
-
-              {cat === 'language' && (
-                <div className="flex flex-col gap-2">
-                  {LANGUAGE_OPTIONS.map((opt) => {
-                    const active = opt.locale === locale
-                    return (
-                      <button key={opt.locale} type="button" role="radio" aria-checked={active}
-                        onClick={() => { if (!active) { playUiClick(); setLocale(opt.locale) } }}
-                        className="rvn-press w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between"
-                        style={{ background: active ? `rgba(${ACC},0.18)` : 'rgba(10,8,16,0.8)', border: `1px solid ${active ? `rgba(${ACC},0.6)` : 'rgba(255,255,255,0.08)'}`, color: active ? 'var(--gold)' : 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>
-                        <span>{opt.nativeName}</span>
-                        <span className="text-[10px] uppercase tracking-wide" style={{ color: active ? 'var(--gold)' : 'var(--text-muted)' }}>{opt.shortName}</span>
-                      </button>
-                    )
-                  })}
-                  {/* Fazė 7: balsų kalba (kortų/avatarų įgarsinimas) */}
-                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <p className="px-1 mb-1.5 text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>{t('settings.voice.title')}</p>
-                    <div className="flex gap-1.5">
-                      {(['auto', 'lt', 'en'] as VoiceLocaleSetting[]).map((v) => (
-                        <button key={v} type="button" onClick={() => { if (v !== voiceLoc) { playUiClick(); onVoiceLoc(v) } }}
-                          className="rvn-press flex-1 px-2 py-2 rounded-lg text-[11px] font-bold"
-                          style={{ background: v === voiceLoc ? `rgba(${ACC},0.18)` : 'rgba(10,8,16,0.8)', border: `1px solid ${v === voiceLoc ? `rgba(${ACC},0.6)` : 'rgba(255,255,255,0.08)'}`, color: v === voiceLoc ? 'var(--gold)' : 'var(--text-secondary)' }}>
-                          {t(`settings.voice.${v}`)}
-                        </button>
-                      ))}
-                    </div>
-                    <label className="mt-1.5 flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer" style={{ background: 'rgba(10,8,16,0.7)' }}>
-                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.voice.fallback')}</span>
-                      <input type="checkbox" checked={voiceFb} onChange={(e) => onVoiceFb(e.target.checked)} className="w-4 h-4" />
-                    </label>
-                    <p className="mt-1 px-1" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{t('settings.voice.hint')}</p>
-                  </div>
-                  <p className="mt-1 px-1" style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.35 }}>{t('settings.languageHint')}</p>
                 </div>
               )}
-
-              {cat === 'notif' && native && (
-                <Row label={t('settings.reminders')} icon={<Bell className="w-4 h-4" />} on={reminders} onToggle={onReminders}
-                  hint={t('settings.remindersHint')} />
-              )}
+              <button onClick={async () => { playUiClick(); await clearMediaCache(); setDl(null); await refreshContent() }} disabled={dl?.running}
+                className="w-full ravenof-press" style={{ marginTop: 8, font: '600 10px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', background: 'none', border: '1px solid #8D2D3855', padding: '7px 10px', cursor: 'pointer' }}>
+                {t('settings.clearContent')}
+              </button>
             </div>
-
-            {/* DEŠINĖ: profilis + veiksmai */}
-            <div className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-3" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${ACC},0.22)` }}>
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                {profile && (
-                  <div className="flex flex-col items-center gap-2 text-center px-2 pt-2">
-                    <span className="relative flex items-center justify-center shrink-0" style={{ width: 76, height: 76, borderRadius: '50%', border: `2px solid rgba(${ACC},0.65)`,
-                      background: profile.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)', boxShadow: `0 0 16px rgba(${ACC},0.3), inset 0 0 8px rgba(0,0,0,0.6)` }}>
-                      {!profile.avatarUrl && <RvnIcon name="avatar" size={72} round fallback={<span style={{ fontSize: 34 }}>🐦‍⬛</span>} />}
-                      <span className="absolute flex items-center justify-center" style={{ bottom: -5, right: -5, minWidth: 22, height: 20, padding: '0 5px', borderRadius: 10, fontSize: 11, fontWeight: 800, fontFamily: 'var(--rvn-font-display)', background: 'linear-gradient(180deg,#1a1424,#0a0810)', border: `1px solid rgba(${ACC},0.8)`, color: `rgb(${ACC})` }}>{profile.level}</span>
-                    </span>
-                    <span className="block truncate w-full" style={{ fontSize: 15, fontWeight: 800, color: '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{profile.name}</span>
-                    <span className="block w-full" style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', boxShadow: 'inset 0 0 3px rgba(0,0,0,0.6)' }}>
-                      <span style={{ display: 'block', height: '100%', width: `${Math.max(3, Math.min(100, profile.pct))}%`, background: `linear-gradient(90deg, rgba(${ACC},0.75), rgb(${ACC}))`, boxShadow: `0 0 6px rgba(${ACC},0.6)` }} />
-                    </span>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{t('settings.levelProgress', { level: profile.level, pct: Math.round(profile.pct) })}</span>
-                  </div>
-                )}
-                <p className="mt-3 px-1 text-center" style={{ fontSize: 9.5, color: 'rgba(150,160,185,0.5)', lineHeight: 1.4 }}>{t('settings.autoSaved')}</p>
-                <p className="mt-1 text-center" style={{ fontSize: 9, color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}</p>
-              </div>
-              <div className="shrink-0 mt-2 flex flex-col gap-1.5">
-                <button onClick={resetDefaults} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold"
-                  style={{ minHeight: 36, background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)', fontFamily: 'var(--rvn-font-display)' }}>
-                  <RotateCcw className="w-3.5 h-3.5" /> {t('settings.resetDefaults')}
-                </button>
-                <button onClick={() => { playUiClick(); onClose() }} className="rvn-press w-full rounded-xl text-sm font-bold"
-                  style={{ minHeight: 40, background: `rgba(${ACC},0.2)`, border: `1px solid rgba(${ACC},0.4)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>
-                  {t('common.close')}
-                </button>
-              </div>
-            </div>
+            <p className="shrink-0" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.5)', lineHeight: 1.4, textAlign: 'center' }}>{t('settings.autoSaved')}</p>
           </div>
+          <button onClick={doLogout} className="ravenof-press shrink-0 w-full" style={{ textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5, color: 'var(--ravenof-danger)', border: '1px solid #8D2D3855', background: 'none', padding: 11, cursor: 'pointer', textTransform: 'uppercase' }}>{t('more.logout')}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

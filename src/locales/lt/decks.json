@@ -6,8 +6,10 @@
     "change": "Keisti",
     "collapse": "Suskleisti",
     "createDeck": "Sukurti kaladę",
+    "deckAvatar": "Avataras kaladei",
     "edited": "redaguota {{date}}",
     "globalAvatarUsed": "Naudojamas globalus avataras",
+    "isActive": "★ AKTYVI",
     "modalAria": "Aktyvios kaladės pasirinkimas",
     "modalTitle": "🎴 AKTYVI KALADĖ",
     "noActive": "Nepasirinkta aktyvi kaladė",
@@ -18,10 +20,8 @@
     "picked": "✓ PASIRINKTA",
     "ready": "✓ Paruošta",
     "readyBattle": "✓ Paruošta kovai",
-    "useGlobal": "Naudoti globalų",
-    "isActive": "★ AKTYVI",
     "setActive": "★ NUSTATYTI AKTYVIA",
-    "deckAvatar": "Avataras kaladei"
+    "useGlobal": "Naudoti globalų"
   },
   "cardsShort_few": "{{count}} kortos",
   "cardsShort_one": "{{count}} korta",
@@ -55,26 +55,32 @@
     "voteDown": "Prieš",
     "voteUp": "Už"
   },
+  "edit": "✎ Redaguoti",
   "my": {
+    "activeBadge": "AKTYVI",
     "confirmDeleteBody": "Šio veiksmo atšaukti negalėsi.",
     "confirmDeleteTitle": "Ištrinti kaladę?",
     "copied": "Kaladė nukopijuota",
     "copy": "Kopijuoti",
     "copyFailed": "Nepavyko nukopijuoti",
     "copyPrefix": "Kopija — {{name}}",
+    "copyShort": "Kopija",
     "createCta": "Kurti kaladę",
     "delete": "Ištrinti",
     "deleteFailed": "Nepavyko ištrinti",
+    "deleteShort": "Trinti",
     "deleted": "Kaladė ištrinta",
     "edit": "Redaguoti",
     "emptySub": "Sukurk pirmą Ravenof kaladę",
     "emptyTitle": "Dar neturi kaladžių",
     "goldCurve": "Aukso kreivė",
+    "invalidBadge": "Netinkama",
     "missingCards": "⚠ Kolekcijoje trūksta {{count}} šios kaladės kortų",
     "newDeck": "Nauja kaladė",
     "noFaction": "Be frakcijos",
     "private": "Privati",
     "public": "Vieša",
+    "setActive": "Aktyvi",
     "statAvgGold": "Aukso vid.",
     "statCards": "Kortų",
     "statChampions": "Čempionai"
@@ -84,14 +90,14 @@
     "yourDeck": "⚔ Tavo kaladė"
   },
   "tabs": {
-    "builder": "Deck Builder",
-    "community": "Bendruomenė",
+    "builder": "Kūrimas",
+    "community": "Bendruomenės",
     "my": "Mano kaladės"
   },
+  "title": "Kaladės",
   "validity": {
     "empty": "Kaladė tuščia",
     "missingCards": "Trūksta {{count}} kortų kolekcijoje",
     "noActive": "Nepasirinkta aktyvi kaladė"
-  },
-  "edit": "✎ Redaguoti"
+  }
 }
