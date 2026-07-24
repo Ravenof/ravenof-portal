@@ -28,6 +28,7 @@
   "cardsShort_other": "{{count}} kortų",
   "community": {
     "allFactions": "Visos frakcijos",
+    "byAuthor": "nuo {{name}}",
     "commentPlaceholder": "Parašyk komentarą…",
     "copied": "Kaladė nukopijuota į Mano kaladės",
     "copiedMissing": "Nukopijuota visa kaladė — trūksta {{count}} kortų, žaisti galėsi jas įsigijęs",
@@ -36,6 +37,8 @@
     "copyFull": "Kopijuoti pilną kaladę",
     "craftableOnly": "Tik kurias galiu susidėti",
     "haveAll": "✓ Turi visas kortas",
+    "haveAllShort": "Turi visas",
+    "haveOf": "Turi {{have}}/{{total}}",
     "missingInfo": "Trūksta {{count}} kortų — nukopijuota kaladė bus pilna, bet žaisti galėsi tik jas įsigijęs",
     "noComments": "Komentarų dar nėra — būk pirmas!",
     "noneFound": "Kaladžių nerasta.",
@@ -52,7 +55,10 @@
     "sortCards": "Daugiausiai kortų",
     "sortNew": "Naujausios",
     "sortTop": "TOP pagal balsus",
+    "tabCards": "Kortos",
+    "tabComments": "Komentarai",
     "voteDown": "Prieš",
+    "voteFailed": "Nepavyko balsuoti.",
     "voteUp": "Už"
   },
   "edit": "✎ Redaguoti",

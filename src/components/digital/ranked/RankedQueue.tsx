@@ -91,22 +91,16 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
   const cancel = () => { doneRef.current = true; playRanked('ranked_queue_cancel'); queueLeave(); onCancel() }
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.93)' }}>
-      <div className="relative w-[min(420px,94vw)]" style={{ borderRadius: 20, background: 'rgba(239,68,68,0.32)', padding: 2 }}>
-        <div className="px-6 py-9 text-center" style={{ borderRadius: 19, background: 'radial-gradient(120% 90% at 50% 0%, rgba(239,68,68,0.14), rgba(10,8,16,0.98) 62%), linear-gradient(160deg,#15101f,#0a0810)' }}>
-          {/* sukasi runų žiedas */}
-          <div className="relative mx-auto mb-5" style={{ width: 92, height: 92 }}>
-            <div className="absolute inset-0 rounded-full" style={{ border: '2px solid rgba(239,68,68,0.25)' }} />
-            <div className="absolute inset-0 rounded-full animate-spin" style={{ borderTop: '2px solid var(--gold)', borderRight: '2px solid transparent', borderBottom: '2px solid transparent', borderLeft: '2px solid transparent', animationDuration: '1.4s' }} />
-            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-pulse">⚔️</div>
-          </div>
-          <p className="text-sm font-semibold mb-1" style={{ color: '#f3ead3', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em' }}>{status}</p>
-          <p className="text-xs mb-6 tabular-nums" style={{ color: 'var(--text-muted)' }}>Laukiama: {elapsed}s</p>
-          <button onClick={cancel} className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95"
-            style={{ background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.45)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
-            Atšaukti
-          </button>
+    <div className="ravenof-body fixed inset-0 z-[160] flex items-center justify-center p-4 overflow-hidden" style={{ background: 'radial-gradient(120% 100% at 50% 45%, #100c14 0%, #07060A 70%)' }}>
+      <div className="relative w-[min(420px,94vw)] px-6 py-9 text-center" style={{ background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+        <div className="mx-auto mb-5 flex items-center justify-center" style={{ width: 72, height: 72 }}>
+          <span className="ravenof-spinner" style={{ width: 56, height: 56 }} />
         </div>
+        <p style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)', margin: '0 0 3px' }}>{status}</p>
+        <p className="tabular-nums" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '0 0 22px' }}>{t('ranked.queue.waitingFor', { sec: elapsed })}</p>
+        <button onClick={cancel} className="ravenof-btn ravenof-btn-secondary mx-auto" style={{ minHeight: 40, minWidth: 150 }}>
+          {t('common.cancel')}
+        </button>
       </div>
     </div>
   )

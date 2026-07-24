@@ -67,34 +67,34 @@ export function MoreScreen() {
     const Icon = r.icon
     return (
       <button key={r.key} onClick={r.onClick}
-        className="rvn-press w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left"
-        style={{ minHeight: 62, background: `linear-gradient(150deg, rgba(${r.accent},0.1), rgba(10,8,16,0.9))`, border: `1px solid rgba(${r.accent},0.4)` }}>
-        <span className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 40, height: 40, background: `rgba(${r.accent},0.14)`, border: `1px solid rgba(${r.accent},0.45)` }}>
+        className="ravenof-press w-full flex items-center gap-3 px-3 py-3 text-left"
+        style={{ minHeight: 60, cursor: 'pointer', background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: `3px solid rgb(${r.accent})` }}>
+        <span className="flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: 'var(--ravenof-bg-elevated)', border: `1px solid rgba(${r.accent},0.45)` }}>
           {r.img ? <RvnIcon name={r.img} size={28} fallback={<Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />} /> : <Icon className="w-5 h-5" style={{ color: `rgb(${r.accent})` }} />}
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-bold truncate" style={{ color: danger ? '#fca5a5' : '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{r.label}</span>
-          {r.sub && <span className="block text-[10.5px] truncate" style={{ color: 'var(--text-muted)' }}>{r.sub}</span>}
+          <span className="block text-sm font-bold truncate" style={{ color: danger ? '#c65563' : 'var(--ravenof-text-primary)', fontFamily: 'var(--ravenof-font-display)' }}>{r.label}</span>
+          {r.sub && <span className="block text-[10.5px] truncate" style={{ color: 'var(--ravenof-text-secondary)' }}>{r.sub}</span>}
         </span>
-        <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+        <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--ravenof-text-secondary)' }} />
       </button>
     )
   }
 
-  const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+  const PANEL: React.CSSProperties = { background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)' }
 
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)' }}>
+    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)', padding: '0 2px' }}>
       <div className="relative text-center shrink-0">
         <div className="absolute right-0 top-1/2 -translate-y-1/2"><LanguageSelector size="sm" /></div>
-        <div className="rvn-disp font-black uppercase leading-none" style={{ fontSize: 'clamp(16px,3.2vh,28px)', color: 'var(--gold)', letterSpacing: '0.04em' }}>{t('more.title')}</div>
-        <div style={{ fontSize: 'clamp(9px,1.4vh,12px)', color: 'var(--text-muted)' }}>{t('more.subtitle')}</div>
+        <div style={{ font: '700 clamp(15px,3vh,20px) var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('more.title')}</div>
+        <div style={{ font: '400 clamp(9px,1.4vh,11.5px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('more.subtitle')}</div>
       </div>
 
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
         {[...sections, { title: t('more.sections.account'), rows: accountRows }].map((sec) => (
-          <section key={sec.title} className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-            <p className="shrink-0 rvn-disp font-extrabold uppercase tracking-wide mb-2" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)' }}>{sec.title}</p>
+          <section key={sec.title} className="flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+            <p className="shrink-0 mb-2" style={{ font: '500 clamp(9px,1.4vh,10px) var(--ravenof-font-body)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{sec.title}</p>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
               {sec.rows.map((r) => tile(r, r.key === 'exit'))}
             </div>
@@ -105,12 +105,12 @@ export function MoreScreen() {
       {/* Patvirtinimas: Išeiti */}
       {confirmExit && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setConfirmExit(false)}>
-          <div className="w-[min(340px,92vw)] rounded-2xl p-5 text-center" style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>{t('more.confirmExitTitle')}</p>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{t('more.confirmExitBody')}</p>
+          <div className="w-[min(340px,92vw)] p-5 text-center" style={{ border: '1px solid rgba(180,68,79,0.6)', background: 'var(--ravenof-bg-surface)' }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--ravenof-font-display)', color: '#c65563' }}>{t('more.confirmExitTitle')}</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--ravenof-text-secondary)' }}>{t('more.confirmExitBody')}</p>
             <div className="flex gap-2">
-              <button onClick={() => { playUiClick(); setConfirmExit(false) }} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(240,180,41,0.3)', color: 'var(--text-secondary)' }}>{t('common.cancel')}</button>
-              <button onClick={doExit} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.6)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>{t('more.exit')}</button>
+              <button onClick={() => { playUiClick(); setConfirmExit(false) }} className="ravenof-btn ravenof-btn-secondary flex-1" style={{ minHeight: 40 }}>{t('common.cancel')}</button>
+              <button onClick={doExit} className="ravenof-btn ravenof-btn-destructive flex-1" style={{ minHeight: 40 }}>{t('more.exit')}</button>
             </div>
           </div>
         </div>
@@ -119,9 +119,9 @@ export function MoreScreen() {
       {/* Fallback žinutė (jei uždaryti nepavyko) */}
       {exitMsg && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setExitMsg(null)}>
-          <div className="w-[min(340px,92vw)] rounded-2xl p-5 text-center" style={{ border: '1px solid rgba(240,180,41,0.4)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{exitMsg}</p>
-            <button onClick={() => { playUiClick(); setExitMsg(null) }} className="w-full px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.45)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('more.gotIt')}</button>
+          <div className="w-[min(340px,92vw)] p-5 text-center" style={{ border: '1px solid var(--ravenof-border-gold)', background: 'var(--ravenof-bg-surface)' }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm mb-4" style={{ color: 'var(--ravenof-text-primary)' }}>{exitMsg}</p>
+            <button onClick={() => { playUiClick(); setExitMsg(null) }} className="ravenof-btn ravenof-btn-secondary w-full" style={{ minHeight: 40 }}>{t('more.gotIt')}</button>
           </div>
         </div>
       )}

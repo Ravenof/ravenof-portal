@@ -18,10 +18,11 @@ import {
   type FullCampaign,
 } from '@/lib/campaign/missionLoader'
 import type { CampaignProgress, NodeView } from '@/lib/campaign/types'
+import { useT } from '@/lib/i18n/react'
 
-const GOLD = '240,180,41'
 
 export function CampaignMapScreen({ slug }: { slug: string }) {
+  const t = useT()
   const [data, setData] = useState<FullCampaign | null | 'missing'>(null)
   const [progress, setProgress] = useState<CampaignProgress | null>(null)
   const [selected, setSelected] = useState<NodeView | null>(null)
@@ -55,11 +56,11 @@ export function CampaignMapScreen({ slug }: { slug: string }) {
     [data, progress],
   )
 
-  if (data === null) return <p className="text-center py-16 text-sm" style={{ color: 'var(--text-muted)' }}>Kraunama…</p>
+  if (data === null) return <div className="ravenof-body flex items-center justify-center py-16"><span className="ravenof-spinner" style={{ width: 40, height: 40 }} /></div>
   if (data === 'missing') return (
     <div className="text-center py-16">
-      <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Kampanija nerasta.</p>
-      <Link href="/digital/campaign" className="text-xs" style={{ color: 'var(--gold)' }}>← Kampanijos</Link>
+      <p className="text-sm mb-3" style={{ color: 'var(--ravenof-text-secondary)', font: '400 13px var(--ravenof-font-body)' }}>{t('battle.campaign.notFound')}</p>
+      <Link href="/digital/campaign" className="text-xs" style={{ color: 'var(--ravenof-gold)' }}>‹ {t('battle.campaign.title')}</Link>
     </div>
   )
 
@@ -82,30 +83,30 @@ export function CampaignMapScreen({ slug }: { slug: string }) {
 
   return (
     <>
-      {/* Full-bleed map between header and bottom nav */}
-      <div className="fixed left-0 right-0 z-10"
-        style={{ top: 'calc(env(safe-area-inset-top,0px) + 49px)', bottom: 'calc(env(safe-area-inset-bottom,0px) + 58px)' }}>
+      {/* Full-bleed žemėlapis tarp header'io ir ekrano apačios (rail kairėje) */}
+      <div className="fixed right-0 z-10"
+        style={{ left: 'calc(74px + max(0px, env(safe-area-inset-left, 0px)))', top: 'calc(env(safe-area-inset-top,0px) + 52px)', bottom: 'env(safe-area-inset-bottom,0px)' }}>
         <CampaignMap campaign={campaign} nodes={nodeViews} onSelect={(n) => { playUiClick(); setSelected(n) }} />
 
         {/* Top overlay: back + title + progress */}
         <div className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
           <div className="flex items-center justify-between gap-2 px-3 py-2"
             style={{ background: 'linear-gradient(180deg, rgba(6,4,11,0.92), rgba(6,4,11,0))' }}>
-            <Link href="/digital/campaign" onClick={() => playUiClick()} className="pointer-events-auto text-xs px-2 py-1 rounded-lg"
-              style={{ background: 'rgba(10,8,16,0.8)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>← Kampanijos</Link>
+            <Link href="/digital/campaign" onClick={() => playUiClick()} className="pointer-events-auto"
+              style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', background: 'rgba(11,9,16,0.8)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '6px 10px' }}>‹ {t('battle.campaign.title')}</Link>
             <div className="text-center min-w-0 flex-1">
-              <p className="text-sm font-extrabold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{campaign.title}</p>
+              <p className="truncate" style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)', margin: 0 }}>{campaign.title}</p>
             </div>
-            <span className="text-[11px] px-2 py-1 rounded-lg whitespace-nowrap" style={{ background: 'rgba(10,8,16,0.8)', color: 'var(--text-muted)' }}>{done}/{nodeViews.length}</span>
+            <span className="whitespace-nowrap tabular-nums" style={{ font: '400 11px var(--ravenof-font-body)', background: 'rgba(11,9,16,0.8)', border: '1px solid var(--ravenof-border-hairline)', color: 'var(--ravenof-text-secondary)', padding: '5px 9px' }}>{done}/{nodeViews.length}</span>
           </div>
         </div>
 
         {/* Deck warning toast */}
         {!playerDeck && decks.length === 0 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 rounded-xl px-4 py-2 text-center pointer-events-auto"
-            style={{ background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Kovinėms misijoms reikia kaladės. </span>
-            <Link href="/digital/decks?tab=builder" className="text-xs font-bold" style={{ color: 'var(--gold)' }}>Sukurti →</Link>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 text-center pointer-events-auto"
+            style={{ background: 'rgba(11,9,16,0.9)', border: '1px solid var(--ravenof-border-gold)' }}>
+            <span style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('battle.campaign.needDeck')} </span>
+            <Link href="/digital/decks?tab=builder" style={{ font: '700 12px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>{t('battle.campaign.createDeck')} ›</Link>
           </div>
         )}
       </div>

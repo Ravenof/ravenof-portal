@@ -43,10 +43,12 @@
     "noPack": "You no longer have this pack.",
     "openCta": "🎁 Open the pack",
     "opening": "OPENING…",
+    "skip": "Skip",
     "swipeToOpen": "SWIPE YOUR FINGER ACROSS THE TOP OF THE PACK",
     "tapEnd": "Tap — finish",
     "tapNext": "Tap — next card",
-    "toCollection": "To collection"
+    "toCollection": "To collection",
+    "yourCards": "Your cards"
   },
   "packsN": "Packs ({{count}})",
   "pickCard": "Pick a card.",

@@ -24,22 +24,22 @@ export function MatchFound({ me, opponent, onReady }: {
     <div className={`flex flex-col items-center gap-2 ${align === 'l' ? 'animate-[rvn-slide-l_0.5s_ease-out]' : 'animate-[rvn-slide-r_0.5s_ease-out]'}`}>
       <span className="text-4xl">{avatar}</span>
       <RankBadge step={step} size={72} showLabel />
-      <p className="text-sm font-bold text-center max-w-[120px] truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{name}</p>
+      <p className="text-sm font-bold text-center max-w-[120px] truncate" style={{ fontFamily: 'var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{name}</p>
     </div>
   )
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.94)' }}>
-      <div className="relative w-[min(520px,96vw)]" style={{ borderRadius: 20, background: 'rgba(239,68,68,0.32)', padding: 2 }}>
-        <div className="px-5 py-8" style={{ borderRadius: 19, background: 'radial-gradient(120% 90% at 50% 0%, rgba(239,68,68,0.16), rgba(10,8,16,0.98) 62%), linear-gradient(160deg,#15101f,#0a0810)' }}>
-          <p className="text-center text-xs font-semibold mb-5" style={{ color: '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.18em' }}>{t('ranked.matchFound')}</p>
-          <div className="flex items-center justify-around gap-3">
-            <Side name={me.name} avatar="🛡️" step={me.rankStep} align="l" />
-            <span className="text-3xl font-bold animate-pulse" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', textShadow: '0 0 18px rgba(240,180,41,0.6)' }}>VS</span>
-            <Side name={opponent.name} avatar={opponent.avatar} step={opponent.rankStep} align="r" />
-          </div>
-          <p className="text-center text-[11px] mt-5" style={{ color: 'var(--text-muted)' }}>{opponent.faction} · {t('ranked.matchPreparing')}</p>
+    <div className="ravenof-body fixed inset-0 z-[160] flex items-center justify-center p-4 overflow-hidden" style={{ background: 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, #07060A 70%)' }}>
+      <div aria-hidden className="ravenof-rays" />
+      <div className="relative w-[min(540px,96vw)] px-5 py-8" style={{ background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-gold)', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+        <div className="ravenof-ornament" aria-hidden><i /></div>
+        <p className="text-center" style={{ font: '700 12px var(--ravenof-font-display)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--ravenof-gold-bright)', margin: '8px 0 20px' }}>{t('ranked.matchFound')}</p>
+        <div className="flex items-center justify-around gap-3">
+          <Side name={me.name} avatar="🛡️" step={me.rankStep} align="l" />
+          <span className="animate-pulse" style={{ font: '700 28px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', textShadow: '0 0 18px rgba(242,196,90,0.5)' }}>VS</span>
+          <Side name={opponent.name} avatar={opponent.avatar} step={opponent.rankStep} align="r" />
         </div>
+        <p className="text-center mt-5" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '20px 0 0' }}>{opponent.faction} · {t('ranked.matchPreparing')}</p>
       </div>
     </div>
   )

@@ -97,6 +97,7 @@
     "found": "Opponent found.",
     "similar": "Searching for an opponent of similar rank…",
     "unknown": "Unknown",
+    "waitingFor": "Waiting: {{sec}}s",
     "widening": "Widening the search…"
   },
   "rankDown": "Rank down",

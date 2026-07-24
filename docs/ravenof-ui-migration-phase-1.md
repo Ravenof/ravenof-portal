@@ -209,3 +209,34 @@ Naujas bendrinis komponentas: `RavenofBannerButton` (raudona vėliavos CTA — `
 
 ## Liko nemigruota (be raw ref)
 Deck builder, community decks turinys, pack open, campaign žemėlapis (`/digital/campaign/[slug]`), more/tutorial hub, queue/match-found, offline/maintenance ekranai.
+
+---
+
+# Fazė 4 — priedas (2026-07-24)
+
+Likę legacy ekranai pritraukti prie patvirtintos vizualinės kalbos **be raw referencų** — pagal RavenofKit sistemą (`--ravenof-*` tokenai, Cinzel/Alegreya Sans, kampuoti paviršiai, auksiniai clip CTA, raudonas banner CTA). Visa gyva logika nekeista.
+
+## Apimtis
+
+| Ekranas | Komponentas | Pakeitimas |
+|---|---|---|
+| Bendruomenės kaladės | `DigitalCommunityDecks` | Perrašyta į ravenof kalbą: įrankių juosta (paieška/frakcija/rikiavimas/„tik kurias galiu susidėti" toggle), kaladžių grid su frakcijos viršaus juosta, TOP-3 romėniški numeriai (be emoji), balsų dėžutė, detalės modalas (kortos+komentarai) — visi balsavimo/kopijavimo/komentarų/report RPC išsaugoti; retumo spalvos per `ravenofRarityColor`. |
+| Deck builder | `DigitalDeckBuilder` | Vizualinis reskinas (paneles, tipografija, patvirtinta FAC/RAR paletė, auksinis clip IŠSAUGOTI) — drag&drop, validacija, store, testerio bypass, hover preview logika nepaliesta. |
+| Pakuotės atidarymas | `PackOpen` | Chrome reskinas: ravenof antraštės, ✕ iconbtn, auksiniai clip CTA („Atplėšti pakuotę"/„Į kolekciją"), ornamentas prie „Tavo kortos"; kompaktiškesnis sealed layout (telpa 390px aukštyje). Plėšimo/reveal/karuselės animacijos nekeistos. |
+| Daugiau | `MoreScreen` | Ravenof panelės, sekcijų label'iai, plytelės su akcento kairiu rėmu, patvirtinimo dialogai ravenof-btn klasėmis. |
+| Mokymai | `TutorialHub` | Perrašyta: ‹ + MOKYMAI antraštė, kaladės kortelė su viršelio artu + raudonas banner „Pradėti mokymų kovą"; fallback starter grid ravenof kalba. `?auto=1`, claim/launch logika ta pati. |
+| Ranked eilė | `RankedQueue` | Ravenof overlay: deimanto spinner, Cinzel būsena, „Laukiama: Ns" per i18n, Atšaukti secondary. Matchmaking poll/bot fallback nekeisti. |
+| Priešininkas rastas | `MatchFound` | Ravenof panelė su spinduliais (`.ravenof-rays`) + ornamentu; VS išlaikytas. |
+| Kampanijos žemėlapis | `CampaignMapScreen` | Viršaus juosta ravenof kalba (‹ KAMPANIJA, Cinzel pavadinimas, progreso chip), kaladės įspėjimas; konteineris pritaikytas prie rail shell'o (left = rail plotis, bottom = 0 — nebelieka legacy bottom-nav tarpo). Hardcoded LT tekstai → i18n. |
+
+## Shell
+- MIGRATED_ROUTES += `/digital/more`, `/digital/tutorial`; Flames nerodomos ir `/digital/campaign/[slug]` (startsWith).
+
+## Patikros (2026-07-24)
+- `tsc --noEmit` OK · `eslint` keistuose failuose 0 klaidų · i18n ERROR 0 (nauji raktai: decks.community.*, onboarding.tutorial.*, collection.pack.*, ranked.queue.waitingFor, battle.campaign.*) · `next build` OK · smoke OK (visi route'ai, 0 overflow, 0 pageerror).
+- Vizuali verifikacija 844×390@2x: `artifacts/ravenof-ui-phase-4/{community,builder-faction,builder,more,tutorial,pack-open,ranked-queue,campaign-map}-implementation.png`.
+- Mock praplėstas: cards.faction_id, user_pack_inventory, deck_cards su card join (builder/community/pack vizualams).
+
+## Pastabos
+- Šie ekranai neturi patvirtintų raw referencų — dizainas išvestas iš RavenofKit sistemos; atsiradus oficialiems eksportams, ekranus reikės sutikrinti ir prireikus tikslinti.
+- MatchFound/queue/pack reveal vizualiai patikrinti tik iš dalies (srauto ekranai); pack sealed + queue captures yra, reveal/karuselė — kodo peržiūra.

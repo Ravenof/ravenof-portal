@@ -47,6 +47,7 @@ const CARDS = Array.from({ length: 40 }, (_, i) => ({
   description: null,
   effect_text: i % 2 === 0 ? 'Šauksmas — traukite kortą.' : '∞ — Gali būti iškviestas vietoje „Zombis".',
   is_champion: false,
+  faction_id: (i % FACTIONS.length) + 1,
   faction: FACTIONS[i % FACTIONS.length],
   card_type: { name: TYPES[i % TYPES.length] },
   rarity: RARITIES[i % RARITIES.length],
@@ -235,10 +236,13 @@ http.createServer((req, res) => {
   }
   if (p.startsWith('/rest/v1/cards')) return send(CARDS)
   if (p.startsWith('/rest/v1/decks')) return send(DECKS)
-  if (p.startsWith('/rest/v1/deck_cards')) return send([])
+  if (p.startsWith('/rest/v1/deck_cards')) return send(CARDS.slice(0, 8).map((c) => ({ deck_id: 'deck-1', card_id: c.id, quantity: 2, card: { name: c.name, image_url: c.image_url, gold_cost: c.gold_cost, rarity: { name: c.rarity.name } } })))
   if (p.startsWith('/rest/v1/factions')) return send(FACTION_ROWS)
   if (p.startsWith('/rest/v1/card_packs')) return send(CARD_PACKS)
   if (p.startsWith('/rest/v1/user_collections')) return send(COLLECTION_ROWS)
+  if (p.startsWith('/rest/v1/user_pack_inventory')) return send([{ pack_id: 'pack-1', quantity: 3 }])
+  if (p.startsWith('/rest/v1/deck_votes')) return send([])
+  if (p.startsWith('/rest/v1/deck_comment')) return send([])
   if (p.startsWith('/rest/v1/')) return send([])
   return send([])
 }).listen(PORT, () => console.log(`[ravenof-ui-mock] listening on :${PORT}`))

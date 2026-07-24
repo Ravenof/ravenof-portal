@@ -50,7 +50,7 @@ const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding
 // Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
 const NO_HEADER_ROUTES = ['/digital/collection', '/digital/friends']
 // Migruoti route'ai — juose fono „Flames" sluoksnis nerodomas (patvirtintas fonas = grynas ink)
-const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends']
+const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends', '/digital/more', '/digital/tutorial']
 // Pilno ekrano režimų ekranai (prototipas: be rail ir be header; atgal — ekrano ‹ mygtukas)
 const FULL_BLEED_ROUTES = ['/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign']
 
@@ -196,7 +196,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="ravenof-body fixed inset-0 z-40 flex flex-row select-none" style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
-      {!MIGRATED_ROUTES.includes(pathname) && <Flames />}
+      {!MIGRATED_ROUTES.includes(pathname) && !pathname.startsWith('/digital/campaign/') && <Flames />}
       <HubStyles />
       <I18nBoot />
       <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }`}</style>

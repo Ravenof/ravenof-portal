@@ -251,6 +251,64 @@ for (const [route, name] of [['/digital/pve', 'pve'], ['/digital/pvp', 'pvp'], [
   await context.close()
 }
 
+// ── Fazė 4 ekranai (be raw ref — RavenofKit kalba) ───────────────────────────
+const OUT4 = 'artifacts/ravenof-ui-phase-4'
+fs.mkdirSync(OUT4, { recursive: true })
+// Community decks + deck builder
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/decks?tab=community`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2400)
+  await page.screenshot({ path: path.join(OUT4, 'community-implementation.png') })
+  await page.goto(`${BASE}/digital/decks?tab=builder`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2400)
+  await page.screenshot({ path: path.join(OUT4, 'builder-faction-implementation.png') })
+  // pasirenkam frakciją → albumas + kaladės panelė
+  await page.locator('section button').nth(1).click().catch(() => {})
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: path.join(OUT4, 'builder-implementation.png') })
+  await context.close()
+}
+// More + Tutorial hub
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/more`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2000)
+  await page.screenshot({ path: path.join(OUT4, 'more-implementation.png') })
+  await page.goto(`${BASE}/digital/tutorial`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2200)
+  await page.screenshot({ path: path.join(OUT4, 'tutorial-implementation.png') })
+  await context.close()
+}
+// Pack open (sealed) — kolekcijos CTA
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/collection`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2200)
+  await page.locator('[data-testid="packs-btn"]').click().catch(() => {})
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: path.join(OUT4, 'pack-open-implementation.png') })
+  await context.close()
+}
+// Ranked queue (ŽAISTI → eilė)
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/ranked`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2200)
+  await page.getByText('ŽAISTI', { exact: false }).last().click().catch(() => {})
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: path.join(OUT4, 'ranked-queue-implementation.png') })
+  await context.close()
+}
+// Kampanijos žemėlapis
+{
+  const { page, context } = await newPage(browser, { auth: true })
+  await page.goto(`${BASE}/digital/campaign/pelenu-zygis`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2600)
+  await page.screenshot({ path: path.join(OUT4, 'campaign-map-implementation.png') })
+  await context.close()
+}
+
 await browser.close()
 fs.writeFileSync(path.join(OUT, 'console-errors.json'), JSON.stringify(consoleErrors, null, 2))
 console.log('screenshots done; console errors:', consoleErrors.length)

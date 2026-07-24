@@ -15,19 +15,19 @@ import { ChevronLeft, Search, Plus, Minus, Lock, Save, Loader2, X, Layers } from
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
 import { validateDeck, getCopyLimit, isCurseCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
-import { rarityColor } from '@/lib/digital/rarity'
+import { ravenofRarityColor as rarityColor } from '@/components/digital/ui/RavenofKit'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { useT, useContent, useCardI18n } from '@/lib/i18n/react'
 
-const GOLD = '240,180,41'
+const GOLD = '212,163,59'
 // hover preview tik įrenginiams su tikra pele (touch emuliuoja mouse eventus,
 // bet mouseleave niekada neįvyksta — preview užstrigdavo ekrane)
 const HOVER_OK = typeof window !== 'undefined' && !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches
 const GHOST_W = 76
 const GHOST_H = Math.round(GHOST_W * 1.4)
-const PANEL: React.CSSProperties = { background: 'linear-gradient(160deg, rgba(20,16,28,0.96), rgba(9,7,12,0.98))', border: `1px solid rgba(${GOLD},0.22)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }
+const PANEL: React.CSSProperties = { background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)' }
 
 type InitialDeck = {
   id: string; name: string; description: string; factionId: number | null
@@ -338,16 +338,16 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
   const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.entries])
 
   return (
-    <div className="h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: 'clamp(4px,1vh,8px)' }}>
+    <div className="ravenof-body ravenof-in h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: 'clamp(4px,1vh,8px)' }}>
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
 
         {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
-        <section className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
+        <section className="flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
           {store.factionId == null ? (
             <div className="flex-1 min-h-0 flex flex-col">
               <div className="relative mb-2 shrink-0">
-                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
-                <div className="rvn-disp font-extrabold uppercase tracking-wide text-center" style={{ fontSize: 'clamp(11px,1.7vh,14px)', color: 'var(--gold)' }}>{t('deckBuilder.pickDeckFaction')}</div>
+                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
+                <div className="rvn-disp font-extrabold uppercase tracking-wide text-center" style={{ fontSize: 'clamp(11px,1.7vh,14px)', color: 'var(--ravenof-gold)' }}>{t('deckBuilder.pickDeckFaction')}</div>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-2 content-start">
                 {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
@@ -358,7 +358,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                       <span className="text-2xl shrink-0">{id?.icon ?? '🛡️'}</span>
                       <span className="min-w-0">
                         <span className="block font-bold leading-tight truncate" style={{ fontSize: 13, color: f.color_hex ?? '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('faction', f.id, 'name', f.name)}</span>
-                        <span className="block leading-tight truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{id ? t(id.lineKey) : ''}</span>
+                        <span className="block leading-tight truncate" style={{ fontSize: 10, color: 'var(--ravenof-text-secondary)' }}>{id ? t(id.lineKey) : ''}</span>
                       </span>
                     </button>
                   )
@@ -369,18 +369,18 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
             <>
               {/* Filtrų juosta (back čia — atskiros antraštės eilutės nebėra, plotas kortoms) */}
               <div className="shrink-0 flex items-center gap-1.5 flex-wrap mb-2">
-                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
+                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
                 <div className="relative flex-1" style={{ minWidth: 120 }}>
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--text-muted)' }} />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--ravenof-text-secondary)' }} />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('deckBuilder.searchAlbum')} className="w-full outline-none rounded-lg"
-                    style={{ minHeight: 32, paddingLeft: 28, paddingRight: 8, fontSize: 11.5, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--text-primary)' }} />
+                    style={{ minHeight: 32, paddingLeft: 28, paddingRight: 8, fontSize: 11.5, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-text-primary)' }} />
                 </div>
                 <select value={store.factionId ?? ''} onChange={(e) => { const f = factions.find((x) => x.id === Number(e.target.value)); if (f) pickFaction(f) }}
                   className="rounded-lg outline-none" style={{ minHeight: 32, maxWidth: 150, fontSize: 11, padding: '0 6px', background: 'rgba(10,8,16,0.9)', border: `1px solid ${selFaction?.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.3)`}`, color: selFaction?.color_hex ?? 'var(--text-primary)' }}>
                   {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
                 <button onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} className="rvn-press rounded-lg px-2 font-semibold"
-                  style={{ minHeight: 32, fontSize: 10, background: store.ownedOnly ? 'rgba(34,197,94,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${store.ownedOnly ? 'rgba(34,197,94,0.55)' : `rgba(${GOLD},0.25)`}`, color: store.ownedOnly ? '#86efac' : 'var(--text-muted)' }}>
+                  style={{ minHeight: 32, fontSize: 10, background: store.ownedOnly ? 'rgba(79,158,82,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${store.ownedOnly ? 'rgba(79,158,82,0.55)' : `rgba(${GOLD},0.25)`}`, color: store.ownedOnly ? '#7fbf82' : 'var(--text-muted)' }}>
                   {t('deckBuilder.ownedOnly')}
                 </button>
                 <button onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} className="rvn-press rounded-lg px-2 font-semibold"
@@ -393,7 +393,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                   hover (pelė) = plaukiojantis kortos pav.; tap = didelė peržiūra su Pridėti;
                   palaikyk+tempk = drag į kaladę; [+] = greitas pridėjimas. */}
               {pool.length === 0 ? (
-                <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--text-muted)' }}>{t('deckBuilder.noCards')}</p>
+                <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--ravenof-text-secondary)' }}>{t('deckBuilder.noCards')}</p>
               ) : (
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-0.5">
                   {pool.map((c) => (
@@ -415,7 +415,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           initial={dropPulse > 0 ? { scale: 1.02 } : false}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 380, damping: 16 }}
-          className="rounded-2xl flex flex-col min-h-0 overflow-hidden p-2.5"
+          className="flex flex-col min-h-0 overflow-hidden p-2.5"
           style={{
             height: '100%', maxHeight: '100%',
             ...PANEL,
@@ -424,29 +424,29 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
             transition: 'box-shadow .15s ease, border-color .15s ease',
           }}>
           <div className="flex items-center justify-between gap-2 mb-1.5 shrink-0">
-            <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--gold)', letterSpacing: '0.06em' }}>
+            <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--ravenof-gold)', letterSpacing: '0.06em' }}>
               <Layers className="w-3.5 h-3.5" /> Kaladė
               {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
             </span>
-            <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#86efac' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>
+            <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>
           </div>
 
           {/* KOMPAKTU: vardas + matomumo ikona + ✎ vienoje eilėje — SĄRAŠUI maksimalus aukštis */}
           <div className="flex items-center gap-1.5 shrink-0 mb-1.5">
             <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder={t('deckBuilder.deckNamePlaceholder')}
-              className="flex-1 min-w-0 px-2.5 rounded-lg font-semibold outline-none" style={{ minHeight: 32, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(239,68,68,0.6)'}`, color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
+              className="flex-1 min-w-0 px-2.5 rounded-lg font-semibold outline-none" style={{ minHeight: 32, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(180,68,79,0.6)'}`, color: 'var(--ravenof-text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
             <button onClick={() => { playUiClick(); store.setVisibility((store.visibility === 'private' ? 'public' : 'private') as DeckVisibility) }}
               title={store.visibility === 'private' ? t('deckBuilder.privateHint') : t('deckBuilder.publicHint')}
               className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 14, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
               {store.visibility === 'private' ? '🔒' : '🌐'}
             </button>
             <button onClick={() => { playUiClick(); setDescOpen((v) => !v) }} title={t('deckBuilder.description')}
-              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 13, background: descOpen || store.description ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--gold)' }}>✎</button>
+              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 13, background: descOpen || store.description ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }}>✎</button>
           </div>
 
           {descOpen && (
             <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder={t('deckBuilder.descriptionPlaceholder')} autoFocus
-              className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--text-secondary)' }} />
+              className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--ravenof-text-secondary)' }} />
           )}
 
           {/* Kaladės sąrašas — min-h-0 LEIDŽIA trauktis (kitaip pilna kaladė išstumia
@@ -455,7 +455,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
             {sortedEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
-                <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.35 }}>{dragCard ? t('deckBuilder.dropHere') : t('deckBuilder.dragHint')}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{dragCard ? t('deckBuilder.dropHere') : t('deckBuilder.dragHint')}</p>
               </div>
             ) : (
               <div className="space-y-1">
@@ -469,11 +469,11 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                         style={{ background: `linear-gradient(90deg, ${col}26 0%, rgba(10,8,16,0.85) 55%)`, border: `1px solid ${col}44`, borderLeft: `3px solid ${col}`, opacity: dragCard?.id === e.card.id ? 0.35 : 1, transition: 'opacity .15s' }}>
                         <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 17, height: 17, fontSize: 9, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{e.card.gold_cost}</span>
                         <button onClick={() => { playUiClick(); setPreview(e.card) }} className="flex-1 min-w-0 text-left">
-                          <span className="block font-semibold truncate" style={{ fontSize: 10.5, color: '#f3ead3' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
+                          <span className="block font-semibold truncate" style={{ fontSize: 10.5, color: 'var(--ravenof-text-primary)' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
                         </button>
-                        <button onClick={() => dec(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }} aria-label={t('deckBuilder.less')}><Minus className="w-3 h-3" /></button>
-                        <span className="font-bold tabular-nums text-center shrink-0" style={{ width: 18, fontSize: 10.5, color: 'var(--gold)' }}>×{e.quantity}</span>
-                        <button onClick={() => tryAdd(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac' }} aria-label={t('deckBuilder.more')}><Plus className="w-3 h-3" /></button>
+                        <button onClick={() => dec(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(180,68,79,0.14)', border: '1px solid rgba(180,68,79,0.4)', color: '#c65563' }} aria-label={t('deckBuilder.less')}><Minus className="w-3 h-3" /></button>
+                        <span className="font-bold tabular-nums text-center shrink-0" style={{ width: 18, fontSize: 10.5, color: 'var(--ravenof-gold)' }}>×{e.quantity}</span>
+                        <button onClick={() => tryAdd(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(79,158,82,0.14)', border: '1px solid rgba(79,158,82,0.45)', color: '#7fbf82' }} aria-label={t('deckBuilder.more')}><Plus className="w-3 h-3" /></button>
                       </motion.div>
                     )
                   })}
@@ -489,21 +489,21 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                 <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
                   <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                     style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)' }} />
-                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--text-muted)' }}>{i < 7 ? i : '7+'}</span>
+                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--ravenof-text-secondary)' }}>{i < 7 ? i : '7+'}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-between px-0.5 pb-0.5" style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>
-              <span>{t('deckBuilder.avgShort')} <b style={{ color: 'var(--gold)' }}>{stats.avg.toFixed(1)}</b></span>
+            <div className="flex justify-between px-0.5 pb-0.5" style={{ fontSize: 8.5, color: 'var(--ravenof-text-secondary)' }}>
+              <span>{t('deckBuilder.avgShort')} <b style={{ color: 'var(--ravenof-gold)' }}>{stats.avg.toFixed(1)}</b></span>
               <span>{t('deckBuilder.championsShort')} <b style={{ color: '#c4b5fd' }}>{stats.champions}</b></span>
-              <span>Σ <b style={{ color: total >= DECK_MIN ? '#86efac' : '#f3ead3' }}>{total}</b></span>
+              <span>Σ <b style={{ color: total >= DECK_MIN ? '#7fbf82' : '#f3ead3' }}>{total}</b></span>
             </div>
           </div>
 
           {/* Validacija + išsaugoti — visada matomi (safe-area, niekada po nav) */}
           <div className="shrink-0 pt-1.5 space-y-1.5 relative" data-testid="builder-actions"
             style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))', zIndex: 2, minHeight: 56, background: 'linear-gradient(0deg, rgba(12,9,18,0.98) 75%, transparent)' }}>
-            <p className="truncate text-center" style={{ fontSize: 10, lineHeight: 1.2, color: reason ? '#fca5a5' : '#86efac' }}>{reason ?? t('deckBuilder.deckValid')}</p>
+            <p className="truncate text-center" style={{ fontSize: 10, lineHeight: 1.2, color: reason ? '#c65563' : '#7fbf82' }}>{reason ?? t('deckBuilder.deckValid')}</p>
             <button onClick={save} disabled={!canSave} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl font-bold disabled:opacity-40"
               style={{ minHeight: 'clamp(36px,6vh,44px)', fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('deckBuilder.save')}
@@ -530,7 +530,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
       {preview && <BuilderPreview c={preview} owned={ownedOf(preview.id)} deckQty={deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
 
-      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
+      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--ravenof-gold)' }}>{toast}</div>}
     </div>
   )
 }
@@ -564,9 +564,9 @@ function NameRow({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onH
         <span className="block truncate font-bold" style={{ fontSize: 11, color: owned > 0 ? '#f3ead3' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{c.is_champion ? '★ ' : ''}{c.name}</span>
       </button>
       {owned <= 0 && <Lock className="w-3 h-3 shrink-0" style={{ color: 'rgba(255,255,255,0.45)' }} />}
-      {deckQty > 0 && <span className="shrink-0 font-bold tabular-nums" style={{ fontSize: 10, color: 'var(--gold)' }}>×{deckQty}</span>}
+      {deckQty > 0 && <span className="shrink-0 font-bold tabular-nums" style={{ fontSize: 10, color: 'var(--ravenof-gold)' }}>×{deckQty}</span>}
       <button onClick={onAdd} disabled={addDisabled} className="rvn-press flex items-center justify-center rounded-md shrink-0 disabled:opacity-25"
-        style={{ width: 24, height: 24, background: 'rgba(34,197,94,0.16)', border: '1px solid rgba(34,197,94,0.45)', color: '#86efac' }} aria-label={t('deckBuilder.add')}><Plus className="w-3.5 h-3.5" /></button>
+        style={{ width: 24, height: 24, background: 'rgba(79,158,82,0.16)', border: '1px solid rgba(79,158,82,0.45)', color: '#7fbf82' }} aria-label={t('deckBuilder.add')}><Plus className="w-3.5 h-3.5" /></button>
     </div>
   )
 }
@@ -611,15 +611,15 @@ function BuilderPreview({ c, owned, deckQty, onAdd, onClose }: { c: CardWithRela
         </div>
         <div className="flex-1 min-w-0 p-4 flex flex-col gap-2 overflow-y-auto">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{c.name}</h2>
+            <h2 className="text-base font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--ravenof-text-primary)' }}>{c.name}</h2>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ color: col, border: `1px solid ${col}` }}>{c.rarity?.name ?? '—'}</span>
           </div>
-          <div className="flex flex-wrap gap-x-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <div className="flex flex-wrap gap-x-3 text-[11px]" style={{ color: 'var(--ravenof-text-secondary)' }}>
             <span>🪙 {c.gold_cost}</span>{c.attack != null && <span>⚔️ {c.attack}</span>}{c.health != null && <span>❤️ {c.health}</span>}{c.faction?.name && <span>· {c.faction.name}</span>}{c.card_type?.name && <span>· {c.card_type.name}</span>}
           </div>
-          {(c.effect_text || c.description) && <p className="text-xs leading-snug" style={{ color: 'var(--text-secondary)' }}>{c.effect_text || c.description}</p>}
-          <p className="text-[11px] font-semibold mt-auto" style={{ color: owned > 0 ? '#86efac' : '#fca5a5' }}>{owned > 0 ? t('deckBuilder.ownedInDeck', { owned, qty: deckQty, max: Math.min(limit, owned) }) : t('deckBuilder.notOwnedYet')}</p>
-          <button onClick={() => { onAdd() }} disabled={addDisabled} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ minHeight: 42, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>{t('deckBuilder.addToDeck')}</button>
+          {(c.effect_text || c.description) && <p className="text-xs leading-snug" style={{ color: 'var(--ravenof-text-secondary)' }}>{c.effect_text || c.description}</p>}
+          <p className="text-[11px] font-semibold mt-auto" style={{ color: owned > 0 ? '#7fbf82' : '#c65563' }}>{owned > 0 ? t('deckBuilder.ownedInDeck', { owned, qty: deckQty, max: Math.min(limit, owned) }) : t('deckBuilder.notOwnedYet')}</p>
+          <button onClick={() => { onAdd() }} disabled={addDisabled} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ minHeight: 42, background: 'rgba(79,158,82,0.18)', border: '1px solid rgba(79,158,82,0.5)', color: '#7fbf82', fontFamily: 'var(--rvn-font-display)' }}>{t('deckBuilder.addToDeck')}</button>
         </div>
       </div>
     </div>

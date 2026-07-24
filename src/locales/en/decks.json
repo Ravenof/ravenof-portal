@@ -27,6 +27,7 @@
   "cardsShort_other": "{{count}} cards",
   "community": {
     "allFactions": "All factions",
+    "byAuthor": "by {{name}}",
     "commentPlaceholder": "Write a comment…",
     "copied": "Deck copied to My decks",
     "copiedMissing": "Full deck copied — {{count}} cards missing, you can play once you own them",
@@ -35,6 +36,8 @@
     "copyFull": "Copy the full deck",
     "craftableOnly": "Only ones I can build",
     "haveAll": "✓ You own all the cards",
+    "haveAllShort": "Own all",
+    "haveOf": "Own {{have}}/{{total}}",
     "missingInfo": "{{count}} cards missing — the copied deck will be complete, but playable only once you own them",
     "noComments": "No comments yet — be the first!",
     "noneFound": "No decks found.",
@@ -51,7 +54,10 @@
     "sortCards": "Most cards",
     "sortNew": "Newest",
     "sortTop": "TOP by votes",
+    "tabCards": "Cards",
+    "tabComments": "Comments",
     "voteDown": "Downvote",
+    "voteFailed": "Vote failed.",
     "voteUp": "Upvote"
   },
   "edit": "✎ Edit",

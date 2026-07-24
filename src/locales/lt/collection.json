@@ -43,10 +43,12 @@
     "noPack": "Nebeturi šios pakuotės.",
     "openCta": "🎁 Atplėšti pakuotę",
     "opening": "ATPLĖŠIAMA…",
+    "skip": "Praleisti",
     "swipeToOpen": "PERBRAUK PIRŠTU PER PAKUOTĖS VIRŠŲ",
     "tapEnd": "Spustelėk – pabaiga",
     "tapNext": "Spustelėk – kita korta",
-    "toCollection": "Į kolekciją"
+    "toCollection": "Į kolekciją",
+    "yourCards": "Tavo kortos"
   },
   "packsN": "Pakai ({{count}})",
   "pickCard": "Pasirink kortą.",

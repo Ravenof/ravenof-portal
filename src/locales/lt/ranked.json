@@ -98,6 +98,7 @@
     "found": "Rastas priešininkas.",
     "similar": "Ieškoma panašaus rango priešininko…",
     "unknown": "Nežinoma",
+    "waitingFor": "Laukiama: {{sec}}s",
     "widening": "Plečiama paieška…"
   },
   "rankDown": "Rangas nukrito",
