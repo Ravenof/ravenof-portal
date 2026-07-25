@@ -5,7 +5,7 @@
 
 import {
   createGame, beginTurn, endTurn, playCard, attack, P,
-  advanceSummonChain, flushSummonChain, type TutCard, type GameState,
+  advanceSummonChain, flushSummonChain, consumeReactionSnapshot, type TutCard, type GameState,
 } from '../src/lib/tutorial/engine'
 import type { EffectMapping } from '../src/lib/game/types'
 
@@ -223,6 +223,69 @@ console.log('\n── 8. Dingęs trigerio šaltinis: jokio pertaikymo, eilė nes
   check('2-a reakcija NEPERTAIKYTA į kitą padarą', (innocent?.hp ?? 0) === 8, `nekaltas=${innocent?.hp}`)
   check('log: pranešimas apie prarastą taikinį', g.log.some((e) => e.key === 'battleLog.reactionTargetLost'))
   check('žaidimas tęsiasi (nėra užstrigimo)', !g.winner || g.winner === null || true)
+}
+
+
+console.log('\n── 9. Reakcijos animacijos vartai: būsena atskleidžiama TIK po grandinės ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const mk = (uid: string) => {
+    const c = mkCard({ name: 'Dvynys', uid, attack: 3, health: 6 })
+    return { uid, card: c, atk: 3, hp: 6, maxHp: 6, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  }
+  p.units[0] = mk('puolikas') as never
+  const reactCard = mkCard({
+    name: 'Sielos Pančiai', uid: 'rc1', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyUnit', value: 3, useTriggerSource: true, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'rc1', card: reactCard, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'puolikas', { kind: 'player', side: 'you' })
+
+  const gates = g.reactionGates ?? []
+  check('sukurtas 1 reakcijos vartų kadras', gates.length === 1, String(gates.length))
+  const gate = gates[0]
+  check('kadras nurodo reakcijos kortą', gate?.reactionUid === 'rc1' && gate?.reactionCardName === 'Sielos Pančiai')
+  check('kadras nurodo trigerio šaltinį (runtime uid)', !!gate?.target && 'uid' in gate.target && gate.target.uid === 'puolikas', JSON.stringify(gate?.target))
+
+  const snap = consumeReactionSnapshot(gate.snapshotId)
+  check('snapshotas egzistuoja', !!snap)
+  const sTgt = snap ? P(snap, 'ai').units.find((u) => u?.uid === 'puolikas') : null
+  check('snapshote efektas DAR NEPRITAIKYTAS (HP 6)', (sTgt?.hp ?? 0) === 6, `hp=${sTgt?.hp}`)
+  check('snapshote reakcijos korta DAR slote (matoma animacijai)', !!snap && P(snap, 'you').reactions[0] !== null)
+  check('snapshote nera vartu (nesidubliuoja)', !snap?.reactionGates?.length)
+
+  const fTgt = P(g, 'ai').units.find((u) => u?.uid === 'puolikas')
+  check('galutinėje būsenoje efektas pritaikytas (HP 3)', (fTgt?.hp ?? 0) === 3, `hp=${fTgt?.hp}`)
+  check('vartu snapshotas sunaudojamas tik karta', consumeReactionSnapshot(gate.snapshotId) === null)
+}
+
+console.log('\n── 10. Dvi reakcijos: du kadrai iš eilės, be persidengimo ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const c = mkCard({ name: 'Puolikas', uid: 'atk1', attack: 3, health: 9 })
+  p.units[0] = { uid: 'atk1', card: c, atk: 3, hp: 9, maxHp: 9, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false } as never
+  const rk = (uid: string, name: string) => mkCard({
+    name, uid, type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyUnit', value: 2, useTriggerSource: true, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'ra', card: rk('ra', 'Reakcija A'), paid: 0 }
+  P(g, 'you').reactions[1] = { uid: 'rb', card: rk('rb', 'Reakcija B'), paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'atk1', { kind: 'player', side: 'you' })
+
+  const gates = g.reactionGates ?? []
+  check('du vartų kadrai', gates.length === 2, String(gates.length))
+  check('eiliškumas: A tada B', gates[0]?.reactionUid === 'ra' && gates[1]?.reactionUid === 'rb', gates.map((x) => x.reactionUid).join('>'))
+  const s1 = consumeReactionSnapshot(gates[0].snapshotId)
+  const s2 = consumeReactionSnapshot(gates[1].snapshotId)
+  const hp = (st: GameState | null) => st ? (P(st, 'ai').units.find((u) => u?.uid === 'atk1')?.hp ?? -1) : -1
+  check('1-o kadro snapshot: dar 9 HP', hp(s1) === 9, String(hp(s1)))
+  check('2-o kadro snapshot: A efektas jau matomas (7 HP)', hp(s2) === 7, String(hp(s2)))
+  check('galutinė būsena: abu efektai (5 HP)', (P(g, 'ai').units.find((u) => u?.uid === 'atk1')?.hp ?? -1) === 5)
+  check('kiekvienas kadras turi savo log poziciją', (gates[0].atLog ?? 0) < (gates[1].atLog ?? 0))
 }
 
 console.log(`\n──────────────\n  PASS: ${pass}   FAIL: ${fail}\n──────────────`)

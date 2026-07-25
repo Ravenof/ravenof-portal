@@ -25,6 +25,7 @@ import {
   parseEffect, detectKeywords, mapCardType, effectiveAtk, projectileForCard, type TutCardType,
   effectiveCost, auraSpellDamageBonus,
   STATUS_META, TutStatus, boardCreatureCap, type ZmkValue,
+  consumeReactionSnapshot, type ReactionGate,
 } from '@/lib/tutorial/engine'
 import { eventText } from '@/lib/tutorial/logText'
 import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
@@ -63,7 +64,8 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
-import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS } from '@/lib/game/timing'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES } from '@/lib/game/timing'
+import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
@@ -847,6 +849,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Pilno lauko summon efektas
   const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   const fxRef = useRef<BattleFxHandle>(null)
+  /** Reakcijos grandinės sluoksnis + vartų būsena (žr. „Reakcijos grandinės vartai"). */
+  const chainRef = useRef<ReactionChainHandle>(null)
+  const chainGateActiveRef = useRef(false)
   const arenaRef = useRef<ArenaKey>(randomArena())
   // Kosmetika kovoje: pasirinkta nugarėlė (modulio kintamasis) + lentos fonas
   const [boardSkinUrl, setBoardSkinUrl] = useState<string | null>(null)
@@ -1077,8 +1082,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const returnBlocks = !!game?.pendingReturn
   /** Nuoseklių Kovos šūksnio iškvietimų grandinė – žaidėjo veiksmai užrakinti, kol ji baigsis. */
   const chainBlocks = !!game?.summonChain?.length
-  /** Bendras įvesties užraktas (pop-up'as arba vykstanti iškvietimų grandinė). */
-  const actionsLocked = popupBlocks || chainBlocks
+  /** Reakcijos grandinės animacijos vartai – kol jie atviri, būsena dar neparodyta. */
+  const [gateActive, setGateActive] = useState(false)
+  /** Bendras įvesties užraktas (pop-up'as, iškvietimų grandinė arba reakcijos vartai). */
+  const actionsLocked = popupBlocks || chainBlocks || gateActive
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
   const useHLayout = typeof window === 'undefined' ? true : new URLSearchParams(window.location.search).get('layout') !== 'v'
@@ -1668,17 +1675,24 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
         case 'reactionTrigger': {
-          // Reakcijos seka: (1) korta atskleidžiama, (2) grandinė keliauja nuo jos
-          // iki reakciją suaktyvinusios kortos ir apsiveja, (3) TIK PO
-          // REACTION_CHAIN_ANIMATION_DURATION_MS rodomas gameplay rezultatas
-          // (žala/būsena/žūtis) – visi tolesni FX ir log įrašai atidedami per showcaseHold.
+          // Reakcijos seka (aprobuota 2026-07-25):
+          //   P0 aptikimas → P1 grandinė → P2 apsivijimas → P3 kortos parodymas → P4 efektas.
+          // Grandinę piešia ReactionChainLayer, o gameplay būsena atskleidžiama TIK po jos
+          // (žr. startGateRun). Čia lieka tik kortos parodymas (P3) tinkamu momentu.
           queueTip('reaction')
           const card = findCard(e.cardName)
           const from = pileCenter(`[data-pile="reactions-${e.side}"]`) ?? fxCenter()
+          if (chainGateActiveRef.current) {
+            const revealAt = REACTION_CHAIN_PHASES.detect + REACTION_CHAIN_PHASES.chain + REACTION_CHAIN_PHASES.wrap
+            spawnShowcase(card, from, 'reaction', revealAt)
+            break
+          }
+          // Fallback: reakcijos be mapping'ų (legacy `reactionBeforeAttack`) arba kai vartų nėra —
+          // trumpa versija su tiesioginiu spinduliu, kaip iki šiol.
           const revealAt = SETTLE + fxSeq
           spawnShowcase(card, from, 'reaction', revealAt)
           const chainDur = REACTION_CHAIN_ANIMATION_DURATION_MS
-          const chainAt = revealAt + 420           // grandinė startuoja po atskleidimo
+          const chainAt = revealAt + 420
           const chainTo = e.tgt ? rectOf(e.tgt) : null
           if (chainTo) {
             const cFrom = { x: from.x, y: from.y }
@@ -1691,9 +1705,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               fxRef.current?.hitFlash(cTo.x, cTo.y, '#cfd6e3')
               fxRef.current?.shakeBoard('soft')
             }, chainAt + chainDur)
-          }
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug(`[ReactionAnimation] reaction=${e.src?.uid ?? '?'} target=${e.tgt?.uid ?? '—'} duration=${chainDur} ms`)
           }
           showcaseHold = chainAt + chainDur + 120
           fxSeq = Math.max(fxSeq, showcaseHold - SETTLE + 150)
@@ -2031,10 +2042,114 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (showLog && logScrollRef.current) logScrollRef.current.scrollTop = logScrollRef.current.scrollHeight
   }, [showLog, game?.log.length])
 
+  // ── Reakcijos grandinės vartai (Reaction Chain VFX) ─────────────────────────
+  // Variklis suskaičiuoja viską sinchroniškai (autoritetingai), bet ties kiekviena
+  // suveikusia reakcija įsimena būsenos snapshot'ą PRIEŠ jos efektą. Čia:
+  //   1) parodom snapshot'ą (reakcijos korta dar slot'e, taikinys dar nepaliestas),
+  //   2) grojam grandinės animaciją ir LAUKIAM jos completion signalo,
+  //   3) tik tada atskleidžiam kitą būseną (efekto rezultatą).
+  // Jokių lygiagrečių grandinių: kelios reakcijos sprendžiamos griežtai po vieną.
+
+  /** Elemento dėžutė (viewport CSS px) pagal tą pačią selektorių logiką kaip rectFor. */
+  const boxFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number; w: number; h: number } | null => {
+    if (!ref) return null
+    let el: Element | null = null
+    if (ref.uid) el = document.querySelector(`[data-unit-uid="${ref.uid}"]`) ?? document.querySelector(`[data-artifact-uid="${ref.uid}"]`)
+    if (!el && ref.side) el = document.querySelector(`[data-player="${ref.side}"]`)
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }
+  }, [])
+  const selBox = useCallback((sel: string): { x: number; y: number; w: number; h: number } | null => {
+    const el = document.querySelector(sel)
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }
+  }, [])
+
+  /** Aktyvus vartų paleidimas (kad StrictMode dvigubas kvietimas nedubliuotų sekos). */
+  const gateRunRef = useRef<{ cancelled: boolean; state: GameState; committed: boolean } | null>(null)
+
+  /** Atskleidžia galutinę būseną ir atrakina įvestį (naudojama ir avarinio išėjimo atveju). */
+  const finishGateRun = useCallback(() => {
+    const run = gateRunRef.current
+    if (!run) return
+    if (!run.committed) { run.committed = true; run.state.reactionGates = null; setGame(run.state) }
+    gateRunRef.current = null
+    chainGateActiveRef.current = false
+    setGateActive(false)
+  }, [])
+
+  /** Reakcijų seka: snapshot → grandinės animacija → kita būsena. Griežtai po vieną. */
+  const startGateRun = useCallback(async (next: GameState) => {
+    if (gateRunRef.current) { next.reactionGates = null; setGame(next); return }  // saugiklis: be persidengimų
+    const gates: ReactionGate[] = next.reactionGates ?? []
+    const run = { cancelled: false, state: next, committed: false }
+    gateRunRef.current = run
+    chainGateActiveRef.current = true
+    setGateActive(true)
+    const reduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    try {
+      for (const gate of gates) {
+        if (run.cancelled) break
+        // 1) būsena PRIEŠ šios reakcijos efektą (reakcijos korta dar slot'e)
+        const snap = consumeReactionSnapshot(gate.snapshotId)
+        if (snap) { snap.reactionGates = null; setGame(snap) }
+        // leidžiam atvaizduoti – pozicijos imamos iš tikrų DOM rect'ų
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+        if (run.cancelled) break
+        // 2) pozicijos dinamiškai; šaltinio/taikinio nematant – dokumentuotas fallback į zoną
+        const srcBox = selBox(`[data-pile="reactions-${gate.side}"]`)
+        const tgtBox = boxFor(gate.target)
+          ?? selBox(`[data-tut="units-${gate.target && 'side' in gate.target ? gate.target.side : (gate.side === 'you' ? 'ai' : 'you')}"]`)
+        const from = srcBox ? { x: srcBox.x, y: srcBox.y } : fxCenter()
+        const to = tgtBox ? { x: tgtBox.x, y: tgtBox.y } : fxCenter()
+        const card = cardByName[gate.reactionCardName] ?? null
+        const variant: ReactionChainVariant = /demon|orda|infern|prakeik|ugni/i.test(card?.factionName ?? '') ? 'infernal' : 'shadow'
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ReactionAnimation] Started: reaction=${gate.reactionUid} target=${gate.target && 'uid' in gate.target ? gate.target.uid : '—'} variant=${variant} reduced=${reduced}`)
+        }
+        // 3) LAUKIAM animacijos completion signalo — vienintelio autoritetinio
+        if (chainRef.current) {
+          await chainRef.current.play({
+            from, to, variant, reduced,
+            targetSize: tgtBox ? { w: tgtBox.w, h: tgtBox.h } : undefined,
+            onShake: (k) => fxRef.current?.shakeBoard(k),
+            onPhase: (ph) => {
+              if (ph === 'chain') playBattleSound('spellCast', 0.3)
+              else if (ph === 'wrap') playBattleSound('impact', 0.4)
+              else if (ph === 'effect') playBattleSound('death', 0.25)
+            },
+          })
+        } else {
+          // Fallback: sluoksnio nėra (SSR/testai) – bazinė trukmė, elgesys kaip anksčiau.
+          await new Promise<void>((r) => window.setTimeout(r, REACTION_CHAIN_ANIMATION_DURATION_MS))
+        }
+        if (process.env.NODE_ENV !== 'production') console.debug('[ReactionAnimation] Completed - applying state')
+      }
+    } catch (err) {
+      console.error('[ReactionAnimation] failed - revealing state immediately:', err)
+    } finally {
+      finishGateRun()   // 4) galutinė autoritetinė būsena → efektų rezultatai matomi
+    }
+  }, [boxFor, selBox, fxCenter, cardByName, finishGateRun])
+
+  /** Būsenos „commit" su vartais: jei variklis paliko reakcijų kadrų – atskleidžiam per animaciją. */
+  const gateCommit = useCallback((next: GameState, prev: GameState): GameState => {
+    if (next.reactionGates && next.reactionGates.length > 0) {
+      queueMicrotask(() => { void startGateRun(next) })
+      return prev
+    }
+    return next
+  }, [startGateRun])
+
+  // Išėjus iš kovos / išmontavus – vartai niekada nelieka užrakinti.
+  useEffect(() => () => { const r = gateRunRef.current; if (r) { r.cancelled = true; chainRef.current?.cancel() } }, [])
+
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -2044,13 +2159,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (!prev || prev.winner || prev.active !== 'ai') return prev
         try {
           const g = cloneState(prev)
-          if (tutorial?.active && tutorial.enemyTurn) { tutorial.enemyTurn(g); return g }
+          if (tutorial?.active && tutorial.enemyTurn) { tutorial.enemyTurn(g); return gateCommit(g, prev) }
           const act = aiNextAction(g, { difficulty, weights: aiStrategy })
           if (!act) {
             endTurn(g)
             if (!g.winner) beginTurn(g)
           }
-          return g
+          return gateCommit(g, prev)
         } catch (err) {
           // AI klaida neturi sugriauti viso žaidimo – tiesiog saugiai baigiam ėjimą.
           console.error('[AI] klaida sprendžiant ėjimą – baigiu AI ėjimą:', err)
@@ -2061,7 +2176,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, chainBlocks, zmkBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -2176,7 +2291,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (net.isHost) {
       ch.on('broadcast', { event: 'action' }, ({ payload }) => {
         const a = payload as NetAction
-        setGame((prev) => { if (!prev) return prev; const g = cloneState(prev); applyNetAction(g, a); return g })
+        setGame((prev) => { if (!prev) return prev; const g = cloneState(prev); applyNetAction(g, a); return gateCommit(g, prev) })
       })
       ch.on('broadcast', { event: 'hello' }, () => {
         setGame((prev) => { if (prev) ch.send({ type: 'broadcast', event: 'state', payload: prev }); return prev })
@@ -2189,7 +2304,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     } else {
       ch.on('broadcast', { event: 'state' }, ({ payload }) => {
-        setGame(swapPerspective(payload as GameState))
+        setGame((prev) => { const g = swapPerspective(payload as GameState); return prev ? gateCommit(g, prev) : g })
       })
       // Host prašo svečio kaladės – atsiunčiam pasirinktą kaladę
       ch.on('broadcast', { event: 'reqdeck' }, () => {
@@ -2340,9 +2455,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         return prev
       }
-      return g
+      return gateCommit(g, prev)   // reakcijos → būsena atskleidžiama po grandinės animacijos
     })
-  }, [isGuest, pushToast, tutorial])
+  }, [isGuest, pushToast, tutorial, gateCommit])
 
   // ── Nuoseklūs Kovos šūksnio iškvietimai ─────────────────────────────────────
   // Kol `game.summonChain` netuščias, kas BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS
@@ -4100,6 +4215,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── kovos FX sluoksnis (projektilai, kirčiai, skaičiai) ── */}
       <BattleFxLayer ref={fxRef} />
+      <ReactionChainLayer ref={chainRef} />
 
       {/* ── pilno lauko summon efektas ── */}
       {boardFx && <SummonBurst type={boardFx.type} x={boardFx.x} y={boardFx.y} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}

@@ -103,6 +103,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     // 2v2 kol kas neturi nuoseklios iškvietimų animacijos – grandinę užbaigiam iškart
     // (elgesys lieka toks pat kaip iki šiol).
     flushSummonChain(g)
+    g.reactionGates = null   // 2v2 kol kas be reakcijų grandinės animacijos
     broadcastState(); winSfx(); rerender()
   }, [broadcastState, rerender]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -207,6 +208,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     g.active = 'you'
     const r = playCard(g, 'you', c.uid)
     flushSummonChain(g)
+    g.reactionGates = null
     if (r.ok) { playCardPlace(); winSfx() }
     rerender()
   }

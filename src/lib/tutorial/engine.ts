@@ -248,6 +248,10 @@ export type GameState = {
    *  Kol netuščia – žaidėjo įvestis užrakinta, o UI kas BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS
    *  siunčia `advanceSummon` veiksmą, kuris įrašo VIENĄ padarą į mūšio būseną. */
   summonChain?: SummonChainFrame[] | null
+  /** Reakcijų animacijos vartai: kiekvienam suveikusiam reakcijos efektui – kadras su
+   *  būsenos snapshot'u PRIEŠ tą efektą. UI rodo snapshot'ą, groja grandinės animaciją ir
+   *  tik po jos parodo kitą (jau pritaikytą) būseną. Gameplay skaičiavimas nepakinta. */
+  reactionGates?: ReactionGate[] | null
   spellCountered?: boolean
   // ── 2v2 komandinis sluoksnis (adityvus; 1v1 šių nenaudoja) ──
   mode?: '1v1' | '2v2'
@@ -406,6 +410,7 @@ export type CreateGameOpts = {
 
 /** Sukuria žaidimą: tu prieš AI su ta pačia (veidrodine) kalade. */
 export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, opts?: CreateGameOpts): GameState {
+  clearReactionSnapshots()
   const zmkYou = buildZmkDeck(opts?.zmkDefs)
   const zmkAi = buildZmkDeck(opts?.zmkDefs)
   const curseCards = opts?.curseCards ?? []
@@ -1853,6 +1858,52 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
 let firingGlobal = false
+// ── Reakcijų animacijos vartai (snapshot'ai) ─────────────────────────────────
+// Variklio rezoliucija LIEKA sinchroninė ir autoritetinė (PvP host'as skaičiuoja
+// kaip anksčiau). Papildomai ties kiekviena suveikusia reakcija įsimenamas
+// būsenos snapshot'as PRIEŠ jos efektą – UI jį parodo, pagroja grandinės
+// animaciją ir tik tada atskleidžia kitą būseną. Snapshot'ai laikomi MODULYJE
+// (ne GameState viduje), kad nedidintų PvP broadcast payload'o ir nesirekursuotų.
+export type ReactionGate = {
+  id: number
+  /** Būsena PRIEŠ šios reakcijos efektą (rodoma, kol groja grandinė). */
+  snapshotId: number
+  atLog: number
+  side: Side
+  reactionUid: string
+  reactionCardName: string
+  /** Reakciją suaktyvinusi korta (grandinės taikinys). */
+  target?: TargetRef
+  targetName?: string
+}
+
+const reactionSnapshots = new Map<number, GameState>()
+let reactionGateSeq = 0
+const MAX_SNAPSHOTS = 12
+
+function storeReactionSnapshot(g: GameState): number {
+  const id = ++reactionGateSeq
+  const gates = g.reactionGates
+  g.reactionGates = null                     // snapshot'e vartų nelaikom (kad nesidubliuotų)
+  const snap = cloneState(g)
+  g.reactionGates = gates
+  reactionSnapshots.set(id, snap)
+  if (reactionSnapshots.size > MAX_SNAPSHOTS) {
+    const oldest = reactionSnapshots.keys().next().value
+    if (oldest !== undefined) reactionSnapshots.delete(oldest)
+  }
+  return id
+}
+
+/** UI: paima ir pašalina snapshot'ą (vienkartinis). */
+export function consumeReactionSnapshot(id: number): GameState | null {
+  const s = reactionSnapshots.get(id) ?? null
+  if (s) reactionSnapshots.delete(id)
+  return s
+}
+/** Naujos kovos pradžia / išėjimas – atlaisvinam atmintį. */
+export function clearReactionSnapshots() { reactionSnapshots.clear() }
+
 /** Kortos vardas pagal runtime nuorodą (mūšio žurnalui). */
 function unitNameOf(g: GameState, t?: TargetRef): string | undefined {
   if (!t || t.kind === 'player') return undefined
@@ -1917,6 +1968,14 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         if (!r) continue
         const rms = (r.card.mappings ?? []).filter((m) => m.trigger === trigger && passes(m, sd))
         if (rms.length === 0) continue
+        // Animacijos vartai: snapshot'as PRIEŠ efektą (reakcijos korta dar slot'e,
+        // trigerio šaltinis dar gyvas) – UI jį rodo, kol keliauja grandinė.
+        const gateSnapId = storeReactionSnapshot(g)
+        ;(g.reactionGates ??= []).push({
+          id: gateSnapId, snapshotId: gateSnapId, atLog: g.log.length, side: sd,
+          reactionUid: r.uid, reactionCardName: r.card.name,
+          target: trigSrc, targetName: trigSrcName,
+        })
         // Sunaudojam reakciją prieš taikant efektą (kad netriggerintų savęs rekursyviai)
         pp.reactions[ri] = null
         pp.discard.push(r.card)
@@ -3235,6 +3294,11 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingLastwish) c.pendingLastwish.side = other(c.pendingLastwish.side)
   if (c.pendingResurrect) c.pendingResurrect.forEach((r) => { r.side = other(r.side) })
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
+  if (c.summonChain) c.summonChain.forEach((f) => { f.side = other(f.side) })
+  if (c.reactionGates) c.reactionGates.forEach((rg) => {
+    rg.side = other(rg.side)
+    if (rg.target) rg.target = { ...rg.target, side: other(rg.target.side) } as TargetRef
+  })
   // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
   for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }
   return c

@@ -580,3 +580,68 @@ The task is complete only when summon sequencing, Admin persistence, automatic t
 2. **Snapshot-gate lentai**: šiuo metu per 2 s sulaikomi FX ir žurnalas, bet skaičiai lentoje (HP) atsinaujina iškart. Reikia variklio tarpinės būsenos snapshot'o ties reakcija ir jo rodymo iki animacijos pabaigos.
 3. **2v2**: `Team2v2Game` kol kas iškvietimų grandinę užbaigia iškart (`flushSummonChain`) — nuosekli animacija dar nepridėta.
 4. **PvP svečias**: svečias gauna būsenų broadcast'us; tick'us siunčia tik host'as. Verta patikrinti tempą realioje PvP kovoje.
+
+---
+
+# 2 FAZĖ — Reaction Chain VFX (commit527, 2026-07-25)
+
+Etalonas: `ravenof-fx-preview-reaction-chain.html` (aprobuota geometrija/laikai).
+
+## Naujas failas
+- `src/components/tutorial/ReactionChainLayer.tsx` — canvas overlay (fixed, z-index 128, pointer-events none).
+  Imperatyvus handle: `play(opts) => Promise<void>`, `cancel()`, `busy()`.
+  **`play()` Promise išsisprendžia TIK ties „efekto" fazės pradžia** (P0+P1+P2+P3 = 3200 ms) —
+  tai vienintelis autoritetinis signalas, kurio laukia gameplay. `cancel()` ir unmount promise'ą
+  irgi išsprendžia → kovos eilė niekada nelieka užrakinta.
+
+## Fazės (`src/lib/game/timing.ts` → `REACTION_CHAIN_PHASES`)
+| Fazė | ms | Turinys |
+|---|---|---|
+| detect | 350 | rune flare nuo reakcijos kortos |
+| chain | 1000 | strėlės antgalis + grandys Bezier trajektorija (arc-length LUT, sway, ember dalelės, easeOutCubic) |
+| wrap | 650 | grandinė įtraukiama, 2 kilpos (rx52/ry24 rot −0.32; rx55/ry22 rot 0.26, mastelis pagal kortos plotį) + susiveržimas 1.12→1.0 |
+| showcase | 1200 | reakcijos kortos parodymas (naudojamas ESAMAS `spawnShowcase`) |
+| effect | 700 | grandinė sudūžta (shatter + burst 26 + impact žiedas) — **čia jau matoma pritaikyta būsena** |
+
+`REACTION_CHAIN_GATE_MS = 3200`, `REACTION_CHAIN_TOTAL_MS = 3900`,
+`REACTION_CHAIN_REDUCED_GATE_MS = 900` (prefers-reduced-motion: be skrydžio).
+`REACTION_CHAIN_ANIMATION_DURATION_MS = 2000` liko TIK kaip fallback, kai sluoksnio nėra.
+
+## Kaip gameplay laukia animacijos (svarbiausia)
+1. **Variklis** (`fireGlobalListeners`) ties KIEKVIENA suveikusia reakcija įsimena būsenos
+   snapshot'ą **PRIEŠ jos efektą** (reakcijos korta dar slot'e, taikinys dar nepaliestas) ir
+   įrašo kadrą į `GameState.reactionGates` (`ReactionGate`: snapshotId, atLog, side, reactionUid,
+   reactionCardName, target, targetName). Snapshot'ai laikomi MODULYJE (`consumeReactionSnapshot`),
+   ne būsenoje — PvP broadcast payload nepadidėja, rekursijos nėra. Rezoliucijos tvarka NEPAKEISTA.
+2. **UI** (`TutorialGame.gateCommit` → `startGateRun`): jei naujoje būsenoje yra kadrų, ji
+   **neįrašoma** į React state. Vietoje to kiekvienam kadrui: parodomas snapshot'as →
+   `await chainRef.play(...)` → tik tada kita būsena. Po visų kadrų — galutinė autoritetinė būsena.
+3. Todėl HP/statusai/žūtys ekrane pasirodo tik ties „efekto" faze, o ne animacijos pradžioje.
+4. Vartai veikia visuose keliuose: žaidėjo veiksmas, AI ciklas, PvP host (svečio veiksmas) ir
+   PvP svečias (`swapPerspective` dabar apverčia ir `reactionGates` bei `summonChain` puses).
+   Svečias snapshot'ų neturi → mato animaciją ir galutinę būseną (be tarpinių kadrų).
+
+## Įvesties užraktas
+`actionsLocked = popupBlocks || chainBlocks || gateActive`; AI ciklas laukia to paties `gateActive`.
+Kelios reakcijos — griežtai po vieną (`startGateRun` ciklas + `play()` nutraukia ankstesnį paleidimą).
+
+## Pozicionavimas
+Dinamiškai iš DOM: šaltinis `[data-pile="reactions-{side}"]`, taikinys `[data-unit-uid]`/`[data-artifact-uid]`
+(per `boxFor`), fallback — `[data-tut="units-{side}"]` zona, galiausiai lentos centras. Veikia landscape
+layout'e, abiem pusėms, bet kokiu board scale (rect'ai imami po realaus render'io, per 2×rAF).
+
+## Garsai / prieinamumas
+Fazių callback'ai (`onPhase`) groja `spellCast` / `impact` / `death` per esamą `playBattleSound`;
+lentos purtymas — per esamą `BattleFxLayer.shakeBoard` (nedubliuota mechanika).
+`prefers-reduced-motion` → be skrydžio, vartai 900 ms.
+
+## Testai
+`npx tsx scripts/simulate-battlecry-chain.ts` — **48/48 PASS** (buvo 33; pridėti vartų testai:
+snapshot rodo NEPRITAIKYTĄ efektą ir reakcijos kortą slot'e, galutinė būsena — pritaikytą;
+dvi reakcijos → du kadrai iš eilės, antro snapshot'e matomas pirmo efektas).
+
+## Kas dar liko
+- 2v2 (`Team2v2Game`) — reakcijų grandinės animacijos nėra (kadrai išvalomi, elgesys kaip anksčiau).
+- Garso failai (launch swoosh / metal impact / tighten / shatter) — kol kas naudojami esami SFX.
+- Efekto variantas renkamas iš frakcijos vardo (demonai/prakeiksmai → `infernal`); vėliau galima imti
+  iš `effectAnimationMap` frakcijų palečių.
