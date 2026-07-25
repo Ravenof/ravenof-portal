@@ -149,13 +149,13 @@ export default function BattleLayout(props: BattleLayoutProps) {
             {/* Priešo padarai */}
             <div className="shrink-0">{renderUnitsRow('ai', 'units-ai')}</div>
             {/* TAVO ĖJIMAS juosta — Combat UI Asset Pack v1.6 (turn-banner-player/enemy) */}
-            <div className="combat-turn-banner gap-2 shrink-0 mx-auto"
-              data-turn={myTurn ? 'you' : 'enemy'} style={{ width: 'min(500px, 56vw)' }}>
-              <span className={'text-[10px] font-bold uppercase tracking-[0.24em] ' + (myTurn ? '' : 'animate-pulse')}
+            <div className="combat-turn-banner gap-2 shrink-0 mx-auto overflow-hidden"
+              data-turn={myTurn ? 'you' : 'enemy'} style={{ width: 'min(440px, 80%)' }}>
+              <span className={'shrink-0 text-[10px] font-bold uppercase tracking-[0.24em] ' + (myTurn ? '' : 'animate-pulse')}
                 style={{ color: myTurn ? '#c6a14f' : '#b0757d', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
                 {myTurn ? t('battle.layout.yourTurn') : t('battle.layout.enemyTurn')}
               </span>
-              <span className="text-[9px] truncate max-w-[36vw]" style={{ color: 'var(--text-muted)' }}>{lastMsg}</span>
+              <span className="text-[9px] truncate min-w-0" style={{ color: 'var(--text-muted)' }}>{lastMsg}</span>
             </div>
             {/* Tavo padarai */}
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>

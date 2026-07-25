@@ -283,9 +283,23 @@
 /* ── Kovos UI assetai v1.6: taikymas, ėjimai, avatarai, režimų baneriai ────── */
 /* Taikinių skaičiaus plokštė (target-count-panel, 9-slice 54 60 54 105) */
 .combat-target-panel {
-  min-width: 300px; min-height: 60px; background: transparent !important;
-  border: 18px solid transparent; border-width: 18px 20px 18px 35px;
-  border-image: url('/ravenof-ui/combat/targeting/target-count-panel.png') 54 60 54 105 fill / 18px 20px 18px 35px;
+  /* Fiksuotas 60px aukštis (= paketo usagePx 300×60): jei plokštė aukštesnė,
+     kairysis-vidurinis slice'as tempiamas vertikaliai ir medalionas tampa ovalu. */
+  position: relative; box-sizing: border-box; min-width: 260px; max-width: min(72vw, 620px);
+  height: 60px; background: transparent !important;
+  /* Kairysis slice = 195px (=65px), kad APVALUS medalionas patektų į netempiamą
+     kampą — su senu 105px slice'u jo dešinė pusė buvo tempiama ir ikona atrodė
+     nesucentruota. Medaliono centras assete: x=121/3 ≈ 40px nuo krašto. */
+  border: 18px solid transparent; border-width: 18px 20px 18px 65px;
+  border-image: url('/ravenof-ui/combat/targeting/target-count-panel.png') 54 60 54 195 fill / 18px 20px 18px 65px;
+}
+/* Taikymo ikona — tiksliai medaliono viduryje (už content box'o ribų). */
+.combat-target-panel > .combat-target-icon {
+  position: absolute; left: -37px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; object-fit: contain; pointer-events: none;
+}
+.combat-target-panel > span {
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* Patvirtinimo mygtukas (btn-target-ok, 9-slice 45 48) — min 44px lietimo zona */
 .combat-target-ok {

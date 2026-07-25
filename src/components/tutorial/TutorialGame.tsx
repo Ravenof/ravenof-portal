@@ -4426,8 +4426,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             </defs>
             <line x1={drag.origin.x} y1={drag.origin.y} x2={drag.x} y2={drag.y}
               stroke="#f0b429" strokeWidth="4" strokeDasharray="3 9" strokeLinecap="round" markerEnd="url(#rvn-arrow)" opacity="0.95" />
-            <circle cx={drag.x} cy={drag.y} r="20" fill="none" stroke="#ef4444" strokeWidth="3" />
-            <text x={drag.x} y={drag.y + 8} fontSize="22" textAnchor="middle">🎯</text>
+            <image href="/ravenof-ui/combat/targeting/icon-targeting.png" x={drag.x - 22} y={drag.y - 22} width="44" height="44" />
           </svg>
         ) : (
           <div className="fixed z-[210] pointer-events-none" style={{ left: drag.x, top: drag.y, transform: 'translate(-50%, -50%) rotate(-4deg)' }}>
@@ -4473,7 +4472,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <div className="combat-target-panel flex items-center gap-2 text-sm font-bold pointer-events-none"
             style={{ color: '#e8c84a', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/ravenof-ui/combat/targeting/icon-targeting.png" alt="" aria-hidden style={{ width: 22, height: 22, objectFit: 'contain' }} />
+            <img className="combat-target-icon" src="/ravenof-ui/combat/targeting/icon-targeting.png" alt="" aria-hidden />
             <span>{select.kind === 'lastwish'
               ? t('battle.game.lastwishTargets', { card: game?.pendingLastwish?.cardName ?? '', picked: select.picked.length, need: select.need })
               : select.kind === 'spellMulti' ? t('battle.game.targets', { picked: select.picked.length, need: select.need })
