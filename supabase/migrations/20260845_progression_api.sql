@@ -14,7 +14,7 @@ begin
   return jsonb_build_object(
     'login',   public.rvn_get_login_cycle(),
     'season',  public.rvn_get_season_path_v2(),
-    'quests',  public.rvn_get_daily_quests(),
+    'quests',  public.rvn_get_daily_quests_v2(),
     'pendingChoices', public.rvn__pending_choices(v_uid),
     'balances', public.rvn__balances(v_uid),
     'economyVersion', public.rvn__economy_version(),

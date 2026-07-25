@@ -10,7 +10,7 @@ import {
   unlockSeasonPassV2, type RewardDefinition, type SeasonLevelRow, type SeasonPathState,
 } from '@/lib/progression'
 import {
-  ART, BODY, C, Cta, DISPLAY, Divider, ErrorState, Kicker, LoadingState,
+  ART, BODY, C, Cta, DISPLAY, Divider, ErrorState, isMissingRpc, Kicker, LoadingState,
   ProgressBar, RewardIcon, rewardLabel, useCompact, useToast,
 } from './kit'
 import { ChoiceQueue } from './ChoiceModals'
@@ -28,7 +28,7 @@ export function SeasonPathScreen() {
   const toast = useToast()
   const [state, setState] = useState<SeasonPathState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<string | null | false>(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [sel, setSel] = useState<number | null>(null)
 
@@ -36,7 +36,7 @@ export function SeasonPathScreen() {
     setLoading(true)
     const r = await getSeasonPathV2()
     setLoading(false)
-    if (!r || isProgressionError(r)) { setFailed(true); return }
+    if (!r || isProgressionError(r)) { setFailed(r ? String(r.error) : 'no_response'); return }
     setFailed(false); setState(r)
     setSel((prev) => prev ?? Math.max(1, Math.min(r.levels, r.level || 1)))
   }, [])
@@ -80,7 +80,12 @@ export function SeasonPathScreen() {
   }
 
   if (loading && !state) return <LoadingState label={t('progression.season.loading')} />
-  if (failed) return <ErrorState title={t('progression.common.errorTitle')} body={t('progression.common.errorBody')} retryLabel={t('progression.common.retry')} onRetry={() => void load()} />
+  if (failed) return (
+    <ErrorState title={t('progression.common.errorTitle')} body={t('progression.common.errorBody')}
+      retryLabel={t('progression.common.retry')} onRetry={() => void load()}
+      hint={isMissingRpc(failed || '') ? t('progression.common.migrationsMissing') : null}
+      detail={typeof failed === 'string' && failed !== 'no_response' ? failed : null} />
+  )
   if (!state) return null
 
   const anyClaimable = rows.some((r) => r.free.claimable || r.pass.claimable)

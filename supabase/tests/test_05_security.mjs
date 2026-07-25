@@ -9,10 +9,10 @@ export async function run(t) {
   q(`grant select on all tables in schema public to authenticated`)
   q(`grant usage on all sequences in schema public to authenticated`)
 
-  rpc(A, `rvn_get_daily_quests()`)
-  rpc(B, `rvn_get_daily_quests()`)
-  q(`update user_daily_quests set progress = target_value, is_completed = true where user_id='${A}'`)
-  const questA = q(`select id from user_daily_quests where user_id='${A}' and difficulty='hard'`)
+  rpc(A, `rvn_get_daily_quests_v2()`)
+  rpc(B, `rvn_get_daily_quests_v2()`)
+  q(`update user_daily_quests_v2 set progress = target_value, is_completed = true where user_id='${A}'`)
+  const questA = q(`select id from user_daily_quests_v2 where user_id='${A}' and difficulty='hard'`)
 
   check('kito vartotojo questo claim atmetamas', () => {
     const goldA = q(`select gold from profiles where id='${A}'`)
@@ -75,8 +75,8 @@ export async function run(t) {
   })
 
   check('RLS: vartotojas mato TIK savo progresą', () => {
-    const own = asAuthenticated(A, `select count(*) from user_daily_quests where user_id='${A}'`)
-    const foreign = asAuthenticated(A, `select count(*) from user_daily_quests where user_id='${B}'`)
+    const own = asAuthenticated(A, `select count(*) from user_daily_quests_v2 where user_id='${A}'`)
+    const foreign = asAuthenticated(A, `select count(*) from user_daily_quests_v2 where user_id='${B}'`)
     eq(own, '3', 'savo questai matomi')
     eq(foreign, '0', 'svetimi questai nematomi')
     eq(asAuthenticated(B, `select count(*) from user_login_claims where user_id='${A}'`), '0', 'svetimi login claim nematomi')

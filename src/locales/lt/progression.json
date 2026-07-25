@@ -24,6 +24,7 @@
   "common": {
     "errorBody": "Serveris neatsakė. Pabandyk dar kartą — progresas neprarastas.",
     "errorTitle": "Nepavyko įkelti",
+    "migrationsMissing": "Duomenų bazėje dar nėra progresijos v2 funkcijų. Paleisk supabase/PROGRESSION-V2-APPLY.sql Supabase SQL redaktoriuje.",
     "resetsIn": "Atsinaujins už",
     "retry": "Bandyti dar kartą"
   },

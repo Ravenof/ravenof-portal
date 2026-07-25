@@ -1,7 +1,7 @@
 'use client'
 // ── Ekranas 3 · Dienos užduotys (sutartys) ──────────────────────────────────
 //  Patvirtintas dizainas: screens/12–16, 20.
-//  Užduotys, progresas, atlygiai, perrinkimo kaina — iš rvn_get_daily_quests().
+//  Užduotys, progresas, atlygiai, perrinkimo kaina — iš rvn_get_daily_quests_v2().
 import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@/lib/i18n/react'
 import { playUiClick } from '@/lib/ui-sound'
@@ -10,7 +10,7 @@ import {
   rerollDailyQuest, type DailyQuest, type DailyQuestsState,
 } from '@/lib/progression'
 import {
-  ART, BODY, C, Cta, DISPLAY, ErrorState, Kicker, LoadingState, ResetChip,
+  ART, BODY, C, Cta, DISPLAY, ErrorState, isMissingRpc, Kicker, LoadingState, ResetChip,
   RewardChip, RewardIcon, rewardLabel, useCompact, useToast,
 } from './kit'
 import { ChoiceQueue, RerollConfirmModal } from './ChoiceModals'
@@ -47,7 +47,7 @@ export function DailyQuestsScreen() {
   const toast = useToast()
   const [state, setState] = useState<DailyQuestsState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<string | null | false>(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [reroll, setReroll] = useState<DailyQuest | null>(null)
 
@@ -55,7 +55,7 @@ export function DailyQuestsScreen() {
     setLoading(true)
     const r = await getDailyQuests()
     setLoading(false)
-    if (!r || isProgressionError(r)) { setFailed(true); return }
+    if (!r || isProgressionError(r)) { setFailed(r ? String(r.error) : 'no_response'); return }
     setFailed(false); setState(r)
   }, [])
   useEffect(() => { void load() }, [load])
@@ -96,7 +96,12 @@ export function DailyQuestsScreen() {
   }
 
   if (loading && !state) return <LoadingState label={t('progression.quests.loading')} />
-  if (failed) return <ErrorState title={t('progression.common.errorTitle')} body={t('progression.common.errorBody')} retryLabel={t('progression.common.retry')} onRetry={() => void load()} />
+  if (failed) return (
+    <ErrorState title={t('progression.common.errorTitle')} body={t('progression.common.errorBody')}
+      retryLabel={t('progression.common.retry')} onRetry={() => void load()}
+      hint={isMissingRpc(failed || '') ? t('progression.common.migrationsMissing') : null}
+      detail={typeof failed === 'string' && failed !== 'no_response' ? failed : null} />
+  )
   if (!state) return null
 
   const done = state.quests.filter((q) => q.completed).length

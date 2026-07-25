@@ -80,7 +80,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       setQuestsLoaded(true)
       if (!r || isProgressionError(r)) { setQuests(null); setQuestsPending(0); return }
       setQuests(r)
-      setQuestsPending(r.quests.filter((q) => q.completed && !q.claimed).length + (r.chest.claimable ? 1 : 0))
+      setQuestsPending(r.quests.filter((q) => q.completed && !q.claimed).length + (r.chest?.claimable ? 1 : 0))
     })
   }, [])
   const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
@@ -271,14 +271,14 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             )
           })}
           {/* Dienos skrynia — matoma tik kai visi trys questai įvykdyti */}
-          {quests && quests.allCompleted && (quests.chest.claimable || quests.chest.claimed) && (
+          {quests && quests.allCompleted && (quests.chest?.claimable || quests.chest?.claimed) && (
             <div className="flex items-center shrink-0" style={{ gap: 9, background: 'var(--ravenof-bg-surface-2)', border: '1px solid rgba(212,163,59,.45)', padding: '5px 10px' }}>
               <span className="shrink-0" style={{ width: 24, height: 24, display: 'grid', placeItems: 'center' }} aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: quests.chest.claimed ? 'grayscale(1) opacity(.55)' : 'none' }} />
+                <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: quests.chest?.claimed ? 'grayscale(1) opacity(.55)' : 'none' }} />
               </span>
               <span className="flex-1 min-w-0 truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('progression.quests.chestTitle')}</span>
-              {quests.chest.claimable ? (
+              {quests.chest?.claimable ? (
                 <button onClick={() => void claimChest()} className="shrink-0" style={{ font: '700 9.5px var(--ravenof-font-display)', color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('progression.quests.chestOpen')}</button>
               ) : (
                 <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-success-bright)' }}>✓</span>

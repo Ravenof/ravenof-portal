@@ -24,6 +24,7 @@
   "common": {
     "errorBody": "The server did not respond. Try again — no progress was lost.",
     "errorTitle": "Could not load",
+    "migrationsMissing": "The progression v2 functions are not in the database yet. Run supabase/PROGRESSION-V2-APPLY.sql in the Supabase SQL editor.",
     "resetsIn": "Resets in",
     "retry": "Try again"
   },

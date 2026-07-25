@@ -9,6 +9,7 @@
 //  • Būsimas dizainas kviečia TIK šias funkcijas ir renderina DTO.
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client'
+import { asObject, requireArray } from './shape'
 import type {
   BoosterResult, ClaimResult, DailyQuestsState, FullProgressionSnapshot,
   LoginRewardState, PendingRewardChoice, ProgressionConfig, ProgressionResult,
@@ -40,7 +41,7 @@ async function call<T>(fn: string, args?: Record<string, unknown>): Promise<Prog
   const supabase = createClient()
   const { data, error } = await supabase.rpc(fn, args ?? {})
   if (error) { console.warn(`[progression] ${fn}:`, error.message); return { error: error.message } }
-  return (data ?? null) as ProgressionResult<T> | null
+  return asObject<T>(fn, data)
 }
 
 async function mutate<T>(scope: string, fn: string, args: Record<string, unknown>): Promise<ProgressionResult<T> | null> {
@@ -57,6 +58,7 @@ async function mutate<T>(scope: string, fn: string, args: Record<string, unknown
 // ════════════════════════════════════════════════════════════════════════════
 export function getLoginRewards(): Promise<ProgressionResult<LoginRewardState> | null> {
   return call<LoginRewardState>('rvn_get_login_cycle')
+    .then((r) => requireArray<LoginRewardState>('rvn_get_login_cycle', r, 'rewards'))
 }
 
 export function claimLoginReward(): Promise<ProgressionResult<ClaimResult<LoginRewardState>> | null> {
@@ -68,6 +70,7 @@ export function claimLoginReward(): Promise<ProgressionResult<ClaimResult<LoginR
 // ════════════════════════════════════════════════════════════════════════════
 export function getSeasonPathV2(): Promise<ProgressionResult<SeasonPathState> | null> {
   return call<SeasonPathState>('rvn_get_season_path_v2')
+    .then((r) => requireArray<SeasonPathState>('rvn_get_season_path_v2', r, 'rows'))
 }
 
 export function claimSeasonRewardV2(level: number, track: 'free' | 'pass') {
@@ -87,7 +90,8 @@ export function unlockSeasonPassV2(currency: 'silver' | 'rubies') {
 //  Daily Quests
 // ════════════════════════════════════════════════════════════════════════════
 export function getDailyQuests(): Promise<ProgressionResult<DailyQuestsState> | null> {
-  return call<DailyQuestsState>('rvn_get_daily_quests')
+  return call<DailyQuestsState>('rvn_get_daily_quests_v2')
+    .then((r) => requireArray<DailyQuestsState>('rvn_get_daily_quests_v2', r, 'quests'))
 }
 
 export function claimDailyQuest(questId: number) {

@@ -10,7 +10,7 @@ import {
   type LoginRewardDay, type LoginRewardState, type RewardDefinition,
 } from '@/lib/progression'
 import {
-  ART, BODY, C, Cta, DISPLAY, Divider, ErrorState, Kicker, LoadingState,
+  ART, BODY, C, Cta, DISPLAY, Divider, ErrorState, isMissingRpc, Kicker, LoadingState,
   ProgressBar, ProgressionModal, ResetChip, RewardIcon, RewardRow, rewardLabel,
   useCompact, useToast,
 } from './kit'
@@ -44,7 +44,7 @@ export function LoginRewardsScreen() {
   const toast = useToast()
   const [state, setState] = useState<LoginRewardState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<string | null | false>(false)
   const [busy, setBusy] = useState(false)
   const [detail, setDetail] = useState<LoginRewardDay | null>(null)
 
@@ -52,7 +52,7 @@ export function LoginRewardsScreen() {
     setLoading(true)
     const r = await getLoginRewards()
     setLoading(false)
-    if (!r || isProgressionError(r)) { setFailed(true); return }
+    if (!r || isProgressionError(r)) { setFailed(r ? String(r.error) : 'no_response'); return }
     setFailed(false); setState(r)
   }, [])
   useEffect(() => { void load() }, [load])
@@ -73,7 +73,12 @@ export function LoginRewardsScreen() {
   const tomorrow = state?.claimableDay ? byDay.get(state.claimableDay + 1) : null
 
   if (loading && !state) return <LoadingState label={t('progression.login.loading')} />
-  if (failed) return <ErrorState title={t('progression.common.errorTitle')} body={t('progression.common.errorBody')} retryLabel={t('progression.common.retry')} onRetry={() => void load()} />
+  if (failed) return (
+    <ErrorState title={t('progression.common.errorTitle')} body={t('progression.common.errorBody')}
+      retryLabel={t('progression.common.retry')} onRetry={() => void load()}
+      hint={isMissingRpc(failed || '') ? t('progression.common.migrationsMissing') : null}
+      detail={typeof failed === 'string' && failed !== 'no_response' ? failed : null} />
+  )
   if (!state) return null
 
   const monthPct = (state.cyclePosition / state.cycleLength) * 100

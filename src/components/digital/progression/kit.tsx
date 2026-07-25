@@ -217,14 +217,34 @@ export function LoadingState({ label }: { label: string }) {
   )
 }
 
-export function ErrorState({ title, body, retryLabel, onRetry }: { title: string; body: string; retryLabel: string; onRetry: () => void }) {
+export function ErrorState({ title, body, retryLabel, onRetry, detail, hint }: {
+  title: string; body: string; retryLabel: string; onRetry: () => void
+  /** tikras serverio pranešimas — kad problemą būtų galima diagnozuoti */
+  detail?: string | null
+  /** papildoma užuomina (pvz. „migracijos nepaleistos") */
+  hint?: string | null
+}) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', padding: 24 }}>
       <div style={{ font: `700 15px ${DISPLAY}`, color: C.muted }}>{title}</div>
-      <div style={{ font: `400 11px ${BODY}`, color: C.label, maxWidth: 340, lineHeight: 1.55 }}>{body}</div>
+      <div style={{ font: `400 11px ${BODY}`, color: C.label, maxWidth: 380, lineHeight: 1.55 }}>{body}</div>
+      {hint && (
+        <div role="alert" style={{ font: `600 11px ${DISPLAY}`, color: C.goldHi, maxWidth: 420, lineHeight: 1.5, border: `1px solid rgba(198,161,79,.4)`, background: 'rgba(198,161,79,.07)', padding: '9px 12px' }}>
+          {hint}
+        </div>
+      )}
+      {detail && (
+        <code style={{ font: `400 10px ui-monospace, monospace`, color: C.label, maxWidth: 460, wordBreak: 'break-word', opacity: 0.85 }}>{detail}</code>
+      )}
       <div style={{ width: 220 }}><Cta onClick={onRetry} tone="ghost">{retryLabel}</Cta></div>
     </div>
   )
+}
+
+/** Ar klaida reiškia, kad RPC dar nėra duomenų bazėje (migracijos nepaleistos). */
+export function isMissingRpc(err: string | null | undefined): boolean {
+  const s = (err ?? '').toLowerCase()
+  return s.includes('does not exist') || s.includes('pgrst202') || s.includes('could not find the function')
 }
 
 // ── Kompaktiškas režimas (<1240px) ──────────────────────────────────────────

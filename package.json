@@ -17,7 +17,8 @@
     "e2e:i18n": "playwright test e2e/i18n.spec.ts",
     "e2e:en": "playwright test e2e/english-localization.spec.ts",
     "progression:check": "node scripts/progression-check.mjs",
-    "progression:test": "node supabase/tests/run.mjs"
+    "progression:test": "node supabase/tests/run.mjs",
+    "progression:test:shape": "node --experimental-strip-types scripts/progression-shape-test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

@@ -91,7 +91,7 @@ update public.daily_task_templates set is_active = false
      or title ilike '%pakuot%' or description ilike '%atplėšk%pakuot%';
 
 -- ── Vartotojo dienos questai ───────────────────────────────────────────────
-create table if not exists public.user_daily_quests (
+create table if not exists public.user_daily_quests_v2 (
   id              bigserial primary key,
   user_id         uuid not null references public.profiles(id) on delete cascade,
   date_key        date not null,                    -- UTC
@@ -111,9 +111,9 @@ create table if not exists public.user_daily_quests (
   claimed_at      timestamptz,
   unique (user_id, date_key, difficulty)
 );
-alter table public.user_daily_quests enable row level security;
-drop policy if exists udq_own on public.user_daily_quests;
-create policy udq_own on public.user_daily_quests for select using (user_id = auth.uid());
+alter table public.user_daily_quests_v2 enable row level security;
+drop policy if exists udq_own on public.user_daily_quests_v2;
+create policy udq_own on public.user_daily_quests_v2 for select using (user_id = auth.uid());
 
 create table if not exists public.user_daily_quest_meta (
   user_id           uuid not null references public.profiles(id) on delete cascade,
@@ -203,7 +203,7 @@ declare
   v_groups text[] := '{}'; v_codes text[] := '{}'; v_fac int; v_factions int[]; v_ver int := public.rvn__economy_version();
 begin
   if p_uid is null then return; end if;
-  if exists (select 1 from public.user_daily_quests where user_id=p_uid and date_key=v_dk) then return; end if;
+  if exists (select 1 from public.user_daily_quests_v2 where user_id=p_uid and date_key=v_dk) then return; end if;
 
   select value into v_cfg from public.economy_config where key='daily_quests_v2';
   v_factions := public.rvn__playable_deck_factions(p_uid);
@@ -217,7 +217,7 @@ begin
     if v_t.requires_faction and array_length(v_factions,1) > 0 then
       v_fac := v_factions[1 + floor(random() * array_length(v_factions,1))::int];
     end if;
-    insert into public.user_daily_quests(user_id, date_key, difficulty, template_code, objective_type,
+    insert into public.user_daily_quests_v2(user_id, date_key, difficulty, template_code, objective_type,
                                          target_value, faction_id, rewards, economy_version)
       values (p_uid, v_dk, v_diff, v_t.code, v_t.objective_type, v_t.target_value, v_fac,
               coalesce(v_cfg->'rewards'->v_diff, '[]'::jsonb), v_ver)
@@ -234,7 +234,7 @@ create or replace function public.rvn__quests_progress(
 declare v_dk date := public.rvn__utc_date();
 begin
   if p_uid is null or coalesce(p_amount,0) <= 0 then return; end if;
-  update public.user_daily_quests q
+  update public.user_daily_quests_v2 q
     set progress = least(q.target_value, q.progress + p_amount),
         is_completed = (q.progress + p_amount >= q.target_value),
         completed_at = case when (q.progress + p_amount >= q.target_value) and q.completed_at is null
@@ -298,7 +298,7 @@ begin
 end $$;
 
 -- ── Būsena ──────────────────────────────────────────────────────────────────
-create or replace function public.rvn_get_daily_quests()
+create or replace function public.rvn_get_daily_quests_v2()
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   v_uid uuid := auth.uid(); v_dk date := public.rvn__utc_date(); v_cfg jsonb;
@@ -323,11 +323,11 @@ begin
       'rerollCostSilver', case when v_used < v_free then 0 else v_cost end)
       order by case q.difficulty when 'easy' then 1 when 'medium' then 2 else 3 end), '[]'::jsonb)
     into v_quests
-    from public.user_daily_quests q join public.daily_quest_templates t on t.code = q.template_code
+    from public.user_daily_quests_v2 q join public.daily_quest_templates t on t.code = q.template_code
     where q.user_id=v_uid and q.date_key=v_dk;
 
   select count(*) = 3 and bool_and(is_completed) into v_all
-    from public.user_daily_quests where user_id=v_uid and date_key=v_dk;
+    from public.user_daily_quests_v2 where user_id=v_uid and date_key=v_dk;
 
   return jsonb_build_object(
     'dateKey', v_dk,
@@ -361,7 +361,7 @@ begin
   end if;
   perform 1 from public.profiles where id=v_uid for update;
 
-  update public.user_daily_quests set is_claimed = true, claimed_at = now()
+  update public.user_daily_quests_v2 set is_claimed = true, claimed_at = now()
     where id = p_quest_id and user_id = v_uid and is_completed and not is_claimed
     returning rewards into v_rewards;
   get diagnostics v_upd = row_count;
@@ -372,7 +372,7 @@ begin
     'status', case when jsonb_array_length(v_grant->'pendingChoices') > 0 then 'choice_required' else 'completed' end,
     'grantedRewards', v_grant->'granted',
     'pendingChoices', public.rvn__pending_choices(v_uid),
-    'snapshot', public.rvn_get_daily_quests());
+    'snapshot', public.rvn_get_daily_quests_v2());
   if p_idempotency_key is not null then
     insert into public.progression_idempotency(user_id, action, idempotency_key, response)
       values (v_uid, 'claim_quest', p_idempotency_key, v_res) on conflict do nothing;
@@ -395,7 +395,7 @@ begin
   perform 1 from public.profiles where id=v_uid for update;
 
   select count(*) = 3 and bool_and(is_completed) into v_all
-    from public.user_daily_quests where user_id=v_uid and date_key=v_dk;
+    from public.user_daily_quests_v2 where user_id=v_uid and date_key=v_dk;
   if not coalesce(v_all,false) then return jsonb_build_object('error','not_all_completed'); end if;
 
   select coalesce(value->'chest','[]'::jsonb) into v_rewards from public.economy_config where key='daily_quests_v2';
@@ -406,7 +406,7 @@ begin
 
   v_grant := public.rvn__grant_rewards_v2(v_uid, v_rewards, 'daily_chest', v_dk::text);
   v_res := jsonb_build_object('status','completed', 'grantedRewards', v_grant->'granted',
-    'pendingChoices', public.rvn__pending_choices(v_uid), 'snapshot', public.rvn_get_daily_quests());
+    'pendingChoices', public.rvn__pending_choices(v_uid), 'snapshot', public.rvn_get_daily_quests_v2());
   if p_idempotency_key is not null then
     insert into public.progression_idempotency(user_id, action, idempotency_key, response)
       values (v_uid, 'claim_chest', p_idempotency_key, v_res) on conflict do nothing;
@@ -420,7 +420,7 @@ create or replace function public.rvn_reroll_daily_quest(
 ) returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   v_uid uuid := auth.uid(); v_dk date := public.rvn__utc_date(); v_cfg jsonb;
-  v_q public.user_daily_quests%rowtype; v_meta public.user_daily_quest_meta%rowtype;
+  v_q public.user_daily_quests_v2%rowtype; v_meta public.user_daily_quest_meta%rowtype;
   v_free int; v_max int; v_cost int; v_used int; v_pay int := 0;
   v_groups text[]; v_codes text[]; v_t public.daily_quest_templates; v_factions int[]; v_fac int;
   v_res jsonb; v_prev jsonb; v_silver int;
@@ -435,7 +435,7 @@ begin
   -- viena transakcija + eilutės užraktas → lygiagrečios užklausos nenuskaito du kartus
   perform 1 from public.profiles where id=v_uid for update;
 
-  select * into v_q from public.user_daily_quests where id=p_quest_id and user_id=v_uid for update;
+  select * into v_q from public.user_daily_quests_v2 where id=p_quest_id and user_id=v_uid for update;
   if v_q.id is null then return jsonb_build_object('error','quest_not_found'); end if;
   if v_q.is_completed or v_q.is_claimed then return jsonb_build_object('error','quest_completed'); end if;
   if v_q.progress > 0 and not p_confirm_progress_loss then
@@ -464,7 +464,7 @@ begin
   -- toks pat kaip kiti šiandienos questai
   select coalesce(array_agg(t.conflict_group), '{}'), coalesce(array_agg(q.template_code), '{}')
     into v_groups, v_codes
-    from public.user_daily_quests q join public.daily_quest_templates t on t.code=q.template_code
+    from public.user_daily_quests_v2 q join public.daily_quest_templates t on t.code=q.template_code
     where q.user_id=v_uid and q.date_key=v_dk and q.id <> v_q.id;
   v_codes := v_codes || v_q.template_code || coalesce(v_meta.retired_codes, '{}');
 
@@ -489,7 +489,7 @@ begin
     v_fac := v_factions[1 + floor(random() * array_length(v_factions,1))::int];
   end if;
 
-  update public.user_daily_quests
+  update public.user_daily_quests_v2
     set template_code = v_t.code, objective_type = v_t.objective_type, target_value = v_t.target_value,
         faction_id = v_fac, progress = 0, is_completed = false, completed_at = null,
         reroll_index = reroll_index + 1,
@@ -501,7 +501,7 @@ begin
     where user_id=v_uid and date_key=v_dk;
 
   v_res := jsonb_build_object('status','completed','questId', v_q.id, 'paidSilver', v_pay,
-    'snapshot', public.rvn_get_daily_quests());
+    'snapshot', public.rvn_get_daily_quests_v2());
   if p_idempotency_key is not null then
     insert into public.progression_idempotency(user_id, action, idempotency_key, response)
       values (v_uid, 'reroll_quest', p_idempotency_key, v_res) on conflict do nothing;
@@ -509,7 +509,7 @@ begin
   return v_res;
 end $$;
 
-grant execute on function public.rvn_get_daily_quests() to authenticated;
+grant execute on function public.rvn_get_daily_quests_v2() to authenticated;
 grant execute on function public.rvn_claim_daily_quest(bigint, text) to authenticated;
 grant execute on function public.rvn_claim_daily_chest_v2(text) to authenticated;
 grant execute on function public.rvn_reroll_daily_quest(bigint, boolean, text) to authenticated;
