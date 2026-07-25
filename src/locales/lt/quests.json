@@ -1,7 +1,11 @@
 {
   "allClaimed": "✓ Viskas atsiimta — grįžk rytoj!",
+  "claim": "Atsiimti",
   "claimAllN": "Atsiimti viską ({{count}})",
   "claimFailed": "Nepavyko atsiimti atlygio.",
+  "claimNow": "Atsiimti!",
+  "claimOk": "Atlygis atsiimtas!",
+  "claimed": "✓ Atsiimta",
   "claimedN": "Atsiimta atlygių: {{count}}",
   "claiming": "Skiriama…",
   "daily": {
@@ -90,8 +94,38 @@
   "streakDays": "🔥 {{count}} d. serija",
   "title": "DIENOS UŽDUOTYS",
   "today": "Šiandien",
-  "claimed": "✓ Atsiimta",
-  "claim": "Atsiimti",
-  "claimNow": "Atsiimti!",
-  "claimOk": "Atlygis atsiimtas!"
+  "v2": {
+    "dealDamage": {
+      "title": "Padaryk žalos",
+      "desc": "Padaryk {{target}} žalos"
+    },
+    "factionWin": {
+      "title": "Frakcijos pergalė",
+      "desc": "Laimėk {{target}} kovas su pasirinktos frakcijos kalade"
+    },
+    "playCreatures": {
+      "title": "Iškviesk padarus",
+      "desc": "Iškviesk {{target}} padarų kortas"
+    },
+    "playMatch": {
+      "title": "Sužaisk kovas",
+      "desc": "Sužaisk {{target}} kovas"
+    },
+    "pvpPlay": {
+      "title": "Kova su žaidėju",
+      "desc": "Sužaisk {{target}} kovas su kitu žaidėju"
+    },
+    "pvpWin": {
+      "title": "Reitinguota pergalė",
+      "desc": "Laimėk {{target}} reitinguotą kovą"
+    },
+    "winBot": {
+      "title": "Pergalė prieš DI",
+      "desc": "Laimėk {{target}} kovą su DI"
+    },
+    "winMatch": {
+      "title": "Laimėk kovas",
+      "desc": "Laimėk {{target}} kovas"
+    }
+  }
 }

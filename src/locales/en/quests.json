@@ -1,7 +1,11 @@
 {
   "allClaimed": "✓ All claimed — come back tomorrow!",
+  "claim": "Claim",
   "claimAllN": "Claim all ({{count}})",
   "claimFailed": "Failed to claim the reward.",
+  "claimNow": "Claim!",
+  "claimOk": "Reward claimed!",
+  "claimed": "✓ Claimed",
   "claimedN": "Rewards claimed: {{count}}",
   "claiming": "Claiming…",
   "daily": {
@@ -90,8 +94,38 @@
   "streakDays": "🔥 {{count}}-day streak",
   "title": "DAILY QUESTS",
   "today": "Today",
-  "claimed": "✓ Claimed",
-  "claim": "Claim",
-  "claimNow": "Claim!",
-  "claimOk": "Reward claimed!"
+  "v2": {
+    "dealDamage": {
+      "title": "Deal damage",
+      "desc": "Deal {{target}} damage"
+    },
+    "factionWin": {
+      "title": "Faction victory",
+      "desc": "Win {{target}} matches with the chosen faction deck"
+    },
+    "playCreatures": {
+      "title": "Summon creatures",
+      "desc": "Play {{target}} creature cards"
+    },
+    "playMatch": {
+      "title": "Play matches",
+      "desc": "Play {{target}} matches"
+    },
+    "pvpPlay": {
+      "title": "Player match",
+      "desc": "Play {{target}} matches against another player"
+    },
+    "pvpWin": {
+      "title": "Ranked victory",
+      "desc": "Win {{target}} ranked match"
+    },
+    "winBot": {
+      "title": "Beat the AI",
+      "desc": "Win {{target}} match against the AI"
+    },
+    "winMatch": {
+      "title": "Win matches",
+      "desc": "Win {{target}} matches"
+    }
+  }
 }

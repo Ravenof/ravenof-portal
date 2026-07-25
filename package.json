@@ -15,7 +15,9 @@
     "i18n:scan": "node scripts/i18n-scan-lt.mjs",
     "i18n:check": "node scripts/i18n-validate.mjs && node scripts/i18n-scan-lt.mjs",
     "e2e:i18n": "playwright test e2e/i18n.spec.ts",
-    "e2e:en": "playwright test e2e/english-localization.spec.ts"
+    "e2e:en": "playwright test e2e/english-localization.spec.ts",
+    "progression:check": "node scripts/progression-check.mjs",
+    "progression:test": "node supabase/tests/run.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
