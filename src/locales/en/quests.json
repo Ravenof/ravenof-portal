@@ -103,6 +103,10 @@
       "title": "Faction victory",
       "desc": "Win {{target}} matches with the chosen faction deck"
     },
+    "playBot": {
+      "title": "Bot matches",
+      "desc": "Play {{target}} matches against the bot"
+    },
     "playCreatures": {
       "title": "Summon creatures",
       "desc": "Play {{target}} creature cards"

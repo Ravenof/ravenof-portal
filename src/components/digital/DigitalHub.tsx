@@ -11,15 +11,17 @@ import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { WelcomeReward } from './WelcomeReward'
-import { getLoginRewards, isProgressionError } from '@/lib/progression'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
-import { getDailyTasks, claimDailyTask, DIFF_ACCENT, type DailyTask } from '@/lib/gamification/dailyTasks'
+import {
+  claimDailyChestV2, claimDailyQuest, getDailyQuests, getLoginRewards, isProgressionError,
+  type DailyQuestsState,
+} from '@/lib/progression'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { getActiveSeason, ensureProfile } from '@/lib/ranked/client'
 import { rankView, medalLabel } from '@/lib/ranked/rank'
 import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
-import { useT, useContent } from '@/lib/i18n/react'
+import { useT } from '@/lib/i18n/react'
 
 const A = RAVENOF_ASSET
 
@@ -31,18 +33,29 @@ function toRoman(n: number): string {
   return out
 }
 
-/** hh:mm iki vietinės paros pabaigos (dienos užduočių atsinaujinimas). */
-function timeToMidnight(): string {
-  const now = new Date()
-  const mid = new Date(now); mid.setHours(24, 0, 0, 0)
-  const mins = Math.max(0, Math.floor((mid.getTime() - now.getTime()) / 60000))
+/** Dienos užduočių akcentai pagal sudėtingumą (v2: easy/medium/hard). */
+const DIFF_ACCENT: Record<string, string> = { easy: '52,211,153', medium: '96,165,250', hard: '239,68,68' }
+
+/**
+ * hh:mm iki užduočių atsinaujinimo. Serveris grąžina `resetAt` (00:00 UTC) —
+ * kol jo dar nėra, rodom vietinės paros pabaigą kaip artimiausią apytikslę ribą.
+ */
+function timeToReset(resetAt?: string | null): string {
+  const now = Date.now()
+  let target: number
+  if (resetAt) {
+    target = new Date(resetAt).getTime()
+    if (!Number.isFinite(target)) target = new Date().setHours(24, 0, 0, 0)
+  } else {
+    target = new Date().setHours(24, 0, 0, 0)
+  }
+  const mins = Math.max(0, Math.floor((target - now) / 60000))
   return `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`
 }
 
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
   const t = useT()
-  const tc = useContent()
   const [toast, setToast] = useState<string | null>(null)
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [streak, setStreak] = useState(0)
@@ -50,20 +63,33 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
   const [questsPending, setQuestsPending] = useState(0)
-  const [tasks, setTasks] = useState<DailyTask[]>([])
+  const [quests, setQuests] = useState<DailyQuestsState | null>(null)
   const [questsLoaded, setQuestsLoaded] = useState(false)
   const [, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 }) // reikšmes rodo layout header'is; čia tik refresh trigger
   const [loginClaimable, setLoginClaimable] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
   const [rankInfo, setRankInfo] = useState<{ step: number } | null>(null)
   const [seasonMeta, setSeasonMeta] = useState<{ name: string; daysLeft: number } | null>(null)
-  const [countdown, setCountdown] = useState(timeToMidnight())
+  const [countdown, setCountdown] = useState(() => timeToReset(null))
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
-  const refreshQuests = useCallback(() => { getDailyTasks().then((s2) => { setQuestsLoaded(true); if (!s2) { setQuestsPending(0); setTasks([]); return } setTasks(s2.tasks); setQuestsPending(s2.tasks.filter((t) => t.completed && !t.claimed).length + (s2.allDone && !s2.chestClaimed ? 1 : 0)) }) }, [])
+  // Dienos užduotys — Progression v2 (rvn_get_daily_quests_v2). Sumos, progresas
+  // ir skrynios būsena ateina iš serverio; čia tik atvaizdavimas.
+  const refreshQuests = useCallback(() => {
+    getDailyQuests().then((r) => {
+      setQuestsLoaded(true)
+      if (!r || isProgressionError(r)) { setQuests(null); setQuestsPending(0); return }
+      setQuests(r)
+      setQuestsPending(r.quests.filter((q) => q.completed && !q.claimed).length + (r.chest.claimable ? 1 : 0))
+    })
+  }, [])
   const refreshBalances = useCallback(() => { getBalances().then((b) => { if (b) setBalances(b) }) }, [])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
-  useEffect(() => { const i = setInterval(() => setCountdown(timeToMidnight()), 30_000); return () => clearInterval(i) }, [])
+  useEffect(() => {
+    setCountdown(timeToReset(quests?.resetAt))
+    const i = setInterval(() => setCountdown(timeToReset(quests?.resetAt)), 30_000)
+    return () => clearInterval(i)
+  }, [quests?.resetAt])
 
   useEffect(() => {
     if (!loggedIn) return
@@ -103,11 +129,23 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const rv = rankInfo ? rankView(rankInfo.step) : null
   const ptsToNext = rankInfo ? Math.max(1, 3 - (rankInfo.step % 3)) : null
   const nx = rankInfo && ptsToNext ? rankView(Math.min(rankInfo.step + ptsToNext, 149)) : null
-  const claimTask = async (task: DailyTask) => {
+  /** Questo atlygis. Jei serveris paprašo pasirinkimo — atidarom pilną ekraną. */
+  const claimQuest = async (questId: number) => {
     playUiClick()
-    const r = await claimDailyTask(task.id)
-    if (r) { playSuccess(); setToast(t('quests.claim') + ' ✓'); refreshQuests(); refreshBalances(); refreshWallet() }
-    else router.push('/digital/quests')
+    const r = await claimDailyQuest(questId)
+    if (!r || isProgressionError(r)) { router.push('/digital/quests'); return }
+    if (r.status === 'choice_required') { refreshQuests(); router.push('/digital/quests'); return }
+    playSuccess(); setToast(t('progression.quests.claimOk'))
+    setQuests(r.snapshot); refreshQuests(); refreshBalances(); refreshWallet()
+  }
+
+  const claimChest = async () => {
+    playUiClick()
+    const r = await claimDailyChestV2()
+    if (!r || isProgressionError(r)) { router.push('/digital/quests'); return }
+    if (r.status === 'choice_required') { refreshQuests(); router.push('/digital/quests'); return }
+    playSuccess(); setToast(t('progression.quests.chestOk'))
+    setQuests(r.snapshot); refreshQuests(); refreshBalances(); refreshWallet()
   }
 
   const modeCards: { key: string; href: string; title: string; sub: string; art: string; artPos: string; border: string; clip: string }[] = [
@@ -198,8 +236,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           <span style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
           <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.resetsIn')} {countdown}</span>
         </button>
-        <div className="flex-1 flex flex-col min-h-0" style={{ gap: 6 }}>
-          {tasks.length === 0 && (
+        <div data-testid="hub-daily-quests" className="flex-1 flex flex-col min-h-0" style={{ gap: 6 }}>
+          {(quests?.quests.length ?? 0) === 0 && (
             <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: 8, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '8px 10px' }}>
               <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{!questsLoaded ? t('common.loading') : t('home.noQuestsToday')}</span>
               {questsLoaded && (
@@ -209,29 +247,44 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
               )}
             </div>
           )}
-          {tasks.slice(0, 3).map((task) => {
-            const pct = Math.min(100, Math.round((task.progress / Math.max(1, task.target)) * 100))
-            const ready = task.completed && !task.claimed
+          {(quests?.quests ?? []).slice(0, 3).map((q) => {
+            const pct = Math.min(100, Math.round((q.progress / Math.max(1, q.target)) * 100))
+            const ready = q.completed && !q.claimed
             return (
-              <div key={task.id} className="flex items-center min-h-0" style={{ flex: 1, gap: 9, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '5px 10px' }}>
+              <div key={q.id} className="flex items-center min-h-0" style={{ flex: 1, gap: 9, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '5px 10px' }}>
                 <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="shrink-0" style={{ width: 30, height: 30, background: 'none', border: 0, padding: 0, cursor: 'pointer' }} aria-label={t('home.dailyQuests')}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </button>
                 <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex-1 min-w-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
-                  <div className="truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: task.claimed ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-text-primary)' }}>{tc('daily_task', task.templateId, 'title', task.title)}</div>
+                  <div className="truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: q.claimed ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-text-primary)' }}>{t(q.titleKey, { target: q.target })}</div>
                   <div className="ravenof-progress" style={{ marginTop: 4 }}>
-                    <span style={{ width: `${pct}%`, background: task.completed ? 'var(--ravenof-gold)' : `rgb(${DIFF_ACCENT[task.difficulty] ?? '212,163,59'})` }} />
+                    <span style={{ width: `${pct}%`, background: q.completed ? 'var(--ravenof-gold)' : `rgb(${DIFF_ACCENT[q.difficulty] ?? '212,163,59'})` }} />
                   </div>
                 </button>
                 {ready ? (
-                  <button onClick={() => void claimTask(task)} className="shrink-0" style={{ font: '700 9.5px var(--ravenof-font-display)', color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('quests.claim')}</button>
+                  <button onClick={() => void claimQuest(q.id)} className="shrink-0" style={{ font: '700 9.5px var(--ravenof-font-display)', color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('quests.claim')}</button>
                 ) : (
-                  <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: task.claimed ? 'var(--ravenof-success-bright)' : 'var(--ravenof-text-secondary)' }}>{task.claimed ? '✓' : `${task.progress}/${task.target}`}</span>
+                  <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: q.claimed ? 'var(--ravenof-success-bright)' : 'var(--ravenof-text-secondary)' }}>{q.claimed ? '✓' : `${q.progress}/${q.target}`}</span>
                 )}
               </div>
             )
           })}
+          {/* Dienos skrynia — matoma tik kai visi trys questai įvykdyti */}
+          {quests && quests.allCompleted && (quests.chest.claimable || quests.chest.claimed) && (
+            <div className="flex items-center shrink-0" style={{ gap: 9, background: 'var(--ravenof-bg-surface-2)', border: '1px solid rgba(212,163,59,.45)', padding: '5px 10px' }}>
+              <span className="shrink-0" style={{ width: 24, height: 24, display: 'grid', placeItems: 'center' }} aria-hidden>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: quests.chest.claimed ? 'grayscale(1) opacity(.55)' : 'none' }} />
+              </span>
+              <span className="flex-1 min-w-0 truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('progression.quests.chestTitle')}</span>
+              {quests.chest.claimable ? (
+                <button onClick={() => void claimChest()} className="shrink-0" style={{ font: '700 9.5px var(--ravenof-font-display)', color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('progression.quests.chestOpen')}</button>
+              ) : (
+                <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-success-bright)' }}>✓</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

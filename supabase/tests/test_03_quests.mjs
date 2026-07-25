@@ -10,14 +10,14 @@ export async function run(t) {
      values ('${U}', gen_random_uuid(), '${mode}', '${result}', true)`)
 
   check('sugeneruojami lygiai 3 questai: easy + medium + hard', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     eq(s.quests.length, 3, 'questų kiekis')
     eq(s.quests.map((x) => x.difficulty).join(','), 'easy,medium,hard', 'sudėtingumai')
-    eq(q(`select count(distinct difficulty) from user_daily_quests where user_id='${U}'`), '3', 'DB')
+    eq(q(`select count(distinct difficulty) from user_daily_quests_v2 where user_id='${U}'`), '3', 'DB')
   })
 
   check('atlygiai pagal specifikaciją (100/150/200 Sidabro + 80/100/120 Season XP)', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     const map = Object.fromEntries(s.quests.map((x) => [x.difficulty, x.rewards]))
     eq(JSON.stringify(map.easy), JSON.stringify([{ type: 'silver', amount: 100 }, { type: 'season_xp', amount: 80 }]), 'easy')
     eq(JSON.stringify(map.medium), JSON.stringify([{ type: 'silver', amount: 150 }, { type: 'season_xp', amount: 100 }]), 'medium')
@@ -26,15 +26,15 @@ export async function run(t) {
   })
 
   check('PvP questai negeneruojami, kol PvP neprieinamas', () => {
-    const pvp = q(`select count(*) from user_daily_quests q join daily_quest_templates d on d.code=q.template_code
+    const pvp = q(`select count(*) from user_daily_quests_v2 q join daily_quest_templates d on d.code=q.template_code
                    where q.user_id='${U}' and d.requires_pvp`)
     eq(pvp, '0', 'PvP questų')
   })
 
   check('nėra konfliktuojančių/vienodų questų', () => {
-    const groups = q(`select count(distinct d.conflict_group) from user_daily_quests q
+    const groups = q(`select count(distinct d.conflict_group) from user_daily_quests_v2 q
                       join daily_quest_templates d on d.code=q.template_code where q.user_id='${U}'`)
-    const codes = q(`select count(distinct template_code) from user_daily_quests where user_id='${U}'`)
+    const codes = q(`select count(distinct template_code) from user_daily_quests_v2 where user_id='${U}'`)
     eq(codes, '3', 'skirtingi šablonai')
     truthy(Number(groups) >= 2, 'skirtingos konfliktų grupės: ' + groups)
   })
@@ -44,7 +44,7 @@ export async function run(t) {
   })
 
   check('pirmas reroll nemokamas ir išlaiko difficulty bei atlygį', () => {
-    const s0 = rpc(U, `rvn_get_daily_quests()`)
+    const s0 = rpc(U, `rvn_get_daily_quests_v2()`)
     const qq = s0.quests.find((x) => x.difficulty === 'medium')
     eq(s0.reroll.nextCostSilver, 0, 'pirmo reroll kaina')
     const goldBefore = Number(q(`select gold from profiles where id='${U}'`))
@@ -60,7 +60,7 @@ export async function run(t) {
 
   check('antras ir trečias reroll kainuoja po 100 Sidabro', () => {
     for (const n of [2, 3]) {
-      const s = rpc(U, `rvn_get_daily_quests()`)
+      const s = rpc(U, `rvn_get_daily_quests_v2()`)
       eq(s.reroll.nextCostSilver, 100, `${n}-o reroll kaina`)
       const qq = s.quests.find((x) => !x.completed)
       const before = Number(q(`select gold from profiles where id='${U}'`))
@@ -71,7 +71,7 @@ export async function run(t) {
   })
 
   check('ketvirtas reroll atmetamas', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     eq(s.reroll.used, 3, 'panaudota')
     eq(s.reroll.nextCostSilver, null, 'kainos nebėra')
     const before = Number(q(`select gold from profiles where id='${U}'`))
@@ -87,22 +87,22 @@ export async function run(t) {
   check('progresas skaičiuojamas tik iš galiojančių kovų', () => {
     q(`insert into matches(user_id, client_match_id, mode, result, valid_for_rewards)
        values ('${U}', gen_random_uuid(), 'bot', 'win', false)`)      // NEGALIOJANTI
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     eq(s.quests.reduce((a, x) => a + x.progress, 0), 0, 'progreso nėra')
-    for (let i = 0; i < 6; i++) playMatch('win', 'bot')
-    const s2 = rpc(U, `rvn_get_daily_quests()`)
+    for (let i = 0; i < 8; i++) playMatch('win', 'bot')   // didžiausias hard tikslas = 7
+    const s2 = rpc(U, `rvn_get_daily_quests_v2()`)
     truthy(s2.quests.every((x) => x.completed), 'visi trys užbaigti')
     eq(s2.allCompleted, true, 'allCompleted')
   })
 
   check('užbaigto questo rerollinti negalima', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     const r = rpc(U, `rvn_reroll_daily_quest(${s.quests[0].id}, true, 'rr5')`)
     eq(r.error, 'quest_completed', 'klaida')
   })
 
   check('questo claim duoda Sidabrą ir Season XP', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     const easy = s.quests.find((x) => x.difficulty === 'easy')
     const gold = Number(q(`select gold from profiles where id='${U}'`))
     const r = rpc(U, `rvn_claim_daily_quest(${easy.id}, 'cq1')`)
@@ -112,7 +112,7 @@ export async function run(t) {
   })
 
   check('to paties questo antrą kartą claiminti negalima', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     const easy = s.quests.find((x) => x.difficulty === 'easy')
     const r = rpc(U, `rvn_claim_daily_quest(${easy.id}, 'cq2')`)
     eq(r.error, 'not_claimable', 'klaida')
@@ -121,7 +121,7 @@ export async function run(t) {
   check('skrynios negalima atsiimti, kol neužbaigti visi trys', () => {
     const V = '30000000-0000-4000-8000-000000000002'
     q(`insert into profiles(id, username, gold) values ('${V}','quest_user2',0) on conflict do nothing`)
-    rpc(V, `rvn_get_daily_quests()`)
+    rpc(V, `rvn_get_daily_quests_v2()`)
     const r = rpc(V, `rvn_claim_daily_chest_v2('ch0')`)
     eq(r.error, 'not_all_completed', 'klaida')
   })
@@ -138,7 +138,7 @@ export async function run(t) {
   })
 
   check('dienos maksimumas nėra viršijamas (450 Sidabro / 50 esencijos / 400 Season XP)', () => {
-    const s = rpc(U, `rvn_get_daily_quests()`)
+    const s = rpc(U, `rvn_get_daily_quests_v2()`)
     const totalSilver = s.quests.reduce((a, x) => a + (x.rewards.find((r) => r.type === 'silver')?.amount ?? 0), 0)
     const totalXp = s.quests.reduce((a, x) => a + (x.rewards.find((r) => r.type === 'season_xp')?.amount ?? 0), 0)
       + (s.chest.rewards.find((r) => r.type === 'season_xp')?.amount ?? 0)
@@ -151,23 +151,23 @@ export async function run(t) {
   check('questas su progresu keičiamas tik po patvirtinimo', () => {
     const W = '30000000-0000-4000-8000-000000000003'
     q(`insert into profiles(id, username, gold) values ('${W}','quest_user3',1000) on conflict do nothing`)
-    rpc(W, `rvn_get_daily_quests()`)
-    q(`update user_daily_quests set progress = 1, target_value = 5 where user_id='${W}' and difficulty='hard'`)
-    const s = rpc(W, `rvn_get_daily_quests()`)
+    rpc(W, `rvn_get_daily_quests_v2()`)
+    q(`update user_daily_quests_v2 set progress = 1, target_value = 5 where user_id='${W}' and difficulty='hard'`)
+    const s = rpc(W, `rvn_get_daily_quests_v2()`)
     const hard = s.quests.find((x) => x.difficulty === 'hard')
     const r1 = rpc(W, `rvn_reroll_daily_quest(${hard.id}, false, 'w1')`)
     eq(r1.error, 'confirmation_required', 'reikia patvirtinimo')
     const r2 = rpc(W, `rvn_reroll_daily_quest(${hard.id}, true, 'w2')`)
     eq(r2.status, 'completed', 'patvirtinus pavyko')
-    eq(q(`select progress from user_daily_quests where user_id='${W}' and difficulty='hard'`), '0', 'progresas prarastas')
+    eq(q(`select progress from user_daily_quests_v2 where user_id='${W}' and difficulty='hard'`), '0', 'progresas prarastas')
   })
 
   // ── lygiagretumas ─────────────────────────────────────────────────────────
   const P = '30000000-0000-4000-8000-000000000009'
   q(`insert into profiles(id, username, gold) values ('${P}','quest_par',1000) on conflict do nothing`)
-  rpc(P, `rvn_get_daily_quests()`)
-  q(`update user_daily_quests set progress = target_value, is_completed = true where user_id='${P}'`)
-  const questId = q(`select id from user_daily_quests where user_id='${P}' and difficulty='hard'`)
+  rpc(P, `rvn_get_daily_quests_v2()`)
+  q(`update user_daily_quests_v2 set progress = target_value, is_completed = true where user_id='${P}'`)
+  const questId = q(`select id from user_daily_quests_v2 where user_id='${P}' and difficulty='hard'`)
   await parallelRpc(P, `rvn_claim_daily_quest(${questId}, null)`, 8)
   check('8 lygiagrečios questo claim užklausos → vienas atlygis', () => {
     eq(q(`select gold from profiles where id='${P}'`), '1200', 'sidabras (1000 + 200)')
@@ -182,13 +182,67 @@ export async function run(t) {
 
   const R = '30000000-0000-4000-8000-00000000000a'
   q(`insert into profiles(id, username, gold) values ('${R}','quest_par2',1000) on conflict do nothing`)
-  rpc(R, `rvn_get_daily_quests()`)
-  const rQuest = q(`select id from user_daily_quests where user_id='${R}' and difficulty='easy'`)
+  rpc(R, `rvn_get_daily_quests_v2()`)
+  const rQuest = q(`select id from user_daily_quests_v2 where user_id='${R}' and difficulty='easy'`)
   await parallelRpc(R, `rvn_reroll_daily_quest(${rQuest}, true, null)`, 6)
   check('6 lygiagrečios reroll užklausos neviršija dienos limito ir nenuskaito dvigubai', () => {
     const used = q(`select (case when free_reroll_used then 1 else 0 end) + paid_reroll_count from user_daily_quest_meta where user_id='${R}'`)
     truthy(Number(used) <= 3, 'panaudota reroll: ' + used)
     const gold = Number(q(`select gold from profiles where id='${R}'`))
     eq(gold, 1000 - (Number(used) - 1) * 100, 'nuskaityta tiksliai pagal apmokėtus reroll')
+  })
+
+  // ── 20260847: režimo apribojimas + backfill + garantuoti 3 questai ────────
+  const M = '30000000-0000-4000-8000-00000000001a'
+  q(`insert into profiles(id, username, gold) values ('${M}','quest_mode',1000) on conflict do nothing`)
+  rpc(M, `rvn_get_daily_quests_v2()`)
+
+  check('režimą ribojantis questas neužsiskaito iš kito režimo kovos', () => {
+    // priverstinai paverčiam hard questą „laimėk 3 su botu"
+    q(`update user_daily_quests_v2 set template_code='hard_win_bot_3', objective_type='win_match',
+       target_value=3, progress=0, is_completed=false where user_id='${M}' and difficulty='hard'`)
+    eq(q(`select mode_restriction from user_daily_quests_v2 where user_id='${M}' and difficulty='hard'`), 'bot',
+      'režimas sinchronizuotas iš šablono')
+    q(`insert into matches(user_id, client_match_id, mode, result, valid_for_rewards)
+       values ('${M}', gen_random_uuid(), 'ranked', 'win', true)`)
+    eq(q(`select progress from user_daily_quests_v2 where user_id='${M}' and difficulty='hard'`), '0',
+      'reitinguota pergalė boto questui neužsiskaito')
+    q(`insert into matches(user_id, client_match_id, mode, result, valid_for_rewards)
+       values ('${M}', gen_random_uuid(), 'bot', 'win', true)`)
+    eq(q(`select progress from user_daily_quests_v2 where user_id='${M}' and difficulty='hard'`), '1',
+      'boto pergalė užsiskaito')
+  })
+
+  check('visada sugeneruojami 3 skirtingi questai (kitaip skrynia neatsidarytų)', () => {
+    for (let i = 0; i < 6; i++) {
+      const uid = `30000000-0000-4000-8000-0000000002${String(i).padStart(2, '0')}`
+      q(`insert into profiles(id, username, gold) values ('${uid}','qgen${i}',0) on conflict do nothing`)
+      const s = rpc(uid, `rvn_get_daily_quests_v2()`)
+      eq(s.quests.length, 3, `questų kiekis (${i})`)
+      eq(new Set(s.quests.map((x) => x.templateCode)).size, 3, `skirtingi šablonai (${i})`)
+    }
+  })
+
+  check('BACKFILL: prieš generavimą sužaistos galiojančios kovos nedingsta', () => {
+    const B = '30000000-0000-4000-8000-00000000001b'
+    q(`insert into profiles(id, username, gold) values ('${B}','quest_backfill',0) on conflict do nothing`)
+    for (let i = 0; i < 3; i++) {
+      q(`insert into matches(user_id, client_match_id, mode, result, valid_for_rewards)
+         values ('${B}', gen_random_uuid(), 'bot', 'win', true)`)
+    }
+    const s = rpc(B, `rvn_get_daily_quests_v2()`)
+    eq(s.quests.length, 3, 'questų kiekis')
+    truthy(s.quests.reduce((a, x) => a + x.progress, 0) > 0, 'progresas backfill\'intas')
+    const easy = s.quests.find((x) => x.difficulty === 'easy')
+    truthy(easy.progress >= Math.min(3, easy.target), 'easy questas jau turi progresą: ' + easy.progress)
+  })
+
+  check('BACKFILL neužskaito negaliojančių kovų', () => {
+    const N = '30000000-0000-4000-8000-00000000001c'
+    q(`insert into profiles(id, username, gold) values ('${N}','quest_invalid',0) on conflict do nothing`)
+    q(`insert into matches(user_id, client_match_id, mode, result, valid_for_rewards)
+       values ('${N}', gen_random_uuid(), 'bot', 'win', false)`)
+    const s = rpc(N, `rvn_get_daily_quests_v2()`)
+    eq(s.quests.reduce((a, x) => a + x.progress, 0), 0, 'progreso nėra')
   })
 }

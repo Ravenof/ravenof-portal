@@ -13,8 +13,10 @@ Duomenų kontraktas UI'ui: [`PROGRESSION-DATA-CONTRACT.md`](./PROGRESSION-DATA-C
 | `20260841_progression_boosters.sql` | `economy_config.booster_v2` + `card_choice_v2`, `rvn__generate_faction_booster`, `rvn__build_card_choice_pool`, pasirinkimų išsprendimo RPC |
 | `20260842_login_cycle_v2.sql` | `login_cycle_reward_defs`, `user_login_cycles`, `user_login_claims`, **backfill iš v1**, `rvn_get_login_cycle`, `rvn_claim_login_reward` |
 | `20260843_season_path_v2.sql` | `economy_config.season_path_v2`, `season_reward_defs` (sezonui užšaldyti), `progression_content_gaps`, claim + **Claim All** + pass unlock |
-| `20260844_daily_quests_v2.sql` | `daily_quest_templates`, `user_daily_quests`, `user_daily_quest_meta`, `user_daily_chests`, generavimas, progresas, reroll, skrynia, `rvn_report_match_stats` |
+| `20260844_daily_quests_v2.sql` | `daily_quest_templates`, `user_daily_quests_v2`, `user_daily_quest_meta`, `user_daily_chests`, generavimas, progresas, reroll, skrynia, `rvn_report_match_stats` |
 | `20260845_progression_api.sql` | `rvn_get_progression_snapshot`, `rvn_continue_pending_claims`, `rvn_get_progression_config` |
+| `20260846_progression_ui_fields.sql` | UI laukai: serija/praleistos dienos, `xpIntoLevel`, frakcijos vardas kortų pasirinkime, kolekcijos % |
+| `20260847_daily_quests_fix.sql` | **Dienos užduočių pataisos:** `mode_restriction` questo eilutėje ir progrese, bot režimo šablonai, garantuoti 3 questai, backfill, **v1 `rvn__ensure_daily_tasks` SQL klaidos taisymas** |
 
 **Visos migracijos additive.** Nė viena netrina eilučių, nekeičia esamų RPC ir
 neperrašo jau claimintų ledger įrašų. Senos sistemos (`rvn_get_monthly_login`,
@@ -248,6 +250,68 @@ npm run progression:check
 | 3 | **Match Season XP** | `rvn_report_match_v2` (v1, gyvas) vis dar duoda `season_xp` už kovas; specifikacija sako, kad šiuo etapu Season XP tik iš questų/skrynios | Produkto sprendimas: palikti ar išjungti `economy_config.match_rewards.*.season_xp` (nekeičiau — tai gyvos ekonomikos pakeitimas) |
 | 4 | **PvP prieinamumo kriterijus** | Naudojamas `digital_onboarded_at is not null` | Patvirtinti tikrą PvP atrakinimo sąlygą; keičiama `daily_quests_v2.generation` |
 | 5 | **Kortų katalogo pilnumas** | Jei kuriai nors rarity nėra bent 1 Light ir 1 Dark kortos, pool'as bus trumpesnis | `progression_content_gaps` registruoja; reikia turinio, ne kodo |
-| 6 | ~~v1 UI naudoja v1 RPC~~ | **Išspręsta 2026-07-25** — visi trys ekranai perjungti į `@/lib/progression` | — |
+| 6 | ~~v1 UI naudoja v1 RPC~~ | **Išspręsta 2026-07-25** — visi trys ekranai IR pagrindinio puslapio dienos užduočių slotas perjungti į `@/lib/progression` | — |
 | 7 | **Nėra skrynios / sutarčių iliustracijų** | Skrynia naudoja registro `fi-gifts.png`, questų fonai — 2 esami `backgrounds/*.webp` | Dizaino komandai: skrynios artas + 3 kategorijų iliustracijos |
 | 8 | **`schema.sql` seed'ai pasenę** | Švarus bootstrap sukurtų DB su EN frakcijomis id 1–5 | Ne šios užduoties apimtis; užfiksuota testų stende |
+
+## 12. Dienos užduočių gedimo analizė (2026-07-25)
+
+Vartotojo pranešimas: *„dienos užduotys neveikia visai"*. Rastos keturios
+atskiros priežastys — visos ištaisytos `20260847_daily_quests_fix.sql`.
+
+**1) v1 generavimas metėsi kiekvieną kartą (pagrindinė priežastis).**
+`20260835_daily_tasks_selfheal.sql` backfill'e naudota konstrukcija
+
+```sql
+update ... t from (...) c cross join lateral (select ... t.objective_type ...) x
+```
+
+PostgreSQL'e **neteisėta** — UPDATE tikslinės lentelės alias'o negalima
+naudoti FROM sąrašo `lateral`e. Sakinys metasi
+`ERROR: invalid reference to FROM-clause entry for table "t"`, todėl visas
+`rvn__ensure_daily_tasks()` kvietimas atsukamas:
+
+- `rvn_get_daily_tasks()` (pagrindinio puslapio slotas) grąžindavo klaidą →
+  užduotys **niekada** nesugeneruodavo, slote likdavo „Šiandien užduočių nėra";
+- trigeris `trg_daily_task_from_match` ant `matches` taip pat metėsi → pirmoji
+  paros kova galėjo neužsirašyti.
+
+Atkurta prieš pataisą (stendas su v1 migracijomis):
+
+```
+select rvn_get_daily_tasks();
+ERROR:  invalid reference to FROM-clause entry for table "t"
+```
+
+**2) Pagrindinis puslapis naudojo v1 RPC.** `DigitalHub` kvietė
+`getDailyTasks()` → `rvn_get_daily_tasks`, o `/digital/quests` — jau v2. Dvi
+skirtingos sistemos tame pačiame ekrane. Hub'o slotas perjungtas į
+`getDailyQuests()` / `claimDailyQuest()` / `claimDailyChestV2()`.
+
+**3) `mode_restriction` buvo ignoruojamas v2 progrese.** Questas „Laimėk kovą
+su botu" užsiskaitydavo iš bet kokios pergalės. Režimas dabar saugomas
+`user_daily_quests_v2.mode_restriction` (sinchronizuojamas trigerio
+`trg_quest_sync_mode`) ir tikrinamas `rvn__quests_progress`.
+
+**4) Per mažas šablonų pool'as.** Su `enable_stat_objectives = false` ir
+neprieinamu PvP likdavo 3 easy / 2 medium / 2 hard šablonai — visos trys
+dienos užduotys tapdavo „Sužaisk N kovų", o kartais kuriai nors klasei
+šablono nelikdavo visai (< 3 questų → **dienos skrynia niekada neatsidarydavo**).
+Pridėti 4 bot režimo šablonai, atskirta `win_bot` konfliktų grupė ir įdėta
+paskutinės išeities atsarga.
+
+Papildomai: generuojant questus dabar **backfill'inamos** tą UTC parą jau
+sužaistos galiojančios kovos (v1 tai darė, v2 — ne).
+
+### Ką tai keičia pagrindiniame puslapyje
+
+- Slotas `[data-testid="hub-daily-quests"]` rodo tris v2 questus (pavadinimai
+  per `t(titleKey, { target })` — LT/EN), progreso juostą, `progress/target`,
+  „Atsiimti" mygtuką ir **Dienos skrynios** eilutę, kai visi trys įvykdyti.
+- Atgalinis laikas skaičiuojamas nuo serverio `resetAt` (**00:00 UTC**), o ne
+  nuo vietinės paros pabaigos.
+- Jei serveris grąžina `choice_required`, hub'as atidaro pilną `/digital/quests`
+  ekraną — pasirinkimų eilė tvarkoma ten.
+- Nuotraukos: `artifacts/ravenof-progression/hub-quests-*.png`
+  (LT 1536×768 / 1366×768 / 1280×720 / 1024×600, EN 1536×768 + mišri būsena).
+  Generavimas: `node tools/hub-quests-shot.mjs`.

@@ -103,6 +103,10 @@
       "title": "Frakcijos pergalė",
       "desc": "Laimėk {{target}} kovas su pasirinktos frakcijos kalade"
     },
+    "playBot": {
+      "title": "Kovos su botu",
+      "desc": "Sužaisk {{target}} kovas prieš botą"
+    },
     "playCreatures": {
       "title": "Iškviesk padarus",
       "desc": "Iškviesk {{target}} padarų kortas"
