@@ -207,21 +207,37 @@ npm run progression:check
   lygiagretumas) · boosteris (10 kortų, 8+2, garantuotas slotas, copy limit,
   kompensacija) · saugumas (svetimi claim'ai, RLS, `pg_proc` parametrų auditas).
 
-## 10. Ką reikia prijungti gavus dizaino handoff'ą
+## 10. UI prijungimas (dizaino handoff'as gautas 2026-07-25)
 
-1. Naujuose komponentuose importuoti tik iš `@/lib/progression`.
-   Renderinti DTO — **nieko neskaičiuoti** (žr. kontrakto §1).
-2. `pendingChoices` UI: frakcijos boosterio pasirinkimo ekranas (8 plytelės) ir
-   kortos pasirinkimo ekranas (2 kortos, `disabled` → rodyti `duplicateEssence`).
-3. Po kiekvieno `resolve*` kviesti `continuePendingClaims()`, kol
-   `status === 'completed'` arba eilė tuščia.
-4. Quest tekstai: `titleKey` / `descKey` per `t(key, { target })`
-   (raktai `quests.v2.*` jau pridėti į `src/locales/{lt,en}/quests.json`).
-5. Countdown iš `resetAt` / `nextClaimAt` — rodyti vietiniu laiku, bet
-   claim mygtuko būseną imti iš `claimableDay` / `claimable` laukų.
-6. Kovos telemetrija questams: po `rvn_report_match_v2` kviesti
-   `reportMatchStats(clientMatchId, { creaturesPlayed, spellsPlayed, damageDealt }, deckFactionId)`
-   ir įjungti `daily_quests_v2.generation.enable_stat_objectives = true`.
+Šaltinis: `Raveknof Digital Phase 5 continuation/ravenof-progression-handoff`
+(`IMPLEMENTATION.md`, `PROGRESSION-DATA-CONTRACT.md`, `screens/01…20`).
+
+| Ekranas | Route | Komponentas |
+|---|---|---|
+| Prisijungimo dovanos | `/digital/rewards` | `components/digital/progression/LoginRewardsScreen.tsx` |
+| Sezono kelias | `/digital/season` | `components/digital/progression/SeasonPathScreen.tsx` |
+| Dienos užduotys | `/digital/quests` | `components/digital/progression/DailyQuestsScreen.tsx` |
+| Pasirinkimų langai | — | `components/digital/progression/ChoiceModals.tsx` |
+| Bendri elementai | — | `components/digital/progression/kit.tsx` |
+
+- Trys **atskiri** route'ai; jokio bendro „rewards hub'o", jokių tabų tarp jų.
+- Shell (`app/digital/layout.tsx`) nekeistas — pridėti tik 3 nauji route'ai į
+  `MIGRATED_ROUTES`. Įėjimai: `MoreScreen` („Daugiau") ir `DigitalHub` mygtukai.
+- Dizaino tokenai (`--rvn-*`) ir `rvIn/rvGlow/rvSpin/rvSkel` gyvena `ravenof-ui.css`.
+  Įėjimo animacija — **tik opacity**; `prefers-reduced-motion` viską išjungia.
+- Atlygių ikonos **tik** iš centrinio registro `src/lib/rewards/rewardVisuals.ts`
+  (`resolveRewardVisualV2`) — emoji neleidžiami, nežinomas tipas → `fi-gifts`.
+- Modalai: Escape, focus trap ir fokuso grąžinimas (`ProgressionModal`).
+- `npm run progression:check` tikrina, kad progresijos komponentuose **nėra**
+  hardcodintų atlygio sumų (`amount:` / `quantity:` / `+N` JSX tekstuose).
+- Pašalinti v1 komponentai: `QuestsModal`, `SeasonPassModal`, `MonthlyLoginModal`,
+  `SeasonPathModal`, `DailyTasksModal` — jų įėjimai perjungti į naujus route'us.
+
+### Vizualinė verifikacija
+
+`artifacts/ravenof-progression/` — 17 ekrano nuotraukų (LT+EN @1536×720 ir
+1366×768 / 1280×720 / 1024×600 / 844×390). Visuose: `hOverflow 0`, `vOverflow 0`,
+0 pageerror, jokių <44px lietimo taikinių turinyje, jokio nukirsto teksto.
 
 ## 11. Likusios spragos (gap report)
 
@@ -232,5 +248,6 @@ npm run progression:check
 | 3 | **Match Season XP** | `rvn_report_match_v2` (v1, gyvas) vis dar duoda `season_xp` už kovas; specifikacija sako, kad šiuo etapu Season XP tik iš questų/skrynios | Produkto sprendimas: palikti ar išjungti `economy_config.match_rewards.*.season_xp` (nekeičiau — tai gyvos ekonomikos pakeitimas) |
 | 4 | **PvP prieinamumo kriterijus** | Naudojamas `digital_onboarded_at is not null` | Patvirtinti tikrą PvP atrakinimo sąlygą; keičiama `daily_quests_v2.generation` |
 | 5 | **Kortų katalogo pilnumas** | Jei kuriai nors rarity nėra bent 1 Light ir 1 Dark kortos, pool'as bus trumpesnis | `progression_content_gaps` registruoja; reikia turinio, ne kodo |
-| 6 | **v1 UI vis dar naudoja v1 RPC** | Sąmoningai — kad niekas nesulūžtų iki dizaino handoff'o | Perjungti komponentus į `@/lib/progression` kartu su nauju dizainu |
-| 7 | **`schema.sql` seed'ai pasenę** | Švarus bootstrap sukurtų DB su EN frakcijomis id 1–5 | Ne šios užduoties apimtis; užfiksuota testų stende |
+| 6 | ~~v1 UI naudoja v1 RPC~~ | **Išspręsta 2026-07-25** — visi trys ekranai perjungti į `@/lib/progression` | — |
+| 7 | **Nėra skrynios / sutarčių iliustracijų** | Skrynia naudoja registro `fi-gifts.png`, questų fonai — 2 esami `backgrounds/*.webp` | Dizaino komandai: skrynios artas + 3 kategorijų iliustracijos |
+| 8 | **`schema.sql` seed'ai pasenę** | Švarus bootstrap sukurtų DB su EN frakcijomis id 1–5 | Ne šios užduoties apimtis; užfiksuota testų stende |

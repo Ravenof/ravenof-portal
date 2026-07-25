@@ -4,13 +4,11 @@
 //    kortelėmis (Žaidimas / Bendruomenė / Paskyra) — viskas telpa be scroll.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, ClipboardList, Award, Users, Store, LogOut, Power, ChevronRight } from 'lucide-react'
+import { Settings, ClipboardList, Award, Gift, Users, Store, LogOut, Power, ChevronRight } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { createClient } from '@/lib/supabase/client'
 import { exitNativeApp } from '@/lib/digital/native'
 import { SettingsModal } from './SettingsModal'
-import { QuestsModal } from './QuestsModal'
-import { SeasonPassModal } from './SeasonPassModal'
 import { RvnIcon } from './ui/RvnIcon'
 import { useT } from '@/lib/i18n/react'
 import { LanguageSelector } from '@/components/digital/ui/LanguageSelector'
@@ -21,8 +19,6 @@ export function MoreScreen() {
   const router = useRouter()
   const t = useT()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [questsOpen, setQuestsOpen] = useState(false)
-  const [seasonOpen, setSeasonOpen] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
   const [exitMsg, setExitMsg] = useState<string | null>(null)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -45,8 +41,9 @@ export function MoreScreen() {
       title: t('more.sections.game'),
       rows: [
         { key: 'settings', label: t('more.settings'), sub: t('more.settingsSub'), icon: Settings, img: 'settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
-        { key: 'quests', label: t('more.quests'), sub: t('more.questsSub'), icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); setQuestsOpen(true) } },
-        { key: 'season', label: t('more.season'), sub: t('more.seasonSub'), icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); setSeasonOpen(true) } },
+        { key: 'login', label: t('more.loginRewards'), sub: t('more.loginRewardsSub'), icon: Gift, img: 'seg-login', accent: '240,180,41', onClick: () => { playUiClick(); router.push('/digital/rewards') } },
+        { key: 'season', label: t('more.season'), sub: t('more.seasonSub'), icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); router.push('/digital/season') } },
+        { key: 'quests', label: t('more.quests'), sub: t('more.questsSub'), icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); router.push('/digital/quests') } },
       ],
     },
     {
@@ -127,8 +124,6 @@ export function MoreScreen() {
       )}
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
-      {questsOpen && <QuestsModal onClose={() => setQuestsOpen(false)} />}
-      {seasonOpen && <SeasonPassModal onClose={() => setSeasonOpen(false)} />}
     </div>
   )
 }

@@ -91,3 +91,51 @@ export function resolveRewardVisual(it: RewardPayloadItem): RewardVisual {
 export function allRewardAssets(): string[] {
   return [...new Set(Object.values(DEFS).map((d) => d.asset).concat(REWARD_MISSING_ASSET))]
 }
+
+// ── Progression v2 atlygio formos ────────────────────────────────────────────
+// v2 RewardDefinition ({type:'silver'|'essence'|'rubies'|'season_xp'|
+// 'faction_booster_choice'|'card_choice'|'card_back'|'player_avatar'}) sprendžiama
+// TUO PAČIU registru — antro tiesos šaltinio NĖRA.
+const V2_DEFS: Record<string, Def> = {
+  faction_booster_choice: { asset: I + 'pack.png', name: 'rewards.item.factionBooster.name', desc: 'rewards.item.factionBooster.desc', opticalScale: 0.92 },
+  card_choice:            { asset: I + 'nav-collection.png', name: 'rewards.item.cardChoice.name', desc: 'rewards.item.cardChoice.desc' },
+}
+
+/** v2 RewardDefinition → tas pats vizualų registras. */
+export function resolveRewardVisualV2(r: { type?: string; amount?: number; quantity?: number; rarity?: string; cosmeticId?: string } | null | undefined): RewardVisual {
+  const type = String(r?.type ?? '')
+  const mkV2 = (key: string, label: string, def?: Def): RewardVisual => {
+    const d = def ?? DEFS[key] ?? DEFS.missing
+    return {
+      key, asset: d.asset, fallbackAsset: REWARD_MISSING_ASSET,
+      name: t(d.name), label, desc: t(d.desc),
+      opticalScale: d.opticalScale ?? 1, missing: !def && !DEFS[key],
+    }
+  }
+  switch (type) {
+    case 'silver':
+    case 'rubies':
+    case 'essence':
+      return mkV2(type, `+${fmt(r?.amount ?? 0)}`)
+    case 'season_xp':
+      return mkV2('season_xp', `+${fmt(r?.amount ?? 0)}`)
+    case 'faction_booster_choice': {
+      const q = r?.quantity ?? 1
+      return mkV2('faction_booster_choice', t('rewards.label.packs', { count: q }), V2_DEFS.faction_booster_choice)
+    }
+    case 'card_choice':
+      return mkV2('card_choice', t(`progression.rarity.${r?.rarity ?? 'rare'}`), V2_DEFS.card_choice)
+    case 'card_back':
+      return mkV2('card_back', t('rewards.label.cardBack'))
+    case 'player_avatar':
+      return mkV2('player_avatar', t('rewards.label.avatar'))
+    default:
+      warnMissing(`v2:${type || '∅'}`, r as RewardPayloadItem)
+      return mkV2('missing', '')
+  }
+}
+
+/** Ar šis atlygis prieš išdavimą reikalauja žaidėjo pasirinkimo. */
+export function rewardRequiresChoice(r: { type?: string } | null | undefined): boolean {
+  return r?.type === 'faction_booster_choice' || r?.type === 'card_choice'
+}

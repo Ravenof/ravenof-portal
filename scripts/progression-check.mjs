@@ -183,7 +183,15 @@ console.log('── 5) TS ↔ SQL kontraktas ──')
 // ── 6) Hardcodintos sumos komponentuose ────────────────────────────────────
 console.log('── 6) Reward sumų hardcode patikra ──')
 {
-  const AMOUNTS = new Set([100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 650, 750, 850, 1000, 1250, 1500, 25, 50, 75, 125, 80, 120])
+  // Ieškom TIK atlygio konteksto: `amount: N`, `quantity: N`, `<Chip amount={N}`
+  // ir grynų JSX tekstų tipo `+250` / `250 sidabro`. CSS reikšmės (px, rgba,
+  // font, opacity, animation) ignoruojamos — jos ne ekonomika.
+  const REWARD_CTX = [
+    /\bamount\s*:\s*(\d{2,5})\b/g,
+    /\bquantity\s*:\s*(\d{1,3})\b/g,
+    /\bamount=\{\s*(\d{2,5})\s*\}/g,
+    />\s*\+(\d{2,5})\s*</g,
+  ]
   const scan = (dir) => {
     const out = []
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -193,23 +201,30 @@ console.log('── 6) Reward sumų hardcode patikra ──')
     }
     return out
   }
-  const files = scan(path.join(ROOT, 'src/components'))
+  const files = scan(path.join(ROOT, 'src/components')).concat(scan(path.join(ROOT, 'src/app')))
   let flagged = 0
   for (const f of files) {
     const src = fs.readFileSync(f, 'utf8')
-    if (!/@\/lib\/progression/.test(src)) continue      // taikoma naujam progression UI
-    const hits = [...src.matchAll(/\b(\d{2,4})\b/g)].map((m) => Number(m[1])).filter((n) => AMOUNTS.has(n))
-    if (hits.length) { fail(`${path.relative(ROOT, f)}: galimai hardcodintos atlygio sumos: ${[...new Set(hits)].join(', ')}`); flagged++ }
+    if (!/@\/lib\/progression/.test(src)) continue
+    const hits = new Set()
+    for (const re of REWARD_CTX) {
+      for (const m of src.matchAll(re)) {
+        const n = Number(m[1])
+        // 0 leidžiama (placeholder / tuščias balansas)
+        if (n > 0) hits.add(n)
+      }
+    }
+    if (hits.size) { fail(`${path.relative(ROOT, f)}: atlygio sumos kode: ${[...hits].join(', ')}`); flagged++ }
   }
-  if (!flagged) ok('progression komponentuose hardcodintų atlygio sumų nerasta')
+  if (!flagged) ok(`progression UI (${files.filter((f) => /@\/lib\/progression/.test(fs.readFileSync(f, 'utf8'))).length} failai) nehardcodina atlygio sumų`)
 
   // senasis (v1) UI — tik įspėjimas, jis bus pakeistas dizaino handoff'u
   for (const name of ['MonthlyLoginModal.tsx', 'SeasonPathModal.tsx', 'DailyTasksModal.tsx']) {
     const p = path.join(ROOT, 'src/components/digital', name)
     if (!fs.existsSync(p)) continue
     const src = fs.readFileSync(p, 'utf8')
-    const hits = [...src.matchAll(/\b(\d{3,4})\b/g)].map((m) => Number(m[1])).filter((n) => AMOUNTS.has(n))
-    if (hits.length) warn(`${name} (v1 UI, bus pakeistas): skaitinės reikšmės ${[...new Set(hits)].join(', ')}`)
+    const hits = [...src.matchAll(/\bamount\s*:\s*(\d{2,5})\b/g)].map((m) => Number(m[1]))
+    if (hits.length) warn(`${name} (v1 UI, bus pakeistas): ${[...new Set(hits)].join(', ')}`)
   }
 }
 

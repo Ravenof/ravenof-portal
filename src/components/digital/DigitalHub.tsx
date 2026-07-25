@@ -10,11 +10,8 @@ import { useRouter } from 'next/navigation'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
-import { SeasonPathModal } from './SeasonPathModal'
 import { WelcomeReward } from './WelcomeReward'
-import { MonthlyLoginModal } from './MonthlyLoginModal'
-import { DailyTasksModal } from './DailyTasksModal'
-import { getMonthlyLogin } from '@/lib/gamification/monthlyLogin'
+import { getLoginRewards, isProgressionError } from '@/lib/progression'
 import { loginCheckin } from '@/lib/gamification/quests'
 import { getSeasonPath } from '@/lib/gamification/seasonPath'
 import { getDailyTasks, claimDailyTask, DIFF_ACCENT, type DailyTask } from '@/lib/gamification/dailyTasks'
@@ -48,7 +45,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const tc = useContent()
   const [toast, setToast] = useState<string | null>(null)
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
-  const [seasonOpen, setSeasonOpen] = useState(false)
   const [streak, setStreak] = useState(0)
   const [claimable, setClaimable] = useState(false)
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
@@ -57,9 +53,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [tasks, setTasks] = useState<DailyTask[]>([])
   const [questsLoaded, setQuestsLoaded] = useState(false)
   const [, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 }) // reikšmes rodo layout header'is; čia tik refresh trigger
-  const [loginOpen, setLoginOpen] = useState(false)
   const [loginClaimable, setLoginClaimable] = useState(false)
-  const [dailyOpen, setDailyOpen] = useState(false)
   const [seasonClaimable, setSeasonClaimable] = useState(0)
   const [rankInfo, setRankInfo] = useState<{ step: number } | null>(null)
   const [seasonMeta, setSeasonMeta] = useState<{ name: string; daysLeft: number } | null>(null)
@@ -74,11 +68,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet(); refreshQuests(); refreshBalances()
-    getMonthlyLogin().then((ml) => {
-      if (!ml) return
-      const cl = !ml.claimedToday && ml.nextDay <= ml.daysInMonth
+    getLoginRewards().then((ml) => {
+      if (!ml || isProgressionError(ml)) return
+      const cl = ml.claimableDay != null
       setLoginClaimable(cl)
-      if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setLoginOpen(true) } }
+      if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); router.push('/digital/rewards') } }
     })
     loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
     getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl) })
@@ -92,7 +86,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       const c = (d ?? []).filter((x) => x.claimed).length
       setNewPlayer(c === 0) // starter pasirinkimas dabar /digital/onboarding (route guard)
     })
-  }, [loggedIn, refreshWallet, refreshQuests, refreshBalances])
+  }, [loggedIn, refreshWallet, refreshQuests, refreshBalances, router])
 
   if (!loggedIn) {
     return (
@@ -113,7 +107,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     playUiClick()
     const r = await claimDailyTask(task.id)
     if (r) { playSuccess(); setToast(t('quests.claim') + ' ✓'); refreshQuests(); refreshBalances(); refreshWallet() }
-    else setDailyOpen(true)
+    else router.push('/digital/quests')
   }
 
   const modeCards: { key: string; href: string; title: string; sub: string; art: string; artPos: string; border: string; clip: string }[] = [
@@ -182,14 +176,14 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
         {/* Serija + sezono kelias */}
         <div className="flex shrink-0" style={{ gap: 8 }}>
-          <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="ravenof-press text-left" style={{ flex: 1, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: '2px solid var(--ravenof-gold)', padding: '8px 10px', cursor: 'pointer' }}>
+          <button onClick={() => { playUiClick(); router.push('/digital/rewards') }} className="ravenof-press text-left" style={{ flex: 1, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: '2px solid var(--ravenof-gold)', padding: '8px 10px', cursor: 'pointer' }}>
             <div style={{ font: '500 8.5px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{t('home.streakLabel')}</div>
             <div className="flex items-baseline" style={{ gap: 4, marginTop: 2 }}>
               <span style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{streak}</span>
               <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.daysRow')}</span>
             </div>
           </button>
-          <button data-testid="season-track-btn" onClick={() => { playUiClick(); setSeasonOpen(true) }} className="ravenof-press text-left relative" style={{ flex: 1, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: '2px solid var(--ravenof-fac-vryhioko)', padding: '8px 10px', cursor: 'pointer' }}>
+          <button data-testid="season-track-btn" onClick={() => { playUiClick(); router.push('/digital/season') }} className="ravenof-press text-left relative" style={{ flex: 1, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: '2px solid var(--ravenof-fac-vryhioko)', padding: '8px 10px', cursor: 'pointer' }}>
             <div style={{ font: '500 8.5px var(--ravenof-font-body)', letterSpacing: 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{t('home.seasonPathLabel')}</div>
             <div className="flex items-baseline" style={{ gap: 4, marginTop: 2 }}>
               <span style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{season.cur}</span>
@@ -200,7 +194,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         </div>
 
         {/* Dienos užduotys */}
-        <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="flex items-baseline justify-between shrink-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
+        <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex items-baseline justify-between shrink-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
           <span style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
           <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.resetsIn')} {countdown}</span>
         </button>
@@ -209,7 +203,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: 8, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '8px 10px' }}>
               <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{!questsLoaded ? t('common.loading') : t('home.noQuestsToday')}</span>
               {questsLoaded && (
-                <button onClick={() => { playUiClick(); setLoginOpen(true) }} className="ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, padding: '7px 12px', fontSize: 10 }}>
+                <button onClick={() => { playUiClick(); router.push('/digital/rewards') }} className="ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, padding: '7px 12px', fontSize: 10 }}>
                   {loginClaimable ? t('home.monthlyReady') : t('home.monthlyGifts')}
                 </button>
               )}
@@ -220,11 +214,11 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             const ready = task.completed && !task.claimed
             return (
               <div key={task.id} className="flex items-center min-h-0" style={{ flex: 1, gap: 9, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '5px 10px' }}>
-                <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="shrink-0" style={{ width: 30, height: 30, background: 'none', border: 0, padding: 0, cursor: 'pointer' }} aria-label={t('home.dailyQuests')}>
+                <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="shrink-0" style={{ width: 30, height: 30, background: 'none', border: 0, padding: 0, cursor: 'pointer' }} aria-label={t('home.dailyQuests')}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </button>
-                <button onClick={() => { playUiClick(); setDailyOpen(true) }} className="flex-1 min-w-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
+                <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex-1 min-w-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
                   <div className="truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: task.claimed ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-text-primary)' }}>{tc('daily_task', task.templateId, 'title', task.title)}</div>
                   <div className="ravenof-progress" style={{ marginTop: 4 }}>
                     <span style={{ width: `${pct}%`, background: task.completed ? 'var(--ravenof-gold)' : `rgb(${DIFF_ACCENT[task.difficulty] ?? '212,163,59'})` }} />
@@ -242,9 +236,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       {/* ── Modalai (visi išsaugoti) ── */}
-      {seasonOpen && <SeasonPathModal onClose={() => setSeasonOpen(false)} onReward={() => { refreshBalances(); refreshWallet() }} />}
-      {dailyOpen && <DailyTasksModal onClose={() => { setDailyOpen(false); refreshQuests() }} onReward={() => { refreshBalances(); refreshWallet(); refreshQuests() }} />}
-      {loginOpen && <MonthlyLoginModal onClose={() => { setLoginOpen(false); refreshBalances(); getMonthlyLogin().then((ml) => setLoginClaimable(!!ml && !ml.claimedToday && ml.nextDay <= ml.daysInMonth)) }} onClaimed={() => { refreshBalances(); setLoginClaimable(false) }} />}
 
       <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
 

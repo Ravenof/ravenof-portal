@@ -34,6 +34,8 @@ export type FactionOption = {
   slug: string
   name: string
   alignment: FactionAlignment
+  /** frakcijos kolekcijos pilnumas % (serverio skaičiuojamas) */
+  collectionProgressPct?: number
 }
 
 export type CardChoiceOption = {
@@ -41,6 +43,8 @@ export type CardChoiceOption = {
   nameLt: string
   nameEn: string
   factionId: number
+  factionSlug: string
+  factionName: string
   alignment: FactionAlignment
   rarity: CardRarityCode
   imageUrl: string | null
@@ -88,9 +92,16 @@ export type LoginRewardState = {
   economyVersion: number
   cyclePosition: number
   cycleLength: number
+  cycleStartedAt: string | null
   claimedToday: boolean
   claimableDay: number | null
   nextClaimAt: string | null
+  /** kito UTC vidurnakčio ISO laikas (countdown) */
+  resetAt: string
+  /** paeiliui atsiimtų parų serija */
+  streak: number
+  /** praleistos paros nuo ciklo pradžios */
+  missedDays: number
   cycleCompleted: boolean
   claimedDays: number[]
   rewards: LoginRewardDay[]
@@ -104,6 +115,8 @@ export type SeasonTrackState = {
   rewards: RewardDefinition[]
   claimed: boolean
   claimable: boolean
+  /** pass takelis be Season Pass */
+  locked?: boolean
 }
 
 export type SeasonLevelRow = {
@@ -128,6 +141,9 @@ export type SeasonPathState = {
   levels: number
   xpPerLevel: number
   totalXp: number
+  /** XP dabartiniame lygyje ir kiek reikia kitam */
+  xpIntoLevel: number
+  xpForNextLevel: number
   hasPass: boolean
   passPrice: { silver: number; rubies: number }
   rows: SeasonLevelRow[]

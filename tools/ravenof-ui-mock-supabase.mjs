@@ -119,6 +119,122 @@ const CARD_PACKS = [
 ]
 
 const RPC = {
+  // ── Progression v2 (fikstūros vizualinei verifikacijai) ───────────────────
+  ...(() => {
+    const iso = (d) => new Date(d).toISOString()
+    const midnight = () => { const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d.toISOString() }
+    const LOGIN_DEFS = [
+      [1, [{ type: 'silver', amount: 100 }]], [2, [{ type: 'essence', amount: 25 }]],
+      [3, [{ type: 'silver', amount: 150 }]], [4, [{ type: 'silver', amount: 150 }]],
+      [5, [{ type: 'essence', amount: 50 }]], [6, [{ type: 'silver', amount: 200 }]],
+      [7, [{ type: 'faction_booster_choice', quantity: 1 }]], [8, [{ type: 'silver', amount: 200 }]],
+      [9, [{ type: 'essence', amount: 50 }]], [10, [{ type: 'silver', amount: 250 }]],
+      [11, [{ type: 'silver', amount: 250 }]], [12, [{ type: 'essence', amount: 75 }]],
+      [13, [{ type: 'silver', amount: 300 }]],
+      [14, [{ type: 'faction_booster_choice', quantity: 1 }, { type: 'silver', amount: 100 }]],
+      [15, [{ type: 'silver', amount: 300 }]], [16, [{ type: 'essence', amount: 75 }]],
+      [17, [{ type: 'silver', amount: 350 }]], [18, [{ type: 'essence', amount: 100 }]],
+      [19, [{ type: 'silver', amount: 400 }]], [20, [{ type: 'silver', amount: 500 }]],
+      [21, [{ type: 'card_choice', rarity: 'rare' }]], [22, [{ type: 'silver', amount: 450 }]],
+      [23, [{ type: 'essence', amount: 100 }]], [24, [{ type: 'silver', amount: 500 }]],
+      [25, [{ type: 'essence', amount: 125 }]], [26, [{ type: 'silver', amount: 600 }]],
+      [27, [{ type: 'silver', amount: 750 }]],
+      [28, [{ type: 'faction_booster_choice', quantity: 1 }, { type: 'essence', amount: 150 }]],
+      [29, [{ type: 'silver', amount: 1000 }]], [30, [{ type: 'rubies', amount: 25 }]],
+      [31, [{ type: 'faction_booster_choice', quantity: 2 }, { type: 'essence', amount: 200 }]],
+    ]
+    const MILESTONE = new Set([7, 14, 21, 28, 30, 31])
+    let position = 17
+    const balances = { silver: 12480, rubies: 340, essence: 1205 }
+    const loginState = () => ({
+      cycleId: 'c0000000-0000-4000-8000-000000000001', cycleIndex: 1, economyVersion: 2,
+      cyclePosition: position, cycleLength: 31, cycleStartedAt: iso(Date.now() - 20 * 864e5),
+      claimedToday: false, claimableDay: position + 1, nextClaimAt: null, resetAt: midnight(),
+      cycleCompleted: false, claimedDays: Array.from({ length: position }, (_, i) => i + 1),
+      streak: 12, missedDays: 2,
+      rewards: LOGIN_DEFS.map(([day, rewards]) => ({
+        day, rewards, milestone: MILESTONE.has(day), claimed: day <= position, claimedAt: null,
+      })),
+      pendingChoices: [], balances, serverTime: new Date().toISOString(),
+    })
+    const FACTIONS = [
+      [6, 'mirties-marsas', 'Mirties maršas', 'dark'], [7, 'plesiku-naktis', 'Plėšikų naktis', 'dark'],
+      [8, 'vryhioko-gauja', 'Vryhioko gauja', 'dark'], [9, 'demonu-orda', 'Demonų orda', 'dark'],
+      [10, 'inkvizicijos-legionas', 'Inkvizicijos legionas', 'light'], [11, 'sviesos-pulkas', 'Šviesos pulkas', 'light'],
+      [12, 'mistikos-melodija', 'Mistikos melodija', 'light'], [13, 'rytu-vejas', 'Rytų vėjas', 'light'],
+    ].map(([factionId, slug, name, alignment], i) => ({ factionId, slug, name, alignment, collectionProgressPct: 20 + i * 7 }))
+    const SEASON_DEFS = {
+      1: [[{ type: 'silver', amount: 250 }], [{ type: 'essence', amount: 50 }]],
+      2: [[{ type: 'essence', amount: 50 }], [{ type: 'silver', amount: 350 }]],
+      3: [[{ type: 'silver', amount: 350 }], [{ type: 'faction_booster_choice', quantity: 1 }]],
+      4: [[{ type: 'silver', amount: 400 }], [{ type: 'essence', amount: 75 }]],
+      5: [[{ type: 'faction_booster_choice', quantity: 1 }], [{ type: 'silver', amount: 500 }]],
+      6: [[{ type: 'silver', amount: 500 }], [{ type: 'faction_booster_choice', quantity: 1 }]],
+      7: [[{ type: 'card_choice', rarity: 'rare' }], [{ type: 'essence', amount: 125 }]],
+      8: [[{ type: 'essence', amount: 100 }], [{ type: 'faction_booster_choice', quantity: 1 }]],
+      9: [[{ type: 'silver', amount: 650 }], [{ type: 'silver', amount: 750 }]],
+      10: [[{ type: 'faction_booster_choice', quantity: 1 }], [{ type: 'faction_booster_choice', quantity: 2 }]],
+      11: [[{ type: 'silver', amount: 750 }], [{ type: 'essence', amount: 150 }]],
+      12: [[{ type: 'essence', amount: 150 }], []],
+      13: [[{ type: 'silver', amount: 850 }], [{ type: 'faction_booster_choice', quantity: 1 }]],
+      14: [[{ type: 'faction_booster_choice', quantity: 1 }], [{ type: 'silver', amount: 1000 }]],
+      15: [[{ type: 'card_choice', rarity: 'epic' }], [{ type: 'faction_booster_choice', quantity: 2 }]],
+      16: [[{ type: 'silver', amount: 1000 }], [{ type: 'essence', amount: 250 }]],
+      17: [[{ type: 'essence', amount: 200 }], [{ type: 'faction_booster_choice', quantity: 1 }, { type: 'silver', amount: 500 }]],
+      18: [[{ type: 'faction_booster_choice', quantity: 1 }], [{ type: 'silver', amount: 1500 }]],
+      19: [[{ type: 'silver', amount: 1250 }], [{ type: 'faction_booster_choice', quantity: 2 }]],
+      20: [[{ type: 'card_choice', rarity: 'legendary' }], [{ type: 'faction_booster_choice', quantity: 2 }]],
+    }
+    const seasonState = () => {
+      const xp = 6851
+      const level = Math.floor(xp / 1000)
+      return {
+        season: { id: 's1', title: 'Pirmasis sezonas · Sezono kelias', theme: 'Vasaros', startsAt: iso(Date.now() - 49 * 864e5), endsAt: iso(Date.now() + 41 * 864e5), economyVersion: 2 },
+        xp, level, levels: 20, xpPerLevel: 1000, totalXp: 20000,
+        xpIntoLevel: xp % 1000, xpForNextLevel: 1000, hasPass: true,
+        passPrice: { silver: 8000, rubies: 950 },
+        rows: Object.entries(SEASON_DEFS).map(([lv, [free, pass]]) => {
+          const n = Number(lv); const reached = xp >= n * 1000
+          return {
+            level: n, xpRequired: n * 1000, reached,
+            free: { rewards: free, claimed: reached && n < 6, claimable: reached && n >= 6 },
+            pass: { rewards: pass, claimed: reached && n < 6, claimable: reached && n >= 6, locked: false },
+          }
+        }),
+        pendingChoices: [], balances, serverTime: new Date().toISOString(),
+      }
+    }
+    const QUESTS = [
+      { id: 1, difficulty: 'easy', templateCode: 'easy_creatures_5', objectiveType: 'play_creatures', titleKey: 'quests.v2.playCreatures.title', descKey: 'quests.v2.playCreatures.desc', target: 5, progress: 5, factionId: null, rewards: [{ type: 'silver', amount: 100 }, { type: 'season_xp', amount: 80 }], completed: true, claimed: false, rerollable: false, rerollCostSilver: null },
+      { id: 2, difficulty: 'medium', templateCode: 'med_win_2', objectiveType: 'win_match', titleKey: 'quests.v2.winMatch.title', descKey: 'quests.v2.winMatch.desc', target: 2, progress: 2, factionId: null, rewards: [{ type: 'silver', amount: 150 }, { type: 'season_xp', amount: 100 }], completed: true, claimed: false, rerollable: false, rerollCostSilver: null },
+      { id: 3, difficulty: 'hard', templateCode: 'hard_damage_30', objectiveType: 'deal_damage', titleKey: 'quests.v2.dealDamage.title', descKey: 'quests.v2.dealDamage.desc', target: 30, progress: 30, factionId: null, rewards: [{ type: 'silver', amount: 200 }, { type: 'season_xp', amount: 120 }], completed: true, claimed: false, rerollable: false, rerollCostSilver: null },
+    ]
+    const questsState = () => ({
+      dateKey: new Date().toISOString().slice(0, 10), resetAt: midnight(),
+      quests: QUESTS, allCompleted: QUESTS.every((q) => q.completed),
+      chest: { rewards: [{ type: 'essence', amount: 50 }, { type: 'season_xp', amount: 100 }], claimable: true, claimed: false },
+      reroll: { used: 0, max: 3, freeRemaining: 1, nextCostSilver: 0 },
+      dailyMax: { silver: 450, essence: 50, season_xp: 400 },
+      pendingChoices: [], balances, serverTime: new Date().toISOString(),
+    })
+    const ok = (snapshot) => ({ status: 'completed', grantedRewards: [], pendingChoices: [], snapshot })
+    return {
+      rvn_get_login_cycle: () => loginState(),
+      rvn_claim_login_reward: () => { position = Math.min(31, position + 1); return ok(loginState()) },
+      rvn_get_season_path_v2: () => seasonState(),
+      rvn_claim_season_reward_v2: () => ok(seasonState()),
+      rvn_claim_all_season_rewards: () => ok(seasonState()),
+      rvn_unlock_season_pass_v2: () => ok(seasonState()),
+      rvn_get_daily_quests: () => questsState(),
+      rvn_claim_daily_quest: () => ok(questsState()),
+      rvn_claim_daily_chest_v2: () => ok(questsState()),
+      rvn_reroll_daily_quest: () => ok(questsState()),
+      rvn_get_pending_choices: () => ({ pendingChoices: [], balances }),
+      rvn_continue_pending_claims: () => ok(seasonState()),
+      rvn_get_progression_snapshot: () => ({ login: loginState(), season: seasonState(), quests: questsState(), pendingChoices: [], balances, economyVersion: 2, serverTime: new Date().toISOString() }),
+      __factions: FACTIONS,
+    }
+  })(),
   rvn_get_daily_tasks: {
     dateKey: '2026-07-23',
     tasks: [
