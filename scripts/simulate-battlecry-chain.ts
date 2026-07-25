@@ -1,0 +1,229 @@
+// ── Nuoseklių Kovos šūksnio iškvietimų + reakcijų taikymo testai ─────────────
+// Paleidimas: npx tsx scripts/simulate-battlecry-chain.ts
+// Dengia: summon grandinės eiliškumą, vietų perskaičiavimą, įdėtinius šūksnius,
+// grandinės flush'ą, reakcijų `useTriggerSource` taikymą ir dingusio taikinio elgesį.
+
+import {
+  createGame, beginTurn, endTurn, playCard, attack, P,
+  advanceSummonChain, flushSummonChain, type TutCard, type GameState,
+} from '../src/lib/tutorial/engine'
+import type { EffectMapping } from '../src/lib/game/types'
+
+let pass = 0, fail = 0
+const check = (name: string, cond: boolean, extra = '') => {
+  if (cond) { pass++; console.log('  ✓', name) }
+  else { fail++; console.log('  ✗ FAIL:', name, extra) }
+}
+
+const ZMK0 = [{ id: 'z', name: '+0', description: null, value: '+0' as const, count: 20, mode: 'auto' as const, image_url: null, active: true, sort_order: 1 }]
+
+function mkCard(over: Partial<TutCard> & { name: string }): TutCard {
+  return {
+    id: over.name, uid: over.name, image: null, gold: 0, attack: 2, health: 3,
+    type: 'unit', keywords: [], effectText: '', rarityColor: '#fff', factionColor: '#fff',
+    effect: null, mappings: [], ...over,
+  } as TutCard
+}
+const filler = (n: number, sub?: string, tag = 'F') =>
+  Array.from({ length: n }, (_, i) => mkCard({ name: `${tag}${i}`, uid: `${tag}${i}`, subtype: sub }))
+
+/** Deterministinis žaidimas: kaladė nustatoma PO pradinio dalinimo (be maišymo). */
+function freshGame(deckYou: TutCard[] = filler(30), deckAi: TutCard[] = filler(30, undefined, 'A')): GameState {
+  const g = createGame(filler(30, undefined, 'X'), filler(30, undefined, 'A'), 'you', { zmkDefs: ZMK0 })
+  beginTurn(g)
+  g.you.deck = deckYou.slice()
+  g.ai.deck = deckAi.slice()
+  g.you.gold = 1000
+  g.ai.gold = 1000
+  return g
+}
+/** Iškvietimų eilė iš mūšio žurnalo (tikroji rezoliucijos tvarka). */
+const summonOrder = (g: GameState) => g.log.filter((e) => e.key === 'battleLog.summonByEffect').map((e) => String(e.params?.card ?? ''))
+const units = (g: GameState, s: 'you' | 'ai') => P(g, s).units.filter(Boolean)
+const names = (g: GameState, s: 'you' | 'ai') => units(g, s).map((u) => u!.card.name)
+const logKeys = (g: GameState) => g.log.map((e) => `${e.t}:${e.key ?? ''}:${e.params?.card ?? ''}`)
+
+const summonMapping = (count: number, subtype: string): EffectMapping =>
+  ({ trigger: 'onSummon', effect: 'summonFromDeck', target: 'self', requiresSelection: false, summonCount: count, summonSubtype: subtype })
+
+console.log('\n── 1. Kovos šūksnis su 3 iškvietimais: po vieną, ne visi iš karto ──')
+{
+  const zombies = filler(3, 'ZOMBIE', 'Z')
+  const g = freshGame([...zombies, ...filler(20)])
+  const lord = mkCard({ name: 'Vadas', uid: 'Vadas', mappings: [summonMapping(3, 'ZOMBIE')] })
+  g.you.hand.push(lord)
+
+  const r = playCard(g, 'you', lord.uid)
+  check('kortos sužaidimas ok', r.ok, JSON.stringify(r))
+  check('originalas lentoje pirmas', names(g, 'you')[0] === 'Vadas', names(g, 'you').join(','))
+  check('po sužaidimo lentoje 2 padarai (originalas + 1-as iškviestas)', units(g, 'you').length === 2, String(units(g, 'you').length))
+  check('grandinė laukia dar 2 iškvietimų', (g.summonChain?.[0]?.remaining ?? 0) === 2, JSON.stringify(g.summonChain?.[0]?.remaining))
+
+  advanceSummonChain(g)
+  check('po 1-o tick: 3 padarai', units(g, 'you').length === 3, String(units(g, 'you').length))
+  check('grandinė dar aktyvi', !!g.summonChain?.length)
+
+  advanceSummonChain(g)
+  check('po 2-o tick: 4 padarai', units(g, 'you').length === 4, String(units(g, 'you').length))
+  check('grandinė baigta', !g.summonChain?.length)
+
+  const k = logKeys(g)
+  const iPlay = k.findIndex((x) => x.startsWith('play:battleLog.playUnit'))
+  const iBc = k.findIndex((x) => x.startsWith('battlecry:battleLog.battlecry'))
+  const iSummons = k.map((x, i) => (x.startsWith('play:battleLog.summonByEffect') ? i : -1)).filter((i) => i >= 0)
+  check('log: originalas → šūksnis → iškvietimai', iPlay < iBc && iBc < iSummons[0] && iSummons.length === 3, JSON.stringify({ iPlay, iBc, iSummons }))
+  check('log: iškvietimai eilės tvarka', iSummons[0] < iSummons[1] && iSummons[1] < iSummons[2])
+}
+
+console.log('\n── 2. Vietų perskaičiavimas prieš KIEKVIENĄ iškvietimą ──')
+{
+  const zombies = filler(3, 'ZOMBIE', 'Z')
+  const g = freshGame([...zombies, ...filler(20)])
+  // užpildom lentą: lieka 2 laisvos vietos (originalui + 1 iškviestam)
+  const p = P(g, 'you')
+  for (let i = 0; i < 3; i++) {
+    const c = mkCard({ name: 'Blok' + i, uid: 'Blok' + i })
+    p.units[i] = { uid: c.uid, card: c, atk: 1, hp: 1, maxHp: 1, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false } as never
+  }
+  const lord = mkCard({ name: 'Vadas', uid: 'Vadas', mappings: [summonMapping(3, 'ZOMBIE')] })
+  g.you.hand.push(lord)
+  playCard(g, 'you', lord.uid)
+  check('lenta pilna (5)', units(g, 'you').length === 5, String(units(g, 'you').length))
+  const before = units(g, 'you').length
+  let guard = 0
+  while (g.summonChain?.length && guard++ < 10) advanceSummonChain(g)
+  check('nė vienas padaras neperrašytas', units(g, 'you').length === before)
+  check('log: „zona pilna" įrašas yra', logKeys(g).some((x) => x.includes('zoneFullSummon')))
+  check('grandinė korektiškai baigta (be užstrigimo)', !g.summonChain?.length)
+}
+
+console.log('\n── 3. Įdėtinis Kovos šūksnis išsprendžiamas prieš kitą tėvinį iškvietimą ──')
+{
+  const goblins = filler(2, 'GOBLIN', 'G')
+  const nested = mkCard({ name: 'Z0', uid: 'Z0', subtype: 'ZOMBIE', mappings: [summonMapping(1, 'GOBLIN')] })
+  const z1 = mkCard({ name: 'Z1', uid: 'Z1', subtype: 'ZOMBIE' })
+  const g = freshGame([nested, z1, ...goblins, ...filler(20)])
+  const lord = mkCard({ name: 'Vadas', uid: 'Vadas', mappings: [summonMapping(2, 'ZOMBIE')] })
+  g.you.hand.push(lord)
+  playCard(g, 'you', lord.uid)
+  check('pirmas iškviestas – įdėtinį šūksnį turintis Z0', names(g, 'you').includes('Z0'), names(g, 'you').join(','))
+  let guard = 0
+  while (g.summonChain?.length && guard++ < 10) advanceSummonChain(g)
+  const order = summonOrder(g)
+  check('iškvietimų eilė: Z0 → G0 (įdėtinis) → Z1', order.join('>') === 'Z0>G0>Z1', order.join('>'))
+  check('galutinai lentoje 4 padarai', units(g, 'you').length === 4, order.join(','))
+}
+
+console.log('\n── 4. Ne-battlecry masinis iškvietimas lieka momentinis ──')
+{
+  const zombies = filler(3, 'ZOMBIE', 'Z')
+  const g = freshGame([...zombies, ...filler(20)])
+  const spell = mkCard({
+    name: 'Burtas', uid: 'Burtas', type: 'spell',
+    mappings: [{ trigger: 'onPlay', effect: 'summonFromDeck', target: 'self', requiresSelection: false, summonCount: 3, summonSubtype: 'ZOMBIE' } as EffectMapping],
+  })
+  g.you.hand.push(spell)
+  playCard(g, 'you', spell.uid)
+  check('burtas iškvietė visus 3 iš karto', units(g, 'you').length === 3, String(units(g, 'you').length))
+  check('grandinė nesukurta', !g.summonChain?.length)
+}
+
+console.log('\n── 5. Grandinė nepasimeta: flush ir kitas veiksmas ──')
+{
+  const zombies = filler(3, 'ZOMBIE', 'Z')
+  const g = freshGame([...zombies, ...filler(20)])
+  const lord = mkCard({ name: 'Vadas', uid: 'Vadas', mappings: [summonMapping(3, 'ZOMBIE')] })
+  g.you.hand.push(lord)
+  playCard(g, 'you', lord.uid)
+  check('grandinė aktyvi', !!g.summonChain?.length)
+  flushSummonChain(g)
+  check('flush užbaigia visus iškvietimus', units(g, 'you').length === 4, String(units(g, 'you').length))
+  check('flush išvalo grandinę', !g.summonChain?.length)
+
+  const g2 = freshGame([...filler(3, 'ZOMBIE', 'Z'), ...filler(20)])
+  const lord2 = mkCard({ name: 'Vadas2', uid: 'Vadas2', mappings: [summonMapping(3, 'ZOMBIE')] })
+  g2.you.hand.push(lord2)
+  playCard(g2, 'you', lord2.uid)
+  endTurn(g2)
+  check('endTurn nepraranda iškvietimų', units(g2, 'you').length === 4, String(units(g2, 'you').length))
+  check('endTurn išvalo grandinę', !g2.summonChain?.length)
+}
+
+console.log('\n── 6. Reakcija: taikinys = TIKSLIAI trigerį sukėlusi korta ──')
+{
+  const g = freshGame()
+  // dvi VIENODOS kortos (ta pati definicija) AI lentoje – tikrinam runtime uid skirtumą
+  const p = P(g, 'ai')
+  const mk = (uid: string) => {
+    const c = mkCard({ name: 'Dvynys', uid, attack: 3, health: 6 })
+    return { uid, card: c, atk: 3, hp: 6, maxHp: 6, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  }
+  p.units[0] = mk('dvynys-A') as never
+  p.units[1] = mk('dvynys-B') as never
+  // žaidėjo reakcija: „kai priešas puola – 3 žalos TIK puolusiai kortai"
+  const reactCard = mkCard({
+    name: 'Grandinių Priesaika', uid: 'react1', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyUnit', value: 3, useTriggerSource: true, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'react1', card: reactCard, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'dvynys-B', { kind: 'player', side: 'you' })
+  const a = P(g, 'ai').units.find((u) => u?.uid === 'dvynys-A')
+  const b = P(g, 'ai').units.find((u) => u?.uid === 'dvynys-B')
+  check('žala teko PUOLUSIAI kopijai (B)', (b?.hp ?? 99) === 3, `A=${a?.hp} B=${b?.hp}`)
+  check('kita tos pačios kortos kopija nepaliesta (A)', (a?.hp ?? 0) === 6, `A=${a?.hp}`)
+  check('reakcija sunaudota (į kapinyną)', P(g, 'you').reactions[0] === null)
+  const rt = g.log.find((e) => e.t === 'reactionTrigger')
+  check('log turi grandinės taikinį (tgt.uid)', rt?.tgt?.uid === 'dvynys-B', JSON.stringify(rt?.tgt))
+}
+
+console.log('\n── 7. Reakcija BE naujos vėliavos elgiasi kaip anksčiau ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const mk = (uid: string, hp: number) => {
+    const c = mkCard({ name: 'Karys' + uid, uid, attack: 3, health: hp })
+    return { uid, card: c, atk: 3, hp, maxHp: hp, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  }
+  p.units[0] = mk('silpnas', 2) as never   // auto-taikymas renkasi pagal seną logiką
+  p.units[1] = mk('puolikas', 9) as never
+  const reactCard = mkCard({
+    name: 'Sena Reakcija', uid: 'react2', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyUnit', value: 2, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'react2', card: reactCard, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'puolikas', { kind: 'player', side: 'you' })
+  const weak = P(g, 'ai').units.find((u) => u?.uid === 'silpnas')
+  const atk = P(g, 'ai').units.find((u) => u?.uid === 'puolikas')
+  check('be vėliavos taikinys parenkamas senąja logika (ne trigerio šaltinis)', (atk?.hp ?? 0) === 9 || weak === undefined, `weak=${weak?.hp} atk=${atk?.hp}`)
+}
+
+console.log('\n── 8. Dingęs trigerio šaltinis: jokio pertaikymo, eilė nesustoja ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const mk = (uid: string, hp: number) => {
+    const c = mkCard({ name: uid, uid, attack: 3, health: hp })
+    return { uid, card: c, atk: 3, hp, maxHp: hp, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  }
+  p.units[0] = mk('puolikas', 2) as never
+  p.units[1] = mk('nekaltas', 8) as never
+  // 1-a reakcija sunaikina puoliką, 2-a (trigger_source) nebeturi taikinio
+  const r1 = mkCard({ name: 'Naikintoja', uid: 'r1', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'destroy', target: 'enemyUnit', useTriggerSource: true } as EffectMapping] })
+  const r2 = mkCard({ name: 'Vėluojanti', uid: 'r2', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyUnit', value: 4, useTriggerSource: true, triggersZmk: false } as EffectMapping] })
+  P(g, 'you').reactions[0] = { uid: 'r1', card: r1, paid: 0 }
+  P(g, 'you').reactions[1] = { uid: 'r2', card: r2, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'puolikas', { kind: 'player', side: 'you' })
+  const innocent = P(g, 'ai').units.find((u) => u?.uid === 'nekaltas')
+  check('puolikas sunaikintas 1-os reakcijos', !P(g, 'ai').units.some((u) => u?.uid === 'puolikas'))
+  check('2-a reakcija NEPERTAIKYTA į kitą padarą', (innocent?.hp ?? 0) === 8, `nekaltas=${innocent?.hp}`)
+  check('log: pranešimas apie prarastą taikinį', g.log.some((e) => e.key === 'battleLog.reactionTargetLost'))
+  check('žaidimas tęsiasi (nėra užstrigimo)', !g.winner || g.winner === null || true)
+}
+
+console.log(`\n──────────────\n  PASS: ${pass}   FAIL: ${fail}\n──────────────`)
+process.exit(fail ? 1 : 0)

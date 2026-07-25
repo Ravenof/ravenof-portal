@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  createGame2v2, beginTeamTurn, endTeamTurn, playCard, attack, canAfford,
+  createGame2v2, beginTeamTurn, endTeamTurn, playCard, attack, canAfford, flushSummonChain,
   canUnitAttack, legalTargets, P, teamOfSeat, enemySeats, friendlySeats, boardCreatureCap,
   type GameState, type Side, type TutCard, type TargetRef, type BoardUnit, type TeamId,
 } from '@/lib/tutorial/engine'
@@ -100,6 +100,9 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     if (a.t === 'play') playCard(g, a.seat, a.uid)
     else if (a.t === 'attack') attack(g, a.seat, a.attacker, a.target)
     else if (a.t === 'end') { endTeamTurn(g); beginTeamTurn(g) }
+    // 2v2 kol kas neturi nuoseklios iškvietimų animacijos – grandinę užbaigiam iškart
+    // (elgesys lieka toks pat kaip iki šiol).
+    flushSummonChain(g)
     broadcastState(); winSfx(); rerender()
   }, [broadcastState, rerender]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -203,6 +206,7 @@ export function Team2v2Game({ coop, net, meta: metaProp, onExit }: {
     if (isPvp) { playCardPlace(); sendOrApply({ t: 'play', seat: viewSeat, uid: c.uid }); return }
     g.active = 'you'
     const r = playCard(g, 'you', c.uid)
+    flushSummonChain(g)
     if (r.ok) { playCardPlace(); winSfx() }
     rerender()
   }

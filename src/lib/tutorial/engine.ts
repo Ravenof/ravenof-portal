@@ -244,6 +244,10 @@ export type GameState = {
   /** Paskutinis mill (UI animacijai: kortos iš kaladės į kapinyną) */
   lastMill?: { id: number; side: Side; cards: TutCard[] } | null
   /** Žaidžiamas burtas atšauktas reakcija (onAnyCast „castSpell" taikinys) – efektas nevyksta. */
+  /** Nuoseklių Kovos šūksnio iškvietimų grandinė (stack; [0] = vykdomas kadras).
+   *  Kol netuščia – žaidėjo įvestis užrakinta, o UI kas BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS
+   *  siunčia `advanceSummon` veiksmą, kuris įrašo VIENĄ padarą į mūšio būseną. */
+  summonChain?: SummonChainFrame[] | null
   spellCountered?: boolean
   // ── 2v2 komandinis sluoksnis (adityvus; 1v1 šių nenaudoja) ──
   mode?: '1v1' | '2v2'
@@ -754,7 +758,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
     if (excess > 0) { log(g, { t: 'damage', side: owner, key: `battleLog.overkill.${SK(owner)}`, params: { excess } }); dealToPlayer(g, owner, excess, actor, false) }
   }
   applySpellLifesteal(g, dmg)
-  fireGlobalListeners(g, 'onAnyDamage', { side: owner })
+  fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'unit', side: owner, uid: target.uid }, srcName: target.card.name })
   if (target.hp <= 0) killUnit(g, owner, target)
   else if ((target.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // Įsiūtis įsijungia sužeidus
 }
@@ -913,7 +917,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
   applySpellLifesteal(g, dmg)
   target.hp -= dmg
   log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, tgt: { kind: 'artifact', side: owner, uid: target.uid }, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
-  fireGlobalListeners(g, 'onAnyDamage', { side: owner })
+  fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'artifact', side: owner, uid: target.uid }, srcName: target.card.name })
   if (target.hp <= 0) {
     const p = P(g, owner)
     p.artifacts = p.artifacts.map((a) => (a?.uid === target.uid ? null : a))
@@ -1352,7 +1356,20 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
   }
 }
 
-function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; factionId?: number; count?: number }) {
+type SummonZoneOpts = { costMax?: number; subtype?: string; factionId?: number; count?: number }
+type SummonAdvOpts = { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }
+/** Vieno iškvietimo rezultatas: 'ok' – padaras įrašytas į būseną; kitaip – priežastis. */
+type SummonOnce = 'ok' | 'noSlot' | 'noCard'
+
+function nextSummonSeq(g: GameState): number {
+  const gg = g as unknown as { __summonSeq?: number }
+  gg.__summonSeq = (gg.__summonSeq ?? 0) + 1
+  return gg.__summonSeq
+}
+
+/** VIENAS iškvietimas iš zonos. Laisva vieta tikrinama BŪTENT ŠIUO momentu
+ *  (ne rezervuojama iš anksto) – tarp grandinės žingsnių lenta gali pasikeisti. */
+function summonOneFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: SummonZoneOpts): SummonOnce {
   const p = P(g, s)
   const src = zone === 'hand' ? p.hand : zone === 'deck' ? p.deck : p.discard
   const zoneRef = tref(`battleLog.zone.${zone}`)
@@ -1363,26 +1380,208 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
     (opts?.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
     (!want || (c.subtype ?? '').toLowerCase() === want) &&
     (!wantFac || c.factionId === wantFac)
-  const count = Math.max(1, opts?.count ?? 1)
-  for (let n = 0; n < count; n++) {
-    const slot = freeUnitSlot(g, p)
-    if (slot === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullSummon' }); return }
-    const idx = src.findIndex(eligible)
-    if (idx === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.noSummonTargetZone', params: { zone: zoneRef } }); return }
-    const [card] = src.splice(idx, 1)
-    p.units[slot] = {
-      uid: card.uid + '-s' + g.globalTurn + '-' + n, card,
-      atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
-      shield: card.keywords.includes('shield'),
-      stealth: card.keywords.includes('stealth'),
-      statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
-      isChampion: false, phase: 0, abilityUsed: false,
-      summonedFrom: zone === 'discard' ? 'graveyard' : zone,
-    }
-    ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = p.units[slot]?.uid
-    log(g, { t: 'play', side: s, cardName: card.name, key: 'battleLog.summonByEffect', params: { card: card.name }, sound: 'summon', fromZone: zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand' })
-    afterSummon(g, s, card, zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand')
+  const slot = freeUnitSlot(g, p)
+  if (slot === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullSummon' }); return 'noSlot' }
+  const idx = src.findIndex(eligible)
+  if (idx === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.noSummonTargetZone', params: { zone: zoneRef } }); return 'noCard' }
+  const [card] = src.splice(idx, 1)
+  const from: SummonSource = zone === 'discard' ? 'graveyard' : zone === 'deck' ? 'deck' : 'hand'
+  p.units[slot] = {
+    uid: card.uid + '-s' + g.globalTurn + '-' + nextSummonSeq(g), card,
+    atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
+    shield: card.keywords.includes('shield'),
+    stealth: card.keywords.includes('stealth'),
+    statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
+    isChampion: false, phase: 0, abilityUsed: false,
+    summonedFrom: from,
   }
+  ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = p.units[slot]?.uid
+  log(g, { t: 'play', side: s, cardName: card.name, key: 'battleLog.summonByEffect', params: { card: card.name }, sound: 'summon', fromZone: from })
+  afterSummon(g, s, card, from)
+  return 'ok'
+}
+
+/** VIENAS iškvietimas „advanced" taisyklėmis (kelios zonos / kainos rėžis / vardų sąrašas). */
+function summonOneAdvanced(g: GameState, s: Side, opts: SummonAdvOpts): SummonOnce {
+  const p = P(g, s)
+  const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
+  const want = (opts.subtype ?? '').trim().toLowerCase()
+  const wantFacA = opts.factionId ?? 0
+  const nameWhitelist = (opts.names ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+  const eligible = (c: TutCard) =>
+    c.type === 'unit' &&
+    (opts.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
+    (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
+    (!want || (c.subtype ?? '').toLowerCase() === want) &&
+    (!wantFacA || c.factionId === wantFacA) &&
+    (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
+  const slot = freeUnitSlot(g, p)
+  if (slot === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullSummon' }); return 'noSlot' }
+  let src: TutCard[] | null = null
+  let idx = -1
+  let foundZone: 'hand' | 'deck' | 'discard' = 'deck'
+  for (const z of zones) {
+    const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
+    const j = arr.findIndex(eligible)
+    if (j !== -1) { src = arr; idx = j; foundZone = z; break }
+  }
+  if (!src || idx === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.noSummonTarget' }); return 'noCard' }
+  const [card] = src.splice(idx, 1)
+  const from: SummonSource = foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand'
+  p.units[slot] = {
+    uid: card.uid + '-sa' + g.globalTurn + '-' + nextSummonSeq(g), card,
+    atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
+    shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
+    statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
+    summonedFrom: from,
+  }
+  ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = p.units[slot]?.uid
+  log(g, { t: 'play', side: s, cardName: card.name, key: 'battleLog.summonByEffect', params: { card: card.name }, sound: 'summon', fromZone: from })
+  afterSummon(g, s, card, from)
+  return 'ok'
+}
+
+function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: SummonZoneOpts) {
+  const count = Math.max(1, opts?.count ?? 1)
+  if (summonOneFromZone(g, s, zone, opts) !== 'ok') return
+  const rest = count - 1
+  if (rest <= 0) return
+  // Kovos šūksnio kontekste likusius iškviečiam PO VIENĄ (žr. advanceSummonChain).
+  if (seqSummonArmed > 0) { pushSummonFrame(g, { side: s, kind: 'zone', zone, opts: opts ?? {}, remaining: rest, sourceName: seqSummonSource.name, sourceUid: seqSummonSource.uid }); return }
+  for (let n = 0; n < rest; n++) if (summonOneFromZone(g, s, zone, opts) !== 'ok') return
+}
+
+function summonAdvancedPrim(g: GameState, s: Side, opts: SummonAdvOpts) {
+  const p = P(g, s)
+  const count = Math.max(1, opts.count ?? 1)
+  if (opts.choose && s === 'you') {
+    const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
+    const want = (opts.subtype ?? '').trim().toLowerCase()
+    const wantFacA = opts.factionId ?? 0
+    const nameWhitelist = (opts.names ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+    const eligible = (c: TutCard) =>
+      c.type === 'unit' &&
+      (opts.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
+      (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
+      (!want || (c.subtype ?? '').toLowerCase() === want) &&
+      (!wantFacA || c.factionId === wantFacA) &&
+      (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
+    const options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] = []
+    for (const z of zones) {
+      const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
+      for (const c of arr) if (eligible(c)) options.push({ card: c, zone: z })
+    }
+    if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.noSummonTarget' }); return }
+    g.pendingSummon = { caster: s, choose: Math.min(count, options.length), options }
+    log(g, { t: 'play', side: s, key: 'battleLog.chooseSummon', params: { n: Math.min(count, options.length) } })
+    return
+  }
+  if (summonOneAdvanced(g, s, opts) !== 'ok') return
+  const rest = count - 1
+  if (rest <= 0) return
+  if (seqSummonArmed > 0) { pushSummonFrame(g, { side: s, kind: 'advanced', opts, remaining: rest, sourceName: seqSummonSource.name, sourceUid: seqSummonSource.uid }); return }
+  for (let n = 0; n < rest; n++) if (summonOneAdvanced(g, s, opts) !== 'ok') return
+}
+
+// ── Nuoseklių Kovos šūksnio iškvietimų grandinė ──────────────────────────────
+// Kai Kovos šūksnis iškviečia kelis padarus, jie NEatsiranda vienu metu: pirmas
+// įrašomas iškart, likusieji – po vieną, kiekvienas savo `advanceSummonChain()`
+// tick'u (UI tarp jų laukia BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS). Tai NE vizualus
+// atidėjimas: kiekvienas padaras į mūšio būseną patenka būtent savo momentu,
+// prieš tai iš naujo patikrinus laisvas vietas, o įdėtiniai Kovos šūksniai
+// išsprendžiami iki galo prieš tęsiant tėvinę grandinę (depth-first).
+export type SummonChainFrame = {
+  side: Side
+  kind: 'zone' | 'advanced'
+  zone?: 'hand' | 'deck' | 'discard'
+  opts: SummonZoneOpts & SummonAdvOpts
+  remaining: number
+  sourceName: string
+  sourceUid?: string
+  /** Likę to paties šaltinio mapping'ai – vykdomi tik pabaigus VISĄ šio kadro
+   *  grandinę, kad efektų eiliškumas sutaptų su senuoju sinchroniniu elgesiu. */
+  after?: { side: Side; sourceName: string; sourceUid?: string; mappings: EffectMapping[]; chosenTarget?: TargetRef }
+}
+
+/** >0 – esam Kovos šūksnio kontekste, kur iškvietimai skaidomi į atskirus žingsnius. */
+let seqSummonArmed = 0
+let seqSummonSource: { name: string; uid?: string } = { name: '' }
+
+function pushSummonFrame(g: GameState, f: SummonChainFrame) {
+  if (!g.summonChain) g.summonChain = []
+  g.summonChain.unshift(f)  // įdėtiniai kadrai sprendžiami pirma (depth-first)
+}
+
+/** Vykdo mapping'ų sąrašą taip, kad iškvietimai būtų nuoseklūs, o likę
+ *  mapping'ai palauktų grandinės pabaigos (`frame.after`). */
+function runMappingsDeferrable(
+  g: GameState, s: Side, sourceName: string, sourceUid: string | undefined,
+  mappings: EffectMapping[], chosenTarget: TargetRef | undefined, canDefer: boolean, depth = 1,
+) {
+  const prevSrc = seqSummonSource
+  if (canDefer) { seqSummonArmed++; seqSummonSource = { name: sourceName, uid: sourceUid } }
+  try {
+    for (let i = 0; i < mappings.length; i++) {
+      const m = mappings[i]
+      applyMapping(gameApi, g, s, m, {
+        sourceName, sourceUid, depth,
+        chosenTarget: chosenTarget ? toResolved(chosenTarget) : undefined,
+      })
+      if (g.winner) break
+      const fr = g.summonChain?.[0]
+      if (canDefer && fr && !fr.after && i + 1 < mappings.length) {
+        fr.after = { side: s, sourceName, sourceUid, mappings: mappings.slice(i + 1), chosenTarget }
+        break
+      }
+    }
+  } finally {
+    if (canDefer) { seqSummonArmed--; seqSummonSource = prevSrc }
+  }
+}
+
+/** Vienas grandinės žingsnis: įrašo VIENĄ padarą į mūšio būseną arba užbaigia kadrą.
+ *  Grąžina done=true, kai visa grandinė (su įdėtinėmis) baigta. */
+export function advanceSummonChain(g: GameState): { ok: boolean; done: boolean } {
+  const st = g.summonChain
+  if (!st || st.length === 0) { g.summonChain = null; return { ok: true, done: true } }
+  const f = st[0]
+  if (f.remaining <= 0) { finishSummonFrame(g, f); return { ok: true, done: !g.summonChain?.length } }
+  const prevSrc = seqSummonSource
+  seqSummonArmed++
+  seqSummonSource = { name: f.sourceName, uid: f.sourceUid }
+  try {
+    const res = f.kind === 'zone' ? summonOneFromZone(g, f.side, f.zone ?? 'deck', f.opts) : summonOneAdvanced(g, f.side, f.opts)
+    f.remaining = res === 'ok' ? f.remaining - 1 : 0  // nepavykus – likusių šio kadro iškvietimų nebandom (senas elgesys)
+  } finally {
+    seqSummonArmed--
+    seqSummonSource = prevSrc
+  }
+  checkWin(g)
+  // jei kadras baigtas ir jokių įdėtinių kadrų nebeliko – iškart užbaigiam (be papildomos pauzės)
+  if (g.summonChain?.[0] === f && f.remaining <= 0) finishSummonFrame(g, f)
+  if (g.summonChain && g.summonChain.length === 0) g.summonChain = null
+  return { ok: true, done: !g.summonChain?.length }
+}
+
+function finishSummonFrame(g: GameState, f: SummonChainFrame) {
+  const st = g.summonChain
+  if (!st) return
+  const i = st.indexOf(f)
+  if (i !== -1) st.splice(i, 1)
+  if (f.after && !g.winner) {
+    const a = f.after
+    f.after = undefined
+    runMappingsDeferrable(g, a.side, a.sourceName, a.sourceUid, a.mappings, a.chosenTarget, true)
+    checkWin(g)
+  }
+  if (g.summonChain && g.summonChain.length === 0) g.summonChain = null
+}
+
+/** Saugiklis: išsprendžia visą likusią grandinę iškart (AI/tinklas/ėjimo pabaiga). */
+export function flushSummonChain(g: GameState) {
+  let guard = 0
+  while (g.summonChain && g.summonChain.length > 0 && guard++ < 200) advanceSummonChain(g)
+  g.summonChain = null
 }
 
 function unitCount(p: PlayerState): number { return p.units.filter((u) => u != null).length }
@@ -1515,58 +1714,6 @@ function applyGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undef
   }
 }
 
-function summonAdvancedPrim(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }) {
-  const p = P(g, s)
-  const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
-  const want = (opts.subtype ?? '').trim().toLowerCase()
-  const wantFacA = opts.factionId ?? 0
-  const nameWhitelist = (opts.names ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
-  const eligible = (c: TutCard) =>
-    c.type === 'unit' &&
-    (opts.costMax == null || (c.gold ?? 0) <= opts.costMax) &&
-    (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
-    (!want || (c.subtype ?? '').toLowerCase() === want) &&
-    (!wantFacA || c.factionId === wantFacA) &&
-    (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
-  const count = Math.max(1, opts.count ?? 1)
-  if (opts.choose && s === 'you') {
-    const options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] = []
-    for (const z of zones) {
-      const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
-      for (const c of arr) if (eligible(c)) options.push({ card: c, zone: z })
-    }
-    if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.noSummonTarget' }); return }
-    g.pendingSummon = { caster: s, choose: Math.min(count, options.length), options }
-    log(g, { t: 'play', side: s, key: 'battleLog.chooseSummon', params: { n: Math.min(count, options.length) } })
-    return
-  }
-  for (let n = 0; n < count; n++) {
-    const slot = freeUnitSlot(g, p)
-    if (slot === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullSummon' }); return }
-    let src: TutCard[] | null = null
-    let idx = -1
-    let foundZone: 'hand' | 'deck' | 'discard' = 'deck'
-    for (const z of zones) {
-      const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
-      const j = arr.findIndex(eligible)
-      if (j !== -1) { src = arr; idx = j; foundZone = z; break }
-    }
-    if (!src || idx === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.noSummonTarget' }); return }
-    const [card] = src.splice(idx, 1)
-    p.units[slot] = {
-      uid: card.uid + '-sa' + g.globalTurn + '-' + n, card,
-      atk: card.attack ?? 0, hp: card.health ?? 1, maxHp: card.health ?? 1,
-      shield: card.keywords.includes('shield'), stealth: card.keywords.includes('stealth'),
-      statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false,
-      summonedFrom: foundZone === 'discard' ? 'graveyard' : foundZone,
-    }
-    ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = p.units[slot]?.uid
-    log(g, { t: 'play', side: s, cardName: card.name, key: 'battleLog.summonByEffect', params: { card: card.name }, sound: 'summon', fromZone: foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand' })
-    afterSummon(g, s, card, foundZone === 'discard' ? 'graveyard' : foundZone === 'deck' ? 'deck' : 'hand')
-  }
-}
-
-// ── Card draw su „twist": iš kapinyno / tik tipo / traukti N pasilikti K ──
 function drawAdvancedPrim(g: GameState, s: Side, opts: { count: number; fromGraveyard?: boolean; cardType?: string; keep?: number }) {
   const p = P(g, s)
   const typeOk = (c: TutCard) => c.type !== 'curse' && (!opts.cardType || c.type === opts.cardType)
@@ -1706,9 +1853,34 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
 // Skenuoja abiejų pusių kovos lauke esančias kortas; jei jų mapping turi
 // atitinkamą globalų trigerį – pritaiko. Re-entrancy apsauga prieš ciklus.
 let firingGlobal = false
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null }) {
+/** Kortos vardas pagal runtime nuorodą (mūšio žurnalui). */
+function unitNameOf(g: GameState, t?: TargetRef): string | undefined {
+  if (!t || t.kind === 'player') return undefined
+  for (const sd of allSeats(g)) {
+    const pp = P(g, sd)
+    if (t.kind === 'unit') { const u = pp.units.find((x) => x?.uid === t.uid); if (u) return u.card.name }
+    else { const a = pp.artifacts.find((x) => x?.uid === t.uid); if (a) return a.card.name }
+  }
+  return undefined
+}
+
+/** Trigerio šaltinis, kai jis neperduotas aiškiai: iškvietimo/sužaidimo atveju –
+ *  paskutinis į lentą patekęs padaras (jei jis vis dar ten). */
+function autoTriggerSource(g: GameState, trigger: string): TargetRef | undefined {
+  if (trigger !== 'onAnySummon' && trigger !== 'onAnyPlay') return undefined
+  const uid = (g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid
+  if (!uid) return undefined
+  for (const sd of allSeats(g)) if (P(g, sd).units.some((x) => x?.uid === uid)) return { kind: 'unit', side: sd, uid }
+  return undefined
+}
+
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; srcRef?: TargetRef; srcName?: string }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
+  // Reakcijų kontekstas: TIKSLI korta (runtime uid), kurios veiksmas suaktyvino
+  // trigerį. Naudojama `useTriggerSource` reakcijoms ir grandinės animacijai.
+  const trigSrc: TargetRef | undefined = ctx?.srcRef ?? autoTriggerSource(g, trigger)
+  const trigSrcName = ctx?.srcName ?? unitNameOf(g, trigSrc)
   try {
     // Ar mapping'o trigerio filtrai (kieno įvykis / potipis / frakcija / burto tipas) tinka.
     const passes = (m: EffectMapping, sd: Side): boolean => {
@@ -1748,9 +1920,18 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         // Sunaudojam reakciją prieš taikant efektą (kad netriggerintų savęs rekursyviai)
         pp.reactions[ri] = null
         pp.discard.push(r.card)
-        log(g, { t: 'reactionTrigger', side: sd, cardName: r.card.name, key: `battleLog.reaction.${SK(sd)}`, params: { card: r.card.name }, src: { side: sd, uid: r.uid } })
+        log(g, {
+          t: 'reactionTrigger', side: sd, cardName: r.card.name, key: `battleLog.reaction.${SK(sd)}`,
+          params: { card: r.card.name }, src: { side: sd, uid: r.uid },
+          // taikinys grandinės animacijai: korta, kurios veiksmas suaktyvino reakciją
+          tgt: trigSrc ? { kind: trigSrc.kind, side: trigSrc.side, uid: 'uid' in trigSrc ? trigSrc.uid : undefined } : undefined,
+        })
         for (const m of rms) {
-          applyMapping(gameApi, g, sd, m, { sourceName: r.card.name, sourceUid: r.uid, depth: 2 })
+          applyMapping(gameApi, g, sd, m, {
+            sourceName: r.card.name, sourceUid: r.uid, depth: 2,
+            triggerSource: trigSrc ? toResolved(trigSrc) : undefined,
+            triggerSourceName: trigSrcName,
+          })
           if (g.winner) return
         }
       }
@@ -1852,7 +2033,12 @@ function fieldKillLastwishSummon(g: GameState, s: Side, card: TutCard) {
 /** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. source = iš kur atsirado. */
 function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource = 'play') {
   recomputeAuras(g)
-  fireGlobalListeners(g, 'onAnySummon', { side: s, subtype: card.subtype, faction: card.factionId, source })
+  const sumUid = (g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid
+  fireGlobalListeners(g, 'onAnySummon', {
+    side: s, subtype: card.subtype, faction: card.factionId, source,
+    srcRef: sumUid && P(g, s).units.some((x) => x?.uid === sumUid) ? { kind: 'unit', side: s, uid: sumUid } : undefined,
+    srcName: card.name,
+  })
   // 'play' kelias šaukia atskirai PO battlecry (kad šūksnis spėtų įvykti)
   if (source !== 'play') {
     // SPECIAL SUMMON (iš kaladės/kapinyno/rankos efektu): Kovos šūksnis IRGI suveikia.
@@ -1936,9 +2122,12 @@ function fireEntryMappings(g: GameState, s: Side, u: BoardUnit, entries?: { m: E
   const needSel = s === 'you' ? list.filter((x) => mappingNeedsSelection(x.m)) : []
   const auto = list.filter((x) => !needSel.some((y) => y.i === x.i))
   if (auto.length > 0) {
+    // rounds > 1 (lauko pasyvas „Kovos šūksniai 2x") – iškvietimų neskaidom, kad
+    // pakartojimo semantika liktų nepakitusi.
+    const canDefer = rounds === 1
     for (let bc = 0; bc < rounds && !g.winner; bc++) {
       log(g, { t: 'battlecry', side: s, cardName: card.name, key: bc === 0 ? 'battleLog.battlecry' : 'battleLog.battlecryRepeat', params: { card: card.name }, src: { side: s, uid: u.uid } })
-      for (const x of auto) { applyMapping(gameApi, g, s, x.m, { sourceName: card.name, sourceUid: u.uid, depth: 1 }); if (g.winner) break }
+      runMappingsDeferrable(g, s, card.name, u.uid, auto.map((x) => x.m), undefined, canDefer)
     }
   }
   if (needSel.length > 0 && !g.winner && P(g, s).units.some((x) => x?.uid === u.uid)) {
@@ -1955,13 +2144,10 @@ export function resolvePendingBattlecry(g: GameState, target: TargetRef): { ok: 
   const u = P(g, pb.side).units.find((x): x is BoardUnit => !!x && x.uid === pb.uid)
   g.pendingBattlecry = null
   if (!u) return { ok: true }  // padaras žuvo — šūksnis nebeįvyksta
+  const bcMappings = pb.idx.map((i) => (u.card.mappings ?? [])[i]).filter(Boolean) as EffectMapping[]
   for (let bc = 0; bc < pb.rounds && !g.winner; bc++) {
     log(g, { t: 'battlecry', side: pb.side, cardName: u.card.name, key: 'battleLog.battlecry', params: { card: u.card.name }, src: { side: pb.side, uid: u.uid } })
-    for (const i of pb.idx) {
-      const m = (u.card.mappings ?? [])[i]
-      if (m) applyMapping(gameApi, g, pb.side, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: toResolved(target), depth: 0 })
-      if (g.winner) break
-    }
+    runMappingsDeferrable(g, pb.side, u.card.name, u.uid, bcMappings, target, pb.rounds === 1)
   }
   checkWin(g)
   return { ok: true }
@@ -1969,7 +2155,12 @@ export function resolvePendingBattlecry(g: GameState, target: TargetRef): { ok: 
 /** Kortos sužaidimo globalus trigeris. */
 function afterPlay(g: GameState, s: Side, card: TutCard) {
   recomputeAuras(g)
-  fireGlobalListeners(g, 'onAnyPlay', { side: s, subtype: card.subtype, faction: card.factionId })
+  const playUid = (g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid
+  fireGlobalListeners(g, 'onAnyPlay', {
+    side: s, subtype: card.subtype, faction: card.factionId,
+    srcRef: playUid && P(g, s).units.some((x) => x?.uid === playUid) ? { kind: 'unit', side: s, uid: playUid } : undefined,
+    srcName: card.name,
+  })
 }
 
 function gainGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
@@ -2435,6 +2626,7 @@ export function endTurn(g: GameState): GameState {
 
 /** Vieno seat'o ėjimo pabaiga (be active perjungimo/rollContext). */
 function seatEndTurn(g: GameState, s: Side): GameState {
+  if (g.summonChain?.length) flushSummonChain(g)
   if (g.winner) return g
   const p = P(g, s)
   resolvePendingResurrect(g, s, 'endOfTurn')     // atidėti prisikėlimai (endOfTurn)
@@ -2512,6 +2704,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
 }
 
 export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }): PlayResult {
+  if (g.summonChain?.length) flushSummonChain(g)  // saugiklis: grandinė niekada nepasimeta
   const pp = P(g, s)
   const playedCard = pp.hand.find((c) => c.uid === uid)
   const goldBefore = pp.gold
@@ -2555,11 +2748,18 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       // Lauko pasyvas: Kovos šūksniai suveikia 2 kartus
       const bcRounds = fieldEngine.battlecryTwice(g, s) ? 2 : 1
       if (summonMappings.length > 0) {
+        // Nuoseklūs iškvietimai galimi tik paprastu atveju (1 raundas, be kelių rankinių taikinių).
+        const multiTargets = (opts?.targets?.length ?? 0) > 1
+        const canDefer = bcRounds === 1 && !multiTargets
         for (let bc = 0; bc < bcRounds && !g.winner; bc++) {
           log(g, { t: 'battlecry', side: s, cardName: card.name, key: bc === 0 ? 'battleLog.battlecry' : 'battleLog.battlecryRepeat', params: { card: card.name }, src: { side: s, uid: u.uid } })
-          for (const m of summonMappings) {
-            applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
-            if (g.winner) break
+          if (canDefer) {
+            runMappingsDeferrable(g, s, card.name, u.uid, summonMappings, opts?.target, true, 0)
+          } else {
+            for (const m of summonMappings) {
+              applyMapping(gameApi, g, s, m, { sourceName: card.name, sourceUid: u.uid, chosenTarget: opts?.target ? toResolved(opts.target) : undefined, chosenTargets: opts?.targets?.map(toResolved), depth: 0 })
+              if (g.winner) break
+            }
           }
         }
       } else if (card.keywords.includes('battlecry') && card.effect) {
@@ -2590,7 +2790,7 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       })
       // Reakcijų langas: priešo onAnyCast gali NUTILDYTI/ATŠAUKTI burtą (castSpell taikinys)
       g.spellCountered = false
-      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, faction: card.factionId, spellType: card.gameplay?.spellType })
+      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, faction: card.factionId, spellType: card.gameplay?.spellType, srcName: card.name })
       if (g.spellCountered) {
         g.spellCountered = false
         log(g, { t: 'spell', side: s, cardName: card.name, key: 'battleLog.spellCountered', params: { card: card.name } })
@@ -2770,6 +2970,7 @@ export function championSkills(ch: BoardUnit): { name: string; mappings: EffectM
 }
 
 export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?: { target?: TargetRef; targets?: TargetRef[] }): PlayResult {
+  if (g.summonChain?.length) flushSummonChain(g)
   if (g.active !== s) return { ok: false, reason: 'battleLog.err.notYourTurn' }
   const p = P(g, s)
   const ch = p.units.find((u) => u?.isChampion)
@@ -2899,6 +3100,7 @@ function maybeTriggerReaction(g: GameState, defender: Side, attacker: BoardUnit,
 }
 
 export function attack(g: GameState, s: Side, attackerUid: string, target: TargetRef): PlayResult {
+  if (g.summonChain?.length) flushSummonChain(g)
   if (g.winner) return { ok: false, reason: 'battleLog.err.gameOver' }
   g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'battleLog.err.notYourTurn' }
@@ -2929,7 +3131,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     applyMapping(gameApi, g, s, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: ct, depth: 1, allMappings: u.card.mappings ?? [] })
     if (g.winner) break
   }
-  fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype, faction: u.card.factionId })
+  fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype, faction: u.card.factionId, srcRef: { kind: 'unit', side: s, uid: u.uid }, srcName: u.card.name })
   const atk = effectiveAtk(g, u)
   // „Tik šios atakos metu" buff'ų nuėmimas – kviečiama prie kiekvieno atakos pabaigos taško.
   const clearThisAttack = () => { const uu = p.units.find((x) => x?.uid === u.uid); if (uu) expireThisAttackBuffs(g, s, uu) }
@@ -3070,6 +3272,8 @@ export type NetAction =
   | { t: 'resolveLastwish'; targets: TargetRef[] }
   | { t: 'swapChampPhase'; actor: Side; uid: string; phase: number }
   | { t: 'clearReveal' }
+  /** Vienas nuoseklios Kovos šūksnio iškvietimų grandinės žingsnis (UI tick'as po 700 ms). */
+  | { t: 'advanceSummon' }
 
 /** Pritaiko struktūruotą veiksmą (host'o autoritetinei būsenai). */
 export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reason?: string } {
@@ -3088,6 +3292,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'resolveLastwish': return resolvePendingLastwish(g, a.targets)
     case 'swapChampPhase': return swapChampionPhase(g, a.actor, a.uid, a.phase)
     case 'clearReveal': g.pendingReveal = null; return { ok: true }
+    case 'advanceSummon': return advanceSummonChain(g)
   }
 }
 

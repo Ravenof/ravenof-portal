@@ -345,6 +345,10 @@ export type EffectMapping = {
   peekCount?: number                // peekDiscard: kiek kortų peržiūrėti (default = value*2)
   sameTarget?: boolean              // follow-up (`then`): naudoti tą patį taikinį kaip tėvinis efektas
   useAttackTarget?: boolean         // onAttack/onAttacked: efektas taikomas į kovos taikinį (atakuotą padarą / atakuotoją)
+  /** Reakcijos taikymas: efektas taikomas TIK tai kortai (runtime instancijai),
+   *  kurios veiksmas suaktyvino reakciją. Rankinis taikinio pasirinkimas praleidžiamas,
+   *  pertaikymas į kitą kortą draudžiamas. Numatytoji reikšmė (undefined/false) = senas elgesys. */
+  useTriggerSource?: boolean        // reakcijos: taikinys = reakciją suaktyvinusi korta
   resurrectHp1?: boolean            // resurrectSelf: prisikelia su 1 HP (vietoj pilno)
   oncePerGame?: boolean             // resurrectSelf: suveikia tik kartą per žaidimą
   /**

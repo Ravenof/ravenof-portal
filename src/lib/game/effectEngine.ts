@@ -61,6 +61,12 @@ export type ApplyCtx = {
   chainDestroyedHp?: number  // #4: sunaikintų taikinių HP suma ankstesniame efekte
   chainDestroyedCards?: TutCard[]  // #1: ankstesniame efekte sunaikintos kortos (prikėlimui)
   allMappings?: EffectMapping[]  // pilnas šaltinio kortos mapping sąrašas (onDestroy „kill kreditui")
+  /** Reakcijos kontekstas: TIKSLI korta (runtime instancija), kurios veiksmas suaktyvino reakciją.
+   *  Naudojamas tik su `m.useTriggerSource`. Saugom nuorodą (uid), o ne kortos vardą/definiciją —
+   *  lentoje gali būti kelios tos pačios kortos kopijos. */
+  triggerSource?: ResolvedTarget
+  /** Reakciją suaktyvinusios kortos vardas (mūšio žurnalui). */
+  triggerSourceName?: string
 }
 
 // onDestroy kreditas: kol vykdomas šaltinio efektas, jo sukeltos žūtys kredituojamos jam.
@@ -90,6 +96,7 @@ export function effectIntent(e: EffectType): 'harm' | 'help' {
 
 /** Ar mapping'ui reikia žaidėjo pasirinkti taikinį UI'juje? */
 export function mappingNeedsSelection(m: EffectMapping): boolean {
+  if (m.useTriggerSource) return false  // reakcijos taikinys nustatytas automatiškai (trigerio šaltinis)
   if (m.chooseAlt && m.chooseAlt.length > 0) return false  // ARBA: pirmiau pop-up pasirinkimas, taikiniai auto
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
@@ -99,6 +106,16 @@ export function mappingNeedsSelection(m: EffectMapping): boolean {
   if (m.requiresSelection === true) return true
   // default: pavieniai harm efektai į priešo/bet kuriuos taikinius – renkamasi
   return effectIntent(m.effect) === 'harm' && ['enemyUnit', 'anyUnit', 'anyPlayer', 'enemyArtifact', 'anyArtifact', 'anyChampion', 'enemyChampion'].includes(m.target)
+}
+
+/** Ar reakcijos trigerio šaltinis vis dar egzistuoja (nepakeitė zonos / nežuvo). */
+export function triggerSourceStillValid(g: GameState, t: ResolvedTarget): boolean {
+  if (t.kind === 'player') return true
+  if (t.kind === 'field') return false
+  const p = t.side === 'you' ? g.you : g.ai
+  if (t.kind === 'unit') return p.units.some((x) => x?.uid === t.uid)
+  if (t.kind === 'artifact') return p.artifacts.some((x) => x?.uid === t.uid)
+  return false
 }
 
 function findUnit(g: GameState, t: ResolvedTarget): { u: BoardUnit; owner: Side } | null {
@@ -181,6 +198,20 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     let t: ResolvedTarget | null = null
     if (uid) for (const sd of ['you', 'ai'] as Side[]) { const pp = sd === 'you' ? g.you : g.ai; if (pp.units.some((x) => x?.uid === uid)) { t = { kind: 'unit', side: sd, uid }; break } }
     targets = t ? [t] : []
+  } else if (m.useTriggerSource) {
+    // Reakcija: taikinys = TIKSLIAI ta korta, kurios veiksmas suaktyvino reakciją.
+    // Jokio rankinio pasirinkimo, jokio pertaikymo, jokio atsitiktinio taikinio.
+    const ts = ctx.triggerSource
+    if (!ts) {
+      api.log(g, { t: 'blocked', side: caster, key: 'battleLog.reactionNoTriggerSource', params: { src: ctx.sourceName } })
+      return false
+    }
+    if (!triggerSourceStillValid(g, ts)) {
+      // Šaltinis dingo (žuvo / pakeitė zoną) — efektas NEPERTAIKOMAS į kitą kortą.
+      api.log(g, { t: 'blocked', side: caster, key: 'battleLog.reactionTargetLost', params: { src: ctx.sourceName, target: ctx.triggerSourceName ?? '' } })
+      return false
+    }
+    targets = [ts]
   } else if (m.target === 'selfUnit') {
     let t: ResolvedTarget | null = null
     if (ctx.sourceUid) {

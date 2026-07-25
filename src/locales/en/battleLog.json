@@ -384,5 +384,7 @@
   },
   "resurrectPendingEndOfTurn": "🕯 \"{{card}}\" dies — it will be resurrected at the end of this turn!",
   "resurrectPendingNextTurn": "🕯 \"{{card}}\" dies — it will be resurrected at the start of the next turn!",
-  "resurrectZoneFull": "The creature zone is full — \"{{card}}\" is not resurrected (it stays in the graveyard)."
+  "resurrectZoneFull": "The creature zone is full — \"{{card}}\" is not resurrected (it stays in the graveyard).",
+  "reactionTargetLost": "⛓ \"{{src}}\": the card that triggered the reaction is gone – the effect does not happen (no retargeting).",
+  "reactionNoTriggerSource": "⛓ \"{{src}}\": could not identify the card that triggered the reaction – the effect does not happen."
 }

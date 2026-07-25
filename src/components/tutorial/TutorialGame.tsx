@@ -63,6 +63,7 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS } from '@/lib/game/timing'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
@@ -1074,6 +1075,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const copyBlocks = !!game?.pendingCopy
   const lastwishBlocks = !!game?.pendingLastwish
   const returnBlocks = !!game?.pendingReturn
+  /** Nuoseklių Kovos šūksnio iškvietimų grandinė – žaidėjo veiksmai užrakinti, kol ji baigsis. */
+  const chainBlocks = !!game?.summonChain?.length
+  /** Bendras įvesties užraktas (pop-up'as arba vykstanti iškvietimų grandinė). */
+  const actionsLocked = popupBlocks || chainBlocks
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
   const useHLayout = typeof window === 'undefined' ? true : new URLSearchParams(window.location.search).get('layout') !== 'v'
@@ -1663,12 +1668,35 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'lastwish': queueTip('lastwish'); break
         case 'battlecry': queueTip('battlecry'); break
         case 'reactionTrigger': {
+          // Reakcijos seka: (1) korta atskleidžiama, (2) grandinė keliauja nuo jos
+          // iki reakciją suaktyvinusios kortos ir apsiveja, (3) TIK PO
+          // REACTION_CHAIN_ANIMATION_DURATION_MS rodomas gameplay rezultatas
+          // (žala/būsena/žūtis) – visi tolesni FX ir log įrašai atidedami per showcaseHold.
           queueTip('reaction')
           const card = findCard(e.cardName)
           const from = pileCenter(`[data-pile="reactions-${e.side}"]`) ?? fxCenter()
-          spawnShowcase(card, from, 'reaction', SETTLE + fxSeq)
-          showcaseHold = SETTLE + fxSeq + 2200
-          fxSeq += 2250
+          const revealAt = SETTLE + fxSeq
+          spawnShowcase(card, from, 'reaction', revealAt)
+          const chainDur = REACTION_CHAIN_ANIMATION_DURATION_MS
+          const chainAt = revealAt + 420           // grandinė startuoja po atskleidimo
+          const chainTo = e.tgt ? rectOf(e.tgt) : null
+          if (chainTo) {
+            const cFrom = { x: from.x, y: from.y }
+            const cTo = { x: chainTo.x, y: chainTo.y }
+            window.setTimeout(() => {
+              playBattleSound('freeze', 0.3)
+              fxRef.current?.spawn({ kind: 'beam', from: cFrom, to: cTo, color: '#9aa4b4', color2: '#7be0c4', duration: chainDur / 1000 })
+            }, chainAt)
+            window.setTimeout(() => {
+              fxRef.current?.hitFlash(cTo.x, cTo.y, '#cfd6e3')
+              fxRef.current?.shakeBoard('soft')
+            }, chainAt + chainDur)
+          }
+          if (process.env.NODE_ENV !== 'production') {
+            console.debug(`[ReactionAnimation] reaction=${e.src?.uid ?? '?'} target=${e.tgt?.uid ?? '—'} duration=${chainDur} ms`)
+          }
+          showcaseHold = chainAt + chainDur + 120
+          fxSeq = Math.max(fxSeq, showcaseHold - SETTLE + 150)
           break
         }
         case 'field': {
@@ -2006,7 +2034,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -2033,7 +2061,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, chainBlocks, zmkBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -2316,6 +2344,24 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     })
   }, [isGuest, pushToast, tutorial])
 
+  // ── Nuoseklūs Kovos šūksnio iškvietimai ─────────────────────────────────────
+  // Kol `game.summonChain` netuščias, kas BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS
+  // siunčiam `advanceSummon` – variklis įrašo į mūšio būseną VIENĄ padarą
+  // (iš naujo patikrinęs laisvas vietas ir įvykdęs jo paties Kovos šūksnį).
+  // Tai NE vizualus atidėjimas: būsena keičiasi būtent šiais žingsniais.
+  // Komponentui išsimontavus grandinė nepradingsta – ją saugiai užbaigia
+  // variklio flushSummonChain() prie kito veiksmo.
+  useEffect(() => {
+    const n = game?.summonChain?.length ?? 0
+    if (!n || game?.winner || isGuest) return
+    if (process.env.NODE_ENV !== 'production') {
+      const f = game!.summonChain![0]
+      console.debug(`[BattlecryQueue] Waiting ${BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS} ms before next summon (frames: ${n}, remaining: ${f.remaining}, src: ${f.sourceName})`)
+    }
+    const id = window.setTimeout(() => doAction({ t: 'advanceSummon' }), BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS)
+    return () => window.clearTimeout(id)
+  }, [game, game?.summonChain, game?.winner, isGuest, doAction])
+
   // Paskutinis noras su rankiniu taikiniu: įjungiam taikinio pasirinkimo režimą.
   // Jei tinkamų taikinių nebėra (pvz. visi jau žuvo) – auto-resolve.
   useEffect(() => {
@@ -2395,7 +2441,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   const onHandCardClick = (c: TutCard) => {
     if (!myTurn) { pushToast(t('battle.game.toastWaitTurn')); return }
-    if (popupBlocks) return
+    if (actionsLocked) return
     if (step?.require === 'end-turn') { pushToast(t('battle.game.toastEndTurnNow')); return }
     if (select?.kind === 'discard') {
       doAction({ t: 'discardForGold', actor: 'you', uid: c.uid })
@@ -2463,7 +2509,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }
 
   const onMyUnitClick = (u: BoardUnit) => {
-    if (popupBlocks) return
+    if (actionsLocked) return
     if (select?.kind === 'lastwish') { toggleSpellTarget({ kind: 'unit', side: 'you', uid: u.uid }); return }
     if (!myTurn) return
     if (Date.now() - dragEndRef.current < 350) return
@@ -2530,7 +2576,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }
 
   const onTargetClick = (t: TargetRef) => {
-    if (popupBlocks) return
+    if (actionsLocked) return
     if (select?.kind === 'lastwish') { toggleSpellTarget(t); return }
     if (!myTurn) return
     if (Date.now() - dragEndRef.current < 350) return
@@ -2548,7 +2594,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }
 
   const onEndTurn = () => {
-    if (!myTurn || popupBlocks) return
+    if (!myTurn || actionsLocked) return
     if (step && step.require && step.require !== 'end-turn') { pushToast(t('battle.game.toastDoTaskFirst')); return }
     playUiClick()
     setSelect(null)
@@ -2647,7 +2693,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
   // Ataka tempimu: tempk savo padarą ant priešo taikinio (drag&drop). Palietimas (be tempimo) = įprastas pasirinkimas.
   const beginUnitDrag = (u: BoardUnit, e: React.PointerEvent) => {
-    if (!myTurn || popupBlocks || !game) return
+    if (!myTurn || actionsLocked || !game) return
     if (u.isChampion) return
     if (!canUnitAttack(game, 'you', u).ok) return
     const sx = e.clientX, sy = e.clientY
@@ -2696,7 +2742,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
   // Vienas pirštas: tempimas Į ŠONUS = ranka scrollinama (native pan-x), tempimas AUKŠTYN = žaidžiama korta.
   const beginHandPointer = (card: TutCard, e: React.PointerEvent) => {
-    if (popupBlocks) return
+    if (actionsLocked) return
     if (!myTurn) {
       // Priešo ėjimo metu ranką galima IŠSKLEISTI/SUTRAUKTI (žaisti negalima)
       const sx0 = e.clientX, sy0 = e.clientY
@@ -3166,7 +3212,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     if (!game) return null
     return (
       <button data-tut="discard-gold"
-        onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+        onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
         className="combat-discard-gold inline-flex items-center justify-center gap-1 text-[10px] font-bold whitespace-nowrap"
         data-active={select?.kind === 'discard' ? 'true' : undefined}
         style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -3455,7 +3501,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </button>
                 {goldBar('you')}
                 <button data-tut="discard-gold"
-                  onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+                  onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
                   className="combat-discard-gold text-[10px] font-bold transition-all whitespace-nowrap"
                   data-active={select?.kind === 'discard' ? 'true' : undefined}
                   style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -3630,7 +3676,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
             <aside className="rounded-xl p-3 flex flex-col items-center justify-center gap-2" style={{ ...RAIL_PANEL, gridArea: 'command' }}>
               <div className="self-center">{goldBar('you')}</div>
-              <button onClick={() => { if (!myTurn || popupBlocks) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+              <button onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
                 className="combat-discard-gold w-full text-[11px] font-bold whitespace-nowrap" data-active={select?.kind === 'discard' ? 'true' : undefined} style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }} title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
               <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
                 className="w-full px-4 py-3.5 rounded-xl text-base font-extrabold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 whitespace-nowrap"

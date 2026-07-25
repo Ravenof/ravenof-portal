@@ -18,7 +18,8 @@
     "e2e:en": "playwright test e2e/english-localization.spec.ts",
     "progression:check": "node scripts/progression-check.mjs",
     "progression:test": "node supabase/tests/run.mjs",
-    "progression:test:shape": "node --experimental-strip-types scripts/progression-shape-test.mjs"
+    "progression:test:shape": "node --experimental-strip-types scripts/progression-shape-test.mjs",
+    "game:test:chain": "tsx scripts/simulate-battlecry-chain.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

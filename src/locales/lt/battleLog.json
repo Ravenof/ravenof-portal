@@ -384,5 +384,7 @@
   },
   "resurrectPendingEndOfTurn": "🕯 „{{card}}\" žūsta — prisikels šio ėjimo pabaigoje!",
   "resurrectPendingNextTurn": "🕯 „{{card}}\" žūsta — prisikels kito ėjimo pradžioje!",
-  "resurrectZoneFull": "Padarų zona pilna — „{{card}}\" prisikėlimas neįvyksta (lieka kapinyne)."
+  "resurrectZoneFull": "Padarų zona pilna — „{{card}}\" prisikėlimas neįvyksta (lieka kapinyne).",
+  "reactionTargetLost": "⛓ „{{src}}\": reakciją suaktyvinusios kortos nebėra – efektas neįvyksta (į kitą taikinį nepertaikoma).",
+  "reactionNoTriggerSource": "⛓ „{{src}}\": nepavyko nustatyti reakciją suaktyvinusios kortos – efektas neįvyksta."
 }

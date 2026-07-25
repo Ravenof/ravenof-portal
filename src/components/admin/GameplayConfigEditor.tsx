@@ -86,13 +86,15 @@ function TargetOptions() {
   ))}</>
 }
 
-export function GameplayConfigEditor({ initial, isField, isChampion = false, isCurse = false, cardNames = [], hasEffectText, cardId = null, cardNumber = '' }: {
+export function GameplayConfigEditor({ initial, isField, isChampion = false, isCurse = false, isReaction = false, cardNames = [], hasEffectText, cardId = null, cardNumber = '' }: {
   initial: unknown
   cardId?: string | null
   cardNumber?: string
   isField: boolean
   isChampion?: boolean
   isCurse?: boolean
+  /** Reakcijos korta – rodom reakcijoms skirtus nustatymus (pvz. taikymą į trigerio šaltinį). */
+  isReaction?: boolean
   cardNames?: string[]
   hasEffectText: boolean
 }) {
@@ -1099,6 +1101,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                         <input type="checkbox" checked={!!m.useAttackTarget}
                           onChange={(e) => setMapping(i, { useAttackTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                         🎯 Taikinys = kovos taikinys {m.trigger === 'onAttack' ? '(atakuotas)' : '(atakuotojas)'}
+                      </label>
+                    )}
+                    {isReaction && (m.trigger.startsWith('onAny') || m.trigger === 'onOpponentGoldEmpty') && (
+                      <label className="flex items-center gap-1"
+                        title="Kai įjungta, reakcijos efektas automatiškai taikomas tik tai kortai, kurios veiksmas suaktyvino reakciją. Rankinis taikinio pasirinkimas nerodomas, efektas nepertaikomas į kitą kortą. (EN: Effect applies only to the card that triggered the reaction.)">
+                        <input type="checkbox" checked={!!m.useTriggerSource}
+                          onChange={(e) => setMapping(i, { useTriggerSource: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                        ⛓ Efektas taikomas tik reakciją suaktyvinusiai kortai
                       </label>
                     )}
                     <label className="flex items-center gap-1" title="Įmaišo prakeiksmų kortų iš side deck'o į kaladę. Aktyvuojasi, kai jas ištraukia.">
