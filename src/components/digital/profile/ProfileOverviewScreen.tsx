@@ -221,6 +221,44 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
     </div>
   )
 
+  // ── Kompaktiškas režimas (844×390): tapatybė = VIRŠUTINĖ juosta, portretas 64 px ──
+  //  Handoff §3: „identity card becomes a full-width top band (portrait 64 px),
+  //  overview becomes a single horizontally-snapping column set."
+  const chip = (label: string, value: string, tone = C.bone, onClick?: () => void) => (
+    <button type="button" onClick={onClick} disabled={!onClick}
+      style={{
+        flex: 'none', minHeight: 44, display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        gap: 1, padding: '0 10px', border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.6)',
+        cursor: onClick ? 'pointer' : 'default', textAlign: 'left',
+      }}>
+      <span style={{ font: `500 7.5px ${BODY}`, letterSpacing: 1.6, color: C.label, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ font: `800 13px ${DISPLAY}`, color: tone, lineHeight: 1 }}>{value}</span>
+    </button>
+  )
+
+  const identityBand = (
+    <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderBottom: `1px solid #1e1a26`, overflowX: 'auto' }}>
+      <span aria-hidden style={{
+        width: 56, height: 64, flex: 'none', clipPath: HOLDER,
+        background: identity.avatarUrl ? `center/cover url(${identity.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)',
+        border: `1px solid ${C.gold}`,
+      }} />
+      <span style={{ minWidth: 0, flex: 'none' }}>
+        <span style={{ display: 'block', font: `800 14px ${DISPLAY}`, color: C.bone, lineHeight: 1.15 }}>{identity.name ?? t('common.player')}</span>
+        <span style={{ display: 'block', font: `700 9px ui-monospace, monospace`, color: C.goldHi, marginTop: 2 }}>{identity.playerId ?? '—'}</span>
+      </span>
+      {chip(t('profile.overview.accountLevel'), String(level.level), C.goldHi, isPublic ? undefined : () => { playUiClick(); router.push('/digital/profile/levels') })}
+      {chip(t('profile.overview.ranked'), rankNo != null ? String(rankNo) : '—', '#D6DCE6', () => { playUiClick(); router.push('/digital/ranked') })}
+      {chip(t('profile.nav.achievements'), `${achSummary?.done ?? 0}/${achSummary?.total ?? 70}`, 'var(--rvn-burgundy-fg)', isPublic ? undefined : () => { playUiClick(); router.push('/digital/profile/achievements') })}
+      {!isPublic && (
+        <button type="button" onClick={() => { playUiClick(); toast.show(t('profile.overview.editSoon')) }}
+          style={{ flex: 'none', minHeight: 44, padding: '0 11px', border: `1px solid ${C.gold}`, background: 'transparent', color: C.bone, cursor: 'pointer', font: `700 9.5px ${DISPLAY}`, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+          {t('profile.overview.edit')}
+        </button>
+      )}
+    </div>
+  )
+
   // ── Tab'ų turinys ─────────────────────────────────────────────────────────
   const tiles = (
     <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
@@ -364,14 +402,28 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
     if (tab === 'decks') return <div style={{ display: 'grid', gap: 10 }}>{decksPanel}</div>
     if (tab === 'collection') return <div style={{ display: 'grid', gap: 10 }}>{collectionPanel}</div>
     if (tab === 'history') return <div style={{ display: 'grid', gap: 10 }}>{historyPanel}</div>
+    if (compact) {
+      // 390 px aukštyje vertikalus krovimas nuvaro turinį už ekrano ribų —
+      // handoff numato horizontaliai slenkamą stulpelių rinkinį.
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minHeight: 0 }}>
+          <div className="rvn-prog-scroll" style={{ flex: 'none', display: 'flex', gap: 7, overflowX: 'auto' }}>{tiles}</div>
+          <div className="rvn-prog-scroll" style={{ flex: 1, minHeight: 0, display: 'flex', gap: 9, overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
+            {[statsPanel, collectionPanel, decksPanel, achPanel, historyPanel].map((p, i) => (
+              <div key={i} style={{ flex: 'none', width: 248, scrollSnapAlign: 'start', overflowY: 'auto' }}>{p}</div>
+            ))}
+          </div>
+        </div>
+      )
+    }
     return (
       <div style={{ display: 'grid', gap: 10 }}>
         {tiles}
-        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: compact ? '1fr' : '1fr 1fr' }}>
+        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr' }}>
           {statsPanel}
           {collectionPanel}
         </div>
-        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: compact ? '1fr' : '1fr 1fr 1fr' }}>
+        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr 1fr' }}>
           {decksPanel}
           {achPanel}
           {historyPanel}
@@ -382,17 +434,22 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
 
   return (
     <div className="rvn-prog-in" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ flex: 'none', padding: compact ? '9px 12px' : '11px 18px', borderBottom: `1px solid #1e1a26` }}>
-        <div style={{ font: `800 17px ${DISPLAY}`, color: C.bone, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-          {isPublic ? t('profile.overview.publicTitle') : t('profile.overview.title')}
+      {/* Kompaktiškame režime antraštės bloko NĖRA — vardas jau matomas juostoje,
+          o vertikalios vietos 390 px aukštyje nelieka (handoff §3). */}
+      {!compact && (
+        <div style={{ flex: 'none', padding: '11px 18px', borderBottom: `1px solid #1e1a26` }}>
+          <div style={{ font: `800 17px ${DISPLAY}`, color: C.bone, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            {isPublic ? t('profile.overview.publicTitle') : t('profile.overview.title')}
+          </div>
+          <div style={{ font: `400 10px ${BODY}`, color: C.muted, marginTop: 2 }}>
+            {isPublic ? t('profile.overview.publicSubtitle') : t('profile.overview.subtitle')}
+          </div>
         </div>
-        <div style={{ font: `400 10px ${BODY}`, color: C.muted, marginTop: 2 }}>
-          {isPublic ? t('profile.overview.publicSubtitle') : t('profile.overview.subtitle')}
-        </div>
-      </div>
+      )}
+      {compact && identityBand}
 
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: compact ? 'column' : 'row', gap: 12, padding: compact ? '10px 12px' : '14px 18px' }}>
-        {identityCard}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: compact ? 'column' : 'row', gap: 12, padding: compact ? '8px 10px' : '14px 18px' }}>
+        {!compact && identityCard}
 
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className="rvn-prog-scroll" style={{ flex: 'none', display: 'flex', gap: 6, overflowX: 'auto' }}>

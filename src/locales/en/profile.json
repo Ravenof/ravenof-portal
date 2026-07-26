@@ -61,7 +61,7 @@
     "pendingCta_other": "Choose {{count}} rewards",
     "pickLevel": "Pick a level on the track to see its exact reward.",
     "rewardsTitle": "Rewards at this level",
-    "rowEarly": "Levels 2-25",
+    "rowEarly": "Levels 1-25",
     "rowLate": "Levels 26-50",
     "screenTitle": "Account level",
     "state": {

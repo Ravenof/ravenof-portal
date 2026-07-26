@@ -53,7 +53,7 @@ export function AccountLevelScreen() {
 
   const rows = useMemo(() => {
     const track = state?.track ?? []
-    return [track.filter((c) => c.level <= 25), track.filter((c) => c.level >= 26)]
+    return [track.filter((c) => c.level <= 25), track.filter((c) => c.level >= 26)]  // 1–25 / 26–50
   }, [state])
 
   const selected = useMemo(

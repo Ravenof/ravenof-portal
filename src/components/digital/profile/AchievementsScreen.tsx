@@ -71,6 +71,7 @@ export function AchievementsScreen() {
   const [query, setQuery] = useState('')
   const [stateFilter, setStateFilter] = useState<StateFilter>('all')
   const [cat, setCat] = useState<CatFilter>('all')
+  const [featuredOpen, setFeaturedOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -145,12 +146,12 @@ export function AchievementsScreen() {
       : { line: C.lineIn, fg: C.label }
     return (
       <div key={a.code} className="rvn-prog-clip" style={{
-        position: 'relative', display: 'flex', flexDirection: 'column', gap: 9,
-        border: `1px solid ${tone.line}`, background: C.raised, padding: 12,
+        position: 'relative', display: 'flex', flexDirection: 'column', gap: compact ? 7 : 9,
+        border: `1px solid ${tone.line}`, background: C.raised, padding: compact ? 9 : 12,
       }}>
         <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: done ? 'var(--rvn-burgundy)' : started ? C.gold : 'transparent' }} />
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
-          <AchievementBadge code={a.code} completed={done} size={54} />
+          <AchievementBadge code={a.code} completed={done} size={compact ? 40 : 54} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ font: `700 13.5px ${DISPLAY}`, color: done ? C.bone : C.muted, lineHeight: 1.25 }}>{l.name}</div>
             <div style={{ font: `400 10.5px ${BODY}`, color: C.label, lineHeight: 1.45, marginTop: 3 }}>{l.req}</div>
@@ -241,7 +242,7 @@ export function AchievementsScreen() {
   return (
     <div className="rvn-prog-in" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* ── Antraštė ── */}
-      <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: compact ? '9px 12px' : '11px 18px', borderBottom: `1px solid #1e1a26` }}>
+      <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: compact ? '7px 10px' : '11px 18px', borderBottom: `1px solid #1e1a26` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
           <span style={{ font: `800 22px ${DISPLAY}`, color: 'var(--rvn-burgundy-fg)', lineHeight: 1 }}>{summary.completed}</span>
           <span style={{ font: `600 12px ${DISPLAY}`, color: C.label }}>/ {summary.total}</span>
@@ -284,18 +285,25 @@ export function AchievementsScreen() {
       </div>
 
       {/* ── Kategorijų čipai ── */}
-      <div className="rvn-prog-scroll" style={{ flex: 'none', display: 'flex', gap: 7, padding: compact ? '8px 12px' : '9px 18px', overflowX: 'auto', borderBottom: `1px solid #16131d` }}>
+      <div className="rvn-prog-scroll" style={{ flex: 'none', display: 'flex', gap: 7, padding: compact ? '6px 10px' : '9px 18px', overflowX: 'auto', borderBottom: `1px solid #16131d` }}>
         {chip('all', t('profile.ach.cat.all'), summary.completed, summary.total)}
         {CAT_KEYS.map((k) => chip(k, t(`profile.ach.cat.${k}`), summary.categories[k]?.done ?? 0, summary.categories[k]?.total ?? 0))}
       </div>
 
       {/* ── Turinys ── */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12, padding: compact ? '10px 12px' : '14px 18px' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12, padding: compact ? '8px 10px' : '14px 18px' }}>
         <div className="rvn-prog-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 2 }}>
           {compact && (
-            <div style={{ marginBottom: 10 }}>
-              <Kicker color={C.gold}>{t('profile.ach.featuredTitle')}</Kicker>
-              <div style={{ marginTop: 7 }}>{featuredSlots}</div>
+            <div style={{ marginBottom: 9 }}>
+              <button type="button" onClick={() => { playUiClick(); setFeaturedOpen((v) => !v) }}
+                aria-expanded={featuredOpen}
+                style={{ width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0 11px', border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.6)', color: C.muted,
+                  cursor: 'pointer', font: `600 10px ${DISPLAY}`, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                {t('profile.ach.featuredTitle')}
+                <span aria-hidden style={{ color: C.gold }}>{featuredOpen ? '▾' : '▸'}</span>
+              </button>
+              {featuredOpen && <div style={{ marginTop: 7 }}>{featuredSlots}</div>}
             </div>
           )}
           {visible.length === 0 ? (
@@ -304,7 +312,7 @@ export function AchievementsScreen() {
               <div style={{ font: `400 11px ${BODY}`, color: C.label }}>{t('profile.ach.emptyBody')}</div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fill, minmax(310px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
               {visible.map(card)}
             </div>
           )}

@@ -26,7 +26,8 @@ import { getOnboardingState } from '@/lib/digital/onboarding'
 import { heartbeat } from '@/lib/social'
 import { getLevelProgress } from '@/lib/gamification/levels'
 import { ensureProfile } from '@/lib/ranked/client'
-import { rankView, medalLabel, type MedalTier } from '@/lib/ranked/rank'
+import { rankView, type MedalTier } from '@/lib/ranked/rank'
+import { rankLabel, rankBadgeSrc } from '@/lib/profile/ranks'
 import { RavenofResourcePill, RavenofIconBtn, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
 import { HubStyles } from '@/components/digital/ui/HubKit'
 import { useT, I18nBoot, useLocale, setLocale } from '@/lib/i18n/react'
@@ -194,7 +195,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="ravenof-body fixed inset-0 z-40 flex flex-row select-none" style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
-      {!MIGRATED_ROUTES.includes(pathname) && !pathname.startsWith('/digital/campaign/') && <Flames />}
+      {!MIGRATED_ROUTES.includes(pathname) && !pathname.startsWith('/digital/profile') && !pathname.startsWith('/digital/campaign/') && <Flames />}
       <HubStyles />
       <I18nBoot />
       <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }`}</style>
@@ -241,8 +242,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                   {rank ? (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`${RAVENOF_ASSET}/ranks/rank-${rank.tier}.png`} alt="" style={{ width: 11, height: 13, objectFit: 'contain' }} />
-                      {medalLabel(rank.tier)} · {toRoman(rank.number)}
+                      <img src={rankBadgeSrc(rank.number) ?? `${RAVENOF_ASSET}/ranks/rank-${rank.tier}.png`} alt="" style={{ width: 12, height: 14, objectFit: 'contain' }} />
+                      {rankLabel(rank.number)}
+                      <span style={{ font: '600 8.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: '#8d94a3' }}>
+                        {rank.tier}
+                      </span>
                     </>
                   ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
                 </span>
@@ -287,10 +291,3 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   )
 }
 
-/** Rango numeris romėnišku formatu (prototipo „Sidabras · XXIII"). */
-function toRoman(n: number): string {
-  const map: [number, string][] = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
-  let out = ''; let v = Math.max(1, Math.min(50, Math.round(n)))
-  for (const [num, sym] of map) while (v >= num) { out += sym; v -= num }
-  return out
-}

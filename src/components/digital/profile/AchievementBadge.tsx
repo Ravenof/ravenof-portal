@@ -28,11 +28,13 @@ export function AchievementBadge({ code, completed = true, size = 64, className 
       background: 'linear-gradient(160deg,#a9455a 0%,#6E2633 45%,#4a1d27 100%)',
       filter: completed ? undefined : 'grayscale(0.85) brightness(0.62)',
     }}>
-      <span style={{ position: 'absolute', inset: 1, clipPath: HEX, background: 'linear-gradient(180deg,#2a1620,#160b12)' }} />
+      {/* vidinis skydas – ŠVIESESNIS nei anksčiau: tamsi plokštė „nuskandindavo" iliustraciją */}
+      <span style={{ position: 'absolute', inset: 1, clipPath: HEX, background: 'linear-gradient(180deg,#3a1f2b,#22121a)' }} />
       {src
         ? /* eslint-disable-next-line @next/next/no-img-element */
           <img src={src} alt="" loading="lazy" decoding="async" draggable={false}
-            style={{ position: 'absolute', inset: '9%', width: '82%', height: '82%', objectFit: 'contain' }} />
+            style={{ position: 'absolute', inset: '4%', width: '92%', height: '92%', objectFit: 'contain',
+              filter: completed ? 'contrast(1.06) brightness(1.14)' : undefined }} />
         : <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: size * 0.34, color: '#C1566A' }}>⧗</span>}
     </span>
