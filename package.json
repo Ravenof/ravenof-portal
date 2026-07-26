@@ -19,7 +19,8 @@
     "progression:check": "node scripts/progression-check.mjs",
     "progression:test": "node supabase/tests/run.mjs",
     "progression:test:shape": "node --experimental-strip-types scripts/progression-shape-test.mjs",
-    "game:test:chain": "tsx scripts/simulate-battlecry-chain.ts"
+    "game:test:chain": "tsx scripts/simulate-battlecry-chain.ts",
+    "quests:check": "node scripts/quests-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

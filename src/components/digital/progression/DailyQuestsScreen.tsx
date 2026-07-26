@@ -134,12 +134,12 @@ export function DailyQuestsScreen() {
             {t(`progression.quests.difficulty.${q.difficulty}`)}
           </div>
           <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10, font: `700 17px ${DISPLAY}`, color: C.bone, textShadow: '0 2px 10px #000' }}>
-            {t(q.titleKey, { target: q.target })}
+            {t(q.titleKey, { target: q.target, count: q.target })}
           </div>
         </div>
 
         <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', padding: compact ? 10 : 12, gap: 9 }}>
-          <div style={{ font: `400 11px ${BODY}`, color: C.muted, lineHeight: 1.45 }}>{t(q.descKey, { target: q.target })}</div>
+          <div style={{ font: `400 11px ${BODY}`, color: C.muted, lineHeight: 1.45 }}>{t(q.descKey, { target: q.target, count: q.target })}</div>
 
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>

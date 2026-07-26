@@ -65,6 +65,8 @@ import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES } from '@/lib/game/timing'
+import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
+import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
@@ -2226,6 +2228,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         before, after, valid: !!r.valid, levelRewards: r.levelRewards ?? [],
       })
       if (r.valid && getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
+      // Dienos užduočių telemetrija (kortos/žala/kill'ai/…): matches eilutė jau egzistuoja.
+      try {
+        const st = collectMatchStats(game, 'you')
+        void reportMatchStats(clientMatchIdRef.current, st, dominantFactionId(deckCards ?? null))
+      } catch (err) { console.warn('[quests] telemetrija nepavyko:', err) }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner])
@@ -2245,6 +2252,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     void recordRankedMatch({ clientMatchId: clientMatchIdRef.current, result: meWon ? 'win' : 'loss',
       durationSeconds: Math.round((Date.now() - (matchStartRef.current || Date.now())) / 1000),
       turns: game.globalTurn, playerActions: game.globalTurn, opponentActions: game.globalTurn, opponentId: net?.opponentId ?? null })
+    try {
+      const st = collectMatchStats(game, 'you')
+      void reportMatchStats(clientMatchIdRef.current, st, dominantFactionId(deckCards ?? null))
+    } catch (err) { console.warn('[quests] telemetrija (ranked) nepavyko:', err) }
     onRankedResult?.({
       result: meWon ? 'win' : 'loss',
       turns: game.globalTurn,

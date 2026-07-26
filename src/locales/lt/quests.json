@@ -95,41 +95,214 @@
   "title": "DIENOS UŽDUOTYS",
   "today": "Šiandien",
   "v2": {
-    "dealDamage": {
-      "title": "Padaryk žalos",
-      "desc": "Padaryk {{target}} žalos"
-    },
-    "factionWin": {
-      "title": "Frakcijos pergalė",
-      "desc": "Laimėk {{target}} kovas su pasirinktos frakcijos kalade"
-    },
-    "playBot": {
-      "title": "Kovos su botu",
-      "desc": "Sužaisk {{target}} kovas prieš botą"
-    },
-    "playCreatures": {
-      "title": "Iškviesk padarus",
-      "desc": "Iškviesk {{target}} padarų kortas"
-    },
     "playMatch": {
-      "title": "Sužaisk kovas",
-      "desc": "Sužaisk {{target}} kovas"
+      "title": "Kovos",
+      "desc_one": "Sužaisk {{target}} kovą",
+      "desc_few": "Sužaisk {{target}} kovas",
+      "desc_many": "Sužaisk {{target}} kovų",
+      "desc_other": "Sužaisk {{target}} kovų"
+    },
+    "winMatch": {
+      "title": "Pergalės",
+      "desc_one": "Laimėk {{target}} kovą",
+      "desc_few": "Laimėk {{target}} kovas",
+      "desc_many": "Laimėk {{target}} kovų",
+      "desc_other": "Laimėk {{target}} kovų"
+    },
+    "playAi": {
+      "title": "Kovos su DI",
+      "desc_one": "Sužaisk {{target}} kovą su DI",
+      "desc_few": "Sužaisk {{target}} kovas su DI",
+      "desc_many": "Sužaisk {{target}} kovų su DI",
+      "desc_other": "Sužaisk {{target}} kovų su DI"
+    },
+    "winAi": {
+      "title": "Pergalės prieš DI",
+      "desc_one": "Laimėk {{target}} kovą su DI",
+      "desc_few": "Laimėk {{target}} kovas su DI",
+      "desc_many": "Laimėk {{target}} kovų su DI",
+      "desc_other": "Laimėk {{target}} kovų su DI"
     },
     "pvpPlay": {
       "title": "Kova su žaidėju",
-      "desc": "Sužaisk {{target}} kovas su kitu žaidėju"
+      "desc_one": "Sužaisk {{target}} kovą su kitu žaidėju",
+      "desc_few": "Sužaisk {{target}} kovas su kitais žaidėjais",
+      "desc_many": "Sužaisk {{target}} kovų su kitais žaidėjais",
+      "desc_other": "Sužaisk {{target}} kovų su kitais žaidėjais"
     },
     "pvpWin": {
       "title": "Reitinguota pergalė",
-      "desc": "Laimėk {{target}} reitinguotą kovą"
+      "desc_one": "Laimėk {{target}} reitinguotą kovą",
+      "desc_few": "Laimėk {{target}} reitinguotas kovas",
+      "desc_many": "Laimėk {{target}} reitinguotų kovų",
+      "desc_other": "Laimėk {{target}} reitinguotų kovų"
+    },
+    "factionWin": {
+      "title": "Frakcijos pergalė",
+      "desc_one": "Laimėk {{target}} kovą pasirinktos frakcijos kalade",
+      "desc_few": "Laimėk {{target}} kovas pasirinktos frakcijos kalade",
+      "desc_many": "Laimėk {{target}} kovų pasirinktos frakcijos kalade",
+      "desc_other": "Laimėk {{target}} kovų pasirinktos frakcijos kalade"
+    },
+    "playCreatures": {
+      "title": "Padarų iškvietimas",
+      "desc_one": "Iškviesk {{target}} padarą",
+      "desc_few": "Iškviesk {{target}} padarus",
+      "desc_many": "Iškviesk {{target}} padarų",
+      "desc_other": "Iškviesk {{target}} padarų"
+    },
+    "playSpells": {
+      "title": "Burtininkas",
+      "desc_one": "Sužaisk {{target}} burtą",
+      "desc_few": "Sužaisk {{target}} burtus",
+      "desc_many": "Sužaisk {{target}} burtų",
+      "desc_other": "Sužaisk {{target}} burtų"
+    },
+    "dealDamage": {
+      "title": "Žala",
+      "desc_one": "Padaryk {{target}} žalos",
+      "desc_few": "Padaryk {{target}} žalos",
+      "desc_many": "Padaryk {{target}} žalos",
+      "desc_other": "Padaryk {{target}} žalos"
+    },
+    "faceDamage": {
+      "title": "Smūgiai priešininkui",
+      "desc_one": "Padaryk {{target}} žalos priešininkui",
+      "desc_few": "Padaryk {{target}} žalos priešininkui",
+      "desc_many": "Padaryk {{target}} žalos priešininkui",
+      "desc_other": "Padaryk {{target}} žalos priešininkui"
+    },
+    "killCreatures": {
+      "title": "Valymas",
+      "desc_one": "Sunaikink {{target}} priešo padarą",
+      "desc_few": "Sunaikink {{target}} priešo padarus",
+      "desc_many": "Sunaikink {{target}} priešo padarų",
+      "desc_other": "Sunaikink {{target}} priešo padarų"
+    },
+    "drawCards": {
+      "title": "Kortų traukimas",
+      "desc_one": "Ištrauk {{target}} kortą",
+      "desc_few": "Ištrauk {{target}} kortas",
+      "desc_many": "Ištrauk {{target}} kortų",
+      "desc_other": "Ištrauk {{target}} kortų"
+    },
+    "playArtifacts": {
+      "title": "Artefaktai",
+      "desc_one": "Sužaisk {{target}} artefaktą",
+      "desc_few": "Sužaisk {{target}} artefaktus",
+      "desc_many": "Sužaisk {{target}} artefaktų",
+      "desc_other": "Sužaisk {{target}} artefaktų"
+    },
+    "setReactions": {
+      "title": "Spąstų statymas",
+      "desc_one": "Padėk {{target}} reakciją",
+      "desc_few": "Padėk {{target}} reakcijas",
+      "desc_many": "Padėk {{target}} reakcijų",
+      "desc_other": "Padėk {{target}} reakcijų"
+    },
+    "triggerReactions": {
+      "title": "Spąstai suveikė",
+      "desc_one": "Suaktyvink {{target}} reakciją",
+      "desc_few": "Suaktyvink {{target}} reakcijas",
+      "desc_many": "Suaktyvink {{target}} reakcijų",
+      "desc_other": "Suaktyvink {{target}} reakcijų"
+    },
+    "triggerBattlecry": {
+      "title": "Kovos šūksniai",
+      "desc_one": "Suaktyvink {{target}} Kovos šūksnį",
+      "desc_few": "Suaktyvink {{target}} Kovos šūksnius",
+      "desc_many": "Suaktyvink {{target}} Kovos šūksnių",
+      "desc_other": "Suaktyvink {{target}} Kovos šūksnių"
+    },
+    "triggerLastwish": {
+      "title": "Paskutiniai norai",
+      "desc_one": "Suaktyvink {{target}} Paskutinį norą",
+      "desc_few": "Suaktyvink {{target}} Paskutinius norus",
+      "desc_many": "Suaktyvink {{target}} Paskutinių norų",
+      "desc_other": "Suaktyvink {{target}} Paskutinių norų"
+    },
+    "championAbility": {
+      "title": "Čempiono galia",
+      "desc_one": "Panaudok {{target}} čempiono gebėjimą",
+      "desc_few": "Panaudok {{target}} čempiono gebėjimus",
+      "desc_many": "Panaudok {{target}} čempiono gebėjimų",
+      "desc_other": "Panaudok {{target}} čempiono gebėjimų"
+    },
+    "summonByEffect": {
+      "title": "Prišaukimas",
+      "desc_one": "Iškviesk {{target}} padarą efektais",
+      "desc_few": "Iškviesk {{target}} padarus efektais",
+      "desc_many": "Iškviesk {{target}} padarų efektais",
+      "desc_other": "Iškviesk {{target}} padarų efektais"
+    },
+    "applyStatus": {
+      "title": "Būsenos",
+      "desc_one": "Uždėk {{target}} būseną priešo padarams",
+      "desc_few": "Uždėk {{target}} būsenas priešo padarams",
+      "desc_many": "Uždėk {{target}} būsenų priešo padarams",
+      "desc_other": "Uždėk {{target}} būsenų priešo padarams"
+    },
+    "healDone": {
+      "title": "Gydymas",
+      "desc_one": "Pagydyk {{target}} gyvybės",
+      "desc_few": "Pagydyk {{target}} gyvybės",
+      "desc_many": "Pagydyk {{target}} gyvybės",
+      "desc_other": "Pagydyk {{target}} gyvybės"
+    },
+    "spendGold": {
+      "title": "Išlaidos",
+      "desc_one": "Išleisk {{target}} aukso kovose",
+      "desc_few": "Išleisk {{target}} aukso kovose",
+      "desc_many": "Išleisk {{target}} aukso kovose",
+      "desc_other": "Išleisk {{target}} aukso kovose"
+    },
+    "surviveTurns": {
+      "title": "Ištvermė",
+      "desc_one": "Išsilaikyk {{target}} ėjimą vienoje kovoje",
+      "desc_few": "Išsilaikyk {{target}} ėjimus vienoje kovoje",
+      "desc_many": "Išsilaikyk {{target}} ėjimų vienoje kovoje",
+      "desc_other": "Išsilaikyk {{target}} ėjimų vienoje kovoje"
+    },
+    "playField": {
+      "title": "Mūšio laukas",
+      "desc_one": "Sužaisk {{target}} lauko kortą",
+      "desc_few": "Sužaisk {{target}} lauko kortas",
+      "desc_many": "Sužaisk {{target}} lauko kortų",
+      "desc_other": "Sužaisk {{target}} lauko kortų"
+    },
+    "cursesActivated": {
+      "title": "Prakeiksmų sėja",
+      "desc_one": "Aktyvuok {{target}} prakeiksmą priešininko kaladėje",
+      "desc_few": "Aktyvuok {{target}} prakeiksmus priešininko kaladėje",
+      "desc_many": "Aktyvuok {{target}} prakeiksmų priešininko kaladėje",
+      "desc_other": "Aktyvuok {{target}} prakeiksmų priešininko kaladėje"
+    },
+    "factionsUnique": {
+      "title": "Dvi vėliavos",
+      "desc_one": "Sužaisk kovas {{target}} skirtingos frakcijos kalade",
+      "desc_few": "Sužaisk kovas {{target}} skirtingų frakcijų kaladėmis",
+      "desc_many": "Sužaisk kovas {{target}} skirtingų frakcijų kaladėmis",
+      "desc_other": "Sužaisk kovas {{target}} skirtingų frakcijų kaladėmis"
+    },
+    "winFlawless": {
+      "title": "Švari pergalė",
+      "desc": "Laimėk kovą praradęs ne daugiau 10 gyvybės"
+    },
+    "winFast": {
+      "title": "Žaibiška pergalė",
+      "desc": "Laimėk kovą per 8 ėjimus ar greičiau"
+    },
+    "winHp": {
+      "title": "Nepalaužtas",
+      "desc": "Laimėk kovą likus 25+ gyvybės"
+    },
+    "playBot": {
+      "title": "Kovos su DI",
+      "desc": "Sužaisk {{target}} kovas su DI"
     },
     "winBot": {
-      "title": "Pergalė prieš DI",
-      "desc": "Laimėk {{target}} kovą su DI"
-    },
-    "winMatch": {
-      "title": "Laimėk kovas",
-      "desc": "Laimėk {{target}} kovas"
+      "title": "Pergalės prieš DI",
+      "desc": "Laimėk {{target}} kovas su DI"
     }
   }
 }

@@ -257,7 +257,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
                   <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </button>
                 <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex-1 min-w-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
-                  <div className="truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: q.claimed ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-text-primary)' }}>{t(q.titleKey, { target: q.target })}</div>
+                  <div className="truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: q.claimed ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-text-primary)' }}>{t(q.titleKey, { target: q.target, count: q.target })}</div>
                   <div className="ravenof-progress" style={{ marginTop: 4 }}>
                     <span style={{ width: `${pct}%`, background: q.completed ? 'var(--ravenof-gold)' : `rgb(${DIFF_ACCENT[q.difficulty] ?? '212,163,59'})` }} />
                   </div>

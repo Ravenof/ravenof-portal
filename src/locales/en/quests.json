@@ -95,41 +95,160 @@
   "title": "DAILY QUESTS",
   "today": "Today",
   "v2": {
-    "dealDamage": {
-      "title": "Deal damage",
-      "desc": "Deal {{target}} damage"
-    },
-    "factionWin": {
-      "title": "Faction victory",
-      "desc": "Win {{target}} matches with the chosen faction deck"
-    },
-    "playBot": {
-      "title": "Bot matches",
-      "desc": "Play {{target}} matches against the bot"
-    },
-    "playCreatures": {
-      "title": "Summon creatures",
-      "desc": "Play {{target}} creature cards"
-    },
     "playMatch": {
-      "title": "Play matches",
-      "desc": "Play {{target}} matches"
+      "title": "Battles",
+      "desc_one": "Play {{target}} battle",
+      "desc_other": "Play {{target}} battles"
+    },
+    "winMatch": {
+      "title": "Victories",
+      "desc_one": "Win {{target}} battle",
+      "desc_other": "Win {{target}} battles"
+    },
+    "playAi": {
+      "title": "AI battles",
+      "desc_one": "Play {{target}} battle vs AI",
+      "desc_other": "Play {{target}} battles vs AI"
+    },
+    "winAi": {
+      "title": "Beat the AI",
+      "desc_one": "Win {{target}} battle vs AI",
+      "desc_other": "Win {{target}} battles vs AI"
     },
     "pvpPlay": {
-      "title": "Player match",
-      "desc": "Play {{target}} matches against another player"
+      "title": "Player battle",
+      "desc_one": "Play {{target}} battle against another player",
+      "desc_other": "Play {{target}} battles against other players"
     },
     "pvpWin": {
       "title": "Ranked victory",
-      "desc": "Win {{target}} ranked match"
+      "desc_one": "Win {{target}} ranked battle",
+      "desc_other": "Win {{target}} ranked battles"
+    },
+    "factionWin": {
+      "title": "Faction victory",
+      "desc_one": "Win {{target}} battle with the chosen faction deck",
+      "desc_other": "Win {{target}} battles with the chosen faction deck"
+    },
+    "playCreatures": {
+      "title": "Summoner",
+      "desc_one": "Play {{target}} creature",
+      "desc_other": "Play {{target}} creatures"
+    },
+    "playSpells": {
+      "title": "Spellcaster",
+      "desc_one": "Cast {{target}} spell",
+      "desc_other": "Cast {{target}} spells"
+    },
+    "dealDamage": {
+      "title": "Damage",
+      "desc_one": "Deal {{target}} damage",
+      "desc_other": "Deal {{target}} damage"
+    },
+    "faceDamage": {
+      "title": "Hero damage",
+      "desc_one": "Deal {{target}} damage to the enemy hero",
+      "desc_other": "Deal {{target}} damage to enemy heroes"
+    },
+    "killCreatures": {
+      "title": "Cleanup",
+      "desc_one": "Destroy {{target}} enemy creature",
+      "desc_other": "Destroy {{target}} enemy creatures"
+    },
+    "drawCards": {
+      "title": "Card draw",
+      "desc_one": "Draw {{target}} card",
+      "desc_other": "Draw {{target}} cards"
+    },
+    "playArtifacts": {
+      "title": "Artifacts",
+      "desc_one": "Play {{target}} artifact",
+      "desc_other": "Play {{target}} artifacts"
+    },
+    "setReactions": {
+      "title": "Set traps",
+      "desc_one": "Set {{target}} reaction",
+      "desc_other": "Set {{target}} reactions"
+    },
+    "triggerReactions": {
+      "title": "Sprung traps",
+      "desc_one": "Trigger {{target}} reaction",
+      "desc_other": "Trigger {{target}} reactions"
+    },
+    "triggerBattlecry": {
+      "title": "Battlecries",
+      "desc_one": "Trigger {{target}} Battlecry",
+      "desc_other": "Trigger {{target}} Battlecries"
+    },
+    "triggerLastwish": {
+      "title": "Last Wishes",
+      "desc_one": "Trigger {{target}} Last Wish",
+      "desc_other": "Trigger {{target}} Last Wishes"
+    },
+    "championAbility": {
+      "title": "Champion power",
+      "desc_one": "Use {{target}} champion ability",
+      "desc_other": "Use {{target}} champion abilities"
+    },
+    "summonByEffect": {
+      "title": "Conjuring",
+      "desc_one": "Summon {{target}} creature with effects",
+      "desc_other": "Summon {{target}} creatures with effects"
+    },
+    "applyStatus": {
+      "title": "Afflictions",
+      "desc_one": "Apply {{target}} status to enemy creatures",
+      "desc_other": "Apply {{target}} statuses to enemy creatures"
+    },
+    "healDone": {
+      "title": "Mending",
+      "desc_one": "Restore {{target}} health",
+      "desc_other": "Restore {{target}} health"
+    },
+    "spendGold": {
+      "title": "Spending",
+      "desc_one": "Spend {{target}} gold in battles",
+      "desc_other": "Spend {{target}} gold in battles"
+    },
+    "surviveTurns": {
+      "title": "Endurance",
+      "desc_one": "Survive {{target}} turn in one battle",
+      "desc_other": "Survive {{target}} turns in one battle"
+    },
+    "playField": {
+      "title": "Battlefield",
+      "desc_one": "Play {{target}} field card",
+      "desc_other": "Play {{target}} field cards"
+    },
+    "cursesActivated": {
+      "title": "Sowing curses",
+      "desc_one": "Activate {{target}} curse in the enemy deck",
+      "desc_other": "Activate {{target}} curses in the enemy deck"
+    },
+    "factionsUnique": {
+      "title": "Two banners",
+      "desc_one": "Play battles with {{target}} different faction deck",
+      "desc_other": "Play battles with {{target}} different faction decks"
+    },
+    "winFlawless": {
+      "title": "Clean victory",
+      "desc": "Win a battle losing at most 10 health"
+    },
+    "winFast": {
+      "title": "Swift victory",
+      "desc": "Win a battle in 8 turns or fewer"
+    },
+    "winHp": {
+      "title": "Unbroken",
+      "desc": "Win a battle with 25+ health left"
+    },
+    "playBot": {
+      "title": "AI battles",
+      "desc": "Play {{target}} battles vs AI"
     },
     "winBot": {
       "title": "Beat the AI",
-      "desc": "Win {{target}} match against the AI"
-    },
-    "winMatch": {
-      "title": "Win matches",
-      "desc": "Win {{target}} matches"
+      "desc": "Win {{target}} battles vs AI"
     }
   }
 }
