@@ -43,5 +43,34 @@
     },
     "unpin": "Unpin from profile",
     "unpinOk": "Badge unpinned."
+  },
+  "level": {
+    "actChoose": "Choose now",
+    "actClaimed": "Claimed",
+    "actLocked": "View reward",
+    "autoNote": "Rewards are granted automatically when you reach the level — nothing to claim. Choices wait until you make them.",
+    "cellAria": "Level {{level}}",
+    "kicker": "Account level",
+    "levelN": "Level {{level}}",
+    "loading": "Loading the level track",
+    "maxed": "Max level reached",
+    "milestone": "Milestone",
+    "nextReward": "Next reward",
+    "noRewards": "This level grants no reward.",
+    "pendingCta_one": "Choose {{count}} reward",
+    "pendingCta_other": "Choose {{count}} rewards",
+    "pickLevel": "Pick a level on the track to see its exact reward.",
+    "rewardsTitle": "Rewards at this level",
+    "rowEarly": "Levels 2-25",
+    "rowLate": "Levels 26-50",
+    "screenTitle": "Account level",
+    "state": {
+      "claimed": "Claimed",
+      "future": "Locked",
+      "next": "Next level",
+      "pending": "Awaiting choice"
+    },
+    "totalXp": "{{xp}} XP total",
+    "xpRequired": "Requires {{xp}} XP total"
   }
 }

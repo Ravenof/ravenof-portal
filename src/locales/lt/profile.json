@@ -43,5 +43,36 @@
     },
     "unpin": "Nusegti nuo profilio",
     "unpinOk": "Ženklas nusegtas."
+  },
+  "level": {
+    "actChoose": "Pasirinkti dabar",
+    "actClaimed": "Atsiimta",
+    "actLocked": "Peržiūrėti apdovanojimą",
+    "autoNote": "Atlygiai skiriami automatiškai pasiekus lygį — atsiimti nereikia. Pasirinkimai laukia tol, kol juos padarysi.",
+    "cellAria": "{{level}} lygis",
+    "kicker": "Paskyros lygis",
+    "levelN": "{{level}} lygis",
+    "loading": "Kraunamas lygio kelias",
+    "maxed": "Aukščiausias lygis pasiektas",
+    "milestone": "Milestone",
+    "nextReward": "Kitas atlygis",
+    "noRewards": "Šis lygis atlygio neduoda.",
+    "pendingCta_few": "Pasirinkti {{count}} apdovanojimus",
+    "pendingCta_many": "Pasirinkti {{count}} apdovanojimo",
+    "pendingCta_one": "Pasirinkti {{count}} apdovanojimą",
+    "pendingCta_other": "Pasirinkti {{count}} apdovanojimų",
+    "pickLevel": "Pasirink lygį takelyje, kad pamatytum tikslų apdovanojimą.",
+    "rewardsTitle": "Šio lygio apdovanojimai",
+    "rowEarly": "2–25 lygis",
+    "rowLate": "26–50 lygis",
+    "screenTitle": "Paskyros lygis",
+    "state": {
+      "claimed": "Atsiimta",
+      "future": "Užrakinta",
+      "next": "Kitas lygis",
+      "pending": "Laukia pasirinkimo"
+    },
+    "totalXp": "Iš viso {{xp}} XP",
+    "xpRequired": "Reikia {{xp}} XP iš viso"
   }
 }

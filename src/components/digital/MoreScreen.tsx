@@ -43,6 +43,7 @@ export function MoreScreen() {
         { key: 'settings', label: t('more.settings'), sub: t('more.settingsSub'), icon: Settings, img: 'settings', accent: '240,180,41', onClick: () => { playUiClick(); setSettingsOpen(true) } },
         { key: 'login', label: t('more.loginRewards'), sub: t('more.loginRewardsSub'), icon: Gift, img: 'seg-login', accent: '240,180,41', onClick: () => { playUiClick(); router.push('/digital/rewards') } },
         { key: 'season', label: t('more.season'), sub: t('more.seasonSub'), icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); router.push('/digital/season') } },
+        { key: 'level', label: t('more.level'), sub: t('more.levelSub'), icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); router.push('/digital/level') } },
         { key: 'achievements', label: t('more.achievements'), sub: t('more.achievementsSub'), icon: Award, img: 'fi-season', accent: '193,86,106', onClick: () => { playUiClick(); router.push('/digital/achievements') } },
         { key: 'quests', label: t('more.quests'), sub: t('more.questsSub'), icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); router.push('/digital/quests') } },
       ],
