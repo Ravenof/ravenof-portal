@@ -11,7 +11,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Home, LayoutGrid, Layers, ShoppingBag, Menu, Bell, Settings } from 'lucide-react'
 import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
-import { LevelRoadModal } from '@/components/digital/LevelRoadModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
 import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
@@ -76,7 +75,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [levelRoadOpen, setLevelRoadOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -235,7 +233,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           <header className="rvn-app-header relative z-10 flex items-center px-4"
             style={{ gap: 9, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
-            <button onClick={() => { playUiClick(); setLevelRoadOpen(true) }} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
+            <button onClick={() => { playUiClick(); router.push('/digital/level') }} aria-label={t('profile.level.screenTitle')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
               <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: profile?.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
                 <span className="truncate" style={{ maxWidth: 140, font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
@@ -274,7 +272,6 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <GlobalChatLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
-      {levelRoadOpen && <LevelRoadModal onClose={() => setLevelRoadOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
       {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={refreshWallet} />}
 
