@@ -172,6 +172,16 @@ fs.writeFileSync(path.join(ROOT, 'src', 'lib', 'profile', 'achievements.ts'), ac
 // ── 3. SQL seed'as (naudoja migracija) ──────────────────────────────────────
 const seed = `-- ⚠️ GENERUOTAS FAILAS (scripts/gen-handoff-registries.mjs) — nekeisk ranka.
 -- 70 gamybinių pasiekimų iš asffa/asset-maps/achievement-manifest.csv
+--
+-- ❗ Tai TIK seed'as (perrašo pavadinimus/sąlygas/ženklus). Lenteles, RLS ir RPC
+--    sukuria supabase/migrations/20260851_achievements_v2.sql — JĮ paleisk PIRMĄ.
+--    Tas pats seed'as jau įeina į 20260851, tad pirmą kartą šio failo leisti nereikia.
+do $$ begin
+  if to_regclass('public.rvn_achievements') is null then
+    raise exception 'Lentelės public.rvn_achievements nėra. Pirma paleisk supabase/migrations/20260851_achievements_v2.sql';
+  end if;
+end $$;
+
 insert into public.rvn_achievements (code, sort_order, category, name_lt, requirement_lt, badge_file, status) values
 ${rows.map((r) => `  (${sq(r.code)}, ${r.id}, ${sq(r.catKey)}, ${sq(r.nameLt)}, ${sq(r.requirementLt)}, ${r.badgeFile ? sq(r.badgeFile) : 'null'}, ${sq(r.status === 'generated' ? 'generated' : 'pending')})`).join(',\n')}
 on conflict (code) do update set

@@ -1,5 +1,15 @@
 -- ⚠️ GENERUOTAS FAILAS (scripts/gen-handoff-registries.mjs) — nekeisk ranka.
 -- 70 gamybinių pasiekimų iš asffa/asset-maps/achievement-manifest.csv
+--
+-- ❗ Tai TIK seed'as (perrašo pavadinimus/sąlygas/ženklus). Lenteles, RLS ir RPC
+--    sukuria supabase/migrations/20260851_achievements_v2.sql — JĮ paleisk PIRMĄ.
+--    Tas pats seed'as jau įeina į 20260851, tad pirmą kartą šio failo leisti nereikia.
+do $$ begin
+  if to_regclass('public.rvn_achievements') is null then
+    raise exception 'Lentelės public.rvn_achievements nėra. Pirma paleisk supabase/migrations/20260851_achievements_v2.sql';
+  end if;
+end $$;
+
 insert into public.rvn_achievements (code, sort_order, category, name_lt, requirement_lt, badge_file, status) values
   ('ach_01', 1, 'start', 'Pirmasis žingsnis', 'Susikurkite paskyrą ir pirmą kartą įeikite į žaidimą', '01-pirmasis-zingsnis.webp', 'generated'),
   ('ach_02', 2, 'start', 'Vardas įrašytas', 'Pasirinkite žaidėjo vardą', '02-vardas-irasytas.webp', 'generated'),

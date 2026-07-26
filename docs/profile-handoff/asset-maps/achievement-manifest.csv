@@ -1,0 +1,71 @@
+id,category,name_lt,requirement_lt,badge_file,status
+1,Pradžia ir profilis,Pirmasis žingsnis,Susikurkite paskyrą ir pirmą kartą įeikite į žaidimą,01-pirmasis-zingsnis.png,generated
+2,Pradžia ir profilis,Vardas įrašytas,Pasirinkite žaidėjo vardą,02-vardas-irasytas.png,generated
+3,Pradžia ir profilis,Veidas Arenoje,Pasirinkite ne numatytąjį avatarą,03-veidas-arenoje.png,generated
+4,Pradžia ir profilis,Kovos priesaika,Užbaikite mokymus,04-kovos-priesaika.png,generated
+5,Pradžia ir profilis,Pirmoji kaladė,Išsaugokite galiojančią 30–40 kortų kaladę,05-pirmoji-kalade.png,generated
+6,Pradžia ir profilis,Pirmasis susirėmimas,Užbaikite pirmąsias rungtynes,06-pirmasis-susiremimas.png,generated
+7,Pradžia ir profilis,Pirmoji pergalė,Laimėkite pirmąsias Casual arba Ranked rungtynes,07-pirmoji-pergale.png,generated
+8,Pradžia ir profilis,Pilnas profilis,Pasirinkite avatarą prisegtus ženklus ir profilio privatumo nustatymus,08-pilnas-profilis.png,generated
+9,Kovos ir pergalės,Kraujo krikštas,Užbaikite 10 rungtynių,09-kraujo-krikstas.png,generated
+10,Kovos ir pergalės,Arenos nuolatinis,Užbaikite 50 rungtynių,10-arenos-nuolatinis.png,generated
+11,Kovos ir pergalės,Šimtas susirėmimų,Užbaikite 100 rungtynių,11-simtas-susiremimu.png,generated
+12,Kovos ir pergalės,Karo veteranas,Užbaikite 250 rungtynių,12-karo-veteranas.png,generated
+13,Kovos ir pergalės,Pergalių skonis,Laimėkite 10 PvP rungtynių,13-pergaliu-skonis.png,generated
+14,Kovos ir pergalės,Kovų nugalėtojas,Laimėkite 50 PvP rungtynių,14-kovu-nugaletojas.png,generated
+15,Kovos ir pergalės,Šimtąkart triumfavęs,Laimėkite 100 PvP rungtynių,15-simtakart-triumfaves.png,generated
+16,Kovos ir pergalės,Arenos siaubas,Laimėkite 250 PvP rungtynių,16-arenos-siaubas.png,generated
+17,Kovos ir pergalės,Pergalių serija,Laimėkite 3 rungtynes iš eilės,17-pergaliu-serija.png,generated
+18,Kovos ir pergalės,Nenugalimas,Laimėkite 5 parinktas PvP rungtynes iš eilės,18-nenugalimas.png,generated
+19,Taktika ir mechanikos,Pirma reakcija,Panaudokite pirmą Reaction kortą,19-pirma-reakcija.png,generated
+20,Taktika ir mechanikos,Grandinės pradžia,Suaktyvinkite 2 Reaction vienoje grandinėje,20-grandines-pradzia.png,generated
+21,Taktika ir mechanikos,Reakcijų meistras,Panaudokite 50 Reaction,21-reakciju-meistras.png,generated
+22,Taktika ir mechanikos,Kovos šauksmas,Suaktyvinkite pirmą Battlecry,22-kovos-sauksmas.png,generated
+23,Taktika ir mechanikos,Šauklių armija,Suaktyvinkite 100 Battlecry arba summon efektų,23-saukliu-armija.png,generated
+24,Taktika ir mechanikos,Aukos kaina,Pirmą kartą sumokėkite Tribute,24-aukos-kaina.png,generated
+25,Taktika ir mechanikos,Čempiono iškilimas,Pasiekite Champion III fazę,25-cempiono-iskilimas.png,generated
+26,Taktika ir mechanikos,Lauko valdovas,Pakeiskite priešininko lauką,26-lauko-valdovas.png,generated
+27,Taktika ir mechanikos,Vienu smūgiu,Vienu efektu sunaikinkite 3 padarus,27-vienu-smugiu.png,generated
+28,Taktika ir mechanikos,Trigubas taikinys,Viena korta arba efektu paveikite 3 taikinius,28-trigubas-taikinys.png,generated
+29,Taktika ir mechanikos,Ant mirties slenksčio,Laimėkite kai herojui likę 5 arba mažiau HP,29-ant-mirties-slenkscio.png,generated
+30,Taktika ir mechanikos,Be įbrėžimo,Laimėkite nepatyrę žalos herojui,30-be-ibrezimo.png,generated
+31,Kaladės ir frakcijos,Kaladžių kalvis,Sukurkite 5 galiojančias kalades,31-kaladziu-kalvis.png,generated
+32,Kaladės ir frakcijos,Frakcijų eksperimentuotojas,Sužaiskite su 3 skirtingomis frakcijomis,32-frakciju-eksperimentuotojas.png,generated
+33,Kaladės ir frakcijos,Trijų vėliavų nugalėtojas,Laimėkite su 3 skirtingomis frakcijomis,33-triju-veliavu-nugaletojas.png,generated
+34,Kaladės ir frakcijos,Visų kelių keleivis,Sužaiskite su visomis 8 frakcijomis,34-visu-keliu-keleivis.png,generated
+35,Kaladės ir frakcijos,Visų frakcijų strategas,Laimėkite su visomis 8 frakcijomis,35-visu-frakciju-strategas.png,generated
+36,Kaladės ir frakcijos,Ištikimas vėliavai,Laimėkite 10 rungtynių su ta pačia frakcija,36-istikimas-veliavai.png,generated
+37,Kaladės ir frakcijos,Frakcijos čempionas,Laimėkite 50 rungtynių su ta pačia frakcija,37-frakcijos-cempionas.png,generated
+38,Kaladės ir frakcijos,Čempiono kaladė,Laimėkite su III fazės Champion,38-cempiono-kalade.png,generated
+39,Kaladės ir frakcijos,Burtų meistras,Laimėkite su kalade turinčia bent 12 burtų,39-burtu-meistras.png,generated
+40,Kaladės ir frakcijos,Padarų vadas,Laimėkite su kalade turinčia bent 20 padarų,40-padaru-vadas.png,generated
+41,Kolekcija,Pirmasis radinys,Gaukite pirmą kortą nepriklausančią pradinei kolekcijai,41-pirmasis-radinys.png,generated
+42,Kolekcija,Auganti kolekcija,Surinkite 50 unikalių kortų,42-auganti-kolekcija.png,generated
+43,Kolekcija,Kortų archyvas,Surinkite 100 unikalių kortų,43-kortu-archyvas.png,generated
+44,Kolekcija,Didžioji saugykla,Surinkite 200 unikalių kortų,44-didzioji-saugykla.png,generated
+45,Kolekcija,Ravenoro kolekcionierius,Surinkite 300 unikalių kortų,45-ravenoro-kolekcionierius.png,generated
+46,Kolekcija,Retas laimikis,Gaukite pirmą Rare kortą,46-retas-laimikis.png,generated
+47,Kolekcija,Epiškas radinys,Gaukite pirmą Epic kortą,47-episkas-radinys.png,generated
+48,Kolekcija,Legenda rankose,Gaukite pirmą Legendary kortą,48-legenda-rankose.png,generated
+49,Kolekcija,Čempionas pabudo,Gaukite pirmą Champion kortą,49-cempionas-pabudo.png,generated
+50,Kolekcija,Aštuonių vėliavų rinkinys,Surinkite po 10 unikalių kortų iš kiekvienos iš 8 frakcijų,50-astuoniu-veliavu-rinkinys.png,generated
+51,Ranked,Pirmasis rangas,Užbaikite pirmąsias Ranked rungtynes,51-pirmasis-rangas.png,generated
+52,Ranked,Įrašas lentelėje,Laimėkite pirmąsias Ranked rungtynes,52-irasas-lenteleje.png,generated
+53,Ranked,Kylantis varžovas,Laimėkite 10 Ranked rungtynių,53-kylantis-varzovas.png,generated
+54,Ranked,Arenos grėsmė,Laimėkite 50 Ranked rungtynių,54-arenos-gresme.png,generated
+55,Ranked,Šimtas ranginių pergalių,Laimėkite 100 Ranked rungtynių,55-simtas-ranginiu-pergaliu.png,generated
+56,Ranked,Sidabro slenkstis,Pirmą kartą pasiekite Silver pakopą,56-sidabro-slenkstis.png,generated
+57,Ranked,Aukso vartai,Pirmą kartą pasiekite Gold pakopą,57-aukso-vartai.png,generated
+58,Ranked,Aukso viršūnė,Pasiekite aukščiausią Gold pakopą,58-aukso-virsune.png,generated
+59,Ranked,Sezono veteranas,Per vieną sezoną sužaiskite 50 Ranked rungtynių,59-sezono-veteranas.png,generated
+60,Ranked,Auksinė pabaiga,Užbaikite sezoną Gold pakopoje,60-auksine-pabaiga.png,generated
+61,Dienos aktyvumas,Dienos darbas,Užbaikite pirmą Daily Quest,61-dienos-darbas.png,generated
+62,Dienos aktyvumas,Darbas baigtas,Per vieną dieną užbaikite visus 3 Daily Quest,62-darbas-baigtas.png,generated
+63,Dienos aktyvumas,Patikimas samdinys,Užbaikite 25 Daily Quest,,pending_generation_limit
+64,Dienos aktyvumas,Šimtas užduočių,Užbaikite 100 Daily Quest,,pending_generation_limit
+65,Dienos aktyvumas,Savaitės ritmas,Prisijunkite 7 dienas iš eilės,,pending_generation_limit
+66,Dienos aktyvumas,Mėnesio ištvermė,Prisijunkite 30 dienų iš eilės,,pending_generation_limit
+67,Bendruomenė,Vieša strategija,Paskelbkite pirmą viešą kaladę,,pending_generation_limit
+68,Bendruomenė,Pirmas balsas,Balsuokite už kito žaidėjo kaladę,,pending_generation_limit
+69,Bendruomenė,Bendruomenės kibirkštis,Gaukite 10 balsų už paskelbtą kaladę,,pending_generation_limit
+70,Bendruomenė,Meta pėdsakas,Pasiekite kad jūsų kaladė būtų nukopijuota 25 kartus,,pending_generation_limit

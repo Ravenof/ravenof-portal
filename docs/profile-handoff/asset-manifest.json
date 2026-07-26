@@ -1,0 +1,82 @@
+{
+  "package": "ravenof-profile-handoff",
+  "version": "2.0.0",
+  "generated": "2026-07-26",
+  "source_design": "Ravenof Profile.dc.html",
+  "artboard": { "width": 1536, "height": 720, "phone_landscape": { "width": 844, "height": 390 } },
+  "target_root": "public/ravenof-ui/",
+  "assets": [
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/avatars/avatar-inquisitor-captain.png", "dest": "public/ravenof-ui/avatars/avatar-inquisitor-captain.png", "used_in": ["profile owner portrait", "edit profile avatar 1"], "note": "starting avatar A" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/avatars/avatar-march-veteran.png", "dest": "public/ravenof-ui/avatars/avatar-march-veteran.png", "used_in": ["edit profile avatar 2"], "note": "starting avatar B" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/avatars/avatar-arcane-mage.png", "dest": "public/ravenof-ui/avatars/avatar-arcane-mage.png", "used_in": ["public profile portrait", "locked cosmetic example"], "note": "cosmetic, not a level reward" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/ranks/rank-bronze.png", "dest": "public/ravenof-ui/ranks/rank-bronze.png", "used_in": ["legacy mock only"], "note": "LEGACY PLACEHOLDER — production uses the layered rank resolver in COWORK-INSTRUCTIONS.md" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/ranks/rank-silver.png", "dest": "public/ravenof-ui/ranks/rank-silver.png", "used_in": ["legacy mock only"], "note": "LEGACY PLACEHOLDER — production uses the layered rank resolver in COWORK-INSTRUCTIONS.md" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/ranks/rank-gold.png", "dest": "public/ravenof-ui/ranks/rank-gold.png", "used_in": ["legacy mock only"], "note": "LEGACY PLACEHOLDER — production uses the layered rank resolver in COWORK-INSTRUCTIONS.md" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/currencies/cur-silver.png", "dest": "public/ravenof-ui/currencies/cur-silver.png", "used_in": ["coins rewards", "header balance", "level cells"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/currencies/cur-rubies.png", "dest": "public/ravenof-ui/currencies/cur-rubies.png", "used_in": ["gems rewards", "header balance", "milestone cells"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/currencies/cur-essence.png", "dest": "public/ravenof-ui/currencies/cur-essence.png", "used_in": ["duplicate compensation"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/rewards/daily-quest-token.png", "dest": "public/ravenof-ui/rewards/reward-xp.png", "used_in": ["account XP reward chips"], "note": "PLACEHOLDER — needs a dedicated 24px XP shard icon (matte violet/gold, no rank crest)" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/shop/booster-pack.png", "dest": "public/ravenof-ui/rewards/booster-pack.png", "used_in": ["booster rewards", "pending indicator", "light/dark choice"], "note": "dark variant rendered with hue-rotate(-40deg) saturate(1.15) until real dark-pack art exists" },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/shop/daily-reward-chest.png", "dest": "public/ravenof-ui/rewards/reward-chest.png", "used_in": ["achievement badges (combat/daily)"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/cards/card-back-classic.png", "dest": "public/ravenof-ui/cards/card-back-classic.png", "used_in": ["card back reward", "milestone cells", "collection achievement"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/navigation/nav-home.png", "dest": "public/ravenof-ui/navigation/nav-home.png", "used_in": ["nav rail"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/navigation/nav-collection.png", "dest": "public/ravenof-ui/navigation/nav-collection.png", "used_in": ["nav rail"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/navigation/nav-decks.png", "dest": "public/ravenof-ui/navigation/nav-decks.png", "used_in": ["nav rail"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/navigation/nav-shop.png", "dest": "public/ravenof-ui/navigation/nav-shop.png", "used_in": ["nav rail"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/ui/navigation/nav-more.png", "dest": "public/ravenof-ui/navigation/nav-more.png", "used_in": ["nav rail (active)"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/inkvizicijos-legionas.png", "dest": "public/ravenof-ui/factions/inkvizicijos-legionas.png", "used_in": ["light booster", "decks", "match history"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/sviesos-pulkas.png", "dest": "public/ravenof-ui/factions/sviesos-pulkas.png", "used_in": ["light booster"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/mistikos-melodija.png", "dest": "public/ravenof-ui/factions/mistikos-melodija.png", "used_in": ["light booster", "decks", "featured badge"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/rytu-vejas.png", "dest": "public/ravenof-ui/factions/rytu-vejas.png", "used_in": ["light booster", "most-played faction"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/mirties-marsas.png", "dest": "public/ravenof-ui/factions/mirties-marsas.png", "used_in": ["dark booster"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/plesiku-naktis.png", "dest": "public/ravenof-ui/factions/plesiku-naktis.png", "used_in": ["dark booster", "decks"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/vryhioko-gauja.png", "dest": "public/ravenof-ui/factions/vryhioko-gauja.png", "used_in": ["dark booster"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/demonu-orda.png", "dest": "public/ravenof-ui/factions/demonu-orda.png", "used_in": ["dark booster", "achievement badge"] },
+    { "src": "uploads/Ravenof_UI_Asset_Pack_v1/identity/factions/universalus.png", "dest": "public/ravenof-ui/factions/universalus.png", "used_in": ["universal cards note", "achievement badge"] },
+    { "src": "uploads/Mistikos_Melodija_153.png", "dest": "public/ravenof-ui/cards/sample/mm-153.png", "used_in": ["card choice option 1"], "note": "STAND-IN card art for the choice overlay" },
+    { "src": "uploads/Mistikos_Melodija_154.png", "dest": "public/ravenof-ui/cards/sample/mm-154.png", "used_in": ["card choice option 2", "pending rare card"], "note": "STAND-IN" },
+    { "src": "uploads/Mistikos_Melodija_159.png", "dest": "public/ravenof-ui/cards/sample/mm-159.png", "used_in": ["card choice option 3", "level 50 legendary"], "note": "STAND-IN" }
+  ],
+  "integrated_assets": [
+    {
+      "id": "rank-badges",
+      "status": "complete",
+      "badge_count": 50,
+      "frame_count": 3,
+      "badge_root": "public/ravenof-ui/ranks/badges/",
+      "frame_root": "public/ravenof-ui/ranks/frames/",
+      "manifest": "asset-maps/ranked-manifest.csv",
+      "composition_preview": "asset-previews/rank-layering-example.png",
+      "note": "Render one unique rank badge below one reusable Bronze/Silver/Gold frame"
+    },
+    {
+      "id": "achievement-badges",
+      "status": "partial",
+      "generated_count": 62,
+      "total_count": 70,
+      "asset_root": "public/ravenof-ui/achievements/",
+      "manifest": "asset-maps/achievement-manifest.csv",
+      "pending_spec": "asset-maps/PENDING_ACHIEVEMENTS_63-70.md",
+      "note": "Central illustrations only; retain the existing burgundy hex UI shell"
+    }
+  ],
+  "missing_assets": [
+    { "id": "icon-account-xp", "size": "24x24 and 48x48", "spec": "matte violet/gold XP shard, no rank crest, reads at 16px", "blocks": ["achievement XP chips", "level-up XP visual"] },
+    { "id": "achievement-badges", "count": 8, "ids": "63–70", "size": "512x512 transparent PNG master", "spec": "same Ravenor gothic-animation style; each badge directly depicts its name and requirement", "blocks": ["production completion of the final eight achievement rows"] },
+    { "id": "booster-pack-dark", "size": "128x128", "spec": "dark alignment booster art; currently a hue-rotate of the light pack", "blocks": ["booster choice"] }
+  ],
+  "screens": [
+    { "file": "screens/01-profile-owner.png", "ref": "01", "label": "Player Profile — owner" },
+    { "file": "screens/02-profile-public.png", "ref": "02", "label": "Public Player Profile" },
+    { "file": "screens/03-edit-profile.png", "ref": "03", "label": "Edit Profile modal" },
+    { "file": "screens/04-achievements.png", "ref": "04", "label": "Achievements (70)" },
+    { "file": "screens/05-account-levels.png", "ref": "05", "label": "Account Level progression 1–50" },
+    { "file": "screens/06-achievement-unlocked.png", "ref": "06", "label": "Achievement Unlocked notification" },
+    { "file": "screens/07-level-up.png", "ref": "07", "label": "Level Up celebration (standard)" },
+    { "file": "screens/08-booster-choice.png", "ref": "08", "label": "Light / Dark booster choice" },
+    { "file": "screens/09-card-choice.png", "ref": "09", "label": "Rare / Epic / Legendary card choice" },
+    { "file": "screens/10-card-back.png", "ref": "10", "label": "Card back reward" },
+    { "file": "screens/11-multi-level.png", "ref": "11", "label": "Multiple levels gained" },
+    { "file": "screens/12-pending-rewards.png", "ref": "12", "label": "Pending rewards" }
+  ]
+}

@@ -20,7 +20,9 @@
     "progression:test": "node supabase/tests/run.mjs",
     "progression:test:shape": "node --experimental-strip-types scripts/progression-shape-test.mjs",
     "game:test:chain": "tsx scripts/simulate-battlecry-chain.ts",
-    "quests:check": "node scripts/quests-check.mjs"
+    "quests:check": "node scripts/quests-check.mjs",
+    "handoff:gen": "node scripts/gen-handoff-registries.mjs",
+    "handoff:check": "node scripts/handoff-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
