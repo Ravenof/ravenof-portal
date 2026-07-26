@@ -49,7 +49,7 @@ const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding
 // Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
 const NO_HEADER_ROUTES = ['/digital/collection', '/digital/friends']
 // Migruoti route'ai — juose fono „Flames" sluoksnis nerodomas (patvirtintas fonas = grynas ink)
-const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends', '/digital/more', '/digital/tutorial', '/digital/rewards', '/digital/season', '/digital/quests', '/digital/achievements', '/digital/level']
+const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends', '/digital/more', '/digital/tutorial', '/digital/rewards', '/digital/season', '/digital/quests', '/digital/profile']
 // Pilno ekrano režimų ekranai (prototipas: be rail ir be header; atgal — ekrano ‹ mygtukas)
 const FULL_BLEED_ROUTES = ['/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign']
 
@@ -233,7 +233,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           <header className="rvn-app-header relative z-10 flex items-center px-4"
             style={{ gap: 9, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
-            <button onClick={() => { playUiClick(); router.push('/digital/level') }} aria-label={t('profile.level.screenTitle')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
+            <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
               <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: profile?.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
                 <span className="truncate" style={{ maxWidth: 140, font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>

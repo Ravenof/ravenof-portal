@@ -83,3 +83,45 @@ export async function getAccountLevel(userId?: string): Promise<AccountLevelStat
   if (d.error) return { error: d.error }
   return d
 }
+
+// ── Profilio apžvalga (ekranai 01 / 02) ─────────────────────────────────────
+// Vienas RPC = visi apžvalgos duomenys. Svetimam profiliui serveris pats
+// išima privatumo uždengtus blokus (grąžina null), UI jų net nemato.
+
+export type ProfileDeck = { id: string; name: string; cardCount: number; score: number; faction: string | null }
+export type ProfileMatch = {
+  mode: string; result: string; opponent: string | null
+  opponentKind: string | null; faction: string | null; turns: number | null; at: string
+}
+export type ProfileRarity = { rarity: string; sortOrder: number; owned: number; total: number }
+
+export type ProfileOverview = {
+  isSelf: boolean
+  identity: {
+    playerId: string | null; name: string | null; username: string | null
+    avatarUrl: string | null; equippedAvatar: string | null; isPublic: boolean
+  }
+  level: { level: number; totalXp: number; xpIntoLevel: number | null; xpForNextLevel: number | null; isMaxLevel: boolean }
+  ranked: {
+    season: string | null; rankStep: number | null; bestRankStep: number | null
+    wins: number; losses: number; winStreak: number; bestWinStreak: number
+  }
+  stats: { matches: number; wins: number; winRate: number; longestStreak: number }
+  topFaction: { faction: string; matches: number; pct: number } | null
+  /** null = žaidėjas paslėpė kolekciją */
+  collection: { owned: number; total: number; pct: number; byRarity: ProfileRarity[] } | null
+  publicDecks: ProfileDeck[] | null
+  recentAchievements: { code: string; nameLt: string; completedAt: string }[] | null
+  matchHistory: ProfileMatch[] | null
+}
+
+/** Profilio apžvalga (savo arba nurodyto žaidėjo). */
+export async function getProfileOverview(userId?: string): Promise<ProfileOverview | { error: string } | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_get_profile_overview', { p_user_id: userId ?? null })
+  if (error) { console.warn('[profile] getProfileOverview:', error.message); return { error: error.message } }
+  const d = data as ProfileOverview & { error?: string }
+  if (!d) return null
+  if (d.error) return { error: d.error }
+  return d
+}
