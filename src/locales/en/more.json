@@ -1,4 +1,6 @@
 {
+  "achievements": "Achievements",
+  "achievementsSub": "All 70 badges and progress",
   "confirmExitBody": "The app will be closed.",
   "confirmExitTitle": "Are you sure you want to exit?",
   "exit": "Exit",

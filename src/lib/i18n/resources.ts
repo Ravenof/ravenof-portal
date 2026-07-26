@@ -41,6 +41,8 @@ import lt_battleLog from '@/locales/lt/battleLog.json'
 import en_battleLog from '@/locales/en/battleLog.json'
 import lt_statusEffects from '@/locales/lt/statusEffects.json'
 import en_statusEffects from '@/locales/en/statusEffects.json'
+import lt_profile from '@/locales/lt/profile.json'
+import en_profile from '@/locales/en/profile.json'
 import lt_accessibility from '@/locales/lt/accessibility.json'
 import en_accessibility from '@/locales/en/accessibility.json'
 
@@ -67,6 +69,7 @@ export const RESOURCES = {
     battleLog: lt_battleLog,
     statusEffects: lt_statusEffects,
     accessibility: lt_accessibility,
+    profile: lt_profile,
  },
  en: {
     common: en_common,
@@ -90,5 +93,6 @@ export const RESOURCES = {
     battleLog: en_battleLog,
     statusEffects: en_statusEffects,
     accessibility: en_accessibility,
+    profile: en_profile,
  },
 } as const

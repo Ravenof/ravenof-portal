@@ -1,0 +1,47 @@
+{
+  "ach": {
+    "artPending": "Ženklo iliustracija dar ruošiama.",
+    "autoNote": "Atlygiai už pasiekimus suteikiami automatiškai — atsiimti nereikia.",
+    "cat": {
+      "all": "Visos",
+      "collection": "Kolekcija",
+      "combat": "Kovos ir pergalės",
+      "community": "Bendruomenė",
+      "daily": "Dienos aktyvumas",
+      "decks": "Kaladės ir frakcijos",
+      "ranked": "Ranked",
+      "start": "Pradžia ir profilis",
+      "tactics": "Taktika ir mechanikos"
+    },
+    "categoriesTitle": "Kategorijų progresas",
+    "completedLabel": "užbaigta",
+    "emptyBody": "Pabandyk kitą paieškos žodį arba kitą kategoriją.",
+    "emptyTitle": "Nieko nerasta",
+    "featuredEmpty": "Laisvas slotas",
+    "featuredHint": "Iki 3 užbaigtų pasiekimų, matomų tavo profilyje.",
+    "featuredTitle": "Prisegti ženklai",
+    "filter": {
+      "all": "Visi",
+      "completed": "Užbaigti",
+      "locked": "Užrakinti"
+    },
+    "loading": "Kraunami pasiekimai",
+    "pin": "Prisegti prie profilio",
+    "pinFailed": "Nepavyko išsaugoti prisegtų ženklų.",
+    "pinFull": "Galima prisegti daugiausiai 3 pasiekimus.",
+    "pinOk": "Ženklas prisegtas prie profilio.",
+    "screenTitle": "Pasiekimai",
+    "search": "Ieškoti pasiekimo",
+    "searchClear": "Išvalyti paiešką",
+    "secret": "Slaptas pasiekimas",
+    "secretHint": "Sąlyga atskleidžiama užbaigus.",
+    "showing": "Rodoma {{shown}} iš {{total}}",
+    "state": {
+      "done": "Užbaigta",
+      "locked": "Užrakinta",
+      "progress": "Vyksta"
+    },
+    "unpin": "Nusegti nuo profilio",
+    "unpinOk": "Ženklas nusegtas."
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "ach": {
+    "artPending": "Badge artwork is still in production.",
+    "autoNote": "Achievement rewards are granted automatically — nothing to claim.",
+    "cat": {
+      "all": "All",
+      "collection": "Collection",
+      "combat": "Battles and victories",
+      "community": "Community",
+      "daily": "Daily activity",
+      "decks": "Decks and factions",
+      "ranked": "Ranked",
+      "start": "Getting started",
+      "tactics": "Tactics and mechanics"
+    },
+    "categoriesTitle": "Category progress",
+    "completedLabel": "completed",
+    "emptyBody": "Try another search term or a different category.",
+    "emptyTitle": "Nothing found",
+    "featuredEmpty": "Empty slot",
+    "featuredHint": "Up to 3 completed achievements shown on your profile.",
+    "featuredTitle": "Featured badges",
+    "filter": {
+      "all": "All",
+      "completed": "Completed",
+      "locked": "Locked"
+    },
+    "loading": "Loading achievements",
+    "pin": "Pin to profile",
+    "pinFailed": "Could not save featured badges.",
+    "pinFull": "You can pin at most 3 achievements.",
+    "pinOk": "Badge pinned to your profile.",
+    "screenTitle": "Achievements",
+    "search": "Search achievements",
+    "searchClear": "Clear search",
+    "secret": "Secret achievement",
+    "secretHint": "The requirement is revealed once completed.",
+    "showing": "Showing {{shown}} of {{total}}",
+    "state": {
+      "done": "Completed",
+      "locked": "Locked",
+      "progress": "In progress"
+    },
+    "unpin": "Unpin from profile",
+    "unpinOk": "Badge unpinned."
+  }
+}
