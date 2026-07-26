@@ -61,6 +61,6 @@
   },
   "tabMain": "Deck",
   "tabSide": "Curses",
-  "sideHint": "Demon side deck: up to {{max}} curses. They are not part of the main deck — in battle they are shuffled into the opponent’s deck.",
+  "sideHint": "Demon side deck: up to {{max}} curses. You must own them — they drop from demon boosters like any other card. In battle they are shuffled into the opponent’s deck.",
   "sideDemonsOnly": "Only the Demons faction can build a curse side deck."
 }

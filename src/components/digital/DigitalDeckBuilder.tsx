@@ -116,7 +116,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
       if (store.factionId == null) return false
       const isNeutral = c.faction_id === NEUTRAL_FACTION_ID
       if (c.faction_id !== store.factionId && !(showUniversal && isNeutral)) return false
-      if (!side && store.ownedOnly && ownedOf(c.id) <= 0) return false
+      if (store.ownedOnly && ownedOf(c.id) <= 0) return false
       if (needle && !c.name.toLowerCase().includes(needle)) return false
       return true
     })
@@ -132,14 +132,17 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownedOf, store.entries])
 
-  // Prakeiksmai NĖRA kolekcinės kortos (jų negauni iš pakuočių) – tai Demonų
-  // frakcijos mechanika, todėl nuosavybės riba jiems netaikoma (taip veikia ir
-  // senasis web builder'is). Galioja tik kopijų limitas ir 20 kortų riba.
+  // Prakeiksmai — TOKIOS PAT kolekcinės kortos kaip demonų: gaunami iš boosterių,
+  // todėl galioja ir nuosavybės riba, ir kopijų limitas, ir 20 kortų riba.
   const canAddSide = useCallback((c: CardWithRelations): string | null => {
+    const owned = ownedOf(c.id)
+    const sq = sideQtyOf(c.id)
+    if (owned <= 0) return t('deckBuilder.notOwned')
+    if (sq >= owned) return t('deckBuilder.ownedOnlyN', { count: owned })
     const r = canAddSideCard(c, store.sideEntries)
     return r.ok ? null : (r.reason ?? t('deckBuilder.cannotAdd'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.sideEntries])
+  }, [ownedOf, store.sideEntries])
 
   /** Prideda kortą į teisingą kaladę: prakeiksmas → šoninė, kita → pagrindinė. */
   const tryAdd = (c: CardWithRelations): boolean => {
@@ -297,7 +300,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
   const makeDragProps = (card: CardWithRelations, fromDeck: boolean) => ({
     onPointerDown: (e: React.PointerEvent) => {
-      if (!fromDeck && !isCurseCard(card) && ownedOf(card.id) <= 0) return
+      if (!fromDeck && ownedOf(card.id) <= 0) return
       if (dragCard) return
       setHover(null)
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -446,7 +449,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
               ) : (
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-0.5">
                   {pool.map((c) => (
-                    <NameRow key={c.id} c={c} owned={isCurseCard(c) ? SIDE_DECK_MAX : ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
+                    <NameRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
                       dragProps={dragProps(c)}
                       onAdd={() => tryAdd(c)}
                       onPreview={() => { playUiClick(); setPreview(c) }}
@@ -598,7 +601,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
         </motion.div>
       )}
 
-      {preview && <BuilderPreview c={preview} owned={isCurseCard(preview) ? SIDE_DECK_MAX : ownedOf(preview.id)} deckQty={isCurseCard(preview) ? sideQtyOf(preview.id) : deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
+      {preview && <BuilderPreview c={preview} owned={ownedOf(preview.id)} deckQty={isCurseCard(preview) ? sideQtyOf(preview.id) : deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
 
       {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--ravenof-gold)' }}>{toast}</div>}
     </div>

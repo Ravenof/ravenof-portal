@@ -61,6 +61,6 @@
   },
   "tabMain": "Kaladė",
   "tabSide": "Prakeiksmai",
-  "sideHint": "Demonų šoninė kaladė: iki {{max}} prakeiksmų. Jie neįeina į pagrindinę kaladę — mūšyje įmaišomi priešininkui.",
+  "sideHint": "Demonų šoninė kaladė: iki {{max}} prakeiksmų. Juos reikia turėti — iškrenta iš demonų boosterių kaip ir kitos kortos. Mūšyje jie įmaišomi priešininkui.",
   "sideDemonsOnly": "Prakeiksmų šoninę kaladę gali statyti tik Demonų frakcija."
 }
