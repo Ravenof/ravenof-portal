@@ -135,6 +135,8 @@ export function AchievementsScreen() {
   const card = (a: AchievementRow) => {
     const done = !!a.completedAt
     const l = label(a)
+    // target = 0 → serveris dar neturi telemetrijos šiai sąlygai (žr. 20260855)
+    const untracked = !done && a.target === 0
     const target = Math.max(1, a.target)
     const cur = Math.min(target, done ? target : a.progress)
     const p = (cur / target) * 100
@@ -171,6 +173,11 @@ export function AchievementsScreen() {
           </button>
         </div>
 
+        {untracked ? (
+          <div style={{ font: `400 9.5px ${BODY}`, color: C.lineDis, letterSpacing: 0.4 }}>
+            {t('profile.ach.notTracked')}
+          </div>
+        ) : (
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
             <span style={{ font: `700 11px ${DISPLAY}`, letterSpacing: 0.6, color: tone.fg }}>{cur} / {target}</span>
@@ -182,6 +189,7 @@ export function AchievementsScreen() {
             <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${p}%`, background: done ? 'linear-gradient(90deg,#6E2633,#C1566A)' : 'linear-gradient(90deg,#8a6c2c,#E2B958)' }} />
           </div>
         </div>
+        )}
 
         {rewards.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

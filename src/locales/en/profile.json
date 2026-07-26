@@ -26,6 +26,7 @@
       "locked": "Locked"
     },
     "loading": "Loading achievements",
+    "notTracked": "This condition is not tracked yet",
     "pin": "Pin to profile",
     "pinFailed": "Could not save featured badges.",
     "pinFull": "You can pin at most 3 achievements.",

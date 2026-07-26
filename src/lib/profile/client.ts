@@ -28,10 +28,20 @@ export type AchievementsSnapshot = {
   featured: string[]
 }
 
-/** Pasiekimų sąrašas + progresas + suvestinės (savo arba nurodyto žaidėjo). */
+/**
+ * Pasiekimų sąrašas + progresas + suvestinės.
+ *
+ * SAVO profiliui kviečiam `rvn_sync_achievements` — jis PIRMA perskaičiuoja
+ * progresą iš esamų agregatų (kovos, kaladės, kolekcija, ranked, dienos užduotys)
+ * ir tik tada grąžina momentinę nuotrauką. Be šito pasiekimai niekada
+ * neatsirakindavo, nes `rvn_achievement_progress` niekas nerašė.
+ * Svetimam profiliui – tik skaitymas.
+ */
 export async function getAchievements(userId?: string): Promise<AchievementsSnapshot | null> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_get_achievements', { p_user_id: userId ?? null })
+  const { data, error } = userId
+    ? await supabase.rpc('rvn_get_achievements', { p_user_id: userId })
+    : await supabase.rpc('rvn_sync_achievements')
   if (error) { console.warn('[profile] getAchievements:', error.message); return null }
   const d = data as AchievementsSnapshot & { error?: string }
   if (!d || d.error) return null

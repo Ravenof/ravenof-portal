@@ -26,6 +26,7 @@
       "locked": "Užrakinti"
     },
     "loading": "Kraunami pasiekimai",
+    "notTracked": "Ši sąlyga dar nesekama",
     "pin": "Prisegti prie profilio",
     "pinFailed": "Nepavyko išsaugoti prisegtų ženklų.",
     "pinFull": "Galima prisegti daugiausiai 3 pasiekimus.",
