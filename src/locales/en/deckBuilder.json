@@ -47,16 +47,20 @@
   "v": {
     "cardWrongFaction": "“{{name}}” doesn't belong to the chosen faction",
     "copyLimit": "Maximum {{limit}} copies of this card",
-    "cursesGoSide": "Curses go into the curse side deck (below)",
+    "cursesGoSide": "Curses go into the curse side deck",
     "deckMax": "A deck can't have more than {{max}} cards",
     "deckMaxNow": "A deck can't have more than {{max}} cards (now: {{current}})",
     "deckMin": "A deck needs at least {{min}} cards (now: {{current}})",
     "nameProfanity": "The name contains inappropriate words",
     "nameRequired": "The deck needs a name",
     "pickFaction": "Pick a faction for the deck",
-    "sideMax": "The side deck can't hold more than {{max}} curses",
+    "sideMax": "The side deck cannot hold more than {{max}} curses",
     "sideOnlyCurses": "Only curses can go into the side deck",
     "tooManyCopies": "“{{name}}”: too many copies ({{qty}}/{{limit}})",
     "wrongFaction": "This card doesn't belong to this faction"
-  }
+  },
+  "tabMain": "Deck",
+  "tabSide": "Curses",
+  "sideHint": "Demon side deck: up to {{max}} curses. They are not part of the main deck — in battle they are shuffled into the opponent’s deck.",
+  "sideDemonsOnly": "Only the Demons faction can build a curse side deck."
 }

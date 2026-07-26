@@ -14,7 +14,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransfo
 import { ChevronLeft, Search, Plus, Minus, Lock, Save, Loader2, X, Layers } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
-import { validateDeck, getCopyLimit, isCurseCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
+import { validateDeck, getCopyLimit, isCurseCard, canAddSideCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX, SIDE_DECK_MAX } from '@/lib/deck-validation'
 import { ravenofRarityColor as rarityColor } from '@/components/digital/ui/RavenofKit'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
@@ -92,21 +92,35 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
   const flash = (m: string, err = false) => { (err ? playError : playUiClick)(); setToast(m) }
 
   const deckQtyOf = (id: string) => store.entries.find((e) => e.card.id === id)?.quantity ?? 0
+  const sideQtyOf = (id: string) => store.sideEntries.find((e) => e.card.id === id)?.quantity ?? 0
   const ownedOf = useCallback((id: string) => tester ? 99 : (collection[id] ?? 0), [tester, collection])
   const total = store.entries.reduce((s, e) => s + e.quantity, 0)
+  const sideTotal = store.sideEntries.reduce((s, e) => s + e.quantity, 0)
+
+  // ── Prakeiksmų šoninė kaladė (Demonų frakcija) ────────────────────────────
+  // Demonai statomi kaip visi kiti (30–40 kortų pagrindinė kaladė), o PAPILDOMAI
+  // gauna iki 20 prakeiksmų šoninėje kaladėje (deck_cards.is_side_deck = true).
+  // Mūšyje jos nededamos į savo kaladę — jos įmaišomos priešui (curseEngine).
+  const factionName = factions.find((f) => f.id === store.factionId)?.name ?? ''
+  const isDemonDeck = /demon/i.test(factionName)
+  const canUseSide = isDemonDeck || store.sideEntries.length > 0
+  const [mode, setMode] = useState<'main' | 'side'>('main')
+  useEffect(() => { if (!canUseSide && mode === 'side') setMode('main') }, [canUseSide, mode])
 
   const pool = useMemo(() => {
     const needle = q.trim().toLowerCase()
+    const side = mode === 'side'
     return cards.filter((c) => {
-      if (isCurseCard(c)) return false
+      // Šoninės kaladės režimu albume rodom TIK prakeiksmus (ir atvirkščiai)
+      if (isCurseCard(c) !== side) return false
       if (store.factionId == null) return false
       const isNeutral = c.faction_id === NEUTRAL_FACTION_ID
       if (c.faction_id !== store.factionId && !(showUniversal && isNeutral)) return false
-      if (store.ownedOnly && ownedOf(c.id) <= 0) return false
+      if (!side && store.ownedOnly && ownedOf(c.id) <= 0) return false
       if (needle && !c.name.toLowerCase().includes(needle)) return false
       return true
     })
-  }, [cards, q, store.factionId, store.ownedOnly, showUniversal, ownedOf])
+  }, [cards, q, mode, store.factionId, store.ownedOnly, showUniversal, ownedOf])
 
   const canAdd = useCallback((c: CardWithRelations): string | null => {
     const owned = ownedOf(c.id)
@@ -118,14 +132,35 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownedOf, store.entries])
 
+  // Prakeiksmai NĖRA kolekcinės kortos (jų negauni iš pakuočių) – tai Demonų
+  // frakcijos mechanika, todėl nuosavybės riba jiems netaikoma (taip veikia ir
+  // senasis web builder'is). Galioja tik kopijų limitas ir 20 kortų riba.
+  const canAddSide = useCallback((c: CardWithRelations): string | null => {
+    const r = canAddSideCard(c, store.sideEntries)
+    return r.ok ? null : (r.reason ?? t('deckBuilder.cannotAdd'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.sideEntries])
+
+  /** Prideda kortą į teisingą kaladę: prakeiksmas → šoninė, kita → pagrindinė. */
   const tryAdd = (c: CardWithRelations): boolean => {
+    if (isCurseCard(c)) {
+      if (!canUseSide) { flash(t('deckBuilder.sideDemonsOnly'), true); return false }
+      const whyS = canAddSide(c)
+      if (whyS) { flash(whyS, true); return false }
+      const rs = store.addSideCard(c)
+      if (!rs.ok) { flash(rs.reason ?? t('deckBuilder.cannotAdd'), true); return false }
+      return true
+    }
     const why = canAdd(c)
     if (why) { flash(why, true); return false }
     const r = store.addCard(c)
     if (!r.ok) { flash(r.reason ?? t('deckBuilder.cannotAdd'), true); return false }
     return true
   }
-  const dec = (c: CardWithRelations) => { const dq = deckQtyOf(c.id); if (dq > 0) { playUiClick(); store.setQuantity(c.id, dq - 1) } }
+  const dec = (c: CardWithRelations) => {
+    if (isCurseCard(c)) { const sq = sideQtyOf(c.id); if (sq > 0) { playUiClick(); store.setSideQuantity(c.id, sq - 1) } return }
+    const dq = deckQtyOf(c.id); if (dq > 0) { playUiClick(); store.setQuantity(c.id, dq - 1) }
+  }
 
   // ── DRAG & DROP (drop zona = dešinė kaladės panelė) ──────────────────────
   const [dragCard, setDragCard] = useState<CardWithRelations | null>(null)
@@ -210,8 +245,15 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
         // vilkimas IŠ kaladės: paleidus už jos ribų — išimam 1 kopiją
         if (!dropped) {
           const st = useDeckBuilderStore.getState()
-          const dq = st.entries.find((x) => x.card.id === card.id)?.quantity ?? 0
-          if (dq > 0) { playCardPlace(); st.setQuantity(card.id, dq - 1); try { navigator.vibrate?.(12) } catch { /* */ } }
+          const curse = isCurseCard(card)
+          const dq = curse
+            ? (st.sideEntries.find((x) => x.card.id === card.id)?.quantity ?? 0)
+            : (st.entries.find((x) => x.card.id === card.id)?.quantity ?? 0)
+          if (dq > 0) {
+            playCardPlace()
+            if (curse) st.setSideQuantity(card.id, dq - 1); else st.setQuantity(card.id, dq - 1)
+            try { navigator.vibrate?.(12) } catch { /* */ }
+          }
           animate(ghostScale, 0.2, { duration: 0.22 })
           animate(ghostOpacity, 0, { duration: 0.24 })
           window.setTimeout(endDragCleanup, 260)
@@ -255,7 +297,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
   const makeDragProps = (card: CardWithRelations, fromDeck: boolean) => ({
     onPointerDown: (e: React.PointerEvent) => {
-      if (!fromDeck && ownedOf(card.id) <= 0) return
+      if (!fromDeck && !isCurseCard(card) && ownedOf(card.id) <= 0) return
       if (dragCard) return
       setHover(null)
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -300,7 +342,12 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
       }
       if (id) {
         await supabase.from('deck_cards').delete().eq('deck_id', id)
-        const rows = store.entries.map((e) => ({ deck_id: id!, card_id: e.card.id, quantity: e.quantity }))
+        // SVARBU: išsaugom IR prakeiksmų šoninę kaladę (is_side_deck), kitaip
+        // ji būtų ištrinta kiekvieną kartą redaguojant kaladę /digital builder'yje.
+        const rows = [
+          ...store.entries.map((e) => ({ deck_id: id!, card_id: e.card.id, quantity: e.quantity, is_side_deck: false })),
+          ...store.sideEntries.map((e) => ({ deck_id: id!, card_id: e.card.id, quantity: e.quantity, is_side_deck: true })),
+        ]
         if (rows.length) { const { error } = await supabase.from('deck_cards').insert(rows); if (error) throw error }
         store.markSaved(id)
       }
@@ -336,6 +383,8 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
   const curveMax = Math.max(1, ...stats.curve)
   const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.entries])
+  const sortedSide = useMemo(() => [...store.sideEntries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.sideEntries])
+  const shownEntries = mode === 'side' ? sortedSide : sortedEntries
 
   return (
     <div className="ravenof-body ravenof-in h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: 'clamp(4px,1vh,8px)' }}>
@@ -397,7 +446,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
               ) : (
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-0.5">
                   {pool.map((c) => (
-                    <NameRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
+                    <NameRow key={c.id} c={c} owned={isCurseCard(c) ? SIDE_DECK_MAX : ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
                       dragProps={dragProps(c)}
                       onAdd={() => tryAdd(c)}
                       onPreview={() => { playUiClick(); setPreview(c) }}
@@ -424,11 +473,32 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
             transition: 'box-shadow .15s ease, border-color .15s ease',
           }}>
           <div className="flex items-center justify-between gap-2 mb-1.5 shrink-0">
-            <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--ravenof-gold)', letterSpacing: '0.06em' }}>
-              <Layers className="w-3.5 h-3.5" /> Kaladė
-              {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
-            </span>
-            <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>
+            {canUseSide ? (
+              /* Demonai: pagrindinė kaladė + prakeiksmų šoninė kaladė (iki 20) */
+              <span className="flex items-center gap-1 min-w-0">
+                {([['main', t('deckBuilder.tabMain'), `${total}`], ['side', t('deckBuilder.tabSide'), `${sideTotal}`]] as const).map(([k, label, n]) => {
+                  const on = mode === k
+                  return (
+                    <button key={k} onClick={() => { playUiClick(); setMode(k as 'main' | 'side') }} className="rvn-press rounded-lg px-2 font-bold inline-flex items-center gap-1"
+                      style={{ minHeight: 26, fontSize: 10, letterSpacing: '.04em', textTransform: 'uppercase',
+                        background: on ? `rgba(${GOLD},0.9)` : 'rgba(10,8,16,0.8)', color: on ? '#1a0f04' : 'var(--ravenof-text-secondary)',
+                        border: `1px solid rgba(${GOLD},${on ? 0.9 : 0.25})`, fontFamily: 'var(--rvn-font-display)' }}>
+                      {k === 'main' ? <Layers className="w-3 h-3" /> : <span style={{ fontSize: 11 }}>🕸</span>}{label}
+                      <span className="tabular-nums" style={{ opacity: .85 }}>{n}</span>
+                    </button>
+                  )
+                })}
+                {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
+              </span>
+            ) : (
+              <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--ravenof-gold)', letterSpacing: '0.06em' }}>
+                <Layers className="w-3.5 h-3.5" /> {t('deckBuilder.tabMain')}
+                {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
+              </span>
+            )}
+            {mode === 'side'
+              ? <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: sideTotal > 0 && sideTotal <= SIDE_DECK_MAX ? '#c4b5fd' : 'var(--gold)' }}>{sideTotal}/{SIDE_DECK_MAX}</span>
+              : <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>}
           </div>
 
           {/* KOMPAKTU: vardas + matomumo ikona + ✎ vienoje eilėje — SĄRAŠUI maksimalus aukštis */}
@@ -452,15 +522,15 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           {/* Kaladės sąrašas — min-h-0 LEIDŽIA trauktis (kitaip pilna kaladė išstumia
               Išsaugoti už panelės), o inline minHeight:96 garantuoja, kad nesusitrauks iki 0 */}
           <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 56, overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
-            {sortedEntries.length === 0 ? (
+            {shownEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
                 <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
-                <p style={{ fontSize: 10.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{dragCard ? t('deckBuilder.dropHere') : t('deckBuilder.dragHint')}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{dragCard ? t('deckBuilder.dropHere') : mode === 'side' ? t('deckBuilder.sideHint', { max: SIDE_DECK_MAX }) : t('deckBuilder.dragHint')}</p>
               </div>
             ) : (
               <div className="space-y-1">
                 <AnimatePresence initial={false}>
-                  {sortedEntries.map((e) => {
+                  {shownEntries.map((e) => {
                     const col = rarityColor(e.card.rarity?.name)
                     return (
                       <motion.div key={e.card.id} layout initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14, height: 0, marginBottom: 0 }} transition={{ duration: 0.18 }}
@@ -528,7 +598,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
         </motion.div>
       )}
 
-      {preview && <BuilderPreview c={preview} owned={ownedOf(preview.id)} deckQty={deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
+      {preview && <BuilderPreview c={preview} owned={isCurseCard(preview) ? SIDE_DECK_MAX : ownedOf(preview.id)} deckQty={isCurseCard(preview) ? sideQtyOf(preview.id) : deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
 
       {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--ravenof-gold)' }}>{toast}</div>}
     </div>

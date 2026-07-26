@@ -47,16 +47,20 @@
   "v": {
     "cardWrongFaction": "„{{name}}“ nepriklauso pasirinktai frakcijai",
     "copyLimit": "Maksimumas {{limit}} kopija (-ų) šiai kortai",
-    "cursesGoSide": "Prakeiksmai dedami į prakeiksmų side deck (apačioje)",
+    "cursesGoSide": "Prakeiksmai dedami į prakeiksmų šoninę kaladę",
     "deckMax": "Kaladė negali turėti daugiau nei {{max}} kortų",
     "deckMaxNow": "Kaladė negali turėti daugiau nei {{max}} kortų (dabar: {{current}})",
     "deckMin": "Kaladė turi bent {{min}} kortų (dabar: {{current}})",
     "nameProfanity": "Pavadinime yra netinkamų žodžių",
     "nameRequired": "Kaladė turi turėti pavadinimą",
     "pickFaction": "Pasirink kaladės frakciją",
-    "sideMax": "Side deck negali turėti daugiau nei {{max}} prakeiksmų",
-    "sideOnlyCurses": "Į side deck galima dėti tik prakeiksmus",
+    "sideMax": "Šoninėje kaladėje negali būti daugiau nei {{max}} prakeiksmai",
+    "sideOnlyCurses": "Į šoninę kaladę galima dėti tik prakeiksmus",
     "tooManyCopies": "„{{name}}“: per daug kopijų ({{qty}}/{{limit}})",
     "wrongFaction": "Korta nepriklauso šiai frakcijai"
-  }
+  },
+  "tabMain": "Kaladė",
+  "tabSide": "Prakeiksmai",
+  "sideHint": "Demonų šoninė kaladė: iki {{max}} prakeiksmų. Jie neįeina į pagrindinę kaladę — mūšyje įmaišomi priešininkui.",
+  "sideDemonsOnly": "Prakeiksmų šoninę kaladę gali statyti tik Demonų frakcija."
 }
