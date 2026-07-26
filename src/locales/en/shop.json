@@ -47,5 +47,14 @@
     "starter": "🃏 Decks"
   },
   "starterInfo": "Cards are added to your collection and a ready-made deck is created automatically.",
-  "title": "SHOP"
+  "title": "SHOP",
+  "detail": {
+    "deckContents": "Deck contents",
+    "cards_one": "{{count}} card",
+    "cards_other": "{{count}} cards",
+    "packFactions": "Possible factions",
+    "allFactions": "All factions",
+    "loading": "Loading…",
+    "empty": "Contents not available"
+  }
 }

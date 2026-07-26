@@ -20,6 +20,7 @@ import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/l
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { RAVENOF_ASSET, ravenofRarityColor } from './ui/RavenofKit'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { getStarterDeckCards, getPackFactions, type StarterCard, type PackFaction } from '@/lib/shopDetails'
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; labelKey: string }
@@ -50,6 +51,10 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [countdown, setCountdown] = useState('')
+  // detalios peržiūros duomenys (kraunami atidarius prekę)
+  const [detailCards, setDetailCards] = useState<StarterCard[] | null>(null)
+  const [detailFactions, setDetailFactions] = useState<PackFaction[] | null>(null)
+  const [detailBusy, setDetailBusy] = useState(false)
   useEffect(() => {
     const tick = () => {
       const now = new Date(); const mid = new Date(now); mid.setHours(24, 0, 0, 0)
@@ -105,6 +110,26 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, refresh, onPurchased])
 
+  // Detalios peržiūros duomenys: starter kaladės sudėtis / boosterio frakcijos
+  useEffect(() => {
+    setDetailCards(null); setDetailFactions(null)
+    if (!sel) return
+    let alive = true
+    if (sel.t === 'starter') {
+      setDetailBusy(true)
+      getStarterDeckCards(sel.id).then((cs) => { if (alive) { setDetailCards(cs); setDetailBusy(false) } })
+      return () => { alive = false }
+    }
+    if (sel.t === 'shop') {
+      const it = items.find((i) => i.id === sel.id)
+      const pid = it?.itemType === 'pack' ? (it.payload[0] as { item_id?: string } | undefined)?.item_id : null
+      if (!pid) return
+      setDetailBusy(true)
+      getPackFactions(pid).then((fs) => { if (alive) { setDetailFactions(fs); setDetailBusy(false) } })
+    }
+    return () => { alive = false }
+  }, [sel, items])
+
   const shopShown = useMemo(() => {
     const types = SHOP_SECTIONS.find((s) => s.key === section)?.types ?? []
     return items.filter((i) => types.includes(i.itemType))
@@ -147,6 +172,21 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     rubies: 'var(--ravenof-danger)', daily: 'var(--ravenof-gold-bright)', starter: 'var(--ravenof-rar-epic)', decks: 'var(--ravenof-rar-epic)',
   }
 
+  // ── Vaizdai: NIEKADA nekarpom prekės paveikslo (object-contain), o tuščią vietą
+  //    užpildo tas pats vaizdas — išblukintas ir patamsintas (letterbox be juodų juostų).
+  const artFull = (src: string, w: number, pos = '50% 35%') => (
+    <>
+      <span className="absolute inset-0" style={{ backgroundImage: `url('${src}')`, backgroundSize: 'cover', backgroundPosition: pos, filter: 'blur(16px) brightness(.4) saturate(.85)', transform: 'scale(1.25)' }} />
+      <SmartImg src={src} width={w} className="absolute inset-0 w-full h-full" style={{ objectFit: 'contain' }} />
+    </>
+  )
+  /** Didelis vaizdas detalioje peržiūroje. */
+  const heroArt = (src: string | null) => src ? (
+    <div className="relative mx-auto overflow-hidden" style={{ width: '100%', height: 'min(38vh, 250px)', marginTop: 10, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)' }}>
+      {artFull(src, 640, '50% 30%')}
+    </div>
+  ) : null
+
   const priceRow = (silver?: number | null, rubies?: number | null, state?: { label: string; color: string } | null) => (
     <div className="shrink-0 flex items-center justify-center" style={{ gap: 5, padding: '6px 4px', borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
       {state ? <span style={{ font: '700 11px var(--ravenof-font-body)', color: state.color }}>{state.label}</span> : <>
@@ -159,7 +199,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   const tileFrame = (key: string | number, onOpen: () => void, art: React.ReactNode, name: string, sub: string | null, price: React.ReactNode, dim = false) => (
     <button key={key} onClick={onOpen} className="ravenof-press relative flex flex-col overflow-hidden text-left" style={{ minHeight: 0, border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: dim ? 0.6 : 1, padding: 0 }}>
-      <span className="relative flex-1 block" style={{ minHeight: 90 }}>
+      <span className="relative block w-full" style={{ aspectRatio: '3 / 4', minHeight: 90 }}>
         {art}
         <span className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(7,6,10,.9))' }} />
         <span className="absolute" style={{ left: 8, bottom: 5, right: 6 }}>
@@ -179,12 +219,32 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     const actions: React.ReactNode[] = []
     if (selShop) {
       name = shopName(selShop); sub = shopDesc(selShop)
+      const shopImg = packImgOf(selShop) ?? visOf(selShop)?.imageUrl ?? null
       body = (
-        <div className="flex flex-col" style={{ gap: 4, marginTop: 10 }}>
-          {selShop.payload.map((pl, pi) => (
-            <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)' }}><RewardChip it={pl} size={15} textSize={10.5} /></span>
-          ))}
-        </div>
+        <>
+          {heroArt(shopImg)}
+          <div className="flex flex-col" style={{ gap: 4, marginTop: 10 }}>
+            {selShop.payload.map((pl, pi) => (
+              <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)' }}><RewardChip it={pl} size={15} textSize={10.5} /></span>
+            ))}
+          </div>
+          {selShop.itemType === 'pack' && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>{t('shop.detail.packFactions')}</div>
+              {detailFactions === null
+                ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 4 }}>{detailBusy ? t('shop.detail.loading') : ''}</div>
+                : detailFactions.length === 0
+                  ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 4 }}>{t('shop.detail.allFactions')}</div>
+                  : <div className="flex flex-wrap" style={{ gap: 5, marginTop: 5 }}>
+                      {detailFactions.map((f) => (
+                        <span key={f.id} className="px-2 py-1" style={{ font: '600 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--ravenof-border-hairline)' }}>
+                          {tc('faction', String(f.id), 'name', f.name)}
+                        </span>
+                      ))}
+                    </div>}
+            </div>
+          )}
+        </>
       )
       if (ownedShopItem(selShop)) actions.push(<div key="own" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.ownedEquip')}</div>)
       else {
@@ -204,8 +264,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       name = tc('cosmetic', selDeal.id, 'name', selDeal.name); sub = t('shop.dailyDealInfo')
       const enough = bal.silver >= selDeal.priceGold
       body = selDeal.imageUrl ? (
-        <div className="relative mx-auto overflow-hidden" style={{ width: 110, aspectRatio: '2.5/3.5', marginTop: 10, border: `1px solid ${ravenofRarityColor(selDeal.rarity)}`, borderRadius: 5 }}>
-          <SmartImg src={selDeal.imageUrl} width={220} className="absolute inset-0 w-full h-full object-cover" />
+        <div className="relative mx-auto overflow-hidden" style={{ width: 190, aspectRatio: '2.5/3.5', marginTop: 10, border: `1px solid ${ravenofRarityColor(selDeal.rarity)}`, borderRadius: 5, background: 'rgba(7,6,10,.7)' }}>
+          {artFull(selDeal.imageUrl, 520, '50% 30%')}
         </div>
       ) : null
       if (selDeal.bought) actions.push(<div key="b" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.purchasedShort')}</div>)
@@ -214,6 +274,33 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       name = tc('starter_deck', selStarter.id, 'name', selStarter.name)
       sub = selStarter.description ? tc('starter_deck', selStarter.id, 'description', selStarter.description) : t('shop.starterInfo')
       const enough = selStarter.priceGold <= 0 || bal.silver >= selStarter.priceGold
+      const total = (detailCards ?? []).reduce((n, c) => n + c.quantity, 0) || selStarter.cardCount
+      body = (
+        <>
+          {heroArt(selStarter.imageUrl)}
+          <div className="flex items-center" style={{ gap: 8, marginTop: 10 }}>
+            <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>{t('shop.detail.deckContents')}</div>
+            <div className="flex-1" />
+            <div style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.cards', { count: total, target: total })}</div>
+          </div>
+          <div className="ravenof-scroll" style={{ maxHeight: 168, overflowY: 'auto', marginTop: 5, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.5)' }}>
+            {detailCards === null
+              ? <div className="text-center" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: 10 }}>{t('shop.detail.loading')}</div>
+              : detailCards.length === 0
+                ? <div className="text-center" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: 10 }}>{t('shop.detail.empty')}</div>
+                : detailCards.map((c) => (
+                    <div key={c.id} className="flex items-center" style={{ gap: 8, padding: '4px 8px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+                      <span style={{ width: 22, textAlign: 'right', font: '700 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>{c.quantity}×</span>
+                      <span className="flex-1 truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: c.rarityColor ?? 'var(--ravenof-text-primary)' }}>{c.name}</span>
+                      {c.gold != null && <span className="flex items-center" style={{ gap: 3, font: '600 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 11, height: 11, objectFit: 'contain' }} />{c.gold}
+                      </span>}
+                    </div>
+                  ))}
+          </div>
+        </>
+      )
       if (selStarter.claimed) actions.push(<div key="c" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.claimedShort')}</div>)
       else actions.push(<button key="buy" onClick={() => { if (enough) void claimStarter(selStarter).then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : selStarter.priceGold > 0 ? t('shop.buyGold', { price: selStarter.priceGold }) : t('shop.claimFree')}</button>)
     }
@@ -223,7 +310,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     return (
       <>
         <div className="absolute inset-0" style={{ zIndex: 85, background: 'rgba(4,3,7,.78)', backdropFilter: 'blur(3px)' }} onClick={close} />
-        <div className="ravenof-panel" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 86, width: 330, maxWidth: '92vw', padding: '26px 28px', animation: 'ravenofFound .3s ease' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 86, width: 400, maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto', padding: '22px 24px', animation: 'ravenofFound .3s ease' }} className="ravenof-panel ravenof-scroll">
           <div style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textAlign: 'center' }}>{name}</div>
           {sub && <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', textAlign: 'center', marginTop: 4, maxHeight: 62, overflow: 'hidden' }}>{sub}</div>}
           {body}
@@ -303,7 +390,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               deal.length === 0 ? <p className="text-center py-8" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.dealLoading')}</p> : (
                 <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8 }}>
                   {deal.map((c) => tileFrame(c.id, () => { playUiClick(); setSel({ t: 'deal', id: c.id }); setToast(null) },
-                    c.imageUrl ? <SmartImg src={c.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🎴</span>,
+                    c.imageUrl ? artFull(c.imageUrl, 300) : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🎴</span>,
                     tc('cosmetic', c.id, 'name', c.name), gcRarity(c.rarity),
                     priceRow(c.bought ? null : c.priceGold, null, c.bought ? { label: t('shop.purchasedShort'), color: 'var(--ravenof-success-bright)' } : null), c.bought))}
                 </div>
@@ -311,7 +398,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
             ) : section === 'starter' ? (
               <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
                 {starters.map((st) => tileFrame(st.id, () => { playUiClick(); setSel({ t: 'starter', id: st.id }); setToast(null) },
-                  st.imageUrl ? <SmartImg src={st.imageUrl} width={240} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} /> : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🃏</span>,
+                  st.imageUrl ? artFull(st.imageUrl, 320) : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🃏</span>,
                   tc('starter_deck', st.id, 'name', st.name), st.faction ?? null,
                   priceRow(st.claimed ? null : (st.priceGold > 0 ? st.priceGold : null), null, st.claimed ? { label: t('shop.claimedShort'), color: 'var(--ravenof-success-bright)' } : st.priceGold <= 0 ? { label: t('shop.free'), color: 'var(--ravenof-success-bright)' } : null), st.claimed))}
               </div>
@@ -324,9 +411,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                     const packImg = packImgOf(it)
                     const owned = ownedShopItem(it)
                     const art = packImg
-                      ? <SmartImg src={packImg} width={260} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 12%' }} />
+                      ? artFull(packImg, 340)
                       : vis?.imageUrl
-                        ? <SmartImg src={vis.imageUrl} width={260} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />
+                        ? artFull(vis.imageUrl, 340)
                         : vis?.css
                           ? <span className="absolute inset-0" style={{ background: vis.css }} />
                           : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>

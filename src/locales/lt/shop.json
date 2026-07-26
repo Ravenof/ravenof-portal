@@ -48,5 +48,16 @@
     "starter": "🃏 Kaladės"
   },
   "starterInfo": "Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.",
-  "title": "PARDUOTUVĖ"
+  "title": "PARDUOTUVĖ",
+  "detail": {
+    "deckContents": "Kaladės sudėtis",
+    "cards_one": "{{count}} korta",
+    "cards_few": "{{count}} kortos",
+    "cards_many": "{{count}} kortų",
+    "cards_other": "{{count}} kortų",
+    "packFactions": "Galimos frakcijos",
+    "allFactions": "Visos frakcijos",
+    "loading": "Kraunama…",
+    "empty": "Sudėtis nepateikta"
+  }
 }
