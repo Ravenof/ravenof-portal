@@ -2098,22 +2098,36 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         // leidžiam atvaizduoti – pozicijos imamos iš tikrų DOM rect'ų
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
         if (run.cancelled) break
-        // 2) pozicijos dinamiškai; šaltinio/taikinio nematant – dokumentuotas fallback į zoną
+        // 2) pozicijos dinamiškai; KIEKVIENAM paveiktam taikiniui – SAVA grandinė
+        //    (padarai, artefaktai, žaidėjo avataras). Taikinio nematant – dokumentuotas
+        //    fallback į zonos indikatorių, bet KORTOS dydžio (ne zonos), kad kilpos
+        //    neišsibarstytų per visą lentą.
         const srcBox = selBox(`[data-pile="reactions-${gate.side}"]`)
-        const tgtBox = boxFor(gate.target)
-          ?? selBox(`[data-tut="units-${gate.target && 'side' in gate.target ? gate.target.side : (gate.side === 'you' ? 'ai' : 'you')}"]`)
         const from = srcBox ? { x: srcBox.x, y: srcBox.y } : fxCenter()
-        const to = tgtBox ? { x: tgtBox.x, y: tgtBox.y } : fxCenter()
+        const refs: TargetRef[] = (gate.targets && gate.targets.length > 0)
+          ? gate.targets
+          : (gate.target ? [gate.target] : [])
+        const MAX_CHAINS = 6   // daugiau grandinių vienu metu tampa vizualiu triukšmu
+        const chainTargets = refs.slice(0, MAX_CHAINS).map((tr) => {
+          const box = boxFor(tr)
+          if (box) return { x: box.x, y: box.y, w: box.w, h: box.h }
+          const zone = selBox(`[data-tut="units-${tr.side}"]`)
+          const c = zone ?? fxCenter()
+          return { x: c.x, y: c.y }   // dydžio neduodam → sluoksnis ima kortos etaloną
+        })
+        if (chainTargets.length === 0) {
+          const zone = selBox(`[data-tut="units-${gate.side === 'you' ? 'ai' : 'you'}"]`) ?? fxCenter()
+          chainTargets.push({ x: zone.x, y: zone.y })
+        }
         const card = cardByName[gate.reactionCardName] ?? null
         const variant: ReactionChainVariant = /demon|orda|infern|prakeik|ugni/i.test(card?.factionName ?? '') ? 'infernal' : 'shadow'
         if (process.env.NODE_ENV !== 'production') {
-          console.debug(`[ReactionAnimation] Started: reaction=${gate.reactionUid} target=${gate.target && 'uid' in gate.target ? gate.target.uid : '—'} variant=${variant} reduced=${reduced}`)
+          console.debug(`[ReactionAnimation] Started: reaction=${gate.reactionUid} targets=${chainTargets.length} variant=${variant} reduced=${reduced}`)
         }
         // 3) LAUKIAM animacijos completion signalo — vienintelio autoritetinio
         if (chainRef.current) {
           await chainRef.current.play({
-            from, to, variant, reduced,
-            targetSize: tgtBox ? { w: tgtBox.w, h: tgtBox.h } : undefined,
+            from, targets: chainTargets, variant, reduced,
             onShake: (k) => fxRef.current?.shakeBoard(k),
             onPhase: (ph) => {
               if (ph === 'chain') playBattleSound('spellCast', 0.3)

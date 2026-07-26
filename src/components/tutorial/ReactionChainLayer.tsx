@@ -6,41 +6,43 @@
 // (viewport CSS px iš kortų getBoundingClientRect), tad veikia bet kurioje
 // lentos vietoje, abiem pusėms ir bet kokiu board scale.
 //
+// KELI TAIKINIAI: kiekvienas paveiktas taikinys (padaras, artefaktas ar žaidėjo
+// avataras) gauna SAVO atskirą grandinę su savo trajektorija ir apsivijimu.
+// Grandinės startuoja su nedideliu poslinkiu (stagger), bet niekada nesijungia
+// į vieną „išsibarsčiusią" – kilpų mastelis ribojamas kortos dydžiu, kad
+// zonos dydžio fallback'as nesukurtų per visą lentą išsidriekusių grandžių.
+//
 // SVARBIAUSIA: `play()` grąžina Promise, kuris išsisprendžia TIK tada, kai
 // LEIDŽIAMA taikyti žaidimo būseną (po „parodymo" fazės). Tai vienintelis
 // autoritetinis signalas – jokių atskirų setTimeout'ų gameplay pusėje.
 // `cancel()` / unmount promise'ą irgi išsprendžia, kad kovos eilė niekada
 // neužstrigtų (žr. HANDOFF-BATTLECRY-REACTION.md, Part 3/4).
-//
-// Naudojimas (tėve):
-//   const chain = useRef<ReactionChainHandle>(null)
-//   <ReactionChainLayer ref={chain} />
-//   await chain.current?.play({ from, to, variant: 'shadow' })
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import {
   REACTION_CHAIN_PHASES as PH,
   REACTION_CHAIN_GATE_MS,
-  REACTION_CHAIN_TOTAL_MS,
+  REACTION_CHAIN_PHASES,
   REACTION_CHAIN_REDUCED_GATE_MS,
 } from '@/lib/game/timing'
 
 export type ReactionChainVariant = 'shadow' | 'infernal'
 export type ReactionChainPhase = 'detect' | 'chain' | 'wrap' | 'showcase' | 'effect'
 
+/** Vienas grandinės taikinys – kortos/avataro centras ir (nebūtinai) dydis. */
+export type ReactionChainTarget = { x: number; y: number; w?: number; h?: number }
+
 export type ReactionChainPlayOpts = {
   /** Reakcijos kortos centras (viewport CSS px). */
   from: { x: number; y: number }
-  /** Reakciją suaktyvinusios kortos centras (viewport CSS px). */
-  to: { x: number; y: number }
-  /** Taikinio kortos dydis – kilpoms ir rėmo švytėjimui (default 70×96 kaip etalone). */
-  targetSize?: { w: number; h: number }
+  /** VISI paveikti taikiniai – kiekvienam piešiama atskira grandinė. */
+  targets: ReactionChainTarget[]
   variant?: ReactionChainVariant
   /** Sumažinto judesio režimas (prefers-reduced-motion). */
   reduced?: boolean
   /** Fazių pranešimai tėvui (showcase paleidimui, garsams). */
   onPhase?: (p: ReactionChainPhase) => void
-  /** Lentos purtymas – perduodam esamam BattleFxLayer (nedubliuojam mechanikos). */
+  /** Lentos purtymas – per esamą BattleFxLayer (nedubliuojam mechanikos). */
   onShake?: (kind: 'soft' | 'hard') => void
 }
 
@@ -53,6 +55,13 @@ export type ReactionChainHandle = {
 }
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; dk: number; c: string; r: number; g?: number }
+type Strand = {
+  to: { x: number; y: number }
+  size: { w: number; h: number }
+  stagger: number
+  lut: { x: number; y: number; s: number }[]
+  shattered: boolean
+}
 type Run = {
   opts: ReactionChainPlayOpts
   t0: number
@@ -61,9 +70,7 @@ type Run = {
   resolved: boolean
   resolve: () => void
   phase: ReactionChainPhase | null
-  shattered: boolean
-  lut: { x: number; y: number; s: number }[]
-  ctrl: { x: number; y: number }
+  strands: Strand[]
 }
 
 const VAR: Record<ReactionChainVariant, { metal: string; metalD: string; glow: string; glow2: string; ember: string; impact: string }> = {
@@ -74,6 +81,12 @@ const VAR: Record<ReactionChainVariant, { metal: string; metalD: string; glow: s
 const LUT_N = 200
 const LINK_SPACING = 15      // px tarp grandžių (arc-length)
 const WRAP_LINKS = 26        // grandžių kilpoje
+const STAGGER_MS = 80        // poslinkis tarp kelių taikinių grandinių
+const STAGGER_MAX_MS = 240   // bendra riba, kad seka neišsitęstų
+// Kilpų mastelis ribojamas KORTOS dydžiu: zonos dydžio fallback'as niekada
+// nesukuria per visą lentą išsibarsčiusių grandžių (bug fix 2026-07-26).
+const MIN_W = 44, MAX_W = 170, MIN_H = 58, MAX_H = 230
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
 
 export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function ReactionChainLayer(_props, ref) {
@@ -97,8 +110,8 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
     }
     return lut
   }
-  const ptAt = (lut: Run['lut'], fr: number) => {
-    const S = lut[LUT_N].s * Math.max(0, Math.min(1, fr))
+  const ptAt = (lut: Strand['lut'], fr: number) => {
+    const S = lut[LUT_N].s * clamp(fr, 0, 1)
     let lo = 0, hi = LUT_N
     while (lo < hi) { const m = (lo + hi) >> 1; if (lut[m].s < S) lo = m + 1; else hi = m }
     const i = Math.max(1, lo), a = lut[i - 1], b = lut[i]
@@ -133,19 +146,19 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
     const c = Math.cos(rot), s = Math.sin(rot), ex = rx * Math.cos(a), ey = ry * Math.sin(a)
     return { x: cx + ex * c - ey * s, y: cy + ex * s + ey * c, ang: rot + a + Math.PI / 2 }
   }
-  /** Dvi apsivijimo kilpos aplink taikinio kortą (mastelis pagal kortos plotį). */
-  const wrapLinks = (to: { x: number; y: number }, size: { w: number; h: number }, k1: number, k2: number) => {
-    const sc = size.w / 70
+  /** Dvi apsivijimo kilpos aplink KONKRETŲ taikinį (mastelis – iš kortos pločio). */
+  const wrapLinks = (st: Strand, k1: number, k2: number) => {
+    const sc = st.size.w / 70
     const out: { x: number; y: number; ang: number; i: number }[] = []
     const es = [
-      { rx: 52 * sc, ry: 24 * sc, rot: -0.32, cy: to.y - 12 * sc, k: k1 },
-      { rx: 55 * sc, ry: 22 * sc, rot: 0.26, cy: to.y + 16 * sc, k: k2 },
+      { rx: 52 * sc, ry: 24 * sc, rot: -0.32, cy: st.to.y - 12 * sc, k: k1 },
+      { rx: 55 * sc, ry: 22 * sc, rot: 0.26, cy: st.to.y + 16 * sc, k: k2 },
     ]
     es.forEach((e, ei) => {
       const lim = Math.floor(WRAP_LINKS * e.k)
       for (let i = 0; i < lim; i++) {
         const a = -Math.PI / 2 + (i / WRAP_LINKS) * Math.PI * 2
-        const p = ellipsePt(to.x, e.cy, e.rx, e.ry, e.rot, a)
+        const p = ellipsePt(st.to.x, e.cy, e.rx, e.ry, e.rot, a)
         out.push({ ...p, i: i + ei })
       }
     })
@@ -181,18 +194,15 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
 
       if (run) {
         const C = VAR[run.opts.variant ?? 'shadow']
-        const size = run.opts.targetSize ?? { w: 70, h: 96 }
-        const to = run.opts.to, from = run.opts.from
+        const from = run.opts.from
         const t = now - run.t0
         const reduced = !!run.opts.reduced
-        // fazių ribos (reduced: be skrydžio)
-        const b = reduced
-          ? [0, PH.detect, PH.detect, PH.detect + 250, run.gateMs, run.totalMs]
-          : [0, PH.detect, PH.detect + PH.chain, PH.detect + PH.chain + PH.wrap, run.gateMs, run.totalMs]
+        const wrapDur = reduced ? 250 : PH.wrap
+        const chainDur = reduced ? 0 : PH.chain
 
-        // P0 – rune flare nuo reakcijos kortos
-        if (t < b[1] + 120) {
-          const k = Math.min(1, Math.max(0, (t - 40) / 280))
+        // P0 – rune flare nuo reakcijos kortos (bendras visoms grandinėms)
+        if (t < PH.detect + 120) {
+          const k = clamp((t - 40) / 280, 0, 1)
           if (k > 0) {
             ctx.save(); ctx.globalAlpha = (1 - k) * 0.9
             ctx.beginPath(); ctx.arc(from.x, from.y, 10 + k * 34, 0, 7)
@@ -200,71 +210,82 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
             ctx.shadowColor = C.glow; ctx.shadowBlur = 12; ctx.stroke(); ctx.restore()
           }
         }
-        // P1 – skrydis
-        if (!reduced && t >= b[1] && t < b[2]) {
-          const k = easeOutCubic((t - b[1]) / PH.chain)
-          const step = LINK_SPACING / run.lut[LUT_N].s
-          let i = 0
-          for (let s = 0; s <= k; s += step, i++) {
-            const p = ptAt(run.lut, s)
-            const rel = k > 0 ? s / k : 0
-            const sway = Math.sin(now * 0.02 + i * 1.1) * 5 * (1 - rel)
-            link(ctx, C, p.x + Math.cos(p.ang + Math.PI / 2) * sway, p.y + Math.sin(p.ang + Math.PI / 2) * sway, p.ang, i, 0.55 + 0.45 * rel)
-          }
-          const head = ptAt(run.lut, k)
-          arrowHead(ctx, C, head.x, head.y, head.ang)
-          if (Math.random() < 0.85) parts.push({ x: head.x, y: head.y, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, life: 0.8, dk: 0.05, c: C.ember, r: 1.3 })
-        }
-        // P2/P3 – apsivijimas + susiveržimas (kilpos lieka per showcase)
-        if (t >= b[2] && t < b[4]) {
-          const wrapDur = reduced ? 250 : PH.wrap
-          const k = Math.min(1, (t - b[2]) / wrapDur)
-          if (!reduced) {
-            const pull = Math.min(1, k * 1.8)
-            if (pull < 1) {
-              const step = LINK_SPACING / run.lut[LUT_N].s
-              let i = 0
-              for (let s = pull; s <= 1; s += step, i++) { const p = ptAt(run.lut, s); link(ctx, C, p.x, p.y, p.ang, i, 1 - pull * 0.6) }
+
+        // Kiekvienas taikinys – SAVO grandinė (savo laikas su poslinkiu)
+        for (const st of run.strands) {
+          const tl = t - st.stagger
+          if (tl < 0) continue
+          const bChain = PH.detect
+          const bWrap = PH.detect + chainDur
+          const bEffect = bWrap + wrapDur + PH.showcase
+
+          // P1 – skrydis
+          if (!reduced && tl >= bChain && tl < bWrap) {
+            const k = easeOutCubic((tl - bChain) / chainDur)
+            const step = LINK_SPACING / st.lut[LUT_N].s
+            let i = 0
+            for (let s = 0; s <= k; s += step, i++) {
+              const p = ptAt(st.lut, s)
+              const rel = k > 0 ? s / k : 0
+              const sway = Math.sin(now * 0.02 + i * 1.1) * 5 * (1 - rel)
+              link(ctx, C, p.x + Math.cos(p.ang + Math.PI / 2) * sway, p.y + Math.sin(p.ang + Math.PI / 2) * sway, p.ang, i, 0.55 + 0.45 * rel)
             }
+            const head = ptAt(st.lut, k)
+            arrowHead(ctx, C, head.x, head.y, head.ang)
+            if (Math.random() < 0.6) parts.push({ x: head.x, y: head.y, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, life: 0.8, dk: 0.05, c: C.ember, r: 1.3 })
           }
-          const k1 = Math.min(1, k / 0.55), k2 = Math.max(0, Math.min(1, (k - 0.3) / 0.65))
-          const sc = k > 0.72 ? 1 + 0.12 * (1 - Math.min(1, (k - 0.72) / 0.28)) : 1.12
-          ctx.save(); ctx.translate(to.x, 0); ctx.scale(sc, 1); ctx.translate(-to.x, 0)
-          wrapLinks(to, size, k1, k2).forEach((p) => link(ctx, C, p.x, p.y, p.ang, p.i, 0.95))
-          ctx.restore()
-          ctx.save(); ctx.globalAlpha = 0.5 + 0.3 * Math.sin(now * 0.008)
-          ctx.beginPath(); ctx.roundRect(to.x - size.w / 2 - 3, to.y - size.h / 2 - 3, size.w + 6, size.h + 6, 8)
-          ctx.strokeStyle = C.glow; ctx.lineWidth = 1.6; ctx.shadowColor = C.glow; ctx.shadowBlur = 16; ctx.stroke(); ctx.restore()
-        }
-        // P4 – sudužimas (jau PO to, kai būsena pritaikyta)
-        if (t >= b[4]) {
-          if (!run.shattered) {
-            run.shattered = true
-            wrapLinks(to, size, 1, 1).forEach((p) => {
-              const a = Math.atan2(p.y - to.y, p.x - to.x)
-              parts.push({ x: p.x, y: p.y, vx: Math.cos(a) * (1 + Math.random() * 2), vy: Math.sin(a) * (1 + Math.random() * 2) - 0.8, life: 1, dk: 0.018, c: C.metal, r: 1.6, g: 0.12 })
-            })
-            for (let i = 0; i < 26; i++) {
-              const a = Math.random() * 7, v = 1.5 + Math.random() * 3.5
-              parts.push({ x: to.x, y: to.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life: 1, dk: 0.02 + Math.random() * 0.02, c: Math.random() < 0.5 ? C.impact : C.glow2, r: 1 + Math.random() * 2.5 })
+          // P2/P3 – apsivijimas + susiveržimas (kilpos lieka per showcase)
+          if (tl >= bWrap && tl < bEffect) {
+            const k = Math.min(1, (tl - bWrap) / wrapDur)
+            if (!reduced) {
+              const pull = Math.min(1, k * 1.8)
+              if (pull < 1) {
+                const step = LINK_SPACING / st.lut[LUT_N].s
+                let i = 0
+                for (let s = pull; s <= 1; s += step, i++) { const p = ptAt(st.lut, s); link(ctx, C, p.x, p.y, p.ang, i, 1 - pull * 0.6) }
+              }
             }
-            run.opts.onShake?.('hard')
+            const k1 = Math.min(1, k / 0.55), k2 = clamp((k - 0.3) / 0.65, 0, 1)
+            const sc = k > 0.72 ? 1 + 0.12 * (1 - Math.min(1, (k - 0.72) / 0.28)) : 1.12
+            ctx.save(); ctx.translate(st.to.x, 0); ctx.scale(sc, 1); ctx.translate(-st.to.x, 0)
+            wrapLinks(st, k1, k2).forEach((p) => link(ctx, C, p.x, p.y, p.ang, p.i, 0.95))
+            ctx.restore()
+            ctx.save(); ctx.globalAlpha = 0.5 + 0.3 * Math.sin(now * 0.008)
+            ctx.beginPath(); ctx.roundRect(st.to.x - st.size.w / 2 - 3, st.to.y - st.size.h / 2 - 3, st.size.w + 6, st.size.h + 6, 8)
+            ctx.strokeStyle = C.glow; ctx.lineWidth = 1.6; ctx.shadowColor = C.glow; ctx.shadowBlur = 16; ctx.stroke(); ctx.restore()
           }
-          const k = (t - b[4]) / PH.effect
-          if (k < 0.5) {
-            ctx.save(); ctx.globalAlpha = 1 - k * 2
-            ctx.beginPath(); ctx.arc(to.x, to.y, 10 + k * 130, 0, 7)
-            ctx.strokeStyle = C.impact; ctx.lineWidth = 3 * (1 - k)
-            ctx.shadowColor = C.glow; ctx.shadowBlur = 20; ctx.stroke(); ctx.restore()
+          // P4 – sudužimas (jau PO to, kai būsena pritaikyta)
+          if (tl >= bEffect) {
+            if (!st.shattered) {
+              st.shattered = true
+              wrapLinks(st, 1, 1).forEach((p) => {
+                const a = Math.atan2(p.y - st.to.y, p.x - st.to.x)
+                parts.push({ x: p.x, y: p.y, vx: Math.cos(a) * (1 + Math.random() * 2), vy: Math.sin(a) * (1 + Math.random() * 2) - 0.8, life: 1, dk: 0.018, c: C.metal, r: 1.6, g: 0.12 })
+              })
+              const burst = run.strands.length > 3 ? 14 : 26
+              for (let i = 0; i < burst; i++) {
+                const a = Math.random() * 7, v = 1.5 + Math.random() * 3.5
+                parts.push({ x: st.to.x, y: st.to.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life: 1, dk: 0.02 + Math.random() * 0.02, c: Math.random() < 0.5 ? C.impact : C.glow2, r: 1 + Math.random() * 2.5 })
+              }
+            }
+            const k = (tl - bEffect) / PH.effect
+            if (k < 0.5) {
+              ctx.save(); ctx.globalAlpha = 1 - k * 2
+              ctx.beginPath(); ctx.arc(st.to.x, st.to.y, 10 + k * 130, 0, 7)
+              ctx.strokeStyle = C.impact; ctx.lineWidth = 3 * (1 - k)
+              ctx.shadowColor = C.glow; ctx.shadowBlur = 20; ctx.stroke(); ctx.restore()
+            }
           }
         }
 
-        // fazių pranešimai + vartų signalas
-        const ph: ReactionChainPhase = t < b[1] ? 'detect' : t < b[2] ? 'chain' : t < b[3] ? 'wrap' : t < b[4] ? 'showcase' : 'effect'
+        // fazių pranešimai (pagal pirmą grandinę) + vartų signalas
+        const b1 = PH.detect, b2 = PH.detect + chainDur, b3 = b2 + wrapDur
+        const ph: ReactionChainPhase = t < b1 ? 'detect' : t < b2 ? 'chain' : t < b3 ? 'wrap' : t < run.gateMs ? 'showcase' : 'effect'
         if (ph !== run.phase) {
           run.phase = ph
           run.opts.onPhase?.(ph)
           if (ph === 'wrap') run.opts.onShake?.('soft')
+          if (ph === 'effect') run.opts.onShake?.('hard')
         }
         if (t >= run.gateMs) finishRun(run)          // ← vienintelis autoritetinis signalas
         if (t >= run.totalMs) runRef.current = null
@@ -293,19 +314,33 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
     play: (o: ReactionChainPlayOpts) => {
       finishRun(runRef.current)   // niekada nepersidengia: ankstesnis užbaigiamas
       const reduced = !!o.reduced
-      const gateMs = reduced ? REACTION_CHAIN_REDUCED_GATE_MS : REACTION_CHAIN_GATE_MS
-      const totalMs = reduced ? REACTION_CHAIN_REDUCED_GATE_MS + 400 : REACTION_CHAIN_TOTAL_MS
-      const dx = o.to.x - o.from.x, dy = o.to.y - o.from.y
-      const L = Math.max(1, Math.hypot(dx, dy))
-      let nx = -dy / L, ny = dx / L
-      if (nx < 0) { nx = -nx; ny = -ny }                      // lankas visada į ekrano vidų
-      const bow = Math.min(120, L * 0.42)
-      const ctrl = { x: (o.from.x + o.to.x) / 2 + nx * bow, y: (o.from.y + o.to.y) / 2 + ny * bow }
-      return new Promise<void>((resolve) => {
-        runRef.current = {
-          opts: o, t0: performance.now(), gateMs, totalMs, resolved: false, resolve,
-          phase: null, shattered: false, ctrl, lut: buildLut(o.from, o.to, ctrl),
+      const list = (o.targets ?? []).filter(Boolean)
+      const targets = list.length > 0 ? list : [{ x: o.from.x, y: o.from.y }]
+      const strands: Strand[] = targets.map((tg, i) => {
+        const size = {
+          w: clamp(tg.w ?? 70, MIN_W, MAX_W),
+          h: clamp(tg.h ?? 96, MIN_H, MAX_H),
         }
+        const dx = tg.x - o.from.x, dy = tg.y - o.from.y
+        const L = Math.max(1, Math.hypot(dx, dy))
+        let nx = -dy / L, ny = dx / L
+        if (nx < 0) { nx = -nx; ny = -ny }                    // lankas visada į ekrano vidų
+        // kelių grandinių lankai skiriasi, kad nesusilietų į vieną „kamuolį"
+        const bowBase = Math.min(120, L * 0.42)
+        const bow = targets.length > 1 ? bowBase * (0.6 + 0.5 * ((i % 3) / 2)) : bowBase
+        const ctrl = { x: (o.from.x + tg.x) / 2 + nx * bow, y: (o.from.y + tg.y) / 2 + ny * bow }
+        return {
+          to: { x: tg.x, y: tg.y }, size,
+          stagger: Math.min(i * STAGGER_MS, STAGGER_MAX_MS),
+          lut: buildLut(o.from, { x: tg.x, y: tg.y }, ctrl),
+          shattered: false,
+        }
+      })
+      const maxStagger = strands.reduce((m, s) => Math.max(m, s.stagger), 0)
+      const gateMs = (reduced ? REACTION_CHAIN_REDUCED_GATE_MS : REACTION_CHAIN_GATE_MS) + maxStagger
+      const totalMs = gateMs + (reduced ? 400 : REACTION_CHAIN_PHASES.effect)
+      return new Promise<void>((resolve) => {
+        runRef.current = { opts: o, t0: performance.now(), gateMs, totalMs, resolved: false, resolve, phase: null, strands }
       })
     },
     cancel: () => { finishRun(runRef.current); runRef.current = null; partsRef.current = [] },

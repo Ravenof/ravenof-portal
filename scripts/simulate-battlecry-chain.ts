@@ -288,5 +288,56 @@ console.log('\n── 10. Dvi reakcijos: du kadrai iš eilės, be persidengimo �
   check('kiekvienas kadras turi savo log poziciją', (gates[0].atLog ?? 0) < (gates[1].atLog ?? 0))
 }
 
+
+console.log('\n── 11. Kelių taikinių reakcija: kiekvienas taikinys atskirai (grandinei) ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const mkU = (uid: string, hp: number) => {
+    const c = mkCard({ name: uid, uid, attack: 2, health: hp })
+    return { uid, card: c, atk: 2, hp, maxHp: hp, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  }
+  p.units[0] = mkU('e1', 5) as never
+  p.units[1] = mkU('e2', 5) as never
+  p.units[2] = mkU('e3', 5) as never
+  // AoE reakcija: 1 žala VISIEMS priešo padarams
+  const aoe = mkCard({
+    name: 'Grandinių Audra', uid: 'raoe', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'allEnemyUnits', value: 1, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'raoe', card: aoe, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'e1', { kind: 'player', side: 'you' })
+
+  const gate = (g.reactionGates ?? [])[0]
+  check('sukurtas vartų kadras', !!gate)
+  const tg = gate?.targets ?? []
+  check('užfiksuoti VISI paveikti taikiniai (3)', tg.length === 3, JSON.stringify(tg.map((t) => ('uid' in t ? t.uid : t.kind))))
+  check('taikiniai turi runtime uid (ne kortos vardą)', tg.every((t) => 'uid' in t && !!t.uid))
+  check('taikiniai nesikartoja', new Set(tg.map((t) => ('uid' in t ? t.uid : t.kind))).size === tg.length)
+  const hps = ['e1', 'e2', 'e3'].map((u) => P(g, 'ai').units.find((x) => x?.uid === u)?.hp ?? -1)
+  check('visi gavo žalos (4/4/4)', hps.every((h) => h === 4), hps.join(','))
+}
+
+console.log('\n── 12. Reakcija į žaidėjo avatarą – irgi atskiras taikinys ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const c = mkCard({ name: 'Puolikas', uid: 'atkP', attack: 2, health: 5 })
+  p.units[0] = { uid: 'atkP', card: c, atk: 2, hp: 5, maxHp: 5, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false } as never
+  const rp = mkCard({
+    name: 'Atpildas', uid: 'rp1', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyPlayer', value: 2, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'rp1', card: rp, paid: 0 }
+  g.active = 'ai'
+  const hpBefore = g.ai.hp
+  attack(g, 'ai', 'atkP', { kind: 'player', side: 'you' })
+  const gate = (g.reactionGates ?? [])[0]
+  const tg = gate?.targets ?? []
+  check('taikinys – žaidėjo avataras', tg.length === 1 && tg[0].kind === 'player', JSON.stringify(tg))
+  check('priešo HP sumažėjo', g.ai.hp < hpBefore, `${hpBefore} → ${g.ai.hp}`)
+}
+
 console.log(`\n──────────────\n  PASS: ${pass}   FAIL: ${fail}\n──────────────`)
 process.exit(fail ? 1 : 0)

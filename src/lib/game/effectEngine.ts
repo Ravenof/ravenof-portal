@@ -73,6 +73,27 @@ export type ApplyCtx = {
 // killUnit (engine) pabaigoje iššauna kredituoto šaltinio onDestroy mapping'us.
 export type KillCredit = { side: Side; uid?: string; name: string; mappings: EffectMapping[]; depth: number }
 
+// ── Reakcijos taikinių fiksavimas (grandinės animacijai) ────────────────────
+// Kol vykdomi reakcijos mapping'ai, čia surenkami VISI realiai paveikti taikiniai
+// (padarai, artefaktai, žaidėjo avataras) – UI kiekvienam nupiešia atskirą grandinę.
+let targetCapture: ResolvedTarget[] | null = null
+export function beginTargetCapture() { targetCapture = [] }
+export function endTargetCapture(): ResolvedTarget[] {
+  const out = targetCapture ?? []
+  targetCapture = null
+  return out
+}
+function noteTargets(list: ResolvedTarget[]) {
+  if (!targetCapture) return
+  for (const t of list) {
+    if (t.kind === 'field') continue
+    const key = t.kind + ':' + ('side' in t ? t.side : '') + ':' + ('uid' in t ? t.uid : '')
+    if (!targetCapture.some((x) => x.kind + ':' + ('side' in x ? x.side : '') + ':' + ('uid' in x ? x.uid : '') === key)) {
+      targetCapture.push(t)
+    }
+  }
+}
+
 const MAX_DEPTH = 4
 // Globali kaskados riba: apsaugo nuo begalinės rekursijos, kai trigger'iai (pvz.
 // onDeath/onAnyDeath) iškviečiami su depth=0 (debuff→mirtis→deathrattle→debuff…).
@@ -258,6 +279,8 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noValidTarget', params: { src: ctx.sourceName } })
     return false
   }
+
+  noteTargets(targets)   // grandinės animacijai: po vieną grandinę kiekvienam taikiniui
 
   const foe: Side = caster === 'you' ? 'ai' : 'you'
   let applied = true

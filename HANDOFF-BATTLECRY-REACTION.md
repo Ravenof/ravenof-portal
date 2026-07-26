@@ -645,3 +645,34 @@ dvi reakcijos → du kadrai iš eilės, antro snapshot'e matomas pirmo efektas).
 - Garso failai (launch swoosh / metal impact / tighten / shatter) — kol kas naudojami esami SFX.
 - Efekto variantas renkamas iš frakcijos vardo (demonai/prakeiksmai → `infernal`); vėliau galima imti
   iš `effectAnimationMap` frakcijų palečių.
+
+---
+
+# BUG FIX — kelių taikinių grandinės (commit528, 2026-07-26)
+
+**Simptomas (žaidėjo ekrano nuotrauka):** kai reakcija paveikia kelis taikinius, grandys išsibarsto
+per visą lentą — vietoj tvarkingos grandinės matosi atsitiktinai pasklidę žiedai/briaunos.
+
+**Priežastis:** buvo piešiama TIK viena grandinė į „trigerio šaltinį". Kai to šaltinio elemento
+DOM'e nebūdavo (pvz. reakcija į burtą — nėra kortos lentoje) arba efektas buvo zoninis, taikinio
+dėžutė nusileisdavo į zonos fallback'ą (`[data-tut="units-*"]`), o apsivijimo kilpų mastelis buvo
+skaičiuojamas iš JOS pločio (`size.w / 70`). Zona ~1400 px → mastelis ~20× → kilpos rx≈1000 px,
+t. y. grandys išsidėsto elipse per visą ekraną.
+
+**Pataisyta:**
+1. **Po grandinę kiekvienam taikiniui.** `effectEngine` reakcijos vykdymo metu fiksuoja VISUS realiai
+   paveiktus taikinius (`beginTargetCapture`/`endTargetCapture`, dedublikuota, be `field`), variklis
+   juos įrašo į `ReactionGate.targets` (padarai, artefaktai IR žaidėjo avataras — `kind:'player'`).
+   `swapPerspective` apverčia ir šį sąrašą (PvP svečiui).
+2. **`ReactionChainLayer` piešia N atskirų grandinių** (`play({ from, targets })`): kiekviena su savo
+   Bezier trajektorija (skirtingi lankai, kad nesusilietų), savo apsivijimu, savo sudužimu ir 80 ms
+   poslinkiu (viso ne daugiau 240 ms), tad vartai pailgėja tik iki ~3.44 s.
+3. **Kilpų mastelis ribojamas kortos dydžiu** (`w` 44–170, `h` 58–230 px). Zonos fallback'as dabar
+   duoda tik POZICIJĄ, o dydis imamas kortos etaloninis — išsibarstymas nebeįmanomas net ir tada,
+   kai taikinio elemento nerandama.
+4. UI riba: daugiausiai 6 vienalaikės grandinės (daugiau — vizualus triukšmas); burst dalelių kiekis
+   mažinamas, kai grandinių >3.
+
+**Peržiūra:** `ravenof-fx-preview-reaction-chain-multi.html` (1 taikinys / 3 padarai / padarai+artefaktas+avataras).
+**Testai:** 55/55 (nauji: AoE reakcija užfiksuoja visus 3 padarus su runtime uid ir be dublikatų;
+reakcija į žaidėją duoda `kind:'player'` taikinį).

@@ -5,7 +5,7 @@
 
 import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType, SpellType, AttackRestriction } from '@/lib/game/types'
 import { buildZmkDeck } from '@/lib/game/zmkEngine'
-import { applyMappings, applyMapping, mappingNeedsSelection, type GameApi } from '@/lib/game/effectEngine'
+import { applyMappings, applyMapping, mappingNeedsSelection, beginTargetCapture, endTargetCapture, type GameApi } from '@/lib/game/effectEngine'
 import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
 import * as fieldEngine from '@/lib/game/fieldEngine'
 import { fireTrigger } from '@/lib/game/triggerSystem'
@@ -1872,9 +1872,12 @@ export type ReactionGate = {
   side: Side
   reactionUid: string
   reactionCardName: string
-  /** Reakciją suaktyvinusi korta (grandinės taikinys). */
+  /** Reakciją suaktyvinusi korta (pagrindinis grandinės taikinys). */
   target?: TargetRef
   targetName?: string
+  /** VISI realiai paveikti taikiniai (padarai, artefaktai, žaidėjo avataras).
+   *  UI kiekvienam piešia ATSKIRĄ grandinę – niekada vienos „išsibarsčiusios". */
+  targets?: TargetRef[]
 }
 
 const reactionSnapshots = new Map<number, GameState>()
@@ -1985,14 +1988,23 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
           // taikinys grandinės animacijai: korta, kurios veiksmas suaktyvino reakciją
           tgt: trigSrc ? { kind: trigSrc.kind, side: trigSrc.side, uid: 'uid' in trigSrc ? trigSrc.uid : undefined } : undefined,
         })
-        for (const m of rms) {
-          applyMapping(gameApi, g, sd, m, {
-            sourceName: r.card.name, sourceUid: r.uid, depth: 2,
-            triggerSource: trigSrc ? toResolved(trigSrc) : undefined,
-            triggerSourceName: trigSrcName,
-          })
-          if (g.winner) return
+        beginTargetCapture()
+        let capturedTargets: TargetRef[] = []
+        try {
+          for (const m of rms) {
+            applyMapping(gameApi, g, sd, m, {
+              sourceName: r.card.name, sourceUid: r.uid, depth: 2,
+              triggerSource: trigSrc ? toResolved(trigSrc) : undefined,
+              triggerSourceName: trigSrcName,
+            })
+            if (g.winner) break
+          }
+        } finally {
+          capturedTargets = endTargetCapture() as TargetRef[]
+          const gate = g.reactionGates?.find((x) => x.id === gateSnapId)
+          if (gate) gate.targets = capturedTargets.length > 0 ? capturedTargets : (trigSrc ? [trigSrc] : [])
         }
+        if (g.winner) return
       }
     }
   } finally {
@@ -3298,6 +3310,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.reactionGates) c.reactionGates.forEach((rg) => {
     rg.side = other(rg.side)
     if (rg.target) rg.target = { ...rg.target, side: other(rg.target.side) } as TargetRef
+    if (rg.targets) rg.targets = rg.targets.map((t) => ({ ...t, side: other(t.side) }) as TargetRef)
   })
   // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
   for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }
