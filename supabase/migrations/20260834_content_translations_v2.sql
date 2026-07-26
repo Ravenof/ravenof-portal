@@ -8,7 +8,7 @@
 
 -- ── Kosmetika (cosmetics.id = slug) — EN pagal LT pavadinimą ───────────────
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'cosmetic', c.id, 'en', 'name', x.en_name
+select distinct on (c.id) 'cosmetic', c.id, 'en', 'name', x.en_name
 from public.cosmetics c
 join (values
   ('Įprasta nugarėlė',      'Standard Card Back',  'A plain card back'),
@@ -36,32 +36,33 @@ join (values
   ('Miško laukas',          'Forest Board',        'A green battlefield'),
   ('Pragaro laukas',        'Inferno Board',       'A field of fire and ash')
 ) as x(lt_name, en_name, en_desc) on x.lt_name = c.name
+order by c.id
 on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
 
+-- Aprašai: pirmenybė sutapimui pagal PAVADINIMĄ, tik tada pagal LT aprašą.
+-- `distinct on (c.id)` – kad viename insert'e nebūtų dviejų eilučių tai pačiai kortelei.
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'cosmetic', c.id, 'en', 'description', x.en_desc
+select distinct on (c.id) 'cosmetic', c.id, 'en', 'description', x.en_desc
 from public.cosmetics c
 join (values
-  ('Įprasta nugarėlė',      'A plain card back'),
-  ('Nuodų nugarėlė',        'A venomous card back'),
-  ('Žaibo nugarėlė',        'A crackling card back'),
-  ('Elektrinė nugarėlė',    'An electrified card back'),
-  ('Nuotykių ieškotoja',    'A seeker of adventure'),
-  ('Nuotykių ieškotojas',   'A seeker of adventure'),
-  ('Išskirtinė nugarėlė',   'An exclusive card back'),
-  ('Išskirtinis avataras',  'An exclusive avatar')
-) as x(lt_name, en_desc) on x.lt_name = c.name or x.lt_name = c.description
+  ('Įprasta nugarėlė',      'A plain card back',        1),
+  ('Nuodų nugarėlė',        'A venomous card back',     1),
+  ('Žaibo nugarėlė',        'A crackling card back',    1),
+  ('Elektrinė nugarėlė',    'An electrified card back', 1),
+  ('Nuotykių ieškotoja',    'A seeker of adventure',    1),
+  ('Nuotykių ieškotojas',   'A seeker of adventure',    1),
+  ('Išskirtinė nugarėlė',   'An exclusive card back',   2),
+  ('Išskirtinė nugarėlė — tik už rubinus', 'An exclusive card back — rubies only', 2),
+  ('Išskirtinis avataras',  'An exclusive avatar',      2),
+  ('Išskirtinis avataras — tik už rubinus', 'An exclusive avatar — rubies only',   2)
+) as x(lt_text, en_desc, prio)
+  on (x.prio = 1 and x.lt_text = c.name) or (x.prio = 2 and x.lt_text = c.description)
+order by c.id, x.prio
 on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
-
--- Bendrinės kosmetikos aprašų frazės (jei aprašas sutampa 1:1)
-update public.content_translations ct
-set value = 'An exclusive card back', updated_at = now()
-where ct.owner_type = 'cosmetic' and ct.locale = 'en' and ct.field = 'description'
-  and ct.value in ('Išskirtinė nugarėlė', 'Išskirtinė nugarėlė — tik už rubinus');
 
 -- ── Parduotuvės prekės: EN pagal LT pavadinimą (naujos prekės) ─────────────
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'shop_item', s.slug, 'en', 'name', x.en_name
+select distinct on (s.slug) 'shop_item', s.slug, 'en', 'name', x.en_name
 from public.shop_items s
 join (values
   ('Gėrio gynėjai',   'Defenders of Good'),
@@ -77,11 +78,13 @@ join (values
   ('Nuotykių ieškotoja','Adventurer'),
   ('Nuotykių ieškotojas','Adventurer')
 ) as x(lt_name, en_name) on x.lt_name = s.name
+where s.slug is not null
+order by s.slug
 on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
 
 -- ── Kortų pakuotės (card_packs) ────────────────────────────────────────────
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'card_pack', p.id::text, 'en', 'name', x.en_name
+select distinct on (p.id) 'card_pack', p.id::text, 'en', 'name', x.en_name
 from public.card_packs p
 join (values
   ('Gėrio gynėjai',   'Defenders of Good'),
@@ -92,11 +95,12 @@ join (values
   ('Frakcijos pakuotė',   'Faction Pack'),
   ('Čempionų pakuotė',    'Champion Pack')
 ) as x(lt_name, en_name) on x.lt_name = p.name
+order by p.id
 on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
 
 -- ── Sezonai (season_pass_seasons) ──────────────────────────────────────────
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'season', s.id::text, 'en', 'title', x.en_title
+select distinct on (s.id) 'season', s.id::text, 'en', 'title', x.en_title
 from public.season_pass_seasons s
 join (values
   ('PIRMASIS SEZONAS', 'FIRST SEASON'),
@@ -104,6 +108,7 @@ join (values
   ('ANTRASIS SEZONAS', 'SECOND SEASON'),
   ('Antrasis sezonas', 'Second Season')
 ) as x(lt_title, en_title) on x.lt_title = s.title
+order by s.id
 on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
 
 -- LT snapshot'ai naujiems tipams (admin redagavimui)
@@ -113,7 +118,7 @@ on conflict (owner_type, owner_id, locale, field) do nothing;
 
 -- ── Starterinės kaladės (starter_decks) — pavadinimai/aprašymai ────────────
 insert into public.content_translations (owner_type, owner_id, locale, field, value)
-select 'starter_deck', d.id::text, 'en', 'name', x.en_name
+select distinct on (d.id) 'starter_deck', d.id::text, 'en', 'name', x.en_name
 from public.starter_decks d
 join (values
   ('Mirties maršas',        'March of Death'),
@@ -125,6 +130,7 @@ join (values
   ('Plėšikų naktis',        'Night of Thieves'),
   ('Vryhioko gauja',        'Vryhiok Pack')
 ) as x(lt_name, en_name) on x.lt_name = d.name
+order by d.id
 on conflict (owner_type, owner_id, locale, field) do update set value = excluded.value, updated_at = now();
 
 -- ── Ataskaita: kiek EN įrašų pagal tipą ────────────────────────────────────
