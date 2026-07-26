@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
-import { getShop, purchaseShopItem, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
+import { getShop, purchaseShopItem, purchaseShopItemBulk, isStackable, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
 import { useT, useContent } from '@/lib/i18n/react'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
@@ -55,6 +55,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const [detailCards, setDetailCards] = useState<StarterCard[] | null>(null)
   const [detailFactions, setDetailFactions] = useState<PackFaction[] | null>(null)
   const [detailBusy, setDetailBusy] = useState(false)
+  /** Kiekis kiekinėms prekėms (boosteriai): ×1 / ×5 / ×10. */
+  const [qty, setQty] = useState(1)
   useEffect(() => {
     const tick = () => {
       const now = new Date(); const mid = new Date(now); mid.setHours(24, 0, 0, 0)
@@ -83,10 +85,14 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   const flash = (m: string, err = false) => { (err ? playError : playSuccess)(); setToast(m) }
 
-  const buyShop = useCallback(async (it: ShopItem, cur: 'silver' | 'rubies') => {
+  const buyShop = useCallback(async (it: ShopItem, cur: 'silver' | 'rubies', n = 1) => {
     if (busy) return; setBusy(true); playUiClick()
-    const r = await purchaseShopItem(it.id, cur)
-    if (r && 'ok' in r) { flash(t('shop.purchased', { name: shopName(it) })); onPurchased?.(); refresh() }
+    const r = n > 1 ? await purchaseShopItemBulk(it.id, cur, n) : await purchaseShopItem(it.id, cur)
+    if (r && 'ok' in r) {
+      const got = r.quantity ?? n
+      flash(got > 1 ? t('shop.purchasedN', { name: shopName(it), count: got }) : t('shop.purchased', { name: shopName(it) }))
+      onPurchased?.(); refresh()
+    }
     else if (r && 'error' in r) flash(PURCHASE_ERR_KEY[r.error] ? t(PURCHASE_ERR_KEY[r.error]) : t('shop.buyFailed'), true)
     setBusy(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,7 +118,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   // Detalios peržiūros duomenys: starter kaladės sudėtis / boosterio frakcijos
   useEffect(() => {
-    setDetailCards(null); setDetailFactions(null)
+    setDetailCards(null); setDetailFactions(null); setQty(1)
     if (!sel) return
     let alive = true
     if (sel.t === 'starter') {
@@ -180,13 +186,6 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       <SmartImg src={src} width={w} className="absolute inset-0 w-full h-full" style={{ objectFit: 'contain' }} />
     </>
   )
-  /** Didelis vaizdas detalioje peržiūroje. */
-  const heroArt = (src: string | null) => src ? (
-    <div className="relative mx-auto overflow-hidden" style={{ width: '100%', height: 'min(38vh, 250px)', marginTop: 10, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)' }}>
-      {artFull(src, 640, '50% 30%')}
-    </div>
-  ) : null
-
   const priceRow = (silver?: number | null, rubies?: number | null, state?: { label: string; color: string } | null) => (
     <div className="shrink-0 flex items-center justify-center" style={{ gap: 5, padding: '6px 4px', borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
       {state ? <span style={{ font: '700 11px var(--ravenof-font-body)', color: state.color }}>{state.label}</span> : <>
@@ -211,31 +210,58 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     </button>
   )
 
-  // ── Patvirtinimo dialogas (prototipo SHOP CONFIRM) ──
+  // ── Detali prekės peržiūra (dviejų stulpelių: vaizdas | info + pirkimas) ──
+  // Landscape ekrane šonuose buvo daug tuščios vietos, o pirkimo mygtukus
+  // reikėdavo pasiekti slenkant. Dabar: kairėje – vaizdas, dešinėje – info
+  // (slenkasi TIK vidinis sąrašas), o veiksmų juosta visada matoma apačioje.
   const confirmDialog = (() => {
     if (!sel) return null
     const close = () => { playUiClick(); setSel(null) }
-    let name = '', sub: string | null = null, body: React.ReactNode = null
+    let name = '', sub: string | null = null
+    let heroSrc: string | null = null
+    let details: React.ReactNode = null
     const actions: React.ReactNode[] = []
+    let qtyRow: React.ReactNode = null
+
+    const sectionTitle = (txt: string) => (
+      <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)', marginBottom: 5 }}>{txt}</div>
+    )
+    const buyBtn = (key: string, label: string, enough: boolean, onClick: () => void, danger = false) => (
+      <button key={key} onClick={onClick} disabled={busy || !enough}
+        style={{ flex: 1, minWidth: 120, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1,
+          color: enough ? (danger ? 'var(--ravenof-text-primary)' : 'var(--ravenof-on-gold)') : '#5e5868',
+          background: enough ? (danger ? 'linear-gradient(180deg,#a53a47,var(--ravenof-danger))' : 'var(--ravenof-grad-gold)') : 'var(--ravenof-bg-elevated)',
+          padding: 11, border: 0, cursor: enough ? 'pointer' : 'default',
+          clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>
+        {busy ? '…' : label}
+      </button>
+    )
+    const stateBox = (key: string, txt: string, color: string, border: string) => (
+      <div key={key} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color, border: `1px solid ${border}`, padding: 11 }}>{txt}</div>
+    )
+
     if (selShop) {
       name = shopName(selShop); sub = shopDesc(selShop)
-      const shopImg = packImgOf(selShop) ?? visOf(selShop)?.imageUrl ?? null
-      body = (
+      heroSrc = packImgOf(selShop) ?? visOf(selShop)?.imageUrl ?? null
+      const stack = isStackable(selShop.itemType) && !ownedShopItem(selShop)
+      details = (
         <>
-          {heroArt(shopImg)}
-          <div className="flex flex-col" style={{ gap: 4, marginTop: 10 }}>
-            {selShop.payload.map((pl, pi) => (
-              <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)' }}><RewardChip it={pl} size={15} textSize={10.5} /></span>
-            ))}
+          <div>
+            {sectionTitle(t('shop.detail.contents'))}
+            <div className="flex flex-col" style={{ gap: 4 }}>
+              {selShop.payload.map((pl, pi) => (
+                <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)' }}><RewardChip it={pl} size={15} textSize={10.5} /></span>
+              ))}
+            </div>
           </div>
           {selShop.itemType === 'pack' && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>{t('shop.detail.packFactions')}</div>
+            <div style={{ marginTop: 12 }}>
+              {sectionTitle(t('shop.detail.packFactions'))}
               {detailFactions === null
-                ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 4 }}>{detailBusy ? t('shop.detail.loading') : ''}</div>
+                ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{detailBusy ? t('shop.detail.loading') : ''}</div>
                 : detailFactions.length === 0
-                  ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 4 }}>{t('shop.detail.allFactions')}</div>
-                  : <div className="flex flex-wrap" style={{ gap: 5, marginTop: 5 }}>
+                  ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.allFactions')}</div>
+                  : <div className="flex flex-wrap" style={{ gap: 5 }}>
                       {detailFactions.map((f) => (
                         <span key={f.id} className="px-2 py-1" style={{ font: '600 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--ravenof-border-hairline)' }}>
                           {tc('faction', String(f.id), 'name', f.name)}
@@ -246,44 +272,61 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
           )}
         </>
       )
-      if (ownedShopItem(selShop)) actions.push(<div key="own" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.ownedEquip')}</div>)
+      if (stack) {
+        qtyRow = (
+          <div className="flex items-center" style={{ gap: 6 }}>
+            <span style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.quantity')}</span>
+            {[1, 5, 10].map((n) => {
+              const on = qty === n
+              return (
+                <button key={n} onClick={() => { playUiClick(); setQty(n) }} className="ravenof-press"
+                  style={{ font: `700 11px var(--ravenof-font-display)`, color: on ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                    background: on ? 'var(--ravenof-grad-gold)' : 'transparent', border: `1px solid ${on ? 'transparent' : 'var(--ravenof-border-strong)'}`,
+                    padding: '5px 12px', cursor: 'pointer' }}>×{n}</button>
+              )
+            })}
+          </div>
+        )
+      }
+      if (ownedShopItem(selShop)) actions.push(stateBox('own', t('shop.ownedEquip'), 'var(--ravenof-success-bright)', '#6F856255'))
       else {
+        const n = stack ? qty : 1
         if (selShop.prices.silver != null) {
-          const enough = bal.silver >= selShop.prices.silver
-          actions.push(<button key="s" onClick={() => { if (enough) void buyShop(selShop, 'silver').then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : t('shop.buyGold', { price: selShop.prices.silver })}</button>)
+          const total = selShop.prices.silver * n
+          actions.push(buyBtn('s', t('shop.buyGold', { price: total }), bal.silver >= total, () => { if (bal.silver >= total) void buyShop(selShop, 'silver', n).then(() => setSel(null)) }))
         }
         if (selShop.prices.rubies != null) {
-          const enough = bal.rubies >= selShop.prices.rubies
-          actions.push(<button key="r" onClick={() => { if (enough) void buyShop(selShop, 'rubies').then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-text-primary)' : '#5e5868', background: enough ? 'linear-gradient(180deg,#a53a47,var(--ravenof-danger))' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : t('shop.buyRubies', { price: selShop.prices.rubies })}</button>)
+          const total = selShop.prices.rubies * n
+          actions.push(buyBtn('r', t('shop.buyRubies', { price: total }), bal.rubies >= total, () => { if (bal.rubies >= total) void buyShop(selShop, 'rubies', n).then(() => setSel(null)) }, true))
         }
         if (selShop.prices.real_money != null && selShop.prices.silver == null && selShop.prices.rubies == null) {
-          actions.push(<div key="rm" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: 11 }}>{t('shop.comingSoon', { price: selShop.prices.real_money.toFixed(2) })}</div>)
+          actions.push(stateBox('rm', t('shop.comingSoon', { price: selShop.prices.real_money.toFixed(2) }), 'var(--ravenof-text-secondary)', 'var(--ravenof-border-strong)'))
         }
       }
     } else if (selDeal) {
       name = tc('cosmetic', selDeal.id, 'name', selDeal.name); sub = t('shop.dailyDealInfo')
-      const enough = bal.silver >= selDeal.priceGold
-      body = selDeal.imageUrl ? (
-        <div className="relative mx-auto overflow-hidden" style={{ width: 190, aspectRatio: '2.5/3.5', marginTop: 10, border: `1px solid ${ravenofRarityColor(selDeal.rarity)}`, borderRadius: 5, background: 'rgba(7,6,10,.7)' }}>
-          {artFull(selDeal.imageUrl, 520, '50% 30%')}
+      heroSrc = selDeal.imageUrl
+      details = selDeal.rarity ? (
+        <div>
+          {sectionTitle(t('shop.detail.rarity'))}
+          <span className="px-2 py-1 inline-block" style={{ font: '600 10.5px var(--ravenof-font-body)', color: ravenofRarityColor(selDeal.rarity), border: `1px solid ${ravenofRarityColor(selDeal.rarity)}55` }}>{selDeal.rarity}</span>
         </div>
       ) : null
-      if (selDeal.bought) actions.push(<div key="b" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.purchasedShort')}</div>)
-      else actions.push(<button key="buy" onClick={() => { if (enough) void buyDeal(selDeal).then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : t('shop.buyGold', { price: selDeal.priceGold })}</button>)
+      if (selDeal.bought) actions.push(stateBox('b', t('shop.purchasedShort'), 'var(--ravenof-success-bright)', '#6F856255'))
+      else actions.push(buyBtn('buy', t('shop.buyGold', { price: selDeal.priceGold }), bal.silver >= selDeal.priceGold, () => { if (bal.silver >= selDeal.priceGold) void buyDeal(selDeal).then(() => setSel(null)) }))
     } else if (selStarter) {
       name = tc('starter_deck', selStarter.id, 'name', selStarter.name)
       sub = selStarter.description ? tc('starter_deck', selStarter.id, 'description', selStarter.description) : t('shop.starterInfo')
-      const enough = selStarter.priceGold <= 0 || bal.silver >= selStarter.priceGold
+      heroSrc = selStarter.imageUrl
       const total = (detailCards ?? []).reduce((n, c) => n + c.quantity, 0) || selStarter.cardCount
-      body = (
+      details = (
         <>
-          {heroArt(selStarter.imageUrl)}
-          <div className="flex items-center" style={{ gap: 8, marginTop: 10 }}>
-            <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>{t('shop.detail.deckContents')}</div>
+          <div className="flex items-center" style={{ gap: 8 }}>
+            {sectionTitle(t('shop.detail.deckContents'))}
             <div className="flex-1" />
-            <div style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.cards', { count: total, target: total })}</div>
+            <div style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginBottom: 5 }}>{t('shop.detail.cards', { count: total, target: total })}</div>
           </div>
-          <div className="ravenof-scroll" style={{ maxHeight: 168, overflowY: 'auto', marginTop: 5, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.5)' }}>
+          <div style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.5)' }}>
             {detailCards === null
               ? <div className="text-center" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: 10 }}>{t('shop.detail.loading')}</div>
               : detailCards.length === 0
@@ -301,24 +344,42 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
           </div>
         </>
       )
-      if (selStarter.claimed) actions.push(<div key="c" style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-success-bright)', border: '1px solid #6F856255', padding: 11 }}>{t('shop.claimedShort')}</div>)
-      else actions.push(<button key="buy" onClick={() => { if (enough) void claimStarter(selStarter).then(() => setSel(null)) }} disabled={busy || !enough} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: enough ? 'var(--ravenof-on-gold)' : '#5e5868', background: enough ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)', padding: 11, border: 0, cursor: enough ? 'pointer' : 'default', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>{busy ? '…' : selStarter.priceGold > 0 ? t('shop.buyGold', { price: selStarter.priceGold }) : t('shop.claimFree')}</button>)
+      const enough = selStarter.priceGold <= 0 || bal.silver >= selStarter.priceGold
+      if (selStarter.claimed) actions.push(stateBox('c', t('shop.claimedShort'), 'var(--ravenof-success-bright)', '#6F856255'))
+      else actions.push(buyBtn('buy', selStarter.priceGold > 0 ? t('shop.buyGold', { price: selStarter.priceGold }) : t('shop.claimFree'), enough,
+        () => { if (enough) void claimStarter(selStarter).then(() => setSel(null)) }))
     }
-    const insufficient = (selShop && !ownedShopItem(selShop) && selShop.prices.silver != null && bal.silver < selShop.prices.silver && (selShop.prices.rubies == null || bal.rubies < selShop.prices.rubies))
+
+    const nQty = selShop && isStackable(selShop.itemType) && !ownedShopItem(selShop) ? qty : 1
+    const insufficient = (selShop && !ownedShopItem(selShop) && selShop.prices.silver != null && bal.silver < selShop.prices.silver * nQty && (selShop.prices.rubies == null || bal.rubies < selShop.prices.rubies * nQty))
       || (selDeal && !selDeal.bought && bal.silver < selDeal.priceGold)
       || (selStarter && !selStarter.claimed && selStarter.priceGold > 0 && bal.silver < selStarter.priceGold)
+
     return (
       <>
         <div className="absolute inset-0" style={{ zIndex: 85, background: 'rgba(4,3,7,.78)', backdropFilter: 'blur(3px)' }} onClick={close} />
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 86, width: 400, maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto', padding: '22px 24px', animation: 'ravenofFound .3s ease' }} className="ravenof-panel ravenof-scroll">
-          <div style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textAlign: 'center' }}>{name}</div>
-          {sub && <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', textAlign: 'center', marginTop: 4, maxHeight: 62, overflow: 'hidden' }}>{sub}</div>}
-          {body}
-          {insufficient && <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger)', textAlign: 'center', marginTop: 8 }}>{t('shop.notEnoughSilver')}</div>}
-          {toast && <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', textAlign: 'center', marginTop: 8 }}>{toast}</div>}
-          <div className="flex" style={{ gap: 8, marginTop: 14 }}>
-            <button onClick={close} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', background: 'none', padding: 11, cursor: 'pointer', textTransform: 'uppercase' }}>{t('common.cancel')}</button>
-            {actions}
+        <div className="ravenof-panel flex" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 86,
+          width: 700, maxWidth: '94vw', height: 'min(78vh, 460px)', padding: 18, gap: 16, animation: 'ravenofFound .3s ease' }}>
+          {/* KAIRĖ: pilnas prekės vaizdas */}
+          <div className="relative shrink-0 overflow-hidden" style={{ width: 236, maxWidth: '38%', border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)' }}>
+            {heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 40, background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>🛒</span>}
+          </div>
+
+          {/* DEŠINĖ: info + visada matoma veiksmų juosta */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="shrink-0">
+              <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)' }}>{name}</div>
+              {sub && <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 4, maxHeight: 48, overflow: 'hidden' }}>{sub}</div>}
+            </div>
+            {/* vidinis slinkimas TIK detalėms (mygtukai lieka vietoje) */}
+            <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" style={{ marginTop: 10, paddingRight: 4 }}>{details}</div>
+            {insufficient && <div className="shrink-0" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger)', marginTop: 8 }}>{t('shop.notEnoughSilver')}</div>}
+            {toast && <div className="shrink-0" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', marginTop: 8 }}>{toast}</div>}
+            {qtyRow && <div className="shrink-0" style={{ marginTop: 10 }}>{qtyRow}</div>}
+            <div className="shrink-0 flex flex-wrap" style={{ gap: 8, marginTop: 10 }}>
+              <button onClick={close} style={{ width: 96, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', background: 'none', padding: 11, cursor: 'pointer', textTransform: 'uppercase' }}>{t('common.cancel')}</button>
+              {actions}
+            </div>
           </div>
         </div>
       </>

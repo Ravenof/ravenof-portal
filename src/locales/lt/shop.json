@@ -25,7 +25,8 @@
     "iap_required": "Šis paketas perkamas per programėlės parduotuvę.",
     "no_price": "Kaina neprieinama.",
     "not_enough": "Nepakanka valiutos.",
-    "not_found": "Prekė nerasta."
+    "not_found": "Prekė nerasta.",
+    "not_stackable": "Šią prekę galima pirkti tik po vieną."
   },
   "free": "NEMOKAMA",
   "notEnoughGold": "Nepakanka aukso",
@@ -58,6 +59,10 @@
     "packFactions": "Galimos frakcijos",
     "allFactions": "Visos frakcijos",
     "loading": "Kraunama…",
-    "empty": "Sudėtis nepateikta"
-  }
+    "empty": "Sudėtis nepateikta",
+    "contents": "Ką gauni",
+    "rarity": "Retumas",
+    "quantity": "Kiekis"
+  },
+  "purchasedN": "„{{name}}\" ×{{count}} nupirkta!"
 }

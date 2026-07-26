@@ -25,7 +25,8 @@
     "iap_required": "This bundle is purchased through the app store.",
     "no_price": "Price unavailable.",
     "not_enough": "Not enough currency.",
-    "not_found": "Item not found."
+    "not_found": "Item not found.",
+    "not_stackable": "This item can only be bought one at a time."
   },
   "free": "FREE",
   "notEnoughGold": "Not enough gold",
@@ -55,6 +56,10 @@
     "packFactions": "Possible factions",
     "allFactions": "All factions",
     "loading": "Loading…",
-    "empty": "Contents not available"
-  }
+    "empty": "Contents not available",
+    "contents": "What you get",
+    "rarity": "Rarity",
+    "quantity": "Quantity"
+  },
+  "purchasedN": "\"{{name}}\" ×{{count}} purchased!"
 }
