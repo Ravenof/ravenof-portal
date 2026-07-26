@@ -187,6 +187,9 @@ export type GameEvent = {
   /** Status VFX: platesnis nei TutStatus (shield/stealth/control/...) */
   statusId?: string
   coin?: 'green' | 'red'
+  /** Įvykis kilo iš REAKCIJOS efekto. UI tokiems nekartoja krypties projektilo –
+   *  taikymą jau parodė grandinės animacija (rodomas tik rezultatas). */
+  viaReaction?: boolean
   /** Animacijoms: šaltinis (kortos uid arba žaidėjas) */
   src?: { side: Side; uid?: string }
   /** Animacijoms: taikinys */
@@ -315,7 +318,12 @@ export function friendlySeats(g: GameState, s: Side): Side[] { if (g.teams) retu
 export function enemySeats(g: GameState, s: Side): Side[] { if (g.teams) { const t = teamOfSeat(g, s); return g.teams[t === 'A' ? 'B' : 'A'].seatIds }; return [other(s)] }
 export function teamConfig(g: GameState, t: TeamId): TeamConfig | undefined { return g.teams?.[t] }
 
-function log(g: GameState, e: GameEvent) { g.log.push(e) }
+/** >0 – vykdomi reakcijos efektai (jų log įvykiai žymimi `viaReaction`). */
+let reactionFxDepth = 0
+function log(g: GameState, e: GameEvent) {
+  if (reactionFxDepth > 0 && e.viaReaction === undefined) e.viaReaction = true
+  g.log.push(e)
+}
 /** Rakto šoninis sufiksas: 2v2 seat'ai suvedami į „tu" / „priešininkas". */
 const SK = (s: Side) => (s === 'you' || s === 'ally' ? 'you' : 'ai')
 /** Vertimo rakto nuoroda param'e (išsprendžia eventText). */
@@ -1971,6 +1979,14 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         if (!r) continue
         const rms = (r.card.mappings ?? []).filter((m) => m.trigger === trigger && passes(m, sd))
         if (rms.length === 0) continue
+        // Atskleidimo įrašas – PRIEŠ snapshot'ą, kad UI jį pamatytų dar prieš grandinę
+        // (showcase suplanuojamas teisingoje fazėje), o pati korta snapshot'e liktų slot'e.
+        log(g, {
+          t: 'reactionTrigger', side: sd, cardName: r.card.name, key: `battleLog.reaction.${SK(sd)}`,
+          params: { card: r.card.name }, src: { side: sd, uid: r.uid },
+          // taikinys grandinės animacijai: korta, kurios veiksmas suaktyvino reakciją
+          tgt: trigSrc ? { kind: trigSrc.kind, side: trigSrc.side, uid: 'uid' in trigSrc ? trigSrc.uid : undefined } : undefined,
+        })
         // Animacijos vartai: snapshot'as PRIEŠ efektą (reakcijos korta dar slot'e,
         // trigerio šaltinis dar gyvas) – UI jį rodo, kol keliauja grandinė.
         const gateSnapId = storeReactionSnapshot(g)
@@ -1982,13 +1998,8 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         // Sunaudojam reakciją prieš taikant efektą (kad netriggerintų savęs rekursyviai)
         pp.reactions[ri] = null
         pp.discard.push(r.card)
-        log(g, {
-          t: 'reactionTrigger', side: sd, cardName: r.card.name, key: `battleLog.reaction.${SK(sd)}`,
-          params: { card: r.card.name }, src: { side: sd, uid: r.uid },
-          // taikinys grandinės animacijai: korta, kurios veiksmas suaktyvino reakciją
-          tgt: trigSrc ? { kind: trigSrc.kind, side: trigSrc.side, uid: 'uid' in trigSrc ? trigSrc.uid : undefined } : undefined,
-        })
         beginTargetCapture()
+        reactionFxDepth++          // šių efektų log'ai gaus `viaReaction` (be antro projektilo)
         let capturedTargets: TargetRef[] = []
         try {
           for (const m of rms) {
@@ -2000,6 +2011,7 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
             if (g.winner) break
           }
         } finally {
+          reactionFxDepth--
           capturedTargets = endTargetCapture() as TargetRef[]
           const gate = g.reactionGates?.find((x) => x.id === gateSnapId)
           if (gate) gate.targets = capturedTargets.length > 0 ? capturedTargets : (trigSrc ? [trigSrc] : [])
@@ -3163,9 +3175,12 @@ function maybeTriggerReaction(g: GameState, defender: Side, attacker: BoardUnit,
     dp.discard.push(r.card)
     log(g, { t: 'reactionTrigger', side: defender, cardName: r.card.name, key: `battleLog.reactionBeforeAttack.${SK(defender)}`, params: { card: r.card.name } })
     const e = r.card.effect
-    if (e?.damage) dealToUnit(g, attacker, attackerSide, e.damage, defender)
-    else if (e) applyAutoEffect(g, defender, e, r.card.name)
-    else dealToUnit(g, attacker, attackerSide, 1, defender)
+    reactionFxDepth++
+    try {
+      if (e?.damage) dealToUnit(g, attacker, attackerSide, e.damage, defender)
+      else if (e) applyAutoEffect(g, defender, e, r.card.name)
+      else dealToUnit(g, attacker, attackerSide, 1, defender)
+    } finally { reactionFxDepth-- }
     return
   }
 }

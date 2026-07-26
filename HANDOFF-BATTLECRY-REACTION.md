@@ -676,3 +676,27 @@ t. y. grandys išsidėsto elipse per visą ekraną.
 **Peržiūra:** `ravenof-fx-preview-reaction-chain-multi.html` (1 taikinys / 3 padarai / padarai+artefaktas+avataras).
 **Testai:** 55/55 (nauji: AoE reakcija užfiksuoja visus 3 padarus su runtime uid ir be dublikatų;
 reakcija į žaidėją duoda `kind:'player'` taikinį).
+
+---
+
+# BUG FIX — antras projektilas po grandinės (commit529, 2026-07-26)
+
+**Simptomas:** pasibaigus grandinei, reakcijos efektas dar kartą „šaudavo" krypties projektilą
+(arba zoninę bangą) nuo reakcijos kortos į taikinį — taikymas parodomas du kartus.
+
+**Priežastis:** efekto rezultato įvykiai (`damage`/`heal`) einantys FX konvejeriu buvo neatskiriami
+nuo įprastų burtų/gebėjimų, todėl gaudavo standartinį `factionDirectionalKind` projektilą.
+
+**Pataisyta:**
+1. Variklis žymi visus reakcijos efektų log įvykius: `GameEvent.viaReaction = true`
+   (modulinis `reactionFxDepth` apgaubia reakcijos mapping'ų vykdymą IR legacy
+   `maybeTriggerReaction` kelią; pats atskleidimo įrašas `reactionTrigger` NEžymimas).
+2. `TutorialGame` FX konvejeris tokiems įvykiams **nebekartoja taikymo vizualo**:
+   praleidžia žalos projektilą, projektilą į avatarą, `ability/attack` kirtį nuo šaltinio kortos
+   ir zonines bangas (kai visi partijos žalos/gydymo įvykiai yra `viaReaction`).
+   Rezultatas rodomas kaip anksčiau: skaičiai, `hitFlash`, kortos purtymas, statusų VFX, žūtys.
+3. Papildomai: `reactionTrigger` įrašas dabar rašomas PRIEŠ snapshot'ą, todėl kortos parodymas
+   (showcase) suplanuojamas teisingoje fazėje (P3), o ne po grandinės.
+
+**Testai:** 62/62 (nauji: reakcijos žalos įrašas pažymėtas, atakos įrašai nepažymėti, snapshot'e
+paskutinis įrašas = atskleidimas, korta dar slot'e, efektas dar nepritaikytas).

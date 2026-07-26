@@ -339,5 +339,37 @@ console.log('\n── 12. Reakcija į žaidėjo avatarą – irgi atskiras taiki
   check('priešo HP sumažėjo', g.ai.hp < hpBefore, `${hpBefore} → ${g.ai.hp}`)
 }
 
+
+console.log('\n── 13. Reakcijos efektai pažymėti (be antro projektilo) + atskleidimas snapshote ──')
+{
+  const g = freshGame()
+  const p = P(g, 'ai')
+  const c = mkCard({ name: 'Puolikas', uid: 'atkR', attack: 3, health: 7 })
+  p.units[0] = { uid: 'atkR', card: c, atk: 3, hp: 7, maxHp: 7, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false } as never
+  const rc = mkCard({
+    name: 'Sielos Pančiai', uid: 'rcx', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'damage', target: 'enemyUnit', value: 2, useTriggerSource: true, triggersZmk: false } as EffectMapping],
+  })
+  P(g, 'you').reactions[0] = { uid: 'rcx', card: rc, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'atkR', { kind: 'player', side: 'you' })
+
+  const trig = g.log.find((e) => e.t === 'reactionTrigger')
+  check('atskleidimo įrašas NEpažymėtas viaReaction', !trig?.viaReaction)
+  const reactDmg = g.log.filter((e) => e.t === 'damage' && e.viaReaction)
+  check('reakcijos žalos įrašas pažymėtas viaReaction', reactDmg.length >= 1, String(reactDmg.length))
+  const attackEvt = g.log.find((e) => e.t === 'attack')
+  check('paprastos atakos įrašas NEpažymėtas', !attackEvt?.viaReaction)
+  const playerDmg = g.log.filter((e) => e.t === 'damage' && !e.viaReaction)
+  check('atakos žala žaidėjui liko be žymės', playerDmg.length >= 1, String(playerDmg.length))
+
+  const gate = (g.reactionGates ?? [])[0]
+  const snap = consumeReactionSnapshot(gate.snapshotId)
+  const last = snap?.log[snap.log.length - 1]
+  check('snapshote paskutinis įrašas = reakcijos atskleidimas', last?.t === 'reactionTrigger', String(last?.t))
+  check('snapshote reakcijos korta dar slote', !!snap && P(snap, 'you').reactions[0] !== null)
+  check('snapshote efektas dar nepritaikytas (7 HP)', (snap ? P(snap, 'ai').units.find((u) => u?.uid === 'atkR')?.hp : -1) === 7)
+}
+
 console.log(`\n──────────────\n  PASS: ${pass}   FAIL: ${fail}\n──────────────`)
 process.exit(fail ? 1 : 0)

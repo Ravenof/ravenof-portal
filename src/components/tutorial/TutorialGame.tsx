@@ -1457,6 +1457,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // Tikras AoE (engine markeris fxSource.aoe – mapping'as taiko VISĄ zoną): zoninis efektas, be projektilų.
     // Visais kitais atvejais (rankinis pasirinkimas / hitCount auto) – PO PROJEKTILĄ kiekvienam taikiniui.
     const aoeFlagBatch = fresh.some((ev) => ev.t === 'fxSource' && ev.aoe)
+    // Reakcijos efektai: taikymą jau parodė grandinės animacija – krypties projektilų
+    // (ir zoninių bangų) NEBEKARTOJAM, rodom tik rezultatą (skaičiai, statusai, žūtys).
+    const hitEvents = fresh.filter((ev) => ev.t === 'damage' || ev.t === 'heal')
+    const reactionOnlyBatch = hitEvents.length > 0 && hitEvents.every((ev) => !!ev.viaReaction)
     const chosenMulti = chosenTargetsRef.current
     chosenTargetsRef.current = null
     const multiProj = aoeMode && !!chosenMulti && chosenMulti.length >= 2
@@ -1798,7 +1802,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const pat = rectFor({ side: sd })
             if (pat) { const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { fxRef.current?.floatNumber(pat.x, pat.y - 14, '-' + val, '#ff5a4a', (val ?? 0) >= 4); fxRef.current?.hitFlash(pat.x, pat.y, '#ff5a4a') }, d) }
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
-            if (srcRef && srcKind === 'ability' && !zoneAoe && pat) {
+            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction) {
               const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
               window.setTimeout(() => {
                 const fr = rectOf(sref2)
@@ -1830,7 +1834,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               const from = sref ? rectOf(sref) : null
               // KIEKVIENAS žalos taikinys gauna projektilą (žuvęs ar išgyvenęs);
               // zona (tikras AoE) – be projektilų; pf blokuoja tik ability/attack dublius
-              const fireProj = !am && !!from && !pf
+              const fireProj = !am && !!from && !pf && !e.viaReaction
               if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
               window.setTimeout(() => {
                 if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
@@ -1882,7 +1886,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (e.t === 'artifact') queueTip('artifact')
       if (e.t === 'play' && (e.key ?? '').startsWith('battleLog.playUnitSprint')) queueTip('sprint')
       // efekto projektilas/kirtis nuo source kortos (spell / ability / attack)
-      if (e.src && e.tgt && (e.t === 'ability' || e.t === 'attack')) {
+      if (e.src && e.tgt && (e.t === 'ability' || e.t === 'attack') && !e.viaReaction) {
         // BURTAI projektilų čia NEšauna – jų projektilus (po vieną KIEKVIENAM žalos
         // taikiniui, nepriklausomai ar taikinys žūsta) paleidžia damage įvykiai žemiau.
         const isAtk = e.t === 'attack'
@@ -1914,7 +1918,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (showcaseHold > 0) { const hh = showcaseHold, pl = zmkPlaced, nn = seenRef.current; window.setTimeout(() => setZmkFlash({ placed: pl, n: nn }), hh) }
       else setZmkFlash({ placed: zmkPlaced, n: seenRef.current })
     }
-    if (zoneAoe && !aoeFired) {
+    if (zoneAoe && !aoeFired && !reactionOnlyBatch) {
       aoeFired = true
       // Zona = realiai paveikta teritorija: viena pusė → tik tos pusės padarų eilė; abi → visa lenta
       const hitSides = new Set<Side>()
@@ -1936,7 +1940,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       window.setTimeout(() => { playBattleSound(aSnd, 0.55); fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, rect, color: aCol, duration: 1.7, variant: av }) }, aDelay)
     }
 
-    if (healAoe) {
+    if (healAoe && !reactionOnlyBatch) {
       // Zona = gydomų padarų pusė (viena → tos pusės eilė; abi → visa lenta)
       const hs = new Set<Side>()
       for (const ev of fresh) if (ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.side) hs.add(ev.tgt.side)
