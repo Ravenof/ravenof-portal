@@ -3,7 +3,7 @@
 // Be random pagal default: kai reikia automatinio pasirinkimo, imamas
 // deterministinis "geriausias" taikinys; random tik kai allowRandomTarget=true.
 
-import type { TargetType, MetricSource, EffectCondition, TargetSelect, EffectMapping } from './types'
+import type { TargetType, MetricSource, EffectCondition, TargetSelect, EffectMapping, StatusOrKeyword } from './types'
 import type { GameState, Side, BoardUnit } from '@/lib/tutorial/engine'
 
 export type ResolvedTarget =
@@ -241,6 +241,47 @@ export function filterFaction(g: GameState, candidates: ResolvedTarget[], factio
 }
 
 /** Filtruoja kandidatus iki sužeistų padarų (hp < maxHp). */
+/**
+ * Ar padaras turi būseną/raktažodį. Vienoje vietoje suvedami trys skirtingi
+ * saugojimo būdai: `statuses` žemėlapis (frozen/burning/…), atskiri laukai
+ * (shield/stealth) ir `card.keywords` + aurų suteikti (taunt/sprint).
+ */
+export function unitHasStatus(u: BoardUnit, st: StatusOrKeyword): boolean {
+  if (st === 'shield') return !!u.shield
+  if (st === 'stealth') return !!u.stealth
+  if (st === 'taunt' || st === 'sprint') {
+    return u.card.keywords.includes(st) || !!u.auraKw?.includes(st)
+  }
+  return !!(u.statuses as Record<string, number | undefined>)[st]
+}
+
+export function filterStatus(g: GameState, candidates: ResolvedTarget[], st: StatusOrKeyword, mode: 'has' | 'hasNot' = 'has'): ResolvedTarget[] {
+  return candidates.filter((t) => {
+    if (t.kind !== 'unit') return false          // būsenas turi tik padarai
+    const u = P(g, t.side).units.find((x) => x?.uid === t.uid)
+    if (!u) return false
+    const has = unitHasStatus(u, st)
+    return mode === 'hasNot' ? !has : has
+  })
+}
+
+/**
+ * VISI taikinių filtrai vienoje vietoje. Naudoja ir variklis, ir UI – kad
+ * žaidėjui rodomi taikiniai sutaptų su tais, kuriuos efektas realiai paveiks.
+ */
+export function applyTargetFilters(
+  g: GameState,
+  m: Pick<EffectMapping, 'targetWoundedOnly' | 'targetSubtype' | 'targetFaction' | 'targetHasStatus' | 'targetStatusMode'>,
+  list: ResolvedTarget[],
+): ResolvedTarget[] {
+  let out = list
+  if (m.targetWoundedOnly) out = filterWounded(g, out)
+  if (m.targetSubtype) out = filterSubtype(g, out, m.targetSubtype)
+  if (m.targetFaction) out = filterFaction(g, out, m.targetFaction)
+  if (m.targetHasStatus) out = filterStatus(g, out, m.targetHasStatus, m.targetStatusMode ?? 'has')
+  return out
+}
+
 export function filterWounded(g: GameState, candidates: ResolvedTarget[]): ResolvedTarget[] {
   return candidates.filter((t) => {
     if (t.kind !== 'unit') return false

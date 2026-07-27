@@ -1405,6 +1405,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                             onChange={(e) => setMapping(i, { targetWoundedOnly: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                           Tik sužeisti
                         </label>
+                        <label className="flex items-center gap-1" title='Paveikti tik tuos taikinius, kurie turi (arba neturi) nurodytos būsenos ar raktažodžio'>
+                          Būsena:
+                          <select value={m.targetHasStatus ?? ''}
+                            onChange={(e) => setMapping(i, { targetHasStatus: (e.target.value || undefined) as typeof m.targetHasStatus })}
+                            style={{ ...inputStyle, width: 150 }}>
+                            <option value="">(nesvarbu)</option>
+                            {STATUS_OR_KEYWORDS.map((st) => <option key={st.value} value={st.value}>{st.label}</option>)}
+                          </select>
+                        </label>
+                        {m.targetHasStatus && (
+                          <select value={m.targetStatusMode ?? 'has'}
+                            onChange={(e) => setMapping(i, { targetStatusMode: e.target.value === 'hasNot' ? 'hasNot' : undefined })}
+                            style={{ ...inputStyle, width: 90 }}>
+                            <option value="has">turi</option>
+                            <option value="hasNot">neturi</option>
+                          </select>
+                        )}
                       </>
                     )}
                     {/* Sąlyga */}

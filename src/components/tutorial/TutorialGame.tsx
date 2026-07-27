@@ -41,7 +41,7 @@ import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType, type BattleSoundType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
-import { resolveTargets, resolveMappingTargets } from '@/lib/game/targetResolver'
+import { resolveTargets, resolveMappingTargets, applyTargetFilters } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
 import { RewardChip } from '@/components/digital/ui/RewardBits'
@@ -699,7 +699,9 @@ function selectionMappingFor(c: TutCard): EffectMapping | null {
 /** Galiojantys pavieniai taikiniai (TargetRef) burto mapping'ui (be lauko/sėlinimo). */
 function spellTargetRefs(game: GameState, side: Side, m: EffectMapping): TargetRef[] {
   const out: TargetRef[] = []
-  for (const t of resolveMappingTargets(game, side, m)) {
+  // Filtrai (sužeisti / potipis / frakcija / būsena) taikomi ir čia — kitaip UI
+  // leistų pažymėti taikinį, kurio efektas vis tiek nepaveiktų.
+  for (const t of applyTargetFilters(game, m, resolveMappingTargets(game, side, m))) {
     if (t.kind === 'field') continue
     if (t.kind === 'unit' && t.side === 'ai') { const u = game.ai.units.find((x) => x?.uid === t.uid); if (u?.stealth) continue }
     out.push(t as TargetRef)

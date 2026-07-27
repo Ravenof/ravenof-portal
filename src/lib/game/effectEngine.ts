@@ -5,7 +5,7 @@
 
 import type { EffectMapping, EffectType, ZmkValue } from './types'
 import { EFFECT_TYPES } from './types'
-import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, filterFaction, type ResolvedTarget } from './targetResolver'
+import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, applyTargetFilters, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
 import { t as tGlobal } from '@/lib/i18n/core'
 
@@ -281,9 +281,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       targets = [ctx.chosenTarget]
     } else {
       let all = hasTypes ? resolveMappingTargets(g, caster, m) : resolveTargets(g, caster, m.target)
-      if (m.targetWoundedOnly) all = filterWounded(g, all)
-      if (m.targetSubtype) all = filterSubtype(g, all, m.targetSubtype)
-      if (m.targetFaction) all = filterFaction(g, all, m.targetFaction)
+      all = applyTargetFilters(g, m, all)
       if (aoe) targets = all
       else {
         const n = Math.max(1, m.hitCount ?? 1)

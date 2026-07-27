@@ -347,7 +347,10 @@ export type EffectMapping = {
   dynamicValue?: DynamicValue       // value = base + perEach * metrika
   targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą
   hitCount?: number                 // kiek atskirų taikinių paveikti (auto/atsitiktinis; default 1)
-  targetWoundedOnly?: boolean       // tik sužeisti padarai (hp < maxHp)
+  targetWoundedOnly?: boolean
+  /** Taikinio filtras pagal būseną/raktažodį: paveikiami tik tie, kurie ją turi (arba neturi). */
+  targetHasStatus?: StatusOrKeyword
+  targetStatusMode?: 'has' | 'hasNot'       // tik sužeisti padarai (hp < maxHp)
   targetSubtype?: string            // tik nurodyto potipio padarai (ZOMBIE/GOBLIN/DEMON)
   targetFaction?: number            // tik nurodytos frakcijos padarai (faction id)
   triggerSide?: 'own' | 'enemy' | 'any'  // globalus trigger: kieno įvykis aktyvuoja (savo/priešo/bet kuris)
