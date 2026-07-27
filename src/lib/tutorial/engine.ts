@@ -148,6 +148,8 @@ export type PlayerState = {
   goldPenaltyNextTurn: number
   /** Auksas, gaunamas KITO ėjimo pradžioje (gainGoldNextTurn). */
   goldBonusNextTurn: number
+  /** Frakciju id, kuriu padarus iskvietei SI ejima (papildomu ataku salygai). */
+  summonedFactionsThisTurn: number[]
   /** ŽMK reikšmių pakeitimai iki ėjimo pabaigos (remapZmkValue): '+1' -> '+2' ir pan. */
   zmkRemap?: Partial<Record<ZmkValue, ZmkValue>>
   /** Sekančios kortos kainos modifikatoriai (cardCostMod). Kiekvienas suvartojamas, kai sužaidžiama atitinkama korta. */
@@ -414,7 +416,7 @@ function mkPlayer(side: Side, deck: TutCard[], zmkPile: ZmkValue[], curses: TutC
     zmk: zmkPile, zmkGrave: [],
     gold: 0, turnNumber: 0, discardedForGold: false,
     curses, attacksThisTurn: 0, fieldDamageReducedThisTurn: false,
-    spellDiscountNext: 0, spellDamageBonus: 0, goldPenaltyNextTurn: 0, goldBonusNextTurn: 0, nextCardCostMods: [],
+    spellDiscountNext: 0, spellDamageBonus: 0, goldPenaltyNextTurn: 0, goldBonusNextTurn: 0, summonedFactionsThisTurn: [], nextCardCostMods: [],
   }
 }
 
@@ -2170,6 +2172,10 @@ function fieldKillLastwishSummon(g: GameState, s: Side, card: TutCard) {
 /** Iškvietimo (padaro įėjimo į lauką) globalus trigeris. source = iš kur atsirado. */
 function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource = 'play') {
   recomputeAuras(g)
+  // visi iskvietimai (suzaidus ir efektais) eina per cia - tinkama vieta zymeti frakcija
+  if (card.factionId != null && !P(g, s).summonedFactionsThisTurn.includes(card.factionId)) {
+    P(g, s).summonedFactionsThisTurn.push(card.factionId)
+  }
   const sumUid = (g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid
   fireGlobalListeners(g, 'onAnySummon', {
     side: s, subtype: card.subtype, faction: card.factionId, source,
@@ -2733,6 +2739,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   if (g.winner) return g
   const p = P(g, s)
   p.turnNumber += 1
+  p.summonedFactionsThisTurn = []   // sio ejimo iskvietimu zymos pradedamos is naujo
   resolvePendingResurrect(g, s, 'startOfTurn')   // atidėti prisikėlimai (startOfNextTurn)
   // Pasibaigusios būsenos: ĖJIMO PRADŽIOJE nuimamos TIK savo ėjime uždėtos
   // (integer until); ne savo ėjime uždėtos (x.5) kausto visą šį ėjimą ir
@@ -3247,6 +3254,10 @@ function unitMaxAttacks(g: GameState, s: Side, u: BoardUnit): number {
   if ((ea.ifEnemyTaunt ?? 0) > 0 && tauntCount > 0) extra += ea.ifEnemyTaunt as number
   if ((ea.perEnemyTaunt ?? 0) > 0) extra += (ea.perEnemyTaunt as number) * tauntCount
   if ((ea.ifNoEnemyCreatures ?? 0) > 0 && enemyUnits.length === 0) extra += ea.ifNoEnemyCreatures as number
+  if ((ea.ifSummonedFaction ?? 0) > 0 && ea.summonedFactionId
+      && P(g, s).summonedFactionsThisTurn.includes(ea.summonedFactionId)) {
+    extra += ea.ifSummonedFaction as number
+  }
   return 1 + Math.max(0, extra)
 }
 

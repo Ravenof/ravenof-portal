@@ -630,6 +630,8 @@ export type GameplayConfig = {
     ifEnemyTaunt?: number                 // +N jei priešas turi bent 1 taunt kūrinį
     perEnemyTaunt?: number                // +N × priešo taunt kūrinių skaičius (dinaminis)
     ifNoEnemyCreatures?: number           // +N jei priešas neturi kūrinių
+    ifSummonedFaction?: number            // +N jei SI EJIMA iskvietei summonedFactionId frakcijos padara
+    summonedFactionId?: number            // kurios frakcijos padaro laukiama (be jo ifSummonedFaction neveikia)
   }
   synergy?: {                             // veikia kai ŠIS ir partneris abu kovos lauke
     withNames?: string                    // partnerių kortų vardai (kableliais)

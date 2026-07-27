@@ -603,6 +603,33 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
             )
           })}
         </div>
+        {/* Sąlyga pagal ŠIO ėjimo iškvietimus: veikia ir sužaidus kortą, ir iškvietus efektu */}
+        <div className="flex flex-wrap items-center gap-2 text-[11px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+          <span>+ jei šį ėjimą iškvietei</span>
+          <select value={cfg.extraAttacks?.summonedFactionId ?? ''}
+            onChange={(e) => {
+              const id = e.target.value ? Number(e.target.value) : undefined
+              const ea = { ...(cfg.extraAttacks ?? {}), summonedFactionId: id }
+              if (!id) delete ea.ifSummonedFaction
+              const clean = Object.fromEntries(Object.entries(ea).filter(([, x]) => x != null)) as NonNullable<GameplayConfig['extraAttacks']>
+              update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined })
+            }}
+            style={{ ...inputStyle, width: 190 }}>
+            <option value="">— (frakcija nepasirinkta) —</option>
+            {factions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+          <span>frakcijos padarą, tada +</span>
+          <input type="number" min={0} value={cfg.extraAttacks?.ifSummonedFaction ?? ''} placeholder="0"
+            disabled={!cfg.extraAttacks?.summonedFactionId}
+            onChange={(e) => {
+              const v = e.target.value === '' ? undefined : Number(e.target.value)
+              const ea = { ...(cfg.extraAttacks ?? {}), ifSummonedFaction: v }
+              const clean = Object.fromEntries(Object.entries(ea).filter(([, x]) => x != null)) as NonNullable<GameplayConfig['extraAttacks']>
+              update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined })
+            }}
+            style={{ ...inputStyle, width: 60 }} />
+          <span>ataka (1 = puola du kartus)</span>
+        </div>
       </div>
 
       <div>
