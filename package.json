@@ -22,7 +22,8 @@
     "game:test:chain": "tsx scripts/simulate-battlecry-chain.ts",
     "quests:check": "node scripts/quests-check.mjs",
     "handoff:gen": "node scripts/gen-handoff-registries.mjs",
-    "handoff:check": "node scripts/handoff-check.mjs"
+    "handoff:check": "node scripts/handoff-check.mjs",
+    "game:test:targets": "node scripts/test-target-selection.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

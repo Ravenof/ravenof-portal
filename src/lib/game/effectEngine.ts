@@ -141,16 +141,19 @@ export function mappingNeedsSelection(m: EffectMapping): boolean {
   if (m.useTriggerSource) return false  // reakcijos taikinys nustatytas automatiškai (trigerio šaltinis)
   if (m.chooseAlt && m.chooseAlt.length > 0) return false  // ARBA: pirmiau pop-up pasirinkimas, taikiniai auto
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
-  // Žaidėjo/kaladės efektams taikinio nėra – tikrinama PIRMA, kad senos kortos su
-  // užsilikusiu `requiresSelection: true` (pvz. „Traukti kortas") neprašytų padaro.
+  // ── Pirma: atvejai, kuriuose RENKTIS NĖRA KO. Šios patikros eina PRIEŠ aiškų
+  //    „Žaidėjas renkasi", nes senose kortose užsilikęs `requiresSelection: true`
+  //    kitaip priverstų UI prašyti taikinio ten, kur jo iš principo nėra.
+  //    a) efektas veikia žaidėją / kaladę / ranką / pačią kortą
   if (NEVER_SELECT_EFFECTS.has(m.effect)) return false
-  // AIŠKUS admino pasirinkimas „Žaidėjas renkasi" nusveria likusius nutylėjimus:
-  // be to prie summon/revive tipo efektų nustatymas būdavo tyliai ignoruojamas
-  // ir paskutinis noras su 2 taikiniais suveikdavo automatiškai.
+  //    b) taikinio TIPAS jau reiškia „visi" (AoE): visi priešo padarai, visi padarai ir pan.
+  if (isMultiTarget(m.target)) return false
+  // ── Tik dabar aiškus admino pasirinkimas nusveria nutylėjimus. Be jo prie
+  //    summon/revive tipo efektų nustatymas būdavo tyliai ignoruojamas ir
+  //    paskutinis noras su 2 taikiniais suveikdavo automatiškai.
   if (m.requiresSelection === true) return true
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
   if (m.targetTypes && m.targetTypes.length > 0) return !m.applyToAllTypes && m.requiresSelection !== false
-  if (isMultiTarget(m.target)) return false
   if (m.requiresSelection === false) return false
   // default: pavieniai harm efektai į priešo/bet kuriuos taikinius – renkamasi
   return effectIntent(m.effect) === 'harm' && ['enemyUnit', 'anyUnit', 'anyPlayer', 'enemyArtifact', 'anyArtifact', 'anyChampion', 'enemyChampion'].includes(m.target)
