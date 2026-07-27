@@ -1,5 +1,13 @@
 {
   "alchemistFort": "🏰 Alchemists' Fort: \"{{card}}\" is returned to {{owner}} deck.",
+  "arrangeDeckDone": {
+    "foe": "Opponent reordered {{count}} of your cards",
+    "me": "You reordered {{count}} cards"
+  },
+  "arrangeDeckTop": {
+    "foe": "Opponent looks at {{count}} cards from the top of your deck",
+    "me": "You look at {{count}} cards from the top of the opponent's deck"
+  },
   "artifactDamage": "The artifact \"{{card}}\" takes {{dmg}} damage.",
   "artifactDestroyed": "The artifact \"{{card}}\" is destroyed.",
   "artifactTrigger": "The artifact \"{{card}}\" triggers.",

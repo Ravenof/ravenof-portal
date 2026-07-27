@@ -79,9 +79,7 @@ export type EffectType =
   | 'spellDiscount' | 'buffSpellDamage' | 'cardCostMod'
   | 'chooseEffect' | 'tutorToHand'
   | 'coinFlip' | 'loseGoldNextTurn' | 'gainGoldNextTurn'
-  | 'remapZmkValue' | 'discardHandAndDraw'
-  // 'arrangeEnemyDeckTop' – rezervuota; į EFFECT_TYPES bus įtraukta kartu su pertvarkymo UI
-  | 'arrangeEnemyDeckTop'
+  | 'remapZmkValue' | 'discardHandAndDraw' | 'arrangeEnemyDeckTop'
   | 'copyEffectFromGraveyard'
   | 'reflectToAttacker'
   | 'resurrectSelf'
@@ -147,6 +145,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'gainGoldNextTurn',    label: 'Gauti X aukso kito ėjimo pradžioje (aš / priešas / abu)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'remapZmkValue',       label: 'ŽMK modifikatorius X veikia kaip Y (iki ėjimo pabaigos)', needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'arrangeEnemyDeckTop', label: 'Peržiūrėti X priešo kaladės viršaus kortų ir sudėlioti eile', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'discardHandAndDraw',  label: 'Išmesti visą ranką ir traukti tiek pat kortų', needsValue: false, group: 'Kortų traukimas ir ranka' },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true, group: 'Auksas ir kainos' },

@@ -230,6 +230,8 @@ export type GameState = {
   zmkDefs: Record<string, ZmkCardDef>
   /** Laukiantis „peržiūrėk N → pasirink K" pasirinkimas (žaidėjui) */
   pendingPeek?: PendingPeek | null
+  /** Laukiantis kaladės viršaus pertvarkymas (arrangeEnemyDeckTop) */
+  pendingArrange?: PendingArrange | null
   /** Laukianti kaladės viršaus peržiūra (tik skaitymui) */
   pendingReveal?: PendingReveal | null
   /** Laukiantis iškvietimo pasirinkimas (žaidėjas renkasi kortą) */
@@ -269,6 +271,8 @@ export type GameState = {
 }
 
 export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: TutCard[]; toHand?: boolean }
+/** Laukiantis priešo kaladės viršaus pertvarkymas: žaidėjas nustato eilę. */
+export type PendingArrange = { caster: Side; victim: Side; cards: TutCard[] }
 /** title/titleParams = i18n raktas + parametrai (tekstas gimsta render'e per ltext()). */
 export type PendingReveal = { whoseDeck: Side; title: string; titleParams?: Record<string, string | number>; cards: TutCard[] }
 export type PendingSummon = { caster: Side; choose: number; options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] }
@@ -437,6 +441,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
     zmkMode: zmkYou.mode,
     zmkDefs: zmkYou.defs,
     pendingPeek: null,
+    pendingArrange: null,
     pendingReveal: null,
     pendingSummon: null,
     pendingChoice: null,
@@ -469,7 +474,7 @@ export function createGame2v2(decks: { you: TutCard[]; ally: TutCard[]; ai: TutC
     active: firstTeam === 'A' ? 'you' : 'ai',
     field: null, globalTurn: 0, winner: null, winnerTeam: null, log: [],
     zmkMode: zmkMeta.mode, zmkDefs: zmkMeta.defs,
-    pendingPeek: null, pendingReveal: null, pendingSummon: null, pendingChoice: null, pendingCopy: null,
+    pendingPeek: null, pendingArrange: null, pendingReveal: null, pendingSummon: null, pendingChoice: null, pendingCopy: null,
     rollContext: null, lastMill: null,
   }
   for (const sd of ['you', 'ally', 'ai', 'foe2'] as Side[]) drawCards(g, sd, 4, true)
@@ -2293,6 +2298,45 @@ function loseGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
   log(g, { t: 'gold', side: s, value: -n, key: `battleLog.goldLose.${SK(s)}`, params: { gold: n, src: srcName } })
 }
 
+/**
+ * Peržiūri N kortų nuo `victim` kaladės viršaus ir leidžia nustatyti jų eilę.
+ * Žaidėjui – atidedama į pendingArrange (UI); AI – deterministinis auto:
+ * pigiausios paliekamos viršuje, kad priešininkas trauktų silpniausias kortas.
+ */
+function arrangeDeckTopPrim(g: GameState, caster: Side, victim: Side, n: number) {
+  const vp = P(g, victim)
+  const take = Math.min(n, vp.deck.length)
+  if (take <= 0) return
+  const cards = vp.deck.splice(vp.deck.length - take, take).reverse()  // [0] = viršutinė
+  log(g, { t: 'draw', side: caster, value: take, key: `battleLog.arrangeDeckTop.${SK(caster)}`, params: { count: take } })
+  if (caster === 'you') {
+    g.pendingArrange = { caster, victim, cards }
+    return
+  }
+  const ordered = [...cards].sort((a, b) => a.gold - b.gold)
+  putBackOnTop(g, victim, ordered)
+}
+
+/** Sudeda kortas atgal į kaladės viršų nurodyta eile (ordered[0] – traukiama pirma). */
+function putBackOnTop(g: GameState, victim: Side, ordered: TutCard[]) {
+  const vp = P(g, victim)
+  for (let i = ordered.length - 1; i >= 0; i--) vp.deck.push(ordered[i])
+}
+
+/** UI sprendimas: uids eile, [0] – korta, kurią priešininkas trauks pirmą. */
+export function resolvePendingArrange(g: GameState, uids: string[]): { ok: boolean; reason?: string } {
+  const pa = g.pendingArrange
+  if (!pa) return { ok: true }
+  const byUid = new Map(pa.cards.map((c) => [c.uid, c]))
+  const ordered: TutCard[] = []
+  for (const u of uids) { const c = byUid.get(u); if (c) { ordered.push(c); byUid.delete(u) } }
+  for (const c of byUid.values()) ordered.push(c)   // saugiklis: nepaminėtos lieka gale
+  putBackOnTop(g, pa.victim, ordered)
+  log(g, { t: 'draw', side: pa.caster, value: ordered.length, key: `battleLog.arrangeDeckDone.${SK(pa.caster)}`, params: { count: ordered.length } })
+  g.pendingArrange = null
+  return { ok: true }
+}
+
 function notifyStatusGainedPrim(g: GameState, side: Side, status: string, uid: string, name: string) {
   fireGlobalListeners(g, 'onAnyStatus', { side, status: status as StatusOrKeyword, srcRef: { kind: 'unit', side, uid }, srcName: name })
 }
@@ -2506,6 +2550,7 @@ export const gameApi: GameApi = {
   setZmkRemap: setZmkRemapPrim,
   discardHandAndDraw: discardHandAndDrawPrim,
   notifyStatusGained: notifyStatusGainedPrim,
+  arrangeDeckTop: arrangeDeckTopPrim,
   counterCurrentSpell: counterCurrentSpellPrim,
   returnUnitToHand: returnUnitToHandPrim,
   summonFromZone: summonFromZonePrim,
@@ -3440,6 +3485,7 @@ export type NetAction =
   | { t: 'endTurn'; actor: Side }
   | { t: 'resolveSummon'; uids: string[] }
   | { t: 'resolvePeek'; uids: string[] }
+  | { t: 'resolveArrange'; uids: string[] }
   | { t: 'resolveChoice'; index: number }
   | { t: 'resolveCopy'; uid: string }
   | { t: 'resolveReturn'; uid: string }
@@ -3460,6 +3506,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'endTurn': { endTurn(g); if (!g.winner) beginTurn(g); return { ok: true } }
     case 'resolveSummon': return resolveSummonChoice(g, a.uids)
     case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
+    case 'resolveArrange': return resolvePendingArrange(g, a.uids)
     case 'resolveChoice': return resolveChoice(g, a.index)
     case 'resolveCopy': return resolveCopyEffect(g, a.uid)
     case 'resolveReturn': return resolveReturnUnit(g, a.uid)

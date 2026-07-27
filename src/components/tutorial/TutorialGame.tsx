@@ -980,6 +980,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       : <span style={{ fontSize: Math.round(size * 0.8), opacity: 0.18, color }}>{fallback}</span>
   }
   const [peekSel, setPeekSel] = useState<string[]>([])
+  const [arrangeOrder, setArrangeOrder] = useState<string[]>([])
   const [summonSel, setSummonSel] = useState<string[]>([])
   // PvP: varžovo profilis + ėjimo laikmatis
   const [oppProfile, setOppProfile] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null; level: number | null; is_public: boolean } | null>(null)
@@ -1076,6 +1077,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const popupBlocks = ((!!step && !step.require) || !!activeTip) && !popupCollapsed
   const zmkBlocks = zmkPending.length > 0
   const peekBlocks = !!game?.pendingPeek
+  const arrangeBlocks = !!game?.pendingArrange
   const revealBlocks = !!game?.pendingReveal
   const summonBlocks = !!game?.pendingSummon
   const choiceBlocks = !!game?.pendingChoice
@@ -2169,7 +2171,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || arrangeBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -2196,7 +2198,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -4745,6 +4747,67 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── peržiūrėk N → pasirink K išmesti (peekDiscard) ── */}
       <AnimatePresence>
+        {/* Priešo kaladės viršaus pertvarkymas: rikiavimas rodyklėmis (patikimiau
+            liečiamame ekrane nei tempimas). [0] – korta, kurią priešas trauks pirmą. */}
+        {game?.pendingArrange && (() => {
+          const cards = game.pendingArrange.cards
+          const order = arrangeOrder.length === cards.length ? arrangeOrder : cards.map((c) => c.uid)
+          const move = (idx: number, dir: -1 | 1) => {
+            const j = idx + dir
+            if (j < 0 || j >= order.length) return
+            const next = [...order]
+            const tmp = next[idx]; next[idx] = next[j]; next[j] = tmp
+            playUiClick(); setArrangeOrder(next)
+          }
+          return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[133] flex items-center justify-center p-4"
+              style={{ background: 'rgba(0,0,0,0.7)' }}>
+              <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
+                className="rounded-2xl p-4 w-[min(620px,94vw)] max-h-[86vh] overflow-y-auto text-center"
+                style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+                <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
+                  {t('battle.game.arrangeTitle')}
+                </p>
+                <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  {t('battle.game.arrangeHint', { count: cards.length })}
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center mb-4">
+                  {order.map((uid, idx) => {
+                    const c = cards.find((x) => x.uid === uid)
+                    if (!c) return null
+                    return (
+                      <div key={uid} className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: idx === 0 ? 'rgba(240,180,41,0.25)' : 'rgba(255,255,255,0.08)', color: idx === 0 ? 'var(--gold)' : 'var(--text-muted)' }}>
+                          {idx + 1}
+                        </span>
+                        <MiniCard c={c} w={isTouch ? 64 : 78} />
+                        <div className="flex gap-1">
+                          <button onClick={() => move(idx, -1)} disabled={idx === 0}
+                            aria-label={t('battle.game.arrangeUp')}
+                            className="rounded disabled:opacity-30"
+                            style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-primary)' }}>‹</button>
+                          <button onClick={() => move(idx, 1)} disabled={idx === order.length - 1}
+                            aria-label={t('battle.game.arrangeDown')}
+                            className="rounded disabled:opacity-30"
+                            style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-primary)' }}>›</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => { playSuccess(); const o = order; setArrangeOrder([]); doAction({ t: 'resolveArrange', uids: o }) }}
+                  className="px-5 py-2 rounded-xl text-sm font-bold transition-all"
+                  style={{ background: 'rgba(240,180,41,0.22)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                  {t('battle.game.arrangeBtn')}
+                </button>
+              </motion.div>
+            </motion.div>
+          )
+        })()}
+
         {game?.pendingPeek && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"

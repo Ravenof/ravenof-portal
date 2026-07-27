@@ -1,5 +1,13 @@
 {
   "alchemistFort": "🏰 Alchemikų fortas: „{{card}}\" grąžinamas į {{owner}} kaladę.",
+  "arrangeDeckDone": {
+    "foe": "Priešininkas sudėliojo {{count}} tavo kortas nauja eile",
+    "me": "Sudėliojai {{count}} kortas nauja eile"
+  },
+  "arrangeDeckTop": {
+    "foe": "Priešininkas peržiūri {{count}} tavo kaladės viršaus kortų",
+    "me": "Peržiūri {{count}} priešininko kaladės viršaus kortų"
+  },
   "artifactDamage": "Artefaktas „{{card}}\" gauna {{dmg}} žalos.",
   "artifactDestroyed": "Artefaktas „{{card}}\" sunaikintas.",
   "artifactTrigger": "Artefaktas „{{card}}\" suveikia.",

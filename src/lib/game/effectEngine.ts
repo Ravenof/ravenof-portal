@@ -31,6 +31,7 @@ export type GameApi = {
   setZmkRemap(g: GameState, s: Side, from: ZmkValue, to: ZmkValue, srcName: string): void
   /** Praneša apie ĮGYTĄ būseną/raktažodį (onAnyStatus trigeriui). */
   notifyStatusGained(g: GameState, side: Side, status: string, uid: string, name: string): void
+  arrangeDeckTop(g: GameState, caster: Side, victim: Side, n: number): void
   counterCurrentSpell(g: GameState, srcName: string): void
   returnUnitToHand(g: GameState, owner: Side, u: BoardUnit): void
   summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; factionId?: number; count?: number }): void
@@ -126,11 +127,15 @@ export function mappingNeedsSelection(m: EffectMapping): boolean {
   if (m.useTriggerSource) return false  // reakcijos taikinys nustatytas automatiškai (trigerio šaltinis)
   if (m.chooseAlt && m.chooseAlt.length > 0) return false  // ARBA: pirmiau pop-up pasirinkimas, taikiniai auto
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
+  // AIŠKUS admino pasirinkimas „Žaidėjas renkasi" nusveria visus nutylėjimus žemiau.
+  // Anksčiau NO_SELECT_EFFECTS ir isMultiTarget patikros ėjo PIRMOS, tad pažymėjus
+  // „žaidėjas renkasi 2 taikinius" prie tokio efekto kaip revive/summonFromGraveyard
+  // nustatymas būdavo tyliai ignoruojamas ir efektas suveikdavo automatiškai.
+  if (m.requiresSelection === true) return true
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
   if (m.targetTypes && m.targetTypes.length > 0) return !m.applyToAllTypes && m.requiresSelection !== false
   if (isMultiTarget(m.target)) return false
   if (m.requiresSelection === false) return false
-  if (m.requiresSelection === true) return true
   // default: pavieniai harm efektai į priešo/bet kuriuos taikinius – renkamasi
   return effectIntent(m.effect) === 'harm' && ['enemyUnit', 'anyUnit', 'anyPlayer', 'enemyArtifact', 'anyArtifact', 'anyChampion', 'enemyChampion'].includes(m.target)
 }
@@ -416,6 +421,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
     case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, m.discardChooser); break
     case 'discardHandAndDraw': api.discardHandAndDraw(g, targets[0]?.kind === 'player' ? targets[0].side : caster); break
+    case 'arrangeEnemyDeckTop': api.arrangeDeckTop(g, caster, targets[0]?.kind === 'player' ? targets[0].side : foe, Math.max(1, v)); break
     case 'gainGold': api.gainGold(g, m.goldAppliesTo === 'opponent' ? foe : m.goldAppliesTo === 'caster' ? caster : (targets[0]?.kind === 'player' ? targets[0].side : caster), v, ctx.sourceName); break
     case 'loseGold': api.loseGold(g, m.goldAppliesTo === 'caster' ? caster : m.goldAppliesTo === 'opponent' ? foe : (targets[0]?.kind === 'player' ? targets[0].side : foe), v, ctx.sourceName); break
     case 'cardCostMod': api.addCardCostMod(g, m.costModAppliesTo === 'opponent' ? foe : caster, m.costModDelta ?? v, (m.costModCardType && m.costModCardType !== 'any') ? m.costModCardType : null); break

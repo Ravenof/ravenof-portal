@@ -26,6 +26,11 @@
   },
   "game": {
     "actionLog": "Action log",
+    "arrangeBtn": "Confirm order",
+    "arrangeDown": "Move later",
+    "arrangeHint": "Set the order in which the opponent will draw these {{count}} cards. 1 is drawn first.",
+    "arrangeTitle": "Top of opponent's deck",
+    "arrangeUp": "Move earlier",
     "cardBack": "Card back",
     "championPhase": "⚜ {{card}} — phase {{phase}}",
     "chatEmpty": "Write a message to your opponent.",

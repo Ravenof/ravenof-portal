@@ -26,6 +26,11 @@
   },
   "game": {
     "actionLog": "Veiksmų žurnalas",
+    "arrangeBtn": "Patvirtinti eilę",
+    "arrangeDown": "Perkelti atgal",
+    "arrangeHint": "Nustatyk, kokia eile priešininkas trauks šias {{count}} kortas. 1 – bus traukiama pirma.",
+    "arrangeTitle": "Priešininko kaladės viršus",
+    "arrangeUp": "Perkelti į priekį",
     "cardBack": "Kortų nugarėlė",
     "championPhase": "⚜ {{card}} — {{phase}} fazė",
     "chatEmpty": "Parašyk žinutę varžovui.",
