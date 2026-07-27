@@ -107,6 +107,20 @@ const MAX_CASCADE = 200
 
 const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard', 'takeControl', 'discardHandAndDraw', 'arrangeEnemyDeckTop']
 
+// Efektai, kurie IŠ VISO neturi taikomo objekto lentoje: veikia žaidėją, kaladę,
+// ranką ar pačią kortą. Jiems rankinis taikinio rinkimas neturi prasmės, tad net
+// aiškiai pažymėtas „Žaidėjas renkasi" jų neveikia (kitaip UI prašytų nurodyti
+// padarą, pvz., prie „Traukti kortas", ir ėjimas įstrigtų).
+const NEVER_SELECT_EFFECTS = new Set<EffectType>([
+  'drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'loseGoldNextTurn', 'gainGoldNextTurn',
+  'discard', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'mill', 'returnGraveyardToDeck',
+  'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand',
+  'resurrectSelf', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'remapZmkValue',
+  'spellDiscount', 'cardCostMod', 'turnCostDiscount', 'buffSpellDamage', 'coinFlip',
+  'chooseEffect', 'tutorToHand', 'copyEffectFromGraveyard', 'activateLastwishFromGraveyard',
+  'forceCurseActivation', 'reflectToAttacker',
+])
+
 // Efektai, kuriems NIEKADA nereikia rankinio taikinio (sužaidžiami iškart, be pasirinkimo).
 const NO_SELECT_EFFECTS = new Set<EffectType>([
   'drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard',
@@ -127,10 +141,12 @@ export function mappingNeedsSelection(m: EffectMapping): boolean {
   if (m.useTriggerSource) return false  // reakcijos taikinys nustatytas automatiškai (trigerio šaltinis)
   if (m.chooseAlt && m.chooseAlt.length > 0) return false  // ARBA: pirmiau pop-up pasirinkimas, taikiniai auto
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
-  // AIŠKUS admino pasirinkimas „Žaidėjas renkasi" nusveria visus nutylėjimus žemiau.
-  // Anksčiau NO_SELECT_EFFECTS ir isMultiTarget patikros ėjo PIRMOS, tad pažymėjus
-  // „žaidėjas renkasi 2 taikinius" prie tokio efekto kaip revive/summonFromGraveyard
-  // nustatymas būdavo tyliai ignoruojamas ir efektas suveikdavo automatiškai.
+  // Žaidėjo/kaladės efektams taikinio nėra – tikrinama PIRMA, kad senos kortos su
+  // užsilikusiu `requiresSelection: true` (pvz. „Traukti kortas") neprašytų padaro.
+  if (NEVER_SELECT_EFFECTS.has(m.effect)) return false
+  // AIŠKUS admino pasirinkimas „Žaidėjas renkasi" nusveria likusius nutylėjimus:
+  // be to prie summon/revive tipo efektų nustatymas būdavo tyliai ignoruojamas
+  // ir paskutinis noras su 2 taikiniais suveikdavo automatiškai.
   if (m.requiresSelection === true) return true
   if (NO_SELECT_EFFECTS.has(m.effect)) return false
   if (m.targetTypes && m.targetTypes.length > 0) return !m.applyToAllTypes && m.requiresSelection !== false
