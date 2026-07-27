@@ -3,7 +3,7 @@
 // per GameApi (dependency injection iš engine.ts) – jokių ciklinių importų.
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
-import type { EffectMapping, EffectType } from './types'
+import type { EffectMapping, EffectType, ZmkValue } from './types'
 import { EFFECT_TYPES } from './types'
 import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, filterWounded, filterSubtype, filterFaction, type ResolvedTarget } from './targetResolver'
 import type { GameState, Side, BoardUnit, BoardArtifact, TutCard, TutStatus, GameEvent } from '@/lib/tutorial/engine'
@@ -18,7 +18,8 @@ export type GameApi = {
   drawCards(g: GameState, s: Side, n: number): void
   drawAdvanced(g: GameState, s: Side, opts: { count: number; fromGraveyard?: boolean; cardType?: string; keep?: number }): void
   reviveCards(g: GameState, s: Side, cards: TutCard[]): void
-  discardCards(g: GameState, s: Side, n: number): void
+  discardCards(g: GameState, s: Side, n: number, chooser?: 'caster' | 'opponent' | 'random'): void
+  discardHandAndDraw(g: GameState, s: Side): void
   killUnit(g: GameState, owner: Side, u: BoardUnit): void
   destroyArtifact(g: GameState, owner: Side, uid: string): void
   applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus): void
@@ -26,6 +27,10 @@ export type GameApi = {
   gainGold(g: GameState, s: Side, n: number, srcName: string): void
   loseGold(g: GameState, s: Side, n: number, srcName: string): void
   scheduleGoldPenalty(g: GameState, s: Side, n: number, srcName: string): void
+  scheduleGoldBonus(g: GameState, s: Side, n: number, srcName: string): void
+  setZmkRemap(g: GameState, s: Side, from: ZmkValue, to: ZmkValue, srcName: string): void
+  /** Praneša apie ĮGYTĄ būseną/raktažodį (onAnyStatus trigeriui). */
+  notifyStatusGained(g: GameState, side: Side, status: string, uid: string, name: string): void
   counterCurrentSpell(g: GameState, srcName: string): void
   returnUnitToHand(g: GameState, owner: Side, u: BoardUnit): void
   summonFromZone(g: GameState, s: Side, zone: 'hand' | 'deck' | 'discard', opts?: { costMax?: number; subtype?: string; factionId?: number; count?: number }): void
@@ -99,7 +104,7 @@ const MAX_DEPTH = 4
 // onDeath/onAnyDeath) iškviečiami su depth=0 (debuff→mirtis→deathrattle→debuff…).
 const MAX_CASCADE = 200
 
-const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard', 'takeControl']
+const HARM_EFFECTS: EffectType[] = ['damage', 'destroy', 'silence', 'freeze', 'stun', 'poison', 'burn', 'debuffAttack', 'debuffHealth', 'discard', 'loseGold', 'loseGoldNextTurn', 'moveToGraveyard', 'takeControl', 'discardHandAndDraw', 'arrangeEnemyDeckTop']
 
 // Efektai, kuriems NIEKADA nereikia rankinio taikinio (sužaidžiami iškart, be pasirinkimo).
 const NO_SELECT_EFFECTS = new Set<EffectType>([
@@ -107,7 +112,8 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck',
   'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
-  'coinFlip', 'loseGoldNextTurn', 'copyEffectFromGraveyard', 'forceCurseActivation',
+  'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw',
+  'arrangeEnemyDeckTop', 'copyEffectFromGraveyard', 'forceCurseActivation',
   'activateLastwishFromGraveyard', 'turnCostDiscount',
 ])
 
@@ -265,7 +271,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
     // Fallback: „jei nėra taikinio – padaryk kitą efektą" (noTargetThen)
     if (m.noTargetThen && m.noTargetThen.length > 0) {
       api.log(g, { t: 'battlecry', side: caster, key: 'battleLog.noTargetFallback', params: { src: ctx.sourceName } })
@@ -378,6 +384,9 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
         else if (m.effect === 'sprint') { if (!f.u.card.keywords.includes('sprint')) f.u.card.keywords.push('sprint') }
         else if (!f.u.card.keywords.includes('taunt')) f.u.card.keywords.push('taunt')
         api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, statusEvt: 'apply', statusId: m.effect, src: { side: f.owner, uid: f.u.uid }, key: 'battleLog.keywordGained', params: { card: f.u.card.name, keyword: `$t:statusEffects.${m.effect}.name` } })
+        // raktažodžiai (skydas/slaptumas/provokacija/spurtas) NĖRA `statuses` žemėlapyje,
+        // tad onAnyStatus trigerį jiems paleidžiam čia rankiniu būdu
+        api.notifyStatusGained(g, f.owner, m.effect, f.u.uid, f.u.card.name)
       }
       break
     case 'buffAttack':
@@ -405,7 +414,8 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       for (const sd of sides) { const h = (sd === 'you' ? g.you : g.ai).hand.length; const need = Math.max(0, v - h); if (need > 0) api.drawCards(g, sd, need) }
       break
     }
-    case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v); break
+    case 'discard': api.discardCards(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, m.discardChooser); break
+    case 'discardHandAndDraw': api.discardHandAndDraw(g, targets[0]?.kind === 'player' ? targets[0].side : caster); break
     case 'gainGold': api.gainGold(g, m.goldAppliesTo === 'opponent' ? foe : m.goldAppliesTo === 'caster' ? caster : (targets[0]?.kind === 'player' ? targets[0].side : caster), v, ctx.sourceName); break
     case 'loseGold': api.loseGold(g, m.goldAppliesTo === 'caster' ? caster : m.goldAppliesTo === 'opponent' ? foe : (targets[0]?.kind === 'player' ? targets[0].side : foe), v, ctx.sourceName); break
     case 'cardCostMod': api.addCardCostMod(g, m.costModAppliesTo === 'opponent' ? foe : caster, m.costModDelta ?? v, (m.costModCardType && m.costModCardType !== 'any') ? m.costModCardType : null); break
@@ -445,6 +455,19 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       break
     }
     case 'loseGoldNextTurn': api.scheduleGoldPenalty(g, targets[0]?.kind === 'player' ? targets[0].side : foe, v, ctx.sourceName); break
+    case 'gainGoldNextTurn': {
+      const who = m.goldAppliesTo ?? 'caster'
+      if (who === 'both') { api.scheduleGoldBonus(g, caster, v, ctx.sourceName); api.scheduleGoldBonus(g, foe, v, ctx.sourceName) }
+      else api.scheduleGoldBonus(g, who === 'opponent' ? foe : caster, v, ctx.sourceName)
+      break
+    }
+    case 'remapZmkValue': {
+      if (m.zmkFrom && m.zmkTo) {
+        const who = m.zmkAppliesTo === 'opponent' ? foe : caster
+        api.setZmkRemap(g, who, m.zmkFrom, m.zmkTo, ctx.sourceName)
+      }
+      break
+    }
     case 'coinFlip': {
       const green = Math.random() < 0.5
       api.log(g, { t: 'coin', side: caster, coin: green ? 'green' : 'red', key: green ? 'battleLog.coin.green' : 'battleLog.coin.red' })

@@ -51,6 +51,21 @@ export const TARGET_TYPES: { value: TargetType; label: string }[] = [
 ]
 
 // ── Efektų tipai ──────────────────────────────────────────────────────────────
+/** ŽMK kortos reikšmė (viena vieta – engine.ts ir zmkEngine.ts importuoja iš čia). */
+export type ZmkValue = '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'
+
+/** Būsenos ir raktažodžiai kartu – naudojama trigerio filtrams (onAnyStatus). */
+export type StatusOrKeyword =
+  | 'frozen' | 'stunned' | 'burning' | 'poisoned' | 'silenced' | 'blessed'
+  | 'shield' | 'stealth' | 'taunt' | 'sprint'
+export const STATUS_OR_KEYWORDS: { value: StatusOrKeyword; label: string }[] = [
+  { value: 'frozen', label: 'Sušaldytas' }, { value: 'stunned', label: 'Apsvaigintas' },
+  { value: 'burning', label: 'Degantis' }, { value: 'poisoned', label: 'Užnuodytas' },
+  { value: 'silenced', label: 'Nutildytas' }, { value: 'blessed', label: 'Palaimintas' },
+  { value: 'shield', label: 'Magiškasis skydas' }, { value: 'stealth', label: 'Slaptumas' },
+  { value: 'taunt', label: 'Provokacija' }, { value: 'sprint', label: 'Spurtas' },
+]
+
 export type EffectType =
   | 'damage' | 'heal' | 'destroy'
   | 'silence' | 'freeze' | 'stun' | 'poison' | 'burn' | 'cleanse'
@@ -63,7 +78,10 @@ export type EffectType =
   | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
   | 'spellDiscount' | 'buffSpellDamage' | 'cardCostMod'
   | 'chooseEffect' | 'tutorToHand'
-  | 'coinFlip' | 'loseGoldNextTurn'
+  | 'coinFlip' | 'loseGoldNextTurn' | 'gainGoldNextTurn'
+  | 'remapZmkValue' | 'discardHandAndDraw'
+  // 'arrangeEnemyDeckTop' – rezervuota; į EFFECT_TYPES bus įtraukta kartu su pertvarkymo UI
+  | 'arrangeEnemyDeckTop'
   | 'copyEffectFromGraveyard'
   | 'reflectToAttacker'
   | 'resurrectSelf'
@@ -127,6 +145,9 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'gainGold',            label: 'Gauti aukso',                needsValue: true,  group: 'Auksas ir kainos' },
   { value: 'loseGold',            label: 'Prarasti aukso',             needsValue: true,  group: 'Auksas ir kainos' },
   { value: 'loseGoldNextTurn',    label: 'Priešas praranda X aukso kito ėjimo pradžioje', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'gainGoldNextTurn',    label: 'Gauti X aukso kito ėjimo pradžioje (aš / priešas / abu)', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'remapZmkValue',       label: 'ŽMK modifikatorius X veikia kaip Y (iki ėjimo pabaigos)', needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'discardHandAndDraw',  label: 'Išmesti visą ranką ir traukti tiek pat kortų', needsValue: false, group: 'Kortų traukimas ir ranka' },
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'turnCostDiscount',    label: 'Šį ėjimą VISOS kortos kainuoja X pigiau (bet ne pigiau nei Y)', needsValue: true, group: 'Auksas ir kainos' },
@@ -316,7 +337,7 @@ export type EffectMapping = {
   overflowToPlayer?: boolean    // žala padarui: perteklinė (virš taikinio HP) žala pereina taikinio žaidėjui
   zmkValue?: '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'  // removeZmkCard: kuri ŽMK korta šalinama
   zmkAppliesTo?: 'caster' | 'opponent'                      // removeZmkCard: kieno kaladė (default caster)
-  goldAppliesTo?: 'caster' | 'opponent'                     // gainGold/loseGold: kam taikoma (default: gain→caster, lose→opponent)
+  goldAppliesTo?: 'caster' | 'opponent' | 'both'            // gainGold/loseGold/gainGoldNextTurn: kam taikoma (default: gain→caster, lose→opponent)
   costModDelta?: number                                     // cardCostMod: kainos pokytis (+ brangiau, − pigiau)
   costModCardType?: 'any' | 'unit' | 'spell' | 'artifact' | 'reaction' | 'field'  // cardCostMod: kuriam kortos tipui
   costModAppliesTo?: 'caster' | 'opponent'                  // cardCostMod: kieno sekančiai kortai (default caster)
@@ -387,6 +408,13 @@ export type EffectMapping = {
   drawKeep?: number                 // drawCards: traukti `value`, pasilikti `drawKeep` (pop-up), kitas išmesti
   drawAppliesTo?: 'caster' | 'opponent' | 'both'  // drawCards/drawUntilHand: kas traukia (numatyta caster = šaltinis)
   targetSummoned?: boolean          // then: taikinys = ką tik šio efekto iškviestas padaras (raktažodžiui suteikti)
+  /** discard: KAS renka metamas kortas (default 'random' – pigiausios, kaip iki šiol). */
+  discardChooser?: 'caster' | 'opponent' | 'random'
+  /** remapZmkValue: kuri ŽMK reikšmė pakeičiama kuria (galioja iki ėjimo pabaigos). */
+  zmkFrom?: ZmkValue
+  zmkTo?: ZmkValue
+  /** onAnyStatus: filtruoti pagal konkrečią būseną/raktažodį (tuščia = bet kuri). */
+  triggerStatus?: StatusOrKeyword
   note?: string
 }
 
@@ -430,6 +458,8 @@ export type PassiveAuraConfig = {
   auraKeywords?: ('taunt' | 'shield' | 'stealth' | 'sprint')[]  // suteikiami raktažodžiai
   auraStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned')[]  // paveikti padarai NUOLAT turi šias būsenas, kol aura aktyvi
   auraFromGraveyardOnly?: boolean      // aura veikia TIK padarus, iškviestus/prikeltus iš kapinyno
+  /** ŽMK reikšmės pokytis paveiktai pusei (+/−). Taikoma PO ŽMK kortos, prieš žalą. */
+  auraZmkDelta?: number
   auraRequiresKeyword?: 'taunt' | 'shield' | 'stealth' | 'sprint'  // SĄLYGA: aura veikia tik padarus su šiuo raktažodžiu (pvz. +1/+1 tik taunt padarams)
   auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
   // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──

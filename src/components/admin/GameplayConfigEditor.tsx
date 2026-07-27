@@ -12,6 +12,7 @@ import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
 import { CinematicUpload, type CinematicData } from './CinematicUpload'
 import {
+  STATUS_OR_KEYWORDS,
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES, EFFECT_GROUP_ORDER,
   METRIC_SOURCES, COMPARE_OPS, TARGET_SELECTS, SPELL_TYPES, ATTACK_RESTRICTIONS,
   type GameplayConfig, type EffectMapping, type MetricSource, type CompareOp, type TargetSelect, type SpellType, type AttackRestriction,
@@ -287,7 +288,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || (pa.auraZmkDelta ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -299,7 +300,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraZmkDelta: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -322,6 +323,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   {/* neigiama reikšmė = kaina DIDINAMA (auraCostReductionFor ją atima) */}
                   <input type="number" min={-20} value={pa?.auraCostReduction ?? 0}
                     onChange={(e) => setPa({ auraCostReduction: Number(e.target.value) || undefined })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>ŽMK ±</label>
+                  {/* taikoma PO ŽMK kortos, prieš žalą; galutinė žala niekada < 0 */}
+                  <input type="number" min={-5} max={5} value={pa?.auraZmkDelta ?? 0}
+                    onChange={(e) => setPa({ auraZmkDelta: Number(e.target.value) || undefined })} style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Kam galioja</label>
@@ -675,15 +682,15 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               const eff = m.effect
               const isGlobalTrigger = m.trigger.startsWith('onAny')
               const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
-              const isPlayerEff = ['discard', 'gainGold', 'loseGold', 'loseGoldNextTurn'].includes(eff)
+              const isPlayerEff = ['discard', 'gainGold', 'loseGold', 'loseGoldNextTurn', 'gainGoldNextTurn', 'discardHandAndDraw', 'arrangeEnemyDeckTop'].includes(eff)
               const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
-              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'revealOwnDeck', 'revealEnemyDeck', 'forceCurseActivation'].includes(eff)
+              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'revealOwnDeck', 'revealEnemyDeck', 'forceCurseActivation', 'remapZmkValue'].includes(eff)
               const isTargeted = !isSummon && !isPlayerEff && !isDeckEff && !isFixedNoTarget
               const showTarget = isTargeted || isPlayerEff || isDeckEff
               const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
               const targetOpts = isTargeted ? TARGET_TYPES : TARGET_TYPES.filter((t) => playerOnly.includes(t.value))
               const isSinglePick = ['enemyUnit', 'ownUnit', 'anyUnit', 'enemyChampion', 'ownChampion', 'anyChampion', 'enemyArtifact', 'ownArtifact', 'anyArtifact'].includes(m.target)
-              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', drawUntilHand: 'Rankoje kortų (X)', gainGold: 'Auksas +', loseGold: 'Auksas −', loseGoldNextTurn: 'Auksas − (kitą ėjimą)', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
+              const valueLabel = ({ damage: 'Žala', heal: 'Gydymas', buffAttack: '+ATK', buffHealth: '+HP', debuffAttack: '−ATK', debuffHealth: '−HP', drawCards: 'Kiek kortų', drawUntilHand: 'Rankoje kortų (X)', gainGold: 'Auksas +', loseGold: 'Auksas −', loseGoldNextTurn: 'Auksas − (kitą ėjimą)', gainGoldNextTurn: 'Auksas + (kitą ėjimą)', arrangeEnemyDeckTop: 'Kiek kortų peržiūrėti', mill: 'Kiek kortų', discard: 'Kiek kortų' } as Record<string, string>)[eff] ?? 'Reikšmė'
               // dabartinė parinkimo reikšmė vienam dropdownui
               const pickMode = m.requiresSelection ? 'player' : m.allowRandomTarget ? 'random' : (m.targetSelect ?? 'auto')
               const setPickMode = (v: string) => {
@@ -1160,14 +1167,57 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       </>
                     )}
                     {/* Gold gain/lose – kam taikoma (sau / priešininkui) */}
-                    {(m.effect === 'gainGold' || m.effect === 'loseGold') && (
+                    {(m.effect === 'gainGold' || m.effect === 'loseGold' || m.effect === 'gainGoldNextTurn') && (
                       <label className="flex items-center gap-1" title="Kam taikomas aukso pokytis">
                         Kam:
-                        <select value={m.goldAppliesTo ?? (m.effect === 'gainGold' ? 'caster' : 'opponent')}
-                          onChange={(e) => setMapping(i, { goldAppliesTo: e.target.value as 'caster' | 'opponent' })}
+                        <select value={m.goldAppliesTo ?? (m.effect === 'loseGold' ? 'opponent' : 'caster')}
+                          onChange={(e) => setMapping(i, { goldAppliesTo: e.target.value as 'caster' | 'opponent' | 'both' })}
                           style={{ ...inputStyle, width: 130 }}>
                           <option value="caster">Sau</option>
                           <option value="opponent">Priešininkui</option>
+                          {m.effect === 'gainGoldNextTurn' && <option value="both">Abiem</option>}
+                        </select>
+                      </label>
+                    )}
+                    {/* remapZmkValue – kuri ŽMK reikšmė veikia kaip kuri */}
+                    {m.effect === 'remapZmkValue' && (
+                      <>
+                        <label className="flex items-center gap-1" title="Kuri ŽMK reikšmė pakeičiama">
+                          ŽMK:
+                          <select value={m.zmkFrom ?? '+1'} onChange={(e) => setMapping(i, { zmkFrom: e.target.value as typeof m.zmkFrom })} style={{ ...inputStyle, width: 80 }}>
+                            {(['+0', '+1', '-1', '+2', '-2', 'x2', 'x0'] as const).map((z) => <option key={z} value={z}>{z}</option>)}
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1" title="Kaip ji veiks">
+                          veikia kaip:
+                          <select value={m.zmkTo ?? '+2'} onChange={(e) => setMapping(i, { zmkTo: e.target.value as typeof m.zmkTo })} style={{ ...inputStyle, width: 80 }}>
+                            {(['+0', '+1', '-1', '+2', '-2', 'x2', 'x0'] as const).map((z) => <option key={z} value={z}>{z}</option>)}
+                          </select>
+                        </label>
+                      </>
+                    )}
+                    {/* discard – kas renka metamas kortas */}
+                    {m.effect === 'discard' && (
+                      <label className="flex items-center gap-1" title="Kas renka, kurios kortos metamos">
+                        Renka:
+                        <select value={m.discardChooser ?? 'random'}
+                          onChange={(e) => setMapping(i, { discardChooser: e.target.value === 'random' ? undefined : e.target.value as 'caster' | 'opponent' })}
+                          style={{ ...inputStyle, width: 150 }}>
+                          <option value="random">Automatiškai (pigiausia)</option>
+                          <option value="caster">Kortų savininkas</option>
+                          <option value="opponent">Priešininkas (brangiausia)</option>
+                        </select>
+                      </label>
+                    )}
+                    {/* onAnyStatus – filtras pagal konkrečią būseną / raktažodį */}
+                    {m.trigger === 'onAnyStatus' && (
+                      <label className="flex items-center gap-1" title="Reaguoti tik į konkrečią būseną ar raktažodį">
+                        Būsena:
+                        <select value={m.triggerStatus ?? ''}
+                          onChange={(e) => setMapping(i, { triggerStatus: (e.target.value || undefined) as typeof m.triggerStatus })}
+                          style={{ ...inputStyle, width: 160 }}>
+                          <option value="">Bet kuri</option>
+                          {STATUS_OR_KEYWORDS.map((st) => <option key={st.value} value={st.value}>{st.label}</option>)}
                         </select>
                       </label>
                     )}

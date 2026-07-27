@@ -3,7 +3,7 @@
 // (src/data/rules.ts). Jokio UI – tik būsena, veiksmai ir įvykių log'as.
 // Naudoja mokomasis režimas „Išmokyk mane žaisti" (TutorialGame.tsx).
 
-import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType, SpellType, AttackRestriction } from '@/lib/game/types'
+import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType, SpellType, AttackRestriction, StatusOrKeyword } from '@/lib/game/types'
 import { buildZmkDeck } from '@/lib/game/zmkEngine'
 import { applyMappings, applyMapping, mappingNeedsSelection, beginTargetCapture, endTargetCapture, type GameApi } from '@/lib/game/effectEngine'
 import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
@@ -145,6 +145,10 @@ export type PlayerState = {
   spellDamageBonus: number
   /** Aukso bauda, taikoma šio žaidėjo kito ėjimo pradžioje (priešo efektas). */
   goldPenaltyNextTurn: number
+  /** Auksas, gaunamas KITO ėjimo pradžioje (gainGoldNextTurn). */
+  goldBonusNextTurn: number
+  /** ŽMK reikšmių pakeitimai iki ėjimo pabaigos (remapZmkValue): '+1' -> '+2' ir pan. */
+  zmkRemap?: Partial<Record<ZmkValue, ZmkValue>>
   /** Sekančios kortos kainos modifikatoriai (cardCostMod). Kiekvienas suvartojamas, kai sužaidžiama atitinkama korta. */
   nextCardCostMods: { delta: number; cardType: string | null }[]
   /** Šio ėjimo visų kortų nuolaida (turnCostDiscount): kaina −amount, bet ne žemiau floor. Nuimama ėjimo pabaigoje. */
@@ -405,7 +409,7 @@ function mkPlayer(side: Side, deck: TutCard[], zmkPile: ZmkValue[], curses: TutC
     zmk: zmkPile, zmkGrave: [],
     gold: 0, turnNumber: 0, discardedForGold: false,
     curses, attacksThisTurn: 0, fieldDamageReducedThisTurn: false,
-    spellDiscountNext: 0, spellDamageBonus: 0, goldPenaltyNextTurn: 0, nextCardCostMods: [],
+    spellDiscountNext: 0, spellDamageBonus: 0, goldPenaltyNextTurn: 0, goldBonusNextTurn: 0, nextCardCostMods: [],
   }
 }
 
@@ -541,20 +545,45 @@ function zmkAfter(g: GameState, s: Side, v: ZmkValue) {
 }
 
 /** Žala su ŽMK. bias: advantage – traukiamos 2, imama geresnė; disadvantage – blogesnė. */
+/** Aurų ŽMK pokytis pusei (auraZmkDelta). Taikomas PO ŽMK kortos, prieš žalą. */
+function auraZmkDeltaFor(g: GameState, side: Side): number {
+  let d = 0
+  for (const sd of allSeats(g)) {
+    const p = P(g, sd)
+    const srcs = [
+      ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+      ...p.artifacts.filter((a): a is BoardArtifact => !!a),
+    ]
+    for (const c of srcs) {
+      const cfg = c.card.gameplay?.passiveAura
+      if (!cfg?.auraZmkDelta) continue
+      const scope = cfg.auraScope ?? 'friendly'
+      const affects = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, side) : !sameTeam(g, sd, side))
+      if (affects) d += cfg.auraZmkDelta
+    }
+  }
+  return d
+}
+
+/** ŽMK reikšmė po žaidėjo `remapZmkValue` pakeitimų. */
+function remapZmk(g: GameState, s: Side, v: ZmkValue): ZmkValue {
+  return P(g, s).zmkRemap?.[v] ?? v
+}
+
 function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'normal'): number {
-  const v = drawZmkCard(g, actor)
+  const v = remapZmk(g, actor, drawZmkCard(g, actor))
   if (bias !== 'normal') {
-    const v2 = drawZmkCard(g, actor)
+    const v2 = remapZmk(g, actor, drawZmkCard(g, actor))
     const a = applyZmk(base, v)
     const b = applyZmk(base, v2)
     const adv = bias === 'advantage'
     const pick = adv ? (a >= b ? v : v2) : (a <= b ? v : v2)
-    const val = adv ? Math.max(a, b) : Math.min(a, b)
+    const val = Math.max(0, (adv ? Math.max(a, b) : Math.min(a, b)) + auraZmkDeltaFor(g, actor))
     log(g, { t: 'zmk', side: actor, zmk: pick, value: val, zmkPair: [v, v2], zmkPicked: pick, bias, key: `battleLog.zmkBias.${adv ? 'adv' : 'dis'}`, params: { a: v, b: v2 } })
     zmkAfter(g, actor, v); zmkAfter(g, actor, v2)
     return val
   }
-  const dmg = applyZmk(base, v)
+  const dmg = Math.max(0, applyZmk(base, v) + auraZmkDeltaFor(g, actor))
   log(g, { t: 'zmk', side: actor, zmk: v, value: dmg, key: 'battleLog.zmkRoll', params: { zmk: v, base, dmg } })
   zmkAfter(g, actor, v)
   return dmg
@@ -1198,7 +1227,7 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
     : ownTurn ? p.turnNumber + 1 : p.turnNumber + 1.5
   u.statuses[st] = until
   log(g, { t: 'status', side: owner, cardName: u.card.name, status: st, statusEvt: 'apply', statusId: st, src: { side: owner, uid: u.uid }, key: 'battleLog.statusApply', params: { icon: STATUS_META[st].icon, card: u.card.name, status: tref(`statusEffects.${st}.name`) } })
-  fireGlobalListeners(g, 'onAnyStatus', { side: owner })
+  fireGlobalListeners(g, 'onAnyStatus', { side: owner, status: st, srcRef: { kind: 'unit', side: owner, uid: u.uid }, srcName: u.card.name })
   if (st === 'silenced') {
     // Nutildymas nuima VISUS efektus: skydą, sėlinimą, raktažodžius (per patikras) ir
     // visus stat buffus – statai grįžta į bazinę kortą; patirta žala lieka.
@@ -1334,11 +1363,15 @@ function expireControl(g: GameState, s: Side, phase: 'beginTurn' | 'endTurn') {
   if (moved) recomputeAuras(g)
 }
 
-function discardCardsPrim(g: GameState, s: Side, n: number) {
+function discardCardsPrim(g: GameState, s: Side, n: number, chooser: 'caster' | 'opponent' | 'random' = 'random') {
   const p = P(g, s)
   for (let i = 0; i < n && p.hand.length > 0; i++) {
-    // be random: metama pigiausia korta (deterministinis pasirinkimas)
-    const idx = p.hand.reduce((best, c, ci) => (c.gold < p.hand[best].gold ? ci : best), 0)
+    // 'random'  – pigiausia korta (deterministinis, kaip iki šiol)
+    // 'caster'  – kortos savininkas metą pigiausią (jam palankiausia)
+    // 'opponent'– priešininkas renka BRANGIAUSIĄ (jam palankiausia)
+    const idx = chooser === 'opponent'
+      ? p.hand.reduce((best, c, ci) => (c.gold > p.hand[best].gold ? ci : best), 0)
+      : p.hand.reduce((best, c, ci) => (c.gold < p.hand[best].gold ? ci : best), 0)
     const [c] = p.hand.splice(idx, 1)
     p.discard.push(c)
     log(g, { t: 'discardGold', side: s, cardName: c.name, key: `battleLog.discard.${SK(s)}`, params: { card: c.name } })
@@ -1936,7 +1969,7 @@ function autoTriggerSource(g: GameState, trigger: string): TargetRef | undefined
   return undefined
 }
 
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; srcRef?: TargetRef; srcName?: string }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; status?: StatusOrKeyword; srcRef?: TargetRef; srcName?: string }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   // Reakcijų kontekstas: TIKSLI korta (runtime uid), kurios veiksmas suaktyvino
@@ -1953,6 +1986,8 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         if (want === 'enemy' && ctx.side && sameTeam(g, ctx.side, sd)) return false
       }
       if (m.triggerSubtype && (ctx?.subtype ?? '').toLowerCase() !== m.triggerSubtype.trim().toLowerCase()) return false
+      // onAnyStatus: filtras pagal konkrečią būseną / raktažodį
+      if (m.triggerStatus && trigger === 'onAnyStatus' && ctx?.status !== m.triggerStatus) return false
       if (m.triggerSpellType && trigger === 'onAnyCast' && m.triggerSpellType !== ctx?.spellType) return false
       if (m.triggerFaction && ctx?.faction !== m.triggerFaction) return false
       if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) return false
@@ -2258,6 +2293,38 @@ function loseGoldPrim(g: GameState, s: Side, n: number, srcName: string) {
   log(g, { t: 'gold', side: s, value: -n, key: `battleLog.goldLose.${SK(s)}`, params: { gold: n, src: srcName } })
 }
 
+function notifyStatusGainedPrim(g: GameState, side: Side, status: string, uid: string, name: string) {
+  fireGlobalListeners(g, 'onAnyStatus', { side, status: status as StatusOrKeyword, srcRef: { kind: 'unit', side, uid }, srcName: name })
+}
+
+function scheduleGoldBonusPrim(g: GameState, s: Side, n: number, srcName: string) {
+  if (n <= 0) return
+  const p = P(g, s)
+  p.goldBonusNextTurn += n
+  log(g, { t: 'gold', side: s, value: n, key: `battleLog.goldBonusNextSet.${SK(s)}`, params: { gold: p.goldBonusNextTurn, src: srcName } })
+}
+
+/** ŽMK reikšmių pakeitimas iki ėjimo pabaigos: traukiant `from` elgiamasi kaip su `to`. */
+function setZmkRemapPrim(g: GameState, s: Side, from: ZmkValue, to: ZmkValue, srcName: string) {
+  const p = P(g, s)
+  p.zmkRemap = { ...(p.zmkRemap ?? {}), [from]: to }
+  log(g, { t: 'zmk', side: s, zmk: from, key: 'battleLog.zmkRemap', params: { from, to, src: srcName } })
+}
+
+/** Išmesti VISĄ ranką ir tuoj pat traukti tiek pat kortų. */
+function discardHandAndDrawPrim(g: GameState, s: Side) {
+  const p = P(g, s)
+  const n = p.hand.length
+  if (n === 0) return
+  for (const c of p.hand.splice(0, n)) {
+    p.discard.push(c)
+    log(g, { t: 'discardGold', side: s, cardName: c.name, key: `battleLog.discard.${SK(s)}`, params: { card: c.name } })
+  }
+  fireGlobalListeners(g, 'onAnyDiscard', { side: s })
+  drawCards(g, s, n)
+  log(g, { t: 'draw', side: s, value: n, key: `battleLog.discardHandRedraw.${SK(s)}`, params: { count: n } })
+}
+
 function scheduleGoldPenaltyPrim(g: GameState, s: Side, n: number, srcName: string) {
   const p = P(g, s)
   p.goldPenaltyNextTurn += n
@@ -2435,6 +2502,10 @@ export const gameApi: GameApi = {
   gainGold: gainGoldPrim,
   loseGold: loseGoldPrim,
   scheduleGoldPenalty: scheduleGoldPenaltyPrim,
+  scheduleGoldBonus: scheduleGoldBonusPrim,
+  setZmkRemap: setZmkRemapPrim,
+  discardHandAndDraw: discardHandAndDrawPrim,
+  notifyStatusGained: notifyStatusGainedPrim,
   counterCurrentSpell: counterCurrentSpellPrim,
   returnUnitToHand: returnUnitToHandPrim,
   summonFromZone: summonFromZonePrim,
@@ -2689,6 +2760,12 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   // += (ne =): ėjimo pradžios trigger'ių duotas auksas išsaugomas
   p.gold += Math.min(p.turnNumber, 10) * 100 + fieldBonus
   log(g, { t: 'gold', side: s, value: p.gold, key: `battleLog.${fieldBonus ? 'turnGoldField' : 'turnGold'}.${SK(s)}`, params: { gold: p.gold, turn: `${p.turnNumber}${p.turnNumber >= 10 ? '+' : ''}`, bonus: fieldBonus } })
+  // Aukso priedas iš efekto (gainGoldNextTurn) — taikomas PRIEŠ baudą
+  if (p.goldBonusNextTurn > 0) {
+    p.gold += p.goldBonusNextTurn
+    log(g, { t: 'gold', side: s, value: p.goldBonusNextTurn, key: `battleLog.goldBonusNext.${SK(s)}`, params: { gold: p.goldBonusNextTurn, left: p.gold } })
+    p.goldBonusNextTurn = 0
+  }
   // Aukso bauda iš priešo efekto (loseGoldNextTurn)
   if (p.goldPenaltyNextTurn > 0) {
     const pen = Math.min(p.gold, p.goldPenaltyNextTurn)
@@ -2717,6 +2794,7 @@ function seatEndTurn(g: GameState, s: Side): GameState {
   if (g.pendingBattlecry?.side === s) flushPendingBattlecry(g)  // nepasirinko taikinio → auto
   if (g.pendingLastwish?.side === s) flushPendingLastwish(g)     // nepasirinko Paskutinio noro taikinio → auto
   p.turnCostDiscount = undefined  // „šį ėjimą kortos kainuoja X pigiau" baigiasi
+  p.zmkRemap = undefined          // ŽMK reikšmių pakeitimai galioja tik šį ėjimą
   // Priešo uždėtos būsenos (until x.5): kaustė visą šį ėjimą — nuimamos jo pabaigoje,
   // kad uždėjusiojo kitame ėjime padaras jau būtų laisvas (atsakytų į atakas).
   for (const u of p.units) {
