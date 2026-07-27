@@ -2,6 +2,7 @@
 
 // ── Parduotuvės administravimas: kosmetika · pakuotės · starter kaladės ───────
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { RARITY_COPY_LIMIT, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ShopImageUpload } from '@/components/admin/ShopImageUpload'
@@ -11,7 +12,13 @@ type Pack = { id: string; name: string; description: string | null; price_gold: 
 type StarterDeck = { id: string; name: string; description: string | null; faction_id: number | null; image_url: string | null; price_gold: number; is_active: boolean; sort_order: number }
 type SDC = { starter_deck_id: string; card_id: string; quantity: number }
 type Faction = { id: number; name: string }
-type CardLite = { id: string; name: string; card_number: string | null; gold_cost: number | null; faction_id: number | null; rarity_id: number | null; image_url: string | null }
+type CardLite = {
+  id: string; name: string; card_number: string | null; gold_cost: number | null
+  faction_id: number | null; rarity_id: number | null; card_type_id: number | null
+  attack: number | null; health: number | null; subtype: string | null; image_url: string | null
+  card_type?: { name: string } | null
+  rarity?: { name: string; sort_order: number } | null
+}
 
 type Props = {
   cosmetics: Cosmetic[]; packs: Pack[]; starterDecks: StarterDeck[]
@@ -204,17 +211,50 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
   const [editing, setEditing] = useState(false)
   const [sel, setSel] = useState<Map<string, number>>(new Map())
   const [search, setSearch] = useState('')
+  const [fType, setFType] = useState<number | 'all'>('all')
+  const [fRarity, setFRarity] = useState<number | 'all'>('all')
+  const [fCost, setFCost] = useState<'all' | '0-2' | '3-5' | '6+'>('all')
+  const [onlyFaction, setOnlyFaction] = useState(true)
   const set = (k: keyof StarterDeck, v: any) => setForm((f) => ({ ...f, [k]: v }))
 
   const cardById = useMemo(() => { const m = new Map<string, CardLite>(); for (const c of cards) m.set(c.id, c); return m }, [cards])
   const total = useMemo(() => [...sel.values()].reduce((a, b) => a + b, 0), [sel])
+
+  // Filtrų reikšmės imamos iš pačių kortų – jokių hardcoded sąrašų
+  const types = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const c of cards) if (c.card_type_id != null && c.card_type?.name) m.set(c.card_type_id, c.card_type.name)
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'lt'))
+  }, [cards])
+  const rarities = useMemo(() => {
+    const m = new Map<number, { name: string; sort: number }>()
+    for (const c of cards) if (c.rarity_id != null && c.rarity?.name) m.set(c.rarity_id, { name: c.rarity.name, sort: c.rarity.sort_order ?? 0 })
+    return [...m.entries()].sort((a, b) => a[1].sort - b[1].sort)
+  }, [cards])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    let list = cards
-    if (form.faction_id != null) list = list.filter((c) => c.faction_id === form.faction_id || c.faction_id === 14)
-    if (q) list = list.filter((c) => c.name.toLowerCase().includes(q) || (c.card_number ?? '').toLowerCase().includes(q))
-    return list.slice(0, 60)
-  }, [cards, search, form.faction_id])
+    return cards.filter((c) => {
+      if (onlyFaction && form.faction_id != null && c.faction_id !== form.faction_id && c.faction_id !== NEUTRAL_FACTION_ID) return false
+      if (fType !== 'all' && c.card_type_id !== fType) return false
+      if (fRarity !== 'all' && c.rarity_id !== fRarity) return false
+      if (fCost !== 'all') {
+        const g = c.gold_cost ?? 0
+        if (fCost === '0-2' && g > 2) return false
+        if (fCost === '3-5' && (g < 3 || g > 5)) return false
+        if (fCost === '6+' && g < 6) return false
+      }
+      if (q && !c.name.toLowerCase().includes(q) && !(c.card_number ?? '').toLowerCase().includes(q) && !(c.subtype ?? '').toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [cards, search, form.faction_id, fType, fRarity, fCost, onlyFaction])
+
+  const copyLimit = (c: CardLite) => (c.rarity_id != null ? (RARITY_COPY_LIMIT[c.rarity_id] ?? 2) : 2)
+  const curve = useMemo(() => {
+    const b = [0, 0, 0, 0, 0, 0]
+    for (const [id, q] of sel) { const g = cardById.get(id)?.gold_cost ?? 0; b[Math.min(5, g)] += q }
+    return b
+  }, [sel, cardById])
 
   const loadDeck = (d: StarterDeck) => {
     setForm({ ...d, description: d.description ?? '', image_url: d.image_url ?? '' }); setEditing(true)
@@ -223,7 +263,11 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
     setSel(m)
   }
   const reset = () => { setForm(blank); setEditing(false); setSel(new Map()); setSearch('') }
-  const addCard = (id: string) => setSel((m) => { const n = new Map(m); n.set(id, (n.get(id) ?? 0) + 1); return n })
+  const addCard = (c: CardLite) => setSel((m) => {
+    const cur = m.get(c.id) ?? 0
+    if (cur >= copyLimit(c)) { flash(`${c.name}: daugiau nei ${copyLimit(c)} kopijas dėti negalima`, true); return m }
+    const n = new Map(m); n.set(c.id, cur + 1); return n
+  })
   const decCard = (id: string) => setSel((m) => { const n = new Map(m); const q = (n.get(id) ?? 0) - 1; if (q <= 0) n.delete(id); else n.set(id, q); return n })
 
   const save = async () => {
@@ -253,14 +297,25 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
     flash('Ištrinta'); reload()
   }
 
+  const okCount = total >= DECK_MIN && total <= DECK_MAX
+  const chip = (active: boolean) => ({
+    padding: '4px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const,
+    background: active ? 'rgba(240,180,41,0.18)' : 'var(--bg-elevated)',
+    border: '1px solid ' + (active ? 'rgba(240,180,41,0.5)' : 'rgba(255,255,255,0.08)'),
+    color: active ? 'var(--gold)' : 'var(--text-muted)',
+  })
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="space-y-3">
+      {/* ── Kaladės duomenys ── */}
       <div className="rounded-xl p-4 space-y-2.5" style={card}>
         <p className="text-sm font-bold" style={{ color: 'var(--gold)' }}>{editing ? 'Redaguoti starter kaladę' : 'Nauja starter kaladė'}</p>
-        <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Pavadinimas
-          <input className={inp} style={inpStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></label>
-        <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Aprašymas
-          <input className={inp} style={inpStyle} value={form.description ?? ''} onChange={(e) => set('description', e.target.value)} /></label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Pavadinimas
+            <input className={inp} style={inpStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></label>
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Aprašymas
+            <input className={inp} style={inpStyle} value={form.description ?? ''} onChange={(e) => set('description', e.target.value)} /></label>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Frakcija
             <select className={inp} style={inpStyle} value={form.faction_id ?? ''} onChange={(e) => set('faction_id', e.target.value ? Number(e.target.value) : null)}>
@@ -275,44 +330,109 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
         <ShopImageUpload currentUrl={form.image_url} folder="starter" onUpload={(u) => set('image_url', u)} />
         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
           <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} /> Aktyvi</label>
+      </div>
 
-        {/* Kortų rinkiklis */}
-        <div className="pt-1">
-          <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Kortos · iš viso {total} <span style={{ color: total >= 30 && total <= 40 ? '#86efac' : '#fca5a5' }}>(rekom. 30–40)</span></p>
-          {[...sel.entries()].length > 0 && (
-            <div className="mt-1.5 space-y-1 max-h-40 overflow-y-auto">
-              {[...sel.entries()].map(([id, q]) => {
-                const c = cardById.get(id)
+      {/* ── Kaladės kūrėjas: kairėje kortų fondas, dešinėje kaladė (kaip žaidime) ── */}
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'minmax(0,2.4fr) minmax(260px,1fr)' }}>
+        <div className="rounded-xl p-3" style={card}>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <input className={inp} style={{ ...inpStyle, maxWidth: 260 }} placeholder="Ieškoti kortos, numerio ar potipio…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{filtered.length} kortų</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <button style={chip(fType === 'all')} onClick={() => setFType('all')}>Visi tipai</button>
+            {types.map(([id, name]) => <button key={id} style={chip(fType === id)} onClick={() => setFType(id)}>{name}</button>)}
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <button style={chip(fRarity === 'all')} onClick={() => setFRarity('all')}>Visi retumai</button>
+            {rarities.map(([id, r]) => <button key={id} style={chip(fRarity === id)} onClick={() => setFRarity(id)}>{r.name}</button>)}
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {(['all', '0-2', '3-5', '6+'] as const).map((k) => (
+              <button key={k} style={chip(fCost === k)} onClick={() => setFCost(k)}>{k === 'all' ? 'Bet kokia kaina' : `🪙 ${k}`}</button>
+            ))}
+            {form.faction_id != null && (
+              <button style={chip(onlyFaction)} onClick={() => setOnlyFaction((v) => !v)}
+                title="Rodyti tik kaladės frakcijos ir universalias kortas">
+                {onlyFaction ? 'Tik šios frakcijos' : 'Visos frakcijos'}
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto" style={{ maxHeight: 460 }}>
+            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
+              {filtered.map((c) => {
+                const q = sel.get(c.id) ?? 0
+                const lim = copyLimit(c)
+                const full = q >= lim
                 return (
-                  <div key={id} className="flex items-center gap-2 text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-elevated)' }}>
-                    <span className="flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{c?.name ?? id}</span>
-                    <button className="px-1.5 rounded" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }} onClick={() => decCard(id)}>−</button>
-                    <span style={{ color: 'var(--gold)', minWidth: 16, textAlign: 'center' }}>{q}</span>
-                    <button className="px-1.5 rounded" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }} onClick={() => addCard(id)}>+</button>
-                  </div>
+                  <button key={c.id} onClick={() => addCard(c)}
+                    onContextMenu={(e) => { e.preventDefault(); decCard(c.id) }}
+                    title={`${c.name}${c.subtype ? ' · ' + c.subtype : ''} · 🪙${c.gold_cost ?? '—'} · maks. ${lim}`}
+                    className="relative rounded-lg overflow-hidden text-left"
+                    style={{ border: '1px solid ' + (q > 0 ? 'rgba(240,180,41,0.6)' : 'rgba(255,255,255,0.08)'), background: 'var(--bg-elevated)', opacity: full ? 0.55 : 1 }}>
+                    <div style={{ aspectRatio: '3 / 4', background: '#0d0a14' }}>
+                      {c.image_url
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={c.image_url} alt="" loading="lazy" decoding="async" className="w-full h-full" style={{ objectFit: 'cover' }} />
+                        : <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>{c.name.slice(0, 2)}</div>}
+                    </div>
+                    <div className="px-1.5 py-1">
+                      <p className="text-[10.5px] truncate" style={{ color: 'var(--text-primary)' }}>{c.name}</p>
+                      <p className="text-[9.5px]" style={{ color: 'var(--text-muted)' }}>🪙{c.gold_cost ?? '—'}{c.attack != null ? ` · ${c.attack}/${c.health ?? 0}` : ''}</p>
+                    </div>
+                    <span className="absolute top-1 right-1 text-[10px] font-bold px-1.5 rounded"
+                      style={{ background: q > 0 ? 'rgba(240,180,41,0.9)' : 'rgba(0,0,0,0.6)', color: q > 0 ? '#0a0a0f' : 'var(--text-muted)' }}>
+                      {q > 0 ? `${q}/${lim}` : `·${lim}`}
+                    </span>
+                  </button>
                 )
               })}
             </div>
-          )}
-          <input className={inp + ' mt-2'} style={inpStyle} placeholder="Ieškoti kortos…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <div className="mt-1.5 space-y-1 max-h-48 overflow-y-auto">
-            {filtered.map((c) => (
-              <button key={c.id} onClick={() => addCard(c.id)} className="w-full flex items-center gap-2 text-xs px-2 py-1 rounded text-left hover:opacity-80" style={{ background: 'var(--bg-elevated)' }}>
-                <span className="flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
-                <span style={{ color: 'var(--text-muted)' }}>🪙{c.gold_cost ?? '—'}</span>
-                <span style={{ color: 'var(--gold)' }}>+</span>
-              </button>
-            ))}
+            {filtered.length === 0 && <p className="text-xs py-6 text-center" style={{ color: 'var(--text-muted)' }}>Pagal filtrus kortų nerasta.</p>}
           </div>
+          <p className="text-[10.5px] mt-2" style={{ color: 'var(--text-muted)' }}>Kairys pelės mygtukas prideda, dešinys – atima.</p>
         </div>
 
-        <div className="flex gap-2 pt-1">
-          <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti</button>
-          {editing && <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={reset}>Atšaukti</button>}
+        {/* ── Kaladė ── */}
+        <div className="rounded-xl p-3 flex flex-col" style={card}>
+          <div className="flex items-baseline justify-between">
+            <p className="text-sm font-bold" style={{ color: 'var(--gold)' }}>Kaladė</p>
+            <p className="text-xs font-bold" style={{ color: okCount ? '#86efac' : '#fca5a5' }}>{total} / {DECK_MIN}–{DECK_MAX}</p>
+          </div>
+          {/* kainų kreivė */}
+          <div className="flex items-end gap-1 h-12 mt-2 mb-2">
+            {curve.map((n, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                <div style={{ width: '100%', height: Math.max(2, (n / Math.max(1, ...curve)) * 34), background: 'rgba(240,180,41,0.5)', borderRadius: 2 }} />
+                <span className="text-[8.5px]" style={{ color: 'var(--text-muted)' }}>{i === 5 ? '5+' : i}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-1" style={{ maxHeight: 420 }}>
+            {[...sel.entries()]
+              .map(([id, q]) => ({ c: cardById.get(id), id, q }))
+              .sort((a, b) => (a.c?.gold_cost ?? 0) - (b.c?.gold_cost ?? 0) || (a.c?.name ?? '').localeCompare(b.c?.name ?? '', 'lt'))
+              .map(({ c, id, q }) => (
+                <div key={id} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-elevated)' }}>
+                  <span className="text-[10px] px-1 rounded" style={{ background: 'rgba(0,0,0,0.4)', color: 'var(--gold)' }}>{c?.gold_cost ?? '—'}</span>
+                  <span className="flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{c?.name ?? id}</span>
+                  <button className="rounded" style={{ width: 22, height: 22, background: 'var(--bg-surface)', color: 'var(--text-muted)' }} onClick={() => decCard(id)}>−</button>
+                  <span style={{ color: 'var(--gold)', minWidth: 14, textAlign: 'center' }}>{q}</span>
+                  <button className="rounded" style={{ width: 22, height: 22, background: 'var(--bg-surface)', color: 'var(--text-muted)' }} onClick={() => c && addCard(c)}>+</button>
+                </div>
+              ))}
+            {sel.size === 0 && <p className="text-xs py-6 text-center" style={{ color: 'var(--text-muted)' }}>Kaladė tuščia.</p>}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti</button>
+            {editing && <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={reset}>Atšaukti</button>}
+          </div>
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* ── Esamos kaladės ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {decks.map((d) => {
           const cnt = deckCards.filter((x) => x.starter_deck_id === d.id).reduce((a, b) => a + b.quantity, 0)
           return (

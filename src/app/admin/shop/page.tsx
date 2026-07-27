@@ -19,7 +19,7 @@ export default async function AdminShopPage() {
     supabase.from('starter_decks').select('*').order('sort_order'),
     supabase.from('starter_deck_cards').select('starter_deck_id,card_id,quantity'),
     supabase.from('factions').select('id,name').order('name'),
-    supabase.from('cards').select('id,name,card_number,gold_cost,faction_id,rarity_id,image_url').eq('status', 'active').order('gold_cost', { nullsFirst: true }),
+    supabase.from('cards').select('id,name,card_number,gold_cost,faction_id,rarity_id,card_type_id,attack,health,subtype,image_url,card_type:card_types(name),rarity:rarities(name,sort_order)').eq('status', 'active').order('gold_cost', { nullsFirst: true }),
   ])
 
   return (
@@ -39,7 +39,12 @@ export default async function AdminShopPage() {
           starterDecks={sdRes.data ?? []}
           starterDeckCards={sdcRes.data ?? []}
           factions={facRes.data ?? []}
-          cards={cardRes.data ?? []}
+          cards={(cardRes.data ?? []).map((c: Record<string, unknown>) => ({
+            ...c,
+            // PostgREST įdėtinius ryšius grąžina masyvu – suplokštinam į objektą
+            card_type: Array.isArray(c.card_type) ? c.card_type[0] ?? null : c.card_type ?? null,
+            rarity: Array.isArray(c.rarity) ? c.rarity[0] ?? null : c.rarity ?? null,
+          })) as never}
         />
       </div>
     </div>
