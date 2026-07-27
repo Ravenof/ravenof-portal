@@ -295,6 +295,10 @@
   "resurrectPendingEndOfTurn": "🕯 \"{{card}}\" dies — it will be resurrected at the end of this turn!",
   "resurrectPendingNextTurn": "🕯 \"{{card}}\" dies — it will be resurrected at the start of the next turn!",
   "resurrectZoneFull": "The creature zone is full — \"{{card}}\" is not resurrected (it stays in the graveyard).",
+  "retreatToHand": {
+    "foe": "Opponent's {{card}} retreats to hand at {{hp}} HP",
+    "me": "{{card}} retreats to your hand at {{hp}} HP"
+  },
   "returnHand": "\"{{card}}\" is returned to hand.",
   "revealOther": "{{caster}} looks at the top {{n}} cards of {{owner}} deck.",
   "revealOwn": "{{caster}} looks at the top {{n}} cards of their own deck.",

@@ -577,6 +577,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
             onChange={(e) => update({ ...cfg, ignoreTaunt: e.target.checked || undefined })} />
           🥷 Gali pulti tiesiogiai (ignoruoja priešo Pasišaipymą)
         </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}
+          title='Kai po žalos padarui lieka tiek arba mažiau HP (bet jis dar gyvas), jis grįžta į savininko ranką. 0 = išjungta.'>
+          🏃 Pasitraukia į ranką, kai lieka
+          <input type="number" min={0} max={20} value={cfg.retreatAtHp ?? 0}
+            onChange={(e) => update({ ...cfg, retreatAtHp: Number(e.target.value) || undefined })}
+            style={{ ...inputStyle, width: 60 }} />
+          HP ar mažiau
+        </label>
       </div>
 
       <div>

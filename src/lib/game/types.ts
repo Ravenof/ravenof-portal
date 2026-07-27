@@ -620,6 +620,11 @@ export type GameplayConfig = {
   keywords?: ('sprint' | 'taunt' | 'shield' | 'stealth')[]  // statiniai padaro raktažodžiai
   attackRestriction?: AttackRestriction  // padaras gali pulti tik tam tikrus taikinius
   ignoreTaunt?: boolean                  // gali pulti tiesiogiai – ignoruoja priešo Pasišaipymą (taunt)
+  /**
+   * Pasyvas: kai padaras po žalos lieka su TIEK arba mažiau HP (bet dar gyvas),
+   * jis pasitraukia – grįžta į savininko ranką. 0 / nenustatyta = išjungta.
+   */
+  retreatAtHp?: number
   extraAttacks?: {                        // papildomos atakos per ėjimą (be šios bazinė = 1)
     base?: number                         // visada +N
     ifEnemyTaunt?: number                 // +N jei priešas turi bent 1 taunt kūrinį

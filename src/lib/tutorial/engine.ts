@@ -807,8 +807,20 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'unit', side: owner, uid: target.uid }, srcName: target.card.name })
-  if (target.hp <= 0) killUnit(g, owner, target)
-  else if ((target.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // Įsiūtis įsijungia sužeidus
+  if (target.hp <= 0) { killUnit(g, owner, target); return }
+  // Pasyvas „pasitraukia su X HP": likus tiek arba mažiau gyvybės (bet dar gyvas)
+  // padaras grįžta į savininko ranką. Tikrinama TIK po žalos, kad nesuveiktų
+  // iškviečiant padarą, kurio bazinis HP jau yra žemas.
+  const retreat = target.card.gameplay?.retreatAtHp ?? 0
+  if (retreat > 0 && target.hp <= retreat) {
+    log(g, { t: 'returnHand', side: owner, cardName: target.card.name, value: target.hp,
+      key: `battleLog.retreatToHand.${SK(owner)}`, params: { card: target.card.name, hp: target.hp },
+      src: { side: owner, uid: target.uid } })
+    returnUnitToHandPrim(g, owner, target)
+    recomputeAuras(g)
+    return
+  }
+  if ((target.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // Įsiūtis įsijungia sužeidus
 }
 
 // Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,

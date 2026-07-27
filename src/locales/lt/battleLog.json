@@ -295,6 +295,10 @@
   "resurrectPendingEndOfTurn": "🕯 „{{card}}\" žūsta — prisikels šio ėjimo pabaigoje!",
   "resurrectPendingNextTurn": "🕯 „{{card}}\" žūsta — prisikels kito ėjimo pradžioje!",
   "resurrectZoneFull": "Padarų zona pilna — „{{card}}\" prisikėlimas neįvyksta (lieka kapinyne).",
+  "retreatToHand": {
+    "foe": "Priešininko {{card}} pasitraukia į ranką, likęs su {{hp}} HP",
+    "me": "{{card}} pasitraukia į ranką, likęs su {{hp}} HP"
+  },
   "returnHand": "„{{card}}\" grąžinamas į ranką.",
   "revealOther": "{{caster}} pažiūri {{n}} {{owner}} kaladės viršutines kortas.",
   "revealOwn": "{{caster}} pažiūri {{n}} savo kaladės viršutines kortas.",
