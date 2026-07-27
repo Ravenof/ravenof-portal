@@ -104,6 +104,7 @@ export type BoardUnit = {
   auraKw?: TutKeyword[]     // auros suteikti raktažodžiai (taunt/sprint; perskaičiuojami)
   auraSilence?: boolean     // ar nutildymą suteikė aura (kad strip jį nuimtų)
   auraCantAttack?: boolean  // aura blokuoja atakas
+  auraIgnoreTaunt?: boolean // aura leidžia ignoruoti priešo Pasišaipymą
   auraShield?: boolean      // skydą suteikė aura
   auraStealth?: boolean     // sėlinimą suteikė aura
   auraStatusImmune?: TutStatus[] // aura blokuoja ŠIAS būsenas (perskaičiuojama; union iš visų šaltinių)
@@ -816,7 +817,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
 function auraIsActive(cfg: NonNullable<TutCard['gameplay']>['passiveAura']): boolean {
   if (!cfg) return false
   return (cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0
-    || !!cfg.auraSilence || !!cfg.auraCantAttack || (cfg.auraKeywords?.length ?? 0) > 0
+    || !!cfg.auraSilence || !!cfg.auraCantAttack || !!cfg.auraIgnoreTaunt || (cfg.auraKeywords?.length ?? 0) > 0
     || (cfg.auraStatuses?.length ?? 0) > 0
 }
 let recomputingAuras = false
@@ -834,7 +835,7 @@ export function recomputeAuras(g: GameState) {
       if (u.auraShield) { u.shield = false; u.auraShield = false }
       if (u.auraStealth) { u.stealth = false; u.auraStealth = false }
       if (u.auraStatusApplied?.length) { for (const st of u.auraStatusApplied) delete u.statuses[st]; u.auraStatusApplied = undefined }
-      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false; u.auraStatusImmune = undefined
+      u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraCantAttack = false; u.auraIgnoreTaunt = false; u.auraStatusImmune = undefined
     }
   }
   // 1b) Lauko pasyvas: GLOBALUS NUTILDYMAS – visi paveiktų pusių padarai nutildyti,
@@ -885,6 +886,7 @@ export function recomputeAuras(g: GameState) {
         if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
         if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
         if (cfg.auraCantAttack) u.auraCantAttack = true
+        if (cfg.auraIgnoreTaunt) u.auraIgnoreTaunt = true
         for (const st of (cfg.auraStatuses ?? []) as TutStatus[]) {
           if (u.statuses[st] == null) { u.statuses[st] = PERMANENT; (u.auraStatusApplied ??= []).push(st) }
         }
@@ -1239,7 +1241,7 @@ function applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus) {
     u.shield = false
     u.stealth = false
     u.tempBuffs = []
-    u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraShield = false; u.auraStealth = false; u.auraCantAttack = false
+    u.auraAtk = 0; u.auraHp = 0; u.auraKw = []; u.auraShield = false; u.auraStealth = false; u.auraCantAttack = false; u.auraIgnoreTaunt = false
     const baseAtk = u.card.attack ?? 0
     const baseHp = u.card.health ?? 1
     u.atk = baseAtk
@@ -3270,7 +3272,8 @@ function attackTargetAllowed(g: GameState, r: AttackRestriction, t: TargetRef): 
 export function legalTargets(g: GameState, attackerSide: Side, attacker?: BoardUnit): TargetRef[] {
   const foes = enemySeats(g, attackerSide)  // 1v1: [other]; 2v2: abu priešų seat'ai
   const restriction = attacker?.card.gameplay?.attackRestriction
-  const ignoreTaunt = !!attacker?.card.gameplay?.ignoreTaunt
+  // Pasišaipymą galima ignoruoti dėl pačios kortos savybės ARBA dėl auros (auraIgnoreTaunt)
+  const ignoreTaunt = !!attacker?.card.gameplay?.ignoreTaunt || !!attacker?.auraIgnoreTaunt
   const apply = (list: TargetRef[]) => restriction ? list.filter((t) => attackTargetAllowed(g, restriction, t)) : list
   // Pasišaipymas: jei BET KURIS priešų seat'as turi taunt – privaloma pulti taunt
   const taunts: TargetRef[] = []

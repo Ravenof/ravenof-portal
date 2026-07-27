@@ -288,7 +288,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || (pa.auraZmkDelta ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
+          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || !!pa.auraIgnoreTaunt || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || (pa.auraZmkDelta ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -300,7 +300,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraZmkDelta: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraIgnoreTaunt: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraZmkDelta: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -389,6 +389,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   <input type="checkbox" checked={!!pa?.auraCantAttack}
                     onChange={(e) => setPa({ auraCantAttack: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-green-400" />
                   🔗 Negali atakuoti
+                </label>
+                <label className="flex items-center gap-1" title='Paveikti padarai puldami gali praeiti pro priešo Pasišaipymą. Nustačius Kam galioja = priešams, tavo priešininko padarai ignoruos TAVO Pasišaipymą.'>
+                  <input type="checkbox" checked={!!pa?.auraIgnoreTaunt}
+                    onChange={(e) => setPa({ auraIgnoreTaunt: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-green-400" />
+                  ⊘ Ignoruoja Pasišaipymą
                 </label>
                 <span className="opacity-60">|</span>
                 <span>Suteikia:</span>

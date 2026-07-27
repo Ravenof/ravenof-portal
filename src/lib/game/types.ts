@@ -453,7 +453,9 @@ export type PassiveAuraConfig = {
   auraFaction?: number                 // tik šios frakcijos padarus (faction id)
   auraIncludesSelf?: boolean           // ar veikia ir pačią auros kortą (default: ne)
   auraSilence?: boolean                // paveikti padarai nutildomi (efektai/raktažodžiai blokuojami)
-  auraCantAttack?: boolean             // paveikti padarai negali atakuoti
+  auraCantAttack?: boolean
+  /** Paveikti padarai puldami IGNORUOJA priešo Pasišaipymą (taunt). Veikia pagal auraScope. */
+  auraIgnoreTaunt?: boolean             // paveikti padarai negali atakuoti
   auraKeywords?: ('taunt' | 'shield' | 'stealth' | 'sprint')[]  // suteikiami raktažodžiai
   auraStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned')[]  // paveikti padarai NUOLAT turi šias būsenas, kol aura aktyvi
   auraFromGraveyardOnly?: boolean      // aura veikia TIK padarus, iškviestus/prikeltus iš kapinyno
