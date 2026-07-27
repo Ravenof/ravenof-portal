@@ -2901,9 +2901,12 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       const slot = p.artifacts.findIndex((a) => a === null)
       if (slot === -1) return { ok: false, reason: 'battleLog.err.artifactZoneFull' }
       p.hand.splice(i, 1)
-      p.gold -= card.gold
+      // BUG (iki 542): čia buvo `card.gold` — nuolaidos (turnCostDiscount, cardCostMod,
+      // auraCostReduction) buvo įskaitomos tikrinant, ar užtenka aukso, bet nurašoma
+      // pilna spausdinta kaina. „Nemokama" korta vis tiek nusiurbdavo auksą į minusą.
+      p.gold -= cost
       p.artifacts[slot] = { uid: card.uid, card, hp: card.health ?? 3, maxHp: card.health ?? 3 }
-      log(g, { t: 'artifact', side: s, cardName: card.name, value: card.gold, key: `battleLog.playArtifact.${SK(s)}`, params: { card: card.name } })
+      log(g, { t: 'artifact', side: s, cardName: card.name, value: cost, key: `battleLog.playArtifact.${SK(s)}`, params: { card: card.name } })
       afterPlay(g, s, card)
       fireGlobalListeners(g, 'onAnyArtifact', { side: s, subtype: card.subtype, faction: card.factionId })
       return { ok: true }
@@ -2912,9 +2915,11 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       const slot = p.reactions.findIndex((r) => r === null)
       if (slot === -1) return { ok: false, reason: 'battleLog.err.reactionZoneFull' }
       p.hand.splice(i, 1)
-      p.gold -= card.gold
-      p.reactions[slot] = { uid: card.uid, card, paid: card.gold }
-      log(g, { t: 'reactionSet', side: s, value: card.gold, key: `battleLog.playReaction.${SK(s)}`, params: { gold: card.gold } })
+      // ta pati klaida kaip su artefaktu; `paid` naudojamas reakcijos grąžinimui,
+      // tad jis privalo atspindėti REALIAI sumokėtą kainą, ne spausdintą.
+      p.gold -= cost
+      p.reactions[slot] = { uid: card.uid, card, paid: cost }
+      log(g, { t: 'reactionSet', side: s, value: cost, key: `battleLog.playReaction.${SK(s)}`, params: { gold: cost } })
       return { ok: true }
     }
     case 'field': {

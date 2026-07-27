@@ -319,7 +319,8 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                 </div>
                 <div>
                   <label style={labelStyle}>Kainos −</label>
-                  <input type="number" min={0} value={pa?.auraCostReduction ?? 0}
+                  {/* neigiama reikšmė = kaina DIDINAMA (auraCostReductionFor ją atima) */}
+                  <input type="number" min={-20} value={pa?.auraCostReduction ?? 0}
                     onChange={(e) => setPa({ auraCostReduction: Number(e.target.value) || undefined })} style={inputStyle} />
                 </div>
                 <div>
