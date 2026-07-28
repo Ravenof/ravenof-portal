@@ -2245,9 +2245,16 @@ function afterSummon(g: GameState, s: Side, card: TutCard, source: SummonSource 
   })
   // 'play' kelias šaukia atskirai PO battlecry (kad šūksnis spėtų įvykti)
   if (source !== 'play') {
-    // SPECIAL SUMMON (iš kaladės/kapinyno/rankos efektu): Kovos šūksnis IRGI suveikia.
-    // Unit'as randamas pagal kortos objekto tapatybę (visi kvietėjai deda tą patį card ref).
-    const su = P(g, s).units.find((x): x is BoardUnit => !!x && x.card === card)
+    // SPECIAL SUMMON (prikėlimas / iškvietimas iš kaladės, kapinyno ar rankos):
+    // Kovos šūksnis privalo suveikti lygiai taip pat, kaip sužaidus kortą.
+    //
+    // Padaras ieškomas PIRMIAUSIA pagal ką tik pastatyto unit'o uid. Anksčiau
+    // buvo lyginama tik kortos objekto tapatybė (`x.card === card`), o tai lūžta,
+    // kai lentoje jau stovi kita to paties objekto kopija: `find` grąžindavo
+    // SENĄJĄ, ir jei ji nutildyta arba jau nužudyta, naujai iškviesto padaro
+    // šūksnis tyliai dingdavo.
+    const su = (sumUid ? P(g, s).units.find((x): x is BoardUnit => !!x && x.uid === sumUid) : undefined)
+      ?? P(g, s).units.find((x): x is BoardUnit => !!x && x.card === card)
     if (su) fireEntryMappings(g, s, su)
     fieldKillLastwishSummon(g, s, card)
   }
