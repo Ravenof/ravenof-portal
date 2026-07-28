@@ -23,7 +23,8 @@
     "quests:check": "node scripts/quests-check.mjs",
     "handoff:gen": "node scripts/gen-handoff-registries.mjs",
     "handoff:check": "node scripts/handoff-check.mjs",
-    "game:test:targets": "node scripts/test-target-selection.mjs"
+    "game:test:targets": "node scripts/test-target-selection.mjs",
+    "game:test:keywords": "node scripts/test-keyword-detection.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

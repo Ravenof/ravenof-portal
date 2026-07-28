@@ -380,15 +380,44 @@ export function parseEffect(text: string | null | undefined): ParsedEffect | nul
   return e
 }
 
+/**
+ * Žodžiai, po kurių einantis raktažodis apibūdina TAIKINĮ, o ne pačią kortą:
+ * „sunaikina padarą SU Pasišaipymu", „visus priešo padarus su Magišku skydu".
+ * Be šio filtro tokia korta pati gaudavo Pasišaipymą (Ribė, Asuzaki ir pan.).
+ */
+const TARGETING_CUES = /(?:\bsu\b|turint\w*|\bturi\b|\bturinči\w*|priešo|priešinink\w*|\bvisus\b|\bvisiems\b|\bvisi\b|kiekvien\w*|\bkuri\w*\b|\bbe\b|neturi\w*|\benemy\b|\bwith\b|\ball\b|\bwithout\b|that\s+ha\w*|having)\s+(?:\S+\s+){0,2}$/
+
+/** Ar raktažodis tekste minimas kaip PAČIOS kortos savybė (bent kartą – ne apie taikinį). */
+function mentionsOwnTrait(text: string, re: RegExp): boolean {
+  const rx = new RegExp(re.source, 'g')
+  let m: RegExpExecArray | null
+  while ((m = rx.exec(text)) !== null) {
+    const before = text.slice(0, m.index)
+    if (!TARGETING_CUES.test(before)) return true   // rastas paminėjimas be „su/priešo/visus…"
+  }
+  return false
+}
+
 export function detectKeywords(keywordNames: string[], text: string | null | undefined): TutKeyword[] {
-  const hay = (keywordNames.join(' ') + ' ' + (text ?? '')).toLowerCase()
+  // Aiškus DB raktažodžių sąrašas – VISADA patikimas šaltinis.
+  const names = keywordNames.join(' ').toLowerCase()
+  const body = (text ?? '').toLowerCase()
   const out: TutKeyword[] = []
-  if (/sprint|aggressive/.test(hay)) out.push('sprint')
-  if (/pasišaip|taunt/.test(hay)) out.push('taunt')
-  if (/magišk\w*\s*skyd|divine shield/.test(hay)) out.push('shield')
-  if (/sėlin|stealth/.test(hay)) out.push('stealth')
-  if (/kovos šūksn|battlecry/.test(hay)) out.push('battlecry')
-  if (/paskutin\w*\s*nor|deathrattle/.test(hay)) out.push('lastwish')
+
+  // Statiniai raktažodžiai: iš sąrašo bet kada, iš teksto – tik jei tai kortos savybė.
+  const staticKw: [TutKeyword, RegExp][] = [
+    ['sprint', /sprint|aggressive/],
+    ['taunt', /pasišaip|taunt/],
+    ['shield', /magišk\w*\s*skyd|divine shield/],
+    ['stealth', /sėlin|stealth/],
+  ]
+  for (const [kw, re] of staticKw) {
+    if (re.test(names) || mentionsOwnTrait(body, re)) out.push(kw)
+  }
+
+  // Gebėjimų žymos rašomos kaip antraštė („Kovos šūksnis: …“), tad tekstas čia tinka.
+  if (/kovos šūksn|battlecry/.test(names + ' ' + body)) out.push('battlecry')
+  if (/paskutin\w*\s*nor|deathrattle/.test(names + ' ' + body)) out.push('lastwish')
   return out
 }
 
