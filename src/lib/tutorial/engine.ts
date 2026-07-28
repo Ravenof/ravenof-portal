@@ -381,19 +381,25 @@ export function parseEffect(text: string | null | undefined): ParsedEffect | nul
 }
 
 /**
- * Žodžiai, po kurių einantis raktažodis apibūdina TAIKINĮ, o ne pačią kortą:
- * „sunaikina padarą SU Pasišaipymu", „visus priešo padarus su Magišku skydu".
- * Be šio filtro tokia korta pati gaudavo Pasišaipymą (Ribė, Asuzaki ir pan.).
+ * Raktažodis tekste NE visada reiškia pačios kortos savybę. Du atvejai, kai jis
+ * kalba apie ką kita:
+ *  • TAIKINYS      – „sunaikina padarą SU Pasišaipymu", „visus PRIEŠO padarus…"
+ *  • SĄLYGA/DOVANA – „KOL šis vienintelis lauke, jis gauna Sėlinimą" (suteikiama
+ *                    auros, ne statiškai; kitaip padaras Sėlinimą turėtų visada)
+ * Tikrinama SAKINIO ribose, nes „kol" nuo raktažodžio gali skirti daug žodžių.
  */
-const TARGETING_CUES = /(?:\bsu\b|turint\w*|\bturi\b|\bturinči\w*|priešo|priešinink\w*|\bvisus\b|\bvisiems\b|\bvisi\b|kiekvien\w*|\bkuri\w*\b|\bbe\b|neturi\w*|\benemy\b|\bwith\b|\ball\b|\bwithout\b|that\s+ha\w*|having)\s+(?:\S+\s+){0,2}$/
+const TARGET_CUES = /\bsu\b|turint\w*|\bturi\b|\bturinči\w*|priešo|priešinink\w*|\bvisus\b|\bvisiems\b|\bvisi\b|kiekvien\w*|\bkuri\w*\b|\bbe\b|neturi\w*|\benemy\b|\bwith\b|\ball\b|\bwithout\b|that\s+ha\w*|having/
+const CONDITION_CUES = /\bkol\b|\bjei\b|\bjeigu\b|\bkai\b|\bwhile\b|\bif\b|\bwhen\b|\bas long as\b/
 
-/** Ar raktažodis tekste minimas kaip PAČIOS kortos savybė (bent kartą – ne apie taikinį). */
+/** Ar raktažodis tekste minimas kaip PAČIOS kortos statinė savybė. */
 function mentionsOwnTrait(text: string, re: RegExp): boolean {
   const rx = new RegExp(re.source, 'g')
   let m: RegExpExecArray | null
   while ((m = rx.exec(text)) !== null) {
-    const before = text.slice(0, m.index)
-    if (!TARGETING_CUES.test(before)) return true   // rastas paminėjimas be „su/priešo/visus…"
+    // sakinio, kuriame yra paminėjimas, pradžia
+    const cut = Math.max(text.lastIndexOf('.', m.index), text.lastIndexOf(';', m.index), text.lastIndexOf('!', m.index))
+    const sentence = text.slice(cut + 1, m.index)
+    if (!TARGET_CUES.test(sentence) && !CONDITION_CUES.test(sentence)) return true
   }
   return false
 }
@@ -718,7 +724,8 @@ function aurasAffecting(g: GameState, ownerSide: Side, uid: string): PassiveAura
       const scope = cfg.auraScope ?? 'friendly'
       const affects = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, ownerSide) : !sameTeam(g, sd, ownerSide))
       if (!affects) continue
-      if (c.uid === uid && !cfg.auraIncludesSelf) continue
+      const selfImplied2 = cfg.auraActiveWhen === 'aloneOwnSide' || cfg.auraActiveWhen === 'aloneOnBoard'
+      if (c.uid === uid && !cfg.auraIncludesSelf && !selfImplied2) continue
       if (cfg.auraSubtype && cfg.auraSubtype.trim().toLowerCase() !== unitSubtype) continue
       if (cfg.auraFaction && ownerUnit?.card.factionId !== cfg.auraFaction) continue
       if (cfg.auraFromGraveyardOnly && ownerUnit?.summonedFrom !== 'graveyard') continue
@@ -939,7 +946,11 @@ export function recomputeAuras(g: GameState) {
       if (scope === 'enemy' && sameTeam(g, sd, src.side)) continue
       for (const u of P(g, sd).units) {
         if (!u) continue
-        if (u.uid === src.selfUid && !cfg.auraIncludesSelf) continue
+        // „Kol šis vienintelis…" aura pagal apibrėžimą gali veikti tik save patį –
+        // kitų padarų tuo metu lauke nėra. Todėl `auraIncludesSelf` čia numanomas,
+        // kitaip nustatymas neduotų visiškai nieko (dažna admino spąstas).
+        const selfImplied = cfg.auraActiveWhen === 'aloneOwnSide' || cfg.auraActiveWhen === 'aloneOnBoard'
+        if (u.uid === src.selfUid && !cfg.auraIncludesSelf && !selfImplied) continue
         if (want && (u.card.subtype ?? '').toLowerCase() !== want) continue
         if (wantFac && u.card.factionId !== wantFac) continue
         if (cfg.auraFromGraveyardOnly && u.summonedFrom !== 'graveyard') continue

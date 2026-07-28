@@ -53,6 +53,9 @@ const CASES = [
   ['Kovos šūksnis atpažįstamas', [], 'Kovos šūksnis: traukia kortą.', ['battlecry']],
   ['Paskutinis noras atpažįstamas', [], 'Paskutinis noras: padaro 2 žalos.', ['lastwish']],
   ['Magiškas skydas kaip sava savybė', ['Magiškasis skydas'], null, ['shield']],
+  ['Sąlyginis Sėlinimas („kol vienas") – NEGAUNA statiškai', [], 'Kol šis padaras vienintelis kovos lauke, jis gauna +2/+2 ir Sėlinimą.', []],
+  ['Sąlyginis Pasišaipymas („jei…") – NEGAUNA statiškai', [], 'Jei priešas neturi padarų, šis padaras įgyja Pasišaipymą.', []],
+  ['Sąlyga viename sakinyje, sava savybė kitame – GAUNA tik antrą', [], 'Kol vienas lauke, gauna Sėlinimą. Pasišaipymas.', ['taunt']],
   ['Tuščia korta – nieko', [], null, []],
 ]
 
