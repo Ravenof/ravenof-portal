@@ -57,13 +57,19 @@ const CASES = [
   ['Be taikinio: išmesti kortas', { trigger: 'onCast', effect: 'discard', target: 'enemyPlayer', requiresSelection: true }, false],
   ['Be taikinio: ŽMK perkėlimas', { trigger: 'onCast', effect: 'remapZmkValue', target: 'ownPlayer', requiresSelection: true }, false],
   ['Be taikinio: kortos kainos nuolaida', { trigger: 'onCast', effect: 'turnCostDiscount', target: 'ownPlayer', requiresSelection: true }, false],
-  ['Rankinis: prikelti 2 padarus (zombis golemas)', { trigger: 'onDeath', effect: 'revive', target: 'ownUnit', requiresSelection: true, hitCount: 2 }, true],
-  ['Rankinis: iškvietimas iš kapinyno', { trigger: 'onDeath', effect: 'summonFromGraveyard', target: 'ownUnit', requiresSelection: true }, true],
+  // Iškvietimai patys renkasi KORTĄ atskiru langu (summonChoose), o ne lentos
+  // taikinį — todėl net su „Žaidėjas renkasi" taikinio prašyti negalima.
+  ['Iškvietimas iš kaladės + užsilikęs requiresSelection', { trigger: 'onSummon', effect: 'summonFromDeck', target: 'ownUnit', requiresSelection: true }, false],
+  ['Iškvietimas iš kapinyno + užsilikęs requiresSelection', { trigger: 'onDeath', effect: 'summonFromGraveyard', target: 'ownUnit', requiresSelection: true }, false],
+  ['Prikėlimas + užsilikęs requiresSelection', { trigger: 'onDeath', effect: 'revive', target: 'ownUnit', requiresSelection: true }, false],
+  ['Rankinis: sunaikinti 2 padarus (zombis golemas)', { trigger: 'onDeath', effect: 'destroy', target: 'enemyUnit', requiresSelection: true, hitCount: 2 }, true],
+  ['Rankinis: gydymas pasirinktam (help + aiškus žymėjimas)', { trigger: 'onSummon', effect: 'heal', target: 'ownUnit', requiresSelection: true }, true],
   ['Nutylėjimas: žala vienam priešo padarui', { trigger: 'onCast', effect: 'damage', target: 'enemyUnit' }, true],
   ['Nutylėjimas atšauktas: žala, bet auto', { trigger: 'onCast', effect: 'damage', target: 'enemyUnit', requiresSelection: false }, false],
   ['Reakcija naudoja trigerio šaltinį', { trigger: 'onAnyPlay', effect: 'damage', target: 'enemyUnit', useTriggerSource: true, requiresSelection: true }, false],
   ['Nutylėjimas: gydymas savam (help → auto)', { trigger: 'onSummon', effect: 'heal', target: 'ownUnit' }, false],
   ['Prikelti be aiškaus žymėjimo → auto', { trigger: 'onDeath', effect: 'revive', target: 'ownUnit' }, false],
+  ['Kovos šūksnis: iškviesti padarą (Elė) – be taikinio', { trigger: 'onSummon', effect: 'summonAdvanced', target: 'ownUnit', requiresSelection: true, summonChoose: true }, false],
 ]
 
 let bad = 0
