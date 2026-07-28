@@ -491,6 +491,13 @@ export type PassiveAuraConfig = {
   // ── Antra ataka (aura): sunaikinęs padarą ataka – gali pulti dar kartą ──
   auraSecondAttack?: boolean           // paveiktas padaras, sunaikinęs priešo padarą, gali pulti dar kartą tą patį ėjimą
   auraSecondAttackCond?: 'any' | 'taunt' | 'shield'  // sąlyga: bet kuris / tik su Pasišaipymu / tik su Magišku skydu
+  /**
+   * Aura veikia TIK kai tenkinama ši sąlyga:
+   *  'aloneOwnSide'  – šis padaras vienintelis tavo kovos lauke
+   *  'aloneOnBoard'  – vienintelis visame kovos lauke (nei pas tave, nei pas priešą daugiau nėra)
+   *  'enemyEmpty'    – priešas neturi nė vieno padaro
+   */
+  auraActiveWhen?: 'aloneOwnSide' | 'aloneOnBoard' | 'enemyEmpty'
 }
 
 // ── Premium kino pop-up (PremiumCinematics) ──────────────────────────────────
@@ -625,6 +632,9 @@ export type GameplayConfig = {
    * jis pasitraukia – grįžta į savininko ranką. 0 / nenustatyta = išjungta.
    */
   retreatAtHp?: number
+  /** Pasyvas TIK šiam padarui: sunaikinęs priešo padarą gali pulti dar kartą tą patį ėjimą. */
+  secondAttackOnKill?: boolean
+  secondAttackOnKillCond?: 'any' | 'taunt' | 'shield'
   extraAttacks?: {                        // papildomos atakos per ėjimą (be šios bazinė = 1)
     base?: number                         // visada +N
     ifEnemyTaunt?: number                 // +N jei priešas turi bent 1 taunt kūrinį
@@ -632,6 +642,8 @@ export type GameplayConfig = {
     ifNoEnemyCreatures?: number           // +N jei priešas neturi kūrinių
     ifSummonedFaction?: number            // +N jei SI EJIMA iskvietei summonedFactionId frakcijos padara
     summonedFactionId?: number            // kurios frakcijos padaro laukiama (be jo ifSummonedFaction neveikia)
+    ifEarlyTurns?: number                 // +N kol ėjimo numeris <= earlyTurnsUpTo
+    earlyTurnsUpTo?: number               // iki kurio ėjimo galioja ifEarlyTurns (numatyta 1)
   }
   synergy?: {                             // veikia kai ŠIS ir partneris abu kovos lauke
     withNames?: string                    // partnerių kortų vardai (kableliais)

@@ -711,15 +711,22 @@ function unitIsImmortal(g: GameState, ownerSide: Side, uid: string): boolean {
 }
 /** Antros atakos aura: jei puolantysis sunaikino padarą (su sąlyga) – grąžinam jam atakos teisę. */
 function grantSecondAttackIfAura(g: GameState, side: Side, u: BoardUnit, killed: { taunt: boolean; shield: boolean }) {
-  for (const cfg of aurasAffecting(g, side, u.uid)) {
-    if (!cfg?.auraSecondAttack) continue
-    const cond = cfg.auraSecondAttackCond ?? 'any'
-    const ok = cond === 'any' || (cond === 'taunt' && killed.taunt) || (cond === 'shield' && killed.shield)
-    if (!ok) continue
+  const matches = (cond: 'any' | 'taunt' | 'shield') =>
+    cond === 'any' || (cond === 'taunt' && killed.taunt) || (cond === 'shield' && killed.shield)
+  const grant = () => {
     const p = P(g, side)
     u.attacksUsed = Math.max(0, u.attacksUsed - 1)
     p.attacksThisTurn = Math.max(0, p.attacksThisTurn - 1)
     log(g, { t: 'buff', side, cardName: u.card.name, key: 'battleLog.attackAgain', params: { card: u.card.name }, src: { side, uid: u.uid } })
+  }
+  // a) pasyvas ant PAČIOS kortos – galioja tik jai (ne aura visiems)
+  const own = u.card.gameplay
+  if (own?.secondAttackOnKill && matches(own.secondAttackOnKillCond ?? 'any')) { grant(); return }
+  // b) aura – galioja visiems jos paveiktiems padarams
+  for (const cfg of aurasAffecting(g, side, u.uid)) {
+    if (!cfg?.auraSecondAttack) continue
+    if (!matches(cfg.auraSecondAttackCond ?? 'any')) continue
+    grant()
     return
   }
 }
@@ -828,6 +835,20 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
 // Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,
 // tada iš naujo prideda visų lauke esančių auros šaltinių (padarų/artefaktų) poveikį.
 // Kviečiamas po bet kokio kovos lauko pasikeitimo (iškvietimas / žūtis / nutildymas / ėjimo pab.).
+/**
+ * Lentos sąlyga aurai (auraActiveWhen). Tikrinama KIEKVIENO perskaičiavimo metu,
+ * tad aura įsijungia ir išsijungia pati, kai lentos sudėtis pasikeičia.
+ */
+function auraConditionMet(g: GameState, side: Side, u: BoardUnit, cfg: NonNullable<TutCard['gameplay']>['passiveAura']): boolean {
+  const when = cfg?.auraActiveWhen
+  if (!when) return true
+  const own = P(g, side).units.filter((x): x is BoardUnit => !!x)
+  const foes = enemySeats(g, side).flatMap((f) => P(g, f).units.filter((x): x is BoardUnit => !!x))
+  if (when === 'aloneOwnSide') return own.length === 1 && own[0].uid === u.uid
+  if (when === 'aloneOnBoard') return own.length === 1 && own[0].uid === u.uid && foes.length === 0
+  return foes.length === 0   // 'enemyEmpty'
+}
+
 function auraIsActive(cfg: NonNullable<TutCard['gameplay']>['passiveAura']): boolean {
   if (!cfg) return false
   return (cfg.auraAttack ?? 0) !== 0 || (cfg.auraHealth ?? 0) !== 0
@@ -868,7 +889,7 @@ export function recomputeAuras(g: GameState) {
     for (const u of p.units) {
       if (!u || u.statuses.silenced) continue
       const cfg = u.card.gameplay?.passiveAura
-      if (cfg && auraIsActive(cfg)) sources.push({ side: sd, cfg, selfUid: u.uid })
+      if (cfg && auraIsActive(cfg) && auraConditionMet(g, sd, u, cfg)) sources.push({ side: sd, cfg, selfUid: u.uid })
     }
     for (const a of p.artifacts) {
       if (!a) continue
@@ -3257,6 +3278,9 @@ function unitMaxAttacks(g: GameState, s: Side, u: BoardUnit): number {
   if ((ea.ifSummonedFaction ?? 0) > 0 && ea.summonedFactionId
       && P(g, s).summonedFactionsThisTurn.includes(ea.summonedFactionId)) {
     extra += ea.ifSummonedFaction as number
+  }
+  if ((ea.ifEarlyTurns ?? 0) > 0 && P(g, s).turnNumber <= (ea.earlyTurnsUpTo ?? 1)) {
+    extra += ea.ifEarlyTurns as number
   }
   return 1 + Math.max(0, extra)
 }

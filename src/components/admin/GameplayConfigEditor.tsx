@@ -300,7 +300,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               <input type="checkbox" id="auraStatsOn" checked={auraOn}
                 onChange={(e) => update({ ...cfg, passiveAura: e.target.checked
                   ? { ...cfg.passiveAura, auraAttack: cfg.passiveAura?.auraAttack || 1, auraScope: cfg.passiveAura?.auraScope || 'friendly' }
-                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraIgnoreTaunt: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraZmkDelta: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
+                  : { ...cfg.passiveAura, auraAttack: undefined, auraHealth: undefined, auraSilence: undefined, auraCantAttack: undefined, auraIgnoreTaunt: undefined, auraKeywords: undefined, auraCostReduction: undefined, auraZmkDelta: undefined, auraActiveWhen: undefined, auraScope: undefined, auraSubtype: undefined, auraIncludesSelf: undefined, auraImmortal: undefined, auraSpellDamage: undefined, auraSpellType: undefined, auraStatusImmunity: undefined, auraStatusImmunityStatuses: undefined, auraHeroDamageDouble: undefined, enrageAttack: undefined, auraStatuses: undefined, auraFromGraveyardOnly: undefined, auraRequiresKeyword: undefined } })}
                 className="w-4 h-4 accent-green-400" />
               <label htmlFor="auraStatsOn" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 ✨ Pasyvi aura (galioja kol korta kovos lauke; dingsta kai žūsta/nutildoma)
@@ -329,6 +329,16 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   {/* taikoma PO ŽMK kortos, prieš žalą; galutinė žala niekada < 0 */}
                   <input type="number" min={-5} max={5} value={pa?.auraZmkDelta ?? 0}
                     onChange={(e) => setPa({ auraZmkDelta: Number(e.target.value) || undefined })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Aura veikia kai</label>
+                  <select value={pa?.auraActiveWhen ?? ''}
+                    onChange={(e) => setPa({ auraActiveWhen: (e.target.value || undefined) as 'aloneOwnSide' | 'aloneOnBoard' | 'enemyEmpty' | undefined })} style={inputStyle}>
+                    <option value="">visada</option>
+                    <option value="aloneOwnSide">šis vienintelis tavo lauke</option>
+                    <option value="aloneOnBoard">šis vienintelis visame lauke</option>
+                    <option value="enemyEmpty">priešas be padarų</option>
+                  </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Kam galioja</label>
@@ -585,6 +595,21 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
             style={{ ...inputStyle, width: 60 }} />
           HP ar mažiau
         </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}
+          title='Galioja TIK šiai kortai (skirtingai nei aura, kuri suteikia visiems paveiktiems padarams).'>
+          <input type="checkbox" checked={!!cfg.secondAttackOnKill} className="w-3.5 h-3.5 accent-yellow-400"
+            onChange={(e) => update({ ...cfg, secondAttackOnKill: e.target.checked || undefined })} />
+          ⚔ Sunaikinęs padarą puola dar kartą (tik šis)
+          {cfg.secondAttackOnKill && (
+            <select value={cfg.secondAttackOnKillCond ?? 'any'}
+              onChange={(e) => update({ ...cfg, secondAttackOnKillCond: e.target.value === 'any' ? undefined : e.target.value as 'taunt' | 'shield' })}
+              style={{ ...inputStyle, width: 150 }}>
+              <option value="any">bet kurį padarą</option>
+              <option value="taunt">tik su Pasišaipymu</option>
+              <option value="shield">tik su Magišku skydu</option>
+            </select>
+          )}
+        </label>
       </div>
 
       <div>
@@ -629,6 +654,26 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
             }}
             style={{ ...inputStyle, width: 60 }} />
           <span>ataka (1 = puola du kartus)</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+          <span>+ kol ėjimo nr. ≤</span>
+          <input type="number" min={1} value={cfg.extraAttacks?.earlyTurnsUpTo ?? 1}
+            onChange={(e) => {
+              const ea = { ...(cfg.extraAttacks ?? {}), earlyTurnsUpTo: Number(e.target.value) || 1 }
+              const clean = Object.fromEntries(Object.entries(ea).filter(([, x]) => x != null)) as NonNullable<GameplayConfig['extraAttacks']>
+              update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined })
+            }}
+            style={{ ...inputStyle, width: 55 }} />
+          <span>, tada +</span>
+          <input type="number" min={0} value={cfg.extraAttacks?.ifEarlyTurns ?? ''} placeholder="0"
+            onChange={(e) => {
+              const v = e.target.value === '' ? undefined : Number(e.target.value)
+              const ea = { ...(cfg.extraAttacks ?? {}), ifEarlyTurns: v }
+              const clean = Object.fromEntries(Object.entries(ea).filter(([, x]) => x != null)) as NonNullable<GameplayConfig['extraAttacks']>
+              update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined })
+            }}
+            style={{ ...inputStyle, width: 60 }} />
+          <span>ataka (pvz. pirmą ėjimą puola 2×)</span>
         </div>
       </div>
 
