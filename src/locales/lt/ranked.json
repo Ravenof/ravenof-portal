@@ -1,4 +1,5 @@
 {
+  "aroundMe": "Aplink mane",
   "backToRanked": "← Atgal į reitingą",
   "bestRank": "Geriausias:",
   "claim": "Atsiimti",
@@ -93,6 +94,7 @@
   "pickActiveDeck": "Pasirink aktyvią kaladę (spausk „Keisti“).",
   "player": "Žaidėjas",
   "preparing": "Kova ruošiama…",
+  "ptsShort": "tšk.",
   "queue": {
     "any": "Ieškoma bet kokio reitingo priešininko…",
     "found": "Rastas priešininkas.",
@@ -103,6 +105,7 @@
   },
   "rankDown": "Rangas nukrito",
   "rankUp": "Rangas pakilo",
+  "rankWord": "rangas",
   "rarity": {
     "epic": "Epiška",
     "legendary": "Legendinė",
@@ -139,7 +142,7 @@
     "packs": "{{count}} pak."
   },
   "rewardsEarned": "Atsiimta atlygių: {{count}}",
-  "rewardsTitle": "Ranked atlygiai",
+  "rewardsTitle": "Reitingo atlygiai",
   "season": "Sezonas",
   "seasonEarned": "Šį sezoną gauta:",
   "seasonEndInfo": "Sezono pabaigoje gausi atlygius pagal aukščiausią pasiektą rangą.",
@@ -158,9 +161,11 @@
   },
   "stepOf": "Pakopa {{n}} / 50",
   "streak": "Serija",
+  "streakWord": "serija",
   "subtitle": "Kilk rangais, rink atlygius ir tapk sezono čempionu",
   "timeLeft": "Liko {{time}}",
   "title": "Reitingo kova",
+  "top100": "Top 100",
   "validChip": "Tinkama",
   "viewAll": "Visi",
   "viewRewards": "Peržiūrėti atlygius →",

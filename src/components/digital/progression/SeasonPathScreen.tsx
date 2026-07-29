@@ -4,6 +4,7 @@
 //  Lygiai, XP, kainos, claimable — tik iš rvn_get_season_path_v2().
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useT } from '@/lib/i18n/react'
+import { formatNumber } from '@/lib/i18n/core'
 import { playUiClick } from '@/lib/ui-sound'
 import {
   claimAllSeasonRewards, claimSeasonRewardV2, getSeasonPathV2, isProgressionError,
@@ -275,11 +276,12 @@ export function SeasonPathScreen() {
                 <Kicker color={C.violetFg}>{t('progression.season.unlockKicker')}</Kicker>
                 <p style={{ font: `400 10px ${BODY}`, color: C.muted, lineHeight: 1.5, margin: '6px 0 10px' }}>{t('progression.season.unlockNote')}</p>
                 <div style={{ display: 'flex', gap: 8 }}>
+                  {/* Aiškūs valiutų pavadinimai (audit #21) — ne pliki skaičiai */}
                   <Cta onClick={() => void unlock('silver')} busy={busy === 'pass'} tone="ghost" minHeight={44}>
-                    {state.passPrice.silver}
+                    {t('shop.buyGold', { price: formatNumber(state.passPrice.silver) })}
                   </Cta>
                   <Cta onClick={() => void unlock('rubies')} busy={busy === 'pass'} tone="ghost" minHeight={44}>
-                    {state.passPrice.rubies}
+                    {t('shop.buyRubies', { price: formatNumber(state.passPrice.rubies) })}
                   </Cta>
                 </div>
               </div>

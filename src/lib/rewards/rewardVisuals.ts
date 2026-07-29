@@ -124,7 +124,8 @@ export function resolveRewardVisualV2(r: { type?: string; amount?: number; quant
       return mkV2('faction_booster_choice', t('rewards.label.packs', { count: q }), V2_DEFS.faction_booster_choice)
     }
     case 'card_choice':
-      return mkV2('card_choice', t(`progression.rarity.${r?.rarity ?? 'rare'}`), V2_DEFS.card_choice)
+      // NE plikas būdvardis „Reta" — pilna etiketė „Reta korta" (pasirinkimo atlygis)
+      return mkV2('card_choice', t('rewards.label.cardMin', { rarity: t(`progression.rarity.${r?.rarity ?? 'rare'}`) }), V2_DEFS.card_choice)
     case 'card_back':
       return mkV2('card_back', t('rewards.label.cardBack'))
     case 'player_avatar':

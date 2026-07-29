@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
-import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
+import { useActiveDeck, activeDeckOf, deckValidity } from '@/lib/digital/activeDeck'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
@@ -90,8 +90,9 @@ export function DigitalPvP() {
   const adState = useActiveDeck()
   const globalDeck = activeDeckOf(adState)
   // Tik globali aktyvi kaladė (be tylaus fallback) — žr. DigitalPvE komentarą
+  // Kova galima tik su GALIOJANČIA aktyvia kalade (30–40 kortų + visos turimos)
   const deck = adState.loaded
-    ? (globalDeck ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
+    ? (globalDeck && deckValidity(globalDeck).valid ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
     : decks?.find((d) => d.id === sel && d.missing === 0)
   // Kovos kaladės ref (stale-closure apsauga waitForGuest/poll callback'uose)
   const battleDeckRef = useRef('')

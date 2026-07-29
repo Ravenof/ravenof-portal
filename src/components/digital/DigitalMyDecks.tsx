@@ -16,7 +16,8 @@ import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess, playError, playCardFlip } from '@/lib/ui-sound'
 import { PlaytestButton } from '@/components/decks/PlaytestButton'
-import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
+import { isDeckSizeValid, formatDeckCount } from '@/lib/deck-validation'
+import { costCurve, COST_CURVE_LABELS, displayAvgCost } from '@/lib/cards/cost'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { rarityColor } from '@/lib/digital/rarity'
 import { SmartImg } from '@/components/ui/SmartImg'
@@ -168,14 +169,14 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const setActiveDeck = async (id: string) => {
     playUiClick()
     const r = await useActiveDeck.getState().setActive(id)
-    if (!r.ok) flash(t('decks.my.copyFailed'), true)
+    if (!r.ok) flash(t('decks.invalidSizeHint'), true)
   }
 
   return (
     <div className="ravenof-body h-full flex flex-col min-h-0">
       <div className="flex-1 min-h-0 flex overflow-x-auto ravenof-scroll" style={{ gap: 10 }}>
         {decks.map((d) => {
-          const valid = d.faction !== null && d.cardCount >= DECK_MIN && d.cardCount <= DECK_MAX && (d.missing ?? 0) === 0
+          const valid = d.faction !== null && isDeckSizeValid(d.cardCount) && (d.missing ?? 0) === 0
           const isActive = adState.activeDeckId === d.id
           const cover = d.factionId != null ? covers[d.factionId] ?? null : null
           return (
@@ -189,11 +190,14 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
                 {!valid && <span className="absolute" style={{ top: 6, right: 6, font: '700 9px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', background: 'rgba(7,6,10,.85)', border: '1px solid #8D2D3855', padding: '2px 6px' }}>{t('decks.my.invalidBadge')}</span>}
                 <span className="absolute" style={{ left: 9, bottom: 6, right: 6 }}>
                   <span className="block truncate" style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)', textTransform: 'uppercase', letterSpacing: '.03em' }}>{d.name}</span>
-                  <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: d.factionColor }}>{gc.faction(d.faction) || t('decks.my.noFaction')} · {d.cardCount}/{DECK_MAX}</span>
+                  <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: d.factionColor }}>{gc.faction(d.faction) || t('decks.my.noFaction')} · {formatDeckCount(d.cardCount)}</span>
                 </span>
               </button>
               <div className="shrink-0 grid grid-cols-2" style={{ borderTop: '1px solid var(--ravenof-border-hairline)' }}>
-                <button onClick={() => void setActiveDeck(d.id)} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: isActive ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0, borderRight: '1px solid var(--ravenof-border-hairline)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>★ {t('decks.my.setActive')}</button>
+                {/* Aktyvi = NEinteraktyvi būsena; Aktyvinti — tik galiojančioms kaladėms */}
+                {isActive
+                  ? <span aria-current="true" style={{ font: '700 9.5px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '8px 4px', textAlign: 'center', border: 0, borderRight: '1px solid var(--ravenof-border-hairline)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>★ {t('decks.my.activeBadge')}</span>
+                  : <button onClick={() => void setActiveDeck(d.id)} disabled={!valid} title={valid ? undefined : t('decks.invalidSizeHint')} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: valid ? 'var(--ravenof-text-secondary)' : 'rgba(150,160,185,0.35)', padding: '8px 4px', textAlign: 'center', cursor: valid ? 'pointer' : 'not-allowed', background: 'none', border: 0, borderRight: '1px solid var(--ravenof-border-hairline)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>★ {t('decks.my.setActive')}</button>}
                 <button onClick={() => { playUiClick(); onEdit(d.id) }} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0, borderBottom: '1px solid var(--ravenof-border-hairline)' }}>✎ {t('decks.my.edit')}</button>
                 <button onClick={() => duplicate(d.id)} disabled={busy === d.id} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0, borderRight: '1px solid var(--ravenof-border-hairline)' }}>⧉ {t('decks.my.copyShort')}</button>
                 <button onClick={() => setConfirmDel(d.id)} className="ravenof-press" style={{ font: '600 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-danger)', padding: '8px 4px', textAlign: 'center', cursor: 'pointer', background: 'none', border: 0 }}>✕ {t('decks.my.deleteShort')}</button>
@@ -288,7 +292,8 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
     const total = main.reduce((a, c) => a + c.qty, 0)
     const golds = main.flatMap((c) => Array(c.qty).fill(c.gold) as number[])
     const avg = golds.length ? golds.reduce((a, b) => a + b, 0) / golds.length : 0
-    const curve = Array.from({ length: 8 }, (_, i) => main.filter((c) => (i < 7 ? c.gold === i : c.gold >= 7)).reduce((a, c) => a + c.qty, 0))
+    // KANONINĖ kainos kreivė — DB reikšmės šimtais (200–700) → 1..8+ stulpeliai
+    const curve = costCurve(main.map((c) => ({ gold: c.gold, qty: c.qty })))
     const types = new Map<string, number>()
     const rars = new Map<string, number>()
     for (const c of main) {
@@ -302,16 +307,19 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
   if (!cards || !stats) return <p className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
 
   const curveMax = Math.max(1, ...stats.curve)
-  const valid = deck.faction !== null && deck.cardCount >= DECK_MIN && deck.cardCount <= DECK_MAX
+  const valid = deck.faction !== null && isDeckSizeValid(stats.total)
 
   return (
     <>
       {/* Suvestinė */}
       <div className="grid grid-cols-3 gap-2">
         <StatBox label={t('decks.my.statCards')} value={String(stats.total)} accent={valid ? '74,222,128' : '252,165,165'} />
-        <StatBox label={t('decks.my.statAvgGold')} value={stats.avg.toFixed(1)} accent={GOLD} />
+        <StatBox label={t('decks.my.statAvgGold')} value={displayAvgCost(stats.avg).toFixed(1)} accent={GOLD} />
         <StatBox label={t('decks.my.statChampions')} value={String(stats.champions)} accent="139,92,246" />
       </div>
+      <p className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: valid ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.08)', color: valid ? 'rgba(74,222,128,0.9)' : '#fca5a5', border: `1px solid ${valid ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.3)'}` }}>
+        {formatDeckCount(stats.total)}{!valid && !isDeckSizeValid(stats.total) ? ` · ${t('decks.invalidBadge')}` : ''}
+      </p>
       {deck.missing != null && deck.missing > 0 && (
         <p className="text-[11px] px-3 py-2 rounded-lg" style={{ background: 'rgba(240,180,41,0.08)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.25)' }}>
           {t('decks.my.missingCards', { count: deck.missing })}
@@ -328,7 +336,7 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
               <div className="w-full rounded-t" style={{ height: `${Math.max(n > 0 ? 8 : 2, (n / curveMax) * 58)}px`,
                 background: n > 0 ? `linear-gradient(180deg, rgb(${GOLD}), rgba(${GOLD},0.45))` : 'rgba(255,255,255,0.06)',
                 boxShadow: n > 0 ? `0 0 6px rgba(${GOLD},0.35)` : 'none' }} />
-              <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{i < 7 ? i : '7+'}</span>
+              <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{COST_CURVE_LABELS[i]}</span>
             </div>
           ))}
         </div>

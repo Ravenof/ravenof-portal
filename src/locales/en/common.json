@@ -33,8 +33,15 @@
   "notif": {
     "daysAgo": "{{count}} d ago",
     "empty": "No notifications yet.",
+    "filter": {
+      "achievements": "Achievements",
+      "all": "All",
+      "other": "Other",
+      "social": "Social"
+    },
     "hoursAgo": "{{count}} h ago",
     "justNow": "just now",
+    "markAllRead": "Mark all as read",
     "minAgo": "{{count}} min ago",
     "title": "NOTIFICATIONS"
   },
@@ -43,6 +50,14 @@
     "empty": "No options"
   },
   "player": "Player",
+  "pwa": {
+    "installCta": "Install",
+    "installTitle": "Install the Ravenof app"
+  },
+  "reminders": {
+    "battle": "New opponents await in the arena. ⚔️ Play a battle!",
+    "daily": "Your daily reward is waiting! 🔥 Keep your streak alive."
+  },
   "retry": "Try again",
   "retryFull": "↻ Try again",
   "rewardState": {
@@ -55,10 +70,6 @@
     "title": "Rotate your phone"
   },
   "save": "Save",
-  "yes": "Yes",
   "saving": "Saving…",
-  "reminders": {
-    "daily": "Your daily reward is waiting! 🔥 Keep your streak alive.",
-    "battle": "New opponents await in the arena. ⚔️ Play a battle!"
-  }
+  "yes": "Yes"
 }

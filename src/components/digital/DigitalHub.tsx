@@ -11,27 +11,19 @@ import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { WelcomeReward } from './WelcomeReward'
-import { loginCheckin } from '@/lib/gamification/quests'
-import { getSeasonPath } from '@/lib/gamification/seasonPath'
+
 import {
   claimDailyChestV2, claimDailyQuest, getDailyQuests, getLoginRewards, isProgressionError,
   type DailyQuestsState,
+  getSeasonPathV2,
 } from '@/lib/progression'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { getActiveSeason, ensureProfile } from '@/lib/ranked/client'
-import { rankView, medalLabel } from '@/lib/ranked/rank'
+import { rankDisplay } from '@/lib/ranked/rank'
 import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
 import { useT } from '@/lib/i18n/react'
 
 const A = RAVENOF_ASSET
-
-/** Rango numeris romėnišku formatu. */
-function toRoman(n: number): string {
-  const map: [number, string][] = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
-  let out = ''; let v = Math.max(1, Math.min(50, Math.round(n)))
-  for (const [num, sym] of map) while (v >= num) { out += sym; v -= num }
-  return out
-}
 
 /** Dienos užduočių akcentai pagal sudėtingumą (v2: easy/medium/hard). */
 const DIFF_ACCENT: Record<string, string> = { easy: '52,211,153', medium: '96,165,250', hard: '239,68,68' }
@@ -94,14 +86,24 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   useEffect(() => {
     if (!loggedIn) return
     refreshWallet(); refreshQuests(); refreshBalances()
+    // KANONINIS streak/ciklo šaltinis — Progression v2 (rvn_get_login_cycle).
+    // Home ir /digital/rewards rodo TĄ PATĮ serverio streak — jokio atskiro
+    // perskaičiavimo (senasis rvn_login_checkin nebekviečiamas: jis vedė atskirą
+    // streak'ą ir tyliai dalino auksą kiekvieną Home atidarymą).
     getLoginRewards().then((ml) => {
       if (!ml || isProgressionError(ml)) return
+      setStreak(ml.streak ?? 0)
       const cl = ml.claimableDay != null
-      setLoginClaimable(cl)
+      setLoginClaimable(cl); setClaimable(cl)
       if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); router.push('/digital/rewards') } }
     })
-    loginCheckin().then((c) => { if (c) { setStreak(c.streak ?? 0); setClaimable(!c.already && c.reward > 0); if (!c.already && c.reward > 0) refreshWallet() } })
-    getSeasonPath().then((sp) => { if (!sp) return; setSeason({ cur: sp.level, total: sp.levels, pct: Math.round((sp.level / sp.levels) * 100) }); const cl = sp.rows.filter((r) => r.reached && ((!r.free.claimed && r.free.payload.length > 0) || (sp.hasPass && !r.pass.claimed && r.pass.payload.length > 0))).length; setSeasonClaimable(cl) })
+    // Sezono kelias — v2 (tas pats šaltinis kaip /digital/season, ne senasis v1)
+    getSeasonPathV2().then((sp) => {
+      if (!sp || isProgressionError(sp)) return
+      setSeason({ cur: sp.level, total: sp.levels, pct: sp.levels ? Math.round((sp.level / sp.levels) * 100) : 0 })
+      const cl = sp.rows.filter((r) => r.reached && (r.free.claimable || (sp.hasPass && r.pass.claimable))).length
+      setSeasonClaimable(cl)
+    })
     ensureProfile().then((rp) => { if (rp) setRankInfo({ step: rp.rank_step }) })
     getActiveSeason().then((s) => {
       if (!s) return
@@ -126,9 +128,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     )
   }
 
-  const rv = rankInfo ? rankView(rankInfo.step) : null
-  const ptsToNext = rankInfo ? Math.max(1, 3 - (rankInfo.step % 3)) : null
-  const nx = rankInfo && ptsToNext ? rankView(Math.min(rankInfo.step + ptsToNext, 149)) : null
+  // KANONINIS rango atvaizdavimas — bendras helperis (žr. lib/ranked/rank.ts)
+  const rd = rankInfo ? rankDisplay(rankInfo.step) : null
   /** Questo atlygis. Jei serveris paprašo pasirinkimo — atidarom pilną ekraną. */
   const claimQuest = async (questId: number) => {
     playUiClick()
@@ -165,13 +166,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         <div className="absolute inset-0 pointer-events-none" style={{ border: '1px solid rgba(212,163,59,.35)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)' }} />
         <div className="relative" style={{ padding: '12px 14px' }}>
           <div style={{ font: '500 10px var(--ravenof-font-body)', letterSpacing: 2.5, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>
-            {seasonMeta ? <>{t('home.season')} {seasonMeta.name} · {seasonMeta.daysLeft} {t('home.daysShort')}</> : t('home.seasonProgress')}
+            {seasonMeta ? <>{/^\s*(sezonas|season)\b/i.test(seasonMeta.name) ? seasonMeta.name : `${t('home.season')} ${seasonMeta.name}`} · {seasonMeta.daysLeft} {t('home.daysShort')}</> : t('home.seasonProgress')}
           </div>
           <div style={{ font: '700 19px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px rgba(0,0,0,.9)', marginTop: 2 }}>{t('home.rankedTitle')}</div>
         </div>
         <div className="relative flex items-center" style={{ padding: '12px 14px', gap: 10 }}>
           <span style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', border: '1px solid rgba(212,163,59,.5)', padding: '7px 16px', background: 'rgba(7,6,10,.6)', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)' }}>{t('home.play')}</span>
-          {rv && <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{medalLabel(rv.medalTier)} {toRoman(rv.rankNumber)} · {rv.rankNumber}/50</span>}
+          {rd && <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{rd.label} · {rd.name}</span>}
         </div>
       </button>
 
@@ -200,13 +201,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           style={{ gap: 10, background: 'linear-gradient(100deg,#1B1522,#241a2e)', border: '1px solid rgba(212,163,59,.5)', borderLeft: '2px solid #F2C45A', padding: '8px 11px', cursor: 'pointer' }}>
           <span className="flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: 'rgba(242,196,90,.1)', border: '1px solid rgba(212,163,59,.4)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${A}/ranks/rank-${nx?.medalTier ?? rv?.medalTier ?? 'silver'}.png`} alt="" style={{ width: 20, height: 'auto', objectFit: 'contain' }} />
+            <img src={`${A}/ranks/rank-${rd?.medalTier ?? 'silver'}.png`} alt="" style={{ width: 20, height: 'auto', objectFit: 'contain' }} />
           </span>
           <span className="flex-1 min-w-0">
             <span className="block" style={{ font: '500 8px var(--ravenof-font-body)', letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('home.nextUp')}</span>
             <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</span>
             <span className="block truncate" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
-              {nx && ptsToNext ? t('home.nextRankPts', { rank: `${medalLabel(nx.medalTier)} ${toRoman(nx.rankNumber)}`, pts: ptsToNext }) : t('home.pickModeStart')}
+              {rd && !rd.isMax ? t('home.nextRankPts', { rank: rd.nextLabel ?? '', pts: rd.stepsToNextNumber }) : t('home.pickModeStart')}
             </span>
           </span>
           <span className="shrink-0" style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>›</span>

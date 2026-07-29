@@ -31,10 +31,19 @@ const TAB_DEFS: { key: Tab; labelKey: string }[] = [
 export function DigitalDecks({ userId, cards, factions, collection, initialTab, initialDeck }: Props) {
   const router = useRouter()
   const t = useT()
+  // URL yra KANONINĖ navigacijos būsena: ?tab= visada atitinka matomą ekraną,
+  // ?deck= egzistuoja TIK builder'yje. Vietinė būsena — tik optimistinis atspindys,
+  // kad tab'as persijungtų iškart (server roundtrip'as atnaujina initialTab).
   const [tab, setTab] = useState<Tab>(initialTab)
-  // „Redaguoti" iš Mano kaladžių keičia tik URL query — komponentas nepersimontuoja,
-  // todėl tab/deck reikia sinchronizuoti rankiniu būdu
   useEffect(() => { setTab(initialTab) }, [initialTab, initialDeck?.id])
+
+  const goTab = (next: Tab) => {
+    if (next === tab) return
+    setTab(next) // optimistinis — ekranas keičiasi iškart
+    // router.push → istorijos įrašas: Back grąžina į ankstesnį loginį ekraną,
+    // reload atkuria tą patį vaizdą. ?deck= paliekamas tik builder'iui.
+    router.push(next === 'my' ? '/digital/decks?tab=my' : `/digital/decks?tab=${next}`)
+  }
 
   return (
     <div className="ravenof-body h-full flex flex-col min-h-0 ravenof-in">
@@ -46,7 +55,7 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
           {TAB_DEFS.map((tb) => {
             const active = tab === tb.key
             return (
-              <button key={tb.key} onClick={() => { playUiClick(); setTab(tb.key) }}
+              <button key={tb.key} onClick={() => { playUiClick(); goTab(tb.key) }} aria-pressed={active}
                 className="ravenof-press"
                 style={{ textAlign: 'center', padding: '8px 14px', font: '700 10px var(--ravenof-font-display)', letterSpacing: '.5px', textTransform: 'uppercase',
                   color: active ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
@@ -60,8 +69,8 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
       <div className="flex-1 min-h-0" style={{ overflowY: tab === 'builder' ? 'hidden' : 'auto' }}>
         {tab === 'builder' && (
           <DigitalDeckBuilder userId={userId} cards={cards} factions={factions} collection={collection} initialDeck={initialDeck}
-            onSaved={() => { router.push('/digital/decks?tab=my'); setTab('my') }}
-            onBack={() => setTab('my')} />
+            onSaved={() => { setTab('my'); router.push('/digital/decks?tab=my') }}
+            onBack={() => { setTab('my'); router.push('/digital/decks?tab=my') }} />
         )}
         {tab === 'my' && (
           <DigitalMyDecks userId={userId}

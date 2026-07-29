@@ -35,7 +35,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   'owned': 'collection.sortShort.owned',
 }
 
-const PAGE_SIZE = 6
+const PAGE_SIZE = 24 // audit #17: žymiai daugiau kortų puslapyje (buvo 6 → ~88 psl.)
 
 export function DigitalCollection() {
   const t = useT()
@@ -163,7 +163,9 @@ export function DigitalCollection() {
       {/* ── Viršutinė juosta: pavadinimas · paieška · tik turimos · rikiavimas ── */}
       <div className="shrink-0 flex items-center" data-testid="collection-toolbar" style={{ gap: 8, paddingBottom: 8 }}>
         <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('collection.title')}</div>
-        <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{ownedCount}/{cards.length} · {t('home.cardsCount', { count: filtered.length })}</div>
+        <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
+          {t('collection.ownedOf', { owned: ownedCount, total: cards.length })}{activeFilters > 0 ? ` · ${t('collection.showingN', { count: filtered.length })}` : ''}
+        </div>
         <div className="flex-1" />
         {totalPacks > 0 && (
           <button onClick={openPacks} data-testid="packs-btn" className="ravenof-press shrink-0" style={{ font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', border: 0, padding: '7px 12px', cursor: 'pointer', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
@@ -191,7 +193,7 @@ export function DigitalCollection() {
         {factions.map((f) => {
           const active = faction === f.slug
           return (
-            <button key={f.slug} onClick={() => { playUiClick(); setFaction(active ? 'all' : f.slug) }} title={tc('faction', f.slug, 'name', f.name)} aria-pressed={active}
+            <button key={f.slug} onClick={() => { playUiClick(); setFaction(active ? 'all' : f.slug) }} title={tc('faction', f.slug, 'name', f.name)} aria-label={tc('faction', f.slug, 'name', f.name)} aria-pressed={active}
               className="ravenof-press flex items-center justify-center shrink-0"
               style={{ width: 27, height: 27, border: `1px solid ${active ? ravenofFactionColor(f.slug) : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer' }}>
               <span aria-hidden style={{ display: 'inline-block', width: 17, height: 17, background: `url('${ravenofFactionIcon(f.slug)}') center / contain no-repeat`, filter: active ? 'none' : 'grayscale(.85) brightness(.75)' }} />
@@ -202,7 +204,7 @@ export function DigitalCollection() {
         {rarities.map((r) => {
           const active = rarity === r.name
           return (
-            <button key={r.name} onClick={() => { playUiClick(); setRarity(active ? 'all' : r.name) }} title={gc.rarity(r.name)} aria-pressed={active}
+            <button key={r.name} onClick={() => { playUiClick(); setRarity(active ? 'all' : r.name) }} title={gc.rarity(r.name)} aria-label={gc.rarity(r.name)} aria-pressed={active}
               className="ravenof-press flex items-center justify-center shrink-0"
               style={{ width: 26, height: 26, border: `1px solid ${active ? ravenofRarityColor(r.name) : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: active || rarity === 'all' ? 1 : 0.45 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -215,12 +217,12 @@ export function DigitalCollection() {
           const active = type === ty
           const icon = ravenofCardTypeIcon(ty)
           return (
-            <button key={ty} onClick={() => { playUiClick(); setType(active ? 'all' : ty) }} title={gc.cardType(ty)} aria-pressed={active}
+            <button key={ty} onClick={() => { playUiClick(); setType(active ? 'all' : ty) }} title={gc.cardType(ty)} aria-label={gc.cardType(ty)} aria-pressed={active}
               className="ravenof-press flex items-center justify-center shrink-0"
               style={{ width: 27, height: 27, border: `1px solid ${active ? 'var(--ravenof-gold)' : 'var(--ravenof-border-hairline)'}`, background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer' }}>
               {icon
                 ? <span aria-hidden style={{ width: 16, height: 16, background: active ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)', WebkitMask: `url('${icon}') center / contain no-repeat`, mask: `url('${icon}') center / contain no-repeat`, display: 'inline-block' }} />
-                : <span style={{ font: '600 9px var(--ravenof-font-body)', color: active ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)' }}>{ty.slice(0, 2)}</span>}
+                : <span style={{ font: '600 9px var(--ravenof-font-body)', color: active ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)' }}>{gc.cardType(ty).slice(0, 2)}</span>}
             </button>
           )
         })}
@@ -246,17 +248,18 @@ export function DigitalCollection() {
         </div>
       ) : (
         <>
-          <div className="flex-1 grid min-h-0" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'center', alignContent: 'center' }} data-testid="card-browser">
+          {/* Responsyvus kelių eilučių tinklelis su slinktimi — ekranas nebešvaisto vietos */}
+          <div className="flex-1 grid min-h-0 overflow-y-auto ravenof-scroll" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8, alignContent: 'start' }} data-testid="card-browser">
             {pageCards.map((c) => (
               <RavenofCardCell key={c.id} c={c} onClick={() => { playUiClick(); setSelId(c.id); setDetailOpen(true) }} notOwnedLabel={t('collection.notOwnedBadge')} />
             ))}
           </div>
           <div className="shrink-0 flex items-center justify-center" style={{ gap: 14, paddingTop: 8 }}>
-            <button onClick={() => { if (curPage > 0) { playUiClick(); setPage(curPage - 1) } }} aria-label={t('collection.prevPage')} className="ravenof-press flex items-center justify-center"
-              style={{ width: 30, height: 26, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage > 0 ? 'pointer' : 'default', color: curPage > 0 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>‹</button>
+            <button onClick={() => { if (curPage > 0) { playUiClick(); setPage(curPage - 1) } }} aria-label={t('collection.prevPage')} disabled={curPage === 0} className="ravenof-press flex items-center justify-center"
+              style={{ width: 44, height: 34, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage > 0 ? 'pointer' : 'default', color: curPage > 0 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>‹</button>
             <span style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{curPage + 1}/{pages}</span>
-            <button onClick={() => { if (curPage < pages - 1) { playUiClick(); setPage(curPage + 1) } }} aria-label={t('collection.nextPage')} className="ravenof-press flex items-center justify-center"
-              style={{ width: 30, height: 26, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage < pages - 1 ? 'pointer' : 'default', color: curPage < pages - 1 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>›</button>
+            <button onClick={() => { if (curPage < pages - 1) { playUiClick(); setPage(curPage + 1) } }} aria-label={t('collection.nextPage')} disabled={curPage >= pages - 1} className="ravenof-press flex items-center justify-center"
+              style={{ width: 44, height: 34, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage < pages - 1 ? 'pointer' : 'default', color: curPage < pages - 1 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>›</button>
           </div>
         </>
       )}

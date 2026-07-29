@@ -60,7 +60,11 @@
     "voteFailed": "Vote failed.",
     "voteUp": "Upvote"
   },
+  "countSummary_one": "{{count}} card · allowed {{min}}–{{max}}",
+  "countSummary_other": "{{count}} cards · allowed {{min}}–{{max}}",
   "edit": "✎ Edit",
+  "invalidBadge": "INVALID",
+  "invalidSizeHint": "This deck size is not battle-legal — 30–40 cards allowed.",
   "my": {
     "activeBadge": "ACTIVE",
     "confirmDeleteBody": "This action cannot be undone.",
@@ -85,7 +89,7 @@
     "noFaction": "No faction",
     "private": "Private",
     "public": "Public",
-    "setActive": "Set active",
+    "setActive": "Activate",
     "statAvgGold": "Avg. gold",
     "statCards": "Cards",
     "statChampions": "Champions"
@@ -103,6 +107,8 @@
   "validity": {
     "empty": "The deck is empty",
     "missingCards": "Missing {{count}} cards from your collection",
-    "noActive": "No active deck selected"
+    "noActive": "No active deck selected",
+    "tooLarge": "Too many cards ({{count}}) — allowed {{min}}–{{max}}",
+    "tooSmall": "Too few cards ({{count}}) — allowed {{min}}–{{max}}"
   }
 }

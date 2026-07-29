@@ -10,7 +10,7 @@
 //  SVARBU: visos reikšmės iš rvn_get_account_level() — UI neskaičiuoja nei XP ribų,
 //  nei atlygių, nei būsenų. Pasirinkimai eina per TĄ PATĮ ChoiceQueue kanalą kaip
 //  sezonas ir dienos užduotys (reward_choices, source_type='level').
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
 import { playUiClick } from '@/lib/ui-sound'
@@ -51,9 +51,18 @@ export function AccountLevelScreen() {
   }, [])
   useEffect(() => { void load() }, [load])
 
+  // Auto-scroll: dabartinis/pasirinktas lygis visada pradinėje matomoje zonoje
+  const trackRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!state || !trackRef.current) return
+    const el = trackRef.current.querySelector(`[data-level="${state.level}"]`) as HTMLElement | null
+    if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [state?.level, state === null])
+
+  // VIENAS vientisas 1–50 takelis (audit #13) — nebe dvi atskiros juostos.
   const rows = useMemo(() => {
     const track = state?.track ?? []
-    return [track.filter((c) => c.level <= 25), track.filter((c) => c.level >= 26)]  // 1–25 / 26–50
+    return [track]
   }, [state])
 
   const selected = useMemo(
@@ -82,7 +91,7 @@ export function AccountLevelScreen() {
     const on = sel === c.level
     const w = c.milestone ? 104 : 58
     return (
-      <button key={c.level} type="button" onClick={() => { playUiClick(); setSel(c.level) }}
+      <button key={c.level} type="button" data-level={c.level} onClick={() => { playUiClick(); setSel(c.level) }}
         aria-pressed={on} aria-label={t('profile.level.cellAria', { level: c.level })}
         style={{
           position: 'relative', width: w, minHeight: 96, flex: 'none', overflow: 'hidden',
@@ -171,8 +180,8 @@ export function AccountLevelScreen() {
         <div className="rvn-prog-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {rows.map((row, i) => (
             <div key={i}>
-              <Kicker>{i === 0 ? t('profile.level.rowEarly') : t('profile.level.rowLate')}</Kicker>
-              <div className="rvn-prog-scroll" style={{ display: 'flex', gap: 6, marginTop: 7, overflowX: 'auto', paddingBottom: 4 }}>
+              <Kicker>{t('profile.level.trackTitle')}</Kicker>
+              <div ref={trackRef} className="rvn-prog-scroll" style={{ display: 'flex', gap: 6, marginTop: 7, overflowX: 'auto', paddingBottom: 4 }}>
                 {row.map(cell)}
               </div>
             </div>

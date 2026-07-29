@@ -23,12 +23,13 @@ test.describe('Deck Builder', () => {
 
     // pridėti kortų per [+] (greitasis add)
     const plusButtons = page.locator('button[aria-label*="ridėti"], button:has-text("+")')
-    const before = await page.locator('text=/\\d+\\s*\\/\\s*30/').first().textContent().catch(() => null)
+    // Naujas kanoninis skaitiklis: „N kortų · leidžiama 30–40" (nebe „N/30")
+    const before = await page.locator('text=/\\d+\\s*kort\\w*\\s*·\\s*leidžiama/').first().textContent().catch(() => null)
     for (let i = 0; i < 4; i++) {
       const b = plusButtons.nth(i)
       if (await b.isVisible().catch(() => false)) await b.click().catch(() => {})
     }
-    const after = await page.locator('text=/\\d+\\s*\\/\\s*30/').first().textContent().catch(() => null)
+    const after = await page.locator('text=/\\d+\\s*kort\\w*\\s*·\\s*leidžiama/').first().textContent().catch(() => null)
     if (before && after) expect(after).not.toBe(before)
 
     // išsaugoti (validacija gali neleisti <30 kortų — tada matoma aiški žinutė, ne tylus fail)

@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getLeaderboard } from '@/lib/ranked/client'
 import type { LeaderboardRow } from '@/lib/ranked/types'
-import { medalLabel } from '@/lib/ranked/rank'
+import { formatRank } from '@/lib/ranked/rank'
 import { useT } from '@/lib/i18n/react'
 
 type Filter = 'top100' | 'around' | string // faction name
@@ -44,8 +44,8 @@ export function Leaderboard({ revealBots = false }: { revealBots?: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5">
-        <button onClick={() => setFilter('top100')} className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={chip(filter === 'top100')}>Top 100</button>
-        <button onClick={() => setFilter('around')} className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={chip(filter === 'around')}>Aplink mane</button>
+        <button onClick={() => setFilter('top100')} className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={chip(filter === 'top100')}>{t('ranked.top100')}</button>
+        <button onClick={() => setFilter('around')} className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={chip(filter === 'around')}>{t('ranked.aroundMe')}</button>
         {factions.map((f) => (
           <button key={f} onClick={() => setFilter(f)} className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={chip(filter === f)}>{f}</button>
         ))}
@@ -70,13 +70,15 @@ export function Leaderboard({ revealBots = false }: { revealBots?: boolean }) {
                   {r.name}
                   {revealBots && r.is_bot && <span className="ml-1 text-[9px] px-1 rounded" style={{ background: 'rgba(239,68,68,0.25)', color: '#fca5a5' }}>BOT</span>}
                 </p>
-                <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{r.main_faction ?? '—'} · {r.wins}P / {r.losses}Pr · serija {r.win_streak}</p>
+                <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{r.main_faction ?? '—'} · {r.wins}P / {r.losses}Pr · {t('ranked.streakWord')} {r.win_streak}</p>
               </div>
               <div className="text-right">
+                {/* KANONINIS rango formatas + rikiavimo taškai (rank_step) — kad būtų aišku,
+                    kodėl žaidėjas aukščiau: rikiuojama pagal taškus, ne pagal medalį */}
                 <p className="text-xs font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: medalColor(r.medal_tier) }}>
-                  {r.rank_number} {medalLabel(r.medal_tier)}
+                  {formatRank(r.rank_step)}
                 </p>
-                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>K/D {r.kd_ratio.toFixed(2)} · {Math.round(r.win_rate * 100)}%</p>
+                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{r.rank_step} {t('ranked.ptsShort')} · K/D {r.kd_ratio.toFixed(2)} · {Math.round(r.win_rate * 100)}%</p>
               </div>
             </div>
           ))}

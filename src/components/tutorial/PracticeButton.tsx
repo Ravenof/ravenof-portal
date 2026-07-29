@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
+import { DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
 import { playUiClick } from '@/lib/ui-sound'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
@@ -59,7 +60,8 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
   useEffect(() => {
     if (!isOpen) return
     const supabase = createClient()
-    supabase.from('decks').select('id, name, user_id, score, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').order('score', { ascending: false }).limit(60)
+    // DI varžovu — tik 30–40 kortų viešos kaladės (kanoninė dydžio taisyklė)
+    supabase.from('decks').select('id, name, user_id, score, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').gte('card_count', DECK_MIN).lte('card_count', DECK_MAX).order('score', { ascending: false }).limit(60)
       .then(async ({ data }) => {
         const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
         const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))]

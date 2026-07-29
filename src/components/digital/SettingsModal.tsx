@@ -234,10 +234,10 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
               ) : (
                 <div className="flex flex-col" style={{ gap: 6, marginTop: 8 }}>
                   <button onClick={() => startDl(missingNoVideo)} disabled={missingNoVideo.length === 0} className="ravenof-btn ravenof-btn-primary w-full" style={{ minHeight: 34, fontSize: 10, letterSpacing: 1, padding: '8px 10px' }}>
-                    {t('settings.dlCardsSounds')} · {fmtMB(bytesNoVideo)}
+                    {t('settings.dlCardsSounds')} · {t('settings.remainingDl', { size: fmtMB(bytesNoVideo) })}
                   </button>
                   <button onClick={() => startDl(missing)} className="ravenof-btn ravenof-btn-secondary w-full" style={{ minHeight: 32, fontSize: 10, padding: '7px 10px' }}>
-                    {t('settings.dlAllVideo')} · {fmtMB(bytesAll)}
+                    {t('settings.dlAllVideo')} · {t('settings.remainingDl', { size: fmtMB(bytesAll) })}
                   </button>
                 </div>
               )}

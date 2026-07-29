@@ -3,6 +3,7 @@
 // ── Parduotuvės administravimas: kosmetika · pakuotės · starter kaladės ───────
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RARITY_COPY_LIMIT, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
+import { costCurve, COST_CURVE_LABELS, displayCost } from '@/lib/cards/cost'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ShopImageUpload } from '@/components/admin/ShopImageUpload'
@@ -239,7 +240,7 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
       if (fType !== 'all' && c.card_type_id !== fType) return false
       if (fRarity !== 'all' && c.rarity_id !== fRarity) return false
       if (fCost !== 'all') {
-        const g = c.gold_cost ?? 0
+        const g = displayCost(c.gold_cost) // DB šimtais → 1–9 skalė (kanoninis helperis)
         if (fCost === '0-2' && g > 2) return false
         if (fCost === '3-5' && (g < 3 || g > 5)) return false
         if (fCost === '6+' && g < 6) return false
@@ -250,11 +251,10 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
   }, [cards, search, form.faction_id, fType, fRarity, fCost, onlyFaction])
 
   const copyLimit = (c: CardLite) => (c.rarity_id != null ? (RARITY_COPY_LIMIT[c.rarity_id] ?? 2) : 2)
-  const curve = useMemo(() => {
-    const b = [0, 0, 0, 0, 0, 0]
-    for (const [id, q] of sel) { const g = cardById.get(id)?.gold_cost ?? 0; b[Math.min(5, g)] += q }
-    return b
-  }, [sel, cardById])
+  const curve = useMemo(() => (
+    // KANONINĖ kainos kreivė (bendra su /digital builder'iu) — 1..8+ stulpeliai
+    costCurve(Array.from(sel, ([id, q]) => ({ gold: cardById.get(id)?.gold_cost ?? 0, qty: q })))
+  ), [sel, cardById])
 
   const loadDeck = (d: StarterDeck) => {
     setForm({ ...d, description: d.description ?? '', image_url: d.image_url ?? '' }); setEditing(true)
@@ -405,7 +405,7 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
             {curve.map((n, i) => (
               <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5">
                 <div style={{ width: '100%', height: Math.max(2, (n / Math.max(1, ...curve)) * 34), background: 'rgba(240,180,41,0.5)', borderRadius: 2 }} />
-                <span className="text-[8.5px]" style={{ color: 'var(--text-muted)' }}>{i === 5 ? '5+' : i}</span>
+                <span className="text-[8.5px]" style={{ color: 'var(--text-muted)' }}>{COST_CURVE_LABELS[i]}</span>
               </div>
             ))}
           </div>

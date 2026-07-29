@@ -2,8 +2,8 @@
   "addedToCollection": "{{name}} added to your collection!",
   "alreadyClaimed": "Already claimed.",
   "buyFailed": "Purchase failed.",
-  "buyGold": "Buy · 🪙 {{price}}",
-  "buyRubies": "Buy · 💎 {{price}}",
+  "buyGold": "Buy for {{price}} silver",
+  "buyRubies": "Buy for {{price}} rubies",
   "categoryEmpty": "No items in this category.",
   "claimFailed": "Could not claim.",
   "claimFree": "Claim for free",
@@ -19,6 +19,20 @@
   "dailyOffer": "Daily offer",
   "dealLoading": "Today's offer is loading…",
   "deckCreated": "Deck created in “My decks”! 🃏",
+  "detail": {
+    "allFactions": "All factions",
+    "cards_one": "{{count}} card",
+    "cards_other": "{{count}} cards",
+    "contents": "What you get",
+    "deckContents": "Deck contents",
+    "dupNote": "Duplicate cards stay in your collection — you can disenchant extras into essence yourself",
+    "empty": "Contents not available",
+    "loading": "Loading…",
+    "packFactions": "Possible factions",
+    "packRules": "What is inside",
+    "quantity": "Quantity",
+    "rarity": "Rarity"
+  },
   "endsIn": "Ends in",
   "err": {
     "bad_currency": "Invalid currency.",
@@ -29,7 +43,7 @@
     "not_stackable": "This item can only be bought one at a time."
   },
   "free": "FREE",
-  "notEnoughGold": "Not enough gold",
+  "notEnoughGold": "Not enough silver.",
   "notEnoughSilver": "Not enough silver.",
   "openPacks_one": "🎁 Open pack ({{count}})",
   "openPacks_other": "🎁 Open packs ({{count}})",
@@ -37,6 +51,7 @@
   "ownedEquip": "✓ Owned — equip it in Cosmetics",
   "pickItem": "Pick an item.",
   "purchased": "Purchased: {{name}}",
+  "purchasedN": "\"{{name}}\" ×{{count}} purchased!",
   "purchasedShort": "✓ Purchased",
   "sections": {
     "avatars": "Player avatars",
@@ -48,18 +63,5 @@
     "starter": "🃏 Decks"
   },
   "starterInfo": "Cards are added to your collection and a ready-made deck is created automatically.",
-  "title": "SHOP",
-  "detail": {
-    "deckContents": "Deck contents",
-    "cards_one": "{{count}} card",
-    "cards_other": "{{count}} cards",
-    "packFactions": "Possible factions",
-    "allFactions": "All factions",
-    "loading": "Loading…",
-    "empty": "Contents not available",
-    "contents": "What you get",
-    "rarity": "Rarity",
-    "quantity": "Quantity"
-  },
-  "purchasedN": "\"{{name}}\" ×{{count}} purchased!"
+  "title": "SHOP"
 }

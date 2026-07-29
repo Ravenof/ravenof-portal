@@ -13,7 +13,9 @@ import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
-import { getBalances, getPackInventory, getActivePacks, type Balances } from '@/lib/economy'
+import { getPackInventory, getActivePacks } from '@/lib/economy'
+import { useAccount } from '@/lib/digital/accountStore'
+import { formatNumber } from '@/lib/i18n/core'
 import { getShop, purchaseShopItem, purchaseShopItemBulk, isStackable, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
 import { useT, useContent } from '@/lib/i18n/react'
 import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
@@ -39,7 +41,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const [items, setItems] = useState<ShopItem[]>([])
   const [deal, setDeal] = useState<DealCard[]>([])
   const [starters, setStarters] = useState<StarterDeck[]>([])
-  const [bal, setBal] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
+  // Balansai — iš bendro accountStore. Kol balances=null (kraunasi) — pirkimai
+  // UŽBLOKUOTI ir rodoma "—", ne 0 (audit: jokiu fake zero / klaidinancio "neuztenka").
+  const account = useAccount()
+  const balLoaded = account.balances != null
+  const bal = account.balances ?? { silver: 0, rubies: 0, essence: 0 }
   // kosmetikos vizualai + nuosavybė (kad parduotuvė rodytų TIKRUS daiktus)
   const [cosVis, setCosVis] = useState<Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }>>({})
   const [cosOwned, setCosOwned] = useState<Set<string>>(new Set())
@@ -68,7 +74,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   const refresh = useCallback(() => {
     getShop().then(setItems)
-    getBalances().then((b) => { if (b) setBal(b) })
+    void useAccount.getState().refresh({ force: true })
     getDailyDeal().then((d) => setDeal(d?.cards ?? []))
     getStarterDecks().then((s) => setStarters(s ?? []))
     getPackInventory().then((inv) => setPackInv(Object.values(inv).reduce((a, b) => a + b, 0)))
@@ -226,16 +232,19 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     const sectionTitle = (txt: string) => (
       <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)', marginBottom: 5 }}>{txt}</div>
     )
-    const buyBtn = (key: string, label: string, enough: boolean, onClick: () => void, danger = false) => (
-      <button key={key} onClick={onClick} disabled={busy || !enough}
+    const buyBtn = (key: string, label: string, enoughRaw: boolean, onClick: () => void, danger = false) => {
+      // Kol balansai nepakrauti — pirkti negalima (ne "neuztenka", o "kraunasi")
+      const enough = balLoaded && enoughRaw
+      return (
+      <button key={key} onClick={() => { if (balLoaded) onClick() }} disabled={busy || !enough} aria-busy={!balLoaded || busy}
         style={{ flex: 1, minWidth: 120, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1,
           color: enough ? (danger ? 'var(--ravenof-text-primary)' : 'var(--ravenof-on-gold)') : '#5e5868',
           background: enough ? (danger ? 'linear-gradient(180deg,#a53a47,var(--ravenof-danger))' : 'var(--ravenof-grad-gold)') : 'var(--ravenof-bg-elevated)',
           padding: 11, border: 0, cursor: enough ? 'pointer' : 'default',
           clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>
-        {busy ? '…' : label}
+        {busy || !balLoaded ? '…' : label}
       </button>
-    )
+    ) }
     const stateBox = (key: string, txt: string, color: string, border: string) => (
       <div key={key} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color, border: `1px solid ${border}`, padding: 11 }}>{txt}</div>
     )
@@ -254,6 +263,17 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               ))}
             </div>
           </div>
+          {selShop.itemType === 'pack' && (
+            <div style={{ marginTop: 12 }}>
+              {sectionTitle(t('shop.detail.packRules'))}
+              <ul style={{ margin: 0, padding: '0 0 0 16px', font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.6 }}>
+                <li>{t('progression.choice.rule1')}</li>
+                <li>{t('progression.choice.rule2')}</li>
+                <li>{t('progression.choice.rule3')}</li>
+                <li>{t('shop.detail.dupNote')}</li>
+              </ul>
+            </div>
+          )}
           {selShop.itemType === 'pack' && (
             <div style={{ marginTop: 12 }}>
               {sectionTitle(t('shop.detail.packFactions'))}
@@ -351,9 +371,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     }
 
     const nQty = selShop && isStackable(selShop.itemType) && !ownedShopItem(selShop) ? qty : 1
-    const insufficient = (selShop && !ownedShopItem(selShop) && selShop.prices.silver != null && bal.silver < selShop.prices.silver * nQty && (selShop.prices.rubies == null || bal.rubies < selShop.prices.rubies * nQty))
+    const insufficient = balLoaded && ((selShop && !ownedShopItem(selShop) && selShop.prices.silver != null && bal.silver < selShop.prices.silver * nQty && (selShop.prices.rubies == null || bal.rubies < selShop.prices.rubies * nQty))
       || (selDeal && !selDeal.bought && bal.silver < selDeal.priceGold)
-      || (selStarter && !selStarter.claimed && selStarter.priceGold > 0 && bal.silver < selStarter.priceGold)
+      || (selStarter && !selStarter.claimed && selStarter.priceGold > 0 && bal.silver < selStarter.priceGold))
 
     return (
       <>
@@ -396,11 +416,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
         <div className="flex-1" />
         <div className="flex items-center" style={{ gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />{bal.silver.toLocaleString('lt-LT')}
+          <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.silver) : '—'}
         </div>
         <div className="flex items-center" style={{ gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} />{bal.rubies.toLocaleString('lt-LT')}
+          <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.rubies) : '—'}
         </div>
       </div>
 

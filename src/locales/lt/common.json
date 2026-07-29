@@ -33,8 +33,15 @@
   "notif": {
     "daysAgo": "prieš {{count}} d.",
     "empty": "Pranešimų kol kas nėra.",
+    "filter": {
+      "achievements": "Pasiekimai",
+      "all": "Visi",
+      "other": "Kita",
+      "social": "Bendruomenė"
+    },
     "hoursAgo": "prieš {{count}} val.",
     "justNow": "ką tik",
+    "markAllRead": "Žymėti visus skaitytais",
     "minAgo": "prieš {{count}} min.",
     "title": "PRANEŠIMAI"
   },
@@ -43,6 +50,14 @@
     "empty": "Nėra pasirinkimų"
   },
   "player": "Žaidėjas",
+  "pwa": {
+    "installCta": "Įdiegti",
+    "installTitle": "Įdiegti Ravenof programėlę"
+  },
+  "reminders": {
+    "battle": "Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!",
+    "daily": "Tavo dienos atlygis laukia! 🔥 Neprarask serijos."
+  },
   "retry": "Bandyti dar kartą",
   "retryFull": "↻ Bandyti dar kartą",
   "rewardState": {
@@ -55,10 +70,6 @@
     "title": "Pasuk telefoną"
   },
   "save": "Išsaugoti",
-  "yes": "Taip",
   "saving": "Saugoma…",
-  "reminders": {
-    "daily": "Tavo dienos atlygis laukia! 🔥 Neprarask serijos.",
-    "battle": "Arenoje laukia nauji priešininkai. ⚔️ Sužaisk kovą!"
-  }
+  "yes": "Taip"
 }

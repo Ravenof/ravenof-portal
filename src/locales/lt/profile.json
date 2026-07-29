@@ -25,6 +25,7 @@
       "completed": "Užbaigti",
       "locked": "Užrakinti"
     },
+    "linkMissing": "Šio pasiekimo nebėra — rodomas pilnas sąrašas.",
     "loading": "Kraunami pasiekimai",
     "notTracked": "Ši sąlyga dar nesekama",
     "pin": "Prisegti prie profilio",
@@ -55,7 +56,7 @@
     "levelN": "{{level}} lygis",
     "loading": "Kraunamas lygio kelias",
     "maxed": "Aukščiausias lygis pasiektas",
-    "milestone": "Milestone",
+    "milestone": "Etapas",
     "nextReward": "Kitas atlygis",
     "noRewards": "Šis lygis atlygio neduoda.",
     "pendingCta_few": "Pasirinkti {{count}} apdovanojimus",
@@ -74,6 +75,7 @@
       "pending": "Laukia pasirinkimo"
     },
     "totalXp": "Iš viso {{xp}} XP",
+    "trackTitle": "1–50 lygių kelias",
     "xpRequired": "Reikia {{xp}} XP iš viso"
   },
   "nav": {
@@ -95,6 +97,7 @@
     "accountLevel": "Paskyros lygis",
     "all": "Visi",
     "allLevels": "Visi 50 lygių",
+    "allModesNote": "visi režimai kartu",
     "bestStreak": "Geriausia serija",
     "challenge": "Iškviesti",
     "collection": "Kolekcija",
@@ -116,12 +119,17 @@
       "ranked": "Ranked",
       "unranked": "Draugiškos"
     },
+    "modeAi": "Prieš DI",
+    "modeCasual": "Nereitinginis PvP",
+    "modeRanked": "Reitingo win-rate",
+    "modeRecord": "{{wins}} perg. iš {{matches}}",
     "noAchievements": "Kol kas nė vieno užbaigto pasiekimo.",
     "noDecks": "Viešų kaladžių dar nėra.",
     "noMatches": "Rungtynių istorijos dar nėra.",
     "noRank": "Rangas dar nepriskirtas",
     "open": "Atidaryti",
     "openCollection": "Atidaryti kolekciją",
+    "overallRate": "{{rate}}% (visi režimai)",
     "playerId": "ID",
     "publicDecks": "Vieši deckai",
     "publicSubtitle": "Taip tavo profilį mato kiti žaidėjai",

@@ -13,7 +13,7 @@ import {
   getFactionIdMap, getLeaderboard, type ReportMatchInput,
 } from '@/lib/ranked/client'
 import type { RankedProfile, RankedSeason, MatchReportResult, PlayerMatchStats, LeaderboardRow } from '@/lib/ranked/types'
-import { rankView, medalLabel } from '@/lib/ranked/rank'
+import { rankView, medalLabel, toRoman, rankDisplay } from '@/lib/ranked/rank'
 import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
 import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
@@ -38,14 +38,6 @@ type View = 'home' | 'leaderboard' | 'rewards' | 'achievements' | 'history' | 's
 type Flow = 'idle' | 'queue' | 'found' | 'playing' | 'result'
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
-
-/** Rango numeris romėnišku formatu (patvirtintas UI). */
-function toRoman(n: number): string {
-  const map: [number, string][] = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
-  let out = ''; let v = Math.max(1, Math.min(50, Math.round(n)))
-  for (const [num, sym] of map) while (v >= num) { out += sym; v -= num }
-  return out
-}
 
 
 export function RankedClient() {
@@ -224,8 +216,8 @@ export function RankedClient() {
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${RAVENOF_ASSET}/ranks/rank-${rv.medalTier}.png`} alt="" style={{ width: 64, height: 'auto', display: 'block', margin: '0 auto', filter: 'drop-shadow(0 0 14px rgba(200,205,214,.35))' }} />
-                <div style={{ font: '700 15px var(--ravenof-font-display)', marginTop: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{medalLabel(rv.medalTier)} · {toRoman(rv.rankNumber)}</div>
-                <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{t('ranked.stepOf', { n: rv.rankNumber })}</div>
+                <div style={{ font: '700 15px var(--ravenof-font-display)', marginTop: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{rankDisplay(profile.rank_step).label}</div>
+                <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{rankDisplay(profile.rank_step).name} · {t('ranked.stepOf', { n: rv.rankNumber })}</div>
                 <div style={{ height: 4, background: 'var(--ravenof-border-strong)', margin: '9px 18px 0', position: 'relative' }}>
                   <span style={{ position: 'absolute', inset: 0, width: `${Math.round((profile.rank_step / 149) * 100)}%`, background: 'linear-gradient(90deg,#7d8494,#dfe3ea)' }} />
                 </div>
@@ -298,7 +290,7 @@ export function RankedClient() {
                 <div key={l.entity_id} className="flex items-center min-h-0" style={{ flex: 1, gap: 8, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '6px 10px' }}>
                   <span style={{ font: '700 12px var(--ravenof-font-display)', color: i === 0 ? 'var(--ravenof-gold)' : i === 1 ? '#c7d0db' : '#b3793f', width: 18 }}>{toRoman(l.position)}</span>
                   <span className="flex-1 truncate" style={{ font: '500 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{l.name}</span>
-                  <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{medalLabel(l.medal_tier)} {toRoman(l.rank_number)}</span>
+                  <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{medalLabel(l.medal_tier)} {toRoman(l.rank_number)} · {l.rank_step} {t('ranked.ptsShort')}</span>
                 </div>
               ))}
               {leaders === null && <div className="flex-1 flex items-center justify-center" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('common.loading')}</div>}

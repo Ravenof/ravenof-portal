@@ -30,6 +30,7 @@
   "languageHint": "Kalba išsaugoma paskyroje ir taikoma visuose įrenginiuose. Kortų tekstai, vaizdai ir įgarsinimas keičiasi kartu su sąsajos kalba.",
   "levelProgress": "Lygis {{level}} · {{pct}}% iki kito",
   "music": "Muzika",
+  "remainingDl": "liko {{size}}",
   "reminders": "Priminimai",
   "remindersHint": "Kasdienis priminimas apie dienos atlygį ir kovą, kad neprarastum serijos. Notifikacijos rodomos tik telefone.",
   "resetDefaults": "Atstatyti numatytuosius",
@@ -42,7 +43,7 @@
   "title": "NUSTATYMAI",
   "turnOff": "IŠJUNGTI",
   "turnOn": "ĮJUNGTI",
-  "usedSpace": "užimta ~{{size}}",
+  "usedSpace": "programa iš viso užima ~{{size}}",
   "verified": "Patvirtinta ✓",
   "videoHint": "Video (kino intarpai, avatarų animacijos) — didžiausia dalis; siųsk per Wi-Fi.",
   "voice": {

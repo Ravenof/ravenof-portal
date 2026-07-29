@@ -2,8 +2,8 @@
 
 import type { DeckEntry } from '@/types'
 import { pluralLt } from '@/lib/lt-plural'
+import { costCurve, COST_CURVE_LABELS } from '@/lib/cards/cost'
 
-const GOLD_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 const BAR_MAX_H = 72
 
 type Props = { entries: DeckEntry[] }
@@ -20,29 +20,23 @@ type BarData = {
 }
 
 export function GoldCurveChart({ entries }: Props) {
-  const buckets: Record<number, number> = {}
-  for (const step of GOLD_STEPS) buckets[step] = 0
+  // KANONINĖ kainos kreivė — bendras helperis su /digital builder'iu ir drawer'iu
+  // (žr. src/lib/cards/cost.ts). DB gold_cost šimtais → 1..8+ stulpeliai.
+  const curve = costCurve(entries.map((e) => ({ gold: e.card.gold_cost, qty: e.quantity })))
 
-  for (const entry of entries) {
-    const g = entry.card.gold_cost ?? 0
-    const bucket = Math.min(1000, Math.ceil(g / 100) * 100) || 100
-    buckets[bucket] = (buckets[bucket] ?? 0) + entry.quantity
-  }
+  const max = Math.max(1, ...curve)
+  const totalCards = curve.reduce((s, v) => s + v, 0)
 
-  const max = Math.max(1, ...Object.values(buckets))
-  const totalCards = Object.values(buckets).reduce((s, v) => s + v, 0)
-
-  const bars: BarData[] = GOLD_STEPS.map((step) => {
-    const cnt = buckets[step] ?? 0
+  const bars: BarData[] = curve.map((cnt, i) => {
     const isActive = cnt > 0
     const barH = cnt === 0 ? 3 : Math.max(8, (cnt / max) * BAR_MAX_H)
     const suffix = pluralLt(cnt, ['korta', 'kortos', 'kortų'])
     return {
-      step,
+      step: i,
       cnt,
       barH,
       isActive,
-      label: step + ': ' + cnt + ' ' + suffix,
+      label: COST_CURVE_LABELS[i] + ': ' + cnt + ' ' + suffix,
       countColor: isActive ? 'var(--gold)' : 'transparent',
       barBg: isActive ? 'var(--gold)' : 'var(--bg-elevated)',
       barOpacity: isActive ? 0.85 : 0.4,
@@ -99,13 +93,13 @@ export function GoldCurveChart({ entries }: Props) {
       </div>
 
       <div className="flex gap-0.5 mt-1">
-        {GOLD_STEPS.map((step) => (
+        {COST_CURVE_LABELS.map((label) => (
           <div
-            key={step}
+            key={label}
             className="flex-1 text-center"
             style={{ fontSize: '8px', color: 'var(--text-muted)', opacity: 0.7 }}
           >
-            {step === 1000 ? '1k' : step / 100}
+            {label}
           </div>
         ))}
       </div>

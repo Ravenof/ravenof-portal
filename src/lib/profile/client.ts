@@ -56,6 +56,21 @@ export async function setFeaturedAchievements(codes: string[]): Promise<{ ok: tr
   return data as { ok: true; featured: string[] } | { error: string }
 }
 
+// ── Statistika pagal režimą (audit #24) ─────────────────────────────────────
+// DI treniruotės / nereitinginis PvP / reitinginės kovos ATSKIRAI — kad bendras
+// win-rate nebūtų klaidinantis. Žr. migr. 20260858_match_stats_by_mode.sql.
+export type ModeStat = { matches: number; wins: number; winRate: number }
+export type MatchModeStats = { byMode: Partial<Record<'bot' | 'unranked' | 'ranked', ModeStat>> }
+
+export async function getMatchModeStats(userId?: string): Promise<MatchModeStats | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_get_match_mode_stats', { p_user_id: userId ?? null })
+  if (error) { console.warn('[profile] getMatchModeStats:', error.message); return null }
+  const d = data as MatchModeStats & { error?: string }
+  if (!d || d.error) return null
+  return d
+}
+
 // ── Paskyros lygis 1–50 (ekranas 05) ────────────────────────────────────────
 // Visos reikšmės — iš rvn_get_account_level(); UI neskaičiuoja nei XP ribų,
 // nei atlygių, nei būsenų (žr. supabase/migrations/20260852_account_level_v3.sql).

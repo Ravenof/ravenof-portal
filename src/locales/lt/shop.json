@@ -2,8 +2,8 @@
   "addedToCollection": "{{name}} pridėta į kolekciją!",
   "alreadyClaimed": "Jau paimta.",
   "buyFailed": "Nepavyko nupirkti.",
-  "buyGold": "Pirkti · 🪙 {{price}}",
-  "buyRubies": "Pirkti · 💎 {{price}}",
+  "buyGold": "Pirkti už {{price}} sidabro",
+  "buyRubies": "Pirkti už {{price}} rubinų",
   "categoryEmpty": "Šioje kategorijoje prekių nėra.",
   "claimFailed": "Nepavyko paimti.",
   "claimFree": "Paimti nemokamai",
@@ -19,6 +19,22 @@
   "dailyOffer": "Dienos pasiūlymas",
   "dealLoading": "Šiandienos pasiūlymas kraunasi…",
   "deckCreated": "Kaladė sukurta „Mano kaladėse“! 🃏",
+  "detail": {
+    "allFactions": "Visos frakcijos",
+    "cards_few": "{{count}} kortos",
+    "cards_many": "{{count}} kortų",
+    "cards_one": "{{count}} korta",
+    "cards_other": "{{count}} kortų",
+    "contents": "Ką gauni",
+    "deckContents": "Kaladės sudėtis",
+    "dupNote": "Pasikartojančios kortos lieka kolekcijoje — perteklių gali pats išardyti į esenciją",
+    "empty": "Sudėtis nepateikta",
+    "loading": "Kraunama…",
+    "packFactions": "Galimos frakcijos",
+    "packRules": "Kas boosteryje",
+    "quantity": "Kiekis",
+    "rarity": "Retumas"
+  },
   "endsIn": "Baigsis už",
   "err": {
     "bad_currency": "Netinkama valiuta.",
@@ -29,7 +45,7 @@
     "not_stackable": "Šią prekę galima pirkti tik po vieną."
   },
   "free": "NEMOKAMA",
-  "notEnoughGold": "Nepakanka aukso",
+  "notEnoughGold": "Per mažai sidabro.",
   "notEnoughSilver": "Per mažai sidabro.",
   "openPacks_few": "🎁 Atplėšti ({{count}})",
   "openPacks_one": "🎁 Atplėšti ({{count}})",
@@ -38,6 +54,7 @@
   "ownedEquip": "✓ Jau turi — užsidėk Kosmetikoje",
   "pickItem": "Pasirink prekę.",
   "purchased": "Nupirkta: {{name}}",
+  "purchasedN": "„{{name}}\" ×{{count}} nupirkta!",
   "purchasedShort": "✓ Nupirkta",
   "sections": {
     "avatars": "Žaidėjo avatarai",
@@ -49,20 +66,5 @@
     "starter": "🃏 Kaladės"
   },
   "starterInfo": "Kortos pridedamos į kolekciją ir automatiškai sukuriama paruošta kaladė.",
-  "title": "PARDUOTUVĖ",
-  "detail": {
-    "deckContents": "Kaladės sudėtis",
-    "cards_one": "{{count}} korta",
-    "cards_few": "{{count}} kortos",
-    "cards_many": "{{count}} kortų",
-    "cards_other": "{{count}} kortų",
-    "packFactions": "Galimos frakcijos",
-    "allFactions": "Visos frakcijos",
-    "loading": "Kraunama…",
-    "empty": "Sudėtis nepateikta",
-    "contents": "Ką gauni",
-    "rarity": "Retumas",
-    "quantity": "Kiekis"
-  },
-  "purchasedN": "„{{name}}\" ×{{count}} nupirkta!"
+  "title": "PARDUOTUVĖ"
 }

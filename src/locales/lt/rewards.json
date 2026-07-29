@@ -1,59 +1,60 @@
 {
   "item": {
-    "silver": {
-      "name": "Sidabras",
-      "desc": "Pagrindinė valiuta — pakams ir kaladėms pirkti."
-    },
-    "rubies": {
-      "name": "Rubinai",
-      "desc": "Premium valiuta — retoms prekėms."
-    },
-    "essence": {
-      "name": "Esencija",
-      "desc": "Naudojama kortoms kurti ir tobulinti."
-    },
     "account_xp": {
-      "name": "Patirtis (XP)",
-      "desc": "Kelia paskyros lygį — lygiai duoda atlygius."
-    },
-    "season_xp": {
-      "name": "Sezono XP",
-      "desc": "Stumia sezono tako pakopas."
-    },
-    "pack": {
-      "name": "Kortų pakas",
-      "desc": "Atplėšk ir gauk naujų kortų."
-    },
-    "card_back": {
-      "name": "Kortų nugarėlė",
-      "desc": "Kosmetinė nugarėlė tavo kaladei."
-    },
-    "player_avatar": {
-      "name": "Avataras",
-      "desc": "Kosmetinis veidas kovoms."
-    },
-    "card": {
-      "name": "Korta",
-      "desc": "Garantuota korta kolekcijai."
+      "desc": "Kelia paskyros lygį — lygiai duoda atlygius.",
+      "name": "Patirtis (XP)"
     },
     "badge": {
-      "name": "Rango ženklelis",
-      "desc": "Sezono rango pasiekimo ženklas."
+      "desc": "Sezono rango pasiekimo ženklas.",
+      "name": "Rango ženklelis"
+    },
+    "card": {
+      "desc": "Garantuota korta kolekcijai.",
+      "name": "Korta"
+    },
+    "card_back": {
+      "desc": "Kosmetinė nugarėlė tavo kaladei.",
+      "name": "Kortų nugarėlė"
+    },
+    "essence": {
+      "desc": "Naudojama kortoms kurti ir tobulinti.",
+      "name": "Esencija"
     },
     "missing": {
-      "name": "Atlygis",
-      "desc": "Atlygio turinys."
+      "desc": "Atlygio turinys.",
+      "name": "Atlygis"
+    },
+    "pack": {
+      "desc": "Atplėšk ir gauk naujų kortų.",
+      "name": "Kortų pakas"
+    },
+    "player_avatar": {
+      "desc": "Kosmetinis veidas kovoms.",
+      "name": "Avataras"
+    },
+    "rubies": {
+      "desc": "Premium valiuta — retoms prekėms.",
+      "name": "Rubinai"
+    },
+    "season_xp": {
+      "desc": "Stumia sezono tako pakopas.",
+      "name": "Sezono XP"
+    },
+    "silver": {
+      "desc": "Pagrindinė valiuta — pakams ir kaladėms pirkti.",
+      "name": "Sidabras"
     }
   },
   "label": {
-    "packs_one": "{{count}} pak.",
-    "packs_few": "{{count}} pak.",
-    "packs_other": "{{count}} pak.",
-    "cardBack": "Nugarėlė",
     "avatar": "Avataras",
-    "card": "Korta",
     "badge": "Ženklelis",
+    "card": "Korta",
+    "cardBack": "Nugarėlė",
     "cardMin": "{{rarity}} korta",
+    "packs_few": "{{count}} boosteriai",
+    "packs_many": "{{count}} boosterio",
+    "packs_one": "{{count}} boosteris",
+    "packs_other": "{{count}} boosterių",
     "pathXp": "{{xp}} kelio XP"
   }
 }

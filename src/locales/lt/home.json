@@ -28,12 +28,12 @@
   "loginPrompt": "Prisijunk, kad galėtum žaisti skaitmenines kovas.",
   "modes": {
     "free": "Draugiška",
-    "pve": "Prieš AI",
+    "pve": "Prieš DI",
     "ranked": "Reitingas"
   },
   "monthlyGifts": "📅 Mėnesio dovanos",
   "monthlyReady": "🎁 Mėnesio dovana paruošta!",
-  "nextRankPts": "Kitas rangas: {{rank}} · dar {{pts}} tšk.",
+  "nextRankPts": "Kitas rangas: {{rank}} · dar {{pts}} perg.",
   "nextTier": "Kita pakopa:",
   "nextUp": "KAS TOLIAU",
   "noQuestsToday": "Šiandien užduočių nėra",

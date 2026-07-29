@@ -29,6 +29,7 @@
   "languageHint": "Your language is saved to your account and applied on all devices. Card text, images and voice-over follow the interface language.",
   "levelProgress": "Level {{level}} · {{pct}}% to next",
   "music": "Music",
+  "remainingDl": "{{size}} left",
   "reminders": "Reminders",
   "remindersHint": "A daily reminder about your daily reward and battle so you don't lose your streak. Notifications are shown on phone only.",
   "resetDefaults": "Reset to defaults",
@@ -41,7 +42,7 @@
   "title": "SETTINGS",
   "turnOff": "TURN OFF",
   "turnOn": "TURN ON",
-  "usedSpace": "~{{size}} used",
+  "usedSpace": "the app uses ~{{size}} in total",
   "verified": "Verified ✓",
   "videoHint": "Video (cinematics, avatar animations) is the largest part; download over Wi-Fi.",
   "voice": {

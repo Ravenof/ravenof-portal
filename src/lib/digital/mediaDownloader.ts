@@ -82,6 +82,9 @@ export async function clearMediaCache(): Promise<boolean> {
   try { return await caches.delete(MEDIA_CACHE) } catch { return false }
 }
 
-export const fmtMB = (b: number) => b >= 1024 * 1024 * 1024
-  ? (b / 1024 / 1024 / 1024).toFixed(1) + ' GB'
-  : Math.max(1, Math.round(b / 1024 / 1024)) + ' MB'
+export const fmtMB = (b: number) => {
+  if (b <= 0) return '0 MB'
+  if (b >= 1024 * 1024 * 1024) return (b / 1024 / 1024 / 1024).toFixed(1) + ' GB'
+  if (b < 1024 * 1024) return '<1 MB' // nebeapvalinam 0 baitų iki „1 MB"
+  return Math.round(b / 1024 / 1024) + ' MB'
+}

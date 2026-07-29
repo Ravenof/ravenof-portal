@@ -79,11 +79,49 @@ export function AchievementsScreen() {
     setLoading(false)
     if (!snap) { setFailed('rvn_get_achievements'); return }
     setFailed(false)
-    setRows(snap.achievements ?? [])
-    setSummary({ completed: snap.completed ?? 0, total: snap.total ?? 0, categories: snap.categories ?? {} })
+    // PRODUKCIJOJE nerodome dar nesekamų (target=0) pasiekimų — žaidėjas neturi
+    // matyti „Ši sąlyga dar nesekama" kaip įprasto siektino pasiekimo. Dev/preview
+    // aplinkoje jie matomi (pažymėti), kad būtų galima tikrinti turinį.
+    const hideUntracked = process.env.NODE_ENV === 'production'
+    const all = snap.achievements ?? []
+    const shown = hideUntracked ? all.filter((a) => a.target > 0 || !!a.completedAt) : all
+    setRows(shown)
+    // Suvestinė perskaičiuojama pagal MATOMUS pasiekimus, kad „X / Y" neklaidintų
+    const cats: Record<string, { total: number; done: number }> = {}
+    let done = 0
+    for (const a of shown) {
+      const c = (cats[a.category] ??= { total: 0, done: 0 })
+      c.total += 1
+      if (a.completedAt) { c.done += 1; done += 1 }
+    }
+    setSummary({ completed: done, total: shown.length, categories: cats })
     setFeatured(snap.featured ?? [])
   }, [])
   useEffect(() => { void load() }, [load])
+
+  // ── Gilioji nuoroda iš pranešimo: ?achievementId=<stabilus code> ────────────
+  // Pervadinti pasiekimai atsprendžiami pagal code (ne pavadinimą). Jei
+  // pasiekimo nebėra — puslapis atsidaro su nedidele neblokuojančia žinute.
+  const [highlightCode, setHighlightCode] = useState<string | null>(null)
+  useEffect(() => {
+    if (!rows) return
+    let target: string | null = null
+    try { target = new URLSearchParams(window.location.search).get('achievementId') } catch { /* SSR */ }
+    if (!target) return
+    const row = rows.find((x) => x.code === target)
+    if (!row) { toast.show(t('profile.ach.linkMissing'), 'err'); return }
+    if (cat !== 'all' && row.category !== cat) setCat('all')
+    if (stateFilter !== 'all') setStateFilter('all')
+    setHighlightCode(target)
+    // scroll į kortelę kai ji jau DOM'e
+    const id = target
+    const timer = setTimeout(() => {
+      document.querySelector(`[data-ach="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 120)
+    const off = setTimeout(() => setHighlightCode(null), 3200)
+    return () => { clearTimeout(timer); clearTimeout(off) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows === null])
 
   const label = useCallback((a: AchievementRow) => ({
     name: a.isSecret && !a.completedAt ? t('profile.ach.secret') : tc('achievement', a.code, 'name', a.nameLt),
@@ -146,10 +184,13 @@ export function AchievementsScreen() {
     const tone = done ? { line: 'rgba(155,58,72,.55)', fg: 'var(--rvn-burgundy-fg)' }
       : started ? { line: 'rgba(198,161,79,.35)', fg: C.goldHi }
       : { line: C.lineIn, fg: C.label }
+    const highlighted = highlightCode === a.code
     return (
-      <div key={a.code} className="rvn-prog-clip" style={{
+      <div key={a.code} data-ach={a.code} className="rvn-prog-clip" style={{
         position: 'relative', display: 'flex', flexDirection: 'column', gap: compact ? 7 : 9,
-        border: `1px solid ${tone.line}`, background: C.raised, padding: compact ? 9 : 12,
+        border: `1px solid ${highlighted ? C.gold : tone.line}`, background: C.raised, padding: compact ? 9 : 12,
+        boxShadow: highlighted ? '0 0 0 1.5px rgba(198,161,79,.7), 0 0 22px rgba(198,161,79,.35)' : undefined,
+        transition: 'box-shadow .5s ease, border-color .5s ease',
       }}>
         <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: done ? 'var(--rvn-burgundy)' : started ? C.gold : 'transparent' }} />
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>

@@ -261,8 +261,8 @@
   "opponentFallback": "Varžovas",
   "player": "Žaidėjas",
   "practice": {
-    "aiDeck": "AI kaladė",
-    "aiDifficulty": "AI sunkumas",
+    "aiDeck": "DI kaladė",
+    "aiDifficulty": "DI sunkumas",
     "allFactions": "Visos frakcijos",
     "cancel": "Atšaukti",
     "difficulty": "Sunkumas",
@@ -289,14 +289,14 @@
     "tabPublic": "Viešas deck",
     "tabRandom": "Atsitiktinė frakcija",
     "title": "Praktika",
-    "trigger": "🎯 Praktika prieš AI",
+    "trigger": "🎯 Praktika prieš DI",
     "you": "Tu",
     "yourDeck": "Tavo kaladė:"
   },
   "pve": {
     "activeDeckInvalid": "AKTYVI KALADĖ NETINKAMA",
-    "aiDeck": "AI kaladė",
-    "aiDifficulty": "AI sunkumas",
+    "aiDeck": "DI kaladė",
+    "aiDifficulty": "DI sunkumas",
     "allFactions": "Visos frakcijos",
     "createDeck": "Sukurti kaladę",
     "diff": {
@@ -327,7 +327,7 @@
     "searchDeckAuthor": "Ieškoti decko arba autoriaus…",
     "silverN": "{{n}} sidabro",
     "start": "PRADĖTI KOVĄ",
-    "title": "Treniruotė prieš AI",
+    "title": "Treniruotė prieš DI",
     "types": {
       "faction": "Pasirinkta frakcija",
       "public": "Viešas deck",
@@ -370,19 +370,19 @@
     "friendsAll": "Visi",
     "friendsN": "Draugai ({{count}})",
     "friendsTitle": "Draugai",
-    "goldReward": "+100 aukso",
-    "inviteInfo": "Pasirink draugą sąraše dešinėje — jis gaus kvietimą į kovą. Rangas nesikeičia · Pergalė: +100 aukso.",
+    "goldReward": "+35 sidabro",
+    "inviteInfo": "Pasirink draugą sąraše dešinėje — jis gaus kvietimą į kovą. Rangas nesikeičia · Pergalė: +35 sidabro.",
     "inviteTitle": "Pakviesk draugą",
     "mode": "Režimas",
     "modeCode": "Kambario kodas",
-    "modeCreate": "Kurti kambarį",
+    "modeCreate": "Privati: sukurti kambarį",
     "modeFriend": "Pakviesti draugą",
-    "modeJoin": "Jungtis kodu",
-    "modeQuick": "Greita kova",
+    "modeJoin": "Privati: prisijungti kodu",
+    "modeQuick": "Nereitinginė kova",
     "modeRandom": "Atsitiktinis",
     "noDecks": "Neturi žaidžiamų kaladžių draugiškai kovai.",
     "noFriends": "Neturi draugų. Pridėk skiltyje „Draugai“.",
-    "noRankReward": "Rangas nesikeičia · Pergalė: +100 aukso",
+    "noRankReward": "Rangas nesikeičia · Pergalė: +35 sidabro",
     "opponent": "Priešininkas",
     "opponentType": "Priešininko tipas",
     "presence": {
@@ -391,8 +391,8 @@
       "offline": "Neprisijungęs",
       "online": "Prisijungęs"
     },
-    "quickInfo": "Rangas nesikeičia · Pergalė: +100 aukso · numatomas laukimas < 30 s.",
-    "quickInfo2": "Greita vieša kova su atsitiktiniu žaidėju. Reitingas nesikeičia.",
+    "quickInfo": "Rangas nesikeičia · Pergalė: +35 sidabro · numatomas laukimas < 30 s.",
+    "quickInfo2": "Greita vieša kova su atsitiktiniu žaidėju. Rangas nesikeičia.",
     "quickTitle": "Greita draugiška kova",
     "randomPlayer": "Atsitiktinis žaidėjas",
     "rank": "Rangas",
@@ -400,7 +400,7 @@
     "reward": "Atlygis",
     "roomCode": "Kambario kodas",
     "roomPrefix": "Kambarys {{code}}",
-    "screenTitle": "Draugiška kova",
+    "screenTitle": "Nereitinginė ir privati kova",
     "searchFriend": "🔍 Ieškoti draugo…",
     "searchFriendAria": "Ieškoti draugo",
     "searching": "Ieškoma varžovo…",
@@ -507,6 +507,6 @@
   },
   "tutorial": {
     "button": "🎓 Išmokyk mane žaisti",
-    "buttonHint": "Mokomoji kova prieš AI: kovos laukas, auksas, ŽMK, žetonai ir patarimai žingsnis po žingsnio"
+    "buttonHint": "Mokomoji kova prieš DI: kovos laukas, auksas, ŽMK, žetonai ir patarimai žingsnis po žingsnio"
   }
 }

@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import { useActiveDeck, deckValidity, type ActiveDeckInfo } from '@/lib/digital/activeDeck'
+import { formatDeckCount } from '@/lib/deck-validation'
 import { HorizontalFocusCarousel } from '@/components/digital/ui/HorizontalFocusCarousel'
 import { getCosmetics, type Cosmetic } from '@/lib/cosmetics'
 import { SmartImg } from '@/components/ui/SmartImg'
@@ -82,6 +83,7 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
   const setActive = async () => {
     const target = st.decks.find((d) => d.id === (pendingId ?? cur?.id)) ?? cur
     if (!target || busy || target.id === st.activeDeckId) return
+    if (!deckValidity(target).valid) { playError(); return } // netinkama kaladė neaktyvuojama
     setBusy(true)
     const r = await st.setActive(target.id)
     setBusy(false)
@@ -125,11 +127,11 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
                 <div className="flex items-start gap-3 flex-wrap">
                   <div className="min-w-0 flex-1" style={{ minWidth: 200 }}>
                     <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: cur.factionColor ?? 'var(--gold)', fontSize: 15, lineHeight: 1.25 }}>{cur.name}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{gc.faction(cur.faction) || t('decks.active.noFaction')} · {t('decks.cardsShort', { count: cur.cardCount })}{cur.updatedAt ? ` · ${t('decks.active.edited', { date: formatDate(cur.updatedAt) })}` : ''}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{gc.faction(cur.faction) || t('decks.active.noFaction')} · {formatDeckCount(cur.cardCount)}{cur.updatedAt ? ` · ${t('decks.active.edited', { date: formatDate(cur.updatedAt) })}` : ''}</p>
                     <p data-testid="deck-validity" className="mt-0.5 font-bold" style={{ fontSize: 11.5, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <button data-testid="set-active" onClick={() => void setActive()} disabled={busy || (pendingId ?? cur.id) === st.activeDeckId}
+                    <button data-testid="set-active" onClick={() => void setActive()} disabled={busy || (pendingId ?? cur.id) === st.activeDeckId || !deckValidity(st.decks.find((d) => d.id === (pendingId ?? cur.id)) ?? cur).valid}
                       className="rvn-press px-4 rounded-xl font-extrabold disabled:opacity-50"
                       style={{ height: 40, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)',
                         background: isActive ? 'rgba(52,211,153,0.16)' : 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)',

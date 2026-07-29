@@ -17,7 +17,8 @@ import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { PVE_REWARD } from '@/lib/economy'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
-import { useActiveDeck, activeDeckOf } from '@/lib/digital/activeDeck'
+import { useActiveDeck, activeDeckOf, deckValidity } from '@/lib/digital/activeDeck'
+import { DECK_MIN, DECK_MAX, formatDeckCount } from '@/lib/deck-validation'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { useT, useContent, useGameContent, useLocale } from '@/lib/i18n/react'
 import { RavenofBannerButton, battleModeAsset, type BattleMode } from '@/components/digital/ui/RavenofKit'
@@ -27,7 +28,7 @@ const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
 type Faction = { id: number; name: string; icon_url: string | null; color_hex: string | null }
-type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number }
+type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number; cardCount: number }
 type Mode = 'random' | 'faction' | 'public'
 
 export function DigitalPvE() {
@@ -73,13 +74,16 @@ export function DigitalPvE() {
       const first = ds.find((d) => d.missing === 0); if (first) setSel(first.id)
     })
     supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20).then(({ data }) => setFactions(((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
-    supabase.from('decks').select('id, name, user_id, score, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').order('score', { ascending: false }).limit(60)
+    // DI varžovu gali būti TIK galiojančio dydžio (30–40 kortų) vieša kaladė —
+    // netinkamos (pvz., 58/60 kortų) iš pasirinkimo pašalinamos visai.
+    supabase.from('decks').select('id, name, user_id, score, card_count, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public')
+      .gte('card_count', DECK_MIN).lte('card_count', DECK_MAX).order('score', { ascending: false }).limit(60)
       .then(async ({ data }) => {
-        const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
+        const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; card_count: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
         const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))]
         const authors: Record<string, string> = {}
         if (uids.length) { const { data: profs } = await supabase.from('profiles').select('id, username, display_name').in('id', uids); for (const pr of ((profs as { id: string; username: string | null; display_name: string | null }[]) ?? [])) authors[pr.id] = pr.display_name || pr.username || t('battle.player') }
-        setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? t('battle.player'), score: d.score ?? 0 })))
+        setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? t('battle.player'), score: d.score ?? 0, cardCount: d.card_count ?? 0 })))
       })
     void useActiveDeck.getState().refresh()
     getStarterDecks().then((sd) => {
@@ -101,8 +105,9 @@ export function DigitalPvE() {
   // VIENINTELIS šaltinis — globali aktyvi kaladė. JOKIO tylaus fallback į kitą
   // kaladę (kova privalo vykti su ta, kurią žaidėjas pasirinko). Jei netinkama —
   // deck=null ir CTA aiškiai pasako. Fallback į seną vietinę TIK kol store kraunasi.
+  // Kova galima tik su GALIOJANČIA aktyvia kalade (30–40 kortų + visos turimos)
   const deck = adState.loaded
-    ? (globalDeck ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
+    ? (globalDeck && deckValidity(globalDeck).valid ? decks?.find((d) => d.id === globalDeck.id && d.missing === 0) : undefined)
     : decks?.find((d) => d.id === sel && d.missing === 0)
   const playable = (decks ?? []).filter((d) => d.missing === 0)
   const selFactionObj = factions.find((f) => f.id === oppFaction)
@@ -189,7 +194,7 @@ export function DigitalPvE() {
             <span className="shrink-0 overflow-hidden relative" style={{ width: 34, height: 45, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
             <span className="flex-1 min-w-0">
               <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
-              {globalDeck && <span className="block truncate" style={{ font: '400 11px var(--ravenof-font-body)', color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {t('decks.cardsShort', { count: globalDeck.cardCount })}</span>}
+              {globalDeck && <span className="block truncate" style={{ font: '400 11px var(--ravenof-font-body)', color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {formatDeckCount(globalDeck.cardCount)}</span>}
             </span>
             <span style={{ color: 'var(--ravenof-text-secondary)' }}>›</span>
           </button>
@@ -273,7 +278,7 @@ export function DigitalPvE() {
                   {filteredDecks.map((d) => { const s = d.id === oppDeck; return (
                     <button key={d.id} onClick={() => { playUiClick(); setOppDeck(d.id) }} className="ravenof-press p-2 flex items-center gap-1.5 text-left shrink-0" style={{ cursor: 'pointer', border: s ? '1.5px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-hairline)', background: s ? 'linear-gradient(135deg, rgba(212,163,59,0.12), var(--ravenof-bg-surface-2))' : 'var(--ravenof-bg-surface-2)' }}>
                       <span className="shrink-0 w-7 h-7 flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (d.factionColor ? d.factionColor + '88' : 'var(--ravenof-border-gold)') }}>{d.factionIcon ? <img src={d.factionIcon} alt="" width={28} height={28} className="w-full h-full object-cover" /> : <span style={{ fontSize: 12 }}>⚔</span>}</span>
-                      <span className="min-w-0 flex-1"><span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{d.name}</span><span className="block truncate" style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{d.author} · {gc.faction(d.faction) || '—'}</span></span>
+                      <span className="min-w-0 flex-1"><span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{d.name}</span><span className="block truncate" style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{d.author} · {gc.faction(d.faction) || '—'} · {t('decks.cardsShort', { count: d.cardCount })}</span></span>
                       {s ? <span style={{ color: 'var(--ravenof-success)', fontSize: 13 }}>✓</span> : d.score > 0 ? <span className="shrink-0" style={{ font: '400 9px var(--ravenof-font-body)', color: '#fb923c' }}>🔥{d.score >= 1000 ? (d.score / 1000).toFixed(1) + 'K' : d.score}</span> : null}
                     </button>
                   ) })}

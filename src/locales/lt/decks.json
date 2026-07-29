@@ -61,7 +61,13 @@
     "voteFailed": "Nepavyko balsuoti.",
     "voteUp": "Už"
   },
+  "countSummary_few": "{{count}} kortos · leidžiama {{min}}–{{max}}",
+  "countSummary_many": "{{count}} kortos · leidžiama {{min}}–{{max}}",
+  "countSummary_one": "{{count}} korta · leidžiama {{min}}–{{max}}",
+  "countSummary_other": "{{count}} kortų · leidžiama {{min}}–{{max}}",
   "edit": "✎ Redaguoti",
+  "invalidBadge": "NETINKAMA",
+  "invalidSizeHint": "Kaladės dydis netinkamas kovoms — leidžiama 30–40 kortų.",
   "my": {
     "activeBadge": "AKTYVI",
     "confirmDeleteBody": "Šio veiksmo atšaukti negalėsi.",
@@ -86,7 +92,7 @@
     "noFaction": "Be frakcijos",
     "private": "Privati",
     "public": "Vieša",
-    "setActive": "Aktyvi",
+    "setActive": "Aktyvinti",
     "statAvgGold": "Aukso vid.",
     "statCards": "Kortų",
     "statChampions": "Čempionai"
@@ -104,6 +110,8 @@
   "validity": {
     "empty": "Kaladė tuščia",
     "missingCards": "Trūksta {{count}} kortų kolekcijoje",
-    "noActive": "Nepasirinkta aktyvi kaladė"
+    "noActive": "Nepasirinkta aktyvi kaladė",
+    "tooLarge": "Per daug kortų ({{count}}) — leidžiama {{min}}–{{max}}",
+    "tooSmall": "Per mažai kortų ({{count}}) — leidžiama {{min}}–{{max}}"
   }
 }

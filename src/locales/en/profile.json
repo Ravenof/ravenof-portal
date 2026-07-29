@@ -25,6 +25,7 @@
       "completed": "Completed",
       "locked": "Locked"
     },
+    "linkMissing": "That achievement no longer exists — showing the full list.",
     "loading": "Loading achievements",
     "notTracked": "This condition is not tracked yet",
     "pin": "Pin to profile",
@@ -72,6 +73,7 @@
       "pending": "Awaiting choice"
     },
     "totalXp": "{{xp}} XP total",
+    "trackTitle": "Level path 1–50",
     "xpRequired": "Requires {{xp}} XP total"
   },
   "nav": {
@@ -93,6 +95,7 @@
     "accountLevel": "Account level",
     "all": "All",
     "allLevels": "All 50 levels",
+    "allModesNote": "all modes combined",
     "bestStreak": "Best streak",
     "challenge": "Challenge",
     "collection": "Collection",
@@ -114,12 +117,17 @@
       "ranked": "Ranked",
       "unranked": "Friendly"
     },
+    "modeAi": "Vs AI",
+    "modeCasual": "Casual PvP",
+    "modeRanked": "Ranked win rate",
+    "modeRecord": "{{wins}} wins of {{matches}}",
     "noAchievements": "No completed achievements yet.",
     "noDecks": "No public decks yet.",
     "noMatches": "No match history yet.",
     "noRank": "No rank yet",
     "open": "Open",
     "openCollection": "Open collection",
+    "overallRate": "{{rate}}% (all modes)",
     "playerId": "ID",
     "publicDecks": "Public decks",
     "publicSubtitle": "This is how other players see your profile",

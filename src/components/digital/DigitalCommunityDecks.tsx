@@ -18,6 +18,7 @@ import { ravenofRarityColor } from '@/components/digital/ui/RavenofKit'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { useT, useGameContent } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
+import { isDeckSizeValid, formatDeckCount } from '@/lib/deck-validation'
 
 type Entry = { cardId: string; name: string; image: string | null; gold: number; rarity: string | null; qty: number; owned: number }
 type CDeck = {
@@ -132,6 +133,8 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
 
   // ── PILNAS kopijavimas per RPC ─────────────────────────────────────────────
   const copyDeck = async (d: CDeck) => {
+    // Netinkamo dydžio (ne 30–40) kalados kopijuoti negalima — serveris irgi atmes
+    if (!isDeckSizeValid(d.total)) { flash(t('decks.invalidSizeHint'), true); return }
     setBusy(true); playUiClick()
     const supabase = createClient()
     const { error } = await supabase.rpc('rvn_copy_community_deck', { p_deck_id: d.id })
@@ -190,6 +193,12 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
                   <p className="truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '1px 0 0' }}>{t('decks.community.byAuthor', { name: d.author })}</p>
                   <div className="flex flex-wrap items-center" style={{ gap: 6, marginTop: 6 }}>
                     {d.faction && <span style={{ font: '400 10px var(--ravenof-font-body)', color: d.factionColor, border: `1px solid ${d.factionColor}55`, padding: '2px 7px' }}>{gc.faction(d.faction)}</span>}
+                    {/* Kortų kiekis — vienodu kanoniniu formatu; netinkamas dydis pažymimas */}
+                    <span title={isDeckSizeValid(d.total) ? undefined : t('decks.invalidSizeHint')} style={{ font: '700 10px var(--ravenof-font-body)', padding: '2px 7px',
+                      color: isDeckSizeValid(d.total) ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-danger-bright)',
+                      border: `1px solid ${isDeckSizeValid(d.total) ? 'var(--ravenof-border-strong)' : '#8D2D3855'}` }}>
+                      {formatDeckCount(d.total)}{isDeckSizeValid(d.total) ? '' : ` · ${t('decks.invalidBadge')}`}
+                    </span>
                     <span style={{ font: '700 10px var(--ravenof-font-body)', padding: '2px 7px',
                       color: d.missing === 0 ? 'var(--ravenof-success)' : 'var(--ravenof-gold)',
                       border: `1px solid ${d.missing === 0 ? '#4F9E5255' : 'var(--ravenof-border-gold)'}` }}>
@@ -203,7 +212,7 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
                   style={{ minHeight: 34, cursor: 'pointer', font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', background: 'none', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)' }}>
                   <Eye className="w-3.5 h-3.5" /> {t('decks.community.preview')}
                 </button>
-                <button onClick={() => copyDeck(d)} disabled={busy} className="ravenof-press flex-1 inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                <button onClick={() => copyDeck(d)} disabled={busy || !isDeckSizeValid(d.total)} title={isDeckSizeValid(d.total) ? undefined : t('decks.invalidSizeHint')} className="ravenof-press flex-1 inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
                   style={{ minHeight: 34, cursor: 'pointer', font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', background: 'none', border: '1px solid var(--ravenof-border-gold)', color: 'var(--ravenof-gold)' }}>
                   <Copy className="w-3.5 h-3.5" /> {t('decks.community.copy')}
                 </button>
@@ -326,7 +335,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
           <VoteBox score={d.score} my={myVote} onUp={() => onVote(1)} onDown={() => onVote(-1)} />
           <div className="min-w-0 flex-1">
             <h2 className="truncate" style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', margin: 0 }}>{d.name}</h2>
-            <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{fl('decks.community.byAuthor', { name: d.author })} · {fl('decks.cardsShort', { count: d.total })}</p>
+            <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{fl('decks.community.byAuthor', { name: d.author })} · {formatDeckCount(d.total)}</p>
           </div>
           <button onClick={() => { playUiClick(); onClose() }} className="ravenof-iconbtn shrink-0" style={{ width: 30, height: 30 }} aria-label={fl('common.close')}><X className="w-4 h-4" /></button>
         </div>
@@ -395,7 +404,8 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
           ) : (
             <>
               <p className="text-center" style={{ font: '600 11px var(--ravenof-font-body)', color: d.missing === 0 ? 'var(--ravenof-success)' : '#c65563', margin: '0 0 8px' }}>{d.missing === 0 ? fl('decks.community.haveAll') : fl('decks.community.missingInfo', { count: d.missing })}</p>
-              <button onClick={onCopy} disabled={busy} className="ravenof-press w-full inline-flex items-center justify-center gap-2 disabled:opacity-50"
+              {!isDeckSizeValid(d.total) && <p className="text-center" style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', margin: '0 0 8px' }}>{fl('decks.invalidSizeHint')}</p>}
+              <button onClick={onCopy} disabled={busy || !isDeckSizeValid(d.total)} className="ravenof-press w-full inline-flex items-center justify-center gap-2 disabled:opacity-50"
                 style={{ minHeight: 44, cursor: 'pointer', font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)' }}>
                 <Copy className="w-4 h-4" /> {fl('decks.community.copyFull')}
               </button>

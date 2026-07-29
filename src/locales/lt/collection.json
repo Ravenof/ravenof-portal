@@ -28,6 +28,7 @@
   "moreCards": "Daugiau kortų",
   "nextCard": "Kita korta",
   "nextPage": "Kitas puslapis",
+  "notCraftable": "Nekuriama — gaunama iš boosterių arba apdovanojimų",
   "notOwned": "Kortos dar neturi",
   "notOwnedBadge": "Neturima",
   "nothingFound": "Nieko nerasta",
@@ -35,6 +36,7 @@
   "openPackCta": "🎁 Atplėšti pakuotę",
   "owned": "Turimos",
   "ownedCount": "Turima: ×{{count}}",
+  "ownedOf": "Turi {{owned}} iš {{total}}",
   "ownedOnlyShort": "Tik turimos",
   "ownedStat": "turima",
   "pack": {
@@ -58,6 +60,7 @@
   "searchAria": "Ieškoti kortų",
   "searchPlaceholder": "Ieškoti…",
   "showDetails": "Rodyti detales",
+  "showingN": "rodoma {{count}}",
   "shown": "rodoma {{count}}",
   "signIn": "Prisijungti",
   "sort": {

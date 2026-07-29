@@ -25,7 +25,9 @@
     "handoff:check": "node scripts/handoff-check.mjs",
     "game:test:targets": "node scripts/test-target-selection.mjs",
     "game:test:keywords": "node scripts/test-keyword-detection.mjs",
-    "game:test:battlecry": "node scripts/test-battlecry-summon.mjs"
+    "game:test:battlecry": "node scripts/test-battlecry-summon.mjs",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -59,6 +61,8 @@
     "postcss": "^8",
     "sharp": "^0.35.3",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.10"
   }
 }

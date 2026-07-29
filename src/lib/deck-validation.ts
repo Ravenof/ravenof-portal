@@ -136,6 +136,25 @@ export function validateDeck(
   return warnings
 }
 
+/** KANONINĖ dydžio taisyklė: pagrindinė kaladė galioja tik su 30–40 kortų (imtinai).
+ *  29 ir 41 — negalioja; 30, 39, 40 — galioja. Naudokite VISUR (builder, aktyvavimas,
+ *  publikavimas, kopijavimas, PvE/PvP/Ranked pasirinkimas, kovos startas). */
+export function isDeckSizeValid(cardCount: number | null | undefined): boolean {
+  const n = cardCount ?? 0
+  return Number.isFinite(n) && n >= DECK_MIN && n <= DECK_MAX
+}
+
+/** Vienodas kortų kiekio formatas visame UI: „39 kortos · leidžiama 30–40".
+ *  (EN: „39 cards · allowed 30–40".) Nebenaudokite „39/30" ar „39/40". */
+export function formatDeckCount(cardCount: number | null | undefined): string {
+  return t('decks.countSummary', { count: cardCount ?? 0, min: DECK_MIN, max: DECK_MAX })
+}
+
+/** Trumpas variantas be leidžiamo intervalo: „39 kortos". */
+export function formatDeckCountShort(cardCount: number | null | undefined): string {
+  return t('decks.cardsShort', { count: cardCount ?? 0 })
+}
+
 export function isDeckValid(
   entries: DeckEntry[],
   factionId: number | null,

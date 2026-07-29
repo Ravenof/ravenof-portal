@@ -1,41 +1,66 @@
 'use client'
 
+// ── PWA diegimo pasiūlymas ────────────────────────────────────────────────────
+// Audit #26: atmetimas IŠSAUGOMAS (localStorage, 14 d.) — baneris neberodomas
+// po kiekvienos navigacijos; jau įdiegtoje (standalone) aplinkoje nerodomas;
+// tekstai per i18n (LT/EN), ne hardcode.
 import { useEffect, useState } from 'react'
+import { useT } from '@/lib/i18n/react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+const DISMISS_KEY = 'rvn-pwa-dismissed-until'
+const DISMISS_DAYS = 14
+
+function isDismissed(): boolean {
+  try {
+    const until = Number(localStorage.getItem(DISMISS_KEY) ?? 0)
+    return until > Date.now()
+  } catch { return false }
+}
+
+function persistDismiss() {
+  try { localStorage.setItem(DISMISS_KEY, String(Date.now() + DISMISS_DAYS * 86_400_000)) } catch { /* */ }
+}
+
 export function InstallPrompt() {
+  const t = useT()
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(true) // start hidden — atsidaro tik gavus event ir patikrinus storage
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault()
+      if (isDismissed()) return
+      if (window.matchMedia('(display-mode: standalone)').matches) return
       setPrompt(e as BeforeInstallPromptEvent)
+      setDismissed(false)
     }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
-  // Hide if already installed (standalone mode)
-  useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setDismissed(true)
-    }
-  }, [])
-
   if (!prompt || dismissed) return null
+
+  const dismiss = () => {
+    persistDismiss()
+    setDismissed(true)
+  }
 
   const handleInstall = async () => {
     await prompt.prompt()
     const { outcome } = await prompt.userChoice
-    if (outcome === 'accepted' || outcome === 'dismissed') {
-      setDismissed(true)
-      setPrompt(null)
+    if (outcome === 'accepted') {
+      // įdiegta — nebesirodys per standalone check; dar pažymim ilgam
+      try { localStorage.setItem(DISMISS_KEY, String(Date.now() + 365 * 86_400_000)) } catch { /* */ }
+    } else {
+      persistDismiss()
     }
+    setDismissed(true)
+    setPrompt(null)
   }
 
   return (
@@ -54,7 +79,7 @@ export function InstallPrompt() {
         className="text-sm font-semibold"
         style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.03em' }}
       >
-        Įdiegti Ravenof programėlę
+        {t('common.pwa.installTitle')}
       </span>
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
@@ -66,15 +91,16 @@ export function InstallPrompt() {
             border:      '1px solid rgba(242,162,12,0.4)',
             fontFamily:  'var(--rvn-font-display)',
             letterSpacing: '0.04em',
+            minHeight:   32,
           }}
         >
-          Įdiegti
+          {t('common.pwa.installCta')}
         </button>
         <button
-          onClick={() => setDismissed(true)}
+          onClick={dismiss}
           className="text-xs px-2 py-1.5 rounded-lg transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-muted)' }}
-          aria-label="Uždaryti"
+          style={{ color: 'var(--text-muted)', minWidth: 32, minHeight: 32 }}
+          aria-label={t('common.close')}
         >
           ✕
         </button>

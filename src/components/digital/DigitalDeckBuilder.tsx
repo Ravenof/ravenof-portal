@@ -14,7 +14,8 @@ import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransfo
 import { ChevronLeft, Search, Plus, Minus, Lock, Save, Loader2, X, Layers } from 'lucide-react'
 import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
-import { validateDeck, getCopyLimit, isCurseCard, canAddSideCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX, SIDE_DECK_MAX } from '@/lib/deck-validation'
+import { validateDeck, getCopyLimit, isCurseCard, canAddSideCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX, SIDE_DECK_MAX, formatDeckCount } from '@/lib/deck-validation'
+import { costCurve, COST_CURVE_LABELS, displayAvgCost } from '@/lib/cards/cost'
 import { ravenofRarityColor as rarityColor } from '@/components/digital/ui/RavenofKit'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
@@ -373,7 +374,8 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
   const stats = useMemo(() => {
     const golds = store.entries.flatMap((e) => Array(e.quantity).fill(e.card.gold_cost ?? 0) as number[])
     const avg = golds.length ? golds.reduce((a, b) => a + b, 0) / golds.length : 0
-    const curve = Array.from({ length: 8 }, (_, i) => store.entries.filter((e) => (i < 7 ? (e.card.gold_cost ?? 0) === i : (e.card.gold_cost ?? 0) >= 7)).reduce((a, e) => a + e.quantity, 0))
+    // KANONINĖ kainos kreivė — DB gold_cost šimtais (200–700) → 1..8+ stulpeliai
+    const curve = costCurve(store.entries.map((e) => ({ gold: e.card.gold_cost, qty: e.quantity })))
     let champions = 0
     for (const e of store.entries) if (e.card.is_champion) champions += e.quantity
     return { avg, curve, champions }
@@ -501,7 +503,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
             )}
             {mode === 'side'
               ? <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: sideTotal > 0 && sideTotal <= SIDE_DECK_MAX ? '#c4b5fd' : 'var(--gold)' }}>{sideTotal}/{SIDE_DECK_MAX}</span>
-              : <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{total}/{DECK_MIN} · 🪙 {stats.avg.toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>}
+              : <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{formatDeckCount(total)} · 🪙 {displayAvgCost(stats.avg).toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>}
           </div>
 
           {/* KOMPAKTU: vardas + matomumo ikona + ✎ vienoje eilėje — SĄRAŠUI maksimalus aukštis */}
@@ -562,14 +564,14 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                 <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
                   <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                     style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)' }} />
-                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--ravenof-text-secondary)' }}>{i < 7 ? i : '7+'}</span>
+                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--ravenof-text-secondary)' }}>{COST_CURVE_LABELS[i]}</span>
                 </div>
               ))}
             </div>
             <div className="flex justify-between px-0.5 pb-0.5" style={{ fontSize: 8.5, color: 'var(--ravenof-text-secondary)' }}>
-              <span>{t('deckBuilder.avgShort')} <b style={{ color: 'var(--ravenof-gold)' }}>{stats.avg.toFixed(1)}</b></span>
+              <span>{t('deckBuilder.avgShort')} <b style={{ color: 'var(--ravenof-gold)' }}>{displayAvgCost(stats.avg).toFixed(1)}</b></span>
               <span>{t('deckBuilder.championsShort')} <b style={{ color: '#c4b5fd' }}>{stats.champions}</b></span>
-              <span>Σ <b style={{ color: total >= DECK_MIN ? '#7fbf82' : '#f3ead3' }}>{total}</b></span>
+              <span>Σ <b style={{ color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : '#f3ead3' }}>{total}</b></span>
             </div>
           </div>
 

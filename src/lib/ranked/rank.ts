@@ -1,4 +1,5 @@
 import { t } from '@/lib/i18n/core'
+import { rankDef, rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
 // ── Ravenof Reitingo kova — rangų (rankStep) modelis ─────────────────────────
 // 150 žingsnių (rankStep 0–149). 50 rango numerių × 3 medalių pakopos.
 //   rankStep 0   = 50 Bronza (žemiausias)
@@ -57,9 +58,72 @@ export function clampStep(step: number): number {
 export const isMaxRank = (step: number): boolean => clampStep(step) >= MAX_RANK_STEP
 export const isMinRank = (step: number): boolean => clampStep(step) <= MIN_RANK_STEP
 
-/** Rodomas rango tekstas, pvz. „49 Bronza", „1 Auksas". */
+/** Romėniškas skaičius rango numeriui (1–50). VIENINTELĖ kopija — nebekopijuoti į komponentus. */
+export function toRoman(n: number): string {
+  const map: [number, string][] = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+  let v = Math.max(1, Math.min(50, Math.round(n))), out = ''
+  for (const [val, sym] of map) while (v >= val) { out += sym; v -= val }
+  return out
+}
+
+/** KANONINIS rodomas rango tekstas, pvz. „Bronza XLIX", „Auksas I".
+ *  Naudojamas VISUR: Home, Ranked, profilis, kovos rezultatas, lyderių lentelė. */
 export function formatRank(step: number): string {
-  return `${rankNumberFromStep(step)} ${medalLabel(medalTierFromStep(step))}`
+  return `${medalLabel(medalTierFromStep(step))} ${toRoman(rankNumberFromStep(step))}`
+}
+
+// ── KANONINIS rango atvaizdavimas — vienas šaltinis visiems ekranams ─────────
+export type RankDisplay = {
+  step: number
+  /** Rango numeris 50 (įėjimas) → 1 (viršūnė). */
+  rankNumber: number
+  roman: string
+  medalTier: MedalTier
+  /** Lokalizuotas medalio pavadinimas (Bronza/Sidabras/Auksas). */
+  medal: string
+  /** Trumpa etiketė: „Sidabras L". */
+  label: string
+  /** Lokalizuotas rango vardas („Atvykėlis" … „Ravenoro legenda"). */
+  name: string
+  /** Pilna etiketė: „50 rangas · Atvykėlis · Sidabras". */
+  full: string
+  badgeSrc: string | null
+  frameSrc: string
+  isMax: boolean
+  isMin: boolean
+  /** Kiek pergalių (žingsnių) liko iki KITO rango numerio (49, 48, …). 0 max range. */
+  stepsToNextNumber: number
+  /** Kito žingsnio etiketė („Sidabras L" → „Auksas L") arba null max range. */
+  nextLabel: string | null
+}
+
+/** VIENINTELIS rango formatavimo šaltinis. Home, Ranked, profilis, kovos
+ *  rezultatas ir lyderių lentelė privalo naudoti šį helperį — ne savo kopijas. */
+export function rankDisplay(step: number): RankDisplay {
+  const s = clampStep(step)
+  const rankNumber = rankNumberFromStep(s)
+  const medalTier = medalTierFromStep(s)
+  const medal = medalLabel(medalTier)
+  const roman = toRoman(rankNumber)
+  const def = rankDef(rankNumber)
+  const name = def?.nameLt ?? ''
+  const isMax = isMaxRank(s)
+  return {
+    step: s,
+    rankNumber,
+    roman,
+    medalTier,
+    medal,
+    label: `${medal} ${roman}`,
+    name,
+    full: `${rankNumber} ${t('ranked.rankWord')} · ${name} · ${medal}`,
+    badgeSrc: rankBadgeSrc(rankNumber),
+    frameSrc: rankFrameSrc(medalTier),
+    isMax,
+    isMin: isMinRank(s),
+    stepsToNextNumber: isMax ? 0 : (3 - (s % 3)),
+    nextLabel: isMax ? null : formatRank(s + 1),
+  }
 }
 
 export type RankView = {

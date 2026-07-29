@@ -128,12 +128,22 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
         </div>
 
         <div className="flex items-center shrink-0" style={{ gap: 8, marginTop: 10 }}>
-          <button onClick={doCraft} disabled={busy || !canCraft} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: canCraft ? '#07060A' : '#5e5868', background: canCraft ? 'linear-gradient(180deg,#a98ad6,#7650A4)' : 'var(--ravenof-bg-elevated)', padding: '11px 6px', border: 0, cursor: canCraft ? 'pointer' : 'default', clipPath: 'polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)', textTransform: 'uppercase' }}>
-            {t('collection.craftCta')} · {craftCost} ◈
-          </button>
-          <button onClick={doDust} disabled={busy || !canDust} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: canDust ? 'var(--ravenof-text-secondary)' : '#4a4552', background: 'none', border: `1px solid ${canDust ? 'var(--ravenof-border-strong)' : '#221e29'}`, padding: '10px 6px', cursor: canDust ? 'pointer' : 'default', textTransform: 'uppercase' }}>
-            {t('collection.disenchantCta')} · +{dustVal} ◈
-          </button>
+          {/* Audit #18: „SUKURTI · 0" prieštaravimų nebėra — kol konfigas kraunasi,
+              rodom neutralų placeholder'į; nekuriamai kortai — kaip ją gauti. */}
+          {!cfg ? (
+            <span aria-busy="true" style={{ flex: 1, textAlign: 'center', font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-hairline)', padding: '11px 6px' }}>{t('common.loading')}</span>
+          ) : craftCost > 0 ? (
+            <button onClick={doCraft} disabled={busy || !canCraft} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: canCraft ? '#07060A' : '#5e5868', background: canCraft ? 'linear-gradient(180deg,#a98ad6,#7650A4)' : 'var(--ravenof-bg-elevated)', padding: '11px 6px', border: 0, cursor: canCraft ? 'pointer' : 'default', clipPath: 'polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)', textTransform: 'uppercase', minHeight: 44 }}>
+              {t('collection.craftCta')} · {craftCost} ◈
+            </button>
+          ) : (
+            <span style={{ flex: 1, textAlign: 'center', font: '500 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-hairline)', padding: '11px 6px' }}>{t('collection.notCraftable')}</span>
+          )}
+          {cfg && dustVal > 0 && (
+            <button onClick={doDust} disabled={busy || !canDust} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: canDust ? 'var(--ravenof-text-secondary)' : '#4a4552', background: 'none', border: `1px solid ${canDust ? 'var(--ravenof-border-strong)' : '#221e29'}`, padding: '10px 6px', cursor: canDust ? 'pointer' : 'default', textTransform: 'uppercase', minHeight: 44 }}>
+              {t('collection.disenchantCta')} · +{dustVal} ◈
+            </button>
+          )}
           <span className="shrink-0" style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-essence)' }}>◈ {essence}</span>
         </div>
       </div>

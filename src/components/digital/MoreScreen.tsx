@@ -4,7 +4,7 @@
 //    kortelėmis (Žaidimas / Bendruomenė / Paskyra) — viskas telpa be scroll.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, ClipboardList, Award, Gift, Users, Store, LogOut, Power, ChevronRight } from 'lucide-react'
+import { Settings, ClipboardList, Award, Gift, Users, LogOut, Power, ChevronRight } from 'lucide-react'
 import { playUiClick } from '@/lib/ui-sound'
 import { createClient } from '@/lib/supabase/client'
 import { exitNativeApp } from '@/lib/digital/native'
@@ -52,7 +52,6 @@ export function MoreScreen() {
       title: t('more.sections.community'),
       rows: [
         { key: 'friends', label: t('more.friends'), sub: t('more.friendsSub'), icon: Users, accent: '96,165,250', onClick: () => { playUiClick(); router.push('/digital/friends') } },
-        { key: 'market', label: t('more.market'), sub: t('more.marketSub'), icon: Store, img: 'fi-shop', accent: '146,84,40', onClick: () => { playUiClick(); router.push('/market') } },
       ],
     },
   ]

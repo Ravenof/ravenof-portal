@@ -18,16 +18,13 @@ import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
-import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
+import { useAccount } from '@/lib/digital/accountStore'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { getOnboardingState } from '@/lib/digital/onboarding'
 import { heartbeat } from '@/lib/social'
-import { getLevelProgress } from '@/lib/gamification/levels'
-import { ensureProfile } from '@/lib/ranked/client'
-import { rankView, type MedalTier } from '@/lib/ranked/rank'
-import { rankLabel, rankBadgeSrc } from '@/lib/profile/ranks'
+import { rankDisplay } from '@/lib/ranked/rank'
 import { RavenofResourcePill, RavenofIconBtn, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
 import { HubStyles } from '@/components/digital/ui/HubKit'
 import { useT, I18nBoot, useLocale, setLocale } from '@/lib/i18n/react'
@@ -42,9 +39,6 @@ const NAV: NavItem[] = [
   { key: 'shop',       labelKey: 'navigation.shop',       icon: ShoppingBag, action: 'store' },
   { key: 'more',       labelKey: 'navigation.more',       icon: Menu,        href: '/digital/more' },
 ]
-
-type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
-type RankInfo = { tier: MedalTier; number: number }
 
 const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding', '/digital/forgot-password']
 // Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
@@ -73,17 +67,18 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const bare = BARE_ROUTES.includes(pathname)
   const fullBleed = FULL_BLEED_ROUTES.includes(pathname)
   const showHeader = !NO_HEADER_ROUTES.includes(pathname) && !fullBleed
-  const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
-  const [balances, setBalances] = useState<Balances>({ silver: 0, rubies: 0, essence: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [rank, setRank] = useState<RankInfo | null>(null)
   const [unread, setUnread] = useState(0)
   const [showRotate, setShowRotate] = useState(false)
 
-  const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) setWallet(w) }); getBalances().then((b) => { if (b) setBalances(b) }) }, [])
+  // VIENAS bendras paskyros šaltinis (profilis + balansai + rangas) — accountStore.ts.
+  // Kol account.loaded=false, header'is rodo skeleton'ą (jokių „Žaidėjas"/0 reikšmių).
+  const account = useAccount()
+  const { profile, balances } = account
+  const rank = account.rankStep != null ? rankDisplay(account.rankStep) : null
+  const refreshWallet = useCallback(() => { void useAccount.getState().refresh({ force: true }) }, [])
 
   useEffect(() => {
     loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
@@ -105,25 +100,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }, [])
 
   useEffect(() => {
-    const loadProfile = () => {
-      const supabase = createClient()
-      supabase.auth.getUser().then(({ data }) => {
-        const uid = data.user?.id; if (!uid) return
-        supabase.from('profiles').select('username, display_name, avatar_url, xp_total').eq('id', uid).maybeSingle()
-          .then(({ data: p }) => {
-            const pr = p as { username?: string; display_name?: string; avatar_url?: string | null; xp_total?: number } | null
-            if (!pr) return
-            const prog = getLevelProgress(pr.xp_total ?? 0)
-            setProfile({ name: pr.display_name || pr.username || '', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null })
-          })
-        // Rango eilutė header'yje (read-only; ta pati RPC kaip ranked ekrane)
-        ensureProfile().then((rp) => {
-          if (!rp) return
-          const rv = rankView(rp.rank_step)
-          setRank({ tier: rv.medalTier, number: rv.rankNumber })
-        })
-      })
-    }
+    const loadProfile = () => { void useAccount.getState().refresh() }
     loadProfile()
     window.addEventListener('focus', loadProfile)
     return () => window.removeEventListener('focus', loadProfile)
@@ -151,7 +128,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     })
   }, [pathname])
 
-  useEffect(() => { refreshWallet() }, [refreshWallet, pathname])
+  useEffect(() => { void useAccount.getState().refresh() }, [pathname])
   useEffect(() => { setStoreOpen(false); setSettingsOpen(false) }, [pathname])
   useEffect(() => {
     const onFocus = () => refreshWallet()
@@ -198,7 +175,10 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {!MIGRATED_ROUTES.includes(pathname) && !pathname.startsWith('/digital/profile') && !pathname.startsWith('/digital/campaign/') && <Flames />}
       <HubStyles />
       <I18nBoot />
-      <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }`}</style>
+      <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }
+        .rvn-skeleton { display: inline-block; background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.13) 50%, rgba(255,255,255,0.06) 75%); background-size: 200% 100%; animation: rvnSkel 1.3s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .rvn-skeleton { animation: none; } }
+        @keyframes rvnSkel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
 
       {/* ── Šoninis nav rail (patvirtintas dizainas: 92px, 24px ikonos, Cinzel etiketės) ── */}
       {!fullBleed && <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
@@ -237,25 +217,34 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
               <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: profile?.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
-                <span className="truncate" style={{ maxWidth: 140, font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
-                <span className="flex items-center" style={{ gap: 5, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
-                  {rank ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={rankBadgeSrc(rank.number) ?? `${RAVENOF_ASSET}/ranks/rank-${rank.tier}.png`} alt="" style={{ width: 12, height: 14, objectFit: 'contain' }} />
-                      {rankLabel(rank.number)}
-                      <span style={{ font: '600 8.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: '#8d94a3' }}>
-                        {rank.tier}
-                      </span>
-                    </>
-                  ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
-                </span>
+                {!account.loaded ? (
+                  /* Kol paskyra nepakrauta — skeleton (fiksuoti matmenys, be „Žaidėjas"/0) */
+                  <>
+                    <span aria-hidden className="rvn-skeleton" style={{ width: 96, height: 13, borderRadius: 3 }} />
+                    <span aria-hidden className="rvn-skeleton" style={{ width: 130, height: 10, borderRadius: 3, marginTop: 3 }} />
+                  </>
+                ) : (
+                  <>
+                    <span className="truncate" style={{ maxWidth: 140, font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
+                    <span className="flex items-center" style={{ gap: 5, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
+                      {rank ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={rank.badgeSrc ?? `${RAVENOF_ASSET}/ranks/rank-${rank.medalTier}.png`} alt="" style={{ width: 12, height: 14, objectFit: 'contain' }} />
+                          {/* KANONINIS rango formatas — tas pats kaip Home/Ranked/profilyje */}
+                          {rank.full}
+                        </>
+                      ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
+                    </span>
+                  </>
+                )}
               </span>
             </button>
             <div className="flex-1" />
-            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={formatNumber(balances.silver)} />
-            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={formatNumber(balances.rubies)} />
-            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png`} value={formatNumber(balances.essence)} />
+            {/* Balansai: kol nežinomi — „—" (niekada ne 0). Fiksuoti matmenys — be layout shift. */}
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={balances ? formatNumber(balances.silver) : '—'} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={balances ? formatNumber(balances.rubies) : '—'} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png`} value={balances ? formatNumber(balances.essence) : '—'} />
             <button onClick={toggleLang} className="ravenof-press" style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: '6px 8px', borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
               {locale.toUpperCase()}
             </button>
@@ -276,7 +265,15 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <GlobalChatLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
-      {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => setUnread(0)} />}
+      {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => {
+        // perskaičiuojam badge'ą iš DB (skaityta tampa tik paspaudus / mark-all)
+        const supabase = createClient()
+        supabase.auth.getUser().then(({ data }) => {
+          const uid = data.user?.id; if (!uid) return
+          supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false)
+            .then(({ count }) => setUnread(count ?? 0))
+        })
+      }} />}
       {storeOpen && <ShopModal onClose={() => setStoreOpen(false)} onPurchased={refreshWallet} />}
 
       {showRotate && (

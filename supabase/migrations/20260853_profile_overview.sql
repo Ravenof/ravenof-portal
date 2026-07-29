@@ -81,12 +81,16 @@ begin
   select name into v_season from public.ranked_seasons where is_active limit 1;
 
   -- dažniausia frakcija sezone (iš ranked_matches — vienintelis šaltinis su frakcija)
-  select jsonb_build_object('faction', m.player_faction, 'matches', m.n,
-                            'pct', round(100.0 * m.n / nullif(sum(m.n) over (), 0), 1))
+  --  Procentas skaiciuojamas nuo VISU sezono ranked kovu. (Anksciau cia buvo
+  --  sum() over () virs LIMIT 1 subselect'o — jis visada butu davęs 100 %.)
+  select jsonb_build_object('faction', f.player_faction, 'matches', f.n,
+                            'pct', case when tot.t > 0 then round(100.0 * f.n / tot.t, 1) else 0 end)
     into v_fac
     from (select player_faction, count(*) n from public.ranked_matches
            where player_id = v_uid and player_faction is not null
-           group by player_faction order by count(*) desc limit 1) m;
+           group by player_faction order by count(*) desc limit 1) f
+    cross join (select count(*) t from public.ranked_matches
+                 where player_id = v_uid and player_faction is not null) tot;
 
   -- kolekcija (+ pjūvis pagal retumą)
   select count(*)::int into v_all from public.cards where status = 'active';
@@ -125,19 +129,29 @@ begin
     join public.rvn_achievements a on a.code = p.code;
 
   -- rungtynių istorija: ranked (pilni duomenys) + kiti režimai (kiek turim)
-  select jsonb_agg(h order by (h->>'at') desc) into v_hist from (
-    select jsonb_build_object('mode','ranked','result', rm.result, 'opponent', rm.opponent_name,
-             'opponentKind', rm.opponent_kind, 'faction', rm.opponent_faction,
-             'turns', rm.turns_played, 'at', rm.created_at) h
-      from public.ranked_matches rm where rm.player_id = v_uid
-      order by rm.created_at desc limit 8
-    union all
-    select jsonb_build_object('mode', m.mode, 'result', m.result, 'opponent', null,
-             'opponentKind', m.opponent_type, 'faction', null,
-             'turns', m.turns_played, 'at', m.created_at) h
-      from public.matches m where m.user_id = v_uid and m.mode <> 'ranked'
-      order by m.created_at desc limit 8
-  ) z;
+  --  PASTABA: UNION sakos su ORDER BY/LIMIT PRIVALO buti skliaustuose (PostgreSQL),
+  --  o bendras limitas taikomas jau sujungus, kad grazintume 8 NAUJAUSIAS is abieju saltiniu.
+  select coalesce(jsonb_agg(z.h order by z.at desc), '[]'::jsonb) into v_hist
+    from (
+      select u.at, u.h from (
+        ( select rm.created_at as at,
+                 jsonb_build_object('mode','ranked','result', rm.result, 'opponent', rm.opponent_name,
+                   'opponentKind', rm.opponent_kind, 'faction', rm.opponent_faction,
+                   'turns', rm.turns_played, 'at', rm.created_at) as h
+            from public.ranked_matches rm
+           where rm.player_id = v_uid
+           order by rm.created_at desc limit 8 )
+        union all
+        ( select m.created_at as at,
+                 jsonb_build_object('mode', m.mode, 'result', m.result, 'opponent', null,
+                   'opponentKind', m.opponent_type, 'faction', null,
+                   'turns', m.turns_played, 'at', m.created_at) as h
+            from public.matches m
+           where m.user_id = v_uid and m.mode <> 'ranked'
+           order by m.created_at desc limit 8 )
+      ) u
+      order by u.at desc limit 8
+    ) z;
 
   return jsonb_build_object(
     'isSelf', v_self,

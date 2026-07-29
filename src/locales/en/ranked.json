@@ -1,4 +1,5 @@
 {
+  "aroundMe": "Around me",
   "backToRanked": "← Back to ranked",
   "bestRank": "Best:",
   "claim": "Claim",
@@ -92,6 +93,7 @@
   "pickActiveDeck": "Pick an active deck (press “Change”).",
   "player": "Player",
   "preparing": "Preparing the battle…",
+  "ptsShort": "pts",
   "queue": {
     "any": "Searching for an opponent of any rank…",
     "found": "Opponent found.",
@@ -102,6 +104,7 @@
   },
   "rankDown": "Rank down",
   "rankUp": "Rank up",
+  "rankWord": "rank",
   "rarity": {
     "epic": "Epic",
     "legendary": "Legendary",
@@ -157,9 +160,11 @@
   },
   "stepOf": "Step {{n}} / 50",
   "streak": "Streak",
+  "streakWord": "streak",
   "subtitle": "Climb the ranks, collect rewards and become the season champion",
   "timeLeft": "{{time}} left",
   "title": "Ranked battle",
+  "top100": "Top 100",
   "validChip": "Valid",
   "viewAll": "All",
   "viewRewards": "View rewards →",

@@ -1,58 +1,58 @@
 {
   "item": {
-    "silver": {
-      "name": "Silver",
-      "desc": "The main currency — for packs and decks."
-    },
-    "rubies": {
-      "name": "Rubies",
-      "desc": "Premium currency — for rare goods."
-    },
-    "essence": {
-      "name": "Essence",
-      "desc": "Used to craft and upgrade cards."
-    },
     "account_xp": {
-      "name": "Experience (XP)",
-      "desc": "Raises your account level — levels grant rewards."
-    },
-    "season_xp": {
-      "name": "Season XP",
-      "desc": "Advances the season path tiers."
-    },
-    "pack": {
-      "name": "Card Pack",
-      "desc": "Open it for new cards."
-    },
-    "card_back": {
-      "name": "Card Back",
-      "desc": "A cosmetic back for your deck."
-    },
-    "player_avatar": {
-      "name": "Avatar",
-      "desc": "A cosmetic face for battles."
-    },
-    "card": {
-      "name": "Card",
-      "desc": "A guaranteed card for your collection."
+      "desc": "Raises your account level — levels grant rewards.",
+      "name": "Experience (XP)"
     },
     "badge": {
-      "name": "Rank Badge",
-      "desc": "A badge for your season rank achievement."
+      "desc": "A badge for your season rank achievement.",
+      "name": "Rank Badge"
+    },
+    "card": {
+      "desc": "A guaranteed card for your collection.",
+      "name": "Card"
+    },
+    "card_back": {
+      "desc": "A cosmetic back for your deck.",
+      "name": "Card Back"
+    },
+    "essence": {
+      "desc": "Used to craft and upgrade cards.",
+      "name": "Essence"
     },
     "missing": {
-      "name": "Reward",
-      "desc": "Reward contents."
+      "desc": "Reward contents.",
+      "name": "Reward"
+    },
+    "pack": {
+      "desc": "Open it for new cards.",
+      "name": "Card Pack"
+    },
+    "player_avatar": {
+      "desc": "A cosmetic face for battles.",
+      "name": "Avatar"
+    },
+    "rubies": {
+      "desc": "Premium currency — for rare goods.",
+      "name": "Rubies"
+    },
+    "season_xp": {
+      "desc": "Advances the season path tiers.",
+      "name": "Season XP"
+    },
+    "silver": {
+      "desc": "The main currency — for packs and decks.",
+      "name": "Silver"
     }
   },
   "label": {
-    "packs_one": "{{count}} pack",
-    "packs_other": "{{count}} packs",
-    "cardBack": "Card Back",
     "avatar": "Avatar",
-    "card": "Card",
     "badge": "Badge",
+    "card": "Card",
+    "cardBack": "Card Back",
     "cardMin": "{{rarity}} card",
+    "packs_one": "{{count}} booster",
+    "packs_other": "{{count}} boosters",
     "pathXp": "{{xp}} path XP"
   }
 }

@@ -15,6 +15,7 @@ import {
   useCompact, useToast,
 } from './kit'
 import { ChoiceQueue } from './ChoiceModals'
+import { rewardRequiresChoice } from '@/lib/rewards/rewardVisuals'
 
 const WEEKS = [
   { roman: 'I', key: 'w1', from: 1, to: 7 },
@@ -122,7 +123,7 @@ export function LoginRewardsScreen() {
         <div style={{ font: `500 7px ${BODY}`, letterSpacing: 1, color: tone.label, textTransform: 'uppercase' }}>
           {d.claimed ? t('progression.login.stClaimed')
             : st === 'today' ? t('progression.login.stReady')
-            : d.milestone ? t('progression.login.stChoice')
+            : d.rewards.some((r) => rewardRequiresChoice(r)) ? t('progression.login.stChoice')
             : t('progression.login.stLocked')}
         </div>
       </button>

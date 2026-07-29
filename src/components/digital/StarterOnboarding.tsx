@@ -135,7 +135,7 @@ export function StarterOnboarding({ onDone, onClose }: {
                           <span className="block px-2.5 pt-1.5 pb-2">
                             <span className="block text-[13px] font-extrabold truncate" style={{ color: active ? 'var(--gold)' : '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{d.faction ?? d.name}</span>
                             <span className="block text-[10.5px] leading-snug mt-0.5" style={{ color: '#c9bfa8', minHeight: 28 }}>{playstyleFor(d)}</span>
-                            <span className="block text-[9px] uppercase tracking-widest mt-1" style={{ color: 'var(--text-muted)' }}>{d.cardCount} kortų</span>
+                            <span className="block text-[9px] uppercase tracking-widest mt-1" style={{ color: 'var(--text-muted)' }}>{t('decks.cardsShort', { count: d.cardCount })}</span>
                           </span>
                         </span>
                       </button>

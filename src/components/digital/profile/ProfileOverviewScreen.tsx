@@ -12,9 +12,9 @@ import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
 import { playUiClick } from '@/lib/ui-sound'
-import { getAchievements, getProfileOverview, type ProfileOverview } from '@/lib/profile/client'
+import { getAchievements, getMatchModeStats, getProfileOverview, type MatchModeStats, type ProfileOverview } from '@/lib/profile/client'
 import { rankLabel, rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
-import { medalTierFromStep, rankNumberFromStep } from '@/lib/ranked/rank'
+import { medalTierFromStep, rankNumberFromStep, rankDisplay } from '@/lib/ranked/rank'
 import { AchievementBadge } from './AchievementBadge'
 import { BODY, C, Cta, DISPLAY, ErrorState, isMissingRpc, Kicker, LoadingState, useCompact, useToast } from '../progression/kit'
 
@@ -57,18 +57,20 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   const [data, setData] = useState<ProfileOverview | null>(null)
   const [featured, setFeatured] = useState<string[]>([])
   const [achSummary, setAchSummary] = useState<{ done: number; total: number } | null>(null)
+  const [modeStats, setModeStats] = useState<MatchModeStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null | false>(false)
   const [tab, setTab] = useState<Tab>('overview')
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [o, a] = await Promise.all([getProfileOverview(), getAchievements()])
+    const [o, a, ms] = await Promise.all([getProfileOverview(), getAchievements(), getMatchModeStats()])
     setLoading(false)
     if (!o) { setFailed('no_response'); return }
     if ('error' in o) { setFailed(o.error); return }
     setFailed(false); setData(o)
     if (a) { setFeatured(a.featured ?? []); setAchSummary({ done: a.completed, total: a.total }) }
+    setModeStats(ms)
   }, [])
   useEffect(() => { void load() }, [load])
 
@@ -182,7 +184,8 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
             {t('profile.overview.ranked')}{ranked.season ? ` · ${ranked.season}` : ''}
           </span>
           <span style={{ display: 'block', font: `700 13px ${DISPLAY}`, color: '#D6DCE6', marginTop: 2 }}>
-            {rankNo != null ? rankLabel(rankNo) : t('profile.overview.noRank')}
+            {/* KANONINIS formatas — tas pats kaip header/Home/Ranked (rankDisplay.full) */}
+            {step != null ? rankDisplay(step).full : t('profile.overview.noRank')}
           </span>
           <span style={{ display: 'block', font: `400 9.5px ${BODY}`, color: C.label, marginTop: 1 }}>{t('profile.overview.seasonalBadge')}</span>
         </span>
@@ -260,10 +263,21 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   )
 
   // ── Tab'ų turinys ─────────────────────────────────────────────────────────
+  // Statistika ATSKIRAI pagal režimą (audit #24): bendras skaičius rodomas tik
+  // su aiškia sudėtimi; reitingo win-rate NEmaišomas su DI treniruotėmis.
+  const bm = modeStats?.byMode
+  const modeTile = (key: 'bot' | 'unranked' | 'ranked', label: string) => {
+    const st = bm?.[key]
+    if (!st) return null
+    return <Tile key={key} label={label} value={`${st.winRate}%`} sub={t('profile.overview.modeRecord', { wins: st.wins, matches: st.matches })} />
+  }
   const tiles = (
     <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-      <Tile label={t('profile.overview.matches')} value={formatNumber(stats.matches)} sub={t('profile.overview.inTotal')} />
-      <Tile label={t('profile.overview.wins')} value={formatNumber(stats.wins)} sub={`${stats.winRate}%`} tone={C.goldHi} />
+      <Tile label={t('profile.overview.matches')} value={formatNumber(stats.matches)} sub={t('profile.overview.allModesNote')} />
+      <Tile label={t('profile.overview.wins')} value={formatNumber(stats.wins)} sub={t('profile.overview.overallRate', { rate: stats.winRate })} tone={C.goldHi} />
+      {modeTile('ranked', t('profile.overview.modeRanked'))}
+      {modeTile('unranked', t('profile.overview.modeCasual'))}
+      {modeTile('bot', t('profile.overview.modeAi'))}
       <Tile label={t('profile.overview.rankedWins')} value={formatNumber(ranked.wins)} sub={ranked.season ?? ''} />
       <Tile label={t('profile.overview.longestStreak')} value={formatNumber(stats.longestStreak)} sub={t('profile.overview.winsShort')} />
     </div>

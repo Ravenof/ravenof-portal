@@ -28,6 +28,7 @@
   "moreCards": "More cards",
   "nextCard": "Next card",
   "nextPage": "Next page",
+  "notCraftable": "Cannot be crafted — obtained from boosters or rewards",
   "notOwned": "You don't own this card yet",
   "notOwnedBadge": "Not owned",
   "nothingFound": "Nothing found",
@@ -35,6 +36,7 @@
   "openPackCta": "🎁 Open a pack",
   "owned": "Owned",
   "ownedCount": "Owned: ×{{count}}",
+  "ownedOf": "{{owned}} of {{total}} owned",
   "ownedOnlyShort": "Owned only",
   "ownedStat": "owned",
   "pack": {
@@ -58,6 +60,7 @@
   "searchAria": "Search cards",
   "searchPlaceholder": "Search…",
   "showDetails": "Show details",
+  "showingN": "showing {{count}}",
   "shown": "showing {{count}}",
   "signIn": "Sign in",
   "sort": {
