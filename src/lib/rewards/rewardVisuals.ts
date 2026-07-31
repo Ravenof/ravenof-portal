@@ -58,6 +58,17 @@ function warnMissing(key: string, it: RewardPayloadItem) {
 
 const fmt = (n: number) => formatNumber(n)
 
+// ── Kosmetikos katalogo lookup (audit: TIKRI pavadinimai/miniatiūros, ne
+// generinė „Kortų nugarėlė"). Registruoja cosmeticsStore po refresh —
+// rewardVisuals lieka sinchroniškas ir be tiesioginės store priklausomybės.
+export type CosmeticLookup = (id: string) => { name: string; imageUrl: string | null } | null
+let cosmeticLookup: CosmeticLookup | null = null
+export function registerCosmeticLookup(fn: CosmeticLookup): void { cosmeticLookup = fn }
+function cosmeticInfo(id: unknown): { name: string; imageUrl: string | null } | null {
+  if (!id || typeof id !== 'string' || !cosmeticLookup) return null
+  try { return cosmeticLookup(id) } catch { return null }
+}
+
 /** Vienintelė vieta, kur payload elementas virsta vizualu. */
 export function resolveRewardVisual(it: RewardPayloadItem): RewardVisual {
   const type = String(it.type ?? '')
@@ -77,8 +88,16 @@ export function resolveRewardVisual(it: RewardPayloadItem): RewardVisual {
     const k = String(it.item_type ?? '')
     const q = (it.quantity as number) ?? 1
     if (k === 'pack') return mk('pack', t('rewards.label.packs', { count: q }))
-    if (k === 'card_back') return mk('card_back', t('rewards.label.cardBack'))
-    if (k === 'player_avatar') return mk('player_avatar', t('rewards.label.avatar'))
+    if (k === 'card_back') {
+      const ci = cosmeticInfo(it.item_id)
+      const base = mk('card_back', ci?.name ?? t('rewards.label.cardBack'))
+      return ci?.imageUrl ? { ...base, asset: ci.imageUrl } : base
+    }
+    if (k === 'player_avatar') {
+      const ci = cosmeticInfo(it.item_id)
+      const base = mk('player_avatar', ci?.name ?? t('rewards.label.avatar'))
+      return ci?.imageUrl ? { ...base, asset: ci.imageUrl } : base
+    }
     if (k === 'card') return mk('card', String(it.item_id ?? t('rewards.label.card')))
     if (k === 'badge') return mk('badge', t('rewards.label.badge'))
     warnMissing(`item:${k}`, it)
@@ -127,10 +146,16 @@ export function resolveRewardVisualV2(r: { type?: string; amount?: number; quant
     case 'card_choice':
       // NE plikas būdvardis „Reta" — pilna etiketė „Reta korta" (pasirinkimo atlygis)
       return mkV2('card_choice', t('rewards.label.cardMin', { rarity: t(`progression.rarity.${r?.rarity ?? 'rare'}`) }), V2_DEFS.card_choice)
-    case 'card_back':
-      return mkV2('card_back', t('rewards.label.cardBack'))
-    case 'player_avatar':
-      return mkV2('player_avatar', t('rewards.label.avatar'))
+    case 'card_back': {
+      const ci = cosmeticInfo((r as { cosmeticId?: string })?.cosmeticId)
+      const base = mkV2('card_back', ci?.name ?? t('rewards.label.cardBack'))
+      return ci?.imageUrl ? { ...base, asset: ci.imageUrl } : base
+    }
+    case 'player_avatar': {
+      const ci = cosmeticInfo((r as { cosmeticId?: string })?.cosmeticId)
+      const base = mkV2('player_avatar', ci?.name ?? t('rewards.label.avatar'))
+      return ci?.imageUrl ? { ...base, asset: ci.imageUrl } : base
+    }
     default:
       warnMissing(`v2:${type || '∅'}`, r as RewardPayloadItem)
       return mkV2('missing', '')

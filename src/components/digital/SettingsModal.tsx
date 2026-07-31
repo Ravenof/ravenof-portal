@@ -16,6 +16,7 @@ import {
   setPremiumCinematicsEnabled, setSummonCinematicsEnabled, setChampionSkillCinematicsEnabled,
   DEFAULT_SUMMON_CINEMATICS, DEFAULT_SKILL_CINEMATICS,
   getVoiceLocale, setVoiceLocale, isVoiceFallbackLtEnabled, setVoiceFallbackLt, type VoiceLocaleSetting,
+  getSettings, setReducedMotionEnabled, getUiScale, setUiScale,
 } from '@/lib/settings'
 import { saveDigitalSettings } from '@/lib/settings-sync'
 import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '@/lib/ui-sound'
@@ -90,6 +91,8 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const [native, setNative] = useState(false)
   const [bgFx, setBgFx] = useState(true)
   const [voiceLoc, setVoiceLoc] = useState<VoiceLocaleSetting>('auto')
+  const [redMotion, setRedMotion] = useState(false)
+  const [scale, setScale] = useState(1)
   const [voiceFb, setVoiceFb] = useState(true)
   const [email, setEmail] = useState<string | null>(null)
   const [emailVerified, setEmailVerified] = useState(false)
@@ -99,6 +102,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
     setReminders(remindersEnabled()); setNative(isNativeApp()); setBgFx(isBgFxEnabled())
     setVoiceLoc(getVoiceLocale()); setVoiceFb(isVoiceFallbackLtEnabled())
+    setRedMotion(getSettings().reducedMotion); setScale(getUiScale())
     createClient().auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null)
       setEmailVerified(!!data.user?.email_confirmed_at)
@@ -116,6 +120,8 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const onCineSkill = (v: boolean) => { playUiClick(); setCineSkill(v); setChampionSkillCinematicsEnabled(v); saveDigitalSettings() }
   const onReminders = (v: boolean) => { playUiClick(); setReminders(v); void setRemindersEnabled(v) }
   const onBgFx = (v: boolean) => { playUiClick(); setBgFx(v); setBgFxEnabled(v) }
+  const onRedMotion = (v: boolean) => { playUiClick(); setRedMotion(v); setReducedMotionEnabled(v); saveDigitalSettings() }
+  const onScale = (v: number) => { playUiClick(); setScale(v); setUiScale(v); saveDigitalSettings() }
 
   const resetDefaults = () => {
     playUiClick()
@@ -190,6 +196,15 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
             <ToggleRow label={t('settings.cineSummon')} on={cineSummon} onToggle={onCineSummon} />
             <ToggleRow label={t('settings.cineSkill')} on={cineSkill} onToggle={onCineSkill} />
           </div>
+          <div style={{ height: 4 }} />
+          {/* ── Prieinamumas (audit #27) ── */}
+          <SectionLabel>{t('settings.cat.accessibility')}</SectionLabel>
+          <ToggleRow label={t('settings.reducedMotion')} on={redMotion} onToggle={onRedMotion} hint={t('settings.reducedMotionHint')} />
+          <div className="flex items-center shrink-0" style={{ gap: 8 }}>
+            <span style={{ font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', whiteSpace: 'nowrap' }}>{t('settings.uiScale')}</span>
+            <div className="flex-1"><Segmented options={[{ key: '1', label: '100%' }, { key: '1.1', label: '110%' }, { key: '1.25', label: '125%' }]} value={String(scale)} onPick={(k) => onScale(parseFloat(k))} /></div>
+          </div>
+
           <button onClick={resetDefaults} className="ravenof-btn ravenof-btn-secondary shrink-0" style={{ marginTop: 4, minHeight: 36, fontSize: 10 }}>{t('settings.resetDefaults')}</button>
         </div>
 

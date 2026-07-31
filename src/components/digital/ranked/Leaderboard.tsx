@@ -64,7 +64,11 @@ export function Leaderboard({ revealBots = false }: { revealBots?: boolean }) {
                 border: '1px solid ' + (r.is_me ? 'rgba(240,180,41,0.5)' : 'rgba(255,255,255,0.06)'),
               }}>
               <span className="w-7 text-center text-sm font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: r.position <= 3 ? 'var(--gold)' : 'var(--text-muted)' }}>{r.position}</span>
-              <span className="text-lg w-6 text-center">{r.avatar && r.avatar.length <= 4 ? r.avatar : '🎴'}</span>
+              {/* Avataras: URL (aktyvi kosmetika/avatar_url iš rvn__avatar_src) → img; kitaip emoji/fallback */}
+              {r.avatar && (r.avatar.startsWith('/') || r.avatar.startsWith('http'))
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={r.avatar} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" style={{ border: '1px solid rgba(240,180,41,0.4)' }} />
+                : <span className="text-lg w-6 text-center">{r.avatar && r.avatar.length <= 4 ? r.avatar : '🎴'}</span>}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: r.is_me ? 'var(--gold)' : 'var(--text-primary)' }}>
                   {r.name}

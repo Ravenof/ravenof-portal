@@ -14,6 +14,7 @@
 import { create } from 'zustand'
 import { createClient } from '@/lib/supabase/client'
 import { getCosmetics, type Cosmetic, type CosmeticsState } from '@/lib/cosmetics'
+import { registerCosmeticLookup } from '@/lib/rewards/rewardVisuals'
 
 export const DEFAULT_AVATAR_ID = 'av_nekronautas'
 export const DEFAULT_CARD_BACK_ID = 'cb_default'
@@ -87,6 +88,12 @@ export const useCosmetics = create<CosmeticsStore>((set, get) => ({
             avatar: st.defaults?.avatar ?? DEFAULT_AVATAR_ID,
             cardBack: st.defaults?.cardBack ?? DEFAULT_CARD_BACK_ID,
           },
+        })
+        // Reward preview'ai (Season/Login/Level/Shop) gauna TIKRUS kosmetikos
+        // pavadinimus ir miniatiūras — vietoj generinės „Kortų nugarėlė"
+        registerCosmeticLookup((id) => {
+          const c = (st.items ?? []).find((x) => x.id === id)
+          return c ? { name: c.name, imageUrl: c.imageUrl ?? null } : null
         })
         lastFetch = Date.now()
       } catch (e) {

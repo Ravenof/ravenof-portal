@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
-import { PVE_REWARD } from '@/lib/economy'
+import { getMatchRewardPreview } from '@/lib/economy'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf, deckValidity } from '@/lib/digital/activeDeck'
 import { useCosmetics, preloadActiveCosmetics } from '@/lib/digital/cosmeticsStore'
@@ -51,6 +51,10 @@ export function DigitalPvE() {
   const [started, setStarted] = useState(false)
   const [deckSelOpen, setDeckSelOpen] = useState(false)
   const [covers, setCovers] = useState<Record<number, string>>({})
+  // „Numatomas atlygis" — iš SERVERIO konfigūracijos (economy_config.match_rewards),
+  // ne iš klientinių konstantų (audit: rodyti tiesą; DI atlygis nepriklauso nuo sunkumo)
+  const [rewardSilver, setRewardSilver] = useState<number | null>(null)
+  useEffect(() => { getMatchRewardPreview().then((r) => setRewardSilver(r?.bot?.win?.silver ?? null)) }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -223,7 +227,7 @@ export function DigitalPvE() {
 
           <div className="flex items-center justify-between shrink-0" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '9px 12px' }}>
             <span style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pve.expectedReward')}</span>
-            <span style={{ font: '700 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.silverN', { n: PVE_REWARD[difficulty] })}</span>
+            <span style={{ font: '700 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{rewardSilver != null ? t('battle.pve.silverN', { n: rewardSilver }) : '…'}</span>
           </div>
 
           <div className="flex-1" />

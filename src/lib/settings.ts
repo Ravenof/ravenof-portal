@@ -12,6 +12,8 @@ const K_SUMMON = 'rvn-summon-fx'
 const K_CINE = 'rvn-premium-cinematics'
 const K_CINE_SUMMON = 'rvn-cinematics-summon'
 const K_CINE_SKILL = 'rvn-cinematics-skill'
+const K_REDUCED_MOTION = 'rvn-reduced-motion'  // prieinamumas: mažiau judesio
+const K_UI_SCALE = 'rvn-ui-scale'              // prieinamumas: UI mastelis (1 | 1.1 | 1.25)
 
 export const DEFAULT_MUSIC_VOLUME = 0.32 // muzika tylesnė už SFX (kaip anksčiau)
 export const DEFAULT_SFX_VOLUME = 1.0
@@ -31,6 +33,8 @@ export type DigitalSettings = {
   premiumCinematicsEnabled: boolean       // bendras kino pop-up jungiklis
   summonCinematicsEnabled: boolean        // summon kino (Legendinis/Čempionas)
   championSkillCinematicsEnabled: boolean // Čempiono skill kino
+  reducedMotion: boolean                  // prieinamumas: sumažinti animacijas (be OS vėliavos)
+  uiScale: number                         // prieinamumas: 1 | 1.1 | 1.25
 }
 
 let _music: number | null = null
@@ -41,6 +45,8 @@ let _summon: boolean | null = null
 let _cine: boolean | null = null
 let _cineSummon: boolean | null = null
 let _cineSkill: boolean | null = null
+let _reducedMotion: boolean | null = null
+let _uiScale: number | null = null
 const listeners = new Set<(s: DigitalSettings) => void>()
 
 function clamp01(n: number): number {
@@ -107,6 +113,49 @@ export function isChampionSkillCinematicsEnabled(): boolean {
   return isPremiumCinematicsEnabled() && _cineSkill
 }
 
+// ── Prieinamumas (audit #27): mažiau judesio + UI mastelis ──────────────────
+/** Ar sumažinti animacijas. TRUE, jei įjungta nustatymuose ARBA OS prefers-reduced-motion. */
+export function isReducedMotionEnabled(): boolean {
+  if (_reducedMotion === null) _reducedMotion = readBool(K_REDUCED_MOTION, false)
+  if (_reducedMotion) return true
+  if (typeof window !== 'undefined') {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { /* */ }
+  }
+  return false
+}
+export function setReducedMotionEnabled(v: boolean): void {
+  _reducedMotion = !!v
+  try { window.localStorage.setItem(K_REDUCED_MOTION, v ? '1' : '0') } catch { /* */ }
+  applyAccessibility()
+  notify()
+}
+export function getUiScale(): number {
+  if (_uiScale === null) {
+    let v = 1
+    if (typeof window !== 'undefined') { try { v = parseFloat(window.localStorage.getItem(K_UI_SCALE) ?? '1') } catch { /* */ } }
+    _uiScale = [1, 1.1, 1.25].includes(v) ? v : 1
+  }
+  return _uiScale
+}
+export function setUiScale(v: number): void {
+  _uiScale = [1, 1.1, 1.25].includes(v) ? v : 1
+  try { window.localStorage.setItem(K_UI_SCALE, String(_uiScale)) } catch { /* */ }
+  applyAccessibility()
+  notify()
+}
+/** Pritaiko prieinamumo nustatymus DOM'ui (kviesti layout mount + po pakeitimų).
+ *  reduced motion — data atributas (CSS kill-switch layout'e); mastelis — zoom. */
+export function applyAccessibility(): void {
+  if (typeof document === 'undefined') return
+  try {
+    if (isReducedMotionEnabled()) document.body.dataset.rvnReducedMotion = '1'
+    else delete document.body.dataset.rvnReducedMotion
+    const scale = getUiScale()
+    const el = document.body.style as CSSStyleDeclaration & { zoom?: string }
+    el.zoom = scale === 1 ? '' : String(scale)
+  } catch { /* */ }
+}
+
 export function getSettings(): DigitalSettings {
   return {
     musicVolume: getMusicVolume(), sfxVolume: getSfxVolume(), summonFxEnabled: isSummonFxEnabled(),
@@ -114,6 +163,8 @@ export function getSettings(): DigitalSettings {
     premiumCinematicsEnabled: isPremiumCinematicsEnabled(),
     summonCinematicsEnabled: _cineSummon ?? DEFAULT_SUMMON_CINEMATICS,
     championSkillCinematicsEnabled: _cineSkill ?? DEFAULT_SKILL_CINEMATICS,
+    reducedMotion: _reducedMotion ?? readBool(K_REDUCED_MOTION, false),
+    uiScale: getUiScale(),
   }
 }
 
@@ -164,6 +215,9 @@ export function hydrateSettings(s: Partial<DigitalSettings> | null | undefined):
   if (s.voiceLocale === 'auto' || s.voiceLocale === 'lt' || s.voiceLocale === 'en') { _voiceLocale = s.voiceLocale; try { window.localStorage.setItem(K_VOICE_LOCALE, s.voiceLocale) } catch { /* */ } }
   if (typeof s.voiceFallbackLt === 'boolean') { _voiceFallback = s.voiceFallbackLt; try { window.localStorage.setItem(K_VOICE_FALLBACK, s.voiceFallbackLt ? '1' : '0') } catch { /* */ } }
   if (typeof s.championSkillCinematicsEnabled === 'boolean') { _cineSkill = s.championSkillCinematicsEnabled; try { window.localStorage.setItem(K_CINE_SKILL, _cineSkill ? '1' : '0') } catch { /* */ } }
+  if (typeof s.reducedMotion === 'boolean') { _reducedMotion = s.reducedMotion; try { window.localStorage.setItem(K_REDUCED_MOTION, s.reducedMotion ? '1' : '0') } catch { /* */ } }
+  if (typeof s.uiScale === 'number' && [1, 1.1, 1.25].includes(s.uiScale)) { _uiScale = s.uiScale; try { window.localStorage.setItem(K_UI_SCALE, String(s.uiScale)) } catch { /* */ } }
+  applyAccessibility()
   notify()
 }
 

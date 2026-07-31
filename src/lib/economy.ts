@@ -53,6 +53,19 @@ export async function getBalances(): Promise<Balances | null> {
   return { silver: pr.gold ?? 0, rubies: pr.rubies ?? 0, essence: pr.essence ?? 0 }
 }
 
+/** Kovos atlygių KONFIGŪRACIJA iš serverio (economy_config.match_rewards) —
+ *  „Numatomas atlygis" rodo tiesą, ne klientines konstantas. sessionStorage cache. */
+export type MatchRewardPreview = Partial<Record<'bot' | 'unranked' | 'ranked', { win?: { silver?: number; account_xp?: number; season_xp?: number }; loss?: { silver?: number } }>>
+export async function getMatchRewardPreview(): Promise<MatchRewardPreview | null> {
+  try { const c = sessionStorage.getItem('rvn-match-rewards'); if (c) return JSON.parse(c) as MatchRewardPreview } catch { /* */ }
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_get_match_reward_preview')
+  if (error) { console.warn('[economy] rewardPreview:', error.message); return null }
+  const v = (data ?? null) as MatchRewardPreview | null
+  try { if (v) sessionStorage.setItem('rvn-match-rewards', JSON.stringify(v)) } catch { /* */ }
+  return v
+}
+
 export type MatchMode = 'bot' | 'unranked' | 'ranked'
 export type MatchResult = 'win' | 'loss' | 'draw'
 export type ReportMatchArgs = {

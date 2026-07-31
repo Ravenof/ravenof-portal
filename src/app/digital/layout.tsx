@@ -18,6 +18,7 @@ import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
+import { applyAccessibility } from '@/lib/settings'
 import { useAccount } from '@/lib/digital/accountStore'
 import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
@@ -86,6 +87,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
+    applyAccessibility() // prieinamumas: reduced-motion atributas + UI mastelis
     void scheduleReturnReminders()
     void lockLandscape()
     void heartbeat()
@@ -182,7 +184,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <style>{`body[data-rvn-hide-header="1"] .rvn-app-header { display: none; } body[data-rvn-hide-header="1"] .rvn-nav-rail { display: none; }
         .rvn-skeleton { display: inline-block; background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.13) 50%, rgba(255,255,255,0.06) 75%); background-size: 200% 100%; animation: rvnSkel 1.3s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) { .rvn-skeleton { animation: none; } }
-        @keyframes rvnSkel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+        @keyframes rvnSkel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        /* Prieinamumas (audit #27): programinis „mažiau judesio" jungiklis — CSS
+           animacijų/transition kill-switch (JS canvas FX valdomi atskirai) */
+        body[data-rvn-reduced-motion="1"] *, body[data-rvn-reduced-motion="1"] *::before, body[data-rvn-reduced-motion="1"] *::after {
+          animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+        }`}</style>
 
       {/* ── Šoninis nav rail (patvirtintas dizainas: 92px, 24px ikonos, Cinzel etiketės) ── */}
       {!fullBleed && <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"

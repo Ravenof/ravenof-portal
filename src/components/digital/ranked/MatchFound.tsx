@@ -5,6 +5,17 @@ import { useEffect } from 'react'
 import { RankBadge } from './RankBadge'
 import { playRanked } from '@/lib/ranked/sound'
 import { useT } from '@/lib/i18n/react'
+import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
+
+/** Avataras: URL → apvalus img; emoji/tekstas → kaip anksčiau (botai). */
+function AvatarBubble({ avatar }: { avatar: string | null }) {
+  const isUrl = !!avatar && (avatar.startsWith('/') || avatar.startsWith('http'))
+  if (isUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={avatar!} alt="" className="rounded-full object-cover" style={{ width: 44, height: 44, border: '1.5px solid var(--ravenof-border-gold)' }} />
+  }
+  return <span className="text-4xl">{avatar || '🛡️'}</span>
+}
 
 export type Opponent = { name: string; avatar: string; faction: string; rankStep: number }
 
@@ -20,9 +31,13 @@ export function MatchFound({ me, opponent, onReady }: {
     return () => clearTimeout(t)
   }, [onReady])
 
+  // Mano pusė — AKTYVUS kosmetinis avataras (vienas resolveris), ne 🛡️
+  const cos = useCosmetics()
+  const myAvatar = cos.loaded ? (activeAvatarVisual(cos).url ?? activeAvatarVisual(cos).emoji ?? '🛡️') : '🛡️'
+
   const Side = ({ name, avatar, step, align }: { name: string; avatar: string; step: number; align: 'l' | 'r' }) => (
     <div className={`flex flex-col items-center gap-2 ${align === 'l' ? 'animate-[rvn-slide-l_0.5s_ease-out]' : 'animate-[rvn-slide-r_0.5s_ease-out]'}`}>
-      <span className="text-4xl">{avatar}</span>
+      <AvatarBubble avatar={avatar} />
       <RankBadge step={step} size={72} showLabel />
       <p className="text-sm font-bold text-center max-w-[120px] truncate" style={{ fontFamily: 'var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{name}</p>
     </div>
@@ -35,7 +50,7 @@ export function MatchFound({ me, opponent, onReady }: {
         <div className="ravenof-ornament" aria-hidden><i /></div>
         <p className="text-center" style={{ font: '700 12px var(--ravenof-font-display)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--ravenof-gold-bright)', margin: '8px 0 20px' }}>{t('ranked.matchFound')}</p>
         <div className="flex items-center justify-around gap-3">
-          <Side name={me.name} avatar="🛡️" step={me.rankStep} align="l" />
+          <Side name={me.name} avatar={myAvatar} step={me.rankStep} align="l" />
           <span className="animate-pulse" style={{ font: '700 28px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', textShadow: '0 0 18px rgba(242,196,90,0.5)' }}>VS</span>
           <Side name={opponent.name} avatar={opponent.avatar} step={opponent.rankStep} align="r" />
         </div>

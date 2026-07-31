@@ -25,6 +25,7 @@
     "Šviesos pulkas": "Healing · protection"
   },
   "game": {
+    "achievementsDone": "Achievements completed",
     "actionLog": "Action log",
     "arrangeBtn": "Confirm order",
     "arrangeDown": "Move later",

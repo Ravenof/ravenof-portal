@@ -56,6 +56,20 @@ export async function setFeaturedAchievements(codes: string[]): Promise<{ ok: tr
   return data as { ok: true; featured: string[] } | { error: string }
 }
 
+// ── Ką tik įvykdyti pasiekimai (po-kovos santrauka, audit #11/#15) ──────────
+export type RecentAchievement = {
+  code: string; name: string; badgeFile: string | null
+  rewards: Array<Record<string, unknown>>; completedAt: string
+}
+
+/** Pasiekimai, įvykdyti per paskutines p_seconds — VIENA tvarkinga santrauka po kovos. */
+export async function getRecentAchievements(seconds = 90): Promise<RecentAchievement[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_get_recent_achievements', { p_seconds: seconds })
+  if (error) { console.warn('[profile] getRecentAchievements:', error.message); return [] }
+  return (data as RecentAchievement[]) ?? []
+}
+
 // ── Statistika pagal režimą (audit #24) ─────────────────────────────────────
 // DI treniruotės / nereitinginis PvP / reitinginės kovos ATSKIRAI — kad bendras
 // win-rate nebūtų klaidinantis. Žr. migr. 20260858_match_stats_by_mode.sql.

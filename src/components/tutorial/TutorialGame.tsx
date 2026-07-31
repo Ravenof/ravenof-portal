@@ -36,6 +36,7 @@ import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 
 import { reportMatchV2, recordRankedMatch, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
+import { getRecentAchievements, type RecentAchievement } from '@/lib/profile/client'
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
@@ -44,7 +45,8 @@ import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveTargets, resolveMappingTargets, applyTargetFilters } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
-import { RewardChip } from '@/components/digital/ui/RewardBits'
+import { RewardChip, SafeRewardImage } from '@/components/digital/ui/RewardBits'
+import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
@@ -2218,6 +2220,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Ranked atlygis skiriamas RankedClient. Bot/unranked eina per rvn_report_match_v2
   // (config reikšmės, validumas, dienos cap, level rewards) — vienas šaltinis.
   const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[] } | null>(null)
+  // Po kovos įvykdyti pasiekimai — VIENA tvarkinga santrauka (ne keli popup'ai).
+  // Užsipildo TIK po serverio patvirtinimo (rvn_get_recent_achievements).
+  const [matchAchievements, setMatchAchievements] = useState<RecentAchievement[]>([])
   const [luDismissed, setLuDismissed] = useState(false) // level-up šventės uždarymas (Fazė 3 overlay)
   const matchRewardRef = useRef(false)
   useEffect(() => {
@@ -2244,7 +2249,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       // Dienos užduočių telemetrija (kortos/žala/kill'ai/…): matches eilutė jau egzistuoja.
       try {
         const st = collectMatchStats(game, 'you')
+        // Telemetrijos UPDATE suveikia trg_ach_after_match → po jo paimam ką tik
+        // įvykdytus pasiekimus vienai santraukai rezultato ekrane.
         void reportMatchStats(clientMatchIdRef.current, st, dominantFactionId(deckCards ?? null))
+          .then(() => getRecentAchievements(120))
+          .then((a) => { if (a.length) setMatchAchievements(a) })
+          .catch(() => { /* santrauka neprivaloma */ })
       } catch (err) { console.warn('[quests] telemetrija nepavyko:', err) }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -5067,6 +5077,34 @@ doAction({ t: 'endTurn', actor: 'you' })
                     </motion.div>
                   )}
                 </div>
+              )}
+
+              {/* ── Pasiekimų santrauka (audit #11/#15: viena tvarkinga eilė) ── */}
+              {matchAchievements.length > 0 && (
+                <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+                  style={{ margin: '12px auto 0', maxWidth: 340 }}>
+                  <p style={{ font: '700 9.5px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 6px', textAlign: 'center' }}>
+                    🏆 {t('battle.game.achievementsDone')}
+                  </p>
+                  <div className="flex flex-col" style={{ gap: 5 }}>
+                    {matchAchievements.map((a) => (
+                      <div key={a.code} className="flex items-center" style={{ gap: 8, background: '#15111C', border: '1px solid rgba(212,163,59,0.35)', padding: '7px 10px', textAlign: 'left' }}>
+                        <span className="flex-1 min-w-0 truncate" style={{ font: '700 11.5px var(--ravenof-font-body)', color: '#f3ead3' }}>{a.name}</span>
+                        <span className="shrink-0 flex items-center" style={{ gap: 6 }}>
+                          {(a.rewards ?? []).slice(0, 3).map((r, i) => {
+                            const v = resolveRewardVisualV2(r as { type?: string; amount?: number })
+                            return (
+                              <span key={i} className="inline-flex items-center gap-1" title={v.name}>
+                                <SafeRewardImage src={v.asset} size={13} opticalScale={v.opticalScale} />
+                                {v.label && <b style={{ fontSize: 9.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1 }}>{v.label}</b>}
+                              </span>
+                            )
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
               )}
 
               {/* ── Lygio progresas ── */}
