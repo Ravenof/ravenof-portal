@@ -15,10 +15,11 @@ import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { getPackInventory, getActivePacks } from '@/lib/economy'
 import { useAccount } from '@/lib/digital/accountStore'
+import { useCosmetics } from '@/lib/digital/cosmeticsStore'
 import { formatNumber } from '@/lib/i18n/core'
 import { getShop, purchaseShopItem, purchaseShopItemBulk, isStackable, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
 import { useT, useContent } from '@/lib/i18n/react'
-import { getDailyDeal, buyDailyDealCard, getCosmetics, type DealCard } from '@/lib/cosmetics'
+import { getDailyDeal, buyDailyDealCard, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { RAVENOF_ASSET, ravenofRarityColor } from './ui/RavenofKit'
 import { SmartImg } from '@/components/ui/SmartImg'
@@ -46,9 +47,20 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const account = useAccount()
   const balLoaded = account.balances != null
   const bal = account.balances ?? { silver: 0, rubies: 0, essence: 0 }
-  // kosmetikos vizualai + nuosavybė (kad parduotuvė rodytų TIKRUS daiktus)
-  const [cosVis, setCosVis] = useState<Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }>>({})
-  const [cosOwned, setCosOwned] = useState<Set<string>>(new Set())
+  // kosmetikos vizualai + nuosavybė — VIENAS šaltinis su Profiliu (cosmeticsStore).
+  // Jokių lokalių kopijų: pirkimas atsinaujina ir Shop'e, ir Profilyje iškart.
+  const cosStore = useCosmetics()
+  const cosVis = useMemo(() => {
+    const m: Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }> = {}
+    for (const it of cosStore.items) m[it.id] = { imageUrl: it.imageUrl ?? null, css: it.css ?? null, emoji: it.emoji ?? null, kind: it.kind }
+    return m
+  }, [cosStore.items])
+  const cosOwned = useMemo(() => {
+    const set = new Set(cosStore.owned)
+    for (const it of cosStore.items) if (it.ownedByDefault) set.add(it.id)
+    return set
+  }, [cosStore.items, cosStore.owned])
+  const equippedIds = useMemo(() => new Set([cosStore.active.avatar, cosStore.active.cardBack].filter(Boolean) as string[]), [cosStore.active])
   // tikrų card_packs vaizdai (shop pack prekės su payload item_id = pako uuid)
   const [packImgs, setPackImgs] = useState<Record<string, string | null>>({})
   const [packInv, setPackInv] = useState(0)
@@ -79,12 +91,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     getStarterDecks().then((s) => setStarters(s ?? []))
     getPackInventory().then((inv) => setPackInv(Object.values(inv).reduce((a, b) => a + b, 0)))
     getActivePacks().then((ps) => setPackImgs(Object.fromEntries(ps.map((pk) => [pk.id, pk.image_url ?? null]))))
-    getCosmetics().then((c) => {
-      if (!c) return
-      const m: Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }> = {}
-      for (const it of c.items) m[it.id] = { imageUrl: it.imageUrl ?? null, css: it.css ?? null, emoji: it.emoji ?? null, kind: it.kind }
-      setCosVis(m); setCosOwned(new Set(c.owned))
-    })
+    void useCosmetics.getState().refresh({ force: true })
   }, [])
   useEffect(() => { refresh() }, [refresh])
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2200); return () => clearTimeout(t) }, [toast])
@@ -308,7 +315,22 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
           </div>
         )
       }
-      if (ownedShopItem(selShop)) actions.push(stateBox('own', t('shop.ownedEquip'), 'var(--ravenof-success-bright)', '#6F856255'))
+      if (ownedShopItem(selShop)) {
+        const cid = cosIdOf(selShop)
+        const equipped = !!cid && equippedIds.has(cid)
+        if (equipped) {
+          actions.push(stateBox('own', `★ ${t('profile.cosmetics.selectedBadge')}`, 'var(--ravenof-gold-bright)', 'var(--ravenof-border-gold)'))
+        } else if (cid && (selShop.itemType === 'card_back' || selShop.itemType === 'player_avatar')) {
+          // TURIMA, bet neaktyvi → „NAUDOTI" — tas pats kanoninis kelias kaip Profilyje
+          actions.push(buyBtn('use', t('shop.useCta'), true, () => {
+            const st = useCosmetics.getState()
+            void (selShop.itemType === 'player_avatar' ? st.setActiveAvatar(cid) : st.setActiveCardBack(cid))
+              .then((r) => { if (r.ok) flash(t('profile.cosmetics.selectedToast', { name: shopName(selShop) })); else flash(t('profile.cosmetics.failedToast'), true) })
+          }))
+        } else {
+          actions.push(stateBox('own', t('shop.ownedEquip'), 'var(--ravenof-success-bright)', '#6F856255'))
+        }
+      }
       else {
         const n = stack ? qty : 1
         if (selShop.prices.silver != null) {
@@ -491,16 +513,25 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                     const vis = visOf(it)
                     const packImg = packImgOf(it)
                     const owned = ownedShopItem(it)
+                    const cid = cosIdOf(it)
+                    const equipped = !!cid && equippedIds.has(cid)
                     const art = packImg
                       ? artFull(packImg, 340)
                       : vis?.imageUrl
                         ? artFull(vis.imageUrl, 340)
                         : vis?.css
-                          ? <span className="absolute inset-0" style={{ background: vis.css }} />
+                          // CSS kosmetika — NE tuščia panelė: fonas + rėmelis + centrinė emblema
+                          ? <span className="absolute inset-0" style={{ background: vis.css }}>
+                              <span aria-hidden className="absolute" style={{ inset: 8, border: '1px solid rgba(240,180,41,0.35)', borderRadius: 6 }} />
+                              <span aria-hidden className="absolute" style={{ left: '50%', top: '50%', width: '32%', aspectRatio: '1', borderRadius: 999, border: '1.5px solid rgba(240,180,41,0.5)', transform: 'translate(-50%,-50%) rotate(45deg)' }} />
+                            </span>
                           : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>
                     return tileFrame(it.id, () => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }, art,
                       shopName(it), shopDesc(it),
-                      priceRow(owned ? null : it.prices.silver, owned ? null : it.prices.rubies, owned ? { label: t('shop.owned'), color: 'var(--ravenof-success-bright)' } : (it.prices.silver == null && it.prices.rubies == null && it.prices.real_money != null ? { label: `€${it.prices.real_money.toFixed(2)}`, color: 'var(--ravenof-text-secondary)' } : null)), owned)
+                      priceRow(owned ? null : it.prices.silver, owned ? null : it.prices.rubies,
+                        equipped ? { label: `★ ${t('profile.cosmetics.selectedBadge')}`, color: 'var(--ravenof-gold-bright)' }
+                        : owned ? { label: t('shop.owned'), color: 'var(--ravenof-success-bright)' }
+                        : (it.prices.silver == null && it.prices.rubies == null && it.prices.real_money != null ? { label: `€${it.prices.real_money.toFixed(2)}`, color: 'var(--ravenof-text-secondary)' } : null)), owned)
                   })}
                 </div>
               </>

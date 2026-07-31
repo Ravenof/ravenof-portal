@@ -19,6 +19,7 @@ import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 import { useAccount } from '@/lib/digital/accountStore'
+import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -77,6 +78,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   // Kol account.loaded=false, header'is rodo skeleton'ą (jokių „Žaidėjas"/0 reikšmių).
   const account = useAccount()
   const { profile, balances } = account
+  // Aktyvus kosmetinis avataras — bendras resolveris; pirmenybė prieš avatar_url
+  const cosState = useCosmetics()
+  const cosmeticAvatarUrl = cosState.loaded ? activeAvatarVisual(cosState).url : null
   const rank = account.rankStep != null ? rankDisplay(account.rankStep) : null
   const refreshWallet = useCallback(() => { void useAccount.getState().refresh({ force: true }) }, [])
 
@@ -100,7 +104,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }, [])
 
   useEffect(() => {
-    const loadProfile = () => { void useAccount.getState().refresh() }
+    const loadProfile = () => { void useAccount.getState().refresh(); void useCosmetics.getState().refresh() }
     loadProfile()
     window.addEventListener('focus', loadProfile)
     return () => window.removeEventListener('focus', loadProfile)
@@ -215,7 +219,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             style={{ gap: 9, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
             <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
-              <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: profile?.avatarUrl ? `center/cover url(${profile.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
+              <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
                 {!account.loaded ? (
                   /* Kol paskyra nepakrauta — skeleton (fiksuoti matmenys, be „Žaidėjas"/0) */

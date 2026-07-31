@@ -19,6 +19,7 @@ import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, deckValidity, activeDeckOf } from '@/lib/digital/activeDeck'
+import { useCosmetics, preloadActiveCosmetics } from '@/lib/digital/cosmeticsStore'
 import { SectionTitle } from './_ui'
 import { RankedQueue, type MatchedOpponent } from './RankedQueue'
 import { MatchFound } from './MatchFound'
@@ -74,6 +75,8 @@ export function RankedClient() {
     getFactionIdMap().then(setFactionIds)
     getLeaderboard(3, 0).then((rows) => setLeaders(rows.slice(0, 3)))
     void useActiveDeck.getState().refresh()
+    // aktyvi nugarėlė + avataras parsiunčiami PRIEŠ kovą (audit Part 6)
+    void useCosmetics.getState().refresh().then(() => preloadActiveCosmetics())
     getStarterDecks().then((sd) => {
       const m: Record<number, string> = {}
       for (const st of sd ?? []) if (st.factionId != null && st.imageUrl) m[st.factionId] = st.imageUrl

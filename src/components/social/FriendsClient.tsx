@@ -201,7 +201,14 @@ export function FriendsClient() {
                   className="ravenof-press w-full flex items-center text-left shrink-0"
                   title={`${f.displayName || f.username} (@${f.username}) · ${t('social.lvl', { lvl })}`}
                   style={{ gap: 9, padding: '9px 10px', cursor: 'pointer', background: sel ? 'var(--ravenof-bg-surface-2)' : 'var(--ravenof-bg-surface)', border: sel ? '1px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-strong)' }}>
-                  <span className="shrink-0 rounded-full" title={m.name} style={{ width: 9, height: 9, background: m.color }} />
+                  {/* Draugo avataras (avatar_url) + presence taškas ant jo krašto */}
+                  <span className="shrink-0 relative rounded-full overflow-visible" style={{ width: 30, height: 30 }}>
+                    <span className="absolute inset-0 rounded-full overflow-hidden flex items-center justify-center"
+                      style={{ border: '1.5px solid var(--ravenof-border-gold)', background: f.avatar ? `center/cover url(${f.avatar})` : 'linear-gradient(160deg,#241a35,#0f0a18)' }}>
+                      {!f.avatar && <span style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold)' }}>{(f.displayName || f.username).charAt(0).toUpperCase()}</span>}
+                    </span>
+                    <span className="absolute rounded-full" title={m.name} style={{ right: -1, bottom: -1, width: 9, height: 9, background: m.color, border: '1.5px solid var(--ravenof-bg-surface)' }} />
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate" style={{ font: '700 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
                     <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(f) : m.name}{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>

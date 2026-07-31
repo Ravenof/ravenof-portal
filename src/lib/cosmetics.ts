@@ -24,6 +24,9 @@ export type CosmeticsState = {
   equippedCardBack: string | null
   equippedBoard: string | null
   equippedAvatar: string | null
+  /** Serverio VALIDUOTI aktyvūs pasirinkimai (fallback į default DB pusėje) — migr. 20260860 */
+  active?: { avatar: string | null; cardBack: string | null }
+  defaults?: { avatar: string | null; cardBack: string | null }
 }
 
 export async function getCosmetics(): Promise<CosmeticsState | null> {
@@ -51,7 +54,13 @@ export async function getEquippedBattleSkins(): Promise<BattleSkins> {
     if (!it || (!it.imageUrl && !it.css)) return null
     return { url: it.imageUrl ?? null, css: it.css ?? null }
   }
-  const out: BattleSkins = { cardBack: find(st?.equippedCardBack ?? null), board: find(st?.equippedBoard ?? null) }
+  // KANONINĖ nugarėlė: serverio validuotas active.cardBack (su fallback į
+  // cb_default) → senas equippedCardBack → statinis default kelias.
+  const backId = st?.active?.cardBack ?? st?.equippedCardBack ?? null
+  const out: BattleSkins = {
+    cardBack: find(backId) ?? { url: '/card-backs/ravenof-default.webp', css: null },
+    board: find(st?.equippedBoard ?? null),
+  }
   try { sessionStorage.setItem(SKINS_KEY, JSON.stringify(out)) } catch { /* */ }
   return out
 }

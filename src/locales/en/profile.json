@@ -46,6 +46,19 @@
     "unpin": "Unpin from profile",
     "unpinOk": "Badge unpinned."
   },
+  "cosmetics": {
+    "failedToast": "Could not save — try again.",
+    "lockLevel": "Account level {{level}}",
+    "lockRewards": "Obtained from rewards or the shop",
+    "lockShopSilver": "In the shop for {{price}} silver",
+    "lockedToast": "This cosmetic is still locked.",
+    "selectCta": "Select",
+    "selectedBadge": "Selected",
+    "selectedToast": "Selected: {{name}}",
+    "tabAvatar": "Avatar",
+    "tabCardBack": "Card back",
+    "title": "Edit profile"
+  },
   "level": {
     "actChoose": "Choose now",
     "actClaimed": "Claimed",

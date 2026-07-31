@@ -13,6 +13,8 @@ import { useT } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
 import { playUiClick } from '@/lib/ui-sound'
 import { getAchievements, getMatchModeStats, getProfileOverview, type MatchModeStats, type ProfileOverview } from '@/lib/profile/client'
+import { ProfileCosmeticsModal } from './ProfileCosmeticsModal'
+import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
 import { rankLabel, rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
 import { medalTierFromStep, rankNumberFromStep, rankDisplay } from '@/lib/ranked/rank'
 import { AchievementBadge } from './AchievementBadge'
@@ -58,6 +60,12 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   const [featured, setFeatured] = useState<string[]>([])
   const [achSummary, setAchSummary] = useState<{ done: number; total: number } | null>(null)
   const [modeStats, setModeStats] = useState<MatchModeStats | null>(null)
+  const [editOpen, setEditOpen] = useState<false | 'avatar' | 'card_back'>(false)
+  // Aktyvus kosmetinis avataras — vienas resolveris (cosmeticsStore); rodomas
+  // pirmiau už įkeltą avatar_url nuotrauką (audit Part 4: pasirinktas avataras
+  // matomas profilyje). Svetimame profilyje — jo equippedAvatar per katalogą.
+  const cos = useCosmetics()
+  useEffect(() => { void useCosmetics.getState().refresh() }, [])
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState<string | null | false>(false)
   const [tab, setTab] = useState<Tab>('overview')
@@ -98,6 +106,17 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
     catch { toast.show(t('profile.overview.idCopyFailed'), 'err') }
   }
 
+  const equippedAvatarUrl = (() => {
+    // savo profilis → aktyvus iš store; viešas → to žaidėjo equippedAvatar id per katalogą
+    if (!cos.loaded) return null
+    if (!isPublic) return activeAvatarVisual(cos).url
+    const id = identity.equippedAvatar
+    return id ? (cos.items.find((c) => c.id === id)?.imageUrl ?? null) : null
+  })()
+  const avatarBg = (equippedAvatarUrl || identity.avatarUrl)
+    ? `center/cover url(${equippedAvatarUrl || identity.avatarUrl})`
+    : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)'
+
   // ── Tapatybės kortelė ─────────────────────────────────────────────────────
   const identityCard = (
     <div className="rvn-prog-scroll" style={{
@@ -108,7 +127,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span aria-hidden style={{
             width: 76, height: 86, flex: 'none', clipPath: HOLDER,
-            background: identity.avatarUrl ? `center/cover url(${identity.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)',
+            background: avatarBg,
             border: `1px solid ${C.gold}`,
           }} />
           <div style={{ minWidth: 0 }}>
@@ -132,7 +151,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
             <div style={{ flex: 1 }}><Cta disabled tone="ghost" minHeight={40}>{t('profile.overview.challenge')}</Cta></div>
           </div>
         ) : (
-          <Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); toast.show(t('profile.overview.editSoon')) }}>
+          <Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); setEditOpen('avatar') }}>
             {t('profile.overview.edit')}
           </Cta>
         )}
@@ -243,7 +262,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
     <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderBottom: `1px solid #1e1a26`, overflowX: 'auto' }}>
       <span aria-hidden style={{
         width: 56, height: 64, flex: 'none', clipPath: HOLDER,
-        background: identity.avatarUrl ? `center/cover url(${identity.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)',
+        background: avatarBg,
         border: `1px solid ${C.gold}`,
       }} />
       <span style={{ minWidth: 0, flex: 'none' }}>
@@ -254,7 +273,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
       {chip(t('profile.overview.ranked'), rankNo != null ? String(rankNo) : '—', '#D6DCE6', () => { playUiClick(); router.push('/digital/ranked') })}
       {chip(t('profile.nav.achievements'), `${achSummary?.done ?? 0}/${achSummary?.total ?? 70}`, 'var(--rvn-burgundy-fg)', isPublic ? undefined : () => { playUiClick(); router.push('/digital/profile/achievements') })}
       {!isPublic && (
-        <button type="button" onClick={() => { playUiClick(); toast.show(t('profile.overview.editSoon')) }}
+        <button type="button" onClick={() => { playUiClick(); setEditOpen('avatar') }}
           style={{ flex: 'none', minHeight: 44, padding: '0 11px', border: `1px solid ${C.gold}`, background: 'transparent', color: C.bone, cursor: 'pointer', font: `700 9.5px ${DISPLAY}`, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           {t('profile.overview.edit')}
         </button>
@@ -484,6 +503,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
           <div className="rvn-prog-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 2 }}>{body()}</div>
         </div>
       </div>
+      {editOpen && <ProfileCosmeticsModal initialTab={editOpen} onClose={() => { setEditOpen(false); void load() }} />}
       {toast.node}
     </div>
   )

@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { playUiClick, playError } from '@/lib/ui-sound'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf, deckValidity } from '@/lib/digital/activeDeck'
+import { useCosmetics, preloadActiveCosmetics } from '@/lib/digital/cosmeticsStore'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
@@ -76,6 +77,8 @@ export function DigitalPvP() {
       if (firstValid) setSel(firstValid.id)
     })
     void useActiveDeck.getState().refresh()
+    // aktyvi nugarėlė + avataras parsiunčiami PRIEŠ kovą (audit Part 6)
+    void useCosmetics.getState().refresh().then(() => preloadActiveCosmetics())
     getStarterDecks().then((sd) => {
       const m: Record<number, string> = {}
       for (const st of sd ?? []) if (st.factionId != null && st.imageUrl) m[st.factionId] = st.imageUrl

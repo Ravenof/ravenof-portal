@@ -913,7 +913,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const cos = await getCosmetics()
       if (!alive) return
       const items = (cos?.items ?? []).filter((c) => c.kind === 'avatar')
-      const mine = items.find((c) => c.id === cos?.equippedAvatar) ?? items.find((c) => c.ownedByDefault) ?? items[0] ?? null
+      // KANONINĖ tvarka: kaladės bound_avatar (jei žaidžiama su ta kalade) →
+      // serverio validuotas active.avatar → equippedAvatar → default → pirmas.
+      let boundAv: string | null = null
+      try {
+        const ad = (await import('@/lib/digital/activeDeck')).useActiveDeck.getState()
+        boundAv = ad.decks.find((d) => d.id === deckId)?.boundAvatar ?? null
+      } catch { /* */ }
+      const mine = (boundAv ? items.find((c) => c.id === boundAv) : null)
+        ?? items.find((c) => c.id === (cos?.active?.avatar ?? cos?.equippedAvatar))
+        ?? items.find((c) => c.ownedByDefault) ?? items[0] ?? null
       // PvP: paimam TIKRĄ priešininko pasirinktą avatarą (iš jo profilio); kitaip – default.
       let foeId: string | null = null
       if (net?.opponentId) {

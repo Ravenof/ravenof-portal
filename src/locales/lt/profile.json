@@ -46,6 +46,19 @@
     "unpin": "Nusegti nuo profilio",
     "unpinOk": "Ženklas nusegtas."
   },
+  "cosmetics": {
+    "failedToast": "Nepavyko išsaugoti — bandyk dar kartą.",
+    "lockLevel": "{{level}} paskyros lygis",
+    "lockRewards": "Gaunama iš atlygių ar parduotuvės",
+    "lockShopSilver": "Parduotuvėje už {{price}} sidabro",
+    "lockedToast": "Ši kosmetika dar užrakinta.",
+    "selectCta": "Pasirinkti",
+    "selectedBadge": "Pasirinkta",
+    "selectedToast": "Pasirinkta: {{name}}",
+    "tabAvatar": "Avataras",
+    "tabCardBack": "Kortų nugarėlė",
+    "title": "Redaguoti profilį"
+  },
   "level": {
     "actChoose": "Pasirinkti dabar",
     "actClaimed": "Atsiimta",

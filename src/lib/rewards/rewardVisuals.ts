@@ -41,7 +41,8 @@ const DEFS: Record<string, Def> = {
   account_xp:    { asset: I + 'fi-academy.png',  name: 'rewards.item.account_xp.name',   desc: 'rewards.item.account_xp.desc' },
   season_xp:     { asset: I + 'seg-season.png',  name: 'rewards.item.season_xp.name',       desc: 'rewards.item.season_xp.desc' },
   pack:          { asset: I + 'pack.png',        name: 'rewards.item.pack.name',     desc: 'rewards.item.pack.desc', opticalScale: 0.92 },
-  card_back:     { asset: I + 'nav-decks.png',   name: 'rewards.item.card_back.name',  desc: 'rewards.item.card_back.desc' },
+  // Tikra nugarėlės miniatiūra (nebe deck nav ikona) — audit Part 4 reward preview
+  card_back:     { asset: '/card-backs/thumbs/ravenof-default.webp', name: 'rewards.item.card_back.name', desc: 'rewards.item.card_back.desc', opticalScale: 0.95 },
   player_avatar: { asset: I + 'avatar.png',      name: 'rewards.item.player_avatar.name',        desc: 'rewards.item.player_avatar.desc' },
   card:          { asset: I + 'nav-collection.png', name: 'rewards.item.card.name',         desc: 'rewards.item.card.desc' },
   badge:         { asset: I + 'fi-ranked.png',   name: 'rewards.item.badge.name',  desc: 'rewards.item.badge.desc' },

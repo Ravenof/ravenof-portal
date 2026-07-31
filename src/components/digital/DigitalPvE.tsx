@@ -18,6 +18,7 @@ import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { PVE_REWARD } from '@/lib/economy'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
 import { useActiveDeck, activeDeckOf, deckValidity } from '@/lib/digital/activeDeck'
+import { useCosmetics, preloadActiveCosmetics } from '@/lib/digital/cosmeticsStore'
 import { DECK_MIN, DECK_MAX, formatDeckCount } from '@/lib/deck-validation'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { useT, useContent, useGameContent, useLocale } from '@/lib/i18n/react'
@@ -86,6 +87,8 @@ export function DigitalPvE() {
         setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? t('battle.player'), score: d.score ?? 0, cardCount: d.card_count ?? 0 })))
       })
     void useActiveDeck.getState().refresh()
+    // aktyvi nugarėlė + avataras parsiunčiami PRIEŠ kovą (audit Part 6)
+    void useCosmetics.getState().refresh().then(() => preloadActiveCosmetics())
     getStarterDecks().then((sd) => {
       const m: Record<number, string> = {}
       for (const st of sd ?? []) if (st.factionId != null && st.imageUrl) m[st.factionId] = st.imageUrl
