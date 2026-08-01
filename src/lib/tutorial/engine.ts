@@ -10,7 +10,7 @@ import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curs
 import * as fieldEngine from '@/lib/game/fieldEngine'
 import { fireTrigger } from '@/lib/game/triggerSystem'
 import type { ResolvedTarget } from '@/lib/game/targetResolver'
-import { resolveMappingTargets } from '@/lib/game/targetResolver'
+import { resolveMappingTargets, resolveTargets, applyTargetFilters } from '@/lib/game/targetResolver'
 import { t } from '@/lib/i18n/core'
 
 export type Side = 'you' | 'ai' | 'ally' | 'foe2'  // 1v1: you/ai; 2v2 komandos: A={you,ally} B={ai,foe2}
@@ -822,6 +822,28 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
   checkWin(g)
 }
 
+// ── onHpOne: „kai po žalos lieka lygiai 1 gyvybė" ────────────────────────────
+// Šaunamas KIEKVIENĄ kartą, kai padaro HP po žalos tampa lygiai 1 (išgyvenus).
+// Re-entrancy apsauga: to paties padaro trigger'is negali iššauti savęs
+// rekursyviai toje pačioje grandinėje (pvz., onHpOne → heal → dmg → vėl 1 HP).
+const hpOneFiring = new Set<string>()
+function fireHpOneTrigger(g: GameState, owner: Side, target: BoardUnit): void {
+  if (g.winner || target.hp !== 1 || target.statuses.silenced) return
+  const maps = target.card.mappings ?? []
+  if (!maps.some((m) => m.trigger === 'onHpOne')) return
+  if (hpOneFiring.has(target.uid)) return
+  hpOneFiring.add(target.uid)
+  try {
+    // FX šaltinis — efektai (žala/buff/heal) animuojami NUO šio padaro
+    log(g, { t: 'fxSource', side: owner, cardName: target.card.name, src: { side: owner, uid: target.uid } })
+    for (const m of maps) {
+      if (m.trigger !== 'onHpOne') continue
+      applyMapping(gameApi, g, owner, m, { sourceName: target.card.name, sourceUid: target.uid, depth: 1, allMappings: maps })
+      if (g.winner) break
+    }
+  } finally { hpOneFiring.delete(target.uid) }
+}
+
 function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, actor: Side, useZmk = true, overflow = false) {
   if (target.shield) {
     target.shield = false
@@ -866,6 +888,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
     return
   }
   if ((target.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // Įsiūtis įsijungia sužeidus
+  fireHpOneTrigger(g, owner, target) // onHpOne — po žalos liko lygiai 1 HP
 }
 
 // Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,
@@ -2297,6 +2320,8 @@ function flushPendingLastwish(g: GameState) {
 export function resolvePendingLastwish(g: GameState, targets: TargetRef[]): { ok: boolean; reason?: string } {
   const pl = g.pendingLastwish
   if (!pl) return { ok: true }
+  // Netinkamas taikinys → atmetam ir paliekam laukimą (mapping'as NEnuimamas iš eilės)
+  if (pl.mappings[0] && !chosenTargetsLegal(g, pl.side, [pl.mappings[0]], { targets })) return { ok: false, reason: 'battleLog.err.invalidTarget' }
   const m = pl.mappings.shift()
   if (!pl.mappings.length) g.pendingLastwish = null
   if (m) {
@@ -2348,14 +2373,47 @@ function fireEntryMappings(g: GameState, s: Side, u: BoardUnit, entries?: { m: E
   }
 }
 
+/** VARIKLIO pusės žaidėjo pasirinkto taikinio validacija: taikinys PRIVALO
+ *  priklausyti mapping'o taikinių aibei (target tipas + targetTypes + filtrai:
+ *  sužeisti / potipis / frakcija / būsena, pvz. „tik su Provoke") ir negali
+ *  būti sėlinantis priešo padaras. UI paryškinimas – tik patogumas; be šios
+ *  patikros paspaudus nepažymėtą kortą (ar apeinant UI PvP) „sunaikink padarą
+ *  su Provoke" būtų galima taikyti į BET KĄ. */
+function isLegalChosenTarget(g: GameState, s: Side, m: EffectMapping, ref: TargetRef): boolean {
+  if (!mappingNeedsSelection(m)) return true  // taikinys parenkamas automatiškai – žaidėjo ref neprivalomas šiam mapping'ui
+  const hasTypes = !!m.targetTypes && m.targetTypes.length > 0
+  const all = applyTargetFilters(g, m, hasTypes ? resolveMappingTargets(g, s, m) : resolveTargets(g, s, m.target))
+  const inSet = all.some((t) => t.kind === ref.kind && ('side' in t ? t.side === ref.side : true)
+    && ('uid' in ref ? ('uid' in t && t.uid === ref.uid) : true))
+  if (!inSet) return false
+  // Sėlinančio PRIEŠO padaro rankiniu būdu taikyti negalima (kaip ir atakos/burtų UI)
+  if (ref.kind === 'unit' && enemySeats(g, s).includes(ref.side)) {
+    const u = P(g, ref.side).units.find((x) => x?.uid === ref.uid)
+    if (u?.stealth) return false
+  }
+  return true
+}
+
+/** Validuoja žaidėjo perduotus taikinius prieš PIRMĄJĮ selection mapping'ą
+ *  (UI taikinius renka būtent jam). true = leidžiama vykdyti. */
+function chosenTargetsLegal(g: GameState, s: Side, mappings: EffectMapping[], opts?: { target?: TargetRef; targets?: TargetRef[] }): boolean {
+  const refs = opts?.targets?.length ? opts.targets : (opts?.target ? [opts.target] : [])
+  if (refs.length === 0) return true
+  const sel = mappings.find((m) => mappingNeedsSelection(m))
+  if (!sel) return true
+  return refs.every((r) => isLegalChosenTarget(g, s, sel, r))
+}
+
 /** Žaidėjo pasirinktas pendingBattlecry taikinys. */
 export function resolvePendingBattlecry(g: GameState, target: TargetRef): { ok: boolean; reason?: string } {
   const pb = g.pendingBattlecry
   if (!pb) return { ok: true }
   const u = P(g, pb.side).units.find((x): x is BoardUnit => !!x && x.uid === pb.uid)
-  g.pendingBattlecry = null
-  if (!u) return { ok: true }  // padaras žuvo — šūksnis nebeįvyksta
+  if (!u) { g.pendingBattlecry = null; return { ok: true } }  // padaras žuvo — šūksnis nebeįvyksta
   const bcMappings = pb.idx.map((i) => (u.card.mappings ?? [])[i]).filter(Boolean) as EffectMapping[]
+  // Netinkamas taikinys → atmetam ir PALIEKAM laukimą (žaidėjas renkasi iš naujo)
+  if (!chosenTargetsLegal(g, pb.side, bcMappings, { target })) return { ok: false, reason: 'battleLog.err.invalidTarget' }
+  g.pendingBattlecry = null
   for (let bc = 0; bc < pb.rounds && !g.winner; bc++) {
     log(g, { t: 'battlecry', side: pb.side, cardName: u.card.name, key: 'battleLog.battlecry', params: { card: u.card.name }, src: { side: pb.side, uid: u.uid } })
     runMappingsDeferrable(g, pb.side, u.card.name, u.uid, bcMappings, target, pb.rounds === 1)
@@ -3025,6 +3083,10 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
     case 'unit': {
       const slot = freeUnitSlot(g, p)
       if (slot === -1) return { ok: false, reason: 'battleLog.err.unitZoneFull', reasonParams: { max: fieldEngine.creatureCap(g, s) } }
+      // Rankinio taikinio validacija PRIEŠ bet kokį būsenos keitimą (auksas/ranka lieka nepaliesti)
+      if (!chosenTargetsLegal(g, s, (card.mappings ?? []).filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay'), opts)) {
+        return { ok: false, reason: 'battleLog.err.invalidTarget' }
+      }
       p.hand.splice(i, 1)
       p.gold -= cost
       const u: BoardUnit = {
@@ -3071,6 +3133,10 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       return { ok: true }
     }
     case 'spell': {
+      // Rankinio taikinio validacija PRIEŠ auksą/ranką
+      if (!chosenTargetsLegal(g, s, (card.mappings ?? []).filter((m) => m.trigger === 'onCast' || m.trigger === 'onPlay'), opts)) {
+        return { ok: false, reason: 'battleLog.err.invalidTarget' }
+      }
       p.hand.splice(i, 1)
       p.gold -= cost
       p.spellDiscountNext = 0
@@ -3282,6 +3348,8 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
   if (skillIndex < 0 || skillIndex >= skills.length) return { ok: false, reason: 'battleLog.err.skillNotConfigured' }
   if (!skills[skillIndex].unlocked) return { ok: false, reason: 'battleLog.err.skillLocked', reasonParams: { n: skillIndex + 1 } }
   const skill = skills[skillIndex]
+  // Rankinio taikinio validacija PRIEŠ pažymint gebėjimą panaudotu
+  if (!chosenTargetsLegal(g, s, skill.mappings, opts)) return { ok: false, reason: 'battleLog.err.invalidTarget' }
   ch.abilityUsed = true
   g.rollContext = { kind: 'spell', actor: s, spellType: ch.card.gameplay?.spellType }
   log(g, {
@@ -3328,6 +3396,10 @@ function unitMaxAttacks(g: GameState, s: Side, u: BoardUnit): number {
   }
   if ((ea.ifEarlyTurns ?? 0) > 0 && P(g, s).turnNumber <= (ea.earlyTurnsUpTo ?? 1)) {
     extra += ea.ifEarlyTurns as number
+  }
+  // +N tą ėjimą, kai ŠIS padaras iškviestas (Kenji: Sprint + onSummonTurn 1 → puola 2× iškart)
+  if ((ea.onSummonTurn ?? 0) > 0 && u.summonedOnTurn === g.globalTurn) {
+    extra += ea.onSummonTurn as number
   }
   return 1 + Math.max(0, extra)
 }
@@ -3501,6 +3573,9 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     if (defKilled && !def.isChampion && u.hp > 0 && p.units.some((x) => x?.uid === u.uid)) {
       grantSecondAttackIfAura(g, s, u, { taunt: defHadTaunt, shield: defHadShield })
     }
+    // onHpOne — kovos žala paliko lygiai 1 HP (gynėjui ir/ar puolėjui)
+    if (!defKilled) { const dAlive = P(g, foe).units.find((x) => x?.uid === def.uid); if (dAlive) fireHpOneTrigger(g, foe, dAlive) }
+    { const uAlive = p.units.find((x) => x?.uid === u.uid); if (uAlive) fireHpOneTrigger(g, s, uAlive) }
   } else if (target.kind === 'artifact') {
     const a = P(g, foe).artifacts.find((x) => x?.uid === target.uid)
     if (!a) { clearThisAttack(); return { ok: true } }
@@ -3512,6 +3587,20 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     else dealToPlayer(g, foe, atk, s)
   }
   clearThisAttack()
+  // onAfterAttack mapping'ai (puolančiojo) — PO visos atakos raidos (kovos žala,
+  // atgalinė žala, žūtys, antros atakos aura), TIK jei puolėjas išgyveno.
+  // useAttackTarget → efektas taikomas į atakuotą taikinį (jei jis dar egzistuoja).
+  {
+    const uEnd = p.units.find((x) => x?.uid === u.uid)
+    if (uEnd && !uEnd.statuses.silenced && !g.winner) {
+      for (const m of (uEnd.card.mappings ?? [])) {
+        if (m.trigger !== 'onAfterAttack') continue
+        const ct = m.useAttackTarget ? toResolved(target) : undefined
+        applyMapping(gameApi, g, s, m, { sourceName: uEnd.card.name, sourceUid: uEnd.uid, chosenTarget: ct, depth: 1, allMappings: uEnd.card.mappings ?? [] })
+        if (g.winner) break
+      }
+    }
+  }
   checkWin(g)
   return { ok: true }
 }

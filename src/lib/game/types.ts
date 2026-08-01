@@ -176,7 +176,8 @@ export const SPELL_TYPES: { value: SpellType; label: string; icon: string }[] = 
 // ── Trigger tipai ─────────────────────────────────────────────────────────────
 export type TriggerType =
   | 'onPlay' | 'onSummon' | 'onCast'
-  | 'onAttack' | 'onAttacked'
+  | 'onAttack' | 'onAttacked' | 'onAfterAttack'
+  | 'onHpOne'
   | 'onDamageDealt' | 'onDamageReceived'
   | 'onHeal' | 'onDeath' | 'onDestroy'
   | 'onDraw' | 'onDiscard' | 'onCurseDrawn'
@@ -194,7 +195,9 @@ export const TRIGGER_TYPES: { value: TriggerType; label: string }[] = [
   { value: 'onSummon',            label: 'Iškvietus (Kovos šūksnis)' },
   { value: 'onCast',              label: 'Panaudojus burtą' },
   { value: 'onAttack',            label: 'Atakuojant' },
+  { value: 'onAfterAttack',       label: 'Po atakos (šiam padarui atsipuolus ir išgyvenus)' },
   { value: 'onAttacked',          label: 'Kai puolamas' },
+  { value: 'onHpOne',             label: 'Kai po žalos lieka lygiai 1 gyvybė' },
   { value: 'onDamageDealt',       label: 'Padarius žalą' },
   { value: 'onDamageReceived',    label: 'Gavus žalą' },
   { value: 'onHeal',              label: 'Pagydžius' },
@@ -642,8 +645,9 @@ export type GameplayConfig = {
     ifNoEnemyCreatures?: number           // +N jei priešas neturi kūrinių
     ifSummonedFaction?: number            // +N jei SI EJIMA iskvietei summonedFactionId frakcijos padara
     summonedFactionId?: number            // kurios frakcijos padaro laukiama (be jo ifSummonedFaction neveikia)
-    ifEarlyTurns?: number                 // +N kol ėjimo numeris <= earlyTurnsUpTo
+    ifEarlyTurns?: number                 // +N kol ŽAIDĖJO ėjimo numeris <= earlyTurnsUpTo (ne padaro amžius!)
     earlyTurnsUpTo?: number               // iki kurio ėjimo galioja ifEarlyTurns (numatyta 1)
+    onSummonTurn?: number                 // +N TĄ ėjimą, kai ŠIS padaras iškviestas (su Sprint → puola 1+N kartų iškart; Kenji)
   }
   synergy?: {                             // veikia kai ŠIS ir partneris abu kovos lauke
     withNames?: string                    // partnerių kortų vardai (kableliais)

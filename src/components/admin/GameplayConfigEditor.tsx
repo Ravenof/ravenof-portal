@@ -673,7 +673,20 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined })
             }}
             style={{ ...inputStyle, width: 60 }} />
-          <span>ataka (pvz. pirmą ėjimą puola 2×)</span>
+          <span>ataka (ŽAIDĖJO ėjimo nr., ne padaro amžius)</span>
+        </div>
+        {/* Padaro IŠKVIETIMO ėjimas: su Sprint puola 1+N kartų iškart (pvz. Kenji) */}
+        <div className="flex flex-wrap items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+          <span>+ TĄ ėjimą, kai iškviestas:</span>
+          <input type="number" min={0} value={cfg.extraAttacks?.onSummonTurn ?? ''} placeholder="0"
+            onChange={(e) => {
+              const v = e.target.value === '' ? undefined : Number(e.target.value)
+              const ea = { ...(cfg.extraAttacks ?? {}), onSummonTurn: v }
+              const clean = Object.fromEntries(Object.entries(ea).filter(([, x]) => x != null)) as NonNullable<GameplayConfig['extraAttacks']>
+              update({ ...cfg, extraAttacks: Object.keys(clean).length ? clean : undefined })
+            }}
+            style={{ ...inputStyle, width: 60 }} />
+          <span>ataka (1 + Sprint = iškviestas puola 2×; kitą ėjimą vėl 1)</span>
         </div>
       </div>
 

@@ -2498,7 +2498,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
       const r = applyNetAction(g, a)
       if (r && !r.ok) {
-        pushToast(r.reason ?? 'Veiksmas negalimas')
+        const rr = r as { reason?: string; reasonParams?: Record<string, string | number> }
+        pushToast(rr.reason ? t(rr.reason, rr.reasonParams) : 'Veiksmas negalimas')
         // Status VFX: bandymas veikti su frozen/stunned → trigger animacija ant kortos
         const aid = (a as { uid?: string; attackerUid?: string }).attackerUid ?? (a as { uid?: string }).uid
         if (aid && r.reason) {
@@ -2509,7 +2510,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
       return gateCommit(g, prev)   // reakcijos → būsena atskleidžiama po grandinės animacijos
     })
-  }, [isGuest, pushToast, tutorial, gateCommit])
+  }, [isGuest, pushToast, tutorial, gateCommit, t])
 
   // ── Nuoseklūs Kovos šūksnio iškvietimai ─────────────────────────────────────
   // Kol `game.summonChain` netuščias, kas BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS
@@ -2703,7 +2704,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       return
     }
     const can = canUnitAttack(game!, 'you', u)
-    if (!can.ok) { pushToast(can.reason ?? ''); return }
+    if (!can.ok) { pushToast(can.reason ? t(can.reason, can.reasonParams) : ''); return }
     playUiClick()
     setSelect(select?.kind === 'attacker' && select.uid === u.uid ? null : { kind: 'attacker', uid: u.uid })
   }
@@ -2742,21 +2743,25 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }
   }
 
-  const onTargetClick = (t: TargetRef) => {
+  const onTargetClick = (tr: TargetRef) => {
     if (actionsLocked) return
-    if (select?.kind === 'lastwish') { toggleSpellTarget(t); return }
+    // Taikinio režimuose leidžiam TIK pažymėtus (teisėtus) taikinius — kitaip
+    // efektas su filtru (pvz. „sunaikink padarą su Provoke") eitų į bet ką.
+    const kindsGated = select?.kind === 'battlecry' || select?.kind === 'spell' || select?.kind === 'spellMulti' || select?.kind === 'lastwish'
+    if (kindsGated && !targetSet.has(targetRefKey(tr))) { pushToast(t('battleLog.err.invalidTarget')); return }
+    if (select?.kind === 'lastwish') { toggleSpellTarget(tr); return }
     if (!myTurn) return
     if (Date.now() - dragEndRef.current < 350) return
     if (select?.kind === 'attacker') {
       const uid = select.uid
-      doAction({ t: 'attack', actor: 'you', uid, target: t })
+      doAction({ t: 'attack', actor: 'you', uid, target: tr })
       setSelect(null)
     } else if (select?.kind === 'battlecry') {
       playSuccess()
-      doAction({ t: 'resolveBattlecry', target: t })
+      doAction({ t: 'resolveBattlecry', target: tr })
       setSelect(null)
     } else if (select?.kind === 'spell' || select?.kind === 'spellMulti') {
-      toggleSpellTarget(t)
+      toggleSpellTarget(tr)
     }
   }
 
@@ -2803,12 +2808,10 @@ doAction({ t: 'endTurn', actor: 'you' })
       const card = game.you.hand.find((c) => c.uid === select.uid)
       const sm = card ? selectionMappingFor(card) : null
       if (sm) {
+        // spellTargetRefs taiko ir targetTypes, ir filtrus (sužeisti/potipis/frakcija/būsena) —
+        // paryškinimas sutampa su tuo, ką variklis realiai priims.
         const s = new Set<string>()
-        for (const t of resolveTargets(game, 'you', sm.target)) {
-          if (t.kind === 'field') continue
-          if (t.kind === 'unit' && t.side === 'ai') { const u = game.ai.units.find((x) => x?.uid === t.uid); if (u?.stealth) continue }
-          s.add(t.kind + ':' + ('uid' in t ? t.uid : t.side))
-        }
+        for (const t of spellTargetRefs(game, 'you', sm)) s.add(targetRefKey(t))
         return s
       }
       const s = new Set<string>()

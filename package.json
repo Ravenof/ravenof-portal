@@ -27,7 +27,10 @@
     "game:test:keywords": "node scripts/test-keyword-detection.mjs",
     "game:test:battlecry": "node scripts/test-battlecry-summon.mjs",
     "test:unit": "vitest run",
-    "test:unit:watch": "vitest"
+    "test:unit:watch": "vitest",
+    "game:test:newtriggers": "npx tsx scripts/simulate-new-triggers.ts",
+    "game:test:targetcheck": "npx tsx scripts/simulate-target-validation.ts",
+    "game:test:extraatk": "npx tsx scripts/simulate-extra-attacks.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

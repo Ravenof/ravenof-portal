@@ -132,6 +132,7 @@
     "discardOncePerTurn": "You can discard a card for gold only once per turn.",
     "fieldAttackLimit": "🌍 The field limits attacks: max {{max}} per turn.",
     "gameOver": "The game is over.",
+    "invalidTarget": "Invalid target for this effect.",
     "noChampionOnBoard": "You have no Champion on the board.",
     "noFamilyPhaseCard": "There is no phase {{phase}} card of this family in your deck.",
     "noPendingReturn": "There is no pending return.",

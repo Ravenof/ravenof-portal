@@ -132,6 +132,7 @@
     "discardOncePerTurn": "Tik 1 kartą per ėjimą gali išmesti kortą dėl aukso.",
     "fieldAttackLimit": "🌍 Laukas riboja atakas: maks. {{max}} per ėjimą.",
     "gameOver": "Žaidimas baigtas.",
+    "invalidTarget": "Netinkamas taikinys šiam efektui.",
     "noChampionOnBoard": "Neturi Čempiono kovos lauke.",
     "noFamilyPhaseCard": "Kaladėje nėra šios šeimos {{phase}} fazės kortos.",
     "noPendingReturn": "Nėra laukiančio grąžinimo.",
