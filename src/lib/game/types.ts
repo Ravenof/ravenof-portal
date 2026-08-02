@@ -81,6 +81,7 @@ export type EffectType =
   | 'coinFlip' | 'loseGoldNextTurn' | 'gainGoldNextTurn'
   | 'remapZmkValue' | 'discardHandAndDraw' | 'arrangeEnemyDeckTop'
   | 'copyEffectFromGraveyard'
+  | 'castEffectFromGraveyard'
   | 'reflectToAttacker'
   | 'resurrectSelf'
   | 'takeControl'
@@ -132,6 +133,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'moveToGraveyard',     label: 'Į kapinyną',                 needsValue: false, group: 'Kaladė ir kapinynas' },
   { value: 'returnGraveyardToDeck', label: 'Grąžinti iš kapinyno į kaladę', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'copyEffectFromGraveyard', label: 'Kopijuoti efektą iš kapinyno padaro (pop-up)', needsValue: false, group: 'Kaladė ir kapinynas' },
+  { value: 'castEffectFromGraveyard', label: 'PANAUDOTI kapinyno kortos efektą iškart (pop-up; savo/priešo kapinynas; galima riboti: Kovos šūksnis / Paskutinis noras)', needsValue: false, group: 'Kaladė ir kapinynas' },
   { value: 'activateLastwishFromGraveyard', label: 'Aktyvuoti kapinyno padaro Paskutinį norą (pop-up); jei pažymėta – šios kortos Paskutinis noras pakartoja tą patį efektą', needsValue: false, group: 'Kaladė ir kapinynas' },
   { value: 'revealOwnDeck',       label: 'Parodyk N savo kaladės viršaus', needsValue: true, group: 'Kaladė ir kapinynas' },
   { value: 'revealEnemyDeck',     label: 'Pažiūrėk N priešo kaladės viršaus', needsValue: true, group: 'Kaladė ir kapinynas' },
@@ -398,7 +400,8 @@ export type EffectMapping = {
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
   tutorCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // tutorToHand: tik šio kortos tipo (padaras/burtas/čempionas/artefaktas/laukas)
   tutorChoose?: boolean             // tutorToHand: žaidėjas pats renkasi (pop-up) vietoj atsitiktinės
-  copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard / activateLastwishFromGraveyard: iš kurio kapinyno rinktis (default any)
+  copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard / castEffectFromGraveyard / activateLastwishFromGraveyard: iš kurio kapinyno rinktis (default any)
+  castTriggerFilter?: 'battlecry' | 'lastwish'  // castEffectFromGraveyard: riboti efektų tipą (battlecry = Kovos šūksnis, lastwish = Paskutinis noras; nenurodžius – visi)
   glwRepeatOnDeath?: boolean        // activateLastwishFromGraveyard: šios kortos Paskutinis noras – aktyvuoti tą patį efektą dar kartą (default: taip)
   costFloor?: number                // turnCostDiscount: minimali kaina Y (nuolaida nenuleis žemiau šios ribos)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)

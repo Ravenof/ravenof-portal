@@ -30,7 +30,8 @@
     "test:unit:watch": "vitest",
     "game:test:newtriggers": "npx tsx scripts/simulate-new-triggers.ts",
     "game:test:targetcheck": "npx tsx scripts/simulate-target-validation.ts",
-    "game:test:extraatk": "npx tsx scripts/simulate-extra-attacks.ts"
+    "game:test:extraatk": "npx tsx scripts/simulate-extra-attacks.ts",
+    "game:test:castgrave": "npx tsx scripts/simulate-cast-from-grave.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

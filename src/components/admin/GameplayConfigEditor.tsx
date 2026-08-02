@@ -939,6 +939,31 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       </label>
                     </div>
                   )}
+                  {m.effect === 'castEffectFromGraveyard' && (
+                    <div className="col-span-2 md:col-span-4 flex flex-wrap items-center gap-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>📜 Pop-up: pasirenkama kapinyno korta; jos efektai PANAUDOJAMI iškart (kortai neprisegami).</span>
+                      <label className="flex items-center gap-1" title="Iš kurio kapinyno galima rinktis">
+                        Kapinynas:
+                        <select value={m.copyFromSide ?? 'any'}
+                          onChange={(e) => setMapping(i, { copyFromSide: e.target.value === 'any' ? undefined : e.target.value as 'own' | 'enemy' })}
+                          style={{ ...inputStyle, width: 130 }}>
+                          <option value="any">Bet kuris</option>
+                          <option value="own">Tik savo</option>
+                          <option value="enemy">Tik priešo</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1" title="Riboti, kokio tipo efektus galima panaudoti">
+                        Efektų tipas:
+                        <select value={m.castTriggerFilter ?? ''}
+                          onChange={(e) => setMapping(i, { castTriggerFilter: e.target.value ? e.target.value as 'battlecry' | 'lastwish' : undefined })}
+                          style={{ ...inputStyle, width: 190 }}>
+                          <option value="">Visi efektai</option>
+                          <option value="battlecry">Tik Kovos šūksniai</option>
+                          <option value="lastwish">Tik Paskutiniai norai</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
                   {showTarget && (
                     <div>
                       <label style={labelStyle}>{isPlayerEff || isDeckEff ? 'Kam / kieno' : 'Taikinys'}</label>

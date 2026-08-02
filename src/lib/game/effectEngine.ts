@@ -50,6 +50,7 @@ export type GameApi = {
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
+  castEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', filter?: 'battlecry' | 'lastwish'): void
   activateGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean): void
   takeControlUnit(g: GameState, newOwner: Side, owner: Side, u: BoardUnit, duration: 'permanent' | 'endOfTurn' | 'untilNextTurn', srcName: string): void
   forceCurseActivation(g: GameState, victim: Side, count: number, srcName: string): void
@@ -114,7 +115,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck',
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
   'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw',
-  'arrangeEnemyDeckTop', 'copyEffectFromGraveyard', 'forceCurseActivation',
+  'arrangeEnemyDeckTop', 'copyEffectFromGraveyard', 'castEffectFromGraveyard', 'forceCurseActivation',
   'activateLastwishFromGraveyard', 'turnCostDiscount',
 ])
 
@@ -278,7 +279,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       }
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
+  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'castEffectFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
     // Fallback: „jei nėra taikinio – padaryk kitą efektą" (noTargetThen)
     if (m.noTargetThen && m.noTargetThen.length > 0) {
       api.log(g, { t: 'battlecry', side: caster, key: 'battleLog.noTargetFallback', params: { src: ctx.sourceName } })
@@ -496,6 +497,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
     case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, cardType: m.tutorCardType, choose: m.tutorChoose }); break
     case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
+    case 'castEffectFromGraveyard': api.castEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.castTriggerFilter); break
     case 'activateLastwishFromGraveyard': api.activateGraveyardLastwish(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.glwRepeatOnDeath !== false); break
     case 'turnCostDiscount': api.setTurnCostDiscount(g, m.costModAppliesTo === 'opponent' ? foe : caster, v, Math.max(0, m.costFloor ?? 0)); break
     case 'reflectToAttacker': {

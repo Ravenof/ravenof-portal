@@ -48,6 +48,8 @@
     "controlUntilNextTurn": "Perimtas iki kito ėjimo pradžios",
     "copyText": "Pasirink padarą – jo efektas taps tavo padaro efektu.",
     "copyTitle": "Perimk efektą iš kapinyno",
+    "castFxTitle": "Panaudok efektą iš kapinyno",
+    "castFxText": "Pasirink kortą – jos efektas bus įvykdytas iškart (kortai neprisegamas).",
     "curseActivated": "AKTYVUOJAMAS",
     "curseMixed": "ĮMAIŠOMAS",
     "curseTag": "Prakeiksmas",

@@ -292,7 +292,7 @@ export type PendingChoice = {
   cards?: TutCard[]
 }
 
-export type PendingCopy = { caster: Side; sourceUid: string; sourceName: string; options: { card: TutCard; side: Side }[]; mode?: 'copy' | 'lastwish'; repeatOnDeath?: boolean }
+export type PendingCopy = { caster: Side; sourceUid: string; sourceName: string; options: { card: TutCard; side: Side }[]; mode?: 'copy' | 'lastwish' | 'cast'; repeatOnDeath?: boolean; castFilter?: 'battlecry' | 'lastwish' }
 
 /** Atidėtas prisikėlimas: padaras jau kapinyne, grįš nurodytu momentu. */
 export type PendingResurrect = {
@@ -1821,10 +1821,48 @@ export function resolveCopyEffect(g: GameState, chosenUid: string): { ok: boolea
   g.pendingCopy = null
   if (opt) {
     if (pc.mode === 'lastwish') applyGraveyardLastwish(g, pc.caster, pc.sourceUid || undefined, pc.sourceName, opt.card, pc.repeatOnDeath !== false)
+    else if (pc.mode === 'cast') applyCastGraveyardEffect(g, pc.caster, pc.sourceUid || undefined, pc.sourceName, opt.card, pc.castFilter)
     else applyCopyEffect(g, pc.caster, pc.sourceUid, opt.card)
     checkWin(g)
   }
   return { ok: true }
+}
+
+// ── Kapinyno kortos efekto PANAUDOJIMAS (castEffectFromGraveyard) ─────────────
+// Skirtingai nuo copyEffectFromGraveyard (prisega mapping'us šaltinio kortai) —
+// čia pasirinktos kapinyno kortos efektai ĮVYKDOMI IŠKART vieną kartą.
+// Filtras: 'battlecry' = tik onSummon/onPlay/onCast; 'lastwish' = tik onDeath;
+// nenurodžius – visi mapping'ai. Tinka BET KOKIA korta (ne tik padarai).
+function castableMappingsOf(c: TutCard, filter?: 'battlecry' | 'lastwish'): EffectMapping[] {
+  // Savireferentiniai / rekursiniai efektai praleidžiami (kaip lastwishMappingsOf)
+  const maps = (c.mappings ?? []).filter((m) =>
+    m.effect !== 'resurrectSelf' && m.effect !== 'selfToEnemyHand' && m.effect !== 'selfToOwnHand'
+    && m.effect !== 'castEffectFromGraveyard')
+  if (filter === 'battlecry') return maps.filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay' || m.trigger === 'onCast')
+  if (filter === 'lastwish') return maps.filter((m) => m.trigger === 'onDeath')
+  return maps
+}
+function castGraveyardEffectPrim(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', filter?: 'battlecry' | 'lastwish') {
+  const sides: Side[] = fromSide === 'own' ? [s] : fromSide === 'enemy' ? [other(s)] : [s, other(s)]
+  const options: { card: TutCard; side: Side }[] = []
+  for (const sd of sides) for (const c of P(g, sd).discard) if (c.type !== 'curse' && castableMappingsOf(c, filter).length > 0) options.push({ card: c, side: sd })
+  if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.castFxNoGraveTarget', params: { src: sourceName } }); return }
+  if (s === 'you') {
+    g.pendingCopy = { caster: s, sourceUid: sourceUid ?? '', sourceName, options, mode: 'cast', castFilter: filter }
+    log(g, { t: 'play', side: s, key: 'battleLog.castFxChoose' })
+    return
+  }
+  const best = options.reduce((a, b) => (castableMappingsOf(b.card, filter).length > castableMappingsOf(a.card, filter).length ? b : a))
+  applyCastGraveyardEffect(g, s, sourceUid, sourceName, best.card, filter)
+}
+function applyCastGraveyardEffect(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, srcCard: TutCard, filter?: 'battlecry' | 'lastwish') {
+  const maps = castableMappingsOf(srcCard, filter)
+  if (maps.length === 0) return
+  log(g, { t: 'spell', side: s, cardName: srcCard.name, key: 'battleLog.castFxActivate', params: { src: sourceName, card: srcCard.name }, src: sourceUid ? { side: s, uid: sourceUid } : { side: s } })
+  for (const m of maps) {
+    applyMapping(gameApi, g, s, m, { sourceName: srcCard.name, sourceUid, depth: 1, allMappings: maps })
+    if (g.winner) return
+  }
 }
 
 // ── Kapinyno Paskutinio noro aktyvavimas (battlecry) ─────────────────────────
@@ -2709,6 +2747,7 @@ export const gameApi: GameApi = {
   reviveCards: reviveCardsPrim,
   activateCurses: (g, target, count, srcName, depth) => curseActivate(gameApi, g, target, count, srcName, depth),
   copyEffectFromGraveyard: (g, s, sourceUid, sourceName, fromSide) => copyEffectPrim(g, s, sourceUid, sourceName, fromSide),
+  castEffectFromGraveyard: (g, s, sourceUid, sourceName, fromSide, filter) => castGraveyardEffectPrim(g, s, sourceUid, sourceName, fromSide, filter),
   takeControlUnit: takeControlUnitPrim,
   forceCurseActivation: forceCurseActivationPrim,
   drawZmkVisual: drawZmkVisualPrim,

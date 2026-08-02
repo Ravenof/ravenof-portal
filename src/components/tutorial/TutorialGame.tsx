@@ -4580,8 +4580,8 @@ doAction({ t: 'endTurn', actor: 'you' })
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
               className="rounded-2xl p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center"
               style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(167,139,250,0.5)' }}>
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : t('battle.game.copyTitle')}</p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : t('battle.game.copyText')}</p>
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxTitle') : t('battle.game.copyTitle')}</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxText') : t('battle.game.copyText')}</p>
               <div className="flex flex-wrap gap-2 justify-center mb-1">
                 {game.pendingCopy.options.map((o) => (
                   <button key={o.card.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveCopy', uid: o.card.uid }) }}

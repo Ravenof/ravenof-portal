@@ -48,6 +48,8 @@
     "controlUntilNextTurn": "Controlled until the start of the next turn",
     "copyText": "Choose a creature – its effect becomes your creature's effect.",
     "copyTitle": "Copy an effect from the graveyard",
+    "castFxTitle": "Use an effect from the graveyard",
+    "castFxText": "Choose a card – its effect resolves immediately (it is not attached).",
     "curseActivated": "ACTIVATED",
     "curseMixed": "PLANTED",
     "curseTag": "Curse",
