@@ -2638,7 +2638,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       // Aukštesnė fazė, kurios dabar negalima nei iškviesti (≠1), nei evoliucionuoti → siūlom keisti į žemesnę
       if (ph != null && ph > 1 && !canEvolveNow) {
         const opts: number[] = []
-        for (let tp = 1; tp < ph; tp++) if (game!.you.deck.some((d) => d.championGroup === fam && d.championPhase === tp)) opts.push(tp)
+        // Žemesnė fazė gali būti kaladėje ARBA kapinyne (variklis palaiko abu)
+        for (let tp = 1; tp < ph; tp++) {
+          const inDeck = game!.you.deck.some((d) => d.championGroup === fam && d.championPhase === tp)
+          const inGrave = game!.you.discard.some((d) => d.championGroup === fam && d.championPhase === tp)
+          if (inDeck || inGrave) opts.push(tp)
+        }
         if (opts.length > 0) { playUiClick(); setChampSwap({ cardUid: c.uid, name: c.name, phase: ph, options: opts }); return }
         pushToast(t('battle.game.toastNeedPhase', { phase: ph - 1 }))
         return

@@ -41,6 +41,10 @@
     "ai": "⇩ The opponent swaps \"{{card}}\" (phase {{phase}}) for \"{{to}}\" (phase {{toPhase}}).",
     "you": "⇩ You swap \"{{card}}\" (phase {{phase}}) for \"{{to}}\" (phase {{toPhase}})."
   },
+  "championSwapGrave": {
+    "ai": "⇩ The opponent swaps \"{{card}}\" (phase {{phase}}) for \"{{to}}\" (phase {{toPhase}}) from the graveyard.",
+    "you": "⇩ You swap \"{{card}}\" (phase {{phase}}) for \"{{to}}\" (phase {{toPhase}}) from the graveyard."
+  },
   "chooseCardToHand": "Choose a card for your hand",
   "chooseCardToHandType": "Choose a card for your hand ({{type}})",
   "chooseEffect": "\"{{src}}\" – choose an effect",

@@ -41,6 +41,10 @@
     "ai": "⇩ Priešininkas keičia „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė).",
     "you": "⇩ Tu keiti „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė)."
   },
+  "championSwapGrave": {
+    "ai": "⇩ Priešininkas keičia „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė) iš kapinyno.",
+    "you": "⇩ Tu keiti „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė) iš kapinyno."
+  },
   "chooseCardToHand": "Pasirink kortą į ranką",
   "chooseCardToHandType": "Pasirink kortą į ranką ({{type}})",
   "chooseEffect": "„{{src}}\" – pasirink efektą",

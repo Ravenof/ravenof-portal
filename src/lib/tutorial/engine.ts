@@ -3351,14 +3351,25 @@ export function swapChampionPhase(g: GameState, s: Side, handUid: string, target
   const ph = card.championPhase ?? null
   if (!fam || ph == null) return { ok: false, reason: 'battleLog.err.notPhasedChampion' }
   if (targetPhase >= ph) return { ok: false, reason: 'battleLog.err.onlyLowerPhase' }
+  // Žemesnės fazės kortos ieškoma KALADĖJE, o jei ten nėra — KAPINYNE.
+  // Aukštesnė korta keliauja į tą pačią zoną, iš kurios paimta žemesnė (mainai vietomis).
   const di = p.deck.findIndex((c) => c.championGroup === fam && c.championPhase === targetPhase)
-  if (di === -1) return { ok: false, reason: 'battleLog.err.noFamilyPhaseCard', reasonParams: { phase: targetPhase } }
-  const [lower] = p.deck.splice(di, 1)
+  if (di !== -1) {
+    const [lower] = p.deck.splice(di, 1)
+    p.hand.splice(i, 1)
+    p.hand.push(lower)
+    p.deck.push(card)
+    p.deck = shuffle(p.deck)
+    log(g, { t: 'champion', side: s, cardName: lower.name, key: `battleLog.championSwap.${SK(s)}`, params: { card: card.name, phase: ph, to: lower.name, toPhase: targetPhase } })
+    return { ok: true }
+  }
+  const gi = p.discard.findIndex((c) => c.championGroup === fam && c.championPhase === targetPhase)
+  if (gi === -1) return { ok: false, reason: 'battleLog.err.noFamilyPhaseCard', reasonParams: { phase: targetPhase } }
+  const [lower] = p.discard.splice(gi, 1)
   p.hand.splice(i, 1)
   p.hand.push(lower)
-  p.deck.push(card)
-  p.deck = shuffle(p.deck)
-  log(g, { t: 'champion', side: s, cardName: lower.name, key: `battleLog.championSwap.${SK(s)}`, params: { card: card.name, phase: ph, to: lower.name, toPhase: targetPhase } })
+  p.discard.push(card)
+  log(g, { t: 'champion', side: s, cardName: lower.name, key: `battleLog.championSwapGrave.${SK(s)}`, params: { card: card.name, phase: ph, to: lower.name, toPhase: targetPhase } })
   return { ok: true }
 }
 
