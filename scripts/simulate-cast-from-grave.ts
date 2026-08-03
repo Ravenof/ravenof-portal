@@ -114,5 +114,41 @@ console.log('\n── 5. AI: auto-pasirenka ir įvykdo be pop-up ──')
   check('efektas įvykdytas prieš mano padarą (9−3=6)', findU(g, 'you', 'ManoPadaras')!.hp === 6, `hp=${findU(g, 'you', 'ManoPadaras')?.hp}`)
 }
 
+
+console.log('\n── 6. Izmoris: glwActivateNow=false — TIK nukopijuoja kaip savo Paskutinį norą ──')
+{
+  const g = freshGame()
+  g.you.hp = 20
+  g.you.discard.push(graveLw())  // Gydūnė: onDeath heal self +4
+  const izmoris = mkCard({
+    name: 'Izmoris', uid: 'Izmoris', attack: 3, health: 5, keywords: ['battlecry'],
+    mappings: [{ trigger: 'onSummon', effect: 'activateLastwishFromGraveyard', target: 'self', requiresSelection: false, copyFromSide: 'any', glwActivateNow: false }],
+  })
+  g.you.hand.push(izmoris)
+  playCard(g, 'you', 'Izmoris')
+  check('pop-up laukia (mode lastwish)', g.pendingCopy?.mode === 'lastwish' && g.pendingCopy.glwActivateNow === false, JSON.stringify(g.pendingCopy?.mode))
+  resolveCopyEffect(g, 'Gydūnė')
+  check('efektas NEaktyvuotas iškart (hp liko 20)', g.you.hp === 20, `hp=${g.you.hp}`)
+  const iz = findU(g, 'you', 'Izmoris')!
+  check('Izmoris gavo onDeath mapping (kopija)', (iz.card.mappings ?? []).some((m) => m.trigger === 'onDeath' && m.effect === 'heal'))
+}
+
+console.log('\n── 7. glwActivateNow default (true): elgesys nepakitęs — aktyvuoja iškart ──')
+{
+  const g = freshGame()
+  g.you.hp = 20
+  g.you.discard.push(graveLw())
+  const senas = mkCard({
+    name: 'Senas', uid: 'Senas', attack: 3, health: 5, keywords: ['battlecry'],
+    mappings: [{ trigger: 'onSummon', effect: 'activateLastwishFromGraveyard', target: 'self', requiresSelection: false, copyFromSide: 'any' }],
+  })
+  g.you.hand.push(senas)
+  playCard(g, 'you', 'Senas')
+  resolveCopyEffect(g, 'Gydūnė')
+  check('senasis elgesys: aktyvuota iškart (20→24)', g.you.hp === 24, `hp=${g.you.hp}`)
+  const sn = findU(g, 'you', 'Senas')!
+  check('ir nukopijuota kaip Paskutinis noras', (sn.card.mappings ?? []).some((m) => m.trigger === 'onDeath' && m.effect === 'heal'))
+}
+
 console.log(`\n════ REZULTATAS: ${pass} praėjo · ${fail} krito ════`)
 process.exit(fail === 0 ? 0 : 1)

@@ -292,7 +292,7 @@ export type PendingChoice = {
   cards?: TutCard[]
 }
 
-export type PendingCopy = { caster: Side; sourceUid: string; sourceName: string; options: { card: TutCard; side: Side }[]; mode?: 'copy' | 'lastwish' | 'cast'; repeatOnDeath?: boolean; castFilter?: 'battlecry' | 'lastwish' }
+export type PendingCopy = { caster: Side; sourceUid: string; sourceName: string; options: { card: TutCard; side: Side }[]; mode?: 'copy' | 'lastwish' | 'cast'; repeatOnDeath?: boolean; castFilter?: 'battlecry' | 'lastwish'; glwActivateNow?: boolean }
 
 /** Atidėtas prisikėlimas: padaras jau kapinyne, grįš nurodytu momentu. */
 export type PendingResurrect = {
@@ -1820,7 +1820,7 @@ export function resolveCopyEffect(g: GameState, chosenUid: string): { ok: boolea
   const opt = pc.options.find((o) => o.card.uid === chosenUid)
   g.pendingCopy = null
   if (opt) {
-    if (pc.mode === 'lastwish') applyGraveyardLastwish(g, pc.caster, pc.sourceUid || undefined, pc.sourceName, opt.card, pc.repeatOnDeath !== false)
+    if (pc.mode === 'lastwish') applyGraveyardLastwish(g, pc.caster, pc.sourceUid || undefined, pc.sourceName, opt.card, pc.repeatOnDeath !== false, pc.glwActivateNow !== false)
     else if (pc.mode === 'cast') applyCastGraveyardEffect(g, pc.caster, pc.sourceUid || undefined, pc.sourceName, opt.card, pc.castFilter)
     else applyCopyEffect(g, pc.caster, pc.sourceUid, opt.card)
     checkWin(g)
@@ -1872,26 +1872,28 @@ function applyCastGraveyardEffect(g: GameState, s: Side, sourceUid: string | und
 function lastwishMappingsOf(c: TutCard): EffectMapping[] {
   return (c.mappings ?? []).filter((m) => m.trigger === 'onDeath' && m.effect !== 'resurrectSelf' && m.effect !== 'selfToEnemyHand' && m.effect !== 'selfToOwnHand')
 }
-function activateGraveyardLastwishPrim(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean) {
+function activateGraveyardLastwishPrim(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean, activateNow = true) {
   const sides: Side[] = fromSide === 'own' ? [s] : fromSide === 'enemy' ? [other(s)] : [s, other(s)]
   const options: { card: TutCard; side: Side }[] = []
   for (const sd of sides) for (const c of P(g, sd).discard) if (c.type === 'unit' && lastwishMappingsOf(c).length > 0) options.push({ card: c, side: sd })
   if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.glwNoGraveTarget', params: { src: sourceName } }); return }
   if (s === 'you') {
-    g.pendingCopy = { caster: s, sourceUid: sourceUid ?? '', sourceName, options, mode: 'lastwish', repeatOnDeath }
+    g.pendingCopy = { caster: s, sourceUid: sourceUid ?? '', sourceName, options, mode: 'lastwish', repeatOnDeath, glwActivateNow: activateNow }
     log(g, { t: 'play', side: s, key: 'battleLog.glwChoose' })
     return
   }
   const best = options.reduce((a, b) => (lastwishMappingsOf(b.card).length > lastwishMappingsOf(a.card).length ? b : a))
-  applyGraveyardLastwish(g, s, sourceUid, sourceName, best.card, repeatOnDeath)
+  applyGraveyardLastwish(g, s, sourceUid, sourceName, best.card, repeatOnDeath, activateNow)
 }
-function applyGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, srcCard: TutCard, repeatOnDeath: boolean) {
+function applyGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, srcCard: TutCard, repeatOnDeath: boolean, activateNow = true) {
   const lw = lastwishMappingsOf(srcCard)
   if (lw.length === 0) return
-  log(g, { t: 'lastwish', side: s, cardName: srcCard.name, key: 'battleLog.glwActivate', params: { src: sourceName, card: srcCard.name } })
-  for (const m of lw) {
-    applyMapping(gameApi, g, s, m, { sourceName: srcCard.name, sourceUid, depth: 1 })
-    if (g.winner) return
+  if (activateNow) {
+    log(g, { t: 'lastwish', side: s, cardName: srcCard.name, key: 'battleLog.glwActivate', params: { src: sourceName, card: srcCard.name } })
+    for (const m of lw) {
+      applyMapping(gameApi, g, s, m, { sourceName: srcCard.name, sourceUid, depth: 1 })
+      if (g.winner) return
+    }
   }
   // Tęstinumas: šaltinio padaro Paskutinis noras – tas pats efektas dar kartą
   if (repeatOnDeath && sourceUid) {

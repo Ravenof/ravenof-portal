@@ -681,6 +681,7 @@ export function Token({ children, title, color, icon }: { children: React.ReactN
 type SelectMode =
   | { kind: 'attacker'; uid: string }
   | { kind: 'battlecry'; uid: string }
+  | { kind: 'champ'; uid: string; skillIndex: number }
   | { kind: 'spell'; uid: string; picked?: TargetRef | null }
   | { kind: 'sacrifice'; cardUid: string; picked: string[] }
   | { kind: 'discard' }
@@ -2681,6 +2682,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (select?.kind === 'lastwish') { toggleSpellTarget({ kind: 'unit', side: 'you', uid: u.uid }); return }
     if (!myTurn) return
     if (Date.now() - dragEndRef.current < 350) return
+    if (select?.kind === 'champ') {
+      // Čempiono skill'o taikinys gali būti ir SAVAS padaras (pvz. gydymas)
+      const tr: TargetRef = { kind: 'unit', side: 'you', uid: u.uid }
+      if (targetSet.has(targetRefKey(tr))) {
+        playSuccess()
+        doAction({ t: 'champ', actor: 'you', skillIndex: select.skillIndex, target: tr })
+        setSelect(null)
+      } else if (u.uid === select.uid) {
+        playUiClick(); setSelect(null); setChampPopup(u.uid)  // paspaudus patį čempioną – atšaukti ir vėl rodyti skill sąrašą
+      } else {
+        pushToast(t('battleLog.err.invalidTarget'))
+      }
+      return
+    }
     if (select?.kind === 'sacrifice') {
       if (u.isChampion) { pushToast(t('battle.game.toastCannotSacChampion')); return }
       const cardUid = select.cardUid
@@ -2747,7 +2762,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (actionsLocked) return
     // Taikinio režimuose leidžiam TIK pažymėtus (teisėtus) taikinius — kitaip
     // efektas su filtru (pvz. „sunaikink padarą su Provoke") eitų į bet ką.
-    const kindsGated = select?.kind === 'battlecry' || select?.kind === 'spell' || select?.kind === 'spellMulti' || select?.kind === 'lastwish'
+    const kindsGated = select?.kind === 'battlecry' || select?.kind === 'spell' || select?.kind === 'spellMulti' || select?.kind === 'lastwish' || select?.kind === 'champ'
     if (kindsGated && !targetSet.has(targetRefKey(tr))) { pushToast(t('battleLog.err.invalidTarget')); return }
     if (select?.kind === 'lastwish') { toggleSpellTarget(tr); return }
     if (!myTurn) return
@@ -2755,6 +2770,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (select?.kind === 'attacker') {
       const uid = select.uid
       doAction({ t: 'attack', actor: 'you', uid, target: tr })
+      setSelect(null)
+    } else if (select?.kind === 'champ') {
+      playSuccess()
+      doAction({ t: 'champ', actor: 'you', skillIndex: select.skillIndex, target: tr })
       setSelect(null)
     } else if (select?.kind === 'battlecry') {
       playSuccess()
@@ -2800,6 +2819,14 @@ doAction({ t: 'endTurn', actor: 'you' })
       const pb = game.pendingBattlecry
       const un = game.you.units.find((x) => x?.uid === select.uid)
       const m = un && pb && pb.uid === select.uid ? (un.card.mappings ?? [])[pb.idx[0]] : null
+      const st = new Set<string>()
+      if (m) for (const t of spellTargetRefs(game, 'you', m)) st.add(targetRefKey(t))
+      return st
+    }
+    if (select.kind === 'champ') {
+      const ch = game.you.units.find((x) => x?.uid === select.uid)
+      const sk = ch ? championSkills(ch)[select.skillIndex] : undefined
+      const m = sk?.mappings.find((x) => mappingNeedsSelection(x)) ?? null
       const st = new Set<string>()
       if (m) for (const t of spellTargetRefs(game, 'you', m)) st.add(targetRefKey(t))
       return st
@@ -3066,7 +3093,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}>
               <UnitTile
                 g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
-                selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
+                selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (select?.kind === 'champ' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
                 picked={pickedKeys.has('unit:' + u.uid)}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}
@@ -4176,7 +4203,19 @@ doAction({ t: 'endTurn', actor: 'you' })
                     const disabled = !sk.unlocked || ch.abilityUsed
                     return (
                       <button key={i} disabled={disabled}
-                        onClick={() => { setChampPopup(null); doAction({ t: 'champ', actor: 'you', skillIndex: i }) }}
+                        onClick={() => {
+                          setChampPopup(null)
+                          // Skill'ui su rankiniu taikiniu (requiresSelection) — įjungiam taikinio režimą.
+                          // hitCount>1 ir „nėra taikinių" atvejais paliekam auto (kaip anksčiau).
+                          const sm = sk.mappings.find((m) => mappingNeedsSelection(m))
+                          if (sm && (sm.hitCount ?? 1) === 1 && spellTargetRefs(game!, 'you', sm).length > 0) {
+                            playUiClick()
+                            setSelect({ kind: 'champ', uid: ch.uid, skillIndex: i })
+                            pushToast(t('battle.game.toastPickEffectTarget'))
+                            return
+                          }
+                          doAction({ t: 'champ', actor: 'you', skillIndex: i })
+                        }}
                         className="combat-skill-row w-full text-left transition-all disabled:opacity-40"
                         style={{ filter: sk.unlocked ? 'none' : 'saturate(0.45)' }}>
                         <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>

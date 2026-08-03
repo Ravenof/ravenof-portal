@@ -5,7 +5,7 @@
 // netinkamą taikinį NEpakeisdami būsenos (auksas/ranka/pending lieka).
 
 import {
-  createGame, beginTurn, playCard, resolvePendingBattlecry, P,
+  createGame, beginTurn, playCard, resolvePendingBattlecry, useChampionAbility, P,
   type TutCard, type GameState,
 } from '../src/lib/tutorial/engine'
 import type { EffectMapping } from '../src/lib/game/types'
@@ -106,6 +106,28 @@ console.log('\n── 4. Be filtro – bet kuris priešo padaras tebėra teisėt
   const r = playCard(g, 'you', spell.uid, { target: { kind: 'unit', side: 'ai', uid: 'Betkas' } })
   check('paprastas taikinys priimtas', r.ok, JSON.stringify(r))
   check('gavo 2 žalos (4→2)', findU(g, 'ai', 'Betkas')!.hp === 2, `hp=${findU(g, 'ai', 'Betkas')?.hp}`)
+}
+
+
+console.log('\n── 5. Čempiono skill su rankiniu taikiniu: vykdo į pasirinktą, atmeta netinkamą ──')
+{
+  const g = freshGame()
+  const champ = mkCard({ name: 'Lisarijus', uid: 'Lisarijus', attack: 2, health: 9, mappings: [
+    { trigger: 'onSummon', effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: true, targetHasStatus: 'taunt' },
+  ] })
+  const cu = mkBoard(champ) as { isChampion: boolean; phase: number; uid: string }
+  cu.isChampion = true; cu.phase = 1
+  g.you.units[0] = cu as never
+  g.ai.units[0] = mkBoard(mkCard({ name: 'ProvokasC', uid: 'ProvokasC', keywords: ['taunt'], health: 6 }))
+  g.ai.units[1] = mkBoard(mkCard({ name: 'PaprastasC', uid: 'PaprastasC', health: 6 }))
+  const r1 = useChampionAbility(g, 'you', 0, { target: { kind: 'unit', side: 'ai', uid: 'PaprastasC' } })
+  check('atmetė be-Provoke taikinį', !r1.ok && r1.reason === 'battleLog.err.invalidTarget', JSON.stringify(r1))
+  const chAfter = findU(g, 'you', 'Lisarijus')! as { abilityUsed: boolean }
+  check('gebėjimas NEpažymėtas panaudotu', chAfter.abilityUsed === false)
+  const r2 = useChampionAbility(g, 'you', 0, { target: { kind: 'unit', side: 'ai', uid: 'ProvokasC' } })
+  check('Provoke taikinys priimtas', r2.ok, JSON.stringify(r2))
+  check('žala į PASIRINKTĄ taikinį (6→4)', findU(g, 'ai', 'ProvokasC')!.hp === 4, `hp=${findU(g, 'ai', 'ProvokasC')?.hp}`)
+  check('kitas nepaliestas', findU(g, 'ai', 'PaprastasC')!.hp === 6)
 }
 
 console.log(`\n════ REZULTATAS: ${pass} praėjo · ${fail} krito ════`)

@@ -403,6 +403,7 @@ export type EffectMapping = {
   copyFromSide?: 'own' | 'enemy' | 'any'  // copyEffectFromGraveyard / castEffectFromGraveyard / activateLastwishFromGraveyard: iš kurio kapinyno rinktis (default any)
   castTriggerFilter?: 'battlecry' | 'lastwish'  // castEffectFromGraveyard: riboti efektų tipą (battlecry = Kovos šūksnis, lastwish = Paskutinis noras; nenurodžius – visi)
   glwRepeatOnDeath?: boolean        // activateLastwishFromGraveyard: šios kortos Paskutinis noras – aktyvuoti tą patį efektą dar kartą (default: taip)
+  glwActivateNow?: boolean          // activateLastwishFromGraveyard: ar aktyvuoti IŠKART (default: taip); false = tik NUKOPIJUOTI kaip šios kortos Paskutinį norą (Nekrobaronas Izmoris)
   costFloor?: number                // turnCostDiscount: minimali kaina Y (nuolaida nenuleis žemiau šios ribos)
   then?: EffectMapping[]            // follow-up grandinė: po šio efekto įvykdyti ir šiuos (paeiliui)
   noTargetThen?: EffectMapping[]    // fallback: jei ŠIS efektas neturi tinkamo taikinio – vietoj jo įvykdyti šiuos

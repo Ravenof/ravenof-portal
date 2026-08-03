@@ -937,6 +937,11 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           onChange={(e) => setMapping(i, { glwRepeatOnDeath: e.target.checked ? undefined : false })} />
                         Paskutinis noras: pakartoti tą patį efektą
                       </label>
+                      <label className="flex items-center gap-1" title="Nuėmus – efektas NEaktyvuojamas iškart, tik NUKOPIJUOJAMAS kaip šios kortos Paskutinis noras (pvz. Nekrobaronas Izmoris)">
+                        <input type="checkbox" checked={m.glwActivateNow !== false}
+                          onChange={(e) => setMapping(i, { glwActivateNow: e.target.checked ? undefined : false })} />
+                        Aktyvuoti iškart
+                      </label>
                     </div>
                   )}
                   {m.effect === 'castEffectFromGraveyard' && (

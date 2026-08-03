@@ -51,7 +51,7 @@ export type GameApi = {
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
   copyEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any'): void
   castEffectFromGraveyard(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', filter?: 'battlecry' | 'lastwish'): void
-  activateGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean): void
+  activateGraveyardLastwish(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean, activateNow?: boolean): void
   takeControlUnit(g: GameState, newOwner: Side, owner: Side, u: BoardUnit, duration: 'permanent' | 'endOfTurn' | 'untilNextTurn', srcName: string): void
   forceCurseActivation(g: GameState, victim: Side, count: number, srcName: string): void
   effectiveAtk(g: GameState, u: BoardUnit): number
@@ -498,7 +498,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'tutorToHand': api.tutorToHand(g, caster, { zone: m.tutorZone, spellType: m.tutorSpellType, cardType: m.tutorCardType, choose: m.tutorChoose }); break
     case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
     case 'castEffectFromGraveyard': api.castEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.castTriggerFilter); break
-    case 'activateLastwishFromGraveyard': api.activateGraveyardLastwish(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.glwRepeatOnDeath !== false); break
+    case 'activateLastwishFromGraveyard': api.activateGraveyardLastwish(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.glwRepeatOnDeath !== false, m.glwActivateNow !== false); break
     case 'turnCostDiscount': api.setTurnCostDiscount(g, m.costModAppliesTo === 'opponent' ? foe : caster, v, Math.max(0, m.costFloor ?? 0)); break
     case 'reflectToAttacker': {
       // onAttacked reakcijai (su „efektas į atakuotoją" / useAttackTarget): sunaikina puolantį padarą
