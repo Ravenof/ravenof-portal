@@ -4205,7 +4205,8 @@ doAction({ t: 'endTurn', actor: 'you' })
                     <p className="text-xs text-center py-3" style={{ color: 'var(--text-muted)' }}>{t('battle.game.noSkills')}</p>
                   )}
                   {skills.map((sk, i) => {
-                    const disabled = !sk.unlocked || ch.abilityUsed
+                    const cantAfford = sk.goldCost > 0 && game.you.gold < sk.goldCost
+                    const disabled = !sk.unlocked || ch.abilityUsed || cantAfford
                     return (
                       <button key={i} disabled={disabled}
                         onClick={() => {
@@ -4224,7 +4225,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                         className="combat-skill-row w-full text-left transition-all disabled:opacity-40"
                         style={{ filter: sk.unlocked ? 'none' : 'saturate(0.45)' }}>
                         <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>
-                          {i + 1}. {sk.name} {!sk.unlocked && t('battle.game.skillLocked', { phase: i + 1 })}
+                          {i + 1}. {sk.name}
+                          {sk.goldCost > 0 && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: cantAfford ? '#f87171' : 'var(--gold)' }}>
+                              💰{sk.goldCost}
+                            </span>
+                          )}
+                          {' '}{!sk.unlocked && t('battle.game.skillLocked', { phase: i + 1 })}
                         </span>
                       </button>
                     )

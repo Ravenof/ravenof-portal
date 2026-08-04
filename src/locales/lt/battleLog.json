@@ -45,6 +45,10 @@
     "ai": "⇩ Priešininkas keičia „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė) iš kapinyno.",
     "you": "⇩ Tu keiti „{{card}}\" ({{phase}} fazė) į „{{to}}\" ({{toPhase}} fazė) iš kapinyno."
   },
+  "skillGoldCost": {
+    "ai": "💰 Priešininkas sumoka {{gold}} aukso už gebėjimą „{{skill}}\".",
+    "you": "💰 Sumoki {{gold}} aukso už gebėjimą „{{skill}}\"."
+  },
   "chooseCardToHand": "Pasirink kortą į ranką",
   "chooseCardToHandType": "Pasirink kortą į ranką ({{type}})",
   "chooseEffect": "„{{src}}\" – pasirink efektą",

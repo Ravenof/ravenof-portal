@@ -3374,7 +3374,7 @@ export function swapChampionPhase(g: GameState, s: Side, handUid: string, target
 }
 
 /** Grąžina čempiono skill sąrašą (su atrakinimu pagal fazę). */
-export function championSkills(ch: BoardUnit): { name: string; mappings: EffectMapping[]; unlocked: boolean }[] {
+export function championSkills(ch: BoardUnit): { name: string; mappings: EffectMapping[]; unlocked: boolean; goldCost: number }[] {
   const cfg = ch.card.gameplay?.championSkillConfig
   let raw = cfg?.skills
   if ((!raw || raw.length === 0) && (cfg?.mappings?.length || ch.card.mappings?.length)) {
@@ -3384,6 +3384,7 @@ export function championSkills(ch: BoardUnit): { name: string; mappings: EffectM
     name: sk.name || `Skill ${i + 1}`,
     mappings: sk.mappings ?? [],
     unlocked: ch.phase >= i + 1,
+    goldCost: Math.max(0, sk.goldCost ?? 0),
   }))
 }
 
@@ -3400,9 +3401,17 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
   if (skillIndex < 0 || skillIndex >= skills.length) return { ok: false, reason: 'battleLog.err.skillNotConfigured' }
   if (!skills[skillIndex].unlocked) return { ok: false, reason: 'battleLog.err.skillLocked', reasonParams: { n: skillIndex + 1 } }
   const skill = skills[skillIndex]
+  // Aukso kaina (jei skill'ui nustatyta) — tikrinama PRIEŠ bet kokį būsenos keitimą
+  if (skill.goldCost > 0 && p.gold < skill.goldCost) {
+    return { ok: false, reason: 'battleLog.err.notEnoughGold', reasonParams: { cost: skill.goldCost, gold: p.gold } }
+  }
   // Rankinio taikinio validacija PRIEŠ pažymint gebėjimą panaudotu
   if (!chosenTargetsLegal(g, s, skill.mappings, opts)) return { ok: false, reason: 'battleLog.err.invalidTarget' }
   ch.abilityUsed = true
+  if (skill.goldCost > 0) {
+    p.gold -= skill.goldCost
+    log(g, { t: 'gold', side: s, value: -skill.goldCost, key: `battleLog.skillGoldCost.${SK(s)}`, params: { gold: skill.goldCost, skill: skill.name } })
+  }
   g.rollContext = { kind: 'spell', actor: s, spellType: ch.card.gameplay?.spellType }
   log(g, {
     t: 'ability', side: s, cardName: ch.card.name, key: 'battleLog.championSkill', params: { card: ch.card.name, skill: skill.name, phase: ch.phase },

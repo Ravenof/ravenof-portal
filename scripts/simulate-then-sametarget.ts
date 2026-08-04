@@ -112,5 +112,38 @@ console.log('\n── 4. then BE sameTarget: selfUnit toliau reiškia patį šal
   check('priešas negydytas (8−2=6)', (findU(g, 'ai', 'Auka2') as { hp: number } | undefined)?.hp === 6)
 }
 
+
+console.log('\n── 5. Skill aukso kaina: trūksta aukso → atmetama; užtenka → nuskaitoma ──')
+{
+  const g = freshGame()
+  putChamp(g, 2)
+  const ch0 = findU(g, 'you', 'Lisarijus')! as { card: TutCard }
+  ch0.card = { ...ch0.card, gameplay: { championSkillConfig: { skills: [
+    { name: 'Brangus smūgis', goldCost: 300, mappings: [{ trigger: 'onChampionSkill', effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: true }] },
+  ] } } } as TutCard
+  g.ai.units[0] = mkBoard(mkCard({ name: 'AukaG', uid: 'AukaG', attack: 0, health: 8 }))
+  g.you.gold = 200
+  const r1 = useChampionAbility(g, 'you', 0, { target: { kind: 'unit', side: 'ai', uid: 'AukaG' } })
+  check('atmesta del aukso', !r1.ok && r1.reason === 'battleLog.err.notEnoughGold', JSON.stringify(r1))
+  const chA = findU(g, 'you', 'Lisarijus')! as { abilityUsed: boolean }
+  check('gebėjimas NEpanaudotas, auksas nepaliestas', chA.abilityUsed === false && g.you.gold === 200)
+  g.you.gold = 1000
+  const r2 = useChampionAbility(g, 'you', 0, { target: { kind: 'unit', side: 'ai', uid: 'AukaG' } })
+  check('užtenka aukso → ok', r2.ok, JSON.stringify(r2))
+  check('auksas nuskaitytas (1000→700)', g.you.gold === 700, `gold=${g.you.gold}`)
+  check('efektas įvyko (8→6)', (findU(g, 'ai', 'AukaG') as { hp: number } | undefined)?.hp === 6)
+}
+
+console.log('\n── 6. Skill be kainos: nemokamas kaip anksčiau ──')
+{
+  const g = freshGame()
+  putChamp(g, 2)
+  g.ai.units[0] = mkBoard(mkCard({ name: 'AukaF', uid: 'AukaF', attack: 0, health: 8 }))
+  g.you.gold = 0
+  const r = useChampionAbility(g, 'you', 0, { target: { kind: 'unit', side: 'ai', uid: 'AukaF' } })
+  check('nemokamas skill veikia su 0 aukso', r.ok, JSON.stringify(r))
+  check('auksas nepakitęs (0)', g.you.gold === 0)
+}
+
 console.log(`\n════ REZULTATAS: ${pass} praėjo · ${fail} krito ════`)
 process.exit(fail === 0 ? 0 : 1)

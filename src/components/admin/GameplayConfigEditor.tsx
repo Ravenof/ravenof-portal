@@ -130,6 +130,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         name: champSkills[idx]?.name ?? '',
         mappings: idx === activeSkill ? arr : (champSkills[idx]?.mappings ?? []),
         cinematic: champSkills[idx]?.cinematic,
+        goldCost: champSkills[idx]?.goldCost,
       }))
       update({ ...cfg, championSkillConfig: { skills } })
     } else {
@@ -141,6 +142,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: j === idx ? name : (champSkills[j]?.name ?? ''),
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
+      goldCost: champSkills[j]?.goldCost,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -149,6 +151,16 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: champSkills[j]?.name ?? '',
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: j === idx ? (data as SkillCinematic | undefined) : champSkills[j]?.cinematic,
+      goldCost: champSkills[j]?.goldCost,
+    }))
+    update({ ...cfg, championSkillConfig: { skills } })
+  }
+  const setSkillGold = (idx: number, goldCost: number | undefined) => {
+    const skills = [0, 1, 2].map((j) => ({
+      name: champSkills[j]?.name ?? '',
+      mappings: champSkills[j]?.mappings ?? [],
+      cinematic: champSkills[j]?.cinematic,
+      goldCost: j === idx ? goldCost : champSkills[j]?.goldCost,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -162,7 +174,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
     if (isChampion && out.championSkillConfig?.skills) {
-      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic })) }
+      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, goldCost: sk.goldCost || undefined })) }
     }
     return JSON.stringify(out)
   }, [cfg, needsMapping])
@@ -756,6 +768,22 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               </div>
               <input type="text" placeholder={`Skill ${activeSkill + 1} pavadinimas`} value={champSkills[activeSkill]?.name ?? ''}
                 onChange={(e) => setSkillName(activeSkill, e.target.value)} style={inputStyle} />
+              {/* Neprivaloma aukso kaina: kaip kortos sužaidimas — panaudojant nuskaitoma iš žaidėjo aukso */}
+              <div className="flex flex-wrap items-center gap-2 text-[11px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+                <label className="flex items-center gap-1" title="Panaudojant skill nuskaitomas auksas (kaip sužaidžiant kortą). Neužtenka aukso – skill negalimas.">
+                  <input type="checkbox" checked={(champSkills[activeSkill]?.goldCost ?? 0) > 0}
+                    onChange={(e) => setSkillGold(activeSkill, e.target.checked ? 100 : undefined)} className="w-3.5 h-3.5 accent-yellow-400" />
+                  💰 Kainuoja auksą
+                </label>
+                {(champSkills[activeSkill]?.goldCost ?? 0) > 0 && (
+                  <label className="flex items-center gap-1">
+                    Kaina:
+                    <input type="number" min={0} step={100} value={champSkills[activeSkill]?.goldCost ?? 100}
+                      onChange={(e) => { const v = Number(e.target.value) || 0; setSkillGold(activeSkill, v > 0 ? v : undefined) }}
+                      style={{ ...inputStyle, width: 90 }} />
+                  </label>
+                )}
+              </div>
               <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>Žemiau – šio skill efektai. Trigger paprastai „Čempiono gebėjimas".</p>
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(240,180,41,0.25)' }}>
                 <p style={{ ...labelStyle, marginBottom: 6 }}>🎬 Skill {activeSkill + 1} Cinematic</p>
