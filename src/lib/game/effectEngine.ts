@@ -249,6 +249,13 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       return false
     }
     targets = [ts]
+  } else if (m.sameTarget && (ctx.chosenTarget || (ctx.chosenTargets && ctx.chosenTargets.length > 0))) {
+    // „Tada" žingsnis su „tas pats taikinys": checkbox'as NUSVERIA target lauką
+    // (admin then-editoriuje target dažnai lieka default 'selfUnit' — be šios
+    // šakos stun/heal kristų ant paties šaltinio, o ne tėvinio efekto taikinio).
+    targets = (ctx.chosenTargets && ctx.chosenTargets.length > 0) ? ctx.chosenTargets : [ctx.chosenTarget!]
+    // Taikinys galėjo žūti nuo tėvinio efekto — negyvi išfiltruojami.
+    targets = targets.filter((t) => t.kind !== 'unit' || !!findUnit(g, t))
   } else if (m.target === 'selfUnit') {
     let t: ResolvedTarget | null = null
     if (ctx.sourceUid) {
