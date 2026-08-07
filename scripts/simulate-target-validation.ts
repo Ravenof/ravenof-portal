@@ -130,5 +130,67 @@ console.log('\n── 5. Čempiono skill su rankiniu taikiniu: vykdo į pasirink
   check('kitas nepaliestas', findU(g, 'ai', 'PaprastasC')!.hp === 6)
 }
 
+console.log('\n── 6. Kelių mapping\'ų korta: destroy artefaktui NEgali kristi ant padaro ──')
+{
+  // „Relikto išardymas" atvejis: mapping[0] renkasi padarą (žala), mapping[1]
+  // naikina TIK artefaktą. Pasirinktas PADARO ref'as negali „nutekėti" į
+  // destroy mapping'ą — artefaktas naikinamas automatiškai, padaras lieka.
+  const g = freshGame()
+  const spell = mkCard({ name: 'Išardymas', uid: 'Išardymas', type: 'spell', gold: 100, mappings: [
+    { trigger: 'onCast', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: true },
+    { trigger: 'onCast', effect: 'destroy', target: 'enemyArtifact', requiresSelection: false },
+  ] })
+  g.you.hand.push(spell)
+  g.ai.units[0] = mkBoard(mkCard({ name: 'Gyvis', uid: 'Gyvis', health: 5 }))
+  g.ai.artifacts[0] = { uid: 'Reliktas', card: mkCard({ name: 'Reliktas', uid: 'Reliktas', type: 'artifact', health: 6 }), hp: 6, maxHp: 6 } as never
+  const r = playCard(g, 'you', spell.uid, { target: { kind: 'unit', side: 'ai', uid: 'Gyvis' } })
+  check('korta sužaista', r.ok, JSON.stringify(r))
+  check('padaras gavo tik 1 žalos (5→4), NESUNAIKINTAS', findU(g, 'ai', 'Gyvis')!.hp === 4, `hp=${findU(g, 'ai', 'Gyvis')?.hp}`)
+  check('artefaktas sunaikintas (auto)', !g.ai.artifacts[0], JSON.stringify(g.ai.artifacts[0] ?? null))
+}
+
+console.log('\n── 7. Čempionas NĖRA padaras: enemyUnit destroy/damage jo nepasiekia ──')
+{
+  const g = freshGame()
+  const champ = mkBoard(mkCard({ name: 'Prazaras', uid: 'Prazaras', health: 12 })) as { isChampion: boolean; phase: number }
+  champ.isChampion = true; champ.phase = 1
+  g.ai.units[0] = champ as never
+  g.ai.units[1] = mkBoard(mkCard({ name: 'Zombis', uid: 'Zombis', health: 3 }))
+  const kaboom = mkCard({ name: 'Kaboom', uid: 'Kaboom', type: 'spell', gold: 100, mappings: [
+    { trigger: 'onCast', effect: 'destroy', target: 'enemyUnit', requiresSelection: true },
+  ] })
+  g.you.hand.push(kaboom)
+  const r1 = playCard(g, 'you', kaboom.uid, { target: { kind: 'unit', side: 'ai', uid: 'Prazaras' } })
+  check('destroy į čempioną ATMESTAS', !r1.ok && r1.reason === 'battleLog.err.invalidTarget', JSON.stringify(r1))
+  check('čempionas lentoje', !!findU(g, 'ai', 'Prazaras'))
+  const r2 = playCard(g, 'you', kaboom.uid, { target: { kind: 'unit', side: 'ai', uid: 'Zombis' } })
+  check('destroy į padarą priimtas', r2.ok, JSON.stringify(r2))
+  check('padaras sunaikintas', !findU(g, 'ai', 'Zombis'))
+}
+
+console.log('\n── 8. AoE „visiems priešo padarams" čempiono neliečia; allEnemyTargets — liečia ──')
+{
+  const g = freshGame()
+  const champ = mkBoard(mkCard({ name: 'PrazarasB', uid: 'PrazarasB', health: 12 })) as { isChampion: boolean; phase: number }
+  champ.isChampion = true; champ.phase = 1
+  g.ai.units[0] = champ as never
+  g.ai.units[1] = mkBoard(mkCard({ name: 'ZombisB', uid: 'ZombisB', health: 4 }))
+  const aoe = mkCard({ name: 'Banga', uid: 'Banga', type: 'spell', gold: 100, mappings: [
+    { trigger: 'onCast', effect: 'damage', target: 'allEnemyUnits', value: 2 },
+  ] })
+  g.you.hand.push(aoe)
+  const r1 = playCard(g, 'you', aoe.uid, {})
+  check('AoE sužaista', r1.ok, JSON.stringify(r1))
+  check('padaras gavo 2 (4→2)', findU(g, 'ai', 'ZombisB')!.hp === 2, `hp=${findU(g, 'ai', 'ZombisB')?.hp}`)
+  check('čempionas NEPALIESTAS (12)', findU(g, 'ai', 'PrazarasB')!.hp === 12, `hp=${findU(g, 'ai', 'PrazarasB')?.hp}`)
+  const all = mkCard({ name: 'Viskas', uid: 'Viskas', type: 'spell', gold: 100, mappings: [
+    { trigger: 'onCast', effect: 'damage', target: 'allEnemyTargets', value: 1 },
+  ] })
+  g.you.hand.push(all)
+  const r2 = playCard(g, 'you', all.uid, {})
+  check('allEnemyTargets sužaista', r2.ok, JSON.stringify(r2))
+  check('čempionas gavo 1 (12→11)', findU(g, 'ai', 'PrazarasB')!.hp === 11, `hp=${findU(g, 'ai', 'PrazarasB')?.hp}`)
+}
+
 console.log(`\n════ REZULTATAS: ${pass} praėjo · ${fail} krito ════`)
 process.exit(fail === 0 ? 0 : 1)

@@ -18,14 +18,15 @@ function teamOf(g: GameState, s: Side): 'A' | 'B' { if (g.teams) return g.teams.
 function friendly(g: GameState, s: Side): Side[] { if (g.teams) return g.teams[teamOf(g, s)].seatIds; return [s] }
 function enemies(g: GameState, s: Side): Side[] { if (g.teams) { const t = teamOf(g, s); return g.teams[t === 'A' ? 'B' : 'A'].seatIds }; return [other(s)] }
 
-function units(g: GameState, s: Side, opts?: { includeStealth?: boolean; championOnly?: boolean; noChampion?: boolean }): BoardUnit[] {
+function units(g: GameState, s: Side, opts?: { includeStealth?: boolean; championOnly?: boolean; includeChampion?: boolean }): BoardUnit[] {
   return P(g, s).units.filter((u): u is BoardUnit => {
     if (!u) return false
-    if (!opts?.includeStealth && u.stealth && s !== undefined) {
-      // Sėlinimas saugo tik nuo priešo pasirenkamų efektų; savų – ne
-    }
-    if (opts?.championOnly && !u.isChampion) return false
-    if (opts?.noChampion && u.isChampion) return false
+    if (opts?.championOnly) return u.isChampion
+    // PAGAL TAISYKLES: Čempionas NĖRA padaras — generiniai „padaro“ taikinių
+    // tipai (ownUnit/enemyUnit/anyUnit/all*Units) čempionų NEapima. Čempionas
+    // taikomas tik per *Champion tipus (arba targetTypes sąjungą) ir per
+    // includeChampion (allEnemyTargets/allOwnTargets — „visi taikiniai“).
+    if (u.isChampion && !opts?.includeChampion) return false
     return true
   })
 }
@@ -39,9 +40,9 @@ export function resolveTargets(g: GameState, casterSide: Side, target: TargetTyp
   const allies = friendly(g, casterSide)
   const foes = enemies(g, casterSide)
   const enemyRep = foes[0] ?? other(casterSide)
-  const ownU = (opts?: { championOnly?: boolean; includeStealth?: boolean }): ResolvedTarget[] =>
+  const ownU = (opts?: { championOnly?: boolean; includeStealth?: boolean; includeChampion?: boolean }): ResolvedTarget[] =>
     allies.flatMap((sd) => units(g, sd, opts).map((u): ResolvedTarget => ({ kind: 'unit', side: sd, uid: u.uid })))
-  const enemyU = (opts?: { championOnly?: boolean; includeStealth?: boolean }, hideStealth = true): ResolvedTarget[] =>
+  const enemyU = (opts?: { championOnly?: boolean; includeStealth?: boolean; includeChampion?: boolean }, hideStealth = true): ResolvedTarget[] =>
     foes.flatMap((sd) => units(g, sd, opts).filter((u) => !hideStealth || !u.stealth).map((u): ResolvedTarget => ({ kind: 'unit', side: sd, uid: u.uid })))
   const ownArt = (): ResolvedTarget[] =>
     allies.flatMap((sd) => P(g, sd).artifacts.filter((a): a is NonNullable<typeof a> => !!a).map((a): ResolvedTarget => ({ kind: 'artifact', side: sd, uid: a.uid })))
@@ -66,8 +67,8 @@ export function resolveTargets(g: GameState, casterSide: Side, target: TargetTyp
     case 'allOwnUnits':    return ownU({ includeStealth: true })
     case 'allEnemyUnits':  return enemyU({ includeStealth: true }, false)
     case 'allUnits':       return [...ownU({ includeStealth: true }), ...enemyU({ includeStealth: true }, false)]
-    case 'allEnemyTargets': return [...enemyU({ includeStealth: true }, false), ...enemyArt(), { kind: 'player', side: enemyRep }]
-    case 'allOwnTargets':  return [...ownU({ includeStealth: true }), ...ownArt(), { kind: 'player', side: casterSide }]
+    case 'allEnemyTargets': return [...enemyU({ includeStealth: true, includeChampion: true }, false), ...enemyArt(), { kind: 'player', side: enemyRep }]
+    case 'allOwnTargets':  return [...ownU({ includeStealth: true, includeChampion: true }), ...ownArt(), { kind: 'player', side: casterSide }]
     case 'castSpell':      return []  // specialiai apdorojama effectEngine (burto atšaukimas)
   }
 }

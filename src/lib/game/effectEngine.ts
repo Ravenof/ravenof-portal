@@ -268,22 +268,32 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
   } else {
     const hasTypes = !!m.targetTypes && m.targetTypes.length > 0
     const aoe = hasTypes ? !!m.applyToAllTypes : isMultiTarget(m.target)  // union: AoE tik jei aiškiai pasirinkta, kitaip – 1 taikinys (ARBA)
-    if (ctx.chosenTargets && ctx.chosenTargets.length > 0 && !aoe) {
-      targets = ctx.chosenTargets
-    } else if (ctx.chosenTarget && !aoe) {
-      targets = [ctx.chosenTarget]
+    let all = hasTypes ? resolveMappingTargets(g, caster, m) : resolveTargets(g, caster, m.target)
+    all = applyTargetFilters(g, m, all)
+    // Rankinis pasirinkimas galioja TIK jei šis mapping'as apskritai renkasi
+    // taikinį IR pasirinktas ref'as priklauso ŠIO mapping'o taikinių aibei
+    // (tipas + targetTypes + filtrai). Kitaip — pvz. kelių mapping'ų kortoje
+    // „sunaikink artefaktą“ gaudavo padaro ref'ą, parinktą pirmajam mapping'ui —
+    // pasirinkimas ignoruojamas ir taikinys parenkamas automatiškai. Be šios
+    // patikros destroy/damage buvo pritaikomi ne to tipo taikiniui.
+    const inAll = (t: ResolvedTarget): boolean => all.some((x) =>
+      x.kind === t.kind
+      && (('side' in x && 'side' in t) ? x.side === t.side : true)
+      && (('uid' in x || 'uid' in t) ? ('uid' in x && 'uid' in t && x.uid === t.uid) : true))
+    const manualRefs = (!aoe && mappingNeedsSelection(m))
+      ? ((ctx.chosenTargets && ctx.chosenTargets.length > 0) ? ctx.chosenTargets : (ctx.chosenTarget ? [ctx.chosenTarget] : [])).filter(inAll)
+      : []
+    if (manualRefs.length > 0) {
+      targets = manualRefs
+    } else if (aoe) {
+      targets = all
     } else {
-      let all = hasTypes ? resolveMappingTargets(g, caster, m) : resolveTargets(g, caster, m.target)
-      all = applyTargetFilters(g, m, all)
-      if (aoe) targets = all
-      else {
-        const n = Math.max(1, m.hitCount ?? 1)
-        // cleanse su pozityvų dispel'u (shield/taunt/stealth/sprint/blessed) — 'harm' intent (auto renkasi PRIEŠO padarą)
-        const intent = m.effect === 'cleanse' && (m.cleanseStatuses ?? []).some((s) => ['shield', 'taunt', 'stealth', 'sprint', 'blessed'].includes(s))
-          ? 'harm' : effectIntent(m.effect)
-        if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
-        else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
-      }
+      const n = Math.max(1, m.hitCount ?? 1)
+      // cleanse su pozityvų dispel'u (shield/taunt/stealth/sprint/blessed) — 'harm' intent (auto renkasi PRIEŠO padarą)
+      const intent = m.effect === 'cleanse' && (m.cleanseStatuses ?? []).some((s) => ['shield', 'taunt', 'stealth', 'sprint', 'blessed'].includes(s))
+        ? 'harm' : effectIntent(m.effect)
+      if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
+      else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
     }
   }
   if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'castEffectFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
