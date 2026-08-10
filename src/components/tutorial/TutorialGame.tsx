@@ -1878,14 +1878,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           // ── Fazė 8: TRIGGER momentai turi paaiškinti mechaniką be žurnalo ──
           // Degimo/nuodų tikas gauna savo spalvos ženklą PRIE padaro, kad būtų
           // aišku, kodėl HP krito ėjimo pradžioje (o ne „iš niekur").
-          if (su && e.statusEvt === 'trigger' && (stt === 'burning' || stt === 'poisoned')) {
-            const uu = su, tickCol = stt === 'burning' ? '#fb923c' : '#84cc16'
+          if (su && e.statusEvt === 'trigger' && (stt === 'burning' || stt === 'poisoned' || stt === 'frozen')) {
+            const uu = su
+            const tick = stt === 'burning' ? { icon: '🔥', col: '#fb923c', snd: 'impact' as const }
+              : stt === 'poisoned' ? { icon: '☠', col: '#84cc16', snd: 'curse' as const }
+              : { icon: '❄', col: '#7dd3fc', snd: 'freeze' as const }   // sušaldytas neatsikirto
             const d = SETTLE + fxSeq; fxSeq += 90
             window.setTimeout(() => {
               const at = unitRectsRef.current.get(uu) ?? rectFor({ uid: uu })
               if (at) {
-                fxRef.current?.floatNumber(at.x, at.y - 26, stt === 'burning' ? '🔥' : '☠', tickCol, 'small')
-                playBattleSound(stt === 'burning' ? 'impact' : 'curse', 0.24)
+                fxRef.current?.floatNumber(at.x, at.y - 26, tick.icon, tick.col, 'small')
+                playBattleSound(tick.snd, 0.24)
               }
             }, d)
           }
@@ -2640,13 +2643,26 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
       const r = applyNetAction(g, a)
       if (r && !r.ok) {
-        const rr = r as { reason?: string; reasonParams?: Record<string, string | number> }
+        const rr = r as {
+          reason?: string
+          reasonParams?: Record<string, string | number>
+          reasonRefs?: { side: Side; uid: string }[]
+        }
         pushToast(rr.reason ? t(rr.reason, rr.reasonParams) : 'Veiksmas negalimas')
         // Status VFX: bandymas veikti su frozen/stunned → trigger animacija ant kortos
         const aid = (a as { uid?: string; attackerUid?: string }).attackerUid ?? (a as { uid?: string }).uid
         if (aid && r.reason) {
           const st = r.reason === 'battleLog.err.unitFrozen' ? 'frozen' : r.reason === 'battleLog.err.unitStunned' ? 'stunned' : null
           if (st) publishStatusVfx({ seq: -(Date.now() * 4 + Math.floor(Math.random() * 4)), type: 'trigger', cardId: aid, statusId: st })
+        }
+        // Fazė 8: Pasišaipymas — paryškinam BŪTENT tuos padarus, kurie verčia
+        // rinktis kitą taikinį. Tekstas paaiškina, o vaizdas parodo, KAS kaltas.
+        if (rr.reasonRefs?.length) {
+          for (const ref of rr.reasonRefs) {
+            publishStatusVfx({ seq: -(Date.now() * 4 + Math.floor(Math.random() * 4)), type: 'trigger', cardId: ref.uid, statusId: 'taunt' })
+            invalidPulse(document.querySelector(`[data-unit-uid="${ref.uid}"]`))
+            fxRef.current?.shakeUnit(ref.uid, 'soft')
+          }
         }
         return prev
       }

@@ -33,7 +33,7 @@
 | 5 Hit-stop | **DONE** | 572 | Vizualinis hold per `timeShift`; variklis nestabdomas |
 | 6 HP ghost | **DONE** | 576 | Padarų juosta + herojaus flakonas |
 | 7 ŽMK | **DONE** | 576 | ×2 / ×0 / advantage / specialus permaišymas |
-| 8 Statusų trigger feedback | **PARTIAL** | 576 | Padaryta: skydo blokas („BLOKUOTA"), degimo/nuodų tikas. **Nepadaryta:** frozen atsikirtimo blokas ir taunt „metalinis pulsas" — varikliukas šių momentų į žurnalą neįrašo (žr. §6) |
+| 8 Statusų trigger feedback | **DONE** | 576 + 586 | Skydo blokas („BLOKUOTA"), degimo/nuodų/šalčio tikas, sušaldyto atsikirtimo blokas, Pasišaipymo kaltininkų paryškinimas |
 | 9 Mirties severity | **DONE** | 576 | 8 stiliai, iš jų 3 tylūs |
 | 10 Turn-start ritualas | **DONE** | 576 | Aukso fill + ready pulsas; įvestis neužrakinama |
 | 11–12 (backlog) | **SKIPPED** | — | Pagal planą šiame sprinte nedaromos |
@@ -202,7 +202,7 @@ Patikrinta **kodo lygmeniu** (ne vizualiai):
 
 ## 6. Žinomos problemos ir skolos
 
-1. **Fazė 8 nepilna.** „Frozen atsikirtimo blokas" ir „taunt bandymas rinktis kitą taikinį" neįgyvendinti, nes varikliukas šių momentų **į žurnalą neįrašo**: `attack()` sušaldytam gynėjui tiesiog nustato `defRetaliates = false` be `log()`, o `legalTargets` taunt filtrą pritaiko be įvykio. Įgyvendinti reikėtų dviejų naujų `GameEvent` (pvz. `battleLog.frozenNoRetaliate`, `battleLog.tauntBlocked`) — tai variklio, ne UI darbas, ir jis paliečia PvP žurnalo atkūrimą.
+1. ~~**Fazė 8 nepilna.**~~ **UŽDARYTA commit586** — žr. §12.
 2. **Telemetrijos baseline neišmatuotas** (§4).
 3. **Smoke patikra neatlikta** (§5).
 4. **`simulate-virtual-game.ts` 3 patikros pasenusios** — testas, ne produkcija.
@@ -284,3 +284,35 @@ Iš to atsirado `dust-preview.html` — derinimo smėlio dėžė su slankikliais
 ### Commit'ų numeracijos pastaba
 
 Du kartus `run-gamefeel-*.bat` kvietė ankstesnį .bat prieš naująjį, o tas ankstesnis iš naujo sustatė **tą patį failų sąrašą** — jau su naujesniais pakeitimais. Rezultatas: turinys pateko į commit'ą su **ankstesniu vardu** (`commit580` × 2, `commit582` × 2), o naujesnis .bat rado „no changes". Turinys teisingas ir supushintas; klaidinga tik žurnalo etiketė. Taisyklė kitai sesijai: runner'yje kviesti **tik naują** .bat, arba .bat'e vardyti failus siauriau.
+
+---
+
+## 12. Fazės 8 užbaigimas (commit586)
+
+Abu trūkę momentai įgyvendinti, bet **skirtingais mechanizmais** — ir tai buvo esminis sprendimas.
+
+### „Sušaldytas neatsikerta" → tikras žurnalo įvykis
+
+`attack()` sušaldytam gynėjui tiesiog nustatydavo `defRetaliates = false` be jokio pėdsako.
+Žaidėjui tai atrodydavo kaip klaida („kodėl negavau žalos atgal?").
+
+Dabar rašomas `battleLog.frozenNoRetaliate` per **esamą `statusEvt` srautą**
+(`statusEvt: 'trigger'`, `statusId: 'frozen'`, `src` = gynėjo uid). Nauji broadcast laukai
+nereikalingi — PvP svečias atkuria identiškai, o `CardStatusVfxLayer` šalčio animaciją
+paima automatiškai. UI papildomai rodo ❄ ženklą prie kortos.
+
+### „Pasišaipymas" → NE žurnalo įvykis (sąmoningai)
+
+Čia planas siūlė antrą `GameEvent`, bet tai būtų buvusi klaida:
+
+> Atmesta ataka **realiai neįvyko**, o `g.log` yra dalis PvP transliuojamos būsenos.
+> Įrašius bandymą į žurnalą, svečio klientas atkurtų veiksmą, kurio nebuvo — ir logas
+> prisipildytų kiekvieno neteisingo paspaudimo.
+
+Vietoj to `PlayResult` gavo naują lauką `reasonRefs` — konkretūs padarai, dėl kurių
+veiksmas negalimas. UI juos paryškina (`taunt` statuso VFX + raudonas pulsas + purtymas),
+tad žaidėjas mato ne tik tekstą, bet ir **kas kaltas**. Tas pats mechanizmas tinka bet
+kuriai būsimai „negalima dėl X kortos" taisyklei.
+
+Testai: 10 naujų patikrų, iš jų dvi saugo būtent šį sprendimą — kad sušaldymo įrašas
+eina per `statusEvt`, ir kad atmesta ataka **neteršia** žurnalo.

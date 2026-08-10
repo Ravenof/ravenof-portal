@@ -419,5 +419,83 @@ console.log('\n── F13 Kovos dialogų ir pranešimų rėmas ──')
     !/linear-gradient\(145deg[^\n]*border:[^\n]*w-\[min\(/.test(tg))
 }
 
+console.log('\n── F8 Statusų trigger feedback (fazės 8 užbaigimas) ──')
+{
+  const { attack, canUnitAttack } = await import('../src/lib/tutorial/engine')
+
+  // ── Sušaldytas gynėjas neatsikerta → TIKRAS žurnalo įvykis ──
+  {
+    const g = freshGame()
+    P(g, 'you').units[0] = {
+      uid: 'Puolejas', card: mkCard({ name: 'Puolejas', uid: 'Puolejas', attack: 2, health: 9 }),
+      atk: 2, hp: 9, maxHp: 9, shield: false, stealth: false,
+      statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+    P(g, 'ai').units[0] = {
+      uid: 'Ledas', card: mkCard({ name: 'Ledas', uid: 'Ledas', attack: 4, health: 9 }),
+      atk: 4, hp: 9, maxHp: 9, shield: false, stealth: false,
+      statuses: { frozen: 9999 }, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+
+    const hpBefore = P(g, 'you').units[0]!.hp
+    attack(g, 'you', 'Puolejas', { kind: 'unit', side: 'ai', uid: 'Ledas' })
+    const ev = g.log.find((e) => e.key === 'battleLog.frozenNoRetaliate')
+    check('sušaldytas gynėjas palieka žurnalo įrašą', !!ev, JSON.stringify(g.log.slice(-3).map((x) => x.key)))
+    check('įrašas eina per statusEvt srautą (PvP svečias atkurs identiškai)',
+      ev?.statusEvt === 'trigger' && ev?.statusId === 'frozen', JSON.stringify(ev))
+    check('įrašas nurodo konkrečią kortą (FX inkaras)', !!ev?.src?.uid, JSON.stringify(ev?.src))
+    check('puolėjas TIKRAI negavo atgalinės žalos', P(g, 'you').units[0]!.hp === hpBefore,
+      `${hpBefore} → ${P(g, 'you').units[0]!.hp}`)
+  }
+
+  // ── Nesušaldytas gynėjas atsikerta ir įrašo NĖRA ──
+  {
+    const g = freshGame()
+    P(g, 'you').units[0] = {
+      uid: 'P2', card: mkCard({ name: 'P2', uid: 'P2', attack: 2, health: 9 }),
+      atk: 2, hp: 9, maxHp: 9, shield: false, stealth: false,
+      statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+    P(g, 'ai').units[0] = {
+      uid: 'G2', card: mkCard({ name: 'G2', uid: 'G2', attack: 4, health: 9 }),
+      atk: 4, hp: 9, maxHp: 9, shield: false, stealth: false,
+      statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+    attack(g, 'you', 'P2', { kind: 'unit', side: 'ai', uid: 'G2' })
+    check('sveikas gynėjas atsikerta (žalos yra)', P(g, 'you').units[0]!.hp < 9, String(P(g, 'you').units[0]!.hp))
+    check('be sušaldymo įrašo nėra', !g.log.some((e) => e.key === 'battleLog.frozenNoRetaliate'))
+  }
+
+  // ── Pasišaipymas: atmetimas grąžina KALTININKUS, bet NEteršia žurnalo ──
+  {
+    const g = freshGame()
+    P(g, 'you').units[0] = {
+      uid: 'A', card: mkCard({ name: 'A', uid: 'A', attack: 3, health: 9 }),
+      atk: 3, hp: 9, maxHp: 9, shield: false, stealth: false,
+      statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+    P(g, 'ai').units[0] = {
+      uid: 'Sarge', card: mkCard({ name: 'Sarge', uid: 'Sarge', attack: 1, health: 9, keywords: ['taunt'] }),
+      atk: 1, hp: 9, maxHp: 9, shield: false, stealth: false,
+      statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+    P(g, 'ai').units[1] = {
+      uid: 'Silpnas', card: mkCard({ name: 'Silpnas', uid: 'Silpnas', attack: 1, health: 3 }),
+      atk: 1, hp: 3, maxHp: 3, shield: false, stealth: false,
+      statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+    } as never
+
+    const logLenBefore = g.log.length
+    const r = attack(g, 'you', 'A', { kind: 'unit', side: 'ai', uid: 'Silpnas' }) as
+      { ok: boolean; reason?: string; reasonRefs?: { side: string; uid: string }[] }
+    check('ataka atmesta dėl Pasišaipymo', !r.ok && r.reason === 'battleLog.err.tauntMustAttack', JSON.stringify(r))
+    check('grąžinti KALTININKAI (UI juos paryškina)',
+      r.reasonRefs?.length === 1 && r.reasonRefs[0].uid === 'Sarge', JSON.stringify(r.reasonRefs))
+    check('atmestas veiksmas NETERŠIA žurnalo (PvP svečias jo neatkurtų)',
+      g.log.length === logLenBefore, `${logLenBefore} → ${g.log.length}`)
+    check('padaras atakos NEeikvojo', P(g, 'you').units[0]!.attacksUsed === 0)
+  }
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)

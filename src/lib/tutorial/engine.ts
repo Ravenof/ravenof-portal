@@ -3098,7 +3098,22 @@ export function endTeamTurn(g: GameState): GameState {
 // ── Veiksmai ──────────────────────────────────────────────────────────────────
 
 /** reason = i18n raktas (battleLog.err.*); tekstas gimsta UI per resultText(). */
-export type PlayResult = { ok: true } | { ok: false; reason: string; reasonParams?: Record<string, string | number> }
+export type PlayResult =
+  | { ok: true }
+  | {
+      ok: false
+      reason: string
+      reasonParams?: Record<string, string | number>
+      /**
+       * Kortos, dėl kurių veiksmas negalimas (pvz. Pasišaipymą turintys padarai).
+       * UI jas paryškina — kad žaidėjas matytų PRIEŽASTĮ, o ne tik tekstą.
+       *
+       * SVARBU: tai NE mūšio žurnalo įvykis. Atmestas veiksmas realiai neįvyko,
+       * o `g.log` yra dalis PvP transliuojamos būsenos — įrašius jį ten, svečio
+       * klientas atkurtų veiksmą, kurio nebuvo.
+       */
+      reasonRefs?: { side: Side; uid: string }[]
+    }
 
 export function canAfford(g: GameState, s: Side, card: TutCard): boolean {
   return P(g, s).gold >= effectiveCost(g, s, card)
@@ -3576,7 +3591,24 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   const legal = legalTargets(g, s, u)
   const isLegal = legal.some((t) =>
     t.kind === target.kind && t.side === target.side && ('uid' in t ? t.uid === (target as { uid?: string }).uid : true))
-  if (!isLegal) return { ok: false, reason: 'battleLog.err.tauntMustAttack' }
+  if (!isLegal) {
+    // Pasišaipymas: grąžinam ir konkrečius padarus, kurie verčia rinktis kitą
+    // taikinį — UI juos paryškina (fazė 8: mechanika paaiškina save vaizdu).
+    const ignoreTaunt = !!u.card.gameplay?.ignoreTaunt || !!u.auraIgnoreTaunt
+    const blockers: { side: Side; uid: string }[] = []
+    if (!ignoreTaunt) {
+      for (const foe of enemySeats(g, s)) {
+        for (const x of P(g, foe).units) {
+          if (x && !x.statuses.silenced && (x.card.keywords.includes('taunt') || !!x.auraKw?.includes('taunt')) && !x.stealth) {
+            blockers.push({ side: foe, uid: x.uid })
+          }
+        }
+      }
+    }
+    return blockers.length > 0
+      ? { ok: false, reason: 'battleLog.err.tauntMustAttack', reasonRefs: blockers }
+      : { ok: false, reason: 'battleLog.err.tauntMustAttack' }
+  }
 
   u.attacksUsed += 1
   p.attacksThisTurn += 1
@@ -3624,6 +3656,10 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     if (g.rollContext?.kind === 'attack' && g.rollContext.poisonedSides) g.rollContext.poisonedSides[foe] = !!def.statuses.poisoned
     const defAtk = def.isChampion ? 0 : effectiveAtk(g, def)
     const defRetaliates = !def.statuses.frozen && defAtk > 0 // Sušaldytas nedaro atgalinės žalos
+    // Fazė 8: kodėl gynėjas neatsikirto? Anksčiau tai vykdavo TYLIAI ir atrodė
+    // kaip klaida („kodėl aš negavau žalos atgal?"). Dabar tai matomas įvykis:
+    // eina per tą patį statusEvt srautą, tad PvP svečias atkuria identiškai.
+    const frozenBlockedRetaliation = !!def.statuses.frozen && defAtk > 0
     // abu žalą daro vienu metu: puolančiojo žala gynėjui
     if (def.shield) {
       def.shield = false
@@ -3632,6 +3668,14 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       const dmg = rollDamage(g, s, atk, ctxBias(g, s))
       def.hp -= dmg
       log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, severity: resolveSeverity(dmg, def.maxHp, def.hp <= 0), key: 'battleLog.unitDamage', params: { card: def.card.name, dmg, hp: Math.max(0, def.hp), maxHp: def.maxHp } })
+    }
+    if (frozenBlockedRetaliation) {
+      log(g, {
+        t: 'status', side: foe, cardName: def.card.name,
+        status: 'frozen', statusEvt: 'trigger', statusId: 'frozen',
+        src: { side: foe, uid: def.uid },
+        key: 'battleLog.frozenNoRetaliate', params: { card: def.card.name },
+      })
     }
     // atgalinė žala puolančiajam
     if (defRetaliates) {
