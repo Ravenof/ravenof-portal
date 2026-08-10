@@ -322,5 +322,32 @@ console.log('\n── F10 Ėjimo pradžios ritualas ──')
   check('aukso fill matomas (≥ 300 ms)', TURN_RITUAL.goldFillMs >= 300)
 }
 
+console.log('\n── F11 Vienkartiniai efektai nepriklauso nuo inline callback\'ų ──')
+{
+  // REGRESIJA (rasta 2026-08-10): ZmkSpecial useEffect turėjo `onDone` deps'uose.
+  // Tėvas paduoda inline arrow, tad kiekvienas jo re-render'is duodavo naują
+  // funkcijos identitetą → efektas persileisdavo → ×2 garsas grodavo be perstojo
+  // („repeated beeping"). Vienkartiniai prezentacijos komponentai PRIVALO laikyti
+  // callback'ą ref'e ir turėti tuščius deps.
+  const { readFileSync } = await import('node:fs')
+  const ONE_SHOT = [
+    'src/components/tutorial/ZmkSpecial.tsx',
+    'src/components/tutorial/SummonBurst.tsx',
+    'src/components/tutorial/HpGhostBar.tsx',
+  ]
+  const CALLBACK_PROPS = /\}, \[[^\]]*\b(onDone|onFinished|onFinish|onComplete)\b[^\]]*\]/
+  for (const f of ONE_SHOT) {
+    let src = ''
+    try { src = readFileSync(f, 'utf8') } catch { continue }
+    check(`${f.split('/').pop()} — jokio callback'o useEffect deps'uose`, !CALLBACK_PROPS.test(src),
+      (src.match(CALLBACK_PROPS) ?? [''])[0])
+  }
+
+  // ZmkSpecial papildomai turi turėti guard'ą nuo pakartotinio grojimo
+  const zs = readFileSync('src/components/tutorial/ZmkSpecial.tsx', 'utf8')
+  check('ZmkSpecial turi onDoneRef', zs.includes('onDoneRef'))
+  check('ZmkSpecial turi firedRef guard\'ą', zs.includes('firedRef'))
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)

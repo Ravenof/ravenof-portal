@@ -13,7 +13,7 @@
 //
 // Trukmės — TIK iš `timing.ts` (ZMK_PRESENT). Reduced-motion: statinis glifas.
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ZMK_PRESENT as T } from '@/lib/game/timing'
 import { playBattleSound } from '@/lib/game/soundManager'
@@ -37,18 +37,31 @@ export function ZmkSpecial({ kind, side, onDone }: {
     ? (reduced ? 400 : T.critAnticipationMs + T.critSlamMs + T.critHoldMs)
     : (reduced ? 300 : T.fizzleMs)
 
+  // SVARBU: efektas privalo suveikti TIKSLIAI VIENĄ kartą per sumontavimą.
+  // `onDone` iš tėvo ateina kaip inline arrow, tad kiekvienas tėvo re-render'is
+  // duoda naują funkcijos identitetą. Jei jis būtų dep'uose, efektas persileistų
+  // per kiekvieną re-render'į ir garsas grotų vėl ir vėl (pypsėjimas).
+  // Todėl: callback'as laikomas ref'e, deps = [] (montavimas), garsas — su guard'u.
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
+  const firedRef = useRef(false)
+
   useEffect(() => {
+    if (firedRef.current) return
+    firedRef.current = true
     let alive = true
+    const timers: number[] = []
     if (crit) {
       // Anticipacija: muzika pasitraukia, kad bass hit turėtų kur nuskambėti.
       duckMusic(T.critDuckDb, T.critAnticipationMs + T.critSlamMs)
-      window.setTimeout(() => { if (alive) playBattleSound('zmkCrit', 0.7) }, reduced ? 0 : T.critAnticipationMs)
+      timers.push(window.setTimeout(() => { if (alive) playBattleSound('zmkCrit', 0.7) }, reduced ? 0 : T.critAnticipationMs))
     } else {
       playBattleSound('zmkFizzle', 0.5)
     }
-    const done = window.setTimeout(onDone, total)
-    return () => { alive = false; window.clearTimeout(done) }
-  }, [crit, reduced, total, onDone])
+    timers.push(window.setTimeout(() => { if (alive) onDoneRef.current() }, total))
+    return () => { alive = false; for (const x of timers) window.clearTimeout(x) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const col = crit ? '#ffd24a' : '#7a8391'
   const label = crit ? '×2' : '×0'
@@ -96,10 +109,14 @@ export function ZmkSpecial({ kind, side, onDone }: {
 
 /** Specialaus permaišymo švysnis prie ŽMK zonos (po ×2 / ×0). */
 export function ZmkReshuffleFlash({ side, onDone }: { side: ZmkSide; onDone: () => void }) {
+  // Ta pati taisyklė kaip `ZmkSpecial`: vienkartinis efektas, callback'as per ref'ą.
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
   useEffect(() => {
-    const t = window.setTimeout(onDone, T.reshuffleMs)
+    const t = window.setTimeout(() => onDoneRef.current(), T.reshuffleMs)
     return () => window.clearTimeout(t)
-  }, [onDone])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const el = typeof document !== 'undefined'
     ? document.querySelector(`[data-pile="deck-${side}"]`) ?? document.querySelector(`[data-tut="hp"]`)
     : null
