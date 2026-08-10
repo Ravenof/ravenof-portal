@@ -153,7 +153,9 @@ export function getProgressionConfig(): Promise<ProgressionResult<ProgressionCon
 // ════════════════════════════════════════════════════════════════════════════
 export function reportMatchStats(
   clientMatchId: string,
-  stats: { creaturesPlayed?: number; spellsPlayed?: number; damageDealt?: number },
+  // Priimam visą MatchStatsPayload (įskaitant game-feel telemetriją) — serveris
+  // p_stats jsonb'e ima tik tuos raktus, kurių jam reikia questams.
+  stats: Record<string, number>,
   deckFactionId?: number | null,
 ) {
   return call<{ ok: true; duplicate: boolean }>('rvn_report_match_stats', {

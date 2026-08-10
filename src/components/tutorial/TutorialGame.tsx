@@ -55,7 +55,7 @@ import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCa
 import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
-import { isSummonFxEnabled } from '@/lib/settings'
+import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled } from '@/lib/settings'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
 import { useCinematicQueue } from '@/lib/game/cinematicQueue'
@@ -66,8 +66,15 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
-import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES } from '@/lib/game/timing'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
+import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure } from '@/lib/game/feelTelemetry'
+import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
+import { impactProfile, severityAtLeast } from '@/lib/game/impactProfiles'
+import { duckMusic } from '@/lib/game/musicManager'
+import { TactileStyles, pressPulse, invalidPulse, snapSettle, returnSpring, dragFollow, withinSnap } from '@/components/tutorial/CardTactile'
+import { HpGhostBar, useHpGhost } from '@/components/tutorial/HpGhostBar'
+import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components/tutorial/ZmkSpecial'
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 
@@ -315,6 +322,9 @@ function ZmkRoll({ roll, game }: { roll: { side: Side; a: ZmkValue; b: ZmkValue;
 }
 
 export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; scale?: number }) {
+  // Ghost sluoksnis (fazė 6): prarasta dalis dar akimirką lieka raudona.
+  const ghostHp = useHpGhost(hp)
+  const ghostRatio = Math.max(0, Math.min(1, Math.max(ghostHp, hp) / Math.max(1, maxHp)))
   const ratio = Math.max(0, Math.min(1, hp / Math.max(1, maxHp)))
   const hue = ratio * 120
   const top = `hsl(${hue},88%,58%)`, bot = `hsl(${hue},86%,36%)`
@@ -324,6 +334,10 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
     <span style={{ position: 'relative', display: 'inline-block', width: 46, height: 60, flex: '0 0 auto',
       filter: crit ? 'drop-shadow(0 0 7px rgba(239,68,68,0.85))' : `drop-shadow(0 0 5px ${top}55) drop-shadow(0 2px 3px rgba(0,0,0,0.5))` }}>
       <span className="hpv2" style={{ clipPath: clip, WebkitClipPath: clip }}>
+        {/* prarasta dalis — po HP_GHOST.holdMs susitraukia iki dabartinio lygio */}
+        {ghostRatio > ratio && (
+          <span className="hpv2-ghost" style={{ height: `${Math.max(2, ghostRatio * 100)}%` }} />
+        )}
         <span className="hpv2-liquid" style={{ height: `${Math.max(2, ratio * 100)}%`, background: `linear-gradient(180deg, ${top}, ${bot})` }}>
           <span className="hpv2-wave" style={{ background: top }} />
           <span className="hpv2-wave hpv2-wave2" style={{ background: bot }} />
@@ -638,6 +652,10 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
             className="px-1 rounded text-[10px] font-bold"
             style={{ display: 'inline-block', background: 'rgba(0,0,0,0.85)', color: hpDisp < u.maxHp ? '#fbbf24' : '#4ade80' }}>{hpDisp}</motion.span>
         </div>
+        {/* HP ghost juosta (fazė 6): prarasta dalis lieka matoma prieš susitraukiant */}
+        <div className="absolute inset-x-0" style={{ bottom: 0, paddingLeft: 2, paddingRight: 2 }}>
+          <HpGhostBar hp={hpDisp} maxHp={u.maxHp} />
+        </div>
       </div>
       {/* ── Status VFX sluoksnis (idle + one-shot; inkaruota prie kortos) ── */}
       <CardStatusVfxLayer uid={u.uid} active={vfxActive} />
@@ -842,6 +860,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [zmkRoll, setZmkRoll] = useState<{ id: number; side: Side; a: ZmkValue; b: ZmkValue; picked: ZmkValue; adv: boolean } | null>(null)
   // ŽMK 'draw' režimas: eilė kortų, kurias žaidėjas atverčia pats
   const [zmkPending, setZmkPending] = useState<{ v: string; side: Side; revealed: boolean }[]>([])
+  /** ŽMK ×2 / ×0 prezentacija (fazė 7) ir po jos einantis specialus permaišymas. */
+  const [zmkSpecial, setZmkSpecial] = useState<{ id: number; kind: ZmkSpecialKind; side: Side } | null>(null)
+  const [zmkReshuffle, setZmkReshuffle] = useState<{ id: number; side: Side } | null>(null)
   // Prakeiksmo aktyvacijos overlay
   const [cardFlash, setCardFlash] = useState<{ card: TutCard | null; cards?: (TutCard | null)[]; title: string; tag: string | null; color: string } | null>(null)
   // „Showcase": prieš efektą kortos miniatiūra atskrenda į centrą, padidėja iki ~40% ekrano,
@@ -1270,6 +1291,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const clientMatchIdRef = useRef<string>('')
   const initGame = useCallback((cards: TutCard[], opp?: TutCard[] | null) => {
     matchStartRef.current = Date.now()
+    // Game-feel telemetrija: kiekviena kova matuojama iš naujo (modulinė būsena).
+    resetFeelTelemetry({ summonCinematics: isSummonCinematicsEnabled(), skillCinematics: isChampionSkillCinematicsEnabled() })
+    resetReactionPacing()   // pirma kovos reakcija visada pilna, vėlesnės — kompaktiškos
     clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     matchRewardRef.current = false
     questReportedRef.current = false
@@ -1490,6 +1514,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const spawnPop = (card: TutCard | null, at: { x: number; y: number }, color: string, tag?: string) => { const id = ++flyIdRef.current; setPopCards((pp) => [...pp, { id, card, x: at.x, y: at.y, color, tag }]); window.setTimeout(() => setPopCards((pp) => pp.filter((x) => x.id !== id)), 1300) }
     // Showcase: korta skrenda iš šaltinio į centrą, užauga, ~1 s palaikoma, dingsta.
     const spawnShowcase = (card: TutCard | null, from: { x: number; y: number }, kind: 'spell' | 'curse' | 'reaction', delay = 0) => {
+      noteFirstFeedback()   // telemetrija: showcase = pirmas matomas atsakas (iki fazės 2)
       const id = ++flyIdRef.current
       window.setTimeout(() => {
         setShowcases((s) => [...s, { id, card, from, kind }])
@@ -1607,7 +1632,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             pendingZmk.push({ v: e.zmk ?? '?', side: e.side })
           }
           if (!e.sound) playBattleSound('zmkFlip')
-          if (e.zmk === 'x2' || e.zmk === 'x0') queueTip('zmk-special')
+          if (e.zmk === 'x2' || e.zmk === 'x0') {
+            queueTip('zmk-special')
+            // Fazė 7: kraštinės ŽMK reikšmės gauna savo momentą; „+0" kelias
+            // lieka toks pat greitas kaip buvo (spectacle budget).
+            const sk: ZmkSpecialKind = e.zmk === 'x2' ? 'x2' : 'x0'
+            const sside = e.side
+            const dz = showcaseHold > 0 ? showcaseHold : SETTLE
+            window.setTimeout(() => setZmkSpecial({ id: ++flyIdRef.current, kind: sk, side: sside }), dz)
+            // Mechanikos komunikacija: po ×2/×0 kaladė TIKRAI permaišoma (zmkSpecialReshuffle).
+            window.setTimeout(() => setZmkReshuffle({ id: ++flyIdRef.current, side: sside }),
+              dz + (sk === 'x2' ? ZMK_PRESENT.critAnticipationMs + ZMK_PRESENT.critSlamMs + ZMK_PRESENT.critHoldMs : ZMK_PRESENT.fizzleMs))
+          }
           break
         case 'death': {
           const uid = e.src?.uid
@@ -1798,6 +1834,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'status': {
           if (e.status) queueTip(('status-' + e.status) as TipKey)
           const su = e.src?.uid, stt = e.status
+          // ── Fazė 8: TRIGGER momentai turi paaiškinti mechaniką be žurnalo ──
+          // Degimo/nuodų tikas gauna savo spalvos ženklą PRIE padaro, kad būtų
+          // aišku, kodėl HP krito ėjimo pradžioje (o ne „iš niekur").
+          if (su && e.statusEvt === 'trigger' && (stt === 'burning' || stt === 'poisoned')) {
+            const uu = su, tickCol = stt === 'burning' ? '#fb923c' : '#84cc16'
+            const d = SETTLE + fxSeq; fxSeq += 90
+            window.setTimeout(() => {
+              const at = unitRectsRef.current.get(uu) ?? rectFor({ uid: uu })
+              if (at) {
+                fxRef.current?.floatNumber(at.x, at.y - 26, stt === 'burning' ? '🔥' : '☠', tickCol, 'small')
+                playBattleSound(stt === 'burning' ? 'impact' : 'curse', 0.24)
+              }
+            }, d)
+          }
           if (su && stt && e.key !== 'battleLog.statusEnd') {
             const fxMap: Record<string, { kind: 'freeze' | 'burn' | 'poison' | 'debuffDrain'; col: string }> = {
               frozen: { kind: 'freeze', col: '#38bdf8' }, stunned: { kind: 'freeze', col: '#facc15' },
@@ -1811,6 +1861,23 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'damage': {
           const tgt = e.tgt, val = e.value
+          // ── Fazė 8: Magiškasis skydas ────────────────────────────────────
+          // Skydas anuliuoja VISĄ žalos atvejį ir ŽMK net netraukiamas — tai
+          // stipri mechanika, kuri anksčiau atrodydavo kaip „nieko neįvyko".
+          if (e.statusEvt === 'destroy' && e.statusId === 'shield') {
+            const su2 = e.src?.uid
+            const d = SETTLE + fxSeq; fxSeq += 90
+            window.setTimeout(() => {
+              const at = su2 ? (unitRectsRef.current.get(su2) ?? rectFor({ uid: su2 })) : null
+              if (at) {
+                fxRef.current?.spawn({ kind: 'shield', to: at, color: '#6ec3ff', duration: 0.9 })
+                fxRef.current?.floatNumber(at.x, at.y - 20, t('battle.game.blocked'), '#6ec3ff', 'big')
+                if (su2) fxRef.current?.shakeUnit(su2, 'soft')
+                playBattleSound('freeze', 0.45)
+              }
+            }, d)
+            break
+          }
           // Žaidėjo (avataro) žala: hit balsas + float skaičius + flash + lowHp
           if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) {
             const sd = e.side
@@ -1818,7 +1885,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             playAvatarAudio(aid, 'hit')
             flashAvatar(sd, 'hit')
             const pat = rectFor({ side: sd })
-            if (pat) { const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { fxRef.current?.floatNumber(pat.x, pat.y - 14, '-' + val, '#ff5a4a', (val ?? 0) >= 4); fxRef.current?.hitFlash(pat.x, pat.y, '#ff5a4a') }, d) }
+            // Žala herojui — ta pati ImpactProfile dramaturgija kaip padarams.
+            if (pat) {
+              const d = SETTLE + fxSeq; fxSeq += 80
+              const hp = impactProfile(e.severity)
+              window.setTimeout(() => {
+                void (async () => {
+                  fxRef.current?.hitFlash(pat.x, pat.y, '#ff5a4a')
+                  if (hp.audioDuckDb !== 0) duckMusic(hp.audioDuckDb)
+                  if (hp.screenShake !== 'none') fxRef.current?.shakeBoard(hp.screenShake)
+                  await (fxRef.current?.impactFrame(hp.severity) ?? Promise.resolve())
+                  fxRef.current?.floatNumber(pat.x, pat.y - 14, '-' + val, '#ff5a4a', hp.damageNumberStyle)
+                })()
+              }, d)
+            }
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
             if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction) {
               const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
@@ -1846,6 +1926,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = zoneAoe
             // rect'as fiksuojamas SINCHRONIŠKAI (dar prieš showcase/ŽMK delsas) – jei taikinys
             // per tą laiką žus ir dings iš DOM, projektilas vis tiek skries į jo vietą
+            const sev = e.severity
             const toEarly = rectOf(tgt)
             window.setTimeout(() => {
               const to = rectOf(tgt) ?? toEarly; if (!to) return
@@ -1854,12 +1935,24 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               // zona (tikras AoE) – be projektilų; pf blokuoja tik ability/attack dublius
               const fireProj = !am && !!from && !pf && !e.viaReaction
               if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
+              // ── Smūgio kadras (game-feel fazės 4–5) ────────────────────────
+              // Visa dramaturgija ateina iš ImpactProfile: hit-stop, purtymo
+              // lygis, garsas, skaičiaus stilius, muzikos duck. Nebeliko
+              // `val >= 4` / `val >= 5` euristikų — svoris skaičiuojamas
+              // varikliuke (po ŽMK, pagal santykį su maxHP).
+              const prof = impactProfile(sev)
               window.setTimeout(() => {
-                if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
-                fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, val >= 4)
-                fxRef.current?.hitFlash(to.x, to.y, numCol)
-                if (tgt.uid) fxRef.current?.shakeUnit(tgt.uid, val >= 5 ? 'hard' : 'normal')
-                playBattleSound('impact', 0.3)
+                void (async () => {
+                  fxRef.current?.hitFlash(to.x, to.y, numCol)
+                  if (prof.audioDuckDb !== 0) duckMusic(prof.audioDuckDb)
+                  playBattleSound(prof.impactSound, prof.impactVolume)
+                  if (prof.screenShake !== 'none') fxRef.current?.shakeBoard(prof.screenShake)
+                  if (tgt.uid && prof.targetReaction !== 'none') fxRef.current?.shakeUnit(tgt.uid, prof.targetReaction)
+                  // Hit-stop: HP kritimas ir skaičius rodomi TIK jam pasibaigus.
+                  await (fxRef.current?.impactFrame(prof.severity, tgt.uid) ?? Promise.resolve())
+                  if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
+                  fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, prof.damageNumberStyle)
+                })()
               }, fireProj ? 600 : 220)
             }, base)
           }
@@ -2148,14 +2241,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         // 3) LAUKIAM animacijos completion signalo — vienintelio autoritetinio
         if (chainRef.current) {
+          // Garsai dabar gyvena PAČIAME sluoksnyje (reactionLaunch/Impact/Tighten/
+          // Shatter + muzikos duck) — čia jų nebedubliuojam.
           await chainRef.current.play({
             from, targets: chainTargets, variant, reduced,
+            compact: nextReactionIsCompact(),
             onShake: (k) => fxRef.current?.shakeBoard(k),
-            onPhase: (ph) => {
-              if (ph === 'chain') playBattleSound('spellCast', 0.3)
-              else if (ph === 'wrap') playBattleSound('impact', 0.4)
-              else if (ph === 'effect') playBattleSound('death', 0.25)
-            },
           })
         } else {
           // Fallback: sluoksnio nėra (SSR/testai) – bazinė trukmė, elgesys kaip anksčiau.
@@ -2216,6 +2307,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
+
+  // ── Game-feel telemetrija: kiek laiko įvestis užrakinta savo ėjimo metu ─────
+  // Baseline fazei 1; po fazių 3/5 turi matytis skirtumas (GAME-FEEL-REPORT §4).
+  useEffect(() => {
+    noteLockState(actionsLocked, myTurn)
+  }, [actionsLocked, myTurn])
 
   // ── Kovos atlygis + level-up šventė (config-driven v2; bot/unranked; ne demo/ranked/campaign) ──
   // Ranked atlygis skiriamas RankedClient. Bot/unranked eina per rvn_report_match_v2
@@ -2942,10 +3039,42 @@ doAction({ t: 'endTurn', actor: 'you' })
     window.addEventListener('pointercancel', up)
   }
 
+  /**
+   * Fazė 2: magnetinė snap zona. Imperatyviai (be re-render'io) pažymi artimiausią
+   * SAVO tuščią slotą, kai žymeklis patenka į jo trauką. Kas yra teisėtas taikinys,
+   * sprendžia variklis — čia tik vizualas.
+   */
+  const updateSnapHighlight = (x: number | null, y: number | null) => {
+    if (typeof document === 'undefined') return
+    const slots = Array.from(document.querySelectorAll('[data-drop-slot="you"]'))
+    let best: Element | null = null
+    if (x !== null && y !== null) {
+      let bestD = Infinity
+      for (const el of slots) {
+        if (!withinSnap(el, x, y)) continue
+        const r = el.getBoundingClientRect()
+        const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2))
+        if (d < bestD) { bestD = d; best = el }
+      }
+    }
+    for (const el of slots) el.classList.toggle('rvn-tac-slot-hot', el === best)
+  }
+
   // Vienas pirštas: tempimas Į ŠONUS = ranka scrollinama (native pan-x), tempimas AUKŠTYN = žaidžiama korta.
   const beginHandPointer = (card: TutCard, e: React.PointerEvent) => {
-    if (actionsLocked) return
+    if (actionsLocked) {
+      // Užrakinta – vis tiek duodam tactile atsaką, kad paspaudimas nebūtų „miręs".
+      invalidPulse((e.currentTarget as HTMLElement)?.closest?.('[data-hand-card]') ?? e.currentTarget as HTMLElement)
+      return
+    }
+    // Telemetrija: nuo šio taško matuojam, kada žaidėjas gaus PIRMĄ vizualų atsaką.
+    noteInputStart()
+    // Fazė 2: paspaudimo kompresija — TAI ir yra pirmas vizualinis atsakas.
+    const cardEl = ((e.currentTarget as HTMLElement)?.closest?.('[data-hand-card]') ?? e.currentTarget) as HTMLElement | null
+    pressPulse(cardEl)
+    noteFirstFeedback()
     if (!myTurn) {
+      cancelInputMeasure()
       // Priešo ėjimo metu ranką galima IŠSKLEISTI/SUTRAUKTI (žaisti negalima)
       const sx0 = e.clientX, sy0 = e.clientY
       const up0 = (ev: PointerEvent) => {
@@ -2981,11 +3110,17 @@ doAction({ t: 'endTurn', actor: 'you' })
       }
       const d = dragRef.current; if (!d) return
       const onBoard = ev.clientY < handTop() - 10
-      const nd: DragState = { ...d, x: ev.clientX, y: ev.clientY, mode: d.targeted && onBoard ? 'arrow' : 'card' }
+      // Fazė 2: ghost'as vejasi žymeklį su nedidele inercija (arrow režime — ne,
+      // ten linija turi eiti tiksliai į taikinį).
+      const arrow = d.targeted && onBoard
+      const pos = arrow ? { x: ev.clientX, y: ev.clientY } : dragFollow({ x: d.x, y: d.y }, { x: ev.clientX, y: ev.clientY })
+      const nd: DragState = { ...d, x: pos.x, y: pos.y, mode: arrow ? 'arrow' : 'card' }
       dragRef.current = nd; setDrag(nd)
+      updateSnapHighlight(arrow ? null : ev.clientX, arrow ? null : ev.clientY)
     }
     function up(ev: PointerEvent) {
       cleanup()
+      updateSnapHighlight(null, null)
       if (!started) {
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) {
           if (selKind === 'discard') { onHandCardClick(card); return }
@@ -3001,7 +3136,12 @@ doAction({ t: 'endTurn', actor: 'you' })
       if (!d) return
       if (selKind === 'discard') { onHandCardClick(d.card); return }
       const onBoard = ev.clientY < handTop() - 10
-      if (!onBoard) { playCardPick(); return }
+      if (!onBoard) {
+        // Grąžinimas į ranką: spring atgal + „paėmimo" garsas.
+        playCardPick()
+        returnSpring(document.querySelector(`[data-hand-card="${CSS.escape(d.card.name)}"]`))
+        return
+      }
       const tgt = elToTargetRef(document.elementFromPoint(ev.clientX, ev.clientY))
       const sm = selectionMappingFor(d.card)
       const multi = !!sm && (sm.hitCount ?? 1) > 1 && sm.requiresSelection !== false
@@ -3011,7 +3151,16 @@ doAction({ t: 'endTurn', actor: 'you' })
         else { for (const u of game.ai.units) if (u && !u.stealth) valid.add('unit:' + u.uid); valid.add('player:ai') }
       }
       if (d.targeted && !multi && tgt && valid.has(tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side))) {
+        // Sėkmingas taikinys: korta „atsisėda" + lengvas lentos impulsas.
+        const tEl = document.elementFromPoint(ev.clientX, ev.clientY)?.closest?.('[data-unit-uid],[data-artifact-uid],[data-player]')
+        snapSettle(tEl)
+        fxRef.current?.shakeBoard('soft')
         doAction({ t: 'play', actor: 'you', uid: d.uid, target: tgt }); setSelect(null)
+      } else if (d.targeted && tgt && !valid.has(tgt.kind + ':' + ('uid' in tgt ? tgt.uid : tgt.side))) {
+        // Negalimas taikinys: raudonas pulsas ant jo + klaidos spragtelėjimas.
+        invalidPulse(document.elementFromPoint(ev.clientX, ev.clientY)?.closest?.('[data-unit-uid],[data-artifact-uid],[data-player]'))
+        playError()
+        onHandCardClick(d.card)
       } else {
         onHandCardClick(d.card)
       }
@@ -3110,7 +3259,8 @@ doAction({ t: 'endTurn', actor: 'you' })
               />
             </motion.div>
           ) : (
-            <div key={side + '-slot-' + i} className="rounded-lg flex items-center justify-center"
+            <div key={side + '-slot-' + i} data-drop-slot={side}
+              className={'rounded-lg flex items-center justify-center' + (myDropGlow ? ' rvn-tac-slot-live' : '')}
               style={{
                 width: unitW, height: Math.round(unitW * 4 / 3),
                 border: myDropGlow ? '2px solid rgba(74,222,128,0.85)' : '1px solid rgba(240,180,41,0.22)',
@@ -4320,6 +4470,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       </AnimatePresence>
 
       {/* ── kovos FX sluoksnis (projektilai, kirčiai, skaičiai) ── */}
+      <TactileStyles />
       <BattleFxLayer ref={fxRef} />
       <ReactionChainLayer ref={chainRef} />
 
@@ -4540,6 +4691,16 @@ doAction({ t: 'endTurn', actor: 'you' })
           )
         })()}
       </AnimatePresence>
+
+      {/* ── ŽMK ×2 / ×0 prezentacija + specialus permaišymas (fazė 7) ── */}
+      {zmkSpecial && (
+        <ZmkSpecial key={'zs' + zmkSpecial.id} kind={zmkSpecial.kind} side={zmkSpecial.side}
+          onDone={() => setZmkSpecial(null)} />
+      )}
+      {zmkReshuffle && (
+        <ZmkReshuffleFlash key={'zr' + zmkReshuffle.id} side={zmkReshuffle.side}
+          onDone={() => setZmkReshuffle(null)} />
+      )}
 
       {/* ── ŽMK pranašumas / nepalankumas: 2 kortos, nepanaudota subyra ── */}
       <AnimatePresence>

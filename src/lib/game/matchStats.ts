@@ -9,6 +9,7 @@
 
 import type { GameState, Side } from '@/lib/tutorial/engine'
 import { P, other } from '@/lib/tutorial/engine'
+import { collectFeelTelemetry, type FeelTelemetry } from './feelTelemetry'
 
 export type MatchStatsPayload = {
   // esami (jau naudojami serveryje)
@@ -35,7 +36,9 @@ export type MatchStatsPayload = {
   turns: number
   hpRemaining: number
   hpLost: number
-}
+} & FeelTelemetry
+// ^ game-feel telemetrija (animationLockMsTotal, inputToFirstFeedbackMs ir kt.)
+//   ateina iš `feelTelemetry.ts` — modulinės, ne GameState būsenos (PvP payload).
 
 const startsWith = (k: string | undefined, p: string) => !!k && k.startsWith(p)
 
@@ -120,6 +123,7 @@ export function collectMatchStats(g: GameState, me: Side = 'you'): MatchStatsPay
     turns: g.globalTurn,
     hpRemaining: Math.max(0, mine.hp),
     hpLost: Math.max(0, mine.maxHp - mine.hp),
+    ...collectFeelTelemetry(g.globalTurn),
   }
 }
 
