@@ -81,17 +81,31 @@ export type ApplyCtx = {
 export type KillCredit = { side: Side; uid?: string; name: string; mappings: EffectMapping[]; depth: number }
 
 // ── Reakcijos taikinių fiksavimas (grandinės animacijai) ────────────────────
-// Kol vykdomi reakcijos mapping'ai, čia surenkami VISI realiai paveikti taikiniai
+// Kol vykdomi reakcijos mapping'ai, čia surenkami REALIAI paveikti taikiniai
 // (padarai, artefaktai, žaidėjo avataras) – UI kiekvienam nupiešia atskirą grandinę.
+//
+// SVARBU: renkami TIK tos pačios kortos (reakcijos) taikiniai. Langas yra globalus
+// ir lieka atviras visą rezoliuciją, tad be šio filtro į jį patektų ir efektai,
+// kuriuos sukelia KITOS kortos: reakcija nužudo priešo padarą → suveikia jo
+// Paskutinis noras → jo taikinys (pvz. TAVO padaras) gaudavo antrą grandinę,
+// nors reakcija į jį nesitaikė (commit588).
 let targetCapture: ResolvedTarget[] | null = null
-export function beginTargetCapture() { targetCapture = [] }
+let targetCaptureOwner: string | undefined
+export function beginTargetCapture(sourceUid?: string) {
+  targetCapture = []
+  targetCaptureOwner = sourceUid
+}
 export function endTargetCapture(): ResolvedTarget[] {
   const out = targetCapture ?? []
   targetCapture = null
+  targetCaptureOwner = undefined
   return out
 }
-function noteTargets(list: ResolvedTarget[]) {
+function noteTargets(list: ResolvedTarget[], sourceUid?: string) {
   if (!targetCapture) return
+  // `then` / `coinFlip` / `chooseEffect` šakos paveldi tą patį sourceUid, tad
+  // lieka įtrauktos; svetimų kortų kaskados – ne.
+  if (targetCaptureOwner !== undefined && sourceUid !== targetCaptureOwner) return
   for (const t of list) {
     if (t.kind === 'field') continue
     const key = t.kind + ':' + ('side' in t ? t.side : '') + ':' + ('uid' in t ? t.uid : '')
@@ -325,7 +339,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     return false
   }
 
-  noteTargets(targets)   // grandinės animacijai: po vieną grandinę kiekvienam taikiniui
+  noteTargets(targets, ctx.sourceUid)   // grandinės animacijai: po vieną grandinę kiekvienam taikiniui
 
   const foe: Side = caster === 'you' ? 'ai' : 'you'
   let applied = true

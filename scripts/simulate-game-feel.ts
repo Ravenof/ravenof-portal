@@ -521,5 +521,51 @@ console.log('\n── F14 Artefaktai FX sluoksnyje (mirtinas smūgis nebeskrenda
     !/document\.querySelector\(`\[data-unit-uid="\$\{uid\}"\]`\) as HTMLElement/.test(fx))
 }
 
+console.log('\n── F15 Reakcijos grandinė taikosi TIK į savo taikinius ──')
+{
+  // REGRESIJA („Liepsnos liežuviai"): reakcija nužudo priešo padarą → suveikia
+  // BŪTENT TO padaro Paskutinis noras → jo taikinys (SAVAS padaras) gaudavo
+  // ANTRĄ grandinę, nors reakcija į jį nesitaikė. Taikinių langas buvo globalus.
+  const g = freshGame()
+
+  P(g, 'you').units[0] = {
+    uid: 'Manas', card: mkCard({ name: 'Manas', uid: 'Manas', attack: 1, health: 9 }),
+    atk: 1, hp: 9, maxHp: 9, shield: false, stealth: false,
+    statuses: {}, attacksUsed: 0, summonedOnTurn: -1, tempBuffs: [],
+  } as never
+
+  // Iškviečiamas padaras, kurį reakcija nužudys — IR JIS turi Paskutinį norą,
+  // taikomą į priešą (t. y. į MANO padarą). Būtent ši kaskada ir teršė grandinę.
+  const lastwish: EffectMapping = {
+    trigger: 'onDeath', effect: 'damage', target: 'enemyUnit', value: 1, requiresSelection: false,
+  }
+  const summoned = mkCard({ name: 'Naujokas', uid: 'Naujokas', attack: 2, health: 3, mappings: [lastwish] })
+  P(g, 'ai').hand.push(summoned)
+
+  // Taikymas per `enemyUnit` (auto-pick) — testas apie taikinių RINKIMO langą,
+  // ne apie trigerio šaltinio prijungimą, tad laikom scenarijų paprastą.
+  const reactionMapping: EffectMapping = {
+    trigger: 'onAnySummon', triggerSide: 'enemy', effect: 'damage',
+    target: 'enemyUnit', value: 6, requiresSelection: false,
+  }
+  P(g, 'you').reactions[0] = {
+    uid: 'Liepsnos', card: mkCard({ name: 'Liepsnos', uid: 'Liepsnos', type: 'reaction', attack: null, health: null, mappings: [reactionMapping] }), paid: 0,
+  } as never
+
+  g.active = 'ai'
+  playCard(g, 'ai', 'Naujokas')
+
+  const gate = g.reactionGates?.[g.reactionGates.length - 1]
+  check('reakcija suveikė (yra vartai)', !!gate, JSON.stringify(g.reactionGates))
+  check('iškviestas padaras tikrai žuvo nuo reakcijos',
+    !P(g, 'ai').units.some((u) => u?.uid === 'Naujokas'), JSON.stringify(P(g, 'ai').units.map((u) => u?.uid)))
+  check('žuvusiojo Paskutinis noras tikrai suveikė (mano padaras gavo žalos)',
+    P(g, 'you').units[0]!.hp < 9, String(P(g, 'you').units[0]!.hp))
+
+  const uids = (gate?.targets ?? []).map((t) => ('uid' in t && t.uid ? t.uid : `player:${'side' in t ? t.side : '?'}`))
+  check('grandinė NEnusitaikė į mano padarą (kaskada neteršia)', !uids.includes('Manas'), JSON.stringify(uids))
+  check('grandinė turi tik reakcijos taikinį', uids.length === 1 && uids[0] === 'Naujokas', JSON.stringify(uids))
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)

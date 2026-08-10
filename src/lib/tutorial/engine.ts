@@ -2198,7 +2198,7 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         // Sunaudojam reakciją prieš taikant efektą (kad netriggerintų savęs rekursyviai)
         pp.reactions[ri] = null
         pp.discard.push(r.card)
-        beginTargetCapture()
+        beginTargetCapture(r.uid)   // renkam TIK šios reakcijos taikinius
         reactionFxDepth++          // šių efektų log'ai gaus `viaReaction` (be antro projektilo)
         let capturedTargets: TargetRef[] = []
         try {
