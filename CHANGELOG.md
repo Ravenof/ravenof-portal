@@ -2,7 +2,7 @@
 
 ## [Game feel: tactile, svoris ir ritmas] — 2026-08-10
 
-commit568–576. Planas: `GAME-FEEL-HANDOFF.md`, ataskaita: `GAME-FEEL-REPORT.md`.
+commit568–583. Planas: `GAME-FEEL-HANDOFF.md`, ataskaita: `GAME-FEEL-REPORT.md`.
 Tikslas — ne nauji dideli VFX (jų pakanka), o **Tier 0–1**: svoris, ritmas ir kontrastas
 kasdieniuose veiksmuose.
 
@@ -49,6 +49,13 @@ kasdieniuose veiksmuose.
 - `npm run game:test:feel` — 85 naujos patikros (`scripts/simulate-game-feel.ts`).
 - `scripts/alias-loader.mjs` + `alias-hooks.mjs`: TS simuliacijas dabar galima paleisti per `node --experimental-strip-types` be `tsx`/tinklo.
 - `tsconfig.check.gamefeel.json` — greitas targeted typecheck.
+
+**Papildymai po testavimo (commit577–583)**
+- ŽMK ×2 garsas grojo be perstojo — `ZmkSpecial` `useEffect` turėjo inline callback'ą deps'uose (persileisdavo per kiekvieną tėvo re-render'į). Pataisyta + statinės patikros visiems vienkartiniams prezentacijos komponentams.
+- `impact (2).mp3` → `impact-1.mp3`: failas repo buvo, bet dėl tarpo varde kodas jo niekada nekrovė.
+- Įtraukti garso failai (impact ×3, summon ×4, zmk-crit, zmk-fizzle) — anksčiau untracked, tad Vercel'yje grojo sintezė.
+- `debugLogFeelTelemetry()` — game-feel skaičiai patys atsispausdina į konsolę kovos gale.
+- **Kortos nusileidimas:** dulkės, išsiveržiančios radialiai iš viso perimetro (visos 4 briaunos — korta guli plokščiai), squash & stretch, lengvas lentos krestelėjimas, tylus smūgio garsas. `dust-preview.html` — derinimo smėlio dėžė su slankikliais.
 
 **Žinomos skolos:** telemetrijos baseline neišmatuotas (reikia naršyklės), smoke patikra neatlikta, fazė 8 nepilna (trūksta 2 variklio įvykių), garso failai dar neįrašyti. Detaliai — `GAME-FEEL-REPORT.md` §6–§8.
 

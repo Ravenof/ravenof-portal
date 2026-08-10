@@ -53,6 +53,61 @@ const CSS = `
   scale: 1.04;
   transition: scale ${T.snapMs}ms cubic-bezier(.2,.9,.3,1.25);
 }
+/* ── Kovos plokštė: vieningas rėmas visiems kovos dialogams ir pranešimams ───
+   Iki tol modalai buvo paprastas rounded-2xl su 1px linija — jie „neturėjo
+   rėmo" ir iškrisdavo iš dark-fantasy chrome'o. Čia — CSS-only ornamentas
+   (jokių naujų assetų): dviguba kraštinė, vidinis šešėlis ir keturi kampų
+   kabliukai. Akcento spalva keičiama per --plate-accent. */
+.combat-plate {
+  --plate-accent: rgba(240, 180, 41, 0.55);
+  position: relative;
+  background: linear-gradient(145deg, #1e1729, #120d1c);
+  border: 1px solid var(--plate-accent);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 2px 20px rgba(0, 0, 0, 0.75),
+    0 18px 46px rgba(0, 0, 0, 0.75);
+}
+/* Keturi kampų kabliukai vienu pseudo-elementu (8 gradientai = 8 brūkšniai). */
+.combat-plate::before {
+  content: ''; position: absolute; inset: 5px; pointer-events: none; border-radius: 10px;
+  background:
+    linear-gradient(var(--plate-accent), var(--plate-accent)) top left,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) top left,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) top right,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) top right,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom left,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom left,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom right,
+    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom right;
+  background-repeat: no-repeat;
+  background-size:
+    14px 2px, 2px 14px,
+    14px 2px, 2px 14px,
+    14px 2px, 2px 14px,
+    14px 2px, 2px 14px;
+}
+/* Viršutinis šviesos atspindys — plokštė atrodo metalinė, ne plokščia. */
+.combat-plate::after {
+  content: ''; position: absolute; inset: 1px 1px auto 1px; height: 38%;
+  pointer-events: none; border-radius: 13px 13px 0 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), transparent);
+}
+/* Akcentų variantai */
+.combat-plate.is-danger { --plate-accent: rgba(239, 68, 68, 0.7); }
+.combat-plate.is-arcane { --plate-accent: rgba(167, 139, 250, 0.6); }
+
+/* Klaidos / įspėjimo juostelė (toast). Tas pats rėmas, raudonas akcentas. */
+.combat-toast {
+  --plate-accent: rgba(239, 68, 68, 0.7);
+  background: linear-gradient(145deg, #2a1119, #170a10);
+  border-radius: 12px;
+}
+.combat-toast::before { inset: 4px; border-radius: 8px; }
+.combat-toast::after { border-radius: 11px 11px 0 0; }
+
 @media (prefers-reduced-motion: reduce) {
   .rvn-tac-press, .rvn-tac-invalid, .rvn-tac-snap, .rvn-tac-return { animation: none !important; }
   .rvn-tac-slot-live { animation: none !important; box-shadow: 0 0 0 1px rgba(240,180,41,0.55) !important; }
@@ -60,7 +115,13 @@ const CSS = `
 }
 `
 
-/** Vienkartinis stilių įpurškimas (renderinti kovos ekrane vieną kartą). */
+/**
+ * Vienkartinis kovos stilių įpurškimas (renderinti kovos ekrane vieną kartą).
+ * Čia gyvena ir `.combat-plate` / `.combat-toast` — kovos dialogų ir pranešimų
+ * rėmas. SVARBU: jie NEGALI gyventi `ravenof-ui.css`, nes tas failas kraunamas
+ * tik po `/digital`, o kovos ekranas atidaromas ir iš /rules, /my-decks bei
+ * /community-decks — ten modalai liktų visai be rėmo.
+ */
 export function TactileStyles() {
   return <style>{CSS}</style>
 }

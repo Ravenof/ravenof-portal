@@ -396,5 +396,28 @@ console.log('\n── F12 Kortos nusileidimas (fizinis pojūtis) ──')
     tg.includes('cardLand(uid, { left: r.left, top: r.top'))
 }
 
+console.log('\n── F13 Kovos dialogų ir pranešimų rėmas ──')
+{
+  const { readFileSync } = await import('node:fs')
+  const tac = readFileSync('src/components/tutorial/CardTactile.tsx', 'utf8')
+  const tg = readFileSync('src/components/tutorial/TutorialGame.tsx', 'utf8')
+  const uicss = readFileSync('src/components/digital/ui/ravenof-ui.css', 'utf8')
+
+  check('combat-plate injektuojamas su kovos ekranu (ne /digital CSS faile)',
+    tac.includes('.combat-plate {') && !uicss.includes('.combat-plate {'))
+  check('rėmas turi keturis kampų kabliukus', /background-size:[\s\S]{0,120}14px 2px, 2px 14px/.test(tac))
+  check('akcento spalva per CSS kintamąjį', tac.includes('--plate-accent'))
+  check('yra pavojaus ir arkaninis variantai',
+    tac.includes('.combat-plate.is-danger') && tac.includes('.combat-plate.is-arcane'))
+
+  check('klaidos pranešimas naudoja rėmą', tg.includes('combat-plate combat-toast'))
+  const uses = (tg.match(/combat-plate/g) ?? []).length
+  check('rėmas pritaikytas visiems kovos dialogams (≥ 10 vietų)', uses >= 10, String(uses))
+  // REGRESIJA: pakeitus modalus į klasę, inline background buvo pašalintas —
+  // jei CSS neįkeliamas, langas liktų visiškai be stiliaus.
+  check('neliko modalų su senu „be rėmo" stiliumi',
+    !/linear-gradient\(145deg[^\n]*border:[^\n]*w-\[min\(/.test(tg))
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)

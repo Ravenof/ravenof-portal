@@ -1,7 +1,7 @@
 # GAME-FEEL-REPORT.md — įgyvendinimo ataskaita
 
 **Data:** 2026-08-10
-**Commit intervalas:** commit568–commit576
+**Commit intervalas:** commit568–commit583 (papildyta 2026-08-10 po žaidimo testų)
 **Plano versija:** GAME-FEEL-HANDOFF.md (2026-08-10)
 **Vykdyta:** Claude sesija, redagavimas per bash (žr. `ravenof-fs-write-sync`), commit'ai per Windows .bat
 
@@ -13,6 +13,10 @@
 | commit571 | Fazė 3 — reakcijų grandinės SFX (4 nauji garsai) + pakartojimų kompresija |
 | commit572 | Fazės 4–5 — `ImpactProfile` + severity varikliuke, hit-stop `BattleFxLayer.impactFrame()` |
 | commit573–575 | **NEBENAUDOJAMI** — .bat failai neutralizuoti, turinys perkeltas į commit576 (žr. §2) |
+| commit577 | ZMK ×2 garso „pypsėjimo" fix (`useEffect` deps) + `explosion.mp3` į git |
+| commit578 | `SOUND-TODO.md` + `impact (2).mp3` → `impact-1.mp3` (failas buvo, bet niekada nekraunamas) |
+| commit579 | Garso failai (impact ×3, summon ×4, zmk-crit, zmk-fizzle) + `debugLogFeelTelemetry` |
+| commit580–583 | Kortos nusileidimas: dulkės, squash, krestelėjimas + 2 pataisymų iteracijos ir `dust-preview.html` |
 | commit576 | Fazės 6–10 (+ build fix): HP ghost juosta, ŽMK ×2/×0 prezentacija, statusų trigger feedback, mirties stilius, ėjimo pradžios ritualas |
 
 ---
@@ -255,3 +259,28 @@ Specifikacija — `public/sounds/reaction/README.md`. Kodo keisti nereikia: `sou
 `run-gamefeel-A.bat` (commit568–572) — **jau paleistas ir supushintas**.
 `run-gamefeel-B.bat` (commit576, build fix) — **reikia paleisti**. Iki tol `main` neužsibuildina Vercel'yje.
 `git-commit573.bat` … `575.bat` neutralizuoti (nieko nedaro) — jų turinys yra 576.
+
+---
+
+## 11. Papildymai po pirminės ataskaitos (commit577–583)
+
+Šie darbai atsirado iš realaus žaidimo testavimo, ne iš plano.
+
+| # | Kas | Kodėl |
+|---|---|---|
+| **577** | `ZmkSpecial` `useEffect` turėjo `onDone` deps'uose; tėvas paduoda inline arrow, tad efektas persileisdavo per kiekvieną re-render'į ir ×2 garsas grojo be perstojo | Rasta žaidžiant („repeated beeping"). Dabar callback'as ref'e, deps tušti, `firedRef` guard'as. +5 statinės patikros, kad vienkartiniai prezentacijos komponentai nebeturėtų callback'ų deps'uose |
+| **578** | `impact (2).mp3` pervadintas į `impact-1.mp3` | Failas repo buvo, bet kandidatų sąraše jo nėra (tarpas varde) — kodas jo **niekada nekrovė**, o `impact` yra dažniausiai grojamas kovos garsas su vos 1 variantu |
+| **579** | Įtraukti garso failai + `debugLogFeelTelemetry()` | Garsai buvo untracked → Vercel'yje grojo sintezė. Telemetriją reikėjo kapstyti Network tab'e; dabar ji pati atsispausdina į konsolę kovos gale |
+| **580–583** | Kortos nusileidimas: dulkės iš viso perimetro, squash, krestelėjimas | Vartotojo prašymas („kad kortos labiau fiziškai jaustųsi"). Prireikė **trijų** iteracijų — žr. žemiau |
+
+### Kortos nusileidimo klaidų grandinė (verta įsiminti)
+
+1. **Tarpas tarp kortos ir dulkių.** `cardLand` gaudavo `rect` su **centro** koordinatėmis, o piešiant jos naudotos kaip **viršus**. Klaidą užmaskavo tai, kad laukai vadinosi `x`/`y` — abi interpretacijos „atrodė teisingos". Pervadinta į `left`/`top`.
+2. **Dulkės klimpo po viduriu.** Greitis buvo skaičiuojamas proporcingai atstumui nuo centro (`nx * ...`), tad centrinės dalelės gaudavo ~0 greitį.
+3. **Klaidinga prielaida apie kortos orientaciją.** Kortą traktavau kaip **stovinčią ant apatinės briaunos**, tad dulkes leidau tik į šonus iš apačios. Bet lentos korta **guli plokščiai** ir nusileidžia visa plokštuma. Galutinė versija: radialinė emisija per 360°, startas skaičiuojamas kaip spindulio × stačiakampio sankirta (taškas tiksliai ant briaunos), tankesnis pliūpsnis ties visais 4 kampais, žiedas — elipsė aplink visą kortą, squash `transform-origin: center`.
+
+Iš to atsirado `dust-preview.html` — derinimo smėlio dėžė su slankikliais, generuojanti gatavą `CARD_LANDING` bloką. Ateityje tokius vizualinius efektus verta derinti **ten**, o ne per ciklą „commit → build → žaidžiu".
+
+### Commit'ų numeracijos pastaba
+
+Du kartus `run-gamefeel-*.bat` kvietė ankstesnį .bat prieš naująjį, o tas ankstesnis iš naujo sustatė **tą patį failų sąrašą** — jau su naujesniais pakeitimais. Rezultatas: turinys pateko į commit'ą su **ankstesniu vardu** (`commit580` × 2, `commit582` × 2), o naujesnis .bat rado „no changes". Turinys teisingas ir supushintas; klaidinga tik žurnalo etiketė. Taisyklė kitai sesijai: runner'yje kviesti **tik naują** .bat, arba .bat'e vardyti failus siauriau.

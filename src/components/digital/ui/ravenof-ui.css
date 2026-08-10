@@ -414,3 +414,8 @@
 @media (prefers-reduced-motion: reduce) {
   .rvn-prog-in, .rvn-prog-glow { animation: none !important }
 }
+
+/* PASTABA: `.combat-plate` / `.combat-toast` gyvena NE čia, o injektuojami per
+   `components/tutorial/CardTactile.tsx` (TactileStyles). Priežastis: kovos ekranas
+   atidaromas ir už /digital ribų (/rules, /my-decks, /community-decks), kur šis
+   failas neįkeliamas — modalai liktų be rėmo. */

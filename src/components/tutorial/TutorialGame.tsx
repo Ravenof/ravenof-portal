@@ -4129,8 +4129,8 @@ doAction({ t: 'endTurn', actor: 'you' })
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed top-14 left-0 right-0 mx-auto w-fit z-[130] px-4 py-2 rounded-xl text-xs font-semibold max-w-[90vw] text-center"
-            style={{ background: 'rgba(40,10,10,0.95)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>
+            className="combat-plate combat-toast fixed top-14 left-0 right-0 mx-auto w-fit z-[130] px-4 py-2 text-xs font-semibold max-w-[90vw] text-center"
+            style={{ color: '#fca5a5' }}>
             {toast}
           </motion.div>
         )}
@@ -4141,7 +4141,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {/* PvP: varžovo viešas profilis */}
         {oppOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)' }} onClick={() => setOppOpen(false)}>
-            <div className="rounded-2xl p-5 w-[min(400px,94vw)]" style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(239,68,68,0.4)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="combat-plate is-danger p-5 w-[min(400px,94vw)]" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-3 mb-3">
                 {oppProfile?.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -4408,8 +4408,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               className="fixed inset-0 z-[134] flex items-center justify-center p-4"
               style={{ background: 'rgba(0,0,0,0.68)' }} onClick={() => setChampPopup(null)}>
               <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-                className="rounded-2xl p-4 w-[min(380px,92vw)]"
-                style={{ background: 'linear-gradient(145deg, #1e1729, #120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
+                className="combat-plate p-4 w-[min(380px,92vw)]">
                 <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
                   {t('battle.game.championPhase', { card: ch.card.name, phase: ch.phase })}
                 </p>
@@ -4465,7 +4464,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[135] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setChampSwap(null)}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-              className="rounded-2xl p-4 w-[min(360px,92vw)] text-center" style={{ background: 'linear-gradient(145deg,#1e1729,#120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              className="combat-plate p-4 w-[min(360px,92vw)] text-center">
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.swapPhaseTitle')}</p>
               <p className="text-[11px] mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.swapPhaseText', { card: champSwap.name, phase: champSwap.phase })}</p>
               <div className="flex flex-col gap-2">
@@ -4819,8 +4818,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.7)' }}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="rounded-2xl p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center"
-              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              className="combat-plate p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.summonPickTitle')}</p>
               <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
                 {t('battle.game.summonPickMark', { choose: game.pendingSummon.choose, picked: summonSel.length })}
@@ -4856,8 +4854,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.7)' }}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="rounded-2xl p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center"
-              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(167,139,250,0.5)' }}>
+              className="combat-plate is-arcane p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxTitle') : t('battle.game.copyTitle')}</p>
               <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxText') : t('battle.game.copyText')}</p>
               <div className="flex flex-wrap gap-2 justify-center mb-1">
@@ -4883,8 +4880,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[134] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.72)' }}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="rounded-2xl p-4 w-[min(600px,94vw)] max-h-[86vh] overflow-y-auto text-center"
-              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              className="combat-plate p-4 w-[min(600px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-3" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{game.pendingChoice.title}</p>
               {game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards ? (
                 <div className="flex flex-wrap gap-2 justify-center">
@@ -5023,8 +5019,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => doAction({ t: 'clearReveal' })}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-              className="rounded-2xl p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center"
-              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              className="combat-plate p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
                 {game.pendingReveal.title}
               </p>
@@ -5066,8 +5061,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               className="fixed inset-0 z-[133] flex items-center justify-center p-4"
               style={{ background: 'rgba(0,0,0,0.7)' }}>
               <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-                className="rounded-2xl p-4 w-[min(620px,94vw)] max-h-[86vh] overflow-y-auto text-center"
-                style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+                className="combat-plate p-4 w-[min(620px,94vw)] max-h-[86vh] overflow-y-auto text-center">
                 <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
                   {t('battle.game.arrangeTitle')}
                 </p>
@@ -5115,8 +5109,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[133] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.7)' }}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="rounded-2xl p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center"
-              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              className="combat-plate p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
                 {t('battle.game.peekTitle')}
               </p>
@@ -5163,8 +5156,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             style={{ background: 'rgba(0,0,0,0.62)' }}
             onClick={() => setPileView(null)}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-              className="rounded-2xl p-4 w-[min(460px,93vw)] max-h-[82vh] overflow-y-auto"
-              style={{ background: 'linear-gradient(145deg, #1a1325, #0d0a14)', border: '1px solid rgba(240,180,41,0.4)' }}>
+              className="combat-plate p-4 w-[min(460px,93vw)] max-h-[82vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
                   {pileView.title} ({pileView.cards.length})
@@ -5194,8 +5186,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[129] flex items-center justify-center"
             style={{ background: 'rgba(0,0,0,0.6)' }}>
             <motion.div initial={{ scale: 0.7, y: 12 }} animate={{ scale: 1, y: 0 }}
-              className="rounded-2xl p-5 text-center w-[min(300px,86vw)]"
-              style={{ background: 'linear-gradient(145deg, #1e1729, #120d1c)', border: '1px solid rgba(240,180,41,0.5)' }}>
+              className="combat-plate p-5 text-center w-[min(300px,86vw)]">
               <p className="text-xs font-bold mb-3" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
                 {t('battle.game.zmkDrawTitle', { side: zmkPending[0].side === 'you' ? t('battle.game.zmkSideYou') : t('battle.game.zmkSideAi') })}
               </p>
