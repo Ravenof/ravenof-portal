@@ -68,7 +68,7 @@ import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/scr
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
-import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure } from '@/lib/game/feelTelemetry'
+import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
 import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
 import { impactProfile, severityAtLeast, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { deathStyleFor } from '@/lib/game/deathStyles'
@@ -2361,6 +2361,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       // Dienos užduočių telemetrija (kortos/žala/kill'ai/…): matches eilutė jau egzistuoja.
       try {
         const st = collectMatchStats(game, 'you')
+        debugLogFeelTelemetry(st)   // DEV: game-feel skaičiai matomi konsolėje (F12)
         // Telemetrijos UPDATE suveikia trg_ach_after_match → po jo paimam ką tik
         // įvykdytus pasiekimus vienai santraukai rezultato ekrane.
         void reportMatchStats(clientMatchIdRef.current, st, dominantFactionId(deckCards ?? null))
@@ -2389,6 +2390,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       turns: game.globalTurn, playerActions: game.globalTurn, opponentActions: game.globalTurn, opponentId: net?.opponentId ?? null })
     try {
       const st = collectMatchStats(game, 'you')
+      debugLogFeelTelemetry(st)   // DEV: game-feel skaičiai matomi konsolėje (F12)
       void reportMatchStats(clientMatchIdRef.current, st, dominantFactionId(deckCards ?? null))
     } catch (err) { console.warn('[quests] telemetrija (ranked) nepavyko:', err) }
     onRankedResult?.({

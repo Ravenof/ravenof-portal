@@ -113,6 +113,34 @@ export function collectFeelTelemetry(turns: number): FeelTelemetry {
   }
 }
 
+/**
+ * DEV pagalba: atspausdina game-feel skaičius į naršyklės konsolę kovos gale.
+ * Kad nereikėtų naršyti Network tab'e ieškant `rvn_report_match_stats` payload'o —
+ * tiesiog atsidarai konsolę (F12) ir matai tris skaičius, kurie rūpi.
+ * Produkcijoje tyli.
+ */
+export function debugLogFeelTelemetry(stats: Partial<FeelTelemetry> & { turns?: number }): void {
+  if (typeof console === 'undefined') return
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') return
+  const lock = stats.animationLockMsTotal ?? 0
+  const perTurn = stats.animationLockMsPerTurn ?? 0
+  const fb = stats.inputToFirstFeedbackMs ?? 0
+  const n = stats.inputFeedbackSamples ?? 0
+  /* eslint-disable no-console */
+  console.groupCollapsed(
+    `%c[GAME-FEEL] laukimas ${(lock / 1000).toFixed(1)} s · atsakas ${fb} ms`,
+    'color:#f0b429;font-weight:bold',
+  )
+  console.log(`Ėjimų kovoje ................. ${stats.turns ?? '?'}`)
+  console.log(`Laukta animacijų (viso) ...... ${lock} ms  (${(lock / 1000).toFixed(1)} s)`)
+  console.log(`  → vidutiniškai per ėjimą ... ${perTurn} ms`)
+  console.log(`Įvestis → pirmas atsakas ..... ${fb} ms  (mediana iš ${n} matavimų)`)
+  console.log(`Kinas praleistas ............. ${stats.cinematicsSkipped ?? 0}×`)
+  console.log('%cGERAI, jei: atsakas < 100 ms, laukimas per ėjimą < ~2000 ms', 'color:#5ef0c0')
+  console.groupEnd()
+  /* eslint-enable no-console */
+}
+
 /** Testams / debug'ui. */
 export function __feelTelemetrySnapshot(): FeelTelemetry & { lockOpen: boolean } {
   return { ...collectFeelTelemetry(0), lockOpen: lockedSince !== null }
