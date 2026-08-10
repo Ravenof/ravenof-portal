@@ -33,11 +33,38 @@ export type SpawnFx = {
 
 export type BattleFxHandle = {
   spawn: (fx: SpawnFx) => void
-  floatNumber: (x: number, y: number, text: string, color: string, big?: boolean) => void
+  /**
+   * Žalos/gydymo skaičius. `style` (game-feel fazė 4) ateina iš ImpactProfile —
+   * `true` paliktas atgaliniam suderinamumui ir reiškia 'big'.
+   */
+  floatNumber: (x: number, y: number, text: string, color: string, big?: boolean | DamageNumberStyle) => void
+  /**
+   * Smūgio kadras (game-feel fazė 5): vizualinis hit-stop + taikinio „punch".
+   * NESTABDO variklio — sustabdomas tik FX laikas ir atidedamas HP atvaizdavimas.
+   * Grąžina Promise, kuris išsisprendžia hold'ui pasibaigus.
+   */
+  impactFrame: (severity: ImpactSeverity, uid?: string) => Promise<void>
   shakeBoard: (kind?: 'soft' | 'hard') => void
   shakeUnit: (uid: string, kind?: 'soft' | 'normal' | 'hard') => void
   lungeUnit: (uid: string, target: { x: number; y: number }) => void
   hitFlash: (x: number, y: number, color: string) => void
+}
+
+
+import { IMPACT_PROFILES, type ImpactSeverity } from '@/lib/game/impactProfiles'
+import { getVfxQuality, prefersReducedMotion as prefersReduced } from '@/lib/game/statusVfx'
+import { HIT_STOP } from '@/lib/game/timing'
+
+/**
+ * Realus hit-stop pagal prieinamumo/kokybės nustatymus:
+ *  • prefers-reduced-motion → 0 ms (jokio sustojimo);
+ *  • rvn-vfx-quality = low → apribotas iki HIT_STOP.lowQualityMaxMs;
+ *  • kitaip → profilio reikšmė.
+ */
+function effectiveHitStop(ms: number): number {
+  if (prefersReduced()) return 0
+  if (getVfxQuality() === 'low') return Math.min(ms, HIT_STOP.lowQualityMaxMs)
+  return ms
 }
 
 const TAU = Math.PI * 2
@@ -46,6 +73,10 @@ const easeOut = (t: number) => 1 - Math.pow(1 - t, 3)
 const easeIn = (t: number) => t * t
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const intMul = (i?: FxIntensity) => (i === 'big' ? 1.5 : i === 'small' ? 0.7 : 1)
+
+/** Žalos skaičiaus stiliai (ImpactProfile.damageNumberStyle). */
+export type DamageNumberStyle = 'small' | 'normal' | 'big' | 'critical'
+const NUM_SIZE: Record<DamageNumberStyle, number> = { small: 17, normal: 22, big: 30, critical: 40 }
 
 type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; rot: number; vr: number }
 type Item = {
@@ -93,7 +124,17 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
   const running = useRef(false)
   const idc = useRef(0)
   const dprRef = useRef(1)
-  const [nums, setNums] = useState<{ id: number; x: number; y: number; text: string; color: string; big?: boolean }[]>([])
+  /**
+   * Hit-stop (game-feel fazė 5): vizualinis „sustojimas" smūgio kadre.
+   * Variklio NESTABDOM — sustabdomas tik FX laikas: `holdMs` kaupiamas į
+   * `timeShift`, tad visos animacijos gauna dt = 0 hold'o metu ir po jo tęsiasi
+   * nuo tos pačios vietos (o ne šokteli į priekį).
+   */
+  const holdUntil = useRef(0)
+  const holdStart = useRef(0)
+  const timeShift = useRef(0)
+  const hsQueue = useRef<Promise<void>>(Promise.resolve())
+  const [nums, setNums] = useState<{ id: number; x: number; y: number; text: string; color: string; style: DamageNumberStyle }[]>([])
 
   const ensureLoop = () => { if (!running.current) { running.current = true; raf.current = requestAnimationFrame(loop) } }
 
@@ -106,14 +147,15 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
         id: ++idc.current, kind: fx.kind,
         from: { x: from.x * D, y: from.y * D }, to: { x: to.x * D, y: to.y * D },
         color: fx.color, color2: fx.color2 ?? fx.color, im: intMul(fx.intensity),
-        dur: (fx.duration ?? 1.4) * 1000, t0: performance.now(), parts: [], seeded: false, variant: fx.variant,
+        dur: (fx.duration ?? 1.4) * 1000, t0: performance.now() - timeShift.current, parts: [], seeded: false, variant: fx.variant,
         rect: fx.rect ? { x: fx.rect.x * D, y: fx.rect.y * D, w: fx.rect.w * D, h: fx.rect.h * D } : undefined,
       })
       ensureLoop()
     },
     floatNumber: (x, y, text, color, big) => {
       const id = ++idc.current
-      setNums((n) => [...n, { id, x, y, text, color, big }])
+      const style: DamageNumberStyle = typeof big === 'string' ? big : big ? 'big' : 'normal'
+      setNums((n) => [...n, { id, x, y, text, color, style }])
       window.setTimeout(() => setNums((n) => n.filter((m) => m.id !== id)), 1150)
     },
     shakeBoard: (kind = 'soft') => {
@@ -142,9 +184,34 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       el.classList.remove('rvn-lunge'); void el.offsetWidth; el.classList.add('rvn-lunge')
       window.setTimeout(() => el.classList.remove('rvn-lunge'), 540)
     },
+    impactFrame: (severity, uid) => {
+      const prof = IMPACT_PROFILES[severity] ?? IMPACT_PROFILES.HIT
+      // Hit-stop'ai NESIKAUPIA: antras smūgis per hold'ą laukia eilėje.
+      const run = async () => {
+        // Taikinio „punch" + blyksnis — nepriklausomos scale/filter savybės,
+        // kad nekonfliktuotų su framer-motion transformomis.
+        if (uid) {
+          const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+          if (el && !prefersReduced()) {
+            if (prof.flash) { el.classList.remove('rvn-impact-flash'); void el.offsetWidth; el.classList.add('rvn-impact-flash'); window.setTimeout(() => el.classList.remove('rvn-impact-flash'), 260) }
+            el.classList.remove('rvn-impact-punch'); void el.offsetWidth; el.classList.add('rvn-impact-punch')
+            window.setTimeout(() => el.classList.remove('rvn-impact-punch'), 240)
+          }
+        }
+        const ms = effectiveHitStop(prof.hitStopMs)
+        if (ms <= 0) return
+        holdStart.current = performance.now()
+        holdUntil.current = holdStart.current + ms
+        ensureLoop()
+        await new Promise<void>((r) => window.setTimeout(r, ms))
+      }
+      const next = hsQueue.current.then(run, run)
+      hsQueue.current = next
+      return next
+    },
     hitFlash: (x, y, color) => {
       const D = dprRef.current
-      items.current.push({ id: ++idc.current, kind: 'disintegrate', from: { x: x * D, y: y * D }, to: { x: x * D, y: y * D }, color, color2: color, im: 0.6, dur: 600, t0: performance.now(), parts: [], seeded: false })
+      items.current.push({ id: ++idc.current, kind: 'disintegrate', from: { x: x * D, y: y * D }, to: { x: x * D, y: y * D }, color, color2: color, im: 0.6, dur: 600, t0: performance.now() - timeShift.current, parts: [], seeded: false })
       ensureLoop()
     },
   }))
@@ -159,10 +226,31 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(raf.current); running.current = false }
   }, [])
 
-  const loop = (now: number) => {
+  const loop = (rawNow: number) => {
     const c = cvs.current; const ctx = c?.getContext('2d')
     if (!c || !ctx) { running.current = false; return }
     const D = dprRef.current
+    // Hit-stop: kol laikas „sustojęs", visų elementų vidinis laikas nejuda.
+    // Po hold'o `timeShift` pastumia visų elementų laiko ašį — animacijos tęsiasi
+    // nuo tos pačios vietos, o ne peršoka į priekį (klasikinė hit-stop klaida).
+    if (holdUntil.current > 0) {
+      if (rawNow < holdUntil.current) {
+        // kadras piešiamas, bet laikas nejuda
+        const now = rawNow - timeShift.current - (rawNow - holdStart.current)
+        drawFrame(ctx, c, D, now, rawNow)
+        raf.current = requestAnimationFrame(loop)
+        return
+      }
+      timeShift.current += holdUntil.current - holdStart.current
+      holdUntil.current = 0
+    }
+    const now = rawNow - timeShift.current
+    drawFrame(ctx, c, D, now, rawNow)
+    if (items.current.length > 0) raf.current = requestAnimationFrame(loop)
+    else { running.current = false; ctx.clearRect(0, 0, c.width, c.height) }
+  }
+
+  const drawFrame = (ctx: CanvasRenderingContext2D, c: HTMLCanvasElement, D: number, now: number, _raw: number) => {
     ctx.clearRect(0, 0, c.width, c.height)
     const list = items.current
     for (let i = list.length - 1; i >= 0; i--) {
@@ -171,8 +259,6 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       if (p >= 1) { list.splice(i, 1); continue }
       drawItem(ctx, it, p, D, now)
     }
-    if (list.length > 0) raf.current = requestAnimationFrame(loop)
-    else { running.current = false; ctx.clearRect(0, 0, c.width, c.height) }
   }
 
   return (
@@ -181,7 +267,11 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       <canvas ref={cvs} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 126, pointerEvents: 'none', width: '100%', height: '100%' }} />
       <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 133, pointerEvents: 'none' }}>
         {nums.map((n) => (
-          <span key={n.id} className="rvn-fnum" style={{ left: n.x, top: n.y, color: n.color, fontSize: n.big ? 30 : 22, textShadow: `0 0 10px ${n.color}, 0 2px 3px rgba(0,0,0,0.9)` }}>{n.text}</span>
+          <span key={n.id} className={'rvn-fnum' + (n.style === 'critical' ? ' rvn-fnum-crit' : '')}
+            style={{ left: n.x, top: n.y, color: n.color, fontSize: NUM_SIZE[n.style],
+              textShadow: n.style === 'critical'
+                ? `0 0 18px ${n.color}, 0 0 6px #fff, 0 2px 4px rgba(0,0,0,0.95)`
+                : `0 0 10px ${n.color}, 0 2px 3px rgba(0,0,0,0.9)` }}>{n.text}</span>
         ))}
       </div>
     </>
@@ -740,6 +830,9 @@ const CSS = `
 @keyframes hpvCrit { 0%,100%{ box-shadow: 0 0 6px rgba(239,68,68,0.45); } 50%{ box-shadow: 0 0 14px rgba(239,68,68,0.95); } }
 .hpv2 { position:absolute; inset:0; background: rgba(16,12,24,0.5); overflow:hidden; }
 .hpv2-liquid { position:absolute; left:0; right:0; bottom:0; transition: height .5s cubic-bezier(.3,.8,.3,1), background .5s ease; }
+/* HP ghost sluoksnis (game-feel fazė 6): prarasta dalis lieka raudona, tada susitraukia. */
+.hpv2-ghost { position:absolute; left:0; right:0; bottom:0; background: linear-gradient(180deg, rgba(239,68,68,0.92), rgba(153,27,27,0.85)); transition: height 200ms ease-in; }
+@media (prefers-reduced-motion: reduce){ .hpv2-ghost { transition:none; } }
 .hpv2-wave { position:absolute; left:50%; top:-21px; width:280%; height:46px; transform:translateX(-50%); border-radius:42% 46% 43% 45%; opacity:.85; animation: hpvSpin 4.5s linear infinite; }
 .hpv2-wave2 { top:-18px; height:42px; opacity:.5; animation-duration: 7s; animation-direction: reverse; }
 @keyframes hpvSpin { from{ transform:translateX(-50%) rotate(0deg); } to{ transform:translateX(-50%) rotate(360deg); } }
@@ -748,6 +841,33 @@ const CSS = `
 .hpv2-glass { position:absolute; inset:0; pointer-events:none; background:linear-gradient(125deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.05) 30%, transparent 52%, rgba(0,0,0,0.34) 100%); }
 .hpv2-shine { position:absolute; top:14px; left:8px; width:4px; height:52%; border-radius:3px; pointer-events:none; background:linear-gradient(180deg, rgba(255,255,255,0.55), transparent); }
 @media (prefers-reduced-motion: reduce){ .hpv2-wave, .hpv2-bub { animation:none !important; } }
+/* ── Smūgio kadras (game-feel fazė 5) ────────────────────────────────────────
+   Naudojam NEPRIKLAUSOMAS scale/filter savybes, o ne transform — padarų
+   plytelės yra framer-motion valdomos ir transform ant jų jau užimtas. */
+@keyframes rvnImpactPunch {
+  0%   { scale: 1; }
+  22%  { scale: 0.94; }
+  55%  { scale: 1.03; }
+  100% { scale: 1; }
+}
+@keyframes rvnImpactFlash {
+  0%   { filter: none; }
+  18%  { filter: brightness(2.1) saturate(0.6); }
+  100% { filter: none; }
+}
+.rvn-impact-punch { animation: rvnImpactPunch 220ms cubic-bezier(.2,.9,.3,1.2); }
+.rvn-impact-flash { animation: rvnImpactFlash 120ms ease-out; }
+/* Kritinis žalos skaičius — papildomas „smūgio" akcentas. */
+@keyframes rvnFnumCrit {
+  0%   { letter-spacing: 0.14em; }
+  25%  { letter-spacing: 0em; }
+  100% { letter-spacing: 0.02em; }
+}
+.rvn-fnum-crit { animation: rvnFnum 1.1s cubic-bezier(.2,.8,.2,1) forwards, rvnFnumCrit 420ms ease-out; -webkit-text-stroke: 1px rgba(255,255,255,0.55); }
+@media (prefers-reduced-motion: reduce){
+  .rvn-impact-punch, .rvn-impact-flash, .rvn-fnum-crit { animation: none !important; }
+}
+
 @keyframes rvnFnum { 0%{opacity:0; transform:translate(-50%,-30%) scale(0.4)} 18%{opacity:1; transform:translate(-50%,-55%) scale(1.25)} 32%{transform:translate(-50%,-58%) scale(1)} 100%{opacity:0; transform:translate(-50%,-150%) scale(1)} }
 [data-fx-root].rvn-shake-soft { animation: rvnShakeSoft 0.36s ease-in-out; }
 [data-fx-root].rvn-shake-hard { animation: rvnShakeHard 0.48s ease-in-out; }

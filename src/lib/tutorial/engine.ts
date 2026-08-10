@@ -8,6 +8,7 @@ import { buildZmkDeck } from '@/lib/game/zmkEngine'
 import { applyMappings, applyMapping, mappingNeedsSelection, beginTargetCapture, endTargetCapture, type GameApi } from '@/lib/game/effectEngine'
 import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
 import * as fieldEngine from '@/lib/game/fieldEngine'
+import { resolveSeverity, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { fireTrigger } from '@/lib/game/triggerSystem'
 import type { ResolvedTarget } from '@/lib/game/targetResolver'
 import { resolveMappingTargets, resolveTargets, applyTargetFilters } from '@/lib/game/targetResolver'
@@ -197,6 +198,13 @@ export type GameEvent = {
   /** Įvykis kilo iš REAKCIJOS efekto. UI tokiems nekartoja krypties projektilo –
    *  taikymą jau parodė grandinės animacija (rodomas tik rezultatas). */
   viaReaction?: boolean
+  /**
+   * Smūgio svoris (game-feel fazė 4). Skaičiuojamas PO ŽMK, iš galutinės žalos
+   * ir taikinio maxHP. UI iš jo paima hit-stop, purtymo lygį, garsą ir skaičiaus
+   * stilių. PvP svečias gauna tą pačią reikšmę per tą patį žurnalą — jokio
+   * papildomo broadcast lauko.
+   */
+  severity?: ImpactSeverity
   /** Animacijoms: šaltinis (kortos uid arba žaidėjas) */
   src?: { side: Side; uid?: string }
   /** Animacijoms: taikinys */
@@ -815,8 +823,9 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
     dmg *= 2
     log(g, { t: 'damage', side: target, key: 'battleLog.auraDoublePlayerDmg', params: { dmg } })
   }
+  const hpBeforePlayer = playerHpOf(g, target)
   const left = applyPlayerDamage(g, target, dmg)
-  log(g, { t: 'damage', side: target, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, key: `battleLog.playerDamage.${SK(target)}`, params: { dmg, left } })
+  log(g, { t: 'damage', side: target, value: dmg, severity: resolveSeverity(dmg, Math.max(1, playerMaxHpOf(g, target)), hpBeforePlayer - dmg <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, key: `battleLog.playerDamage.${SK(target)}`, params: { dmg, left } })
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: target })
   checkWin(g)
@@ -866,7 +875,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   const overHpBefore = target.hp
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, tgt: { kind: 'unit', side: owner, uid: target.uid }, key: 'battleLog.unitDamage', params: { card: target.card.name, dmg, hp: Math.max(0, target.hp), maxHp: target.maxHp } })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, severity: resolveSeverity(dmg, target.maxHp, target.hp <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, tgt: { kind: 'unit', side: owner, uid: target.uid }, key: 'battleLog.unitDamage', params: { card: target.card.name, dmg, hp: Math.max(0, target.hp), maxHp: target.maxHp } })
   applyEnemyDamageLeech(g, owner, dmg)
   if (overflow) {
     const excess = Math.max(0, dmg - Math.max(0, overHpBefore))
@@ -1063,7 +1072,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
   if (dmg <= 0) return
   applySpellLifesteal(g, dmg)
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, tgt: { kind: 'artifact', side: owner, uid: target.uid }, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, severity: resolveSeverity(dmg, target.maxHp, target.hp - dmg <= 0), tgt: { kind: 'artifact', side: owner, uid: target.uid }, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
   fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'artifact', side: owner, uid: target.uid }, srcName: target.card.name })
   if (target.hp <= 0) {
     const p = P(g, owner)
@@ -1210,6 +1219,17 @@ function killUnit(g: GameState, owner: Side, u: BoardUnit) {
   fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
   recomputeAuras(g)
   fireOnDestroyCredit(g, u.card.name)
+}
+
+/** Dabartinis žaidėjo (arba komandos) HP — severity skaičiavimui. */
+function playerHpOf(g: GameState, s: Side): number {
+  if (g.mode === '2v2' && g.teams) return g.teams[teamOfSeat(g, s)].hp
+  return P(g, s).hp
+}
+/** Maksimalus žaidėjo (arba komandos) HP — severity santykiui. */
+function playerMaxHpOf(g: GameState, s: Side): number {
+  if (g.mode === '2v2' && g.teams) return g.teams[teamOfSeat(g, s)].maxHp
+  return P(g, s).maxHp
 }
 
 /** Žala žaidėjui: 2v2 – mažina komandos bendrą HP; 1v1 – seat'o PlayerState.hp. Grąžina likusį HP. */
@@ -3611,7 +3631,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     } else {
       const dmg = rollDamage(g, s, atk, ctxBias(g, s))
       def.hp -= dmg
-      log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, key: 'battleLog.unitDamage', params: { card: def.card.name, dmg, hp: Math.max(0, def.hp), maxHp: def.maxHp } })
+      log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, severity: resolveSeverity(dmg, def.maxHp, def.hp <= 0), key: 'battleLog.unitDamage', params: { card: def.card.name, dmg, hp: Math.max(0, def.hp), maxHp: def.maxHp } })
     }
     // atgalinė žala puolančiajam
     if (defRetaliates) {
