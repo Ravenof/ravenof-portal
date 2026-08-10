@@ -428,13 +428,23 @@ console.log('\n── F13 Kovos dialogų ir pranešimų rėmas ──')
   check('mobiliajame rėmas plonesnis (neatima turinio ploto)',
     /@media \(max-width: 480px\)[\s\S]{0,220}\.combat-plate \{ border-width: 16px/.test(tac))
   // Antrą kartą užkliuvo: neekranuotas backtick CSS template literal'e nutraukia string'ą.
+  // TREČIĄ kartą — jau kitame faile (BattleFxLayer), tad tikrinam abu.
   {
-    const i = tac.indexOf('const CSS = `')
-    const j = tac.indexOf('`\n\n/**', i)
-    const css = tac.slice(i + 13, j)
-    let raw = 0
-    for (let k = 0; k < css.length; k++) if (css[k] === '`' && (k === 0 || css[k - 1] !== '\\')) raw++
-    check('CSS template literal be neekranuotų backtickų', raw === 0, String(raw))
+    const rawBackticks = (src: string, start: string, end: string): number => {
+      const i = src.indexOf(start)
+      if (i < 0) return -1
+      const j = src.indexOf(end, i + start.length)
+      if (j < 0) return -1
+      const css = src.slice(i + start.length, j)
+      let raw = 0
+      for (let k = 0; k < css.length; k++) if (css[k] === '`' && (k === 0 || css[k - 1] !== '\\')) raw++
+      return raw
+    }
+    const a = rawBackticks(tac, 'const CSS = `', '`\n\n/**')
+    check('CardTactile CSS be neekranuotų backtickų', a === 0, String(a))
+    const fx = readFileSync('src/components/tutorial/BattleFxLayer.tsx', 'utf8')
+    const b = rawBackticks(fx, 'const CSS = `', '`\n')
+    check('BattleFxLayer CSS be neekranuotų backtickų', b === 0, String(b))
   }
   check('švytėjimo spalva per CSS kintamąjį', tac.includes('--plate-glow'))
   check('yra pavojaus ir arkaninis variantai',
@@ -598,6 +608,69 @@ console.log('\n── F15 Reakcijos grandinė taikosi TIK į savo taikinius ─�
   const uids = (gate?.targets ?? []).map((t) => ('uid' in t && t.uid ? t.uid : `player:${'side' in t ? t.side : '?'}`))
   check('grandinė NEnusitaikė į mano padarą (kaskada neteršia)', !uids.includes('Manas'), JSON.stringify(uids))
   check('grandinė turi tik reakcijos taikinį', uids.length === 1 && uids[0] === 'Naujokas', JSON.stringify(uids))
+}
+
+console.log('\n── F16 Atakos šuolis: tempimas, blur, žiežirbos ──')
+{
+  const { readFileSync } = await import('node:fs')
+  const fx = readFileSync('src/components/tutorial/BattleFxLayer.tsx', 'utf8')
+  const tg = readFileSync('src/components/tutorial/TutorialGame.tsx', 'utf8')
+  const { ATTACK_LUNGE, ATTACK_SPARKS } = await import('../src/lib/game/timing')
+  const { IMPACT_PROFILES, SEVERITY_ORDER } = await import('../src/lib/game/impactProfiles')
+
+  // Konstantos gyvena viename faile, ne išbarstytos po komponentus.
+  check('ATTACK_LUNGE turi visas skrydžio fazes',
+    ATTACK_LUNGE.windupMs > 0 && ATTACK_LUNGE.travelMs > 0 && ATTACK_LUNGE.recoverMs > 0)
+  check('tempimas ryškus (naudotojo prašymas: „labiau ištempk")',
+    ATTACK_LUNGE.stretchK >= 0.8, String(ATTACK_LUNGE.stretchK))
+  check('tempiant skersai susispaudžia (tūris išlaikomas)',
+    ATTACK_LUNGE.stretchSquash > 0 && ATTACK_LUNGE.stretchSquash < 1)
+  check('smūgis staigesnis už grįžimą (dramaturgija)',
+    ATTACK_LUNGE.travelMs < ATTACK_LUNGE.recoverMs)
+
+  // REGRESIJA: senas rvn-lunge buvo CSS keyframe'ai su fiksuotu scale(1.1) —
+  // tempimas nepriklausė nuo greičio, tad įsibėgėjimo nesimatė.
+  check('senų rvnLunge keyframe’ų nebeliko', !fx.includes('@keyframes rvnLunge') && !fx.includes('.rvn-lunge '))
+  check('tempimas ir blur skaičiuojami iš greičio',
+    /const vn = Math\.min\(1, v \/ L\.maxSpeedPxPerMs\)/.test(fx))
+  check('blur uždedamas tik realiai judant', /el\.style\.filter = vn > 0\.06/.test(fx))
+
+  // Judesio sluoksnis: be jo framer-motion ir rAF perrašinėtų vienas kito transform.
+  check('šuolis rašo į vidinį [data-lunge] wrapper’į', fx.includes("querySelector('[data-lunge]')"))
+  check('TutorialGame tą wrapper’į tikrai renderina', tg.includes('<div data-lunge>'))
+  check('wrapper turi savo stacking context’ą (šmėklos lieka už kortos)',
+    /\[data-lunge\] \{[^}]*isolation: isolate/.test(fx))
+
+  // Smūgio taškas — ta pati briaunos matematika kaip nusileidimo dulkėse.
+  check('atstumas skaičiuojamas iš kortų dydžių, ne kaip % kelio',
+    fx.includes('const halfA = edgeDist(') && fx.includes('const halfT = tr ? edgeDist('))
+  check('žiežirbos sprogsta ant TAIKINIO briaunos',
+    /const ix = target\.x - nx \* halfT/.test(fx))
+  check('taikinio uid perduodamas iš TutorialGame',
+    /lungeUnit\(src\.uid, to0, \{ targetUid: tgt\.uid, severity: sev \}\)/.test(tg))
+
+  // Žiežirbų svoris ateina iš duomenų (severity), ne iš hardcode'o.
+  check('kiekvienas ImpactProfile turi sparkMul',
+    SEVERITY_ORDER.every((s) => typeof IMPACT_PROFILES[s].sparkMul === 'number'))
+  check('sunkesnis smūgis → daugiau žiežirbų',
+    SEVERITY_ORDER.every((s, i) => i === 0 || IMPACT_PROFILES[s].sparkMul >= IMPACT_PROFILES[SEVERITY_ORDER[i - 1]].sparkMul),
+    SEVERITY_ORDER.map((s) => `${s}:${IMPACT_PROFILES[s].sparkMul}`).join(' '))
+  check('sparkBurst naudoja profilio daugiklį', /const mul = prof\.sparkMul/.test(fx))
+  check('žiežirbos lekia į VISAS puses (pilnas apskritimas)', /const a = rnd\(0, TAU\)/.test(fx))
+  check('yra polinkis atgal nuo smūgio (atsimušimas, ne sprogimas)',
+    fx.includes('ux * S.backBias') && ATTACK_SPARKS.backBias > 0)
+  check('žiežirba piešiama brūkšniu nuo praėjusios pozicijos',
+    /ctx\.moveTo\(ox, oy\); ctx\.lineTo\(q\.x, q\.y\)/.test(fx))
+  check('žiežirbos turi gravitaciją', ATTACK_SPARKS.gravity > 0 && /const g = \(S\.gravity \/ 3600\)/.test(fx))
+
+  // Prieinamumas ir kokybė.
+  check('prefers-reduced-motion → jokio šuolio', /if \(reduced\) \{ burst\(\); return \}/.test(fx))
+  check('low kokybė → be žiežirbų', /if \(reduced \|\| q === 'low'\) return/.test(fx))
+  check('šmėklos tik high kokybėje', /if \(q === 'high' && L\.ghosts > 0\)/.test(fx))
+  check('šmėklos pašalinamos pasibaigus (jokio DOM šiukšlinimo)',
+    /for \(const g of ghosts\) g\.remove\(\)/.test(fx))
+  // REGRESIJA: antra ataka tam pačiam padarui neturi palikti kortos pasitempusios.
+  check('antras šuolis nutraukia pirmąjį', fx.includes('cancelAnimationFrame(prev)'))
 }
 
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)

@@ -184,3 +184,71 @@ export const CARD_LANDING = {
   /** Nusileidimo garso lygis (naudojam esamą `impact`). */
   soundVolume: 0.3,
 } as const
+
+// ── Atakos šuolis: kortos smūgis į taikinį (game-feel fazė 2c) ──────────────
+// Iki tol ataka buvo `rvn-lunge` keyframe'ai: korta nuslinkdavo 60 % kelio,
+// šiek tiek padidėdavo ir grįždavo. Trūko svorio — nesimatė nei įsibėgėjimo,
+// nei susidūrimo.
+//
+// Dabar judesį valdo requestAnimationFrame, o TEMPIMAS IR BLUR SKAIČIUOJAMI
+// IŠ TIKRO GREIČIO kadre, ne iš fiksuotų keyframe'ų. Todėl greitėjimas ir
+// stabdymas atrodo natūraliai, o ne „animuotai".
+//
+// Etalonas: attack-preview.html (slankikliai + realaus laiko peržiūra).
+export const ATTACK_LUNGE = {
+  /** Atsitraukimas prieš šuolį — be jo šuolis atrodo kaip teleportas. */
+  windupMs: 80,
+  /** Skrydis iki taikinio (įsibėgėjanti kreivė — smūgis staigus). */
+  travelMs: 150,
+  /** Grįžimas į savo vietą su nedideliu peršokimu. */
+  recoverMs: 300,
+  /**
+   * Kiek puolančios kortos briauna įlenda į taikinį (px). Nuskridimo atstumas
+   * skaičiuojamas iš KORTŲ DYDŽIŲ (briauna prie briaunos), ne kaip % kelio —
+   * kitaip maži artefaktai ir dideli padarai atrodo skirtingai.
+   */
+  contactOverlapPx: 14,
+  /** Atsitraukimo gylis (dalis viso atstumo). */
+  pullback: 0.11,
+  /** Tempimas judesio kryptimi ties maksimaliu greičiu (scale = 1 + K). */
+  stretchK: 0.85,
+  /** Kiek susispaudžia skersai (dalis nuo stretchK). */
+  stretchSquash: 0.55,
+  /** Motion blur ties maksimaliu greičiu (px). */
+  blurPx: 3.4,
+  /** Šmėklų (pėdsako) kiekis. 0 = išjungta. */
+  ghosts: 3,
+  /** Pėdsako ryškumas. */
+  ghostAlpha: 0.38,
+  /** Pasvirimas judesio kryptimi ties maksimaliu greičiu (laipsniai). */
+  tiltDeg: 7,
+  /** Greitis (px/ms), kuris laikomas „maksimaliu" tempimui/blur normuoti. */
+  maxSpeedPxPerMs: 2.2,
+} as const
+
+/** Žiežirbos smūgio taške — sprogsta į VISAS puses nuo taikinio briaunos. */
+export const ATTACK_SPARKS = {
+  /** Bazinis kiekis; dauginamas iš ImpactProfile.sparkMul. */
+  count: 34,
+  /** Pradinis greitis (px/s; viduje verčiamas į px/kadrą). */
+  speedPxPerSec: 560,
+  /** Vidutinė gyvavimo trukmė (kiekvienai dalelei ±). */
+  lifeMs: 520,
+  /** Kritimas (px/s²) — žiežirbos turi svorį. */
+  gravity: 900,
+  /** Kiek dalelių atlinksta ATGAL nuo smūgio (metalas atsimuša, ne sprogsta). */
+  backBias: 0.35,
+  /** Baltų (karštų) žiežirbų dalis. */
+  hotChance: 0.35,
+  /** Lėtų žarijų kiekis (bazinis). */
+  embers: 6,
+  /** Smūgio bangos žiedas. */
+  ringMs: 340,
+  ringRadiusPx: 78,
+  /** Blyksnis smūgio taške. */
+  flashMs: 170,
+  /** Bendra elemento trukmė (ilgiausia dalelė + atsarga). */
+  totalMs: 1200,
+  color: '#ffb654',
+  hotColor: '#fff6d6',
+} as const

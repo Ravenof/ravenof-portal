@@ -37,6 +37,11 @@ export type ImpactProfile = {
   damageNumberStyle: 'small' | 'normal' | 'big' | 'critical'
   /** Mirties stiliaus užuomina (fazė 9). */
   deathStyle?: 'quiet' | 'normal' | 'heavy'
+  /**
+   * Žiežirbų kiekio daugiklis atakos smūgyje (fazė 2c). Tas pats skaičius
+   * valdo ir smūgio bangos žiedo dydį — vienas svoris, ne du derinami.
+   */
+  sparkMul: number
 }
 
 export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
@@ -50,6 +55,7 @@ export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
     audioDuckDb: 0,
     flash: false,
     damageNumberStyle: 'small',
+    sparkMul: 0.35,
   },
   HIT: {
     severity: 'HIT',
@@ -61,6 +67,7 @@ export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
     audioDuckDb: 0,
     flash: true,
     damageNumberStyle: 'normal',
+    sparkMul: 0.7,
   },
   HEAVY: {
     severity: 'HEAVY',
@@ -73,6 +80,7 @@ export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
     flash: true,
     damageNumberStyle: 'big',
     deathStyle: 'heavy',
+    sparkMul: 1.0,
   },
   DEVASTATING: {
     severity: 'DEVASTATING',
@@ -85,6 +93,7 @@ export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
     flash: true,
     damageNumberStyle: 'critical',
     deathStyle: 'heavy',
+    sparkMul: 1.5,
   },
   LETHAL: {
     severity: 'LETHAL',
@@ -97,6 +106,7 @@ export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
     flash: true,
     damageNumberStyle: 'critical',
     deathStyle: 'heavy',
+    sparkMul: 1.8,
   },
 }
 

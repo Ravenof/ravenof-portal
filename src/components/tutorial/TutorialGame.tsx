@@ -2057,7 +2057,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         // Paprastos atakos: puolėjo korta greitai nuskrieja iki taikinio ir grįžta (tik atakoms, ne efektams)
         if (isAtk && src.uid) {
           const to0 = rectOf(tgt)
-          if (to0) fxRef.current?.lungeUnit(src.uid, to0)
+          // Žiežirbų kiekis ateina iš smūgio SVORIO. Kovos žalos įvykis eina iš
+          // karto po `attack` (variklis juos rašo poromis), tad imam artimiausią
+          // žalos įvykį — taip nereikia nei naujo lauko, nei kito srauto.
+          let sev: ImpactSeverity | undefined
+          const ai = fresh.indexOf(e)
+          for (let k = ai + 1; k < Math.min(fresh.length, ai + 5); k++) {
+            const nx2 = fresh[k]
+            if (nx2.t === 'damage' && (nx2.value ?? 0) > 0) { sev = nx2.severity; break }
+          }
+          if (to0) fxRef.current?.lungeUnit(src.uid, to0, { targetUid: tgt.uid, severity: sev })
         }
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
@@ -3338,6 +3347,10 @@ doAction({ t: 'endTurn', actor: 'you' })
               onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(u.card) }, 450) }}
               onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
               onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}>
+              {/* Atakos šuolio judesio sluoksnis (fazė 2c). Šuolis rašo inline
+                  `transform` per rAF, o ant išorinio motion.div nuolat rašo
+                  framer-motion — be šito wrapper'io jie perrašinėtų vienas kitą. */}
+              <div data-lunge>
               <UnitTile
                 g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
                 selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (select?.kind === 'champ' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
@@ -3350,6 +3363,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 }
                 onClick={() => side === 'you' ? onMyUnitClick(u) : onTargetClick({ kind: 'unit', side: 'ai', uid: u.uid })}
               />
+              </div>
             </motion.div>
           ) : (
             <div key={side + '-slot-' + i} data-drop-slot={side}

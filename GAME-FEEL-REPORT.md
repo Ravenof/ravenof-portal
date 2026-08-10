@@ -376,3 +376,69 @@ atidarius per `file://` (antras `<style>` blokas persuka kelius į santykinius).
 
 Testai: +6 patikros (asset'ai yra repo, pjūvio formatas, atskiri `border-image-source`,
 mobilus media query, neliko seno ornamento, `position` nebe tiesiogiai) — iš viso **144**.
+
+---
+
+## 14. Atakos smūgis: tempimas, motion blur, žiežirbos (commit590)
+
+Prieš tai ataka buvo `rvn-lunge` CSS keyframe'ai: korta nuslinkdavo 60 % kelio,
+padidėdavo iki `scale(1.1)` ir grįždavo. Trūko ir įsibėgėjimo, ir susidūrimo —
+judesys buvo tolygus, o smūgio momento kaip įvykio išvis nebuvo.
+
+### Judesį valdo greitis, ne keyframe'ai
+
+Dabar skrydį suka `requestAnimationFrame`, o **tempimas ir blur skaičiuojami iš
+tikro greičio kadre**:
+
+```
+vn = min(1, greitis / maxSpeedPxPerMs)
+scale = (1 + vn·stretchK) judesio kryptimi, (1 − vn·stretchK·squash) skersai
+blur  = vn · blurPx
+```
+
+Todėl greitėjimas ir stabdymas atrodo savaime — nereikia derinti atskirų
+keyframe'ų kiekvienam etapui. Seka: atsitraukimas (80 ms) → skrydis kubine
+kreive (150 ms) → smūgis → grįžimas su peršokimu (300 ms).
+
+`stretchK = 0.85` — korta susmailėja beveik dvigubai. Tai sąmoningai daug: ties
+smailiausiu tašku ji matoma ~2 kadrus.
+
+### Trys sprendimai, kurie čia buvo esminiai
+
+- **Nuskridimo atstumas — iš kortų dydžių, ne iš % kelio.** Skaičiuojama
+  briauna prie briaunos (`edgeDist`, ta pati spindulio × stačiakampio sankirta
+  kaip nusileidimo dulkėse) plius `contactOverlapPx`. Kitaip mažas artefaktas ir
+  didelis padaras atrodo visiškai skirtingai.
+- **Vidinis `[data-lunge]` wrapper'is.** Ant `[data-unit-uid]` sėdi
+  framer-motion ir nuolat perrašo `transform`; rAF valdomas šuolis ten
+  mirksėtų. Šuolis rašo į vidinį sluoksnį, tad abu gali dirbti kartu.
+- **Žiežirbos sprogsta ant TAIKINIO briaunos**, ne puolančios kortos centre.
+
+### Žiežirbos
+
+Naujas canvas elementas `sparkBurst` (piešiamas `lighter`, priešingai nei
+dulkės). Dalelės lekia per visą 360°, bet su polinkiu atgal nuo smūgio —
+metalas atsimuša, o ne sprogsta simetriškai. Kiekviena piešiama **brūkšniu nuo
+praėjusios pozicijos iki dabartinės**, tad greita žiežirba atrodo kaip linija.
+Plius gravitacija, karštos baltos šerdys, lėtos žarijos, smūgio bangos žiedas ir
+blyksnis.
+
+Kiekis ateina iš duomenų: `ImpactProfile.sparkMul` (CHIP 0.35 … LETHAL 1.8).
+Severity imamas iš artimiausio žalos įvykio po `attack` — naujo lauko varikliui
+nereikėjo.
+
+Kadangi tai canvas elementas, jis **automatiškai paklūsta hit-stop'ui**
+(`timeShift`) — žiežirbos sustingsta smūgio kadre kartu su visais kitais FX.
+
+### Prieinamumas
+
+`prefers-reduced-motion` → jokio šuolio ir jokių žiežirbų. `low` kokybė → be
+žiežirbų. Šmėklos tik `high`. Šmėklos kuriamos šuolio pradžioje ir pašalinamos
+pabaigoje — jokio nuolatinio DOM svorio kiekvienam padarui. Antra ataka tam
+pačiam padarui nutraukia pirmąją (`cancelAnimationFrame`), kad korta neliktų
+pasitempusi.
+
+Derinta `attack-preview.html` — slankikliai visiems parametrams, „Sulėtinta 4×"
+ir realiu laiku susirašantis `ATTACK_LUNGE` / `ATTACK_SPARKS` blokas.
+
+Testai: +26 patikros (F16) — iš viso **170**.

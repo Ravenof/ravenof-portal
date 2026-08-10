@@ -11,6 +11,8 @@ export type FxKind =
   | 'burn' | 'poison'
   /** Dulkių debesėlis iš po nusileidusios kortos (game-feel fazė 2b). */
   | 'dustPuff'
+  /** Žiežirbos atakos smūgio taške (game-feel fazė 2c). */
+  | 'sparkBurst'
 
 export type FxIntensity = 'small' | 'normal' | 'big'
 

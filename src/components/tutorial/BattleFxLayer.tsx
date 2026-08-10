@@ -46,7 +46,16 @@ export type BattleFxHandle = {
   impactFrame: (severity: ImpactSeverity, uid?: string) => Promise<void>
   shakeBoard: (kind?: 'soft' | 'hard') => void
   shakeUnit: (uid: string, kind?: 'soft' | 'normal' | 'hard') => void
-  lungeUnit: (uid: string, target: { x: number; y: number }) => void
+  /**
+   * Atakos šuolis (game-feel fazė 2c): korta atsitraukia, šauna į taikinį
+   * tempdamasi pagal GREITĮ (ne pagal keyframe'us), o susidūrimo taške
+   * išsprogsta žiežirbos.
+   *
+   * `opts.targetUid` — kad smūgio taškas būtų ant TAIKINIO briaunos, o ne
+   * puolančios kortos centre (tas pats principas kaip nusileidimo dulkėse).
+   * `opts.severity` — žiežirbų kiekis ateina iš smūgio svorio.
+   */
+  lungeUnit: (uid: string, target: { x: number; y: number }, opts?: { targetUid?: string; severity?: ImpactSeverity }) => void
   hitFlash: (x: number, y: number, color: string) => void
   /**
    * Kortos nusileidimas ant lentos (game-feel fazė 2b): dulkės iš po kortos,
@@ -61,7 +70,7 @@ export type BattleFxHandle = {
 
 import { IMPACT_PROFILES, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { getVfxQuality, prefersReducedMotion as prefersReduced } from '@/lib/game/statusVfx'
-import { HIT_STOP, CARD_LANDING } from '@/lib/game/timing'
+import { HIT_STOP, CARD_LANDING, ATTACK_LUNGE, ATTACK_SPARKS } from '@/lib/game/timing'
 
 /**
  * Realus hit-stop pagal prieinamumo/kokybės nustatymus:
@@ -77,6 +86,26 @@ import { HIT_STOP, CARD_LANDING } from '@/lib/game/timing'
 function cardEl(uid: string): HTMLElement | null {
   return (document.querySelector(`[data-unit-uid="${uid}"]`)
     ?? document.querySelector(`[data-artifact-uid="${uid}"]`)) as HTMLElement | null
+}
+
+/**
+ * Judesio sluoksnis atakos šuoliui — VIDINIS wrapper'is `[data-lunge]`.
+ * Ant paties `[data-unit-uid]` sėdi framer-motion ir nuolat perrašo `transform`,
+ * tad rAF valdomas šuolis ten mirksėtų. Jei wrapper'io nėra (artefaktas), imam
+ * patį elementą — jis framer-motion nevaldomas.
+ */
+function lungeEl(host: HTMLElement): HTMLElement {
+  return (host.querySelector('[data-lunge]') as HTMLElement | null) ?? host
+}
+
+/** Aktyvūs šuoliai: antra ataka tam pačiam padarui nutraukia pirmąją. */
+const lungeRaf = new WeakMap<HTMLElement, number>()
+
+/** Spindulio ir stačiakampio sankirta — atstumas iki briaunos ta kryptimi. */
+function edgeDist(w: number, h: number, nx: number, ny: number): number {
+  const ex = Math.abs(nx) > 1e-4 ? (w / 2) / Math.abs(nx) : Infinity
+  const ey = Math.abs(ny) > 1e-4 ? (h / 2) / Math.abs(ny) : Infinity
+  return Math.min(ex, ey)
 }
 
 function effectiveHitStop(ms: number): number {
@@ -96,7 +125,7 @@ const intMul = (i?: FxIntensity) => (i === 'big' ? 1.5 : i === 'small' ? 0.7 : 1
 export type DamageNumberStyle = 'small' | 'normal' | 'big' | 'critical'
 const NUM_SIZE: Record<DamageNumberStyle, number> = { small: 17, normal: 22, big: 30, critical: 40 }
 
-type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; rot: number; vr: number }
+type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; rot: number; vr: number; hot?: boolean }
 type Item = {
   id: number; kind: FxKind; from: { x: number; y: number }; to: { x: number; y: number }
   color: string; color2: string; im: number; dur: number; t0: number; parts: P[]; seeded: boolean; variant?: AoeVariant
@@ -190,17 +219,126 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls)
       window.setTimeout(() => el.classList.remove(cls), 420)
     },
-    lungeUnit: (uid, target) => {
-      const el = cardEl(uid)
-      if (!el) return
-      const r = el.getBoundingClientRect()
+    lungeUnit: (uid, target, opts) => {
+      const host = cardEl(uid)
+      if (!host) return
+      const L = ATTACK_LUNGE
+      const r = host.getBoundingClientRect()
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2
-      // pajuda ~60% link taikinio ir grįžta
-      const dx = (target.x - cx) * 0.6, dy = (target.y - cy) * 0.6
-      el.style.setProperty('--lx', Math.round(dx) + 'px')
-      el.style.setProperty('--ly', Math.round(dy) + 'px')
-      el.classList.remove('rvn-lunge'); void el.offsetWidth; el.classList.add('rvn-lunge')
-      window.setTimeout(() => el.classList.remove('rvn-lunge'), 540)
+      const dx = target.x - cx, dy = target.y - cy
+      const dist = Math.hypot(dx, dy)
+      if (dist < 2) return
+      const nx = dx / dist, ny = dy / dist
+
+      // Nuskridimo atstumas — iš KORTŲ DYDŽIŲ (briauna prie briaunos + persidengimas),
+      // ne kaip fiksuotas % kelio. Todėl artefaktas ir didelis padaras atrodo vienodai.
+      const halfA = edgeDist(r.width, r.height, nx, ny)
+      const tEl = opts?.targetUid ? cardEl(opts.targetUid) : null
+      const tr = tEl?.getBoundingClientRect()
+      const halfT = tr ? edgeDist(tr.width, tr.height, nx, ny) : halfA
+      const reach = Math.max(0.1, Math.min(0.98, (dist - halfA - halfT + L.contactOverlapPx) / dist))
+      // Smūgio taškas — ant TAIKINIO briaunos, ne puolančios kortos centre.
+      const ix = target.x - nx * halfT, iy = target.y - ny * halfT
+
+      const prof = IMPACT_PROFILES[opts?.severity ?? 'HIT'] ?? IMPACT_PROFILES.HIT
+      const q = getVfxQuality()
+      const reduced = prefersReduced()
+
+      const burst = () => {
+        if (reduced || q === 'low') return
+        const D = dprRef.current
+        const mul = prof.sparkMul * (q === 'medium' ? 0.6 : 1)
+        items.current.push({
+          id: ++idc.current, kind: 'sparkBurst',
+          from: { x: ix * D, y: iy * D },
+          // `to` neša tik KRYPTĮ (smūgio normalę) — atskiro lauko Item tipe nereikia.
+          to: { x: (ix + nx * 100) * D, y: (iy + ny * 100) * D },
+          color: ATTACK_SPARKS.color, color2: ATTACK_SPARKS.hotColor,
+          im: mul, dur: ATTACK_SPARKS.totalMs,
+          t0: performance.now() - timeShift.current, parts: [], seeded: false,
+        })
+        ensureLoop()
+      }
+
+      if (reduced) { burst(); return }
+
+      const el = lungeEl(host)
+      const prev = lungeRaf.get(el)
+      if (prev) cancelAnimationFrame(prev)
+
+      // Šmėklos kuriamos tik šuolio metu ir iškart pašalinamos — jokio nuolatinio
+      // DOM svorio kiekvienam padarui.
+      const ghosts: HTMLElement[] = []
+      if (q === 'high' && L.ghosts > 0) {
+        for (let i = 0; i < L.ghosts; i++) {
+          const g = document.createElement('div')
+          g.className = 'rvn-lunge-ghost'
+          el.appendChild(g)
+          ghosts.push(g)
+        }
+      }
+
+      const W = L.windupMs, T = L.travelMs, R = L.recoverMs
+      const t0 = performance.now()
+      let hit = false, px = 0, py = 0, pt = t0
+      el.style.zIndex = '45'
+      el.style.willChange = 'transform, filter'
+
+      const cleanup = () => {
+        el.style.transform = ''; el.style.filter = ''
+        el.style.zIndex = ''; el.style.willChange = ''
+        for (const g of ghosts) g.remove()
+        lungeRaf.delete(el)
+      }
+
+      const step = (now: number) => {
+        const e = now - t0
+        let x = 0, y = 0, travelling = false
+        if (e < W) {
+          const p = easeOut(e / W)
+          x = -nx * dist * L.pullback * p; y = -ny * dist * L.pullback * p
+        } else if (e < W + T) {
+          // Kubinis įsibėgėjimas (ne bendrasis `easeIn`, kuris kvadratinis):
+          // smūgis turi ateiti staigiai, o ne tolygiai — taip patvirtinta peržiūroje.
+          const u = (e - W) / T
+          const p = u * u * u
+          const sx = -nx * dist * L.pullback, sy = -ny * dist * L.pullback
+          x = sx + (nx * dist * reach - sx) * p
+          y = sy + (ny * dist * reach - sy) * p
+          travelling = true
+        } else {
+          const p = Math.min(1, (e - W - T) / R)
+          const b = 1 - 2.9 * Math.pow(1 - p, 3) + 1.9 * Math.pow(1 - p, 2)
+          x = nx * dist * reach * (1 - b); y = ny * dist * reach * (1 - b)
+        }
+
+        // Tempimas ir blur — IŠ TIKRO GREIČIO kadre, ne iš keyframe'ų.
+        const dt = Math.max(1, now - pt)
+        const v = Math.hypot(x - px, y - py) / dt
+        px = x; py = y; pt = now
+        const vn = Math.min(1, v / L.maxSpeedPxPerMs)
+
+        const st = 1 + vn * L.stretchK
+        const sq = 1 - vn * L.stretchK * L.stretchSquash
+        const ang = Math.atan2(ny, nx) * 180 / Math.PI
+        const tilt = vn * L.tiltDeg * (nx >= 0 ? 1 : -1)
+        el.style.transform =
+          `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(ang + tilt).toFixed(2)}deg)` +
+          ` scale(${st.toFixed(3)},${sq.toFixed(3)}) rotate(${(-ang).toFixed(2)}deg)`
+        el.style.filter = vn > 0.06 && L.blurPx > 0 ? `blur(${(vn * L.blurPx).toFixed(2)}px)` : ''
+
+        for (let i = 0; i < ghosts.length; i++) {
+          const k = (i + 1) / (ghosts.length + 1)
+          // Pėdsakas tik LEKIANT į taikinį — grįžimas turi būti švarus.
+          ghosts[i].style.opacity = travelling ? String(vn * L.ghostAlpha * (1 - k) * 0.9) : '0'
+          ghosts[i].style.transform = `translate(${(-nx * v * 34 * k).toFixed(1)}px,${(-ny * v * 34 * k).toFixed(1)}px)`
+        }
+
+        if (!hit && e >= W + T) { hit = true; burst() }
+        if (e < W + T + R) lungeRaf.set(el, requestAnimationFrame(step))
+        else cleanup()
+      }
+      lungeRaf.set(el, requestAnimationFrame(step))
     },
     cardLand: (uid, rect) => {
       const D = dprRef.current
@@ -939,6 +1077,76 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       }
       break
     }
+    // ── Žiežirbos atakos smūgio taške (game-feel fazė 2c) ───────────────────
+    // Priešingai nei dulkės, šitos ŠVYTI (`lighter`) ir turi svorį: lekia į
+    // visas puses, krenta, o brūkšnys piešiamas nuo praėjusios pozicijos iki
+    // dabartinės — todėl greita žiežirba atrodo kaip linija, ne kaip taškas.
+    case 'sparkBurst': {
+      ctx.globalCompositeOperation = 'lighter'
+      const ux = dx / (Math.hypot(dx, dy) || 1), uy = dy / (Math.hypot(dx, dy) || 1)
+      const S = ATTACK_SPARKS
+      if (!it.seeded) {
+        it.seeded = true
+        const n = Math.round(S.count * im)
+        for (let k = 0; k < n; k++) {
+          const a = rnd(0, TAU)
+          // Tolygiai per 360°, bet su polinkiu ATGAL nuo smūgio — metalas
+          // atsimuša, o ne sprogsta simetriškai.
+          let ex = Math.cos(a) - ux * S.backBias
+          let ey = Math.sin(a) - uy * S.backBias
+          const l = Math.hypot(ex, ey) || 1; ex /= l; ey /= l
+          const sp = (S.speedPxPerSec / 60) * D * rnd(0.35, 1.3)
+          it.parts.push({
+            x: from.x, y: from.y, vx: ex * sp, vy: ey * sp,
+            life: now, max: S.lifeMs * rnd(0.55, 1.3),
+            size: rnd(1, 2.8) * D, rot: 0, vr: 0, hot: Math.random() < S.hotChance,
+          })
+        }
+        const m = Math.round(S.embers * im)
+        for (let k = 0; k < m; k++) {
+          const a = rnd(0, TAU)
+          const sp = (S.speedPxPerSec / 60) * D * 0.18 * rnd(0.5, 1.5)
+          it.parts.push({
+            x: from.x, y: from.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            life: now, max: S.lifeMs * 2.1, size: rnd(1.4, 3) * D, rot: 1, vr: 0,
+          })
+        }
+      }
+      // Blyksnis smūgio taške
+      const fp = (now - it.t0) / S.flashMs
+      if (fp < 1) {
+        glow(ctx, from.x, from.y, 96 * D * (0.6 + im * 0.4), color2, (1 - fp) * 0.75)
+        glow(ctx, from.x, from.y, 34 * D, '#ffffff', (1 - fp) * 0.55)
+      }
+      // Smūgio bangos žiedas
+      const rp = (now - it.t0) / S.ringMs
+      if (rp < 1) {
+        const e = 1 - Math.pow(1 - rp, 3)
+        softRing(ctx, from.x, from.y, (8 + (S.ringRadiusPx * im - 8) * e) * D, (3 * (1 - rp) + 0.6) * D, color2, (1 - rp) * 0.6)
+      }
+      const g = (S.gravity / 3600) * D
+      for (let k = it.parts.length - 1; k >= 0; k--) {
+        const q = it.parts[k]
+        const e = (now - q.life) / q.max
+        if (e >= 1) { it.parts.splice(k, 1); continue }
+        const ox = q.x, oy = q.y
+        q.x += q.vx; q.y += q.vy
+        q.vy += q.rot === 1 ? g * 0.25 : g                       // rot === 1 → žarija (lengvesnė)
+        q.vx *= 0.985; q.vy *= 0.985
+        const a = (1 - e) * (1 - e)
+        if (q.rot === 1) {
+          glow(ctx, q.x, q.y, q.size * 5, color, a * 0.85)
+        } else {
+          ctx.strokeStyle = q.hot ? color2 : color
+          ctx.globalAlpha = a
+          ctx.lineWidth = q.size * (0.4 + a * 0.9); ctx.lineCap = 'round'
+          ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(q.x, q.y); ctx.stroke()
+          ctx.globalAlpha = 1
+          if (q.hot) glow(ctx, q.x, q.y, q.size * 1.6 * a, '#ffffff', a * 0.9)
+        }
+      }
+      break
+    }
   }
   ctx.globalCompositeOperation = 'source-over'
   ctx.globalAlpha = 1
@@ -1039,6 +1247,18 @@ const CSS = `
 [class~="rvn-doom"] { animation: rvnDoom 0.42s ease-in-out infinite alternate; }
 @keyframes rvnDoom { from { filter: drop-shadow(0 0 4px rgba(255,60,60,0.5)); } to { filter: drop-shadow(0 0 13px rgba(255,40,40,0.95)) brightness(1.12); } }
 @keyframes rvnHitHard { 0%,100%{transform:translate(0,0) rotate(0)} 15%{transform:translate(-8px,2px) rotate(-3deg)} 40%{transform:translate(7px,-2px) rotate(3deg)} 65%{transform:translate(-5px,1px) rotate(-2deg)} 85%{transform:translate(3px,0) rotate(1deg)} }
-.rvn-lunge { animation: rvnLunge 0.52s cubic-bezier(0.34,0.2,0.2,1); z-index: 45; will-change: transform; }
-@keyframes rvnLunge { 0%{transform:translate(0,0)} 42%{transform:translate(var(--lx,0px),var(--ly,0px)) scale(1.1)} 56%{transform:translate(var(--lx,0px),var(--ly,0px)) scale(1.06)} 100%{transform:translate(0,0)} }
+/* Atakos šuolis (fazė 2c) valdomas iš JS per rAF — CSS keyframe'ų nebėra, nes
+   tempimas ir blur skaičiuojami iš TIKRO greičio kadre. Čia lieka tik judesio
+   sluoksnio ir pėdsako stilius.
+   isolation: isolate yra būtinas: šmėklos turi z-index -1, kad liktų UŽ kortos,
+   bet be atskiro stacking context'o jos nukristų už viso lauko fono. */
+[data-lunge] { position: relative; transform-origin: 50% 50%; isolation: isolate; }
+.rvn-lunge-ghost {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: 10px;
+  background: linear-gradient(160deg, rgba(30,22,44,0.9), rgba(18,13,27,0.9));
+  border: 1px solid rgba(240,180,41,0.5);
+  box-shadow: 0 0 14px rgba(240,180,41,0.22);
+  filter: blur(1.5px); opacity: 0; will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) { .rvn-lunge-ghost { display: none; } }
 `
