@@ -405,10 +405,43 @@ console.log('\n── F13 Kovos dialogų ir pranešimų rėmas ──')
 
   check('combat-plate injektuojamas su kovos ekranu (ne /digital CSS faile)',
     tac.includes('.combat-plate {') && !uicss.includes('.combat-plate {'))
-  check('rėmas turi keturis kampų kabliukus', /background-size:[\s\S]{0,120}14px 2px, 2px 14px/.test(tac))
-  check('akcento spalva per CSS kintamąjį', tac.includes('--plate-accent'))
+  // Rėmas remiasi TIKRAIS asset'ais (apkarpytu UI paketo panel-iron.png), o ne
+  // CSS ornamentu — anksčiau nupieštas kabliukų variantas atrodė kaip tas pats
+  // senas rounded-2xl ir naudotojas jo nepastebėjo.
+  check('rėmas naudoja 9-slice assetą, ne CSS ornamentą',
+    /border-image: url\('\/ravenof-ui\/combat\/panels\/plate-iron\.png'\) 65 fill \/ 22px/.test(tac))
+  check('neliko seno CSS kabliukų ornamento',
+    !/background-size:[\s\S]{0,140}22px 3px, 3px 22px/.test(tac) && !tac.includes('.combat-plate::before'))
+  {
+    const { existsSync } = await import('node:fs')
+    const files = ['plate-iron.png', 'plate-iron-danger.png', 'plate-iron-arcane.png']
+    const missing = files.filter((f) => !existsSync(`public/ravenof-ui/combat/panels/${f}`))
+    check('rėmo asset’ai yra repozitorijoje', missing.length === 0, missing.join(', '))
+  }
+  // REGRESIJA: `.combat-plate { position: relative }` perrašydavo Tailwind `fixed`
+  // ant klaidos pranešimo (injektuotas <style> yra PO Tailwind), tad toast'as
+  // dingdavo iš ekrano viršaus ir atrodydavo, kad klaidos apskritai nerodomos.
+  check('pozicija dedama per :where() (nenustelbia Tailwind fixed)',
+    /:where\(\.combat-plate\) \{ position: relative/.test(tac))
+  check('.combat-plate taisyklėje position nebenurodyta tiesiogiai',
+    !/\.combat-plate \{[^}]*position:/.test(tac))
+  check('mobiliajame rėmas plonesnis (neatima turinio ploto)',
+    /@media \(max-width: 480px\)[\s\S]{0,220}\.combat-plate \{ border-width: 16px/.test(tac))
+  // Antrą kartą užkliuvo: neekranuotas backtick CSS template literal'e nutraukia string'ą.
+  {
+    const i = tac.indexOf('const CSS = `')
+    const j = tac.indexOf('`\n\n/**', i)
+    const css = tac.slice(i + 13, j)
+    let raw = 0
+    for (let k = 0; k < css.length; k++) if (css[k] === '`' && (k === 0 || css[k - 1] !== '\\')) raw++
+    check('CSS template literal be neekranuotų backtickų', raw === 0, String(raw))
+  }
+  check('švytėjimo spalva per CSS kintamąjį', tac.includes('--plate-glow'))
   check('yra pavojaus ir arkaninis variantai',
     tac.includes('.combat-plate.is-danger') && tac.includes('.combat-plate.is-arcane'))
+  check('variantai keičia patį metalą (atskiras border-image-source)',
+    /is-danger[\s\S]{0,160}border-image-source: url\('\/ravenof-ui\/combat\/panels\/plate-iron-danger\.png'\)/.test(tac)
+    && /is-arcane[\s\S]{0,160}border-image-source: url\('\/ravenof-ui\/combat\/panels\/plate-iron-arcane\.png'\)/.test(tac))
 
   check('klaidos pranešimas naudoja rėmą', tg.includes('combat-plate combat-toast'))
   const uses = (tg.match(/combat-plate/g) ?? []).length

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<title>Ravenof — kovos dialogų rėmas (peržiūra)</title>
+<style>
+  :root { --gold:#f0b429; --text-muted:#8b7f6d; --text-secondary:#b6a68e; --rvn-font-display: Cinzel, Georgia, serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; padding:28px; color:#d7c7aa; font-family:Georgia,serif;
+    background: radial-gradient(circle at 50% 30%, #241d33 0%, #14101e 55%, #0a0810 100%); }
+  h1 { font-size:16px; color:var(--gold); margin:0 0 4px; font-family:var(--rvn-font-display); }
+  p.sub { font-size:12px; color:var(--text-muted); margin:0 0 26px; max-width:70ch; line-height:1.55; }
+  .row { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  .lbl { font-size:11px; color:var(--text-muted); margin:0 0 6px; }
+  .p-4 { padding:16px; } .p-5 { padding:20px; }
+  .w380 { width:380px; } .w360 { width:360px; } .w300 { width:300px; }
+  .text-center { text-align:center; }
+  /* skill-row: 9-slice assetas is public/ (jei atidarei per file://, jo nebus - tai normalu) */
+  .combat-skill-row {
+    display:block; width:100%; text-align:left; margin-bottom:8px;
+    border:12px solid transparent; border-width:12px 20px 12px 35px; background:transparent;
+    border-image:url('/ravenof-ui/combat/optional/skill-row-frame.png') 36 60 36 105 fill / 12px 20px 12px 35px;
+  }
+  .combat-skill-row.fallback { border-image:none; background:linear-gradient(90deg,#2a2138,#191325);
+    border:1px solid rgba(240,180,41,.35); border-radius:8px; padding:10px 14px; }
+  .sk { font-size:12px; font-weight:700; color:var(--gold); font-family:var(--rvn-font-display); }
+  .toastwrap { position:relative; height:70px; }
+</style>
+<style>
+/* ── ŠIS BLOKAS NUKOPIJUOTAS IŠ src/components/tutorial/CardTactile.tsx ──
+   Jei keiti rėmą, keisk TEN, o čia perkopijuok. */
+.combat-plate {
+  --plate-glow: rgba(240, 180, 41, 0.30);
+  background: transparent;
+  border: 22px solid transparent;
+  border-image: url('/ravenof-ui/combat/panels/plate-iron.png') 65 fill / 22px stretch;
+  border-radius: 0;
+  box-shadow:
+    0 0 26px -6px var(--plate-glow),
+    0 22px 52px rgba(0, 0, 0, 0.8);
+}
+/* Poziciją dedam per :where() (specifiskumas 0), kad Tailwind fixed/absolute
+   ant to paties elemento NEBUTU perrasytas: injektuotas <style> yra PO Tailwind
+   stiliais, tad lygaus specifiskumo taisykle laimetu ir klaidos pranesimas
+   (fixed top-14) taptu relative - dingtu is ekrano virsaus. */
+:where(.combat-plate) { position: relative; }
+
+/* Akcentų variantai — kitas metalas, ne tik kita linija. */
+.combat-plate.is-danger {
+  --plate-glow: rgba(239, 68, 68, 0.45);
+  border-image-source: url('/ravenof-ui/combat/panels/plate-iron-danger.png');
+}
+.combat-plate.is-arcane {
+  --plate-glow: rgba(167, 139, 250, 0.42);
+  border-image-source: url('/ravenof-ui/combat/panels/plate-iron-arcane.png');
+}
+
+/* Klaidos / įspėjimo juostelė (toast). Tas pats rėmas, plonesnis ir raudonas. */
+.combat-toast {
+  --plate-glow: rgba(239, 68, 68, 0.45);
+  border-width: 15px;
+  border-image-source: url('/ravenof-ui/combat/panels/plate-iron-danger.png');
+  border-image-width: 15px;
+}
+
+@media (max-width: 480px) {
+  .combat-plate { border-width: 16px; border-image-width: 16px; }
+  .combat-toast { border-width: 12px; border-image-width: 12px; }
+}
+</style>
+<style>
+/* Tik peržiūrai: absoliutūs /ravenof-ui/... keliai per file:// neveikia, tad
+   čia tie patys assetai persukami į santykinį kelią nuo repo šaknies. */
+.combat-plate { border-image-source: url('public/ravenof-ui/combat/panels/plate-iron.png'); }
+.combat-plate.is-danger, .combat-toast { border-image-source: url('public/ravenof-ui/combat/panels/plate-iron-danger.png'); }
+.combat-plate.is-arcane { border-image-source: url('public/ravenof-ui/combat/panels/plate-iron-arcane.png'); }
+</style>
+</head>
+<body>
+  <h1>Kovos dialogų rėmas — peržiūra</h1>
+  <p class="sub">Taip atrodo <code>.combat-plate</code> visuose kovos languose. Preview skirtas įvertinti rėmą
+     be viso žaidimo paleidimo. Skill eilučių 9-slice assetas matysis tik per <code>npm run dev</code>
+     (per <code>file://</code> jo nėra — tada rodomas atsarginis stilius).</p>
+
+  <div class="row">
+    <div>
+      <p class="lbl">Čempiono gebėjimai (numatytasis, auksinis)</p>
+      <div class="combat-plate p-4 w380">
+        <p style="font-size:13px;font-weight:700;margin:0 0 2px;font-family:var(--rvn-font-display);color:var(--gold)">Prazaras I-masis · 2 fazė</p>
+        <p style="font-size:11px;margin:0 0 12px;color:var(--text-muted)">Pasirink gebėjimą</p>
+        <button class="combat-skill-row fallback"><span class="sk">1. Vėlių globa</span></button>
+        <button class="combat-skill-row fallback"><span class="sk">2. Anapus aidas &nbsp;<span style="font-size:10px;border:1px solid rgba(240,180,41,.4);border-radius:99px;padding:1px 6px">200</span></span></button>
+        <button class="combat-skill-row fallback" style="filter:saturate(.45);opacity:.55"><span class="sk" style="color:var(--text-muted)">3. Gedulo varpas (nuo 3 fazės)</span></button>
+      </div>
+    </div>
+
+    <div>
+      <p class="lbl">Klaidos pranešimas (toast, raudonas)</p>
+      <div class="toastwrap">
+        <div class="combat-plate combat-toast text-center" style="display:inline-block;padding:8px 16px;font-size:12px;font-weight:600;color:#fca5a5">
+          Privalai pulti padarą su Pasišaipymu
+        </div>
+      </div>
+      <p class="lbl" style="margin-top:18px">Pavojaus variantas (<code>is-danger</code>)</p>
+      <div class="combat-plate is-danger p-5 w300 text-center">
+        <p style="font-size:13px;font-weight:700;margin:0 0 6px;font-family:var(--rvn-font-display);color:#fca5a5">Pasiduoti?</p>
+        <p style="font-size:11px;margin:0;color:var(--text-secondary)">Kova bus įskaityta kaip pralaimėjimas.</p>
+      </div>
+      <p class="lbl" style="margin-top:18px">Arkaninis variantas (<code>is-arcane</code>)</p>
+      <div class="combat-plate is-arcane p-4 w360 text-center">
+        <p style="font-size:12px;margin:0;color:var(--text-secondary)">Pasirink kortą iš kapinyno</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

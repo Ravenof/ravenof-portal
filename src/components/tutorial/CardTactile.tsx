@@ -54,59 +54,52 @@ const CSS = `
   transition: scale ${T.snapMs}ms cubic-bezier(.2,.9,.3,1.25);
 }
 /* ── Kovos plokštė: vieningas rėmas visiems kovos dialogams ir pranešimams ───
-   Iki tol modalai buvo paprastas rounded-2xl su 1px linija — jie „neturėjo
-   rėmo" ir iškrisdavo iš dark-fantasy chrome'o. Čia — CSS-only ornamentas
-   (jokių naujų assetų): dviguba kraštinė, vidinis šešėlis ir keturi kampų
-   kabliukai. Akcento spalva keičiama per --plate-accent. */
+   Naudojam TIKRUS asset'us, o ne CSS ornamentą: /ravenof-ui/combat/panels/
+   plate-iron*.png yra apkarpytas UI paketo panel-iron.png (nuimtos permatomos
+   paraštės, kad 9-slice pjūvis eitų per patį rėmą). Kampų smaigalys telpa į
+   130 px originalo, sumažinto 0.5x -> 65 px pjūvis iš visų pusių, plius raktažodis
+   fill, kad centrinė tamsiai mėlyna plokštuma nupieštų dialogo foną.
+   Tas pats rėmas trimis atspalviais: geležis (default), kraujas (.is-danger),
+   ametistas (.is-arcane) — atskiri PNG, kad metalo faktūra išliktų. */
 .combat-plate {
-  --plate-accent: rgba(240, 180, 41, 0.55);
-  position: relative;
-  background: linear-gradient(145deg, #1e1729, #120d1c);
-  border: 1px solid var(--plate-accent);
-  border-radius: 14px;
+  --plate-glow: rgba(240, 180, 41, 0.30);
+  background: transparent;
+  border: 22px solid transparent;
+  border-image: url('/ravenof-ui/combat/panels/plate-iron.png') 65 fill / 22px stretch;
+  border-radius: 0;
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.9),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 2px 20px rgba(0, 0, 0, 0.75),
-    0 18px 46px rgba(0, 0, 0, 0.75);
+    0 0 26px -6px var(--plate-glow),
+    0 22px 52px rgba(0, 0, 0, 0.8);
 }
-/* Keturi kampų kabliukai vienu pseudo-elementu (8 gradientai = 8 brūkšniai). */
-.combat-plate::before {
-  content: ''; position: absolute; inset: 5px; pointer-events: none; border-radius: 10px;
-  background:
-    linear-gradient(var(--plate-accent), var(--plate-accent)) top left,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) top left,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) top right,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) top right,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom left,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom left,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom right,
-    linear-gradient(var(--plate-accent), var(--plate-accent)) bottom right;
-  background-repeat: no-repeat;
-  background-size:
-    14px 2px, 2px 14px,
-    14px 2px, 2px 14px,
-    14px 2px, 2px 14px,
-    14px 2px, 2px 14px;
-}
-/* Viršutinis šviesos atspindys — plokštė atrodo metalinė, ne plokščia. */
-.combat-plate::after {
-  content: ''; position: absolute; inset: 1px 1px auto 1px; height: 38%;
-  pointer-events: none; border-radius: 13px 13px 0 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.055), transparent);
-}
-/* Akcentų variantai */
-.combat-plate.is-danger { --plate-accent: rgba(239, 68, 68, 0.7); }
-.combat-plate.is-arcane { --plate-accent: rgba(167, 139, 250, 0.6); }
+/* Poziciją dedam per :where() (specifiskumas 0), kad Tailwind fixed/absolute
+   ant to paties elemento NEBUTU perrasytas: injektuotas <style> yra PO Tailwind
+   stiliais, tad lygaus specifiskumo taisykle laimetu ir klaidos pranesimas
+   (fixed top-14) taptu relative - dingtu is ekrano virsaus. */
+:where(.combat-plate) { position: relative; }
 
-/* Klaidos / įspėjimo juostelė (toast). Tas pats rėmas, raudonas akcentas. */
-.combat-toast {
-  --plate-accent: rgba(239, 68, 68, 0.7);
-  background: linear-gradient(145deg, #2a1119, #170a10);
-  border-radius: 12px;
+/* Akcentų variantai — kitas metalas, ne tik kita linija. */
+.combat-plate.is-danger {
+  --plate-glow: rgba(239, 68, 68, 0.45);
+  border-image-source: url('/ravenof-ui/combat/panels/plate-iron-danger.png');
 }
-.combat-toast::before { inset: 4px; border-radius: 8px; }
-.combat-toast::after { border-radius: 11px 11px 0 0; }
+.combat-plate.is-arcane {
+  --plate-glow: rgba(167, 139, 250, 0.42);
+  border-image-source: url('/ravenof-ui/combat/panels/plate-iron-arcane.png');
+}
+
+/* Klaidos / įspėjimo juostelė (toast). Tas pats rėmas, plonesnis ir raudonas. */
+.combat-toast {
+  --plate-glow: rgba(239, 68, 68, 0.45);
+  border-width: 15px;
+  border-image-source: url('/ravenof-ui/combat/panels/plate-iron-danger.png');
+  border-image-width: 15px;
+}
+
+/* Telefone 22 px rėmas iš 92vw dialogo atimtų per daug turinio ploto. */
+@media (max-width: 480px) {
+  .combat-plate { border-width: 16px; border-image-width: 16px; }
+  .combat-toast { border-width: 12px; border-image-width: 12px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rvn-tac-press, .rvn-tac-invalid, .rvn-tac-snap, .rvn-tac-return { animation: none !important; }

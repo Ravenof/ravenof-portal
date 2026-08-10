@@ -316,3 +316,63 @@ kuriai būsimai „negalima dėl X kortos" taisyklei.
 
 Testai: 10 naujų patikrų, iš jų dvi saugo būtent šį sprendimą — kad sušaldymo įrašas
 eina per `statusEvt`, ir kad atmesta ataka **neteršia** žurnalo.
+
+---
+
+## 13. Kovos dialogų rėmas iš tikrų asset'ų (commit589)
+
+Du to paties dalyko sluoksniai — pirma klaidų pranešimai apskritai nustojo rodytis,
+paskui paaiškėjo, kad ir pats rėmas buvo ne tas.
+
+### Klaidos pranešimas dingdavo iš ekrano
+
+`.combat-plate { position: relative }` perrašydavo Tailwind `fixed` ant to paties
+elemento: injektuotas `<style>` yra **po** Tailwind stiliais, tad esant lygiam
+specifiškumui laimėdavo jis. Toast'as (`fixed top-14`) tapdavo `relative` ir
+nusileisdavo į dokumento srautą — atrodė, lyg klaidos apskritai nerodomos.
+Sprendimas — `:where(.combat-plate) { position: relative }`, specifiškumas 0.
+
+### Rėmas buvo CSS ornamentas, o repo jau turėjo asset'us
+
+Pirmoji versija piešė rėmą grynu CSS (dviguba kraštinė + kampų kabliukai). Ji buvo
+per panaši į seną `rounded-2xl` stilių, todėl žaidėjui atrodė, kad **niekas
+nepasikeitė**. Tikroji priežastis: UI paketo `public/ui3/pack/panels/panel-iron.png`
+gulėjo repozitorijoje ir nebuvo naudojamas niekur kode.
+
+Iš jo padaryti trys 9-slice asset'ai `public/ravenof-ui/combat/panels/`:
+
+| Failas | Kam |
+|---|---|
+| `plate-iron.png` | numatytasis geležinis rėmas |
+| `plate-iron-danger.png` | `.is-danger` — krauju nudažytas metalas |
+| `plate-iron-arcane.png` | `.is-arcane` — ametistinis metalas |
+
+Paruošimas: nupjautos permatomos paraštės (originale ~40 px iš kiekvieno krašto —
+be to pjūvis eitų per tuštumą, ne per rėmą), sumažinta 0.5×, kvantuota iki ~22–28 KB.
+Kampo smaigalys telpa į 130 px originalo → **65 px pjūvis** iš visų pusių:
+
+```css
+border: 22px solid transparent;
+border-image: url('/ravenof-ui/combat/panels/plate-iron.png') 65 fill / 22px stretch;
+```
+
+`fill` nupiešia ir centrinę plokštumą, tad dialogo fonas ateina iš to paties asset'o.
+
+Trys sprendimai, kuriuos verta prisiminti:
+
+- **Variantai keičia patį metalą, ne liniją.** Atskiras `border-image-source` vietoj
+  `filter: hue-rotate()` — filtras paveiktų ir dialogo turinį.
+- **Jokio `::before` / `::after`.** Absoliučiai pozicionuotas overlay dialoguose su
+  `overflow-y-auto` slinktų kartu su turiniu; `border-image` piešiamas ant border box
+  ir lieka vietoje.
+- **Švytėjimas per `box-shadow`, ne `filter: drop-shadow`.** `filter` sukuria
+  containing block'ą `fixed` palikuonims ir galėtų sulaužyti viduje esančius modalus.
+
+Telefone (`max-width: 480px`) rėmas plonėja iki 16 px (toast — 12 px), kad iš 92vw
+dialogo neatimtų turinio ploto.
+
+`plate-preview.html` atnaujintas — rėmą galima įvertinti be `npm run dev`, veikia ir
+atidarius per `file://` (antras `<style>` blokas persuka kelius į santykinius).
+
+Testai: +6 patikros (asset'ai yra repo, pjūvio formatas, atskiri `border-image-source`,
+mobilus media query, neliko seno ornamento, `position` nebe tiesiogiai) — iš viso **144**.
