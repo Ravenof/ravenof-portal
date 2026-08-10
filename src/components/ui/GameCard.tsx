@@ -10,6 +10,7 @@
 
 import React, { useRef, useEffect, useCallback } from 'react'
 import { playCardHover, playCardPick, playCardPlace } from '@/lib/ui-sound'
+import { CARD_TACTILE } from '@/lib/game/timing'
 
 type GameCardProps = {
   children: React.ReactNode
@@ -30,7 +31,7 @@ type GameCardProps = {
 export function GameCard({
   children,
   glowColor = 'rgba(240,180,41,0.5)',
-  intensity = 10,
+  intensity = CARD_TACTILE.hoverTiltDeg,
   liftPx = 4,
   sounds = true,
   shine = true,
@@ -75,7 +76,7 @@ export function GameCard({
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
     frameRef.current = requestAnimationFrame(() => {
       el.style.transition = 'transform 0.06s linear, box-shadow 0.18s'
-      const scale = pressedRef.current ? 0.97 : 1.03
+      const scale = pressedRef.current ? CARD_TACTILE.pressScale : 1.03
       const lift = pressedRef.current ? 0 : liftPx
       applyTransform(-py * 2 * intensity, px * 2 * intensity, lift, scale)
       if (shine && shineRef.current) {
@@ -113,9 +114,9 @@ export function GameCard({
     pressedRef.current = true
     const el = innerRef.current
     if (el && !reducedRef.current) {
-      el.style.transition = 'transform 0.08s ease-out'
+      el.style.transition = `transform ${CARD_TACTILE.pressMs}ms ease-out`
       if (e.pointerType === 'touch') {
-        applyTransform(0, 0, 0, 0.97)
+        applyTransform(0, 0, 0, CARD_TACTILE.pressScale)
       }
       // pelei — transformą atnaujins kitas pointermove su pressed scale
     }
@@ -127,7 +128,7 @@ export function GameCard({
     pressedRef.current = false
     const el = innerRef.current
     if (el && !reducedRef.current) {
-      el.style.transition = 'transform 0.18s ease-out'
+      el.style.transition = `transform ${CARD_TACTILE.hoverMs}ms ease-out`
       if (e.pointerType === 'touch' || !hoveringRef.current) {
         applyTransform(0, 0, 0, 1)
       } else {
