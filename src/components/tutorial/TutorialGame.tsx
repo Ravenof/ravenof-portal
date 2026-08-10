@@ -1312,7 +1312,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const el = document.querySelector(`[data-unit-uid="${uid}"]`)
     if (!el) return
     const r = el.getBoundingClientRect()
-    fxRef.current?.cardLand(uid, { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height })
+    fxRef.current?.cardLand(uid, { left: r.left, top: r.top, w: r.width, h: r.height })
     fxRef.current?.shakeBoard('soft')           // lengvas viso lauko krestelėjimas
     playBattleSound('impact', CARD_LANDING.soundVolume)
   }, [])

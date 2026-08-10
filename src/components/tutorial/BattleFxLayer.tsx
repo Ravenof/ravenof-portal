@@ -51,9 +51,11 @@ export type BattleFxHandle = {
   /**
    * Kortos nusileidimas ant lentos (game-feel fazė 2b): dulkės iš po kortos,
    * kortos suplojimas ir lengvas viso lauko krestelėjimas — vienu kvietimu.
-   * `rect` = kortos ribos (iš getBoundingClientRect), kad dulkės eitų iš APAČIOS.
+   * `rect` — kortos ribos VIRŠUTINIO-KAIRIO kampo koordinatėmis (kaip DOMRect:
+   * left/top/width/height). Ne centras — dulkės turi eiti nuo apatinės briaunos
+   * ir nuo abiejų šonų, tad reikia tikslių ribų.
    */
-  cardLand: (uid: string, rect: { x: number; y: number; w: number; h: number }) => void
+  cardLand: (uid: string, rect: { left: number; top: number; w: number; h: number }) => void
 }
 
 
@@ -197,14 +199,15 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       // Dulkės — ties APATINE kortos briauna, ne centru: tai smūgio į „grindis" taškas.
       if (!reduced && q !== 'low') {
         const mul = q === 'medium' ? 0.6 : 1
+        const cx = (rect.left + rect.w / 2) * D, cy = (rect.top + rect.h / 2) * D
         items.current.push({
           id: ++idc.current, kind: 'dustPuff',
-          from: { x: rect.x * D, y: (rect.y + rect.h / 2) * D },
-          to: { x: rect.x * D, y: (rect.y + rect.h / 2) * D },
+          from: { x: cx, y: cy }, to: { x: cx, y: cy },
           color: CARD_LANDING.dustColor, color2: CARD_LANDING.dustColor,
           im: mul, dur: CARD_LANDING.dustMs, t0: performance.now() - timeShift.current,
           parts: [], seeded: false,
-          rect: { x: rect.x * D, y: rect.y * D, w: rect.w * D, h: rect.h * D },
+          // rect = TOP-LEFT bazė (ta pati konvencija kaip aoeWave zonoje)
+          rect: { x: rect.left * D, y: rect.top * D, w: rect.w * D, h: rect.h * D },
         })
         ensureLoop()
       }
@@ -846,34 +849,60 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
     // tai smūgio į „grindis" pėdsakas, ne sprogimas.
     case 'dustPuff': {
       ctx.globalCompositeOperation = 'source-over'
-      const halfW = (it.rect?.w ?? 60 * D) / 2
-      const baseY = (it.rect ? it.rect.y + it.rect.h : to.y) - 2 * D   // apatinė kortos briauna
+      const rLeft = it.rect?.x ?? to.x - 30 * D
+      const rW = it.rect?.w ?? 60 * D
+      const rH = it.rect?.h ?? 80 * D
+      const rTop = it.rect?.y ?? to.y - rH / 2
+      const rRight = rLeft + rW
+      const cx = rLeft + rW / 2
+      const bottom = rTop + rH
       if (!it.seeded) {
         it.seeded = true
         const n = Math.round(CARD_LANDING.dustParticles * im)
+        const spread = CARD_LANDING.dustSpreadPx * D
         for (let k = 0; k < n; k++) {
-          const side = k % 2 === 0 ? 1 : -1                       // simetriškai į abi puses
-          const spread = rnd(0.25, 1) * CARD_LANDING.dustSpreadPx * D
+          // Tolygiai per VISĄ apatinį kraštą, su nedideliu užlaidu už šonų —
+          // taip dulkės liečia kortą ir apgaubia ją iš abiejų pusių (be tarpo).
+          const t = n === 1 ? 0.5 : k / (n - 1)
+          const px = rLeft - 4 * D + t * (rW + 8 * D)
+          const nx = (px - cx) / (rW / 2)                        // -1 (kairė) .. +1 (dešinė)
+          const edge = Math.abs(nx)                              // kuo arčiau krašto, tuo stipriau
           it.parts.push({
-            x: to.x + side * rnd(0, halfW * 0.7),
-            y: baseY + rnd(-3, 3) * D,
-            vx: side * (spread / 26) * rnd(0.6, 1.3),
-            vy: -rnd(0.15, 0.75) * D,                             // vos pakyla
-            life: now, max: rnd(CARD_LANDING.dustMs * 0.55, CARD_LANDING.dustMs),
-            size: rnd(3, 9) * D, rot: rnd(0, TAU), vr: rnd(-0.02, 0.02),
+            x: px,
+            y: bottom - rnd(0, 5) * D,                           // TIKSLIAI prie apatinės briaunos
+            vx: (nx * rnd(0.8, 1.7) + Math.sign(nx || 1) * rnd(0.15, 0.5)) * D * (spread / 46 / D || 1),
+            vy: -rnd(0.25, 0.5 + edge * 1.1) * D,                // pakraščiai pučia aukščiau
+            life: now, max: rnd(CARD_LANDING.dustMs * 0.5, CARD_LANDING.dustMs),
+            size: rnd(3, 8 + edge * 3) * D, rot: rnd(0, TAU), vr: rnd(-0.02, 0.02),
           })
         }
+        // Papildomai — po kelias daleles, kylančias PRIE PAČIŲ ŠONŲ (kad dulkės
+        // matytųsi ir iš kairės, ir iš dešinės kortos briaunos, ne tik apačioje).
+        const sideN = Math.max(2, Math.round(3 * im))
+        for (const sx of [rLeft, rRight]) {
+          const dir = sx === rLeft ? -1 : 1
+          for (let k = 0; k < sideN; k++) {
+            it.parts.push({
+              x: sx + dir * rnd(0, 4) * D,
+              y: bottom - rnd(2, rH * 0.28),                     // kyla palei šoną
+              vx: dir * rnd(0.5, 1.3) * D,
+              vy: -rnd(0.7, 1.5) * D,
+              life: now, max: rnd(CARD_LANDING.dustMs * 0.45, CARD_LANDING.dustMs * 0.85),
+              size: rnd(2.5, 6) * D, rot: rnd(0, TAU), vr: rnd(-0.03, 0.03),
+            })
+          }
+        }
       }
-      // Suplotas dulkių žiedas ties pagrindu — „oro banga" iš po kortos
+      // Suplotas oro bangos žiedas TIKSLIAI ties kortos pagrindu
       const ringP = Math.min(1, p / 0.45)
       if (ringP < 1) {
         ctx.save()
-        ctx.translate(to.x, baseY)
-        ctx.scale(1, 0.22)                                        // stipriai suplotas = guli ant žemės
+        ctx.translate(cx, bottom)
+        ctx.scale(1, 0.22)                                        // guli ant „grindų"
         ctx.globalAlpha = (1 - ringP) * 0.4
         ctx.strokeStyle = color
         ctx.lineWidth = 2.5 * D * (1 - ringP)
-        ctx.beginPath(); ctx.arc(0, 0, (halfW * 0.5 + ringP * halfW * 1.5), 0, TAU); ctx.stroke()
+        ctx.beginPath(); ctx.arc(0, 0, rW * 0.35 + ringP * rW * 0.9, 0, TAU); ctx.stroke()
         ctx.restore()
       }
       for (let k = it.parts.length - 1; k >= 0; k--) {
@@ -885,8 +914,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
         q.rot += q.vr
         const e = (now - q.life) / q.max
         if (e >= 1) { it.parts.splice(k, 1); continue }
-        // dulkė „išsipučia" ir blėsta
-        const grow = 1 + e * 1.4
+        const grow = 1 + e * 1.4                                   // dulkė išsipučia ir blėsta
         ctx.save()
         ctx.globalAlpha = (1 - e) * 0.34
         ctx.fillStyle = color

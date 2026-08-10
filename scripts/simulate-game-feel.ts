@@ -365,7 +365,17 @@ console.log('\n── F12 Kortos nusileidimas (fizinis pojūtis) ──')
   const fx = readFileSync('src/components/tutorial/BattleFxLayer.tsx', 'utf8')
   check('dustPuff piešiamas source-over (dulkės slopina, ne švyti)',
     /case 'dustPuff':[\s\S]{0,200}source-over/.test(fx))
-  check('dulkės turi gravitaciją (nusėda)', /case 'dustPuff':[\s\S]{0,2000}q\.vy \+=/.test(fx))
+  check('dulkės turi gravitaciją (nusėda)', /case 'dustPuff':[\s\S]{0,6000}q\.vy \+=/.test(fx))
+  // REGRESIJA: rect buvo perduodamas kaip CENTRAS, o piešiant naudojamas kaip VIRŠUS —
+  // dulkės atsirasdavo per pusę kortos aukščio žemiau (matomas tarpas tarp kortos ir dulkių).
+  check('cardLand priima top-left rect (ne centrą)',
+    /cardLand: \(uid: string, rect: \{ left: number; top: number/.test(fx))
+  check('dulkių bazė skaičiuojama nuo rect viršaus + aukščio',
+    /const bottom = rTop \+ rH/.test(fx))
+  check('dalelės startuoja TIKSLIAI prie apatinės briaunos (be tarpo)',
+    /y: bottom - rnd\(0, 5\)/.test(fx))
+  check('yra atskiros dalelės KYLANČIOS palei abu šonus',
+    /for \(const sx of \[rLeft, rRight\]\)/.test(fx))
   check('squash naudoja nepriklausomą scale, ne transform',
     /@keyframes rvnCardLand[\s\S]{0,200}scale: 1 1/.test(fx))
   check('low kokybėje dulkių nėra', /q !== 'low'/.test(fx))
@@ -375,6 +385,8 @@ console.log('\n── F12 Kortos nusileidimas (fizinis pojūtis) ──')
     tg.includes('onAnimationComplete={() => onUnitLanded(u.uid)}'))
   check('guard yra LAIKO, ne „ar kada nors" (returnToHand → gali nusileisti vėl)',
     tg.includes('landedAtRef') && !tg.includes('landedRef.current.has'))
+  check('kviečiant perduodamas tikras DOMRect (left/top), ne centras',
+    tg.includes('cardLand(uid, { left: r.left, top: r.top'))
 }
 
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
