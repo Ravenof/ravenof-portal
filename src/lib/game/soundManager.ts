@@ -12,6 +12,8 @@ import { getSfxVolume } from '@/lib/settings'
 import {
   isUiSoundEnabled, playCardPick, playCardPlace, playCardFlip, playCardDraw,
   playError, playSuccess, playUiClick, playDiscovery, playShuffle, playImpact,
+  playReactionLaunch, playReactionImpact, playReactionTighten, playReactionShatter,
+  playZmkCrit, playZmkFizzle,
 } from '@/lib/ui-sound'
 import type { BattleSoundType } from './types'
 
@@ -30,19 +32,30 @@ const BASE: Record<BattleSoundType, string> = {
   zmkFlip:       'zmk-flip',
   championSkill: 'champion-skill',
   explosion:     'explosion',
+  // Reakcijų grandinė gyvena atskirame kataloge (žr. `candidates`).
+  reactionLaunch:  'launch',
+  reactionImpact:  'impact',
+  reactionTighten: 'tighten',
+  reactionShatter: 'shatter',
+  zmkCrit:       'zmk-crit',
+  zmkFizzle:     'zmk-fizzle',
 }
+
+/** Garsai, kurių failai guli `public/sounds/reaction/`, o ne `battle/`. */
+const REACTION_KEYS = new Set<BattleSoundType>(['reactionLaunch', 'reactionImpact', 'reactionTighten', 'reactionShatter'])
 
 // Kandidatų sąrašas: base + iki 3 variantų. Random pick tarp esamų.
 function candidates(key: BattleSoundType): string[] {
   const b = BASE[key]
+  const dir = REACTION_KEYS.has(key) ? '/sounds/reaction' : '/sounds/battle'
   return [
-    `/sounds/battle/${b}.mp3`,
-    `/sounds/battle/${b}-1.mp3`,
-    `/sounds/battle/${b}-2.mp3`,
-    `/sounds/battle/${b}-3.mp3`,
-    `/sounds/battle/${b}-4.mp3`,
-    `/sounds/battle/${b}-5.mp3`,
-    `/sounds/battle/${b}-6.mp3`,
+    `${dir}/${b}.mp3`,
+    `${dir}/${b}-1.mp3`,
+    `${dir}/${b}-2.mp3`,
+    `${dir}/${b}-3.mp3`,
+    `${dir}/${b}-4.mp3`,
+    `${dir}/${b}-5.mp3`,
+    `${dir}/${b}-6.mp3`,
   ]
 }
 
@@ -61,6 +74,12 @@ const SYNTH_FALLBACK: Record<BattleSoundType, () => void> = {
   zmkFlip:       playCardFlip,
   championSkill: playDiscovery,
   explosion:     playImpact,
+  reactionLaunch:  playReactionLaunch,
+  reactionImpact:  playReactionImpact,
+  reactionTighten: playReactionTighten,
+  reactionShatter: playReactionShatter,
+  zmkCrit:       playZmkCrit,
+  zmkFizzle:     playZmkFizzle,
 }
 
 const dead = new Set<string>()                      // 404/klaida – nebebandom

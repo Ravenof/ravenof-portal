@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [
+    "src/lib/game/timing.ts",
+    "src/lib/game/tactile.ts",
+    "src/lib/game/feelTelemetry.ts",
+    "src/lib/game/impactProfiles.ts",
+    "src/lib/game/matchStats.ts",
+    "src/lib/game/effectEngine.ts",
+    "src/lib/game/curseEngine.ts",
+    "src/lib/game/types.ts",
+    "src/lib/tutorial/engine.ts",
+    "src/lib/progression/client.ts",
+    "src/components/ui/GameCard.tsx",
+    "src/components/tutorial/CardTactile.tsx",
+    "src/components/tutorial/TutorialGame.tsx",
+    "src/components/tutorial/BattleFxLayer.tsx",
+    "src/components/tutorial/ReactionChainLayer.tsx",
+    "src/components/tutorial/CardStatusVfxLayer.tsx",
+    "src/components/admin/GameplayConfigEditor.tsx"
+  ]
+}

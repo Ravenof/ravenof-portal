@@ -18,6 +18,7 @@
 //   menu-theme.mp3, battle-1.mp3 … battle-5.mp3
 
 import { isUiSoundEnabled, subscribeUiSound } from '@/lib/ui-sound'
+import { AUDIO_DUCK } from './timing'
 import { getMusicVolume, subscribeSettings } from '@/lib/settings'
 
 const MENU_TRACK = '/sounds/music/menu-theme.mp3'
@@ -174,6 +175,35 @@ export function startBattleMusic(): void {
 }
 
 /** Visiškai sustabdo muziką (fade out). */
+// ── Muzikos „duck" prieš stiprų smūgį (game-feel fazės 3–5) ─────────────────
+// Trumpam nutildo muziką, kad smūgio transientas turėtų kur nuskambėti. Bendras
+// helper'is reakcijų grandinei, ImpactProfile'ams ir ŽMK ×2 prezentacijai.
+// Kelis kartus iškviestas — pratęsia esamą duck'ą, o ne kraunasi vienas ant kito.
+
+let duckUntil = 0
+let duckTimer: number | null = null
+
+/** dB → tiesinis daugiklis. */
+const dbToGain = (db: number) => Math.pow(10, db / 20)
+
+export function duckMusic(db: number = AUDIO_DUCK.defaultDb, holdMs: number = AUDIO_DUCK.holdMs): void {
+  if (typeof window === 'undefined' || !current || mode === 'none' || !isUiSoundEnabled()) return
+  const target = Math.max(0, Math.min(1, musicVol() * dbToGain(db)))
+  const until = Date.now() + holdMs
+  if (until > duckUntil) duckUntil = until
+  fade(current, target, AUDIO_DUCK.rampMs)
+  if (duckTimer !== null) window.clearTimeout(duckTimer)
+  const restore = () => {
+    duckTimer = null
+    if (Date.now() < duckUntil - 5) {
+      duckTimer = window.setTimeout(restore, Math.max(10, duckUntil - Date.now()))
+      return
+    }
+    if (current && mode !== 'none') fade(current, musicVol(), AUDIO_DUCK.rampMs)
+  }
+  duckTimer = window.setTimeout(restore, holdMs)
+}
+
 export function stopMusic(): void {
   mode = 'none'
   stopEl(current)

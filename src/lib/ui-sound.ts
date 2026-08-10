@@ -91,6 +91,9 @@ function sfx(candidates: string[], volume: number, synth: () => void): void {
 
 // Variantų manifestas — įkelk atitinkamus failus į public/sounds/ui/ (žr. README).
 const UI = '/sounds/ui'
+const RX = '/sounds/reaction'
+const BT = '/sounds/battle'
+
 const SFX = {
   hover:     [`${UI}/hover-1.mp3`, `${UI}/hover-2.mp3`],
   cardPick:  [`${UI}/card-pick-1.mp3`, `${UI}/card-pick-2.mp3`, `${UI}/card-pick-3.mp3`],
@@ -104,6 +107,14 @@ const SFX = {
   discovery: [`${UI}/discovery.mp3`],
   shuffle:   [`${UI}/shuffle-1.mp3`, `${UI}/shuffle-2.mp3`],
   cardDraw:  [`${UI}/card-draw-1.mp3`, `${UI}/card-draw-2.mp3`, `${UI}/card-draw-3.mp3`],
+  // Reakcijų grandinė (game-feel fazė 3) — iki 3 variantų kiekvienam.
+  reactionLaunch:  [`${RX}/launch.mp3`, `${RX}/launch-1.mp3`, `${RX}/launch-2.mp3`],
+  reactionImpact:  [`${RX}/impact.mp3`, `${RX}/impact-1.mp3`, `${RX}/impact-2.mp3`],
+  reactionTighten: [`${RX}/tighten.mp3`, `${RX}/tighten-1.mp3`],
+  reactionShatter: [`${RX}/shatter.mp3`, `${RX}/shatter-1.mp3`, `${RX}/shatter-2.mp3`],
+  // ŽMK prezentacija (game-feel fazė 7)
+  zmkCrit:   [`${BT}/zmk-crit.mp3`, `${BT}/zmk-crit-1.mp3`],
+  zmkFizzle: [`${BT}/zmk-fizzle.mp3`],
 }
 
 // ── Audio kontekstas (synth fallback) ─────────────────────────────────────────
@@ -267,3 +278,48 @@ export function playShuffle(): void { sfx(SFX.shuffle, 0.5, _synthShuffle) }
 
 /** Kortos traukimas. */
 export function playCardDraw(): void { sfx(SFX.cardDraw, 0.5, _synthDraw) }
+
+// ── Reakcijų grandinės + ŽMK garsai (game-feel fazės 3 ir 7) ─────────────────
+// File-first: public/sounds/reaction/*.mp3 ir public/sounds/battle/zmk-*.mp3.
+// Kol failų nėra – sintezė (žaidimas privalo skambėti ir be assetų).
+
+/** Grandinės paleidimas: platus swoosh su krentančiu tonu. */
+function _synthReactionLaunch(): void {
+  swish(0.26, 400, 2600, 0.24)
+  tone(320, 140, 'sawtooth', 0.18, 0.10, 0.02)
+}
+/** Metalinis smūgis: trumpas transientas + skambantis obertonas. */
+function _synthReactionImpact(): void {
+  tone(2100, 900, 'square', 0.05, 0.16)
+  tone(430, 210, 'triangle', 0.22, 0.20, 0.01)
+  swish(0.07, 3000, 700, 0.30)
+}
+/** Susiveržimas: kylantis girgždesys (grandinė įsitempia). */
+function _synthReactionTighten(): void {
+  swish(0.34, 700, 1500, 0.16)
+  tone(180, 340, 'sawtooth', 0.32, 0.12)
+}
+/** Sudužimas: triukšmo burst su ilgesniu gesimu + žemas bumbtelėjimas. */
+function _synthReactionShatter(): void {
+  swish(0.42, 5200, 500, 0.34)
+  tone(150, 44, 'sine', 0.30, 0.34, 0.01)
+  swish(0.16, 1800, 4200, 0.14, 0.05)
+}
+/** ŽMK ×2 (Kritinis smūgis): žemas „slam" + kylantis blyksnis. */
+function _synthZmkCrit(): void {
+  tone(90, 40, 'sine', 0.34, 0.50)
+  swish(0.20, 800, 5200, 0.26, 0.02)
+  tone(1046, 1568, 'triangle', 0.16, 0.14, 0.06)
+}
+/** ŽMK ×0 (Visiška nesėkmė): fizzle – užgesęs, be smūgio. */
+function _synthZmkFizzle(): void {
+  swish(0.28, 2600, 220, 0.16)
+  tone(300, 90, 'sine', 0.24, 0.10, 0.02)
+}
+
+export function playReactionLaunch(): void { sfx(SFX.reactionLaunch, 0.45, _synthReactionLaunch) }
+export function playReactionImpact(): void { sfx(SFX.reactionImpact, 0.5, _synthReactionImpact) }
+export function playReactionTighten(): void { sfx(SFX.reactionTighten, 0.4, _synthReactionTighten) }
+export function playReactionShatter(): void { sfx(SFX.reactionShatter, 0.55, _synthReactionShatter) }
+export function playZmkCrit(): void { sfx(SFX.zmkCrit, 0.6, _synthZmkCrit) }
+export function playZmkFizzle(): void { sfx(SFX.zmkFizzle, 0.45, _synthZmkFizzle) }

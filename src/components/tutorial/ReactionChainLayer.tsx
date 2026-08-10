@@ -19,9 +19,13 @@
 // neužstrigtų (žr. HANDOFF-BATTLECRY-REACTION.md, Part 3/4).
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
+import { playBattleSound } from '@/lib/game/soundManager'
+import { duckMusic } from '@/lib/game/musicManager'
 import {
   REACTION_CHAIN_PHASES as PH,
+  REACTION_CHAIN_PHASES_COMPACT as PH_C,
   REACTION_CHAIN_GATE_MS,
+  REACTION_CHAIN_GATE_COMPACT_MS,
   REACTION_CHAIN_PHASES,
   REACTION_CHAIN_REDUCED_GATE_MS,
 } from '@/lib/game/timing'
@@ -40,6 +44,11 @@ export type ReactionChainPlayOpts = {
   variant?: ReactionChainVariant
   /** Sumažinto judesio režimas (prefers-reduced-motion). */
   reduced?: boolean
+  /**
+   * Kompresuotas variantas (game-feel fazė 3): antra ir vėlesnės tos pačios
+   * kovos reakcijos. Fazių EILIŠKUMAS nekinta — trumpėja tik trukmės.
+   */
+  compact?: boolean
   /** Fazių pranešimai tėvui (showcase paleidimui, garsams). */
   onPhase?: (p: ReactionChainPhase) => void
   /** Lentos purtymas – per esamą BattleFxLayer (nedubliuojam mechanikos). */
@@ -197,11 +206,12 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
         const from = run.opts.from
         const t = now - run.t0
         const reduced = !!run.opts.reduced
-        const wrapDur = reduced ? 250 : PH.wrap
-        const chainDur = reduced ? 0 : PH.chain
+        const F = run.opts.compact ? PH_C : PH   // fazių trukmės šiam paleidimui
+        const wrapDur = reduced ? 250 : F.wrap
+        const chainDur = reduced ? 0 : F.chain
 
         // P0 – rune flare nuo reakcijos kortos (bendras visoms grandinėms)
-        if (t < PH.detect + 120) {
+        if (t < F.detect + 120) {
           const k = clamp((t - 40) / 280, 0, 1)
           if (k > 0) {
             ctx.save(); ctx.globalAlpha = (1 - k) * 0.9
@@ -215,9 +225,9 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
         for (const st of run.strands) {
           const tl = t - st.stagger
           if (tl < 0) continue
-          const bChain = PH.detect
-          const bWrap = PH.detect + chainDur
-          const bEffect = bWrap + wrapDur + PH.showcase
+          const bChain = F.detect
+          const bWrap = F.detect + chainDur
+          const bEffect = bWrap + wrapDur + F.showcase
 
           // P1 – skrydis
           if (!reduced && tl >= bChain && tl < bWrap) {
@@ -268,7 +278,7 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
                 parts.push({ x: st.to.x, y: st.to.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life: 1, dk: 0.02 + Math.random() * 0.02, c: Math.random() < 0.5 ? C.impact : C.glow2, r: 1 + Math.random() * 2.5 })
               }
             }
-            const k = (tl - bEffect) / PH.effect
+            const k = (tl - bEffect) / F.effect
             if (k < 0.5) {
               ctx.save(); ctx.globalAlpha = 1 - k * 2
               ctx.beginPath(); ctx.arc(st.to.x, st.to.y, 10 + k * 130, 0, 7)
@@ -279,13 +289,20 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
         }
 
         // fazių pranešimai (pagal pirmą grandinę) + vartų signalas
-        const b1 = PH.detect, b2 = PH.detect + chainDur, b3 = b2 + wrapDur
+        const b1 = F.detect, b2 = F.detect + chainDur, b3 = b2 + wrapDur
         const ph: ReactionChainPhase = t < b1 ? 'detect' : t < b2 ? 'chain' : t < b3 ? 'wrap' : t < run.gateMs ? 'showcase' : 'effect'
         if (ph !== run.phase) {
           run.phase = ph
           run.opts.onPhase?.(ph)
-          if (ph === 'wrap') run.opts.onShake?.('soft')
-          if (ph === 'effect') run.opts.onShake?.('hard')
+          // Garsai — TIK čia (vienas taškas), file-first + synth fallback.
+          if (ph === 'detect') playBattleSound('reactionLaunch', 0.45)
+          if (ph === 'wrap') { playBattleSound('reactionTighten', 0.4); playBattleSound('reactionImpact', 0.5); run.opts.onShake?.('soft') }
+          if (ph === 'effect') {
+            // Mix dramaturgija: muzika trumpam pasitraukia, kad shatter turėtų vietos.
+            duckMusic()
+            playBattleSound('reactionShatter', 0.55)
+            run.opts.onShake?.('hard')
+          }
         }
         if (t >= run.gateMs) finishRun(run)          // ← vienintelis autoritetinis signalas
         if (t >= run.totalMs) runRef.current = null
@@ -337,8 +354,10 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
         }
       })
       const maxStagger = strands.reduce((m, s) => Math.max(m, s.stagger), 0)
-      const gateMs = (reduced ? REACTION_CHAIN_REDUCED_GATE_MS : REACTION_CHAIN_GATE_MS) + maxStagger
-      const totalMs = gateMs + (reduced ? 400 : REACTION_CHAIN_PHASES.effect)
+      const F = o.compact ? PH_C : REACTION_CHAIN_PHASES
+      const fullGate = o.compact ? REACTION_CHAIN_GATE_COMPACT_MS : REACTION_CHAIN_GATE_MS
+      const gateMs = (reduced ? REACTION_CHAIN_REDUCED_GATE_MS : fullGate) + maxStagger
+      const totalMs = gateMs + (reduced ? 400 : F.effect)
       return new Promise<void>((resolve) => {
         runRef.current = { opts: o, t0: performance.now(), gateMs, totalMs, resolved: false, resolve, phase: null, strands }
       })
