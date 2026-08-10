@@ -66,7 +66,7 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
-import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL } from '@/lib/game/timing'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
 import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
@@ -1290,11 +1290,39 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── Žaidimo (per)kūrimas ──
   const matchStartRef = useRef<number>(0)
   const clientMatchIdRef = useRef<string>('')
+  /**
+   * Fazė 2b: kortos nusileidimas ant lentos. Kabinamas ant framer-motion
+   * `onAnimationComplete` — tai TIKRAS momentas, kai plytelė nustoja kristi,
+   * nesvarbu, kaip ji atsirado (sužaista iš rankos, iškviesta efektu, prikelta).
+   * Vienas taškas visiems keliams, jokio dubliavimo.
+   *
+   * Guard'as yra LAIKO, ne „ar kada nors nusileido": padaras gali grįžti į ranką
+   * (`returnToHand`) ir būti sužaistas iš naujo tuo pačiu uid — toks pakartotinis
+   * nusileidimas yra tikras ir turi skambėti.
+   */
+  const landedAtRef = useRef<Map<string, number>>(new Map())
+  const onUnitLanded = useCallback((uid: string) => {
+    const now = Date.now()
+    const last = landedAtRef.current.get(uid)
+    if (last !== undefined && now - last < 600) return
+    landedAtRef.current.set(uid, now)
+    if (landedAtRef.current.size > 60) {
+      for (const [k, tms] of landedAtRef.current) if (now - tms > 5000) landedAtRef.current.delete(k)
+    }
+    const el = document.querySelector(`[data-unit-uid="${uid}"]`)
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    fxRef.current?.cardLand(uid, { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height })
+    fxRef.current?.shakeBoard('soft')           // lengvas viso lauko krestelėjimas
+    playBattleSound('impact', CARD_LANDING.soundVolume)
+  }, [])
+
   const initGame = useCallback((cards: TutCard[], opp?: TutCard[] | null) => {
     matchStartRef.current = Date.now()
     // Game-feel telemetrija: kiekviena kova matuojama iš naujo (modulinė būsena).
     resetFeelTelemetry({ summonCinematics: isSummonCinematicsEnabled(), skillCinematics: isChampionSkillCinematicsEnabled() })
     resetReactionPacing()   // pirma kovos reakcija visada pilna, vėlesnės — kompaktiškos
+    landedAtRef.current.clear()   // nauja kova — visi padarai vėl „nusileidžia" iš naujo
     clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     matchRewardRef.current = false
     questReportedRef.current = false
@@ -3273,6 +3301,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               initial={{ y: -32, scale: 0.82, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 520, damping: 16, mass: 0.7 }}
+              onAnimationComplete={() => onUnitLanded(u.uid)}
               onPointerDown={side === 'you' ? (e) => beginUnitDrag(u, e) : undefined}
               style={side === 'you' ? { touchAction: 'none' } : undefined}
               onContextMenu={(e) => { e.preventDefault(); setInspect(u.card) }}

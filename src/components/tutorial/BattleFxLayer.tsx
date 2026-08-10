@@ -48,12 +48,18 @@ export type BattleFxHandle = {
   shakeUnit: (uid: string, kind?: 'soft' | 'normal' | 'hard') => void
   lungeUnit: (uid: string, target: { x: number; y: number }) => void
   hitFlash: (x: number, y: number, color: string) => void
+  /**
+   * Kortos nusileidimas ant lentos (game-feel fazė 2b): dulkės iš po kortos,
+   * kortos suplojimas ir lengvas viso lauko krestelėjimas — vienu kvietimu.
+   * `rect` = kortos ribos (iš getBoundingClientRect), kad dulkės eitų iš APAČIOS.
+   */
+  cardLand: (uid: string, rect: { x: number; y: number; w: number; h: number }) => void
 }
 
 
 import { IMPACT_PROFILES, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { getVfxQuality, prefersReducedMotion as prefersReduced } from '@/lib/game/statusVfx'
-import { HIT_STOP } from '@/lib/game/timing'
+import { HIT_STOP, CARD_LANDING } from '@/lib/game/timing'
 
 /**
  * Realus hit-stop pagal prieinamumo/kokybės nustatymus:
@@ -183,6 +189,34 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       el.style.setProperty('--ly', Math.round(dy) + 'px')
       el.classList.remove('rvn-lunge'); void el.offsetWidth; el.classList.add('rvn-lunge')
       window.setTimeout(() => el.classList.remove('rvn-lunge'), 540)
+    },
+    cardLand: (uid, rect) => {
+      const D = dprRef.current
+      const q = getVfxQuality()
+      const reduced = prefersReduced()
+      // Dulkės — ties APATINE kortos briauna, ne centru: tai smūgio į „grindis" taškas.
+      if (!reduced && q !== 'low') {
+        const mul = q === 'medium' ? 0.6 : 1
+        items.current.push({
+          id: ++idc.current, kind: 'dustPuff',
+          from: { x: rect.x * D, y: (rect.y + rect.h / 2) * D },
+          to: { x: rect.x * D, y: (rect.y + rect.h / 2) * D },
+          color: CARD_LANDING.dustColor, color2: CARD_LANDING.dustColor,
+          im: mul, dur: CARD_LANDING.dustMs, t0: performance.now() - timeShift.current,
+          parts: [], seeded: false,
+          rect: { x: rect.x * D, y: rect.y * D, w: rect.w * D, h: rect.h * D },
+        })
+        ensureLoop()
+      }
+      // Kortos suplojimas (squash & stretch) — nepriklausoma `scale`, kad
+      // nekonfliktuotų su framer-motion transformomis ant tos pačios plytelės.
+      if (!reduced) {
+        const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+        if (el) {
+          el.classList.remove('rvn-card-land'); void el.offsetWidth; el.classList.add('rvn-card-land')
+          window.setTimeout(() => el.classList.remove('rvn-card-land'), CARD_LANDING.squashMs + 40)
+        }
+      }
     },
     impactFrame: (severity, uid) => {
       const prof = IMPACT_PROFILES[severity] ?? IMPACT_PROFILES.HIT
@@ -806,6 +840,63 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       for (let k = it.parts.length - 1; k >= 0; k--) { const q = it.parts[k]; q.x += q.vx + Math.sin((now + q.rot * 100) / 300) * 0.3 * D; q.y += q.vy; const e = (now - q.life) / q.max; if (e >= 1) { it.parts.splice(k, 1); continue }; glow(ctx, q.x, q.y, q.size * 2.4, color, (1 - e) * 0.85) }
       break
     }
+    // ── Dulkės iš po nusileidusios kortos (game-feel fazė 2b) ───────────────
+    // Piešiama `source-over` (dulkės NEŠVYTI — jos slopina šviesą, ne prideda).
+    // Dalelės lekia daugiausia Į ŠONUS ir šiek tiek aukštyn, tada nusėda —
+    // tai smūgio į „grindis" pėdsakas, ne sprogimas.
+    case 'dustPuff': {
+      ctx.globalCompositeOperation = 'source-over'
+      const halfW = (it.rect?.w ?? 60 * D) / 2
+      const baseY = (it.rect ? it.rect.y + it.rect.h : to.y) - 2 * D   // apatinė kortos briauna
+      if (!it.seeded) {
+        it.seeded = true
+        const n = Math.round(CARD_LANDING.dustParticles * im)
+        for (let k = 0; k < n; k++) {
+          const side = k % 2 === 0 ? 1 : -1                       // simetriškai į abi puses
+          const spread = rnd(0.25, 1) * CARD_LANDING.dustSpreadPx * D
+          it.parts.push({
+            x: to.x + side * rnd(0, halfW * 0.7),
+            y: baseY + rnd(-3, 3) * D,
+            vx: side * (spread / 26) * rnd(0.6, 1.3),
+            vy: -rnd(0.15, 0.75) * D,                             // vos pakyla
+            life: now, max: rnd(CARD_LANDING.dustMs * 0.55, CARD_LANDING.dustMs),
+            size: rnd(3, 9) * D, rot: rnd(0, TAU), vr: rnd(-0.02, 0.02),
+          })
+        }
+      }
+      // Suplotas dulkių žiedas ties pagrindu — „oro banga" iš po kortos
+      const ringP = Math.min(1, p / 0.45)
+      if (ringP < 1) {
+        ctx.save()
+        ctx.translate(to.x, baseY)
+        ctx.scale(1, 0.22)                                        // stipriai suplotas = guli ant žemės
+        ctx.globalAlpha = (1 - ringP) * 0.4
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2.5 * D * (1 - ringP)
+        ctx.beginPath(); ctx.arc(0, 0, (halfW * 0.5 + ringP * halfW * 1.5), 0, TAU); ctx.stroke()
+        ctx.restore()
+      }
+      for (let k = it.parts.length - 1; k >= 0; k--) {
+        const q = it.parts[k]
+        q.x += q.vx
+        q.y += q.vy
+        q.vy += 0.035 * D                                          // gravitacija — dulkės nusėda
+        q.vx *= 0.955                                              // oro pasipriešinimas
+        q.rot += q.vr
+        const e = (now - q.life) / q.max
+        if (e >= 1) { it.parts.splice(k, 1); continue }
+        // dulkė „išsipučia" ir blėsta
+        const grow = 1 + e * 1.4
+        ctx.save()
+        ctx.globalAlpha = (1 - e) * 0.34
+        ctx.fillStyle = color
+        ctx.translate(q.x, q.y)
+        ctx.scale(1, 0.65)                                         // horizontaliai ištęsta
+        ctx.beginPath(); ctx.arc(0, 0, q.size * grow, 0, TAU); ctx.fill()
+        ctx.restore()
+      }
+      break
+    }
   }
   ctx.globalCompositeOperation = 'source-over'
   ctx.globalAlpha = 1
@@ -857,6 +948,16 @@ const CSS = `
 }
 .rvn-impact-punch { animation: rvnImpactPunch 220ms cubic-bezier(.2,.9,.3,1.2); }
 .rvn-impact-flash { animation: rvnImpactFlash 120ms ease-out; }
+/* ── Kortos nusileidimas: squash & stretch (game-feel fazė 2b) ──────────────
+   Nepriklausoma scale savybe (ne transform) - plytele yra framer-motion valdoma. */
+@keyframes rvnCardLand {
+  0%   { scale: 1 1; }
+  30%  { scale: 1.06 0.9; }
+  62%  { scale: 0.98 1.03; }
+  100% { scale: 1 1; }
+}
+.rvn-card-land { animation: rvnCardLand 260ms cubic-bezier(.2,.9,.3,1.2); transform-origin: bottom center; }
+@media (prefers-reduced-motion: reduce){ .rvn-card-land { animation: none !important; } }
 /* Kritinis žalos skaičius — papildomas „smūgio" akcentas. */
 @keyframes rvnFnumCrit {
   0%   { letter-spacing: 0.14em; }

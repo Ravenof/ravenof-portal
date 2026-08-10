@@ -9,6 +9,8 @@ export type FxKind =
   | 'aoeWave' | 'curseMark' | 'disintegrate' | 'shield' | 'freeze'
   | 'summonPortal' | 'graveRise' | 'drawStream' | 'stealthFade' | 'goldSteal'
   | 'burn' | 'poison'
+  /** Dulkių debesėlis iš po nusileidusios kortos (game-feel fazė 2b). */
+  | 'dustPuff'
 
 export type FxIntensity = 'small' | 'normal' | 'big'
 

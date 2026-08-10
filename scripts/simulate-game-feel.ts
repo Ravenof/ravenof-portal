@@ -349,5 +349,33 @@ console.log('\n── F11 Vienkartiniai efektai nepriklauso nuo inline callback\
   check('ZmkSpecial turi firedRef guard\'ą', zs.includes('firedRef'))
 }
 
+console.log('\n── F12 Kortos nusileidimas (fizinis pojūtis) ──')
+{
+  const { CARD_LANDING } = await import('../src/lib/game/timing')
+  const { readFileSync } = await import('node:fs')
+
+  check('squash trumpas (≤ 300 ms) — vyksta dažniausiai iš visų įvykių',
+    CARD_LANDING.squashMs <= 300, String(CARD_LANDING.squashMs))
+  check('dulkės nusėda greičiau nei per 1 s', CARD_LANDING.dustMs <= 1000, String(CARD_LANDING.dustMs))
+  check('squash suplokština, o ne ištempia (scaleY < 1)', CARD_LANDING.squashY < 1)
+  check('squash kompensuojamas pločiu (scaleX > 1)', CARD_LANDING.stretchX > 1)
+  check('nusileidimo garsas tylesnis nei smūgio (foninis, ne akcentas)',
+    CARD_LANDING.soundVolume <= 0.35, String(CARD_LANDING.soundVolume))
+
+  const fx = readFileSync('src/components/tutorial/BattleFxLayer.tsx', 'utf8')
+  check('dustPuff piešiamas source-over (dulkės slopina, ne švyti)',
+    /case 'dustPuff':[\s\S]{0,200}source-over/.test(fx))
+  check('dulkės turi gravitaciją (nusėda)', /case 'dustPuff':[\s\S]{0,2000}q\.vy \+=/.test(fx))
+  check('squash naudoja nepriklausomą scale, ne transform',
+    /@keyframes rvnCardLand[\s\S]{0,200}scale: 1 1/.test(fx))
+  check('low kokybėje dulkių nėra', /q !== 'low'/.test(fx))
+
+  const tg = readFileSync('src/components/tutorial/TutorialGame.tsx', 'utf8')
+  check('nusileidimas kabinamas ant onAnimationComplete (visi keliai vienodai)',
+    tg.includes('onAnimationComplete={() => onUnitLanded(u.uid)}'))
+  check('guard yra LAIKO, ne „ar kada nors" (returnToHand → gali nusileisti vėl)',
+    tg.includes('landedAtRef') && !tg.includes('landedRef.current.has'))
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)
