@@ -152,6 +152,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'turnCostDiscount',    label: 'Šį ėjimą VISOS kortos kainuoja X pigiau (bet ne pigiau nei Y)', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'buffSpellDamage',     label: 'Burtai daro +X žalos (kaupiasi)', needsValue: true,  group: 'Auksas ir kainos' },
   // ── Specialūs ──
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false, group: 'Specialūs' },
   { value: 'coinFlip',            label: 'Monetos metimas (žalia/raudona → 2 efektai)', needsValue: false, group: 'Specialūs' },
@@ -255,6 +256,10 @@ export const PROJECTILE_TYPES: { value: ProjectileType; label: string; emoji: st
 export type BattleSoundType =
   | 'attack' | 'spellCast' | 'impact' | 'draw' | 'curse' | 'field'
   | 'heal' | 'freeze' | 'death' | 'summon' | 'zmkFlip' | 'championSkill' | 'explosion'
+  // Reakcijų grandinės garsai (game-feel fazė 3) — po vieną kiekvienai fazei.
+  | 'reactionLaunch' | 'reactionImpact' | 'reactionTighten' | 'reactionShatter'
+  // ŽMK prezentacija (game-feel fazė 7)
+  | 'zmkCrit' | 'zmkFizzle'
 
 // ── Curse trigger konfigūracija ───────────────────────────────────────────────
 export type CurseAppliesTo = 'caster' | 'opponent' | 'targetOwner' | 'chosenTarget' | 'random'

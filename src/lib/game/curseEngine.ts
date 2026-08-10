@@ -31,8 +31,17 @@ export function buildCurseDeck(curseCards: TutCard[], suffix: string): TutCard[]
  *
  * `victim` – kam įmaišomas prakeiksmas (priešininkui). Caster = priešinga pusė.
  */
-export function activateCurses(api: GameApi, g: GameState, victim: Side, count: number, srcName: string, _depth: number): void {
+/** Prakeiksmų grandinės gylio riba (analogas effectEngine MAX_DEPTH). */
+const MAX_CURSE_DEPTH = 4
+
+export function activateCurses(api: GameApi, g: GameState, victim: Side, count: number, srcName: string, depth: number): void {
   const caster: Side = victim === 'you' ? 'ai' : 'you'
+  // Rekursijos apsauga: prakeiksmas gali aktyvuoti efektą, kuris vėl įmaišo
+  // prakeiksmų. Anksčiau gylis buvo priimamas, bet nenaudojamas (game-feel fazė 0).
+  if (depth > MAX_CURSE_DEPTH) {
+    api.log(g, { t: 'blocked', side: caster, key: 'battleLog.chainTooDeep', params: { src: srcName } })
+    return
+  }
   const casterP = caster === 'you' ? g.you : g.ai
   const victimP = victim === 'you' ? g.you : g.ai
   for (let i = 0; i < count; i++) {

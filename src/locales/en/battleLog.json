@@ -423,5 +423,36 @@
   },
   "zoneFull": "The creature zone is full.",
   "zoneFullRaise": "The creature zone is full – the raise fails.",
-  "zoneFullSummon": "The creature zone is full – the summon fails."
+  "zoneFullSummon": "The creature zone is full – the summon fails.",
+  "conditionSkipped": "⏸ \"{{src}}\" condition not met ({{metric}}: {{actual}}, needs {{op}} {{need}}) – effect skipped.",
+  "metric": {
+    "allUnits": "total creature count",
+    "destroyedTargetsHp": "destroyed targets HP",
+    "enemyArtifacts": "enemy artifacts",
+    "enemyDeck": "enemy deck size",
+    "enemyGold": "enemy gold",
+    "enemyGraveyard": "enemy graveyard size",
+    "enemyHandCards": "enemy hand size",
+    "enemyHp": "enemy HP",
+    "enemyUnits": "enemy creature count",
+    "enemyWoundedUnits": "enemy wounded creatures",
+    "lastDamageDealt": "damage dealt",
+    "ownArtifacts": "your artifacts",
+    "ownDeck": "your deck size",
+    "ownGold": "your gold",
+    "ownGraveyard": "your graveyard size",
+    "ownHandCards": "your hand size",
+    "ownHp": "your HP",
+    "ownUnits": "your creature count",
+    "ownWoundedUnits": "your wounded creatures",
+    "turnNumber": "turn number"
+  },
+  "op": {
+    "gte": "≥",
+    "lte": "≤",
+    "gt": ">",
+    "lt": "<",
+    "eq": "=",
+    "ne": "≠"
+  }
 }

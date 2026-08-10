@@ -198,8 +198,22 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
 }
 
 function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMapping, ctx: ApplyCtx): boolean {
-  // Sąlyga: jei netenkinama – mapping praleidžiamas tyliai (naudojama fallback porai).
-  if (m.condition && !evalCondition(g, caster, m.condition)) return false
+  // Sąlyga: jei netenkinama – mapping praleidžiamas. Anksčiau tai vyko TYLIAI ir
+  // admin negalėdavo suprasti, kodėl efektas neįvyko (game-feel fazė 0).
+  // Dabar paliekamas žurnalo įrašas su realia metrikos reikšme.
+  if (m.condition && !evalCondition(g, caster, m.condition)) {
+    api.log(g, {
+      t: 'blocked', side: caster, key: 'battleLog.conditionSkipped',
+      params: {
+        src: ctx.sourceName,
+        metric: `$t:battleLog.metric.${m.condition.source}`,
+        op: `$t:battleLog.op.${m.condition.op}`,
+        need: m.condition.value,
+        actual: metric(g, caster, m.condition.source),
+      },
+    })
+    return false
+  }
 
   // ARBA (chooseAlt): žaidėjas pop-up'e renkasi tarp PAGRINDINIO efekto ir alternatyvų.
   // Kiekvienas variantas – pilnas mapping (su savo then/fallback); vykdomas pasirinktasis.
@@ -421,10 +435,10 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, v, m.buffDuration) }
       break
     case 'debuffAttack':
-      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, -v, 0) }
+      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, -v, 0, m.buffDuration) }
       break
     case 'debuffHealth':
-      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, -v) }
+      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, -v, m.buffDuration) }
       break
     case 'drawCards': {
       const sides: Side[] = m.drawAppliesTo === 'opponent' ? [foe] : m.drawAppliesTo === 'both' ? [caster, foe] : [caster]

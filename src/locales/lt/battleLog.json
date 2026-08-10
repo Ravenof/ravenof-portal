@@ -423,5 +423,36 @@
   },
   "zoneFull": "Padarų zona pilna.",
   "zoneFullRaise": "Padarų zona pilna – prikėlimas neįvyksta.",
-  "zoneFullSummon": "Padarų zona pilna – iškvietimas neįvyksta."
+  "zoneFullSummon": "Padarų zona pilna – iškvietimas neįvyksta.",
+  "conditionSkipped": "⏸ „{{src}}\" sąlyga netenkinama ({{metric}}: {{actual}}, reikia {{op}} {{need}}) – efektas praleistas.",
+  "metric": {
+    "allUnits": "visų padarų sk.",
+    "destroyedTargetsHp": "sunaikintų taikinių HP",
+    "enemyArtifacts": "priešo artefaktų sk.",
+    "enemyDeck": "priešo kaladės sk.",
+    "enemyGold": "priešo auksas",
+    "enemyGraveyard": "priešo kapinyno sk.",
+    "enemyHandCards": "priešo rankos kortų sk.",
+    "enemyHp": "priešo HP",
+    "enemyUnits": "priešo padarų sk.",
+    "enemyWoundedUnits": "priešo sužeistų padarų sk.",
+    "lastDamageDealt": "padaryta žala",
+    "ownArtifacts": "tavo artefaktų sk.",
+    "ownDeck": "tavo kaladės sk.",
+    "ownGold": "tavo auksas",
+    "ownGraveyard": "tavo kapinyno sk.",
+    "ownHandCards": "tavo rankos kortų sk.",
+    "ownHp": "tavo HP",
+    "ownUnits": "tavo padarų sk.",
+    "ownWoundedUnits": "tavo sužeistų padarų sk.",
+    "turnNumber": "ėjimo nr."
+  },
+  "op": {
+    "gte": "≥",
+    "lte": "≤",
+    "gt": ">",
+    "lt": "<",
+    "eq": "=",
+    "ne": "≠"
+  }
 }
