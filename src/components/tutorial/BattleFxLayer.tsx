@@ -69,6 +69,16 @@ import { HIT_STOP, CARD_LANDING } from '@/lib/game/timing'
  *  • rvn-vfx-quality = low → apribotas iki HIT_STOP.lowQualityMaxMs;
  *  • kitaip → profilio reikšmė.
  */
+/**
+ * Kortos elementas pagal uid — padaras ARBA artefaktas.
+ * Anksčiau visur buvo tik `[data-unit-uid]`, todėl artefaktai negaudavo nei
+ * purtymo, nei smūgio blyksnio, nei šuolio taikinio (žr. commit587).
+ */
+function cardEl(uid: string): HTMLElement | null {
+  return (document.querySelector(`[data-unit-uid="${uid}"]`)
+    ?? document.querySelector(`[data-artifact-uid="${uid}"]`)) as HTMLElement | null
+}
+
 function effectiveHitStop(ms: number): number {
   if (prefersReduced()) return 0
   if (getVfxQuality() === 'low') return Math.min(ms, HIT_STOP.lowQualityMaxMs)
@@ -174,14 +184,14 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       window.setTimeout(() => el.classList.remove(cls), kind === 'hard' ? 480 : 360)
     },
     shakeUnit: (uid, kind = 'normal') => {
-      const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+      const el = cardEl(uid)
       if (!el) return
       const cls = kind === 'hard' ? 'rvn-hit-hard' : kind === 'soft' ? 'rvn-hit-soft' : 'rvn-hit'
       el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls)
       window.setTimeout(() => el.classList.remove(cls), 420)
     },
     lungeUnit: (uid, target) => {
-      const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+      const el = cardEl(uid)
       if (!el) return
       const r = el.getBoundingClientRect()
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2
@@ -214,7 +224,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       // Kortos suplojimas (squash & stretch) — nepriklausoma `scale`, kad
       // nekonfliktuotų su framer-motion transformomis ant tos pačios plytelės.
       if (!reduced) {
-        const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+        const el = cardEl(uid)
         if (el) {
           el.classList.remove('rvn-card-land'); void el.offsetWidth; el.classList.add('rvn-card-land')
           window.setTimeout(() => el.classList.remove('rvn-card-land'), CARD_LANDING.squashMs + 40)
@@ -228,7 +238,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
         // Taikinio „punch" + blyksnis — nepriklausomos scale/filter savybės,
         // kad nekonfliktuotų su framer-motion transformomis.
         if (uid) {
-          const el = document.querySelector(`[data-unit-uid="${uid}"]`) as HTMLElement | null
+          const el = cardEl(uid)
           if (el && !prefersReduced()) {
             if (prof.flash) { el.classList.remove('rvn-impact-flash'); void el.offsetWidth; el.classList.add('rvn-impact-flash'); window.setTimeout(() => el.classList.remove('rvn-impact-flash'), 260) }
             el.classList.remove('rvn-impact-punch'); void el.offsetWidth; el.classList.add('rvn-impact-punch')

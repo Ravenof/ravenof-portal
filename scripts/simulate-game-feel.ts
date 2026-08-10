@@ -497,5 +497,29 @@ console.log('\n── F8 Statusų trigger feedback (fazės 8 užbaigimas) ──
   }
 }
 
+console.log('\n── F14 Artefaktai FX sluoksnyje (mirtinas smūgis nebeskrenda į veidą) ──')
+{
+  const { readFileSync } = await import('node:fs')
+  const tg = readFileSync('src/components/tutorial/TutorialGame.tsx', 'utf8')
+  const fx = readFileSync('src/components/tutorial/BattleFxLayer.tsx', 'utf8')
+
+  // ROOT CAUSE: pozicijų cache sekė TIK padarus. Mirtinas smūgis artefaktui →
+  // DOM elemento nebėra, cache tuščias → FX nukrisdavo į savininko avatarą.
+  check('pozicijų cache seka IR artefaktus',
+    /querySelectorAll\('\[data-unit-uid\],\[data-artifact-uid\]'\)/.test(tg))
+  check('cache raktas imamas iš abiejų atributų',
+    /getAttribute\('data-unit-uid'\) \?\? el\.getAttribute\('data-artifact-uid'\)/.test(tg))
+
+  // boxFor (reakcijų grandinė) nebekrenta į avatarą, kai taikinys sunaikintas
+  const boxFor = tg.slice(tg.indexOf('const boxFor'), tg.indexOf('const selBox'))
+  check('boxFor: dingęs uid → null, ne avataras', /if \(!el\) return null/.test(boxFor))
+
+  // FX sluoksnis: purtymas / šuolis / smūgio blyksnis randa ir artefaktą
+  check('BattleFxLayer turi bendrą cardEl(uid) helperį', /function cardEl\(uid: string\)/.test(fx))
+  check('cardEl ieško ir artefakto', /data-artifact-uid="\$\{uid\}"/.test(fx))
+  check('neliko tiesioginių tik-padarų paieškų pagal uid',
+    !/document\.querySelector\(`\[data-unit-uid="\$\{uid\}"\]`\) as HTMLElement/.test(fx))
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)

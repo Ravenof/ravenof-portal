@@ -1957,6 +1957,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           { let dp = tgt ? rectOf(tgt) : null
             if (!dp && e.cardName) { const pp = P(game, e.side); const u = pp.units.find((x) => x?.card.name === e.cardName); if (u) dp = rectOf({ uid: u.uid }); if (!dp) { const a = pp.artifacts.find((x) => x?.card.name === e.cardName); if (a) dp = rectOf({ uid: a.uid }) } }
             if (!dp && lastTgtRef) dp = rectOf(lastTgtRef)
+            // Avataras — TIK paskutinė išeitis: sunaikintos kortos pozicija dabar
+            // ateina iš cache (žr. rectOf), tad ŽMK lieka prie taikinio vietos.
             if (!dp) dp = rectFor({ side: e.side })
             if (dp && pendingZmk.length) { for (const z of pendingZmk) zmkPlaced.push({ ...z, x: dp.x, y: dp.y }); pendingZmk.length = 0 } }
           if (tgt && val) {
@@ -2149,16 +2151,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [zmkFlash])
   useEffect(() => { if (!zmkRoll) return; const t = setTimeout(() => setZmkRoll(null), 1900); return () => clearTimeout(t) }, [zmkRoll])
 
-  // Padarų pozicijų momentinė nuotrauka (sunaikinimo skrydžio animacijai). Be deps – po kiekvieno render'io.
+  // Kortų pozicijų momentinė nuotrauka (sunaikinimo skrydžio animacijai). Be deps – po kiekvieno render'io.
+  // SVARBU: sekami IR padarai, IR ARTEFAKTAI. Anksčiau čia buvo tik `[data-unit-uid]`,
+  // todėl mirtinas smūgis artefaktui palikdavo FX be pozicijos: DOM elemento jau nėra,
+  // cache tuščias → puolėjo šuolis ir ŽMK korta nukeliaudavo į savininko avatarą (į „face").
   useEffect(() => {
     const m = new Map<string, { x: number; y: number }>()
-    document.querySelectorAll('[data-unit-uid]').forEach((el) => {
-      const id = el.getAttribute('data-unit-uid')
+    document.querySelectorAll('[data-unit-uid],[data-artifact-uid]').forEach((el) => {
+      const id = el.getAttribute('data-unit-uid') ?? el.getAttribute('data-artifact-uid')
       if (!id) return
       const r = el.getBoundingClientRect()
       m.set(id, { x: r.left + r.width / 2, y: r.top + r.height / 2 })
     })
-    // merge (ne replace): žuvusių padarų paskutinės pozicijos lieka cache – projektilai
+    // merge (ne replace): žuvusių kortų paskutinės pozicijos lieka cache – projektilai
     // skrenda į buvusią kortos vietą, o ne į savininko avatarą
     const merged = new Map(unitRectsRef.current)
     m.forEach((v, k) => merged.set(k, v))
@@ -2214,7 +2219,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const boxFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number; w: number; h: number } | null => {
     if (!ref) return null
     let el: Element | null = null
-    if (ref.uid) el = document.querySelector(`[data-unit-uid="${ref.uid}"]`) ?? document.querySelector(`[data-artifact-uid="${ref.uid}"]`)
+    if (ref.uid) {
+      el = document.querySelector(`[data-unit-uid="${ref.uid}"]`) ?? document.querySelector(`[data-artifact-uid="${ref.uid}"]`)
+      // Ta pati taisyklė kaip `rectFor`: jei uid nurodytas, bet korta jau sunaikinta,
+      // grąžinam null. Anksčiau čia buvo nukrentama į `[data-player]` ir grandinė
+      // nusitaikydavo į avatarą vietoj sunaikinto taikinio.
+      if (!el) return null
+    }
     if (!el && ref.side) el = document.querySelector(`[data-player="${ref.side}"]`)
     if (!el) return null
     const r = el.getBoundingClientRect()
