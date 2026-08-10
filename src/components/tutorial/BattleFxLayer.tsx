@@ -864,6 +864,19 @@ const CSS = `
   100% { letter-spacing: 0.02em; }
 }
 .rvn-fnum-crit { animation: rvnFnum 1.1s cubic-bezier(.2,.8,.2,1) forwards, rvnFnumCrit 420ms ease-out; -webkit-text-stroke: 1px rgba(255,255,255,0.55); }
+/* ── Ėjimo pradžios ritualas (game-feel fazė 10) ───────────────────────────── */
+@keyframes rvnTurnGold {
+  0%   { scale: 1; filter: none; }
+  30%  { scale: 1.12; filter: drop-shadow(0 0 10px rgba(240,180,41,0.95)); }
+  100% { scale: 1; filter: none; }
+}
+@keyframes rvnTurnReady {
+  0%, 100% { filter: none; }
+  45%      { filter: drop-shadow(0 0 8px rgba(74,222,128,0.65)); }
+}
+.rvn-turn-gold  { animation: rvnTurnGold 480ms cubic-bezier(.2,.9,.3,1.2); }
+.rvn-turn-ready { animation: rvnTurnReady 520ms ease-in-out; }
+@media (prefers-reduced-motion: reduce){ .rvn-turn-gold, .rvn-turn-ready { animation: none !important; } }
 @media (prefers-reduced-motion: reduce){
   .rvn-impact-punch, .rvn-impact-flash, .rvn-fnum-crit { animation: none !important; }
 }

@@ -180,7 +180,11 @@
     "zmkSideYou": "your",
     "zoneDeck": "Deck",
     "zoneGrave": "Graveyard",
-    "zoneHand": "Hand"
+    "zoneHand": "Hand",
+    "zmkCritTitle": "Critical hit",
+    "zmkFizzleTitle": "Total failure",
+    "zmkReshuffled": "DMD deck reshuffled",
+    "blocked": "BLOCKED"
   },
   "guided": {
     "discard-gold-tip": {

@@ -142,3 +142,18 @@ export const ZMK_PRESENT = {
   /** Specialaus permaišymo (po ×2/×0) švysnis prie ŽMK zonos. */
   reshuffleMs: 700,
 } as const
+
+// ── Ėjimo pradžios ritualas (game-feel fazė 10) ──────────────────────────────
+// Ėjimo pradžia yra ritmo taškas: „kvėptelėjimas" tarp dviejų veiksmo blokų.
+// SVARBU: ritualas NEUŽRAKINA įvesties — jis gali baigtis fone, kol žaidėjas
+// jau žaidžia. Pailginti realų ėjimo startą būtų blogiau nei jokio ritualo.
+export const TURN_RITUAL = {
+  /** „TAVO ĖJIMAS" baneris. */
+  bannerMs: 1600,
+  /** Aukso skaitiklio „prisipildymas" po ėjimo pradžios. */
+  goldFillMs: 480,
+  /** Lentos „pasiruošimo" pulsas (savi padarai atgavo atakas). */
+  readyPulseMs: 520,
+  /** Kada po banerio pradedamas aukso fill (kad nesusiplaktų su traukimu). */
+  goldDelayMs: 260,
+} as const

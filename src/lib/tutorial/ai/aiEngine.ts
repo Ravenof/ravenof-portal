@@ -3,7 +3,8 @@
 // pakartotinai, kol grąžinama null – tada baigiamas ėjimas. Greedy + recompute
 // efektyviai sudaro veiksmų seką (lethal → board control → value → veidas).
 
-import { GameState, P, other, playCard, attack, discardForGold, useChampionAbility } from '../engine'
+import type { GameState } from '../engine'
+import { P, other, playCard, attack, discardForGold, useChampionAbility } from '../engine'
 import type { AiAction, AiDifficulty, AiWeightDelta } from './aiTypes'
 import { DIFFICULTY_WEIGHTS, mergeWeights, aiLog } from './aiTypes'
 import { generateLegalActions, type ScoredAction } from './aiActions'

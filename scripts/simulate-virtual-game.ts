@@ -4,8 +4,9 @@
 // (arba kompiliuoti su tsc į laikiną katalogą su path alias '@/*' -> 'src/*')
 // Padengia manual test checklist scenarijus 1-16 (žr. VIRTUAL-GAME-NOTES.md).
 
+import type { TutCard } from '../src/lib/tutorial/engine'
 import {
-  createGame, beginTurn, endTurn, TutCard, P, playCard, attack, legalTargets,
+  createGame, beginTurn, endTurn, P, playCard, attack, legalTargets,
   canUnitAttack, parseEffect, detectKeywords, useChampionAbility, effectiveCost,
 } from '../src/lib/tutorial/engine'
 import { aiNextAction } from '../src/lib/tutorial/ai'

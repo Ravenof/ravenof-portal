@@ -292,5 +292,35 @@ console.log('\n── F7b ×2 padvigubinta žala natūraliai duoda sunkų smūg�
   check('×0 duoda 0 žalos → CHIP kraštinis atvejis', resolveSeverity(0, 40, false) === 'CHIP')
 }
 
+console.log('\n── F9 Mirties stilius pagal žalos šaltinį ──')
+{
+  const { deathStyleFor, DEATH_STYLES } = await import('../src/lib/game/deathStyles')
+  check('ugnies projektilas → fire stilius', deathStyleFor({ projectile: 'fireball' }).kind === DEATH_STYLES.fire.kind)
+  check('ledo projektilas → ice stilius', deathStyleFor({ projectile: 'freezeBurst' }).kind === DEATH_STYLES.ice.kind)
+  check('tamsos prakeiksmas → necro (TYLI mirtis)', deathStyleFor({ projectile: 'darkCurse' }).shake === null)
+  check('šventas → holy (TYLI mirtis)', deathStyleFor({ projectile: 'healingGlow' }).shake === null)
+  check('nuodai → TYLI mirtis', deathStyleFor({ projectile: 'poisonGlob' }).shake === null)
+  check('melee be elemento → physical', deathStyleFor({ melee: true }).extra === 'slash')
+  check('frakcija kaip fallback (Mirties maršas → necro)',
+    deathStyleFor({ factionName: 'Mirties maršas' }).shake === null)
+  check('nežinomas šaltinis → default', deathStyleFor({}).kind === DEATH_STYLES.default.kind)
+  check('DEVASTATING sustiprina soft purtymą iki hard',
+    deathStyleFor({ projectile: 'fireball', severity: 'DEVASTATING' }).shake === 'hard')
+  check('DEVASTATING NEtriukšmina tylių stilių',
+    deathStyleFor({ projectile: 'darkCurse', severity: 'DEVASTATING' }).shake === null)
+  const quiet = Object.values(DEATH_STYLES).filter((d) => d.shake === null).length
+  check('bent 3 stiliai yra tylūs (kontrastas)', quiet >= 3, String(quiet))
+}
+
+console.log('\n── F10 Ėjimo pradžios ritualas ──')
+{
+  const { TURN_RITUAL } = await import('../src/lib/game/timing')
+  const total = TURN_RITUAL.goldDelayMs + TURN_RITUAL.goldFillMs + TURN_RITUAL.readyPulseMs
+  check('visas ritualas ≤ 1400 ms', total <= 1400, String(total))
+  check('ritualas trumpesnis arba lygus baneriui + pusė (nevėluoja per ilgai)',
+    TURN_RITUAL.goldDelayMs + TURN_RITUAL.goldFillMs <= TURN_RITUAL.bannerMs)
+  check('aukso fill matomas (≥ 300 ms)', TURN_RITUAL.goldFillMs >= 300)
+}
+
 console.log(`\n══ Rezultatas: ${pass} praėjo, ${fail} krito ══\n`)
 process.exit(fail > 0 ? 1 : 0)

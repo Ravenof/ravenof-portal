@@ -180,7 +180,11 @@
     "zmkSideYou": "tavo",
     "zoneDeck": "Kaladė",
     "zoneGrave": "Kapinynas",
-    "zoneHand": "Ranka"
+    "zoneHand": "Ranka",
+    "zmkCritTitle": "Kritinis smūgis",
+    "zmkFizzleTitle": "Visiška nesėkmė",
+    "zmkReshuffled": "ŽMK kaladė permaišyta",
+    "blocked": "BLOKUOTA"
   },
   "guided": {
     "discard-gold-tip": {

@@ -1,5 +1,57 @@
 # Changelog
 
+## [Game feel: tactile, svoris ir ritmas] — 2026-08-10
+
+commit568–576. Planas: `GAME-FEEL-HANDOFF.md`, ataskaita: `GAME-FEEL-REPORT.md`.
+Tikslas — ne nauji dideli VFX (jų pakanka), o **Tier 0–1**: svoris, ritmas ir kontrastas
+kasdieniuose veiksmuose.
+
+**P0 mechanikos pataisymai (fazė 0)**
+- `debuffAttack` / `debuffHealth` dabar perduoda `buffDuration` — **laikini debuff'ai realiai veikia** (anksčiau visi minusai buvo nuolatiniai).
+- Netenkinama `condition` nebe praleidžiama tyliai: `battleLog.conditionSkipped` su realia metrikos reikšme (admin pagaliau mato, KODĖL efektas neįvyko).
+- `buffSpellDamage` pridėtas į `EFFECT_TYPES` (realizacija variklyje jau buvo, admin dropdown'e — ne).
+- Prakeiksmų grandinės gylio apsauga (`MAX_CURSE_DEPTH = 4`) — `depth` anksčiau buvo priimamas, bet nenaudojamas.
+
+**Game-feel telemetrija (fazė 1)**
+- `feelTelemetry.ts`: `animationLockMsTotal` / `PerTurn` (tik savo ėjimo metu), `inputToFirstFeedbackMs` (mediana), `cinematicsSkipped`, `cinematicsEnabledAtStart`. Modulinė būsena — PvP broadcast payload'as nedidėja. Siunčiama esamu `rvn_report_match_stats` keliu, migracijų nereikia.
+
+**Kortų tactile sluoksnis (fazė 2)**
+- `CARD_TACTILE` konstantos `timing.ts` (vienas šaltinis), `CardTactile.tsx`: paspaudimo kompresija, negalimo taikinio raudonas pulsas + klaidos garsas, „atsisėdimas" į slotą, grįžimas į ranką.
+- Tempimo inercija su lag riba; magnetinė snap zona (imperatyviai, be re-render'io).
+- Paspaudimo atsakas dabar veikia **ir kompaktiškoje mobile rankoje** (anksčiau ten `GameCard` nebuvo naudojamas).
+- Visos naujos animacijos naudoja nepriklausomas `scale`/`translate` savybes, kad nekonfliktuotų su framer-motion transformomis.
+
+**Reakcijų grandinė (fazė 3)**
+- 4 nauji garsai (`reactionLaunch/Impact/Tighten/Shatter`) file-first iš `public/sounds/reaction/` su sintezuotais fallback'ais; garsai gyvena pačiame sluoksnyje (vienas taškas).
+- `duckMusic()` helper'is: muzika −3 dB 80 ms prieš sudužimą.
+- **Kompresija:** pirma kovos reakcija — pilna (3.9 s), vėlesnės — 2.4 s. Kanoninis fazių eiliškumas nekinta, trumpėja tik trukmės.
+
+**Smūgio svoris ir hit-stop (fazės 4–5)**
+- `ImpactProfile`: 5 pakopos (CHIP / HIT / HEAVY / DEVASTATING / LETHAL) skaičiuojamos **varikliuke po ŽMK** pagal absoliučią žalą IR santykį su `maxHP`; `GameEvent.severity` keliauja tuo pačiu mūšio žurnalu (PvP svečias mato tapatų vaizdą, be naujų broadcast laukų).
+- Profilis valdo hit-stop, purtymo lygį, garsą, muzikos duck ir žalos skaičiaus stilių — dingo `val >= 4` / `val >= 5` euristikos.
+- `BattleFxLayer.impactFrame()` daro **vizualinį** hold (per `timeShift`, animacijos tęsiasi iš tos pačios vietos); variklis nestabdomas, hit-stop'ai nesikaupia, reduced-motion = 0 ms, low quality ≤ 40 ms.
+
+**HP ghost juosta (fazė 6)**
+- Prarasta dalis lieka matoma 300 ms raudonai, tada susitraukia per 200 ms. Veikia padarų juostoje ir herojaus flakone; kelių smūgių serija ghost'ą prailgina, o ne mirksi.
+
+**ŽMK prezentacija (fazė 7)**
+- ×2 „Kritinis smūgis": anticipacijos tyla (muzika −12 dB) → kortos slam → bass hit → glifas (≤ 1.09 s).
+- ×0 „Visiška nesėkmė": blėsimas su tyliu fizzle.
+- Po abiejų — **specialaus permaišymo** švysnis (mechanikos komunikacija, ne dekoracija).
+- Routine „+0" kelias **nepailgėjo** — spectacle budget.
+
+**Statusai, mirtys, ėjimo pradžia (fazės 8–10)**
+- Magiškasis skydas rodo „BLOKUOTA" vietoj tylaus nulio + skydo FX + clang; degimo/nuodų tikas gauna savo ženklą prie padaro.
+- Mirties stilius pagal žalos šaltinį (`deathStyles.ts`): fire / ice / necro / holy / physical / poison / arcane. **Necro, holy ir poison mirtys yra tylios** — kontrastas, kuris sunkų finišą padaro sunkų.
+- Ėjimo pradžios ritualas: aukso skaitiklio fill + lentos „ready" pulsas. Įvestis **neužrakinama**.
+
+**Testai ir įrankiai**
+- `npm run game:test:feel` — 85 naujos patikros (`scripts/simulate-game-feel.ts`).
+- `scripts/alias-loader.mjs` + `alias-hooks.mjs`: TS simuliacijas dabar galima paleisti per `node --experimental-strip-types` be `tsx`/tinklo.
+- `tsconfig.check.gamefeel.json` — greitas targeted typecheck.
+
+**Žinomos skolos:** telemetrijos baseline neišmatuotas (reikia naršyklės), smoke patikra neatlikta, fazė 8 nepilna (trūksta 2 variklio įvykių), garso failai dar neįrašyti. Detaliai — `GAME-FEEL-REPORT.md` §6–§8.
+
 ## [Virtualus žaidimas v1: effect engine] - 2026-06-13
 
 ### Pridėta

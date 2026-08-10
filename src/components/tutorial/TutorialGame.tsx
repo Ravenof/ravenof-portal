@@ -66,11 +66,12 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
-import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT } from '@/lib/game/timing'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure } from '@/lib/game/feelTelemetry'
 import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
-import { impactProfile, severityAtLeast } from '@/lib/game/impactProfiles'
+import { impactProfile, severityAtLeast, type ImpactSeverity } from '@/lib/game/impactProfiles'
+import { deathStyleFor } from '@/lib/game/deathStyles'
 import { duckMusic } from '@/lib/game/musicManager'
 import { TactileStyles, pressPulse, invalidPulse, snapSettle, returnSpring, dragFollow, withinSnap } from '@/components/tutorial/CardTactile'
 import { HpGhostBar, useHpGhost } from '@/components/tutorial/HpGhostBar'
@@ -1480,6 +1481,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     let aoeFired = false
     let fxElemColor: string | null = null  // pasirinkto efekto elemento spalva (ugnis/žaibas/ledas…) AoE/žalos FX
     let fxElemType: string | null = null     // elemento tipas → AoE variantas (fire/lightning/ice/…)
+    let lastSeverityRef: ImpactSeverity | null = null   // paskutinio smūgio svoris → mirties stilius (fazė 9)
     const aoeVariant = (): AoeVariant => {
       const t = fxElemType ?? (srcCard?.gameplay?.projectileType ?? null)
       switch (t) {
@@ -1682,23 +1684,34 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
               // 1) projektilas/kirtis NUO šaltinio iki taikinio (praleidžiam, jei žala jau jį paleido)
               if (!hadDmg) window.setTimeout(() => fxRef.current?.spawn({ kind: projKind, from: srcR, to: from, color: projCol, duration: melee ? 0.9 : 1.0, variant: melee ? undefined : projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }), base)
               // 2) smūgis: sunaikinimas → SPROGIMAS (korta ištaškoma į gabalus); melee → įprastas suirimas
+              // ── Fazė 9: mirties stilius pagal žalos šaltinį ─────────────
+              // Ne viskas sprogsta: necro/holy/poison mirtys yra TYLIOS (be
+              // lentos purtymo) — tai kontrastas, kuris sunkų finišą padaro sunkų.
+              const ds = deathStyleFor({
+                projectile: fxElemType ?? srcCard?.gameplay?.projectileType ?? null,
+                factionName: srcCard?.factionName ?? card?.factionName ?? null,
+                melee,
+                severity: lastSeverityRef,
+              })
               window.setTimeout(() => {
-                if (melee) {
-                  fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 })
-                  fxRef.current?.hitFlash(from.x, from.y, '#ff4a4a')
-                } else {
-                  fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 1.0, intensity: 'big' })
-                  fxRef.current?.spawn({ kind: 'burn', to: from, color: '#ff8a3a', duration: 0.7, intensity: 'small' })
-                  fxRef.current?.hitFlash(from.x, from.y, '#ffd24a')
-                  fxRef.current?.shakeBoard('hard')
-                  if (e.src?.uid) fxRef.current?.shakeUnit(e.src.uid, 'hard')
+                fxRef.current?.spawn({ kind: ds.kind, to: from, from, color: ds.color, color2: ds.color2, duration: ds.durationS, intensity: melee ? undefined : 'big' })
+                if (ds.extra) fxRef.current?.spawn({ kind: ds.extra, to: from, from, color: ds.color2, color2: ds.color, duration: Math.max(0.6, ds.durationS * 0.7), intensity: 'small' })
+                fxRef.current?.hitFlash(from.x, from.y, ds.flash)
+                if (ds.shake) {
+                  fxRef.current?.shakeBoard(ds.shake)
+                  if (e.src?.uid && ds.shake === 'hard') fxRef.current?.shakeUnit(e.src.uid, 'hard')
                 }
-                playBattleSound('death', 0.45)
+                playBattleSound('death', ds.shake === 'hard' ? 0.5 : ds.shake === null ? 0.3 : 0.45)
                 if (gid) setDeathGhosts((gs) => gs.filter((x) => x.id !== gid))
                 startFly()
               }, base + travel)
             } else {
-              window.setTimeout(() => { fxRef.current?.spawn({ kind: 'disintegrate', to: from, color: pc, duration: 0.9 }); startFly() }, base)
+              // Mirtis be aiškaus šaltinio (nuodai, aura, lauko pasyvas) — tyli.
+              const dsq = deathStyleFor({ projectile: fxElemType, factionName: card?.factionName ?? null, severity: lastSeverityRef })
+              window.setTimeout(() => {
+                fxRef.current?.spawn({ kind: dsq.kind, to: from, from, color: dsq.color, color2: dsq.color2, duration: dsq.durationS })
+                startFly()
+              }, base)
             }
           } else { startFly() }
           break
@@ -1927,6 +1940,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             // rect'as fiksuojamas SINCHRONIŠKAI (dar prieš showcase/ŽMK delsas) – jei taikinys
             // per tą laiką žus ir dings iš DOM, projektilas vis tiek skries į jo vietą
             const sev = e.severity
+            if (sev) lastSeverityRef = sev
             const toEarly = rectOf(tgt)
             window.setTimeout(() => {
               const to = rectOf(tgt) ?? toEarly; if (!to) return
@@ -2701,8 +2715,29 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     const you = game.active === 'you'
     const name = you ? (myName || t('battle.game.you')) : (oppProfile?.display_name || oppProfile?.username || opponentName || t('battle.game.opponent'))
     setTurnBanner({ name, you })
-    const tm = setTimeout(() => setTurnBanner(null), 1600)
-    return () => clearTimeout(tm)
+    // ── Fazė 10: ėjimo pradžios ritualas ────────────────────────────────────
+    // Baneris → aukso skaitiklio fill (+ monetos garsas) → lentos „ready" pulsas.
+    // Įvestis NEUŽRAKINAMA: ritualas tik lydi, o ne stabdo.
+    const ritual: number[] = []
+    if (you) {
+      ritual.push(window.setTimeout(() => {
+        const gEl = document.querySelector('[data-tut="gold"]') as HTMLElement | null
+        if (gEl) {
+          gEl.classList.remove('rvn-turn-gold'); void gEl.offsetWidth; gEl.classList.add('rvn-turn-gold')
+          window.setTimeout(() => gEl.classList.remove('rvn-turn-gold'), TURN_RITUAL.goldFillMs + 60)
+        }
+        playBattleSound('draw', 0.28)
+      }, TURN_RITUAL.goldDelayMs))
+      ritual.push(window.setTimeout(() => {
+        const board = document.querySelector('[data-tut="units-you"]') as HTMLElement | null
+        if (board) {
+          board.classList.remove('rvn-turn-ready'); void board.offsetWidth; board.classList.add('rvn-turn-ready')
+          window.setTimeout(() => board.classList.remove('rvn-turn-ready'), TURN_RITUAL.readyPulseMs + 60)
+        }
+      }, TURN_RITUAL.goldDelayMs + TURN_RITUAL.goldFillMs))
+    }
+    const tm = setTimeout(() => setTurnBanner(null), TURN_RITUAL.bannerMs)
+    return () => { clearTimeout(tm); for (const r of ritual) window.clearTimeout(r) }
   }, [game?.globalTurn, game?.active, game?.winner, myName, oppProfile, opponentName])
 
   const onHandCardClick = (c: TutCard) => {
