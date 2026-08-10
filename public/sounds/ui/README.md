@@ -1,5 +1,8 @@
 # UI garso efektai (mp3)
 
+> Pilnas trūkstamų garsų sąrašas su prioritetais — `SOUND-TODO.md` repo šaknyje.
+> Būsena 2026-08-10: šis katalogas TUŠČIAS, visi UI garsai groja sintezę.
+
 Įkelk mp3 failus čia (`public/sounds/ui/`). Kiekvienas garsas pirma ieško mp3;
 jei failo nėra — automatiškai grojamas sintezuotas fallback (kodo keisti nereikia).
 Failai su keliais variantais (`-1`, `-2`, `-3`) grojami **atsitiktinai** — gyviau,

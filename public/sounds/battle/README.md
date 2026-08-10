@@ -18,6 +18,12 @@ fallback (kodo keisti nereikia).
 - `summon` — padaro iškvietimas
 - `zmk-flip` — ŽMK apvertimas
 - `champion-skill` — čempiono gebėjimas
+- `explosion` — sprogimas (DEVASTATING smūgiai)
+- `zmk-crit` — ŽMK ×2 „Kritinis smūgis" (game-feel fazė 7)
+- `zmk-fizzle` — ŽMK ×0 „Visiška nesėkmė" (game-feel fazė 7)
+
+> Reakcijų grandinės garsai gyvena ATSKIRAME kataloge: `public/sounds/reaction/`.
+> Pilnas trūkstamų garsų sąrašas su prioritetais — `SOUND-TODO.md` repo šaknyje.
 
 Pvz.: `attack.mp3` arba `attack-1.mp3` + `attack-2.mp3` + `attack-3.mp3`.
 
