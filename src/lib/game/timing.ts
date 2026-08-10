@@ -162,18 +162,22 @@ export const TURN_RITUAL = {
 // Padaras neturi tiesiog „atsirasti" — jis turi NUKRISTI: trinktelėjimas,
 // lengvas viso lauko krestelėjimas ir dulkės, išlekiančios iš po kortos.
 // Tai vyksta dažniausiai iš visų kovos įvykių, tad turi būti TRUMPA.
+//
+// SVARBU: korta guli PLOKŠČIAI (vaizdas iš viršaus) ir nusileidžia visa
+// plokštuma — ji NEatsiremia į apatinę briauną. Todėl dulkės veržiasi radialiai
+// iš VISO perimetro (visos 4 briaunos), o prispaudimas eina nuo centro.
 export const CARD_LANDING = {
   /** Kortos suplojimas nusileidus (squash & stretch). */
   squashMs: 260,
   /** Kiek korta suplokštėja (scaleY) smūgio kadre. */
-  squashY: 0.9,
+  squashY: 0.95,
   /** Kiek išsiplečia į šonus tuo pačiu metu (scaleX). */
-  stretchX: 1.06,
+  stretchX: 1.05,
   /** Dulkių debesies gyvavimo trukmė. */
   dustMs: 620,
   /** Dulkių dalelių kiekis (high kokybė; medium ×0.6, low = 0). */
-  dustParticles: 16,
-  /** Kaip plačiai dulkės išsisklaido nuo kortos apačios (px). */
+  dustParticles: 22,
+  /** Kaip plačiai dulkės išsisklaido nuo kortos briaunų (px). */
   dustSpreadPx: 46,
   /** Dulkių spalva (šiltas pilkšvas dulkių atspalvis, ne balta). */
   dustColor: '#b8a894',

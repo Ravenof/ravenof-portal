@@ -853,64 +853,68 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       const rW = it.rect?.w ?? 60 * D
       const rH = it.rect?.h ?? 80 * D
       const rTop = it.rect?.y ?? to.y - rH / 2
-      const rRight = rLeft + rW
       const cx = rLeft + rW / 2
-      const bottom = rTop + rH
+      const cy = rTop + rH / 2
+      const halfW = rW / 2, halfH = rH / 2
       if (!it.seeded) {
         it.seeded = true
         const n = Math.round(CARD_LANDING.dustParticles * im)
-        const spread = CARD_LANDING.dustSpreadPx * D
+        const spd = CARD_LANDING.dustSpreadPx / 46      // 1.0 prie numatytos reikšmės
+        // Korta guli PLOKŠČIAI ir nusileidžia visa plokštuma, ne atsiremia į vieną
+        // briauną. Todėl dulkės išsiveržia radialiai iš VISO perimetro — visos
+        // keturios briaunos vienodai. Startas tiksliai ant briaunos (spindulio ir
+        // stačiakampio sankirta), greitis — į išorę pagal tą pačią kryptį.
         for (let k = 0; k < n; k++) {
-          // Tolygiai per VISĄ apatinį kraštą, su nedideliu užlaidu už šonų —
-          // taip dulkės liečia kortą ir apgaubia ją iš abiejų pusių (be tarpo).
-          const t = n === 1 ? 0.5 : k / (n - 1)
-          const px = rLeft - 4 * D + t * (rW + 8 * D)
-          const nx = (px - cx) / (rW / 2)                        // -1 (kairė) .. +1 (dešinė)
-          const edge = Math.abs(nx)                              // kuo arčiau krašto, tuo stipriau
+          const a = (k / n) * TAU + rnd(0, TAU / n)     // tolygiai per 360° + jitter
+          const dirX = Math.cos(a), dirY = Math.sin(a)
+          // spindulio × stačiakampio sankirta → taškas ANT briaunos (be tarpo)
+          const tx = Math.abs(dirX) > 1e-4 ? halfW / Math.abs(dirX) : Infinity
+          const ty = Math.abs(dirY) > 1e-4 ? halfH / Math.abs(dirY) : Infinity
+          const t = Math.min(tx, ty)
+          const speed = rnd(1.3, 2.9) * D * spd
           it.parts.push({
-            x: px,
-            y: bottom - rnd(0, 5) * D,                           // TIKSLIAI prie apatinės briaunos
-            vx: (nx * rnd(0.8, 1.7) + Math.sign(nx || 1) * rnd(0.15, 0.5)) * D * (spread / 46 / D || 1),
-            vy: -rnd(0.25, 0.5 + edge * 1.1) * D,                // pakraščiai pučia aukščiau
+            x: cx + dirX * t * rnd(0.94, 1.02),
+            y: cy + dirY * t * rnd(0.94, 1.02),
+            vx: dirX * speed,
+            vy: dirY * speed * 0.82,                    // lengvas vertikalus suplojimas (gulinti plokštuma)
             life: now, max: rnd(CARD_LANDING.dustMs * 0.5, CARD_LANDING.dustMs),
-            size: rnd(3, 8 + edge * 3) * D, rot: rnd(0, TAU), vr: rnd(-0.02, 0.02),
+            size: rnd(3, 9) * D, rot: rnd(0, TAU), vr: rnd(-0.02, 0.02),
           })
         }
-        // Papildomai — po kelias daleles, kylančias PRIE PAČIŲ ŠONŲ (kad dulkės
-        // matytųsi ir iš kairės, ir iš dešinės kortos briaunos, ne tik apačioje).
-        const sideN = Math.max(2, Math.round(3 * im))
-        for (const sx of [rLeft, rRight]) {
-          const dir = sx === rLeft ? -1 : 1
-          for (let k = 0; k < sideN; k++) {
+        // Tankesnis pliūpsnis ties KAMPAIS — ten oras išspaudžiamas stipriausiai.
+        const corners = Math.max(1, Math.round(2 * im))
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+          for (let k = 0; k < corners; k++) {
+            const speed = rnd(2.0, 3.6) * D * spd
+            const a = Math.atan2(sy * halfH, sx * halfW) + rnd(-0.3, 0.3)
             it.parts.push({
-              x: sx + dir * rnd(0, 4) * D,
-              y: bottom - rnd(2, rH * 0.28),                     // kyla palei šoną
-              vx: dir * rnd(0.5, 1.3) * D,
-              vy: -rnd(0.7, 1.5) * D,
-              life: now, max: rnd(CARD_LANDING.dustMs * 0.45, CARD_LANDING.dustMs * 0.85),
+              x: cx + sx * halfW, y: cy + sy * halfH,
+              vx: Math.cos(a) * speed, vy: Math.sin(a) * speed * 0.82,
+              life: now, max: rnd(CARD_LANDING.dustMs * 0.45, CARD_LANDING.dustMs * 0.8),
               size: rnd(2.5, 6) * D, rot: rnd(0, TAU), vr: rnd(-0.03, 0.03),
             })
           }
         }
       }
-      // Suplotas oro bangos žiedas TIKSLIAI ties kortos pagrindu
+      // Oro bangos žiedas — elipsė aplink VISĄ kortą, plintanti į išorę nuo perimetro
       const ringP = Math.min(1, p / 0.45)
       if (ringP < 1) {
         ctx.save()
-        ctx.translate(cx, bottom)
-        ctx.scale(1, 0.22)                                        // guli ant „grindų"
         ctx.globalAlpha = (1 - ringP) * 0.4
         ctx.strokeStyle = color
         ctx.lineWidth = 2.5 * D * (1 - ringP)
-        ctx.beginPath(); ctx.arc(0, 0, rW * 0.35 + ringP * rW * 0.9, 0, TAU); ctx.stroke()
+        ctx.beginPath()
+        ctx.ellipse(cx, cy, halfW * (1 + ringP * 0.95), halfH * (1 + ringP * 0.95), 0, 0, TAU)
+        ctx.stroke()
         ctx.restore()
       }
       for (let k = it.parts.length - 1; k >= 0; k--) {
         const q = it.parts[k]
         q.x += q.vx
         q.y += q.vy
-        q.vy += 0.035 * D                                          // gravitacija — dulkės nusėda
-        q.vx *= 0.955                                              // oro pasipriešinimas
+        q.vy += 0.012 * D                                          // vos juntamas nusėdimas
+        q.vx *= 0.935                                              // dulkės greitai nurimsta
+        q.vy *= 0.935
         q.rot += q.vr
         const e = (now - q.life) / q.max
         if (e >= 1) { it.parts.splice(k, 1); continue }
@@ -919,7 +923,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
         ctx.globalAlpha = (1 - e) * 0.34
         ctx.fillStyle = color
         ctx.translate(q.x, q.y)
-        ctx.scale(1, 0.65)                                         // horizontaliai ištęsta
+        ctx.scale(1, 0.8)
         ctx.beginPath(); ctx.arc(0, 0, q.size * grow, 0, TAU); ctx.fill()
         ctx.restore()
       }
@@ -980,11 +984,13 @@ const CSS = `
    Nepriklausoma scale savybe (ne transform) - plytele yra framer-motion valdoma. */
 @keyframes rvnCardLand {
   0%   { scale: 1 1; }
-  30%  { scale: 1.06 0.9; }
-  62%  { scale: 0.98 1.03; }
+  28%  { scale: 1.05 0.95; }
+  60%  { scale: 0.98 1.01; }
   100% { scale: 1 1; }
 }
-.rvn-card-land { animation: rvnCardLand 260ms cubic-bezier(.2,.9,.3,1.2); transform-origin: bottom center; }
+/* transform-origin: CENTER - korta guli plokscia ir nusileidzia visa plokstuma,
+   ne atsiremia i apatine briauna. Prispaudimas eina is visu pusiu vienodai. */
+.rvn-card-land { animation: rvnCardLand 260ms cubic-bezier(.2,.9,.3,1.2); transform-origin: center; }
 @media (prefers-reduced-motion: reduce){ .rvn-card-land { animation: none !important; } }
 /* Kritinis žalos skaičius — papildomas „smūgio" akcentas. */
 @keyframes rvnFnumCrit {

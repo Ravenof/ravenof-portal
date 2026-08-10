@@ -370,15 +370,22 @@ console.log('\n── F12 Kortos nusileidimas (fizinis pojūtis) ──')
   // dulkės atsirasdavo per pusę kortos aukščio žemiau (matomas tarpas tarp kortos ir dulkių).
   check('cardLand priima top-left rect (ne centrą)',
     /cardLand: \(uid: string, rect: \{ left: number; top: number/.test(fx))
-  check('dulkių bazė skaičiuojama nuo rect viršaus + aukščio',
-    /const bottom = rTop \+ rH/.test(fx))
-  check('dalelės startuoja TIKSLIAI prie apatinės briaunos (be tarpo)',
-    /y: bottom - rnd\(0, 5\)/.test(fx))
-  check('yra atskiros dalelės KYLANČIOS palei abu šonus',
-    /for \(const sx of \[rLeft, rRight\]\)/.test(fx))
-  check('squash naudoja nepriklausomą scale, ne transform',
-    /@keyframes rvnCardLand[\s\S]{0,200}scale: 1 1/.test(fx))
-  check('low kokybėje dulkių nėra', /q !== 'low'/.test(fx))
+  check('centras skaičiuojamas iš top-left rect (o ne naudojamas kaip centras)',
+    /const cx = rLeft \+ rW \/ 2/.test(fx) && /const cy = rTop \+ rH \/ 2/.test(fx))
+  // Korta guli PLOKŠČIAI ir nusileidžia visa plokštuma — dulkės turi eiti iš
+  // VISŲ 4 briaunų, ne tik iš apačios (regresija, rasta 2026-08-10).
+  check('emisija radialinė per visus 360°', /const a = \(k \/ n\) \* TAU/.test(fx))
+  check('startas ANT briaunos (spindulio × stačiakampio sankirta, be tarpo)',
+    /halfW \/ Math\.abs\(dirX\)/.test(fx) && /halfH \/ Math\.abs\(dirY\)/.test(fx))
+  check('greitis nukreiptas ta pačia kryptimi kaip startas (į išorę)',
+    /vx: dirX \* speed/.test(fx) && /vy: dirY \* speed/.test(fx))
+  check('tankesnis pliūpsnis ties visais 4 kampais',
+    /for \(const sx of \[-1, 1\]\) for \(const sy of \[-1, 1\]\)/.test(fx))
+  check('žiedas — elipsė aplink VISĄ kortą, ne tik pagrindą',
+    /ctx\.ellipse\(cx, cy, halfW \* \(1 \+ ringP/.test(fx))
+  check('squash centruotas (korta neatsiremia į apatinę briauną)',
+    /transform-origin: center/.test(fx) && !/transform-origin: bottom center/.test(fx))
+  check('nebeliko senos „tik į šonus" emisijos', !/const tilt = rnd\(/.test(fx))
 
   const tg = readFileSync('src/components/tutorial/TutorialGame.tsx', 'utf8')
   check('nusileidimas kabinamas ant onAnimationComplete (visi keliai vienodai)',

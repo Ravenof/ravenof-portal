@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<title>Ravenof — kortos nusileidimo dulkės (derinimo peržiūra)</title>
+<style>
+  :root { --gold:#f0b429; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0d0a14; color:#d7c7aa; font-family: Georgia, serif; display:flex; height:100vh; }
+  #stage { flex:1; position:relative; overflow:hidden; background:
+      radial-gradient(circle at 50% 62%, #241d33 0%, #14101e 55%, #0a0810 100%); }
+  canvas { position:absolute; inset:0; }
+  .card { position:absolute; border-radius:10px; border:1.5px solid #c9882f;
+    background:linear-gradient(160deg,#2a2138,#14101e);
+    box-shadow:0 10px 26px rgba(0,0,0,.75); transform-origin:center; }
+  .card .nm { position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:11px; color:#c9a06b; }
+  @keyframes land { 0%{scale:1 1} 28%{scale:1.05 .95} 60%{scale:.98 1.01} 100%{scale:1 1} }
+  @keyframes drop { 0%{translate:0 -34px; opacity:0; scale:.82 .82} 100%{translate:0 0; opacity:1; scale:1 1} }
+  .drop { animation: drop 260ms cubic-bezier(.2,.9,.3,1.3); }
+  .land { animation: land 260ms cubic-bezier(.2,.9,.3,1.2); }
+  #panel { width:310px; padding:16px; background:#120f1c; border-left:1px solid #2a2138; overflow:auto; }
+  h1 { font-size:15px; color:var(--gold); margin:0 0 4px; }
+  p.sub { font-size:11px; color:#8b7f6d; margin:0 0 14px; line-height:1.5; }
+  label { display:block; font-size:11px; margin:12px 0 3px; color:#b6a68e; }
+  input[type=range] { width:100%; }
+  .val { float:right; color:var(--gold); font-family:monospace; }
+  button { width:100%; margin-top:14px; padding:9px; background:#2a2138; color:var(--gold);
+    border:1px solid var(--gold); border-radius:6px; font-family:inherit; font-size:13px; cursor:pointer; }
+  button:hover { background:#3a2e4c; }
+  pre { margin-top:14px; padding:10px; background:#0a0810; border:1px solid #2a2138; border-radius:6px;
+    font-size:10.5px; color:#9fe8d0; white-space:pre-wrap; line-height:1.45; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="cv"></canvas></div>
+<div id="panel">
+  <h1>Kortos nusileidimo dulkės</h1>
+  <p class="sub">Korta guli plokščiai — dulkės veržiasi iš visų 4 briaunų. Derinimo smėlio dėžė — ta pati emisijos matematika kaip <code>BattleFxLayer.tsx</code>
+     (<code>case 'dustPuff'</code>). Pasirinkęs reikšmes, perkelk jas į <code>CARD_LANDING</code>
+     faile <code>src/lib/game/timing.ts</code>.</p>
+
+  <label>Dalelių kiekis <span class="val" id="vN">22</span></label>
+  <input type="range" id="N" min="4" max="60" value="22">
+
+  <label>Sklaidos stiprumas (dustSpreadPx) <span class="val" id="vS">46</span></label>
+  <input type="range" id="S" min="10" max="140" value="46">
+
+  <label>Trukmė, ms (dustMs) <span class="val" id="vD">620</span></label>
+  <input type="range" id="D" min="200" max="1600" value="620">
+
+  <label>Gravitacija <span class="val" id="vG">0.012</span></label>
+  <input type="range" id="G" min="0" max="120" value="12">
+
+  <label>Oro pasipriešinimas <span class="val" id="vF">0.935</span></label>
+  <input type="range" id="F" min="880" max="999" value="935">
+
+  <label>Ryškumas <span class="val" id="vA">0.34</span></label>
+  <input type="range" id="A" min="5" max="90" value="34">
+
+  <button id="go">Nuleisti kortą (arba tarpas)</button>
+  <button id="auto">Kartoti kas 1.2 s: IŠJ.</button>
+  <pre id="out"></pre>
+</div>
+<script>
+const TAU = Math.PI*2
+const rnd = (a,b)=> a + Math.random()*(b-a)
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d')
+const stage = document.getElementById('stage')
+let D = Math.min(devicePixelRatio||1, 2)
+function resize(){ cv.width = stage.clientWidth*D; cv.height = stage.clientHeight*D
+  cv.style.width = stage.clientWidth+'px'; cv.style.height = stage.clientHeight+'px' }
+resize(); addEventListener('resize', resize)
+
+// kortos elementas
+const CARD_W = 84, CARD_H = 112
+const card = document.createElement('div')
+card.className = 'card'
+card.innerHTML = '<span class="nm">Padaras</span>'
+card.style.width = CARD_W+'px'; card.style.height = CARD_H+'px'
+stage.appendChild(card)
+function placeCard(){
+  card.style.left = Math.round(stage.clientWidth/2 - CARD_W/2)+'px'
+  card.style.top  = Math.round(stage.clientHeight*0.52 - CARD_H/2)+'px'
+}
+placeCard(); addEventListener('resize', placeCard)
+
+const P = {}
+const ids = [['N','vN',1],['S','vS',1],['D','vD',1],['G','vG',0.001],['F','vF',0.001],['A','vA',0.01]]
+function sync(){ for(const [id,vid,mul] of ids){ const el=document.getElementById(id)
+  P[id] = +el.value * mul; document.getElementById(vid).textContent = (mul===1? P[id] : P[id].toFixed(3)) }
+  document.getElementById('out').textContent =
+`export const CARD_LANDING = {
+  squashMs: 260,
+  squashY: 0.9,
+  stretchX: 1.06,
+  dustMs: ${P.D},
+  dustParticles: ${P.N},
+  dustSpreadPx: ${P.S},
+  dustColor: '#b8a894',
+  soundVolume: 0.3,
+} as const
+
+// BattleFxLayer dustPuff:
+//   gravitacija  q.vy += ${P.G.toFixed(3)} * D
+//   trintis      q.vx *= ${P.F.toFixed(3)}
+//   ryskumas     (1 - e) * ${P.A.toFixed(2)}` }
+for(const [id] of ids) document.getElementById(id).addEventListener('input', sync)
+sync()
+
+let parts = [], ringT0 = 0, ringOn = false
+const COLOR = '#b8a894'
+
+function emit(){
+  const r = card.getBoundingClientRect(), sr = stage.getBoundingClientRect()
+  const rLeft=(r.left-sr.left)*D, rTop=(r.top-sr.top)*D, rW=r.width*D, rH=r.height*D
+  const cx = rLeft + rW/2, cy = rTop + rH/2, halfW = rW/2, halfH = rH/2
+  const now = performance.now()
+  const spd = P.S/46
+  parts = []
+  // Korta guli PLOKSCIAI: dulkes versiasi radialiai is VISO perimetro (4 briaunos).
+  for(let k=0;k<P.N;k++){
+    const a = (k/P.N)*TAU + rnd(0, TAU/P.N)
+    const dirX = Math.cos(a), dirY = Math.sin(a)
+    const tx = Math.abs(dirX)>1e-4 ? halfW/Math.abs(dirX) : Infinity
+    const ty = Math.abs(dirY)>1e-4 ? halfH/Math.abs(dirY) : Infinity
+    const t = Math.min(tx,ty)
+    const speed = rnd(1.3,2.9)*D*spd
+    parts.push({ x: cx+dirX*t*rnd(0.94,1.02), y: cy+dirY*t*rnd(0.94,1.02),
+      vx: dirX*speed, vy: dirY*speed*0.82,
+      life: now, max: rnd(P.D*0.5, P.D), size: rnd(3,9)*D })
+  }
+  // Tankiau ties kampais - ten oras isspaudziamas stipriausiai
+  for(const sx of [-1,1]) for(const sy of [-1,1]) for(let k=0;k<2;k++){
+    const speed = rnd(2.0,3.6)*D*spd
+    const a = Math.atan2(sy*halfH, sx*halfW) + rnd(-0.3,0.3)
+    parts.push({ x: cx+sx*halfW, y: cy+sy*halfH,
+      vx: Math.cos(a)*speed, vy: Math.sin(a)*speed*0.82,
+      life: now, max: rnd(P.D*0.45, P.D*0.8), size: rnd(2.5,6)*D })
+  }
+  ringT0 = now; ringOn = true
+  card.classList.remove('drop','land'); void card.offsetWidth
+  card.classList.add('drop'); setTimeout(()=>{ card.classList.remove('drop'); card.classList.add('land') }, 200)
+}
+
+function frame(now){
+  ctx.clearRect(0,0,cv.width,cv.height)
+  ctx.globalCompositeOperation = 'source-over'
+  const r = card.getBoundingClientRect(), sr = stage.getBoundingClientRect()
+  const rLeft=(r.left-sr.left)*D, rTop=(r.top-sr.top)*D, rW=r.width*D, rH=r.height*D
+  const cx = rLeft + rW/2, cy = rTop + rH/2, halfW = rW/2, halfH = rH/2
+  if (ringOn){
+    const pr = (now-ringT0)/P.D, k = Math.min(1, pr/0.45)
+    if (k<1){ ctx.save(); ctx.globalAlpha=(1-k)*0.4; ctx.strokeStyle=COLOR; ctx.lineWidth=2.5*D*(1-k)
+      ctx.beginPath(); ctx.ellipse(cx,cy, halfW*(1+k*0.95), halfH*(1+k*0.95), 0, 0, TAU); ctx.stroke(); ctx.restore() }
+    else ringOn = false
+  }
+  for(let i=parts.length-1;i>=0;i--){
+    const q = parts[i]
+    q.x+=q.vx; q.y+=q.vy; q.vy += P.G*D; q.vx *= P.F; q.vy *= P.F
+    const e = (now-q.life)/q.max
+    if(e>=1){ parts.splice(i,1); continue }
+    const grow = 1 + e*1.4
+    ctx.save(); ctx.globalAlpha=(1-e)*P.A; ctx.fillStyle=COLOR
+    ctx.translate(q.x,q.y); ctx.scale(1,0.8)
+    ctx.beginPath(); ctx.arc(0,0,q.size*grow,0,TAU); ctx.fill(); ctx.restore()
+  }
+  requestAnimationFrame(frame)
+}
+requestAnimationFrame(frame)
+
+document.getElementById('go').onclick = emit
+addEventListener('keydown', e=>{ if(e.code==='Space'){ e.preventDefault(); emit() } })
+let autoT = null
+document.getElementById('auto').onclick = e=>{
+  if(autoT){ clearInterval(autoT); autoT=null; e.target.textContent='Kartoti kas 1.2 s: IŠJ.' }
+  else { autoT = setInterval(emit, 1200); emit(); e.target.textContent='Kartoti kas 1.2 s: ĮJ.' }
+}
+emit()
+</script>
+</body>
+</html>
