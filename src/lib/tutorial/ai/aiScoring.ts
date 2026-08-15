@@ -4,13 +4,13 @@ import type { GameState, TutCard, TargetRef } from '../engine'
 import { P, boardCreatureCap, effectiveAtk, canUnitAttack } from '../engine'
 import type { AiWeights } from './aiTypes'
 import { analyzeCard, unitValue, type CardAnalysis } from './aiCardRole'
-import { pickDamageTarget, pickThreatTarget, pickHealTarget, pickBuffTarget } from './aiTargeting'
+import { pickDamageTarget, pickDamageTargets, pickThreatTarget, pickThreatTargets, pickHealTarget, pickBuffTarget } from './aiTargeting'
 import { evaluateSurvivalRisk } from './aiThreatEvaluation'
 
 export type PlayScore = {
   score: number
   reason: string
-  opts?: { target?: TargetRef; sacrificeUid?: string }
+  opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string }
 }
 
 const SKIP: PlayScore = { score: -Infinity, reason: 'skip' }
@@ -63,11 +63,16 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
       if (freeUnitSlots(g) <= 0) return { ...SKIP, reason: 'nėra vietos padarui' }
       const tempo = (card.attack ?? 0) + (card.health ?? 0)
       let score = tempo + (card.gold / 100) * 0.5
-      const opts: { target?: TargetRef } = {}
-      // Kovos šūksnis su taikiniu
+      const opts: { target?: TargetRef; targets?: TargetRef[] } = {}
+      // Kovos šūksnis su taikiniu (hitCount>1 → VISI atskiri taikiniai, ne vienas)
       if (a.dmgEnemy > 0 && a.targetsEnemyUnit) {
-        const t = pickDamageTarget(g, a.dmgEnemy, a.targetsEnemyUnit, a.canHitFace, w, lethal)
-        if (t.target) { opts.target = t.target; score += Math.max(0, t.score) * 0.6 }
+        if (a.hitCount > 1) {
+          const mt = pickDamageTargets(g, a.dmgEnemy, a.hitCount, w)
+          if (mt.targets.length > 0) { opts.targets = mt.targets; score += Math.max(0, mt.score) * 0.6 }
+        } else {
+          const t = pickDamageTarget(g, a.dmgEnemy, a.targetsEnemyUnit, a.canHitFace, w, lethal)
+          if (t.target) { opts.target = t.target; score += Math.max(0, t.score) * 0.6 }
+        }
       } else if (a.heal > 0 && a.targetsOwnUnit) {
         const t = pickHealTarget(g, a.heal)
         if (t.target) opts.target = t.target
@@ -119,16 +124,34 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
       }
       if (a.isAoE && a.aoeDmg > 0) return tagReason(evaluateAoEValue(g, a.aoeDmg, w), card)
       if (a.dmgEnemy > 0) {
+        // Multi-target burtas (Žaibo iškrova: hitCount 2+): parenkam VISUS N taikinių
+        // ir vertinam SUMINĘ žalą – anksčiau buvo perduodamas vienas taikinys ir
+        // likę smūgiai prapuldavo.
+        if (a.hitCount > 1 && a.targetsEnemyUnit) {
+          const mt = pickDamageTargets(g, a.dmgEnemy, a.hitCount, w)
+          if (mt.targets.length === 0) return { ...SKIP, reason: `„${card.name}": ${mt.reason}` }
+          return { score: mt.score - (lethal ? 0 : baitPenalty), reason: `„${card.name}": ${mt.reason}`, opts: { targets: mt.targets } }
+        }
         const t = pickDamageTarget(g, a.dmgEnemy, a.targetsEnemyUnit, a.canHitFace, w, lethal)
         if (!t.target) return { ...SKIP, reason: `„${card.name}": ${t.reason}` }
         return { score: t.score - (lethal ? 0 : baitPenalty), reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
       }
       if (a.destroy) {
+        if (a.hitCount > 1) {
+          const mt = pickThreatTargets(g, w, true, a.hitCount)
+          if (mt.targets.length === 0) return { ...SKIP, reason: `„${card.name}": nėra vertų taikinių` }
+          return { score: mt.score + 1 - (lethal ? 0 : baitPenalty), reason: `„${card.name}": removal ${mt.targets.length} taikiniams`, opts: { targets: mt.targets } }
+        }
         const t = pickThreatTarget(g, w, true)
         if (!t.target) return { ...SKIP, reason: `„${card.name}": ${t.reason}` }
         return { score: t.score + 1 - (lethal ? 0 : baitPenalty), reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
       }
       if (a.status) {
+        if (a.hitCount > 1) {
+          const mt = pickThreatTargets(g, w, false, a.hitCount, { skipNeutralized: w.goodPlayer && a.freezeStun })
+          if (mt.targets.length === 0) return { ...SKIP, reason: `„${card.name}": nėra vertų taikinių` }
+          return { score: mt.score * 0.7, reason: `„${card.name}": kontrolė ${mt.targets.length} taikiniams`, opts: { targets: mt.targets } }
+        }
         const t = pickThreatTarget(g, w, false, { skipNeutralized: w.goodPlayer && a.freezeStun })
         if (!t.target) return { ...SKIP, reason: `„${card.name}": nėra verto taikinio` }
         let sc = t.score * 0.7
@@ -223,37 +246,45 @@ function drawPunisherOnBoard(g: GameState): boolean {
     && ['damage', 'loseGold', 'burn', 'poison', 'mill', 'discard'].includes(m.effect)))
 }
 
-/** Čempiono skill taikinys pagal jo mapping'us. */
-export function championAbilityTarget(g: GameState, mappings: TutCard['mappings'], w: AiWeights, lethal: boolean): TargetRef | undefined {
+/** Čempiono skill taikinys(-iai) pagal jo mapping'us. hitCount>1 (pvz. Prazaras) → targets[]. */
+export function championAbilityTarget(g: GameState, mappings: TutCard['mappings'], w: AiWeights, lethal: boolean): { target?: TargetRef; targets?: TargetRef[] } {
   const a = mappings && mappings.length > 0
     ? analyzeMappingsLite(mappings)
-    : { dmg: 1, heal: 0, buff: false, status: false }
+    : { dmg: 1, heal: 0, buff: false, status: false, hitCount: 1 }
   if (a.dmg > 0) {
+    if (a.hitCount > 1) {
+      const mt = pickDamageTargets(g, a.dmg, a.hitCount, w)
+      if (mt.targets.length > 0) return { targets: mt.targets }
+    }
     const t = pickDamageTarget(g, a.dmg, true, true, w, lethal)
-    return t.target
+    return { target: t.target }
   }
   if (a.heal > 0) {
     const t = pickHealTarget(g, a.heal)
-    return t.target
+    return { target: t.target }
   }
   if (a.status) {
+    if (a.hitCount > 1) {
+      const mt = pickThreatTargets(g, w, false, a.hitCount)
+      if (mt.targets.length > 0) return { targets: mt.targets }
+    }
     const t = pickThreatTarget(g, w, false)
-    return t.target
+    return { target: t.target }
   }
-  return undefined
+  return {}
 }
 
-function analyzeMappingsLite(mappings: NonNullable<TutCard['mappings']>): { dmg: number; heal: number; buff: boolean; status: boolean } {
-  let dmg = 0, heal = 0, buff = false, status = false
+function analyzeMappingsLite(mappings: NonNullable<TutCard['mappings']>): { dmg: number; heal: number; buff: boolean; status: boolean; hitCount: number } {
+  let dmg = 0, heal = 0, buff = false, status = false, hitCount = 1
   for (const m of mappings) {
     if (!m || typeof m.effect !== 'string') continue
     const v = m.value ?? 1
-    if (m.effect === 'damage') dmg = Math.max(dmg, v)
+    if (m.effect === 'damage') { dmg = Math.max(dmg, v); hitCount = Math.max(hitCount, m.hitCount ?? 1) }
     else if (m.effect === 'heal') heal = Math.max(heal, v)
     else if (m.effect === 'buffAttack' || m.effect === 'buffHealth') buff = true
-    else if (['silence', 'freeze', 'stun', 'poison', 'burn'].includes(m.effect)) status = true
+    else if (['silence', 'freeze', 'stun', 'poison', 'burn'].includes(m.effect)) { status = true; hitCount = Math.max(hitCount, m.hitCount ?? 1) }
   }
-  return { dmg, heal, buff, status }
+  return { dmg, heal, buff, status, hitCount }
 }
 
 export type { CardAnalysis }

@@ -92,8 +92,8 @@ export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty; w
     if (a.score <= 0) break
     const d = a.descriptor
     if (d.type === 'ability') {
-      const r = useChampionAbility(g, 'ai', d.skillIndex, { target: d.target })
-      if (r.ok) { aiLog({ chosen: 'ability', reason: a.reason, target: d.target }); return { kind: 'ability' } }
+      const r = useChampionAbility(g, 'ai', d.skillIndex, { target: d.target, targets: d.targets })
+      if (r.ok) { aiLog({ chosen: 'ability', reason: a.reason, target: d.target, targets: d.targets }); return { kind: 'ability' } }
     } else if (d.type === 'play') {
       const r = playCard(g, 'ai', d.uid, d.opts)
       if (r.ok) { aiLog({ chosen: 'play', card: d.cardName, reason: a.reason, target: d.opts?.target }); return { kind: 'play', cardName: d.cardName } }

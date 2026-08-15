@@ -8,8 +8,8 @@ import { scorePlayCard, championAbilityTarget } from './aiScoring'
 import { hasLethalThisTurn } from './aiThreatEvaluation'
 
 export type ActionDescriptor =
-  | { type: 'ability'; skillIndex: number; target?: TargetRef }
-  | { type: 'play'; uid: string; cardName: string; opts?: { target?: TargetRef; sacrificeUid?: string } }
+  | { type: 'ability'; skillIndex: number; target?: TargetRef; targets?: TargetRef[] }
+  | { type: 'play'; uid: string; cardName: string; opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string } }
   | { type: 'attack'; uid: string; cardName: string; target: TargetRef }
   | { type: 'discardGold'; uid: string; cardName: string }
 
@@ -28,8 +28,8 @@ export function generateLegalActions(g: GameState, w: AiWeights, lethalHint = fa
     const skillIndex = Math.max(0, champ.phase - 1)
     const sk = skills[skillIndex]
     if (sk && sk.unlocked) {
-      const target = championAbilityTarget(g, sk.mappings, w, lethal)
-      out.push({ descriptor: { type: 'ability', skillIndex, target }, score: lethal ? 9000 : 7, reason: `čempiono gebėjimas „${sk.name}"` })
+      const tt = championAbilityTarget(g, sk.mappings, w, lethal)
+      out.push({ descriptor: { type: 'ability', skillIndex, target: tt.target, targets: tt.targets }, score: lethal ? 9000 : 7, reason: `čempiono gebėjimas „${sk.name}"` })
     }
   }
 

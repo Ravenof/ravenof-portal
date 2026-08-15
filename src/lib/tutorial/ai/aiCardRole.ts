@@ -23,6 +23,7 @@ export type CardAnalysis = {
   status: boolean        // uždeda freeze/stun/silence/poison/burn priešui
   freezeStun: boolean    // konkrečiai freeze/stun – neutralizuoja taikinį (setup prieš ataką)
   enemyDraw: number      // kiek kortų PRIVERČIA traukti priešą (drawAppliesTo opponent/both)
+  hitCount: number       // kelių ATSKIRŲ taikinių efektas (Žaibo iškrova: hitCount 2+, ne AoE)
   destroy: boolean       // hard removal (sunaikina padarą)
   summon: boolean
   targetsEnemyUnit: boolean
@@ -48,7 +49,7 @@ const STATUS_EFFECTS = new Set(['silence', 'freeze', 'stun', 'poison', 'burn'])
 export function analyzeMappings(mappings: EffectMapping[]): CardAnalysis {
   const a: CardAnalysis = {
     roles: [], dmgEnemy: 0, aoeDmg: 0, heal: 0, buffAtk: 0, buffHp: 0, draw: 0, gainGold: 0,
-    status: false, freezeStun: false, enemyDraw: 0, destroy: false, summon: false,
+    status: false, freezeStun: false, enemyDraw: 0, hitCount: 1, destroy: false, summon: false,
     targetsEnemyUnit: false, targetsOwnUnit: false, canHitFace: false, isAoE: false, needsTarget: false,
   }
   for (const m of mappings) {
@@ -57,7 +58,10 @@ export function analyzeMappings(mappings: EffectMapping[]): CardAnalysis {
     const e = m.effect
     if (e === 'damage') {
       if (hits(m, ENEMY_AOE_TARGETS)) { a.aoeDmg = Math.max(a.aoeDmg, v); a.isAoE = true }
-      else { a.dmgEnemy = Math.max(a.dmgEnemy, v); a.targetsEnemyUnit = a.targetsEnemyUnit || hits(m, ENEMY_UNIT_TARGETS) }
+      else {
+        a.dmgEnemy = Math.max(a.dmgEnemy, v); a.targetsEnemyUnit = a.targetsEnemyUnit || hits(m, ENEMY_UNIT_TARGETS)
+        a.hitCount = Math.max(a.hitCount, m.hitCount ?? 1)   // Žaibo iškrova tipo multi-target
+      }
       if (hits(m, FACE_TARGETS)) a.canHitFace = true
     } else if (e === 'heal') {
       a.heal = Math.max(a.heal, v); a.targetsOwnUnit = a.targetsOwnUnit || hits(m, OWN_UNIT_TARGETS)
@@ -67,9 +71,11 @@ export function analyzeMappings(mappings: EffectMapping[]): CardAnalysis {
       a.buffHp += v; a.targetsOwnUnit = true
     } else if (e === 'destroy' || e === 'moveToGraveyard') {
       a.destroy = true; a.targetsEnemyUnit = a.targetsEnemyUnit || hits(m, ENEMY_UNIT_TARGETS)
+      a.hitCount = Math.max(a.hitCount, m.hitCount ?? 1)
     } else if (STATUS_EFFECTS.has(e)) {
       a.status = true; a.targetsEnemyUnit = a.targetsEnemyUnit || hits(m, ENEMY_UNIT_TARGETS)
       if (e === 'freeze' || e === 'stun') a.freezeStun = true
+      a.hitCount = Math.max(a.hitCount, m.hitCount ?? 1)
     } else if (e === 'drawCards') {
       if (m.drawAppliesTo === 'opponent' || m.drawAppliesTo === 'both') a.enemyDraw += v
       if (m.drawAppliesTo !== 'opponent') a.draw += v
@@ -96,7 +102,7 @@ export function analyzeCard(card: TutCard): CardAnalysis {
   const e = card.effect
   const a: CardAnalysis = {
     roles: [], dmgEnemy: 0, aoeDmg: 0, heal: 0, buffAtk: 0, buffHp: 0, draw: 0, gainGold: 0,
-    status: false, freezeStun: false, enemyDraw: 0, destroy: false, summon: false,
+    status: false, freezeStun: false, enemyDraw: 0, hitCount: 1, destroy: false, summon: false,
     targetsEnemyUnit: false, targetsOwnUnit: false, canHitFace: false, isAoE: false, needsTarget: false,
   }
   if (e) {

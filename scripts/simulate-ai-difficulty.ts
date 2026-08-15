@@ -256,5 +256,36 @@ console.log('◆ Kill confirmation + removal biudžetas')
   check('premium removal taupomas kai yra pelningas trade', (t1.score < noTrade.score) || !t1.target, `su trade=${t1.score.toFixed(1)} be=${noTrade.score.toFixed(1)}`)
 }
 
+console.log('◆ Multi-target burtai (Žaibo iškrova tipo, VISI difficulty)')
+{
+  const { championAbilityTarget } = await import('../src/lib/tutorial/ai/aiScoring')
+  const { playCard } = await import('../src/lib/tutorial/engine')
+  const g = freshGame()
+  P(g, 'you').units[0] = mkUnit(mkCard({ name: 'E1', uid: 'mt1', attack: 3 }), 4)
+  P(g, 'you').units[1] = mkUnit(mkCard({ name: 'E2', uid: 'mt2', attack: 3 }), 4)
+  P(g, 'you').units[2] = mkUnit(mkCard({ name: 'E3', uid: 'mt3', attack: 3 }), 4)
+  const zaibas = mkCard({ name: 'Zaibo iskrova', uid: 'zi1', type: 'spell', gold: 0, mappings: [{ trigger: 'onCast', effect: 'damage', target: 'enemyUnit', value: 4, hitCount: 2, requiresSelection: true, triggersZmk: false } as EffectMapping] })
+  const res = scorePlayCard(g, zaibas, W_NORM, false)
+  check('AI parenka VISUS N taikinių (targets.length=2)', (res.opts?.targets?.length ?? 0) === 2, JSON.stringify(res.opts))
+  const single = scorePlayCard(g, mkCard({ name: 'Viena strele', uid: 'vs1', type: 'spell', gold: 0, mappings: [{ trigger: 'onCast', effect: 'damage', target: 'enemyUnit', value: 4, requiresSelection: true, triggersZmk: false } as EffectMapping] }), W_NORM, false)
+  check('multi-target vertinamas pagal SUMINĘ žalą (score > vieno smūgio)', res.score > single.score, `multi=${res.score.toFixed(1)} single=${single.score.toFixed(1)}`)
+  // Realus sužaidimas: abu pasirinkti taikiniai gauna žalą
+  P(g, 'ai').hand.push(zaibas)
+  g.active = 'ai'
+  const r = playCard(g, 'ai', 'zi1', { targets: res.opts!.targets })
+  check('playCard su targets[] ok', r.ok, JSON.stringify(r))
+  const alive = P(g, 'you').units.filter((u) => !!u)
+  check('ABU pasirinkti taikiniai numušti (liko 1 gyvas)', alive.length === 1, `alive=${alive.map((u) => u!.uid).join(',')}`)
+}
+{
+  // Čempiono skill hitCount>1 → targets[]
+  const g = freshGame()
+  P(g, 'you').units[0] = mkUnit(mkCard({ name: 'C1', uid: 'ct1', attack: 3 }), 4)
+  P(g, 'you').units[1] = mkUnit(mkCard({ name: 'C2', uid: 'ct2', attack: 3 }), 4)
+  const { championAbilityTarget } = await import('../src/lib/tutorial/ai/aiScoring')
+  const tt = championAbilityTarget(g, [{ trigger: 'onChampionSkill', effect: 'damage', target: 'enemyUnit', value: 2, hitCount: 2, requiresSelection: true, triggersZmk: false } as EffectMapping], W_HARD, false)
+  check('čempiono multi-skill grąžina targets[2]', (tt.targets?.length ?? 0) === 2, JSON.stringify(tt))
+}
+
 console.log(`\n${pass} ✓ / ${fail} ✗`)
 process.exit(fail ? 1 : 0)

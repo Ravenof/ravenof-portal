@@ -131,6 +131,51 @@ export function pickDamageTarget(g: GameState, dmg: number, canUnit: boolean, ca
   return best
 }
 
+/** N ATSKIRŲ žalos taikinių (hitCount>1, pvz. Žaibo iškrova): greedy pagal vertę.
+ *  Grąžina taikinių sąrašą ir SUMINĮ score – kad AI multi-target burtą vertintų
+ *  pagal visus smūgius, o ne vieną. */
+export function pickDamageTargets(g: GameState, dmg: number, n: number, w: AiWeights): { targets: TargetRef[]; score: number; reason: string } {
+  const scored = enemyUnits(g)
+    .map((def) => ({ def, sc: scoreDamageOnUnit(g, dmg, def, w) }))
+    .sort((a, b) => b.sc - a.sc)
+    .slice(0, Math.max(1, n))
+    .filter((x, i) => i === 0 ? x.sc > 0 : x.sc > -0.5)   // pirmas privalo būti vertas; papildomi – bent neutralūs
+  if (scored.length === 0 || scored[0].sc <= 0) return { targets: [], score: -Infinity, reason: 'nėra vertų taikinių' }
+  const kills = scored.filter((x) => dmg >= x.def.hp).length
+  return {
+    targets: scored.map((x) => ({ kind: 'unit', side: 'you', uid: x.def.uid } as TargetRef)),
+    score: scored.reduce((t, x) => t + Math.max(0, x.sc), 0),
+    reason: `${scored.length} taikiniai (nužudo ${kills})`,
+  }
+}
+
+/** N ATSKIRŲ kontrolės/removal taikinių (hitCount>1) – stipriausi priešo padarai. */
+export function pickThreatTargets(g: GameState, w: AiWeights, isDestroy: boolean, n: number, opts?: { skipNeutralized?: boolean }): { targets: TargetRef[]; score: number } {
+  const out: TargetRef[] = []
+  let total = 0
+  const taken = new Set<string>()
+  for (let i = 0; i < Math.max(1, n); i++) {
+    let best: { uid: string; val: number } | null = null
+    for (const def of enemyUnits(g)) {
+      if (taken.has(def.uid)) continue
+      if (opts?.skipNeutralized && (def.statuses.frozen || def.statuses.stunned)) continue
+      let val = unitValue(g, def) + unitThreatBonus(g, def)
+      if (w.goodPlayer) {
+        if (def.card.gameplay?.passiveAura) val += 2
+        const dms = def.card.mappings ?? []
+        if (dms.some((m) => m.trigger === 'onTurnStart' || m.trigger === 'onTurnEnd' || m.trigger.startsWith('onAny'))) val += 2
+      }
+      if (isDestroy && val < w.removalMinValue) continue
+      if (!best || val > best.val) best = { uid: def.uid, val }
+    }
+    if (!best) break
+    taken.add(best.uid)
+    out.push({ kind: 'unit', side: 'you', uid: best.uid })
+    total += best.val
+  }
+  return out.length > 0 ? { targets: out, score: total } : { targets: [], score: -Infinity }
+}
+
 /** Status (freeze/stun/silence) ar destroy burto taikinys – stipriausias priešo padaras. */
 export function pickThreatTarget(g: GameState, w: AiWeights, isDestroy: boolean, opts?: { skipNeutralized?: boolean }): ScoredTarget {
   let best: ScoredTarget = { target: undefined, score: -Infinity, reason: 'nėra taikinio' }
