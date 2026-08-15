@@ -221,7 +221,7 @@ export type GameEvent = {
 /** Trumpalaikis ŽMK traukimo kontekstas (atakos/burto pranašumui/nepalankumui). */
 export type RollBias = 'normal' | 'advantage' | 'disadvantage'
 export type RollContext =
-  | { kind: 'attack'; actor: Side; poisonedSides?: Partial<Record<Side, boolean>>; blessedSides?: Partial<Record<Side, boolean>> }
+  | { kind: 'attack'; actor: Side; attackerUid?: string; poisonedSides?: Partial<Record<Side, boolean>>; blessedSides?: Partial<Record<Side, boolean>> }
   | { kind: 'spell'; actor: Side; spellType?: SpellType }
 
 export type TargetRef =
@@ -710,7 +710,7 @@ function combineBias(n: number): RollBias {
   return n > 0 ? 'advantage' : n < 0 ? 'disadvantage' : 'normal'
 }
 /** Sumuoja pranašumo (+1) / nepalankumo (−1) auras, veikiančias `side` traukimą. */
-function netAuraBias(g: GameState, side: Side, kind: 'attack' | 'spell', spellType?: SpellType): number {
+function netAuraBias(g: GameState, side: Side, kind: 'attack' | 'spell', spellType?: SpellType, attackerUid?: string): number {
   let n = 0
   for (const sd of allSeats(g)) {
     const p = P(g, sd)
@@ -724,7 +724,12 @@ function netAuraBias(g: GameState, side: Side, kind: 'attack' | 'spell', spellTy
       const scope = cfg.auraScope ?? 'friendly'
       const affects = scope === 'all' || (scope === 'friendly' ? sameTeam(g, sd, side) : !sameTeam(g, sd, side))
       if (!affects) continue
-      if (kind === 'attack' && cfg.advAttack) n += cfg.advAttack === 'advantage' ? 1 : -1
+      if (kind === 'attack' && cfg.advAttack) {
+        // advAttackSelfOnly: pranašumas galioja TIK pačiai auros kortai puolant
+        // (pvz. Chaoso tarnaitė), o ne visiems tos pusės padarams.
+        if (cfg.advAttackSelfOnly && c.uid !== attackerUid) continue
+        n += cfg.advAttack === 'advantage' ? 1 : -1
+      }
       if (kind === 'spell' && cfg.advSpell) {
         if (cfg.advSpellType && cfg.advSpellType !== spellType) continue
         n += cfg.advSpell === 'advantage' ? 1 : -1
@@ -743,7 +748,7 @@ function ctxBias(g: GameState, roller: Side): RollBias {
   }
   const poison = c.poisonedSides?.[roller] ? -1 : 0
   const blessed = c.blessedSides?.[roller] ? 1 : 0
-  return combineBias(netAuraBias(g, roller, 'attack') + poison + blessed)
+  return combineBias(netAuraBias(g, roller, 'attack', undefined, c.attackerUid) + poison + blessed)
 }
 /** Burtų vampyrizmas: burto žala (kai rollContext = spell) gydo aurą turinčią pusę. */
 function applySpellLifesteal(g: GameState, dmg: number) {
@@ -3677,7 +3682,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
 
   u.attacksUsed += 1
   p.attacksThisTurn += 1
-  g.rollContext = { kind: 'attack', actor: s, poisonedSides: { you: false, ai: false }, blessedSides: { you: false, ai: false } }
+  g.rollContext = { kind: 'attack', actor: s, attackerUid: u.uid, poisonedSides: { you: false, ai: false }, blessedSides: { you: false, ai: false } }
   if (g.rollContext.poisonedSides) g.rollContext.poisonedSides[s] = !!u.statuses.poisoned
   if (g.rollContext.blessedSides) g.rollContext.blessedSides[s] = !!u.statuses.blessed
   if (u.statuses.blessed) { delete u.statuses.blessed; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'destroy', statusId: 'blessed', src: { side: s, uid: u.uid }, key: 'battleLog.blessedUsed', params: { card: u.card.name } }) }

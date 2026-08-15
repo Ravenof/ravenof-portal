@@ -35,7 +35,8 @@
     "game:test:champswap": "npx tsx scripts/simulate-champ-swap.ts",
     "game:test:sametarget": "npx tsx scripts/simulate-then-sametarget.ts",
     "game:test:feel": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-game-feel.ts",
-    "game:test:mullfat": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-mulligan-fatigue.ts"
+    "game:test:mullfat": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-mulligan-fatigue.ts",
+    "game:test:champtarget": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-champ-target-adv.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

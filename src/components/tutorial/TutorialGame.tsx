@@ -715,7 +715,7 @@ export function Token({ children, title, color, icon }: { children: React.ReactN
 type SelectMode =
   | { kind: 'attacker'; uid: string }
   | { kind: 'battlecry'; uid: string }
-  | { kind: 'champ'; uid: string; skillIndex: number }
+  | { kind: 'champ'; uid: string; skillIndex: number; need?: number; picked?: TargetRef[] }
   | { kind: 'spell'; uid: string; picked?: TargetRef | null }
   | { kind: 'sacrifice'; cardUid: string; picked: string[] }
   | { kind: 'discard' }
@@ -3041,9 +3041,28 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       doAction({ t: 'attack', actor: 'you', uid, target: tr })
       setSelect(null)
     } else if (select?.kind === 'champ') {
-      playSuccess()
-      doAction({ t: 'champ', actor: 'you', skillIndex: select.skillIndex, target: tr })
-      setSelect(null)
+      const need = select.need ?? 1
+      if (need <= 1) {
+        playSuccess()
+        doAction({ t: 'champ', actor: 'you', skillIndex: select.skillIndex, target: tr })
+        setSelect(null)
+        return
+      }
+      // Kelių taikinių gebėjimas (pvz. Prazaras): bakst = pažymėti/nuimti;
+      // surinkus visus N — vykdoma automatiškai.
+      const picked = select.picked ?? []
+      const key = targetRefKey(tr)
+      if (picked.some((p) => targetRefKey(p) === key)) {
+        playUiClick(); setSelect({ ...select, picked: picked.filter((p) => targetRefKey(p) !== key) }); return
+      }
+      const np = [...picked, tr]
+      if (np.length >= need) {
+        playSuccess()
+        doAction({ t: 'champ', actor: 'you', skillIndex: select.skillIndex, targets: np })
+        setSelect(null)
+        return
+      }
+      playUiClick(); setSelect({ ...select, picked: np })
     } else if (select?.kind === 'battlecry') {
       playSuccess()
       doAction({ t: 'resolveBattlecry', target: tr })
@@ -3137,6 +3156,7 @@ doAction({ t: 'endTurn', actor: 'you' })
   const pickedKeys = useMemo(() => {
     if (select?.kind === 'spell') return new Set<string>(select.picked ? [targetRefKey(select.picked)] : [])
     if (select?.kind === 'spellMulti' || select?.kind === 'lastwish') return new Set<string>(select.picked.map(targetRefKey))
+    if (select?.kind === 'champ' && select.picked && select.picked.length > 0) return new Set<string>(select.picked.map(targetRefKey))
     return new Set<string>()
   }, [select])
   const canConfirmTargets = select?.kind === 'spell' ? !!select.picked
@@ -4227,6 +4247,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             {select.kind === 'attacker' && t('battle.game.hintAttacker')}
             {select.kind === 'spell' && t('battle.game.hintSpell')}
             {select.kind === 'sacrifice' && t('battle.game.hintSacrifice', { picked: select.picked.length })}
+            {select.kind === 'champ' && (select.need ?? 1) > 1 && t('battle.game.hintChampMulti', { need: select.need, picked: select.picked?.length ?? 0 })}
           </motion.div>
         )}
         {select?.kind === 'sacrifice' && (
@@ -4549,13 +4570,16 @@ doAction({ t: 'endTurn', actor: 'you' })
                       <button key={i} disabled={disabled}
                         onClick={() => {
                           setChampPopup(null)
-                          // Skill'ui su rankiniu taikiniu (requiresSelection) — įjungiam taikinio režimą.
-                          // hitCount>1 ir „nėra taikinių" atvejais paliekam auto (kaip anksčiau).
+                          // Skill'ui su rankiniu taikiniu (requiresSelection) — įjungiam taikinio
+                          // režimą. hitCount>1 → renkami VISI N taikinių (Prazaras: 2 taikiniai
+                          // visose fazėse); „nėra taikinių" atveju paliekam auto (kaip anksčiau).
                           const sm = sk.mappings.find((m) => mappingNeedsSelection(m))
-                          if (sm && (sm.hitCount ?? 1) === 1 && spellTargetRefs(game!, 'you', sm).length > 0) {
+                          const avail = sm ? spellTargetRefs(game!, 'you', sm).length : 0
+                          if (sm && avail > 0) {
+                            const need = Math.min(Math.max(1, sm.hitCount ?? 1), avail)
                             playUiClick()
-                            setSelect({ kind: 'champ', uid: ch.uid, skillIndex: i })
-                            pushToast(t('battle.game.toastPickEffectTarget'))
+                            setSelect({ kind: 'champ', uid: ch.uid, skillIndex: i, need, picked: [] })
+                            pushToast(need > 1 ? t('battle.game.toastPickNTargets', { need }) : t('battle.game.toastPickEffectTarget'))
                             return
                           }
                           doAction({ t: 'champ', actor: 'you', skillIndex: i })

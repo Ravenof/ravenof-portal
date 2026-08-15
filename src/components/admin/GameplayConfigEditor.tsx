@@ -526,6 +526,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   <option value="advantage">Pranašumas (2 traukia, geresnė)</option>
                   <option value="disadvantage">Nepalankumas (2 traukia, blogesnė)</option>
                 </select>
+                <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                  <input type="checkbox" checked={!!pa?.advAttackSelfOnly}
+                    onChange={(e) => setPa({ advAttackSelfOnly: e.target.checked || undefined })}
+                    className="w-3.5 h-3.5 accent-yellow-400" />
+                  <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Tik PATI korta puldama (ne visa pusė)</span>
+                </label>
               </div>
               <div>
                 <label style={labelStyle}>Burtų ŽMK</label>

@@ -85,6 +85,7 @@
     "hintAttacker": "⚔ Choose a target (red outline) or press Esc",
     "hintDiscard": "🗑 Choose a card in hand to discard for +100 gold",
     "hintSacrifice": "⚜ Tribute: a creature on the board (1 pt) OR 2 cards in hand ({{picked}}/2)",
+    "hintChampMulti": "✨ Ability: pick targets ({{picked}}/{{need}})",
     "tributeCancel": "Cancel tribute",
     "mulliganTitle": "Card exchange",
     "mulliganText": "Mark the cards you want to shuffle back into your deck – you will draw the same number of new ones. Available only once, at the start of the game.",

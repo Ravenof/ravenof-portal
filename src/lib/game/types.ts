@@ -480,6 +480,7 @@ export type PassiveAuraConfig = {
   auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
   // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──
   advAttack?: 'advantage' | 'disadvantage'   // paveiktų padarų ATAKŲ ŽMK traukimas
+  advAttackSelfOnly?: boolean                 // advAttack taikomas TIK pačiai auros kortai puolant (ne visai pusei)
   advSpell?: 'advantage' | 'disadvantage'    // paveiktos pusės BURTŲ žalos ŽMK traukimas
   advSpellType?: SpellType                    // advSpell tik šio tipo burtams (kitaip – visiems)
   // ── Burtų vampyrizmas (Gydūnė Džilė): burto žala pridedama prie žaidėjo HP ──
