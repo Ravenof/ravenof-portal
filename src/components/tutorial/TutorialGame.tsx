@@ -4962,40 +4962,46 @@ doAction({ t: 'endTurn', actor: 'you' })
 
         {game?.pendingMulligan?.you && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="combat-plate p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center">
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.mulliganTitle')}</p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.mulliganText')}</p>
-              <div className="flex flex-wrap gap-2 justify-center mb-4">
-                {game.you.hand.map((c) => {
-                  const sel = mullSel.includes(c.uid)
-                  return (
-                    <button key={c.uid} {...holdPreview(c)} onClick={() => { playUiClick(); setMullSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : [...q, c.uid]) }}
-                      className="relative transition-transform" style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined }} title={c.name}>
-                      <div style={{ outline: sel ? '2px solid #ef4444' : '2px solid transparent', borderRadius: 10 }}>
-                        <MiniCard c={c} w={isTouch ? 60 : 74} />
-                      </div>
-                      {sel && <span className="absolute -top-2 -right-2 text-xs px-1.5 rounded-full font-bold" style={{ background: '#ef4444', color: '#fff' }}>✕</span>}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex gap-2 justify-center flex-wrap">
-                <button onClick={() => { playSuccess(); const sel = mullSel; setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: sel }) }}
-                  disabled={mullSel.length === 0}
-                  className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
-                  {t('battle.game.mulliganSwap', { n: mullSel.length })}
-                </button>
-                <button onClick={() => { playUiClick(); setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: [] }) }}
-                  className="px-5 py-2 rounded-xl text-sm font-bold transition-all"
-                  style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>
-                  {t('battle.game.mulliganKeep')}
-                </button>
-              </div>
-            </motion.div>
+            className="fixed inset-0 z-[133] flex flex-col items-center justify-center gap-4 p-4"
+            style={{ background: 'rgba(6,5,10,0.55)', backdropFilter: 'blur(7px) grayscale(1)', WebkitBackdropFilter: 'blur(7px) grayscale(1)' }}>
+            <div className="text-center">
+              <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>{t('battle.game.mulliganTitle')}</p>
+              <p className="text-[11px] mt-1 max-w-[560px]" style={{ color: 'var(--text-secondary)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>{t('battle.game.mulliganText')}</p>
+            </div>
+            {(() => {
+              // Didelės kortos: 5 telpa į ekraną su tarpais; žemuose ekranuose riboja aukštis.
+              const vw = typeof window !== 'undefined' ? window.innerWidth : 800
+              const vh = typeof window !== 'undefined' ? window.innerHeight : 480
+              const gap = Math.round(Math.min(18, vw * 0.02))
+              const w = Math.floor(Math.min((vw - gap * 6 - 24) / 5, vh * 0.52 * 0.75))
+              return (
+                <div className="flex justify-center items-center" style={{ gap }}>
+                  {game.you.hand.map((c) => {
+                    const out = mullSel.includes(c.uid)   // pažymėta IŠMETIMUI → grayscale
+                    return (
+                      <button key={c.uid} {...holdPreview(c)}
+                        onClick={() => { playUiClick(); setMullSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : [...q, c.uid]) }}
+                        className="relative" title={c.name}
+                        style={{ transform: out ? 'scale(0.94)' : 'scale(1)', filter: out ? 'grayscale(1) brightness(0.55)' : 'none', transition: 'filter 0.18s ease, transform 0.18s ease' }}>
+                        <MiniCard c={c} w={w} readable />
+                        {out && (
+                          <span className="absolute top-1 right-1 text-sm px-1.5 rounded-full font-bold"
+                            style={{ background: 'rgba(0,0,0,0.8)', color: '#fca5a5' }}>✕</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+            {/* Patvirtinimas — tas pats asset mygtukas kaip kiti CTA (button-primary-normal.png) */}
+            <button onClick={() => { playSuccess(); const sel = mullSel; setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: sel }) }}
+              className="ravenof-press block" style={{ width: 232, textAlign: 'center',
+                font: '800 13px var(--ravenof-font-display)', letterSpacing: 3, textTransform: 'uppercase', color: '#f6e8c6',
+                background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
+                padding: 13, border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)' }}>
+              {mullSel.length > 0 ? t('battle.game.mulliganSwap', { n: mullSel.length }) : t('battle.game.mulliganKeep')}
+            </button>
           </motion.div>
         )}
 
