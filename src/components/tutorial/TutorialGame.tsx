@@ -511,6 +511,21 @@ function spellDmgBonusFor(game: GameState, c: TutCard): number {
   return auraSpellDamageBonus(game, 'you', c.gameplay?.spellType)
 }
 
+// ── Kortos rėmelio spalva pagal TIPĄ (ne retumą) ─────────────────────────────
+// Burtai žali, reakcijos violetinės, artefaktai žydri, laukai oranžiniai,
+// prakeiksmai raudoni, čempionai auksiniai, padarai – neutralus plienas.
+// Retumas kolekcijoje/booster'iuose lieka pagal rarityColor – čia tik kova.
+export const CARD_TYPE_COLOR: Record<TutCardType, string> = {
+  unit: '#94a3b8',
+  spell: '#4ade80',
+  artifact: '#38bdf8',
+  reaction: '#a78bfa',
+  field: '#f97316',
+  champion: '#f0b429',
+  curse: '#ef4444',
+}
+export const cardTypeColor = (c: TutCard): string => CARD_TYPE_COLOR[c.type] ?? c.rarityColor
+
 export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: { c: TutCard; w: number; dim?: boolean; faceDown?: boolean; readable?: boolean; costNow?: number; dmgBonus?: number }) {
   const h = Math.round(w * 4 / 3)
   if (faceDown) {
@@ -535,8 +550,8 @@ export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: {
       style={{
         width: w, height: h,
         background: 'var(--bg-surface)',
-        border: '1.5px solid ' + c.rarityColor + '90',
-        boxShadow: '0 3px 10px rgba(0,0,0,0.6), 0 0 8px ' + c.rarityColor + '22',
+        border: '1.5px solid ' + cardTypeColor(c) + '90',
+        boxShadow: '0 3px 10px rgba(0,0,0,0.6), 0 0 8px ' + cardTypeColor(c) + '22',
         opacity: dim ? 0.45 : 1,
       }}>
       {c.image ? (
@@ -625,7 +640,7 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
       <div className="absolute inset-0 rounded-lg overflow-hidden"
         style={{
           background: 'var(--bg-surface)',
-          border: u.isChampion ? '2px solid #f0b429' : '1.5px solid ' + u.card.rarityColor + '90',
+          border: u.isChampion ? '2px solid #f0b429' : '1.5px solid ' + cardTypeColor(u.card) + '90',
           boxShadow: ring !== 'transparent'
             ? `0 0 0 2px ${ring}, 0 0 14px ${ring}`
             : sGlow ? `0 0 0 2px ${sGlow}cc, 0 0 16px ${sGlow}aa`
@@ -3649,7 +3664,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 onMouseMove={(ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: c, x: ev.clientX, y: ev.clientY })}
                 onMouseLeave={() => setHoverCard(null)}
                 onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
-                <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                <GameCard glowColor={cardTypeColor(c)} sounds={false} liftPx={0}>
                   <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing" style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1, boxShadow: '0 10px 26px rgba(0,0,0,0.65)', borderRadius: 10 }}>
                     <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
                   </div>
@@ -4050,7 +4065,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                       whileHover={{ y: -14, zIndex: 30, rotate: 0 }}
                       style={{ marginLeft: ml, zIndex: i }}
                       onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
-                      <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                      <GameCard glowColor={cardTypeColor(c)} sounds={false} liftPx={0}>
                         <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing"
                           style={{ touchAction: 'pan-x', filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1 }}>
                           <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
@@ -4173,7 +4188,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                         onMouseMove={(ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: c, x: ev.clientX, y: ev.clientY })}
                         onMouseLeave={() => setHoverCard(null)}
                         onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
-                        <GameCard glowColor={c.rarityColor} sounds={false} liftPx={0}>
+                        <GameCard glowColor={cardTypeColor(c)} sounds={false} liftPx={0}>
                           <div onPointerDown={(e) => beginHandPointer(c, e)} className="block cursor-grab active:cursor-grabbing" style={{ filter: select?.kind === 'discard' ? 'hue-rotate(40deg)' : undefined, opacity: isDragging ? 0.3 : 1, boxShadow: '0 10px 26px rgba(0,0,0,0.65)', borderRadius: 10 }}>
                             <MiniCard c={c} w={handW} dim={!afford && select?.kind !== 'discard'} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
                           </div>
@@ -4488,7 +4503,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             left: Math.min(hoverCard.x + 20, (typeof window !== 'undefined' ? window.innerWidth : 800) - 300),
             top: Math.max(8, Math.min(hoverCard.y - 40, (typeof window !== 'undefined' ? window.innerHeight : 600) - 440)),
           }}>
-          <div className="rounded-xl overflow-hidden" style={{ width: 280, background: 'var(--bg-surface)', border: '2px solid ' + hoverCard.card.rarityColor, boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
+          <div className="rounded-xl overflow-hidden" style={{ width: 280, background: 'var(--bg-surface)', border: '2px solid ' + cardTypeColor(hoverCard.card), boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
             <MiniCard c={hoverCard.card} w={280} />
             <div className="p-2.5">
               <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
@@ -4617,7 +4632,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             style={{ background: 'rgba(0,0,0,0.75)' }}
             onClick={() => { playCardPlace(); setInspect(null) }}>
             <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
-              <GameCard glowColor={inspect.rarityColor} intensity={12}>
+              <GameCard glowColor={cardTypeColor(inspect)} intensity={12}>
                 <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * 0.84 : 320)} />
               </GameCard>
             </motion.div>
