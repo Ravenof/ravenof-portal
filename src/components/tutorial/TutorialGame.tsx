@@ -931,6 +931,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Tutorial pagalbos auksas suteiktas tik kartą
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
+  // ── „Laikai – matai": jei detali peržiūra atidaryta LAIKANT pirštą (long-press
+  // ranka/lentoje/popup'e), ji uždaroma vos pirštą atleidus (pointerup BET KUR).
+  // Atidaryta bakstelėjimu/desktop click'u (logas, pileView, contextmenu) – lieka
+  // iki uždarančio bakstelėjimo, kaip anksčiau. Tempimas į lentą peržiūrą uždaro
+  // atskirai (drag-start → setInspect(null)).
+  const inspectHeldRef = useRef(false)
+  const openInspectHeld = useCallback((card: TutCard) => { inspectHeldRef.current = true; setInspect(card) }, [])
+  useEffect(() => {
+    if (!inspect) { inspectHeldRef.current = false; return }
+    if (!inspectHeldRef.current) return
+    const close = () => { inspectHeldRef.current = false; setInspect(null) }
+    window.addEventListener('pointerup', close, true)
+    window.addEventListener('pointercancel', close, true)
+    return () => { window.removeEventListener('pointerup', close, true); window.removeEventListener('pointercancel', close, true) }
+  }, [inspect])
   // ── Popup kortos "palaikyk ir ziurek": pointer-down 350 ms → detali perziura,
   // atleidus pirsta perziura dingsta, o click ant tos pacios kortos NUryjamas
   // (kad ilgas palaikymas netycia nepasirinktu kortos). ──
@@ -949,7 +964,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       onPointerDown: () => {
         holdPvOpenRef.current = false
         if (holdPvTimerRef.current) clearTimeout(holdPvTimerRef.current)
-        holdPvTimerRef.current = setTimeout(() => { holdPvOpenRef.current = true; playCardFlip(); setInspect(card) }, 350)
+        holdPvTimerRef.current = setTimeout(() => { holdPvOpenRef.current = true; playCardFlip(); openInspectHeld(card) }, 350)
       },
       onPointerUp: end,
       onPointerCancel: end,
@@ -3358,7 +3373,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         onHandCardClick(d.card)
       }
     }
-    lp = setTimeout(() => { if (!started) { inspected = true; setInspect(card) } }, 480)
+    lp = setTimeout(() => { if (!started) { inspected = true; openInspectHeld(card) } }, 480)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
@@ -3436,7 +3451,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               onMouseEnter={!isTouch ? (ev) => setHoverCard({ card: u.card, x: ev.clientX, y: ev.clientY }) : undefined}
               onMouseMove={!isTouch ? (ev) => setHoverCard((hh) => hh ? { ...hh, x: ev.clientX, y: ev.clientY } : { card: u.card, x: ev.clientX, y: ev.clientY }) : undefined}
               onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}
-              onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(u.card) }, 450) }}
+              onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); openInspectHeld(u.card) }, 450) }}
               onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
               onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}>
               {/* Atakos šuolio judesio sluoksnis (fazė 2c). Šuolis rašo inline
@@ -4452,7 +4467,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   onMouseEnter={card && !isTouch ? (ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY }) : undefined}
                   onMouseMove={card && !isTouch ? (ev) => setHoverCard((h) => h ? { ...h, x: ev.clientX, y: ev.clientY } : { card, x: ev.clientX, y: ev.clientY }) : undefined}
                   onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}
-                  onTouchStart={card ? () => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(card) }, 400) } : undefined}
+                  onTouchStart={card ? () => { lpRef.current = setTimeout(() => { playCardFlip(); openInspectHeld(card) }, 400) } : undefined}
                   onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
                   onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
                   className="rounded overflow-hidden cursor-pointer shrink-0"
@@ -4492,7 +4507,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                         onMouseEnter={(ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY })}
                         onMouseMove={(ev) => setHoverCard((h) => h ? { ...h, x: ev.clientX, y: ev.clientY } : h)}
                         onMouseLeave={() => setHoverCard(null)}
-                        onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); setInspect(card) }, 450) }}
+                        onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); openInspectHeld(card) }, 450) }}
                         onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
                         onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
                         className="shrink-0 cursor-pointer rounded overflow-hidden"
