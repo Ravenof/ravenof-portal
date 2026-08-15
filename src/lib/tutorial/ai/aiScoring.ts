@@ -1,7 +1,7 @@
 // ── Veiksmų scoring: kortų žaidimas, AoE, buff ───────────────────────────────
 
 import type { GameState, TutCard, TargetRef } from '../engine'
-import { P, boardCreatureCap, effectiveAtk } from '../engine'
+import { P, boardCreatureCap, effectiveAtk, canUnitAttack } from '../engine'
 import type { AiWeights } from './aiTypes'
 import { analyzeCard, unitValue, type CardAnalysis } from './aiCardRole'
 import { pickDamageTarget, pickThreatTarget, pickHealTarget, pickBuffTarget } from './aiTargeting'
@@ -16,7 +16,7 @@ export type PlayScore = {
 const SKIP: PlayScore = { score: -Infinity, reason: 'skip' }
 
 /** AoE burto vertė: kiek nužudo / pažeidžia, ar verta naudoti. */
-export function evaluateAoEValue(g: GameState, aoeDmg: number): PlayScore {
+export function evaluateAoEValue(g: GameState, aoeDmg: number, w?: AiWeights): PlayScore {
   const foe = P(g, 'you')
   const enemies = foe.units.filter((u) => !!u)
   if (enemies.length === 0) return { ...SKIP, reason: 'AoE: nėra taikinių' }
@@ -29,8 +29,12 @@ export function evaluateAoEValue(g: GameState, aoeDmg: number): PlayScore {
   const risk = evaluateSurvivalRisk(g).risk
   const lethalPrevention = risk ? killed * 2 : 0
   const score = killedVal + damagedVal + lethalPrevention
-  // Naudoti tik kai verta: 2+ killed, arba 1 vertingas, arba lethal prevention
-  const worth = killed >= 2 || (killed >= 1 && killedVal >= 6) || (risk && killed >= 1)
+  // Naudoti tik kai verta: 2+ killed, arba 1 vertingas, arba lethal prevention.
+  // goodPlayer (hard): AoE NIEKADA neišmetamas ant 1 pigaus padaro – reikia
+  // 2+ nužudymų, vieno tikrai vertingo (>=8) arba lethal prevention su 2+ taikiniais lentoje.
+  const worth = w?.goodPlayer
+    ? (killed >= 2 || (killed >= 1 && killedVal >= 8) || (risk && killed >= 1 && enemies.length >= 2))
+    : (killed >= 2 || (killed >= 1 && killedVal >= 6) || (risk && killed >= 1))
   if (!worth) return { ...SKIP, reason: `AoE neverta (nužudytų ${killed})` }
   return { score, reason: `AoE nužudo ${killed} padarą(-us)` }
 }
@@ -72,10 +76,24 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
         if (t.target) { opts.target = t.target; score += Math.max(0, t.score) * 0.5 }
       }
       if (card.keywords.includes('sprint')) score += (card.attack ?? 0) * 0.5
+      // goodPlayer: „variklio" kortos (burtų vampyrizmas / burtų žalos aura /
+      // burtų pranašumas – pvz. Gydūnė Džilė) LAIKOMOS, kol rankoje susikaups
+      // burst'as (2+ žalos burtai) arba prireiks gydymo (HP žemas). Kitaip jų
+      // aura prastovi ir priešas spėja ją nuimti.
+      if (w.goodPlayer) {
+        const pa = card.gameplay?.passiveAura
+        const spellEngine = !!pa && (!!pa.spellLifestealScope || (pa.auraSpellDamage ?? 0) > 0 || !!pa.advSpell)
+        if (spellEngine) {
+          const burst = me.hand.filter((c) => c.uid !== card.uid && c.type === 'spell')
+            .map((c) => analyzeCard(c)).filter((x) => x.dmgEnemy > 0 || x.aoeDmg > 0).length
+          if (burst >= 2 || me.hp <= 22) score += 3
+          else return { score: score - 4, reason: `laikom „${card.name}" burst'ui (žalos burtų rankoje: ${burst})`, opts }
+        }
+      }
       return { score, reason: `žaisti padarą „${card.name}" (tempo ${tempo})`, opts }
     }
     case 'spell': {
-      if (a.isAoE && a.aoeDmg > 0) return tagReason(evaluateAoEValue(g, a.aoeDmg), card)
+      if (a.isAoE && a.aoeDmg > 0) return tagReason(evaluateAoEValue(g, a.aoeDmg, w), card)
       if (a.dmgEnemy > 0) {
         const t = pickDamageTarget(g, a.dmgEnemy, a.targetsEnemyUnit, a.canHitFace, w, lethal)
         if (!t.target) return { ...SKIP, reason: `„${card.name}": ${t.reason}` }
@@ -87,9 +105,16 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
         return { score: t.score + 1, reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
       }
       if (a.status) {
-        const t = pickThreatTarget(g, w, false)
+        const t = pickThreatTarget(g, w, false, { skipNeutralized: w.goodPlayer && a.freezeStun })
         if (!t.target) return { ...SKIP, reason: `„${card.name}": nėra verto taikinio` }
-        return { score: t.score * 0.7, reason: `„${card.name}": kontrolė`, opts: { target: t.target } }
+        let sc = t.score * 0.7
+        // goodPlayer: freeze/stun PRIEŠ atakas – užšaldytas neatsikerta, apsvaigintas
+        // praleidžia ėjimą, tad premija pagal taikinio ATK (kiek žalos išvengiam).
+        if (w.goodPlayer && a.freezeStun && t.target.kind === 'unit') {
+          const def = P(g, 'you').units.find((x) => x?.uid === (t.target as { kind: 'unit'; side: 'you'; uid: string }).uid)
+          if (def) sc += effectiveAtk(g, def) * 0.6 + 1
+        }
+        return { score: sc, reason: `„${card.name}": kontrolė`, opts: { target: t.target } }
       }
       if (a.heal > 0) {
         const t = pickHealTarget(g, a.heal)
@@ -99,7 +124,29 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
       if (a.buffAtk > 0 || a.buffHp > 0) {
         const t = pickBuffTarget(g, a, w)
         if (!t.target) return { ...SKIP, reason: `„${card.name}": ${t.reason}` }
-        return { score: t.score, reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
+        let sc = t.score
+        // goodPlayer: buff'as PRIEŠ ataką, ne po – jei taikinys dar gali pulti šį
+        // ėjimą, buff'o prioritetas pakeliamas virš jo atakos (greedy ciklas tada
+        // pirma sužaidžia buffą, o ataka perskaičiuojama jau su nauju ATK).
+        if (w.goodPlayer && a.buffAtk > 0 && t.target.kind === 'unit') {
+          const bu = P(g, 'ai').units.find((x) => x?.uid === (t.target as { kind: 'unit'; side: 'ai'; uid: string }).uid)
+          if (bu && canUnitAttack(g, 'ai', bu).ok) sc += a.buffAtk * 1.2 + 2
+        }
+        return { score: sc, reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
+      }
+      if (a.enemyDraw > 0 && a.draw === 0) {
+        // Priešo traukimo kortos (Demonų mechanika): goodPlayer žaidžia TIK kai
+        // traukimas baudžiamas – priešo kaladėje jau įmaišyti prakeiksmai ARBA
+        // lentoje yra onAnyDraw bausmė (pvz. Ongromig'as: -2 HP už traukimą).
+        if (w.goodPlayer) {
+          const cursesPlanted = P(g, 'you').deck.some((c) => c.type === 'curse')
+          const punisher = drawPunisherOnBoard(g)
+          if (cursesPlanted || punisher) {
+            return { score: 5 + a.enemyDraw, reason: `„${card.name}": priešo traukimas baudžiamas (${cursesPlanted ? 'prakeiksmai kaladėje' : 'onAnyDraw bausmė'})` }
+          }
+          return { ...SKIP, reason: `„${card.name}": laikom – priešo traukimui dar nėra sinergijos` }
+        }
+        return { score: 1, reason: `„${card.name}": priešas trauks kortų` }
       }
       if (a.draw > 0) {
         const playable = me.hand.filter((c) => c.uid !== card.uid).length
@@ -137,6 +184,19 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
 
 function tagReason(p: PlayScore, card: TutCard): PlayScore {
   return { ...p, reason: `„${card.name}": ${p.reason}` }
+}
+
+/** Ar AI lentoje yra korta, baudžianti priešą už kortų traukimą (onAnyDraw). */
+function drawPunisherOnBoard(g: GameState): boolean {
+  const me = P(g, 'ai')
+  const srcs = [
+    ...me.units.filter((u) => !!u && !u.statuses.silenced),
+    ...me.artifacts.filter((x) => !!x),
+  ]
+  return srcs.some((s2) => (s2!.card.mappings ?? []).some((m) =>
+    m.trigger === 'onAnyDraw'
+    && (m.triggerSide === 'enemy' || m.triggerSide === 'any' || !m.triggerSide)
+    && ['damage', 'loseGold', 'burn', 'poison', 'mill', 'discard'].includes(m.effect)))
 }
 
 /** Čempiono skill taikinys pagal jo mapping'us. */

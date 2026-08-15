@@ -455,7 +455,9 @@ console.log('\n── F13 Kovos dialogų ir pranešimų rėmas ──')
 
   check('klaidos pranešimas naudoja rėmą', tg.includes('combat-plate combat-toast'))
   const uses = (tg.match(/combat-plate/g) ?? []).length
-  check('rėmas pritaikytas visiems kovos dialogams (≥ 10 vietų)', uses >= 10, String(uses))
+  // commit600: kortų pasirinkimo popup'ai perkelti į pilno ekrano renderPickScene
+  // (be combat-plate), tad plate lieka tekstiniuose/rikiavimo/peržiūros dialoguose.
+  check('rėmas pritaikytas likusiems kovos dialogams (≥ 8 vietų)', uses >= 8, String(uses))
   // REGRESIJA: pakeitus modalus į klasę, inline background buvo pašalintas —
   // jei CSS neįkeliamas, langas liktų visiškai be stiliaus.
   check('neliko modalų su senu „be rėmo" stiliumi',

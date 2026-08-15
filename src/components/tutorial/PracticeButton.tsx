@@ -54,6 +54,9 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
   const [oppDeck, setOppDeck] = useState<string>('')
   const [oppFaction, setOppFaction] = useState<number | ''>('')
   const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
+  // Easy DI žaidžia TIK starter kaladėmis (paprastos, be kombų) – 2026-08-15 kanonas
+  const [starterDecks, setStarterDecks] = useState<{ id: string; name: string; faction_id: number | null }[]>([])
+  const [easyStarter, setEasyStarter] = useState<{ id: string; name: string } | null>(null)
   const [query, setQuery] = useState('')
   const [filterFaction, setFilterFaction] = useState<number | ''>('')
 
@@ -74,6 +77,8 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
       })
     supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20)
       .then(({ data }) => setFactions(((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
+    supabase.from('starter_decks').select('id, name, faction_id').eq('is_active', true).order('sort_order').limit(20)
+      .then(({ data }) => setStarterDecks((data as { id: string; name: string; faction_id: number | null }[]) ?? []))
   }, [isOpen])
 
   const filteredDecks = useMemo(() => {
@@ -90,9 +95,20 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
 
   const start = () => {
     playUiClick()
+    let fid: number | null = mode === 'faction' && oppFaction ? Number(oppFaction) : mode === 'public' ? (selDeckObj?.factionId ?? null) : null
     if (mode === 'random' && factions.length) {
       // atsitiktinė frakcija klientinėj pusėj → visada validus priešininkas
-      setOppFaction(factions[Math.floor(Math.random() * factions.length)].id)
+      const f = factions[Math.floor(Math.random() * factions.length)]
+      setOppFaction(f.id)
+      fid = f.id
+    }
+    // Easy: DI žaidžia TIK starter kalade (pasirinktos frakcijos, jei tokia yra; kitaip – atsitiktine)
+    if (difficulty === 'easy' && starterDecks.length) {
+      const pool = fid != null ? starterDecks.filter((d) => d.faction_id === fid) : []
+      const list = pool.length ? pool : starterDecks
+      setEasyStarter(list[Math.floor(Math.random() * list.length)] ?? null)
+    } else {
+      setEasyStarter(null)
     }
     setStarted(true)
   }
@@ -124,9 +140,10 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
 
       {started && (
         <TutorialGame deckId={deckId} deckName={deckName} practice
-          opponentDeckId={mode === 'public' ? oppDeck : null}
-          opponentFaction={mode !== 'public' && oppFaction ? Number(oppFaction) : null}
-          opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.practice.enemy')) : (selFactionObj?.name ?? t('battle.practice.enemy'))}
+          opponentDeckId={difficulty !== 'easy' && mode === 'public' ? oppDeck : null}
+          opponentStarterId={difficulty === 'easy' ? (easyStarter?.id ?? null) : null}
+          opponentFaction={difficulty !== 'easy' && mode !== 'public' && oppFaction ? Number(oppFaction) : null}
+          opponentName={difficulty === 'easy' && easyStarter ? easyStarter.name : mode === 'public' ? (selDeckObj?.name ?? t('battle.practice.enemy')) : (selFactionObj?.name ?? t('battle.practice.enemy'))}
           difficulty={difficulty}
           onClose={() => { setStarted(false); setOpen(false) }} />
       )}

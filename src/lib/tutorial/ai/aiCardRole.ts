@@ -21,6 +21,8 @@ export type CardAnalysis = {
   draw: number
   gainGold: number
   status: boolean        // uždeda freeze/stun/silence/poison/burn priešui
+  freezeStun: boolean    // konkrečiai freeze/stun – neutralizuoja taikinį (setup prieš ataką)
+  enemyDraw: number      // kiek kortų PRIVERČIA traukti priešą (drawAppliesTo opponent/both)
   destroy: boolean       // hard removal (sunaikina padarą)
   summon: boolean
   targetsEnemyUnit: boolean
@@ -46,7 +48,7 @@ const STATUS_EFFECTS = new Set(['silence', 'freeze', 'stun', 'poison', 'burn'])
 export function analyzeMappings(mappings: EffectMapping[]): CardAnalysis {
   const a: CardAnalysis = {
     roles: [], dmgEnemy: 0, aoeDmg: 0, heal: 0, buffAtk: 0, buffHp: 0, draw: 0, gainGold: 0,
-    status: false, destroy: false, summon: false,
+    status: false, freezeStun: false, enemyDraw: 0, destroy: false, summon: false,
     targetsEnemyUnit: false, targetsOwnUnit: false, canHitFace: false, isAoE: false, needsTarget: false,
   }
   for (const m of mappings) {
@@ -67,8 +69,10 @@ export function analyzeMappings(mappings: EffectMapping[]): CardAnalysis {
       a.destroy = true; a.targetsEnemyUnit = a.targetsEnemyUnit || hits(m, ENEMY_UNIT_TARGETS)
     } else if (STATUS_EFFECTS.has(e)) {
       a.status = true; a.targetsEnemyUnit = a.targetsEnemyUnit || hits(m, ENEMY_UNIT_TARGETS)
+      if (e === 'freeze' || e === 'stun') a.freezeStun = true
     } else if (e === 'drawCards') {
-      a.draw += v
+      if (m.drawAppliesTo === 'opponent' || m.drawAppliesTo === 'both') a.enemyDraw += v
+      if (m.drawAppliesTo !== 'opponent') a.draw += v
     } else if (e === 'gainGold') {
       a.gainGold += v
     } else if (e.startsWith('summon') || e === 'revive') {
@@ -92,7 +96,7 @@ export function analyzeCard(card: TutCard): CardAnalysis {
   const e = card.effect
   const a: CardAnalysis = {
     roles: [], dmgEnemy: 0, aoeDmg: 0, heal: 0, buffAtk: 0, buffHp: 0, draw: 0, gainGold: 0,
-    status: false, destroy: false, summon: false,
+    status: false, freezeStun: false, enemyDraw: 0, destroy: false, summon: false,
     targetsEnemyUnit: false, targetsOwnUnit: false, canHitFace: false, isAoE: false, needsTarget: false,
   }
   if (e) {

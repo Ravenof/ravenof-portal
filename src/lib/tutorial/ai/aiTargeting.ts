@@ -46,7 +46,17 @@ export function scoreAttack(g: GameState, attacker: BoardUnit, target: TargetRef
   }
   const def = P(g, 'you').units.find((x) => x?.uid === target.uid)
   if (!def) return -999
-  return scoreTradeStats(g, { atk: effectiveAtk(g, attacker), hp: attacker.hp, shield: attacker.shield }, def)
+  let s = scoreTradeStats(g, { atk: effectiveAtk(g, attacker), hp: attacker.hp, shield: attacker.shield }, def)
+  if (w.goodPlayer) {
+    // „Geras žaidėjas": neutralizuotas (frozen/stunned) priešas VIS TIEK praleis
+    // ėjimą – pirmiausia žudom AKTYVIAS grėsmes; bet frozen neatsikerta, tad jei
+    // vis tiek verta pulti, trade saugus (+1). Čempionas gynyboje daro 0 žalos
+    // ir yra nuolatinė skill grėsmė – jį daužyti apsimoka.
+    if (def.statuses.stunned || def.statuses.frozen) s -= 2.5
+    if (def.statuses.frozen) s += 1
+    if (def.isChampion) s += 2
+  }
+  return s
 }
 
 // ── Burtų taikiniai ──────────────────────────────────────────────────────────
@@ -97,10 +107,18 @@ export function pickDamageTarget(g: GameState, dmg: number, canUnit: boolean, ca
 }
 
 /** Status (freeze/stun/silence) ar destroy burto taikinys – stipriausias priešo padaras. */
-export function pickThreatTarget(g: GameState, w: AiWeights, isDestroy: boolean): ScoredTarget {
+export function pickThreatTarget(g: GameState, w: AiWeights, isDestroy: boolean, opts?: { skipNeutralized?: boolean }): ScoredTarget {
   let best: ScoredTarget = { target: undefined, score: -Infinity, reason: 'nėra taikinio' }
   for (const def of enemyUnits(g)) {
-    const val = unitValue(g, def) + unitThreatBonus(g, def)
+    // freeze/stun setup: nešaldyk to, kas JAU neutralizuotas – rink aktyvų
+    if (opts?.skipNeutralized && (def.statuses.frozen || def.statuses.stunned)) continue
+    let val = unitValue(g, def) + unitThreatBonus(g, def)
+    if (w.goodPlayer) {
+      // Continuous efektai (auros, kartotiniai trigeriai) – removal/kontrolė PIRMIAUSIA jiems
+      if (def.card.gameplay?.passiveAura) val += 2
+      const dms = def.card.mappings ?? []
+      if (dms.some((m) => m.trigger === 'onTurnStart' || m.trigger === 'onTurnEnd' || m.trigger.startsWith('onAny'))) val += 2
+    }
     if (isDestroy && val < w.removalMinValue) continue // hard: laikyk removal vertingiems
     if (val > best.score) best = { target: { kind: 'unit', side: 'you', uid: def.uid }, score: val, reason: isDestroy ? `removal ant „${def.card.name}"` : `kontrolė ant „${def.card.name}"` }
   }

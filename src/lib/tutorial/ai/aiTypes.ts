@@ -23,16 +23,21 @@ export type AiWeights = {
   spellWasteGuard: number   // kiek griežtai vengia bevertių burtų (didesnis = griežčiau)
   removalMinValue: number   // hard: min taikinio vertė, kad „eikvotų" hard removal
   lookahead: boolean        // ar vertina priešo kitą ėjimą
+  goodPlayer: boolean       // hard: „gero žaidėjo" euristikos (buff prieš ataką, freeze setup, hold'ai, sinergijos)
 }
 
+// 2026-08-15 rebalansas (user request): easy nekeistas (bet žaidžia TIK starter
+// kaladėmis – žr. PracticeButton), normal = SENAS hard, hard = normal svoriai
+// + goodPlayer euristikos (buff prieš ataką, freeze/stun setup, čempionų ir
+// continuous efektų prioritizacija, kombo hold'ai, draw-bausmių sinergijos).
 export const DIFFICULTY_WEIGHTS: Record<AiDifficulty, AiWeights> = {
-  easy:   { faceBias: 6,  jitter: 4,   tradeThreshold: 3,  spellWasteGuard: 0.4, removalMinValue: 0,  lookahead: false },
-  normal: { faceBias: 0,  jitter: 1.2, tradeThreshold: 0.5, spellWasteGuard: 1,   removalMinValue: 0,  lookahead: true  },
-  hard:   { faceBias: -2, jitter: 0.4, tradeThreshold: 0,   spellWasteGuard: 1.4, removalMinValue: 5,  lookahead: true  },
+  easy:   { faceBias: 6,  jitter: 4,   tradeThreshold: 3, spellWasteGuard: 0.4, removalMinValue: 0, lookahead: false, goodPlayer: false },
+  normal: { faceBias: -2, jitter: 0.4, tradeThreshold: 0, spellWasteGuard: 1.4, removalMinValue: 5, lookahead: true,  goodPlayer: false },
+  hard:   { faceBias: -2, jitter: 0.2, tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
 }
 
 /** Strategijos modifikatorius (per-bot): ADITYVŪS svorių pokyčiai ant difficulty bazės. */
-export type AiWeightDelta = Partial<Omit<AiWeights, 'lookahead'>> & { lookahead?: boolean }
+export type AiWeightDelta = Partial<Omit<AiWeights, 'lookahead' | 'goodPlayer'>> & { lookahead?: boolean; goodPlayer?: boolean }
 
 /** Sulieja bazę su delta (skaitiniai laukai sumuojami, lookahead perrašomas). */
 export function mergeWeights(base: AiWeights, delta?: AiWeightDelta): AiWeights {
@@ -44,6 +49,7 @@ export function mergeWeights(base: AiWeights, delta?: AiWeightDelta): AiWeights 
     spellWasteGuard: Math.max(0.1, base.spellWasteGuard + (delta.spellWasteGuard ?? 0)),
     removalMinValue: Math.max(0, base.removalMinValue + (delta.removalMinValue ?? 0)),
     lookahead: delta.lookahead ?? base.lookahead,
+    goodPlayer: delta.goodPlayer ?? base.goodPlayer,
   }
 }
 
