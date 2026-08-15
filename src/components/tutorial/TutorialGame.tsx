@@ -1426,6 +1426,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     }
   }, [inspect, select, avatarInspect, closeGame])
 
+  // ── Bakst BET KUR uz rankos ribu → isskleista ranka susitraukia ──
+  // Capture faze, kad suveiktu ir ant elementu, kurie sustabdo bubbling.
+  // Ivykio nestabdom: bakstelejimas lentoje toliau veikia normaliai.
+  useEffect(() => {
+    if (!handExpanded) return
+    const onDown = (ev: PointerEvent) => {
+      const t = ev.target as Element | null
+      if (t && handRef.current && handRef.current.contains(t)) return // ant rankos – tvarko beginHandPointer
+      if (t && t.closest && t.closest('[data-inspect-overlay]')) return // kortos perziura uzsidaro pati, rankos neliecia
+      playUiClick(); setHandExpanded(false)
+    }
+    window.addEventListener('pointerdown', onDown, true)
+    return () => window.removeEventListener('pointerdown', onDown, true)
+  }, [handExpanded])
+
   const rectFor = useCallback((ref?: { side?: Side; uid?: string; kind?: string }): { x: number; y: number } | null => {
     if (!ref) return null
     let el: Element | null = null
@@ -3115,6 +3130,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) return
         started = true; dragMovedRef.current = true
         if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null }
+        setInspect(null)
         const d: DragState = { card: u.card, uid: u.uid, targeted: true, attackUid: u.uid, origin: liveOrigin(), x: ev.clientX, y: ev.clientY, mode: 'arrow' }
         dragRef.current = d; setDrag(d)
       }
@@ -3192,6 +3208,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     dragMovedRef.current = false
     const handTop = () => (handPanelRef.current ?? handRef.current)?.getBoundingClientRect().top ?? Infinity
     let lp: ReturnType<typeof setTimeout> | null = null
+    let inspected = false
     function cleanup() {
       if (lp) { clearTimeout(lp); lp = null }
       window.removeEventListener('pointermove', move)
@@ -3204,6 +3221,9 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (dy < -14 && Math.abs(dy) > Math.abs(dx)) {
           started = true; dragMovedRef.current = true
           if (lp) { clearTimeout(lp); lp = null }
+          // Jei long-press jau atidare kortos perziura - tempiant i lenta ji uzsidaro,
+          // kad neuzdengtu lentos renkantis taikini.
+          setInspect(null)
           if (wasExpanded) setHandExpanded(false)
           const d: DragState = { card, uid: card.uid, targeted: !!game && cardNeedsTarget(game, card), origin: { x: sx, y: sy }, x: ev.clientX, y: ev.clientY, mode: 'card' }
           dragRef.current = d; setDrag(d)
@@ -3223,6 +3243,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       cleanup()
       updateSnapHighlight(null, null)
       if (!started) {
+        if (inspected) return  // atleidimas po long-press perziuros: nieko nedarom (perziura uzsidaro bakstelejus)
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 12) {
           if (selKind === 'discard') { onHandCardClick(card); return }
           if (!hMobile) { onHandCardClick(card); return }  // desktop: bakstelėjimas = žaisti/pasirinkti
@@ -3266,7 +3287,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         onHandCardClick(d.card)
       }
     }
-    lp = setTimeout(() => { if (!started) setInspect(card) }, 480)
+    lp = setTimeout(() => { if (!started) { inspected = true; setInspect(card) } }, 480)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
@@ -4549,7 +4570,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         })()}
 
         {inspect && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div data-inspect-overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[135] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.75)' }}
             onClick={() => { playCardPlace(); setInspect(null) }}>
