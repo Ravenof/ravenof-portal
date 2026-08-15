@@ -916,6 +916,35 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Tutorial pagalbos auksas suteiktas tik kartą
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
+  // ── Popup kortos "palaikyk ir ziurek": pointer-down 350 ms → detali perziura,
+  // atleidus pirsta perziura dingsta, o click ant tos pacios kortos NUryjamas
+  // (kad ilgas palaikymas netycia nepasirinktu kortos). ──
+  const holdPvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const holdPvOpenRef = useRef(false)
+  const holdPreview = (card: TutCard) => {
+    const end = () => {
+      if (holdPvTimerRef.current) { clearTimeout(holdPvTimerRef.current); holdPvTimerRef.current = null }
+      if (holdPvOpenRef.current) {
+        setInspect(null)
+        // vėliavėlę sunaudoja onClickCapture; fallback jei click neateis:
+        window.setTimeout(() => { holdPvOpenRef.current = false }, 300)
+      }
+    }
+    return {
+      onPointerDown: () => {
+        holdPvOpenRef.current = false
+        if (holdPvTimerRef.current) clearTimeout(holdPvTimerRef.current)
+        holdPvTimerRef.current = setTimeout(() => { holdPvOpenRef.current = true; playCardFlip(); setInspect(card) }, 350)
+      },
+      onPointerUp: end,
+      onPointerCancel: end,
+      onPointerLeave: end,
+      onClickCapture: (e: React.MouseEvent) => {
+        if (holdPvOpenRef.current) { e.preventDefault(); e.stopPropagation(); holdPvOpenRef.current = false }
+      },
+      onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    }
+  }
   const [showLog, setShowLog] = useState(false)
   // ── Avatarai (mūšio HP taikiniai + balsai) ─────────────────────────────────
   const [youAvatar, setYouAvatar] = useState<BattleAvatar | null>(null)
@@ -4178,6 +4207,16 @@ doAction({ t: 'endTurn', actor: 'you' })
             {select.kind === 'sacrifice' && t('battle.game.hintSacrifice', { picked: select.picked.length })}
           </motion.div>
         )}
+        {select?.kind === 'sacrifice' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="fixed bottom-40 sm:bottom-44 left-0 right-0 mx-auto w-fit z-[125]">
+            <button onClick={() => { playUiClick(); setSelect(null) }}
+              className="px-4 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition-transform"
+              style={{ background: 'rgba(20,12,16,0.88)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
+              ✕ {t('battle.game.tributeCancel')}
+            </button>
+          </motion.div>
+        )}
         {select?.kind === 'discard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="combat-hint-pill fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-2 text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
@@ -4571,7 +4610,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
         {inspect && (
           <motion.div data-inspect-overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[135] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[180] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.75)' }}
             onClick={() => { playCardPlace(); setInspect(null) }}>
             <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
@@ -4852,7 +4891,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>{t('battle.game.enemyUnits')}</p>
                   <div className="flex flex-wrap justify-center gap-2 mb-3">
                     {P(game, 'ai').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
-                      <button key={u.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
+                      <button key={u.uid} {...holdPreview(u.card)} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
                         <MiniCard c={u.card} w={72} />
                       </button>
                     ))}
@@ -4864,7 +4903,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4ade80' }}>Tavo padarai</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {P(game, 'you').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
-                      <button key={u.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
+                      <button key={u.uid} {...holdPreview(u.card)} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
                         <MiniCard c={u.card} w={72} />
                       </button>
                     ))}
@@ -4891,7 +4930,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   const full = summonSel.length >= game!.pendingSummon!.choose
                   const zl = o.zone === 'hand' ? t('battle.game.zoneHand') : o.zone === 'deck' ? t('battle.game.zoneDeck') : t('battle.game.zoneGrave')
                   return (
-                    <button key={o.card.uid} onClick={() => { playUiClick(); setSummonSel((q) => q.includes(o.card.uid) ? q.filter((x) => x !== o.card.uid) : (q.length >= game!.pendingSummon!.choose ? q : [...q, o.card.uid])) }}
+                    <button key={o.card.uid} {...holdPreview(o.card)} onClick={() => { playUiClick(); setSummonSel((q) => q.includes(o.card.uid) ? q.filter((x) => x !== o.card.uid) : (q.length >= game!.pendingSummon!.choose ? q : [...q, o.card.uid])) }}
                       className="relative transition-transform" style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined, opacity: !sel && full ? 0.5 : 1 }} title={o.card.name}>
                       <div style={{ outline: sel ? '2px solid #22c55e' : '2px solid transparent', borderRadius: 10 }}>
                         <MiniCard c={o.card} w={isTouch ? 60 : 74} />
@@ -4921,7 +4960,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxText') : t('battle.game.copyText')}</p>
               <div className="flex flex-wrap gap-2 justify-center mb-1">
                 {game.pendingCopy.options.map((o) => (
-                  <button key={o.card.uid} onClick={() => { playSuccess(); doAction({ t: 'resolveCopy', uid: o.card.uid }) }}
+                  <button key={o.card.uid} {...holdPreview(o.card)} onClick={() => { playSuccess(); doAction({ t: 'resolveCopy', uid: o.card.uid }) }}
                     className="relative transition-transform hover:-translate-y-1" title={o.card.name}>
                     <div style={{ outline: '2px solid transparent', borderRadius: 10 }}>
                       <MiniCard c={o.card} w={isTouch ? 60 : 74} />
@@ -4947,7 +4986,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               {game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards ? (
                 <div className="flex flex-wrap gap-2 justify-center">
                   {game.pendingChoice.cards.map((c, i) => (
-                    <button key={c.uid + '-ch-' + i} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i }) }} className="transition-transform hover:-translate-y-1" title={c.name}>
+                    <button key={c.uid + '-ch-' + i} {...holdPreview(c)} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i }) }} className="transition-transform hover:-translate-y-1" title={c.name}>
                       <MiniCard c={c} w={isTouch ? 60 : 74} />
                     </button>
                   ))}
@@ -5088,7 +5127,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.deckTopText')}</p>
               <div className="flex flex-wrap gap-2 justify-center mb-4">
                 {game.pendingReveal.cards.map((c, i) => (
-                  <div key={c.uid + '-rv-' + i} className="relative" title={c.name}>
+                  <div key={c.uid + '-rv-' + i} {...holdPreview(c)} className="relative" title={c.name}>
                     <span className="absolute -top-1 -left-1 z-10 text-[9px] px-1 rounded-full font-bold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>{i + 1}</span>
                     <MiniCard c={c} w={isTouch ? 60 : 74} />
                   </div>
@@ -5183,7 +5222,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   const sel = peekSel.includes(c.uid)
                   const full = peekSel.length >= game!.pendingPeek!.choose
                   return (
-                    <button key={c.uid} onClick={() => {
+                    <button key={c.uid} {...holdPreview(c)} onClick={() => {
                       playUiClick()
                       setPeekSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : (q.length >= game!.pendingPeek!.choose ? q : [...q, c.uid]))
                     }}
