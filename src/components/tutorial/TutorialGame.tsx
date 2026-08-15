@@ -3379,6 +3379,93 @@ doAction({ t: 'endTurn', actor: 'you' })
     window.addEventListener('pointercancel', up)
   }
 
+  // ── Pilno ekrano kortų pasirinkimo scena (mulligan stiliaus; commit600) ─────
+  // Vietoje combat-plate popup'ų: fonas blur+grayscale, DIDELĖS kortos (5 telpa
+  // su tarpais). >5 kortų – horizontalus scroll su snap: kraštuose matosi
+  // įpusėjusios kortos + fade – natūrali „yra daugiau" užuomina be jokių UI
+  // elementų. CTA – tas pats asset mygtukas kaip visur (button-primary-normal).
+  const renderPickScene = (o: {
+    key: string
+    title: React.ReactNode
+    text?: React.ReactNode
+    z?: number
+    items: { key: string; card: TutCard; badge?: React.ReactNode; sub?: { text: string; color: string } }[]
+    /** 'choose' – pažymėtos ryškėja (auksinis rėmas; pasiekus limitą kitos pritemsta);
+     *  'discard' – pažymėtos tampa grayscale (išmetimo semantika);
+     *  'view' – tik peržiūra, be žymėjimo. */
+    mode: 'choose' | 'discard' | 'view'
+    picked?: string[]
+    onToggle?: (key: string) => void
+    /** Vieno bakstelėjimo režimas (kopija/pasirinkimas/return) – vykdoma iškart. */
+    onTap?: (key: string) => void
+    maxPick?: number
+    confirm?: { label: string; disabled?: boolean; onClick: () => void }
+  }) => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 800
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 480
+    const gap = Math.round(Math.min(18, vw * 0.02))
+    const w = Math.floor(Math.min((vw - gap * 6 - 24) / 5, vh * 0.5 * 0.75))
+    const scroll = o.items.length > 5
+    const pickedSet = new Set(o.picked ?? [])
+    const full = o.maxPick != null && pickedSet.size >= o.maxPick
+    return (
+      <motion.div key={o.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 flex flex-col items-center justify-center gap-4 py-4"
+        style={{ zIndex: o.z ?? 133, background: 'rgba(6,5,10,0.55)', backdropFilter: 'blur(7px) grayscale(1)', WebkitBackdropFilter: 'blur(7px) grayscale(1)' }}>
+        <div className="text-center px-4">
+          <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>{o.title}</p>
+          {o.text && <p className="text-[11px] mt-1 max-w-[560px] mx-auto" style={{ color: 'var(--text-secondary)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>{o.text}</p>}
+        </div>
+        <div className="relative w-full">
+          <div className={scroll ? 'flex items-center overflow-x-auto pb-2' : 'flex items-center justify-center'}
+            style={{ gap, paddingLeft: scroll ? gap * 2 : 0, paddingRight: scroll ? gap * 2 : 0, paddingTop: 8, paddingBottom: 8, scrollSnapType: scroll ? 'x proximity' : undefined, WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
+            {o.items.map((it) => {
+              const on = pickedSet.has(it.key)
+              const dim = o.mode === 'choose' && !on && full   // limitas pasiektas – likusios pritemsta
+              return (
+                <button key={it.key} {...holdPreview(it.card)}
+                  onClick={() => { if (o.onTap) { o.onTap(it.key); return } if (o.onToggle && (on || !full)) { playUiClick(); o.onToggle(it.key) } }}
+                  className="relative flex-none" title={it.card.name}
+                  style={{
+                    scrollSnapAlign: scroll ? 'center' : undefined,
+                    transform: o.mode === 'discard' && on ? 'scale(0.94)' : o.mode === 'choose' && on ? 'translateY(-6px)' : undefined,
+                    filter: o.mode === 'discard' && on ? 'grayscale(1) brightness(0.55)' : dim ? 'grayscale(0.6) brightness(0.7)' : 'none',
+                    transition: 'filter 0.18s ease, transform 0.18s ease',
+                  }}>
+                  <div style={{ outline: o.mode === 'choose' && on ? '3px solid var(--gold)' : '3px solid transparent', borderRadius: 12, boxShadow: o.mode === 'choose' && on ? '0 0 18px rgba(240,180,41,0.55)' : undefined, transition: 'outline-color 0.15s ease, box-shadow 0.15s ease' }}>
+                    <MiniCard c={it.card} w={w} readable />
+                  </div>
+                  {it.badge}
+                  {o.mode === 'discard' && on && (
+                    <span className="absolute top-1 right-1 text-sm px-1.5 rounded-full font-bold" style={{ background: 'rgba(0,0,0,0.8)', color: '#fca5a5' }}>✕</span>
+                  )}
+                  {it.sub && (
+                    <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] px-1.5 rounded-full whitespace-nowrap" style={{ background: '#14101e', color: it.sub.color, border: '1px solid rgba(240,180,41,0.25)' }}>{it.sub.text}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {scroll && (<>
+            <div className="absolute inset-y-0 left-0 pointer-events-none" style={{ width: gap * 2.5, background: 'linear-gradient(to right, rgba(6,5,10,0.85), transparent)' }} />
+            <div className="absolute inset-y-0 right-0 pointer-events-none" style={{ width: gap * 2.5, background: 'linear-gradient(to left, rgba(6,5,10,0.85), transparent)' }} />
+          </>)}
+        </div>
+        {o.confirm && (
+          <button onClick={() => { if (!o.confirm!.disabled) o.confirm!.onClick() }} disabled={o.confirm.disabled}
+            className="ravenof-press block" style={{ width: 232, textAlign: 'center',
+              font: '800 13px var(--ravenof-font-display)', letterSpacing: 3, textTransform: 'uppercase',
+              color: o.confirm.disabled ? '#5e5868' : '#f6e8c6',
+              background: o.confirm.disabled ? 'rgba(30,26,40,0.9)' : "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
+              padding: 13, border: o.confirm.disabled ? '1px solid rgba(120,110,140,0.3)' : 0, borderRadius: o.confirm.disabled ? 8 : 0,
+              cursor: o.confirm.disabled ? 'default' : 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)' }}>
+            {o.confirm.label}
+          </button>
+        )}
+      </motion.div>
+    )
+  }
+
   // ── Pop-up inkaro matavimas ──
   const anchorKey = step?.anchor ?? (activeTip ? null : null)
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
@@ -4941,173 +5028,86 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── iškvietimo pasirinkimas (summonChoose) ── */}
       <AnimatePresence>
-        {game?.pendingReturn && game.pendingReturn.side === 'you' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.82)' }}>
-            <motion.div initial={{ scale: 0.92, y: 12 }} animate={{ scale: 1, y: 0 }} className="w-[min(430px,94vw)] px-4 py-4 rounded-2xl"
-              style={{ background: 'radial-gradient(120% 90% at 50% 0%, rgba(167,139,250,0.16), rgba(10,8,16,0.98) 60%), linear-gradient(160deg, #15101f, #0a0810)', border: '1px solid rgba(167,139,250,0.5)' }}>
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>🌍 Lauko efektas</p>
-              <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>{t('battle.game.pickReturnUnit')}</p>
-              {P(game, 'ai').units.some(Boolean) && (
-                <>
-                  <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>{t('battle.game.enemyUnits')}</p>
-                  <div className="flex flex-wrap justify-center gap-2 mb-3">
-                    {P(game, 'ai').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
-                      <button key={u.uid} {...holdPreview(u.card)} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
-                        <MiniCard c={u.card} w={72} />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {P(game, 'you').units.some(Boolean) && (
-                <>
-                  <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4ade80' }}>Tavo padarai</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {P(game, 'you').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => (
-                      <button key={u.uid} {...holdPreview(u.card)} onClick={() => { playSuccess(); doAction({ t: 'resolveReturn', uid: u.uid }) }} className="transition-transform hover:-translate-y-1 active:scale-95" title={u.card.name}>
-                        <MiniCard c={u.card} w={72} />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
+        {game?.pendingReturn && game.pendingReturn.side === 'you' && renderPickScene({
+          key: 'return', z: 170,
+          title: '🌍 Lauko efektas',
+          text: t('battle.game.pickReturnUnit'),
+          items: [
+            ...P(game, 'ai').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => ({ key: u.uid, card: u.card, sub: { text: t('battle.game.sideEnemy'), color: '#fca5a5' } })),
+            ...P(game, 'you').units.filter((x): x is NonNullable<typeof x> => !!x).map((u) => ({ key: u.uid, card: u.card, sub: { text: t('battle.game.sideYours'), color: '#86efac' } })),
+          ],
+          mode: 'choose',
+          onTap: (k) => { playSuccess(); doAction({ t: 'resolveReturn', uid: k }) },
+        })}
 
-        {game?.pendingMulligan?.you && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[133] flex flex-col items-center justify-center gap-4 p-4"
-            style={{ background: 'rgba(6,5,10,0.55)', backdropFilter: 'blur(7px) grayscale(1)', WebkitBackdropFilter: 'blur(7px) grayscale(1)' }}>
-            <div className="text-center">
-              <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.08em', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>{t('battle.game.mulliganTitle')}</p>
-              <p className="text-[11px] mt-1 max-w-[560px]" style={{ color: 'var(--text-secondary)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>{t('battle.game.mulliganText')}</p>
-            </div>
-            {(() => {
-              // Didelės kortos: 5 telpa į ekraną su tarpais; žemuose ekranuose riboja aukštis.
-              const vw = typeof window !== 'undefined' ? window.innerWidth : 800
-              const vh = typeof window !== 'undefined' ? window.innerHeight : 480
-              const gap = Math.round(Math.min(18, vw * 0.02))
-              const w = Math.floor(Math.min((vw - gap * 6 - 24) / 5, vh * 0.52 * 0.75))
-              return (
-                <div className="flex justify-center items-center" style={{ gap }}>
-                  {game.you.hand.map((c) => {
-                    const out = mullSel.includes(c.uid)   // pažymėta IŠMETIMUI → grayscale
-                    return (
-                      <button key={c.uid} {...holdPreview(c)}
-                        onClick={() => { playUiClick(); setMullSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : [...q, c.uid]) }}
-                        className="relative" title={c.name}
-                        style={{ transform: out ? 'scale(0.94)' : 'scale(1)', filter: out ? 'grayscale(1) brightness(0.55)' : 'none', transition: 'filter 0.18s ease, transform 0.18s ease' }}>
-                        <MiniCard c={c} w={w} readable />
-                        {out && (
-                          <span className="absolute top-1 right-1 text-sm px-1.5 rounded-full font-bold"
-                            style={{ background: 'rgba(0,0,0,0.8)', color: '#fca5a5' }}>✕</span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-            {/* Patvirtinimas — tas pats asset mygtukas kaip kiti CTA (button-primary-normal.png) */}
-            <button onClick={() => { playSuccess(); const sel = mullSel; setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: sel }) }}
-              className="ravenof-press block" style={{ width: 232, textAlign: 'center',
-                font: '800 13px var(--ravenof-font-display)', letterSpacing: 3, textTransform: 'uppercase', color: '#f6e8c6',
-                background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
-                padding: 13, border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)' }}>
-              {mullSel.length > 0 ? t('battle.game.mulliganSwap', { n: mullSel.length }) : t('battle.game.mulliganKeep')}
-            </button>
-          </motion.div>
-        )}
+        {game?.pendingMulligan?.you && renderPickScene({
+          key: 'mulligan',
+          title: t('battle.game.mulliganTitle'),
+          text: t('battle.game.mulliganText'),
+          items: game.you.hand.map((c) => ({ key: c.uid, card: c })),
+          mode: 'discard',
+          picked: mullSel,
+          onToggle: (k) => setMullSel((q) => q.includes(k) ? q.filter((x) => x !== k) : [...q, k]),
+          confirm: {
+            label: mullSel.length > 0 ? t('battle.game.mulliganSwap', { n: mullSel.length }) : t('battle.game.mulliganKeep'),
+            onClick: () => { playSuccess(); const sel = mullSel; setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: sel }) },
+          },
+        })}
 
-        {game?.pendingSummon && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="combat-plate p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center">
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.summonPickTitle')}</p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-                {t('battle.game.summonPickMark', { choose: game.pendingSummon.choose, picked: summonSel.length })}
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center mb-4">
-                {game.pendingSummon.options.map((o) => {
-                  const sel = summonSel.includes(o.card.uid)
-                  const full = summonSel.length >= game!.pendingSummon!.choose
-                  const zl = o.zone === 'hand' ? t('battle.game.zoneHand') : o.zone === 'deck' ? t('battle.game.zoneDeck') : t('battle.game.zoneGrave')
-                  return (
-                    <button key={o.card.uid} {...holdPreview(o.card)} onClick={() => { playUiClick(); setSummonSel((q) => q.includes(o.card.uid) ? q.filter((x) => x !== o.card.uid) : (q.length >= game!.pendingSummon!.choose ? q : [...q, o.card.uid])) }}
-                      className="relative transition-transform" style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined, opacity: !sel && full ? 0.5 : 1 }} title={o.card.name}>
-                      <div style={{ outline: sel ? '2px solid #22c55e' : '2px solid transparent', borderRadius: 10 }}>
-                        <MiniCard c={o.card} w={isTouch ? 60 : 74} />
-                      </div>
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] px-1 rounded-full" style={{ background: '#14101e', color: 'var(--text-muted)' }}>{zl}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              <button disabled={summonSel.length !== game.pendingSummon.choose}
-                onClick={() => { playSuccess(); const sel = summonSel; setSummonSel([]); doAction({ t: 'resolveSummon', uids: sel }) }}
-                className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>
-                {t('battle.game.summonPickBtn')}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
+        {game?.pendingSummon && renderPickScene({
+          key: 'summon',
+          title: t('battle.game.summonPickTitle'),
+          text: t('battle.game.summonPickMark', { choose: game.pendingSummon.choose, picked: summonSel.length }),
+          items: game.pendingSummon.options.map((o) => ({
+            key: o.card.uid, card: o.card,
+            sub: { text: o.zone === 'hand' ? t('battle.game.zoneHand') : o.zone === 'deck' ? t('battle.game.zoneDeck') : t('battle.game.zoneGrave'), color: '#c9b98a' },
+          })),
+          mode: 'choose',
+          picked: summonSel,
+          maxPick: game.pendingSummon.choose,
+          onToggle: (k) => setSummonSel((q) => q.includes(k) ? q.filter((x) => x !== k) : (q.length >= game!.pendingSummon!.choose ? q : [...q, k])),
+          confirm: {
+            label: t('battle.game.summonPickBtn'),
+            disabled: summonSel.length !== game.pendingSummon.choose,
+            onClick: () => { playSuccess(); const sel = summonSel; setSummonSel([]); doAction({ t: 'resolveSummon', uids: sel }) },
+          },
+        })}
 
-        {game?.pendingCopy && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="combat-plate is-arcane p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center">
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#c4b5fd' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxTitle') : t('battle.game.copyTitle')}</p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxText') : t('battle.game.copyText')}</p>
-              <div className="flex flex-wrap gap-2 justify-center mb-1">
-                {game.pendingCopy.options.map((o) => (
-                  <button key={o.card.uid} {...holdPreview(o.card)} onClick={() => { playSuccess(); doAction({ t: 'resolveCopy', uid: o.card.uid }) }}
-                    className="relative transition-transform hover:-translate-y-1" title={o.card.name}>
-                    <div style={{ outline: '2px solid transparent', borderRadius: 10 }}>
-                      <MiniCard c={o.card} w={isTouch ? 60 : 74} />
-                    </div>
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] px-1 rounded-full" style={{ background: '#14101e', color: o.side === 'you' ? '#86efac' : '#fca5a5' }}>{o.side === 'you' ? t('battle.game.sideYours') : t('battle.game.sideEnemy')}</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {game?.pendingCopy && renderPickScene({
+          key: 'copy',
+          title: game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxTitle') : t('battle.game.copyTitle'),
+          text: game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxText') : t('battle.game.copyText'),
+          items: game.pendingCopy.options.map((o) => ({
+            key: o.card.uid, card: o.card,
+            sub: { text: o.side === 'you' ? t('battle.game.sideYours') : t('battle.game.sideEnemy'), color: o.side === 'you' ? '#86efac' : '#fca5a5' },
+          })),
+          mode: 'choose',
+          onTap: (k) => { playSuccess(); doAction({ t: 'resolveCopy', uid: k }) },
+        })}
 
-      {/* ── pasirink 1 iš kelių efektų / tutor korta į ranką ── */}
-      <AnimatePresence>
-        {game?.pendingChoice && ((game.pendingChoice.chooser ?? game.pendingChoice.caster) === 'you') && (
+        {game?.pendingChoice && ((game.pendingChoice.chooser ?? game.pendingChoice.caster) === 'you') && game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards && renderPickScene({
+          key: 'choice', z: 134,
+          title: game.pendingChoice.title,
+          items: game.pendingChoice.cards.map((c, i2) => ({ key: i2 + ':' + c.uid, card: c })),
+          mode: 'choose',
+          onTap: (k) => { playSuccess(); doAction({ t: 'resolveChoice', index: parseInt(k, 10) }) },
+        })}
+        {game?.pendingChoice && ((game.pendingChoice.chooser ?? game.pendingChoice.caster) === 'you') && !(game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards) && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[134] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.72)' }}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
               className="combat-plate p-4 w-[min(600px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-3" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{game.pendingChoice.title}</p>
-              {game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards ? (
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {game.pendingChoice.cards.map((c, i) => (
-                    <button key={c.uid + '-ch-' + i} {...holdPreview(c)} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i }) }} className="transition-transform hover:-translate-y-1" title={c.name}>
-                      <MiniCard c={c} w={isTouch ? 60 : 74} />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2 items-stretch">
-                  {game.pendingChoice.options.map((opt, i) => (
-                    <button key={'opt-' + i} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i }) }}
-                      className="px-4 py-3 rounded-xl text-sm font-bold transition-all"
-                      style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                      {opt.label}{opt.sub ? <span className="block text-[10px] font-normal mt-0.5" style={{ color: 'var(--text-secondary)' }}>{opt.sub}</span> : null}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-col gap-2 items-stretch">
+                {game.pendingChoice.options.map((opt, i2) => (
+                  <button key={'opt-' + i2} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i2 }) }}
+                    className="px-4 py-3 rounded-xl text-sm font-bold transition-all"
+                    style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                    {opt.label}{opt.sub ? <span className="block text-[10px] font-normal mt-0.5" style={{ color: 'var(--text-secondary)' }}>{opt.sub}</span> : null}
+                  </button>
+                ))}
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -5221,32 +5221,17 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── kaladės viršaus peržiūra (tik skaitymui) ── */}
       <AnimatePresence>
-        {game?.pendingReveal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => doAction({ t: 'clearReveal' })}>
-            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-              className="combat-plate p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center">
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-                {game.pendingReveal.title}
-              </p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.deckTopText')}</p>
-              <div className="flex flex-wrap gap-2 justify-center mb-4">
-                {game.pendingReveal.cards.map((c, i) => (
-                  <div key={c.uid + '-rv-' + i} {...holdPreview(c)} className="relative" title={c.name}>
-                    <span className="absolute -top-1 -left-1 z-10 text-[9px] px-1 rounded-full font-bold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>{i + 1}</span>
-                    <MiniCard c={c} w={isTouch ? 60 : 74} />
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => doAction({ t: 'clearReveal' })}
-                className="px-5 py-2 rounded-xl text-sm font-bold"
-                style={{ background: 'rgba(240,180,41,0.2)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                Gerai
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
+        {game?.pendingReveal && renderPickScene({
+          key: 'reveal',
+          title: game.pendingReveal.title,
+          text: t('battle.game.deckTopText'),
+          items: game.pendingReveal.cards.map((c, i2) => ({
+            key: c.uid + '-rv-' + i2, card: c,
+            badge: <span className="absolute -top-1.5 -left-1.5 z-10 text-[10px] px-1.5 rounded-full font-bold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>{i2 + 1}</span>,
+          })),
+          mode: 'view',
+          confirm: { label: t('battle.game.great'), onClick: () => doAction({ t: 'clearReveal' }) },
+        })}
       </AnimatePresence>
 
       {/* ── peržiūrėk N → pasirink K išmesti (peekDiscard) ── */}
@@ -5311,48 +5296,21 @@ doAction({ t: 'endTurn', actor: 'you' })
           )
         })()}
 
-        {game?.pendingPeek && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
-              className="combat-plate p-4 w-[min(560px,94vw)] max-h-[86vh] overflow-y-auto text-center">
-              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
-                {t('battle.game.peekTitle')}
-              </p>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-                {t('battle.game.peekMark', { choose: game.pendingPeek.choose, picked: peekSel.length })}
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center mb-4">
-                {game.pendingPeek.cards.map((c) => {
-                  const sel = peekSel.includes(c.uid)
-                  const full = peekSel.length >= game!.pendingPeek!.choose
-                  return (
-                    <button key={c.uid} {...holdPreview(c)} onClick={() => {
-                      playUiClick()
-                      setPeekSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : (q.length >= game!.pendingPeek!.choose ? q : [...q, c.uid]))
-                    }}
-                      className="relative transition-transform"
-                      style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined, opacity: !sel && full ? 0.5 : 1 }}
-                      title={c.name}>
-                      <div style={{ outline: sel ? '2px solid #ef4444' : '2px solid transparent', borderRadius: 10 }}>
-                        <MiniCard c={c} w={isTouch ? 64 : 78} />
-                      </div>
-                      {sel && <span className="absolute -top-2 -right-2 text-xs px-1.5 rounded-full font-bold" style={{ background: '#ef4444', color: '#fff' }}>✕</span>}
-                    </button>
-                  )
-                })}
-              </div>
-              <button
-                disabled={peekSel.length !== game.pendingPeek.choose}
-                onClick={() => { playSuccess(); const sel = peekSel; setPeekSel([]); doAction({ t: 'resolvePeek', uids: sel }) }}
-                className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                style={{ background: 'rgba(240,180,41,0.22)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                {t('battle.game.peekBtn')}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
+        {game?.pendingPeek && renderPickScene({
+          key: 'peek',
+          title: t('battle.game.peekTitle'),
+          text: t('battle.game.peekMark', { choose: game.pendingPeek.choose, picked: peekSel.length }),
+          items: game.pendingPeek.cards.map((c) => ({ key: c.uid, card: c })),
+          mode: 'discard',
+          picked: peekSel,
+          maxPick: game.pendingPeek.choose,
+          onToggle: (k) => setPeekSel((q) => q.includes(k) ? q.filter((x) => x !== k) : (q.length >= game!.pendingPeek!.choose ? q : [...q, k])),
+          confirm: {
+            label: t('battle.game.peekBtn'),
+            disabled: peekSel.length !== game.pendingPeek.choose,
+            onClick: () => { playSuccess(); const sel = peekSel; setPeekSel([]); doAction({ t: 'resolvePeek', uids: sel }) },
+          },
+        })}
       </AnimatePresence>
 
       {/* ── kapinyno (ar kitos pilės) peržiūra – hover (PC) / palaikius pirštą (mobile) ── */}
