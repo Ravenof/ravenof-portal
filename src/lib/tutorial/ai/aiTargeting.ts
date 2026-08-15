@@ -5,6 +5,7 @@ import { P, effectiveAtk } from '../engine'
 import type { AiWeights, ScoredTarget } from './aiTypes'
 import { unitValue, unitThreatBonus, type CardAnalysis } from './aiCardRole'
 import { evaluateBoardThreat, hasLethalThisTurn } from './aiThreatEvaluation'
+import { reverseLethalRisk } from './aiHardPlanner'
 
 /** Hipotetinis trade'o įvertinimas duotomis puolėjo statomis prieš gynėją. */
 export function scoreTradeStats(
@@ -34,6 +35,9 @@ export function faceScore(g: GameState, w: AiWeights): number {
   if (foe.hp <= 15) s += (15 - foe.hp)
   s -= evaluateBoardThreat(g, 'you') * 0.8
   if (!foe.units.some((u) => u)) s += 3
+  // goodPlayer REVERSE LETHAL: jei kitą ėjimą pats galiu žūti, o savo lethal
+  // neturiu – nelenktyniaujam į veidą; verčiau blokeris/gydymas/removal.
+  if (w.goodPlayer && reverseLethalRisk(g).lethalNext) s -= 6
   return s
 }
 
@@ -48,6 +52,23 @@ export function scoreAttack(g: GameState, attacker: BoardUnit, target: TargetRef
   if (!def) return -999
   let s = scoreTradeStats(g, { atk: effectiveAtk(g, attacker), hp: attacker.hp, shield: attacker.shield }, def)
   if (w.goodPlayer) {
+    // Reverse lethal: numušti DIDŽIAUSIĄ priešo puolėją, kai kitą ėjimą gresia mirtis
+    const rl = reverseLethalRisk(g)
+    if (rl.lethalNext && !def.shield && effectiveAtk(g, attacker) >= def.hp) {
+      const topAtk = Math.max(...P(g, 'you').units.map((x) => x && !x.isChampion ? effectiveAtk(g, x) : 0))
+      if (!def.isChampion && effectiveAtk(g, def) >= topAtk && topAtk > 0) s += 3
+    }
+    // Reaction read: kol priešas turi užverstų reakcijų – „ištestuok" jas PIGIU
+    // padaru (spąstai suveiks ant mažos vertės), brangų puolėją saugok.
+    const foeReactions = P(g, 'you').reactions.filter((r) => !!r).length
+    const myReady = P(g, 'ai').units.filter((x) => !!x && !x.isChampion && x.attacksUsed === 0).length
+    if (foeReactions > 0 && myReady >= 2) {
+      const myVal = unitValue(g, attacker)
+      if (myVal <= 7) s += 1
+      else if (myVal >= 10) s -= 1
+    }
+    // Continuous efekto nešėjas – atakomis šalinamas pirmiau
+    if (def.card.gameplay?.passiveAura && !def.statuses.silenced) s += 1.5
     // „Geras žaidėjas": neutralizuotas (frozen/stunned) priešas VIS TIEK praleis
     // ėjimą – pirmiausia žudom AKTYVIAS grėsmes; bet frozen neatsikerta, tad jei
     // vis tiek verta pulti, trade saugus (+1). Čempionas gynyboje daro 0 žalos
@@ -80,9 +101,13 @@ function scoreDamageOnUnit(g: GameState, dmg: number, def: BoardUnit, w: AiWeigh
     if (dmg >= 4 && enemyVal < w.removalMinValue) s -= 3
     // mažas overkill baudimas
     s -= Math.max(0, dmg - def.hp) * 0.2
+    // goodPlayer KILL CONFIRMATION: užbaigti jau sužeistą – neleisti heal value
+    if (w.goodPlayer && def.hp < def.maxHp) s += 1.5
     return s
   }
-  return (dmg / def.hp) * enemyVal * 0.35 * w.spellWasteGuard - 0.5
+  // goodPlayer: dalinė žala be tikslo – „botiškas" žalos mėtymas, baudžiam papildomai
+  const partial = (dmg / def.hp) * enemyVal * 0.35 * w.spellWasteGuard - 0.5
+  return w.goodPlayer ? partial - 1 : partial
 }
 
 /** Geriausias žalos burto taikinys (padaras arba veidas), arba skip (score<=0). */
@@ -120,6 +145,13 @@ export function pickThreatTarget(g: GameState, w: AiWeights, isDestroy: boolean,
       if (dms.some((m) => m.trigger === 'onTurnStart' || m.trigger === 'onTurnEnd' || m.trigger.startsWith('onAny'))) val += 2
     }
     if (isDestroy && val < w.removalMinValue) continue // hard: laikyk removal vertingiems
+    // goodPlayer REMOVAL BIUDŽETAS: jei taikinį galima nuimti PAPRASTU pelningu
+    // trade'u (mūsų padaras nužudo ir išgyvena) – premium removal taupomas.
+    if (w.goodPlayer && isDestroy && !def.shield) {
+      const cheapTrade = P(g, 'ai').units.some((u) => u && !u.isChampion && u.attacksUsed === 0
+        && effectiveAtk(g, u) >= def.hp && (def.statuses.frozen || effectiveAtk(g, def) < u.hp))
+      if (cheapTrade) val -= 4
+    }
     if (val > best.score) best = { target: { kind: 'unit', side: 'you', uid: def.uid }, score: val, reason: isDestroy ? `removal ant „${def.card.name}"` : `kontrolė ant „${def.card.name}"` }
   }
   if (best.score <= 0 || !isFinite(best.score)) return { target: undefined, score: -Infinity, reason: 'nėra verto taikinio' }

@@ -147,5 +147,114 @@ console.log('◆ Continuous efektų prioritizacija (hard)')
   check('kontrolė/removal PIRMIAUSIA ant continuous efekto nešėjo', t.target?.kind === 'unit' && (t.target as { uid: string }).uid === 'au1', JSON.stringify(t.target))
 }
 
+// ── Hard planner (commit603): lethal solver, reverse lethal, bait, biudžetai ──
+import { computeGuaranteedLethal, pessimisticZmkTotal, reverseLethalRisk } from '../src/lib/tutorial/ai/aiHardPlanner'
+import { decideAiTurn } from '../src/lib/tutorial/ai/aiEngine'
+import { faceScore } from '../src/lib/tutorial/ai/aiTargeting'
+
+const ZMK_X0 = [
+  { id: 'z0', name: '+0', description: null, value: '+0' as const, count: 18, mode: 'auto' as const, image_url: null, active: true, sort_order: 1 },
+  { id: 'zx', name: 'x0', description: null, value: 'x0' as const, count: 1, mode: 'auto' as const, image_url: null, active: true, sort_order: 2 },
+  { id: 'zm', name: '-2', description: null, value: '-2' as const, count: 1, mode: 'auto' as const, image_url: null, active: true, sort_order: 3 },
+]
+
+console.log('◆ Lethal solver (pesimistinis)')
+{
+  const g = freshGame()
+  g.you.hp = 7
+  P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Kirvis', uid: 'lk1', attack: 4 }), 5)
+  P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Durklas', uid: 'lk2', attack: 3 }), 4)
+  const plan = computeGuaranteedLethal(g)
+  check('7 HP vs 4+3 su +0 kalade – lethal garantuotas', plan.lethal, JSON.stringify(plan))
+  const ranked = decideAiTurn(g, { difficulty: 'hard', weights: { jitter: -1 } })
+  check('veido atakos gauna lethal boost (>8000)', ranked[0].score > 7000 && ranked[0].descriptor.type === 'attack', `top=${ranked[0]?.reason} ${ranked[0]?.score.toFixed(0)}`)
+}
+{
+  // Pesimizmas: su x0 ir -2 kaladeje 7 HP vs 4+3 NEBEgarantuota (4->0, 3->1)
+  const g = createGame(filler(15, 'Y'), filler(15, 'A'), 'ai', { zmkDefs: ZMK_X0 as never })
+  beginTurn(g)
+  g.you.hp = 7
+  P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Kirvis', uid: 'lk3', attack: 4 }), 5)
+  P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Durklas', uid: 'lk4', attack: 3 }), 4)
+  const plan = computeGuaranteedLethal(g)
+  check('su x0/-2 kaladėje 7 HP NEgarantuota (pesimizmas)', !plan.lethal, `guaranteed=${plan.guaranteed}`)
+  check('pessimisticZmkTotal([4,3]) = 1 (x0 didžiausiam, -2 kitam)', pessimisticZmkTotal(g, [4, 3]) === 1, String(pessimisticZmkTotal(g, [4, 3])))
+}
+{
+  // Lethal su buff enableriu: 8 HP, ataka 4 + buff +4 -> 8
+  const g = freshGame()
+  g.you.hp = 8
+  P(g, 'ai').gold = 500
+  P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Vienas', uid: 'lb1', attack: 4 }), 5)
+  P(g, 'ai').hand.push(mkCard({ name: 'Galia', uid: 'lb2', type: 'spell', gold: 200, mappings: [{ trigger: 'onCast', effect: 'buffAttack', target: 'ownUnit', value: 4, triggersZmk: false } as EffectMapping] }))
+  const plan = computeGuaranteedLethal(g)
+  check('lethal per buff enablerį (4+4=8)', plan.lethal && plan.needsBuff, JSON.stringify(plan))
+  const ranked = decideAiTurn(g, { difficulty: 'hard', weights: { jitter: -1 } })
+  const top = ranked[0]
+  check('buff\'as rikiuojasi PIRMAS (prieš ataką)', top.descriptor.type === 'play' && top.reason.includes('lethal: buff'), `top=${top?.reason}`)
+}
+{
+  // Taunt clear kelias: taunt 2 HP, likes puolejas i veida
+  const g = freshGame()
+  g.you.hp = 5
+  P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Mazas', uid: 'lt1', attack: 3 }), 3)
+  P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Didelis', uid: 'lt2', attack: 6 }), 6)
+  P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Uztvara', uid: 'lt3', attack: 1, keywords: ['taunt'] as never }), 2)
+  const plan = computeGuaranteedLethal(g)
+  check('lethal per taunt clear (mažas nuima taunt, didelis į veidą)', plan.lethal && plan.tauntClear, JSON.stringify(plan))
+}
+
+console.log('◆ Reverse lethal (threat range)')
+{
+  const g = freshGame()
+  P(g, 'ai').hp = 8
+  P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Zudikas', uid: 'rv1', attack: 9 }), 8)
+  const rl = reverseLethalRisk(g)
+  check('kitą ėjimą gresia mirtis – atpažinta', rl.lethalNext, `incoming=${rl.incoming}`)
+  const fsHard = faceScore(g, W_HARD)
+  const fsNorm = faceScore(g, W_NORM)
+  check('hard nelenktyniauja į veidą (baudžiama)', fsHard < fsNorm, `hard=${fsHard.toFixed(1)} norm=${fsNorm.toFixed(1)}`)
+  // frozen priešas neskaičiuojamas į incoming
+  P(g, 'you').units[0]!.statuses.frozen = 9999
+  check('frozen puolėjas į threat range neskaičiuojamas', !reverseLethalRisk(g).lethalNext, `incoming=${reverseLethalRisk(g).incoming}`)
+}
+
+console.log('◆ Reaction bait')
+{
+  const g = freshGame()
+  P(g, 'you').reactions[0] = { uid: 'rx1', card: mkCard({ name: 'Spastai', uid: 'rx1', type: 'reaction' }), paid: 0 }
+  const pigus = mkUnit(mkCard({ name: 'Pigus', uid: 'ba1', attack: 2 }), 2)
+  const brangus = mkUnit(mkCard({ name: 'Brangus', uid: 'ba2', attack: 6 }), 7)
+  P(g, 'ai').units[0] = pigus
+  P(g, 'ai').units[1] = brangus
+  P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Gyneja', uid: 'ba3', attack: 2 }), 8)
+  const sPigus = scoreAttack(g, pigus, { kind: 'unit', side: 'you', uid: 'ba3' }, W_HARD)
+  const sPigusNoReact = (() => { const r = P(g, 'you').reactions[0]; P(g, 'you').reactions[0] = null; const v = scoreAttack(g, pigus, { kind: 'unit', side: 'you', uid: 'ba3' }, W_HARD); P(g, 'you').reactions[0] = r; return v })()
+  check('pigus padaras „testuoja" reakciją (bonusas kai reakcija padėta)', sPigus > sPigusNoReact, `su=${sPigus.toFixed(1)} be=${sPigusNoReact.toFixed(1)}`)
+  // brangiausias burtas laikomas, kol yra pigesnis
+  P(g, 'ai').gold = 1000
+  const brangusBurtas = mkCard({ name: 'Sunaikinimas', uid: 'bb1', type: 'spell', gold: 500, mappings: [{ trigger: 'onCast', effect: 'damage', target: 'enemyUnit', value: 5, triggersZmk: false } as EffectMapping] })
+  P(g, 'ai').hand.push(mkCard({ name: 'Pigus burtas', uid: 'bb2', type: 'spell', gold: 100, mappings: [{ trigger: 'onCast', effect: 'damage', target: 'enemyUnit', value: 1, triggersZmk: false } as EffectMapping] }))
+  const scBrangus = scorePlayCard(g, brangusBurtas, W_HARD, false).score
+  P(g, 'you').reactions[0] = null
+  const scBrangusNoReact = scorePlayCard(g, brangusBurtas, W_HARD, false).score
+  check('brangiausias burtas pridengiamas kol reakcija ant stalo', scBrangus < scBrangusNoReact, `su=${scBrangus.toFixed(1)} be=${scBrangusNoReact.toFixed(1)}`)
+}
+
+console.log('◆ Kill confirmation + removal biudžetas')
+{
+  const g = freshGame()
+  P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Sveikas5', uid: 'kc1', attack: 3 }), 5)
+  P(g, 'you').units[1] = mkUnit(mkCard({ name: 'Suzeistas', uid: 'kc2', attack: 3, health: 5 }), 3)
+  const dmg3 = mkCard({ name: 'Strele', uid: 'kc3', type: 'spell', mappings: [{ trigger: 'onCast', effect: 'damage', target: 'enemyUnit', value: 3, triggersZmk: false } as EffectMapping] })
+  const res = scorePlayCard(g, dmg3, W_HARD, false)
+  check('žala UŽBAIGIA sužeistą (kill confirmation), ne mėto ant sveiko', (res.opts?.target as { uid?: string } | undefined)?.uid === 'kc2', JSON.stringify(res.opts))
+  // removal biudžetas: destroy ant taikinio, kuri nuima paprastas trade
+  P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Trade padaras', uid: 'kc4', attack: 6 }), 8)
+  const t1 = pickThreatTarget(g, W_HARD, true)
+  const noTrade = (() => { P(g, 'ai').units[0] = null; const v = pickThreatTarget(g, W_HARD, true); return v })()
+  check('premium removal taupomas kai yra pelningas trade', (t1.score < noTrade.score) || !t1.target, `su trade=${t1.score.toFixed(1)} be=${noTrade.score.toFixed(1)}`)
+}
+
 console.log(`\n${pass} ✓ / ${fail} ✗`)
 process.exit(fail ? 1 : 0)

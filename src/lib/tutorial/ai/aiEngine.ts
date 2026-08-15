@@ -10,6 +10,8 @@ import { DIFFICULTY_WEIGHTS, mergeWeights, aiLog } from './aiTypes'
 import { generateLegalActions, type ScoredAction } from './aiActions'
 import { planFocusFire } from './aiFocusFire'
 import { hasLethalThisTurn, evaluateSurvivalRisk, evaluateBoardThreat } from './aiThreatEvaluation'
+import { computeGuaranteedLethal } from './aiHardPlanner'
+import { analyzeCard } from './aiCardRole'
 
 export type { AiAction, AiDifficulty }
 
@@ -25,9 +27,30 @@ function resolveDifficulty(opts?: { difficulty?: AiDifficulty }): AiDifficulty {
 /** Įvertina visus veiksmus ir grąžina rūšiuotą sąrašą (su jitter). Testavimui/debug. */
 export function decideAiTurn(g: GameState, opts?: { difficulty?: AiDifficulty; weights?: AiWeightDelta }): ScoredAction[] {
   const w = mergeWeights(DIFFICULTY_WEIGHTS[resolveDifficulty(opts)], opts?.weights)
-  const actions = generateLegalActions(g, w)
+  // goodPlayer LETHAL SOLVER: pesimistinis (blogiausio ŽMK) planas su enableriais.
+  // Jei lethal garantuotas – plano žingsniai gauna deterministinius boost'us
+  // TEISINGA tvarka: buff (8500) → taunt clear (7000; veido atakos atsiranda tik
+  // taunt'ams žuvus) → veidas/burn (8000+). Greedy ciklas po kiekvieno veiksmo
+  // perskaičiuoja, tad blogas ŽMK ridenimas planą adaptuoja, o ne sulaužo.
+  const plan = w.goodPlayer ? computeGuaranteedLethal(g) : null
+  const actions = generateLegalActions(g, w, plan?.lethal ?? false)
+  if (plan?.lethal) {
+    for (const a of actions) {
+      const d = a.descriptor
+      if (d.type === 'attack' && d.target.kind === 'player') { a.score += 8000; a.reason += ' [lethal planas]' }
+      else if (d.type === 'attack' && plan.tauntClear && d.target.kind === 'unit') {
+        const def = P(g, 'you').units.find((x) => x?.uid === (d.target as { uid: string }).uid)
+        if (def && !def.statuses.silenced && (def.card.keywords.includes('taunt') || !!def.auraKw?.includes('taunt'))) { a.score += 7000; a.reason += ' [lethal: taunt clear]' }
+      } else if (d.type === 'play' && plan.needsBuff) {
+        const c = P(g, 'ai').hand.find((x) => x.uid === d.uid)
+        if (c && c.type === 'spell' && analyzeCard(c).buffAtk > 0) { a.score += 8500; a.reason += ' [lethal: buff pirma]' }
+      }
+    }
+  }
   // Focus-fire planavimas (cumulative damage) – nebent jau turim lethal į veidą.
-  if (!hasLethalThisTurn(g)) actions.push(...planFocusFire(g, w))
+  if (!hasLethalThisTurn(g) && !plan?.lethal) actions.push(...planFocusFire(g, w))
+  // Kontroliuojama variacija: lethal/dideli sprendimai deterministiniai (jitter
+  // jų nepajudina), tik artimi kasdieniai pasirinkimai gauna mažą atsitiktinumą.
   for (const a of actions) a.score += Math.random() * w.jitter
   actions.sort((x, y) => y.score - x.score)
   return actions

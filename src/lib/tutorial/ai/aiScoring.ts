@@ -90,19 +90,43 @@ export function scorePlayCard(g: GameState, card: TutCard, w: AiWeights, lethal:
           else return { score: score - 4, reason: `laikom „${card.name}" burst'ui (žalos burtų rankoje: ${burst})`, opts }
         }
       }
+      // goodPlayer OVEREXTENSION: aiškiai pirmaujant lentoje nekraunam visos
+      // rankos – 1-2 kortos lieka atsistatymui po galimo priešo AoE.
+      if (w.goodPlayer) {
+        const my = me.units.filter((u) => !!u && !u.isChampion)
+        const foeU = P(g, 'you').units.filter((u) => !!u && !u.isChampion)
+        const myAtk = my.reduce((t, u) => t + effectiveAtk(g, u!), 0)
+        const foeAtk = foeU.reduce((t, u) => t + effectiveAtk(g, u!), 0)
+        if (my.length >= foeU.length + 2 && myAtk >= foeAtk + 4 && me.hand.length <= 6) {
+          score -= 3
+        }
+      }
       return { score, reason: `žaisti padarą „${card.name}" (tempo ${tempo})`, opts }
     }
     case 'spell': {
+      // goodPlayer REACTION BAIT: kol priešas turi užverstų reakcijų, BRANGIAUSIAS
+      // žalos/removal burtas pridengiamas – pirma „ištestuojama" pigesniu burtu
+      // ar pigia ataka (DI nemato kortos, vertina tik tikimybę prarasti value).
+      let baitPenalty = 0
+      if (w.goodPlayer && (a.dmgEnemy > 0 || a.destroy)) {
+        const foeReactions = P(g, 'you').reactions.filter((r) => !!r).length
+        if (foeReactions > 0) {
+          const spellsInHand = me.hand.filter((c) => c.type === 'spell' && c.uid !== card.uid)
+          const cheaperExists = spellsInHand.some((c) => c.gold < card.gold)
+          const priciest = spellsInHand.every((c) => c.gold <= card.gold)
+          if (priciest && cheaperExists && card.gold >= 300) baitPenalty = 2
+        }
+      }
       if (a.isAoE && a.aoeDmg > 0) return tagReason(evaluateAoEValue(g, a.aoeDmg, w), card)
       if (a.dmgEnemy > 0) {
         const t = pickDamageTarget(g, a.dmgEnemy, a.targetsEnemyUnit, a.canHitFace, w, lethal)
         if (!t.target) return { ...SKIP, reason: `„${card.name}": ${t.reason}` }
-        return { score: t.score, reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
+        return { score: t.score - (lethal ? 0 : baitPenalty), reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
       }
       if (a.destroy) {
         const t = pickThreatTarget(g, w, true)
         if (!t.target) return { ...SKIP, reason: `„${card.name}": ${t.reason}` }
-        return { score: t.score + 1, reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
+        return { score: t.score + 1 - (lethal ? 0 : baitPenalty), reason: `„${card.name}": ${t.reason}`, opts: { target: t.target } }
       }
       if (a.status) {
         const t = pickThreatTarget(g, w, false, { skipNeutralized: w.goodPlayer && a.freezeStun })

@@ -16,10 +16,10 @@ export type ActionDescriptor =
 export type ScoredAction = { descriptor: ActionDescriptor; score: number; reason: string }
 
 /** Sugeneruoja visus legalius AI veiksmus su įvertinimu. */
-export function generateLegalActions(g: GameState, w: AiWeights): ScoredAction[] {
+export function generateLegalActions(g: GameState, w: AiWeights, lethalHint = false): ScoredAction[] {
   const me = P(g, 'ai')
   const out: ScoredAction[] = []
-  const lethal = hasLethalThisTurn(g)
+  const lethal = hasLethalThisTurn(g) || lethalHint
 
   // 1) Čempiono gebėjimas
   const champ = me.units.find((u) => u?.isChampion && !u.abilityUsed && !u.statuses.silenced && !u.statuses.frozen && !u.statuses.stunned)
