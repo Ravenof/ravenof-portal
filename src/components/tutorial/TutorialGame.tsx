@@ -2351,7 +2351,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         const MAX_CHAINS = 6   // daugiau grandinių vienu metu tampa vizualiu triukšmu
         const chainTargets = refs.slice(0, MAX_CHAINS).map((tr) => {
           const box = boxFor(tr)
-          if (box) return { x: box.x, y: box.y, w: box.w, h: box.h }
+          // `track` – gyvos pozicijos getter'is: ką tik iškviesta korta dar
+          // „nusileidžia" (entrance spring), tad vienkartinis matavimas pataiko
+          // į tarpinę poziciją ir outline nepataiko ant kortos. Sluoksnis
+          // persimatuoja kiekvieną kadrą (žr. ReactionChainLayer).
+          if (box) return { x: box.x, y: box.y, w: box.w, h: box.h, track: () => boxFor(tr) }
           const zone = selBox(`[data-tut="units-${tr.side}"]`)
           const c = zone ?? fxCenter()
           return { x: c.x, y: c.y }   // dydžio neduodam → sluoksnis ima kortos etaloną

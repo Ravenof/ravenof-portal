@@ -320,7 +320,18 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       // cleanse su pozityvų dispel'u (shield/taunt/stealth/sprint/blessed) — 'harm' intent (auto renkasi PRIEŠO padarą)
       const intent = m.effect === 'cleanse' && (m.cleanseStatuses ?? []).some((s) => ['shield', 'taunt', 'stealth', 'sprint', 'blessed'].includes(s))
         ? 'harm' : effectIntent(m.effect)
-      if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
+      // Reakcija: VIENO taikinio efektas be rankinio pasirinkimo pirmiausia
+      // taikomas trigerio šaltiniui – kortai, kurios veiksmas suaktyvino
+      // reakciją – jei ji priklauso šio mapping'o taikinių aibei po filtrų
+      // (tipas, pusė, targetTypes, subtype/faction/status). Netinka (žuvo,
+      // kita pusė, kitas tipas) – įprastas auto-pick. AoE, hitCount>1,
+      // targetSelect ir allowRandomTarget elgesio nekeičia. ctx.triggerSource
+      // užpildomas TIK reakcijų kelyje (fireGlobalListeners), tad padarų
+      // globalūs onAny* mapping'ai lieka kaip buvę.
+      const trigSrc = ctx.triggerSource
+      if (trigSrc && n === 1 && !m.targetSelect && !m.allowRandomTarget && triggerSourceStillValid(g, trigSrc) && inAll(trigSrc)) {
+        targets = [trigSrc]
+      } else if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
       else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
     }
   }

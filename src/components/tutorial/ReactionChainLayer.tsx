@@ -33,8 +33,11 @@ import {
 export type ReactionChainVariant = 'shadow' | 'infernal'
 export type ReactionChainPhase = 'detect' | 'chain' | 'wrap' | 'showcase' | 'effect'
 
-/** Vienas grandinės taikinys – kortos/avataro centras ir (nebūtinai) dydis. */
-export type ReactionChainTarget = { x: number; y: number; w?: number; h?: number }
+/** Vienas grandinės taikinys – kortos/avataro centras ir (nebūtinai) dydis.
+ *  `track` – gyvos pozicijos getter'is: kortos dar juda (framer-motion entrance
+ *  spring, board shake), tad apsivijimas ir outline kiekvieną kadrą persimatuoja
+ *  iš tikro DOM rect'o, o ne iš vienkartinio snapshot'o. */
+export type ReactionChainTarget = { x: number; y: number; w?: number; h?: number; track?: () => { x: number; y: number; w?: number; h?: number } | null }
 
 export type ReactionChainPlayOpts = {
   /** Reakcijos kortos centras (viewport CSS px). */
@@ -67,6 +70,10 @@ type Particle = { x: number; y: number; vx: number; vy: number; life: number; dk
 type Strand = {
   to: { x: number; y: number }
   size: { w: number; h: number }
+  from: { x: number; y: number }
+  idx: number
+  count: number
+  track?: () => { x: number; y: number; w?: number; h?: number } | null
   stagger: number
   lut: { x: number; y: number; s: number }[]
   shattered: boolean
@@ -118,6 +125,15 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
       px = x; py = y
     }
     return lut
+  }
+  const ctrlFor = (from: { x: number; y: number }, to: { x: number; y: number }, idx: number, count: number) => {
+    const dx = to.x - from.x, dy = to.y - from.y
+    const L = Math.max(1, Math.hypot(dx, dy))
+    let nx = -dy / L, ny = dx / L
+    if (nx < 0) { nx = -nx; ny = -ny }                    // lankas visada į ekrano vidų
+    const bowBase = Math.min(120, L * 0.42)
+    const bow = count > 1 ? bowBase * (0.6 + 0.5 * ((idx % 3) / 2)) : bowBase
+    return { x: (from.x + to.x) / 2 + nx * bow, y: (from.y + to.y) / 2 + ny * bow }
   }
   const ptAt = (lut: Strand['lut'], fr: number) => {
     const S = lut[LUT_N].s * clamp(fr, 0, 1)
@@ -225,6 +241,21 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
         for (const st of run.strands) {
           const tl = t - st.stagger
           if (tl < 0) continue
+          // Gyvas taikinio sekimas: korta gali dar judėti (entrance spring,
+          // board shake) – apsivijimas, outline ir sudužimo centras persimatuojami
+          // kiekvieną kadrą; nutolus >0.5 px perstatoma ir skrydžio trajektorija.
+          if (st.track && !st.shattered) {
+            const live = st.track()
+            if (live) {
+              const nw = clamp(live.w ?? st.size.w, MIN_W, MAX_W)
+              const nh = clamp(live.h ?? st.size.h, MIN_H, MAX_H)
+              if (Math.abs(live.x - st.to.x) > 0.5 || Math.abs(live.y - st.to.y) > 0.5 || Math.abs(nw - st.size.w) > 0.5 || Math.abs(nh - st.size.h) > 0.5) {
+                st.to = { x: live.x, y: live.y }
+                st.size = { w: nw, h: nh }
+                st.lut = buildLut(st.from, st.to, ctrlFor(st.from, st.to, st.idx, st.count))
+              }
+            }
+          }
           const bChain = F.detect
           const bWrap = F.detect + chainDur
           const bEffect = bWrap + wrapDur + F.showcase
@@ -338,18 +369,12 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
           w: clamp(tg.w ?? 70, MIN_W, MAX_W),
           h: clamp(tg.h ?? 96, MIN_H, MAX_H),
         }
-        const dx = tg.x - o.from.x, dy = tg.y - o.from.y
-        const L = Math.max(1, Math.hypot(dx, dy))
-        let nx = -dy / L, ny = dx / L
-        if (nx < 0) { nx = -nx; ny = -ny }                    // lankas visada į ekrano vidų
-        // kelių grandinių lankai skiriasi, kad nesusilietų į vieną „kamuolį"
-        const bowBase = Math.min(120, L * 0.42)
-        const bow = targets.length > 1 ? bowBase * (0.6 + 0.5 * ((i % 3) / 2)) : bowBase
-        const ctrl = { x: (o.from.x + tg.x) / 2 + nx * bow, y: (o.from.y + tg.y) / 2 + ny * bow }
+        const to = { x: tg.x, y: tg.y }
         return {
-          to: { x: tg.x, y: tg.y }, size,
+          to, size,
+          from: { x: o.from.x, y: o.from.y }, idx: i, count: targets.length, track: tg.track,
           stagger: Math.min(i * STAGGER_MS, STAGGER_MAX_MS),
-          lut: buildLut(o.from, { x: tg.x, y: tg.y }, ctrl),
+          lut: buildLut(o.from, to, ctrlFor(o.from, to, i, targets.length)),
           shattered: false,
         }
       })

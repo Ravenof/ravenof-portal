@@ -177,7 +177,10 @@ console.log('\n── 6. Reakcija: taikinys = TIKSLIAI trigerį sukėlusi korta 
   check('log turi grandinės taikinį (tgt.uid)', rt?.tgt?.uid === 'dvynys-B', JSON.stringify(rt?.tgt))
 }
 
-console.log('\n── 7. Reakcija BE naujos vėliavos elgiasi kaip anksčiau ──')
+console.log('\n── 7. Reakcija BE vėliavos: vieno taikinio efektas KRENTA ant trigerio šaltinio ──')
+// (kanonas pakeistas 2026-08-15 user request: single-target reakcija be
+//  useTriggerSource irgi taikosi į kortą, kuri ją suaktyvino, jei ji
+//  priklauso mapping'o taikinių aibei; kitaip – senas auto-pick.)
 {
   const g = freshGame()
   const p = P(g, 'ai')
@@ -185,7 +188,7 @@ console.log('\n── 7. Reakcija BE naujos vėliavos elgiasi kaip anksčiau ─
     const c = mkCard({ name: 'Karys' + uid, uid, attack: 3, health: hp })
     return { uid, card: c, atk: 3, hp, maxHp: hp, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
   }
-  p.units[0] = mk('silpnas', 2) as never   // auto-taikymas renkasi pagal seną logiką
+  p.units[0] = mk('silpnas', 2) as never   // senas auto-pick būtų rinkęsis šitą (mažiausias HP)
   p.units[1] = mk('puolikas', 9) as never
   const reactCard = mkCard({
     name: 'Sena Reakcija', uid: 'react2', type: 'reaction',
@@ -196,7 +199,33 @@ console.log('\n── 7. Reakcija BE naujos vėliavos elgiasi kaip anksčiau ─
   attack(g, 'ai', 'puolikas', { kind: 'player', side: 'you' })
   const weak = P(g, 'ai').units.find((u) => u?.uid === 'silpnas')
   const atk = P(g, 'ai').units.find((u) => u?.uid === 'puolikas')
-  check('be vėliavos taikinys parenkamas senąja logika (ne trigerio šaltinis)', (atk?.hp ?? 0) === 9 || weak === undefined, `weak=${weak?.hp} atk=${atk?.hp}`)
+  check('žala teko trigerio šaltiniui (puolikui), ne mažiausio HP padarui', (atk?.hp ?? 0) === 7, `weak=${weak?.hp} atk=${atk?.hp}`)
+  check('mažiausio HP padaras nepaliestas', (weak?.hp ?? 0) === 2, `weak=${weak?.hp}`)
+}
+
+console.log('\n── 7b. Šaltinis NE taikinių aibėje → senas auto-pick fallback ──')
+{
+  // Reakcija gydo SAVO padarą (ownUnit) – trigerio šaltinis yra PRIEŠO korta,
+  // tad ji nepriklauso aibei ir taikinys parenkamas senąja auto-pick logika.
+  const g = freshGame()
+  const pAi = P(g, 'ai')
+  const pYou = P(g, 'you')
+  const mk = (uid: string, hp: number, maxHp: number) => {
+    const c = mkCard({ name: 'K' + uid, uid, attack: 3, health: maxHp })
+    return { uid, card: c, atk: 3, hp, maxHp, shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  }
+  pAi.units[0] = mk('priesas', 9, 9) as never
+  pYou.units[0] = mk('sveikas', 6, 6) as never
+  pYou.units[1] = mk('suzeistas', 2, 6) as never   // auto-pick help renkasi labiausiai sužeistą
+  const reactCard = mkCard({
+    name: 'Gydanti Reakcija', uid: 'react3', type: 'reaction',
+    mappings: [{ trigger: 'onAnyAttack', triggerSide: 'enemy', effect: 'heal', target: 'ownUnit', value: 3, triggersZmk: false } as EffectMapping],
+  })
+  pYou.reactions[0] = { uid: 'react3', card: reactCard, paid: 0 }
+  g.active = 'ai'
+  attack(g, 'ai', 'priesas', { kind: 'player', side: 'you' })
+  const wounded = pYou.units.find((u) => u?.uid === 'suzeistas')
+  check('gydymas krito ant labiausiai sužeisto savo padaro (auto-pick)', (wounded?.hp ?? 0) === 5, `hp=${wounded?.hp}`)
 }
 
 console.log('\n── 8. Dingęs trigerio šaltinis: jokio pertaikymo, eilė nesustoja ──')
