@@ -3453,12 +3453,17 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
         {o.confirm && (
           <button onClick={() => { if (!o.confirm!.disabled) o.confirm!.onClick() }} disabled={o.confirm.disabled}
-            className="ravenof-press block" style={{ width: 232, textAlign: 'center',
+            className="ravenof-press block" style={{
+              // Asset tempiasi pagal turinį: tekstas VIENA eilute, mygtukas platėja pats.
+              width: 'auto', minWidth: 240, maxWidth: '92vw', whiteSpace: 'nowrap', textAlign: 'center',
               font: '800 13px var(--ravenof-font-display)', letterSpacing: 3, textTransform: 'uppercase',
-              color: o.confirm.disabled ? '#5e5868' : '#f6e8c6',
-              background: o.confirm.disabled ? 'rgba(30,26,40,0.9)' : "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
-              padding: 13, border: o.confirm.disabled ? '1px solid rgba(120,110,140,0.3)' : 0, borderRadius: o.confirm.disabled ? 8 : 0,
-              cursor: o.confirm.disabled ? 'default' : 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)' }}>
+              color: o.confirm.disabled ? '#8a8494' : '#f6e8c6',
+              // Disabled – TAS PATS asset'as, tik užgesintas (grayscale + pritemdymas).
+              background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
+              filter: o.confirm.disabled ? 'grayscale(1) brightness(0.55)' : 'none',
+              padding: '14px 38px', border: 0,
+              cursor: o.confirm.disabled ? 'default' : 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)',
+              transition: 'filter 0.18s ease' }}>
             {o.confirm.label}
           </button>
         )}
