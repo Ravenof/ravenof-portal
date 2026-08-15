@@ -101,6 +101,14 @@
     "ai": "The opponent has no cards left in their deck.",
     "you": "You have no cards left in your deck."
   },
+  "fatigue": {
+    "ai": "Fatigue! The opponent has no cards left – they take {{n}} damage.",
+    "you": "Fatigue! Your deck is empty – you take {{n}} damage."
+  },
+  "mulligan": {
+    "ai": "The opponent exchanged {{n}} card(s).",
+    "you": "You exchanged {{n}} card(s)."
+  },
   "deckEmptyPeek": "{{victim}} deck is empty – nothing to look at.",
   "deckEmptyReveal": "{{owner}} deck is empty – nothing to reveal.",
   "deckNoDraw": "No suitable card in the deck to draw.",

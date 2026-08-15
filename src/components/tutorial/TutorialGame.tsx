@@ -1047,6 +1047,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [peekSel, setPeekSel] = useState<string[]>([])
   const [arrangeOrder, setArrangeOrder] = useState<string[]>([])
   const [summonSel, setSummonSel] = useState<string[]>([])
+  const [mullSel, setMullSel] = useState<string[]>([])
   // PvP: varžovo profilis + ėjimo laikmatis
   const [oppProfile, setOppProfile] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null; level: number | null; is_public: boolean } | null>(null)
   const [oppDecks, setOppDecks] = useState<{ id: string; name: string }[]>([])
@@ -1149,12 +1150,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const copyBlocks = !!game?.pendingCopy
   const lastwishBlocks = !!game?.pendingLastwish
   const returnBlocks = !!game?.pendingReturn
+  const mulliganBlocks = !!game?.pendingMulligan
   /** Nuoseklių Kovos šūksnio iškvietimų grandinė – žaidėjo veiksmai užrakinti, kol ji baigsis. */
   const chainBlocks = !!game?.summonChain?.length
   /** Reakcijos grandinės animacijos vartai – kol jie atviri, būsena dar neparodyta. */
   const [gateActive, setGateActive] = useState(false)
   /** Bendras įvesties užraktas (pop-up'as, iškvietimų grandinė arba reakcijos vartai). */
-  const actionsLocked = popupBlocks || chainBlocks || gateActive
+  const actionsLocked = popupBlocks || chainBlocks || gateActive || mulliganBlocks
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
   const useHLayout = typeof window === 'undefined' ? true : new URLSearchParams(window.location.search).get('layout') !== 'v'
@@ -1365,14 +1367,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       'you',
-      { zmkDefs, curseCards },
+      { zmkDefs, curseCards, mulligan: !net && !tutorial?.active },
     )
-    beginTurn(g)
+    if (!g.pendingMulligan) beginTurn(g)
     if (tutorial?.active && tutorial.applySetup) { try { tutorial.applySetup(g) } catch (e) { console.error('[tutorial] applySetup', e) } }
     seenRef.current = g.log.length
     setGame(g)
     playShuffle()
-  }, [zmkDefs, curseCards, tutorial])
+  }, [zmkDefs, curseCards, tutorial, net])
 
   // Praktika / PvP host: priešo (svečio) kaladė
   useEffect(() => {
@@ -2857,6 +2859,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (select?.kind === 'discard') {
       doAction({ t: 'discardForGold', actor: 'you', uid: c.uid })
       setSelect(null)
+      if (hMobile) setHandExpanded(false)
       return
     }
     if (select?.kind === 'sacrifice') {
@@ -3721,7 +3724,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     if (!game) return null
     return (
       <button data-tut="discard-gold"
-        onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+        onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
         className="combat-discard-gold inline-flex items-center justify-center gap-1 text-[10px] font-bold whitespace-nowrap"
         data-active={select?.kind === 'discard' ? 'true' : undefined}
         style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -4010,7 +4013,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </button>
                 {goldBar('you')}
                 <button data-tut="discard-gold"
-                  onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+                  onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
                   className="combat-discard-gold text-[10px] font-bold transition-all whitespace-nowrap"
                   data-active={select?.kind === 'discard' ? 'true' : undefined}
                   style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -4185,7 +4188,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
             <aside className="rounded-xl p-3 flex flex-col items-center justify-center gap-2" style={{ ...RAIL_PANEL, gridArea: 'command' }}>
               <div className="self-center">{goldBar('you')}</div>
-              <button onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); setSelect(select?.kind === 'discard' ? null : { kind: 'discard' }) }}
+              <button onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
                 className="combat-discard-gold w-full text-[11px] font-bold whitespace-nowrap" data-active={select?.kind === 'discard' ? 'true' : undefined} style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }} title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
               <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
                 className="w-full px-4 py-3.5 rounded-xl text-base font-extrabold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 whitespace-nowrap"
@@ -4910,6 +4913,45 @@ doAction({ t: 'endTurn', actor: 'you' })
                   </div>
                 </>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {game?.pendingMulligan?.you && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[133] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="combat-plate p-4 w-[min(580px,94vw)] max-h-[86vh] overflow-y-auto text-center">
+              <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.mulliganTitle')}</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.mulliganText')}</p>
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                {game.you.hand.map((c) => {
+                  const sel = mullSel.includes(c.uid)
+                  return (
+                    <button key={c.uid} {...holdPreview(c)} onClick={() => { playUiClick(); setMullSel((q) => q.includes(c.uid) ? q.filter((x) => x !== c.uid) : [...q, c.uid]) }}
+                      className="relative transition-transform" style={{ transform: sel ? 'translateY(-6px) scale(1.04)' : undefined }} title={c.name}>
+                      <div style={{ outline: sel ? '2px solid #ef4444' : '2px solid transparent', borderRadius: 10 }}>
+                        <MiniCard c={c} w={isTouch ? 60 : 74} />
+                      </div>
+                      {sel && <span className="absolute -top-2 -right-2 text-xs px-1.5 rounded-full font-bold" style={{ background: '#ef4444', color: '#fff' }}>✕</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <button onClick={() => { playSuccess(); const sel = mullSel; setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: sel }) }}
+                  disabled={mullSel.length === 0}
+                  className="px-5 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
+                  {t('battle.game.mulliganSwap', { n: mullSel.length })}
+                </button>
+                <button onClick={() => { playUiClick(); setMullSel([]); doAction({ t: 'mulligan', actor: 'you', uids: [] }) }}
+                  className="px-5 py-2 rounded-xl text-sm font-bold transition-all"
+                  style={{ background: 'rgba(34,197,94,0.22)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac', fontFamily: 'var(--rvn-font-display)' }}>
+                  {t('battle.game.mulliganKeep')}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

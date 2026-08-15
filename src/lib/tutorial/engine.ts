@@ -121,6 +121,8 @@ export type ReactionSlot = { uid: string; card: TutCard; paid: number }
 export type ZmkValue = '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'
 
 export type PlayerState = {
+  /** Nuovargis: kiek kartu bandyta traukti is tuscios kalades (zala 1, 2, 3, ...) */
+  fatigue?: number
   side: Side
   hp: number
   maxHp: number
@@ -160,7 +162,7 @@ export type PlayerState = {
 }
 
 export type GameEventType =
-  | 'start' | 'startTurn' | 'draw' | 'gold' | 'handBurn' | 'deckEmpty'
+  | 'start' | 'startTurn' | 'draw' | 'gold' | 'handBurn' | 'deckEmpty' | 'fatigue' | 'mulligan'
   | 'play' | 'battlecry' | 'spell' | 'artifact' | 'reactionSet' | 'field' | 'returnHand'
   | 'attack' | 'zmk' | 'zmkReshuffle' | 'damage' | 'heal' | 'death' | 'lastwish'
   | 'status' | 'buff' | 'discardGold' | 'endTurn' | 'win'
@@ -247,6 +249,8 @@ export type GameState = {
   pendingReveal?: PendingReveal | null
   /** Laukiantis iškvietimo pasirinkimas (žaidėjas renkasi kortą) */
   pendingSummon?: PendingSummon | null
+  /** Mulligan fazė žaidimo pradžioje (tik ne-PvP): kol ne null, ėjimai neprasidėję */
+  pendingMulligan?: { you?: boolean; ai?: boolean } | null
   /** Laukiantis „pasirink 1 iš kelių" / tutor pasirinkimas */
   pendingChoice?: PendingChoice | null
   /** Laukiantis efekto kopijavimas iš kapinyno (#5) */
@@ -468,6 +472,8 @@ export type CreateGameOpts = {
   zmkDefs?: ZmkCardDef[] | null
   /** Prakeiksmų side deck kortos (curse tipo kortos iš DB) */
   curseCards?: TutCard[]
+  /** Mulligan žaidimo pradžioje (TIK ne-PvP: shuffle nedeterministinis tarp klientų) */
+  mulligan?: boolean
 }
 
 /** Sukuria žaidimą: tu prieš AI su ta pačia (veidrodine) kalade. */
@@ -499,6 +505,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
   drawCards(g, first, 4, true)
   drawCards(g, other(first), 5, true)
   log(g, { t: 'start', side: first, key: `battleLog.start.${SK(first)}` })
+  if (opts?.mulligan) g.pendingMulligan = { you: true, ai: true }
   recomputeAuras(g)
   return g
 }
@@ -529,13 +536,71 @@ export function createGame2v2(decks: { you: TutCard[]; ally: TutCard[]; ai: TutC
   return g
 }
 
+// ── Mulligan ──────────────────────────────────────────────────────────────────
+// Žaidimo pradžioje pažymėtos rankos kortos grąžinamos į kaladę, kaladė
+// permaišoma ir ištraukiama tiek pat naujų. Kol pendingMulligan != null,
+// ėjimai neprasidėję (beginTurn kviečiamas TIK abiem pusėms apsisprendus).
+// TIK ne-PvP: shuffle čia nedeterministinis, tad tarp klientų išsiskirtų.
+
+export function resolveMulligan(g: GameState, s: Side, uids: string[]): { ok: boolean; reason?: string } {
+  const pm = g.pendingMulligan
+  const key = s === 'you' ? 'you' : 'ai'
+  if (!pm || !pm[key]) return { ok: false }
+  const p = P(g, s)
+  const picked = p.hand.filter((c) => uids.includes(c.uid))
+  if (picked.length > 0) {
+    p.hand = p.hand.filter((c) => !uids.includes(c.uid))
+    p.deck.push(...picked)
+    p.deck = shuffle(p.deck)
+    drawCards(g, s, picked.length, true)
+  }
+  log(g, { t: 'mulligan', side: s, key: `battleLog.mulligan.${SK(s)}`, params: { n: picked.length } })
+  pm[key] = false
+  // AI apsisprendžia iškart po žaidėjo (mulligan įjungiamas tik ne-PvP režimuose).
+  // aiMulligan pats užbaigia fazę (pendingMulligan=null + beginTurn), todėl čia
+  // antrą kartą beginTurn NEkviečiamas – tikrinam, ar fazė dar gyva.
+  if (pm.ai) aiMulligan(g)
+  if (g.pendingMulligan && !pm.you && !pm.ai) { g.pendingMulligan = null; beginTurn(g) }
+  return { ok: true }
+}
+
+/** AI mulligan euristika: iškeičiamos brangios (>=500 aukso) kortos, iki 3. */
+export function aiMulligan(g: GameState): void {
+  const pm = g.pendingMulligan
+  if (!pm?.ai) return
+  const p = P(g, 'ai')
+  const uids = p.hand.filter((c) => (c.gold ?? 0) >= 500).slice(0, 3).map((c) => c.uid)
+  pm.ai = false
+  const picked = p.hand.filter((c) => uids.includes(c.uid))
+  if (picked.length > 0) {
+    p.hand = p.hand.filter((c) => !uids.includes(c.uid))
+    p.deck.push(...picked)
+    p.deck = shuffle(p.deck)
+    drawCards(g, 'ai', picked.length, true)
+  }
+  log(g, { t: 'mulligan', side: 'ai', key: 'battleLog.mulligan.ai', params: { n: picked.length } })
+  if (!pm.you && !pm.ai) { g.pendingMulligan = null; beginTurn(g) }
+}
+
 // ── Traukimas / auksas ────────────────────────────────────────────────────────
 
 function drawCards(g: GameState, s: Side, n: number, silent = false) {
   const p = P(g, s)
   for (let i = 0; i < n; i++) {
     const c = p.deck.pop()
-    if (!c) { log(g, { t: 'deckEmpty', side: s, key: `battleLog.deckEmpty.${SK(s)}` }); return }
+    if (!c) {
+      // Nuovargis (fatigue): kaladė tuščia – kiekvienas nepavykęs traukimas duoda
+      // didėjančią žalą žaidėjui (1, 2, 3, ...). Be ŽMK ir be aurų – neišvengiama.
+      p.fatigue = (p.fatigue ?? 0) + 1
+      log(g, { t: 'deckEmpty', side: s, key: `battleLog.deckEmpty.${SK(s)}` })
+      log(g, { t: 'fatigue', side: s, key: `battleLog.fatigue.${SK(s)}`, params: { n: p.fatigue } })
+      const hpBefore = playerHpOf(g, s)
+      const left = applyPlayerDamage(g, s, p.fatigue)
+      log(g, { t: 'damage', side: s, value: p.fatigue, severity: resolveSeverity(p.fatigue, Math.max(1, playerMaxHpOf(g, s)), hpBefore - p.fatigue <= 0), key: `battleLog.playerDamage.${SK(s)}`, params: { dmg: p.fatigue, left } })
+      checkWin(g)
+      if (g.winner) return
+      continue
+    }
     // Prakeiksmas (įmaišytas priešo) aktyvuojasi kai jį ištrauki – efektas tenka tau.
     if (c.type === 'curse') {
       activateCurseCard(g, s, c, 'drawn')
@@ -3792,6 +3857,7 @@ export type NetAction =
   | { t: 'play'; actor: Side; uid: string; target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }
   | { t: 'attack'; actor: Side; uid: string; target: TargetRef }
   | { t: 'discardForGold'; actor: Side; uid: string }
+  | { t: 'mulligan'; actor: Side; uids: string[] }
   | { t: 'champ'; actor: Side; skillIndex: number; target?: TargetRef; targets?: TargetRef[] }
   | { t: 'endTurn'; actor: Side }
   | { t: 'resolveSummon'; uids: string[] }
@@ -3813,6 +3879,7 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'play': return playCard(g, a.actor, a.uid, { target: a.target, targets: a.targets, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid, tributeHandUids: a.tributeHandUids })
     case 'attack': return attack(g, a.actor, a.uid, a.target)
     case 'discardForGold': return discardForGold(g, a.actor, a.uid)
+    case 'mulligan': return resolveMulligan(g, a.actor, a.uids)
     case 'champ': return useChampionAbility(g, a.actor, a.skillIndex, { target: a.target, targets: a.targets })
     case 'endTurn': { endTurn(g); if (!g.winner) beginTurn(g); return { ok: true } }
     case 'resolveSummon': return resolveSummonChoice(g, a.uids)

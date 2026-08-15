@@ -101,6 +101,14 @@
     "ai": "Priešininkas nebeturi kortų kaladėje.",
     "you": "Tu nebeturi kortų kaladėje."
   },
+  "fatigue": {
+    "ai": "Nuovargis! Priešininkas nebeturi kortų – gauna {{n}} žalos.",
+    "you": "Nuovargis! Nebeturi kortų kaladėje – gauni {{n}} žalos."
+  },
+  "mulligan": {
+    "ai": "Priešininkas pakeitė kortų: {{n}}.",
+    "you": "Pakeitei kortų: {{n}}."
+  },
   "deckEmptyPeek": "{{victim}} kaladė tuščia – nėra ką peržiūrėti.",
   "deckEmptyReveal": "{{owner}} kaladė tuščia – nėra ką parodyti.",
   "deckNoDraw": "Kaladėje nėra tinkamos kortos traukimui.",
