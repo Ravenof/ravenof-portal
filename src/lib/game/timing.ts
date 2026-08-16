@@ -147,6 +147,14 @@ export const ZMK_PRESENT = {
 // Ėjimo pradžia yra ritmo taškas: „kvėptelėjimas" tarp dviejų veiksmo blokų.
 // SVARBU: ritualas NEUŽRAKINA įvesties — jis gali baigtis fone, kol žaidėjas
 // jau žaidžia. Pailginti realų ėjimo startą būtų blogiau nei jokio ritualo.
+// ── Monetos metimas kovos pradžioje (kas eina pirmas) ────────────────────────
+export const COIN_TOSS = {
+  spinMs: 1900,       // sukimosi trukmė (rotateX su deceleracija)
+  holdMs: 1100,       // rezultato rodymas po nusileidimo
+  spins: 5,           // pilnų apsisukimų skaičius prieš nusileidžiant
+  sizePx: 132,        // monetos skersmuo
+} as const
+
 export const TURN_RITUAL = {
   /** „TAVO ĖJIMAS" baneris. */
   bannerMs: 1600,

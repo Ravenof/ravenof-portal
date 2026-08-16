@@ -66,7 +66,7 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
-import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING } from '@/lib/game/timing'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING, COIN_TOSS } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
 import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
@@ -1078,6 +1078,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [arrangeOrder, setArrangeOrder] = useState<string[]>([])
   const [summonSel, setSummonSel] = useState<string[]>([])
   const [mullSel, setMullSel] = useState<string[]>([])
+  // ── Monetos metimas kovos pradžioje: kas pradeda pirmas (tik ne-PvP/ne-tutorial) ──
+  const [coinToss, setCoinToss] = useState<{ first: Side; phase: 'spin' | 'result'; spun: boolean } | null>(null)
+  const [coinImgOk, setCoinImgOk] = useState({ g: true, r: true })
   // PvP: varžovo profilis + ėjimo laikmatis
   const [oppProfile, setOppProfile] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null; level: number | null; is_public: boolean } | null>(null)
   const [oppDecks, setOppDecks] = useState<{ id: string; name: string }[]>([])
@@ -1168,6 +1171,25 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   const step: TutStep | null = stepIdx < GUIDED_STEPS.length ? GUIDED_STEPS[stepIdx] : null
   const activeTip: TipKey | null = !step && tipQueue.length > 0 ? tipQueue[0] : null
+  // ── Monetos metimo seka: flip garsas → sukimasis → nusileidimas → rezultatas ──
+  useEffect(() => {
+    if (!coinToss) return
+    const reduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (coinToss.phase === 'spin') {
+      playCardFlip()
+      const raf = requestAnimationFrame(() => requestAnimationFrame(() => setCoinToss((c) => c && c.phase === 'spin' ? { ...c, spun: true } : c)))
+      const t = window.setTimeout(() => {
+        playBattleSound('impact', 0.35)
+        setCoinToss((c) => c ? { ...c, phase: 'result' } : c)
+      }, reduced ? 250 : COIN_TOSS.spinMs)
+      return () => { cancelAnimationFrame(raf); window.clearTimeout(t) }
+    }
+    if (coinToss.first === 'you') playSuccess()
+    const t = window.setTimeout(() => setCoinToss(null), COIN_TOSS.holdMs)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coinToss?.phase])
+
   // Pop-up be reikalaujamo veiksmo (arba patarimas) – pristabdo AI ir veiksmus.
   // Sutrauktas popup nebeblokuoja. ŽMK 'draw' eilė irgi pristabdo AI.
   const popupBlocks = ((!!step && !step.require) || !!activeTip) && !popupCollapsed
@@ -1181,12 +1203,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const lastwishBlocks = !!game?.pendingLastwish
   const returnBlocks = !!game?.pendingReturn
   const mulliganBlocks = !!game?.pendingMulligan
+  const coinBlocks = !!coinToss
   /** Nuoseklių Kovos šūksnio iškvietimų grandinė – žaidėjo veiksmai užrakinti, kol ji baigsis. */
   const chainBlocks = !!game?.summonChain?.length
   /** Reakcijos grandinės animacijos vartai – kol jie atviri, būsena dar neparodyta. */
   const [gateActive, setGateActive] = useState(false)
   /** Bendras įvesties užraktas (pop-up'as, iškvietimų grandinė arba reakcijos vartai). */
-  const actionsLocked = popupBlocks || chainBlocks || gateActive || mulliganBlocks
+  const actionsLocked = popupBlocks || chainBlocks || gateActive || mulliganBlocks || coinBlocks
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
   const useHLayout = typeof window === 'undefined' ? true : new URLSearchParams(window.location.search).get('layout') !== 'v'
@@ -1393,12 +1416,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     setEndShown(false)       // rematch: pabaigos modalas paslėptas iki naujos defeat sekos
     resetAvatarAudio()       // rematch: fightStart/defeat/victory frazės vėl gali groti
     const aiSource = opp && opp.length > 0 ? opp : cards
+    // Monetos metimas: ne-PvP/ne-tutorial kovose pirmasis parenkamas atsitiktinai
+    // (PvP host'as lieka pirmas – pirmojo sync'ui tarp klientų reikėtų broadcast;
+    // tutorial – scriptintas ir visada pradeda žaidėjas).
+    const tossEnabled = !net && !tutorial?.active
+    const first: Side = tossEnabled ? (Math.random() < 0.5 ? 'you' : 'ai') : 'you'
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
-      'you',
-      { zmkDefs, curseCards, mulligan: !net && !tutorial?.active },
+      first,
+      { zmkDefs, curseCards, mulligan: tossEnabled },
     )
+    if (tossEnabled) setCoinToss({ first, phase: 'spin', spun: false })
+    else setCoinToss(null)
     if (!g.pendingMulligan) beginTurn(g)
     if (tutorial?.active && tutorial.applySetup) { try { tutorial.applySetup(g) } catch (e) { console.error('[tutorial] applySetup', e) } }
     seenRef.current = g.log.length
@@ -2421,7 +2451,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || arrangeBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || arrangeBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks || mulliganBlocks || coinBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -2448,7 +2478,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, mulliganBlocks, coinBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
@@ -5048,7 +5078,57 @@ doAction({ t: 'endTurn', actor: 'you' })
           onTap: (k) => { playSuccess(); doAction({ t: 'resolveReturn', uid: k }) },
         })}
 
-        {game?.pendingMulligan?.you && renderPickScene({
+        {coinToss && (
+          <motion.div key="cointoss" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] flex flex-col items-center justify-center gap-6"
+            style={{ background: 'rgba(6,5,10,0.6)', backdropFilter: 'blur(7px) grayscale(1)', WebkitBackdropFilter: 'blur(7px) grayscale(1)' }}>
+            <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.1em', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>{t('battle.game.coinTossTitle')}</p>
+            <div style={{ perspective: 900 }}>
+              <div style={{ animation: coinToss.spun ? `rvn-coin-arc ${COIN_TOSS.spinMs}ms cubic-bezier(0.3,0.6,0.35,1)` : undefined }}>
+                <div style={{
+                  width: COIN_TOSS.sizePx, height: COIN_TOSS.sizePx, position: 'relative', transformStyle: 'preserve-3d',
+                  transform: coinToss.spun ? `rotateX(${COIN_TOSS.spins * 360 + (coinToss.first === 'ai' ? 180 : 0)}deg)` : 'rotateX(0deg)',
+                  transition: coinToss.spun ? `transform ${COIN_TOSS.spinMs}ms cubic-bezier(0.18,0.8,0.25,1)` : undefined,
+                }}>
+                  {/* ŽALIA pusė – tu pradedi (priekis) */}
+                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', borderRadius: '50%', overflow: 'hidden', boxShadow: '0 0 26px rgba(74,222,128,0.4), inset 0 0 18px rgba(0,0,0,0.5)' }}>
+                    {coinImgOk.g ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/ravenof-ui/combat/coin/coin-green.png" alt="" draggable={false} onError={() => setCoinImgOk((o) => ({ ...o, g: false }))} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'radial-gradient(circle at 35% 30%, #6ee7a0, #15803d 70%, #052e16)', border: '3px solid rgba(240,180,41,0.5)', borderRadius: '50%' }}>⚔</div>
+                    )}
+                  </div>
+                  {/* RAUDONA pusė – priešininkas pradeda (nugarėlė) */}
+                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateX(180deg)', borderRadius: '50%', overflow: 'hidden', boxShadow: '0 0 26px rgba(239,68,68,0.4), inset 0 0 18px rgba(0,0,0,0.5)' }}>
+                    {coinImgOk.r ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/ravenof-ui/combat/coin/coin-red.png" alt="" draggable={false} onError={() => setCoinImgOk((o) => ({ ...o, r: false }))} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'radial-gradient(circle at 35% 30%, #fca5a5, #b91c1c 70%, #450a0a)', border: '3px solid rgba(240,180,41,0.5)', borderRadius: '50%' }}>☠</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* šešėlis po moneta */}
+              <div style={{ width: COIN_TOSS.sizePx * 0.7, height: 12, margin: '14px auto 0', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(0,0,0,0.55), transparent 70%)' }} />
+            </div>
+            <div style={{ minHeight: 34 }}>
+              {coinToss.phase === 'result' && (
+                <motion.p initial={{ opacity: 0, scale: 0.8, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="text-lg font-extrabold uppercase"
+                  style={{ fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.12em',
+                    color: coinToss.first === 'you' ? '#86efac' : '#fca5a5',
+                    textShadow: coinToss.first === 'you' ? '0 0 18px rgba(74,222,128,0.6)' : '0 0 18px rgba(239,68,68,0.6)' }}>
+                  {coinToss.first === 'you' ? t('battle.game.coinYouFirst') : t('battle.game.coinOppFirst')}
+                </motion.p>
+              )}
+            </div>
+            <style>{`@keyframes rvn-coin-arc { 0% { transform: translateY(0) } 30% { transform: translateY(-72px) } 62% { transform: translateY(4px) } 78% { transform: translateY(-14px) } 90% { transform: translateY(2px) } 100% { transform: translateY(0) } }`}</style>
+          </motion.div>
+        )}
+
+        {!coinToss && game?.pendingMulligan?.you && renderPickScene({
           key: 'mulligan',
           title: t('battle.game.mulliganTitle'),
           text: t('battle.game.mulliganText'),
