@@ -250,7 +250,7 @@ export type GameState = {
   /** Laukiantis iškvietimo pasirinkimas (žaidėjas renkasi kortą) */
   pendingSummon?: PendingSummon | null
   /** Mulligan fazė žaidimo pradžioje (tik ne-PvP): kol ne null, ėjimai neprasidėję */
-  pendingMulligan?: { you?: boolean; ai?: boolean } | null
+  pendingMulligan?: { you?: boolean; ai?: boolean; auto?: boolean } | null
   /** Laukiantis „pasirink 1 iš kelių" / tutor pasirinkimas */
   pendingChoice?: PendingChoice | null
   /** Laukiantis efekto kopijavimas iš kapinyno (#5) */
@@ -472,8 +472,11 @@ export type CreateGameOpts = {
   zmkDefs?: ZmkCardDef[] | null
   /** Prakeiksmų side deck kortos (curse tipo kortos iš DB) */
   curseCards?: TutCard[]
-  /** Mulligan žaidimo pradžioje (TIK ne-PvP: shuffle nedeterministinis tarp klientų) */
+  /** Mulligan žaidimo pradžioje. PvP: host'as autoritetingas (shuffle tik jo pusėje),
+   *  svečias sprendžia per NetAction 'mulligan' — žr. mulliganBothManual. */
   mulligan?: boolean
+  /** PvP: mulligan abiem pusem RANKINIS (aiMulligan nekvieciamas; laukiama NetAction) */
+  mulliganBothManual?: boolean
 }
 
 /** Sukuria žaidimą: tu prieš AI su ta pačia (veidrodine) kalade. */
@@ -505,7 +508,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
   drawCards(g, first, 4, true)
   drawCards(g, other(first), 5, true)
   log(g, { t: 'start', side: first, key: `battleLog.start.${SK(first)}` })
-  if (opts?.mulligan) g.pendingMulligan = { you: true, ai: true }
+  if (opts?.mulligan) g.pendingMulligan = { you: true, ai: true, auto: !opts?.mulliganBothManual }
   recomputeAuras(g)
   return g
 }
@@ -556,10 +559,11 @@ export function resolveMulligan(g: GameState, s: Side, uids: string[]): { ok: bo
   }
   log(g, { t: 'mulligan', side: s, key: `battleLog.mulligan.${SK(s)}`, params: { n: picked.length } })
   pm[key] = false
-  // AI apsisprendžia iškart po žaidėjo (mulligan įjungiamas tik ne-PvP režimuose).
+  // auto (bot kovos): AI apsisprendžia iškart po žaidėjo. PvP (mulliganBothManual):
+  // laukiama kito žaidėjo 'mulligan' NetAction — aiMulligan NEkviečiamas.
   // aiMulligan pats užbaigia fazę (pendingMulligan=null + beginTurn), todėl čia
   // antrą kartą beginTurn NEkviečiamas – tikrinam, ar fazė dar gyva.
-  if (pm.ai) aiMulligan(g)
+  if (pm.ai && pm.auto !== false) aiMulligan(g)
   if (g.pendingMulligan && !pm.you && !pm.ai) { g.pendingMulligan = null; beginTurn(g) }
   return { ok: true }
 }
@@ -3878,6 +3882,7 @@ export function swapPerspective(g: GameState): GameState {
   if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }
   if (c.pendingReturn) c.pendingReturn.side = other(c.pendingReturn.side)
   if (c.pendingBattlecry) c.pendingBattlecry.side = other(c.pendingBattlecry.side)
+  if (c.pendingMulligan) c.pendingMulligan = { ...c.pendingMulligan, you: c.pendingMulligan.ai, ai: c.pendingMulligan.you }
   if (c.pendingLastwish) c.pendingLastwish.side = other(c.pendingLastwish.side)
   if (c.pendingResurrect) c.pendingResurrect.forEach((r) => { r.side = other(r.side) })
   if (c.lastMill) c.lastMill.side = other(c.lastMill.side)
@@ -3963,6 +3968,7 @@ export function swapAction(a: NetAction): NetAction {
     case 'champ': return { ...a, actor: other(a.actor), target: sw(a.target), targets: a.targets?.map(sw) }
     case 'endTurn': return { ...a, actor: other(a.actor) }
     case 'swapChampPhase': return { ...a, actor: other(a.actor) }
+    case 'mulligan': return { ...a, actor: other(a.actor) }
     case 'resolveLastwish': return { ...a, targets: a.targets.map((x) => sw(x)) }
     default: return a
   }

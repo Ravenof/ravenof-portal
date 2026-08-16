@@ -1206,6 +1206,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const returnBlocks = !!game?.pendingReturn
   const mulliganBlocks = !!game?.pendingMulligan
   const coinBlocks = !!coinToss
+  // PvP SVECIAS: monetos metimo UI is pirmo host'o state snapshot'o (globalTurn 0 +
+  // mulligan faze = kova dar neprasidejo; game.active jau apverstas i svecio perspektyva).
+  const guestTossShownRef = useRef(false)
+  useEffect(() => {
+    if (!isGuest || !game || guestTossShownRef.current) return
+    if (game.globalTurn !== 0 || !game.pendingMulligan) return
+    guestTossShownRef.current = true
+    setCoinToss({ first: game.active, phase: 'spin', spun: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuest, game])
   /** Nuoseklių Kovos šūksnio iškvietimų grandinė – žaidėjo veiksmai užrakinti, kol ji baigsis. */
   const chainBlocks = !!game?.summonChain?.length
   /** Reakcijos grandinės animacijos vartai – kol jie atviri, būsena dar neparodyta. */
@@ -1418,16 +1428,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     setEndShown(false)       // rematch: pabaigos modalas paslėptas iki naujos defeat sekos
     resetAvatarAudio()       // rematch: fightStart/defeat/victory frazės vėl gali groti
     const aiSource = opp && opp.length > 0 ? opp : cards
-    // Monetos metimas: ne-PvP/ne-tutorial kovose pirmasis parenkamas atsitiktinai
-    // (PvP host'as lieka pirmas – pirmojo sync'ui tarp klientų reikėtų broadcast;
-    // tutorial – scriptintas ir visada pradeda žaidėjas).
-    const tossEnabled = !net && !tutorial?.active
+    // Monetos metimas: pirmasis parenkamas atsitiktinai visur, isskyrus tutorial
+    // (scriptintas — visada pradeda zaidejas). PvP: HOST'as autoritetingai
+    // isburia pirmaji ir jungia mulligan; svecias viska gauna per 'state'
+    // broadcast (svecio coin toss UI — is pirmo state snapshot'o, zr. efekta zemiau).
+    const tossEnabled = !tutorial?.active && (!net || net.isHost)
     const first: Side = tossEnabled ? (Math.random() < 0.5 ? 'you' : 'ai') : 'you'
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       first,
-      { zmkDefs, curseCards, mulligan: tossEnabled },
+      { zmkDefs, curseCards, mulligan: tossEnabled, mulliganBothManual: !!net },
     )
     if (tossEnabled) setCoinToss({ first, phase: 'spin', spun: false })
     else setCoinToss(null)
@@ -5153,6 +5164,13 @@ doAction({ t: 'endTurn', actor: 'you' })
           </motion.div>
         )}
 
+        {/* PvP: savo mulligan jau atliktas — laukiam priešininko sprendimo */}
+        {!coinToss && game?.pendingMulligan && !game.pendingMulligan.you && !game.winner && (
+          <div className="fixed inset-0 z-[138] flex flex-col items-center justify-center gap-3" style={{ background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(4px)' }}>
+            <span className="rvn-opp-dots" aria-hidden style={{ display: 'inline-flex', gap: 6, fontSize: 14, color: 'var(--gold)' }}><span>●</span><span>●</span><span>●</span></span>
+            <p style={{ font: '700 14px var(--rvn-font-display)', letterSpacing: 1.5, color: 'var(--gold)', textTransform: 'uppercase' }}>{t('battle.game.mulliganWaiting')}</p>
+          </div>
+        )}
         {!coinToss && game?.pendingMulligan?.you && renderPickScene({
           key: 'mulligan',
           title: t('battle.game.mulliganTitle'),

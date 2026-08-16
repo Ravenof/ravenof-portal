@@ -5,6 +5,7 @@
 
 import {
   createGame, beginTurn, applyNetAction, resolveMulligan, P,
+  swapAction, swapPerspective,
   type TutCard, type GameState,
 } from '../src/lib/tutorial/engine'
 
@@ -90,6 +91,38 @@ console.log('◆ Fatigue (tuščia kaladė)')
   applyNetAction(g, { t: 'endTurn', actor: 'you' })
   applyNetAction(g, { t: 'endTurn', actor: 'ai' })   // you fatigue 2 → hp 0 → pralaimėta
   check('fatigue 2 pribaigia (winner=ai)', g.winner === 'ai', `winner=${g.winner} hp=${g.you.hp}`)
+}
+
+console.log('◆ PvP mulligan (mulliganBothManual, commit617)')
+{
+  const g = createGame(filler(15, 'Y'), filler(15, 'A'), 'you', { zmkDefs: ZMK0 as never, mulligan: true, mulliganBothManual: true })
+  check('abu laukia rankinio sprendimo', g.pendingMulligan?.you === true && g.pendingMulligan?.ai === true)
+  const handY = P(g, 'you').hand.map((c) => c.uid)
+  resolveMulligan(g, 'you', [handY[0]])
+  check('po host mulligan fazė DAR gyva (svečias nesprendė, AI heuristika NEkviesta)', !!g.pendingMulligan && g.pendingMulligan.ai === true, JSON.stringify(g.pendingMulligan))
+  check('ėjimai dar neprasidėjo', g.globalTurn === 0, String(g.globalTurn))
+  const handA = P(g, 'ai').hand.map((c) => c.uid)
+  resolveMulligan(g, 'ai', [handA[0], handA[1]])
+  check('po abiejų fazė baigta ir beginTurn suveikė VIENĄ kartą', !g.pendingMulligan && g.globalTurn === 1, `pm=${JSON.stringify(g.pendingMulligan)} turn=${g.globalTurn}`)
+  check('svečio ranka pilna po keitimo', P(g, 'ai').hand.length === 5 || P(g, 'ai').hand.length === 4, String(P(g, 'ai').hand.length))
+}
+{
+  // swapAction: svečio 'mulligan' host'e = actor 'ai'
+  const a = swapAction({ t: 'mulligan', actor: 'you', uids: ['x'] })
+  check("swapAction 'mulligan' apverčia actor", a.t === 'mulligan' && a.actor === 'ai', JSON.stringify(a))
+}
+{
+  // swapPerspective: pendingMulligan you/ai apsikeičia
+  const g = createGame(filler(15, 'Y'), filler(15, 'A'), 'you', { zmkDefs: ZMK0 as never, mulligan: true, mulliganBothManual: true })
+  resolveMulligan(g, 'you', [])
+  const sw = swapPerspective(g)
+  check('swapPerspective apverčia pendingMulligan (host jau atliko → svečiui pm.you=true, pm.ai=false)', sw.pendingMulligan?.you === true && sw.pendingMulligan?.ai === false, JSON.stringify(sw.pendingMulligan))
+}
+{
+  // Bot kova (auto): senas elgesys nepasikeitė
+  const g = createGame(filler(15, 'Y'), filler(15, 'A'), 'you', { zmkDefs: ZMK0 as never, mulligan: true })
+  resolveMulligan(g, 'you', [])
+  check('bot kovoje AI apsisprendžia iškart (fazė baigta)', !g.pendingMulligan && g.globalTurn === 1, `pm=${JSON.stringify(g.pendingMulligan)} turn=${g.globalTurn}`)
 }
 
 console.log(`\n${pass} ✓ / ${fail} ✗`)

@@ -91,6 +91,7 @@
     "coinTossTitle": "Monetos metimas",
     "coinYouFirst": "Tu pradedi pirmas!",
     "coinOppFirst": "Priešininkas pradeda pirmas",
+    "mulliganWaiting": "Laukiama priešininko kortų keitimo…",
     "mulliganTitle": "Kortų keitimas",
     "mulliganText": "Pažymėk kortas, kurias nori grąžinti į kaladę – vietoj jų ištrauksi tiek pat naujų. Tai galima tik kartą, žaidimo pradžioje.",
     "mulliganSwap": "Keisti ({{n}})",
