@@ -3893,12 +3893,21 @@ doAction({ t: 'endTurn', actor: 'you' })
   }
   const renderEndTurnH = () => {
     if (!game) return null
+    // QA #6 atomiskumas: mygtukas atspindi TIKRA busena — kai myTurn, bet veiksmai
+    // uzrakinti (animacijos/scenos/chain), jis pritemsta ir disabled, o ne atrodo
+    // aktyvus su tyliai ignoruojamu paspaudimu (onEndTurn guard'as liko).
+    const busy = myTurn && actionsLocked
     return (
-      <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
+      <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn || actionsLocked}
         className="combat-end-turn relative flex flex-col items-center justify-center font-extrabold transition-all"
-        style={{ color: myTurn ? '#f6e8c6' : '#c6a3a3', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.85)', filter: myTurn ? 'drop-shadow(0 0 14px rgba(212,163,59,0.45))' : 'none' }}
+        style={{ color: myTurn ? '#f6e8c6' : '#c6a3a3', fontFamily: 'var(--rvn-font-display)', textShadow: '0 1px 4px rgba(0,0,0,0.85)', filter: myTurn && !busy ? 'drop-shadow(0 0 14px rgba(212,163,59,0.45))' : 'none', opacity: busy ? 0.55 : 1 }}
         title={myTurn ? 'Baigti ejima' : 'Prieso ejimas'}>
         <span className="text-[11px] leading-tight text-center px-3 font-bold" style={{ whiteSpace: 'pre-line' }}>{myTurn ? t('battle.game.endTurnShort') : t('battle.game.enemyTurnShort')}</span>
+        {/* QA #5: oponento ejimo metu — „galvoja" taskai + skaitinis laikmatis (PvP/ranked) */}
+        {!myTurn && !game.winner && (
+          <span className="rvn-opp-dots" aria-hidden style={{ display: 'inline-flex', gap: 3, marginTop: 1, fontSize: 7, color: '#e0707c' }}><span>●</span><span>●</span><span>●</span></span>
+        )}
+        {(vsRemote || ranked) && !game.winner && <TurnTimer deadline={turnDeadline} variant="chip" />}
       </button>
     )
   }
@@ -4038,6 +4047,12 @@ doAction({ t: 'endTurn', actor: 'you' })
         }
         .rvn-field-quake { animation: rvnFieldQuake 3s cubic-bezier(.36,.07,.19,.97) both; will-change: transform; }
         @keyframes rvnEmotePop { 0% { transform: translateX(-50%) scale(0.3); opacity: 0; } 60% { transform: translateX(-50%) scale(1.15); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+        /* QA #5: „oponentas galvoja" gyvybes indikatorius — pulsuojantys taskai */
+        @keyframes rvnOppDot { 0%, 60%, 100% { opacity: 0.15; } 30% { opacity: 1; } }
+        .rvn-opp-dots span { animation: rvnOppDot 1.5s ease-in-out infinite; }
+        .rvn-opp-dots span:nth-child(2) { animation-delay: 0.25s; }
+        .rvn-opp-dots span:nth-child(3) { animation-delay: 0.5s; }
+        @media (prefers-reduced-motion: reduce) { .rvn-opp-dots span { animation: none; opacity: 0.7; } }
         @keyframes rvnRotateHint { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }
         @media (prefers-reduced-motion: reduce) { .rvn-field-quake { animation: none !important; } }
       `}</style>
@@ -4372,9 +4387,9 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="self-center">{goldBar('you')}</div>
               <button onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
                 className="combat-discard-gold w-full text-[11px] font-bold whitespace-nowrap" data-active={select?.kind === 'discard' ? 'true' : undefined} style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }} title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
-              <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn}
+              <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn || actionsLocked}
                 className="w-full px-4 py-3.5 rounded-xl text-base font-extrabold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 whitespace-nowrap"
-                style={{ background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'rgba(120,30,30,0.35)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', boxShadow: myTurn ? '0 0 24px rgba(34,197,94,0.45)' : 'none' }}>
+                style={{ background: myTurn ? 'linear-gradient(135deg, #1f7a3a, #134f25)' : 'rgba(120,30,30,0.35)', border: '1px solid ' + (myTurn ? 'rgba(74,222,128,0.7)' : 'rgba(239,68,68,0.5)'), color: myTurn ? '#eafff0' : '#fca5a5', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', boxShadow: myTurn && !actionsLocked ? '0 0 24px rgba(34,197,94,0.45)' : 'none' }}>
                 {myTurn ? t('battle.game.endTurn') : t('battle.game.opponentTurn')}
               </button>
             </aside>
