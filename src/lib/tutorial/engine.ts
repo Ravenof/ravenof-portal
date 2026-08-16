@@ -2210,7 +2210,7 @@ function autoTriggerSource(g: GameState, trigger: string): TargetRef | undefined
   return undefined
 }
 
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; status?: StatusOrKeyword; srcRef?: TargetRef; srcName?: string }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; status?: StatusOrKeyword; srcRef?: TargetRef; srcName?: string; spellTargets?: { kind: string; uid?: string }[] }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   // Reakcijų kontekstas: TIKSLI korta (runtime uid), kurios veiksmas suaktyvino
@@ -2219,7 +2219,8 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
   const trigSrcName = ctx?.srcName ?? unitNameOf(g, trigSrc)
   try {
     // Ar mapping'o trigerio filtrai (kieno įvykis / potipis / frakcija / burto tipas) tinka.
-    const passes = (m: EffectMapping, sd: Side): boolean => {
+    // selfUid – klausančios kortos runtime uid (triggerOnSelfTarget filtrui).
+    const passes = (m: EffectMapping, sd: Side, selfUid?: string): boolean => {
       if (trigger === 'onOpponentGoldEmpty' && ctx?.side && sameTeam(g, ctx.side, sd)) return false
       if (ctx?.side) {
         const want = m.triggerSide ?? 'any'
@@ -2230,6 +2231,11 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
       // onAnyStatus: filtras pagal konkrečią būseną / raktažodį
       if (m.triggerStatus && trigger === 'onAnyStatus' && ctx?.status !== m.triggerStatus) return false
       if (m.triggerSpellType && trigger === 'onAnyCast' && m.triggerSpellType !== ctx?.spellType) return false
+      // „Tik kai burtas taiko į ŠIĄ kortą" (pvz. Elenora Kraujošviesa: buff ant jos → AoE):
+      // tikrinam ir rankinį taikinį, ir auto/AoE aibę (spellTargets surinkti playCard metu).
+      if (m.triggerOnSelfTarget && trigger === 'onAnyCast') {
+        if (!selfUid || !ctx?.spellTargets?.some((t) => t.kind === 'unit' && t.uid === selfUid)) return false
+      }
       if (m.triggerFaction && ctx?.faction !== m.triggerFaction) return false
       if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) return false
       return true
@@ -2243,7 +2249,7 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
       for (const c of cards) {
         const ms = (c.card.mappings ?? []).filter((m) => m.trigger === trigger)
         for (const m of ms) {
-          if (!passes(m, sd)) continue
+          if (!passes(m, sd, c.uid)) continue
           applyMapping(gameApi, g, sd, m, { sourceName: c.card.name, sourceUid: c.uid, depth: 2 })
           if (g.winner) return
         }
@@ -3316,7 +3322,20 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       })
       // Reakcijų langas: priešo onAnyCast gali NUTILDYTI/ATŠAUKTI burtą (castSpell taikinys)
       g.spellCountered = false
-      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, faction: card.factionId, spellType: card.gameplay?.spellType, srcName: card.name })
+      // triggerOnSelfTarget filtrui: kur burtas REALIAI taiko — žaidėjo pasirinkti
+      // taikiniai + selection nereikalaujančių mapping'ų auto/AoE aibės.
+      const castTargets: { kind: string; uid?: string }[] = []
+      {
+        const chosen = opts?.targets?.length ? opts.targets : opts?.target ? [opts.target] : []
+        for (const t of chosen) castTargets.push({ kind: t.kind, uid: 'uid' in t ? t.uid : undefined })
+        for (const m of entrySpellMaps) {
+          if (mappingNeedsSelection(m)) continue
+          for (const t of applyTargetFilters(g, m, resolveMappingTargets(g, s, m))) {
+            castTargets.push({ kind: t.kind, uid: 'uid' in t ? (t as { uid?: string }).uid : undefined })
+          }
+        }
+      }
+      fireGlobalListeners(g, 'onAnyCast', { side: s, subtype: card.subtype, faction: card.factionId, spellType: card.gameplay?.spellType, srcName: card.name, spellTargets: castTargets })
       if (g.spellCountered) {
         g.spellCountered = false
         log(g, { t: 'spell', side: s, cardName: card.name, key: 'battleLog.spellCountered', params: { card: card.name } })

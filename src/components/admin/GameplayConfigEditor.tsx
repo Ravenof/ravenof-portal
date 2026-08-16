@@ -872,6 +872,13 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           </select>
                         </div>
                       )}
+                      {m.trigger === 'onAnyCast' && (
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" id={`selfTarget-${i}`} checked={m.triggerOnSelfTarget === true}
+                            onChange={(e) => setMapping(i, { triggerOnSelfTarget: e.target.checked ? true : undefined })} />
+                          <label htmlFor={`selfTarget-${i}`} style={{ ...labelStyle, marginBottom: 0, cursor: 'pointer' }}>Tik kai burtas taiko į ŠIĄ kortą (rankinis taikinys arba AoE aibė ją apima)</label>
+                        </div>
+                      )}
                       {m.trigger === 'onAnySummon' && (
                         <div className="col-span-2">
                           <label style={labelStyle}>Iškvietimo šaltinis</label>

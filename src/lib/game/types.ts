@@ -401,6 +401,7 @@ export type EffectMapping = {
   coinGreen?: EffectMapping[]       // coinFlip: efektai, kai iškrinta ŽALIA pusė
   coinRed?: EffectMapping[]         // coinFlip: efektai, kai iškrinta RAUDONA pusė
   triggerSpellType?: SpellType      // globalus trigger (onAnyCast): tik šio tipo burtas aktyvuoja
+  triggerOnSelfTarget?: boolean     // globalus trigger (onAnyCast): aktyvuojasi TIK kai burtas taiko į ŠIĄ kortą (rankinis taikinys arba auto/AoE aibė ją apima)
   tutorZone?: 'deck' | 'discard' | 'both'  // tutorToHand: iš kur ieškoti (default both)
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
   tutorCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // tutorToHand: tik šio kortos tipo (padaras/burtas/čempionas/artefaktas/laukas)
