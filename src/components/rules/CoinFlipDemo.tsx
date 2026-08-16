@@ -56,32 +56,36 @@ export function CoinFlipDemo() {
           className="relative w-20 h-20"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Žalia pusė — sėkmė */}
+          {/* Žalia pusė — sėkmė (bendras kovos monetos asset'as; fallback jei failo nėra) */}
           <div
-            className="absolute inset-0 rounded-full flex flex-col items-center justify-center"
+            className="absolute inset-0 rounded-full overflow-hidden flex flex-col items-center justify-center"
             style={{
               backfaceVisibility: 'hidden',
               background: 'radial-gradient(circle at 35% 30%, #34d97b, #15803d)',
-              border: '3px solid rgba(255,255,255,0.25)',
               boxShadow: '0 4px 16px rgba(34,197,94,0.35)',
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ravenof-ui/combat/coin/coin-green.png" alt="" draggable={false}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
             <span className="text-xl font-black text-white">✓</span>
-            <span className="text-white font-bold" style={{ fontSize: 9, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.08em' }}>SĖKMĖ</span>
           </div>
           {/* Raudona pusė — nesėkmė */}
           <div
-            className="absolute inset-0 rounded-full flex flex-col items-center justify-center"
+            className="absolute inset-0 rounded-full overflow-hidden flex flex-col items-center justify-center"
             style={{
               backfaceVisibility: 'hidden',
               transform: 'rotateX(180deg)',
               background: 'radial-gradient(circle at 35% 30%, #f87171, #b91c1c)',
-              border: '3px solid rgba(255,255,255,0.25)',
               boxShadow: '0 4px 16px rgba(239,68,68,0.35)',
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ravenof-ui/combat/coin/coin-red.png" alt="" draggable={false}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
             <span className="text-xl font-black text-white">✗</span>
-            <span className="text-white font-bold" style={{ fontSize: 9, fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.08em' }}>NESĖKMĖ</span>
           </div>
         </div>
       </button>

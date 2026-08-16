@@ -5495,20 +5495,30 @@ doAction({ t: 'endTurn', actor: 'you' })
                   animate={{ rotateX: 360 * 4 + (coinAnim.coin === 'red' ? 180 : 0) }}
                   transition={{ duration: 1.05, ease: [0.15, 0.6, 0.25, 1] }}
                   style={{ width: 100, height: 100, position: 'relative', transformStyle: 'preserve-3d' }}>
-                  {/* ŽALIA pusė (priekis) */}
+                  {/* ŽALIA pusė (priekis) — asset file-first, fallback sintezuotas */}
                   <div style={{
-                    position: 'absolute', inset: 0, borderRadius: '50%', backfaceVisibility: 'hidden',
-                    background: 'radial-gradient(circle at 35% 30%, #6ee7a8, #16a34a 70%, #0f7a36)',
-                    border: '4px solid #bbf7d0', boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px rgba(34,197,94,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46, color: '#fff',
-                  }}>✔</div>
+                    position: 'absolute', inset: 0, borderRadius: '50%', backfaceVisibility: 'hidden', overflow: 'hidden',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px rgba(34,197,94,0.6)',
+                  }}>
+                    {coinImgOk.g ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/ravenof-ui/combat/coin/coin-green.png" alt="" draggable={false} onError={() => setCoinImgOk((o) => ({ ...o, g: false }))} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle at 35% 30%, #6ee7a8, #16a34a 70%, #0f7a36)', border: '4px solid #bbf7d0', borderRadius: '50%', fontSize: 46, color: '#fff' }}>✔</div>
+                    )}
+                  </div>
                   {/* RAUDONA pusė (kita) */}
                   <div style={{
-                    position: 'absolute', inset: 0, borderRadius: '50%', backfaceVisibility: 'hidden', transform: 'rotateX(180deg)',
-                    background: 'radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 70%, #991b1b)',
-                    border: '4px solid #fecaca', boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px rgba(220,38,38,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46, color: '#fff',
-                  }}>✘</div>
+                    position: 'absolute', inset: 0, borderRadius: '50%', backfaceVisibility: 'hidden', transform: 'rotateX(180deg)', overflow: 'hidden',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 28px rgba(220,38,38,0.6)',
+                  }}>
+                    {coinImgOk.r ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/ravenof-ui/combat/coin/coin-red.png" alt="" draggable={false} onError={() => setCoinImgOk((o) => ({ ...o, r: false }))} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 70%, #991b1b)', border: '4px solid #fecaca', borderRadius: '50%', fontSize: 46, color: '#fff' }}>✘</div>
+                    )}
+                  </div>
                 </motion.div>
               </div>
               <span className="px-3 py-1 rounded-full text-sm font-bold"
