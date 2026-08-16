@@ -939,7 +939,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // iki uždarančio bakstelėjimo, kaip anksčiau. Tempimas į lentą peržiūrą uždaro
   // atskirai (drag-start → setInspect(null)).
   const inspectHeldRef = useRef(false)
-  const openInspectHeld = useCallback((card: TutCard) => { inspectHeldRef.current = true; setInspect(card) }, [])
+  // Tempiant korta i lenta perziura NEBEuzdaroma (zaidejo prasymas 2026-08-16):
+  // ji „prisišvartuoja" prie kairio krasto — matai efekta renkantis taikini,
+  // o lentos neuzstoja (pointer-events-none). Atleidus pirsta uzsidaro kaip iprastai.
+  const [inspectDocked, setInspectDocked] = useState(false)
+  const openInspectHeld = useCallback((card: TutCard) => { inspectHeldRef.current = true; setInspectDocked(false); setInspect(card) }, [])
+  useEffect(() => { if (!inspect) setInspectDocked(false) }, [inspect])
   useEffect(() => {
     if (!inspect) { inspectHeldRef.current = false; return }
     if (!inspectHeldRef.current) return
@@ -3353,9 +3358,10 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (dy < -14 && Math.abs(dy) > Math.abs(dx)) {
           started = true; dragMovedRef.current = true
           if (lp) { clearTimeout(lp); lp = null }
-          // Jei long-press jau atidare kortos perziura - tempiant i lenta ji uzsidaro,
-          // kad neuzdengtu lentos renkantis taikini.
-          setInspect(null)
+          // Jei long-press jau atidare kortos perziura - tempiant i lenta ji
+          // NEuzsidaro, o susitraukia prie kairio krasto (inspectDocked): matai
+          // efekto teksta renkantis taikini, o pirstas/perziura lentos neuzstoja.
+          setInspectDocked(true)
           if (wasExpanded) setHandExpanded(false)
           const d: DragState = { card, uid: card.uid, targeted: !!game && cardNeedsTarget(game, card), origin: { x: sx, y: sy }, x: ev.clientX, y: ev.clientY, mode: 'card' }
           dragRef.current = d; setDrag(d)
@@ -4830,7 +4836,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           )
         })()}
 
-        {inspect && (
+        {inspect && !inspectDocked && (
           <motion.div data-inspect-overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[180] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.75)' }}
@@ -4840,6 +4846,15 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * 0.84 : 320)} readable />
               </GameCard>
             </motion.div>
+          </motion.div>
+        )}
+        {inspect && inspectDocked && (
+          <motion.div data-inspect-overlay initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+            className="fixed z-[150] pointer-events-none"
+            style={{ left: 'max(8px, env(safe-area-inset-left, 0px))', top: '50%', translate: '0 -50%' }}>
+            <GameCard glowColor={cardTypeColor(inspect)} intensity={8}>
+              <MiniCard c={inspect} w={Math.min(190, typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.42) : 190)} readable />
+            </GameCard>
           </motion.div>
         )}
       </AnimatePresence>
