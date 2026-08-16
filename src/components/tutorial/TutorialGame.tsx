@@ -3590,6 +3590,9 @@ doAction({ t: 'endTurn', actor: 'you' })
             <button key={a.uid} data-artifact-uid={a.uid}
               onClick={() => side === 'ai' && onTargetClick({ kind: 'artifact', side: 'ai', uid: a.uid })}
               onContextMenu={(e) => { e.preventDefault(); setInspect(a.card) }}
+              onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); openInspectHeld(a.card) }, 450) }}
+              onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
+              onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
               className="relative rounded-md overflow-hidden"
               style={{
                 width: hMobile ? 42 : isTouch ? 40 : 60, height: hMobile ? 56 : isTouch ? 54 : 72,
@@ -4768,7 +4771,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             onClick={() => { playCardPlace(); setInspect(null) }}>
             <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
               <GameCard glowColor={cardTypeColor(inspect)} intensity={12}>
-                <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * 0.84 : 320)} />
+                <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * 0.84 : 320)} readable />
               </GameCard>
             </motion.div>
           </motion.div>
