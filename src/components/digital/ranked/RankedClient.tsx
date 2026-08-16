@@ -123,11 +123,14 @@ export function RankedClient() {
       result: r.result, playerFaction: selDeckObj?.faction ?? null, opponentFaction: opp.faction,
       durationSeconds: r.turns * 30, turnsPlayed: r.turns, stats: r.stats, clientMatchId: opp.net?.matchId ?? matchIdRef.current,
     }
-    // Fair ekonomika: ranked kova visada duoda aukso (80 pergalė / 25 pralaimėjimas)
-    void awardGold(r.result === 'win' ? 'ranked_win' : 'ranked_loss', r.result === 'win' ? RANKED_WIN_REWARD : RANKED_LOSS_REWARD)
+    // Fair ekonomika: ranked kova visada duoda aukso (80 pergalė / 25 pralaimėjimas).
+    // QA #5: atlygis NEBE tylus — flat auksą sumuojam į goldGained, kad rezultato
+    // ekrano chip'ai rodytų visą gautą sumą (flat + RPC bonusas už naują rangą).
+    const flatGold = r.result === 'win' ? RANKED_WIN_REWARD : RANKED_LOSS_REWARD
+    void awardGold(r.result === 'win' ? 'ranked_win' : 'ranked_loss', flatGold)
     const res = await reportMatch(input)
     if ('error' in res) { setToast(t('ranked.reportFailed', { msg: res.error })); setFlow('idle'); await load(); return }
-    setResult({ ...res, won: r.result === 'win' })
+    setResult({ ...res, goldGained: res.goldGained + flatGold, won: r.result === 'win' })
     setFlow('result')
     await load()
   }

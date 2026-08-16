@@ -2526,7 +2526,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         // Telemetrijos UPDATE suveikia trg_ach_after_match → po jo paimam ką tik
         // įvykdytus pasiekimus vienai santraukai rezultato ekrane.
         void reportMatchStats(clientMatchIdRef.current, st, dominantFactionId(deckCards ?? null))
-          .then(() => getRecentAchievements(120))
+          // QA #4: pasiekimai atsiranda trg_ach_after_match trigger'io metu (t.y. KA TIK,
+          // per reportMatchStats), tad siauras 15 s langas rodo tik SIOS kovos pasiekimus
+          // ir nebegriebia istoriniu (pvz. senos "Pirma reitingo pergale" po pralaimejimo).
+          .then(() => getRecentAchievements(15))
           .then((a) => { if (a.length) setMatchAchievements(a) })
           .catch(() => { /* santrauka neprivaloma */ })
       } catch (err) { console.warn('[quests] telemetrija nepavyko:', err) }
