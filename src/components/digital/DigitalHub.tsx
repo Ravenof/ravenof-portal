@@ -62,7 +62,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [seasonClaimable, setSeasonClaimable] = useState(0)
   const [rankInfo, setRankInfo] = useState<{ step: number } | null>(null)
   const [seasonMeta, setSeasonMeta] = useState<{ name: string; daysLeft: number } | null>(null)
-  const [countdown, setCountdown] = useState(() => timeToReset(null))
+  // SSR-stabilu (QA #9 hydration #418): laiko NESKAICIUOJAM render'io metu —
+  // serverio (UTC) ir kliento paros pabaiga skiriasi valandomis, tad SSR HTML
+  // nesutapdavo su hidracija. Pradzioj null -> statinis '–:––', reiksme po mount.
+  const [countdown, setCountdown] = useState<string | null>(null)
 
   const refreshWallet = useCallback(() => { getWallet().then((w) => { if (w) { setWallet(w); emitWalletChanged() } }) }, [])
   // Dienos užduotys — Progression v2 (rvn_get_daily_quests_v2). Sumos, progresas
@@ -235,7 +238,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         {/* Dienos užduotys */}
         <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex items-baseline justify-between shrink-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
           <span style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
-          <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.resetsIn')} {countdown}</span>
+          <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('home.resetsIn')} {countdown ?? '–:––'}</span>
         </button>
         <div data-testid="hub-daily-quests" className="flex-1 flex flex-col min-h-0" style={{ gap: 6 }}>
           {(quests?.quests.length ?? 0) === 0 && (
