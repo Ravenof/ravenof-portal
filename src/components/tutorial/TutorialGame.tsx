@@ -593,9 +593,11 @@ export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: {
 
 // ── Padaro plytelė kovos lauke ───────────────────────────────────────────────
 
-export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed, onClick, hpShown }: {
+export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed, awaiting, onClick, hpShown }: {
   g: GameState; u: BoardUnit; w: number
   selected?: boolean; targetable?: boolean; picked?: boolean; canAct?: boolean; dimmed?: boolean
+  /** Kovos suksnis laukia taikinio (pendingBattlecry) - korta PULSUOJA, kad zaidejas pastebetu */
+  awaiting?: boolean
   onClick?: () => void; hpShown?: number
 }) {
   const h = Math.round(w * 4 / 3)
@@ -637,7 +639,7 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
           className="absolute -top-2 -right-2 z-30 pointer-events-none select-none"
           style={{ width: 26, height: 26, objectFit: 'contain' }} />
       )}
-      <div className="absolute inset-0 rounded-lg overflow-hidden"
+      <div className={'absolute inset-0 rounded-lg overflow-hidden' + (awaiting ? ' rvn-bc-await' : '')}
         style={{
           background: 'var(--bg-surface)',
           border: u.isChampion ? '2px solid #f0b429' : '1.5px solid ' + cardTypeColor(u.card) + '90',
@@ -3586,6 +3588,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <UnitTile
                 g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
                 selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (select?.kind === 'champ' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
+                awaiting={game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid && select?.kind !== 'battlecry'}
                 picked={pickedKeys.has('unit:' + u.uid)}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}
@@ -4053,6 +4056,10 @@ doAction({ t: 'endTurn', actor: 'you' })
         .rvn-opp-dots span:nth-child(2) { animation-delay: 0.25s; }
         .rvn-opp-dots span:nth-child(3) { animation-delay: 0.5s; }
         @media (prefers-reduced-motion: reduce) { .rvn-opp-dots span { animation: none; opacity: 0.7; } }
+        /* Kovos suksnis laukia taikinio: pulsuojantis auksinis svytis (be transform) */
+        @keyframes rvnBcAwait { 0%, 100% { box-shadow: 0 0 0 2px #f0b429, 0 0 10px #f0b42988; } 50% { box-shadow: 0 0 0 3px #ffd75e, 0 0 26px #f0b429ee; } }
+        .rvn-bc-await { animation: rvnBcAwait 1.1s ease-in-out infinite !important; }
+        @media (prefers-reduced-motion: reduce) { .rvn-bc-await { animation: none !important; } }
         @keyframes rvnRotateHint { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }
         @media (prefers-reduced-motion: reduce) { .rvn-field-quake { animation: none !important; } }
       `}</style>

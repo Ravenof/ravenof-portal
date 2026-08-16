@@ -5,7 +5,8 @@
 
 import {
   createGame, beginTurn, endTurn, playCard, attack, P,
-  advanceSummonChain, flushSummonChain, consumeReactionSnapshot, type TutCard, type GameState,
+  advanceSummonChain, flushSummonChain, consumeReactionSnapshot,
+  resolveSummonChoice, resolvePendingBattlecry, type TutCard, type GameState,
 } from '../src/lib/tutorial/engine'
 import type { EffectMapping } from '../src/lib/game/types'
 
@@ -398,6 +399,69 @@ console.log('\n── 13. Reakcijos efektai pažymėti (be antro projektilo) + a
   check('snapshote paskutinis įrašas = reakcijos atskleidimas', last?.t === 'reactionTrigger', String(last?.t))
   check('snapshote reakcijos korta dar slote', !!snap && P(snap, 'you').reactions[0] !== null)
   check('snapshote efektas dar nepritaikytas (7 HP)', (snap ? P(snap, 'ai').units.find((u) => u?.uid === 'atkR')?.hp : -1) === 7)
+}
+
+console.log('\n── 12. Įdėtinis summonChoose: Elė → Munčis → Piratas žvalgas (commit614 fix) ──')
+{
+  // Realus DB atvejis: abu mapping'ai summonAdvanced + summonChoose + requiresSelection
+  const advChoose = (names: string): EffectMapping => ({
+    trigger: 'onSummon', effect: 'summonAdvanced', target: 'enemyUnit', requiresSelection: true,
+    summonNames: names, summonZones: ['hand', 'deck'], summonChoose: true, value: 1,
+  } as EffectMapping)
+  const zvalgas = mkCard({ name: 'Piratas zvalgas', uid: 'zvalgas' })
+  const muncis = mkCard({ name: 'Muncis chebrantas', uid: 'muncis', mappings: [advChoose('Piratas zvalgas')] })
+  const ele = mkCard({ name: 'Ele Kapitono padejeja', uid: 'ele', mappings: [advChoose('Muncis chebrantas')] })
+  const g = freshGame([muncis, zvalgas, ...filler(10)])
+  g.you.hand.push(ele)
+  const r = playCard(g, 'you', 'ele')
+  check('Elė sužaista', r.ok, JSON.stringify(r))
+  check('atsidarė Munčio pasirinkimas', g.pendingSummon?.options[0]?.card.uid === 'muncis', JSON.stringify(g.pendingSummon?.options.map((o) => o.card.uid)))
+  resolveSummonChoice(g, ['muncis'])
+  check('Munčis lentoje', names(g, 'you').includes('Muncis chebrantas'), names(g, 'you').join(','))
+  // KRITINIS regresas: Munčio šūksnio sukurtas NAUJAS pendingSummon NEBEištrinamas
+  check('Munčio šūksnis atidarė Žvalgo pasirinkimą (anksčiau būdavo ištrinamas)', g.pendingSummon?.options[0]?.card.uid === 'zvalgas', JSON.stringify(g.pendingSummon))
+  resolveSummonChoice(g, ['zvalgas'])
+  check('Žvalgas lentoje', names(g, 'you').includes('Piratas zvalgas'), names(g, 'you').join(','))
+  check('pasirinkimų nebeliko', !g.pendingSummon)
+}
+
+console.log('\n── 13. Efektu iškviesto padaro taikinio reikalaujantis šūksnis → pendingBattlecry ──')
+{
+  const dmgBc: EffectMapping = { trigger: 'onSummon', effect: 'damage', target: 'enemyUnit', requiresSelection: true, value: 2 } as EffectMapping
+  const sniper = mkCard({ name: 'Sniper', uid: 'sniper', mappings: [dmgBc] })
+  const caller = mkCard({ name: 'Caller', uid: 'caller', mappings: [{ trigger: 'onSummon', effect: 'summonAdvanced', target: 'self', requiresSelection: false, summonNames: 'Sniper', summonZones: ['deck'], value: 1 } as EffectMapping] })
+  const g = freshGame([sniper, ...filler(10)])
+  g.ai.units[0] = { uid: 'foe', card: mkCard({ name: 'Foe', uid: 'foe' }), atk: 1, hp: 5, maxHp: 5, shield: false, stealth: false, statuses: {}, summonedOnTurn: 0, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false }
+  g.you.hand.push(caller)
+  const r = playCard(g, 'you', 'caller')
+  check('Caller sužaistas, Sniper iškviestas', r.ok && names(g, 'you').includes('Sniper'), names(g, 'you').join(','))
+  check('Sniper šūksnis laukia taikinio (pendingBattlecry) — UI pulsuoja', g.pendingBattlecry?.uid === P(g, 'you').units.find((u) => u?.card.uid === 'sniper')?.uid, JSON.stringify(g.pendingBattlecry))
+  const r2 = resolvePendingBattlecry(g, { kind: 'unit', side: 'ai', uid: 'foe' })
+  check('taikinys priimtas', r2.ok, JSON.stringify(r2))
+  check('žala pritaikyta (5→3)', P(g, 'ai').units.find((u) => u?.uid === 'foe')?.hp === 3, String(P(g, 'ai').units.find((u) => u?.uid === 'foe')?.hp))
+  check('pendingBattlecry išspręstas', !g.pendingBattlecry)
+}
+
+console.log('\n── 14. Užimtas pasirinkimo langas → antras choose-šūksnis įvyksta AUTO ──')
+{
+  const advChoose2 = (names: string): EffectMapping => ({
+    trigger: 'onSummon', effect: 'summonAdvanced', target: 'self', requiresSelection: false,
+    summonNames: names, summonZones: ['deck'], summonChoose: true, value: 1,
+  } as EffectMapping)
+  const w1 = mkCard({ name: 'W1', uid: 'w1' })
+  const w2 = mkCard({ name: 'W2', uid: 'w2' })
+  const twinA = mkCard({ name: 'TwinA', uid: 'twinA', mappings: [advChoose2('W1')] })
+  const twinB = mkCard({ name: 'TwinB', uid: 'twinB', mappings: [advChoose2('W2')] })
+  const summoner = mkCard({ name: 'Summoner', uid: 'summoner', mappings: [{ trigger: 'onSummon', effect: 'summonAdvanced', target: 'self', requiresSelection: false, summonNames: 'TwinA,TwinB', summonZones: ['deck'], summonCount: 2 } as EffectMapping] })
+  const g = freshGame([twinA, twinB, w1, w2, ...filler(8)])
+  g.you.hand.push(summoner)
+  playCard(g, 'you', 'summoner')
+  flushSummonChain(g)
+  // TwinA šūksnis atidarė W1 pasirinkimą; TwinB šūksnis rado langą UŽIMTĄ → W2 iškviestas automatiškai
+  check('pirmas choose atidarė langą (W1)', g.pendingSummon?.options[0]?.card.uid === 'w1', JSON.stringify(g.pendingSummon?.options.map((o) => o.card.uid)))
+  check('antras choose įvyko automatiškai (W2 lentoje)', names(g, 'you').includes('W2'), names(g, 'you').join(','))
+  resolveSummonChoice(g, ['w1'])
+  check('W1 lentoje po pasirinkimo', names(g, 'you').includes('W1'), names(g, 'you').join(','))
 }
 
 console.log(`\n──────────────\n  PASS: ${pass}   FAIL: ${fail}\n──────────────`)

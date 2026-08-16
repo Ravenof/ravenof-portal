@@ -1695,7 +1695,9 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
 function summonAdvancedPrim(g: GameState, s: Side, opts: SummonAdvOpts) {
   const p = P(g, s)
   const count = Math.max(1, opts.count ?? 1)
-  if (opts.choose && s === 'you') {
+  if (opts.choose && s === 'you' && !g.pendingSummon) {
+    // (!g.pendingSummon: jei pasirinkimo langas jau uzimtas ankstesnio efekto,
+    //  nauja NEperrasom - zemiau iskvieciam automatiskai, kad efektas nepraputu)
     const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
     const want = (opts.subtype ?? '').trim().toLowerCase()
     const wantFacA = opts.factionId ?? 0
@@ -1856,6 +1858,11 @@ function placeUnit(g: GameState, p: PlayerState, card: TutCard, suffix: string, 
 export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: boolean; reason?: string } {
   const ps = g.pendingSummon
   if (!ps) return { ok: true }
+  // Suvartojam IS KARTO (kaip resolveCopyEffect/resolveChoice): iskviesto padaro
+  // Kovos suksnis (afterSummon -> fireEntryMappings zemiau) gali sukurti NAUJA
+  // pendingSummon (pvz. Ele -> Muncis -> jo suksnis renkasi Pirata zvalga) -
+  // baigiamasis `g.pendingSummon = null` ji istrindavo ir grandine tyliai nutrukdavo.
+  g.pendingSummon = null
   const p = P(g, ps.caster)
   for (const uid of chosenUids.slice(0, ps.choose)) {
     const opt = ps.options.find((o) => o.card.uid === uid)
@@ -1870,7 +1877,6 @@ export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: b
     log(g, { t: 'play', side: ps.caster, cardName: card.name, key: 'battleLog.summonChosen', params: { card: card.name }, sound: 'summon', fromZone: opt.zone === 'discard' ? 'graveyard' : opt.zone === 'deck' ? 'deck' : 'hand' })
     afterSummon(g, ps.caster, card, opt.zone === 'discard' ? 'graveyard' : opt.zone === 'deck' ? 'deck' : 'hand')
   }
-  g.pendingSummon = null
   return { ok: true }
 }
 
