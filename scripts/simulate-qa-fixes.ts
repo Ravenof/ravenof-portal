@@ -3,7 +3,7 @@
 // #1: swapPerspective apverčia log key/params puses (PvP svečio „Tu/Priešininkas").
 // #2: burtas be legalaus taikinio NEsužaidžiamas (auksas/korta nepaliesti).
 
-import { createGame, beginTurn, playCard, swapPerspective, P, type TutCard, type GameState } from '../src/lib/tutorial/engine'
+import { createGame, beginTurn, playCard, swapPerspective, resolveChoice, resolvePendingLastwish, P, type TutCard, type GameState } from '../src/lib/tutorial/engine'
 import type { EffectMapping } from '../src/lib/game/types'
 
 let pass = 0, fail = 0
@@ -85,6 +85,54 @@ console.log('◆ #2 burtas be taikinio nesužaidžiamas')
   P(g, 'you').gold = 500
   const r = playCard(g, 'you', 'q3')
   check('mišrus burtas žaidžiamas (utility dalis įvyks)', r.ok, JSON.stringify(r))
+}
+
+console.log('\n◆ Elementų kamuoliai — chooseAlt su rankiniais taikiniais (commit618)')
+const kamuoliai = (): TutCard => mkCard({ name: 'Elementu kamuoliai', uid: 'ek', type: 'spell', mappings: [{
+  sound: 'impact', value: 4, effect: 'damage', target: 'enemyUnit', trigger: 'onPlay', hitCount: 2, projectile: 'fireball',
+  targetTypes: ['anyUnit', 'anyArtifact', 'anyChampion'], requiresSelection: true, note: '2 taikiniai lauke po -4',
+  chooseAlt: [{ sound: 'impact', value: 6, effect: 'damage', target: 'enemyPlayer', trigger: 'onPlay', projectile: 'fireball', requiresSelection: false, note: '-6 priešo žaidėjui' }],
+} as EffectMapping] })
+const mkU = (card: TutCard, uid: string) => ({ uid, card, atk: card.attack ?? 2, hp: card.health ?? 3, maxHp: card.health ?? 3, shield: false, stealth: false, statuses: {}, summonedOnTurn: 0, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false })
+function ekGame(): GameState {
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.you.gold = 1000
+  g.ai.units[0] = mkU(mkCard({ name: 'E1', uid: 'e1', health: 6 }), 'e1') as GameState['you']['units'][0]
+  g.ai.units[1] = mkU(mkCard({ name: 'E2', uid: 'e2', health: 6 }), 'e2') as GameState['you']['units'][0]
+  g.you.hand.push(kamuoliai())
+  return g
+}
+{
+  const g = ekGame()
+  const r = playCard(g, 'you', 'ek')
+  check('burtas sužaistas be išankstinio taikinio (chooseAlt pop-up)', r.ok && !!g.pendingChoice, JSON.stringify({ ok: r.ok, pc: !!g.pendingChoice }))
+  check('pop-up su 2 variantais', g.pendingChoice?.options.length === 2, String(g.pendingChoice?.options.length))
+  resolveChoice(g, 0)
+  check('A šaka: taikiniai NEparinkti automatiškai — laukiama žaidėjo (pendingLastwish)', !!g.pendingLastwish && P(g, 'ai').units.every((u) => !u || u.hp === 6), JSON.stringify({ pl: !!g.pendingLastwish, hp: P(g, 'ai').units.filter(Boolean).map((u) => u!.hp) }))
+  const r2 = resolvePendingLastwish(g, [{ kind: 'unit', side: 'ai', uid: 'e1' }, { kind: 'unit', side: 'ai', uid: 'e2' }])
+  check('2 pasirinkti taikiniai gavo po 4 (6,6 → 2,2)', r2.ok && P(g, 'ai').units.filter(Boolean).map((u) => u!.hp).join(',') === '2,2', P(g, 'ai').units.filter(Boolean).map((u) => u!.hp).join(','))
+  check('pendingLastwish išspręstas', !g.pendingLastwish)
+  check('žaidėjas žalos negavo (A šaka tik laukas)', g.ai.hp === g.ai.maxHp, String(g.ai.hp))
+}
+{
+  const g = ekGame()
+  playCard(g, 'you', 'ek')
+  resolveChoice(g, 1)
+  check('B šaka: -6 priešo žaidėjui iškart, be taikinio pasirinkimo', g.ai.hp === g.ai.maxHp - 6 && !g.pendingLastwish, `hp=${g.ai.hp}/${g.ai.maxHp} pl=${!!g.pendingLastwish}`)
+  check('B šaka: padarai nepaliesti', P(g, 'ai').units.filter(Boolean).every((u) => u!.hp === 6))
+}
+{
+  // AI žaidžia → 1-a šaka auto taikiniais (esamas chooseAlt kanonas)
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'ai', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.ai.gold = 1000
+  g.you.units[0] = mkU(mkCard({ name: 'M1', uid: 'm1', health: 6 }), 'm1') as GameState['you']['units'][0]
+  g.you.units[1] = mkU(mkCard({ name: 'M2', uid: 'm2', health: 6 }), 'm2') as GameState['you']['units'][0]
+  const ek = kamuoliai(); g.ai.hand.push(ek)
+  playCard(g, 'ai', 'ek')
+  const hps = P(g, 'you').units.filter(Boolean).map((u) => u!.hp)
+  check('AI: 1-a šaka auto (2 taikiniai po 4, be pending)', !g.pendingChoice && !g.pendingLastwish && hps.filter((h) => h === 2).length >= 1, JSON.stringify(hps))
 }
 
 console.log(`\n${pass} ✓ / ${fail} ✗`)

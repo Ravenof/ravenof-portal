@@ -2805,9 +2805,24 @@ export function resolveChoice(g: GameState, index: number): { ok: boolean; reaso
   if (!pc) return { ok: true }
   g.pendingChoice = null
   if (pc.kind === 'effect' && pc.branches && pc.branches[index]) {
+    const manual: EffectMapping[] = []
     for (const m of pc.branches[index]) {
+      // Šakos mapping'ai su RANKINIU taikiniu ('you' kerėtojui) → pendingLastwish
+      // eilė (bendras „pasirink taikinius" mechanizmas: select 'lastwish' UI +
+      // resolveLastwish NetAction; pvz. Elementų kamuoliai — 2 taikiniai po 4).
+      // Anksčiau taikiniai būdavo parenkami AUTOMATIŠKAI net žaidėjui.
+      // AI/svečiui (caster 'ai') — auto-pick, kaip ir pendingBattlecry kanone.
+      if (pc.caster === 'you' && mappingNeedsSelection(m)
+        && applyTargetFilters(g, m, resolveMappingTargets(g, pc.caster, m)).length > 0) { manual.push(m); continue }
       applyMapping(gameApi, g, pc.caster, m, { sourceName: pc.sourceName, depth: 1 })
       if (g.winner) break
+    }
+    if (manual.length > 0 && !g.winner) {
+      if (g.pendingLastwish && g.pendingLastwish.side === pc.caster) g.pendingLastwish.mappings.push(...manual)
+      else {
+        if (g.pendingLastwish) flushPendingLastwish(g)
+        g.pendingLastwish = { side: pc.caster, cardName: pc.sourceName, mappings: manual }
+      }
     }
   } else if (pc.kind === 'tutorHand' && pc.cards && pc.cards[index]) {
     const card = pc.cards[index]
