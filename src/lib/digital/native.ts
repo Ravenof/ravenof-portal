@@ -155,7 +155,12 @@ export async function unlockOrientation(): Promise<void> {
 /** Ar įrenginys šiuo metu vertikalioj (portrait) padėtyje? */
 export function isPortraitNow(): boolean {
   if (typeof window === 'undefined') return false
+  // QA #2 (mobile layout): layout'ui svarbus VIEWPORT, ne fizinis ekranas.
+  // screen.orientation meluoja iframe/split-screen/siauro desktop lango atvejais
+  // (ekranas landscape, langas siauras) -> anksciau overlay nepasirodydavo ir
+  // vartotojas matydavo suspausta layout'a su nukirstais header pill'ais.
+  if (window.innerWidth > 0 && window.innerHeight > 0) return window.innerHeight > window.innerWidth
   const o: any = typeof screen !== 'undefined' ? (screen as any).orientation : null
   if (o?.type) return String(o.type).startsWith('portrait')
-  return window.innerHeight > window.innerWidth
+  return false
 }

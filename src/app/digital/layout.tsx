@@ -223,7 +223,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
         {showHeader && (
           <header className="rvn-app-header relative z-10 flex items-center px-4"
-            style={{ gap: 9, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
+            style={{ gap: 'clamp(5px, 1.1vw, 9px)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
             <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
               <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
@@ -236,7 +236,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                   </>
                 ) : (
                   <>
-                    <span className="truncate" style={{ maxWidth: 140, font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
+                    <span className="truncate" style={{ maxWidth: 'clamp(64px, 16vw, 140px)', font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
                     <span className="flex items-center" style={{ gap: 5, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
                       {rank ? (
                         <>
