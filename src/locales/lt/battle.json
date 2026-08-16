@@ -87,6 +87,7 @@
     "hintSacrifice": "⚜ Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje ({{picked}}/2)",
     "hintChampMulti": "✨ Gebėjimas: pasirink taikinius ({{picked}}/{{need}})",
     "tributeCancel": "Atšaukti auką",
+    "discardCancel": "Atšaukti išmetimą",
     "coinTossTitle": "Monetos metimas",
     "coinYouFirst": "Tu pradedi pirmas!",
     "coinOppFirst": "Priešininkas pradeda pirmas",

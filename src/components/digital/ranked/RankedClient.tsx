@@ -201,14 +201,14 @@ export function RankedClient() {
         <div className="ravenof-body h-full flex flex-col min-h-0 ravenof-in" style={{ padding: '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
           {/* Antraštė: atgal + pavadinimas + sezonas + sub-view nav */}
           <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
-            <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('ranked.backToRanked')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
+            <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('ranked.backHome')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
             <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</div>
             <div className="flex-1" />
             {([['leaderboard', '🏆'], ['history', '📜'], ['achievements', '🏅'], ['season', '📅'], ['rewards', '🎁']] as [View, string][]).map(([v, ic]) => (
               <button key={v} onClick={() => { playUiClick(); setView(v) }} className="ravenof-press" style={{ width: 26, height: 26, fontSize: 12, background: 'none', border: '1px solid var(--ravenof-border-hairline)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{ic}</button>
             ))}
             <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
-              {season?.name ? `${t('home.season')} ${season.name}` : t('ranked.season')}{timer ? ` · ${formatTimeLeft(timer)}` : ''}
+              {season?.name ? (/sezonas|season/i.test(season.name) ? season.name : `${t('home.season')} ${season.name}`) : t('ranked.season')}{timer ? ` · ${formatTimeLeft(timer)}` : ''}
             </div>
           </div>
 

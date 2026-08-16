@@ -4390,13 +4390,13 @@ doAction({ t: 'endTurn', actor: 'you' })
             {select.kind === 'champ' && (select.need ?? 1) > 1 && t('battle.game.hintChampMulti', { need: select.need, picked: select.picked?.length ?? 0 })}
           </motion.div>
         )}
-        {select?.kind === 'sacrifice' && (
+        {(select?.kind === 'sacrifice' || select?.kind === 'discard') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="fixed bottom-40 sm:bottom-44 left-0 right-0 mx-auto w-fit z-[125]">
-            <button onClick={() => { playUiClick(); setSelect(null) }}
+            <button onClick={() => { playUiClick(); setSelect(null); if (hMobile) setHandExpanded(false) }}
               className="px-4 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition-transform"
               style={{ background: 'rgba(20,12,16,0.88)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
-              ✕ {t('battle.game.tributeCancel')}
+              ✕ {select?.kind === 'discard' ? t('battle.game.discardCancel') : t('battle.game.tributeCancel')}
             </button>
           </motion.div>
         )}

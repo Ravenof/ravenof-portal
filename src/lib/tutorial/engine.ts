@@ -3279,9 +3279,22 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
       return { ok: true }
     }
     case 'spell': {
+      const entrySpellMaps = (card.mappings ?? []).filter((m) => m.trigger === 'onCast' || m.trigger === 'onPlay')
       // Rankinio taikinio validacija PRIEŠ auksą/ranką
-      if (!chosenTargetsLegal(g, s, (card.mappings ?? []).filter((m) => m.trigger === 'onCast' || m.trigger === 'onPlay'), opts)) {
+      if (!chosenTargetsLegal(g, s, entrySpellMaps, opts)) {
         return { ok: false, reason: 'battleLog.err.invalidTarget' }
+      }
+      // QA #2: jei VISI burto mapping'ai reikalauja taikinio, o legalių taikinių
+      // NĖRA (ir nėra noTargetThen fallback'o) – burtas iš viso nesužaidžiamas:
+      // auksas nenuskaičiuojamas, korta lieka rankoje. Galioja ir AI, ir PvP.
+      if (entrySpellMaps.length > 0) {
+        const needy = entrySpellMaps.filter((m) => mappingNeedsSelection(m))
+        if (needy.length === entrySpellMaps.length && needy.length > 0) {
+          const hasAny = needy.some((m) =>
+            (m.noTargetThen && m.noTargetThen.length > 0)
+            || applyTargetFilters(g, m, resolveMappingTargets(g, s, m)).length > 0)
+          if (!hasAny) return { ok: false, reason: 'battleLog.err.noValidTarget' }
+        }
       }
       p.hand.splice(i, 1)
       p.gold -= cost
@@ -3815,10 +3828,23 @@ export function swapPerspective(g: GameState): GameState {
   c.active = other(c.active)
   if (c.winner) c.winner = other(c.winner)
   if (c.field) c.field.owner = other(c.field.owner)
+  // KRITINIS (QA 2026-08-16 #1): log tekstas generuojamas iš e.key, kuriame
+  // pusė UŽKEPTA sufiksu (battleLog.draw.you / .ai) dar host'o pusėje. Vien
+  // e.side apvertimo nepakanka – svečias matydavo host'o veiksmus kaip „Tu".
+  // Apverčiam ir key sufiksus bei battleLog nuorodas params'uose ($t:...you/ai).
+  const swapKeySide = (k: string): string =>
+    k.endsWith('.you') ? k.slice(0, -4) + '.ai' : k.endsWith('.ai') ? k.slice(0, -3) + '.you' : k
   for (const e of c.log) {
     e.side = other(e.side)
     if (e.src) e.src.side = other(e.src.side)
     if (e.tgt && e.tgt.side) e.tgt.side = other(e.tgt.side)
+    if (e.key) e.key = swapKeySide(e.key)
+    if (e.params) {
+      for (const pk of Object.keys(e.params)) {
+        const v = e.params[pk]
+        if (typeof v === 'string' && v.startsWith('$t:battleLog.')) e.params[pk] = '$t:' + swapKeySide(v.slice(3))
+      }
+    }
   }
   if (c.pendingPeek) { c.pendingPeek.caster = other(c.pendingPeek.caster); c.pendingPeek.victim = other(c.pendingPeek.victim) }
   if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)

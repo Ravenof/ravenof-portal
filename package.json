@@ -37,7 +37,8 @@
     "game:test:feel": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-game-feel.ts",
     "game:test:mullfat": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-mulligan-fatigue.ts",
     "game:test:champtarget": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-champ-target-adv.ts",
-    "game:test:aidiff": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-ai-difficulty.ts"
+    "game:test:aidiff": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-ai-difficulty.ts",
+    "game:test:qa": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-qa-fixes.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

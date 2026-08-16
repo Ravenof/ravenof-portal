@@ -138,6 +138,7 @@
     "you": "You draw {{n}} and keep {{keep}}."
   },
   "err": {
+    "noValidTarget": "No valid target – the card cannot be played.",
     "alreadyAttacked": "This creature has already attacked this turn.",
     "artifactZoneFull": "The artifact zone is full (max 2).",
     "auraBlocksAttack": "🔗 An aura blocks this creature's attacks.",

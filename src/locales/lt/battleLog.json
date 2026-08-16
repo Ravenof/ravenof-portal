@@ -138,6 +138,7 @@
     "you": "Tu trauki {{n}} ir pasilieki {{keep}}."
   },
   "err": {
+    "noValidTarget": "Nėra tinkamo taikinio – korta nesužaidžiama.",
     "alreadyAttacked": "Šis padaras jau atakavo šį ėjimą.",
     "artifactZoneFull": "Artefaktų zona pilna (maks. 2).",
     "auraBlocksAttack": "🔗 Aura blokuoja šio padaro atakas.",

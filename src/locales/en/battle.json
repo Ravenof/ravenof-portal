@@ -87,6 +87,7 @@
     "hintSacrifice": "⚜ Tribute: a creature on the board (1 pt) OR 2 cards in hand ({{picked}}/2)",
     "hintChampMulti": "✨ Ability: pick targets ({{picked}}/{{need}})",
     "tributeCancel": "Cancel tribute",
+    "discardCancel": "Cancel discard",
     "coinTossTitle": "Coin toss",
     "coinYouFirst": "You go first!",
     "coinOppFirst": "The opponent goes first",
