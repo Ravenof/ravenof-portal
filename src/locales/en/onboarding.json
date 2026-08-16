@@ -17,6 +17,7 @@
   "decksFailedTitle": "The decks could not be awakened",
   "enterRavenof": "⚔ Step into Ravenof",
   "gate": {
+    "bgNote": "Card art and voices (~{{size}}) keep downloading in the background — you can play right away.",
     "continueWithout": "Continue without downloading (missing files load while playing)",
     "doneSub": "Cards and sounds now load instantly — even offline.",
     "doneTitle": "✓ Content downloaded!",
@@ -26,7 +27,7 @@
     "filesBytes": "{{count}} files{{size}}",
     "onceNote": "Downloaded once. You'll find video content later in ⚙️ Settings (“Everything + video”).",
     "progressFiles": "{{done}}/{{total}} files",
-    "prompt": "For the game to run fast and work offline, cards and sounds need to be downloaded:",
+    "prompt": "For the game to run fast, the core content needs to be downloaded:",
     "retry": "↻ Try again",
     "someFailed": "Some files failed to download.",
     "title": "Game content"

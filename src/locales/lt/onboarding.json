@@ -18,6 +18,7 @@
   "decksFailedTitle": "Kaladžių nepavyko pažadinti",
   "enterRavenof": "⚔ Žengti į Ravenof",
   "gate": {
+    "bgNote": "Kortų artai ir balsai (~{{size}}) toliau siunčiami fone — žaisti gali iš karto.",
     "continueWithout": "Tęsti be atsisiuntimo (trūkstami failai bus siunčiami žaidžiant)",
     "doneSub": "Kortos ir garsai dabar veiks akimirksniu — net be interneto.",
     "doneTitle": "✓ Turinys atsisiųstas!",
@@ -27,7 +28,7 @@
     "filesBytes": "{{count}} failų{{size}}",
     "onceNote": "Siunčiama vieną kartą. Video intarpus vėliau rasi ⚙️ Nustatymuose („Viskas + video“).",
     "progressFiles": "{{done}}/{{total}} failų",
-    "prompt": "Kad žaidimas veiktų greitai ir be interneto, reikia atsisiųsti kortas ir garsus:",
+    "prompt": "Kad žaidimas veiktų greitai, reikia atsisiųsti pagrindinį turinį:",
     "retry": "↻ Bandyti dar kartą",
     "someFailed": "Dalies failų atsisiųsti nepavyko.",
     "title": "Žaidimo turinys"

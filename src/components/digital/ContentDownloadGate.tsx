@@ -13,7 +13,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getMediaManifest, diffMissing, downloadMedia, fmtMB, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
+import { getMediaManifest, diffMissing, downloadMedia, fmtMB, estimateTotalBytes, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { useT } from '@/lib/i18n/react'
 
@@ -28,6 +28,15 @@ export function ContentDownloadGate() {
   const [missing, setMissing] = useState<ManifestEntry[]>([])
   const [dl, setDl] = useState<DlProgress | null>(null)
   const dlRef = useRef<DlHandle | null>(null)
+  // Tier 2 (kortu artai + balsai, ~58 MB) NEBEblokuoja zaidimo (QA #3):
+  // siunciamas tyliai fone, o trukstami failai zaidziant traukiami per SW.
+  const bgMissRef = useRef<ManifestEntry[]>([])
+  const bgRef = useRef<DlHandle | null>(null)
+  const [bgBytes, setBgBytes] = useState(0)
+  const startBg = () => {
+    if (bgRef.current || bgMissRef.current.length === 0) return
+    bgRef.current = downloadMedia(bgMissRef.current, () => {})
+  }
 
   useEffect(() => {
     let alive = true
@@ -40,21 +49,29 @@ export function ContentDownloadGate() {
         const manifest = await getMediaManifest()
         if (!alive) return
         if (manifest.length === 0) { setPhase('hidden'); return }   // RPC nepasiekiamas / offline — neblokuojam
-        const miss = (await diffMissing(manifest)).filter((e) => e.tier <= 2)
+        const missAll = await diffMissing(manifest)
         if (!alive) return
-        if (miss.length === 0) { setPhase('hidden'); return }
+        // Blokuoja TIK tier 1 (core UI/kosmetika/pakai, ~5 MB). Tier 2 — fonui.
+        const miss = missAll.filter((e) => e.tier === 1)
+        // Fono eile pagal matomuma: kortu artai pirmiau (matomi kolekcijoj/kovoj),
+        // balsai veliau (voiceManager vis tiek lazy-load'ina pagal poreiki).
+        const BG_ORDER: Record<string, number> = { 'card-art': 0, 'cinematic-poster': 1, 'voice': 2, 'avatar-voice': 3 }
+        bgMissRef.current = missAll.filter((e) => e.tier === 2)
+          .sort((a, b) => (BG_ORDER[a.kind] ?? 9) - (BG_ORDER[b.kind] ?? 9))
+        setBgBytes(estimateTotalBytes(bgMissRef.current))
+        if (miss.length === 0) { startBg(); setPhase('hidden'); return }
         setMissing(miss)
         if (miss.length < SILENT_LIMIT) {
           // maža delta — tyliai fone, be trukdymo
           setPhase('silent')
           dlRef.current = downloadMedia(miss, () => {})
-          void dlRef.current.promise.then(() => { if (alive) setPhase('hidden') })
+          void dlRef.current.promise.then(() => { if (alive) { startBg(); setPhase('hidden') } })
         } else {
           setPhase('prompt')
         }
       } catch { if (alive) setPhase('hidden') }
     })()
-    return () => { alive = false; dlRef.current?.cancel() }
+    return () => { alive = false; dlRef.current?.cancel(); bgRef.current?.cancel() }
   }, [])
 
   const start = () => {
@@ -62,7 +79,7 @@ export function ContentDownloadGate() {
     setPhase('downloading')
     dlRef.current = downloadMedia(missing, setDl)
     void dlRef.current.promise.then((p) => {
-      if (p.failed === 0) { playSuccess(); setPhase('done-wait') }
+      if (p.failed === 0) { playSuccess(); setPhase('done-wait'); startBg() }
       // su klaidom liekam 'downloading' — UI parodys retry
     })
   }
@@ -71,18 +88,20 @@ export function ContentDownloadGate() {
     playUiClick()
     setDl(null)
     const manifest = await getMediaManifest()
-    const miss = (await diffMissing(manifest)).filter((e) => e.tier <= 2)
-    if (miss.length === 0) { playSuccess(); setPhase('done-wait'); return }
+    const missAll = await diffMissing(manifest)
+    const miss = missAll.filter((e) => e.tier === 1)
+    bgMissRef.current = missAll.filter((e) => e.tier === 2)
+    if (miss.length === 0) { playSuccess(); setPhase('done-wait'); startBg(); return }
     setMissing(miss)
     setPhase('downloading')
     dlRef.current = downloadMedia(miss, setDl)
-    void dlRef.current.promise.then((p) => { if (p.failed === 0) { playSuccess(); setPhase('done-wait') } })
+    void dlRef.current.promise.then((p) => { if (p.failed === 0) { playSuccess(); setPhase('done-wait'); startBg() } })
   }
 
   if (phase === 'checking' || phase === 'silent' || phase === 'hidden') return null
   if (typeof document === 'undefined') return null
 
-  const totalBytes = missing.reduce((s, e) => s + e.bytes, 0)
+  const totalBytes = estimateTotalBytes(missing)
   const finished = dl != null && !dl.running
   const hadFails = finished && (dl?.failed ?? 0) > 0
   const pct = dl ? (dl.totalBytes > 0
@@ -103,6 +122,7 @@ export function ContentDownloadGate() {
                 <b style={{ color: '#f3ead3' }}> {t('onboarding.gate.filesBytes', { count: missing.length, size: totalBytes > 0 ? ` · ~${fmtMB(totalBytes)}` : '' })}</b>.
               </p>
               <p className="mt-1" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.onceNote')}</p>
+              {bgBytes > 0 && <p className="mt-1" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.bgNote', { size: fmtMB(bgBytes) })}</p>}
               <button onClick={start} className="rvn-press mt-4 w-full rounded-2xl font-black"
                 style={{ minHeight: 'clamp(44px,8vh,56px)', fontSize: 'clamp(13px,2vh,16px)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(${GOLD},0.35)` }}>
                 {t('onboarding.gate.downloadCta')}{totalBytes > 0 ? ` (${fmtMB(totalBytes)})` : ''}
@@ -134,6 +154,7 @@ export function ContentDownloadGate() {
             <>
               <p className="mt-2 font-bold" style={{ fontSize: 'clamp(12px,2vh,14px)', color: '#86efac' }}>{t('onboarding.gate.doneTitle')}</p>
               <p className="mt-0.5" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.doneSub')}</p>
+              {bgBytes > 0 && <p className="mt-0.5" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.bgNote', { size: fmtMB(bgBytes) })}</p>}
               <button onClick={() => { playUiClick(); setPhase('hidden') }} className="rvn-press mt-4 w-full rounded-2xl font-black"
                 style={{ minHeight: 'clamp(44px,8vh,56px)', fontSize: 'clamp(13px,2vh,16px)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', background: 'linear-gradient(135deg,#2a9a4c,#134f25)', color: '#eafff0', border: '1px solid rgba(74,222,128,0.7)', boxShadow: '0 0 22px rgba(34,197,94,0.4)' }}>
                 ⚔ PRADĖTI ŽAISTI

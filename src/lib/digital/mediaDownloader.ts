@@ -34,10 +34,25 @@ export async function diffMissing(entries: ManifestEntry[]): Promise<ManifestEnt
 
 export type DlHandle = { cancel: () => void; promise: Promise<DlProgress> }
 
+/** Nezinomo dydzio irasams (bytes=0, pvz. legacy upload'ai be metadata) priskiriam
+ *  zinomu dydziu MEDIANA - kitaip progresas rodo 62/62 MB, nors failu dar 200+
+ *  (QA #3 byte/file nesutapimas), o CTA dydis buna per mazas. */
+export function estimateBytes(entries: ManifestEntry[]): (e: ManifestEntry) => number {
+  const known = entries.map((e) => e.bytes).filter((b) => b > 0).sort((a, b) => a - b)
+  const median = known.length ? known[Math.floor(known.length / 2)] : 65536
+  return (e) => e.bytes > 0 ? e.bytes : median
+}
+
+export function estimateTotalBytes(entries: ManifestEntry[]): number {
+  const est = estimateBytes(entries)
+  return entries.reduce((s, e) => s + est(e), 0)
+}
+
 /** Siunčia trūkstamus failus į rvn-media-v1. onProgress kviečiamas po kiekvieno failo. */
 export function downloadMedia(missing: ManifestEntry[], onProgress: (p: DlProgress) => void): DlHandle {
   let cancelled = false
-  const totalBytes = missing.reduce((s, e) => s + (e.bytes || 0), 0)
+  const est = estimateBytes(missing)
+  const totalBytes = missing.reduce((s, e) => s + est(e), 0)
   const p: DlProgress = { totalFiles: missing.length, doneFiles: 0, totalBytes, doneBytes: 0, failed: 0, running: true }
 
   const promise = (async () => {
@@ -53,7 +68,7 @@ export function downloadMedia(missing: ManifestEntry[], onProgress: (p: DlProgre
           if (res.ok && res.status === 200) await cache.put(new Request(e.url), res)
           else p.failed++
         } catch { p.failed++ }
-        p.doneFiles++; p.doneBytes += e.bytes || 0
+        p.doneFiles++; p.doneBytes += est(e)
         onProgress({ ...p })
       }
     }
