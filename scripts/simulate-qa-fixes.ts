@@ -184,7 +184,7 @@ console.log('\n◆ Valtoras Magninis — sužaistas burtas grįžta į RANKĄ (c
   const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
   beginTurn(g)
   g.you.gold = 1000
-  g.you.artifacts[0] = { uid: 'fort-u', card: fort, charges: 1 } as GameState['you']['artifacts'][0]
+  g.you.artifacts[0] = { uid: 'fort-u', card: fort, hp: 3, maxHp: 3 }
   g.you.hand.push(spell)
   playCard(g, 'you', 'ugnis3')
   check('Alchemikų fortas (be returnCastSpellTo): burtas į KALADĘ', g.you.deck.some((c) => c.uid === 'ugnis3') && !g.you.hand.some((c) => c.uid === 'ugnis3'))
