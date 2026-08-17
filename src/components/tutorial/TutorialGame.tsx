@@ -2560,7 +2560,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const hpLowestRef = useRef(40)
   useEffect(() => { if (game?.you) hpLowestRef.current = Math.min(hpLowestRef.current, game.you.hp) }, [game?.you?.hp])
   useEffect(() => {
-    if (!ranked || !game?.winner || rankedReportedRef.current) return
+    // endShown vartai: RankedResult ekranas iki siol issokdavo AKIMIRKSNIU po 0 HP,
+    // o avataro sprogimas + defeat/victory frazes likdavo fone. Dabar rezultatas
+    // tevui pranesamas tik pabaigos sekai pasibaigus (endShown: 'win' seka
+    // tBoom+2000 arba 12 s backstop) - kaip iprastame rezimo modale.
+    if (!ranked || !game?.winner || !endShown || rankedReportedRef.current) return
     rankedReportedRef.current = true
     const meWon = game.winner === 'you' // ir host'as, ir svečias lokaliai mato save kaip 'you' (swapPerspective)
     const me = game.you, opp = game.ai
@@ -2587,7 +2591,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.winner])
+  }, [game?.winner, endShown])
 
   // Dienos užduočių įvykiai (sužaista kova + pergalė) — ne tutorial/demo
   const questReportedRef = useRef(false)
