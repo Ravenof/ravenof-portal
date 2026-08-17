@@ -2718,7 +2718,9 @@ function buffSpellDamagePrim(g: GameState, s: Side, n: number) {
   log(g, { t: 'buff', side: s, value: n, key: `battleLog.spellDamageBonus.${SK(s)}`, params: { n, total: p.spellDamageBonus } })
 }
 
-// ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ─────────
+// ── Sužaisto burto grąžinimas: į KALADĘ (Alchemikų fortas, default) arba
+// į RANKĄ (returnCastSpellTo:'hand' — Valtoras Magninis). Pilna ranka (10) —
+// burtas lieka kapinyne su handFullToGrave įrašu. ──
 function maybeReturnCastSpell(g: GameState, caster: Side, card: TutCard) {
   for (const sd of allSeats(g)) {
     const p = P(g, sd)
@@ -2726,16 +2728,27 @@ function maybeReturnCastSpell(g: GameState, caster: Side, card: TutCard) {
       ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
       ...p.artifacts.filter((a): a is BoardArtifact => !!a),
     ]
-    let match = false
+    let matched: NonNullable<TutCard['gameplay']>['passiveAura'] | null = null
     for (const c of srcs) {
-      const sc = c.card.gameplay?.passiveAura?.returnCastSpellScope
+      const pa = c.card.gameplay?.passiveAura
+      const sc = pa?.returnCastSpellScope
       if (!sc) continue
-      if (sc === 'all' || (sc === 'friendly' ? caster === sd : caster !== sd)) { match = true; break }
+      if (sc === 'all' || (sc === 'friendly' ? caster === sd : caster !== sd)) { matched = pa!; break }
     }
-    if (!match) continue
+    if (!matched) continue
     const cp = P(g, caster)
     const idx = cp.discard.findIndex((c) => c.uid === card.uid)
     if (idx === -1) return
+    if ((matched.returnCastSpellTo ?? 'deck') === 'hand') {
+      if (cp.hand.length >= 10) {
+        log(g, { t: 'handBurn', side: caster, cardName: card.name, key: 'battleLog.handFullToGrave', params: { card: card.name } })
+        return
+      }
+      const [returned] = cp.discard.splice(idx, 1)
+      cp.hand.push(returned)
+      log(g, { t: 'play', side: caster, cardName: returned.name, key: 'battleLog.castSpellBackHand', params: { card: returned.name, owner: tref(`battleLog.sideGen.${SK(caster)}`) }, sound: 'draw' })
+      return
+    }
     const [returned] = cp.discard.splice(idx, 1)
     cp.deck = shuffle([...cp.deck, returned])
     log(g, { t: 'play', side: caster, cardName: returned.name, key: 'battleLog.alchemistFort', params: { card: returned.name, owner: tref(`battleLog.sideGen.${SK(caster)}`) } })

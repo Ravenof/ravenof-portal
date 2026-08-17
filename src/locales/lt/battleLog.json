@@ -1,5 +1,6 @@
 {
   "alchemistFort": "🏰 Alchemikų fortas: „{{card}}\" grąžinamas į {{owner}} kaladę.",
+  "castSpellBackHand": "✨ „{{card}}\" grįžta į {{owner}} ranką.",
   "arrangeDeckDone": {
     "foe": "Priešininkas sudėliojo {{count}} tavo kortas nauja eile",
     "me": "Sudėliojai {{count}} kortas nauja eile"

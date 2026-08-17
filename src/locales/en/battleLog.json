@@ -1,5 +1,6 @@
 {
   "alchemistFort": "🏰 Alchemists' Fort: \"{{card}}\" is returned to {{owner}} deck.",
+  "castSpellBackHand": "✨ \"{{card}}\" returns to {{owner}} hand.",
   "arrangeDeckDone": {
     "foe": "Opponent reordered {{count}} of your cards",
     "me": "You reordered {{count}} cards"

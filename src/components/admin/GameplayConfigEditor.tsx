@@ -558,14 +558,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>🏰 Sužaistą burtą → kaladė (Alchemikų fortas)</label>
+                <label style={labelStyle}>🏰 Sužaistą burtą grąžinti (Alchemikų fortas / Valtoras)</label>
                 <select value={pa?.returnCastSpellScope ?? ''} onChange={(e) => setPa({ returnCastSpellScope: (e.target.value || undefined) as 'friendly' | 'enemy' | 'all' | undefined })} style={inputStyle}>
                   <option value="">(išjungta)</option>
-                  <option value="friendly">Savo burtus grąžinti į kaladę</option>
-                  <option value="enemy">Priešo burtus grąžinti į jo kaladę</option>
+                  <option value="friendly">Savo burtus grąžinti</option>
+                  <option value="enemy">Priešo burtus grąžinti</option>
                   <option value="all">Bet kurį burtą grąžinti</option>
                 </select>
               </div>
+              {pa?.returnCastSpellScope && (
+                <div>
+                  <label style={labelStyle}>Kur grąžinti sužaistą burtą</label>
+                  <select value={pa?.returnCastSpellTo ?? 'deck'} onChange={(e) => setPa({ returnCastSpellTo: e.target.value === 'hand' ? 'hand' : undefined })} style={inputStyle}>
+                    <option value="deck">Į kaladę (permaišoma)</option>
+                    <option value="hand">Į ranką (pilna ranka → lieka kapinyne)</option>
+                  </select>
+                </div>
+              )}
             </div>
           )
         })()}

@@ -487,7 +487,8 @@ export type PassiveAuraConfig = {
   // ── Burtų vampyrizmas (Gydūnė Džilė): burto žala pridedama prie žaidėjo HP ──
   spellLifestealScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų žala gydo tos pusės žaidėją
   // ── Alchemikų fortas: sužaidus burtą – grąžinti jį į savininko kaladę ──
-  returnCastSpellScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų sužaidimą gaudo (grąžina į kaladę)
+  returnCastSpellScope?: 'friendly' | 'enemy' | 'all'  // kieno burtų sužaidimą gaudo (grąžina į kaladę/ranką)
+  returnCastSpellTo?: 'deck' | 'hand'  // kur grąžinti sužaistą burtą (default 'deck' — Alchemikų fortas; 'hand' — Valtoras Magninis)
   // ── Statusų imunitetas (aura): paveikti padarai NEGAUNA pasirinktų būsenų ──
   auraStatusImmunity?: boolean         // įjungia imunitetą; kurias būsenas blokuoja – žr. sąrašą žemiau
   auraStatusImmunityStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced')[]  // TUŠČIA = visos neigiamos

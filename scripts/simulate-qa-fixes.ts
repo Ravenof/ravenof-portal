@@ -135,5 +135,60 @@ function ekGame(): GameState {
   check('AI: 1-a šaka auto (2 taikiniai po 4, be pending)', !g.pendingChoice && !g.pendingLastwish && hps.filter((h) => h === 2).length >= 1, JSON.stringify(hps))
 }
 
+console.log('\n◆ Valtoras Magninis — sužaistas burtas grįžta į RANKĄ (commit623)')
+{
+  const valtoras = mkCard({ name: 'Valtoras', uid: 'valt', health: 8, mappings: [
+    { value: 3, effect: 'damage', target: 'selfUnit', trigger: 'onCast', requiresSelection: false } as EffectMapping,
+  ], gameplay: { passiveAura: { returnCastSpellScope: 'friendly', returnCastSpellTo: 'hand' } } as TutCard['gameplay'] })
+  const spell = mkCard({ name: 'Ugnis', uid: 'ugnis', type: 'spell', mappings: [
+    { trigger: 'onCast', effect: 'damage', target: 'enemyPlayer', value: 2, requiresSelection: false } as EffectMapping,
+  ] })
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.you.gold = 1000
+  g.you.units[0] = { uid: 'valt-u', card: valtoras, atk: 2, hp: 8, maxHp: 8, shield: false, stealth: false, statuses: {}, summonedOnTurn: 0, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false } as GameState['you']['units'][0]
+  g.you.hand.push(spell)
+  const r = playCard(g, 'you', 'ugnis')
+  check('burtas sužaistas', r.ok, JSON.stringify(r))
+  check('burtas GRĮŽO Į RANKĄ', g.you.hand.some((c) => c.uid === 'ugnis'), g.you.hand.map((c) => c.name).join(','))
+  check('burto nėra kapinyne/kaladėje', !g.you.discard.some((c) => c.uid === 'ugnis') && !g.you.deck.some((c) => c.uid === 'ugnis'))
+  check('Valtoras gavo 3 žalą (8→5)', P(g, 'you').units[0]?.hp === 5, String(P(g, 'you').units[0]?.hp))
+  check('burto efektas įvyko (−2 priešui)', g.ai.hp === g.ai.maxHp - 2, `${g.ai.hp}/${g.ai.maxHp}`)
+  // pakartotinai: tas pats burtas žaidžiamas dar kartą (grįžo į ranką)
+  const r2 = playCard(g, 'you', 'ugnis')
+  check('grąžintas burtas žaidžiamas dar kartą', r2.ok && g.you.hand.some((c) => c.uid === 'ugnis'), JSON.stringify(r2))
+  check('Valtoras vėl gavo 3 (5→2)', P(g, 'you').units[0]?.hp === 2, String(P(g, 'you').units[0]?.hp))
+}
+{
+  // pilna ranka → burtas lieka kapinyne (handFullToGrave)
+  const valtoras = mkCard({ name: 'Valtoras2', uid: 'valt2', health: 8, gameplay: { passiveAura: { returnCastSpellScope: 'friendly', returnCastSpellTo: 'hand' } } as TutCard['gameplay'] })
+  const spell = mkCard({ name: 'Ugnis2', uid: 'ugnis2', type: 'spell', mappings: [
+    { trigger: 'onCast', effect: 'damage', target: 'enemyPlayer', value: 1, requiresSelection: false } as EffectMapping,
+  ] })
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.you.gold = 1000
+  g.you.units[0] = { uid: 'valt2-u', card: valtoras, atk: 2, hp: 8, maxHp: 8, shield: false, stealth: false, statuses: {}, summonedOnTurn: 0, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false } as GameState['you']['units'][0]
+  g.you.hand = [...filler(10, 'H'), spell].slice(0, 10)  // 9 filler + burtas = 10 (pilna po sužaidimo bus 9, tada +filler)
+  g.you.hand = [spell, ...filler(10, 'H')]  // burtas + 10 filler = 11; sužaidus liks 10 => ranka PILNA
+  const r = playCard(g, 'you', 'ugnis2')
+  check('burtas sužaistas (pilna ranka)', r.ok, JSON.stringify(r))
+  check('pilna ranka → burtas LIEKA kapinyne', g.you.discard.some((c) => c.uid === 'ugnis2') && !g.you.hand.some((c) => c.uid === 'ugnis2'))
+}
+{
+  // Alchemikų forto regresija: be returnCastSpellTo → į KALADĘ kaip anksčiau
+  const fort = mkCard({ name: 'Fortas', uid: 'fort', type: 'artifact', gameplay: { passiveAura: { returnCastSpellScope: 'friendly' } } as TutCard['gameplay'] })
+  const spell = mkCard({ name: 'Ugnis3', uid: 'ugnis3', type: 'spell', mappings: [
+    { trigger: 'onCast', effect: 'damage', target: 'enemyPlayer', value: 1, requiresSelection: false } as EffectMapping,
+  ] })
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.you.gold = 1000
+  g.you.artifacts[0] = { uid: 'fort-u', card: fort, charges: 1 } as GameState['you']['artifacts'][0]
+  g.you.hand.push(spell)
+  playCard(g, 'you', 'ugnis3')
+  check('Alchemikų fortas (be returnCastSpellTo): burtas į KALADĘ', g.you.deck.some((c) => c.uid === 'ugnis3') && !g.you.hand.some((c) => c.uid === 'ugnis3'))
+}
+
 console.log(`\n${pass} ✓ / ${fail} ✗`)
 process.exit(fail ? 1 : 0)
