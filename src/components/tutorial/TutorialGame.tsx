@@ -3544,6 +3544,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     const full = o.maxPick != null && pickedSet.size >= o.maxPick
     return (
       <motion.div key={o.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        data-tut-zoomroot="scene" data-tut={'pick-scene'}
         className="fixed inset-0 flex flex-col items-center justify-center gap-4 py-4"
         style={{ zIndex: o.z ?? 133, background: 'rgba(6,5,10,0.55)', backdropFilter: 'blur(7px) grayscale(1)', WebkitBackdropFilter: 'blur(7px) grayscale(1)' }}>
         <div className="text-center px-4">
@@ -3557,7 +3558,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               const on = pickedSet.has(it.key)
               const dim = o.mode === 'choose' && !on && full   // limitas pasiektas – likusios pritemsta
               return (
-                <button key={it.key} {...holdPreview(it.card)}
+                <button key={it.key} {...holdPreview(it.card)} data-pick-card={it.card.name}
                   onClick={() => { if (o.onTap) { o.onTap(it.key); return } if (o.onToggle && (on || !full)) { playUiClick(); o.onToggle(it.key) } }}
                   className="relative flex-none" title={it.card.name}
                   style={{
@@ -5221,10 +5222,11 @@ doAction({ t: 'endTurn', actor: 'you' })
 
         {coinToss && (
           <motion.div key="cointoss" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            data-tut-zoomroot="scene"
             className="fixed inset-0 z-[150] flex flex-col items-center justify-center gap-6"
             style={{ background: 'rgba(6,5,10,0.6)', backdropFilter: 'blur(7px) grayscale(1)', WebkitBackdropFilter: 'blur(7px) grayscale(1)' }}>
             <p className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', letterSpacing: '0.1em', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>{t('battle.game.coinTossTitle')}</p>
-            <div style={{ perspective: 900 }}>
+            <div data-tut="coin" style={{ perspective: 900 }}>
               <div style={{ animation: coinToss.spun ? `rvn-coin-arc ${COIN_TOSS.spinMs}ms cubic-bezier(0.3,0.6,0.35,1)` : undefined }}>
                 <div style={{
                   width: COIN_TOSS.sizePx, height: COIN_TOSS.sizePx, position: 'relative', transformStyle: 'preserve-3d',
