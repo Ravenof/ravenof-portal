@@ -187,6 +187,17 @@ const STATUS_GLOW: Record<TutStatus, string> = {
   frozen: '#38bdf8', burning: '#fb923c', poisoned: '#84cc16', stunned: '#facc15', silenced: '#a78bfa', blessed: '#fcd34d',
 }
 const RAIL_PANEL = { background: 'rgba(13,10,20,0.66)', border: '1px solid rgba(240,180,41,0.22)', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)' }
+// Asset CTA kanonas (commit600-601): button-primary-normal 100%/100%, auto plotis,
+// disabled = tas pats asset grayscale. Naudojamas pick scenose ir pasirinkimo popup'uose.
+const ASSET_BTN = (disabled = false): React.CSSProperties => ({
+  width: 'auto', minWidth: 220, maxWidth: '92vw', textAlign: 'center',
+  font: '800 13px var(--rvn-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+  color: disabled ? '#8a8494' : '#f6e8c6',
+  background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
+  filter: disabled ? 'grayscale(1) brightness(0.55)' : 'none',
+  padding: '13px 34px', border: 0, cursor: disabled ? 'default' : 'pointer',
+  textShadow: '0 1px 4px rgba(0,0,0,.8)', transition: 'filter 0.18s ease',
+})
 const ICON_BASE = '/icons/status/'
 const STATUS_ICON: Record<TutStatus, string> = {
   frozen: 'frozen', burning: 'burning', poisoned: 'poison', stunned: 'stunned', silenced: 'silenced', blessed: 'light',
@@ -4802,10 +4813,10 @@ doAction({ t: 'endTurn', actor: 'you' })
               className="combat-plate p-4 w-[min(360px,92vw)] text-center">
               <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{t('battle.game.swapPhaseTitle')}</p>
               <p className="text-[11px] mb-3" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.swapPhaseText', { card: champSwap.name, phase: champSwap.phase })}</p>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5 items-center">
                 {champSwap.options.map((tp) => (
                   <button key={tp} onClick={() => { playUiClick(); doAction({ t: 'swapChampPhase', actor: 'you', uid: champSwap.cardUid, phase: tp }); setChampSwap(null) }}
-                    className="px-4 py-2 rounded-xl text-sm font-bold" style={{ background: 'rgba(240,180,41,0.14)', border: '1px solid rgba(240,180,41,0.45)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
+                    className="ravenof-press" style={{ ...ASSET_BTN(), whiteSpace: 'nowrap' }}>
                     {t('battle.game.phaseN', { phase: tp })}
                   </button>
                 ))}
@@ -5251,12 +5262,12 @@ doAction({ t: 'endTurn', actor: 'you' })
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }}
               className="combat-plate p-4 w-[min(600px,94vw)] max-h-[86vh] overflow-y-auto text-center">
               <p className="text-sm font-bold mb-3" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>{game.pendingChoice.title}</p>
-              <div className="flex flex-col gap-2 items-stretch">
+              <div className="flex flex-col gap-2.5 items-center">
                 {game.pendingChoice.options.map((opt, i2) => (
                   <button key={'opt-' + i2} onClick={() => { playSuccess(); doAction({ t: 'resolveChoice', index: i2 }) }}
-                    className="px-4 py-3 rounded-xl text-sm font-bold transition-all"
-                    style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>
-                    {opt.label}{opt.sub ? <span className="block text-[10px] font-normal mt-0.5" style={{ color: 'var(--text-secondary)' }}>{opt.sub}</span> : null}
+                    className="ravenof-press" style={ASSET_BTN()}>
+                    <span className="block" style={{ whiteSpace: 'nowrap' }}>{opt.label}</span>
+                    {opt.sub ? <span className="block" style={{ font: '400 10px var(--rvn-font-body)', letterSpacing: 0.4, textTransform: 'none', color: '#d8cdb4', marginTop: 2, maxWidth: 320, whiteSpace: 'normal' }}>{opt.sub}</span> : null}
                   </button>
                 ))}
               </div>
