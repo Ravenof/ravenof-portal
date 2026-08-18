@@ -25,6 +25,7 @@ import { CardPool } from '@/lib/tutorial2/cardPool'
 import { TutorialAnalytics } from '@/lib/tutorial2/analytics'
 import { completeLesson } from '@/lib/tutorial2/lessonLoader'
 import { playTutorialVoice, prefetchLessonVoices, stopTutorialVoice, estimateReadMs } from '@/lib/tutorial2/tutorialVoice'
+import { setAvatarVoiceMuted } from '@/lib/game/avatarAudio'
 import type { LessonRow, LessonStep, HighlightTarget, AllowedAction, ScriptedAction, StepMutation, Dialogue } from '@/lib/tutorial2/lessonTypes'
 import { TutorialOverlay, type OverlayDialogue } from './TutorialOverlay'
 import { WRONG_VOICE_IDS, GOOD_VOICE_IDS } from '@/data/tutorialLessons/systemVoice'
@@ -40,6 +41,10 @@ const ANCHOR_TUT: Record<string, string> = {
 /** Pauzė po balso, kol pereinam prie kitos eilutės (kad kvėptų). */
 const AFTER_VOICE_MS = 520
 const WRONG_VOICES = WRONG_VOICE_IDS
+/** Anti-deadlock: kiek laukiam veiksmo žingsnio, po to duodam rankinį „Tęsti". */
+const STUCK_MS = 15000
+/** Kaip dažnai perkraunam užbaigimo sąlygą be naujų įvykių (enemyTurnDone ir pan.). */
+const RECHECK_MS = 1200
 
 export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit: (completed: boolean) => void }) {
   const t = useT()
@@ -51,6 +56,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
   const [phase, setPhase] = useState<'loading' | 'play' | 'reward'>('loading')
   const [reward, setReward] = useState<LessonRow['reward_payload']>({})
   const [voicePlaying, setVoicePlaying] = useState(false)
+  const [stuck, setStuck] = useState(false)
 
   const stepIdxRef = useRef(0)
   const dialogueActiveRef = useRef(true)
@@ -66,6 +72,12 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
   const wrongVoiceAt = useRef(0)
 
   const step: LessonStep | undefined = steps[stepIdx]
+
+  // Visą pamoką avatarų vienetės tyli (kortų balsai lieka) — QA 2026-08-18.
+  useEffect(() => {
+    setAvatarVoiceMuted(true)
+    return () => setAvatarVoiceMuted(false)
+  }, [])
 
   // ── load card pool + analytics + voice prefetch ──
   useEffect(() => {
@@ -93,6 +105,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
   // ── step machine ──
   const enterStep = useCallback((idx: number) => {
     enemyCursor.current = 0; enemyDone.current = false
+    setStuck(false)
     setStepIdx(idx); setDialogueIdx(0)
     analytics.current?.stepStart(steps[idx]?.id ?? String(idx))
   }, [steps])
@@ -247,11 +260,38 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     }
   }, [steps, advanceStep])
 
-  // „laikai–matai" (hold-to-view) mokymo trigeris
+  // ── Anti-deadlock (QA 2026-08-18) ──
+  // checkComplete kviečiamas TIK atėjus naujiems žaidimo įvykiams. Jei sąlyga
+  // išsipildė dar skambant dialogui (pvz. priešas jau baigė ėjimą), naujų įvykių
+  // daugiau nebūna ir pamoka pakimba — „laukiam priešininko", o jis nieko nedaro.
+  // Todėl: kas RECHECK_MS perkraunam sąlygą su tuščiu įvykių sąrašu, o po STUCK_MS
+  // parodom rankinį „Tęsti" (pamoka NIEKADA neužstringa visam laikui).
+  const dialogueDone = (step?.dialogue?.length ?? 0) <= dialogueIdx
+  useEffect(() => {
+    if (phase !== 'play' || !step || !dialogueDone) return
+    const on = step.complete.on
+    if (on === 'next' || on === 'voiceDone' || on === 'auto') return
+    const iv = window.setInterval(() => { const g = gameRef.current; if (g) checkComplete([], g) }, RECHECK_MS)
+    const st = window.setTimeout(() => setStuck(true), STUCK_MS)
+    return () => { window.clearInterval(iv); window.clearTimeout(st) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, stepIdx, dialogueDone])
+
+  // „laikai–matai" (hold-to-view): žingsnis baigiamas UŽDARIUS peržiūrą, kad
+  // pamoka nenušoktų į kitą žingsnį kortai dar esant per visą ekraną (QA 2026-08-18).
+  const inspectArmed = useRef(false)
   const onInspect = useCallback((card: TutCard) => {
     const s = steps[stepIdxRef.current]
     if (!s || dialogueActiveRef.current) return
     if (s.complete.on !== 'inspect') return
+    if (s.complete.cardName && s.complete.cardName !== card.name) return
+    inspectArmed.current = true
+  }, [steps])
+  const onInspectEnd = useCallback((card: TutCard) => {
+    if (!inspectArmed.current) return
+    inspectArmed.current = false
+    const s = steps[stepIdxRef.current]
+    if (!s || s.complete.on !== 'inspect') return
     if (s.complete.cardName && s.complete.cardName !== card.name) return
     advanceStep()
   }, [steps, advanceStep])
@@ -323,6 +363,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     applySetup,
     onApi: (api) => { apiRef.current = api },
     onInspect,
+    onInspectEnd,
     gate: (a, g) => {
       const s = steps[stepIdxRef.current]
       if (dialogueActiveRef.current) return { ok: false, hint: t('onboarding.tutorial.readFirst') }
@@ -344,7 +385,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       else { endTurn(g); if (!g.winner) beginTurn(g); enemyDone.current = true }
     },
     onEvents: (fresh, g) => { gameRef.current = g; checkComplete(fresh, g) },
-  }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, cfg.matchStartFlow, t])
+  }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, onInspectEnd, cfg.matchStartFlow, t])
 
   // ── overlay data ──
   const objective = useMemo(() => {
@@ -403,6 +444,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
             objective: t('onboarding.tutorial.objectiveLabel'),
             next: t('onboarding.tutorial.next'),
             skipVoice: t('onboarding.tutorial.skipVoice'),
+            forceNext: t('onboarding.tutorial.forceNext'),
             skipLesson: t('onboarding.tutorial.skipLesson'),
             confirmTitle: t('onboarding.tutorial.skipConfirmTitle'),
             confirmBody: t('onboarding.tutorial.skipConfirmBody'),
@@ -421,6 +463,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
           total={steps.length}
           showNext={!!curDialogue}
           voicePlaying={voicePlaying}
+          onForceNext={stuck ? () => { setStuck(false); advanceStep() } : null}
           onNext={onNext}
           onSkipLesson={() => { stopTutorialVoice(); analytics.current?.lessonSkip(); onExit(false) }}
           onExit={() => { stopTutorialVoice(); onExit(false) }}

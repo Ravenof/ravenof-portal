@@ -93,8 +93,10 @@ export type TutorialHooks = {
   enemyTurn?: (g: GameState) => void                      // vykdo scripted priešo veiksmus (po 1 per tiką)
   onEvents?: (fresh: GameEvent[], g: GameState) => void   // praneša director'iui apie naujus įvykius
   // ── V3 ──
-  /** Kortos peržiūra „laikai–matai" (L1 hold-to-view žingsnis). */
+  /** Kortos peržiūra „laikai–matai" (L1 hold-to-view žingsnis) — ATIDARYMAS. */
   onInspect?: (card: TutCard) => void
+  /** Ta pati peržiūra UŽDARYTA (grįžom į lauką) — žingsnio užbaigimui. */
+  onInspectEnd?: (card: TutCard) => void
   /** L8: įjungia TIKRĄ kovos pradžios srautą (monetos metimas + mulligan). */
   matchStartFlow?: boolean
   /** Imperatyvus API direktoriui (scripted demonstracijų būsenos pakeitimai). */
@@ -987,6 +989,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [inspectDocked, setInspectDocked] = useState(false)
   const openInspectHeld = useCallback((card: TutCard) => { inspectHeldRef.current = true; setInspectDocked(false); setInspect(card); try { tutorialRef.current?.onInspect?.(card) } catch { /* mokymai niekada nelaužia kovos */ } }, [])
   useEffect(() => { if (!inspect) setInspectDocked(false) }, [inspect])
+  // V3 mokymai: „pažink kortą" žingsnis baigiasi UŽDARIUS peržiūrą (grįžus į lauką),
+  // o ne ją atidarius — kitaip pamoka nušoka į kitą žingsnį kortai dar esant ekrane.
+  const prevInspect = useRef<TutCard | null>(null)
+  useEffect(() => {
+    const prev = prevInspect.current
+    prevInspect.current = inspect
+    if (prev && !inspect) { try { tutorialRef.current?.onInspectEnd?.(prev) } catch { /* mokymai niekada nelaužia kovos */ } }
+  }, [inspect])
   useEffect(() => {
     if (!inspect) { inspectHeldRef.current = false; return }
     if (!inspectHeldRef.current) return

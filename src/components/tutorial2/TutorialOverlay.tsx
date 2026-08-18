@@ -36,6 +36,7 @@ export interface OverlayLabels {
   next: string
   skipVoice: string
   skipLesson: string
+  forceNext: string
   confirmTitle: string
   confirmBody: string
   confirmYes: string
@@ -57,6 +58,8 @@ export interface TutorialOverlayProps {
   showNext: boolean
   /** Rodoma „skip" užuomina, kol groja balsas (bakstelėjimas praleidžia). */
   voicePlaying?: boolean
+  /** Anti-deadlock: kai žingsnis per ilgai nejuda, direktorius duoda rankinį tęsimą. */
+  onForceNext?: (() => void) | null
   onNext: () => void
   onSkipLesson: () => void
   onExit: () => void
@@ -72,6 +75,9 @@ function rectOf(sel: string | null | undefined, pad = 6): Rect | null {
   if (r.width === 0 && r.height === 0) return null
   return { x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 }
 }
+
+/** Apatinės dialogo juostos aukštis (burbulas + tarpas) — perdengimo detekcijai. */
+const BUBBLE_ZONE_H = 168
 
 function readRects(selectors: string[]): Rect[] {
   const out: Rect[] = []
@@ -95,6 +101,9 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
   const [arrowFrom, setArrowFrom] = useState<Rect | null>(null)
   const [vp, setVp] = useState({ w: 0, h: 0 })
   const [confirmSkip, setConfirmSkip] = useState(false)
+  // Dialogo burbulas keliauja Į VIRŠŲ, kai rodomas objektas yra po juo (QA 2026-08-18).
+  const [bubbleTop, setBubbleTop] = useState(false)
+  const bubbleTopRef = useRef(false)
   const raf = useRef(0)
   // taikomas transformas (scale, translate) — kad rect'us galėtume „atsukti" į bazę
   const cam = useRef({ s: 1, tx: 0, ty: 0 })
@@ -118,9 +127,21 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
     const tick = () => {
       const W = window.innerWidth, H = window.innerHeight
       setVp({ w: W, h: H })
-      setRects(readRects(p.highlightSelectors))
-      setArrow(rectOf(p.arrowSelector))
+      const hs = readRects(p.highlightSelectors)
+      const ar = rectOf(p.arrowSelector)
+      setRects(hs)
+      setArrow(ar)
       setArrowFrom(rectOf(p.arrowFromSelector))
+
+      // ── Ar burbulas uždengia tai, ką rodom? ──
+      // Burbulo zona: apatinė juosta per visą plotį (aukštis ~ 168 px + safe-area).
+      // Jei bent vienas paryškinimas / rodyklės taikinys į ją patenka — burbulą
+      // keliam į viršų (po tikslo juosta). Histerezė: 24 px, kad nemirksėtų.
+      const zoneTop = H - BUBBLE_ZONE_H
+      const probes = [...hs, ...(ar ? [ar] : []), ...(rectOf(p.zoomSelector, 0) ? [rectOf(p.zoomSelector, 0)!] : [])]
+      const margin = bubbleTopRef.current ? 24 : 0
+      const hit = probes.some((r) => r.y + r.h > zoneTop - margin)
+      if (hit !== bubbleTopRef.current) { bubbleTopRef.current = hit; setBubbleTop(hit) }
 
       // ── close-up kamera ──
       const el = wrap()
@@ -243,7 +264,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
 
       {/* Dialogue bubble (+ titrai) */}
       {p.dialogue && (
-        <div className="rvn-tut-bubble" style={{ borderColor: accent }} onClick={p.showNext ? p.onNext : undefined}>
+        <div className={'rvn-tut-bubble' + (bubbleTop ? ' rvn-tut-bubble-top' : '')} style={{ borderColor: accent }} onClick={p.showNext ? p.onNext : undefined}>
           <div className="rvn-tut-portrait" style={{ borderColor: accent, color: accent }}>🐦‍⬛</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             {p.dialogue.name && <div style={{ fontSize: 12, fontWeight: 800, color: accent, fontFamily: 'var(--rvn-font-display, Cinzel, serif)', letterSpacing: '0.04em' }}>{p.dialogue.name}</div>}
@@ -260,6 +281,13 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
             </button>
           )}
         </div>
+      )}
+
+      {/* Anti-deadlock: rankinis tęsimas, kai žingsnis pakibo (priešas nieko nedaro) */}
+      {p.onForceNext && (
+        <button onClick={p.onForceNext} className="rvn-tut-force" style={{ bottom: bubbleTop ? 20 : 172 }}>
+          {p.labels.forceNext}
+        </button>
       )}
 
       {/* Praleidimo patvirtinimas */}
@@ -308,6 +336,9 @@ const CSS = `
 .rvn-tut-obj { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 18px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
 .rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(680px, 94vw); display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; cursor: pointer; }
 @keyframes rvnTutRise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.rvn-tut-bubble-top { bottom: auto !important; top: calc(78px + env(safe-area-inset-top, 0px)); }
+.rvn-tut-force { position: fixed; right: 14px; pointer-events: auto; font: 800 11.5px var(--rvn-font-display, Cinzel, serif); letter-spacing: 1px; color: #f3ead3; background: rgba(6,4,11,0.92); border: 1.5px solid rgba(240,180,41,0.55); padding: 8px 14px; border-radius: 11px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
+.rvn-tut-force:hover { background: rgba(240,180,41,0.2); }
 .rvn-tut-portrait { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid; background: rgba(0,0,0,0.4); flex-shrink: 0; }
 .rvn-tut-next { flex-shrink: 0; padding: 8px 16px; border-radius: 11px; font-weight: 800; font-size: 13px; background: rgba(240,180,41,0.14); border: 1.5px solid; cursor: pointer; font-family: var(--rvn-font-display, Cinzel, serif); }
 .rvn-tut-next:hover { background: rgba(240,180,41,0.26); }

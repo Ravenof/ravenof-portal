@@ -17,9 +17,12 @@
 import { isUiSoundEnabled } from '@/lib/ui-sound'
 import { getSfxVolume } from '@/lib/settings'
 import { cachedFetch } from '@/lib/game/mediaCache'
+import { duckMusic, restoreMusic } from '@/lib/game/musicManager'
 
 const BUCKET_PATH = '/storage/v1/object/public/card-audio/tutorial/'
 const FADE_MS = 150
+/** Muzikos duck'as, kol Korvas kalba: -6 dB = ~50 % garsumo (QA 2026-08-18). */
+const DUCK_DB = -6
 /** Skaitymo greitis, kai balso nėra: ~55 ms/ženklas, min 1.8 s, max 9 s. */
 const MS_PER_CHAR = 55
 const MIN_MS = 1800
@@ -104,6 +107,7 @@ export function isVoiceKnownMissing(voiceId: string): boolean { return missing.h
 export function stopTutorialVoice(): void {
   const c = current
   if (!c) return
+  restoreMusic()          // praleista eilutė — muzika grįžta iš karto
   current = null
   const ctx = getCtx()
   try {
@@ -145,8 +149,10 @@ export async function playTutorialVoice(voiceId: string | undefined, opts?: { vo
       gain.gain.value = Math.max(0, Math.min(1, (opts?.volume ?? 0.95) * getSfxVolume()))
       src.connect(gain); gain.connect(ctx.destination)
       const entry = { src, gain, done: finish }
-      src.onended = () => { if (current?.src === src) current = null; finish() }
+      src.onended = () => { if (current?.src === src) current = null; restoreMusic(); finish() }
       current = entry
+      // muzika −6 dB visai kalbos trukmei (+ uodega), kad pasakotojas girdėtųsi
+      duckMusic(DUCK_DB, Math.round(buf.duration * 1000) + 600)
       src.start()
     } catch { finish() }
   })

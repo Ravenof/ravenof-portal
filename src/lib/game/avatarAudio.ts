@@ -13,6 +13,8 @@ const warm = new Map<string, HTMLAudioElement>()        // preload cache (HTTP w
 const lastPlayed = new Map<string, number>()            // `${avatarId}:${event}` -> ts
 const firedOnce = new Set<string>()                     // once-per-battle keys
 let channel: HTMLAudioElement | null = null
+/** Mokymų režimas: avatarų vienetės nutildomos, kad netrukdytų Korvo pasakojimui. */
+let muted = false
 
 const RATE_MS: Partial<Record<AvatarAudioEvent, number>> = { hit: 1800, spellCast: 2000, selected: 450 }
 const ONCE: AvatarAudioEvent[] = ['fightStart', 'defeat', 'victory', 'lowHp']
@@ -53,7 +55,19 @@ function pickWeighted(clips: { url: string; weight: number }[]): string {
 }
 
 /** Sugroja avataro balsą įvykiui (jei yra; su rate-limit / once apsauga). */
+/**
+ * Laikinai nutildo AVATARŲ vienetes (kortų balsai per voiceManager NELIEČIAMI).
+ * Naudoja V3 mokymai: Senasis Korvas kalba visą pamoką, avatarų šūksniai jį užgožia.
+ */
+export function setAvatarVoiceMuted(v: boolean): void {
+  muted = v
+  if (v) stopAvatarAudio()
+}
+
+export function isAvatarVoiceMuted(): boolean { return muted }
+
 export function playAvatarAudio(avatarId: string | null | undefined, event: AvatarAudioEvent, opts?: { volume?: number }): void {
+  if (muted) return
   if (!avatarId || !uiSoundOn()) return
   const clips = MAP[avatarId]?.[event]
   if (!clips?.length) return

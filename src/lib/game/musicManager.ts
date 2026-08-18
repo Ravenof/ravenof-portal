@@ -204,6 +204,17 @@ export function duckMusic(db: number = AUDIO_DUCK.defaultDb, holdMs: number = AU
   duckTimer = window.setTimeout(restore, holdMs)
 }
 
+/**
+ * Nedelsiant atstato muzikos garsumą (nutraukia bet kokį aktyvų duck'ą).
+ * Reikalinga ilgiems duck'ams (mokymų balsas), kai eilutė praleidžiama anksčiau.
+ */
+export function restoreMusic(): void {
+  if (typeof window === 'undefined') return
+  duckUntil = 0
+  if (duckTimer !== null) { window.clearTimeout(duckTimer); duckTimer = null }
+  if (current && mode !== 'none' && isUiSoundEnabled()) fade(current, musicVol(), AUDIO_DUCK.rampMs)
+}
+
 export function stopMusic(): void {
   mode = 'none'
   stopEl(current)
