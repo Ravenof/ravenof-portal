@@ -123,7 +123,11 @@ const L1_STEPS: LessonStep[] = [
   { id: 'enemy-turn', objective: 'Stebėk priešą',
     dialogue: [say('l1-s17', 'Dabar eina priešininkas. Stebėk.',
       'Dabar eina priešininkas. Stebėk. Kartais geriausia pamoka — žiūrėti, ką daro priešas.')],
-    enemyScript: [{ type: 'endTurn' }], complete: { on: 'enemyTurnDone' } },
+    // Priešas IŠKVIEČIA padarą, o ne tiesiog praleidžia ėjimą — kitaip „stebėk priešą"
+    // atrodo kaip bug'as (QA 2026-08-18). runScripted paima kortą iš kaladės, jei
+    // jos dar nėra rankoje, ir prireikus pridės aukso.
+    enemyScript: [{ type: 'play', cardName: 'Goblinų skautas' }, { type: 'endTurn' }],
+    complete: { on: 'enemyTurnDone' } },
   { id: 'gold-grows',
     dialogue: [say('l1-s18', 'Matai? Antras ėjimas — du šimtai aukso.',
       'Matai? Antras ėjimas — du šimtai aukso. Kas ėjimą vis daugiau. Vėliau galėsi žaisti po kelias kortas iš karto.')],
@@ -696,7 +700,9 @@ const L8_STEPS: LessonStep[] = [
     highlight: [{ kind: 'anchor', anchor: 'deck-you' }], arrowTo: { kind: 'button', id: 'end-turn' }, arrowStyle: 'pulse',
     allow: [{ kind: 'end-turn' }], complete: { on: 'event', eventType: 'endTurn', side: 'you' } },
   { id: 'fatigue-show',
-    enemyScript: [{ type: 'endTurn' }], complete: { on: 'enemyTurnDone' } },
+    // Priešas kerta į veidą — ėjimas turi būti matomas, ne tuščias (QA 2026-08-18).
+    enemyScript: [{ type: 'attack', attackerCard: 'Urvų padaras', face: true }, { type: 'endTurn' }],
+    complete: { on: 'enemyTurnDone' } },
   { id: 'hand-limit',
     dialogue: [say('l8-s07', 'Rankoje telpa dešimt kortų. Vienuolikta sudegtų.',
       'Dar žinok: rankoje telpa dešimt kortų. Vienuolikta sudegtų. Netaupyk to, ko negali panešti.')],

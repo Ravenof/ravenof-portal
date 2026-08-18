@@ -26,6 +26,7 @@ import { TutorialAnalytics } from '@/lib/tutorial2/analytics'
 import { completeLesson } from '@/lib/tutorial2/lessonLoader'
 import { playTutorialVoice, prefetchLessonVoices, stopTutorialVoice, estimateReadMs } from '@/lib/tutorial2/tutorialVoice'
 import { setAvatarVoiceMuted } from '@/lib/game/avatarAudio'
+import { setMusicScale } from '@/lib/game/musicManager'
 import type { LessonRow, LessonStep, HighlightTarget, AllowedAction, ScriptedAction, StepMutation, Dialogue } from '@/lib/tutorial2/lessonTypes'
 import { TutorialOverlay, type OverlayDialogue } from './TutorialOverlay'
 import { WRONG_VOICE_IDS, GOOD_VOICE_IDS } from '@/data/tutorialLessons/systemVoice'
@@ -41,6 +42,8 @@ const ANCHOR_TUT: Record<string, string> = {
 /** Pauzė po balso, kol pereinam prie kitos eilutės (kad kvėptų). */
 const AFTER_VOICE_MS = 520
 const WRONG_VOICES = WRONG_VOICE_IDS
+/** Muzikos garsumo daugiklis visai pamokai (pasakotojas > muzika). */
+const LESSON_MUSIC_SCALE = 0.45
 /** Anti-deadlock: kiek laukiam veiksmo žingsnio, po to duodam rankinį „Tęsti". */
 const STUCK_MS = 15000
 /** Kaip dažnai perkraunam užbaigimo sąlygą be naujų įvykių (enemyTurnDone ir pan.). */
@@ -73,10 +76,12 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
 
   const step: LessonStep | undefined = steps[stepIdx]
 
-  // Visą pamoką avatarų vienetės tyli (kortų balsai lieka) — QA 2026-08-18.
+  // Visą pamoką avatarų vienetės tyli (kortų balsai lieka) ir muzika groja tyliau
+  // (0.45 × nustatymo) — pasakotojas turi būti girdimas. QA 2026-08-18.
   useEffect(() => {
     setAvatarVoiceMuted(true)
-    return () => setAvatarVoiceMuted(false)
+    setMusicScale(LESSON_MUSIC_SCALE)
+    return () => { setAvatarVoiceMuted(false); setMusicScale(1) }
   }, [])
 
   // ── load card pool + analytics + voice prefetch ──
@@ -234,7 +239,16 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       return t ? { kind: 'unit', side: 'you', uid: t.uid } : { kind: 'player', side: 'you' }
     }
     if (a.type === 'play') {
-      const u = g.ai.hand.find((c) => c.name === a.cardName); if (!u) return
+      // Scenarijaus korta gali būti dar kaladėje (priešas jos neištraukė) — mokymai
+      // yra režisuotas spektaklis, tad pasiimam ją į ranką ir, jei reikia, pridedam
+      // aukso. Kitaip priešas per savo ėjimą „nieko nedaro" ir atrodo kaip bug'as.
+      let u = g.ai.hand.find((c) => c.name === a.cardName)
+      if (!u) {
+        const di = g.ai.deck.findIndex((c) => c.name === a.cardName)
+        if (di >= 0) { u = g.ai.deck[di]; g.ai.deck.splice(di, 1); g.ai.hand.push(u) }
+      }
+      if (!u) { console.warn('[tutorial] enemyScript: kortos nėra nei rankoje, nei kaladėje:', a.cardName); return }
+      if (g.ai.gold < u.gold) g.ai.gold = u.gold
       const target = a.targetFace ? ({ kind: 'player', side: 'you' } as TargetRef) : a.targetCard ? findFoe(a.targetCard) : undefined
       applyNetAction(g, { t: 'play', actor: 'ai', uid: u.uid, target })
     } else if (a.type === 'attack') {
@@ -333,6 +347,11 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       if (!sc) return
       const p = P(g, side)
       const sfx = side === 'you' ? 'y' : 'e'
+      const warnMissing = (names: string[], where: string) => {
+        const miss = names.filter((n) => !pool.has(n))
+        if (miss.length) console.warn(`[tutorial] setup.${side}.${where}: šių kortų NĖRA DB (card_number TUT-%):`, miss)
+      }
+      warnMissing([...(sc.hand ?? []), ...(sc.deck ?? []), ...(sc.board ?? []), ...(sc.artifacts ?? []), ...(sc.reactions ?? []), ...(sc.curses ?? [])], 'kortos')
       if (sc.hand) p.hand = pool.cards(sc.hand, sfx + 'h')
       if (sc.deck) p.deck = pool.cards(sc.deck, sfx + 'd')
       const units: (typeof p.units) = [null, null, null, null, null]

@@ -21,8 +21,10 @@ import { duckMusic, restoreMusic } from '@/lib/game/musicManager'
 
 const BUCKET_PATH = '/storage/v1/object/public/card-audio/tutorial/'
 const FADE_MS = 150
-/** Muzikos duck'as, kol Korvas kalba: -6 dB = ~50 % garsumo (QA 2026-08-18). */
-const DUCK_DB = -6
+/** Muzikos duck'as, kol Korvas kalba: -14 dB = ~20 % garsumo (QA 2026-08-18,
+ *  antras raundas — -6 dB buvo per tylus efektas). Veikia VIRŠ mokymų daugiklio
+ *  (`setMusicScale(0.45)`), tad kalbant muzika lieka ~9 % nustatyto garsumo. */
+const DUCK_DB = -14
 /** Skaitymo greitis, kai balso nėra: ~55 ms/ženklas, min 1.8 s, max 9 s. */
 const MS_PER_CHAR = 55
 const MIN_MS = 1800

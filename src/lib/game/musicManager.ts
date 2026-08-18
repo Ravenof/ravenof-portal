@@ -24,7 +24,10 @@ import { getMusicVolume, subscribeSettings } from '@/lib/settings'
 const MENU_TRACK = '/sounds/music/menu-theme.mp3'
 const BATTLE_TRACKS = [1, 2, 3, 4].map((n) => `/sounds/music/battle-${n}.mp3`)
 
-const musicVol = () => getMusicVolume()
+// Globalus muzikos daugiklis (0..1). Mokymai jį sumažina, kad pasakotojas
+// girdėtųsi — vartotojo nustatymas NEKEIČIAMAS (grįžus atstatoma 1).
+let musicScale = 1
+const musicVol = () => getMusicVolume() * musicScale
 const FADE_MS = 1100
 const FADE_STEPS = 22
 
@@ -202,6 +205,18 @@ export function duckMusic(db: number = AUDIO_DUCK.defaultDb, holdMs: number = AU
     if (current && mode !== 'none') fade(current, musicVol(), AUDIO_DUCK.rampMs)
   }
   duckTimer = window.setTimeout(restore, holdMs)
+}
+
+/**
+ * Nustato globalų muzikos daugiklį (pvz. 0.45 mokymų metu) ir iškart pritaiko.
+ * Nekeičia vartotojo nustatymo — tik jį padaugina.
+ */
+export function setMusicScale(x: number): void {
+  const v = Math.max(0, Math.min(1, x))
+  if (v === musicScale) return
+  musicScale = v
+  if (typeof window === 'undefined') return
+  if (current && mode !== 'none' && isUiSoundEnabled()) fade(current, musicVol(), 320)
 }
 
 /**
