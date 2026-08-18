@@ -909,6 +909,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [oppCards, setOppCards] = useState<TutCard[] | null>(null)
   const [zmkDefs, setZmkDefs] = useState<ZmkCardDef[] | null>(null)
   const [curseCards, setCurseCards] = useState<TutCard[]>([])
+  // Priešo NUOSAVA prakeiksmų šoninė kaladė (null = nežinoma → senas elgesys:
+  // bendras pool'as su žaidėju; [] = priešas prakeiksmų neturi).
+  const [oppCurseCards, setOppCurseCards] = useState<TutCard[] | null>(null)
   const [extrasLoaded, setExtrasLoaded] = useState(false)
   const [stepIdx, setStepIdx] = useState((practice || !!net || tutorial?.active) ? GUIDED_STEPS.length : 0)
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
@@ -1495,7 +1498,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       first,
-      { zmkDefs, curseCards, mulligan: tossEnabled, mulliganBothManual: !!net },
+      { zmkDefs, curseCards, curseCardsAi: oppCurseCards ?? undefined, mulligan: tossEnabled, mulliganBothManual: !!net },
     )
     if (tossEnabled) setCoinToss({ first, phase: 'spin', spun: false })
     else setCoinToss(null)
@@ -1504,7 +1507,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     seenRef.current = g.log.length
     setGame(g)
     playShuffle()
-  }, [zmkDefs, curseCards, tutorial, net])
+  }, [zmkDefs, curseCards, oppCurseCards, tutorial, net])
 
   // Praktika / PvP host: priešo (svečio) kaladė
   useEffect(() => {
@@ -1516,7 +1519,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       supabase.from('deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('deck_id', opponentDeckId).then(({ data }) => {
         if (!alive) return
         try {
-          const rows = ((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)
+          const all = (data as unknown as DbRow[]) ?? []
+          const rows = all.filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)
+          // Priešo prakeiksmai — TIK iš JO šoninės kaladės (anksčiau AI naudojo
+          // žaidėjo prakeiksmus — svetimas šešėlis svetimoje kaladėje).
+          setOppCurseCards(rowsToDeck(all.filter((r) => (r as { is_side_deck?: boolean }).is_side_deck), 'ocu'))
           const built = rowsToDeck(rows, 'o')
           // PvP host: jei DB negrąžina kortų (privati varžovo kaladė – RLS), NElaikom tuščios –
           // laukiam, kol svečias atsiųs savo kaladę per realtime (broadcast 'deck').
@@ -1528,8 +1535,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       // Mokymai: AI žaidžia TIKRA starter kalade (starter_deck_cards – vieša lentelė)
       supabase.from('starter_deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('starter_deck_id', opponentStarterId).then(({ data }) => {
         if (!alive) return
-        // Šoninės (prakeiksmų) kortos NE į pagrindinę AI kaladę (variklio curse pool bendras)
-        try { setOppCards(rowsToDeck((((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)), 'o')) } catch { setOppCards([]) }
+        // Šoninės (prakeiksmų) kortos NE į pagrindinę AI kaladę — jos tampa AI
+        // prakeiksmų šonine kalade (curseCardsAi).
+        try {
+          const all = (data as unknown as DbRow[]) ?? []
+          setOppCurseCards(rowsToDeck(all.filter((r) => (r as { is_side_deck?: boolean }).is_side_deck), 'ocu'))
+          setOppCards(rowsToDeck(all.filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck), 'o'))
+        } catch { setOppCards([]) }
       }, () => { if (alive) setOppCards([]) })
     } else if (opponentFaction) {
       supabase.from('cards').select(sel).eq('status', 'active').in('faction_id', [opponentFaction, 14]).limit(250).then(({ data }) => {
@@ -4321,6 +4333,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
                   {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
                   {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
+                  {game.you.curses.length > 0 && renderPile(t('battle.game.cursesPile'), game.you.curses.length, { tut: 'curses', back: 'curse' })}
                 </div>
               </div>
             </div>
@@ -4382,6 +4395,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 66 })}
                 {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66 })}
+                {game.you.curses.length > 0 && renderPile(t('battle.game.cursesPile'), game.you.curses.length, { tut: 'curses', back: 'curse', w: 66 })}
                 {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>

@@ -35,7 +35,7 @@ import { useT } from '@/lib/i18n/react'
 const ANCHOR_TUT: Record<string, string> = {
   hand: 'hand', gold: 'gold', 'hp-you': 'hp', 'hp-ai': 'hp-ai', 'deck-you': 'deck', 'deck-ai': 'ai-area',
   'discard-you': 'discard', 'discard-ai': 'ai-area', 'units-you': 'units-you', 'units-ai': 'units-ai',
-  zmk: 'zmk', 'artifacts-you': 'artifacts', 'reactions-you': 'reactions', field: 'field',
+  zmk: 'zmk', 'curses-you': 'curses', 'artifacts-you': 'artifacts', 'reactions-you': 'reactions', field: 'field',
   'end-turn': 'end-turn', 'discard-gold': 'discard-gold', 'enemy-area': 'ai-area', board: 'units-you',
 }
 

@@ -472,8 +472,12 @@ function mkPlayer(side: Side, deck: TutCard[], zmkPile: ZmkValue[], curses: TutC
 export type CreateGameOpts = {
   /** ŽMK kortos iš zmk_cards lentelės (admin). Nenurodyta – oficiali sudėtis. */
   zmkDefs?: ZmkCardDef[] | null
-  /** Prakeiksmų side deck kortos (curse tipo kortos iš DB) */
+  /** Prakeiksmų side deck kortos (curse tipo kortos iš DB) — 'you' pusei */
   curseCards?: TutCard[]
+  /** AI/priešininko NUOSAVA prakeiksmų šoninė kaladė. Nenurodžius — fallback į
+   *  curseCards (senas bendras pool'as: DEMO/testai). Perduok [] jei priešininkas
+   *  prakeiksmų NETURI (pvz. ne demonų starter kaladė). */
+  curseCardsAi?: TutCard[]
   /** Mulligan žaidimo pradžioje. PvP: host'as autoritetingas (shuffle tik jo pusėje),
    *  svečias sprendžia per NetAction 'mulligan' — žr. mulliganBothManual. */
   mulligan?: boolean
@@ -489,7 +493,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
   const curseCards = opts?.curseCards ?? []
   const g: GameState = {
     you: mkPlayer('you', deckYou, zmkYou.pile, buildCurseDeck(curseCards, 'y')),
-    ai: mkPlayer('ai', deckAi, zmkAi.pile, buildCurseDeck(curseCards, 'a')),
+    ai: mkPlayer('ai', deckAi, zmkAi.pile, buildCurseDeck(opts?.curseCardsAi ?? curseCards, 'a')),
     active: first,
     field: null,
     globalTurn: 0,

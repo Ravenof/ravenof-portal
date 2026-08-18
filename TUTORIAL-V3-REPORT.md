@@ -135,11 +135,15 @@
 
 ## Kas NEpadaryta ir kodėl + pasiūlymai
 
-1. **Prakeiksmų šoninės kaladės NĖRA kovos UI** — `PlayerState.curses` nerenderuojamas,
-   tad L7 „violetinės zonos" close-up nukreiptas į savo kaladę. *Pasiūlymas:* pridėti
-   mažą side-deck pile'ą prie ŽMK (data-tut="curses") — 20 eilučių `BattleLayout`.
-2. **Balso failų ĮKĖLIMAS į Supabase** — mp3 sugeneruoti, bet dar nesudėti į
-   `card-audio/tutorial/` (žr. „Voice" skyrių). Iki tol mokymai eina tyliai su titrais.
+1. ~~**Prakeiksmų šoninės kaladės NĖRA kovos UI**~~ — **PADARYTA (commit636).**
+   Šalia ŽMK atsirado prakeiksmų šoninės kaladės pile'as (`data-tut="curses"`,
+   rodomas TIK kai kaladė netuščia; visuose trijuose layout'uose). L7 „šešėlio"
+   žingsnis dabar daro close-up į TIKRĄ kaladę (`anchor: 'curses-you'`), o ne į
+   pagrindinę. Papildomai: variklio `curseCardsAi` (commit627 našlaitis) užbaigtas —
+   AI dabar naudoja SAVO šoninę kaladę (iš `deck_cards`/`starter_deck_cards`
+   `is_side_deck` eilučių), o ne žaidėjo prakeiksmus.
+2. ~~**Balso failų ĮKĖLIMAS į Supabase**~~ — **PADARYTA 2026-08-18:** 87 mp3
+   (10,7 MB, 0 klaidų) įkelti į `card-audio/tutorial/` per `upload-tutorial-voice.bat`.
 3. **Coin toss / mulligan close-up L8** — dialogai rodomi VIRŠ scenų (overlay z=350 >
    coin 150 / pick 133), bet `zoom` mulligano scenoje neveikia (scena — atskiras
    portalas, ne board wrapper'yje). Konkrečios kortos paryškinimas mulligane —

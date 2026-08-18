@@ -11,7 +11,7 @@
 export type TutorialAnchor =
   | 'hand' | 'gold' | 'hp-you' | 'hp-ai' | 'deck-you' | 'deck-ai'
   | 'discard-you' | 'discard-ai' | 'units-you' | 'units-ai'
-  | 'zmk' | 'artifacts-you' | 'reactions-you' | 'field'
+  | 'zmk' | 'curses-you' | 'artifacts-you' | 'reactions-you' | 'field'
   | 'end-turn' | 'discard-gold' | 'enemy-area' | 'champion-you' | 'champion-ai' | 'board'
 
 /** A thing on screen the director can target for highlight / arrow / zoom. */
