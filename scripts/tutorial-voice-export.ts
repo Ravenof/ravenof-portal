@@ -20,14 +20,14 @@ for (const lesson of tutorialLessonSeeds) {
     for (const d of st.dialogue ?? []) {
       if (!d.voiceId || seen.has(d.voiceId)) continue
       seen.add(d.voiceId)
-      lines.push({ voiceId: d.voiceId, file: `tut-${d.voiceId}.mp3`, text: d.voiceText ?? d.text, lesson: lesson.title, step: st.id })
+      lines.push({ voiceId: d.voiceId, file: `${d.voiceId}.mp3`, text: d.voiceText ?? d.text, lesson: lesson.title, step: st.id })
     }
   }
 }
 for (const [voiceId, text] of Object.entries(SYSTEM_VOICE_LINES)) {
   if (seen.has(voiceId)) continue
   seen.add(voiceId)
-  lines.push({ voiceId, file: `tut-${voiceId}.mp3`, text, lesson: 'Sisteminės frazės', step: '-' })
+  lines.push({ voiceId, file: `${voiceId}.mp3`, text, lesson: 'Sisteminės frazės', step: '-' })
 }
 
 const ROOT = process.cwd()

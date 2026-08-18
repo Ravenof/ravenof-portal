@@ -8,6 +8,11 @@
 //     node tools/tutorial-voice-generate.mjs --only l1  → tik l1-* eilutės
 //     node tools/tutorial-voice-generate.mjs --force    → perrašo jau esamus failus
 //
+//  ĮKĖLIMAS BE GENERAVIMO (kai mp3 jau turi — pvz. sugeneruoti ranka ElevenLabs UI):
+//     node tools/tutorial-voice-generate.mjs --upload-only
+//     node tools/tutorial-voice-generate.mjs --upload-only --dir tutorial-voice
+//  (ELEVENLABS raktų tada NEREIKIA — tik Supabase.)
+//
 //  ENV (.env.local arba aplinka):
 //    ELEVENLABS_API_KEY   — būtinas generavimui
 //    ELEVENLABS_VOICE_ID  — Senojo Korvo balso ID (klonuotas ar iš Voice Library)
@@ -22,7 +27,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const ROOT = process.cwd()
-const OUT = path.join(ROOT, 'tutorial-voice')
+let OUT = path.join(ROOT, 'tutorial-voice')
 const SRC = path.join(ROOT, 'tutorial-voice.json')
 
 const args = process.argv.slice(2)
@@ -53,6 +58,9 @@ if (!fs.existsSync(SRC)) {
   process.exit(1)
 }
 const { lines } = JSON.parse(fs.readFileSync(SRC, 'utf8'))
+const uploadOnly = has('--upload-only')
+const dirArg = val('--dir')
+if (dirArg) OUT = path.isAbsolute(dirArg) ? dirArg : path.join(ROOT, dirArg)
 const only = val('--only')
 const todo = only ? lines.filter((l) => l.voiceId.startsWith(only)) : lines
 fs.mkdirSync(OUT, { recursive: true })
@@ -80,8 +88,8 @@ async function upload(file, buf) {
   if (!res.ok) throw new Error(`Supabase upload ${res.status}: ${(await res.text()).slice(0, 200)}`)
 }
 
-const doUpload = has('--upload')
-if (!API_KEY || !VOICE_ID) {
+const doUpload = has('--upload') || uploadOnly
+if (!uploadOnly && (!API_KEY || !VOICE_ID)) {
   console.error('✗ Trūksta ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID.')
   console.error('  Tekstus rankiniam generavimui rasi TUTORIAL-VOICE-SCRIPT.md')
   process.exit(1)
@@ -96,7 +104,10 @@ for (const l of todo) {
   const dest = path.join(OUT, l.file)
   try {
     let buf
-    if (fs.existsSync(dest) && !has('--force')) {
+    if (uploadOnly) {
+      if (!fs.existsSync(dest)) { failed++; console.log(`  ✗ ${l.file}: failo nėra (${OUT})`); continue }
+      buf = fs.readFileSync(dest); skipped++
+    } else if (fs.existsSync(dest) && !has('--force')) {
       buf = fs.readFileSync(dest); skipped++
     } else {
       buf = await tts(l.text)
@@ -111,5 +122,5 @@ for (const l of todo) {
     console.log(`  ✗ ${l.file}: ${e.message}`)
   }
 }
-console.log(`\nSugeneruota: ${made} · praleista (jau buvo): ${skipped} · klaidų: ${failed} · bendras dydis: ${(bytes / 1048576).toFixed(1)} MB`)
+console.log(`\nSugeneruota: ${made} · ${uploadOnly ? 'įkelta iš disko' : 'praleista (jau buvo)'}: ${skipped} · klaidų: ${failed} · bendras dydis: ${(bytes / 1048576).toFixed(1)} MB`)
 if (!doUpload) console.log('Įkėlimui: node tools/tutorial-voice-generate.mjs --upload')

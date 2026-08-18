@@ -105,15 +105,23 @@
 
 ## Voice: kiek failų, dydis, nukrypimai nuo scripto
 
-* **87 unikalios eilutės** (84 naudojamos pamokose, įskaitant sisteminius pagyrimus, + 3 klaidos užuominos `sys-wrong-*`, kurias groja direktorius). Failai: `tut-{voiceId}.mp3`.
-* **mp3 dar NESUGENERUOTI** — reikia tavo ElevenLabs rakto:
-  1. `npm run tutorial:voice` (jau paleista — `TUTORIAL-VOICE-SCRIPT.md` repo šaknyje),
-  2. `.env.local` → `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` (Senasis Korvas),
-  3. `node tools/tutorial-voice-generate.mjs` → `./tutorial-voice/*.mp3` (perklausyk!),
-  4. `node tools/tutorial-voice-generate.mjs --upload` → Supabase `card-audio/tutorial/`.
-* Numatyti nustatymai skripte: Multilingual v2, stability 0.5, similarity 0.75,
-  style 0.3, speaker boost ON, speed 0.95, `mp3_44100_128`. Rizika iš §9 (~16 MB)
-  mažinama: manifestas ima TIK realiai įkeltus failus, tad iki įkėlimo tier 1 neauga.
+* **87 unikalios eilutės** (84 naudojamos pamokose, įskaitant sisteminius pagyrimus,
+  + 3 klaidos užuominos `sys-wrong-*`, kurias groja direktorius).
+* **BALSAS SUGENERUOTAS (2026-08-18, tavo pusėje):** 88 mp3 failai — 87 reikalingi
+  + vienas nenaudojamas (`sys.mp3`). Formatas patikrintas: **mono, 44.1 kHz,
+  96 kbps** → **~11 MB** viso, **15,8 min** kalbos (vid. 10,8 s eilutė).
+  Tai atitinka §9 rizikos sprendimą (96 kbps mono vietoj 128 kbps ≈ 16 MB).
+* **Failų vardai:** rinkinys sugeneruotas be `tut-` prefikso (`l1-s01.mp3`), o
+  handoff'e (§6) buvo numatytas `tut-l1-s01.mp3`. Sprendimas (commit632): grotuvas
+  bando **abu** variantus — pirma `{voiceId}.mp3`, tada `tut-{voiceId}.mp3` — tad
+  jokių pervadinimų nereikia ir senas formatas lieka suderinamas. `npm run
+  tutorial:voice` nuo šiol rašo vardus be prefikso.
+* **ĮKĖLIMAS (liko atlikti):** Supabase Storage → bucket **`card-audio`** →
+  aplankas **`tutorial/`** → sudėti visus 87 mp3 (drag & drop Studio UI).
+  Alternatyva CLI (reikia `SUPABASE_SERVICE_ROLE_KEY` .env.local'e):
+  `node tools/tutorial-voice-generate.mjs --upload-only --dir <aplankas su mp3>`.
+  Įkėlus, `rvn_media_manifest` juos automatiškai pradeda rodyti kaip
+  `kind='tutorial-voice', tier=1` (tier 1 auga tik REALIAI įkeltais failais).
 * Nukrypimai nuo §7 scripto:
   * L6 eilučių **tvarka** pakeista pedagogiškai (nutildymas rodomas ant TOS PAČIOS
     provokuojančios kortos — matosi, kad nutildymas nuima raktažodį). Tekstai ir
@@ -130,7 +138,8 @@
 1. **Prakeiksmų šoninės kaladės NĖRA kovos UI** — `PlayerState.curses` nerenderuojamas,
    tad L7 „violetinės zonos" close-up nukreiptas į savo kaladę. *Pasiūlymas:* pridėti
    mažą side-deck pile'ą prie ŽMK (data-tut="curses") — 20 eilučių `BattleLayout`.
-2. **Balso failai** — žr. aukščiau (reikia tavo API rakto).
+2. **Balso failų ĮKĖLIMAS į Supabase** — mp3 sugeneruoti, bet dar nesudėti į
+   `card-audio/tutorial/` (žr. „Voice" skyrių). Iki tol mokymai eina tyliai su titrais.
 3. **Coin toss / mulligan close-up L8** — dialogai rodomi VIRŠ scenų (overlay z=350 >
    coin 150 / pick 133), bet `zoom` mulligano scenoje neveikia (scena — atskiras
    portalas, ne board wrapper'yje). Konkrečios kortos paryškinimas mulligane —
@@ -167,8 +176,8 @@ lieka atviras.
 1. **Supabase SQL Editor:** paleisti `supabase/migrations/20260871_tutorial_v3.sql`.
 2. **Admin → Mokymai → „Įkelti iš kodo" (reset)** — įsėja 8 V3 pamokas ir
    automatiškai paslepia senas 5.
-3. Sugeneruoti + įkelti balso failus (žr. „Voice" skyrių). Iki tol mokymai veikia
-   tyliai su titrais.
+3. Įkelti 87 balso mp3 į Supabase `card-audio/tutorial/` (žr. „Voice" skyrių).
+   Iki tol mokymai veikia tyliai su titrais.
 4. Patikrinti `/digital/tutorial`: L1 → L2 → L3 → egzaminas → L4–L8.
 
 ---

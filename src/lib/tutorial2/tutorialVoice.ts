@@ -9,7 +9,9 @@
 //   3. MISSING-SAFE — jei mp3 dar neįkeltas (404) arba garsas išjungtas,
 //      play() grąžina { played:false } ir direktorius auto-advance'ina pagal
 //      teksto ilgį. Mokymai VEIKIA ir be balso failų.
-//   4. Failo kelias: `card-audio/tutorial/tut-{voiceId}.mp3` (žr. §6 handoff'e).
+//   4. Failo kelias: `card-audio/tutorial/{voiceId}.mp3`. Atgaliniam suderinamumui
+//      bandomas ir senasis handoff'o formatas `tut-{voiceId}.mp3` (commit631) —
+//      tad veikia bet kuris įkeltas rinkinys, be pervadinimų.
 // ════════════════════════════════════════════════════════════════════════════
 
 import { isUiSoundEnabled } from '@/lib/ui-sound'
@@ -27,10 +29,17 @@ export function estimateReadMs(text: string): number {
   return Math.min(MAX_MS, Math.max(MIN_MS, Math.round(text.trim().length * MS_PER_CHAR)))
 }
 
-export function tutorialVoiceUrl(voiceId: string): string | null {
+/** Galimi failo vardai (eilės tvarka): `{id}.mp3`, tada senasis `tut-{id}.mp3`. */
+export function tutorialVoiceUrls(voiceId: string): string[] {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (!base) return null
-  return `${base.replace(/\/$/, '')}${BUCKET_PATH}tut-${voiceId}.mp3`
+  if (!base) return []
+  const root = `${base.replace(/\/$/, '')}${BUCKET_PATH}`
+  return [`${root}${voiceId}.mp3`, `${root}tut-${voiceId}.mp3`]
+}
+
+/** Pagrindinis (numatytasis) failo URL — naudojamas admin peržiūrai/tooltip'ui. */
+export function tutorialVoiceUrl(voiceId: string): string | null {
+  return tutorialVoiceUrls(voiceId)[0] ?? null
 }
 
 let _ctx: AudioContext | null = null
@@ -58,19 +67,22 @@ async function load(voiceId: string): Promise<AudioBuffer | null> {
   if (cached) return cached
   const running = inflight.get(voiceId)
   if (running) return running
-  const url = tutorialVoiceUrl(voiceId)
+  const urls = tutorialVoiceUrls(voiceId)
   const ctx = getCtx()
-  if (!url || !ctx) { missing.add(voiceId); return null }
+  if (!urls.length || !ctx) { missing.add(voiceId); return null }
 
   const p = (async (): Promise<AudioBuffer | null> => {
     try {
-      const res = await cachedFetch(url)
-      if (!res.ok) throw new Error('404')
-      const arr = await res.arrayBuffer()
-      const buf = await ctx.decodeAudioData(arr)
-      buffers.set(voiceId, buf)
-      return buf
-    } catch {
+      for (const url of urls) {
+        try {
+          const res = await cachedFetch(url)
+          if (!res.ok) continue
+          const arr = await res.arrayBuffer()
+          const buf = await ctx.decodeAudioData(arr)
+          buffers.set(voiceId, buf)
+          return buf
+        } catch { /* bandom kitą vardo variantą */ }
+      }
       missing.add(voiceId)   // failo dar nėra — pamoka eina toliau tyliai
       return null
     } finally { inflight.delete(voiceId) }
