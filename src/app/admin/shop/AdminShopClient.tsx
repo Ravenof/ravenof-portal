@@ -2,7 +2,7 @@
 
 // ── Parduotuvės administravimas: kosmetika · pakuotės · starter kaladės ───────
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { RARITY_COPY_LIMIT, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX } from '@/lib/deck-validation'
+import { RARITY_COPY_LIMIT, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX, SIDE_DECK_MAX } from '@/lib/deck-validation'
 import { costCurve, COST_CURVE_LABELS, displayCost } from '@/lib/cards/cost'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -11,7 +11,7 @@ import { ShopImageUpload } from '@/components/admin/ShopImageUpload'
 type Cosmetic = { id: string; kind: string; name: string; description: string | null; price_gold: number; css: string | null; emoji: string | null; image_url: string | null; sort_order: number; is_active: boolean }
 type Pack = { id: string; name: string; description: string | null; price_gold: number; is_active: boolean; sort_order: number; image_url: string | null; cards_per_pack: number }
 type StarterDeck = { id: string; name: string; description: string | null; faction_id: number | null; image_url: string | null; price_gold: number; is_active: boolean; sort_order: number }
-type SDC = { starter_deck_id: string; card_id: string; quantity: number }
+type SDC = { starter_deck_id: string; card_id: string; quantity: number; is_side_deck?: boolean | null }
 type Faction = { id: number; name: string }
 type CardLite = {
   id: string; name: string; card_number: string | null; gold_cost: number | null
@@ -211,6 +211,8 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
   const [form, setForm] = useState<StarterDeck>(blank)
   const [editing, setEditing] = useState(false)
   const [sel, setSel] = useState<Map<string, number>>(new Map())
+  // Demonų prakeiksmų ŠONINĖ kaladė (is_side_deck; iki SIDE_DECK_MAX)
+  const [selSide, setSelSide] = useState<Map<string, number>>(new Map())
   const [search, setSearch] = useState('')
   const [fType, setFType] = useState<number | 'all'>('all')
   const [fRarity, setFRarity] = useState<number | 'all'>('all')
@@ -220,6 +222,9 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
 
   const cardById = useMemo(() => { const m = new Map<string, CardLite>(); for (const c of cards) m.set(c.id, c); return m }, [cards])
   const total = useMemo(() => [...sel.values()].reduce((a, b) => a + b, 0), [sel])
+  const sideTotal = useMemo(() => [...selSide.values()].reduce((a, b) => a + b, 0), [selSide])
+  // Prakeiksmas — pagal kortos TIPO pavadinimą (kaip deck-validation.isCurseCard)
+  const isCurseLite = (c: CardLite) => /prakeik|curse/i.test(c.card_type?.name ?? '')
 
   // Filtrų reikšmės imamos iš pačių kortų – jokių hardcoded sąrašų
   const types = useMemo(() => {
@@ -259,16 +264,33 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
   const loadDeck = (d: StarterDeck) => {
     setForm({ ...d, description: d.description ?? '', image_url: d.image_url ?? '' }); setEditing(true)
     const m = new Map<string, number>()
-    for (const r of deckCards.filter((x) => x.starter_deck_id === d.id)) m.set(r.card_id, r.quantity)
-    setSel(m)
+    const ms = new Map<string, number>()
+    for (const r of deckCards.filter((x) => x.starter_deck_id === d.id)) {
+      if (r.is_side_deck) ms.set(r.card_id, r.quantity); else m.set(r.card_id, r.quantity)
+    }
+    setSel(m); setSelSide(ms)
   }
-  const reset = () => { setForm(blank); setEditing(false); setSel(new Map()); setSearch('') }
-  const addCard = (c: CardLite) => setSel((m) => {
-    const cur = m.get(c.id) ?? 0
-    if (cur >= copyLimit(c)) { flash(`${c.name}: daugiau nei ${copyLimit(c)} kopijas dėti negalima`, true); return m }
-    const n = new Map(m); n.set(c.id, cur + 1); return n
-  })
+  const reset = () => { setForm(blank); setEditing(false); setSel(new Map()); setSelSide(new Map()); setSearch('') }
+  const addCard = (c: CardLite) => {
+    // Prakeiksmai VISADA keliauja į šoninę kaladę (kaip /digital builder'yje)
+    if (isCurseLite(c)) {
+      setSelSide((m) => {
+        const cur = m.get(c.id) ?? 0
+        if (cur >= copyLimit(c)) { flash(`${c.name}: daugiau nei ${copyLimit(c)} kopijas dėti negalima`, true); return m }
+        const tot = [...m.values()].reduce((a, b) => a + b, 0)
+        if (tot >= SIDE_DECK_MAX) { flash(`Šoninė kaladė pilna (${SIDE_DECK_MAX})`, true); return m }
+        const n = new Map(m); n.set(c.id, cur + 1); return n
+      })
+      return
+    }
+    setSel((m) => {
+      const cur = m.get(c.id) ?? 0
+      if (cur >= copyLimit(c)) { flash(`${c.name}: daugiau nei ${copyLimit(c)} kopijas dėti negalima`, true); return m }
+      const n = new Map(m); n.set(c.id, cur + 1); return n
+    })
+  }
   const decCard = (id: string) => setSel((m) => { const n = new Map(m); const q = (n.get(id) ?? 0) - 1; if (q <= 0) n.delete(id); else n.set(id, q); return n })
+  const decSideCard = (id: string) => setSelSide((m) => { const n = new Map(m); const q = (n.get(id) ?? 0) - 1; if (q <= 0) n.delete(id); else n.set(id, q); return n })
 
   const save = async () => {
     if (!form.name.trim()) { flash('Reikia pavadinimo', true); return }
@@ -283,7 +305,10 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
       deckId = (data as { id: string }).id
     }
     await supabase.from('starter_deck_cards').delete().eq('starter_deck_id', deckId)
-    const rows = [...sel.entries()].map(([card_id, quantity]) => ({ starter_deck_id: deckId, card_id, quantity }))
+    const rows = [
+      ...[...sel.entries()].map(([card_id, quantity]) => ({ starter_deck_id: deckId, card_id, quantity, is_side_deck: false })),
+      ...[...selSide.entries()].map(([card_id, quantity]) => ({ starter_deck_id: deckId, card_id, quantity, is_side_deck: true })),
+    ]
     if (rows.length > 0) {
       const { error } = await supabase.from('starter_deck_cards').insert(rows)
       if (error) { flash(error.message, true); return }
@@ -423,6 +448,22 @@ function StarterTab({ decks, deckCards, factions, cards, supabase, flash, reload
                 </div>
               ))}
             {sel.size === 0 && <p className="text-xs py-6 text-center" style={{ color: 'var(--text-muted)' }}>Kaladė tuščia.</p>}
+            {(selSide.size > 0 || sideTotal > 0) && (
+              <>
+                <p className="text-[10px] font-bold uppercase pt-2" style={{ color: '#c084fc', letterSpacing: 1 }}>Prakeiksmai (šoninė) — {sideTotal}/{SIDE_DECK_MAX}</p>
+                {[...selSide.entries()]
+                  .map(([id, q]) => ({ c: cardById.get(id), id, q }))
+                  .sort((a, b) => (a.c?.name ?? '').localeCompare(b.c?.name ?? '', 'lt'))
+                  .map(({ c, id, q }) => (
+                    <div key={'s' + id} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded" style={{ background: 'rgba(120,60,180,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}>
+                      <span className="flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{c?.name ?? id}</span>
+                      <button className="rounded" style={{ width: 22, height: 22, background: 'var(--bg-surface)', color: 'var(--text-muted)' }} onClick={() => decSideCard(id)}>−</button>
+                      <span style={{ color: '#c084fc', minWidth: 14, textAlign: 'center' }}>{q}</span>
+                      <button className="rounded" style={{ width: 22, height: 22, background: 'var(--bg-surface)', color: 'var(--text-muted)' }} onClick={() => c && addCard(c)}>+</button>
+                    </div>
+                  ))}
+              </>
+            )}
           </div>
           <div className="flex gap-2 pt-2">
             <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti</button>

@@ -1475,9 +1475,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }, () => { if (alive && !(net && isHost)) setOppCards([]) })
     } else if (opponentStarterId) {
       // Mokymai: AI žaidžia TIKRA starter kalade (starter_deck_cards – vieša lentelė)
-      supabase.from('starter_deck_cards').select(`quantity, card:cards ( ${sel} )`).eq('starter_deck_id', opponentStarterId).then(({ data }) => {
+      supabase.from('starter_deck_cards').select(`quantity, is_side_deck, card:cards ( ${sel} )`).eq('starter_deck_id', opponentStarterId).then(({ data }) => {
         if (!alive) return
-        try { setOppCards(rowsToDeck(((data as unknown as DbRow[]) ?? []), 'o')) } catch { setOppCards([]) }
+        // Šoninės (prakeiksmų) kortos NE į pagrindinę AI kaladę (variklio curse pool bendras)
+        try { setOppCards(rowsToDeck((((data as unknown as DbRow[]) ?? []).filter((r) => !(r as { is_side_deck?: boolean }).is_side_deck)), 'o')) } catch { setOppCards([]) }
       }, () => { if (alive) setOppCards([]) })
     } else if (opponentFaction) {
       supabase.from('cards').select(sel).eq('status', 'active').in('faction_id', [opponentFaction, 14]).limit(250).then(({ data }) => {

@@ -17,7 +17,7 @@ export default async function AdminShopPage() {
     supabase.from('cosmetics').select('*').order('sort_order'),
     supabase.from('card_packs').select('id,name,description,price_gold,is_active,sort_order,image_url,cards_per_pack').order('sort_order'),
     supabase.from('starter_decks').select('*').order('sort_order'),
-    supabase.from('starter_deck_cards').select('starter_deck_id,card_id,quantity'),
+    supabase.from('starter_deck_cards').select('starter_deck_id,card_id,quantity,is_side_deck'),
     supabase.from('factions').select('id,name').order('name'),
     supabase.from('cards').select('id,name,card_number,gold_cost,faction_id,rarity_id,card_type_id,attack,health,subtype,image_url,card_type:card_types(name),rarity:rarities(name,sort_order)').eq('status', 'active').order('gold_cost', { nullsFirst: true }),
   ])
