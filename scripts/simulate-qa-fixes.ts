@@ -225,5 +225,33 @@ const mkBu = (card: TutCard, uid: string) => ({ uid, card, atk: card.attack ?? 2
   check('priešo ėjimo pabaigoje žuvo', !P(g, 'ai').units.some((x) => x?.uid === 'foe-u'))
 }
 
+console.log('\n◆ Volkano papėdė — −1 visiems SAVO ėjimo pradžioje (commit629)')
+{
+  // SVARBU: lauko kortų trigeriai — gameplay.fieldEffectConfig.triggers (NE effectMappings!)
+  const volkanas = mkCard({ name: 'Volkano papede', uid: 'volk', type: 'field' as TutCard['type'],
+    gameplay: { fieldEffectConfig: { triggers: [
+      { value: 1, effect: 'damage', trigger: 'onTurnStart', target: 'ownUnit',
+        targetTypes: ['allOwnUnits', 'ownChampion', 'ownArtifact'], applyToAllTypes: true, requiresSelection: false } as EffectMapping,
+    ] } } as TutCard['gameplay'] })
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.field = { card: volkanas, owner: 'you' }
+  const mkBu2 = (name: string, uid: string, hp: number, champ = false) => ({ uid, card: mkCard({ name, uid, health: hp }), atk: 2, hp, maxHp: hp, shield: false, stealth: false, statuses: {}, summonedOnTurn: 0, attacksUsed: 0, isChampion: champ, phase: champ ? 1 : 0, abilityUsed: false })
+  g.you.units[0] = mkBu2('MyUnit', 'myu', 5) as GameState['you']['units'][0]
+  g.you.units[1] = mkBu2('MyChamp', 'mych', 6, true) as GameState['you']['units'][0]
+  g.you.artifacts[0] = { uid: 'myart', card: mkCard({ name: 'MyArt', uid: 'myart-c', type: 'artifact' as TutCard['type'] }), hp: 4, maxHp: 4 }
+  g.ai.units[0] = mkBu2('FoeUnit', 'foeu', 5) as GameState['you']['units'][0]
+  // MANO ėjimo pradžia (endTurn->AI, endTurn->vėl aš): pilnas raundas
+  endTurn(g); beginTurn(g)  // -> AI ėjimo pradžia: AI padaras -1, mano NEliesti
+  check('AI ėjimo pradžioje AI padaras -1 (5→4)', P(g, 'ai').units[0]?.hp === 4, String(P(g, 'ai').units[0]?.hp))
+  check('mano padarai AI ėjime nepaliesti', P(g, 'you').units[0]?.hp === 5 && P(g, 'you').units[1]?.hp === 6 && g.you.artifacts[0]?.hp === 4,
+    JSON.stringify([P(g, 'you').units[0]?.hp, P(g, 'you').units[1]?.hp, g.you.artifacts[0]?.hp]))
+  endTurn(g); beginTurn(g)  // -> MANO ėjimo pradžia: mano padaras+čempionas+artefaktas -1
+  check('mano ėjimo pradžioje padaras -1 (5→4)', P(g, 'you').units[0]?.hp === 4, String(P(g, 'you').units[0]?.hp))
+  check('čempionas -1 (6→5)', P(g, 'you').units[1]?.hp === 5, String(P(g, 'you').units[1]?.hp))
+  check('artefaktas -1 (4→3)', g.you.artifacts[0]?.hp === 3, String(g.you.artifacts[0]?.hp))
+  check('AI padaras mano ėjime nepaliestas (liko 4)', P(g, 'ai').units[0]?.hp === 4, String(P(g, 'ai').units[0]?.hp))
+}
+
 console.log(`\n${pass} ✓ / ${fail} ✗`)
 process.exit(fail ? 1 : 0)
