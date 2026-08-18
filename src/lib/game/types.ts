@@ -395,6 +395,7 @@ export type EffectMapping = {
   resurrectHpMod?: number           // resurrectSelf: HP pokytis prisikėlus (+/−; taikoma ir su resurrectHp1)
   resurrectStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // resurrectSelf: būsenos, uždedamos prisikėlus
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
+  doomTargetAtTurnEnd?: boolean     // taikiniai-padarai PAŽYMIMI žūčiai: žūsta savo savininko ėjimo PABAIGOJE (Chaoso pakylėtas: +5 atk, ėjimo gale sunaikinamas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
   chooseAlt?: EffectMapping[]       // ARBA: pilnos alternatyvos ŠIAM efektui – žaidėjas pop-up'e renkasi tarp pagrindinio efekto ir šių (kiekviena = atskiras variantas)
   chooseBy?: 'caster' | 'opponent'  // chooseEffect: kas renkasi – kerėtojas (default) ar priešininkas/auka (pvz. prakeiksmui)

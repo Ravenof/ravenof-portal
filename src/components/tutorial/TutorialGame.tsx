@@ -616,6 +616,7 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
   ]
   // Ikonų sąrašas (vieninga eilė; >4 sutraukiama)
   const tokenList: { title: string; node: React.ReactNode }[] = [
+    ...(u.doomTurnEnd ? [{ title: tGlobal('battle.game.doomToken'), node: <Token key="doom" title={tGlobal('battle.game.doomToken')} color="#c65563">💀</Token> }] : []),
     ...(u.control ? [{ title: statusName('control'), node: <Token key="ctl" title={u.control.kind === 'endOfTurn' ? tGlobal('battle.game.controlEndOfTurn') : tGlobal('battle.game.controlUntilNextTurn')} color="#e879f9">🧠</Token> }] : []),
     ...(u.shield ? [{ title: statusName('shield'), node: <Token key="sh" title={statusTooltip('shield')} color="#fcd34d" icon={ICON_BASE + 'shield_magic.webp'}>✦★</Token> }] : []),
     ...(u.stealth ? [{ title: statusName('stealth'), node: <Token key="st" title={statusTooltip('stealth')} color="#a78bfa" icon={ICON_BASE + 'stealth.webp'}>◑</Token> }] : []),

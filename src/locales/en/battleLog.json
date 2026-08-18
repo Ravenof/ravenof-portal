@@ -1,6 +1,8 @@
 {
   "alchemistFort": "🏰 Alchemists' Fort: \"{{card}}\" is returned to {{owner}} deck.",
   "castSpellBackHand": "✨ \"{{card}}\" returns to {{owner}} hand.",
+  "doomMark": "\ud83d\udc80 \"{{card}}\" is doomed \u2014 it will be destroyed at the end of its owner\u0027s turn.",
+  "doomDeath": "\ud83d\udc80 \"{{card}}\" is destroyed at end of turn (doomed).",
   "arrangeDeckDone": {
     "foe": "Opponent reordered {{count}} of your cards",
     "me": "You reordered {{count}} cards"

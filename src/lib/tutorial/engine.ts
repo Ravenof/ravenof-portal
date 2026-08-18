@@ -100,6 +100,8 @@ export type BoardUnit = {
   isChampion: boolean
   phase: number            // čempiono fazė (1-3)
   abilityUsed: boolean
+  /** Pažymėtas žūčiai (doomTargetAtTurnEnd): žūsta savininko ėjimo pabaigoje */
+  doomTurnEnd?: boolean
   auraAtk?: number         // šiuo metu pritaikytas auros ATK priedas (perskaičiuojamas)
   auraHp?: number          // šiuo metu pritaikytas auros HP priedas (perskaičiuojamas)
   auraKw?: TutKeyword[]     // auros suteikti raktažodžiai (taunt/sprint; perskaičiuojami)
@@ -3180,6 +3182,13 @@ function seatEndTurn(g: GameState, s: Side): GameState {
   // onTurnEnd mapping'ai (padarai, artefaktai, laukas)
   fireTrigger(gameApi, g, s, 'onTurnEnd')
   fireGlobalListeners(g, 'onAnyTurnEnd', { side: s })
+  // „Pažymėti žūčiai" (doomTargetAtTurnEnd, pvz. Chaoso pakylėtas): žūsta savo
+  // savininko ėjimo PABAIGOJE (po onTurnEnd trigerių; lastwish suveikia įprastai).
+  for (const u of [...p.units]) {
+    if (!u || !u.doomTurnEnd || g.winner) continue
+    log(g, { t: 'death', side: s, cardName: u.card.name, key: 'battleLog.doomDeath', params: { card: u.card.name }, src: { side: s, uid: u.uid } })
+    killUnit(g, s, u)
+  }
   p.gold = 0
   log(g, { t: 'endTurn', side: s, key: `battleLog.turnEnd.${SK(s)}` })
   return g

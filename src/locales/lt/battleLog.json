@@ -1,6 +1,8 @@
 {
   "alchemistFort": "🏰 Alchemikų fortas: „{{card}}\" grąžinamas į {{owner}} kaladę.",
   "castSpellBackHand": "✨ „{{card}}\" grįžta į {{owner}} ranką.",
+  "doomMark": "\ud83d\udc80 \u201e{{card}}\" pa\u017eym\u0117tas \u017e\u016b\u010diai \u2014 \u017eus savininko \u0117jimo pabaigoje.",
+  "doomDeath": "\ud83d\udc80 \u201e{{card}}\" sunaikinamas \u0117jimo pabaigoje (pa\u017eym\u0117tas \u017e\u016b\u010diai).",
   "arrangeDeckDone": {
     "foe": "Priešininkas sudėliojo {{count}} tavo kortas nauja eile",
     "me": "Sudėliojai {{count}} kortas nauja eile"

@@ -3,7 +3,7 @@
 // #1: swapPerspective apverčia log key/params puses (PvP svečio „Tu/Priešininkas").
 // #2: burtas be legalaus taikinio NEsužaidžiamas (auksas/korta nepaliesti).
 
-import { createGame, beginTurn, playCard, swapPerspective, resolveChoice, resolvePendingLastwish, P, type TutCard, type GameState } from '../src/lib/tutorial/engine'
+import { createGame, beginTurn, endTurn, playCard, swapPerspective, resolveChoice, resolvePendingLastwish, P, type TutCard, type GameState } from '../src/lib/tutorial/engine'
 import type { EffectMapping } from '../src/lib/game/types'
 
 let pass = 0, fail = 0
@@ -188,6 +188,41 @@ console.log('\n◆ Valtoras Magninis — sužaistas burtas grįžta į RANKĄ (c
   g.you.hand.push(spell)
   playCard(g, 'you', 'ugnis3')
   check('Alchemikų fortas (be returnCastSpellTo): burtas į KALADĘ', g.you.deck.some((c) => c.uid === 'ugnis3') && !g.you.hand.some((c) => c.uid === 'ugnis3'))
+}
+
+console.log('\n◆ Chaoso pakylėtas — +5 atk, žūtis savininko ėjimo pabaigoje (commit625)')
+const chaosoSpell = (uid: string): TutCard => mkCard({ name: 'Chaoso pakylėtas', uid, type: 'spell', mappings: [
+  { value: 5, effect: 'buffAttack', target: 'anyUnit', trigger: 'onPlay', requiresSelection: true, doomTargetAtTurnEnd: true } as EffectMapping,
+] })
+const mkBu = (card: TutCard, uid: string) => ({ uid, card, atk: card.attack ?? 2, hp: card.health ?? 3, maxHp: card.health ?? 3, shield: false, stealth: false, statuses: {}, summonedOnTurn: 0, attacksUsed: 0, isChampion: false, phase: 0, abilityUsed: false })
+{
+  // savo padarui: +5 dabar, žūsta MANO ėjimo pabaigoje
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.you.gold = 1000
+  g.you.units[0] = mkBu(mkCard({ name: 'Karys', uid: 'karys', attack: 2 }), 'karys-u') as GameState['you']['units'][0]
+  g.you.hand.push(chaosoSpell('chaoso1'))
+  const r = playCard(g, 'you', 'chaoso1', { target: { kind: 'unit', side: 'you', uid: 'karys-u' } })
+  const u = P(g, 'you').units[0]
+  check('burtas sužaistas, +5 atk (2→7)', r.ok && u?.atk === 7, `ok=${r.ok} atk=${u?.atk}`)
+  check('pažymėtas žūčiai (doomTurnEnd), bet dar GYVAS', u?.doomTurnEnd === true && !!u)
+  endTurn(g)
+  check('žuvo MANO ėjimo pabaigoje', !P(g, 'you').units.some((x) => x?.uid === 'karys-u'), P(g, 'you').units.filter(Boolean).map((x) => x!.card.name).join(','))
+  check('kapinyne', g.you.discard.some((c) => c.uid === 'karys'))
+}
+{
+  // priešo padarui: žūsta PRIEŠO (savininko) ėjimo pabaigoje, ne mano
+  const g = createGame(filler(20, 'Y'), filler(20, 'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g)
+  g.you.gold = 1000; g.ai.gold = 1000
+  g.ai.units[0] = mkBu(mkCard({ name: 'Foe', uid: 'foe', attack: 1 }), 'foe-u') as GameState['you']['units'][0]
+  g.you.hand.push(chaosoSpell('chaoso2'))
+  playCard(g, 'you', 'chaoso2', { target: { kind: 'unit', side: 'ai', uid: 'foe-u' } })
+  check('priešo padaras +5 ir pažymėtas', P(g, 'ai').units[0]?.atk === 6 && P(g, 'ai').units[0]?.doomTurnEnd === true)
+  endTurn(g)   // MANO ėjimo pabaiga — priešo padaras DAR gyvas
+  check('mano ėjimo gale priešo padaras dar gyvas', P(g, 'ai').units.some((x) => x?.uid === 'foe-u'))
+  endTurn(g)   // PRIEŠO ėjimo pabaiga — žūsta
+  check('priešo ėjimo pabaigoje žuvo', !P(g, 'ai').units.some((x) => x?.uid === 'foe-u'))
 }
 
 console.log(`\n${pass} ✓ / ${fail} ✗`)

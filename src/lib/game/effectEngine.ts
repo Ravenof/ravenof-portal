@@ -593,6 +593,17 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       applied = false
   }
 
+  // „Pažymėtas žūčiai" (doomTargetAtTurnEnd): taikiniai-padarai žūs savo
+  // savininko ėjimo pabaigoje (žr. engine.seatEndTurn). Žyma nepriklauso nuo
+  // statusų/nutildymo — tai burto prakeiksmas, ne padaro savybė.
+  if (applied && m.doomTargetAtTurnEnd) {
+    for (const t of targets) {
+      const f = findUnit(g, t)
+      if (!f || f.u.doomTurnEnd) continue
+      f.u.doomTurnEnd = true
+      api.log(g, { t: 'buff', side: f.owner, cardName: f.u.card.name, src: { side: f.owner, uid: f.u.uid }, key: 'battleLog.doomMark', params: { card: f.u.card.name } })
+    }
+  }
   // follow-up: curse trigger ant bet kurio efekto (jei sumapinta)
   if (applied && m.effect !== 'triggerCurse' && m.triggersCurse) {
     const tc = m.triggersCurse

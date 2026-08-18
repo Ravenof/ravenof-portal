@@ -92,6 +92,7 @@
     "coinYouFirst": "You go first!",
     "coinOppFirst": "The opponent goes first",
     "mulliganWaiting": "Waiting for opponent's mulligan…",
+    "doomToken": "Doomed — destroyed at the end of its owner's turn",
     "mulliganTitle": "Card exchange",
     "mulliganText": "Mark the cards you want to shuffle back into your deck – you will draw the same number of new ones. Available only once, at the start of the game.",
     "mulliganSwap": "Exchange ({{n}})",
