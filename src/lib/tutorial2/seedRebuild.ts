@@ -7,6 +7,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import type { LessonSeed } from './lessonTypes'
+import { legacyLessonSeedKeys } from '@/data/tutorialLessons/lessonSeeds'
 
 export type RebuildMode = 'merge' | 'reset'
 export interface RebuildReport { ok: boolean; created: number; updated: number; skipped: number; log: string[]; error?: string }
@@ -43,6 +44,18 @@ export async function rebuildTutorial(seeds: LessonSeed[], mode: RebuildMode = '
         if (Object.keys(patch).length) { await supabase.from('tutorial_lessons').update(patch).eq('seed_key', s.seedKey); updated++; log.push(`✏️ ${s.title}`) }
         else { skipped++; }
       }
+    }
+    // V3: senos v2 pamokos paslepiamos (progresas į naujas perkeliamas SQL'e —
+    // rvn_tutorial_state, migr 20260871). Eilutės NETRINAMOS: lieka analitikai.
+    const v3 = seeds.some((s2) => s2.seedKey.startsWith('tut-v3-'))
+    if (v3) {
+      const { error: hideErr, count } = await supabase
+        .from('tutorial_lessons')
+        .update({ status: 'hidden' }, { count: 'exact' })
+        .in('seed_key', legacyLessonSeedKeys)
+        .neq('status', 'hidden')
+      if (hideErr) log.push(`⚠ Senų pamokų paslėpti nepavyko: ${hideErr.message}`)
+      else if (count) log.push(`🙈 Paslėptos senos v2 pamokos: ${count}`)
     }
     log.push(`✓ ${mode === 'reset' ? 'Perrašyta' : 'Sujungta'}: +${created} / ~${updated} / =${skipped}`)
     return { ok: true, created, updated, skipped, log }

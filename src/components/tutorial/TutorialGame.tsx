@@ -92,6 +92,19 @@ export type TutorialHooks = {
   gate?: (a: NetAction, g: GameState) => { ok: boolean; hint?: string }  // gate'ina žaidėjo veiksmus
   enemyTurn?: (g: GameState) => void                      // vykdo scripted priešo veiksmus (po 1 per tiką)
   onEvents?: (fresh: GameEvent[], g: GameState) => void   // praneša director'iui apie naujus įvykius
+  // ── V3 ──
+  /** Kortos peržiūra „laikai–matai" (L1 hold-to-view žingsnis). */
+  onInspect?: (card: TutCard) => void
+  /** L8: įjungia TIKRĄ kovos pradžios srautą (monetos metimas + mulligan). */
+  matchStartFlow?: boolean
+  /** Imperatyvus API direktoriui (scripted demonstracijų būsenos pakeitimai). */
+  onApi?: (api: TutorialGameApi) => void
+}
+
+/** V3: TutorialGame imperatyvus API — leidžia direktoriui saugiai keisti mūšio būseną. */
+export type TutorialGameApi = {
+  /** Pritaiko mutaciją dabartinei būsenai (clone → fn → commit su reakcijų vartais). */
+  mutate: (fn: (g: GameState) => void) => void
 }
 
 type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; tutorial?: TutorialHooks }
@@ -198,7 +211,20 @@ const ASSET_BTN = (disabled = false): React.CSSProperties => ({
   padding: '13px 34px', border: 0, cursor: disabled ? 'default' : 'pointer',
   textShadow: '0 1px 4px rgba(0,0,0,.8)', transition: 'filter 0.18s ease',
 })
-const ICON_BASE = '/icons/status/'
+// ── V3 mokymai: close-up kameros wrapper ────────────────────────────────────
+// Overlay (TutorialOverlay) rašo `transform` TIESIAI į šį div'ą. Būtinai
+// ATSKIRAS elementas (ne board root su framer-motion ir ne portalo šaknis su
+// rvn-field-quake) — transform konfliktų kanonas.
+function TutZoomWrap({ active, children }: { active: boolean; children: React.ReactNode }) {
+  if (!active) return <>{children}</>
+  return (
+    <div data-tut-zoomwrap style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', transformOrigin: '0 0' }}>
+      {children}
+    </div>
+  )
+}
+
+const ICON_BASE = "/icons/status/"
 const STATUS_ICON: Record<TutStatus, string> = {
   frozen: 'frozen', burning: 'burning', poisoned: 'poison', stunned: 'stunned', silenced: 'silenced', blessed: 'light',
 }
@@ -945,6 +971,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Tutorial pagalbos auksas suteiktas tik kartą
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
+  // V3 mokymai: hook'ai per ref — kad callback'ai (openInspectHeld) nepersikurtų
+  // ir kad mokymų pranešimai niekada nedalyvautų kovos priklausomybėse.
+  const tutorialRef = useRef<TutorialHooks | undefined>(tutorial)
+  useEffect(() => { tutorialRef.current = tutorial }, [tutorial])
   // ── „Laikai – matai": jei detali peržiūra atidaryta LAIKANT pirštą (long-press
   // ranka/lentoje/popup'e), ji uždaroma vos pirštą atleidus (pointerup BET KUR).
   // Atidaryta bakstelėjimu/desktop click'u (logas, pileView, contextmenu) – lieka
@@ -955,7 +985,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ji „prisišvartuoja" prie kairio krasto — matai efekta renkantis taikini,
   // o lentos neuzstoja (pointer-events-none). Atleidus pirsta uzsidaro kaip iprastai.
   const [inspectDocked, setInspectDocked] = useState(false)
-  const openInspectHeld = useCallback((card: TutCard) => { inspectHeldRef.current = true; setInspectDocked(false); setInspect(card) }, [])
+  const openInspectHeld = useCallback((card: TutCard) => { inspectHeldRef.current = true; setInspectDocked(false); setInspect(card); try { tutorialRef.current?.onInspect?.(card) } catch { /* mokymai niekada nelaužia kovos */ } }, [])
   useEffect(() => { if (!inspect) setInspectDocked(false) }, [inspect])
   useEffect(() => {
     if (!inspect) { inspectHeldRef.current = false; return }
@@ -1449,7 +1479,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // (scriptintas — visada pradeda zaidejas). PvP: HOST'as autoritetingai
     // isburia pirmaji ir jungia mulligan; svecias viska gauna per 'state'
     // broadcast (svecio coin toss UI — is pirmo state snapshot'o, zr. efekta zemiau).
-    const tossEnabled = !tutorial?.active && (!net || net.isHost)
+    const tossEnabled = (!tutorial?.active || !!tutorial.matchStartFlow) && (!net || net.isHost)
     const first: Side = tossEnabled ? (Math.random() < 0.5 ? 'you' : 'ai') : 'you'
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
@@ -2478,6 +2508,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
 
   // Išėjus iš kovos / išmontavus – vartai niekada nelieka užrakinti.
   useEffect(() => () => { const r = gateRunRef.current; if (r) { r.cancelled = true; chainRef.current?.cancel() } }, [])
+
+  // ── V3 mokymai: imperatyvus API direktoriui ───────────────────────────────
+  // Leidžia pamokos žingsniui deklaratyviai pakeisti būseną (scripted statusų
+  // demonstracijos, ŽMK įjungimas, prakeiksmų sėjimas) NEapeinant gateCommit.
+  const tutApi = useMemo<TutorialGameApi>(() => ({
+    mutate: (fn) => setGame((prev) => {
+      if (!prev) return prev
+      const g = cloneState(prev)
+      try { fn(g) } catch (e) { console.error('[tutorial] mutate', e) }
+      return gateCommit(g, prev)
+    }),
+  }), [gateCommit])
+  useEffect(() => { if (tutorial?.active) tutorial.onApi?.(tutApi) }, [tutorial, tutApi])
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {
@@ -3769,7 +3812,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     const targetable = side === 'ai' && targetSet.has('player:ai')
     return (
       <button
-        data-tut={side === 'you' ? 'hp' : undefined}
+        data-tut={side === 'you' ? 'hp' : 'hp-ai'}
         data-player={side}
         onClick={() => {
           if (avLpFired.current) { avLpFired.current = false; return }  // buvo long-press – click praleidžiam
@@ -4173,6 +4216,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
       {game && !loading && useHLayout && (
+        <TutZoomWrap active={!!tutorial?.active}>
         <BattleLayout
           game={game}
           isTouch={isTouch}
@@ -4196,6 +4240,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderEmoteBubble={renderEmoteBubbleH}
           onEmote={sendEmote}
         />
+        </TutZoomWrap>
       )}
       {useHLayout && isTouch && showRotate && (
         <div className="fixed inset-0 z-[400] flex flex-col items-center justify-center gap-4 px-6 text-center"
@@ -4206,6 +4251,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
       {game && !loading && !useHLayout && isTouch && (
+        <TutZoomWrap active={!!tutorial?.active}>
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto sm:overflow-hidden px-2 py-1.5 gap-1">
           {/* ── AI pusė ── */}
           <div data-tut="ai-area" className="shrink-0">
@@ -4304,9 +4350,11 @@ doAction({ t: 'endTurn', actor: 'you' })
             </div>
           </div>
         </div>
+        </TutZoomWrap>
       )}
 
       {game && !loading && !useHLayout && !isTouch && (
+        <TutZoomWrap active={!!tutorial?.active}>
         <div className="flex-1 min-h-0 w-full" style={{ maxWidth: 1600, margin: '0 auto' }}>
           <div style={{ display: 'grid', height: '100%', gridTemplateColumns: '236px minmax(0,1fr) 250px', gridTemplateRows: 'minmax(0,1fr) 178px', gridTemplateAreas: '"left board right" "left hand command"', gap: 10, padding: '6px 14px' }}>
 
@@ -4437,6 +4485,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
           </div>
         </div>
+        </TutZoomWrap>
       )}      {/* ── pasirinkimo užuomina ── */}
       <AnimatePresence>
         {select && select.kind !== 'discard' && (

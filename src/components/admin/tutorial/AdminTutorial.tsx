@@ -13,6 +13,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { rebuildTutorial } from '@/lib/tutorial2/seedRebuild'
+import { playTutorialVoice, tutorialVoiceUrl, isVoiceKnownMissing } from '@/lib/tutorial2/tutorialVoice'
+import type { LessonConfig } from '@/lib/tutorial2/lessonTypes'
 import { tutorialLessonSeeds } from '@/data/tutorialLessons/lessonSeeds'
 
 interface Row {
@@ -173,8 +175,42 @@ function LessonEditor({ row, busy, onChange, onSave }: { row: Row; busy: boolean
           <label className="text-xs" style={{ color: 'var(--text-muted)' }}>Config / scenarijus (JSON)</label>
           <textarea className={inp + ' font-mono'} rows={16} value={configText} onChange={(e) => setConfigText(e.target.value)} onBlur={commitJson} />
           {err && <span className="text-xs" style={{ color: '#f87171' }}>{err}</span>}
+          <VoicePanel config={row.config} />
         </div>
       )}
+    </div>
+  )
+}
+
+// ── V3: pamokos balso eilutės (voiceId) — sąrašas + „Perklausyti" ───────────
+// Failas: card-audio/tutorial/tut-{voiceId}.mp3. Jei jo dar nėra — mygtukas
+// pažymimas raudonai (pamoka vis tiek veikia: auto-advance pagal tekstą).
+function VoicePanel({ config }: { config: unknown }) {
+  const cfg = (config ?? {}) as LessonConfig
+  const lines: { voiceId: string; text: string }[] = []
+  for (const st of cfg.steps ?? []) {
+    for (const d of st.dialogue ?? []) if (d.voiceId) lines.push({ voiceId: d.voiceId, text: d.voiceText ?? d.text })
+  }
+  const [failed, setFailed] = useState<Record<string, boolean>>({})
+  if (lines.length === 0) return <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Balso eilučių nėra (voiceId nenustatyti).</span>
+  return (
+    <div className="grid gap-1 mt-1">
+      <label className="text-xs" style={{ color: 'var(--text-muted)' }}>Balso eilutės ({lines.length}) — tut-&#123;voiceId&#125;.mp3</label>
+      {lines.map((l, i) => (
+        <div key={l.voiceId + i} className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              const r = await playTutorialVoice(l.voiceId)
+              if (!r.played || isVoiceKnownMissing(l.voiceId)) setFailed((f) => ({ ...f, [l.voiceId]: true }))
+            }}
+            className="text-[11px] px-2 py-0.5 rounded font-bold shrink-0"
+            style={{ background: failed[l.voiceId] ? 'rgba(239,68,68,0.15)' : 'rgba(240,180,41,0.15)', border: '1px solid ' + (failed[l.voiceId] ? 'rgba(239,68,68,0.5)' : 'rgba(240,180,41,0.45)'), color: failed[l.voiceId] ? '#fca5a5' : 'var(--gold)' }}
+            title={tutorialVoiceUrl(l.voiceId) ?? ''}>
+            ▶ {l.voiceId}
+          </button>
+          <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{l.text}</span>
+        </div>
+      ))}
     </div>
   )
 }

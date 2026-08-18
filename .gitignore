@@ -42,3 +42,6 @@ next-env.d.ts
 /ravenof_main_menu_cropped_assets/
 /supabase/migrations/ravenof_main_menu_cropped_assets/
 asffa/
+
+# Tutorial V3 balso failai (generuojami lokaliai, keliami į Supabase)
+/tutorial-voice/

@@ -21,14 +21,25 @@ export type HighlightTarget =
   | { kind: 'unit'; side: 'you' | 'ai'; cardName?: string; index?: number }
   | { kind: 'button'; id: 'end-turn' | 'discard-gold' | 'next' }
 
-/** Guide dialogue line (dark-fantasy mentor). Max ~2 short sentences. */
+/** Guide dialogue line (dark-fantasy mentor). Max ~2 short sentences ON SCREEN. */
 export interface Dialogue {
   id?: string
   /** 'guide' (mentor) | 'enemy' | 'narrator' — drives bubble side/portrait. */
   speaker?: 'guide' | 'enemy' | 'narrator'
   name?: string
+  /** Ekrane rodoma santrauka (trumpa!). */
   text: string
   portrait?: string | null
+  /**
+   * V3 — balso takelio ID (be prefikso): failas `card-audio/tutorial/tut-{voiceId}.mp3`.
+   * Jei failo nėra arba garsas išjungtas — auto-advance pagal teksto ilgį.
+   */
+  voiceId?: string
+  /**
+   * V3 — PILNAS ištariamas tekstas (titrai). Jei nenurodyta — titrų nerodom,
+   * balsas laikomas atitinkančiu `text`.
+   */
+  voiceText?: string
 }
 
 /** Whitelisted player actions for a step. Anything not listed is blocked. */
@@ -53,6 +64,8 @@ export type CompletionTrigger =
   | { on: 'event'; eventType: string; side?: 'you' | 'ai'; cardName?: string; count?: number }
   | { on: 'enemyTurnDone' }                                   // after scripted enemy turn
   | { on: 'win' }                                             // enemy champion/HP at 0
+  | { on: 'inspect'; cardName?: string }                      // V3: žaidėjas palaikė pirštą ant kortos (hold-to-view)
+  | { on: 'voiceDone' }                                       // V3: kai baigia groti paskutinė balso eilutė
 
 /** One scripted enemy (or forced) action. */
 export type ScriptedAction =
@@ -73,6 +86,8 @@ export interface ScriptedSide {
   field?: string
   gold?: number         // override starting gold for the lesson
   hp?: number           // override starting champion/player HP
+  curses?: string[]     // V3: prakeiksmų šoninė kaladė (curse tipo kortų vardai)
+  reactions?: string[]  // V3: iš anksto padėtos (užverstos) reakcijos
 }
 
 export interface LessonSetup {
@@ -82,6 +97,38 @@ export interface LessonSetup {
   drawSequence?: { you?: string[][]; ai?: string[][] }
   /** Disable the damage-modifier deck for early lessons (deterministic combat). */
   disableZmk?: boolean
+}
+
+/**
+ * V3 — deklaratyvus būsenos pakeitimas žingsnio pradžioje. Leidžia scriptinti
+ * demonstracijas (statusų karuselė L6, prakeiksmai L7, ŽMK įjungimas L2)
+ * NEPERRAŠANT variklio: direktorius jį pritaiko per TutorialGame `mutate` API.
+ */
+export interface StepMutation {
+  /** Įjungti tikrą ŽMK kaladę (L2: iki tol visos kortos +0). */
+  enableZmk?: boolean
+  /** Išjungti ŽMK (visos kortos +0 — deterministinė kova). */
+  disableZmk?: boolean
+  /** Nustatyti auksą (ne pridėti). */
+  goldYou?: number
+  goldAi?: number
+  /** Pridėti kortas į ranką (pagal vardą). */
+  addHandYou?: string[]
+  /** Pastatyti padarus ant lentos (nebe „summoning sick"). */
+  addBoardYou?: string[]
+  addBoardAi?: string[]
+  /** Nuvalyti lentą prieš demonstraciją. */
+  clearBoardYou?: boolean
+  clearBoardAi?: boolean
+  /** Uždėti būseną/raktažodį ant padaro (demonstracijoms). */
+  setStatus?: { side: 'you' | 'ai'; cardName: string; status: 'frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed' | 'shield' | 'stealth' | 'taunt' | 'sprint' }[]
+  /** Prakeiksmų šoninė kaladė (L7): kortų vardai. */
+  cursesYou?: string[]
+  /** Įdėti prakeiksmą į priešo kaladės VIRŠŲ (L7 demonstracijai). */
+  seedEnemyDeckTop?: string[]
+  /** Nustatyti priešo/žaidėjo kaladės dydį (L8 fatigue demonstracijai). */
+  deckCountYou?: number
+  deckCountAi?: number
 }
 
 export interface LessonStep {
@@ -94,8 +141,22 @@ export interface LessonStep {
   highlight?: HighlightTarget[]
   /** Animated arrow points at this target. */
   arrowTo?: HighlightTarget | null
+  /**
+   * V3 — rodyklės stilius:
+   *   'point'     — klasikinė šokinėjanti rodyklė (numatyta)
+   *   'pulse'     — rodyklė + 3 pulsuojantys žiedai aplink taikinį
+   *   'drag-path' — animuota punktyrinė kreivė nuo `arrowFrom` iki `arrowTo`
+   *                 su judančiu „vaiduoklišku" pirštu (drag mokymui)
+   */
+  arrowStyle?: 'point' | 'pulse' | 'drag-path'
+  /** V3 — drag-path pradžia (kortos rankoje pozicija). */
+  arrowFrom?: HighlightTarget | null
   /** Soft camera zoom toward this target. */
   zoom?: HighlightTarget | null
+  /** V3 — priverstinis zoom mastelis (default: auto pagal taikinio dydį, 1.35–2.2×). */
+  zoomLevel?: number
+  /** V3 — būsenos pakeitimai, atliekami ĮEINANT į šį žingsnį (scripted demonstracijoms). */
+  apply?: StepMutation
   /** Whitelisted actions; everything else is blocked (no failing the lesson). */
   allow?: AllowedAction[]
   /** Scripted enemy actions to run when this step hands the turn to the enemy. */
@@ -111,6 +172,13 @@ export interface LessonConfig {
   guidePortrait?: string | null
   /** Show the zones primer overlay before the first battle (Level 1). */
   primer?: boolean
+  /**
+   * V3 (L8) — įjungti TIKRĄ kovos pradžios srautą: monetos metimas + mulligan.
+   * Visose kitose pamokose jis išjungtas (scriptuota: visada pradeda žaidėjas).
+   */
+  matchStartFlow?: boolean
+  /** V3 — pamokos balso eilučių ID sąrašas (prefetch pamokos pradžioje). Auto-surenkamas, jei nenurodyta. */
+  voiceIds?: string[]
   setup: LessonSetup
   steps: LessonStep[]
 }

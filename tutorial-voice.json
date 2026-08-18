@@ -1,0 +1,613 @@
+{
+  "lines": [
+    {
+      "voiceId": "l1-s01",
+      "file": "tut-l1-s01.mp3",
+      "text": "Sveikas atvykęs į Ravenof, mokiny. Aš — Senasis Korvas. Kadaise vedžiau kariuomenes per šiuos prakeiktus kraštus... o dabar vesiu tave. Nebijok — pradėsime nuo pačių pamatų.",
+      "lesson": "1. Mūšio laukas",
+      "step": "welcome"
+    },
+    {
+      "voiceId": "l1-s02",
+      "file": "tut-l1-s02.mp3",
+      "text": "Štai tavo gyvybės. Keturiasdešimt. Kai jos pasieks nulį — kova baigta. Saugok jas labiau nei auksą.",
+      "lesson": "1. Mūšio laukas",
+      "step": "zone-hp-you"
+    },
+    {
+      "voiceId": "l1-s03",
+      "file": "tut-l1-s03.mp3",
+      "text": "O čia — priešininko gyvybės. Mūsų tikslas paprastas: nukalti jas iki nulio.",
+      "lesson": "1. Mūšio laukas",
+      "step": "zone-hp-ai"
+    },
+    {
+      "voiceId": "l1-s04",
+      "file": "tut-l1-s04.mp3",
+      "text": "Tai tavo aukso atsargos. Auksas čia — ne turtas, o kvėpavimas. Kiekviena korta kainuoja aukso.",
+      "lesson": "1. Mūšio laukas",
+      "step": "zone-gold"
+    },
+    {
+      "voiceId": "l1-s05",
+      "file": "tut-l1-s05.mp3",
+      "text": "Tavo kaladė. Iš jos kas ėjimą trauksi po vieną kortą. Kai kaladė ištuštės... apie tai vėliau. Tai nemaloni istorija.",
+      "lesson": "1. Mūšio laukas",
+      "step": "zone-deck"
+    },
+    {
+      "voiceId": "l1-s06",
+      "file": "tut-l1-s06.mp3",
+      "text": "Kapinynas. Žuvusios kortos gula čia. Kai kurios jėgos moka jas prikelti — bet tai gilesnė magija.",
+      "lesson": "1. Mūšio laukas",
+      "step": "zone-discard"
+    },
+    {
+      "voiceId": "l1-s07",
+      "file": "tut-l1-s07.mp3",
+      "text": "Šita maža kaladė — Žalos Modifikavimo Kortos. Likimo pirštai. Kol kas jų neliesk — supažindinsiu, kai ateis laikas kautis.",
+      "lesson": "1. Mūšio laukas",
+      "step": "zone-zmk"
+    },
+    {
+      "voiceId": "l1-s08",
+      "file": "tut-l1-s08.mp3",
+      "text": "Dabar įsidėmėk aukso taisyklę. Pirmą ėjimą gauni šimtą. Antrą — du šimtus. Trečią — tris. Ir taip iki tūkstančio. Bet klausyk atidžiai: ėjimo pabaigoje nepanaudotas auksas pradingsta. Neišleisi — prarasi.",
+      "lesson": "1. Mūšio laukas",
+      "step": "gold-rule"
+    },
+    {
+      "voiceId": "l1-s09",
+      "file": "tut-l1-s09.mp3",
+      "text": "Pažvelk į kortą iš arčiau. Šis skaičius kampe — jos kaina auksu.",
+      "lesson": "1. Mūšio laukas",
+      "step": "card-cost"
+    },
+    {
+      "voiceId": "l1-s10",
+      "file": "tut-l1-s10.mp3",
+      "text": "Kardas — atakos jėga. Tiek žalos ji kirs priešui.",
+      "lesson": "1. Mūšio laukas",
+      "step": "card-atk"
+    },
+    {
+      "voiceId": "l1-s11",
+      "file": "tut-l1-s11.mp3",
+      "text": "Širdis — gyvybės. Tiek žalos korta atlaikys, kol žus.",
+      "lesson": "1. Mūšio laukas",
+      "step": "card-hp"
+    },
+    {
+      "voiceId": "l1-s12",
+      "file": "tut-l1-s12.mp3",
+      "text": "O tekstas apačioje — jos galia. Kortos tekstas Ravenof'e visada svarbesnis už skaičius. Visada.",
+      "lesson": "1. Mūšio laukas",
+      "step": "card-text"
+    },
+    {
+      "voiceId": "l1-s13",
+      "file": "tut-l1-s13.mp3",
+      "text": "Nori apžiūrėti kortą? Palaikyk ant jos pirštą — ji priartės. Atleisi pirštą — dings. Paprasta. Pabandyk dabar.",
+      "lesson": "1. Mūšio laukas",
+      "step": "hold-to-view"
+    },
+    {
+      "voiceId": "l1-s14",
+      "file": "tut-l1-s14.mp3",
+      "text": "Metas pirmai kortai. Paimk ją pirštu ir tempk aukštyn, į mūšio lauką. Drąsiai.",
+      "lesson": "1. Mūšio laukas",
+      "step": "drag-to-play"
+    },
+    {
+      "voiceId": "l1-s15",
+      "file": "tut-l1-s15.mp3",
+      "text": "Puiku! Bet pastebėk — tavo padaras dar apsvaigęs nuo iškvietimo. Šį ėjimą jis pulti negali. Kariai tai vadina iškvietimo liga.",
+      "lesson": "1. Mūšio laukas",
+      "step": "summon-sick"
+    },
+    {
+      "voiceId": "l1-s16",
+      "file": "tut-l1-s16.mp3",
+      "text": "Daugiau aukso neturi, tad baik ėjimą. Prisimink — auksas nepersikelia. Spausk „Baigti ėjimą\".",
+      "lesson": "1. Mūšio laukas",
+      "step": "end-turn-1"
+    },
+    {
+      "voiceId": "l1-s17",
+      "file": "tut-l1-s17.mp3",
+      "text": "Dabar eina priešininkas. Stebėk. Kartais geriausia pamoka — žiūrėti, ką daro priešas.",
+      "lesson": "1. Mūšio laukas",
+      "step": "enemy-turn"
+    },
+    {
+      "voiceId": "l1-s18",
+      "file": "tut-l1-s18.mp3",
+      "text": "Matai? Antras ėjimas — du šimtai aukso. Kas ėjimą vis daugiau. Vėliau galėsi žaisti po kelias kortas iš karto.",
+      "lesson": "1. Mūšio laukas",
+      "step": "gold-grows"
+    },
+    {
+      "voiceId": "sys-good-2",
+      "file": "tut-sys-good-2.mp3",
+      "text": "Būtent taip.",
+      "lesson": "1. Mūšio laukas",
+      "step": "play-second"
+    },
+    {
+      "voiceId": "l1-s19",
+      "file": "tut-l1-s19.mp3",
+      "text": "Užtenka pirmam kartui. Įsimink: auksas kvėpuoja, kortos kainuoja, padarai serga iškvietimo liga. Kitoje pamokoje — kaip kautis. Eik pailsėk, mokiny.",
+      "lesson": "1. Mūšio laukas",
+      "step": "l1-outro"
+    },
+    {
+      "voiceId": "l2-s01",
+      "file": "tut-l2-s01.mp3",
+      "text": "Grįžai. Gerai. Šiandien išmoksi svarbiausio — kaip liejamas kraujas.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l2-s02",
+      "file": "tut-l2-s02.mp3",
+      "text": "Ataka paprasta: paimk savo padarą pirštu ir tempk ant priešo. Rodyklė parodys taikinį. Pabandyk — pulk silpnąjį.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "attack-weak"
+    },
+    {
+      "voiceId": "l2-s03",
+      "file": "tut-l2-s03.mp3",
+      "text": "Švarus kirtis. Priešas žuvo nespėjęs atsakyti — nes tavo smūgis jį pribaigė.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "clean-kill"
+    },
+    {
+      "voiceId": "l2-s04",
+      "file": "tut-l2-s04.mp3",
+      "text": "Bet dabar klausyk atidžiai, nes čia žūsta naujokai. Kai puoli gyvą padarą — jis kerta atgal. Tu gauni jo atakos žalą. Kiekviena ataka yra mainai.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "retaliation-rule"
+    },
+    {
+      "voiceId": "l2-s05",
+      "file": "tut-l2-s05.mp3",
+      "text": "Pažvelk: jo ataka trys, gyvybės trys. Tavo — trys ir keturi. Pulsi — jis žus, bet tau liks viena gyvybė. Verta? Dažnai — taip. Bet visada skaičiuok.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "trade-math"
+    },
+    {
+      "voiceId": "l2-s06",
+      "file": "tut-l2-s06.mp3",
+      "text": "Pulk. Pajusk mainus savo kailiu.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "trade-do"
+    },
+    {
+      "voiceId": "l2-s07",
+      "file": "tut-l2-s07.mp3",
+      "text": "O dabar... Žalos Modifikavimo Kortos. Likimas. Kiekvieną kartą, kai kertama žala, traukiama viena šių kortų.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "zmk-intro"
+    },
+    {
+      "voiceId": "l2-s08",
+      "file": "tut-l2-s08.mp3",
+      "text": "Pliusas — žala didesnė. Minusas — mažesnė. Kryžius du — žala dviguba. O kryžius nulis... smūgis nueina vėjais. Todėl Ravenof'e net tikras kirtis niekada nėra tikras.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "zmk-values"
+    },
+    {
+      "voiceId": "l2-s09",
+      "file": "tut-l2-s09.mp3",
+      "text": "Nuo šiol likimo kortos maišosi į kiekvieną tavo smūgį. Priprask prie netikrumo — jis čia amžinas.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "zmk-live"
+    },
+    {
+      "voiceId": "l2-s10",
+      "file": "tut-l2-s10.mp3",
+      "text": "Kai priešo lenta tuščia — kirsk tiesiai į veidą. Tempk padarą ant priešo herbo. Tai kelias į pergalę.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "go-face"
+    },
+    {
+      "voiceId": "sys-turn-enemy",
+      "file": "tut-sys-turn-enemy.mp3",
+      "text": "Priešo ėjimas. Stebėk.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "end-turn"
+    },
+    {
+      "voiceId": "l2-s11",
+      "file": "tut-l2-s11.mp3",
+      "text": "Skauda? Gerai. Dabar žinai, ką jaučia priešas. Žala veidan artina pabaigą — bet palikta priešo lenta artina tavo pabaigą. Balansas, mokiny.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "pain-lesson"
+    },
+    {
+      "voiceId": "l2-s12",
+      "file": "tut-l2-s12.mp3",
+      "text": "Priešo gyvybės senka. Užbaik. Nukalk jas iki nulio.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "finish"
+    },
+    {
+      "voiceId": "sys-victory",
+      "file": "tut-sys-victory.mp3",
+      "text": "Pergalė! Ravenof tavimi patenkintas.",
+      "lesson": "2. Ataka ir gynyba",
+      "step": "victory"
+    },
+    {
+      "voiceId": "l3-s01",
+      "file": "tut-l3-s01.mp3",
+      "text": "Kardai — ne vienintelis kelias. Šiandien — magija.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l3-s02",
+      "file": "tut-l3-s02.mp3",
+      "text": "Burtai suveikia iškart ir gula į kapinyną. Vieni reikalauja taikinio, kiti — ne. Šis reikalauja. Tempk jį ant priešo padaro.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "targeted-spell"
+    },
+    {
+      "voiceId": "l3-s03",
+      "file": "tut-l3-s03.mp3",
+      "text": "Pastebėjai? Kol tempi, kortos aprašymas lieka kairiajame krašte. Skaityk jį rinkdamasis taikinį — tekstas visada svarbiau už atmintį.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "docked-preview"
+    },
+    {
+      "voiceId": "l3-s04",
+      "file": "tut-l3-s04.mp3",
+      "text": "O šis burtas — audra. Taikinių nesirenka: kerta visus priešo padarus iš karto. Tokie burtai brangūs, bet apverčia kovą. Paleisk.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "aoe"
+    },
+    {
+      "voiceId": "l3-s05",
+      "file": "tut-l3-s05.mp3",
+      "text": "Gražu, tiesa? Bet įsimink — audros nešvaisto tuščiai lentai. Lauk, kol priešas išsistatys.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "aoe-note"
+    },
+    {
+      "voiceId": "l3-s06",
+      "file": "tut-l3-s06.mp3",
+      "text": "Dabar — spąstai. Reakcijos. Jos žaidžiamos užverstos į šitą zoną. Priešas jų nemato. Ir nežino, kada suveiks.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "reaction-intro"
+    },
+    {
+      "voiceId": "l3-s07",
+      "file": "tut-l3-s07.mp3",
+      "text": "Padėk reakciją. Tegul laukia tamsoje.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "reaction-set"
+    },
+    {
+      "voiceId": "l3-s08",
+      "file": "tut-l3-s08.mp3",
+      "text": "Dabar lauk. Priešas puls. Ir tada...",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "wait-for-trap"
+    },
+    {
+      "voiceId": "l3-s09",
+      "file": "tut-l3-s09.mp3",
+      "text": "Štai! Spąstai užsitrenkė! Reakcija smogė tam, kuris ją pažadino. Priešas dabar dukart pagalvos prieš puldamas.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "trap-explain"
+    },
+    {
+      "voiceId": "l3-s10",
+      "file": "tut-l3-s10.mp3",
+      "text": "Reakcijos — tavo nematoma ranka. Gera kaladė visada turi bent porą. Užbaik kovą, mokiny.",
+      "lesson": "3. Burtai ir reakcijos",
+      "step": "finish"
+    },
+    {
+      "voiceId": "l4-s01",
+      "file": "tut-l4-s01.mp3",
+      "text": "Šiandien ypatinga diena. Šiandien tu pašauksi ČEMPIONĄ.",
+      "lesson": "4. Čempionas",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l4-s02",
+      "file": "tut-l4-s02.mp3",
+      "text": "Čempionas — ne eilinis karys. Jis reikalauja aukos: dvi kortos iš rankos mainais už jo atėjimą. Rinkis atsargiai... arba atšauk, jei suabejosi — mygtukas apačioje.",
+      "lesson": "4. Čempionas",
+      "step": "tribute-rule"
+    },
+    {
+      "voiceId": "l4-s03",
+      "file": "tut-l4-s03.mp3",
+      "text": "Paaukok dvi kortas. Tegul ateina.",
+      "lesson": "4. Čempionas",
+      "step": "summon-champ"
+    },
+    {
+      "voiceId": "l4-s04",
+      "file": "tut-l4-s04.mp3",
+      "text": "Štai jis. Pažvelk į žvaigždes po juo — tai fazės. Pirma fazė — tik pradžia.",
+      "lesson": "4. Čempionas",
+      "step": "phases"
+    },
+    {
+      "voiceId": "l4-s05",
+      "file": "tut-l4-s05.mp3",
+      "text": "Už auksą čempionas auga: trys šimtai — antra fazė, dar daugiau — trečia. Kiekviena fazė atrakina naują galią. Spausk ant jo ir pakelk į antrą fazę.",
+      "lesson": "4. Čempionas",
+      "step": "upgrade"
+    },
+    {
+      "voiceId": "l4-s06",
+      "file": "tut-l4-s06.mp3",
+      "text": "Dabar jo galios. Pirmas įgūdis atrakintas nuo pradžių. Antras — nuo antros fazės. Trečias — tik pilnai užaugus. Užrakintos galios pilkos — jų laikas dar ateis.",
+      "lesson": "4. Čempionas",
+      "step": "skills"
+    },
+    {
+      "voiceId": "l4-s07",
+      "file": "tut-l4-s07.mp3",
+      "text": "Kai kurios galios kainuoja aukso. Kai kurios reikalauja taikinio — korta švytės, kol pasirinksi. Panaudok pirmąją galią dabar.",
+      "lesson": "4. Čempionas",
+      "step": "use-skill"
+    },
+    {
+      "voiceId": "l4-s08",
+      "file": "tut-l4-s08.mp3",
+      "text": "Įsimink ir tai: prireikus čempioną gali nuleisti į žemesnę fazę — kartais silpnesnė forma turi reikalingesnę galią. Bet tai jau meistrų žaidimas.",
+      "lesson": "4. Čempionas",
+      "step": "phase-down"
+    },
+    {
+      "voiceId": "l4-s09",
+      "file": "tut-l4-s09.mp3",
+      "text": "Čempionas krenta — kova nesibaigia, bet jo netektis skaudi. Saugok jį. Užbaik priešą.",
+      "lesson": "4. Čempionas",
+      "step": "finish"
+    },
+    {
+      "voiceId": "l5-s01",
+      "file": "tut-l5-s01.mp3",
+      "text": "Ne viskas kaunasi. Kai kas... tiesiog stovi ir keičia pasaulį.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l5-s02",
+      "file": "tut-l5-s02.mp3",
+      "text": "Artefaktai gula į savo zoną ir veikia kas ėjimą — patys. Bet įsidėmėk: jie turi gyvybes, ir priešas gali juos sudaužyti. Padėk artefaktą.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "artifact"
+    },
+    {
+      "voiceId": "l5-s03",
+      "file": "tut-l5-s03.mp3",
+      "text": "Matai? Kiekvieno tavo ėjimo pradžioje jis dirbs tau. Nemokamai. Amžinai — arba kol stovi.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "artifact-works"
+    },
+    {
+      "voiceId": "l5-s04",
+      "file": "tut-l5-s04.mp3",
+      "text": "LAUKO korta keičia patį mūšio lauką. Žaisk ją ir žiūrėk atidžiai.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "field"
+    },
+    {
+      "voiceId": "l5-s05",
+      "file": "tut-l5-s05.mp3",
+      "text": "Pati arena pasikeitė... Lauko kortos galia veikia abu žaidėjus. Ir tave. Rinkis lauką, kuris tavo kaladei naudingesnis nei priešo.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "field-both"
+    },
+    {
+      "voiceId": "l5-s06",
+      "file": "tut-l5-s06.mp3",
+      "text": "Naujas laukas išstumia senąjį. Vienu metu — tik vienas pasaulis.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "field-replace"
+    },
+    {
+      "voiceId": "l5-s07",
+      "file": "tut-l5-s07.mp3",
+      "text": "Dar viena tyli jėga — auros. Kai kurie padarai vien būdami lentoje stiprina savus... ar nuodija priešus. Aura dingsta kartu su nešėju — todėl auros nešėjai visada pirmi taikiniai.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "aura"
+    },
+    {
+      "voiceId": "sys-good-1",
+      "file": "tut-sys-good-1.mp3",
+      "text": "Puiku.",
+      "lesson": "5. Artefaktai ir laukas",
+      "step": "aura-see"
+    },
+    {
+      "voiceId": "l6-s01",
+      "file": "tut-l6-s01.mp3",
+      "text": "Šiandien išmoksi skaityti ženklus ant kortų. Būsenos. Jos laimi kovas dažniau nei kardai.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l6-s02",
+      "file": "tut-l6-s02.mp3",
+      "text": "Šaltis. Užšaldytas padaras neatsako į smūgius. Pulk jį — jis tylės. Ledo magai tuo ir gyvena.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "freeze-cast"
+    },
+    {
+      "voiceId": "sys-good-3",
+      "file": "tut-sys-good-3.mp3",
+      "text": "Gerai, mokiny.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "freeze-attack"
+    },
+    {
+      "voiceId": "l6-s03",
+      "file": "tut-l6-s03.mp3",
+      "text": "Apsvaigimas. Apsvaigintas padaras praleidžia savo ėjimą — nei puola, nei ginasi protingai. Nukalk jo sargą, kol miega.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "stun"
+    },
+    {
+      "voiceId": "l6-s04",
+      "file": "tut-l6-s04.mp3",
+      "text": "Nuodai ir ugnis. Ėda gyvybes kas ėjimą, po truputį. Lėta mirtis — bet mirtis.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "poison"
+    },
+    {
+      "voiceId": "l6-s06",
+      "file": "tut-l6-s06.mp3",
+      "text": "Skydas sugeria vieną smūgį pilnai. Sėlinimas slepia padarą nuo taikymosi, kol jis pats nesmogia.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "shield-stealth"
+    },
+    {
+      "voiceId": "l6-s07",
+      "file": "tut-l6-s07.mp3",
+      "text": "Ir provokacija. Kol lentoje stovi provokuojantis padaras — privalai pulti jį pirmiausia. Jis — siena. Statyk sienas savo silpniems, griauk priešo sienas pirmas.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "taunt"
+    },
+    {
+      "voiceId": "l6-s05",
+      "file": "tut-l6-s05.mp3",
+      "text": "Nutildymas. Baisiausias iš visų. Nuima nuo kortos viską — tekstą, buffus, galias. Lieka tik kūnas ir skaičiai. Prieš galingą efektą — nutildymas.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "silence"
+    },
+    {
+      "voiceId": "l6-s08",
+      "file": "tut-l6-s08.mp3",
+      "text": "Sprintas leidžia pulti tą patį ėjimą, kai iškviestas — jokios iškvietimo ligos. Greitis kainuoja, bet stebina.",
+      "lesson": "6. Būsenos ir raktažodžiai",
+      "step": "sprint-play"
+    },
+    {
+      "voiceId": "l7-s01",
+      "file": "tut-l7-s01.mp3",
+      "text": "Dabar... tamsioji pusė. Demonų menas. Prakeiksmai.",
+      "lesson": "7. Demonų prakeiksmai",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l7-s02",
+      "file": "tut-l7-s02.mp3",
+      "text": "Demonų kaladė turi šešėlį — šoninę prakeiksmų kaladę. Iki dvidešimties. Jie ne tavo rankoje — jie laukia savo valandos šalia.",
+      "lesson": "7. Demonų prakeiksmai",
+      "step": "side-deck"
+    },
+    {
+      "voiceId": "l7-s03",
+      "file": "tut-l7-s03.mp3",
+      "text": "Demonų efektai įmaišo prakeiksmus į priešo kaladę. Žiūrėk — štai jis, šliaužia į svetimą kaladę...",
+      "lesson": "7. Demonų prakeiksmai",
+      "step": "inject"
+    },
+    {
+      "voiceId": "l7-s04",
+      "file": "tut-l7-s04.mp3",
+      "text": "O dabar gražiausia. Priešas trauks kortas... ir vieną dieną ištrauks tavo prakeiksmą. Tada jis suveiks. Jo rankoje. Jo ėjime.",
+      "lesson": "7. Demonų prakeiksmai",
+      "step": "inject-explain"
+    },
+    {
+      "voiceId": "l7-s05",
+      "file": "tut-l7-s05.mp3",
+      "text": "Štai! Girdi? Tai prakeiksmo balsas. Priešas net kortos negavo — vien skausmą.",
+      "lesson": "7. Demonų prakeiksmai",
+      "step": "curse-explain"
+    },
+    {
+      "voiceId": "l7-s06",
+      "file": "tut-l7-s06.mp3",
+      "text": "Demonų meistrai stato kaladas aplink tai: vieni efektai maišo prakeiksmus, kiti stiprėja jiems suveikus, treti baudžia priešą už kiekvieną ištrauktą kortą. Tamsi simfonija.",
+      "lesson": "7. Demonų prakeiksmai",
+      "step": "outro"
+    },
+    {
+      "voiceId": "l8-s01",
+      "file": "tut-l8-s01.mp3",
+      "text": "Paskutinė pamoka — apie tai, kas vyksta PRIEŠ kovą ir kas laukia jos gale.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "intro"
+    },
+    {
+      "voiceId": "l8-s02",
+      "file": "tut-l8-s02.mp3",
+      "text": "Kiekviena tikra kova prasideda monetos metimu. Likimas renkasi, kas eina pirmas. Žalia — tu. Raudona — priešas.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "coin"
+    },
+    {
+      "voiceId": "l8-s03",
+      "file": "tut-l8-s03.mp3",
+      "text": "Dabar — pirmoji ranka. Netinka? Pažymėk kortas, kurias nori keisti — jos grįš į kaladę, gausi naujas. Patarimas: brangios kortos pradžioje — balastas. Keisk jas.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "mulligan"
+    },
+    {
+      "voiceId": "l8-s04",
+      "file": "tut-l8-s04.mp3",
+      "text": "Prisimink kainos taisyklę: pirmais ėjimais teturėsi šimtą ar du. Ranka pilna brangenybių — ranka tuščia darbų.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "cost-rule"
+    },
+    {
+      "voiceId": "l8-s05",
+      "file": "tut-l8-s05.mp3",
+      "text": "Užmiršau paminėti dar vieną monetą. Kartą per ėjimą gali parduoti kortą iš rankos už šimtą aukso. Nereikalinga korta virsta ankstyvu padaru. Meistrų triukas.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "sell"
+    },
+    {
+      "voiceId": "l8-s06",
+      "file": "tut-l8-s06.mp3",
+      "text": "Ir pabaiga, apie kurią žadėjau papasakoti. Kai kaladė ištuštėja, o tu privalai traukti — nuovargis. Pirmas tuščias traukimas — vienas skausmo. Antras — du. Trečias — trys... Ilga kova visada baigiasi — vienaip ar kitaip.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "fatigue-setup"
+    },
+    {
+      "voiceId": "l8-s07",
+      "file": "tut-l8-s07.mp3",
+      "text": "Dar žinok: rankoje telpa dešimt kortų. Vienuolikta sudegtų. Netaupyk to, ko negali panešti.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "hand-limit"
+    },
+    {
+      "voiceId": "l8-s08",
+      "file": "tut-l8-s08.mp3",
+      "text": "Tai viskas, ką galiu tau duoti žodžiais, mokiny. Likusio išmokys pralaimėjimai — jie geriausi mokytojai Ravenof'e. Eik. Kaunu tavimi didžiuotis.",
+      "lesson": "8. Kovos pradžia ir ekonomika",
+      "step": "farewell"
+    },
+    {
+      "voiceId": "sys-wrong-1",
+      "file": "tut-sys-wrong-1.mp3",
+      "text": "Ne čia. Pažvelk, kur rodau.",
+      "lesson": "Sisteminės frazės",
+      "step": "-"
+    },
+    {
+      "voiceId": "sys-wrong-2",
+      "file": "tut-sys-wrong-2.mp3",
+      "text": "Dar ne. Sek rodyklę.",
+      "lesson": "Sisteminės frazės",
+      "step": "-"
+    },
+    {
+      "voiceId": "sys-wrong-3",
+      "file": "tut-sys-wrong-3.mp3",
+      "text": "Kantrybės — pirmiau tai, ką rodau.",
+      "lesson": "Sisteminės frazės",
+      "step": "-"
+    }
+  ]
+}
