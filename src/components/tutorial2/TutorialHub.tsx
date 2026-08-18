@@ -59,6 +59,10 @@ export function TutorialHub() {
   const core = lessons.filter(isCore)
   const extra = lessons.filter((l) => !isCore(l))
   const coreDone = core.length > 0 && core.every((l) => progress[l.id]?.completed)
+  // Apsauga: jei DB dar neturi V3 pamoku (seed_key ne tut-v3-*), core butu tuscias
+  // ir VISOS pamokos liktu uzrakintos (coreDone=false) - net pirmoji. Tada gilesniu
+  // sarasas atrakinamas nuosekliai, kaip pagrindai.
+  const extraSequential = core.length === 0
   const allDone = lessons.length > 0 && lessons.every((l) => progress[l.id]?.completed)
 
   // Auto-start atėjus iš onboarding (?auto=1): pirma NEĮVEIKTA pamoka.
@@ -192,7 +196,7 @@ export function TutorialHub() {
                   </p>
                   <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>{t('onboarding.tutorial.extraGroupSub')}</p>
                 </div>
-                {extra.map((l) => lessonRow(l, coreDone))}
+                {extra.map((l, i) => lessonRow(l, extraSequential ? isLessonUnlocked(extra, progress, i) : coreDone))}
               </section>
             )}
 
