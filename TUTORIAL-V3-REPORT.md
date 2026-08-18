@@ -144,10 +144,17 @@
    `is_side_deck` eilučių), o ne žaidėjo prakeiksmus.
 2. ~~**Balso failų ĮKĖLIMAS į Supabase**~~ — **PADARYTA 2026-08-18:** 87 mp3
    (10,7 MB, 0 klaidų) įkelti į `card-audio/tutorial/` per `upload-tutorial-voice.bat`.
-3. **Coin toss / mulligan close-up L8** — dialogai rodomi VIRŠ scenų (overlay z=350 >
-   coin 150 / pick 133), bet `zoom` mulligano scenoje neveikia (scena — atskiras
-   portalas, ne board wrapper'yje). Konkrečios kortos paryškinimas mulligane —
-   sekantis žingsnis.
+3. ~~**Coin toss / mulligan close-up L8**~~ — **PADARYTA (commit637).** Overlay
+   kamera nebe pririšta prie lentos: konteineris parenkamas PAGAL TAIKINĮ
+   (`closest('[data-tut-zoomwrap], [data-tut-zoomroot]')`), o pilno ekrano scenos
+   (mulliganas, moneta, visi pick'ai) gavo `data-tut-zoomroot="scene"` (mastelis
+   ribojamas iki 1,55×, taikinys centruojamas aukščiau — apačioje patvirtinimo
+   mygtukas). Taikinių paieška ima PASKUTINĮ atitikmenį DOM'e, tad ta pati korta
+   scenoje laimi prieš tą pačią kortą rankoje po ja. L8: moneta gavo close-up
+   (`anchor: 'coin'`), mulligano žingsnis — close-up į brangiausią kortą + TIKRAS
+   veiksmas (`allow: [{kind:'mulligan'}]`, `complete: {on:'mulliganDone'}`).
+   **Tai buvo ir BLOKUOTOJAS:** gate neturėjo 'mulligan' veiksmo, tad L8 mulligano
+   patvirtinimas būtų buvęs neįmanomas.
 4. **`npm run build`** cloud sandbox'e nepraeina TIK dėl `next/font` (Google Fonts
    nepasiekiami be tinklo). `npx tsc --noEmit` — švarus; Vercel'yje šito nebūna.
 5. **Analitika**: step id pasikeitė (nauji žingsniai), tad senų pamokų funnel'is

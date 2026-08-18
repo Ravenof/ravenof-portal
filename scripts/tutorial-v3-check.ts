@@ -73,11 +73,15 @@ for (const lesson of tutorialLessonSeeds as LessonSeed[]) {
     if (st.complete.on === 'inspect' && st.complete.cardName) usedCards.add(st.complete.cardName)
 
     // 2) veiksmo žingsniai privalo leisti veiksmą
-    const needsAllow = st.complete.on === 'event' || st.complete.on === 'win'
+    const needsAllow = st.complete.on === 'event' || st.complete.on === 'win' || st.complete.on === 'mulliganDone'
     if (needsAllow && (st.allow ?? []).length === 0) err(`${lesson.seedKey}/${st.id}: complete=${st.complete.on}, bet allow tuscias — gate užrakintų pamoką`)
     // enemyTurnDone žingsnis be dialogo ir be enemyScript = tuščias laukimas
     if (st.complete.on === 'enemyTurnDone' && !(st.enemyScript ?? []).length) err(`${lesson.seedKey}/${st.id}: enemyTurnDone be enemyScript`)
 
+    // 4b) mulliganDone privalo leisti BŪTENT mulligan veiksmą
+    if (st.complete.on === 'mulliganDone' && !(st.allow ?? []).some((a) => a.kind === 'mulligan')) {
+      err(`${lesson.seedKey}/${st.id}: mulliganDone be allow:[{kind:'mulligan'}] — gate blokuotų patvirtinimą`)
+    }
     // 5) drag-path
     if (st.arrowStyle === 'drag-path' && (!st.arrowFrom || !st.arrowTo)) err(`${lesson.seedKey}/${st.id}: drag-path be arrowFrom/arrowTo`)
 

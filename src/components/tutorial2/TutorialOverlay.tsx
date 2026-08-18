@@ -67,9 +67,23 @@ export interface TutorialOverlayProps {
 
 type Rect = { x: number; y: number; w: number; h: number }
 
-function rectOf(sel: string | null | undefined, pad = 6): Rect | null {
+/**
+ * Taikinio elementas. Kai selektorių atitinka KELI elementai (pvz. ta pati korta
+ * rankoje IR atsivėrusioje mulligano scenoje), imamas PASKUTINIS — scenos DOM'e
+ * eina po lentos, tad „viršutinis" sluoksnis visada laimi.
+ */
+function elOf(sel: string | null | undefined): Element | null {
   if (!sel) return null
-  const el = document.querySelector(sel)
+  const all = document.querySelectorAll(sel)
+  for (let i = all.length - 1; i >= 0; i--) {
+    const r = all[i].getBoundingClientRect()
+    if (r.width > 0 || r.height > 0) return all[i]
+  }
+  return null
+}
+
+function rectOf(sel: string | null | undefined, pad = 6): Rect | null {
+  const el = elOf(sel)
   if (!el) return null
   const r = el.getBoundingClientRect()
   if (r.width === 0 && r.height === 0) return null
@@ -107,21 +121,47 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
   const raf = useRef(0)
   // taikomas transformas (scale, translate) — kad rect'us galėtume „atsukti" į bazę
   const cam = useRef({ s: 1, tx: 0, ty: 0 })
+  /** Šiuo metu transformuojamas konteineris (lenta arba scena) — kad pakeitus jį senasis būtų grąžintas. */
+  const camEl = useRef<HTMLElement | null>(null)
 
   const arrowStyle: ArrowStyle = p.arrowStyle ?? 'point'
 
   useEffect(() => {
     const reduced = isReducedMotionEnabled()
+    /**
+     * Kameros konteineris parenkamas PAGAL TAIKINĮ:
+     *   • lentos elementas  → `[data-tut-zoomwrap]` (visa kovos lenta)
+     *   • scenos elementas  → `[data-tut-zoomroot]` (mulliganas / monetos metimas /
+     *     kiti pilno ekrano pick'ai — jie gyvena UŽ lentos wrapper'io ribų, tad
+     *     anksčiau zoom'as juose tiesiog neveikdavo).
+     * Scenoms mastelis ribojamas švelniau (jose kortos jau didelės).
+     */
+    const wrapFor = (target: Element | null): HTMLElement | null => {
+      if (target) {
+        const own = target.closest('[data-tut-zoomwrap], [data-tut-zoomroot]') as HTMLElement | null
+        if (own) return own
+      }
+      return document.querySelector('[data-tut-zoomwrap]') as HTMLElement | null
+    }
     const wrap = () => document.querySelector('[data-tut-zoomwrap]') as HTMLElement | null
 
-    const applyCam = (s: number, tx: number, ty: number) => {
-      const el = wrap()
+    const resetEl = (el: HTMLElement | null) => {
+      if (!el) return
+      el.style.transform = 'none'
+      el.style.willChange = ''
+    }
+
+    const applyCamOn = (el: HTMLElement | null, s: number, tx: number, ty: number) => {
       if (!el) return
       cam.current = { s, tx, ty }
       el.style.transformOrigin = '0 0'
       el.style.willChange = s === 1 ? '' : 'transform'
       el.style.transition = 'transform 450ms cubic-bezier(.22,.9,.3,1)'
       el.style.transform = s === 1 && tx === 0 && ty === 0 ? 'none' : `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${s.toFixed(4)})`
+      if (camEl.current !== el) {
+        resetEl(camEl.current)      // pasikeitė konteineris (lenta ↔ scena) — senąjį grąžinam
+        camEl.current = el
+      }
     }
 
     const tick = () => {
@@ -144,20 +184,25 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       if (hit !== bubbleTopRef.current) { bubbleTopRef.current = hit; setBubbleTop(hit) }
 
       // ── close-up kamera ──
-      const el = wrap()
+      const zoomEl = elOf(p.zoomSelector)
+      const el = wrapFor(zoomEl)
       if (el) {
-        const zr = rectOf(p.zoomSelector, 0)
+        const scene = el.hasAttribute('data-tut-zoomroot')
+        const maxZoom = scene ? 1.55 : 2.6      // scenose kortos jau didelės
+        const zr = zoomEl ? rectOf(p.zoomSelector, 0) : null
         if (!zr || reduced) {
-          if (cam.current.s !== 1 || cam.current.tx !== 0 || cam.current.ty !== 0) applyCam(1, 0, 0)
+          if (cam.current.s !== 1 || cam.current.tx !== 0 || cam.current.ty !== 0) applyCamOn(el, 1, 0, 0)
+          if (camEl.current && camEl.current !== el) { resetEl(camEl.current); camEl.current = null }
         } else {
           const { s, tx, ty } = cam.current
           // ekrano rect → bazinė (netransformuota) geometrija
           const bx = (zr.x + zr.w / 2 - tx) / s
           const by = (zr.y + zr.h / 2 - ty) / s
           const bw = zr.w / s, bh = zr.h / s
-          const s2 = Math.max(1, Math.min(2.6, p.zoomLevel ?? autoZoom({ x: 0, y: 0, w: bw, h: bh }, W, H)))
+          const s2 = Math.max(1, Math.min(maxZoom, p.zoomLevel ?? autoZoom({ x: 0, y: 0, w: bw, h: bh }, W, H)))
           let t2x = W / 2 - bx * s2
-          let t2y = H * 0.42 - by * s2
+          // Scenose taikinys centruojamas AUKŠČIAU (apačioje — patvirtinimo mygtukas).
+          let t2y = (scene ? H * 0.38 : H * 0.42) - by * s2
           // neleidžiam atidengti tuščio krašto: wrapper'io bazinės ribos
           const wr = el.getBoundingClientRect()
           const baseL = (wr.left - tx) / s, baseT = (wr.top - ty) / s
@@ -166,7 +211,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
           const minTy = H - (baseT + baseH) * s2, maxTy = -baseT * s2
           if (minTx <= maxTx) t2x = Math.min(maxTx, Math.max(minTx, t2x))
           if (minTy <= maxTy) t2y = Math.min(maxTy, Math.max(minTy, t2y))
-          if (Math.abs(t2x - tx) > 0.5 || Math.abs(t2y - ty) > 0.5 || Math.abs(s2 - s) > 0.002) applyCam(s2, t2x, t2y)
+          if (Math.abs(t2x - tx) > 0.5 || Math.abs(t2y - ty) > 0.5 || Math.abs(s2 - s) > 0.002 || camEl.current !== el) applyCamOn(el, s2, t2x, t2y)
         }
       }
       raf.current = requestAnimationFrame(tick)
@@ -174,8 +219,9 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
     raf.current = requestAnimationFrame(tick)
     return () => {
       cancelAnimationFrame(raf.current)
-      const el = document.querySelector('[data-tut-zoomwrap]') as HTMLElement | null
-      if (el) { el.style.transform = 'none'; el.style.willChange = '' }
+      resetEl(camEl.current)
+      camEl.current = null
+      resetEl(wrap())
       cam.current = { s: 1, tx: 0, ty: 0 }
     }
   }, [p.highlightSelectors, p.arrowSelector, p.arrowFromSelector, p.zoomSelector, p.zoomLevel])
