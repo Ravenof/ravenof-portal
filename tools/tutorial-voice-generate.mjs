@@ -5,7 +5,9 @@
 //  1) npm run tutorial:voice          → sugeneruoja tutorial-voice.json
 //  2) node tools/tutorial-voice-generate.mjs            → sukuria mp3 į ./tutorial-voice/
 //     node tools/tutorial-voice-generate.mjs --upload   → dar ir įkelia į Supabase
-//     node tools/tutorial-voice-generate.mjs --only l1  → tik l1-* eilutės
+//     node tools/tutorial-voice-generate.mjs --only l1            → tik l1-* eilutės
+//     node tools/tutorial-voice-generate.mjs --only l1-s10,l4-s08 --force --upload
+//                                                       → perrašo TIK tas eilutes
 //     node tools/tutorial-voice-generate.mjs --force    → perrašo jau esamus failus
 //
 //  ĮKĖLIMAS BE GENERAVIMO (kai mp3 jau turi — pvz. sugeneruoti ranka ElevenLabs UI):
@@ -61,8 +63,10 @@ const { lines } = JSON.parse(fs.readFileSync(SRC, 'utf8'))
 const uploadOnly = has('--upload-only')
 const dirArg = val('--dir')
 if (dirArg) OUT = path.isAbsolute(dirArg) ? dirArg : path.join(ROOT, dirArg)
+// --only priima KELIS id/prefiksus per kablelį: --only l1-s10,l4-s08,l6
 const only = val('--only')
-const todo = only ? lines.filter((l) => l.voiceId.startsWith(only)) : lines
+const onlyList = only ? only.split(',').map((x) => x.trim()).filter(Boolean) : null
+const todo = onlyList ? lines.filter((l) => onlyList.some((o2) => l.voiceId === o2 || l.voiceId.startsWith(o2))) : lines
 fs.mkdirSync(OUT, { recursive: true })
 
 // Režisūros nustatymai pagal handoff §6

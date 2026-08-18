@@ -21,7 +21,7 @@
 | `l1-s07.mp3` | Šita maža kaladė — Žalos Modifikavimo Kortos. Likimo pirštai. Kol kas jų neliesk — supažindinsiu, kai ateis laikas kautis. |
 | `l1-s08.mp3` | Dabar įsidėmėk aukso taisyklę. Pirmą ėjimą gauni šimtą. Antrą — du šimtus. Trečią — tris. Ir taip iki tūkstančio. Bet klausyk atidžiai: ėjimo pabaigoje nepanaudotas auksas pradingsta. Neišleisi — prarasi. |
 | `l1-s09.mp3` | Pažvelk į kortą iš arčiau. Šis skaičius kampe — jos kaina auksu. |
-| `l1-s10.mp3` | Kardas — atakos jėga. Tiek žalos ji kirs priešui. |
+| `l1-s10.mp3` | Žvaigždė — atakos jėga. Tiek žalos ji kirs priešui. |
 | `l1-s11.mp3` | Širdis — gyvybės. Tiek žalos korta atlaikys, kol žus. |
 | `l1-s12.mp3` | O tekstas apačioje — jos galia. Kortos tekstas Ravenof'e visada svarbesnis už skaičius. Visada. |
 | `l1-s13.mp3` | Nori apžiūrėti kortą? Palaikyk ant jos pirštą — ji priartės. Atleisi pirštą — dings. Paprasta. Pabandyk dabar. |
@@ -39,8 +39,8 @@
 |---|---|
 | `l2-s01.mp3` | Grįžai. Gerai. Šiandien išmoksi svarbiausio — kaip liejamas kraujas. |
 | `l2-s02.mp3` | Ataka paprasta: paimk savo padarą pirštu ir tempk ant priešo. Rodyklė parodys taikinį. Pabandyk — pulk silpnąjį. |
-| `l2-s03.mp3` | Švarus kirtis. Priešas žuvo nespėjęs atsakyti — nes tavo smūgis jį pribaigė. |
-| `l2-s04.mp3` | Bet dabar klausyk atidžiai, nes čia žūsta naujokai. Kai puoli gyvą padarą — jis kerta atgal. Tu gauni jo atakos žalą. Kiekviena ataka yra mainai. |
+| `l2-s03.mp3` | Priešas krito. Bet pažvelk į savo karį — jis irgi kruvinas. Ravenof'e smūgiai kertami vienu metu: net mirdamas gynėjas spėja atsakyti. Vienintelis, kuris neatsako — sušaldytas. |
+| `l2-s04.mp3` | Bet dabar klausyk atidžiai, nes čia žūsta naujokai. Kai puoli padarą — jis kerta atgal. Tu gauni jo atakos žalą, nesvarbu, ar jis išgyvena. Kiekviena ataka yra mainai. |
 | `l2-s05.mp3` | Pažvelk: jo ataka trys, gyvybės trys. Tavo — trys ir keturi. Pulsi — jis žus, bet tau liks viena gyvybė. Verta? Dažnai — taip. Bet visada skaičiuok. |
 | `l2-s06.mp3` | Pulk. Pajusk mainus savo kailiu. |
 | `l2-s07.mp3` | O dabar... Žalos Modifikavimo Kortos. Likimas. Kiekvieną kartą, kai kertama žala, traukiama viena šių kortų. |
@@ -72,13 +72,13 @@
 | Failas | Tekstas (kopijuoti į ElevenLabs) |
 |---|---|
 | `l4-s01.mp3` | Šiandien ypatinga diena. Šiandien tu pašauksi ČEMPIONĄ. |
-| `l4-s02.mp3` | Čempionas — ne eilinis karys. Jis reikalauja aukos: dvi kortos iš rankos mainais už jo atėjimą. Rinkis atsargiai... arba atšauk, jei suabejosi — mygtukas apačioje. |
+| `l4-s02.mp3` | Čempionas — ne eilinis karys. Jis reikalauja aukos: dvi kortos iš rankos arba vienas tavo padaras nuo lentos. Rinkis atsargiai... arba atšauk, jei suabejosi — mygtukas apačioje. |
 | `l4-s03.mp3` | Paaukok dvi kortas. Tegul ateina. |
 | `l4-s04.mp3` | Štai jis. Pažvelk į žvaigždes po juo — tai fazės. Pirma fazė — tik pradžia. |
-| `l4-s05.mp3` | Už auksą čempionas auga: trys šimtai — antra fazė, dar daugiau — trečia. Kiekviena fazė atrakina naują galią. Spausk ant jo ir pakelk į antrą fazę. |
+| `l4-s05.mp3` | Čempionas auga ne pats. Antra fazė — atskira korta iš rankos: sumoki jos auksą ir vėl paaukoji. Bet įsidėmėk: pirmoji fazė privalo stovėti lentoje, kitaip antroji neateis. Trečioji — lygiai taip pat. Sužaisk antrąją fazę. |
 | `l4-s06.mp3` | Dabar jo galios. Pirmas įgūdis atrakintas nuo pradžių. Antras — nuo antros fazės. Trečias — tik pilnai užaugus. Užrakintos galios pilkos — jų laikas dar ateis. |
 | `l4-s07.mp3` | Kai kurios galios kainuoja aukso. Kai kurios reikalauja taikinio — korta švytės, kol pasirinksi. Panaudok pirmąją galią dabar. |
-| `l4-s08.mp3` | Įsimink ir tai: prireikus čempioną gali nuleisti į žemesnę fazę — kartais silpnesnė forma turi reikalingesnę galią. Bet tai jau meistrų žaidimas. |
+| `l4-s08.mp3` | Ir dar viena gudrybė. Ištraukei trečią fazę, o čempiono lentoje dar nėra? Rankoje tą kortą gali iškeisti į žemesnę tos pačios giminės fazę — ji ateina iš kaladės ar kapinyno, kad išvis galėtum jį pašaukti. Bet įsidėmėk: jau stovinčio lentoje čempiono nuleisti žemyn negali. Fazės eina tik aukštyn. |
 | `l4-s09.mp3` | Čempionas krenta — kova nesibaigia, bet jo netektis skaudi. Saugok jį. Užbaik priešą. |
 
 ## 5. Artefaktai ir laukas
@@ -102,7 +102,7 @@
 | `l6-s02.mp3` | Šaltis. Užšaldytas padaras neatsako į smūgius. Pulk jį — jis tylės. Ledo magai tuo ir gyvena. |
 | `sys-good-3.mp3` | Gerai, mokiny. |
 | `l6-s03.mp3` | Apsvaigimas. Apsvaigintas padaras praleidžia savo ėjimą — nei puola, nei ginasi protingai. Nukalk jo sargą, kol miega. |
-| `l6-s04.mp3` | Nuodai ir ugnis. Ėda gyvybes kas ėjimą, po truputį. Lėta mirtis — bet mirtis. |
+| `l6-s04.mp3` | Nuodai ir ugnis ėda gyvybes kas ėjimą, po truputį. Bet nuodai kerta dukart: apnuodytas padaras dar ir puola nepalankiai — jam traukiamos dvi likimo kortos, o galioja blogesnė. Lėta mirtis — bet mirtis. |
 | `l6-s06.mp3` | Skydas sugeria vieną smūgį pilnai. Sėlinimas slepia padarą nuo taikymosi, kol jis pats nesmogia. |
 | `l6-s07.mp3` | Ir provokacija. Kol lentoje stovi provokuojantis padaras — privalai pulti jį pirmiausia. Jis — siena. Statyk sienas savo silpniems, griauk priešo sienas pirmas. |
 | `l6-s05.mp3` | Nutildymas. Baisiausias iš visų. Nuima nuo kortos viską — tekstą, buffus, galias. Lieka tik kūnas ir skaičiai. Prieš galingą efektą — nutildymas. |

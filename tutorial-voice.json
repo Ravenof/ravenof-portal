@@ -66,7 +66,7 @@
     {
       "voiceId": "l1-s10",
       "file": "l1-s10.mp3",
-      "text": "Kardas — atakos jėga. Tiek žalos ji kirs priešui.",
+      "text": "Žvaigždė — atakos jėga. Tiek žalos ji kirs priešui.",
       "lesson": "1. Mūšio laukas",
       "step": "card-atk"
     },
@@ -157,14 +157,14 @@
     {
       "voiceId": "l2-s03",
       "file": "l2-s03.mp3",
-      "text": "Švarus kirtis. Priešas žuvo nespėjęs atsakyti — nes tavo smūgis jį pribaigė.",
+      "text": "Priešas krito. Bet pažvelk į savo karį — jis irgi kruvinas. Ravenof'e smūgiai kertami vienu metu: net mirdamas gynėjas spėja atsakyti. Vienintelis, kuris neatsako — sušaldytas.",
       "lesson": "2. Ataka ir gynyba",
       "step": "clean-kill"
     },
     {
       "voiceId": "l2-s04",
       "file": "l2-s04.mp3",
-      "text": "Bet dabar klausyk atidžiai, nes čia žūsta naujokai. Kai puoli gyvą padarą — jis kerta atgal. Tu gauni jo atakos žalą. Kiekviena ataka yra mainai.",
+      "text": "Bet dabar klausyk atidžiai, nes čia žūsta naujokai. Kai puoli padarą — jis kerta atgal. Tu gauni jo atakos žalą, nesvarbu, ar jis išgyvena. Kiekviena ataka yra mainai.",
       "lesson": "2. Ataka ir gynyba",
       "step": "retaliation-rule"
     },
@@ -318,7 +318,7 @@
     {
       "voiceId": "l4-s02",
       "file": "l4-s02.mp3",
-      "text": "Čempionas — ne eilinis karys. Jis reikalauja aukos: dvi kortos iš rankos mainais už jo atėjimą. Rinkis atsargiai... arba atšauk, jei suabejosi — mygtukas apačioje.",
+      "text": "Čempionas — ne eilinis karys. Jis reikalauja aukos: dvi kortos iš rankos arba vienas tavo padaras nuo lentos. Rinkis atsargiai... arba atšauk, jei suabejosi — mygtukas apačioje.",
       "lesson": "4. Čempionas",
       "step": "tribute-rule"
     },
@@ -339,7 +339,7 @@
     {
       "voiceId": "l4-s05",
       "file": "l4-s05.mp3",
-      "text": "Už auksą čempionas auga: trys šimtai — antra fazė, dar daugiau — trečia. Kiekviena fazė atrakina naują galią. Spausk ant jo ir pakelk į antrą fazę.",
+      "text": "Čempionas auga ne pats. Antra fazė — atskira korta iš rankos: sumoki jos auksą ir vėl paaukoji. Bet įsidėmėk: pirmoji fazė privalo stovėti lentoje, kitaip antroji neateis. Trečioji — lygiai taip pat. Sužaisk antrąją fazę.",
       "lesson": "4. Čempionas",
       "step": "upgrade"
     },
@@ -360,7 +360,7 @@
     {
       "voiceId": "l4-s08",
       "file": "l4-s08.mp3",
-      "text": "Įsimink ir tai: prireikus čempioną gali nuleisti į žemesnę fazę — kartais silpnesnė forma turi reikalingesnę galią. Bet tai jau meistrų žaidimas.",
+      "text": "Ir dar viena gudrybė. Ištraukei trečią fazę, o čempiono lentoje dar nėra? Rankoje tą kortą gali iškeisti į žemesnę tos pačios giminės fazę — ji ateina iš kaladės ar kapinyno, kad išvis galėtum jį pašaukti. Bet įsidėmėk: jau stovinčio lentoje čempiono nuleisti žemyn negali. Fazės eina tik aukštyn.",
       "lesson": "4. Čempionas",
       "step": "phase-down"
     },
@@ -458,7 +458,7 @@
     {
       "voiceId": "l6-s04",
       "file": "l6-s04.mp3",
-      "text": "Nuodai ir ugnis. Ėda gyvybes kas ėjimą, po truputį. Lėta mirtis — bet mirtis.",
+      "text": "Nuodai ir ugnis ėda gyvybes kas ėjimą, po truputį. Bet nuodai kerta dukart: apnuodytas padaras dar ir puola nepalankiai — jam traukiamos dvi likimo kortos, o galioja blogesnė. Lėta mirtis — bet mirtis.",
       "lesson": "6. Būsenos ir raktažodžiai",
       "step": "poison"
     },

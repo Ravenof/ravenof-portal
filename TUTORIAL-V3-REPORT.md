@@ -162,6 +162,35 @@
 
 ---
 
+## Taisyklių netikslumai, ištaisyti po gyvo perėjimo (commit638)
+
+Žaidimo autoriaus patikra rado 4 klaidingus teiginius scenarijuje (§7) — visi
+patvirtinti prieš variklio kodą ir ištaisyti:
+
+| Kur | Buvo (KLAIDA) | Yra (tiesa pagal `engine.ts`) |
+|---|---|---|
+| `l1-s10` | „Kardas — atakos jėga" | „**Žvaigždė** — atakos jėga" (⚔ → ★ ir taisyklių puslapyje: `CardAnatomyBlock`, `CardTypeGrid`) |
+| `l2-s03` | „Priešas žuvo **nespėjęs atsakyti**" | Žala kertama VIENU metu — `defRetaliates = !frozen && defAtk > 0`; mirštantis padaras **atsako**. Vienintelis, kuris ne — sušaldytas (+ close-up į savo sužeistą padarą) |
+| `l2-s04` | „Kai puoli **gyvą** padarą…" | „Kai puoli padarą — jis kerta atgal, **nesvarbu, ar išgyvena**" |
+| `l4-s02` | auka = 2 kortos iš rankos | auka = **2 kortos iš rankos ARBA 1 padaras nuo lentos** (`doTribute`) |
+| `l4-s05` | „Spausk ant jo ir pakelk į antrą fazę" | Fazė = **atskira korta iš rankos**: auksas + auka, ir **1 fazė privalo stovėti lentoje** (`cardPhase === existing.phase + 1`) |
+| `l4-s08` | „čempioną gali **NULEISTI** į žemesnę fazę" | `swapChampionPhase` veikia **TIK rankoje** (aukštesnę kortą keičia į žemesnę iš kaladės/kapinyno, kad išvis galėtum pašaukti). Lentoje stovinčio nuleisti **negalima** — fazės eina tik aukštyn |
+| `l6-s04` | nuodai = tik žala kas ėjimą | nuodai = žala **IR nepalanki ataka** (`unfav = poisoned` → traukiamos 2 ŽMK, galioja blogesnė); ugnis — tik žala |
+
+**PERRAŠYTI ŠIUOS 7 mp3** (tekstas pasikeitė; kiti 80 galioja):
+`l1-s10` `l2-s03` `l2-s04` `l4-s02` `l4-s05` `l4-s08` `l6-s04`
+```
+node tools/tutorial-voice-generate.mjs --only l1-s10,l2-s03,l2-s04,l4-s02,l4-s05,l4-s08,l6-s04 --force --upload
+```
+(`--only` nuo commit638 priima sąrašą per kablelį.)
+
+**Atviras klausimas (NEKEISTA):** `src/components/rules/ChampionRulesBlock.tsx`
+teigia, kad 1 fazėje „visi 3 gebėjimai iš karto pasiekiami", o variklis
+(`championSkills`) atrakina juos pagal fazę (`ch.phase >= i + 1`) — kaip ir
+mokymai. Reikia tavo sprendimo, kuri versija kanoninė.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

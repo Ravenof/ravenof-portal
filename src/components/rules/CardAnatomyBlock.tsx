@@ -19,7 +19,7 @@ const ANATOMY_ITEMS = [
   { label: 'Kortų tipas',      desc: 'Ikonėlė - Padaras, Burtas, Artefaktas ir kt.',       x: 16,   y: 26.5 },
   { label: 'Frakcija',         desc: 'Kuriai frakcijai priklauso korta.',                  x: 16,   y: 12   },
   { label: 'Efekto tekstas',   desc: 'Kortos gebėjimai. Raktažodžiai paryškintu šriftu.',  x: 50,   y: 82   },
-  { label: 'ATK (⚔)',          desc: 'Puolimo taškai - žalos kiekis atakuojant.',          x: 16,   y: 54   },
+  { label: 'ATK (★)',          desc: 'Puolimo taškai - žalos kiekis atakuojant.',          x: 16,   y: 54   },
   { label: 'HP (♥)',           desc: 'Gyvybės taškai - kiek žalos atlaikoma.',             x: 85.5, y: 56   },
   { label: 'Retumas',          desc: 'Nurodo, kiek kopijų leidžiama turėti kaladėje.',     x: 86,   y: 72   },
 ]
