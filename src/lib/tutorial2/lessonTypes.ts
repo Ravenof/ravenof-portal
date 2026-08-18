@@ -13,7 +13,6 @@ export type TutorialAnchor =
   | 'discard-you' | 'discard-ai' | 'units-you' | 'units-ai'
   | 'zmk' | 'curses-you' | 'artifacts-you' | 'reactions-you' | 'field'
   | 'end-turn' | 'discard-gold' | 'enemy-area' | 'champion-you' | 'champion-ai' | 'board'
-  | 'coin' | 'pick-scene'
 
 /** A thing on screen the director can target for highlight / arrow / zoom. */
 export type HighlightTarget =
@@ -48,7 +47,7 @@ export type AllowedActionKind =
   | 'play-unit' | 'play-spell' | 'play-artifact' | 'play-any'
   | 'attack-unit' | 'attack-face' | 'attack-any'
   | 'use-champion' | 'upgrade-champion'
-  | 'discard-gold' | 'end-turn' | 'mulligan' | 'next' | 'none'
+  | 'discard-gold' | 'end-turn' | 'next' | 'none'
 
 export interface AllowedAction {
   kind: AllowedActionKind
@@ -67,7 +66,6 @@ export type CompletionTrigger =
   | { on: 'win' }                                             // enemy champion/HP at 0
   | { on: 'inspect'; cardName?: string }                      // V3: žaidėjas palaikė pirštą ant kortos (hold-to-view)
   | { on: 'voiceDone' }                                       // V3: kai baigia groti paskutinė balso eilutė
-  | { on: 'mulliganDone' }                                    // V3 (L8): žaidėjas užbaigė mulliganą (būsena, ne įvykis)
 
 /** One scripted enemy (or forced) action. */
 export type ScriptedAction =

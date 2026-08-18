@@ -37,7 +37,6 @@ const ANCHOR_TUT: Record<string, string> = {
   'discard-you': 'discard', 'discard-ai': 'ai-area', 'units-you': 'units-you', 'units-ai': 'units-ai',
   zmk: 'zmk', 'curses-you': 'curses', 'artifacts-you': 'artifacts', 'reactions-you': 'reactions', field: 'field',
   'end-turn': 'end-turn', 'discard-gold': 'discard-gold', 'enemy-area': 'ai-area', board: 'units-you',
-  coin: 'coin', 'pick-scene': 'pick-scene',
 }
 
 /** Pauzė po balso, kol pereinam prie kitos eilutės (kad kvėptų). */
@@ -269,9 +268,6 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     if (g.winner === 'you' && (c.on === 'win')) { advanceStep(); return }
     if (c.on === 'win' && fresh.some((e) => e.t === 'win' && e.side === 'you')) { advanceStep(); return }
     if (c.on === 'enemyTurnDone' && enemyDone.current && g.active === 'you') { advanceStep(); return }
-    // Mulliganas: tikrinam BŪSENĄ, ne įvykį — jei žaidėjas spėjo patvirtinti dar
-    // per ankstesnį žingsnį, įvykis jau būtų praėjęs ir pamoka įstrigtų.
-    if (c.on === 'mulliganDone') { if (!g.pendingMulligan?.you) advanceStep(); return }
     if (c.on === 'event') {
       const hit = fresh.some((e) => e.t === c.eventType && (!c.side || e.side === c.side) && (!c.cardName || e.cardName === c.cardName))
       if (hit) advanceStep()
@@ -339,7 +335,6 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       } else if (a.t === 'champ' && k === 'use-champion') return true
       else if (a.t === 'endTurn' && k === 'end-turn') return true
       else if (a.t === 'discardForGold' && k === 'discard-gold') return true
-      else if (a.t === 'mulligan' && k === 'mulligan') return true
     }
     return false
   }, [])
@@ -433,7 +428,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       return `[data-tut="${ANCHOR_TUT[tg.anchor] ?? tg.anchor}"]`
     }
     if (tg.kind === 'button') return `[data-tut="${tg.id}"]`
-    if (tg.kind === 'handCard') return tg.cardName ? `[data-hand-card="${tg.cardName}"], [data-pick-card="${tg.cardName}"]` : '[data-tut="hand"]'
+    if (tg.kind === 'handCard') return tg.cardName ? `[data-hand-card="${tg.cardName}"]` : '[data-tut="hand"]'
     if (tg.kind === 'unit') {
       const g = gameRef.current; if (!g) return null
       const u = P(g, tg.side).units.find((x) => (tg.cardName ? x?.card.name === tg.cardName : !!x))
