@@ -5,7 +5,7 @@
 > Speaker boost ON, Speed 0.95). Failai: mp3 44.1 kHz, mono, ~96–128 kbps, −16 LUFS.
 > Įkėlimas: Supabase `card-audio` → aplankas `tutorial/`.
 
-**Iš viso eilučių: 87**
+**Iš viso eilučių: 90**
 
 
 ## 1. Mūšio laukas
@@ -107,6 +107,9 @@
 | `l6-s07.mp3` | Ir provokacija. Kol lentoje stovi provokuojantis padaras — privalai pulti jį pirmiausia. Jis — siena. Statyk sienas savo silpniems, griauk priešo sienas pirmas. |
 | `l6-s05.mp3` | Nutildymas. Baisiausias iš visų. Nuima nuo kortos viską — tekstą, buffus, galias. Lieka tik kūnas ir skaičiai. Prieš galingą efektą — nutildymas. |
 | `l6-s08.mp3` | Sprintas leidžia pulti tą patį ėjimą, kai iškviestas — jokios iškvietimo ligos. Greitis kainuoja, bet stebina. |
+| `l6-s09.mp3` | Ir šviesioji pusė — palaiminimas. Kitas to padaro smūgis traukiamas su pranašumu: likimas ištraukia dvi kortas, o galioja geresnė. Vienkartinis, bet dažnai lemiamas. Pulk juo ir pažiūrėk pats. |
+| `l6-s10.mp3` | Kovos šūksnis. Toks padaras smogia dar nespėjęs įsitvirtinti: efektas suveikia tą akimirką, kai jis iškviečiamas iš rankos. Vieną kartą — bet iškart, ir priešas nespėja pasiruošti. Iškviesk jį ir nurodyk taikinį. |
+| `l6-s11.mp3` | O paskutinis noras — priešingybė: jis suveikia tada, kai padaras žūsta. Todėl tokį padarą nužudyti kartais brangiau, nei palikti gyvą. Pulk juo stipresnį priešą ir pažiūrėk, ką jis tau paliks krisdamas. |
 
 ## 7. Demonų prakeiksmai
 

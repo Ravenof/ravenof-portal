@@ -17,7 +17,7 @@ import { tutorialLessonSeeds, CORE_LESSON_KEYS } from '@/data/tutorialLessons/le
 import type { LessonSeed, LessonStep, HighlightTarget } from '@/lib/tutorial2/lessonTypes'
 
 const ROOT = process.cwd()
-const MIGR = ['20260717_tutorial_cards.sql', '20260871_tutorial_v3.sql']
+const MIGR = ['20260717_tutorial_cards.sql', '20260871_tutorial_v3.sql', '20260872_tutorial_enemy_cards_fix.sql', '20260873_tutorial_lastwish_card.sql']
   .map((f) => fs.readFileSync(path.join(ROOT, 'supabase', 'migrations', f), 'utf8')).join('\n')
 
 let errors = 0

@@ -358,6 +358,25 @@ kurią kortą kalbama.
 
 ---
 
+## commit649 — L6 papildyta trimis trūkusiais raktažodžiais
+
+Autoriaus pastaba: „Būsenos ir raktažodžiai" nepaaiškino **Palaiminto**, **Kovos
+šūksnio** ir **Paskutinio noro**. Pridėti trys žingsniai (L6 dabar 99 žingsniai kurse):
+
+| Žingsnis | Kaip parodoma |
+|---|---|
+| `blessed` (l6-s09) | `apply` įjungia ŽMK (be jų pranašumas nematomas!), pastato šviežią padarą ir uždeda `blessed`; žaidėjas puola → mato DVIEJŲ likimo kortų traukimą ir kad galioja geresnė |
+| `battlecry` (l6-s10) | į ranką įdedamas `Kovos šūksnio karys` (TUT-110) → žaidėjas iškviečia ir pats nurodo taikinį |
+| `lastwish` (l6-s11) | **nauja korta** `TUT-114 Ištikimas skydnešys` (2/2, „Paskutinis noras: patrauk kortą") pastatoma prieš `Akmeninį golemą`; žaidėjas puola, skydnešys žūsta → matomas kortos traukimas. `complete: {on:'event', eventType:'lastwish'}` |
+
+* **Migracija `20260873_tutorial_lastwish_card.sql`** (PALEISTI) — TUT rinkinyje
+  nebuvo NĖ VIENOS kortos su `onDeath`, tad Paskutinio noro nebuvo kaip parodyti.
+* `tutorial:check` dabar tikrina ir 20260872 + 20260873 migracijas.
+* **3 nauji balso failai:** `l6-s09`, `l6-s10`, `l6-s11` (tekstai — `NAUJI-3-BALSO-EILUTES.md`).
+  Senų 87 keisti nereikia.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

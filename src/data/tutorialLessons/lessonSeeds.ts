@@ -595,6 +595,40 @@ const L6_STEPS: LessonStep[] = [
     arrowFrom: { kind: 'unit', side: 'you', cardName: 'Vėjo raitelis' }, arrowTo: { kind: 'anchor', anchor: 'units-ai' }, arrowStyle: 'drag-path',
     allow: [{ kind: 'attack-any' }],
     complete: { on: 'event', eventType: 'attack', side: 'you' } },
+
+  // ── PALAIMINIMAS (pranašumas kitam smūgiui) ──
+  { id: 'blessed', objective: 'Palaiminimas: kitas smūgis su pranašumu',
+    // ŽMK įjungiam BŪTENT čia — pranašumas matomas tik traukiant tikras korteles.
+    apply: { enableZmk: true, goldYou: 1000, addBoardYou: ['Kaimo gynėjas'], addBoardAi: ['Plėšrus žvėris'],
+             setStatus: [{ side: 'you', cardName: 'Kaimo gynėjas', status: 'blessed' }] },
+    dialogue: [say('l6-s09', 'PALAIMINIMAS: kitas to padaro smūgis traukiamas su PRANAŠUMU — dvi likimo kortos, galioja geresnė.',
+      'Ir šviesioji pusė — palaiminimas. Kitas to padaro smūgis traukiamas su pranašumu: likimas ištraukia dvi kortas, o galioja geresnė. Vienkartinis, bet dažnai lemiamas. Pulk juo ir pažiūrėk pats.')],
+    highlight: [{ kind: 'unit', side: 'you', cardName: 'Kaimo gynėjas' }],
+    arrowFrom: { kind: 'unit', side: 'you', cardName: 'Kaimo gynėjas' }, arrowTo: { kind: 'unit', side: 'ai', cardName: 'Plėšrus žvėris' }, arrowStyle: 'drag-path',
+    allow: [{ kind: 'attack-any' }],
+    complete: { on: 'event', eventType: 'attack', side: 'you' } },
+
+  // ── KOVOS ŠŪKSNIS ──
+  { id: 'battlecry', objective: 'Kovos šūksnis: efektas iškviečiant',
+    apply: { addHandYou: ['Kovos šūksnio karys'], goldYou: 1000 },
+    dialogue: [say('l6-s10', 'KOVOS ŠŪKSNIS suveikia TĄ AKIMIRKĄ, kai padaras iškviečiamas. Vieną kartą — bet iškart.',
+      'Kovos šūksnis. Toks padaras smogia dar nespėjęs įsitvirtinti: efektas suveikia tą akimirką, kai jis iškviečiamas iš rankos. Vieną kartą — bet iškart, ir priešas nespėja pasiruošti. Iškviesk jį ir nurodyk taikinį.')],
+    highlight: [{ kind: 'handCard', cardName: 'Kovos šūksnio karys' }],
+    arrowFrom: { kind: 'handCard', cardName: 'Kovos šūksnio karys' }, arrowTo: { kind: 'anchor', anchor: 'units-you' }, arrowStyle: 'drag-path',
+    allow: [{ kind: 'play-unit', cardName: 'Kovos šūksnio karys' }],
+    complete: { on: 'event', eventType: 'play', side: 'you', cardName: 'Kovos šūksnio karys' } },
+
+  // ── PASKUTINIS NORAS ──
+  { id: 'lastwish', objective: 'Paskutinis noras: efektas žūstant',
+    apply: { addBoardYou: ['Ištikimas skydnešys'], addBoardAi: ['Akmeninis golemas'] },
+    dialogue: [say('l6-s11', 'PASKUTINIS NORAS suveikia ŽŪSTANT. Pulk stipresnį — ir pamatysi, ką jis palieka.',
+      'O paskutinis noras — priešingybė: jis suveikia tada, kai padaras žūsta. Todėl tokį padarą nužudyti kartais brangiau, nei palikti gyvą. Pulk juo stipresnį priešą ir pažiūrėk, ką jis tau paliks krisdamas.')],
+    highlight: [{ kind: 'unit', side: 'you', cardName: 'Ištikimas skydnešys' }],
+    arrowFrom: { kind: 'unit', side: 'you', cardName: 'Ištikimas skydnešys' }, arrowTo: { kind: 'unit', side: 'ai', cardName: 'Akmeninis golemas' }, arrowStyle: 'drag-path',
+    allow: [{ kind: 'attack-any' }],
+    wrongHint: 'Pulk paryškintu skydnešiu — jis turi žūti, kad pamatytum Paskutinį norą.',
+    complete: { on: 'event', eventType: 'lastwish', side: 'you' } },
+
   { id: 'outro',
     dialogue: [say('sys-good-3', 'Ženklus skaityti išmokai. Toliau — tamsioji pusė.', 'Gerai, mokiny.')],
     complete: { on: 'next' } },
@@ -612,7 +646,7 @@ const level6: LessonSeed = {
       disableZmk: true,
       player: { gold: 1000, board: ['Geležinis sargas'],
                 hand: ['Ledo gniaužtai', 'Trenksmas', 'Nuodų dūmai', 'Liepsnos antspaudas', 'Tylos antspaudas'],
-                deck: ['Naujokas kareivis', 'Kaimo gynėjas', 'Sienos lankininkas'] },
+                deck: ['Naujokas kareivis', 'Kaimo gynėjas', 'Ištikimas skydnešys', 'Sienos lankininkas'] },
       enemy: { hp: 40, board: ['Akmeninis golemas'], deck: ['Urvų padaras', 'Goblinų skautas', 'Plėšrus žvėris'] },
     },
     steps: L6_STEPS,
