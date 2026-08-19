@@ -45,3 +45,6 @@ asffa/
 
 # Tutorial V3 balso failai (generuojami lokaliai, keliami į Supabase)
 /tutorial-voice/
+
+# Tutorial V3: perrasomu balso failu partija (ikelus i Supabase - nebereikalinga)
+/tutorial-voice-v2/

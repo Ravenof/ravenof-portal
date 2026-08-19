@@ -475,6 +475,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
             confirmYes: t('onboarding.tutorial.skipConfirmYes'),
             confirmNo: t('onboarding.tutorial.skipConfirmNo'),
           }}
+          portraitUrl={cfg.guidePortrait ?? undefined}
           objective={objective}
           dialogue={curDialogue}
           highlightSelectors={highlightSelectors}

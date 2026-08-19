@@ -191,6 +191,27 @@ taisyklės, kad fazė keliama ATSKIRA korta iš rankos (auksas + auka, ankstesn�
 privalo stovėti lauke) ir kad fazės eina TIK aukštyn (keitimas į žemesnę — tik rankoje).
 
 Perrašomų balso eilučių tekstai su failų vardais: `PERRASYTI-7-BALSO-EILUTES.md`.
+**7 nauji mp3 sugeneruoti (2026-08-19)** ir padėti į `tutorial-voice-v2/` (gitignore).
+Įkelti: `node tools/tutorial-voice-generate.mjs --upload-only --dir tutorial-voice-v2`.
+
+## Korvo portretas ir kameros virpėjimas (commit640)
+
+* **Portretas** — emoji 🐦‍⬛ pakeistas TIKRU Senojo Korvo atvaizdu
+  (`public/tutorial/korvas.webp`, 512², + `@2x` 1024²). Rodomas BE apvalaus rėmo:
+  kvadratas ištirpsta radialine `mask-image` kauke, dydis `clamp(84px, 11vw, 132px)`
+  (buvo 46 px), portretas kyla VIRŠ burbulo (neigiama `margin-top`), o kai burbulas
+  perkeliamas į viršų (`.rvn-tut-bubble-top`) — nusileidžia žemyn. Perrašoma per
+  `LessonConfig.guidePortrait`.
+* **Kamera nebevirpa ir nešokinėja.** Priežastis: kadrų cikle transformas buvo
+  invertuojamas TIKSLINE matrica (`cam.current`), o `getBoundingClientRect()` per
+  450 ms perėjimą grąžina TARPINĘ būseną → „bazė" kas kadrą kitokia → naujas
+  tikslas → begalinė vytynių kilpa (chase loop). Dabar:
+  1. matrica skaitoma iš `getComputedStyle(el).transform` (**tikra nupiešta**, ne tikslinė);
+  2. taikinys skaičiuojamas konteinerio **vietinėje** sistemoje (`(T − C) / s`), tad
+     protėvių drebėjimas (`shakeBoard`, `rvn-field-quake`) kameros nebeveikia;
+  3. histerezė — perskaičiuojam tik pajudėjus >3 px arba pasikeitus masteliui;
+  4. `translate3d` + `backface-visibility` (GPU sluoksnis, be sub-pikselinio virpesio);
+  5. overlay state atnaujinamas tik realiai pasikeitus rect'ams (buvo `setState` kas kadrą).
 
 ---
 

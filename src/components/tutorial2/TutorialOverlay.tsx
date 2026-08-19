@@ -45,6 +45,8 @@ export interface OverlayLabels {
 
 export interface TutorialOverlayProps {
   labels: OverlayLabels
+  /** Vedlio portretas (be rėmo). Numatytas — Senasis Korvas. */
+  portraitUrl?: string | null
   objective?: string | null
   dialogue?: OverlayDialogue | null
   highlightSelectors: string[]
@@ -66,6 +68,16 @@ export interface TutorialOverlayProps {
 }
 
 type Rect = { x: number; y: number; w: number; h: number }
+
+/** Šiuo metu NUPIEŠTA elemento transformacija (įskaitant vykstančią CSS animaciją). */
+function readMatrix(el: HTMLElement): { s: number; tx: number; ty: number } {
+  try {
+    const tr = getComputedStyle(el).transform
+    if (!tr || tr === 'none') return { s: 1, tx: 0, ty: 0 }
+    const M = new DOMMatrixReadOnly(tr)
+    return { s: M.a || 1, tx: M.e, ty: M.f }
+  } catch { return { s: 1, tx: 0, ty: 0 } }
+}
 
 /**
  * Taikinio elementas. Kai selektorių atitinka KELI elementai (pvz. ta pati korta
@@ -93,6 +105,11 @@ function rectOf(sel: string | null | undefined, pad = 6): Rect | null {
 /** Apatinės dialogo juostos aukštis (burbulas + tarpas) — perdengimo detekcijai. */
 const BUBBLE_ZONE_H = 168
 
+const sameRect = (a: Rect | null, b: Rect | null) =>
+  a === b || (!!a && !!b && Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5)
+
+const sameRects = (a: Rect[], b: Rect[]) => a.length === b.length && a.every((r, i) => sameRect(r, b[i]))
+
 function readRects(selectors: string[]): Rect[] {
   const out: Rect[] = []
   for (const sel of selectors) { const r = rectOf(sel); if (r) out.push(r) }
@@ -119,10 +136,16 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
   const [bubbleTop, setBubbleTop] = useState(false)
   const bubbleTopRef = useRef(false)
   const raf = useRef(0)
+  const prevHs = useRef<Rect[]>([])
+  const prevArrow = useRef<Rect | null>(null)
+  const prevFrom = useRef<Rect | null>(null)
+  const prevVp = useRef({ w: 0, h: 0 })
   // taikomas transformas (scale, translate) — kad rect'us galėtume „atsukti" į bazę
   const cam = useRef({ s: 1, tx: 0, ty: 0 })
   /** Šiuo metu transformuojamas konteineris (lenta arba scena) — kad pakeitus jį senasis būtų grąžintas. */
   const camEl = useRef<HTMLElement | null>(null)
+  /** Paskutinis kameros taikymas konteinerio vietinėje sistemoje (histerezei). */
+  const aim = useRef<{ key: string; lx: number; ly: number; s2: number } | null>(null)
 
   const arrowStyle: ArrowStyle = p.arrowStyle ?? 'point'
 
@@ -157,7 +180,9 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       el.style.transformOrigin = '0 0'
       el.style.willChange = s === 1 ? '' : 'transform'
       el.style.transition = 'transform 450ms cubic-bezier(.22,.9,.3,1)'
-      el.style.transform = s === 1 && tx === 0 && ty === 0 ? 'none' : `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${s.toFixed(4)})`
+      // translate3d — GPU sluoksnis: be jo sub-pikseliniai perskaičiavimai matomi kaip virpėjimas.
+      el.style.transform = s === 1 && tx === 0 && ty === 0 ? 'none' : `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) scale(${s.toFixed(4)})`
+      el.style.backfaceVisibility = 'hidden'
       if (camEl.current !== el) {
         resetEl(camEl.current)      // pasikeitė konteineris (lenta ↔ scena) — senąjį grąžinam
         camEl.current = el
@@ -166,12 +191,15 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
 
     const tick = () => {
       const W = window.innerWidth, H = window.innerHeight
-      setVp({ w: W, h: H })
+      if (prevVp.current.w !== W || prevVp.current.h !== H) { prevVp.current = { w: W, h: H }; setVp({ w: W, h: H }) }
       const hs = readRects(p.highlightSelectors)
       const ar = rectOf(p.arrowSelector)
-      setRects(hs)
-      setArrow(ar)
-      setArrowFrom(rectOf(p.arrowFromSelector))
+      const af = rectOf(p.arrowFromSelector)
+      // Perpiešiam TIK pasikeitus (kas kadrą keičiamas state = nereikalingas
+      // React darbas ir papildomas mikro-trūkčiojimas silpnesniuose įrenginiuose).
+      if (!sameRects(hs, prevHs.current)) { prevHs.current = hs; setRects(hs) }
+      if (!sameRect(ar, prevArrow.current)) { prevArrow.current = ar; setArrow(ar) }
+      if (!sameRect(af, prevFrom.current)) { prevFrom.current = af; setArrowFrom(af) }
 
       // ── Ar burbulas uždengia tai, ką rodom? ──
       // Burbulo zona: apatinė juosta per visą plotį (aukštis ~ 168 px + safe-area).
@@ -189,29 +217,42 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       if (el) {
         const scene = el.hasAttribute('data-tut-zoomroot')
         const maxZoom = scene ? 1.55 : 2.6      // scenose kortos jau didelės
-        const zr = zoomEl ? rectOf(p.zoomSelector, 0) : null
-        if (!zr || reduced) {
-          if (cam.current.s !== 1 || cam.current.tx !== 0 || cam.current.ty !== 0) applyCamOn(el, 1, 0, 0)
-          if (camEl.current && camEl.current !== el) { resetEl(camEl.current); camEl.current = null }
+        if (!zoomEl || reduced) {
+          if (camEl.current) { resetEl(camEl.current); camEl.current = null }
+          cam.current = { s: 1, tx: 0, ty: 0 }
+          aim.current = null
         } else {
-          const { s, tx, ty } = cam.current
-          // ekrano rect → bazinė (netransformuota) geometrija
-          const bx = (zr.x + zr.w / 2 - tx) / s
-          const by = (zr.y + zr.h / 2 - ty) / s
-          const bw = zr.w / s, bh = zr.h / s
-          const s2 = Math.max(1, Math.min(maxZoom, p.zoomLevel ?? autoZoom({ x: 0, y: 0, w: bw, h: bh }, W, H)))
-          let t2x = W / 2 - bx * s2
-          // Scenose taikinys centruojamas AUKŠČIAU (apačioje — patvirtinimo mygtukas).
-          let t2y = (scene ? H * 0.38 : H * 0.42) - by * s2
-          // neleidžiam atidengti tuščio krašto: wrapper'io bazinės ribos
-          const wr = el.getBoundingClientRect()
-          const baseL = (wr.left - tx) / s, baseT = (wr.top - ty) / s
-          const baseW = wr.width / s, baseH = wr.height / s
-          const minTx = W - (baseL + baseW) * s2, maxTx = -baseL * s2
-          const minTy = H - (baseT + baseH) * s2, maxTy = -baseT * s2
-          if (minTx <= maxTx) t2x = Math.min(maxTx, Math.max(minTx, t2x))
-          if (minTy <= maxTy) t2y = Math.min(maxTy, Math.max(minTy, t2y))
-          if (Math.abs(t2x - tx) > 0.5 || Math.abs(t2y - ty) > 0.5 || Math.abs(s2 - s) > 0.002 || camEl.current !== el) applyCamOn(el, s2, t2x, t2y)
+          // KRITIŠKA: imam TIKRĄ šiuo metu nupieštą matricą, o ne tikslinę reikšmę.
+          // Per 450 ms perėjimą rect'as rodo TARPINĘ būseną — invertavus ją tiksline
+          // matrica gaudavosi klaidinga „bazė", tikslas keisdavosi kas kadrą ir
+          // kamera imdavo virpėti bei šokinėti (chase loop).
+          const m = readMatrix(el)
+          const C = el.getBoundingClientRect()
+          const T = zoomEl.getBoundingClientRect()
+          // Taikinys konteinerio VIETINĖJE (netransformuotoje) sistemoje. Atimdami C
+          // atsikratom ir protėvių transformų (lentos drebėjimo shakeBoard/quake),
+          // tad drebant ekranui kamera nebeseka drebėjimo.
+          const lx = (T.left + T.width / 2 - C.left) / m.s
+          const ly = (T.top + T.height / 2 - C.top) / m.s
+          const s2 = Math.max(1, Math.min(maxZoom, p.zoomLevel ?? autoZoom({ x: 0, y: 0, w: T.width / m.s, h: T.height / m.s }, W, H)))
+          const key = (p.zoomSelector ?? '') + '|' + (scene ? 'scene' : 'board')
+          const a = aim.current
+          // Perskaičiuojam TIK kai taikinys realiai pajudėjo (>3 px vietinėje
+          // sistemoje) arba pasikeitė mastelis/konteineris. Histerezė = jokio dreifo.
+          const needs = !a || a.key !== key || Math.abs(a.lx - lx) > 3 || Math.abs(a.ly - ly) > 3 || Math.abs(a.s2 - s2) > 0.01 || camEl.current !== el
+          if (needs) {
+            const ox = C.left - m.tx, oy = C.top - m.ty          // netransformuota kilmė ekrane
+            const bw = C.width / m.s, bh = C.height / m.s
+            let t2x = W / 2 - ox - lx * s2
+            // Scenose taikinys centruojamas AUKŠČIAU (apačioje — patvirtinimo mygtukas).
+            let t2y = (scene ? H * 0.38 : H * 0.42) - oy - ly * s2
+            const minTx = W - ox - bw * s2, maxTx = -ox
+            const minTy = H - oy - bh * s2, maxTy = -oy
+            if (minTx <= maxTx) t2x = Math.min(maxTx, Math.max(minTx, t2x))
+            if (minTy <= maxTy) t2y = Math.min(maxTy, Math.max(minTy, t2y))
+            aim.current = { key, lx, ly, s2 }
+            applyCamOn(el, s2, t2x, t2y)
+          }
         }
       }
       raf.current = requestAnimationFrame(tick)
@@ -311,7 +352,8 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       {/* Dialogue bubble (+ titrai) */}
       {p.dialogue && (
         <div className={'rvn-tut-bubble' + (bubbleTop ? ' rvn-tut-bubble-top' : '')} style={{ borderColor: accent }} onClick={p.showNext ? p.onNext : undefined}>
-          <div className="rvn-tut-portrait" style={{ borderColor: accent, color: accent }}>🐦‍⬛</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="rvn-tut-portrait" src={p.portraitUrl ?? '/tutorial/korvas.webp'} alt="" draggable={false} />
           <div style={{ flex: 1, minWidth: 0 }}>
             {p.dialogue.name && <div style={{ fontSize: 12, fontWeight: 800, color: accent, fontFamily: 'var(--rvn-font-display, Cinzel, serif)', letterSpacing: '0.04em' }}>{p.dialogue.name}</div>}
             <div style={{ fontSize: 14, color: '#f3ead3', lineHeight: 1.4 }}>{p.dialogue.text}</div>
@@ -380,12 +422,29 @@ const CSS = `
 .rvn-tut-arrow { position: fixed; font-size: 30px; color: #f0b429; text-shadow: 0 0 12px rgba(240,180,41,0.9), 0 2px 4px #000; pointer-events: none; animation: rvnTutBounce 0.9s ease-in-out infinite; }
 @keyframes rvnTutBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
 .rvn-tut-obj { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 18px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-.rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(680px, 94vw); display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; cursor: pointer; }
+.rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(720px, 94vw); display: flex; align-items: flex-end; gap: 10px; overflow: visible; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; cursor: pointer; }
 @keyframes rvnTutRise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .rvn-tut-bubble-top { bottom: auto !important; top: calc(78px + env(safe-area-inset-top, 0px)); }
 .rvn-tut-force { position: fixed; right: 14px; pointer-events: auto; font: 800 11.5px var(--rvn-font-display, Cinzel, serif); letter-spacing: 1px; color: #f3ead3; background: rgba(6,4,11,0.92); border: 1.5px solid rgba(240,180,41,0.55); padding: 8px 14px; border-radius: 11px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
 .rvn-tut-force:hover { background: rgba(240,180,41,0.2); }
-.rvn-tut-portrait { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid; background: rgba(0,0,0,0.4); flex-shrink: 0; }
+/* Korvo portretas: BE rėmo — kvadratas ištirpsta radialine kauke, tad atrodo
+   kaip į burbulą įaugęs veidas. Kyla VIRŠ burbulo (margin-top neigiamas). */
+.rvn-tut-portrait {
+  width: clamp(84px, 11vw, 132px); height: clamp(84px, 11vw, 132px);
+  flex-shrink: 0; object-fit: cover; object-position: 50% 16%;
+  margin: calc(-1 * clamp(40px, 5.5vw, 66px)) -6px calc(-1 * clamp(8px, 1vw, 14px)) -4px;
+  border: 0; border-radius: 0; background: none;
+  -webkit-mask-image: radial-gradient(118% 96% at 50% 34%, #000 52%, rgba(0,0,0,0.55) 74%, transparent 88%);
+  mask-image: radial-gradient(118% 96% at 50% 34%, #000 52%, rgba(0,0,0,0.55) 74%, transparent 88%);
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.75)) saturate(1.05);
+  pointer-events: none; user-select: none;
+}
+/* Burbulas viršuje (kai apačioje taikinys) — portretas kyla ŽEMYN, ne aukštyn. */
+.rvn-tut-bubble-top .rvn-tut-portrait {
+  margin-top: calc(-1 * clamp(8px, 1vw, 14px));
+  margin-bottom: calc(-1 * clamp(40px, 5.5vw, 66px));
+  object-position: 50% 22%;
+}
 .rvn-tut-next { flex-shrink: 0; padding: 8px 16px; border-radius: 11px; font-weight: 800; font-size: 13px; background: rgba(240,180,41,0.14); border: 1.5px solid; cursor: pointer; font-family: var(--rvn-font-display, Cinzel, serif); }
 .rvn-tut-next:hover { background: rgba(240,180,41,0.26); }
 @media (prefers-reduced-motion: reduce) {
