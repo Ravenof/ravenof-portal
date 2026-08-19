@@ -29,6 +29,8 @@ import { setAvatarVoiceMuted } from '@/lib/game/avatarAudio'
 import { setMusicScale } from '@/lib/game/musicManager'
 import type { LessonRow, LessonStep, HighlightTarget, AllowedAction, ScriptedAction, StepMutation, Dialogue } from '@/lib/tutorial2/lessonTypes'
 import { TutorialOverlay, type OverlayDialogue } from './TutorialOverlay'
+import { RewardChip, SafeRewardImage } from '@/components/digital/ui/RewardBits'
+import type { RewardPayloadItem } from '@/lib/rewards/rewardVisuals'
 import { WRONG_VOICE_IDS, GOOD_VOICE_IDS } from '@/data/tutorialLessons/systemVoice'
 import { useT } from '@/lib/i18n/react'
 
@@ -507,29 +509,43 @@ function collectVoiceIds(steps: LessonStep[]): string[] {
 
 function RewardScreen({ title, reward, onDone }: { title: string; reward: LessonRow['reward_payload']; onDone: () => void }) {
   const t = useT()
-  const items: { icon: string; label: string }[] = []
-  if (reward.gold) items.push({ icon: '🪙', label: `+${reward.gold} aukso` })
-  if (reward.exp) items.push({ icon: '✦', label: `+${reward.exp} EXP` })
-  if (reward.boosters) items.push({ icon: '📦', label: `${reward.boosters} boosteris` })
-  if (reward.cardMin) items.push({ icon: '🃏', label: `Korta (${reward.cardMin})` })
+  // Atlygiai — TIK kanoniniai registro asset'ai (emoji atlygių slotuose uždrausti,
+  // žr. [[ravenof-reward-visuals]]). Payload → RewardBits vizualai.
+  const items: RewardPayloadItem[] = []
+  if (reward.gold) items.push({ type: 'currency', currency: 'silver', amount: reward.gold })
+  if (reward.exp) items.push({ type: 'account_xp', amount: reward.exp })
+  if (reward.boosters) items.push({ type: 'item', item_type: 'pack', quantity: reward.boosters })
+  if (reward.cardMin) items.push({ type: 'item', item_type: 'card', item_id: t('onboarding.tutorial.rewardCard') })
+  if (reward.badge) items.push({ type: 'item', item_type: 'badge' })
   if (typeof document === 'undefined') return null
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 360, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(4px)' }}>
-      <div style={{ width: 'min(440px, 92vw)', textAlign: 'center', padding: 28, borderRadius: 20, background: 'linear-gradient(160deg, rgba(20,15,28,0.98), rgba(8,6,14,0.98))', border: '1.5px solid rgba(240,180,41,0.5)', boxShadow: '0 18px 60px rgba(0,0,0,0.7)' }}>
-        <div style={{ fontSize: 46 }}>🏆</div>
+      {/* combat-plate: tas pats geležies rėmas kaip visuose kovos dialoguose */}
+      <div className="combat-plate" style={{ width: 'min(460px, 92vw)', textAlign: 'center', padding: '22px 24px 24px' }}>
+        <SafeRewardImage src="/digital/icons/emblem-tutorial.png" size={54} alt="" />
         <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 22, margin: '6px 0 2px' }}>{t('onboarding.tutorial.lessonDone')}</h2>
         <p style={{ color: 'var(--text-secondary, #c9c2d6)', fontSize: 13, marginBottom: 16 }}>{title}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
           {items.map((it, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '9px 14px', borderRadius: 12, background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.3)', color: '#f3ead3', fontWeight: 700 }}>
-              <span style={{ fontSize: 20 }}>{it.icon}</span> {it.label}
+              <RewardChip it={it} size={22} textSize={13.5} color="#f3ead3" />
             </div>
           ))}
           {items.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('onboarding.tutorial.alreadyRewarded')}</div>}
         </div>
-        <button onClick={onDone} style={{ width: '100%', padding: '12px', borderRadius: 12, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg, rgba(240,180,41,0.35), rgba(240,180,41,0.12))', border: '1.5px solid rgba(240,180,41,0.6)', color: 'var(--gold)', fontFamily: 'var(--rvn-font-display, Cinzel, serif)', cursor: 'pointer' }}>{t('onboarding.tutorial.continue')}</button>
+        <button onClick={onDone} className="ravenof-press" style={REWARD_CTA}>{t('onboarding.tutorial.continue')}</button>
       </div>
     </div>,
     document.body,
   )
+}
+
+/** Asset CTA (kanonas commit630) — atlygio ekrano „Tęsti". */
+const REWARD_CTA: React.CSSProperties = {
+  width: 'auto', minWidth: 240, maxWidth: '86%', textAlign: 'center',
+  font: '800 13px var(--rvn-font-display, Cinzel, serif)', letterSpacing: 3, textTransform: 'uppercase',
+  color: '#f6e8c6', whiteSpace: 'nowrap',
+  background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
+  padding: '14px 38px', border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)',
+  transition: 'filter 0.18s ease',
 }

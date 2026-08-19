@@ -4334,7 +4334,6 @@ doAction({ t: 'endTurn', actor: 'you' })
                   {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
                   {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
                   {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
-                  {game.you.curses.length > 0 && renderPile(t('battle.game.cursesPile'), game.you.curses.length, { tut: 'curses', back: 'curse' })}
                 </div>
               </div>
             </div>
@@ -4396,7 +4395,6 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 66 })}
                 {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66 })}
-                {game.you.curses.length > 0 && renderPile(t('battle.game.cursesPile'), game.you.curses.length, { tut: 'curses', back: 'curse', w: 66 })}
                 {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>

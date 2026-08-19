@@ -135,7 +135,12 @@
 
 ## Kas NEpadaryta ir kodėl + pasiūlymai
 
-1. ~~**Prakeiksmų šoninės kaladės NĖRA kovos UI**~~ — **PADARYTA (commit636).**
+1. ~~**Prakeiksmų šoninės kaladės NĖRA kovos UI**~~ → **ATŠAUKTA (commit641).**
+   Autoriaus sprendimas: šoninė kaladė kovoje **neturi būti matoma** (paslėpta
+   informacija), o pridėtas pile'as dar ir pastūmė bei uždengė įprastą kaladę.
+   Pile'as pašalintas iš visų trijų layout'ų; L7 „šešėlio" close-up grąžintas į
+   savo kaladę. Lieka galioti tik commit636 antra dalis — `curseCardsAi`
+   (AI naudoja SAVO prakeiksmus). Istorinis commit636 aprašas:
    Šalia ŽMK atsirado prakeiksmų šoninės kaladės pile'as (`data-tut="curses"`,
    rodomas TIK kai kaladė netuščia; visuose trijuose layout'uose). L7 „šešėlio"
    žingsnis dabar daro close-up į TIKRĄ kaladę (`anchor: 'curses-you'`), o ne į
@@ -212,6 +217,17 @@ Perrašomų balso eilučių tekstai su failų vardais: `PERRASYTI-7-BALSO-EILUTE
   3. histerezė — perskaičiuojam tik pajudėjus >3 px arba pasikeitus masteliui;
   4. `translate3d` + `backface-visibility` (GPU sluoksnis, be sub-pikselinio virpesio);
   5. overlay state atnaujinamas tik realiai pasikeitus rect'ams (buvo `setState` kas kadrą).
+
+---
+
+## Gyvo perėjimo pastabos (commit641)
+
+| Radinys | Sprendimas |
+|---|---|
+| Korvo portretas „nepataikė į vietą" — išlįsdavo pro burbulo rėmą | Neigiamos paraštės pašalintos: portretas visada BURBULO VIDUJE (`align-self: center`, `clamp(64px, 7.6vw, 96px)`, burbulas `overflow: hidden`). Kvadratą švelnina radialinė kaukė — apvalaus rėmo nėra |
+| Kovoje atsirado prakeiksmų (šoninė) kaladė ir uždengė įprastą | Pile'as pašalintas (paslėpta informacija). L7 close-up — vėl į savo kaladę |
+| Atlygio ekrano ir mokymų mygtukai nenaudojo asset'ų | VISI CTA per asset'ą (`button-primary-normal.png`): „Toliau/Praleisti", „Praleisti pamoką", „Įstrigo? Tęsti", praleidimo patvirtinimas, atlygio „Tęsti". Atlygio langas — `combat-plate` rėmas |
+| Atlygiai rodyti emoji (🪙 ✦ 📦 🃏 🏆) | Pakeista į kanoninius registro asset'us per `RewardChip`/`SafeRewardImage` (emoji atlygių slotuose uždrausti — [[ravenof-reward-visuals]]); antraštėje — `emblem-tutorial.png` |
 
 ---
 

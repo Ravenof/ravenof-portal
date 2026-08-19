@@ -344,8 +344,8 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
         {p.step}/{p.total}
       </div>
 
-      {/* Skip lesson */}
-      <button onClick={() => setConfirmSkip(true)} style={{ position: 'fixed', top: 'calc(8px + env(safe-area-inset-top, 0px))', left: 12, pointerEvents: 'auto', fontSize: 11, color: 'rgba(243,234,211,0.6)', background: 'rgba(6,4,11,0.7)', border: '1px solid rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 9 }}>
+      {/* Skip lesson — asset CTA (kanonas commit630) */}
+      <button onClick={() => setConfirmSkip(true)} className="ravenof-press" style={{ ...ASSET_CTA(0.72), position: 'fixed', top: 'calc(8px + env(safe-area-inset-top, 0px))', left: 12, pointerEvents: 'auto' }}>
         {p.labels.skipLesson}
       </button>
 
@@ -364,7 +364,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
             )}
           </div>
           {p.showNext && (
-            <button onClick={(e) => { e.stopPropagation(); p.onNext() }} className="rvn-tut-next" style={{ borderColor: accent, color: accent }}>
+            <button onClick={(e) => { e.stopPropagation(); p.onNext() }} className="ravenof-press rvn-tut-next" style={ASSET_CTA(0.86)}>
               {p.voicePlaying ? p.labels.skipVoice : p.labels.next}
             </button>
           )}
@@ -373,7 +373,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
 
       {/* Anti-deadlock: rankinis tęsimas, kai žingsnis pakibo (priešas nieko nedaro) */}
       {p.onForceNext && (
-        <button onClick={p.onForceNext} className="rvn-tut-force" style={{ bottom: bubbleTop ? 20 : 172 }}>
+        <button onClick={p.onForceNext} className="ravenof-press rvn-tut-force" style={{ ...ASSET_CTA(0.8), position: 'fixed', right: 14, bottom: bubbleTop ? 20 : 172 }}>
           {p.labels.forceNext}
         </button>
       )}
@@ -385,8 +385,8 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
             <p style={{ font: '800 15px var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold, #f0b429)', margin: '0 0 6px' }}>{p.labels.confirmTitle}</p>
             <p style={{ fontSize: 12.5, color: 'rgba(243,234,211,0.75)', margin: '0 0 16px', lineHeight: 1.45 }}>{p.labels.confirmBody}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="ravenof-press" style={SKIP_BTN} onClick={() => { setConfirmSkip(false); p.onSkipLesson() }}>{p.labels.confirmYes}</button>
-              <button className="ravenof-press" style={{ ...SKIP_BTN, minWidth: 150 }} onClick={() => setConfirmSkip(false)}>{p.labels.confirmNo}</button>
+              <button className="ravenof-press" style={ASSET_CTA(1)} onClick={() => { setConfirmSkip(false); p.onSkipLesson() }}>{p.labels.confirmYes}</button>
+              <button className="ravenof-press" style={ASSET_CTA(0.9)} onClick={() => setConfirmSkip(false)}>{p.labels.confirmNo}</button>
             </div>
           </div>
         </div>
@@ -396,13 +396,20 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
   )
 }
 
-const SKIP_BTN: React.CSSProperties = {
-  width: 'auto', minWidth: 170, textAlign: 'center',
-  font: '800 12px var(--rvn-font-display, Cinzel, serif)', letterSpacing: 2, textTransform: 'uppercase',
+/**
+ * Vieningas asset CTA (kanonas commit630: button-primary-normal.png 100%/100%).
+ * `k` — mastelio koeficientas (0.7 = mažas viršutinis mygtukas, 1 = pilnas).
+ */
+const ASSET_CTA = (k = 1): React.CSSProperties => ({
+  width: 'auto', minWidth: Math.round(170 * k), maxWidth: '92vw', textAlign: 'center',
+  font: `800 ${(12 * k).toFixed(1)}px var(--rvn-font-display, Cinzel, serif)`,
+  letterSpacing: 2 * k, textTransform: 'uppercase', whiteSpace: 'nowrap',
   color: '#f6e8c6',
   background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
-  padding: '12px 26px', border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)',
-}
+  padding: `${Math.round(12 * k)}px ${Math.round(26 * k)}px`,
+  border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)',
+  transition: 'filter 0.18s ease',
+})
 
 const CSS = `
 .rvn-tut-ring { position: fixed; border-radius: 16px; pointer-events: none; box-shadow: 0 0 0 2px rgba(240,180,41,0.9), 0 0 18px 4px rgba(240,180,41,0.55); animation: rvnTutPulse 1.3s ease-in-out infinite; }
@@ -422,31 +429,26 @@ const CSS = `
 .rvn-tut-arrow { position: fixed; font-size: 30px; color: #f0b429; text-shadow: 0 0 12px rgba(240,180,41,0.9), 0 2px 4px #000; pointer-events: none; animation: rvnTutBounce 0.9s ease-in-out infinite; }
 @keyframes rvnTutBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
 .rvn-tut-obj { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 18px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-.rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(720px, 94vw); display: flex; align-items: flex-end; gap: 10px; overflow: visible; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; cursor: pointer; }
+.rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(720px, 94vw); display: flex; align-items: center; gap: 12px; overflow: hidden; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; cursor: pointer; }
 @keyframes rvnTutRise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .rvn-tut-bubble-top { bottom: auto !important; top: calc(78px + env(safe-area-inset-top, 0px)); }
-.rvn-tut-force { position: fixed; right: 14px; pointer-events: auto; font: 800 11.5px var(--rvn-font-display, Cinzel, serif); letter-spacing: 1px; color: #f3ead3; background: rgba(6,4,11,0.92); border: 1.5px solid rgba(240,180,41,0.55); padding: 8px 14px; border-radius: 11px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
-.rvn-tut-force:hover { background: rgba(240,180,41,0.2); }
-/* Korvo portretas: BE rėmo — kvadratas ištirpsta radialine kauke, tad atrodo
-   kaip į burbulą įaugęs veidas. Kyla VIRŠ burbulo (margin-top neigiamas). */
+.rvn-tut-force { position: fixed; right: 14px; pointer-events: auto; }
+.rvn-tut-force:hover { filter: brightness(1.12); }
+/* Korvo portretas: BE apvalaus rėmo, bet VISADA burbulo viduje (jokių neigiamų
+   paraščių — anksčiau jis išlįsdavo pro rėmą ir „nepataikydavo į vietą").
+   Kvadratą sušvelnina radialinė kaukė, tad kraštai ištirpsta burbulo fone. */
 .rvn-tut-portrait {
-  width: clamp(84px, 11vw, 132px); height: clamp(84px, 11vw, 132px);
-  flex-shrink: 0; object-fit: cover; object-position: 50% 16%;
-  margin: calc(-1 * clamp(40px, 5.5vw, 66px)) -6px calc(-1 * clamp(8px, 1vw, 14px)) -4px;
-  border: 0; border-radius: 0; background: none;
-  -webkit-mask-image: radial-gradient(118% 96% at 50% 34%, #000 52%, rgba(0,0,0,0.55) 74%, transparent 88%);
-  mask-image: radial-gradient(118% 96% at 50% 34%, #000 52%, rgba(0,0,0,0.55) 74%, transparent 88%);
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.75)) saturate(1.05);
+  width: clamp(64px, 7.6vw, 96px); height: clamp(64px, 7.6vw, 96px);
+  flex-shrink: 0; align-self: center;
+  object-fit: cover; object-position: 50% 14%;
+  border: 0; border-radius: 10px; background: none;
+  -webkit-mask-image: radial-gradient(122% 104% at 50% 36%, #000 58%, rgba(0,0,0,0.6) 80%, transparent 96%);
+  mask-image: radial-gradient(122% 104% at 50% 36%, #000 58%, rgba(0,0,0,0.6) 80%, transparent 96%);
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.7)) saturate(1.05);
   pointer-events: none; user-select: none;
 }
-/* Burbulas viršuje (kai apačioje taikinys) — portretas kyla ŽEMYN, ne aukštyn. */
-.rvn-tut-bubble-top .rvn-tut-portrait {
-  margin-top: calc(-1 * clamp(8px, 1vw, 14px));
-  margin-bottom: calc(-1 * clamp(40px, 5.5vw, 66px));
-  object-position: 50% 22%;
-}
-.rvn-tut-next { flex-shrink: 0; padding: 8px 16px; border-radius: 11px; font-weight: 800; font-size: 13px; background: rgba(240,180,41,0.14); border: 1.5px solid; cursor: pointer; font-family: var(--rvn-font-display, Cinzel, serif); }
-.rvn-tut-next:hover { background: rgba(240,180,41,0.26); }
+.rvn-tut-next { flex-shrink: 0; }
+.rvn-tut-next:hover, .ravenof-press:hover { filter: brightness(1.12); }
 @media (prefers-reduced-motion: reduce) {
   .rvn-tut-ring, .rvn-tut-pulse, .rvn-tut-arrow, .rvn-tut-dragline { animation: none !important; }
   .rvn-tut-pulse { box-shadow: 0 0 0 3px rgba(240,180,41,0.5) !important; }
