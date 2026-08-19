@@ -362,10 +362,14 @@ const L4_STEPS: LessonStep[] = [
   { id: 'tribute-rule',
     dialogue: [say('l4-s02', 'Čempionas reikalauja AUKOS: dvi kortos iš rankos ARBA vienas padaras nuo lentos.',
       'Čempionas — ne eilinis karys. Jis reikalauja aukos: dvi kortos iš rankos arba vienas tavo padaras nuo lentos. Rinkis atsargiai... arba atšauk, jei suabejosi — mygtukas apačioje.')],
-    highlight: [{ kind: 'anchor', anchor: 'hand' }], zoom: { kind: 'anchor', anchor: 'hand' }, complete: { on: 'next' } },
+    // Kalbant apie čempioną rodom BŪTENT jo kortą (o ne dažom visą ranką).
+    showCard: 'Korvo mokinys', complete: { on: 'next' } },
   { id: 'summon-champ', objective: 'Paaukok dvi kortas ir iškviesk čempioną',
     dialogue: [say('l4-s03', 'Paaukok dvi kortas. Tegul ateina.')],
-    highlight: [{ kind: 'handCard', cardName: 'Korvo mokinys' }], arrowTo: { kind: 'handCard', cardName: 'Korvo mokinys' }, arrowStyle: 'pulse',
+    // Peržiūra jau uždaryta — dabar paryškinta TIK čempiono korta rankoje, o
+    // tempiant ją savi padarai pulsuoja (galimos aukos).
+    highlight: [{ kind: 'handCard', cardName: 'Korvo mokinys' }],
+    arrowFrom: { kind: 'handCard', cardName: 'Korvo mokinys' }, arrowTo: { kind: 'anchor', anchor: 'units-you' }, arrowStyle: 'drag-path',
     allow: [{ kind: 'play-any', cardName: 'Korvo mokinys' }],
     wrongHint: 'Pradėk nuo paryškintos čempiono kortos — tada paaukok 2 kortas iš rankos arba padarą nuo lentos.',
     complete: { on: 'event', eventType: 'champion', side: 'you' } },
@@ -378,7 +382,8 @@ const L4_STEPS: LessonStep[] = [
     apply: { goldYou: 1000 },
     dialogue: [say('l4-s05', 'Antra fazė — ATSKIRA korta: sumoki auksą ir vėl aukoji. Pirma fazė privalo stovėti lentoje.',
       'Čempionas auga ne pats. Antra fazė — atskira korta iš rankos: sumoki jos auksą ir vėl paaukoji. Bet įsidėmėk: pirmoji fazė privalo stovėti lentoje, kitaip antroji neateis. Trečioji — lygiai taip pat. Sužaisk antrąją fazę.')],
-    highlight: [{ kind: 'handCard', cardName: 'Korvo riteris' }], arrowTo: { kind: 'handCard', cardName: 'Korvo riteris' }, arrowStyle: 'pulse',
+    highlight: [{ kind: 'handCard', cardName: 'Korvo riteris' }],
+    arrowFrom: { kind: 'handCard', cardName: 'Korvo riteris' }, arrowTo: { kind: 'anchor', anchor: 'champion-you' }, arrowStyle: 'drag-path',
     allow: [{ kind: 'upgrade-champion' }, { kind: 'play-any', cardName: 'Korvo riteris' }],
     wrongHint: 'Sužaisk antros fazės kortą ir paaukok dvi kortas iš rankos.',
     complete: { on: 'event', eventType: 'evolve', side: 'you' } },

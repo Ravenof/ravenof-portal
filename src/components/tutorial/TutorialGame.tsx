@@ -107,6 +107,12 @@ export type TutorialHooks = {
 export type TutorialGameApi = {
   /** Pritaiko mutaciją dabartinei būsenai (clone → fn → commit su reakcijų vartais). */
   mutate: (fn: (g: GameState) => void) => void
+  /**
+   * Atidaro (arba uždaro, kai `null`) DETALIĄ kortos peržiūrą pagal vardą —
+   * pamoka gali „parodyti" kortą kalbėdama apie ją, nedažant visos rankos.
+   * Ieškoma rankoje, tada savo ir priešo lentoje.
+   */
+  inspectCard: (cardName: string | null) => void
 }
 
 type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; tutorial?: TutorialHooks }
@@ -980,6 +986,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ir kad mokymų pranešimai niekada nedalyvautų kovos priklausomybėse.
   const tutorialRef = useRef<TutorialHooks | undefined>(tutorial)
   useEffect(() => { tutorialRef.current = tutorial }, [tutorial])
+  /** Gyva mūšio būsena imperatyviam API (kad callback'ai liktų stabilūs). */
+  const gameLiveRef = useRef<GameState | null>(null)
   // ── „Laikai – matai": jei detali peržiūra atidaryta LAIKANT pirštą (long-press
   // ranka/lentoje/popup'e), ji uždaroma vos pirštą atleidus (pointerup BET KUR).
   // Atidaryta bakstelėjimu/desktop click'u (logas, pileView, contextmenu) – lieka
@@ -2537,6 +2545,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── V3 mokymai: imperatyvus API direktoriui ───────────────────────────────
   // Leidžia pamokos žingsniui deklaratyviai pakeisti būseną (scripted statusų
   // demonstracijos, ŽMK įjungimas, prakeiksmų sėjimas) NEapeinant gateCommit.
+  useEffect(() => { gameLiveRef.current = game ?? null }, [game])
+
   const tutApi = useMemo<TutorialGameApi>(() => ({
     mutate: (fn) => setGame((prev) => {
       if (!prev) return prev
@@ -2544,6 +2554,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       try { fn(g) } catch (e) { console.error('[tutorial] mutate', e) }
       return gateCommit(g, prev)
     }),
+    inspectCard: (cardName) => {
+      if (!cardName) { inspectHeldRef.current = false; setInspectDocked(false); setInspect(null); return }
+      const g = gameLiveRef.current
+      if (!g) return
+      const card = g.you.hand.find((c) => c.name === cardName)
+        ?? g.you.units.find((u) => u?.card.name === cardName)?.card
+        ?? g.ai.units.find((u) => u?.card.name === cardName)?.card
+        ?? null
+      if (!card) { console.warn('[tutorial] inspectCard: kortos nerasta:', cardName); return }
+      inspectHeldRef.current = false      // NE „laikai–matai": lieka atidaryta iki uždarymo
+      setInspectDocked(false)
+      setInspect(card)
+    },
   }), [gateCommit])
   useEffect(() => { if (tutorial?.active) tutorial.onApi?.(tutApi) }, [tutorial, tutApi])
 
@@ -3711,7 +3734,10 @@ doAction({ t: 'endTurn', actor: 'you' })
               <UnitTile
                 g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
                 selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (select?.kind === 'champ' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
-                awaiting={game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid && select?.kind !== 'battlecry'}
+                awaiting={(game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid && select?.kind !== 'battlecry')
+                  // Tempiant ČEMPIONĄ (arba renkantis auką) savi padarai pulsuoja —
+                  // matai, kas gali tapti Tribute, dar prieš numetant kortą.
+                  || (side === 'you' && !u.isChampion && (select?.kind === 'sacrifice' || (!!drag && drag.card.type === 'champion')))}
                 picked={pickedKeys.has('unit:' + u.uid)}
                 targetable={side === 'ai' ? targetSet.has('unit:' + u.uid) : (select?.kind === 'spell' || select?.kind === 'sacrifice') && targetSet.has('unit:' + u.uid) || (select?.kind === 'sacrifice' && !u.isChampion)}
                 canAct={side === 'you' && myTurn && !u.isChampion && canUnitAttack(game, 'you', u).ok}

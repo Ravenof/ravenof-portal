@@ -75,6 +75,8 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
   const apiRef = useRef<TutorialGameApi | null>(null)
   const voiceSeq = useRef(0)
   const appliedStep = useRef<string | null>(null)
+  /** Kokią kortą MES atidarėme detalioje peržiūroje (kad uždarytume tik savo). */
+  const shownCard = useRef<string | null>(null)
   const wrongVoiceAt = useRef(0)
 
   const step: LessonStep | undefined = steps[stepIdx]
@@ -233,6 +235,18 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     appliedStep.current = key
     runMutation(s.apply)
   }, [stepIdx, steps, phase, runMutation])
+
+  // ── `showCard`: kalbant apie kortą ji rodoma detalioje peržiūroje ──
+  useEffect(() => {
+    if (phase !== 'play') return
+    const api = apiRef.current
+    if (!api) return
+    const want = steps[stepIdx]?.showCard ?? null
+    if (shownCard.current && shownCard.current !== want) { api.inspectCard(null); shownCard.current = null }
+    if (want && shownCard.current !== want) { api.inspectCard(want); shownCard.current = want }
+  }, [stepIdx, steps, phase])
+  // Išeinant iš pamokos peržiūra niekada nelieka atidaryta.
+  useEffect(() => () => { if (shownCard.current) { apiRef.current?.inspectCard(null); shownCard.current = null } }, [])
 
   // ── scripted enemy action ──
   const runScripted = useCallback((g: GameState, a: ScriptedAction) => {

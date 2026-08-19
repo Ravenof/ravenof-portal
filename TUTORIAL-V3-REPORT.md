@@ -341,6 +341,23 @@ Du taisymai:
 
 ---
 
+## commit648 — L4 čempiono žingsniai aiškesni
+
+Radinys: kalbant apie čempioną buvo paryškinta VISA ranka, tad nebuvo aišku, apie
+kurią kortą kalbama.
+
+* **Nauja žingsnio galimybė `showCard`** — kalbant apie kortą ji parodoma
+  DETALIOJE peržiūroje (pilnas ekranas), o žingsniui pasibaigus užsidaro.
+  Naujas `TutorialGameApi.inspectCard(name | null)` (ieško rankoje → savo lentoje →
+  priešo lentoje). Peržiūros metu vedimo akcentai jau slepiami (commit646).
+* **L4 `tribute-rule`** dabar rodo būtent „Korvo mokinį", o ne dažo ranką.
+* **L4 `summon-champ`** — paryškinta TIK čempiono korta + `drag-path` iki padarų zonos.
+* **Tribute užuomina:** tempiant čempioną (arba jau renkantis auką) savi NE čempionai
+  pulsuoja `rvn-bc-await` švytėjimu — matai, kas gali tapti auka, dar prieš numetant.
+* L4 antros fazės žingsnis irgi gavo `drag-path` (korta → čempionas lentoje).
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

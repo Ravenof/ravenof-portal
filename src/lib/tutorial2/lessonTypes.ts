@@ -159,6 +159,12 @@ export interface LessonStep {
   zoomLevel?: number
   /** V3 — būsenos pakeitimai, atliekami ĮEINANT į šį žingsnį (scripted demonstracijoms). */
   apply?: StepMutation
+  /**
+   * V3 — kalbant apie kortą ji parodoma DETALIOJE peržiūroje (pilnas ekranas),
+   * o ne dažoma visa ranka. Kortos vardas; peržiūra užsidaro pasibaigus žingsniui.
+   * Peržiūros metu vedimo akcentai (žiedai/rodyklė) automatiškai slepiami.
+   */
+  showCard?: string
   /** Whitelisted actions; everything else is blocked (no failing the lesson). */
   allow?: AllowedAction[]
   /** Scripted enemy actions to run when this step hands the turn to the enemy. */
