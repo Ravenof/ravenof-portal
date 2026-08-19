@@ -3,19 +3,19 @@ const PHASES = [
     phase: '1 fazė',
     cost: 'Aukso kaina + aukojimas',
     heal: false,
-    desc: 'Visi 3 gebėjimai iš karto pasiekiami. Gebėjimą galima naudoti tą patį ėjimą, kai Čempionas buvo iškviestas.',
+    desc: 'Atrakintas PIRMAS gebėjimas (2 ir 3 - pilki, užrakinti). Gebėjimą galima naudoti tą patį ėjimą, kai Čempionas buvo iškviestas.',
   },
   {
     phase: '2 fazė',
     cost: 'Aukso kaina + aukojimas',
     heal: true,
-    desc: 'Evoliucionavęs Čempionas pilnai pagyja. Visi gebėjimai toliau pasiekiami.',
+    desc: 'Atrakina ANTRĄ gebėjimą. Evoliucionavęs Čempionas pilnai pagyja. Reikia, kad 1 fazė jau stovėtų kovos lauke.',
   },
   {
     phase: '3 fazė',
     cost: 'Aukso kaina + aukojimas',
     heal: true,
-    desc: 'Galutinė forma. Čempionas pilnai pagyja evoliucijoje.',
+    desc: 'Galutinė forma: atrakina TREČIĄ gebėjimą. Čempionas pilnai pagyja evoliucijoje. Reikia, kad 2 fazė jau stovėtų kovos lauke.',
   },
 ]
 
@@ -25,7 +25,9 @@ const RULES = [
   'Turi gyvybės taškus ir 3 gebėjimus.',
   'Per vieną savo ėjimą galima naudoti tik vieną gebėjimą.',
   'Gebėjimą galima naudoti tą patį ėjimą, kai Čempionas buvo iškviestas, jei kortos tekstas nenurodo kitaip.',
-  'Kortos tekstas nurodo, nuo kurios fazės konkretūs gebėjimai yra pasiekiami.',
+  'Gebėjimai atrakinami PAGAL FAZĘ: 1 fazė - pirmas, 2 fazė - antras, 3 fazė - trečias. Užrakinti gebėjimai rodomi pilki.',
+  'Fazė keliama žaidžiant KITOS fazės kortą iš rankos: aukso kaina + aukojimas, o ankstesnė fazė privalo stovėti kovos lauke.',
+  'Fazės eina TIK aukštyn. Kovos lauke stovinčio Čempiono į žemesnę fazę nuleisti negalima - rankoje esančią aukštesnės fazės kortą galima iškeisti į žemesnę (iš kaladės arba kapinyno), kad išvis galėtum jį pašaukti.',
   'Negauna atgalinės žalos naudodamas gebėjimą (gebėjimas yra efektas, ne ataka).',
   'Nutildytas arba Apsvaigintas Čempionas negali naudoti gebėjimų.',
   'To paties Čempiono kovos lauke negali būti daugiau nei vienas. Skirtingų - gali būti keli.',

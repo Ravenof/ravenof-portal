@@ -184,10 +184,13 @@ node tools/tutorial-voice-generate.mjs --only l1-s10,l2-s03,l2-s04,l4-s02,l4-s05
 ```
 (`--only` nuo commit638 priima sąrašą per kablelį.)
 
-**Atviras klausimas (NEKEISTA):** `src/components/rules/ChampionRulesBlock.tsx`
-teigia, kad 1 fazėje „visi 3 gebėjimai iš karto pasiekiami", o variklis
-(`championSkills`) atrakina juos pagal fazę (`ch.phase >= i + 1`) — kaip ir
-mokymai. Reikia tavo sprendimo, kuri versija kanoninė.
+**IŠSPRĘSTA (commit639):** kanoninis yra VARIKLIS — gebėjimai atrakinami pagal
+fazę (`ch.phase >= i + 1`), kaip ir mokymuose. `ChampionRulesBlock.tsx` pataisytas:
+1 fazė = pirmas gebėjimas (2–3 pilki), 2 fazė = antras, 3 fazė = trečias; pridėtos
+taisyklės, kad fazė keliama ATSKIRA korta iš rankos (auksas + auka, ankstesnė fazė
+privalo stovėti lauke) ir kad fazės eina TIK aukštyn (keitimas į žemesnę — tik rankoje).
+
+Perrašomų balso eilučių tekstai su failų vardais: `PERRASYTI-7-BALSO-EILUTES.md`.
 
 ---
 
