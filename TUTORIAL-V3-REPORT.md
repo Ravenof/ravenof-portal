@@ -251,6 +251,34 @@ Mokymai → **„Perrašyti iš kodo (reset)"** → 3) pamoką atidaryti iš nau
 
 ---
 
+## Balsas neatsinaujina po perkėlimo (commit643)
+
+Perrašyti mp3 keliami **tuo pačiu vardu** (upsert), o grotuvas naudoja
+`cachedFetch` → cache-first `rvn-media-v1`. Todėl senas įrašas su senu tekstu
+būtų grojęs **amžinai**. Sprendimas — `VOICE_CACHE_VERSION` (`tutorialVoice.ts`):
+pakėlus numerį, pirmą kartą per sesiją iš `rvn-media-v1` išvalomi VISI
+`/card-audio/tutorial/` įrašai, o pirmas parsiuntimas daromas su
+`fetch(url, { cache: 'reload' })` — aplenkiamas ir naršyklės HTTP cache
+(Supabase storage siunčia `cache-control`, tad senas failas gyventų dar valandą).
+Naujas failas iškart įrašomas atgal į talpyklą (offline paketas nenukenčia).
+
+**KANONAS: perrašius bent vieną `tutorial/*.mp3` — PAKELK `VOICE_CACHE_VERSION`.**
+Dabar `2` (7 eilutės perrašytos 2026-08-19).
+
+Patikra, ar failai tikrai įkelti (naršyklėje):
+`<SUPABASE_URL>/storage/v1/object/public/card-audio/tutorial/l1-s10.mp3`
+
+## Senojo (v1) mokymo pop-up'ai V3 pamokose (commit643)
+
+`TutorialGame` viduje tebegyvena v1 vedimo sistema: `GUIDED_STEPS` ir „Nauja
+mechanika" patarimai (`MECHANIC_TIPS` / `tipQueue`). `GUIDED_STEPS` V3 režimu jau
+buvo išjungti (`stepIdx` inicijuojamas gale), o **patarimų eilė buvo likusi gyva** —
+todėl gilesnėse pamokose (čempionas, artefaktai, prakeiksmai — ten, kur mechanika
+„nauja") virš Korvo dialogo iššokdavo seni pop-up'ai. `queueTip` dabar grąžina
+iškart, kai `tutorial.active`.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

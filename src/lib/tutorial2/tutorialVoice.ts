@@ -20,6 +20,15 @@ import { cachedFetch } from '@/lib/game/mediaCache'
 import { duckMusic, restoreMusic } from '@/lib/game/musicManager'
 
 const BUCKET_PATH = '/storage/v1/object/public/card-audio/tutorial/'
+/**
+ * Balso failų VERSIJA. Failai keliami tuo pačiu vardu (upsert), o `cachedFetch`
+ * yra cache-first (`rvn-media-v1`) — be šito perrašyti mp3 nebūtų atsinaujinę
+ * NIEKADA (grotų senas įrašas su senu tekstu). Pakėlus numerį, seni mokymų
+ * balsai VIENĄ kartą išvalomi iš talpyklos ir parsisiunčiami iš naujo.
+ * PAKELK, kai perrašai bent vieną tut mp3.
+ */
+const VOICE_CACHE_VERSION = 2
+const VOICE_VER_KEY = 'rvn-tut-voice-ver'
 const FADE_MS = 150
 /** Muzikos duck'as, kol Korvas kalba: -14 dB = ~20 % garsumo (QA 2026-08-18,
  *  antras raundas — -6 dB buvo per tylus efektas). Veikia VIRŠ mokymų daugiklio
@@ -47,6 +56,30 @@ export function tutorialVoiceUrl(voiceId: string): string | null {
   return tutorialVoiceUrls(voiceId)[0] ?? null
 }
 
+/** Vienkartinis senų mokymų balsų išvalymas iš media talpyklos (žr. VOICE_CACHE_VERSION). */
+let purgePromise: Promise<void> | null = null
+/** Ar ŠIOJE sesijoje ką tik išvalėm seną versiją (tada pirmas siuntimas — be HTTP cache). */
+let purgedNow = false
+function ensureFreshCache(): Promise<void> {
+  if (purgePromise) return purgePromise
+  purgePromise = (async () => {
+    try {
+      if (typeof window === 'undefined' || typeof caches === 'undefined') return
+      if (window.localStorage.getItem(VOICE_VER_KEY) === String(VOICE_CACHE_VERSION)) return
+      const cache = await caches.open('rvn-media-v1')
+      const keys = await cache.keys()
+      let n = 0
+      for (const req of keys) {
+        if (req.url.includes('/card-audio/tutorial/')) { await cache.delete(req); n++ }
+      }
+      purgedNow = true
+      window.localStorage.setItem(VOICE_VER_KEY, String(VOICE_CACHE_VERSION))
+      if (n > 0) console.info(`[tutorialVoice] cache v${VOICE_CACHE_VERSION}: išvalyti ${n} seni balso failai`)
+    } catch { /* talpykla neprieinama — grojam kaip yra */ }
+  })()
+  return purgePromise
+}
+
 let _ctx: AudioContext | null = null
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null
@@ -68,6 +101,7 @@ let current: { src: AudioBufferSourceNode; gain: GainNode; done: () => void } | 
 
 async function load(voiceId: string): Promise<AudioBuffer | null> {
   if (missing.has(voiceId)) return null
+  await ensureFreshCache()
   const cached = buffers.get(voiceId)
   if (cached) return cached
   const running = inflight.get(voiceId)
@@ -80,8 +114,12 @@ async function load(voiceId: string): Promise<AudioBuffer | null> {
     try {
       for (const url of urls) {
         try {
-          const res = await cachedFetch(url)
+          // Po versijos pakėlimo pirmą kartą aplenkiam ir NARŠYKLĖS HTTP cache
+          // (Supabase storage siunčia cache-control, tad senas failas galėtų
+          // gyventi dar valandą net išvalius rvn-media-v1 talpyklą).
+          const res = purgedNow ? await fetch(url, { cache: 'reload' }) : await cachedFetch(url)
           if (!res.ok) continue
+          if (purgedNow) { try { const c = await caches.open('rvn-media-v1'); await c.put(url, res.clone()) } catch { /* kvota */ } }
           const arr = await res.arrayBuffer()
           const buf = await ctx.decodeAudioData(arr)
           buffers.set(voiceId, buf)

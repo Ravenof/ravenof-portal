@@ -1662,7 +1662,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   }, [])
 
   const queueTip = useCallback((k: TipKey) => {
-    if (practice || vsRemote) return
+    // V3 mokymuose (direktorius) SENO tutorial „Nauja mechanika" pop-up'ai
+    // nerodomi — visą vedimą valdo pamokos scenarijus. GUIDED_STEPS jau
+    // išjungti per stepIdx init, o patarimų eilė buvo likusi gyva.
+    if (practice || vsRemote || tutorialRef.current?.active) return
     if (shownTipsRef.current.has(k)) return
     shownTipsRef.current.add(k)
     setTipQueue((q) => [...q, k])
