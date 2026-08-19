@@ -322,6 +322,25 @@ Burbulas ir tikslo juosta lieka — jie netrukdo ir sako, ką daryti toliau.
 
 ---
 
+## commit647 — L3 spąstai nesuveikdavo (o Korvas kalbėjo, lyg suveiktų)
+
+L3 seka: ugnies burtas nudobia „Plėšrų žvėrį", po jo AOE (2 žala visiems) nušluoja
+likusius du — priešo lenta TUŠČIA. Tolesnis žingsnis liepdavo priešui pulti
+„Urvų padaru", kurio nebėra: `runScripted` tyliai nieko nedarydavo, ėjimas
+baigdavosi, o kitas dialogas skelbdavo „ŠTAI! Spąstai užsitrenkė!".
+
+Du taisymai:
+1. **Seed:** `trap-springs` žingsnis gavo `apply: { addBoardAi: ['Urvų padaras'] }` —
+   spąstams visada yra kas puola.
+2. **Runtime atsparumas** (`runScripted` 'attack'): jei scenarijaus puolėjo lentoje
+   nėra — imamas bet kuris galintis pulti priešo padaras; jei lenta visai tuščia —
+   padaras PASTATOMAS iš kortų pool'o; nei vienu atveju jis nesirgs iškvietimo liga.
+   Nepavykus — `console.warn` (nebe tyla). Analogiška commit635 'play' logikai.
+3. **`tutorial:check`** naujas įspėjimas: scripted ataka, kurios puolėjo nėra nei
+   `setup.enemy.board`, nei `apply.addBoardAi`, nei anksčiau sužaisto.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

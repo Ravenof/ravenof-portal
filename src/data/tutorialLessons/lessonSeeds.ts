@@ -313,6 +313,9 @@ const L3_STEPS: LessonStep[] = [
     highlight: [{ kind: 'button', id: 'end-turn' }], arrowTo: { kind: 'button', id: 'end-turn' }, arrowStyle: 'pulse',
     allow: [{ kind: 'end-turn' }], complete: { on: 'event', eventType: 'endTurn', side: 'you' } },
   { id: 'trap-springs',
+    // Prieš tai buvęs AOE nušluoja VISUS priešo padarus, tad spąstams reikia naujo
+    // puolėjo — kitaip priešas nieko nedaro ir Korvas kalba, lyg spąstai suveiktų.
+    apply: { addBoardAi: ['Urvų padaras'] },
     enemyScript: [{ type: 'attack', attackerCard: 'Urvų padaras', targetCard: 'Kaimo gynėjas' }, { type: 'endTurn' }],
     complete: { on: 'enemyTurnDone' } },
   { id: 'trap-explain',

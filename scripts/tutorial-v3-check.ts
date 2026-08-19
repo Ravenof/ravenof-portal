@@ -21,7 +21,9 @@ const MIGR = ['20260717_tutorial_cards.sql', '20260871_tutorial_v3.sql']
   .map((f) => fs.readFileSync(path.join(ROOT, 'supabase', 'migrations', f), 'utf8')).join('\n')
 
 let errors = 0
+let warnings = 0
 const err = (m: string) => { errors++; console.log('  ✗', m) }
+const warn = (m: string) => { warnings++; console.log('  !', m) }
 const ok = (m: string) => console.log('  ✓', m)
 
 // ── 1) kortų vardai iš migracijų ──
@@ -82,6 +84,16 @@ for (const lesson of tutorialLessonSeeds as LessonSeed[]) {
     if (st.complete.on === 'mulliganDone' && !(st.allow ?? []).some((a) => a.kind === 'mulligan')) {
       err(`${lesson.seedKey}/${st.id}: mulliganDone be allow:[{kind:'mulligan'}] — gate blokuotų patvirtinimą`)
     }
+    // 4c) scripted ataka: ar puolėjas apskritai gali būti lentoje?
+    for (const sc of st.enemyScript ?? []) {
+      if (sc.type !== 'attack') continue
+      const onBoard = (cfg.setup.enemy?.board ?? []).includes(sc.attackerCard)
+      const added = (cfg.steps as LessonStep[]).some((x) => (x.apply?.addBoardAi ?? []).includes(sc.attackerCard))
+      const played = (cfg.steps as LessonStep[]).some((x) => (x.enemyScript ?? []).some((y) => y.type === 'play' && y.cardName === sc.attackerCard))
+      if (!onBoard && !added && !played) {
+        warn(`${lesson.seedKey}/${st.id}: scripted ataka „${sc.attackerCard}" — padaro nėra nei setup lentoje, nei apply.addBoardAi, nei anksčiau sužaisto (runtime fallback išgelbės, bet demonstracija gali neatitikti teksto)`)
+      }
+    }
     // 5) drag-path
     if (st.arrowStyle === 'drag-path' && (!st.arrowFrom || !st.arrowTo)) err(`${lesson.seedKey}/${st.id}: drag-path be arrowFrom/arrowTo`)
 
@@ -118,5 +130,5 @@ for (const l of tutorialLessonSeeds) {
 
 ok(`pamokų: ${tutorialLessonSeeds.length}, žingsnių: ${steps}, dialogų: ${dialogues}, unikalių balso eilučių: ${voiceById.size}`)
 
-console.log(`\nTUTORIAL V3: ${errors ? `KLAIDŲ: ${errors}` : 'VISKAS GERAI ✓'}`)
+console.log(`\nTUTORIAL V3: ${errors ? `KLAIDŲ: ${errors}` : 'VISKAS GERAI ✓'}${warnings ? ` · įspėjimų: ${warnings}` : ''}`)
 process.exit(errors ? 1 : 0)

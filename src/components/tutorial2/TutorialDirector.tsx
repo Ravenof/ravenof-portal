@@ -255,14 +255,31 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       const target = a.targetFace ? ({ kind: 'player', side: 'you' } as TargetRef) : a.targetCard ? findFoe(a.targetCard) : undefined
       applyNetAction(g, { t: 'play', actor: 'ai', uid: u.uid, target })
     } else if (a.type === 'attack') {
-      const at = g.ai.units.find((x) => x?.card.name === a.attackerCard); if (!at) return
+      // Scenarijaus puolėjo lentoje gali nebūti (pvz. žaidėjas jį ką tik nušlavė
+      // AOE burtu). Mokymai — režisuotas spektaklis: 1) imam bet kurį galintį pulti
+      // priešo padarą, 2) o jei lenta tuščia — pastatom scenarijaus kortą. Kitaip
+      // priešas „nieko nedaro", reakcija nesuveikia, o Korvas kalba, lyg būtų.
+      const canHit = (x: (typeof g.ai.units)[number]) =>
+        !!x && !x.isChampion && !x.statuses.frozen && !x.statuses.stunned && (x.atk ?? 0) > 0
+      let at = g.ai.units.find((x) => x?.card.name === a.attackerCard && canHit(x))
+        ?? g.ai.units.find((x) => canHit(x))
+        ?? null
+      if (!at && pool) {
+        const slot = g.ai.units.findIndex((x) => x === null)
+        const fresh = slot >= 0 ? pool.unit(a.attackerCard, 'esc') : null
+        if (fresh) { g.ai.units[slot] = fresh; recomputeAuras(g); at = fresh }
+      }
+      if (!at) { console.warn('[tutorial] enemyScript: nėra kam pulti:', a.attackerCard); return }
+      // Naujai pastatytas/„atgaivintas" puolėjas neturi sirgti iškvietimo liga.
+      at.summonedOnTurn = -1
+      at.attacksUsed = 0
       applyNetAction(g, { t: 'attack', actor: 'ai', uid: at.uid, target: a.face ? { kind: 'player', side: 'you' } : findFoe(a.targetCard) })
     } else if (a.type === 'useChampion') {
       applyNetAction(g, { t: 'champ', actor: 'ai', skillIndex: a.skillIndex ?? 0, target: a.targetFace ? { kind: 'player', side: 'you' } : a.targetCard ? findFoe(a.targetCard) : undefined })
     } else if (a.type === 'endTurn') {
       endTurn(g); if (!g.winner) beginTurn(g); enemyDone.current = true
     }
-  }, [])
+  }, [pool])
 
   // ── completion matcher ──
   const checkComplete = useCallback((fresh: GameEvent[], g: GameState) => {
