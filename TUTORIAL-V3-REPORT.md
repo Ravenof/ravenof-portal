@@ -310,6 +310,18 @@ vinjetės variantą TIK tada, kai `highlight` netuščias.)
 
 ---
 
+## commit646 — peržiūros metu vedimo akcentai slepiami
+
+L1 „laikai–matai" žingsnyje atidarius detalią kortos peržiūrą (z-180) mokymų
+sluoksnis (z-350) liko VIRŠ jos — ant priartintos kortos toliau švytėjo rankos
+kortos kontūras ir rodyklė. Dabar peržiūra pažymėta `data-inspect-overlay="full"`
+(docked variantas — `"docked"`, jis lieka nepaliestas, nes atsiranda TEMPIANT ir
+drag-path užuomina tada dar reikalinga), o overlay raf cikle tai pastebi ir
+peržiūros metu nerodo nei žiedų, nei pulsavimo, nei rodyklės / drag-path.
+Burbulas ir tikslo juosta lieka — jie netrukdo ir sako, ką daryti toliau.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

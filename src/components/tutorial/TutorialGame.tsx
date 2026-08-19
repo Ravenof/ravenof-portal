@@ -4949,7 +4949,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         })()}
 
         {inspect && !inspectDocked && (
-          <motion.div data-inspect-overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div data-inspect-overlay="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[180] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.75)' }}
             onClick={() => { playCardPlace(); setInspect(null) }}>
@@ -4961,7 +4961,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           </motion.div>
         )}
         {inspect && inspectDocked && (
-          <motion.div data-inspect-overlay initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+          <motion.div data-inspect-overlay="docked" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
             className="fixed z-[150] pointer-events-none"
             style={{ left: 'max(8px, env(safe-area-inset-left, 0px))', top: '50%', translate: '0 -50%' }}>
             <GameCard glowColor={cardTypeColor(inspect)} intensity={8}>

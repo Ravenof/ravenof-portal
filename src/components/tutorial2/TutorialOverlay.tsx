@@ -132,6 +132,8 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
   const [arrowFrom, setArrowFrom] = useState<Rect | null>(null)
   const [vp, setVp] = useState({ w: 0, h: 0 })
   const [confirmSkip, setConfirmSkip] = useState(false)
+  /** Atidaryta PILNO EKRANO kortos peržiūra („laikai–matai") — akcentus slepiam. */
+  const [inspecting, setInspecting] = useState(false)
   // Dialogo burbulas keliauja Į VIRŠŲ, kai rodomas objektas yra po juo (QA 2026-08-18).
   const [bubbleTop, setBubbleTop] = useState(false)
   const bubbleTopRef = useRef(false)
@@ -140,6 +142,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
   const prevArrow = useRef<Rect | null>(null)
   const prevFrom = useRef<Rect | null>(null)
   const prevVp = useRef({ w: 0, h: 0 })
+  const prevInsp = useRef(false)
   // taikomas transformas (scale, translate) — kad rect'us galėtume „atsukti" į bazę
   const cam = useRef({ s: 1, tx: 0, ty: 0 })
   /** Šiuo metu transformuojamas konteineris (lenta arba scena) — kad pakeitus jį senasis būtų grąžintas. */
@@ -192,6 +195,11 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
     const tick = () => {
       const W = window.innerWidth, H = window.innerHeight
       if (prevVp.current.w !== W || prevVp.current.h !== H) { prevVp.current = { w: W, h: H }; setVp({ w: W, h: H }) }
+      // Detali kortos peržiūra (z-180) yra PO mokymų sluoksniu (z-350), tad be šito
+      // ant priartintos kortos toliau švytėtų rankos kortos kontūras ir rodyklė.
+      const insp = !!document.querySelector('[data-inspect-overlay="full"]')
+      if (insp !== prevInsp.current) { prevInsp.current = insp; setInspecting(insp) }
+
       const hs = readRects(p.highlightSelectors)
       const ar = rectOf(p.arrowSelector)
       const af = rectOf(p.arrowFromSelector)
@@ -293,13 +301,13 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
           tad kova atrodė nuolat prigesusi. Dėmesį veda švytintys žiedai, pulsas,
           rodyklė ir close-up kamera — jų pakanka be viso ekrano tamsinimo. */}
 
-      {/* Glow rings around highlights */}
-      {rects.map((r, i) => (
+      {/* Glow rings around highlights (peržiūros metu — nerodom) */}
+      {!inspecting && rects.map((r, i) => (
         <div key={i} className="rvn-tut-ring" style={{ left: r.x, top: r.y, width: r.w, height: r.h }} />
       ))}
 
       {/* Pulsuojantys žiedai apie rodyklės taikinį (arrowStyle='pulse') */}
-      {arrowStyle === 'pulse' && arrow && (
+      {!inspecting && arrowStyle === 'pulse' && arrow && (
         <>
           <div className="rvn-tut-pulse rvn-tut-pulse-1" style={{ left: arrow.x - 6, top: arrow.y - 6, width: arrow.w + 12, height: arrow.h + 12 }} />
           <div className="rvn-tut-pulse rvn-tut-pulse-2" style={{ left: arrow.x - 6, top: arrow.y - 6, width: arrow.w + 12, height: arrow.h + 12 }} />
@@ -308,7 +316,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       )}
 
       {/* Drag-path „vaiduoklis": punktyrinė kreivė + judanti kortos šmėkla */}
-      {dragPath && (
+      {!inspecting && dragPath && (
         <svg width={vp.w} height={vp.h} style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
           <path d={dragPath} className="rvn-tut-dragline" fill="none" />
           <circle r="13" className="rvn-tut-ghost">
@@ -319,7 +327,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       )}
 
       {/* Animated arrow (point / pulse) */}
-      {arrow && arrowStyle !== 'drag-path' && (
+      {!inspecting && arrow && arrowStyle !== 'drag-path' && (
         <div className="rvn-tut-arrow" style={{ left: arrow.x + arrow.w / 2 - 16, top: arrow.y - 42 }}>▼</div>
       )}
 
