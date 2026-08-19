@@ -10,7 +10,7 @@
 //    avg time and wrong-action counts (drop-off insight).
 // ════════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { rebuildTutorial } from '@/lib/tutorial2/seedRebuild'
 import { playTutorialVoice, tutorialVoiceUrl, isVoiceKnownMissing } from '@/lib/tutorial2/tutorialVoice'
@@ -25,11 +25,28 @@ interface Row {
 interface PerLesson { lesson_slug: string; starts: number; completes: number; skips: number; quits: number; wrong_actions: number }
 interface PerStep { lesson_slug: string; step_id: string; completes: number; avg_ms: number | null; wrong: number }
 
+/** Raktų tvarkai atsparus JSON — DB grąžina kitokia tvarka nei kodo objektas. */
+function stableStringify(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null'
+  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']'
+  const e = Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b))
+  return '{' + e.map(([k, x]) => JSON.stringify(k) + ':' + stableStringify(x)).join(',') + '}'
+}
+
 export function AdminTutorial() {
   const [rows, setRows] = useState<Row[]>([])
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [analytics, setAnalytics] = useState<{ perLesson: PerLesson[]; perStep: PerStep[] } | null>(null)
+
+  const seedByKey = useMemo(() => new Map(tutorialLessonSeeds.map((sd) => [sd.seedKey, sd])), [])
+  /** Pamokos, kurių DB turinys SKIRIASI nuo kodo seed'o (dažniausia klaida:
+   *  paspaustas „sujungti", kuris jau užpildytų laukų NEPERRAŠO). */
+  const driftKeys = useMemo(() => rows.filter((r) => {
+    const sd = r.seed_key ? seedByKey.get(r.seed_key) : null
+    if (!sd) return false
+    return stableStringify(sd.config) !== stableStringify(r.config) || stableStringify(sd.reward) !== stableStringify(r.reward_payload)
+  }).map((r) => r.seed_key ?? ''), [rows, seedByKey])
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -46,6 +63,24 @@ export function AdminTutorial() {
     const r = await rebuildTutorial(tutorialLessonSeeds, mode)
     setMsg(r.ok ? `✓ ${mode}: +${r.created} ~${r.updated} =${r.skipped}` : `Klaida: ${r.error}`)
     await load(); setBusy(false)
+  }
+
+  /** Perrašo VIENĄ pamoką iš kodo seed'o (kai DB tekstas atsilikęs). */
+  const resetOne = async (row: Row) => {
+    const sd = tutorialLessonSeeds.find((x) => x.seedKey === row.seed_key)
+    if (!sd) return
+    setBusy(true); setMsg('')
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('tutorial_lessons').update({
+        slug: sd.slug, sort_order: sd.sortOrder, title: sd.title, subtitle: sd.subtitle ?? null,
+        description: sd.description ?? null, icon: sd.icon ?? null, est_minutes: sd.estMinutes ?? 4,
+        config: sd.config, reward_payload: sd.reward, status: sd.status ?? 'active',
+      }).eq('seed_key', sd.seedKey)
+      setMsg(error ? 'Klaida: ' + error.message : `✓ ${sd.title} perrašyta iš kodo`)
+    } catch (e) { setMsg('Klaida: ' + (e as Error).message) }
+    setBusy(false)
+    await load()
   }
 
   const save = async (row: Row) => {
@@ -67,6 +102,15 @@ export function AdminTutorial() {
     <div className="max-w-5xl mx-auto p-4 text-[#f3ead3]">
       <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>🎓 Mokymai</h1>
       <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Pamokos yra data-driven (config JSONB). Čia gali kurti/keisti/perrikiuoti pamokas, atlygius ir scenarijus be kodo.</p>
+
+      {driftKeys.length > 0 && (
+        <div className="mb-3 px-3 py-2 rounded-lg text-xs" role="alert"
+          style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>
+          <b>DB tekstai ATSILIKĘ nuo kodo ({driftKeys.length}).</b> {'„Įkelti / sujungti"'} NEPERRAŠO jau
+          užpildytų laukų — pakeitimai iš kodo atsiranda TIK per <b>{'„Perrašyti iš kodo (reset)"'}</b> arba
+          mygtuką {'„Perrašyti šią"'} prie konkrečios pamokos.
+        </div>
+      )}
 
       <div className="flex gap-2 mb-3 items-center flex-wrap">
         <button onClick={() => seed('merge')} disabled={busy} className="px-3 py-1.5 rounded-lg text-sm font-bold" style={{ background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>Įkelti / sujungti iš kodo</button>
@@ -128,16 +172,18 @@ export function AdminTutorial() {
       <div className="flex flex-col gap-3">
         {rows.map((row, idx) => (
           <LessonEditor key={row.id} row={row} busy={busy}
+            drift={driftKeys.includes(row.seed_key ?? '')}
             onChange={(r) => setRows((rs) => rs.map((x, i) => (i === idx ? r : x)))}
-            onSave={() => save(row)} />
+            onSave={() => save(row)}
+            onResetOne={() => resetOne(row)} />
         ))}
-        {rows.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pamokų nėra. Spausk „Įkelti iš kodo".</p>}
+        {rows.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pamokų nėra. Spausk {'„Įkelti / sujungti iš kodo"'}.</p>}
       </div>
     </div>
   )
 }
 
-function LessonEditor({ row, busy, onChange, onSave }: { row: Row; busy: boolean; onChange: (r: Row) => void; onSave: () => void }) {
+function LessonEditor({ row, busy, drift, onChange, onSave, onResetOne }: { row: Row; busy: boolean; drift?: boolean; onChange: (r: Row) => void; onSave: () => void; onResetOne: () => void }) {
   const [configText, setConfigText] = useState(() => JSON.stringify(row.config, null, 2))
   const [rewardText, setRewardText] = useState(() => JSON.stringify(row.reward_payload, null, 2))
   const [err, setErr] = useState('')
@@ -162,6 +208,14 @@ function LessonEditor({ row, busy, onChange, onSave }: { row: Row; busy: boolean
         </select>
         <button onClick={() => setOpen((o) => !o)} className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(255,255,255,0.08)' }}>{open ? 'Sutraukti' : 'Redaguoti'}</button>
         <button onClick={() => { if (commitJson()) onSave() }} disabled={busy} className="text-xs px-3 py-1 rounded font-bold" style={{ background: 'rgba(240,180,41,0.18)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>Išsaugoti</button>
+        {drift && (
+          <>
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" title="DB turinys skiriasi nuo kodo seed'o"
+              style={{ background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>≠ KODAS</span>
+            <button onClick={onResetOne} disabled={busy} className="text-xs px-3 py-1 rounded font-bold"
+              style={{ background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}>Perrašyti šią</button>
+          </>
+        )}
       </div>
       <input className={inp + ' w-full mt-2'} placeholder="Paantraštė" value={row.subtitle ?? ''} onChange={(e) => onChange({ ...row, subtitle: e.target.value })} />
       {open && (

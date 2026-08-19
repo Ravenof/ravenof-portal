@@ -231,6 +231,26 @@ Perrašomų balso eilučių tekstai su failų vardais: `PERRASYTI-7-BALSO-EILUTE
 
 ---
 
+## SVARBU: kodėl pakeisti tekstai NEPASIRODO žaidime
+
+Pamokų turinys gyvena **DB** (`tutorial_lessons.config`) — kodo seed'ai yra tik
+šaltinis. Admin turi DU mygtukus:
+
+* **„Įkelti / sujungti iš kodo"** (merge) — sukuria TRŪKSTAMAS pamokas ir užpildo
+  TIK tuščius laukus. Jau esantį `config` (t. y. senus tekstus) **NEPERRAŠO**.
+* **„Perrašyti iš kodo (reset)"** — perrašo VISKĄ iš kodo. **Būtent šito reikia
+  po kiekvieno seed'ų pakeitimo** (commit638/641 tekstai, L8 mulligano žingsnis ir t. t.).
+
+Nuo commit642 admin'as pats tai pastebi: viršuje raudonas įspėjimas „DB tekstai
+ATSILIKĘ nuo kodo (N)", o prie kiekvienos nesutampančios pamokos — žyma `≠ KODAS`
+ir mygtukas **„Perrašyti šią"** (perrašo tik tą vieną, neliečiant kitų).
+Palyginimas atsparus raktų tvarkai (`stableStringify`), tad be klaidingų signalų.
+
+**Eiliškumas po deploy:** 1) Vercel deploy'as su naujausiu commit'u → 2) admin →
+Mokymai → **„Perrašyti iš kodo (reset)"** → 3) pamoką atidaryti iš naujo.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |
