@@ -3429,6 +3429,26 @@ doAction({ t: 'endTurn', actor: 'you' })
     let started = false
     dragMovedRef.current = false
     const handTop = () => (handPanelRef.current ?? handRef.current)?.getBoundingClientRect().top ?? Infinity
+    /**
+     * Ar žymeklis virš SAVO padarų zonos? Anksčiau „ant lentos" spręsdavo tik
+     * `clientY < handTop()`, o horizontaliame išdėstyme tavo padarų eilė dalinai
+     * patenka po rankos panelės viršumi — numetus tiesiai ant zonos korta
+     * grįždavo į ranką („nuo pirmo karto nepasideda"). Dabar zona tikrinama
+     * TIESIOGIAI: bet koks numetimas jos ribose (su 28 px atsarga) = sužaidimas.
+     */
+    const overOwnZone = (x: number, y: number) => {
+      if (typeof document === 'undefined') return false
+      const hit = document.elementFromPoint(x, y)
+      if (hit?.closest?.('[data-drop-slot="you"], [data-tut="units-you"], [data-tut="artifacts"], [data-tut="reactions"], [data-tut="field"]')) return true
+      for (const sel of ['[data-tut="units-you"]', '[data-tut="artifacts"]', '[data-tut="reactions"]', '[data-tut="field"]']) {
+        const el = document.querySelector(sel)
+        if (!el) continue
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 && r.height === 0) continue
+        if (x >= r.left - 28 && x <= r.right + 28 && y >= r.top - 28 && y <= r.bottom + 28) return true
+      }
+      return false
+    }
     let lp: ReturnType<typeof setTimeout> | null = null
     let inspected = false
     function cleanup() {
@@ -3453,7 +3473,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         } else if (Math.abs(dx) > 10) { cleanup(); return } else return
       }
       const d = dragRef.current; if (!d) return
-      const onBoard = ev.clientY < handTop() - 10
+      const onBoard = ev.clientY < handTop() - 10 || overOwnZone(ev.clientX, ev.clientY)
       // Fazė 2: ghost'as vejasi žymeklį su nedidele inercija (arrow režime — ne,
       // ten linija turi eiti tiksliai į taikinį).
       const arrow = d.targeted && onBoard
@@ -3480,7 +3500,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       const d = dragRef.current; dragRef.current = null; setDrag(null)
       if (!d) return
       if (selKind === 'discard') { onHandCardClick(d.card); return }
-      const onBoard = ev.clientY < handTop() - 10
+      const onBoard = ev.clientY < handTop() - 10 || overOwnZone(ev.clientX, ev.clientY)
       if (!onBoard) {
         // Grąžinimas į ranką: spring atgal + „paėmimo" garsas.
         playCardPick()

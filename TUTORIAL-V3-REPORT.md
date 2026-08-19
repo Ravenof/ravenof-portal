@@ -279,6 +279,26 @@ iškart, kai `tutorial.active`.
 
 ---
 
+## commit644 — kaladžių eilė ir „nuo pirmo karto nepasideda"
+
+**1. Prakeiksmų pile'as vis dar buvo lentoje (i18n rakto nuotėkis).** commit641 jį
+pašalino iš `BattleLayout.tsx`, BET tas failas po pataisos tapo identiškas HEAD'ui,
+todėl iškrito iš `git status` ir **nepateko į tar'ą** — įrenginyje liko sena
+eilutė, o i18n raktas jau buvo ištrintas → apatinėje pile'ų eilėje atsirado
+ketvirtas stulpelis su etikete `BATTLE.GAME.…` (neišverstas raktas) ir eilė
+nustūmė/uždengė įprastą kaladę. Dabar failas pašalintas TIKRAI (ir įtrauktas į tar'ą).
+**Pamoka: kai pakeitimas ATŠAUKIAMAS, failas iškrenta iš `git status` — į tar'ą jį
+reikia įdėti RANKA.**
+
+**2. Kortos numetimas.** „Ant lentos" buvo sprendžiama tik pagal
+`clientY < handTop() − 10`. Horizontaliame išdėstyme tavo padarų eilė dalinai
+patenka po rankos panelės viršumi, tad numetus TIESIAI ant zonos korta grįždavo į
+ranką (antras bandymas, aukščiau, pavykdavo). Naujas `overOwnZone(x, y)`: numetimas
+bet kur savo padarų / artefaktų / reakcijų / lauko zonoje (su 28 px atsarga, tikrinant
+ir `elementFromPoint`, ir zonos rect) = sužaidimas.
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

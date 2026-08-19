@@ -191,9 +191,6 @@ export default function BattleLayout(props: BattleLayoutProps) {
             {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 40 })}
             {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 40 })}
             {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 40 })}
-            {/* Prakeiksmų ŠONINĖ kaladė (demonai): rodoma tik kai ji netuščia —
-                mokymų L7 taiko į ją close-up (data-tut="curses"). */}
-            {game.you.curses.length > 0 && renderPile(t('battle.game.cursesPile'), game.you.curses.length, { tut: 'curses', back: 'curse', w: 40 })}
           </RailCard>
         </aside>
 
