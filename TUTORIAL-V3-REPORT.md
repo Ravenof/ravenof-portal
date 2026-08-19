@@ -299,6 +299,17 @@ ir `elementFromPoint`, ir zonos rect) = sužaidimas.
 
 ---
 
+## commit645 — pritemdytas ekranas pašalintas
+
+Overlay visą pamoką dengė ekraną 62 proc. tamsa (SVG kaukė su „skylėmis" ties
+paryškinimais). Žingsniuose BE paryškinimo kaukė neturėjo skylių — vadinasi
+vientisas šydas, todėl visa kova atrodė nuolat prigesusi. Sluoksnis pašalintas:
+dėmesį veda švytintys žiedai, pulsuojantys žiedai, rodyklė / drag-path ir
+close-up kamera. (Jei prireiktų fokuso pojūčio — galima grąžinti ŠVELNŲ
+vinjetės variantą TIK tada, kai `highlight` netuščias.)
+
+---
+
 ## Testai
 
 | Suite | Rezultatas |

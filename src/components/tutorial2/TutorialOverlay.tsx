@@ -288,18 +288,10 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
     <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 350, pointerEvents: 'none' }}>
       <style>{CSS}</style>
 
-      {/* Dimming with spotlight holes */}
-      <svg width={vp.w} height={vp.h} style={{ position: 'fixed', inset: 0 }}>
-        <defs>
-          <mask id="rvn-tut-mask">
-            <rect x="0" y="0" width={vp.w} height={vp.h} fill="white" />
-            {rects.map((r, i) => (
-              <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx="14" fill="black" />
-            ))}
-          </mask>
-        </defs>
-        <rect x="0" y="0" width={vp.w} height={vp.h} fill="rgba(4,3,8,0.62)" mask="url(#rvn-tut-mask)" />
-      </svg>
+      {/* Pritemdymo NĖRA (2026-08-19): visą pamoką ekranas buvo dengiamas 62 proc.
+          tamsa — net žingsniuose BE paryškinimo (tuščia kaukė = vientisas šydas),
+          tad kova atrodė nuolat prigesusi. Dėmesį veda švytintys žiedai, pulsas,
+          rodyklė ir close-up kamera — jų pakanka be viso ekrano tamsinimo. */}
 
       {/* Glow rings around highlights */}
       {rects.map((r, i) => (
