@@ -17,6 +17,7 @@ import { createPortal } from 'react-dom'
 import { playUiClick } from '@/lib/ui-sound'
 import { getMusicVolume, getSfxVolume, isReducedMotionEnabled } from '@/lib/settings'
 import { useLocale } from '@/lib/i18n/react'
+import { cachedMediaUrl, collectMotionComicAudio, precacheCutsceneMedia, releaseCutsceneMedia } from '@/lib/campaign/mediaCache'
 import {
   mcCharacter, mcPoseUrl, mcText,
   type MCEffect, type MCShot, type MCTransitionType, type MotionComicDef,
@@ -40,10 +41,14 @@ class Bed {
     const target = this.baseVol()
     let next: HTMLAudioElement | null = null
     if (url) {
-      next = new Audio(url)
-      ;(next as unknown as { __url?: string }).__url = url
-      next.loop = true; next.volume = 0
-      next.play().catch(() => {})
+      const el = new Audio()
+      ;(el as unknown as { __url?: string }).__url = url
+      el.loop = true; el.volume = 0
+      // src iš įrenginio kešo (arba tiesioginis URL fallback'as)
+      void cachedMediaUrl(url).then((src) => {
+        if (src && this.a === el) { el.src = src; el.play().catch(() => {}) }
+      })
+      next = el
     }
     this.a = next
     const steps = Math.max(1, Math.round(ms / 60))
@@ -266,11 +271,14 @@ export function MotionComicPlayer({ def, skippable = true, onDone }: {
     if (doneRef.current) return
     doneRef.current = true
     stopAllAudio()
+    releaseCutsceneMedia()   // objectURL'ai atlaisvinami; failai LIEKA įrenginio keše
     onDone()
   }, [onDone, stopAllAudio])
 
   // beds: initial + per-shot crossfade
   useEffect(() => {
+    // visi cutscene audio failai — į įrenginio kešą fone (VO/muzika/SFX)
+    precacheCutsceneMedia(collectMotionComicAudio(def))
     music.current?.crossfadeTo(def.musicUrl ?? null, 700)
     ambient.current?.crossfadeTo(def.ambientUrl ?? null, 700)
     return () => stopAllAudio()
@@ -326,12 +334,19 @@ export function MotionComicPlayer({ def, skippable = true, onDone }: {
   useEffect(() => {
     setTyped(0)
     if (!shot) return
-    if (shot.sfxUrl) { const s = new Audio(shot.sfxUrl); s.volume = getSfxVolume(); s.play().catch(() => {}) }
+    if (shot.sfxUrl) {
+      void cachedMediaUrl(shot.sfxUrl).then((src) => {
+        if (!src) return
+        const s = new Audio(src); s.volume = getSfxVolume(); s.play().catch(() => {})
+      })
+    }
     voiceRef.current?.pause()
     if (shot.voiceUrl) {
-      const v = new Audio(shot.voiceUrl); v.volume = 0.95; voiceRef.current = v
+      const v = new Audio(); v.volume = 0.95; voiceRef.current = v
       if (def.autoAdvanceAfterVoice) v.onended = () => advanceRef.current()
-      v.play().catch(() => {})
+      void cachedMediaUrl(shot.voiceUrl).then((src) => {
+        if (src && voiceRef.current === v) { v.src = src; v.play().catch(() => {}) }
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx])

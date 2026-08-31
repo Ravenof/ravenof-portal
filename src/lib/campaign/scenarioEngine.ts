@@ -44,7 +44,7 @@ export type ScenarioEffect =
   | { kind: 'spawn'; side: 'player' | 'enemy'; cardId: string; slot?: number; buffs?: { attack?: number; health?: number } }
   | { kind: 'spawnWave'; waveId: string }
   | { kind: 'objectiveHp'; objectiveId: string; hp: number; delta: number }
-  | { kind: 'dialogue'; text: string; characterName?: string; portraitUrl?: string }
+  | { kind: 'dialogue'; text: string; characterName?: string; portraitUrl?: string; cutsceneId?: string }
   | { kind: 'restrictCardTypes'; types: string[] }
   | { kind: 'forceTargetPriority'; priority: string }
   | { kind: 'addField'; fieldId: string }
@@ -132,8 +132,11 @@ function applyAction(a: ScenarioAction, st: ScenarioState, out: ScenarioEffect[]
       break
     }
     case 'dialogue':
+      // cutsceneId ⇒ runtime groja pilną cutscene (VN arba motion-comic);
+      // vien text ⇒ runtime rodo trumpą in-battle dialogą (efemerinė scena).
       out.push({ kind: 'dialogue', text: String(a.text ?? ''),
-                 characterName: a.characterName as string | undefined, portraitUrl: a.portraitUrl as string | undefined })
+                 characterName: a.characterName as string | undefined, portraitUrl: a.portraitUrl as string | undefined,
+                 cutsceneId: a.cutsceneId ? String(a.cutsceneId) : undefined })
       break
     case 'restrictCardTypes':
       out.push({ kind: 'restrictCardTypes', types: (a.types as string[]) ?? [] })
@@ -165,14 +168,29 @@ function applyAction(a: ScenarioAction, st: ScenarioState, out: ScenarioEffect[]
  * current snapshot, returning the effects to apply. Mutates `st` (fired rules,
  * objective HP, end state) so call once per engine event.
  */
+/** Papildomas įvykio kontekstas kortos-specifinėms taisyklėms (onCardPlayed/onUnitDeath). */
+export interface TriggerContext {
+  cardId?: string | null
+  cardName?: string | null
+  side?: 'player' | 'enemy'
+}
+
+function cardMatches(rule: ScenarioRule, ctx?: TriggerContext): boolean {
+  if (rule.cardId && rule.cardId !== ctx?.cardId) return false
+  if (rule.cardName && rule.cardName !== ctx?.cardName) return false
+  if (rule.side && rule.side !== ctx?.side) return false
+  return true
+}
+
 export function runTrigger(
-  cfg: ScenarioConfig, st: ScenarioState, trigger: ScenarioRule['trigger'], snap: BattleSnapshot,
+  cfg: ScenarioConfig, st: ScenarioState, trigger: ScenarioRule['trigger'], snap: BattleSnapshot, ctx?: TriggerContext,
 ): ScenarioEffect[] {
   const out: ScenarioEffect[] = []
   const rules = cfg.rules ?? []
   rules.forEach((rule, idx) => {
     if (rule.trigger !== trigger) return
     if ((trigger === 'onTurnStart' || trigger === 'onTurnEnd') && !turnMatches(rule, snap.turn)) return
+    if ((trigger === 'onCardPlayed' || trigger === 'onUnitDeath') && !cardMatches(rule, ctx)) return
     const key = ruleKey(rule, idx, snap.turn)
     if (st.firedRuleKeys.has(key)) return
     const conds = rule.conditions ?? []

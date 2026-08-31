@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { playUiClick } from '@/lib/ui-sound'
 import { getMotionComic } from '@/lib/campaign/motionComic'
+import { cachedMediaUrl, collectVnCutsceneAudio, precacheCutsceneMedia } from '@/lib/campaign/mediaCache'
 import { MotionComicPlayer } from './MotionComicPlayer'
 import type { Cutscene, CutsceneStep } from '@/lib/campaign/types'
 
@@ -38,21 +39,28 @@ function VnCutscenePlayer({ cutscene, onDone }: { cutscene: Cutscene; onDone: (c
   const bgImage = step?.backgroundImageUrl ?? cutscene.backgroundImageUrl
   const bgVideo = step?.videoUrl ?? cutscene.backgroundVideoUrl
 
-  // music / ambient on mount
+  // visi cutscene audio — į įrenginio kešą fone (balsai lieka telefone)
+  useEffect(() => { precacheCutsceneMedia(collectVnCutsceneAudio(cutscene)) }, [cutscene])
+
+  // music / ambient on mount (per įrenginio kešą)
   useEffect(() => {
     if (!cutscene.musicUrl) return
-    const a = new Audio(cutscene.musicUrl)
+    const a = new Audio()
     a.loop = true; a.volume = 0.4; musicRef.current = a
-    if (cutscene.autoplay) a.play().catch(() => {})
+    void cachedMediaUrl(cutscene.musicUrl).then((src) => {
+      if (src && musicRef.current === a) { a.src = src; if (cutscene.autoplay) a.play().catch(() => {}) }
+    })
     return () => { a.pause(); musicRef.current = null }
   }, [cutscene.musicUrl, cutscene.autoplay])
 
-  // per-step voice
+  // per-step voice (per įrenginio kešą)
   useEffect(() => {
     voiceRef.current?.pause()
     if (step?.voiceUrl && cutscene.autoplay) {
-      const v = new Audio(step.voiceUrl); v.volume = 0.9; voiceRef.current = v
-      v.play().catch(() => {})
+      const v = new Audio(); v.volume = 0.9; voiceRef.current = v
+      void cachedMediaUrl(step.voiceUrl).then((src) => {
+        if (src && voiceRef.current === v) { v.src = src; v.play().catch(() => {}) }
+      })
     }
   }, [idx, step?.voiceUrl, cutscene.autoplay])
 
@@ -132,7 +140,7 @@ function VnCutscenePlayer({ cutscene, onDone }: { cutscene: Cutscene; onDone: (c
           </p>
 
           {step.voiceUrl && (
-            <button onClick={(e) => { e.stopPropagation(); const v = new Audio(step.voiceUrl!); v.play().catch(() => {}) }}
+            <button onClick={(e) => { e.stopPropagation(); void cachedMediaUrl(step.voiceUrl).then((src) => { if (src) new Audio(src).play().catch(() => {}) }) }}
               className="mt-2 text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
               🔊 Klausyti
             </button>

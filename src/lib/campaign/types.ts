@@ -171,6 +171,12 @@ export interface ScenarioRule {
   turn?: number
   /** repeat every N turns (for periodic spawns). */
   everyTurns?: number
+  /** onCardPlayed/onUnitDeath: fire only for this card (DB card uuid). */
+  cardId?: string
+  /** onCardPlayed/onUnitDeath: fire only for this card name (admin patogumui). */
+  cardName?: string
+  /** onCardPlayed/onUnitDeath: fire only for this side's card. */
+  side?: 'player' | 'enemy'
   /** simple condition expressions evaluated by the scenario engine. */
   conditions?: ScenarioCondition[]
   actions: ScenarioAction[]

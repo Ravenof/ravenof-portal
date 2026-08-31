@@ -3,19 +3,26 @@
 // ════════════════════════════════════════════════════════════════════════════
 // CampaignRuntime — orchestrates a single mission:
 //   pre-cutscene → battle (TutorialGame) → post/failure-cutscene → reward → save
-// STANDARD_CARD_BATTLE is fully wired into the existing engine. Advanced mission
-// types (waves/gate/wall/ambush/boss) currently play as a standard battle with
-// their objectives scored from battle stats; the scenario/wave engines
-// (lib/campaign/scenarioEngine.ts, waveEngine.ts) are the extension point for
-// injecting start boards / waves / objective-HP into the live battle.
+//
+// GYVI SCENARIJAUS TRIGERIAI: TutorialGame per `onCampaignEvent` siunčia kovos
+// įvykius (ėjimas, sulošta korta, mirtis, HP, pabaiga); čia jie leidžiami per
+// scenarioEngine.runTrigger. `dialogue` efektai (cutsceneId arba inline text)
+// parodomi VIRŠ kovos — `campaignPaused` užšaldo AI ir įvestį, kol scena baigsis.
+// Tikslai (keep_unit_alive, kill_count pagal tag, defeat_within…) vertinami iš
+// TIKRO paskutinio snapshot'o, ne iš suvestinės. Spawn/wave efektų taikymas į
+// gyvą lentą — kitas etapas (žr. waveEngine.ts).
 // ════════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { createPortal } from 'react-dom'
 import { playUiClick } from '@/lib/ui-sound'
 import { CutscenePlayer } from './CutscenePlayer'
-import { initScenarioState, scoreObjectives, type BattleSnapshot } from '@/lib/campaign/scenarioEngine'
+import {
+  initScenarioState, runTrigger, scoreObjectives,
+  type BattleSnapshot, type ScenarioEffect, type ScenarioState, type TriggerContext,
+} from '@/lib/campaign/scenarioEngine'
+import type { CampaignEngineEvent } from '@/lib/campaign/battleBridge'
 import { completeNode, cutsceneById, markCutsceneWatched } from '@/lib/campaign/missionLoader'
 import type { Campaign, Cutscene, NodeView, MissionResult } from '@/lib/campaign/types'
 import type { CampaignBattleResult } from '@/components/tutorial/TutorialGame'
@@ -46,9 +53,91 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
   const enemyFaction = bc.enemyFactionId ?? null
   const difficulty = bc.difficulty ?? 'normal'
 
-  // score a finished battle against the node's objectives
-  const scoreBattle = (won: boolean, r?: CampaignBattleResult): MissionResult => {
+  // ── Gyva scenarijaus būsena (Set'ai mutuojami vietoje → ref, ne state) ──
+  const scenarioCfgRef = useRef(node.scenario ?? {})
+  const stRef = useRef<ScenarioState>(initScenarioState(scenarioCfgRef.current))
+  const killsRef = useRef<Record<string, number>>({})
+  const snapRef = useRef<BattleSnapshot | null>(null)
+  const prevTurnRef = useRef(0)
+  const [midCutscene, setMidCutscene] = useState<Cutscene | null>(null)
+  const midQueueRef = useRef<Cutscene[]>([])
+
+  const enqueueMidCutscene = useCallback((c: Cutscene) => {
+    setMidCutscene((cur) => { if (cur) { midQueueRef.current.push(c); return cur } return c })
+  }, [])
+
+  const onMidCutsceneDone = useCallback(() => {
+    setMidCutscene((cur) => {
+      if (cur && cutsceneById(cutscenes, cur.id)) markCutsceneWatched(campaign.id, cur.id)
+      return midQueueRef.current.shift() ?? null
+    })
+  }, [cutscenes, campaign.id])
+
+  const applyScenarioEffects = useCallback((effects: ScenarioEffect[]) => {
+    for (const ef of effects) {
+      if (ef.kind === 'dialogue') {
+        const persistent = ef.cutsceneId ? cutsceneById(cutscenes, ef.cutsceneId) : null
+        if (persistent) { enqueueMidCutscene(persistent); continue }
+        if (!ef.text) continue
+        // inline in-battle dialogas — efemerinė vieno žingsnio scena per VN playerį
+        enqueueMidCutscene({
+          id: `inline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          campaignId: campaign.id, title: 'Dialogas', type: 'dialogue',
+          skippable: true, autoplay: true, metadata: {},
+          steps: [{
+            id: 's1', side: ef.characterName ? 'left' : 'narrator',
+            characterName: ef.characterName ?? null, portraitUrl: ef.portraitUrl ?? null, text: ef.text,
+          }],
+        })
+      }
+      // spawn / spawnWave / addBuff / addField / restrict* — gyvos lentos taikymas
+      // dar neįjungtas (kitas etapas); 'end' ir 'objectiveHp' jau atsispindi stRef.
+    }
+  }, [cutscenes, campaign.id, enqueueMidCutscene])
+
+  /** Kovos variklio įvykiai → scenario taisyklės (kviečia TutorialGame). */
+  const handleEngineEvent = useCallback((e: CampaignEngineEvent, raw: BattleSnapshot) => {
+    const st = stRef.current
+    if (e.t === 'unitDeath' && e.side === 'enemy' && e.tag) {
+      killsRef.current[e.tag] = (killsRef.current[e.tag] ?? 0) + 1
+    }
     const snap: BattleSnapshot = {
+      ...raw, killsByTag: { ...killsRef.current }, objectives: st.objectives, bossPhase: st.bossPhase,
+    }
+    snapRef.current = snap
+    const cfg = scenarioCfgRef.current
+    const out: ScenarioEffect[] = []
+    const run = (trigger: Parameters<typeof runTrigger>[2], s: BattleSnapshot = snap, ctx?: TriggerContext) =>
+      out.push(...runTrigger(cfg, st, trigger, s, ctx))
+    switch (e.t) {
+      case 'battleStart': run('onBattleStart'); break
+      case 'turnStart':
+        if (prevTurnRef.current && prevTurnRef.current !== e.turn) run('onTurnEnd', { ...snap, turn: prevTurnRef.current })
+        prevTurnRef.current = e.turn
+        run('onTurnStart'); run('onCondition')
+        break
+      case 'cardPlayed':
+        run('onCardPlayed', snap, { cardId: e.cardId, cardName: e.cardName, side: e.side }); run('onCondition')
+        break
+      case 'unitDeath':
+        run('onUnitDeath', snap, { cardId: e.cardId, cardName: e.cardName, side: e.side }); run('onCondition')
+        break
+      case 'hpChange': run('onCondition'); break
+      case 'battleEnd': run(e.winner === 'player' ? 'onVictory' : 'onDefeat'); break
+    }
+    if (out.length) applyScenarioEffects(out)
+  }, [applyScenarioEffects])
+
+  // score a finished battle against the node's objectives — su TIKRU paskutiniu
+  // snapshot'u (lentos, kills pagal tag, objective HP), jei kova jį pateikė
+  const scoreBattle = (won: boolean, r?: CampaignBattleResult): MissionResult => {
+    const live = snapRef.current
+    const snap: BattleSnapshot = live ? {
+      ...live,
+      turn: r?.turns ?? live.turn,
+      playerHp: r?.stats.hpRemaining ?? live.playerHp,
+      spellsPlayed: r?.stats.spellsPlayed ?? live.spellsPlayed,
+    } : {
       turn: r?.turns ?? 0, phase: 'player',
       playerHp: r?.stats.hpRemaining ?? (won ? 1 : 0), enemyHp: won ? 0 : 1,
       playerBoard: [], enemyBoard: [],
@@ -56,7 +145,7 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
       enemyKills: (r?.stats.creaturesKilled ?? 0) + (r?.stats.championsKilled ?? 0),
       killsByTag: {}, objectives: {}, bossPhase: 0,
     }
-    const st = initScenarioState(node.scenario ?? {})
+    const st = live ? stRef.current : initScenarioState(scenarioCfgRef.current)
     const { completed, stars } = scoreObjectives(node.objectives ?? [], snap, st, won)
     return { nodeId: node.id, result: won ? 'win' : 'lose', stars: won ? Math.max(1, stars) : 0, objectives: completed, choiceKey }
   }
@@ -100,22 +189,27 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
   // ── BATTLE ──
   if (phase === 'battle') {
     return (
-      <TutorialGame
-        deckId={playerDeckId}
-        deckName={playerDeckName}
-        practice
-        opponentDeckId={enemyDeckId}
-        opponentFaction={enemyDeckId ? null : enemyFaction}
-        opponentName={bc.enemyName ?? 'Priešas'}
-        difficulty={difficulty}
-        onCampaignResult={onBattleResult}
-        onClose={() => {
-          // battle closed: route by captured result
-          if (result?.result === 'win') setPhase('post')
-          else if (result?.result === 'lose') setPhase('fail')
-          else onExit() // abandoned before a result
-        }}
-      />
+      <>
+        <TutorialGame
+          deckId={playerDeckId}
+          deckName={playerDeckName}
+          practice
+          opponentDeckId={enemyDeckId}
+          opponentFaction={enemyDeckId ? null : enemyFaction}
+          opponentName={bc.enemyName ?? 'Priešas'}
+          difficulty={difficulty}
+          onCampaignResult={onBattleResult}
+          onCampaignEvent={handleEngineEvent}
+          campaignPaused={!!midCutscene}
+          onClose={() => {
+            // battle closed: route by captured result
+            if (result?.result === 'win') setPhase('post')
+            else if (result?.result === 'lose') setPhase('fail')
+            else onExit() // abandoned before a result
+          }}
+        />
+        {midCutscene && <CutscenePlayer cutscene={midCutscene} onDone={onMidCutsceneDone} />}
+      </>
     )
   }
 

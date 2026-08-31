@@ -5,6 +5,7 @@
 //   formato redagavimas, kol atsiras vizualus flow editorius.
 import { useState } from 'react'
 import { validateMotionComic, type MotionComicDef } from '@/lib/campaign/motionComic'
+import { AudioLibraryUpload, AudioUploadField } from './CutsceneAudioUpload'
 import type { Cutscene, CutsceneStep, CutsceneSide, CutsceneType } from '@/lib/campaign/types'
 
 const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }
@@ -36,8 +37,10 @@ export function AdminCutsceneEditor({ cutscene, onChange, onDelete }: {
       <div className="grid grid-cols-2 gap-2">
         <input value={cutscene.backgroundImageUrl ?? ''} onChange={(e) => onChange({ backgroundImageUrl: e.target.value || null })} placeholder="Fono paveikslo URL" className="px-2 py-1.5 rounded text-xs" style={inp} />
         <input value={cutscene.backgroundVideoUrl ?? ''} onChange={(e) => onChange({ backgroundVideoUrl: e.target.value || null })} placeholder="Fono video URL" className="px-2 py-1.5 rounded text-xs" style={inp} />
-        <input value={cutscene.musicUrl ?? ''} onChange={(e) => onChange({ musicUrl: e.target.value || null })} placeholder="Muzikos URL" className="px-2 py-1.5 rounded text-xs" style={inp} />
-        <input value={cutscene.ambientUrl ?? ''} onChange={(e) => onChange({ ambientUrl: e.target.value || null })} placeholder="Aplinkos garso URL" className="px-2 py-1.5 rounded text-xs" style={inp} />
+      </div>
+      <div className="grid grid-cols-1 gap-1.5">
+        <AudioUploadField label="Muzika" value={cutscene.musicUrl} onChange={(url) => onChange({ musicUrl: url })} folder={cutscene.id} />
+        <AudioUploadField label="Ambient" value={cutscene.ambientUrl} onChange={(url) => onChange({ ambientUrl: url })} folder={cutscene.id} />
       </div>
 
       <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Žingsniai</p>
@@ -52,10 +55,8 @@ export function AdminCutsceneEditor({ cutscene, onChange, onDelete }: {
             <button onClick={() => delStep(i)} className="text-[10px]" style={{ color: '#f87171' }}>✕</button>
           </div>
           <textarea value={s.text} onChange={(e) => setStep(i, { text: e.target.value })} rows={2} placeholder="Tekstas" className="w-full px-2 py-1 rounded text-xs" style={inp} />
-          <div className="grid grid-cols-2 gap-1.5">
-            <input value={s.portraitUrl ?? ''} onChange={(e) => setStep(i, { portraitUrl: e.target.value || null })} placeholder="Portreto/iliustracijos URL" className="px-2 py-1 rounded text-xs" style={inp} />
-            <input value={s.voiceUrl ?? ''} onChange={(e) => setStep(i, { voiceUrl: e.target.value || null })} placeholder="Balso įrašo URL" className="px-2 py-1 rounded text-xs" style={inp} />
-          </div>
+          <input value={s.portraitUrl ?? ''} onChange={(e) => setStep(i, { portraitUrl: e.target.value || null })} placeholder="Portreto/iliustracijos URL" className="w-full px-2 py-1 rounded text-xs" style={inp} />
+          <AudioUploadField label="Balsas" value={s.voiceUrl} onChange={(url) => setStep(i, { voiceUrl: url })} folder={cutscene.id} />
         </div>
       ))}
       <button onClick={addStep} className="px-3 py-1.5 rounded text-xs font-bold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>+ Žingsnis</button>
@@ -125,6 +126,7 @@ function MotionComicJsonSection({ cutscene, onChange }: {
           <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
             Shot-based „judančio komikso“ scenarijus (metadata.motionComic). Kai užpildyta — grotuvas naudoja jį, VN žingsniai ignoruojami. Peržiūra: /dev/cutscene.
           </p>
+          <AudioLibraryUpload folder={cutscene.id} />
           <textarea value={shown} onChange={(e) => setText(e.target.value)} rows={10} spellCheck={false}
             placeholder="Motion-comic JSON..." className="w-full px-2 py-1 rounded text-[11px] font-mono" style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
           {err.map((x, i) => <p key={i} className="text-[10px]" style={{ color: '#f87171' }}>• {x}</p>)}

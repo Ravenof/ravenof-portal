@@ -68,6 +68,7 @@ import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/scr
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING, COIN_TOSS } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
+import { emitCampaignEvents, type CampaignEventHandler } from '@/lib/campaign/battleBridge'
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
 import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
 import { impactProfile, severityAtLeast, type ImpactSeverity } from '@/lib/game/impactProfiles'
@@ -115,7 +116,7 @@ export type TutorialGameApi = {
   inspectCard: (cardName: string | null) => void
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; tutorial?: TutorialHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; tutorial?: TutorialHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -896,7 +897,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, tutorial }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, tutorial }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
@@ -1288,8 +1289,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const chainBlocks = !!game?.summonChain?.length
   /** Reakcijos grandinės animacijos vartai – kol jie atviri, būsena dar neparodyta. */
   const [gateActive, setGateActive] = useState(false)
+  /** Kampanijos mid-battle cutscene/dialogas – užšaldo ir AI, ir žaidėjo įvestį. */
+  const campBlocks = !!campaignPaused
   /** Bendras įvesties užraktas (pop-up'as, iškvietimų grandinė arba reakcijos vartai). */
-  const actionsLocked = popupBlocks || chainBlocks || gateActive || mulliganBlocks || coinBlocks
+  const actionsLocked = popupBlocks || chainBlocks || gateActive || mulliganBlocks || coinBlocks || campBlocks
   const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   // Horizontal (landscape) layout = DEFAULT. `?layout=v` grąžina seną vertikalų/desktop layout'ą (rollback).
   const useHLayout = typeof window === 'undefined' ? true : new URLSearchParams(window.location.search).get('layout') !== 'v'
@@ -1692,6 +1695,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       }
     })
     if (tutorial?.active && tutorial.onEvents && fresh.length) { try { tutorial.onEvents(fresh, game) } catch (e) { console.error('[tutorial] onEvents', e) } }
+    // ── Kampanijos scenarijaus fanout (misijos trigeriai; prop nepaduotas ⇒ no-op) ──
+    if (onCampaignEvent && fresh.length) { try { emitCampaignEvents(fresh, game, findCard, onCampaignEvent) } catch (e) { console.error('[campaign] onEvent', e) } }
     let zmkN = 0
     let drawSeq = 0
     let skipYouDraw = false
@@ -2573,7 +2578,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── AI ėjimo ciklas ──
   useEffect(() => {
     if (vsRemote) return  // PvP – jokio AI
-    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || arrangeBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks || mulliganBlocks || coinBlocks) return
+    if (!game || game.winner || game.active !== 'ai' || popupBlocks || chainBlocks || gateActive || zmkBlocks || peekBlocks || arrangeBlocks || revealBlocks || summonBlocks || choiceBlocks || copyBlocks || lastwishBlocks || returnBlocks || mulliganBlocks || coinBlocks || campBlocks) return
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
@@ -2600,7 +2605,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, mulliganBlocks, coinBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, mulliganBlocks, coinBlocks, campBlocks, difficulty, ranked, aiStrategy, cine.current])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner
