@@ -14,6 +14,7 @@ import { validateCampaign } from '@/lib/campaign/validate'
 import { AdminCampaignMapEditor } from './AdminCampaignMapEditor'
 import { AdminNodeEditor } from './AdminNodeEditor'
 import { AdminCutsceneEditor } from './AdminCutsceneEditor'
+import { AdminCampaignFlow } from './flow/AdminCampaignFlow'
 import type { Campaign, CampaignChapter, CampaignNode, Cutscene, Visibility } from '@/lib/campaign/types'
 
 const GOLD = '240,180,41'
@@ -50,7 +51,7 @@ export function AdminCampaignEditor({ campaignId }: { campaignId: string }) {
   const [nodes, setNodes] = useState<CampaignNode[]>([])
   const [cutscenes, setCutscenes] = useState<Cutscene[]>([])
   const [factions, setFactions] = useState<{ id: number; name: string }[]>([])
-  const [tab, setTab] = useState<'settings' | 'map' | 'cutscenes' | 'validate'>('settings')
+  const [tab, setTab] = useState<'settings' | 'flow' | 'map' | 'cutscenes' | 'validate'>('settings')
   const [selNode, setSelNode] = useState<string | null>(null)
   const [connectFrom, setConnectFrom] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -126,6 +127,7 @@ export function AdminCampaignEditor({ campaignId }: { campaignId: string }) {
       cover_image_url: campaign.coverImageUrl, campaign_type: campaign.campaignType, lore_period: campaign.lorePeriod,
       related_factions: campaign.relatedFactions, map_image_url: campaign.mapImageUrl, visibility: campaign.visibility,
       required_level: campaign.requiredLevel, start_node_id: campaign.startNodeId, sort_order: campaign.sortOrder,
+      metadata: campaign.metadata, // srauto layout (flowLayout) ir seedKey
     }
     const e1 = await supabase.from('campaigns').update(cr).eq('id', campaignId)
     const e2 = nodes.length ? await supabase.from('campaign_nodes').upsert(nodes.map(nodeRow)) : { error: null }
@@ -155,11 +157,11 @@ export function AdminCampaignEditor({ campaignId }: { campaignId: string }) {
           <button onClick={saveAll} disabled={saving} className="px-4 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: `rgba(${GOLD},0.9)`, color: '#1a1206', fontFamily: 'var(--rvn-font-display)' }}>{saving ? 'Saugoma…' : '💾 Išsaugoti viską'}</button>
         </div>
         <div className="max-w-screen-lg mx-auto flex gap-1.5 mt-2 flex-wrap">
-          <TabBtn id="settings" label="⚙ Nustatymai" /><TabBtn id="map" label="🗺️ Žemėlapis ir mazgai" /><TabBtn id="cutscenes" label="🎬 Cutscenes" /><TabBtn id="validate" label={`✓ Validacija${issues.length ? ` (${issues.length})` : ''}`} />
+          <TabBtn id="settings" label="⚙ Nustatymai" /><TabBtn id="flow" label="🕸 Srautas" /><TabBtn id="map" label="🗺️ Žemėlapis ir mazgai" /><TabBtn id="cutscenes" label="🎬 Cutscenes" /><TabBtn id="validate" label={`✓ Validacija${issues.length ? ` (${issues.length})` : ''}`} />
         </div>
       </header>
 
-      <div className="max-w-screen-lg mx-auto px-4 py-5">
+      <div className={(tab === 'flow' ? 'max-w-screen-2xl' : 'max-w-screen-lg') + ' mx-auto px-4 py-5'}>
         {tab === 'settings' && (
           <div className="max-w-xl space-y-3">
             <L label="Pavadinimas"><input value={campaign.title} onChange={(e) => setCampaign({ ...campaign, title: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} /></L>
@@ -186,6 +188,20 @@ export function AdminCampaignEditor({ campaignId }: { campaignId: string }) {
               ))}
             </div>
           </div>
+        )}
+
+        {tab === 'flow' && (
+          <AdminCampaignFlow
+            campaign={campaign} chapters={chapters} nodes={nodes} cutscenes={cutscenes} factions={factions}
+            onPatchCampaign={(p) => setCampaign((c) => c ? { ...c, ...p } : c)}
+            onPatchNode={patchNode}
+            onPatchCutscene={patchCutscene}
+            onAddNode={() => addNode(15 + Math.random() * 70, 15 + Math.random() * 70)}
+            onAddCutscene={addCutscene}
+            onDeleteNode={deleteNode}
+            onDeleteCutscene={deleteCutscene}
+            onSetStart={(id) => setCampaign((c) => c ? { ...c, startNodeId: id } : c)}
+          />
         )}
 
         {tab === 'map' && (
