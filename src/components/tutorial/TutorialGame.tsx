@@ -116,7 +116,7 @@ export type TutorialGameApi = {
   inspectCard: (cardName: string | null) => void
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; tutorial?: TutorialHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -897,7 +897,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, tutorial }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
@@ -2574,6 +2574,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     },
   }), [gateCommit])
   useEffect(() => { if (tutorial?.active) tutorial.onApi?.(tutApi) }, [tutorial, tutApi])
+  // Kampanijos scenarijui — tas pats saugus mutate kelias (clone → fn → gateCommit)
+  useEffect(() => { onCampaignApi?.(tutApi) }, [onCampaignApi, tutApi])
 
   // ── AI ėjimo ciklas ──
   useEffect(() => {

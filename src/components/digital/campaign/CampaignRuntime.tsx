@@ -23,9 +23,13 @@ import {
   type BattleSnapshot, type ScenarioEffect, type ScenarioState, type TriggerContext,
 } from '@/lib/campaign/scenarioEngine'
 import type { CampaignEngineEvent } from '@/lib/campaign/battleBridge'
+import { allMustClearDefeated, findWave, initWaveState, resolveWave, wavesForTurn, type SpawnInstruction, type WaveRuntimeState } from '@/lib/campaign/waveEngine'
+import { collectScenarioCardIds, freshCard, loadScenarioCards } from '@/lib/campaign/scenarioCards'
+import { cachedMediaUrl } from '@/lib/campaign/mediaCache'
+import { forceBattleEnd, spawnExternalUnit, type Side, type TutCard } from '@/lib/tutorial/engine'
 import { completeNode, cutsceneById, markCutsceneWatched } from '@/lib/campaign/missionLoader'
-import type { Campaign, Cutscene, NodeView, MissionResult } from '@/lib/campaign/types'
-import type { CampaignBattleResult } from '@/components/tutorial/TutorialGame'
+import type { Campaign, Cutscene, NodeView, MissionResult, ScenarioUnit } from '@/lib/campaign/types'
+import type { CampaignBattleResult, TutorialGameApi } from '@/components/tutorial/TutorialGame'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -62,6 +66,88 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
   const [midCutscene, setMidCutscene] = useState<Cutscene | null>(null)
   const midQueueRef = useRef<Cutscene[]>([])
 
+  // ── Gyvos lentos valdymas: variklio mutate API + scenario kortų pool'as ──
+  const apiRef = useRef<TutorialGameApi | null>(null)
+  const cardsRef = useRef<Map<string, Omit<TutCard, 'uid'>> | null>(null)
+  const waveStateRef = useRef<WaveRuntimeState>(initWaveState())
+  const activeWavesRef = useRef<Set<string>>(new Set())
+  const waveTurnsDoneRef = useRef<Set<number>>(new Set())
+  const startInjectedRef = useRef(false)
+  const [objVersion, setObjVersion] = useState(0)
+  const [warnings, setWarnings] = useState<{ id: number; text: string }[]>([])
+  const warnSeq = useRef(0)
+
+  const pushWarning = useCallback((text: string | undefined | null) => {
+    if (!text) return
+    const id = ++warnSeq.current
+    setWarnings((ws) => [...ws, { id, text }])
+    setTimeout(() => setWarnings((ws) => ws.filter((w) => w.id !== id)), 3500)
+  }, [])
+
+  const toEngineSide = (s: 'player' | 'enemy'): Side => s === 'player' ? 'you' : 'ai'
+
+  /** Spawn'ina kortą į gyvą lentą (jei pool'e yra ir API paruoštas). */
+  const doSpawn = useCallback((side: 'player' | 'enemy', cardId: string, buffs?: { attack?: number; health?: number }) => {
+    const base = cardsRef.current?.get(cardId)
+    const api = apiRef.current
+    if (!base || !api) return
+    api.mutate((g) => { spawnExternalUnit(g, toEngineSide(side), freshCard(base), { buffs }) })
+  }, [])
+
+  /** Vienos bangos spawn'as: priešų daliniai + įspėjimas + balso linija. */
+  const spawnWaveNow = useCallback((instr: SpawnInstruction) => {
+    const api = apiRef.current
+    if (!api) return
+    stRef.current.spawnedWaveIds.add(instr.waveId)
+    activeWavesRef.current.add(instr.waveId)
+    pushWarning(instr.warningText ?? null)
+    if (instr.voiceLineUrl) {
+      void cachedMediaUrl(instr.voiceLineUrl).then((src) => { if (src) new Audio(src).play().catch(() => {}) })
+    }
+    api.mutate((g) => {
+      for (const u of instr.units) {
+        const base = cardsRef.current?.get(u.cardId)
+        if (base) spawnExternalUnit(g, 'ai', freshCard(base), { buffs: { attack: u.attack, health: u.health } })
+      }
+    })
+  }, [pushWarning])
+
+  /** startingBoard / startingEnemyBoard injekcija kovos pradžioje (vieną kartą). */
+  const tryInjectStart = useCallback(() => {
+    if (startInjectedRef.current) return
+    const cfg = scenarioCfgRef.current
+    const api = apiRef.current
+    const pool = cardsRef.current
+    if (!api || !pool) return
+    const own = cfg.startingBoard ?? []
+    const foe = cfg.startingEnemyBoard ?? []
+    if (!own.length && !foe.length) { startInjectedRef.current = true; return }
+    startInjectedRef.current = true
+    api.mutate((g) => {
+      const place = (u: ScenarioUnit) => {
+        const base = pool.get(u.cardId)
+        if (base) spawnExternalUnit(g, toEngineSide(u.side), freshCard(base), { buffs: u.buffs, summonSick: false })
+      }
+      own.forEach(place); foe.forEach(place)
+    })
+  }, [])
+  const tryInjectStartRef = useRef(tryInjectStart)
+  useEffect(() => { tryInjectStartRef.current = tryInjectStart }, [tryInjectStart])
+
+  const onCampaignApi = useCallback((api: TutorialGameApi) => {
+    apiRef.current = api
+    tryInjectStartRef.current()
+  }, [])
+
+  // scenario kortų pool'as užkraunamas iš karto (spawn'ai laukia, kol bus)
+  useEffect(() => {
+    let alive = true
+    loadScenarioCards(collectScenarioCardIds(scenarioCfgRef.current)).then((m) => {
+      if (alive) { cardsRef.current = m; tryInjectStartRef.current() }
+    })
+    return () => { alive = false }
+  }, [])
+
   const enqueueMidCutscene = useCallback((c: Cutscene) => {
     setMidCutscene((cur) => { if (cur) { midQueueRef.current.push(c); return cur } return c })
   }, [])
@@ -90,10 +176,28 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
           }],
         })
       }
-      // spawn / spawnWave / addBuff / addField / restrict* — gyvos lentos taikymas
-      // dar neįjungtas (kitas etapas); 'end' ir 'objectiveHp' jau atsispindi stRef.
+      else if (ef.kind === 'spawn') {
+        doSpawn(ef.side, ef.cardId, ef.buffs)
+      } else if (ef.kind === 'spawnWave') {
+        const w = findWave(scenarioCfgRef.current, ef.waveId)
+        if (w) spawnWaveNow(resolveWave(w))
+      } else if (ef.kind === 'addBuff') {
+        apiRef.current?.mutate((g) => {
+          const p = ef.target === 'player' ? g.you : g.ai
+          for (const u of p.units) {
+            if (!u) continue
+            if (ef.attack) u.atk += ef.attack
+            if (ef.health) { u.hp += ef.health; u.maxHp += ef.health }
+          }
+        })
+      } else if (ef.kind === 'end') {
+        apiRef.current?.mutate((g) => forceBattleEnd(g, ef.result === 'win' ? 'you' : 'ai'))
+      } else if (ef.kind === 'objectiveHp') {
+        setObjVersion((v) => v + 1)
+      }
+      // addField / restrictCardTypes / forceTargetPriority — advisory, kol kas ignoruojami.
     }
-  }, [cutscenes, campaign.id, enqueueMidCutscene])
+  }, [cutscenes, campaign.id, enqueueMidCutscene, doSpawn, spawnWaveNow])
 
   /** Kovos variklio įvykiai → scenario taisyklės (kviečia TutorialGame). */
   const handleEngineEvent = useCallback((e: CampaignEngineEvent, raw: BattleSnapshot) => {
@@ -110,23 +214,48 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
     const run = (trigger: Parameters<typeof runTrigger>[2], s: BattleSnapshot = snap, ctx?: TriggerContext) =>
       out.push(...runTrigger(cfg, st, trigger, s, ctx))
     switch (e.t) {
-      case 'battleStart': run('onBattleStart'); break
-      case 'turnStart':
+      case 'battleStart':
+        tryInjectStartRef.current()
+        run('onBattleStart')
+        break
+      case 'turnStart': {
         if (prevTurnRef.current && prevTurnRef.current !== e.turn) run('onTurnEnd', { ...snap, turn: prevTurnRef.current })
         prevTurnRef.current = e.turn
         run('onTurnStart'); run('onCondition')
+        // ── ėjimu paremtos bangos (kartą per globalTurn reikšmę) ──
+        if (!waveTurnsDoneRef.current.has(e.turn)) {
+          waveTurnsDoneRef.current.add(e.turn)
+          for (const instr of wavesForTurn(cfg, waveStateRef.current, e.turn)) spawnWaveNow(instr)
+          // survivalTurns: išgyvenai visus ėjimus → pergalė
+          if (cfg.survivalTurns && e.turn > cfg.survivalTurns) {
+            apiRef.current?.mutate((g) => forceBattleEnd(g, 'you'))
+          }
+        }
         break
+      }
       case 'cardPlayed':
         run('onCardPlayed', snap, { cardId: e.cardId, cardName: e.cardName, side: e.side }); run('onCondition')
         break
-      case 'unitDeath':
+      case 'unitDeath': {
         run('onUnitDeath', snap, { cardId: e.cardId, cardName: e.cardName, side: e.side }); run('onCondition')
+        // ── bangos įveikimas: aktyvių bangų priešai išnaikinti (priešo lenta tuščia) ──
+        if (e.side === 'enemy' && activeWavesRef.current.size && snap.enemyBoard.length === 0) {
+          for (const wid of activeWavesRef.current) {
+            st.defeatedWaveIds.add(wid)
+            run('onWaveDefeated')
+          }
+          activeWavesRef.current.clear()
+          if (allMustClearDefeated(cfg, st.defeatedWaveIds)) {
+            apiRef.current?.mutate((g) => forceBattleEnd(g, 'you'))
+          }
+        }
         break
+      }
       case 'hpChange': run('onCondition'); break
       case 'battleEnd': run(e.winner === 'player' ? 'onVictory' : 'onDefeat'); break
     }
     if (out.length) applyScenarioEffects(out)
-  }, [applyScenarioEffects])
+  }, [applyScenarioEffects, spawnWaveNow])
 
   // score a finished battle against the node's objectives — su TIKRU paskutiniu
   // snapshot'u (lentos, kills pagal tag, objective HP), jei kova jį pateikė
@@ -200,6 +329,7 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
           difficulty={difficulty}
           onCampaignResult={onBattleResult}
           onCampaignEvent={handleEngineEvent}
+          onCampaignApi={onCampaignApi}
           campaignPaused={!!midCutscene}
           onClose={() => {
             // battle closed: route by captured result
@@ -208,6 +338,8 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
             else onExit() // abandoned before a result
           }}
         />
+        {/* ── Scenarijaus HUD: objektų HP + bangų įspėjimai (virš kovos, nekliudo) ── */}
+        <ScenarioHud objectives={Object.values(stRef.current.objectives)} warnings={warnings} objVersion={objVersion} />
         {midCutscene && <CutscenePlayer cutscene={midCutscene} onDone={onMidCutsceneDone} />}
       </>
     )
@@ -269,4 +401,52 @@ export function CampaignRuntime({ campaign, node, cutscenes, playerDeckId, playe
 
 function Chip({ children }: { children: React.ReactNode }) {
   return <span className="text-[12px] px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#f3ead3' }}>{children}</span>
+}
+
+// ── Scenarijaus HUD kovoje: gate/wall/relikto HP juostelės + bangų įspėjimai ──
+function ScenarioHud({ objectives, warnings }: {
+  objectives: import('@/lib/campaign/types').ScenarioObjectiveObject[]
+  warnings: { id: number; text: string }[]
+  objVersion: number
+}) {
+  if (typeof document === 'undefined') return null
+  if (!objectives.length && !warnings.length) return null
+  return createPortal(
+    <div className="fixed inset-x-0 flex flex-col items-center gap-1.5 pointer-events-none" style={{
+      zIndex: 280, top: 'calc(6px + env(safe-area-inset-top, 0px))',
+    }}>
+      {objectives.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-1.5 px-3">
+          {objectives.map((o) => {
+            const pct = o.maxHp > 0 ? Math.max(0, Math.min(1, o.hp / o.maxHp)) : 0
+            const friendly = o.side === 'player'
+            const col = friendly ? (pct > 0.5 ? '#34d399' : pct > 0.25 ? '#fcd34d' : '#f87171') : '#a78bfa'
+            const icon = o.kind === 'gate' ? '🚪' : o.kind === 'wall' ? '🧱' : o.kind === 'relic' ? '🏺' : o.kind === 'commander' ? '🛡️' : o.kind === 'convoy' ? '🐎' : '◆'
+            return (
+              <div key={o.id} className="px-2.5 py-1 rounded-lg" style={{ background: 'rgba(8,6,13,0.85)', border: `1px solid ${col}55`, minWidth: 120 }}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold" style={{ color: '#e8dfc8' }}>{icon} {o.label}</span>
+                  <span className="text-[10px] font-bold tabular-nums" style={{ color: col }}>{o.hp}/{o.maxHp}</span>
+                </div>
+                <div className="mt-0.5 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: col, transition: 'width 0.4s ease' }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {warnings.map((w) => (
+        <div key={w.id} className="px-4 py-1.5 rounded-xl text-sm font-bold" style={{
+          background: 'rgba(30,10,14,0.92)', border: '1px solid rgba(248,113,113,0.55)', color: '#fecaca',
+          fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.04em',
+          animation: 'rvncamp-warn 0.4s ease-out 1',
+        }}>
+          ⚠ {w.text}
+        </div>
+      ))}
+      <style>{`@keyframes rvncamp-warn { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: translateY(0) } }`}</style>
+    </div>,
+    document.body,
+  )
 }

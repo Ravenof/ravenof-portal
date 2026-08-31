@@ -1864,6 +1864,41 @@ function placeUnit(g: GameState, p: PlayerState, card: TutCard, suffix: string, 
   return true
 }
 
+// ── Kampanijos scenarijaus API ───────────────────────────────────────────────
+/**
+ * Kampanijos scenarijui: iškviesti IŠORINĘ kortą (ne iš žaidėjo zonų — pvz.
+ * bangos priešą pagal DB kortą) į pusės lentą. Grąžina uid arba null (lenta
+ * pilna). Su log'u + afterSummon (auros, onAnySummon) — kaip zoniniai summon'ai.
+ */
+export function spawnExternalUnit(
+  g: GameState, s: Side, card: TutCard,
+  opts?: { buffs?: { attack?: number; health?: number }; summonSick?: boolean },
+): string | null {
+  const p = P(g, s)
+  const suffix = `-camp${g.globalTurn}-${nextSummonSeq(g)}`
+  if (!placeUnit(g, p, card, suffix, 'deck')) {
+    log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullSummon' })
+    return null
+  }
+  const uid = card.uid + suffix
+  const u = p.units.find((x) => x?.uid === uid)
+  if (u) {
+    if (opts?.buffs?.attack) u.atk += opts.buffs.attack
+    if (opts?.buffs?.health) { u.hp += opts.buffs.health; u.maxHp += opts.buffs.health }
+    if (opts?.summonSick === false) u.summonedOnTurn = -1
+  }
+  log(g, { t: 'play', side: s, cardName: card.name, key: 'battleLog.summonByEffect', params: { card: card.name }, sound: 'summon', src: { side: s, uid } })
+  afterSummon(g, s, card, 'deck')
+  return uid
+}
+
+/** Kampanijos scenarijui: priverstinė kovos pabaiga (winner + 'win' log įvykis). */
+export function forceBattleEnd(g: GameState, winner: Side): void {
+  if (g.winner) return
+  g.winner = winner
+  log(g, { t: 'win', side: winner, key: winner === 'you' ? 'battleLog.winYou' : 'battleLog.winAi' })
+}
+
 /** Žaidėjo iškvietimo pasirinkimo užbaigimas. */
 export function resolveSummonChoice(g: GameState, chosenUids: string[]): { ok: boolean; reason?: string } {
   const ps = g.pendingSummon
