@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <defs>
+    <linearGradient id="rim2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f0b429" stop-opacity="0.6"/><stop offset="0.25" stop-color="#f0b429" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M110 1000 L90 420 Q95 330 180 300 L440 300 Q525 330 530 420 L510 1000 Z" fill="#231a30"/>
+  <path d="M180 1000 L170 470 Q175 360 240 335 L380 335 Q445 360 450 470 L440 1000 Z" fill="#3a3f4c"/>
+  <path d="M200 520 L310 480 L420 520 L410 600 L310 570 L210 600 Z" fill="#4a505e"/>
+  <!-- raised arm gesturing -->
+  <path d="M450 480 Q560 430 585 340 L620 360 Q595 470 480 530 Z" fill="#3a3f4c"/>
+  <path d="M575 320 q28 -18 45 6 q12 22 -10 38 q-24 14 -40 -6 q-12 -20 5 -38 z" fill="#8a7c72"/>
+  <path d="M150 430 Q160 340 250 330 L250 380 Q190 390 180 460 Z" fill="#50576a"/>
+  <path d="M470 430 Q460 340 370 330 L370 380 Q430 390 440 460 Z" fill="#50576a"/>
+  <path d="M262 330 q-10 -40 -6 -86 q6 -76 54 -76 q48 0 54 76 q4 46 -6 86 q-22 26 -48 26 q-26 0 -48 -26 z" fill="#8a7c72"/>
+  <path d="M262 244 q6 -76 48 -76 l0 188 q-26 0 -48 -26 q-10 -40 -6 -86 z" fill="#6e6259"/>
+  <!-- open mouth line -->
+  <path d="M290 288 q20 14 40 0 l-4 12 q-16 10 -32 0 z" fill="#3c332e"/>
+  <path d="M258 210 q52 -22 104 0 l-2 20 q-50 -18 -100 0 z" fill="#5a616e"/>
+  <path d="M110 1000 L90 420 Q95 330 180 300 L200 300 Q120 350 118 430 L136 1000 Z" fill="url(#rim2)"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="26" fill="#8b829b" opacity="0.9">PLACEHOLDER: Vadas (speaking)</text>
+</svg>

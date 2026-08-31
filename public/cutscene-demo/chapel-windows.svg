@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="nightw" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131022"/><stop offset="1" stop-color="#0a0812"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f86ad" stop-opacity="0.55"/><stop offset="1" stop-color="#3a4a68" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#nightw)"/>
+  <!-- three tall windows looking out -->
+  <g>
+    <path d="M260 1000 v-560 q90 -170 180 0 v560 z" fill="url(#glow)"/>
+    <path d="M770 1000 v-620 q95 -180 190 0 v620 z" fill="url(#glow)"/>
+    <path d="M1290 1000 v-560 q90 -170 180 0 v560 z" fill="url(#glow)"/>
+  </g>
+  <!-- walking dead silhouettes outside -->
+  <g fill="#0e0c18">
+    <path d="M320 1000 v-180 q6 -40 30 -44 q-14 -26 8 -40 q26 -10 34 14 q20 6 16 44 l-6 26 q16 60 8 180 z"/>
+    <path d="M840 1000 v-210 q4 -46 34 -50 q-16 -30 10 -46 q30 -12 38 16 q22 8 16 50 l-10 30 q18 70 10 210 z" transform="rotate(-4 880 900)"/>
+    <path d="M900 1000 v-160 q6 -36 26 -40 q-12 -24 8 -36 q24 -8 30 12 q18 6 14 40 l-6 22 q14 54 8 162 z"/>
+    <path d="M1360 1000 v-190 q6 -42 30 -46 q-14 -28 8 -42 q28 -10 36 15 q20 7 15 46 l-7 27 q17 64 9 190 z" transform="rotate(5 1400 910)"/>
+  </g>
+  <!-- window tracery over silhouettes -->
+  <g stroke="#0a0812" stroke-width="18" fill="none">
+    <path d="M350 1000 V440 M260 700 h180 M770 1000 V380 M865 1000 V380 M770 640 h190 M1380 1000 V440 M1290 700 h180"/>
+  </g>
+  <!-- interior wall mass -->
+  <path d="M0 0 H1920 V1080 H0 Z M240 420 q100 -190 220 0 l0 580 h-220 Z M750 360 q105 -200 230 0 l0 640 h-230 Z M1270 420 q100 -190 220 0 l0 580 h-220 Z" fill="#0d0a16" fill-rule="evenodd"/>
+  <text x="960" y="70" text-anchor="middle" font-family="monospace" font-size="34" fill="#5c5470" opacity="0.85">PLACEHOLDER — Langai: mirusieji vaikšto lauke</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <defs>
+    <linearGradient id="rimp" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#9fb4d8" stop-opacity="0.8"/><stop offset="0.25" stop-color="#9fb4d8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- robe: elongated silhouette -->
+  <path d="M150 1000 L160 430 Q175 330 260 310 L360 310 Q445 330 460 430 L470 1000 Z" fill="#2e2438"/>
+  <path d="M240 1000 L245 470 Q250 400 310 390 Q370 400 375 470 L380 1000 Z" fill="#3d2f4c"/>
+  <!-- sash -->
+  <path d="M245 560 L375 540 v26 L245 586 Z" fill="#5c3a52"/>
+  <!-- hood down: hair -->
+  <path d="M256 320 q-16 -60 -6 -110 q10 -66 60 -66 q50 0 60 66 q10 50 -6 110 q-24 30 -54 30 q-30 0 -54 -30 z" fill="#93826f"/>
+  <path d="M256 210 q10 -66 54 -66 l0 206 q-30 0 -54 -30 q-16 -60 -6 -110 z" fill="#75665a"/>
+  <path d="M248 200 q62 -34 124 0 q10 26 2 44 q-64 -30 -128 0 q-8 -18 2 -44 z" fill="#241c2e"/>
+  <path d="M262 226 h96 l-10 16 h-76 z" fill="#544a42"/>
+  <path d="M470 1000 L460 430 Q445 330 360 310 L340 310 Q430 360 434 440 L446 1000 Z" fill="url(#rimp)"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="26" fill="#8b829b" opacity="0.9">PLACEHOLDER: Herojus (neutral)</text>
+</svg>

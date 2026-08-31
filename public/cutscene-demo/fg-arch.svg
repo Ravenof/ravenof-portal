@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <!-- broken arch framing, foreground silhouette -->
+  <path d="M0 0 H340 Q240 120 220 340 L200 1080 H0 Z" fill="#060409"/>
+  <path d="M1920 0 H1560 Q1680 100 1700 300 L1730 1080 H1920 Z" fill="#060409"/>
+  <path d="M0 0 H1920 V150 Q1400 60 960 70 Q480 60 0 160 Z" fill="#060409"/>
+  <path d="M300 40 l40 24 -22 60 -38 -30 Z M1620 60 l-44 20 18 64 42 -26 Z" fill="#060409"/>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <defs>
+    <linearGradient id="rimp2" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#9fb4d8" stop-opacity="0.95"/><stop offset="0.3" stop-color="#9fb4d8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M150 1000 L160 430 Q175 330 260 310 L360 310 Q445 330 460 430 L470 1000 Z" fill="#2e2438"/>
+  <path d="M240 1000 L245 470 Q250 400 310 390 Q370 400 375 470 L380 1000 Z" fill="#3d2f4c"/>
+  <path d="M245 560 L375 540 v26 L245 586 Z" fill="#5c3a52"/>
+  <!-- hand to chest -->
+  <path d="M245 470 Q200 520 210 590 L250 600 Q235 540 275 500 Z" fill="#2e2438"/>
+  <path d="M252 588 q30 -20 52 4 q14 20 -8 34 q-28 16 -46 -8 q-12 -16 2 -30 z" fill="#93826f"/>
+  <!-- head tilted back slightly -->
+  <g transform="rotate(-5 310 240)">
+    <path d="M256 320 q-16 -60 -6 -110 q10 -66 60 -66 q50 0 60 66 q10 50 -6 110 q-24 30 -54 30 q-30 0 -54 -30 z" fill="#93826f"/>
+    <path d="M256 210 q10 -66 54 -66 l0 206 q-30 0 -54 -30 q-16 -60 -6 -110 z" fill="#75665a"/>
+    <path d="M248 200 q62 -34 124 0 q10 26 2 44 q-64 -30 -128 0 q-8 -18 2 -44 z" fill="#241c2e"/>
+    <!-- wide eyes + open mouth -->
+    <ellipse cx="288" cy="242" rx="9" ry="12" fill="#efe6d8"/>
+    <ellipse cx="336" cy="242" rx="9" ry="12" fill="#efe6d8"/>
+    <ellipse cx="288" cy="245" rx="4" ry="6" fill="#241c2e"/>
+    <ellipse cx="336" cy="245" rx="4" ry="6" fill="#241c2e"/>
+    <ellipse cx="312" cy="292" rx="12" ry="16" fill="#3c332e"/>
+  </g>
+  <path d="M470 1000 L460 430 Q445 330 360 310 L340 310 Q430 360 434 440 L446 1000 Z" fill="url(#rimp2)"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="26" fill="#8b829b" opacity="0.9">PLACEHOLDER: Herojus (shocked)</text>
+</svg>

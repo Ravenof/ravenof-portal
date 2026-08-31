@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1626"/><stop offset="0.6" stop-color="#241a2e"/><stop offset="1" stop-color="#0d0a14"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#9fb4d8" stop-opacity="0.5"/><stop offset="1" stop-color="#9fb4d8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <!-- back wall + broken vault -->
+  <path d="M0 1080 V300 L240 260 320 80 420 250 700 210 960 40 1220 210 1500 250 1600 90 1690 260 1920 300 V1080 Z" fill="#171221"/>
+  <!-- lancet windows -->
+  <g fill="#241c33">
+    <path d="M360 980 v-420 q60 -120 120 0 v420 z"/>
+    <path d="M860 980 v-470 q50 -110 100 0 v470 z"/>
+    <path d="M1400 980 v-420 q60 -120 120 0 v420 z"/>
+  </g>
+  <g fill="#2c2440">
+    <path d="M380 980 v-390 q40 -90 80 0 v390 z"/>
+    <path d="M878 980 v-440 q32 -80 64 0 v440 z"/>
+    <path d="M1420 980 v-390 q40 -90 80 0 v390 z"/>
+  </g>
+  <!-- moonlight shafts -->
+  <path d="M880 470 L740 1080 H1180 L1010 470 Z" fill="url(#moon)"/>
+  <path d="M400 540 L300 1080 H620 L500 540 Z" fill="url(#moon)" opacity="0.5"/>
+  <!-- columns -->
+  <g fill="#100c1a">
+    <rect x="600" y="230" width="70" height="850"/>
+    <rect x="1250" y="230" width="70" height="850"/>
+    <path d="M580 230 h110 l-14 -50 h-82 z"/>
+    <path d="M1230 230 h110 l-14 -50 h-82 z"/>
+  </g>
+  <!-- rubble + broken pews -->
+  <g fill="#0b0812">
+    <path d="M0 1080 l180 -70 240 40 200 -55 260 60 250 -40 280 55 240 -45 270 55 v80 H0 Z"/>
+    <path d="M700 1000 l120 -18 10 30 -122 16 z"/>
+    <path d="M1050 990 l140 -12 6 26 -142 14 z"/>
+  </g>
+  <!-- altar -->
+  <path d="M910 860 h140 l-16 -120 h-108 z" fill="#191326"/>
+  <rect x="946" y="640" width="14" height="110" fill="#191326"/>
+  <rect x="918" y="668" width="70" height="14" fill="#191326"/>
+  <text x="960" y="70" text-anchor="middle" font-family="monospace" font-size="34" fill="#5c5470" opacity="0.85">PLACEHOLDER — Sugriauta koplyčia (fonas 1920×1080)</text>
+</svg>

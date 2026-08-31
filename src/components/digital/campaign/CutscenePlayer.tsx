@@ -10,11 +10,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { playUiClick } from '@/lib/ui-sound'
+import { getMotionComic } from '@/lib/campaign/motionComic'
+import { MotionComicPlayer } from './MotionComicPlayer'
 import type { Cutscene, CutsceneStep } from '@/lib/campaign/types'
 
 const GOLD = '240,180,41'
 
+/**
+ * Routes by format: cutscenes carrying `metadata.motionComic` play through the
+ * new motion-comic renderer; classic VN `steps` cutscenes are unchanged.
+ */
 export function CutscenePlayer({ cutscene, onDone }: { cutscene: Cutscene; onDone: (choiceKey?: string) => void }) {
+  const mc = getMotionComic(cutscene)
+  if (mc) return <MotionComicPlayer def={mc} skippable={cutscene.skippable} onDone={() => onDone()} />
+  return <VnCutscenePlayer cutscene={cutscene} onDone={onDone} />
+}
+
+function VnCutscenePlayer({ cutscene, onDone }: { cutscene: Cutscene; onDone: (choiceKey?: string) => void }) {
   const [idx, setIdx] = useState(0)
   const [choiceKey, setChoiceKey] = useState<string | undefined>(undefined)
   const musicRef = useRef<HTMLAudioElement | null>(null)

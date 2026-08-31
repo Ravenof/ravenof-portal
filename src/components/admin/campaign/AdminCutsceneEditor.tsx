@@ -1,6 +1,10 @@
 'use client'
 
 // ── Admin cutscene editor: cutscene fields + step list (reorder/add/remove) ───
+// + Motion-comic (JSON) sekcija: metadata.motionComic — naujo shot-based
+//   formato redagavimas, kol atsiras vizualus flow editorius.
+import { useState } from 'react'
+import { validateMotionComic, type MotionComicDef } from '@/lib/campaign/motionComic'
 import type { Cutscene, CutsceneStep, CutsceneSide, CutsceneType } from '@/lib/campaign/types'
 
 const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }
@@ -55,6 +59,81 @@ export function AdminCutsceneEditor({ cutscene, onChange, onDelete }: {
         </div>
       ))}
       <button onClick={addStep} className="px-3 py-1.5 rounded text-xs font-bold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>+ Žingsnis</button>
+
+      <MotionComicJsonSection cutscene={cutscene} onChange={onChange} />
+    </div>
+  )
+}
+
+// ── Motion-comic (shot-based) JSON editorius ─────────────────────────────────
+const MC_TEMPLATE: MotionComicDef = {
+  version: 1,
+  musicUrl: null,
+  ambientUrl: null,
+  typewriter: true,
+  autoAdvanceAfterVoice: false,
+  characters: [
+    { id: 'veikejas1', name: { lt: 'Veikėjas', en: 'Character' }, accentColor: 'rgb(200,150,60)', poses: { neutral: '/cutscene-demo/commander-neutral.svg', speaking: '/cutscene-demo/commander-speaking.svg' } },
+  ],
+  shots: [
+    {
+      id: 'shot1',
+      background: '/cutscene-demo/chapel-wide.svg',
+      effects: [{ kind: 'fog', intensity: 0.5 }],
+      camera: { startScale: 1, endScale: 1.05, duration: 6 },
+      transition: { type: 'cut' },
+      speakerId: 'veikejas1',
+      text: { lt: 'Tekstas...', en: 'Text...' },
+      voiceUrl: null,
+    },
+  ],
+}
+
+function MotionComicJsonSection({ cutscene, onChange }: {
+  cutscene: Cutscene
+  onChange: (patch: Partial<Cutscene>) => void
+}) {
+  const existing = (cutscene.metadata?.['motionComic'] as MotionComicDef | undefined) ?? null
+  const [open, setOpen] = useState(!!existing)
+  const [text, setText] = useState<string | null>(null)
+  const [err, setErr] = useState<string[]>([])
+  const shown = text ?? (existing ? JSON.stringify(existing, null, 2) : '')
+
+  const apply = () => {
+    if (!shown.trim()) {
+      const m = { ...cutscene.metadata }
+      delete m['motionComic']
+      onChange({ metadata: m }); setErr([]); return
+    }
+    try {
+      const def = JSON.parse(shown) as MotionComicDef
+      const problems = validateMotionComic(def)
+      setErr(problems)
+      if (problems.length === 0) { onChange({ metadata: { ...cutscene.metadata, motionComic: def } }); setText(null) }
+    } catch (e) {
+      setErr(['Neteisingas JSON: ' + (e instanceof Error ? e.message : String(e))])
+    }
+  }
+
+  return (
+    <div className="rounded-lg p-2 mt-2 space-y-1.5" style={{ background: 'var(--bg-base)', border: '1px dashed rgba(240,180,41,0.35)' }}>
+      <button onClick={() => setOpen((o) => !o)} className="w-full text-left text-[11px] font-bold" style={{ color: 'var(--gold)' }}>
+        🎞 Motion-comic formatas {existing ? '(AKTYVUS — groja vietoj žingsnių)' : '(neaktyvus)'} {open ? '▾' : '▸'}
+      </button>
+      {open && (
+        <>
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            Shot-based „judančio komikso“ scenarijus (metadata.motionComic). Kai užpildyta — grotuvas naudoja jį, VN žingsniai ignoruojami. Peržiūra: /dev/cutscene.
+          </p>
+          <textarea value={shown} onChange={(e) => setText(e.target.value)} rows={10} spellCheck={false}
+            placeholder="Motion-comic JSON..." className="w-full px-2 py-1 rounded text-[11px] font-mono" style={{ background: 'var(--bg-base)', border: '1px solid var(--bg-border)', color: 'var(--text-primary)' }} />
+          {err.map((x, i) => <p key={i} className="text-[10px]" style={{ color: '#f87171' }}>• {x}</p>)}
+          <div className="flex gap-2">
+            <button onClick={apply} className="px-3 py-1.5 rounded text-xs font-bold" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: 'var(--gold)' }}>Pritaikyti JSON</button>
+            <button onClick={() => { setText(JSON.stringify(MC_TEMPLATE, null, 2)); setErr([]) }} className="px-3 py-1.5 rounded text-xs" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--bg-border)', color: 'var(--text-muted)' }}>Įterpti šabloną</button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

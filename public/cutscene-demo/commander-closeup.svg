@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- shoulders -->
+  <path d="M40 1000 L60 640 Q80 520 200 500 L420 500 Q540 520 560 640 L580 1000 Z" fill="#3a3f4c"/>
+  <path d="M20 1000 L30 700 Q40 560 150 520 L180 540 Q80 600 76 720 L90 1000 Z" fill="#50576a"/>
+  <path d="M600 1000 L590 700 Q580 560 470 520 L440 540 Q540 600 544 720 L530 1000 Z" fill="#50576a"/>
+  <!-- large head -->
+  <path d="M210 500 q-24 -90 -14 -196 q14 -170 114 -170 q100 0 114 170 q10 106 -14 196 q-46 58 -100 58 q-54 0 -100 -58 z" fill="#8a7c72"/>
+  <path d="M210 304 q14 -170 100 -170 l0 424 q-54 0 -100 -58 q-24 -90 -14 -196 z" fill="#6e6259"/>
+  <!-- brow + scar -->
+  <path d="M228 320 h180 l-14 26 h-152 z" fill="#4d443e"/>
+  <path d="M380 240 l26 90 -14 4 -28 -88 z" fill="#5d5148"/>
+  <!-- grim mouth -->
+  <path d="M268 442 q42 20 84 2 l-4 16 q-38 14 -76 -2 z" fill="#3c332e"/>
+  <!-- circlet -->
+  <path d="M204 190 q106 -44 212 0 l-4 34 q-102 -36 -204 0 z" fill="#5a616e"/>
+  <!-- candle rim light -->
+  <path d="M210 500 q-24 -90 -14 -196 q10 -122 62 -156 l-8 34 q-34 44 -40 126 q-8 100 14 182 z" fill="#f0b429" opacity="0.35"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="26" fill="#8b829b" opacity="0.9">PLACEHOLDER: Vadas (close-up)</text>
+</svg>
