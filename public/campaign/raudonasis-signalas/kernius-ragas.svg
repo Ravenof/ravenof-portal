@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- Kernius pucia varini raga -->
+  <path d="M150 1000 L160 440 Q170 340 250 315 L370 315 Q450 340 460 440 L470 1000 Z" fill="#2c2318"/>
+  <path d="M200 520 L310 480 L420 520 L410 610 L310 575 L210 610 Z" fill="#3a2f22"/>
+  <path d="M140 430 Q150 340 240 320 L240 370 Q185 380 172 450 Z" fill="#443626"/>
+  <path d="M480 430 Q470 340 380 320 L380 370 Q435 380 448 450 Z" fill="#443626"/>
+  <!-- rankos laiko raga prie lupu -->
+  <path d="M380 380 Q470 330 530 300 L545 335 Q490 370 405 420 Z" fill="#2c2318"/>
+  <!-- varinis ragas -->
+  <path d="M368 300 Q470 250 570 170 Q615 135 610 190 Q600 240 500 300 Q430 340 372 330 Z" fill="#a5793a"/>
+  <path d="M380 305 Q470 260 560 190 Q590 168 586 200 Q575 235 495 288 Q435 322 384 318 Z" fill="#c99a52"/>
+  <ellipse cx="600" cy="172" rx="20" ry="30" fill="#8a6530" transform="rotate(-35 600 172)"/>
+  <!-- galva pakelta, pucia -->
+  <g transform="rotate(-8 310 240)">
+    <path d="M252 315 q-10 -38 -6 -82 q6 -72 64 -72 q58 0 64 72 q4 44 -6 82 q-22 26 -48 26 q-32 0 -58 -26 z" fill="#8f7d6a"/>
+    <path d="M252 233 q6 -72 58 -72 l0 180 q-26 0 -58 -26 q-10 -38 -6 -82 z" fill="#71614f"/>
+    <path d="M258 200 q54 -26 108 0 q8 22 2 38 q-56 -24 -112 0 q-6 -16 2 -38 z" fill="#241c14"/>
+    <!-- isputi skruostai -->
+    <ellipse cx="352" cy="280" rx="16" ry="14" fill="#9a8874"/>
+  </g>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Kernius (ragas)</text>
+</svg>

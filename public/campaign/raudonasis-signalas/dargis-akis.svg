@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <!-- ekstremaliai stambus planas: Dargio akis su raudonos linijos atspindziu -->
+  <rect width="1920" height="1080" fill="#0b0812"/>
+  <!-- veido fragmentas -->
+  <path d="M0 1080 V300 Q300 120 760 160 Q1300 200 1920 80 V1080 Z" fill="#8a7a68"/>
+  <path d="M0 1080 V300 Q300 120 760 160 L780 1080 Z" fill="#6d5f50"/>
+  <!-- antakis (zilas, surauktas) -->
+  <path d="M420 360 Q900 240 1420 330 L1400 420 Q920 340 460 450 Z" fill="#8a8484"/>
+  <!-- randas per antaki -->
+  <path d="M1150 300 L1230 560 L1190 572 L1114 316 Z" fill="#5c4f44"/>
+  <!-- akis -->
+  <path d="M520 640 Q950 440 1400 620 Q1000 800 520 640 Z" fill="#e8ddc8"/>
+  <circle cx="960" cy="620" r="150" fill="#4a3f34"/>
+  <circle cx="960" cy="620" r="70" fill="#181008"/>
+  <!-- raudonos linijos atspindys vyzdyje -->
+  <path d="M952 480 L972 480 L964 620 L978 760 L950 760 L962 616 Z" fill="#ff5a3a"/>
+  <path d="M952 480 L972 480 L964 620 L978 760 L950 760 L962 616 Z" fill="#ffb27a" opacity="0.4"/>
+  <ellipse cx="905" cy="560" rx="30" ry="18" fill="#fff" opacity="0.25"/>
+  <!-- apatinis vokas / raukšlės -->
+  <path d="M520 660 Q960 830 1400 640 L1420 700 Q960 900 500 710 Z" fill="#6d5f50"/>
+  <path d="M560 780 Q960 930 1360 770" stroke="#5c5044" stroke-width="10" fill="none" opacity="0.6"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.9">PLACEHOLDER - Dargio akis, raudonos linijos atspindys (04 kadras)</text>
+</svg>

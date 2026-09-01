@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- klupantis Rimas, suspaudes amuleta, galva nuleista -->
+  <path d="M150 1000 L165 760 Q180 700 240 690 L400 690 Q460 700 470 760 L480 1000 Z" fill="#333947"/>
+  <!-- nugara sulinkusi -->
+  <path d="M190 720 Q200 520 280 470 L360 470 Q440 520 445 700 Q330 740 190 720 Z" fill="#3a4150"/>
+  <!-- rankos suspaudusios amuleta prie krutines -->
+  <path d="M260 600 Q300 560 340 600 L330 660 Q305 640 275 660 Z" fill="#8f7d6a"/>
+  <circle cx="303" cy="620" r="26" fill="#6a707c"/>
+  <circle cx="303" cy="620" r="12" fill="#cbb68a"/>
+  <path d="M303 570 L303 596" stroke="#4a4034" stroke-width="6"/>
+  <!-- galva nuleista zemyn -->
+  <g transform="rotate(14 310 420)">
+    <path d="M262 470 q-12 -32 -8 -70 q8 -62 56 -62 q48 0 56 62 q4 38 -8 70 q-22 24 -48 24 q-26 0 -48 -24 z" fill="#8f7d6a"/>
+    <path d="M262 400 q8 -62 48 -62 l0 156 q-26 0 -48 -24 q-12 -32 -8 -70 z" fill="#71614f"/>
+    <path d="M258 366 q52 -22 104 0 q6 16 0 28 q-52 -18 -104 0 q-6 -12 0 -28 z" fill="#241c14"/>
+  </g>
+  <!-- lupos juda - tyli malda (nera garso) -->
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Rimas (klupo, meldziasi)</text>
+</svg>

@@ -16,7 +16,7 @@ import { isReducedMotionEnabled, setReducedMotionEnabled } from '@/lib/settings'
 const GOLD = '240,180,41'
 
 const SCENES: { key: string; title: string; sub: string; def: MotionComicDef }[] = [
-  { key: 'raudonasis', title: 'CUTSCENE 01 — Raudonasis signalas', sub: '16 scen. kadrų → 24 shots, ~2 min, Šiaurinis bokštas', def: raudonasisSignalasCutscene },
+  { key: 'raudonasis', title: 'CUTSCENE 01 — Raudonasis signalas', sub: 'V2: 14 scen. kadrų → 27 beat’ai, ~2 min, Šiaurinis bokštas', def: raudonasisSignalasCutscene },
   { key: 'demo', title: 'Demo — Varngrado koplyčia', sub: '5 kadrai, sistemos demonstracija', def: demoChapelCutscene },
 ]
 
