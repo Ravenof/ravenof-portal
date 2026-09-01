@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <defs><linearGradient id="vio" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5cf6" stop-opacity="0.35"/><stop offset="0.5" stop-color="#8a5cf6" stop-opacity="0"/></linearGradient></defs>
+  <!-- nugara i kamera: apsiaustas, kalavijas prie sono -->
+  <path d="M120 1000 L112 420 Q124 318 225 295 L395 295 Q496 318 508 420 L500 1000 Z" fill="#221c2a"/>
+  <path d="M170 1000 L168 460 Q180 370 310 355 Q440 370 452 460 L450 1000 Z" fill="#2e2836"/>
+  <path d="M300 360 L310 1000 L320 360 Z" fill="#1a1522"/>
+  <!-- kalavijas prie kairio sono -->
+  <rect x="128" y="560" width="22" height="300" fill="#241c12" transform="rotate(8 139 710)"/>
+  <rect x="132" y="520" width="14" height="56" fill="#7a828c" transform="rotate(8 139 548)"/>
+  <!-- galva is nugaros: zili trumpi plaukai -->
+  <path d="M256 296 q-10 -34 -6 -74 q8 -70 60 -70 q52 0 60 70 q4 40 -6 74 q-24 26 -54 26 q-30 0 -54 -26 z" fill="#8a8484"/>
+  <path d="M256 222 q8 -70 54 -70 l0 170 q-30 0 -54 -26 q-10 -34 -6 -74 z" fill="#6e6868"/>
+  <!-- violetine sviesa nuo duru ant peciu -->
+  <path d="M120 1000 L112 420 Q124 318 225 295 L395 295 Q496 318 508 420 L500 1000 Z" fill="url(#vio)"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Dargis (nugara)</text>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- salmas rankose prie juosmens -->
+  <path d="M240 640 q70 -40 140 0 q10 50 -14 80 q-54 30 -112 0 q-24 -30 -14 -80 z" fill="#4a505e"/>
+  <path d="M250 648 q60 -32 120 0 l-6 20 q-54 -26 -108 0 z" fill="#5c626e"/>
+  <!-- kunas: grandininis sarvas + tunika -->
+  <path d="M160 1000 L170 450 Q180 345 260 320 L360 320 Q440 345 450 450 L460 1000 Z" fill="#333947"/>
+  <path d="M230 500 h160 v320 h-160 z" fill="#3e2c1c" opacity="0.85"/>
+  <path d="M140 440 Q152 348 245 325 L245 372 Q192 384 178 455 Z" fill="#454c5c"/>
+  <path d="M480 440 Q468 348 375 325 L375 372 Q428 384 442 455 Z" fill="#454c5c"/>
+  <!-- galva: apvalesne, jaunatviska -->
+  <path d="M256 320 q-12 -36 -8 -78 q8 -70 62 -70 q54 0 62 70 q4 42 -8 78 q-24 28 -54 28 q-30 0 -54 -28 z" fill="#97846e"/>
+  <path d="M256 242 q8 -70 54 -70 l0 176 q-30 0 -54 -28 q-12 -36 -8 -78 z" fill="#786752"/>
+  <path d="M256 206 q56 -22 110 0 q6 18 0 32 q-56 -20 -110 0 q-6 -14 0 -32 z" fill="#3a2c1a"/>
+  <path d="M266 246 h90 l-8 12 h-74 z" fill="#54463a"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Tomas (neutral)</text>
+</svg>

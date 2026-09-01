@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- senas vadas, profiliu i desine, sunkus apsiaustas -->
+  <path d="M130 1000 L120 430 Q130 330 220 305 L400 305 Q490 330 500 430 L490 1000 Z" fill="#26202e"/>
+  <path d="M190 1000 L195 470 Q205 380 300 360 L380 360 Q450 380 458 465 L452 1000 Z" fill="#39323f"/>
+  <!-- diržas su sagtimi -->
+  <path d="M200 640 h250 v26 h-250 z" fill="#1a1410"/><rect x="300" y="634" width="40" height="38" fill="#6a707c"/>
+  <!-- galva profiliu: zila barzda, randas -->
+  <path d="M262 305 q-14 -34 -10 -76 q8 -72 64 -72 q60 0 66 74 q6 30 -4 58 l16 10 q-14 20 -34 22 q-20 22 -50 22 q-28 0 -48 -38 z" fill="#8a7a68"/>
+  <!-- zila barzda -->
+  <path d="M270 290 q40 44 96 20 q6 40 -18 66 q-44 22 -78 -8 q-14 -40 0 -78 z" fill="#a8a0a0"/>
+  <path d="M262 208 q52 -24 106 2 q6 18 0 30 q-54 -22 -106 0 q-6 -14 0 -32 z" fill="#8a8484"/>
+  <!-- randas per antaki -->
+  <path d="M352 216 l18 60 -10 3 -20 -58 z" fill="#5c4f44"/>
+  <path d="M280 244 h70 l-8 12 h-56 z" fill="#4a3f34"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Dargis (profilis)</text>
+</svg>

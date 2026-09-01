@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="fire" cx="0.32" cy="0.78" r="0.6">
+      <stop offset="0" stop-color="#5a3a1c" stop-opacity="0.95"/><stop offset="0.45" stop-color="#2a1c22" stop-opacity="0.8"/><stop offset="1" stop-color="#0b0812"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#fire)"/>
+  <!-- akmenines sienos -->
+  <g stroke="#241c30" stroke-width="5" fill="none" opacity="0.75">
+    <path d="M0 260 H1920 M0 560 H1920 M0 840 H1920"/>
+    <path d="M340 260 V560 M820 0 V260 M1240 260 V560 M1020 560 V840 M1580 0 V260 M560 560 V840"/>
+  </g>
+  <!-- rytine anga su raudonu atspindziu -->
+  <path d="M1560 830 v-430 q85 -160 170 0 v430 z" fill="#160f22"/>
+  <path d="M1580 830 v-400 q65 -125 130 0 v400 z" fill="#3a1420"/>
+  <ellipse cx="1645" cy="640" rx="46" ry="150" fill="#c81e1e" opacity="0.3"/>
+  <!-- lauzas apacioje kaireje -->
+  <g>
+    <path d="M480 930 l60 -18 60 18 -30 22 h-60 z" fill="#241708"/>
+    <path d="M520 880 q20 -46 40 0 q22 -34 30 6 q18 -20 16 14 q-40 34 -102 0 q-4 -30 16 -20 z" fill="#f0a34a"/>
+    <path d="M535 890 q12 -30 25 0 q14 -20 18 8 q-28 22 -60 0 q4 -18 17 -8 z" fill="#ffce7a"/>
+  </g>
+  <!-- stalas su zemelapiu -->
+  <rect x="1060" y="820" width="340" height="26" fill="#241708"/>
+  <rect x="1090" y="790" width="280" height="30" fill="#cbb68a" opacity="0.75"/>
+  <path d="M1110 800 h80 M1210 808 h120 M1130 812 h60" stroke="#6a5a3a" stroke-width="3"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Bokšto vidus: lauzas, stalas, rytine anga (3/4/5/11/12/15 kadrai)</text>
+</svg>

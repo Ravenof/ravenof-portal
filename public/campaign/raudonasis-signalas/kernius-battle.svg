@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- ietis nuleista i kovine padeti (istrizai) -->
+  <g transform="rotate(-24 310 520)">
+    <rect x="470" y="40" width="14" height="960" fill="#3a2c1a"/>
+    <path d="M477 40 L455 110 L477 88 L499 110 Z" fill="#8a919c"/>
+  </g>
+  <path d="M150 1000 L160 440 Q170 340 250 315 L370 315 Q450 340 460 440 L470 1000 Z" fill="#2c2318"/>
+  <path d="M200 520 L310 480 L420 520 L410 610 L310 575 L210 610 Z" fill="#3a2f22"/>
+  <!-- ranka i prieki -->
+  <path d="M450 470 Q560 430 600 380 L620 410 Q580 480 470 520 Z" fill="#2c2318"/>
+  <path d="M140 430 Q150 340 240 320 L240 370 Q185 380 172 450 Z" fill="#443626"/>
+  <path d="M480 430 Q470 340 380 320 L380 370 Q435 380 448 450 Z" fill="#443626"/>
+  <!-- galva pasukta zemyn, pasiryzusi -->
+  <g transform="rotate(6 310 240)">
+    <path d="M252 315 q-10 -38 -6 -82 q6 -72 64 -72 q58 0 64 72 q4 44 -6 82 q-26 26 -58 26 q-32 0 -58 -26 z" fill="#8f7d6a"/>
+    <path d="M252 233 q6 -72 58 -72 l0 180 q-32 0 -58 -26 q-10 -38 -6 -82 z" fill="#71614f"/>
+    <path d="M258 200 q54 -26 108 0 q8 22 2 38 q-56 -24 -112 0 q-6 -16 2 -38 z" fill="#241c14"/>
+    <path d="M264 244 h92 l-10 12 h-74 z" fill="#3a2f26"/>
+  </g>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Kernius (kovinis)</text>
+</svg>

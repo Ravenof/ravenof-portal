@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="rglow" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0" stop-color="#8a1616"/><stop offset="0.5" stop-color="#3a0f18"/><stop offset="1" stop-color="#0b0812"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#rglow)"/>
+  <!-- bokšto stogo linija -->
+  <path d="M0 1080 V860 L340 830 L520 870 L1400 870 L1580 830 L1920 860 V1080 Z" fill="#0a0812"/>
+  <path d="M700 880 h520 v-40 h-520 z" fill="#0d0a16"/>
+  <!-- signalinis laužas su raudona liepsna -->
+  <g>
+    <path d="M860 860 l100 -26 100 26 -46 30 h-108 z" fill="#1a0f08"/>
+    <path d="M900 560 q28 -90 60 -140 q34 56 58 142 q30 -44 40 20 q26 -18 18 58 q-16 120 -116 130 q-100 -10 -118 -128 q-8 -74 20 -58 q8 -66 38 -24 z" fill="#c81e1e"/>
+    <path d="M918 640 q22 -70 42 -104 q24 44 40 106 q20 -28 24 24 q-10 88 -64 96 q-56 -8 -68 -94 q2 -50 26 -28 z" fill="#ff5a3a"/>
+    <path d="M938 700 q12 -44 22 -62 q14 26 20 64 q-8 46 -22 48 q-16 -4 -20 -50 z" fill="#ffb27a"/>
+  </g>
+  <!-- kibirkstys -->
+  <g fill="#ff8a5a">
+    <circle cx="880" cy="480" r="4"/><circle cx="1010" cy="430" r="3"/><circle cx="950" cy="380" r="3.5"/><circle cx="1060" cy="520" r="3"/>
+  </g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#6a4450" opacity="0.9">PLACEHOLDER - Raudonas signalinis lauzas (7 kadras)</text>
+</svg>

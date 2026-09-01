@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="dsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c0b18"/><stop offset="1" stop-color="#171226"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#dsky)"/>
+  <!-- bokstas apacioje su raudona ugnimi -->
+  <g>
+    <rect x="840" y="760" width="240" height="320" fill="#08060f"/>
+    <path d="M810 760 h300 l-26 -60 h-248 z" fill="#08060f"/>
+    <ellipse cx="960" cy="740" rx="90" ry="34" fill="#c81e1e" opacity="0.8"/>
+    <ellipse cx="960" cy="736" rx="56" ry="22" fill="#ff6a3a" opacity="0.85"/>
+  </g>
+  <!-- SUSTINGE dumai - kieti, geometriski, nejudantys -->
+  <path d="M905 720 q-30 -90 10 -150 q-36 -70 8 -140 q-20 -80 34 -130 q40 -44 66 6 q48 30 20 110 q40 66 -2 142 q30 72 -14 132 q-24 40 -62 30 q-44 12 -60 -0 z" fill="#12101e" stroke="#241f38" stroke-width="5"/>
+  <path d="M930 690 q-20 -70 8 -118 q-24 -56 8 -110 q-10 -60 28 -92 q30 -28 44 8 q30 24 12 84 q26 52 -4 110 q18 56 -12 100 q-30 34 -84 18 z" fill="#181428"/>
+  <!-- juodas "stogas" virsuje -->
+  <ellipse cx="958" cy="200" rx="230" ry="46" fill="#0a0814" stroke="#241f38" stroke-width="5"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Sustinge dumai virs boksto (8 kadras)</text>
+</svg>

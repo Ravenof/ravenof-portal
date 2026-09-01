@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="nsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d0c1a"/><stop offset="0.55" stop-color="#151327"/><stop offset="1" stop-color="#1a1626"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141020"/><stop offset="1" stop-color="#0a0812"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#nsky)"/>
+  <!-- debesys -->
+  <g fill="#1e1a30" opacity="0.8">
+    <ellipse cx="420" cy="200" rx="380" ry="60"/>
+    <ellipse cx="1300" cy="140" rx="460" ry="70"/>
+    <ellipse cx="900" cy="290" rx="300" ry="45"/>
+  </g>
+  <!-- Vethago kalnas - juodas dantis centre-kaireje -->
+  <path d="M480 700 L760 180 L820 300 L880 210 L1150 700 Z" fill="#08060f"/>
+  <path d="M760 180 L820 300 L880 210 L840 700 L700 700 Z" fill="#0c0916"/>
+  <!-- laukai -->
+  <rect y="700" width="1920" height="380" fill="url(#ground)"/>
+  <path d="M0 700 Q480 660 960 700 T1920 690 V1080 H0 Z" fill="#0d0a16"/>
+  <!-- sargybos bokstas desineje su ugnele -->
+  <g>
+    <rect x="1560" y="520" width="90" height="200" fill="#0a0812"/>
+    <path d="M1545 520 h120 l-14 -40 h-92 z" fill="#0a0812"/>
+    <rect x="1592" y="560" width="26" height="34" fill="#f0a34a" opacity="0.85"/>
+    <ellipse cx="1605" cy="556" rx="10" ry="14" fill="#ffce7a" opacity="0.7"/>
+  </g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Siauriniai laukai, Vethago kalnas, bokstas (1 kadras)</text>
+</svg>

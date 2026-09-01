@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <defs><linearGradient id="drim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c81e1e" stop-opacity="0.5"/><stop offset="0.28" stop-color="#c81e1e" stop-opacity="0"/></linearGradient></defs>
+  <path d="M130 1000 L120 430 Q130 330 220 305 L400 305 Q490 330 500 430 L490 1000 Z" fill="#26202e"/>
+  <path d="M190 1000 L195 470 Q205 380 300 360 L380 360 Q450 380 458 465 L452 1000 Z" fill="#39323f"/>
+  <path d="M200 640 h250 v26 h-250 z" fill="#1a1410"/><rect x="300" y="634" width="40" height="38" fill="#6a707c"/>
+  <!-- ranka rodo/isakinėja -->
+  <path d="M470 470 Q570 430 600 360 L620 385 Q595 470 495 520 Z" fill="#26202e"/>
+  <path d="M585 340 q26 -16 42 6 q10 20 -10 34 q-22 12 -36 -6 q-10 -18 4 -34 z" fill="#8a7a68"/>
+  <!-- galva tiesiai, kalba -->
+  <path d="M254 305 q-12 -36 -8 -80 q8 -74 64 -74 q58 0 66 74 q4 44 -8 80 q-26 28 -58 28 q-30 0 -56 -28 z" fill="#8a7a68"/>
+  <path d="M254 225 q8 -74 56 -74 l0 182 q-30 0 -56 -28 q-12 -36 -8 -80 z" fill="#6d5f50"/>
+  <path d="M268 288 q42 42 88 14 q8 38 -14 62 q-40 22 -74 -6 q-12 -36 0 -70 z" fill="#a8a0a0"/>
+  <path d="M256 206 q54 -24 110 2 q6 18 0 30 q-56 -22 -110 0 q-6 -14 0 -32 z" fill="#8a8484"/>
+  <path d="M348 214 l18 60 -10 3 -20 -58 z" fill="#5c4f44"/>
+  <path d="M292 296 q20 12 38 0 l-4 12 q-14 8 -30 0 z" fill="#3a3028"/>
+  <path d="M274 242 h78 l-8 13 h-62 z" fill="#4a3f34"/>
+  <path d="M130 1000 L120 430 Q130 330 220 305 L245 305 Q155 355 150 440 L156 1000 Z" fill="url(#drim)"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Dargis (kalba)</text>
+</svg>

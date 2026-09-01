@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- itemptas lankas -->
+  <path d="M470 180 Q590 480 470 780" stroke="#3a2c1a" stroke-width="16" fill="none"/>
+  <path d="M470 180 L300 480 L470 780" stroke="#cbb68a" stroke-width="4" fill="none"/>
+  <rect x="296" y="472" width="210" height="8" fill="#2c2318"/>
+  <path d="M506 476 L540 460 L540 492 Z" fill="#6a707c"/>
+  <path d="M160 1000 L170 450 Q180 345 260 320 L360 320 Q440 345 450 450 L460 1000 Z" fill="#333947"/>
+  <!-- rankos: viena laiko lanka, kita tempia -->
+  <path d="M440 440 Q520 430 560 470 L545 505 Q495 470 430 490 Z" fill="#333947"/>
+  <path d="M300 470 Q250 460 240 480 L260 505 Q290 495 310 492 Z" fill="#333947"/>
+  <path d="M140 440 Q152 348 245 325 L245 372 Q192 384 178 455 Z" fill="#454c5c"/>
+  <!-- galva taikosi (profilis) -->
+  <g transform="rotate(4 310 240)">
+    <path d="M256 320 q-12 -36 -8 -78 q8 -70 62 -70 q54 0 62 70 q4 42 -8 78 q-24 28 -54 28 q-30 0 -54 -28 z" fill="#97846e"/>
+    <path d="M256 242 q8 -70 54 -70 l0 176 q-30 0 -54 -28 q-12 -36 -8 -78 z" fill="#786752"/>
+    <path d="M256 206 q56 -22 110 0 q6 18 0 32 q-56 -20 -110 0 q-6 -14 0 -32 z" fill="#3a2c1a"/>
+    <path d="M290 250 h60 l-6 10 h-48 z" fill="#54463a"/>
+  </g>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Tomas (lankas)</text>
+</svg>

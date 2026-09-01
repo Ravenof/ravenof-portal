@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#0c0913"/>
+  <!-- azuolines durys per visa kadra -->
+  <g>
+    <rect x="360" y="60" width="1200" height="1020" fill="#241708"/>
+    <g fill="#1a1006">
+      <rect x="400" y="60" width="18" height="1020"/><rect x="640" y="60" width="18" height="1020"/>
+      <rect x="880" y="60" width="18" height="1020"/><rect x="1120" y="60" width="18" height="1020"/>
+      <rect x="1360" y="60" width="18" height="1020"/><rect x="1520" y="60" width="18" height="1020"/>
+    </g>
+    <!-- gelezies apkaustai -->
+    <g fill="#2e2e38">
+      <rect x="360" y="240" width="1200" height="42"/>
+      <rect x="360" y="800" width="1200" height="42"/>
+      <circle cx="430" cy="261" r="12"/><circle cx="700" cy="261" r="12"/><circle cx="960" cy="261" r="12"/><circle cx="1220" cy="261" r="12"/><circle cx="1490" cy="261" r="12"/>
+      <circle cx="430" cy="821" r="12"/><circle cx="700" cy="821" r="12"/><circle cx="960" cy="821" r="12"/><circle cx="1220" cy="821" r="12"/><circle cx="1490" cy="821" r="12"/>
+    </g>
+  </g>
+  <!-- itrukimas su violetine sviesa -->
+  <path d="M920 300 L950 470 L910 640 L960 830 L936 1010" stroke="#8a5cf6" stroke-width="10" fill="none" opacity="0.95"/>
+  <path d="M920 300 L950 470 L910 640 L960 830 L936 1010" stroke="#d8c6ff" stroke-width="3" fill="none"/>
+  <ellipse cx="936" cy="650" rx="60" ry="330" fill="#8a5cf6" opacity="0.16"/>
+  <!-- dulkes pabirusios -->
+  <g fill="#cbb68a" opacity="0.5">
+    <circle cx="880" cy="380" r="3"/><circle cx="1010" cy="520" r="2.5"/><circle cx="900" cy="760" r="3"/><circle cx="990" cy="900" r="2.5"/>
+  </g>
+  <text x="960" y="46" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.9">PLACEHOLDER - Duru stambus planas, violetinis itrukimas (13/14 kadrai)</text>
+</svg>

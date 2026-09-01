@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700">
+  <!-- keturkojis demonas, itrukusi oda su raudona ugnimi -->
+  <defs><linearGradient id="dfire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a3a"/><stop offset="1" stop-color="#7a0f14"/></linearGradient></defs>
+  <!-- kunas zemas, ant keturiu -->
+  <path d="M120 560 Q160 420 320 380 Q470 340 620 390 Q760 430 800 540 L760 620 Q600 560 450 580 Q300 600 170 630 Z" fill="#140a10"/>
+  <!-- galunes -->
+  <path d="M180 600 L140 700 L200 700 L230 610 Z M330 610 L310 700 L370 700 L385 615 Z M560 600 L560 700 L620 700 L610 600 Z M720 580 L760 700 L820 700 L780 570 Z" fill="#140a10"/>
+  <!-- galva su ragais -->
+  <path d="M700 420 q80 -30 120 20 q30 44 -10 90 q-50 40 -110 10 q-40 -60 0 -120 z" fill="#140a10"/>
+  <path d="M760 400 L790 300 L810 410 Z M830 420 L890 340 L862 440 Z" fill="#0d0509"/>
+  <!-- itrukusi oda - raudonos linijos -->
+  <g stroke="url(#dfire)" stroke-width="7" fill="none" opacity="0.95">
+    <path d="M280 430 q30 40 10 90 M420 400 q20 50 -6 110 M560 420 q26 44 14 100 M680 450 q20 30 12 70"/>
+    <path d="M340 480 q40 10 80 -6 M500 500 q44 6 84 -10"/>
+  </g>
+  <!-- akys -->
+  <circle cx="782" cy="466" r="10" fill="#ff5a3a"/><circle cx="816" cy="472" r="8" fill="#ff5a3a"/>
+  <!-- vidine ugnis pro plysius -->
+  <ellipse cx="450" cy="500" rx="180" ry="60" fill="#c81e1e" opacity="0.18"/>
+  <text x="450" y="680" text-anchor="middle" font-family="monospace" font-size="26" fill="#8b6a70" opacity="0.9">PLACEHOLDER: Demonas (keturkojis)</text>
+</svg>

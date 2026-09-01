@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="psky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0a16"/><stop offset="1" stop-color="#191325"/>
+    </linearGradient>
+    <linearGradient id="crack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5a4a"/><stop offset="0.5" stop-color="#c81e1e"/><stop offset="1" stop-color="#7a0f14"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#psky)"/>
+  <!-- kalnas stambiau -->
+  <path d="M240 1080 L820 120 L920 280 L1010 160 L1660 1080 Z" fill="#07050d"/>
+  <path d="M820 120 L920 280 L1010 160 L960 1080 L720 1080 Z" fill="#0b0816"/>
+  <!-- raudonas plysys nuo slaito iki debesu -->
+  <path d="M905 40 L925 40 L918 240 L942 430 L920 640 L948 860 L930 1080 L898 1080 L916 850 L892 620 L912 420 L894 230 Z" fill="url(#crack)"/>
+  <path d="M905 40 L925 40 L918 240 L942 430 L920 640 L948 860 L930 1080 L898 1080 L916 850 L892 620 L912 420 L894 230 Z" fill="#ff8a6a" opacity="0.35"/>
+  <!-- svytejimas aplink -->
+  <ellipse cx="920" cy="520" rx="140" ry="480" fill="#c81e1e" opacity="0.14"/>
+  <!-- nuriedeje akmenys -->
+  <g fill="#0d0a16">
+    <circle cx="640" cy="960" r="26"/><circle cx="700" cy="1010" r="16"/><circle cx="1240" cy="990" r="22"/>
+  </g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Kalnas su raudonu plysiu (2/5b/6 kadrai)</text>
+</svg>

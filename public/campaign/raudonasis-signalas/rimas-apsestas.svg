@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- stambus planas: pečiai + didele galva, viena akis juoda -->
+  <path d="M40 1000 L60 640 Q80 520 200 500 L420 500 Q540 520 560 640 L580 1000 Z" fill="#333947"/>
+  <path d="M20 1000 L30 700 Q40 560 150 520 L180 540 Q80 600 76 720 L90 1000 Z" fill="#454c5c"/>
+  <path d="M600 1000 L590 700 Q580 560 470 520 L440 540 Q540 600 544 720 L530 1000 Z" fill="#454c5c"/>
+  <!-- galva -->
+  <path d="M205 500 q-22 -88 -12 -190 q14 -164 112 -164 q98 0 112 164 q10 102 -12 190 q-44 56 -100 56 q-56 0 -100 -56 z" fill="#8f7d6a"/>
+  <path d="M205 310 q14 -164 100 -164 l0 410 q-56 0 -100 -56 q-22 -88 -12 -190 z" fill="#71614f"/>
+  <path d="M200 190 q104 -40 208 0 q10 30 2 52 q-106 -34 -212 0 q-8 -22 2 -52 z" fill="#241c14"/>
+  <!-- normali akis (kaire) -->
+  <ellipse cx="268" cy="330" rx="16" ry="20" fill="#e8ddc8"/>
+  <ellipse cx="268" cy="334" rx="7" ry="10" fill="#241c14"/>
+  <!-- juoda akis (desine) su dumu -->
+  <ellipse cx="360" cy="330" rx="18" ry="22" fill="#0a0510"/>
+  <ellipse cx="360" cy="330" rx="8" ry="10" fill="#8a5cf6" opacity="0.7"/>
+  <path d="M362 306 q18 -34 8 -66 q26 20 22 58 q14 -8 12 -34 q18 30 -6 62 q-20 18 -36 -20 z" fill="#241f38" opacity="0.85"/>
+  <!-- lupos praviros - svetimas balsas -->
+  <path d="M282 436 q30 20 62 2 q0 20 -12 26 q-24 10 -42 -2 q-8 -10 -8 -26 z" fill="#241418"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Rimas (apsestas, stambus planas)</text>
+</svg>

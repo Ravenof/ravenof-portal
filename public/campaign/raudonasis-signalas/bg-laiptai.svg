@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="lsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171226"/><stop offset="1" stop-color="#0a0812"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#lsky)"/>
+  <!-- spiraliniai laiptai zemyn iki duru -->
+  <g fill="#141020">
+    <path d="M300 200 h620 l40 60 h-620 z"/>
+    <path d="M400 320 h620 l40 60 h-620 z"/>
+    <path d="M520 440 h620 l40 60 h-620 z"/>
+    <path d="M640 560 h600 l40 60 h-600 z"/>
+    <path d="M760 680 h560 l40 60 h-560 z"/>
+  </g>
+  <g fill="#1b1530">
+    <path d="M300 200 h620 l-10 -16 h-600 z"/><path d="M400 320 h620 l-10 -16 h-600 z"/>
+    <path d="M520 440 h620 l-10 -16 h-600 z"/><path d="M640 560 h600 l-10 -16 h-580 z"/>
+    <path d="M760 680 h560 l-10 -16 h-540 z"/>
+  </g>
+  <!-- sienos -->
+  <path d="M0 0 H360 L900 1080 H0 Z" fill="#0b0814"/>
+  <path d="M1920 0 H1500 L1700 1080 H1920 Z" fill="#0b0814"/>
+  <!-- durys apacioje -->
+  <g>
+    <rect x="960" y="790" width="360" height="290" fill="#241708"/>
+    <rect x="960" y="860" width="360" height="18" fill="#2e2e38"/>
+    <rect x="1040" y="790" width="10" height="290" fill="#1a1006"/>
+    <rect x="1160" y="790" width="10" height="290" fill="#1a1006"/>
+    <rect x="1270" y="790" width="10" height="290" fill="#1a1006"/>
+    <path d="M1120 820 L1140 940 L1112 1050" stroke="#8a5cf6" stroke-width="5" fill="none" opacity="0.85"/>
+  </g>
+  <!-- fakelo sviesa -->
+  <ellipse cx="430" cy="330" rx="80" ry="120" fill="#f0a34a" opacity="0.12"/>
+  <text x="960" y="56" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Laiptai zemyn iki duru (13/16 kadrai)</text>
+</svg>

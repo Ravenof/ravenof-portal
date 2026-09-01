@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="ssky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#120a16"/><stop offset="1" stop-color="#2a0f16"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#ssky)"/>
+  <!-- raudonas svytejimas nuo plysio virsuje -->
+  <ellipse cx="960" cy="80" rx="700" ry="200" fill="#c81e1e" opacity="0.18"/>
+  <!-- slaitas -->
+  <path d="M0 1080 L560 480 L1100 620 L1920 380 V1080 Z" fill="#0d0812"/>
+  <path d="M560 480 L1100 620 L1920 380 L1920 520 L1140 720 L600 580 Z" fill="#150c18" opacity="0.8"/>
+  <!-- ordos siluetai ant slaito (raguoti, keturkojai) -->
+  <g fill="#08040a">
+    <g transform="translate(760 560) scale(0.7)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(980 640) scale(0.9)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(1240 560) scale(0.65)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(1450 500) scale(0.55)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(620 700) scale(0.8)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+  </g>
+  <!-- akiu zibejimas -->
+  <g fill="#ff5a3a">
+    <circle cx="752" cy="524" r="4"/><circle cx="768" cy="524" r="4"/>
+    <circle cx="972" cy="592" r="5"/><circle cx="990" cy="592" r="5"/>
+    <circle cx="1234" cy="528" r="3.5"/><circle cx="1248" cy="528" r="3.5"/>
+  </g>
+  <text x="960" y="1040" text-anchor="middle" font-family="monospace" font-size="30" fill="#6a4450" opacity="0.9">PLACEHOLDER - Slaitas su artejancia orda (10 kadras)</text>
+</svg>
