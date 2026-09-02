@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#15151e"/>
+  <rect y="360" width="1920" height="200" fill="#23232c"/>
+  <g fill="#d8d4c8" opacity="0.85"><rect x="200" y="330" width="70" height="30"/><rect x="700" y="330" width="70" height="30"/><rect x="1200" y="330" width="70" height="30"/><rect x="1650" y="330" width="70" height="30"/></g>
+  <path d="M0 1080 V560 H1920 V1080 Z" fill="#191420"/>
+  <!-- trys vezimai su Varngrado zyma -->
+  <g>
+    <g transform="translate(350 700)"><rect x="0" y="0" width="360" height="150" rx="14" fill="#241708"/><rect x="20" y="-40" width="320" height="40" fill="#3e2c1c"/><circle cx="70" cy="170" r="46" fill="#100c14"/><circle cx="290" cy="170" r="46" fill="#100c14"/><circle cx="180" cy="70" r="34" fill="#cbb68a"/><path d="M180 48 l10 18 h-20 z M168 80 q12 12 24 0" stroke="#241708" stroke-width="4" fill="none"/></g>
+    <g transform="translate(830 720)"><rect x="0" y="0" width="340" height="140" rx="14" fill="#2a1c10"/><rect x="20" y="-36" width="300" height="36" fill="#443626"/><circle cx="66" cy="160" r="42" fill="#100c14"/><circle cx="274" cy="160" r="42" fill="#100c14"/><circle cx="170" cy="66" r="32" fill="#cbb68a"/><path d="M170 46 l9 16 h-18 z" fill="#241708"/></g>
+    <g transform="translate(1290 700)"><rect x="0" y="0" width="360" height="150" rx="14" fill="#241708"/><rect x="20" y="-40" width="320" height="40" fill="#3e2c1c"/><circle cx="70" cy="170" r="46" fill="#100c14"/><circle cx="290" cy="170" r="46" fill="#100c14"/><circle cx="180" cy="70" r="34" fill="#cbb68a"/><path d="M180 48 l10 18 h-20 z" fill="#241708"/></g>
+  </g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#5a5668" opacity="0.9">PLACEHOLDER - Krovinio kiemas, trys vezimai (M9)</text>
+</svg>

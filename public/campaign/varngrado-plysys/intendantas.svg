@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <path d="M170 1000 L175 450 Q185 355 265 332 L355 332 Q435 355 445 450 L450 1000 Z" fill="#4a4436"/>
+  <path d="M230 520 h160 v24 h-160 z" fill="#241708"/>
+  <!-- knygele su irasais rankose -->
+  <rect x="250" y="580" width="120" height="90" rx="6" fill="#cbb68a"/>
+  <g stroke="#6a5a3a" stroke-width="3"><path d="M264 604 h92 M264 622 h74 M264 640 h92"/></g>
+  <path d="M262 332 q-12 -32 -8 -70 q8 -62 56 -62 q48 0 56 62 q4 38 -8 70 q-20 24 -48 24 q-28 0 -48 -24 z" fill="#8f7d6a"/>
+  <path d="M262 262 q8 -62 48 -62 l0 156 q-28 0 -48 -24 q-12 -32 -8 -70 z" fill="#71614f"/>
+  <path d="M260 232 q50 -20 100 0 q5 16 0 28 q-50 -16 -100 0 q-5 -12 0 -28 z" fill="#5a5045"/>
+  <path d="M274 266 h72 l-8 12 h-56 z" fill="#4a3f34"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Intendantas</text>
+</svg>

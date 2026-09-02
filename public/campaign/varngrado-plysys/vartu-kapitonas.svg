@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <path d="M160 1000 L168 445 Q178 350 262 325 L358 325 Q442 350 452 445 L460 1000 Z" fill="#2e3440"/>
+  <path d="M225 505 h170 v300 h-170 z" fill="#3e2c1c" opacity="0.8"/>
+  <path d="M140 440 Q152 348 245 325 L245 372 Q194 384 180 458 Z" fill="#3e4552"/>
+  <path d="M480 440 Q468 348 375 325 L375 372 Q426 384 440 458 Z" fill="#3e4552"/>
+  <path d="M258 325 q-12 -34 -8 -74 q8 -66 60 -66 q52 0 60 66 q4 40 -8 74 q-22 26 -52 26 q-30 0 -52 -26 z" fill="#8f7d6a"/>
+  <path d="M250 252 q10 -78 120 -76 q14 22 10 42 l-140 2 q2 -24 10 32 z" fill="#4a505e"/>
+  <path d="M276 292 q34 26 68 6 q4 26 -12 40 q-26 12 -46 -6 q-8 -22 -10 -40 z" fill="#3f352c"/>
+  <path d="M272 258 h76 l-8 12 h-60 z" fill="#4a3f34"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Vartu kapitonas</text>
+</svg>

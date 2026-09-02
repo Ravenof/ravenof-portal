@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1000">
+  <!-- milziniskas raguotas valdovas, grandines, juodai degantis kirvis -->
+  <defs><linearGradient id="bz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c0a10"/><stop offset="1" stop-color="#050308"/></linearGradient></defs>
+  <path d="M140 1000 L150 380 Q165 240 360 210 Q555 240 570 380 L580 1000 Z" fill="url(#bz)"/>
+  <!-- itrukusi oda su ugnimi -->
+  <g stroke="#ff5a3a" stroke-width="7" fill="none" opacity="0.9"><path d="M250 420 q20 60 -6 130 M360 380 q16 70 -8 150 M470 420 q20 60 -4 130 M300 640 q40 14 90 -4"/></g>
+  <!-- galva -->
+  <path d="M295 210 q-14 -70 65 -70 q79 0 65 70 q-10 44 -65 48 q-55 -4 -65 -48 z" fill="#0d0509"/>
+  <path d="M300 160 L230 30 L302 108 Z M420 160 L490 30 L418 108 Z" fill="#050308"/>
+  <g fill="#ff5a3a"><circle cx="332" cy="182" r="9"/><circle cx="388" cy="182" r="9"/></g>
+  <!-- grandines nuo peciu -->
+  <g stroke="#1a0e14" stroke-width="14" fill="none"><path d="M180 380 Q140 620 190 1000 M540 380 Q580 620 530 1000"/></g>
+  <g fill="none" stroke="#3a1a1a" stroke-width="6"><ellipse cx="166" cy="520" rx="20" ry="32"/><ellipse cx="556" cy="540" rx="20" ry="32"/></g>
+  <!-- juodai degantis kirvis -->
+  <g transform="rotate(20 600 560)"><rect x="590" y="240" width="22" height="520" fill="#0d0509"/>
+  <path d="M612 300 q90 -40 110 60 q-60 20 -110 -6 z M590 300 q-90 -40 -110 60 q60 20 110 -6 z" fill="#14060c"/>
+  <path d="M612 306 q70 -28 88 44" stroke="#8a5cf6" stroke-width="6" fill="none" opacity="0.8"/></g>
+  <ellipse cx="360" cy="560" rx="200" ry="90" fill="#c81e1e" opacity="0.1"/>
+  <text x="360" y="980" text-anchor="middle" font-family="monospace" font-size="26" fill="#8b6a70" opacity="0.9">PLACEHOLDER: Belzatoras</text>
+</svg>

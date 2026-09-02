@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <path d="M150 1000 L145 430 Q155 330 250 308 L370 308 Q465 330 475 430 L470 1000 Z" fill="#b8b4a8"/>
+  <path d="M205 1000 L210 470 Q220 385 310 370 Q400 385 410 470 L405 1000 Z" fill="#d8d4c8"/>
+  <!-- balta veliava rankoje -->
+  <rect x="470" y="120" width="10" height="560" fill="#8a867c"/>
+  <path d="M480 130 h120 l-20 30 20 30 h-120 z" fill="#f0ece0"/>
+  <path d="M440 480 q40 -10 44 30 l-30 16 q-8 -24 -22 -30 z" fill="#9a8d80"/>
+  <!-- salmas neatidengtas -->
+  <path d="M258 312 q-12 -36 -8 -76 q8 -68 60 -68 q52 0 60 68 q4 40 -8 76 q-22 26 -52 26 q-30 0 -52 -26 z" fill="#a8a498"/>
+  <rect x="270" y="230" width="80" height="14" fill="#3f3830"/>
+  <path d="M258 236 q52 -20 104 0 l-4 24 q-48 -16 -96 0 z" fill="#c8c4b8"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8a867c" opacity="0.95">PLACEHOLDER: Inkv. pasiuntinys</text>
+</svg>

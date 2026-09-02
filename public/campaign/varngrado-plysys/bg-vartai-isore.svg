@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241322"/><stop offset="0.5" stop-color="#161020"/><stop offset="1" stop-color="#0c0914"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#c)"/>
+  <!-- raudona ausra horizonte -->
+  <ellipse cx="960" cy="240" rx="900" ry="220" fill="#8a1616" opacity="0.22"/>
+  <!-- miesto siena per visa ploti -->
+  <rect y="380" width="1920" height="360" fill="#141020"/>
+  <g fill="#1b1530"><rect x="0" y="380" width="1920" height="26"/><rect x="0" y="560" width="1920" height="20"/></g>
+  <g fill="#0e0a18"><rect x="120" y="330" width="70" height="60"/><rect x="420" y="330" width="70" height="60"/><rect x="760" y="330" width="70" height="60"/><rect x="1120" y="330" width="70" height="60"/><rect x="1460" y="330" width="70" height="60"/><rect x="1760" y="330" width="70" height="60"/></g>
+  <!-- vartu arka su gelezinem durim -->
+  <path d="M780 740 v-260 q180 -160 360 0 v260 z" fill="#0a0714"/>
+  <path d="M810 740 v-240 q150 -134 300 0 v240 z" fill="#241708"/>
+  <g fill="#2e2e38"><rect x="810" y="560" width="300" height="20"/><rect x="810" y="660" width="300" height="20"/><rect x="952" y="500" width="16" height="240"/></g>
+  <!-- kelias -->
+  <path d="M700 1080 L860 740 L1060 740 L1220 1080 Z" fill="#171022"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Varngrado siauriniai vartai (isore)</text>
+</svg>

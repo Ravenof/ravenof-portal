@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <path d="M165 1000 L170 440 Q180 345 260 322 L360 322 Q440 345 450 440 L455 1000 Z" fill="#4a4056"/>
+  <!-- stora knyga po ranka -->
+  <rect x="330" y="560" width="150" height="200" rx="8" fill="#3e2c1c" transform="rotate(8 405 660)"/>
+  <rect x="342" y="574" width="126" height="172" rx="5" fill="#cbb68a" transform="rotate(8 405 660)"/>
+  <path d="M300 560 q-30 50 -14 110 l34 -6 q-10 -50 8 -84 z" fill="#97846e"/>
+  <path d="M258 322 q-12 -34 -8 -74 q8 -66 60 -66 q52 0 60 66 q4 40 -8 74 q-22 26 -52 26 q-30 0 -52 -26 z" fill="#97846e"/>
+  <path d="M258 248 q8 -66 52 -66 l0 166 q-30 0 -52 -26 q-12 -34 -8 -74 z" fill="#786752"/>
+  <!-- zili suristi plaukai -->
+  <path d="M252 216 q58 -28 116 0 q8 30 0 52 q-10 -30 -58 -30 q-48 0 -58 30 q-8 -22 0 -52 z" fill="#a8a0a0"/>
+  <circle cx="310" cy="186" r="16" fill="#a8a0a0"/>
+  <path d="M274 256 h72 l-8 12 h-56 z" fill="#54463a"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#9b8fb0" opacity="0.9">PLACEHOLDER: Archyvare</text>
+</svg>

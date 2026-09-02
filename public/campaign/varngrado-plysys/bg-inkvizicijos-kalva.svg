@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="j" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#20202a"/><stop offset="1" stop-color="#12121a"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#j)"/>
+  <path d="M0 1080 Q480 560 960 600 Q1440 640 1920 520 V1080 Z" fill="#181822"/>
+  <!-- baltos palapines tvarkingom eilem -->
+  <g fill="#d8d4c8">
+    <path d="M420 640 l50 -54 50 54 z M560 650 l44 -48 44 48 z M700 640 l50 -54 50 54 z M840 655 l44 -48 44 48 z M980 645 l50 -54 50 54 z M1120 660 l44 -48 44 48 z M1260 645 l50 -54 50 54 z"/>
+    <path d="M560 740 l50 -54 50 54 z M760 750 l50 -54 50 54 z M960 745 l50 -54 50 54 z M1160 755 l50 -54 50 54 z"/>
+  </g>
+  <g fill="#b8b4a8"><path d="M420 640 l50 -54 v54 z M700 640 l50 -54 v54 z M980 645 l50 -54 v54 z M1260 645 l50 -54 v54 z"/></g>
+  <!-- ieciu eile ir skydai -->
+  <g stroke="#8a867c" stroke-width="4"><path d="M480 620 v-80 M620 630 v-80 M900 630 v-80 M1040 625 v-80 M1320 625 v-80"/></g>
+  <g fill="#c8c4b8"><ellipse cx="530" cy="800" rx="26" ry="34"/><ellipse cx="730" cy="810" rx="26" ry="34"/><ellipse cx="930" cy="805" rx="26" ry="34"/><ellipse cx="1130" cy="815" rx="26" ry="34"/></g>
+  <!-- balta veliava -->
+  <g><rect x="1420" y="480" width="6" height="140" fill="#8a867c"/><path d="M1426 485 h90 l-16 22 16 22 h-90 z" fill="#e8e4d8"/></g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#5a5668" opacity="0.9">PLACEHOLDER - Inkvizicijos stovykla ant kalvos</text>
+</svg>

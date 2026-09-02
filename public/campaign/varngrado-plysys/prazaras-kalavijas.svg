@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <g transform="rotate(-30 500 540)">
+    <rect x="492" y="200" width="18" height="360" fill="#7a828c"/>
+    <path d="M492 200 L501 145 L510 200 Z" fill="#9aa2ac"/>
+    <rect x="458" y="558" width="86" height="18" fill="#a5793a"/>
+    <rect x="484" y="576" width="34" height="76" fill="#241c12"/>
+  </g>
+  <path d="M120 1000 L112 420 Q124 315 225 292 L395 292 Q496 315 508 420 L500 1000 Z" fill="#2a2030"/>
+  <path d="M185 1000 L190 460 Q200 370 310 355 Q420 370 430 460 L435 1000 Z" fill="#3a3f4c"/>
+  <path d="M190 460 L430 560 L430 600 L190 500 Z" fill="#a5793a"/>
+  <path d="M445 480 Q515 520 550 595 L515 620 Q478 550 428 528 Z" fill="#2a2030"/>
+  <path d="M140 430 Q152 335 250 312 L250 362 Q192 375 178 452 Z" fill="#4a505e"/>
+  <path d="M254 292 q-12 -36 -8 -80 q8 -74 64 -74 q58 0 66 74 q4 44 -8 80 q-26 28 -58 28 q-30 0 -56 -28 z" fill="#8a7666"/>
+  <path d="M254 212 q8 -74 56 -74 l0 182 q-30 0 -56 -28 q-12 -36 -8 -80 z" fill="#6d5c4e"/>
+  <path d="M256 194 q54 -26 110 0 q7 20 1 34 q-56 -22 -112 0 q-6 -14 1 -34 z" fill="#241a14"/>
+  <path d="M276 282 q36 30 72 8 q6 30 -12 46 q-30 16 -54 -6 q-10 -26 -6 -48 z" fill="#3a2e24"/>
+  <path d="M268 238 h88 l-11 15 h-68 z" fill="#392f26"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Prazaras (kalavijas)</text>
+</svg>

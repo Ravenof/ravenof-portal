@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1226"/><stop offset="0.6" stop-color="#241628"/><stop offset="1" stop-color="#100c18"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#h)"/>
+  <!-- horizonto laukai -->
+  <path d="M0 620 Q480 580 960 610 T1920 600 V760 H0 Z" fill="#120d1c"/>
+  <!-- pietvakariu melyna svieselė ir pietine balta stovykla -->
+  <ellipse cx="520" cy="560" rx="60" ry="20" fill="#5a8cdc" opacity="0.5"/>
+  <g fill="#d8d4c8" opacity="0.8"><path d="M1320 585 l26 -26 26 26 z M1380 588 l22 -22 22 22 z M1440 585 l26 -26 26 26 z"/></g>
+  <!-- sienos parapetas pirmame plane -->
+  <rect y="760" width="1920" height="320" fill="#141020"/>
+  <g fill="#0e0a18"><rect x="80" y="700" width="120" height="60"/><rect x="420" y="700" width="120" height="60"/><rect x="760" y="700" width="120" height="60"/><rect x="1100" y="700" width="120" height="60"/><rect x="1440" y="700" width="120" height="60"/><rect x="1740" y="700" width="120" height="60"/></g>
+  <g stroke="#1b1530" stroke-width="6" fill="none"><path d="M0 820 H1920 M0 960 H1920"/></g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Miesto siena, horizontas su stovyklomis</text>
+</svg>

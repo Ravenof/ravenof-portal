@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <defs><linearGradient id="kb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a8cdc" stop-opacity="0.5"/><stop offset="0.3" stop-color="#5a8cdc" stop-opacity="0"/></linearGradient></defs>
+  <!-- melyno mithrilo sarvai -->
+  <path d="M130 1000 L125 430 Q135 330 230 305 L390 305 Q485 330 495 430 L490 1000 Z" fill="#1a2a4a"/>
+  <path d="M195 1000 L200 465 Q210 380 310 365 Q410 380 420 465 L425 1000 Z" fill="#26406a"/>
+  <path d="M235 510 L310 475 L385 510 L378 595 L310 565 L242 595 Z" fill="#3a5a8c"/>
+  <g fill="#5a8cdc" opacity="0.8"><path d="M250 640 h120 v16 h-120 z"/><circle cx="310" cy="700" r="18"/></g>
+  <path d="M145 440 Q158 340 255 318 L255 368 Q198 380 184 458 Z" fill="#2e4a78"/>
+  <path d="M475 440 Q462 340 365 318 L365 368 Q422 380 436 458 Z" fill="#2e4a78"/>
+  <!-- galva: kietas veidas, trumpi sviesus plaukai -->
+  <path d="M256 305 q-12 -36 -8 -78 q8 -70 62 -70 q54 0 62 70 q4 42 -8 78 q-24 28 -54 28 q-30 0 -54 -28 z" fill="#93826e"/>
+  <path d="M256 227 q8 -70 54 -70 l0 176 q-30 0 -54 -28 q-12 -36 -8 -78 z" fill="#766753"/>
+  <path d="M258 195 q54 -22 108 0 q6 18 0 30 q-54 -18 -108 0 q-6 -12 0 -30 z" fill="#8a8074"/>
+  <path d="M272 240 h78 l-9 13 h-62 z" fill="#4f4438"/>
+  <path d="M130 1000 L125 430 Q135 330 230 305 L252 305 Q158 350 154 440 L158 1000 Z" fill="url(#kb)"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b9bb8" opacity="0.9">PLACEHOLDER: Ordino kapitonas</text>
+</svg>

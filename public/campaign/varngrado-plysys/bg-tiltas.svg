@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1622"/><stop offset="1" stop-color="#0c0a12"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#m)"/>
+  <!-- taram tarpeklis -->
+  <path d="M0 1080 V640 L560 700 L620 1080 Z" fill="#100c18"/>
+  <path d="M1920 1080 V640 L1360 700 L1300 1080 Z" fill="#100c18"/>
+  <path d="M560 1080 Q960 900 1360 1080 Z" fill="#060409"/>
+  <!-- akmeninis tiltas -->
+  <path d="M400 700 Q960 600 1520 700 L1520 760 Q960 665 400 760 Z" fill="#242030"/>
+  <path d="M620 760 q100 130 160 320 L680 1080 Q640 900 560 770 Z M1300 760 q-100 130 -160 320 L1240 1080 Q1280 900 1360 770 Z" fill="#242030"/>
+  <g stroke="#14101e" stroke-width="5" fill="none"><path d="M480 720 Q960 625 1440 720 M560 745 Q960 655 1360 745"/></g>
+  <!-- balta dagtis po atrama -->
+  <path d="M960 700 q-10 90 30 170" stroke="#e8e4d8" stroke-width="6" fill="none" opacity="0.8"/>
+  <circle cx="990" cy="872" r="10" fill="#f0b429"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Akmeninis tiltas su dagtimi (M9)</text>
+</svg>

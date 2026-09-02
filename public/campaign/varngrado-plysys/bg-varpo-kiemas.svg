@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><radialGradient id="n" cx="0.5" cy="0.3" r="0.9"><stop offset="0" stop-color="#241a28"/><stop offset="1" stop-color="#0c0912"/></radialGradient></defs>
+  <rect width="1920" height="1080" fill="url(#n)"/>
+  <!-- gaisru dangus -->
+  <ellipse cx="400" cy="120" rx="420" ry="140" fill="#8a3a16" opacity="0.22"/>
+  <ellipse cx="1560" cy="100" rx="360" ry="120" fill="#8a1616" opacity="0.2"/>
+  <!-- varpo bokstas centre -->
+  <g><rect x="820" y="180" width="280" height="440" fill="#141020"/><path d="M790 180 h340 l-30 -70 h-280 z" fill="#141020"/>
+  <path d="M900 260 q60 -80 120 0 v90 h-120 z" fill="#0a0812"/>
+  <!-- didysis varpas -->
+  <path d="M930 270 q30 -44 60 0 q16 24 12 60 h-84 q-4 -36 12 -60 z" fill="#8a6530"/>
+  <path d="M938 276 q22 -34 44 0 q12 20 10 48 h-64 q-2 -28 10 -48 z" fill="#c99a52"/>
+  <circle cx="960" cy="340" r="8" fill="#5a4520"/></g>
+  <!-- kiemo sienos -->
+  <path d="M0 0 H360 L500 1080 H0 Z" fill="#100c1a"/>
+  <path d="M1920 0 H1560 L1420 1080 H1920 Z" fill="#100c1a"/>
+  <!-- vidiniai vartai desineje sienoje apacioje -->
+  <path d="M600 1080 v-260 q120 -110 240 0 v260 z" fill="#0a0714"/>
+  <path d="M625 1080 v-240 q95 -90 190 0 v240 z" fill="#241708"/>
+  <path d="M690 1080 V880 M760 1080 V860" stroke="#1a1006" stroke-width="8"/>
+  <!-- grindinys -->
+  <path d="M500 1080 L560 620 L1360 620 L1420 1080 Z" fill="#171225"/>
+  <g stroke="#0e0a18" stroke-width="5"><path d="M540 820 h840 M520 960 h890"/></g>
+  <!-- sachtos anga kampe -->
+  <ellipse cx="1240" cy="900" rx="90" ry="34" fill="#060409"/>
+  <ellipse cx="1240" cy="892" rx="90" ry="34" fill="none" stroke="#2a2438" stroke-width="8"/>
+  <text x="960" y="52" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Varpo kiemas su sachta (M10)</text>
+</svg>

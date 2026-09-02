@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#0a0710"/>
+  <path d="M0 0 H1920 V1080 H0 Z M160 1080 V380 Q560 120 960 130 Q1360 120 1760 380 L1760 1080 Z" fill="#050308" fill-rule="evenodd"/>
+  <rect x="160" y="380" width="1600" height="700" fill="#100c18"/>
+  <!-- trys akmenines durys su pulsuojanciais zenklais -->
+  <g>
+    <path d="M330 940 v-330 q95 -110 190 0 v330 z" fill="#1a1424"/>
+    <path d="M860 940 v-370 q100 -120 200 0 v370 z" fill="#1a1424"/>
+    <path d="M1400 940 v-330 q95 -110 190 0 v330 z" fill="#1a1424"/>
+  </g>
+  <g stroke="#c81e1e" stroke-width="7" fill="none" opacity="0.95">
+    <path d="M425 700 l-40 60 40 60 40 -60 z M425 700 v-60 M395 790 l-40 20 M455 790 l40 20"/>
+    <path d="M960 690 l-46 66 46 66 46 -66 z M960 690 v-66 M925 790 l-46 24 M995 790 l46 24"/>
+    <path d="M1495 700 l-40 60 40 60 40 -60 z M1495 700 v-60 M1465 790 l-40 20 M1525 790 l40 20"/>
+  </g>
+  <g fill="#c81e1e" opacity="0.14"><ellipse cx="425" cy="760" rx="120" ry="160"/><ellipse cx="960" cy="760" rx="130" ry="180"/><ellipse cx="1495" cy="760" rx="120" ry="160"/></g>
+  <!-- juoduojantys vardai aplink -->
+  <g stroke="#3a3040" stroke-width="3" opacity="0.7"><path d="M250 500 h90 M250 520 h64 M1580 500 h90 M1580 520 h64 M700 460 h80 M1140 460 h80"/></g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Triju antspaudu kripta (M5)</text>
+</svg>

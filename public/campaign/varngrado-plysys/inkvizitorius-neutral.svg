@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- balti sluoksniuoti apdarai, auksta apykakle -->
+  <path d="M140 1000 L135 420 Q145 315 245 292 L375 292 Q475 315 485 420 L480 1000 Z" fill="#c8c4b8"/>
+  <path d="M200 1000 L205 470 Q215 380 310 365 Q405 380 415 470 L410 1000 Z" fill="#e8e4d8"/>
+  <path d="M300 365 L310 1000 L320 365 Z" fill="#a8a498"/>
+  <!-- balta apykakle iki smakro -->
+  <path d="M245 292 h130 l14 60 h-158 z" fill="#d8d4c8"/>
+  <!-- galva: lieknas, grieztas, plikas virsus -->
+  <path d="M262 300 q-10 -34 -7 -74 q7 -68 55 -68 q48 0 55 68 q3 40 -7 74 q-22 26 -48 26 q-26 0 -48 -26 z" fill="#9a8d80"/>
+  <path d="M262 226 q7 -68 48 -68 l0 168 q-26 0 -48 -26 q-10 -34 -7 -74 z" fill="#7d7266"/>
+  <!-- gilios akiduobes -->
+  <path d="M272 238 h68 l-8 12 h-52 z" fill="#3f3830"/>
+  <path d="M282 296 q28 8 48 0 l-4 10 q-20 6 -40 0 z" fill="#5a5045"/>
+  <!-- baltas medalionas -->
+  <circle cx="310" cy="430" r="24" fill="#e8e4d8" stroke="#8a867c" stroke-width="4"/>
+  <path d="M310 414 v32 M294 430 h32" stroke="#8a867c" stroke-width="4"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8a867c" opacity="0.95">PLACEHOLDER: Vyresnysis inkvizitorius</text>
+</svg>

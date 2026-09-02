@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="p" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2030"/><stop offset="0.5" stop-color="#1c1620"/><stop offset="1" stop-color="#0e0b12"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#p)"/>
+  <!-- blyski ausra -->
+  <ellipse cx="960" cy="200" rx="800" ry="180" fill="#6a5a70" opacity="0.16"/>
+  <!-- pajuodes miestas siluetu -->
+  <g fill="#0c0914">
+    <path d="M0 760 h180 v-140 l40 -30 40 30 v140 h140 v-90 h100 v90 h160 v-190 l50 -40 50 40 v190 h180 v-120 h120 v120 h180 v-160 l44 -34 44 34 v160 h160 v-100 h110 v100 h182 v320 H0 Z"/>
+  </g>
+  <!-- perskiles varpo bokstas -->
+  <g><rect x="880" y="380" width="170" height="380" fill="#0a0812"/><path d="M960 380 L985 500 L950 620 L975 760" stroke="#241f30" stroke-width="8" fill="none"/></g>
+  <!-- dumu stulpai -->
+  <g fill="#221d2c" opacity="0.85"><path d="M320 620 q-24 -110 16 -190 q-20 -80 36 -120 q44 -24 60 26 q36 36 -2 108 q26 82 -18 152 z"/><path d="M1480 600 q-20 -95 14 -165 q-18 -70 30 -104 q38 -20 52 22 q30 32 -2 94 q22 70 -16 132 z"/></g>
+  <!-- saltos akys griuvesiuose -->
+  <g fill="#9fb4d8" opacity="0.9"><circle cx="420" cy="820" r="5"/><circle cx="438" cy="820" r="5"/><circle cx="760" cy="880" r="5"/><circle cx="778" cy="880" r="5"/><circle cx="1180" cy="840" r="5"/><circle cx="1198" cy="840" r="5"/><circle cx="1520" cy="870" r="5"/><circle cx="1538" cy="870" r="5"/></g>
+  <!-- balta uzkarda tolumoje pietuose -->
+  <g fill="#d8d4c8" opacity="0.7"><rect x="1700" y="300" width="160" height="14"/><path d="M1720 300 l16 -16 16 16 z M1770 300 l16 -16 16 16 z M1820 300 l16 -16 16 16 z"/></g>
+  <text x="960" y="56" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Krites Varngradas, epilogas (M10)</text>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="i" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1620"/><stop offset="1" stop-color="#101018"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#i)"/>
+  <path d="M0 700 Q640 650 1280 690 T1920 680 V1080 H0 Z" fill="#0d0a14"/>
+  <!-- demonu linija (siluetai) -->
+  <g fill="#08040a">
+    <g transform="translate(300 640) scale(0.7)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(520 660) scale(0.85)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(1420 650) scale(0.75)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+    <g transform="translate(1650 665) scale(0.9)"><path d="M0 0 q-20 -34 8 -44 l-10 -20 14 4 8 -16 8 16 14 -4 -10 20 q28 10 8 44 l30 24 -18 30 -22 -18 -20 8 -20 -8 -22 18 -18 -30 z"/></g>
+  </g>
+  <!-- melyno mithrilo raiteliu pleistas -->
+  <g transform="translate(960 600)">
+    <path d="M0 -60 L220 160 L-220 160 Z" fill="#1a2a4a" opacity="0.9"/>
+    <g fill="#5a8cdc"><path d="M-6 -60 L6 -60 L4 40 L-4 40 Z"/><path d="M-90 40 l24 -30 12 10 -22 32 z M90 40 l-24 -30 -12 10 22 32 z"/><circle cx="0" cy="-70" r="14"/><circle cx="-70" cy="20" r="11"/><circle cx="70" cy="20" r="11"/></g>
+    <g stroke="#8ab4f8" stroke-width="4" opacity="0.7"><path d="M-40 60 l18 -40 M40 60 l-18 -40 M0 100 v-60"/></g>
+  </g>
+  <ellipse cx="960" cy="640" rx="420" ry="60" fill="#5a8cdc" opacity="0.08"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Apsupties laukas, melynas pleistas (M6)</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <path d="M140 1000 L135 420 Q145 315 245 292 L375 292 Q475 315 485 420 L480 1000 Z" fill="#c8c4b8"/>
+  <path d="M200 1000 L205 470 Q215 380 310 365 Q405 380 415 470 L410 1000 Z" fill="#e8e4d8"/>
+  <!-- rankos su ritiniu ir antspaudu -->
+  <rect x="200" y="560" width="220" height="140" rx="8" fill="#f0ecd0"/>
+  <g stroke="#8a7c60" stroke-width="4"><path d="M220 590 h180 M220 615 h150 M220 640 h180"/></g>
+  <circle cx="380" cy="672" r="26" fill="#e8e4d8" stroke="#a8a498" stroke-width="5"/>
+  <path d="M430 540 q40 20 30 70 l-34 6 q4 -36 -14 -56 z" fill="#9a8d80"/>
+  <path d="M186 560 q-30 30 -18 80 l34 -2 q-6 -36 8 -60 z" fill="#9a8d80"/>
+  <path d="M245 292 h130 l14 60 h-158 z" fill="#d8d4c8"/>
+  <g transform="rotate(8 310 230)">
+    <path d="M262 300 q-10 -34 -7 -74 q7 -68 55 -68 q48 0 55 68 q3 40 -7 74 q-22 26 -48 26 q-26 0 -48 -26 z" fill="#9a8d80"/>
+    <path d="M262 226 q7 -68 48 -68 l0 168 q-26 0 -48 -26 q-10 -34 -7 -74 z" fill="#7d7266"/>
+    <path d="M272 240 h68 l-8 12 h-52 z" fill="#3f3830"/>
+  </g>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8a867c" opacity="0.95">PLACEHOLDER: Inkvizitorius (antspaudas)</text>
+</svg>

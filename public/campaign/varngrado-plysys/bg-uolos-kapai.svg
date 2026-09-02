@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1420"/><stop offset="1" stop-color="#0a0710"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#o)"/>
+  <!-- uolos mase su siauru plysiu -->
+  <path d="M0 0 H860 Q820 300 870 560 Q840 840 900 1080 H0 Z" fill="#120d18"/>
+  <path d="M1920 0 H1060 Q1100 300 1050 560 Q1080 840 1020 1080 H1920 Z" fill="#120d18"/>
+  <!-- plysys su blausia ausra -->
+  <path d="M870 0 Q900 300 940 560 Q920 840 960 1080 L1020 1080 Q1000 800 1050 560 Q1090 280 1060 0 Z" fill="#2c2234"/>
+  <ellipse cx="960" cy="380" rx="70" ry="260" fill="#7a5a8a" opacity="0.2"/>
+  <!-- kapu nisos uolose -->
+  <g fill="#0a0710"><rect x="220" y="360" width="130" height="90"/><rect x="220" y="520" width="130" height="90"/><rect x="1560" y="360" width="130" height="90"/><rect x="1560" y="520" width="130" height="90"/></g>
+  <g stroke="#5a5045" stroke-width="3" opacity="0.6"><path d="M235 390 h70 M235 405 h50 M1575 390 h70 M1575 405 h50"/></g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Uolos kapai, isejimas (M10)</text>
+</svg>

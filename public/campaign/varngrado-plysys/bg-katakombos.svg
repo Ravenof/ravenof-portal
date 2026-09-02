@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><radialGradient id="g" cx="0.4" cy="0.6" r="0.7"><stop offset="0" stop-color="#2c2418" stop-opacity="0.9"/><stop offset="0.5" stop-color="#181220"/><stop offset="1" stop-color="#060409"/></radialGradient></defs>
+  <rect width="1920" height="1080" fill="url(#g)"/>
+  <!-- skliautai perspektyvoje -->
+  <path d="M0 0 H1920 V1080 H0 Z M200 1080 V420 Q560 140 960 150 Q1360 140 1720 420 L1720 1080 Z" fill="#08060e" fill-rule="evenodd"/>
+  <path d="M420 1080 V500 Q680 300 960 305 Q1240 300 1500 500 L1500 1080 Z" fill="#100c18" />
+  <path d="M660 1080 V580 Q810 460 960 462 Q1110 460 1260 580 L1260 1080 Z" fill="#060409"/>
+  <!-- nisos su kaulais -->
+  <g fill="#0d0a14"><rect x="240" y="560" width="120" height="90"/><rect x="240" y="700" width="120" height="90"/><rect x="1560" y="560" width="120" height="90"/><rect x="1560" y="700" width="120" height="90"/></g>
+  <g fill="#8a8074" opacity="0.6"><ellipse cx="300" cy="620" rx="34" ry="10"/><ellipse cx="300" cy="760" rx="34" ry="10"/><ellipse cx="1620" cy="620" rx="34" ry="10"/><ellipse cx="1620" cy="760" rx="34" ry="10"/></g>
+  <!-- vardai ant akmenu -->
+  <g stroke="#6a5f50" stroke-width="3" opacity="0.6"><path d="M250 570 h60 M250 585 h44 M1570 570 h60 M1570 585 h44"/></g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Katakombu koridorius</text>
+</svg>

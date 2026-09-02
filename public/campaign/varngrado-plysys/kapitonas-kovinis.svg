@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <!-- ietis nuleista, skydas -->
+  <g transform="rotate(-26 480 500)"><rect x="470" y="60" width="16" height="640" fill="#2c2318"/><path d="M478 60 L454 135 L478 112 L502 135 Z" fill="#8ab4f8"/></g>
+  <path d="M90 470 Q190 445 240 480 L240 740 Q195 800 130 810 Q85 760 80 690 Z" fill="#26406a"/>
+  <path d="M104 492 Q186 470 222 496 L222 722 Q188 768 140 778 Q102 738 98 676 Z" fill="#3a5a8c"/>
+  <circle cx="160" cy="630" r="22" fill="#5a8cdc"/>
+  <path d="M130 1000 L125 430 Q135 330 230 305 L390 305 Q485 330 495 430 L490 1000 Z" fill="#1a2a4a"/>
+  <path d="M195 1000 L200 465 Q210 380 310 365 Q410 380 420 465 L425 1000 Z" fill="#26406a"/>
+  <path d="M475 440 Q462 340 365 318 L365 368 Q422 380 436 458 Z" fill="#2e4a78"/>
+  <g transform="rotate(5 310 240)">
+    <path d="M256 305 q-12 -36 -8 -78 q8 -70 62 -70 q54 0 62 70 q4 42 -8 78 q-24 28 -54 28 q-30 0 -54 -28 z" fill="#93826e"/>
+    <path d="M256 227 q8 -70 54 -70 l0 176 q-30 0 -54 -28 q-12 -36 -8 -78 z" fill="#766753"/>
+    <path d="M258 195 q54 -22 108 0 q6 18 0 30 q-54 -18 -108 0 q-6 -12 0 -30 z" fill="#8a8074"/>
+    <path d="M270 242 h82 l-10 14 h-64 z" fill="#453a30"/>
+  </g>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b9bb8" opacity="0.9">PLACEHOLDER: Ordino kapitonas (kovinis)</text>
+</svg>

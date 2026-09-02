@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#120c1c"/><stop offset="1" stop-color="#1c1224"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#a)"/>
+  <path d="M0 760 Q480 700 960 740 T1920 720 V1080 H0 Z" fill="#0b0812"/>
+  <!-- degantis bokstas tolumoje su violetinemis liepsnomis -->
+  <g transform="translate(1480 420)"><rect x="0" y="0" width="110" height="260" fill="#08060f"/><path d="M-16 0 h142 l-16 -46 h-110 z" fill="#08060f"/>
+  <path d="M20 -40 q18 -66 36 -18 q20 -50 34 6 q16 -30 20 24 q-18 60 -60 54 q-44 -8 -50 -60 q6 -40 20 -6 z" fill="#c81e1e"/>
+  <path d="M40 -60 q10 -40 22 -10 q12 -26 18 10 q-10 42 -30 38 q-22 -6 -10 -38 z" fill="#8a5cf6" opacity="0.9"/></g>
+  <!-- kelias su provezomis -->
+  <path d="M760 1080 L900 740 L1010 740 L1240 1080 Z" fill="#171022"/>
+  <path d="M900 1080 L960 745 L975 745 L1040 1080 Z" fill="#0d0a16" opacity="0.7"/>
+  <!-- lietus -->
+  <g stroke="#3a3350" stroke-width="3" opacity="0.5"><path d="M200 100 l-30 90 M500 60 l-30 90 M820 140 l-30 90 M1200 80 l-30 90 M1600 160 l-30 90 M350 400 l-30 90 M1050 360 l-30 90"/></g>
+  <text x="960" y="56" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Kelias, degantis bokstas (M2)</text>
+</svg>

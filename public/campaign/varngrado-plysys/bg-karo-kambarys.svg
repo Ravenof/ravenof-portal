@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><radialGradient id="e" cx="0.5" cy="0.45" r="0.8"><stop offset="0" stop-color="#3a2c1c" stop-opacity="0.9"/><stop offset="0.5" stop-color="#221a24"/><stop offset="1" stop-color="#0d0a14"/></radialGradient></defs>
+  <rect width="1920" height="1080" fill="url(#e)"/>
+  <g stroke="#241c30" stroke-width="5" fill="none" opacity="0.7"><path d="M0 240 H1920 M0 520 H1920"/><path d="M420 0 V240 M980 240 V520 M1500 0 V240 M700 520 V800"/></g>
+  <!-- didelis stalas su zemelapiu -->
+  <path d="M360 1080 L480 640 L1440 640 L1560 1080 Z" fill="#241708"/>
+  <path d="M430 1010 L520 680 L1400 680 L1490 1010 Z" fill="#cbb68a" opacity="0.85"/>
+  <!-- zemelapio linijos + akmenys -->
+  <g stroke="#6a5a3a" stroke-width="4" fill="none"><path d="M600 750 q200 -30 420 10 t320 -20 M700 900 q260 -50 560 0"/><circle cx="820" cy="760" r="10"/><circle cx="1150" cy="800" r="10"/></g>
+  <g fill="#141020"><circle cx="900" cy="820" r="16"/><circle cx="1060" cy="740" r="16"/><circle cx="760" cy="870" r="16"/></g>
+  <!-- zvakides -->
+  <g><rect x="500" y="600" width="14" height="46" fill="#cbb68a"/><ellipse cx="507" cy="590" rx="9" ry="15" fill="#f0b429" opacity="0.9"/>
+  <rect x="1410" y="600" width="14" height="46" fill="#cbb68a"/><ellipse cx="1417" cy="590" rx="9" ry="15" fill="#f0b429" opacity="0.9"/></g>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Karo kambarys / tarybos stalas</text>
+</svg>

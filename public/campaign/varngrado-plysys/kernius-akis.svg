@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1000">
+  <path d="M150 1000 L160 440 Q170 340 250 315 L370 315 Q450 340 460 440 L470 1000 Z" fill="#2c2318"/>
+  <path d="M200 520 L310 480 L420 520 L410 610 L310 575 L210 610 Z" fill="#3a2f22"/>
+  <path d="M140 430 Q150 340 240 320 L240 370 Q185 380 172 450 Z" fill="#443626"/>
+  <path d="M480 430 Q470 340 380 320 L380 370 Q435 380 448 450 Z" fill="#443626"/>
+  <path d="M252 315 q-10 -38 -6 -82 q6 -72 64 -72 q58 0 64 72 q4 44 -6 82 q-22 26 -48 26 q-32 0 -58 -26 z" fill="#8f7d6a"/>
+  <path d="M252 233 q6 -72 58 -72 l0 180 q-32 0 -58 -26 q-10 -38 -6 -82 z" fill="#71614f"/>
+  <path d="M258 200 q54 -26 108 0 q8 22 2 38 q-56 -24 -112 0 q-6 -16 2 -38 z" fill="#241c14"/>
+  <!-- sviesi ir juoda akis -->
+  <ellipse cx="285" cy="245" rx="10" ry="12" fill="#e8ddc8"/><ellipse cx="285" cy="247" rx="4" ry="6" fill="#241c14"/>
+  <ellipse cx="340" cy="245" rx="11" ry="13" fill="#0a0510"/><ellipse cx="340" cy="245" rx="5" ry="6" fill="#8a5cf6" opacity="0.8"/>
+  <path d="M342 228 q14 -26 6 -50 q20 16 16 44 q10 -6 9 -26 q13 24 -5 48 q-15 13 -26 -16 z" fill="#241f38" opacity="0.85"/>
+  <text x="310" y="980" text-anchor="middle" font-family="monospace" font-size="24" fill="#8b829b" opacity="0.9">PLACEHOLDER: Kernius (juodoji akis)</text>
+</svg>

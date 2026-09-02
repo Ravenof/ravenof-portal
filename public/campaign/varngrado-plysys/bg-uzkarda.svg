@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs><linearGradient id="l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#23232c"/><stop offset="1" stop-color="#101018"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#l)"/>
+  <!-- rukas -->
+  <ellipse cx="960" cy="860" rx="1100" ry="240" fill="#3a3a48" opacity="0.25"/>
+  <!-- uzkardos siena skersai kelio -->
+  <rect y="420" width="1920" height="300" fill="#2a2a34"/>
+  <g fill="#20202a"><rect x="0" y="420" width="1920" height="24"/><rect x="0" y="580" width="1920" height="20"/></g>
+  <g fill="#d8d4c8" opacity="0.9"><rect x="140" y="380" width="80" height="40"/><rect x="480" y="380" width="80" height="40"/><rect x="820" y="380" width="80" height="40"/><rect x="1160" y="380" width="80" height="40"/><rect x="1500" y="380" width="80" height="40"/><rect x="1780" y="380" width="80" height="40"/></g>
+  <!-- gelezinia vartai -->
+  <path d="M800 720 v-220 q160 -140 320 0 v220 z" fill="#14141c"/>
+  <g stroke="#3a3a46" stroke-width="10"><path d="M840 720 V540 M900 720 V505 M960 720 V495 M1020 720 V505 M1080 720 V540 M800 600 h320 M800 660 h320"/></g>
+  <!-- balti skydai ir lankininku eile ant sienos -->
+  <g fill="#c8c4b8"><ellipse cx="300" cy="400" rx="22" ry="30"/><ellipse cx="640" cy="400" rx="22" ry="30"/><ellipse cx="1310" cy="400" rx="22" ry="30"/><ellipse cx="1650" cy="400" rx="22" ry="30"/></g>
+  <g fill="#1a1a24"><circle cx="300" cy="360" r="14"/><circle cx="640" cy="360" r="14"/><circle cx="1310" cy="360" r="14"/><circle cx="1650" cy="360" r="14"/></g>
+  <!-- kelias -->
+  <path d="M760 1080 L880 720 L1040 720 L1160 1080 Z" fill="#191420"/>
+  <!-- balta linija ant kelio -->
+  <path d="M700 900 H1220" stroke="#d8d4c8" stroke-width="10" opacity="0.75"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#5a5668" opacity="0.9">PLACEHOLDER - Inkvizicijos uzkarda (M8/M9)</text>
+</svg>
