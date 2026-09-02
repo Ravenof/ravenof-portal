@@ -1,5 +1,5 @@
-# Ravenof — kampanijos turinio gidas
-### Kaip modeliuoti kampaniją, dialogus ir asset'us (viena cutscene — iki 5 min)
+# Ravenof — kampanijos turinio gidas V3
+### Kaip kurti gilias motion-comic scenas, kurios tiesiogiai pereina į gameplay
 
 Šis gidas skirtas TURINIO kūrimui jau veikiančioje sistemoje (commit650–654):
 motion-comic cutscene grotuvas, in-battle trigeriai, „🕸 Srautas" flow editorius,
@@ -24,9 +24,30 @@ Viskas modeliuojama **Admin → Kampanijos → 🕸 Srautas** skirtuke: misijos,
 cutscene ir trigeriai — sujungti burbulai. Auksinės rodyklės = misijų seka,
 mėlyna/žalia/raudona = pre/post/fail, violetinė = trigeris → scena.
 
-**Ritmo taisyklė:** ilga cutscene (2–5 min) — tik skyriaus pradžioje ir pabaigoje.
-Tarp misijų užtenka 30–60 s scenų arba vien in-battle dialogų. Žaidėjas atėjo
-kortomis lošti; istorija — prieskonis, ne sriuba.
+**V3 ritmo taisyklė:** PRE scenos apimtį nustato ne jos vieta kampanijoje, o
+dramaturginis darbas. Įprasta PRE scena gali trukti 2:00–2:45 skaitymo tempu,
+akto lūžis 3:00–3:45, finalas iki 5 min. 30–60 s formatas paliekamas tik trumpam
+interliudui, FAIL scenai arba vienam aiškiam pokalbiui. Scenos negalima trumpinti
+taip, kad neliktų būsenos prieš problemą, santykio konflikto, sprendimo ir fizinio
+įvykio, pradedančio mūšį.
+
+### 1.1. Geležinė PRE → gameplay taisyklė
+
+PRE cutscene nesibaigia veikėjams tik pasiruošus kovai. Ji baigiasi tada, kai
+kova jau fiziškai prasidėjo: priešas smogė, objektas pažeistas, žmogus sugriebtas,
+vartai lūžo arba kelias užblokuotas.
+
+Pirmas gameplay kadras turi tęsti tą patį veiksmą:
+
+1. paskutinis cutscene panelis lieka ekrane;
+2. ant jo atsiranda kovos UI;
+3. scena persitvarko į identiškos kompozicijos lentą;
+4. paskutinis priešo veiksmas užbaigiamas kaip nulinio ėjimo trigeris;
+5. tik tada žaidėjas gauna valdymą.
+
+Kiekvienos misijos scenarijuje privalomas skyrius `CUTSCENE → GAMEPLAY LOCK`,
+kuriame įrašomas paskutinis vaizdas, tęstinumo objektas, nulinio ėjimo įvykis,
+pirmas tikslas ir draudžiamas generinis perėjimas.
 
 ---
 
@@ -34,8 +55,8 @@ kortomis lošti; istorija — prieskonis, ne sriuba.
 
 | Formatas | Kur redaguoti | Kada naudoti |
 |---|---|---|
-| **Motion-comic** (shot-based) | Cutscene → „🎞 Motion-comic" JSON sekcija | Pagrindinės istorijos scenos: skyriaus intro/finalas, bosų pasirodymai, mirtys, atskleidimai |
-| **VN žingsniai** (portretas + tekstas) | Cutscene → Žingsniai | Trumpi pokalbiai tarp misijų, FAIL scenos, in-battle inline dialogai |
+| **Motion-comic** (shot-based) | Cutscene → „🎞 Motion-comic" JSON sekcija | Visos pilnos PRE/POST istorijos scenos, ypač tos, kurios fiziškai pereina į mūšį |
+| **VN žingsniai** (portretas + tekstas) | Cutscene → Žingsniai | Trumpi interliudai, FAIL scenos ir in-battle inline dialogai; ne pagrindinės PRE scenos pakaitalas |
 
 Motion-comic = „Ravenof grafinės novelės puslapis, kuris tyliai pradėjo judėti":
 pilno ekrano komikso kadrai, lėtas kameros stūmimas, sluoksniai, rūkas, dramatinis
@@ -58,8 +79,9 @@ Vienas kadras (shot) = vienas dialogo beat'as. Beat'o trukmė ekrane:
 
 | Scenos trukmė | Kadrų | Dialogo žodžių (LT) | Fonų | Personažų |
 |---|---|---|---|---|
-| 30–60 s | 5–8 | 80–150 | 1–2 | 1–2 |
-| 2 min | 12–16 | 250–350 | 2–3 | 2–3 |
+| 30–60 s | 5–8 | 80–150 | 1–2 | 1–2; tik interliudui arba FAIL |
+| 2–2.75 min | 12–17 | 250–420 | 2–3 | 2–4; įprasta PRE scena |
+| 3–3.75 min | 18–24 | 420–600 | 3–4 | 2–4; akto lūžis |
 | **5 min (maks.)** | **30–38** | **550–750** | **4–6** | **2–4 (+siluetai)** |
 
 **5 minučių scenos dramaturgija (3 aktai):**
@@ -77,6 +99,10 @@ Vienas kadras (shot) = vienas dialogo beat'as. Beat'o trukmė ekrane:
 - Kas 4–6 kadrus keisk KAŽKĄ stambaus: lokaciją, kompoziciją, planą (wide↔close).
 - Kalbėtojų kaita = kadro kaita. Nekalbantis veikėjas lieka matomas, bet pritemsta.
 - `holdMs: 600–1200` po sunkių sakinių — tyla irgi kalba.
+- Pirmas lokacijos kadras laikomas bent 2500 ms prieš dialogą.
+- Naujo priešo reveal laikomas bent 1200 ms be teksto.
+- Dialogas pagal nutylėjimą tęsiamas paspaudimu. Laikas lentelėje yra skaitymo
+  ir VO tempas, ne priverstinis automatinis timer'is.
 - LT tekstas ~15–20 % ilgesnis už EN — panelė prasiplečia pati, bet testuok LT.
 
 ---
@@ -136,8 +162,11 @@ naudojamas flip'inamas, skalinamas ir gylinamas be naujų piešinių.
   telefone — automatiniai, nieko papildomai daryti nereikia.
 - Muzika ir ambient tarp kadrų **crossfade'ina** — nurodyk `musicUrl` tik tame
   kadre, kur takelis KEIČIASI (pvz., kulminacijoje), ne kiekviename.
-- VO po failą beat'ui + `autoAdvanceAfterVoice: true` = pilnai įgarsinta scena,
-  kuri pati eina pirmyn. 5 min scenai tai ~30–35 trumpi failai (po 5–9 s).
+- VO kuriamas po vieną failą beat'ui. `autoAdvanceAfterVoice` pagal nutylėjimą
+  paliekamas `false`, kad žaidėjas pats valdytų skaitymo tempą. Automatinis režimas
+  gali būti atskira parinktis, bet po VO privalo palikti 350–700 ms pauzę, o po
+  sprendimo ar reveal — bent 1000 ms. Negalima naudoti automatinio režimo kaip
+  pagrindinio cutscene QA tempo.
 - Garsas dirba tą darbą, kurio nedaro animacija: žingsniai, varnos, vėjas
   languose — pigiausias „gyvumo" šaltinis.
 
@@ -270,8 +299,10 @@ paveikslais, balsais ir efektais.
 
 ## 8. Gamybos konvejeris (viena misija nuo idėjos iki žaidimo)
 
-1. **Scenarijus tekstu** (Word/paperis): logline, beat'ų sąrašas PRE scenai,
-   3–5 in-battle replikos, POST beat'ai, FAIL 1–2 beat'ai.
+1. **Scenarijus tekstu**: būsena prieš problemą, santykio konfliktas, nauja
+   informacija, veikėjo sprendimas ir fizinis įvykis, kuris jau pradeda kovą.
+   Pridėk `CUTSCENE → GAMEPLAY LOCK`, nulinio ėjimo trigerį, 5–8 in-battle
+   replikas, POST pasekmes ir trumpą FAIL sceną.
 2. **Asset'ų sąrašas iš beat'ų**: kiekvienam kadrui — fonas? pozos? SFX?
    Sugrupuok — pamatysi, kad 30 kadrų reikia tik 4–6 fonų ir ~10 pozų failų.
 3. **Piešimas/generavimas** pagal §4 specifikacijas (pirmiausia fonai, tada pozos).
@@ -289,6 +320,12 @@ paveikslais, balsais ir efektais.
 - [ ] Skip veikia ir nepalieka grojančios muzikos
 - [ ] Reduced-motion režimu scena skaitosi
 - [ ] VO ir tekstas sutampa žodis žodin (arba VO nėra)
+- [ ] Dialogas pagal nutylėjimą neauto-advance'ina ir gali būti skaitomas žaidėjo tempu
+- [ ] Paskutiniame PRE kadre mūšis jau fiziškai prasidėjo
+- [ ] Pirmas gameplay kadras išlaiko tą pačią kompoziciją ir tęstinumo objektą
+- [ ] Nulinio ėjimo trigeris užbaigia paskutinį cutscene veiksmą
+- [ ] Pirmą tikslą galima suprasti dar neperskaičius UI teksto
+- [ ] Pergalės būsena tiesiogiai sutampa su pirmu POST kadru
 - [ ] Trigeriai `once`, nešaudo dubliais
 - [ ] Bangų kortų UUID teisingi (Validacijos tab'as!)
 - [ ] FAIL cutscene trumpa ir be „bausmės" tono
@@ -309,3 +346,10 @@ paveikslais, balsais ir efektais.
    beat'ui.
 7. **5 min scena be lokacijos kaitos.** Bent 2–3 vizualiniai „perkėlimai", kitaip
    ir geriausias artas pabosta.
+8. **Cutscene baigiasi pasiruošimu.** Ištrauktas kalavijas, priešai tolumoje ar
+   įsakymas „prie vartų" dar nėra gameplay handoff. Leisk pirmajam smūgiui įvykti
+   scenoje ir tęsk jį lentoje.
+9. **Kova prasideda kitoje būsenoje.** Jei cutscene vežimas apverstas, gameplay
+   jis negali stovėti sveikas. Jei veikėjas sugriebtas, jis negali pradėti laisvas.
+10. **Tikslas atsiranda tik UI.** Žaidėjas prieš gaudamas valdymą jau turi matyti,
+    kas puolamas, kas užblokuota ir kodėl reikia veikti dabar.

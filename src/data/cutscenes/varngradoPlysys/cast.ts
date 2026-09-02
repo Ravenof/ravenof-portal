@@ -68,6 +68,10 @@ export const CAST: MCCharacterDef[] = [
     id: 'belzatoras', name: { lt: 'Belzatoras', en: 'Belzataras' }, accentColor: 'rgb(200,30,30)',
     poses: { neutral: `${A}/belzatoras.svg`, demonas: `${A1}/demonas.svg` },
   },
+  { // pasikartojantis civilio motyvas (V3): mergaitė su mediniu varnu — M3, M4, M8, M10
+    id: 'mergaite', name: { lt: 'Mergaitė', en: 'Girl' }, accentColor: 'rgb(220,190,150)',
+    poses: { neutral: `${A}/mergaite.svg` },
+  },
 ]
 
 /** Kadrą kuriantis helper'is: numatytas fade perėjimas + lėtas push. */

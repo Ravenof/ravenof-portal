@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { MotionComicPlayer } from '@/components/digital/campaign/MotionComicPlayer'
 import { demoChapelCutscene } from '@/data/cutscenes/demoChapelCutscene'
-import { raudonasisSignalasCutscene } from '@/data/cutscenes/raudonasisSignalas'
+import { raudonasisSignalasCutscene, raudonasisSignalasPost } from '@/data/cutscenes/raudonasisSignalas'
 import {
   m02pre, m02post, m03pre, m03post, m04pre, m04post, m05pre, m05post,
   m06pre, m06post, m07pre, m07post, m08pre, m08post, m09pre, m09post,
@@ -21,25 +21,26 @@ import { isReducedMotionEnabled, setReducedMotionEnabled } from '@/lib/settings'
 const GOLD = '240,180,41'
 
 const SCENES: { key: string; title: string; sub: string; def: MotionComicDef }[] = [
-  { key: 'raudonasis', title: 'M1 — Raudonasis signalas', sub: 'V2: 14 scen. kadrų → 27 beat’ai, ~2 min, Šiaurinis bokštas', def: raudonasisSignalasCutscene },
-  { key: 'm02pre', title: 'M2 PRE — Žvilgsnis iš plyšio', sub: 'Paskutinis pranešėjas, ~55 s', def: m02pre },
-  { key: 'm02post', title: 'M2 POST — Pirmoji linija', sub: 'Paskutinis pranešėjas, ~85 s', def: m02post },
-  { key: 'm03pre', title: 'M3 PRE — Iki trečio varpo', sub: 'Vartai prieš aušrą, ~60 s', def: m03pre },
-  { key: 'm03post', title: 'M3 POST — Varngradas keliasi', sub: 'Vartai prieš aušrą, ~70 s', def: m03post },
-  { key: 'm04pre', title: 'M4 PRE — Ne trys puolimai', sub: 'Trys varpai, ~45 s', def: m04pre },
-  { key: 'm04post', title: 'M4 POST — Po gatvėmis', sub: 'Trys varpai, ~50 s', def: m04post },
-  { key: 'm05pre', title: 'M5 PRE — Vardai ant akmens', sub: 'Juodoji akis, ~60 s', def: m05pre },
-  { key: 'm05post', title: 'M5 POST — Du atsakymai', sub: 'Juodoji akis, ~55 s', def: m05post },
-  { key: 'm06pre', title: 'M6 PRE — Pirmi prie vartų', sub: 'Mėlyno mithrilo aušra, ~75 s', def: m06pre },
-  { key: 'm06post', title: 'M6 POST — Ne pagalba', sub: 'Mėlyno mithrilo aušra, ~70 s', def: m06post },
-  { key: 'm07pre', title: 'M7 PRE — Paruoštas sprendimas', sub: 'Balto vaško įsakymas, ~100 s', def: m07pre },
-  { key: 'm07post', title: 'M7 POST — Miestas apsuptas', sub: 'Balto vaško įsakymas, ~70 s', def: m07post },
-  { key: 'm08pre', title: 'M8 PRE — Kita sienos pusė', sub: 'Užvertas pietų kelias, ~60 s', def: m08pre },
-  { key: 'm08post', title: 'M8 POST — Miestas, kurio nebėra', sub: 'Užvertas pietų kelias, ~80 s', def: m08post },
-  { key: 'm09pre', title: 'M9 PRE — Mūsų vežimai', sub: 'Būtinoji kaina, ~85 s', def: m09pre },
-  { key: 'm09post', title: 'M9 POST — Paskutinis tiltas', sub: 'Būtinoji kaina, ~85 s', def: m09post },
-  { key: 'm10pre', title: 'M10 PRE — Dešimt dūžių', sub: 'Paskutinis varpas, ~145 s', def: m10pre },
-  { key: 'm10post', title: 'M10 POST — Po mirties', sub: 'Paskutinis varpas, epilogas, ~145 s', def: m10post },
+  { key: 'raudonasis', title: 'M1 PRE — Naktis, kuri turėjo būti rami', sub: 'V3: Raudonasis signalas, 18 beat’ų, ~3 min', def: raudonasisSignalasCutscene },
+  { key: 'm01post', title: 'M1 POST — Žinia dar neprarasta', sub: 'V3: Raudonasis signalas, 10 beat’ų, ~2 min', def: raudonasisSignalasPost },
+  { key: 'm02pre', title: 'M2 PRE — Balsas kelyje', sub: 'V3: Paskutinis pranešėjas, 14 beat’ų, ~2:20', def: m02pre },
+  { key: 'm02post', title: 'M2 POST — Kam atidaryti vartus', sub: 'V3: Paskutinis pranešėjas, 13 beat’ų, ~2:10', def: m02post },
+  { key: 'm03pre', title: 'M3 PRE — Iki trečio varpo', sub: 'V3: Vartai prieš aušrą, 16 beat’ų, ~2:35', def: m03pre },
+  { key: 'm03post', title: 'M3 POST — Tie, kuriuos įleidome', sub: 'V3: Vartai prieš aušrą, 11 beat’ų, ~1:50', def: m03post },
+  { key: 'm04pre', title: 'M4 PRE — Ką miestas saugo', sub: 'V3: Trys varpai, 16 beat’ų, ~2:35', def: m04pre },
+  { key: 'm04post', title: 'M4 POST — Po gatvėmis', sub: 'V3: Trys varpai, 10 beat’ų, ~1:45', def: m04post },
+  { key: 'm05pre', title: 'M5 PRE — Vardas, kuris atsako', sub: 'V3: Juodoji akis, 17 beat’ų, ~2:50', def: m05pre },
+  { key: 'm05post', title: 'M5 POST — Du atsakymai', sub: 'V3: Juodoji akis, 11 beat’ų, ~1:55', def: m05post },
+  { key: 'm06pre', title: 'M6 PRE — Pirmi prie sienos', sub: 'V3: Mėlyno mithrilo aušra, 17 beat’ų, ~2:50', def: m06pre },
+  { key: 'm06post', title: 'M6 POST — Kas atėjo padėti', sub: 'V3: Mėlyno mithrilo aušra, 13 beat’ų, ~2:10', def: m06post },
+  { key: 'm07pre', title: 'M7 PRE — Sprendimas, parašytas iš anksto', sub: 'V3: Balto vaško įsakymas, 21 beat’as, ~3:30', def: m07pre },
+  { key: 'm07post', title: 'M7 POST — Balta riba', sub: 'V3: Balto vaško įsakymas, 13 beat’ų, ~2:10', def: m07post },
+  { key: 'm08pre', title: 'M8 PRE — Žmonės prie baltos linijos', sub: 'V3: Užvertas pietų kelias, 19 beat’ų, ~3:10', def: m08pre },
+  { key: 'm08post', title: 'M8 POST — Miestas, kurio nebėra', sub: 'V3: Užvertas pietų kelias, 14 beat’ų, ~2:15', def: m08post },
+  { key: 'm09pre', title: 'M9 PRE — Ko neatiduoda badaujantis miestas', sub: 'V3: Būtinoji kaina, 20 beat’ų, ~3:20', def: m09pre },
+  { key: 'm09post', title: 'M9 POST — Paskutinis tiltas', sub: 'V3: Būtinoji kaina, 15 beat’ų, ~2:20', def: m09post },
+  { key: 'm10pre', title: 'M10 PRE — Dešimt dūžių', sub: 'V3: Paskutinis varpas, 26 beat’ai, ~4:30', def: m10pre },
+  { key: 'm10post', title: 'M10 POST — Po mirties', sub: 'V3: Paskutinis varpas, epilogas, 19 beat’ų, ~3:00', def: m10post },
   { key: 'demo', title: 'Demo — Varngrado koplyčia', sub: '5 kadrai, sistemos demonstracija', def: demoChapelCutscene },
 ]
 

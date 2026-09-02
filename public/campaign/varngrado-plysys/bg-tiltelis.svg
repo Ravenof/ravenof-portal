@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <!-- PLACEHOLDER - Akmeninis tiltelis per griova nakti (M2) -->
+  <defs>
+    <linearGradient id="tsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d0a16"/><stop offset="0.6" stop-color="#181226"/><stop offset="1" stop-color="#241a30"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#tsky)"/>
+  <!-- tolimi Varngrado žibintai -->
+  <g fill="#f0b429" opacity="0.7">
+    <circle cx="1560" cy="330" r="6"/><circle cx="1620" cy="352" r="4"/><circle cx="1690" cy="336" r="5"/>
+  </g>
+  <path d="M1450 380 h420 v-40 l-60 -30 -110 20 -80 -26 -100 30 -70 -14 Z" fill="#141020" opacity="0.9"/>
+  <!-- griova -->
+  <path d="M0 760 Q480 700 960 740 T1920 720 V1080 H0 Z" fill="#0a0812"/>
+  <path d="M200 820 Q560 900 900 860 T1700 880" stroke="#050409" stroke-width="70" fill="none"/>
+  <!-- akmeninis tiltelis -->
+  <path d="M520 760 Q960 620 1400 740 L1400 800 Q960 690 520 820 Z" fill="#3a3244"/>
+  <path d="M700 792 Q960 706 1220 780 Q1100 850 960 850 Q820 850 700 792 Z" fill="#0d0a16"/>
+  <g stroke="#241c30" stroke-width="4" fill="none" opacity="0.8">
+    <path d="M560 770 L580 812 M680 742 L695 796 M820 718 L830 780 M960 706 L960 772 M1100 716 L1092 778 M1240 736 L1226 792 M1360 756 L1344 806"/>
+  </g>
+  <!-- kelias -->
+  <path d="M0 900 Q400 850 520 800 M1400 760 Q1600 740 1920 760" stroke="#2a2236" stroke-width="90" fill="none" opacity="0.8"/>
+  <!-- rūkas -->
+  <ellipse cx="960" cy="960" rx="900" ry="140" fill="#3a3050" opacity="0.25"/>
+  <text x="960" y="60" text-anchor="middle" font-family="monospace" font-size="30" fill="#4d4766" opacity="0.85">PLACEHOLDER - Akmeninis tiltelis / senasis kelias</text>
+</svg>
