@@ -5,6 +5,7 @@
 // žetonai, ŽMK, pop-up scenarijus ir dark fantasy ambient muzika.
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
+import { createServerChannel, isServerChannel, pvpServerUrl } from '@/lib/pvp/serverChannel'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -80,7 +81,7 @@ import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 
-export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean }
+export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean; /** server-authoritative: abu klientai – „svečiai“ prie apps/server (žr. lib/pvp/serverChannel) */ server?: boolean }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
 const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
 type RankedResultPayload = { result: 'win' | 'loss'; turns: number; stats: import('@/lib/ranked/types').PlayerMatchStats }
@@ -909,14 +910,17 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
-  const isHost = !!net?.isHost
+  // Server-authoritative PvP (NEXT_PUBLIC_PVP_SERVER_URL arba net.server): serveris = host'as,
+  // abu klientai elgiasi kaip svečiai (siunčia veiksmus, gauna 'state').
+  const serverMode = !!net && (!!net.server || !!pvpServerUrl())
+  const isHost = !!net?.isHost && !serverMode
 
   // Kovos fono muzika (grįžus į meniu – menu tema)
   useEffect(() => {
     startBattleMusic()
     return () => { startMenuMusic() }
   }, [])
-  const isGuest = !!net && !net.isHost
+  const isGuest = !!net && !isHost
   const vsRemote = !!net
   const loadOpp = practice || isHost || !!opponentDeckId || !!opponentStarterId || !!opponentFaction  // priešą kraunam ir kai nurodytas opponentDeckId/Faction (pvz. tutorial guided mūšis su GUIDED_STEPS)
   const [loading, setLoading] = useState(true)
@@ -1512,7 +1516,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // (scriptintas — visada pradeda zaidejas). PvP: HOST'as autoritetingai
     // isburia pirmaji ir jungia mulligan; svecias viska gauna per 'state'
     // broadcast (svecio coin toss UI — is pirmo state snapshot'o, zr. efekta zemiau).
-    const tossEnabled = (!tutorial?.active || !!tutorial.matchStartFlow) && !sandbox && (!net || net.isHost)
+    const tossEnabled = (!tutorial?.active || !!tutorial.matchStartFlow) && !sandbox && (!net || isHost)
     const first: Side = tossEnabled ? (Math.random() < 0.5 ? 'you' : 'ai') : 'you'
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
@@ -2762,8 +2766,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   useEffect(() => {
     if (!net) return
     const supabase = createClient()
-    const ch = supabase.channel('pvp-' + net.matchId, { config: { broadcast: { self: false } } })
-    if (net.isHost) {
+    const ch = serverMode
+      ? (createServerChannel({ url: pvpServerUrl()!, matchId: net.matchId, side: net.mySide === 'you' ? 'you' : 'ai' }) as unknown as RealtimeChannel)
+      : supabase.channel('pvp-' + net.matchId, { config: { broadcast: { self: false } } })
+    if (isHost) {
       ch.on('broadcast', { event: 'action' }, ({ payload }) => {
         const a = payload as NetAction
         setGame((prev) => { if (!prev) return prev; const g = cloneState(prev); applyNetAction(g, a); return gateCommit(g, prev) })
@@ -2781,10 +2787,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       ch.on('broadcast', { event: 'state' }, ({ payload }) => {
         setGame((prev) => { const g = swapPerspective(payload as GameState); return prev ? gateCommit(g, prev) : g })
       })
+      // Serveris atmetė veiksmą (server-authoritative): parodom priežastį (i18n raktas).
+      ch.on('broadcast', { event: 'reject' }, ({ payload }) => {
+        const reason = (payload as { reason?: string }).reason
+        pushToast(reason ? t(reason) : 'Veiksmas negalimas')
+      })
       // Host prašo svečio kaladės – atsiunčiam pasirinktą kaladę
       ch.on('broadcast', { event: 'reqdeck' }, () => {
         const cards = deckCardsRef.current
-        if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards } })
+        if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards, curses: curseCards } })
       })
     }
     // Varžovo nugarėlė (kosmetika). Backward-safe: senas klientas be handler'io ignoruoja.
@@ -2806,18 +2817,18 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         try { await ch.track({ side: net.mySide }) } catch { /* */ }
         setChReady(true)
         ch.send({ type: 'broadcast', event: 'skin', payload: { back: EQUIPPED_BACK } })
-        if (net.isHost) {
+        if (isHost) {
           ch.send({ type: 'broadcast', event: 'reqdeck', payload: {} })
         } else {
           ch.send({ type: 'broadcast', event: 'hello', payload: {} })
           const cards = deckCardsRef.current
-          if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards } })
+          if (cards && cards.length > 0) ch.send({ type: 'broadcast', event: 'deck', payload: { cards, curses: curseCards } })
         }
       }
     })
     channelRef.current = ch
     setOppBack(null)
-    return () => { supabase.removeChannel(ch); channelRef.current = null; setOppBack(null) }
+    return () => { if (isServerChannel(ch)) void ch.unsubscribe(); else supabase.removeChannel(ch); channelRef.current = null; setOppBack(null) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [net?.matchId])
 
@@ -2856,9 +2867,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Svečias: turėdamas savo kaladę ir paruoštą kanalą – atsiunčia ją host'ui (kad
   // host sukurtų AI pusę iš TIKROS svečio kaladės, o ne nukristų į savo kaladę).
   useEffect(() => {
-    if (!net || net.isHost || !chReady || !deckCards || deckCards.length === 0) return
-    channelRef.current?.send({ type: 'broadcast', event: 'deck', payload: { cards: deckCards } })
-  }, [net, chReady, deckCards])
+    if (!net || isHost || !chReady || !deckCards || deckCards.length === 0) return
+    channelRef.current?.send({ type: 'broadcast', event: 'deck', payload: { cards: deckCards, curses: curseCards } })
+  }, [net, chReady, deckCards, curseCards, isHost])
 
   // PvP host saugiklis: jei per 8s negavom svečio kaladės (senas klientas) – tęsiam (fallback).
   useEffect(() => {

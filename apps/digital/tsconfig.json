@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "types": [
+      "vite/client"
+    ],
+    "baseUrl": "../..",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "next/link": [
+        "apps/digital/shims/link.tsx"
+      ],
+      "next/navigation": [
+        "apps/digital/shims/navigation.tsx"
+      ],
+      "next/dynamic": [
+        "apps/digital/shims/dynamic.tsx"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "shims"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

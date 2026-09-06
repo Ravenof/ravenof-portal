@@ -1,0 +1,13 @@
+# Hetzner VPS: docker compose up -d --build   (iš repo šaknies: docker compose -f apps/server/docker-compose.yml up -d --build)
+services:
+  pvp:
+    build: { context: ../.., dockerfile: apps/server/Dockerfile }
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    environment:
+      PORT: 8080
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      GIT_SHA: ${GIT_SHA:-dev}
+  # TLS: prieš pvp pastatyti Caddy (play.ravenof.lt → localhost:8080) – žr. LOCAL-FIRST-HANDOFF.md

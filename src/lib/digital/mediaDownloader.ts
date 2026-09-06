@@ -25,6 +25,10 @@ export async function getMediaManifest(): Promise<ManifestEntry[]> {
 
 /** Kurių manifesto failų dar nėra cache — grąžina trūkstamus. */
 export async function diffMissing(entries: ManifestEntry[]): Promise<ManifestEntry[]> {
+  // Local-first app bundle'as: failai, kurie jau supakuoti į įrenginį (apps/digital/media),
+  // nelaikomi trūkstamais (žr. apps/digital/src/mediaShim.ts).
+  const local = typeof window !== 'undefined' ? (window as unknown as { __RAVENOF_LOCAL_MEDIA__?: Set<string> }).__RAVENOF_LOCAL_MEDIA__ : undefined
+  if (local?.size) entries = entries.filter((e) => !local.has(e.url))
   if (typeof caches === 'undefined') return entries
   const cache = await caches.open(MEDIA_CACHE)
   const keys = await cache.keys()

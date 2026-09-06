@@ -1,0 +1,32 @@
+{
+  "name": "ravenof-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ravenof Digital – Steam / Windows / macOS / Linux shell (Electron + steamworks.js)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:app": "cd ../.. && npm run app:build && node tools/build-media.mjs",
+    "dist:win": "electron-builder --win --x64",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "optionalDependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "build": {
+    "appId": "app.ravenof.game",
+    "productName": "Ravenof",
+    "directories": { "output": "release" },
+    "files": ["main.js", "preload.js", "steam.js", "steam_appid.txt"],
+    "extraResources": [{ "from": "../digital/dist", "to": "app", "filter": ["**/*"] }],
+    "asar": true,
+    "win": { "target": ["dir"] },
+    "mac": { "target": ["dir"], "category": "public.app-category.games" },
+    "linux": { "target": ["dir"], "category": "Game" }
+  }
+}
