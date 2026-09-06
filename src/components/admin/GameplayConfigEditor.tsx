@@ -637,6 +637,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
             </select>
           )}
         </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}
+          title='Puolant padarą su Magišku skydu skydas sugeria pirmą smūgį – ataka grąžinama, tad tokį taikinį galima pulti 2 kartus. Kartą per ėjimą.'>
+          <input type="checkbox" checked={!!cfg.secondAttackVsShield} className="w-3.5 h-3.5 accent-yellow-400"
+            onChange={(e) => update({ ...cfg, secondAttackVsShield: e.target.checked || undefined })} />
+          ✦ Padarus su Magišku skydu puola 2 kartus (tik šis)
+        </label>
       </div>
 
       <div>

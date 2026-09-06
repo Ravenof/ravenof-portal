@@ -651,6 +651,9 @@ export type GameplayConfig = {
   /** Pasyvas TIK šiam padarui: sunaikinęs priešo padarą gali pulti dar kartą tą patį ėjimą. */
   secondAttackOnKill?: boolean
   secondAttackOnKillCond?: 'any' | 'taunt' | 'shield'
+  /** Pasyvas TIK šiam padarui: puolant padarą su MAGIŠKUOJU SKYDU (skydas sugeria
+   *  smūgį) ataka grąžinama — tokį taikinį galima pulti 2 kartus. Kartą per ėjimą. */
+  secondAttackVsShield?: boolean
   extraAttacks?: {                        // papildomos atakos per ėjimą (be šios bazinė = 1)
     base?: number                         // visada +N
     ifEnemyTaunt?: number                 // +N jei priešas turi bent 1 taunt kūrinį

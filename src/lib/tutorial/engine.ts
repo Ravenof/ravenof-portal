@@ -115,6 +115,8 @@ export type BoardUnit = {
   summonedFrom?: 'play' | 'hand' | 'deck' | 'graveyard'  // iš kur padaras pateko į lauką (aurų „tik iš kapinyno" filtrui)
   tempBuffs?: { atk: number; hp: number; kind: 'endOfTurn' | 'untilNextTurn' | 'thisAttack'; turn: number }[]  // laikini buff'ai (nuiminėjami ėjimo riboje / po atakos)
   control?: { from: Side; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }  // laikinai perimta kontrolė (takeControl); from = kam grąžinti, turn = valdytojo turnNumber
+  /** secondAttackVsShield: kurį SAVO ėjimo numerį jau buvo grąžinta ataka (1×/ėjimą). */
+  extraShieldAttackTurn?: number
 }
 
 export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: number }
@@ -834,15 +836,29 @@ function unitIsImmortal(g: GameState, ownerSide: Side, uid: string): boolean {
   return aurasAffecting(g, ownerSide, uid).some((cfg) => !!cfg?.auraImmortal)
 }
 /** Antros atakos aura: jei puolantysis sunaikino padarą (su sąlyga) – grąžinam jam atakos teisę. */
+/** Grąžina padarui atakos teisę šį ėjimą (+ matomas žurnalo įrašas). */
+function grantExtraAttack(g: GameState, side: Side, u: BoardUnit) {
+  const p = P(g, side)
+  u.attacksUsed = Math.max(0, u.attacksUsed - 1)
+  p.attacksThisTurn = Math.max(0, p.attacksThisTurn - 1)
+  log(g, { t: 'buff', side, cardName: u.card.name, key: 'battleLog.attackAgain', params: { card: u.card.name }, src: { side, uid: u.uid } })
+}
+/**
+ * „Gali pulti padarus su MAGIŠKUOJU SKYDU 2 kartus" (gameplay.secondAttackVsShield).
+ * Skydas sugeria pirmą smūgį (žalos 0) — todėl ataka grąžinama, kad antras smūgis
+ * pasiektų taikinį. Kartą per savo ėjimą, kad grandinė nesitęstų be galo.
+ */
+function grantSecondAttackVsShield(g: GameState, side: Side, u: BoardUnit): void {
+  if (!u.card.gameplay?.secondAttackVsShield) return
+  const p = P(g, side)
+  if (u.extraShieldAttackTurn === p.turnNumber) return
+  u.extraShieldAttackTurn = p.turnNumber
+  grantExtraAttack(g, side, u)
+}
 function grantSecondAttackIfAura(g: GameState, side: Side, u: BoardUnit, killed: { taunt: boolean; shield: boolean }) {
   const matches = (cond: 'any' | 'taunt' | 'shield') =>
     cond === 'any' || (cond === 'taunt' && killed.taunt) || (cond === 'shield' && killed.shield)
-  const grant = () => {
-    const p = P(g, side)
-    u.attacksUsed = Math.max(0, u.attacksUsed - 1)
-    p.attacksThisTurn = Math.max(0, p.attacksThisTurn - 1)
-    log(g, { t: 'buff', side, cardName: u.card.name, key: 'battleLog.attackAgain', params: { card: u.card.name }, src: { side, uid: u.uid } })
-  }
+  const grant = () => grantExtraAttack(g, side, u)
   // a) pasyvas ant PAČIOS kortos – galioja tik jai (ne aura visiems)
   const own = u.card.gameplay
   if (own?.secondAttackOnKill && matches(own.secondAttackOnKillCond ?? 'any')) { grant(); return }
@@ -1186,7 +1202,21 @@ function fireOnDestroyCredit(g: GameState, victimName: string) {
   applyMappings(gameApi, g, kc.side, kc.mappings, 'onDestroy', { sourceName: kc.name, sourceUid: kc.uid, depth: kc.depth + 1 })
 }
 
+/**
+ * Mirties apdorojimas su APSAUGA NUO PAKARTOTINIO ĮĖJIMO: kol vykdomas padaro
+ * paskutinis noras, jis dar stovi lentoje, tad jo paties efektas (pvz. AoE
+ * savo padarams) gali vėl „užmušti" jį patį — anksčiau tai kartodavo mirties
+ * animaciją ir efektą tol, kol suveikdavo kaskados stabdis. Dabar kiekvienas
+ * uid miršta lygiai vieną kartą.
+ */
 function killUnit(g: GameState, owner: Side, u: BoardUnit) {
+  const gd = g as unknown as { __dyingUids?: string[] }
+  if (gd.__dyingUids?.includes(u.uid)) return
+  gd.__dyingUids = [...(gd.__dyingUids ?? []), u.uid]
+  try { killUnitInner(g, owner, u) }
+  finally { gd.__dyingUids = (gd.__dyingUids ?? []).filter((x) => x !== u.uid) }
+}
+function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
   const p = P(g, owner)
   const idx = p.units.findIndex((x) => x?.uid === u.uid)
   if (idx === -1) return
@@ -3885,6 +3915,9 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     // Antros atakos aura: puolantysis sunaikino padarą ir pats išliko.
     if (defKilled && !def.isChampion && u.hp > 0 && p.units.some((x) => x?.uid === u.uid)) {
       grantSecondAttackIfAura(g, s, u, { taunt: defHadTaunt, shield: defHadShield })
+    } else if (defHadShield && u.hp > 0 && p.units.some((x) => x?.uid === u.uid)) {
+      // Skydas sugėrė smūgį – „gali pulti MAGSHIELD turinčius 2 kartus" pasyvas
+      grantSecondAttackVsShield(g, s, u)
     }
     // onHpOne — kovos žala paliko lygiai 1 HP (gynėjui ir/ar puolėjui)
     if (!defKilled) { const dAlive = P(g, foe).units.find((x) => x?.uid === def.uid); if (dAlive) fireHpOneTrigger(g, foe, dAlive) }

@@ -21,6 +21,11 @@ function enemies(g: GameState, s: Side): Side[] { if (g.teams) { const t = teamO
 function units(g: GameState, s: Side, opts?: { includeStealth?: boolean; championOnly?: boolean; includeChampion?: boolean }): BoardUnit[] {
   return P(g, s).units.filter((u): u is BoardUnit => {
     if (!u) return false
+    // Jau miręs, bet dar nenuimtas nuo lentos (killUnit viduje: paskutinis noras
+    // vykdomas kortai dar stovint savo vietoje) — toks padaras NĖRA taikinys.
+    // Be šito „paskutinio noro" AoE pataikydavo į patį mirštantį padarą ir
+    // kartodavo mirties grandinę (Gaggar'o glitch'as).
+    if (u.hp <= 0) return false
     if (opts?.championOnly) return u.isChampion
     // PAGAL TAISYKLES: Čempionas NĖRA padaras — generiniai „padaro“ taikinių
     // tipai (ownUnit/enemyUnit/anyUnit/all*Units) čempionų NEapima. Čempionas
