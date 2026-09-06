@@ -2,7 +2,7 @@
 
 // ── Ravenof Digital — pagrindinis meniu (patvirtintas UI, Fazė 1) ─────────────
 // ravenof-ui-handoff main-menu-default.png: kairė Reitingo hero · vidurys 3 režimų
-// kortelės (DI / Draugiška / Kampanija) · dešinė „Kas toliau" + serija/sezonas +
+// kortelės (DI / Draugiška) · dešinė „Kas toliau" + serija/sezonas +
 // dienos užduotys. Visa logika/duomenys/modalai išsaugoti.
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -155,7 +155,6 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const modeCards: { key: string; href: string; title: string; sub: string; art: string; artPos: string; border: string; clip: string }[] = [
     { key: 'pve', href: '/digital/pve', title: t('home.pveTitle'), sub: t('home.pveSub'), art: `${A}/modes/mode-vs-ai.webp`, artPos: '50% 25%', border: 'rgba(111,133,98,.4)', clip: 'polygon(0 10px,10px 0,100% 0,100% 100%,0 100%)' },
     { key: 'free', href: '/digital/pvp', title: t('home.freeTitle'), sub: t('home.freeSub'), art: `${A}/modes/mode-friendly-pvp.webp`, artPos: '50% 20%', border: 'rgba(82,111,174,.4)', clip: 'polygon(0 0,100% 0,100% 100%,10px 100%,0 calc(100% - 10px))' },
-    { key: 'campaign', href: '/digital/campaign', title: t('home.campaignTitle'), sub: t('home.campaignSub'), art: `${A}/backgrounds/background-cathedral-ruins.webp`, artPos: '50% 30%', border: 'rgba(166,92,50,.45)', clip: 'polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)' },
   ]
 
   return (
