@@ -116,7 +116,16 @@ export type TutorialGameApi = {
   inspectCard: (cardName: string | null) => void
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks }
+/** Admin poligonas (/admin/playground): saugus „smėlio dėžės" sluoksnis.
+ *  Prop'o nepadavus — elgesys 100% nepakitęs (zero regression). */
+export type SandboxHooks = {
+  /** Perrašo ką tik sukurtą kovą (kaladė / ranka / auksas / lenta). */
+  applySetup?: (g: GameState) => void
+  /** Priešas nieko nedaro — tik baigia ėjimą (manekenų testavimui). */
+  passiveAi?: boolean
+}
+
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -897,7 +906,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   const isHost = !!net?.isHost
@@ -1503,7 +1512,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // (scriptintas — visada pradeda zaidejas). PvP: HOST'as autoritetingai
     // isburia pirmaji ir jungia mulligan; svecias viska gauna per 'state'
     // broadcast (svecio coin toss UI — is pirmo state snapshot'o, zr. efekta zemiau).
-    const tossEnabled = (!tutorial?.active || !!tutorial.matchStartFlow) && (!net || net.isHost)
+    const tossEnabled = (!tutorial?.active || !!tutorial.matchStartFlow) && !sandbox && (!net || net.isHost)
     const first: Side = tossEnabled ? (Math.random() < 0.5 ? 'you' : 'ai') : 'you'
     const g = createGame(
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
@@ -1515,10 +1524,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     else setCoinToss(null)
     if (!g.pendingMulligan) beginTurn(g)
     if (tutorial?.active && tutorial.applySetup) { try { tutorial.applySetup(g) } catch (e) { console.error('[tutorial] applySetup', e) } }
+    if (sandbox?.applySetup) { try { sandbox.applySetup(g) } catch (e) { console.error('[sandbox] applySetup', e) } }
     seenRef.current = g.log.length
     setGame(g)
     playShuffle()
-  }, [zmkDefs, curseCards, oppCurseCards, tutorial, net])
+  }, [zmkDefs, curseCards, oppCurseCards, tutorial, net, sandbox])
 
   // Praktika / PvP host: priešo (svečio) kaladė
   useEffect(() => {
@@ -2591,6 +2601,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         try {
           const g = cloneState(prev)
           if (tutorial?.active && tutorial.enemyTurn) { tutorial.enemyTurn(g); return gateCommit(g, prev) }
+          // Poligonas: pasyvus priešas — jokių veiksmų, tik ėjimo perdavimas.
+          if (sandbox?.passiveAi) { endTurn(g); if (!g.winner) beginTurn(g); return gateCommit(g, prev) }
           const act = aiNextAction(g, { difficulty, weights: aiStrategy })
           if (!act) {
             endTurn(g)
@@ -2607,7 +2619,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       })
     }, delay)
     return () => clearTimeout(t)
-  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, mulliganBlocks, coinBlocks, campBlocks, difficulty, ranked, aiStrategy, cine.current])
+  }, [game, popupBlocks, chainBlocks, gateActive, zmkBlocks, peekBlocks, arrangeBlocks, revealBlocks, summonBlocks, choiceBlocks, copyBlocks, lastwishBlocks, returnBlocks, mulliganBlocks, coinBlocks, campBlocks, difficulty, ranked, aiStrategy, cine.current, sandbox?.passiveAi])
 
   // ── Žaidėjo veiksmai ──
   const myTurn = !!game && game.active === 'you' && !game.winner

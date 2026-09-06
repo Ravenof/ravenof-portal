@@ -11,9 +11,10 @@ import { parseGameplayConfig } from '@/lib/game/types'
 import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 import type { ScenarioConfig } from './types'
 
-const SEL = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( name, color_hex ), faction:factions ( id, name, color_hex ), card_keywords ( keyword:keywords ( name ) )`
+/** Bendra kortų SELECT eilutė (naudoja ir /admin/playground). */
+export const SEL = `id, name, image_url, gold_cost, attack, health, effect_text, description, is_champion, subtype, champion_group, champion_phase, gameplay, card_type:card_types ( name ), rarity:rarities ( name, color_hex ), faction:factions ( id, name, color_hex ), card_keywords ( keyword:keywords ( name ) )`
 
-type Row = {
+export type Row = {
   id: string; name: string; image_url: string | null; gold_cost: number | null
   attack: number | null; health: number | null; effect_text: string | null; description: string | null
   is_champion: boolean | null; subtype: string | null; champion_group: string | null; champion_phase: number | null
@@ -24,7 +25,8 @@ type Row = {
   card_keywords: { keyword: { name: string } | null }[] | null
 }
 
-function mapRow(c: Row): Omit<TutCard, 'uid'> {
+/** DB eilutė → variklio TutCard bazė (be uid). */
+export function mapRow(c: Row): Omit<TutCard, 'uid'> {
   const kwNames = (c.card_keywords ?? []).map((k) => k.keyword?.name ?? '').filter(Boolean)
   const text = [c.effect_text, c.description].filter(Boolean).join(' ')
   const gameplay = parseGameplayConfig(c.gameplay)

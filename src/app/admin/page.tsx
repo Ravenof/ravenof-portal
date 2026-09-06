@@ -18,6 +18,7 @@ const NAV = [
   { href: '/admin/users',         label: '👥 Naudotojai'    },
   { href: '/admin/achievements',  label: '🏅 Pasiekimai'    },
   { href: '/admin/tutorial',      label: '🎓 Mokymai'       },
+  { href: '/admin/playground',    label: '🧪 Poligonas'     },
   { href: '/admin/i18n',          label: '🌍 Vertimai'      },
 ]
 
