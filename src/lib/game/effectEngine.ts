@@ -3,6 +3,7 @@
 // per GameApi (dependency injection iš engine.ts) – jokių ciklinių importų.
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
+import { rng } from '@/lib/game/rng'
 import type { EffectMapping, EffectType, ZmkValue } from './types'
 import { EFFECT_TYPES } from './types'
 import { resolveTargets, resolveMappingTargets, autoPickTarget, isMultiTarget, evalCondition, metric, pickBySelect, pickNBySelect, autoPickN, applyTargetFilters, type ResolvedTarget } from './targetResolver'
@@ -534,7 +535,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       break
     }
     case 'coinFlip': {
-      const green = Math.random() < 0.5
+      const green = rng() < 0.5
       api.log(g, { t: 'coin', side: caster, coin: green ? 'green' : 'red', key: green ? 'battleLog.coin.green' : 'battleLog.coin.red' })
       const branch = green ? (m.coinGreen ?? []) : (m.coinRed ?? [])
       for (const nm of branch) {
@@ -641,7 +642,7 @@ function resolveCurseTarget(g: GameState, caster: Side, appliesTo: string, chose
     case 'opponent': return foe
     case 'targetOwner': return chosen && chosen.kind !== 'field' ? chosen.side : foe
     case 'chosenTarget': return chosen && chosen.kind !== 'field' ? chosen.side : foe
-    case 'random': return allowRandom ? (Math.random() < 0.5 ? caster : foe) : foe
+    case 'random': return allowRandom ? (rng() < 0.5 ? caster : foe) : foe
     default: return foe
   }
 }

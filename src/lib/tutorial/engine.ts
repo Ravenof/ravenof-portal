@@ -3,6 +3,7 @@
 // (src/data/rules.ts). Jokio UI – tik būsena, veiksmai ir įvykių log'as.
 // Naudoja mokomasis režimas „Išmokyk mane žaisti" (TutorialGame.tsx).
 
+import { rng } from '@/lib/game/rng'
 import type { GameplayConfig, EffectMapping, ZmkCardDef, ZmkMode, ProjectileType, BattleSoundType, SpellType, AttackRestriction, StatusOrKeyword } from '@/lib/game/types'
 import { buildZmkDeck } from '@/lib/game/zmkEngine'
 import { applyMappings, applyMapping, mappingNeedsSelection, beginTargetCapture, endTargetCapture, type GameApi } from '@/lib/game/effectEngine'
@@ -328,7 +329,7 @@ export type PendingResurrect = {
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rng() * (i + 1))
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
@@ -1378,7 +1379,7 @@ function checkWin(g: GameState) {
 
 function coinOk(g: GameState, s: Side, e: ParsedEffect): boolean {
   if (!e.coinflip) return true
-  const green = Math.random() < 0.5
+  const green = rng() < 0.5
   log(g, { t: 'coin', side: s, coin: green ? 'green' : 'red', key: `battleLog.coin.${green ? 'green' : 'red'}` })
   return green
 }
@@ -2427,7 +2428,7 @@ function forceCurseActivationPrim(g: GameState, victim: Side, count: number, src
       log(g, { t: 'blocked', side: victim, key: 'battleLog.curseNone', params: { src: srcName, owner: tref(`battleLog.sideGen.${SK(victim)}`) } })
       return
     }
-    const [c] = p.deck.splice(idxs[Math.floor(Math.random() * idxs.length)], 1)
+    const [c] = p.deck.splice(idxs[Math.floor(rng() * idxs.length)], 1)
     activateCurseCard(g, victim, c, 'forced')
     if (g.winner) return
   }
@@ -2852,7 +2853,7 @@ function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'di
     }
     return
   }
-  const pick = candidates[Math.floor(Math.random() * candidates.length)]
+  const pick = candidates[Math.floor(rng() * candidates.length)]
   const i = pick.arr.findIndex((c) => c.uid === pick.card.uid)
   if (i === -1) return
   const [c] = pick.arr.splice(i, 1)

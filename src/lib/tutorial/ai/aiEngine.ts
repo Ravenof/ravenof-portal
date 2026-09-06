@@ -3,6 +3,7 @@
 // pakartotinai, kol grąžinama null – tada baigiamas ėjimas. Greedy + recompute
 // efektyviai sudaro veiksmų seką (lethal → board control → value → veidas).
 
+import { rng } from '@/lib/game/rng'
 import type { GameState } from '../engine'
 import { P, other, playCard, attack, discardForGold, useChampionAbility } from '../engine'
 import type { AiAction, AiDifficulty, AiWeightDelta } from './aiTypes'
@@ -51,7 +52,7 @@ export function decideAiTurn(g: GameState, opts?: { difficulty?: AiDifficulty; w
   if (!hasLethalThisTurn(g) && !plan?.lethal) actions.push(...planFocusFire(g, w))
   // Kontroliuojama variacija: lethal/dideli sprendimai deterministiniai (jitter
   // jų nepajudina), tik artimi kasdieniai pasirinkimai gauna mažą atsitiktinumą.
-  for (const a of actions) a.score += Math.random() * w.jitter
+  for (const a of actions) a.score += rng() * w.jitter
   actions.sort((x, y) => y.score - x.score)
   return actions
 }

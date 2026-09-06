@@ -3,6 +3,7 @@
 // Be random pagal default: kai reikia automatinio pasirinkimo, imamas
 // deterministinis "geriausias" taikinys; random tik kai allowRandomTarget=true.
 
+import { rng } from '@/lib/game/rng'
 import type { TargetType, MetricSource, EffectCondition, TargetSelect, EffectMapping, StatusOrKeyword } from './types'
 import type { GameState, Side, BoardUnit } from '@/lib/tutorial/engine'
 
@@ -110,7 +111,7 @@ export function autoPickTarget(
   allowRandom?: boolean,
 ): ResolvedTarget | null {
   if (candidates.length === 0) return null
-  if (allowRandom) return candidates[Math.floor(Math.random() * candidates.length)]
+  if (allowRandom) return candidates[Math.floor(rng() * candidates.length)]
   const score = (t: ResolvedTarget): number => {
     if (t.kind === 'player') return intent === 'harm' ? 1000 : 999
     if (t.kind === 'field') return 500
@@ -210,7 +211,7 @@ export function autoPickN(g: GameState, casterSide: Side, candidates: ResolvedTa
   const k = Math.max(1, n)
   if (allowRandom) {
     const a = [...candidates]
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
     return a.slice(0, k)
   }
   const score = (t: ResolvedTarget): number => {

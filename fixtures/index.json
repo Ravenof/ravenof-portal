@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "source": "synthetic",
+  "generatedBy": "scripts/fixtures/record-fixtures.ts",
+  "games": [
+    {
+      "file": "game01-seed1-easy.json",
+      "seed": 1,
+      "difficulty": "easy",
+      "winner": "ai",
+      "steps": 149,
+      "globalTurn": 46
+    },
+    {
+      "file": "game02-seed2-normal.json",
+      "seed": 2,
+      "difficulty": "normal",
+      "winner": "ai",
+      "steps": 88,
+      "globalTurn": 27
+    },
+    {
+      "file": "game03-seed3-hard.json",
+      "seed": 3,
+      "difficulty": "hard",
+      "winner": "you",
+      "steps": 138,
+      "globalTurn": 47
+    },
+    {
+      "file": "game04-seed4-easy.json",
+      "seed": 4,
+      "difficulty": "easy",
+      "winner": "you",
+      "steps": 86,
+      "globalTurn": 18
+    },
+    {
+      "file": "game05-seed5-normal.json",
+      "seed": 5,
+      "difficulty": "normal",
+      "winner": "ai",
+      "steps": 95,
+      "globalTurn": 32
+    },
+    {
+      "file": "game06-seed6-hard.json",
+      "seed": 6,
+      "difficulty": "hard",
+      "winner": "you",
+      "steps": 80,
+      "globalTurn": 26
+    },
+    {
+      "file": "game07-seed7-easy.json",
+      "seed": 7,
+      "difficulty": "easy",
+      "winner": "you",
+      "steps": 108,
+      "globalTurn": 33
+    },
+    {
+      "file": "game08-seed8-normal.json",
+      "seed": 8,
+      "difficulty": "normal",
+      "winner": "you",
+      "steps": 128,
+      "globalTurn": 40
+    },
+    {
+      "file": "game09-seed9-hard.json",
+      "seed": 9,
+      "difficulty": "hard",
+      "winner": "ai",
+      "steps": 107,
+      "globalTurn": 32
+    },
+    {
+      "file": "game10-seed10-easy.json",
+      "seed": 10,
+      "difficulty": "easy",
+      "winner": "ai",
+      "steps": 85,
+      "globalTurn": 21
+    },
+    {
+      "file": "game11-seed11-normal.json",
+      "seed": 11,
+      "difficulty": "normal",
+      "winner": "ai",
+      "steps": 102,
+      "globalTurn": 30
+    },
+    {
+      "file": "game12-seed12-hard.json",
+      "seed": 12,
+      "difficulty": "hard",
+      "winner": "you",
+      "steps": 111,
+      "globalTurn": 30
+    }
+  ]
+}

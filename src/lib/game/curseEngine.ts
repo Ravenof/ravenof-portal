@@ -6,13 +6,14 @@
 //   3) kai priešininkas tą prakeiksmą ИŠTRAUKIA — aktyvuojasi jo efektas (žr.
 //      drawCards engine.ts: curse tipo korta paleidžia savo mapping'us aukai).
 
+import { rng } from '@/lib/game/rng'
 import type { GameApi } from './effectEngine'
 import type { GameState, Side, TutCard } from '@/lib/tutorial/engine'
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rng() * (i + 1))
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
@@ -50,7 +51,7 @@ export function activateCurses(api: GameApi, g: GameState, victim: Side, count: 
       api.log(g, { t: 'blocked', side: caster, key: 'battleLog.curseDeckEmpty', params: { src: srcName } })
       return
     }
-    const idx = Math.floor(Math.random() * (victimP.deck.length + 1))
+    const idx = Math.floor(rng() * (victimP.deck.length + 1))
     victimP.deck.splice(idx, 0, curse)
     api.log(g, {
       t: 'curse', side: victim, cardName: curse.name,

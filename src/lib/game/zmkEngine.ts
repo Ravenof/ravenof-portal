@@ -4,6 +4,7 @@
 // Režimas: 'auto' – modifikatorius pritaikomas automatiškai su animacija;
 // 'draw' – UI rodo užverstą kortą, kurią žaidėjas atverčia pats.
 
+import { rng } from '@/lib/game/rng'
 import type { ZmkCardDef, ZmkMode } from './types'
 
 export type ZmkValue = '+0' | '+1' | '-1' | '+2' | '-2' | 'x2' | 'x0'
@@ -28,7 +29,7 @@ export type ZmkDeckSetup = {
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rng() * (i + 1))
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
