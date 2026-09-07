@@ -196,7 +196,10 @@
     "zmkSideYou": "tavo",
     "zoneDeck": "Kaladė",
     "zoneGrave": "Kapinynas",
-    "zoneHand": "Ranka"
+    "zoneHand": "Ranka",
+    "handExpand": "Išskleisti ranką ({{n}})",
+    "handCollapse": "Suskleisti ranką ({{n}})",
+    "discardPick": "Parduoti: pasirink kortą ({{n}})"
   },
   "guided": {
     "discard-gold-tip": {

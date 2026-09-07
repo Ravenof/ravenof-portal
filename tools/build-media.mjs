@@ -5,8 +5,9 @@
 // (žr. vite.config.ts publicDir + media), runtime mediaShim.ts permeta URL'us.
 //
 // Paleidimas (Windows, su .env.local):
-//   node tools/build-media.mjs                 # tier<=1 (esminiai: kortos, UI, garsai)
-//   node tools/build-media.mjs --tier 2        # + video / HD (didelis bundle'as)
+//   node tools/build-media.mjs                 # VISKAS, išskyrus video (kind=video / .mp4 / .webm)
+//   node tools/build-media.mjs --video         # + video (HD paketas, didelis bundle'as)
+//   node tools/build-media.mjs --tier 1        # tik nurodyto tier'o ir žemesni
 //   node tools/build-media.mjs --kinds card,audio
 //   node tools/build-media.mjs --dry           # tik statistika
 // Idempotentiška: jau esantys failai (pagal dydį) praleidžiami.
@@ -24,11 +25,13 @@ for (const f of ['.env.local', '.env']) {
 }
 const argv = process.argv.slice(2)
 const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 && argv[i + 1] ? argv[i + 1] : d }
-const MAX_TIER = Number(arg('--tier', '1'))
+const MAX_TIER = Number(arg('--tier', '99'))
+const WITH_VIDEO = argv.includes('--video')
 const KINDS = arg('--kinds', '').split(',').filter(Boolean)
 const DRY = argv.includes('--dry')
 const OUT = path.resolve('apps/digital/media')
-const CONCURRENCY = 6
+const CONCURRENCY = 3
+const RETRIES = 5
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -39,13 +42,14 @@ const { data, error } = await sb.rpc('rvn_media_manifest')
 if (error) { console.error('rvn_media_manifest:', error.message); process.exit(1) }
 const OBJ = '/storage/v1/object/public/'
 let entries = (data ?? []).filter((e) => typeof e.url === 'string' && e.url.includes(OBJ))
-entries = entries.filter((e) => (e.tier ?? 1) <= MAX_TIER && (KINDS.length === 0 || KINDS.includes(e.kind)))
+const isVideo = (e) => e.kind === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(e.url)
+entries = entries.filter((e) => (e.tier ?? 1) <= MAX_TIER && (KINDS.length === 0 || KINDS.includes(e.kind)) && (WITH_VIDEO || !isVideo(e)))
 
 const localPath = (u) => decodeURIComponent(u.slice(u.indexOf(OBJ) + OBJ.length)).replace(/[^A-Za-z0-9._\/-]/g, '_')
 const totalBytes = entries.reduce((s, e) => s + (e.bytes || 0), 0)
 const byKind = {}
 for (const e of entries) byKind[e.kind] = (byKind[e.kind] || 0) + 1
-console.log(`Manifestas: ${entries.length} failų, ~${(totalBytes / 1048576).toFixed(1)} MB (tier<=${MAX_TIER})`, byKind)
+console.log(`Manifestas: ${entries.length} failų, ~${(totalBytes / 1048576).toFixed(1)} MB (tier<=${MAX_TIER}${WITH_VIDEO ? ', su video' : ', be video'})`, byKind)
 if (DRY) process.exit(0)
 
 mkdirSync(OUT, { recursive: true })
@@ -60,8 +64,14 @@ async function worker() {
     manifest.files[e.url] = rel
     try {
       if (existsSync(abs) && (!e.bytes || statSync(abs).size === e.bytes)) { skipped++; continue }
-      const r = await fetch(e.url)
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      let r = null
+      for (let attempt = 0; attempt < RETRIES; attempt++) {
+        r = await fetch(e.url)
+        if (r.status !== 429 && r.status < 500) break
+        // Supabase rate limit / laikina klaida – palaukiam ir bandom vėl (2s, 4s, 8s…)
+        await new Promise((res) => setTimeout(res, 2000 * 2 ** attempt))
+      }
+      if (!r || !r.ok) throw new Error(`HTTP ${r?.status}`)
       mkdirSync(path.dirname(abs), { recursive: true })
       await writeFile(abs, Buffer.from(await r.arrayBuffer()))
       done++

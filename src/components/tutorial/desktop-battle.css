@@ -1,0 +1,23 @@
+/* ── Desktop kovos išdėstymas: tik .rvn-desk viduje (mobile .combat-* nekeičiama) ── */
+.rvn-desk .combat-end-turn { width: var(--rvn-desk-end-turn, 124px); height: var(--rvn-desk-end-turn, 124px); }
+.rvn-desk .combat-end-turn > span:first-child { font-size: 13px; }
+.rvn-desk .combat-discard-gold { min-width: 104px; min-height: 32px; font-size: 12px; }
+.rvn-desk .combat-round-icon { width: 36px; height: 36px; }
+.rvn-desk-rail-title {
+  display: block; text-align: center; font-family: var(--rvn-font-display); font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: rgba(240,180,41,0.75); margin: 0 0 4px;
+}
+.rvn-desk-log { font-size: var(--rvn-desk-log-font, 13px); }
+.rvn-desk-log > div { font-size: var(--rvn-desk-log-font, 13px) !important; line-height: 1.3; }
+.rvn-desk-log > div > div[style*="width: 26px"] { width: 34px !important; }
+.rvn-desk-hand-toggle {
+  pointer-events: auto; padding: 6px 12px; max-width: 176px; text-align: center; line-height: 1.25; border-radius: 999px; cursor: pointer;
+  font-family: var(--rvn-font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700;
+  color: #e8c84a; background: rgba(13,10,20,0.82); border: 1px solid rgba(240,180,41,0.45);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.55); transition: filter 0.15s, transform 0.15s;
+}
+.rvn-desk-hand-toggle:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.rvn-desk-hand-toggle[data-active="true"] { background: rgba(240,180,41,0.18); }
+.rvn-desk-hand-toggle[data-discard="true"] { color: #ffd166; border-color: rgba(255,209,102,0.7); background: rgba(120,80,10,0.5); }
+.rvn-desk-hand-card { transition: transform 0.16s ease, margin 0.18s ease, filter 0.16s ease; transform-origin: bottom center; will-change: transform; }
+.rvn-desk-hand-card:hover { z-index: 80 !important; }

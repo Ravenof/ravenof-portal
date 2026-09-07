@@ -6,6 +6,9 @@
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
 import { createServerChannel, isServerChannel, pvpServerUrl } from '@/lib/pvp/serverChannel'
+import DesktopBattleLayout from './DesktopBattleLayout'
+import { useDesktopLayout } from './useDesktopLayout'
+import './desktop-battle.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -1324,9 +1327,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       void unlockOrientation()
     }
   }, [useHLayout, isTouch])
-  const hMobile = useHLayout && typeof window !== 'undefined' && window.innerHeight < 640  // landscape/žemas ekranas: kompaktiški dydžiai (nesiremiam isTouch – webview'e nepatikimas)
-  const handW = hMobile ? 48 : isTouch ? 80 : 124
-  const unitW = hMobile ? 57 : isTouch ? 50 : 92
+  // Desktop režimas: pelė (hover+fine pointer) IR plotis ≥ 1024 – atskiras DesktopBattleLayout su
+  // aukščio biudžeto dydžiais. Mažas desktop langas = „compact" dydžiai, NE telefono gestai.
+  const { desktop: desktopLayout, sizes: deskSizes } = useDesktopLayout(useHLayout)
+  const hMobile = useHLayout && !desktopLayout && typeof window !== 'undefined' && window.innerHeight < 640  // landscape/žemas ekranas: kompaktiški dydžiai (nesiremiam isTouch – webview'e nepatikimas)
+  const handW = deskSizes ? (handExpanded ? deskSizes.handWBig : deskSizes.handW) : hMobile ? 48 : isTouch ? 80 : 124
+  const unitW = deskSizes ? deskSizes.unitW : hMobile ? 57 : isTouch ? 50 : 92
   // Mažas ekranas – pop-up'ai rodomi kaip bottom sheet, kad tilptų
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -1615,6 +1621,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         if (avatarInspect) setAvatarInspect(null)
         else if (inspect) setInspect(null)
         else if (select) setSelect(null)
+        else if (desktopLayout && handExpanded) setHandExpanded(false)
         else closeGame()
       }
     }
@@ -1623,7 +1630,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [inspect, select, avatarInspect, closeGame])
+  }, [inspect, select, avatarInspect, closeGame, desktopLayout, handExpanded])
 
   // ── Bakst BET KUR uz rankos ribu → isskleista ranka susitraukia ──
   // Capture faze, kad suveiktu ir ant elementu, kurie sustabdo bubbling.
@@ -1634,6 +1641,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const t = ev.target as Element | null
       if (t && handRef.current && handRef.current.contains(t)) return // ant rankos – tvarko beginHandPointer
       if (t && t.closest && t.closest('[data-inspect-overlay]')) return // kortos perziura uzsidaro pati, rankos neliecia
+      if (t && t.closest && t.closest('.rvn-desk-hand-toggle')) return // desktop: isskleidimo mygtukas pats perjungia
       playUiClick(); setHandExpanded(false)
     }
     window.addEventListener('pointerdown', onDown, true)
@@ -3082,7 +3090,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (select?.kind === 'discard') {
       doAction({ t: 'discardForGold', actor: 'you', uid: c.uid })
       setSelect(null)
-      if (hMobile) setHandExpanded(false)
+      if (hMobile || desktopLayout) setHandExpanded(false)
       return
     }
     if (select?.kind === 'sacrifice') {
@@ -3739,8 +3747,11 @@ doAction({ t: 'endTurn', actor: 'you' })
     const cap = boardCreatureCap(game, side)
     const slots = Math.max(cap, p.units.length)
     const myDropGlow = side === 'you' && !!drag && !drag.targeted && (cardDropZoneOf(drag.card) === 'unit' || cardDropZoneOf(drag.card) === 'spell')
+    // Desktop: lauko efektas gali padidinti vietas iki 10 – tankus režimas, visos vietos vienoje eilėje (matomos, taikomos).
+    const rowUnitW = deskSizes && slots > 5 ? deskSizes.denseUnitW(slots) : unitW
     return (
-      <div data-tut={tut} className={"flex flex-wrap justify-center gap-1 sm:gap-2 items-center " + (hMobile ? "min-h-[56px]" : "min-h-[80px] sm:min-h-[124px]")}>
+      <div data-tut={tut} className={(deskSizes ? "flex flex-nowrap justify-center items-center " : "flex flex-wrap justify-center gap-1 sm:gap-2 items-center ") + (hMobile ? "min-h-[56px]" : deskSizes ? "" : "min-h-[80px] sm:min-h-[124px]")}
+        style={deskSizes ? { gap: slots > 5 ? 6 : 12, minHeight: Math.round(rowUnitW * 4 / 3) } : undefined}>
         <AnimatePresence>
           {Array.from({ length: slots }).map((_, i) => { const u = p.units[i]; return u ? (
             <motion.div key={u.uid} data-unit-uid={u.uid}
@@ -3762,7 +3773,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   framer-motion — be šito wrapper'io jie perrašinėtų vienas kitą. */}
               <div data-lunge>
               <UnitTile
-                g={game} u={u} w={unitW} hpShown={hpHold[u.uid]}
+                g={game} u={u} w={rowUnitW} hpShown={hpHold[u.uid]}
                 selected={(select?.kind === 'attacker' && select.uid === u.uid) || (select?.kind === 'battlecry' && select.uid === u.uid) || (select?.kind === 'champ' && select.uid === u.uid) || (game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid)}
                 awaiting={(game.pendingBattlecry?.side === 'you' && game.pendingBattlecry.uid === u.uid && select?.kind !== 'battlecry')
                   // Tempiant ČEMPIONĄ (arba renkantis auką) savi padarai pulsuoja —
@@ -3783,12 +3794,12 @@ doAction({ t: 'endTurn', actor: 'you' })
             <div key={side + '-slot-' + i} data-drop-slot={side}
               className={'rounded-lg flex items-center justify-center' + (myDropGlow ? ' rvn-tac-slot-live' : '')}
               style={{
-                width: unitW, height: Math.round(unitW * 4 / 3),
+                width: rowUnitW, height: Math.round(rowUnitW * 4 / 3),
                 border: myDropGlow ? '2px solid rgba(74,222,128,0.85)' : '1px solid rgba(240,180,41,0.22)',
                 background: myDropGlow ? 'rgba(74,222,128,0.12)' : 'linear-gradient(160deg, rgba(28,23,38,0.9), rgba(10,8,14,0.92))',
                 boxShadow: myDropGlow ? '0 0 16px rgba(74,222,128,0.6)' : 'inset 0 2px 12px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(240,180,41,0.05)',
                 transition: 'box-shadow 0.15s, border-color 0.15s',
-              }}>{slotTypeIcon('unit', Math.round(unitW * 0.44), '✦', 'var(--gold)')}</div>
+              }}>{slotTypeIcon('unit', Math.round(rowUnitW * 0.44), '✦', 'var(--gold)')}</div>
           ) })}
         </AnimatePresence>
       </div>
@@ -4026,6 +4037,54 @@ doAction({ t: 'endTurn', actor: 'you' })
       </div>
     )
   }
+  /**
+   * DESKTOP ranka: suskleista (ramybėje pilnai matoma rankos zonoje) / išskleista (didesnės kortos,
+   * mažesnis persidengimas, auga aukštyn). Užvedus – korta pakyla + didelė peržiūra (hoverCard, dokuojama
+   * kairėje virš rankos). Paspaudimas = žaisti/pasirinkti (onHandCardClick per beginHandPointer),
+   * tempimas = drag-to-play (beginHandPointer; tempiant išskleista ranka susitraukia). Vėduoklės plotis
+   * skaičiuojamas pagal zonos plotį ir kortų skaičių – kraštinės kortos visada pasiekiamos.
+   */
+  const renderHandDesktop = () => {
+    if (!game || !deskSizes) return null
+    const n = game.you.hand.length
+    const big = handExpanded
+    const w = big ? deskSizes.handWBig : deskSizes.handW
+    // Zona: lenta be išskleidimo mygtuko (kairėje) ir be avataro apsaugoto ploto (dešinėje).
+    const zoneW = Math.max(200, deskSizes.centerW - (deskSizes.compact ? 150 : 190) - (deskSizes.compact ? 128 : 150) - 20)
+    // Žingsnis tarp kortų: kuo daugiau kortų, tuo didesnis persidengimas; bet ne mažiau 34 % kortos (pasiekiamumas).
+    const step = n <= 1 ? w : Math.max(Math.round(w * 0.34), Math.min(Math.round(w * (big ? 0.92 : 0.72)), Math.floor((zoneW - w) / (n - 1))))
+    const h = Math.round(w * 4 / 3)
+    return (
+      <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full">
+        {n === 0 && <span className="text-sm self-center" style={{ color: 'var(--text-muted)' }}>{t('battle.game.handEmpty')}</span>}
+        {game.you.hand.map((c, i) => {
+          const afford = game.you.gold >= effectiveCost(game, 'you', c)
+          const isDragging = drag?.uid === c.uid && dragMovedRef.current
+          const off = i - (n - 1) / 2
+          const rot = big ? off * Math.min(2.2, 12 / Math.max(1, n)) : off * Math.min(3.6, 18 / Math.max(1, n))
+          const ty = Math.round(Math.pow(Math.abs(off), 1.5) * (big ? 2.2 : 3.2))
+          const hovered = hoverCard?.card.uid === c.uid && !drag
+          const selectedForSale = select?.kind === 'discard'
+          return (
+            <div key={c.uid} data-hand-card={c.name} className="rvn-desk-hand-card shrink-0"
+              style={{
+                width: w, height: h, marginLeft: i === 0 ? 0 : step - w, zIndex: isDragging ? 60 : hovered ? 80 : i,
+                transform: hovered ? `translateY(${-Math.round(h * 0.28)}px) scale(1.08)` : `translateY(${ty}px) rotate(${rot}deg)`,
+                opacity: isDragging ? 0.25 : 1,
+                filter: selectedForSale ? 'hue-rotate(40deg) drop-shadow(0 10px 22px rgba(0,0,0,0.6))' : 'drop-shadow(0 10px 22px rgba(0,0,0,0.6))',
+                cursor: myTurn && !actionsLocked ? 'grab' : 'default',
+              }}
+              onPointerDown={(e) => beginHandPointer(c, e)}
+              onMouseEnter={(ev) => setHoverCard({ card: c, x: ev.clientX, y: ev.clientY })}
+              onMouseLeave={() => setHoverCard((hh) => (hh?.card.uid === c.uid ? null : hh))}
+              onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}>
+              <MiniCard c={c} w={w} dim={!afford && !selectedForSale} costNow={effectiveCost(game, 'you', c)} dmgBonus={spellDmgBonusFor(game, c)} />
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
   const renderLogH = () => {
     if (!game) return null
     return visibleLog.slice(-26).map((e, i) => {
@@ -4097,7 +4156,7 @@ doAction({ t: 'endTurn', actor: 'you' })
     if (!game) return null
     return (
       <button data-tut="discard-gold"
-        onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
+        onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast('Jau ismetei korta si ejima.'); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile || desktopLayout) setHandExpanded(on) }}
         className="combat-discard-gold inline-flex items-center justify-center gap-1 text-[10px] font-bold whitespace-nowrap"
         data-active={select?.kind === 'discard' ? 'true' : undefined}
         style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -4107,7 +4166,7 @@ doAction({ t: 'endTurn', actor: 'you' })
   const renderFieldH = () => (
     <div className="flex flex-col items-center gap-0.5">
       <span style={{ fontSize: 7, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(167,139,250,0.6)' }}>Laukas</span>
-      <div data-tut="field" className="relative flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 52, height: 80, border: game?.field ? '1px solid rgba(167,139,250,0.9)' : '1px dashed rgba(167,139,250,0.45)', background: 'linear-gradient(160deg, rgba(42,30,62,0.6), rgba(34,27,16,0.5))', boxShadow: game?.field ? 'inset 0 0 18px rgba(167,139,250,0.3), 0 0 12px rgba(167,139,250,0.25)' : 'inset 0 0 14px rgba(167,139,250,0.12)' }}>
+      <div data-tut="field" className="relative flex items-center justify-center rounded-lg overflow-hidden" style={{ width: deskSizes ? deskSizes.fieldW : 52, height: deskSizes ? Math.round(deskSizes.fieldW * 80 / 52) : 80, border: game?.field ? '1px solid rgba(167,139,250,0.9)' : '1px dashed rgba(167,139,250,0.45)', background: 'linear-gradient(160deg, rgba(42,30,62,0.6), rgba(34,27,16,0.5))', boxShadow: game?.field ? 'inset 0 0 18px rgba(167,139,250,0.3), 0 0 12px rgba(167,139,250,0.25)' : 'inset 0 0 14px rgba(167,139,250,0.12)' }}>
         {game?.field ? (
           <button onClick={() => setInspect(game!.field!.card)} onContextMenu={(e) => { e.preventDefault(); setInspect(game!.field!.card) }} className="absolute inset-0">
             {game.field.card.image
@@ -4317,7 +4376,38 @@ doAction({ t: 'endTurn', actor: 'you' })
           <span className="text-sm animate-pulse" style={{ color: 'var(--gold)' }}>{t('battle.game.preparing')}</span>
         </div>
       )}
-      {game && !loading && useHLayout && (
+      {game && !loading && useHLayout && desktopLayout && deskSizes && (
+        <TutZoomWrap active={!!tutorial?.active}>
+        <DesktopBattleLayout
+          game={game}
+          isTouch={isTouch}
+          myTurn={myTurn}
+          lastMsg={lastMsg}
+          turnDeadline={turnDeadline}
+          railPanel={RAIL_PANEL}
+          sizes={deskSizes}
+          handCount={game.you.hand.length}
+          handExpanded={handExpanded}
+          discardMode={select?.kind === 'discard'}
+          onToggleHand={() => { playUiClick(); setHandExpanded((v) => !v) }}
+          hpBar={hpBar}
+          goldBar={goldBar}
+          renderPile={renderPile}
+          renderUnitsRow={renderUnitsRow}
+          renderArtifactRow={renderArtifactRow}
+          renderReactionRow={renderReactionRow}
+          dFieldRow={renderFieldH}
+          renderOppHand={(big) => <OppHandFan count={game.ai.hand.length} big={big} />}
+          renderHand={renderHandDesktop}
+          renderLog={renderLogH}
+          renderEndTurn={renderEndTurnH}
+          renderDiscardGold={renderDiscardGoldH}
+          renderEmoteBubble={renderEmoteBubbleH}
+          onEmote={sendEmote}
+        />
+        </TutZoomWrap>
+      )}
+      {game && !loading && useHLayout && !desktopLayout && (
         <TutZoomWrap active={!!tutorial?.active}>
         <BattleLayout
           game={game}
@@ -4399,7 +4489,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </button>
                 {goldBar('you')}
                 <button data-tut="discard-gold"
-                  onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
+                  onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile || desktopLayout) setHandExpanded(on) }}
                   className="combat-discard-gold text-[10px] font-bold transition-all whitespace-nowrap"
                   data-active={select?.kind === 'discard' ? 'true' : undefined}
                   style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', opacity: game.you.discardedForGold ? 0.55 : 1, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -4576,7 +4666,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
             <aside className="rounded-xl p-3 flex flex-col items-center justify-center gap-2" style={{ ...RAIL_PANEL, gridArea: 'command' }}>
               <div className="self-center">{goldBar('you')}</div>
-              <button onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile) setHandExpanded(on) }}
+              <button onClick={() => { if (!myTurn || actionsLocked) return; if (game.you.discardedForGold) { pushToast(t('battle.game.toastAlreadyDiscarded')); return } playUiClick(); const on = select?.kind !== 'discard'; setSelect(on ? { kind: 'discard' } : null); if (hMobile || desktopLayout) setHandExpanded(on) }}
                 className="combat-discard-gold w-full text-[11px] font-bold whitespace-nowrap" data-active={select?.kind === 'discard' ? 'true' : undefined} style={{ color: game.you.discardedForGold ? 'var(--text-muted)' : '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }} title={t('battle.game.discardForGoldTip')}>{t('battle.game.discardForGold')}</button>
               <button data-tut="end-turn" onClick={onEndTurn} disabled={!myTurn || actionsLocked}
                 className="w-full px-4 py-3.5 rounded-xl text-base font-extrabold transition-all hover:scale-[1.03] active:scale-95 disabled:opacity-50 whitespace-nowrap"
@@ -4603,7 +4693,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {(select?.kind === 'sacrifice' || select?.kind === 'discard') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="fixed bottom-40 sm:bottom-44 left-0 right-0 mx-auto w-fit z-[125]">
-            <button onClick={() => { playUiClick(); setSelect(null); if (hMobile) setHandExpanded(false) }}
+            <button onClick={() => { playUiClick(); setSelect(null); if (hMobile || desktopLayout) setHandExpanded(false) }}
               className="px-4 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition-transform"
               style={{ background: 'rgba(20,12,16,0.88)', border: '1px solid rgba(239,68,68,0.55)', color: '#fca5a5', fontFamily: 'var(--rvn-font-display)' }}>
               ✕ {select?.kind === 'discard' ? t('battle.game.discardCancel') : t('battle.game.tributeCancel')}
@@ -4872,14 +4962,20 @@ doAction({ t: 'endTurn', actor: 'you' })
       </AnimatePresence>
 
       {/* ── sužaistos kortos hover peržiūra (PC) ── */}
-      {!useHLayout && hoverCard && typeof document !== 'undefined' && createPortal(
-        <div className="fixed z-[200] pointer-events-none"
-          style={{
-            left: Math.min(hoverCard.x + 20, (typeof window !== 'undefined' ? window.innerWidth : 800) - 300),
-            top: Math.max(8, Math.min(hoverCard.y - 40, (typeof window !== 'undefined' ? window.innerHeight : 600) - 440)),
-          }}>
-          <div className="rounded-xl overflow-hidden" style={{ width: 280, background: 'var(--bg-surface)', border: '2px solid ' + cardTypeColor(hoverCard.card), boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
-            <MiniCard c={hoverCard.card} w={280} />
+      {(!useHLayout || desktopLayout) && hoverCard && !drag && typeof document !== 'undefined' && createPortal((() => {
+        const pw = deskSizes ? deskSizes.previewW : 280
+        const vw = typeof window !== 'undefined' ? window.innerWidth : 800
+        const vh = typeof window !== 'undefined' ? window.innerHeight : 600
+        // Desktop: rankos korta → peržiūra dokuojama kairėje virš rankos (laisva vieta, neuždengia taikinių);
+        // kiti (padarai, žurnalas) → prie žymeklio, bet neužstojant jo kortos.
+        const inHand = !!deskSizes && !!game && game.you.hand.some((c) => c.uid === hoverCard.card.uid)
+        const pos = inHand && deskSizes
+          ? { left: deskSizes.railL + 28, top: Math.max(8, vh - deskSizes.handZoneH - Math.round(pw * 4 / 3) - 96) }
+          : { left: Math.min(hoverCard.x + 24, vw - pw - 12), top: Math.max(8, Math.min(hoverCard.y - 40, vh - Math.round(pw * 4 / 3) - 120)) }
+        return (
+        <div className="fixed z-[200] pointer-events-none" style={pos}>
+          <div className="rounded-xl overflow-hidden" style={{ width: pw, background: 'var(--bg-surface)', border: '2px solid ' + cardTypeColor(hoverCard.card), boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
+            <MiniCard c={hoverCard.card} w={pw} />
             <div className="p-2.5">
               <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
               {hoverCard.card.effectText && (
@@ -4887,7 +4983,8 @@ doAction({ t: 'endTurn', actor: 'you' })
               )}
             </div>
           </div>
-        </div>,
+        </div>
+        ) })(),
         document.body
       )}
 

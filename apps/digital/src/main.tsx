@@ -10,8 +10,9 @@ import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
 import '@/app/globals.css'
 import App from './App'
+import { AppErrorBoundary } from './ErrorBoundary'
 import { installAppBundleRuntime } from './runtime'
 
 installAppBundleRuntime().finally(() => {
-  createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)
+  createRoot(document.getElementById('root')!).render(<StrictMode><AppErrorBoundary><App /></AppErrorBoundary></StrictMode>)
 })

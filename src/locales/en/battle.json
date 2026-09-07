@@ -196,7 +196,10 @@
     "zmkSideYou": "your",
     "zoneDeck": "Deck",
     "zoneGrave": "Graveyard",
-    "zoneHand": "Hand"
+    "zoneHand": "Hand",
+    "handExpand": "Expand hand ({{n}})",
+    "handCollapse": "Collapse hand ({{n}})",
+    "discardPick": "Sell: pick a card ({{n}})"
   },
   "guided": {
     "discard-gold-tip": {

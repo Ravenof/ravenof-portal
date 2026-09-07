@@ -41,7 +41,8 @@ const repo = path.resolve(here, '../..')
 export default defineConfig(({ mode }) => {
   // .env.local / .env iš repo šaknies (tie patys raktai kaip Next).
   const env = { ...loadEnv(mode, repo, ''), ...process.env }
-  const pub = (k: string) => JSON.stringify(env[k] ?? '')
+  // Nenustatyti → `undefined` (ne ''), kad `A ?? B` fallback'ai (PUBLISHABLE_KEY ?? ANON_KEY) veiktų kaip Next'e.
+  const pub = (k: string) => (env[k] ? JSON.stringify(env[k]) : 'undefined')
   return {
     root: here,
     // public/ (Next statiniai asset'ai: /digital, /ui3, /sounds, /cards …) + apps/digital/media (Storage kopija)
