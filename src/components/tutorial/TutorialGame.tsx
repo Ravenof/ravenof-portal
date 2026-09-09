@@ -80,7 +80,7 @@ import { impactProfile, severityAtLeast, type ImpactSeverity } from '@/lib/game/
 import { deathStyleFor } from '@/lib/game/deathStyles'
 import { duckMusic } from '@/lib/game/musicManager'
 import { TactileStyles, pressPulse, invalidPulse, snapSettle, returnSpring, dragFollow, withinSnap } from '@/components/tutorial/CardTactile'
-import { HpGhostBar, useHpGhost } from '@/components/tutorial/HpGhostBar'
+import { useHpGhost } from '@/components/tutorial/HpGhostBar'
 import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components/tutorial/ZmkSpecial'
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
@@ -719,20 +719,16 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
           </div>
         )}
         {/* stat juosta */}
-        <div className="absolute bottom-0 inset-x-0 flex justify-between px-0.5 pb-0.5">
+        <div className="absolute bottom-0 inset-x-0 flex justify-between items-end px-0.5 pb-0.5" style={{ lineHeight: 0 }}>
           {!u.isChampion ? (
             <StatGem kind={atk > (u.card.attack ?? 0) ? 'buff' : 'atk'} size={gemSize(w)}>{atk}</StatGem>
           ) : (
             <StatGem kind="gold" size={gemSize(w)}>F{u.phase}</StatGem>
           )}
           <motion.span key={hpDisp} initial={{ scale: 1.55 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 17 }}
-            style={{ display: 'inline-block' }}>
+            style={{ display: 'flex', lineHeight: 0 }}>
             <StatGem kind={hpDisp < u.maxHp ? 'hpDmg' : 'hp'} size={gemSize(w)}>{hpDisp}</StatGem>
           </motion.span>
-        </div>
-        {/* HP ghost juosta (fazė 6): prarasta dalis lieka matoma prieš susitraukiant */}
-        <div className="absolute inset-x-0" style={{ bottom: 0, paddingLeft: 2, paddingRight: 2 }}>
-          <HpGhostBar hp={hpDisp} maxHp={u.maxHp} />
         </div>
       </div>
       {/* ── Status VFX sluoksnis (idle + one-shot; inkaruota prie kortos) ── */}
