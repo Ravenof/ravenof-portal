@@ -24,8 +24,9 @@ export function StatGem({ kind, size, children, style, className, title }: {
 }) {
   const font = Math.round(size * 0.58)
   return (
-    <span title={title} className={'relative inline-flex items-center justify-center select-none ' + (className ?? '')}
+    <span title={title} className={'inline-flex items-center justify-center select-none ' + (className ?? '')}
       style={{
+        position: className?.includes('absolute') ? 'absolute' : 'relative',
         width: size, height: size, borderRadius: '50%', background: GEM[kind],
         boxShadow: '0 2px 4px rgba(0,0,0,0.8), inset 0 -2px 3px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.35)',
         ...style,
