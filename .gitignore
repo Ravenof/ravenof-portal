@@ -55,3 +55,16 @@ apps/desktop/node_modules/
 apps/desktop/release/
 apps/desktop/steam_appid.txt
 build-apk-local.log
+
+# Lokalus siukslynas (niekada nekelti)
+*.log
+/playwright-report/
+/test-results/
+/_to_delete/
+.fuse_hidden*
+/node
+/uploads/
+/22Digital Phase 5 continuation/
+/Ra00venof Digital Phase 5 continuation/
+/Raveknof Digital Phase 5 continuation/
+/tatusCUsersAdministratornode ravenof-apply.mjs

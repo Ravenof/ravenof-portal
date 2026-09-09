@@ -2,12 +2,12 @@
   "name": "ravenof-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Ravenof Digital – Steam / Windows / macOS / Linux shell (Electron + steamworks.js)",
+  "description": "Ravenof Digital \u2013 Steam / Windows / macOS / Linux shell (Electron + steamworks.js)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build:app": "cd ../.. && npm run app:build && node tools/build-media.mjs",
-    "dist:win": "electron-builder --win --x64",
+    "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux"
   },
@@ -21,12 +21,60 @@
   "build": {
     "appId": "app.ravenof.game",
     "productName": "Ravenof",
-    "directories": { "output": "release" },
-    "files": ["main.js", "preload.js", "steam.js", "steam_appid.txt"],
-    "extraResources": [{ "from": "../digital/dist", "to": "app", "filter": ["**/*"] }],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "steam.js",
+      "steam_appid.txt"
+    ],
+    "extraResources": [
+      {
+        "from": "../digital/dist",
+        "to": "app",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "asar": true,
-    "win": { "target": ["dir"] },
-    "mac": { "target": ["dir"], "category": "public.app-category.games" },
-    "linux": { "target": ["dir"], "category": "Game" }
-  }
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "Ravenof-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "category": "Game"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Ravenof"
+    },
+    "portable": {
+      "artifactName": "Ravenof-portable-${version}.${ext}"
+    },
+    "protocols": [
+      {
+        "name": "Ravenof",
+        "schemes": [
+          "ravenof"
+        ]
+      }
+    ]
+  },
+  "author": "Kaukas Games"
 }

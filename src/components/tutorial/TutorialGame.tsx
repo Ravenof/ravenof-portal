@@ -5,6 +5,7 @@
 // žetonai, ŽMK, pop-up scenarijus ir dark fantasy ambient muzika.
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
+import { StatGem, gemSize } from './StatGem'
 import { createServerChannel, isServerChannel, pvpServerUrl } from '@/lib/pvp/serverChannel'
 import DesktopBattleLayout from './DesktopBattleLayout'
 import { useDesktopLayout } from './useDesktopLayout'
@@ -638,12 +639,10 @@ export function MiniCard({ c, w, dim, faceDown, readable, costNow, dmgBonus }: {
             style={{ background: 'rgba(0,0,0,0.85)', color: '#fb923c', fontSize: badge, padding: '0 ' + Math.round(badge * 0.35) + 'px', boxShadow: '0 0 6px rgba(251,146,60,0.7)' }}>+{dmgBonus}</span>
         )}
         {c.attack !== null && c.type === 'unit' && (
-          <span className="absolute bottom-0.5 left-0.5 rounded font-bold"
-            style={{ background: 'rgba(0,0,0,0.85)', color: '#f87171', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.attack}</span>
+          <StatGem kind="atk" size={gemSize(w)} className="absolute" style={{ left: 2, bottom: 2 }}>{c.attack}</StatGem>
         )}
         {c.health !== null && c.type !== 'spell' && (
-          <span className="absolute bottom-0.5 right-0.5 rounded font-bold"
-            style={{ background: 'rgba(0,0,0,0.85)', color: '#4ade80', fontSize: badge, padding: '0 ' + Math.round(badge * 0.4) + 'px' }}>{c.health}</span>
+          <StatGem kind="hp" size={gemSize(w)} className="absolute" style={{ right: 2, bottom: 2 }}>{c.health}</StatGem>
         )}
       </>)}
     </div>
@@ -722,13 +721,14 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
         {/* stat juosta */}
         <div className="absolute bottom-0 inset-x-0 flex justify-between px-0.5 pb-0.5">
           {!u.isChampion ? (
-            <span className="px-1 rounded text-[10px] font-bold" style={{ background: 'rgba(0,0,0,0.85)', color: '#f87171' }}>{atk}</span>
+            <StatGem kind={atk > (u.card.attack ?? 0) ? 'buff' : 'atk'} size={gemSize(w)}>{atk}</StatGem>
           ) : (
-            <span className="px-1 rounded text-[10px] font-bold" style={{ background: 'rgba(0,0,0,0.85)', color: 'var(--gold)' }}>F{u.phase}</span>
+            <StatGem kind="gold" size={gemSize(w)}>F{u.phase}</StatGem>
           )}
           <motion.span key={hpDisp} initial={{ scale: 1.55 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 17 }}
-            className="px-1 rounded text-[10px] font-bold"
-            style={{ display: 'inline-block', background: 'rgba(0,0,0,0.85)', color: hpDisp < u.maxHp ? '#fbbf24' : '#4ade80' }}>{hpDisp}</motion.span>
+            style={{ display: 'inline-block' }}>
+            <StatGem kind={hpDisp < u.maxHp ? 'hpDmg' : 'hp'} size={gemSize(w)}>{hpDisp}</StatGem>
+          </motion.span>
         </div>
         {/* HP ghost juosta (fazė 6): prarasta dalis lieka matoma prieš susitraukiant */}
         <div className="absolute inset-x-0" style={{ bottom: 0, paddingLeft: 2, paddingRight: 2 }}>
@@ -3833,8 +3833,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={a.card.image} alt={a.card.name} className="absolute inset-0 w-full h-full object-cover" />
                 : <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ background: 'rgba(240,180,41,0.07)' }}>⭐</div>}
-              <span className="absolute bottom-0 right-0 px-0.5 rounded-tl text-[9px] font-bold"
-                style={{ background: 'rgba(0,0,0,0.85)', color: '#4ade80' }}>{a.hp}</span>
+              <StatGem kind={a.hp < (a.card.health ?? a.hp) ? 'hpDmg' : 'hp'} size={hMobile || isTouch ? 15 : 18} className="absolute" style={{ right: 1, bottom: 1 }}>{a.hp}</StatGem>
             </button>
           ) : (
             <div key={side + '-art-' + i} className="rounded-md flex items-center justify-center"
@@ -4968,20 +4967,24 @@ doAction({ t: 'endTurn', actor: 'you' })
         const vh = typeof window !== 'undefined' ? window.innerHeight : 600
         // Desktop: rankos korta → peržiūra dokuojama kairėje virš rankos (laisva vieta, neuždengia taikinių);
         // kiti (padarai, žurnalas) → prie žymeklio, bet neužstojant jo kortos.
-        const inHand = !!deskSizes && !!game && game.you.hand.some((c) => c.uid === hoverCard.card.uid)
-        const pos = inHand && deskSizes
+        // Desktop: VISOS peržiūros (ranka, lentos padarai, žurnalas) dokuojamos toje pačioje vietoje kairėje –
+        // niekada neuždengia užvesto padaro ar taikinių; ne-desktop – prie žymeklio.
+        const pos = deskSizes
           ? { left: deskSizes.railL + 28, top: Math.max(8, vh - deskSizes.handZoneH - Math.round(pw * 4 / 3) - 96) }
           : { left: Math.min(hoverCard.x + 24, vw - pw - 12), top: Math.max(8, Math.min(hoverCard.y - 40, vh - Math.round(pw * 4 / 3) - 120)) }
         return (
         <div className="fixed z-[200] pointer-events-none" style={pos}>
           <div className="rounded-xl overflow-hidden" style={{ width: pw, background: 'var(--bg-surface)', border: '2px solid ' + cardTypeColor(hoverCard.card), boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
-            <MiniCard c={hoverCard.card} w={pw} />
-            <div className="p-2.5">
-              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
-              {hoverCard.card.effectText && (
-                <p className="text-xs mt-1 leading-snug" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>
-              )}
-            </div>
+            {/* Desktop: tik pati korta (readable = be kainos/ATK/HP ženkliukų ir be teksto po apačia – viskas jau ant kortos). */}
+            <MiniCard c={hoverCard.card} w={pw} readable={desktopLayout} />
+            {!desktopLayout && (
+              <div className="p-2.5">
+                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--rvn-font-display)' }}>{hoverCard.card.name}</p>
+                {hoverCard.card.effectText && (
+                  <p className="text-xs mt-1 leading-snug" style={{ color: 'var(--text-secondary)' }}>{hoverCard.card.effectText}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
         ) })(),

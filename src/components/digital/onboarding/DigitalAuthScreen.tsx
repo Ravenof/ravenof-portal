@@ -22,6 +22,7 @@ import { useT } from '@/lib/i18n/react'
 import { useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 import { RavenofTextField, RavenofBannerButton, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
+import { OAuthButtons } from './OAuthButtons'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 
@@ -174,6 +175,7 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
                   {loading ? t('auth.signingIn') : t('auth.loginCta2')}
                 </button>
               </form>
+              <OAuthButtons next={nextPath} onDone={afterAuth} onError={setError} />
               <div className="text-center" style={{ font: '400 11.5px var(--ravenof-font-body)', color: '#6b6474', marginTop: 2 }}>
                 {t('auth.noAccount')}{' '}
                 <Link href={withNext('/digital/register')} onClick={() => playUiClick()} className="ravenof-press" style={{ color: 'var(--ravenof-gold)', fontWeight: 700 }}>{t('auth.createAccount')}</Link>
@@ -255,6 +257,7 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
                 {loading ? t('auth.creating') : t('auth.registerCta2')}
               </RavenofBannerButton>
             </form>
+            <OAuthButtons next={nextPath} onDone={afterAuth} onError={setError} />
             <div className="text-center" style={{ font: '400 10.5px var(--ravenof-font-body)', color: '#6b6474' }}>{t('auth.termsNote')}</div>
             <div className="text-center" style={{ font: '400 11.5px var(--ravenof-font-body)', color: '#6b6474' }}>
               {t('auth.haveAccount')}{' '}

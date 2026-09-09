@@ -1,14 +1,21 @@
-# Ravenof desktop (Steam) shell
+# Ravenof desktop (Windows / Steam) shell
+
+## Windows installer (be Steam) – žingsniai
 
 ```
-cd apps/desktop
-npm install                      # electron + electron-builder (+ steamworks.js, jei pavyksta)
-npm run build:app                # apps/digital/dist + media
-npm start                        # paleidžia app://ravenof/digital
-npm run dist:win                 # release/win-unpacked (Steam depot turinys)
+cd "C:\Users\Administrator\Documents\Claude\Projects\Ravenof kortų portalas\ravenof-portal\apps\desktop"
+npm install                      # electron + electron-builder (pirmą kartą ~5 min, ~300 MB)
+npm run build:app                # apps/digital/dist + media (tas pats bundle'as kaip Android)
+npm start                        # išbandyti: atsidaro langas su žaidimu
+npm run dist:win                 # release\Ravenof-Setup-0.1.0.exe  (NSIS installeris)
 ```
 
-Steam: `steam_appid.txt` su tikru App ID (dev metu – Steam klientas turi būti paleistas).
-Achievement'ų žemėlapis – `steam.js` ACH_MAP (badge slug → Steam API name).
-Overlay: `--in-process-gpu` jau įjungtas main.js.
-Cloud saves: Steamworks → Auto-Cloud → `%APPDATA%/ravenof-desktop/` (IndexedDB + Local Storage).
+Installeris įdiegia į `%LOCALAPPDATA%\Programs\Ravenof`, sukuria darbalaukio nuorodą. Visi asset'ai
+(kortos, garsai, UI) – viduje; internetas tik paskyrai/sync/PvP.
+
+Nauja versija: pakelti `version` šiame package.json → `npm run build:app` → `npm run dist:win`.
+
+## Steam
+`steam_appid.txt` su tikru App ID (dev metu – Steam klientas turi būti paleistas), `steam.js` ACH_MAP
+(badge slug → Steam API name), overlay `--in-process-gpu` jau įjungtas. Steam depot = `release\win-unpacked`
+(`electron-builder --win dir`).

@@ -42,7 +42,7 @@ const NAV: NavItem[] = [
   { key: 'more',       labelKey: 'navigation.more',       icon: Menu,        href: '/digital/more' },
 ]
 
-const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding', '/digital/forgot-password']
+const BARE_ROUTES = ['/digital/register', '/digital/login', '/digital/onboarding', '/digital/forgot-password', '/digital/auth/callback']
 // Migruoti ekranai, kuriuose header'io nėra (prototipo išdėstymas ekrano viduje)
 const NO_HEADER_ROUTES = ['/digital/collection', '/digital/friends']
 // Migruoti route'ai — juose fono „Flames" sluoksnis nerodomas (patvirtintas fonas = grynas ink)
@@ -116,7 +116,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
     let cancel = false
     getOnboardingState().then((st) => {
       if (cancel) return
-      const isAuthRoute = pathname === '/digital/register' || pathname === '/digital/login' || pathname === '/digital/forgot-password'
+      const isAuthRoute = pathname === '/digital/register' || pathname === '/digital/login' || pathname === '/digital/forgot-password' || pathname === '/digital/auth/callback'
       const isOb = pathname === '/digital/onboarding'
       if (st === 'anon' && !isAuthRoute) router.replace(`/digital/login?next=${encodeURIComponent(pathname)}`)
       else if (st === 'pending' && !isOb && !isAuthRoute) router.replace('/digital/onboarding')

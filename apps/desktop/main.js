@@ -25,6 +25,29 @@ function resolveFile(urlPath) {
   return path.join(APP_ROOT, 'index.html')   // SPA fallback
 }
 
+// ── Deep link `ravenof://auth/callback?code=…` (Google/Facebook prisijungimas) ─
+// Supabase po OAuth nukreipia sistemos naršyklę į ravenof://…; Windows/Linux
+// paleidžia antrą instanciją su URL argv'e → single-instance lock persiunčia jį čia.
+const DEEP_SCHEME = 'ravenof'
+let mainWin = null
+let pendingDeepLink = null
+function deepLinkFromArgv(argv) { return (argv || []).find((a) => typeof a === 'string' && a.startsWith(`${DEEP_SCHEME}://`)) || null }
+function deliverDeepLink(url) {
+  if (!url) return
+  if (mainWin && !mainWin.isDestroyed()) {
+    if (mainWin.isMinimized()) mainWin.restore()
+    mainWin.focus()
+    mainWin.webContents.send('auth:callback', url)
+  } else pendingDeepLink = url
+}
+if (process.defaultApp && process.argv.length >= 2) app.setAsDefaultProtocolClient(DEEP_SCHEME, process.execPath, [path.resolve(process.argv[1])])
+else app.setAsDefaultProtocolClient(DEEP_SCHEME)
+if (!app.requestSingleInstanceLock()) { app.quit() }
+else {
+  app.on('second-instance', (_e, argv) => deliverDeepLink(deepLinkFromArgv(argv)))
+  app.on('open-url', (e, url) => { e.preventDefault(); deliverDeepLink(url) })   // macOS
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1600, height: 900, minWidth: 1024, minHeight: 600,
@@ -36,6 +59,9 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' } })
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(`${SCHEME}://`)) { e.preventDefault(); shell.openExternal(url) } })
   win.loadURL(`${SCHEME}://ravenof/digital`)
+  mainWin = win
+  win.on('closed', () => { if (mainWin === win) mainWin = null })
+  win.webContents.on('did-finish-load', () => { if (pendingDeepLink) { const u = pendingDeepLink; pendingDeepLink = null; setTimeout(() => deliverDeepLink(u), 300) } })
   return win
 }
 
@@ -49,6 +75,8 @@ app.whenReady().then(() => {
   steam.init()
   ipcMain.handle('steam:player', () => steam.player())
   ipcMain.handle('steam:unlock', (_e, slug) => steam.unlock(String(slug)))
+  ipcMain.handle('shell:openExternal', (_e, url) => { const u = String(url); if (/^https?:\/\//.test(u)) return shell.openExternal(u) })
+  pendingDeepLink = deepLinkFromArgv(process.argv)
   createWindow()
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 })
