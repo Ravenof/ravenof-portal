@@ -62,7 +62,7 @@ export function collectMatchStats(g: GameState, me: Side = 'you'): MatchStatsPay
         }
         break
       case 'spell':
-        if (e.side === me && startsWith(k, 'battleLog.playSpell')) { spellsPlayed++; goldSpent += e.value ?? 0 }
+        if (e.side === me && (startsWith(k, 'battleLog.castSpell') || startsWith(k, 'battleLog.playSpell'))) { spellsPlayed++; goldSpent += e.value ?? 0 }
         break
       case 'artifact':
         if (e.side === me && startsWith(k, 'battleLog.playArtifact')) { artifactsPlayed++; goldSpent += e.value ?? 0 }
