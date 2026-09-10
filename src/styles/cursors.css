@@ -17,46 +17,54 @@
 :root {
   --rvn-cur-base: '/ravenof-ui/cursors/';
 }
-html.rvn-cursors, html.rvn-cursors body {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/default.png') 1x, url('/ravenof-ui/cursors/default@2x.png') 2x) 2 2, auto;
+/* !important visur: daug komponentų turi inline `cursor: pointer/default`, kurie
+   kitaip nugalėtų stylesheet'ą ir grąžintų sisteminį žymeklį. */
+html.rvn-cursors, html.rvn-cursors body, html.rvn-cursors * {
+  cursor: image-set(url('/ravenof-ui/cursors/default.png') 1x, url('/ravenof-ui/cursors/default@2x.png') 2x) 2 2, auto !important;
 }
-html.rvn-cursors body:active {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/default-pressed.png') 1x, url('/ravenof-ui/cursors/default-pressed@2x.png') 2x) 2 2, auto;
+html.rvn-cursors body:active, html.rvn-cursors body:active * {
+  cursor: image-set(url('/ravenof-ui/cursors/default-pressed.png') 1x, url('/ravenof-ui/cursors/default-pressed@2x.png') 2x) 2 2, auto !important;
 }
 /* Interaktyvūs elementai */
-html.rvn-cursors :is(button, a, [role="button"], [role="link"], label[for], select, summary, .ravenof-press, .rvn-press, .cursor-pointer):not(:disabled) {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/hover.png') 1x, url('/ravenof-ui/cursors/hover@2x.png') 2x) 13 2, pointer;
+/* Interaktyvūs: mygtukai, nuorodos, roles + bet kas su inline `cursor: pointer` (ir jų vaikai) */
+html.rvn-cursors :is(button, a, [role="button"], [role="link"], label[for], select, summary, .ravenof-press, .rvn-press, .cursor-pointer, [style*="cursor: pointer"], [style*="cursor:pointer"]):not(:disabled),
+html.rvn-cursors :is(button, a, [role="button"], [role="link"], label[for], select, summary, .ravenof-press, .rvn-press, .cursor-pointer, [style*="cursor: pointer"], [style*="cursor:pointer"]):not(:disabled) * {
+  cursor: image-set(url('/ravenof-ui/cursors/hover.png') 1x, url('/ravenof-ui/cursors/hover@2x.png') 2x) 13 2, pointer !important;
 }
-html.rvn-cursors :is(button, a, [role="button"], .ravenof-press, .rvn-press):not(:disabled):active {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/hover-pressed.png') 1x, url('/ravenof-ui/cursors/hover-pressed@2x.png') 2x) 11 2, pointer;
+html.rvn-cursors :is(button, a, [role="button"], .ravenof-press, .rvn-press, .cursor-pointer, [style*="cursor: pointer"], [style*="cursor:pointer"]):not(:disabled):active,
+html.rvn-cursors :is(button, a, [role="button"], .ravenof-press, .rvn-press, .cursor-pointer, [style*="cursor: pointer"], [style*="cursor:pointer"]):not(:disabled):active * {
+  cursor: image-set(url('/ravenof-ui/cursors/hover-pressed.png') 1x, url('/ravenof-ui/cursors/hover-pressed@2x.png') 2x) 11 2, pointer !important;
 }
-html.rvn-cursors :is(button, a, [role="button"]):disabled,
-html.rvn-cursors [aria-disabled="true"] {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/invalid.png') 1x, url('/ravenof-ui/cursors/invalid@2x.png') 2x) 16 16, not-allowed;
+html.rvn-cursors :is(button, a, [role="button"]):disabled, html.rvn-cursors :is(button, a, [role="button"]):disabled *,
+html.rvn-cursors [aria-disabled="true"], html.rvn-cursors [aria-disabled="true"] *,
+html.rvn-cursors [style*="cursor: not-allowed"], html.rvn-cursors [style*="cursor: not-allowed"] * {
+  cursor: image-set(url('/ravenof-ui/cursors/invalid.png') 1x, url('/ravenof-ui/cursors/invalid@2x.png') 2x) 16 16, not-allowed !important;
 }
 /* Tempiamos kortos (ranka) */
-html.rvn-cursors .cursor-grab, html.rvn-cursors [data-rvn-grab] {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/grab.png') 1x, url('/ravenof-ui/cursors/grab@2x.png') 2x) 16 16, grab;
+html.rvn-cursors .cursor-grab, html.rvn-cursors .cursor-grab *, html.rvn-cursors [data-rvn-grab], html.rvn-cursors [data-rvn-grab] *,
+html.rvn-cursors [style*="cursor: grab"], html.rvn-cursors [style*="cursor: grab"] * {
+  cursor: image-set(url('/ravenof-ui/cursors/grab.png') 1x, url('/ravenof-ui/cursors/grab@2x.png') 2x) 16 16, grab !important;
 }
 /* Tekstiniai laukai lieka sisteminiai (I-beam) */
-html.rvn-cursors :is(input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"]) { cursor: text; }
+html.rvn-cursors :is(input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"]) { cursor: text !important; }
 
-/* Globalios būsenos – body[data-rvn-cursor] nustato TutorialGame tempimo metu / laukiant */
-html.rvn-cursors body[data-rvn-cursor="grabbing"], html.rvn-cursors body[data-rvn-cursor="grabbing"] * {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/grabbing.png') 1x, url('/ravenof-ui/cursors/grabbing@2x.png') 2x) 16 16, grabbing !important;
+/* Globalios būsenos – body[data-rvn-cursor] nustato TutorialGame tempimo metu / laukiant.
+   Pakartoti atributai kelia specifiškumą virš hover/active taisyklių (0,5,2). */
+html.rvn-cursors body[data-rvn-cursor="grabbing"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor], html.rvn-cursors body[data-rvn-cursor="grabbing"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor] * {
+  cursor: image-set(url('/ravenof-ui/cursors/grabbing.png') 1x, url('/ravenof-ui/cursors/grabbing@2x.png') 2x) 16 16, grabbing !important;
 }
-html.rvn-cursors body[data-rvn-cursor="attack"], html.rvn-cursors body[data-rvn-cursor="attack"] * {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/attack.png') 1x, url('/ravenof-ui/cursors/attack@2x.png') 2x) 2 2, crosshair !important;
+html.rvn-cursors body[data-rvn-cursor="attack"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor], html.rvn-cursors body[data-rvn-cursor="attack"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor] * {
+  cursor: image-set(url('/ravenof-ui/cursors/attack.png') 1x, url('/ravenof-ui/cursors/attack@2x.png') 2x) 2 2, crosshair !important;
 }
-html.rvn-cursors body[data-rvn-cursor="spell"], html.rvn-cursors body[data-rvn-cursor="spell"] * {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/spell.png') 1x, url('/ravenof-ui/cursors/spell@2x.png') 2x) 16 16, crosshair !important;
+html.rvn-cursors body[data-rvn-cursor="spell"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor], html.rvn-cursors body[data-rvn-cursor="spell"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor] * {
+  cursor: image-set(url('/ravenof-ui/cursors/spell.png') 1x, url('/ravenof-ui/cursors/spell@2x.png') 2x) 16 16, crosshair !important;
 }
-html.rvn-cursors body[data-rvn-cursor="invalid"], html.rvn-cursors body[data-rvn-cursor="invalid"] * {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/invalid.png') 1x, url('/ravenof-ui/cursors/invalid@2x.png') 2x) 16 16, not-allowed !important;
+html.rvn-cursors body[data-rvn-cursor="invalid"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor], html.rvn-cursors body[data-rvn-cursor="invalid"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor] * {
+  cursor: image-set(url('/ravenof-ui/cursors/invalid.png') 1x, url('/ravenof-ui/cursors/invalid@2x.png') 2x) 16 16, not-allowed !important;
 }
-html.rvn-cursors body[data-rvn-cursor="wait"], html.rvn-cursors body[data-rvn-cursor="wait"] * {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/wait.png') 1x, url('/ravenof-ui/cursors/wait@2x.png') 2x) 16 16, progress !important;
+html.rvn-cursors body[data-rvn-cursor="wait"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor], html.rvn-cursors body[data-rvn-cursor="wait"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor] * {
+  cursor: image-set(url('/ravenof-ui/cursors/wait.png') 1x, url('/ravenof-ui/cursors/wait@2x.png') 2x) 16 16, progress !important;
 }
-html.rvn-cursors body[data-rvn-cursor="inspect"], html.rvn-cursors body[data-rvn-cursor="inspect"] * {
-  cursor: -webkit-image-set(url('/ravenof-ui/cursors/inspect.png') 1x, url('/ravenof-ui/cursors/inspect@2x.png') 2x) 13 13, zoom-in !important;
+html.rvn-cursors body[data-rvn-cursor="inspect"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor], html.rvn-cursors body[data-rvn-cursor="inspect"][data-rvn-cursor][data-rvn-cursor][data-rvn-cursor] * {
+  cursor: image-set(url('/ravenof-ui/cursors/inspect.png') 1x, url('/ravenof-ui/cursors/inspect@2x.png') 2x) 13 13, zoom-in !important;
 }

@@ -28,6 +28,11 @@ function resolveFile(urlPath) {
 // ── Deep link `ravenof://auth/callback?code=…` (Google/Facebook prisijungimas) ─
 // Supabase po OAuth nukreipia sistemos naršyklę į ravenof://…; Windows/Linux
 // paleidžia antrą instanciją su URL argv'e → single-instance lock persiunčia jį čia.
+// Dev (`npm start`) naudoja atskirą userData katalogą, kad nesipjautų su įdiegta
+// programa (tas pats vardas → tas pats %APPDATA% → „Unable to move the cache" +
+// single-instance lock iškart uždaro dev langą, jei įdiegtoji veikia).
+if (!app.isPackaged) app.setPath('userData', app.getPath('userData') + '-dev')
+
 const DEEP_SCHEME = 'ravenof'
 let mainWin = null
 let pendingDeepLink = null
