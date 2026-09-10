@@ -16,8 +16,8 @@ import { createPortal } from 'react-dom'
 import { getMediaManifest, diffMissing, downloadMedia, fmtMB, estimateTotalBytes, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { useT } from '@/lib/i18n/react'
+import { RavenofBannerButton, RavenofButton, RavenofProgress } from '@/components/digital/ui/RavenofKit'
 
-const GOLD = '240,180,41'
 const SILENT_LIMIT = 10   // iki tiek trūkstamų failų — siunčiam tyliai, be popup
 
 type Phase = 'checking' | 'silent' | 'prompt' | 'downloading' | 'done-wait' | 'hidden'
@@ -43,6 +43,9 @@ export function ContentDownloadGate() {
     ;(async () => {
       try {
         if (typeof caches === 'undefined') { setPhase('hidden'); return }
+        // Local-first app bundle (Electron / Capacitor local): visas turinys jau supakuotas
+        // į įrenginį, o Cache API ant app:// schemos neveikia — gate nereikalingas.
+        if ((window as unknown as { __RAVENOF_APP_BUNDLE__?: boolean }).__RAVENOF_APP_BUNDLE__) { setPhase('hidden'); return }
         // Automatizacija (Playwright/webdriver): gate praleidžiamas — e2e testai
         // neturi siųstis media paketo; failai traukiami žaidžiant per SW.
         if (typeof navigator !== 'undefined' && navigator.webdriver) { setPhase('hidden'); return }
@@ -108,60 +111,67 @@ export function ContentDownloadGate() {
     ? Math.min(100, Math.round((dl.doneBytes / dl.totalBytes) * 100))
     : Math.round((dl.doneFiles / Math.max(1, dl.totalFiles)) * 100)) : 0
 
+  const P = { font: '400 12px var(--ravenof-font-body)', lineHeight: 1.5, color: 'var(--ravenof-text-secondary)', margin: 0 } as const
+  const MUTED = { font: '400 10.5px var(--ravenof-font-body)', lineHeight: 1.45, color: 'var(--ravenof-text-muted, #6b6474)', margin: 0 } as const
+
   return createPortal(
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.94)', backdropFilter: 'blur(6px)' }}>
-      <div className="w-[min(560px,94vw)] rounded-2xl overflow-hidden" style={{ background: `rgba(${GOLD},0.35)`, padding: 2 }}>
-        <div className="rounded-2xl px-5 py-5 text-center" style={{ background: `radial-gradient(120% 80% at 50% 0%, rgba(${GOLD},0.14), rgba(10,8,16,0.98) 60%), linear-gradient(160deg,#17111f,#0a0810)` }}>
-          <div style={{ fontSize: 40, filter: `drop-shadow(0 0 14px rgba(${GOLD},0.5))` }}>📦</div>
-          <h2 className="rvn-disp font-black uppercase mt-1" style={{ fontSize: 'clamp(15px,3vh,20px)', color: 'var(--gold)', letterSpacing: '0.06em' }}>{t('onboarding.gate.title')}</h2>
+    <div role="dialog" aria-modal="true" className="ravenof-body fixed inset-0 z-[500] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,7,0.92)', backdropFilter: 'blur(4px)', animation: 'ravenofIn .25s ease' }}>
+      <div className="ravenof-panel w-[min(480px,94vw)] relative" style={{ padding: '26px 30px 24px', animation: 'ravenofFound .3s ease' }}>
+        {/* kampų akcentai – kaip prototipo panelėse */}
+        {(['0 auto auto 0', '0 0 auto auto', 'auto auto 0 0', 'auto 0 0 auto'] as const).map((inset, i) => (
+          <span key={i} aria-hidden className="absolute pointer-events-none" style={{ inset, width: 14, height: 14,
+            borderTop: i < 2 ? '1px solid var(--ravenof-gold)' : 'none', borderBottom: i >= 2 ? '1px solid var(--ravenof-gold)' : 'none',
+            borderLeft: i % 2 === 0 ? '1px solid var(--ravenof-gold)' : 'none', borderRight: i % 2 === 1 ? '1px solid var(--ravenof-gold)' : 'none', opacity: .8 }} />
+        ))}
 
-          {phase === 'prompt' && (
-            <>
-              <p className="mt-2" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                {t('onboarding.gate.prompt')}
-                <b style={{ color: '#f3ead3' }}> {t('onboarding.gate.filesBytes', { count: missing.length, size: totalBytes > 0 ? ` · ~${fmtMB(totalBytes)}` : '' })}</b>.
-              </p>
-              <p className="mt-1" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.onceNote')}</p>
-              {bgBytes > 0 && <p className="mt-1" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.bgNote', { size: fmtMB(bgBytes) })}</p>}
-              <button onClick={start} className="rvn-press mt-4 w-full rounded-2xl font-black"
-                style={{ minHeight: 'clamp(44px,8vh,56px)', fontSize: 'clamp(13px,2vh,16px)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', background: 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)', color: '#3a2406', border: '1px solid #ffeaa6', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(${GOLD},0.35)` }}>
-                {t('onboarding.gate.downloadCta')}{totalBytes > 0 ? ` (${fmtMB(totalBytes)})` : ''}
-              </button>
-            </>
-          )}
-
-          {phase === 'downloading' && (
-            <>
-              <p className="mt-2" style={{ fontSize: 'clamp(11px,1.8vh,13px)', color: 'var(--text-secondary)' }}>
-                {hadFails ? t('onboarding.gate.someFailed') : t('onboarding.gate.downloading')}
-              </p>
-              <div className="mt-3 h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid rgba(${GOLD},0.25)` }}>
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#ffe28c,#f3b62c)', boxShadow: `0 0 10px rgba(${GOLD},0.6)`, transition: 'width .3s' }} />
-              </div>
-              <p className="mt-1.5 tabular-nums" style={{ fontSize: 'clamp(9px,1.5vh,11px)', color: 'var(--text-muted)' }}>
-                {dl ? `${t('onboarding.gate.progressFiles', { done: dl.doneFiles, total: dl.totalFiles })}${dl.totalBytes > 0 ? ` · ${fmtMB(dl.doneBytes)} / ${fmtMB(dl.totalBytes)}` : ''}${dl.failed > 0 ? ` · ${t('onboarding.gate.failedN', { count: dl.failed })}` : ''}` : '…'}
-              </p>
-              {hadFails && (
-                <div className="mt-3 flex flex-col gap-1.5">
-                  <button onClick={retry} className="rvn-press w-full rounded-xl py-2.5 font-bold" style={{ fontSize: 12, fontFamily: 'var(--rvn-font-display)', background: `rgba(${GOLD},0.18)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{t('onboarding.gate.retry')}</button>
-                  <button onClick={() => { playUiClick(); setPhase('hidden') }} className="rvn-press w-full rounded-xl py-2" style={{ fontSize: 10.5, color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.12)' }}>{t('onboarding.gate.continueWithout')}</button>
-                </div>
-              )}
-            </>
-          )}
-
-          {phase === 'done-wait' && (
-            <>
-              <p className="mt-2 font-bold" style={{ fontSize: 'clamp(12px,2vh,14px)', color: '#86efac' }}>{t('onboarding.gate.doneTitle')}</p>
-              <p className="mt-0.5" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.doneSub')}</p>
-              {bgBytes > 0 && <p className="mt-0.5" style={{ fontSize: 'clamp(9px,1.4vh,10.5px)', color: 'var(--text-muted)' }}>{t('onboarding.gate.bgNote', { size: fmtMB(bgBytes) })}</p>}
-              <button onClick={() => { playUiClick(); setPhase('hidden') }} className="rvn-press mt-4 w-full rounded-2xl font-black"
-                style={{ minHeight: 'clamp(44px,8vh,56px)', fontSize: 'clamp(13px,2vh,16px)', fontFamily: 'var(--rvn-font-display)', letterSpacing: '0.05em', background: 'linear-gradient(135deg,#2a9a4c,#134f25)', color: '#eafff0', border: '1px solid rgba(74,222,128,0.7)', boxShadow: '0 0 22px rgba(34,197,94,0.4)' }}>
-                ⚔ PRADĖTI ŽAISTI
-              </button>
-            </>
-          )}
+        <div className="text-center">
+          <div style={{ font: '500 9.5px var(--ravenof-font-body)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>Ravenof</div>
+          <h2 style={{ font: '700 18px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)', margin: '4px 0 0' }}>{t('onboarding.gate.title')}</h2>
+          <div aria-hidden className="mx-auto mt-3" style={{ width: 120, height: 1, background: 'linear-gradient(90deg, transparent, var(--ravenof-gold), transparent)' }} />
         </div>
+
+        {phase === 'prompt' && (
+          <div className="mt-4 flex flex-col" style={{ gap: 6 }}>
+            <p style={P}>
+              {t('onboarding.gate.prompt')}{' '}
+              <b style={{ color: 'var(--ravenof-text-primary)', fontWeight: 700 }}>{t('onboarding.gate.filesBytes', { count: missing.length, size: totalBytes > 0 ? ` · ~${fmtMB(totalBytes)}` : '' })}</b>.
+            </p>
+            <p style={MUTED}>{t('onboarding.gate.onceNote')}</p>
+            {bgBytes > 0 && <p style={MUTED}>{t('onboarding.gate.bgNote', { size: fmtMB(bgBytes) })}</p>}
+            <RavenofBannerButton onClick={start} style={{ marginTop: 14, width: '100%' }}>
+              {t('onboarding.gate.downloadCta')}{totalBytes > 0 ? ` (${fmtMB(totalBytes)})` : ''}
+            </RavenofBannerButton>
+          </div>
+        )}
+
+        {phase === 'downloading' && (
+          <div className="mt-4 flex flex-col" style={{ gap: 10 }}>
+            <p style={{ ...P, textAlign: 'center', color: hadFails ? 'var(--ravenof-danger-bright, #e06a78)' : P.color }}>
+              {hadFails ? t('onboarding.gate.someFailed') : t('onboarding.gate.downloading')}
+            </p>
+            <RavenofProgress pct={pct} height={5} style={{ border: '1px solid var(--ravenof-border-strong)' }} />
+            <p className="tabular-nums text-center" style={{ ...MUTED, letterSpacing: .5 }}>
+              {dl ? `${t('onboarding.gate.progressFiles', { done: dl.doneFiles, total: dl.totalFiles })}${dl.totalBytes > 0 ? ` · ${fmtMB(dl.doneBytes)} / ${fmtMB(dl.totalBytes)}` : ''}${dl.failed > 0 ? ` · ${t('onboarding.gate.failedN', { count: dl.failed })}` : ''}` : '…'}
+            </p>
+            {hadFails && (
+              <div className="flex flex-col" style={{ gap: 8, marginTop: 4 }}>
+                <RavenofButton variant="primary" onClick={retry} style={{ width: '100%' }}>{t('onboarding.gate.retry')}</RavenofButton>
+                <RavenofButton variant="secondary" onClick={() => { playUiClick(); setPhase('hidden') }} style={{ width: '100%', textTransform: 'none', letterSpacing: .3, fontFamily: 'var(--ravenof-font-body)', fontWeight: 500 }}>{t('onboarding.gate.continueWithout')}</RavenofButton>
+              </div>
+            )}
+          </div>
+        )}
+
+        {phase === 'done-wait' && (
+          <div className="mt-4 flex flex-col text-center" style={{ gap: 6 }}>
+            <p style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-success, #5fae6a)', margin: 0 }}>{t('onboarding.gate.doneTitle')}</p>
+            <p style={MUTED}>{t('onboarding.gate.doneSub')}</p>
+            {bgBytes > 0 && <p style={MUTED}>{t('onboarding.gate.bgNote', { size: fmtMB(bgBytes) })}</p>}
+            <RavenofBannerButton onClick={() => { playUiClick(); setPhase('hidden') }} style={{ marginTop: 14, width: '100%' }}>
+              {t('onboarding.gate.playCta')}
+            </RavenofBannerButton>
+          </div>
+        )}
       </div>
     </div>,
     document.body,

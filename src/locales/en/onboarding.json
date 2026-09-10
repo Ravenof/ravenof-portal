@@ -26,6 +26,7 @@
     "failedN": "failed: {{count}}",
     "filesBytes": "{{count}} files{{size}}",
     "onceNote": "Downloaded once. You'll find video content later in ⚙️ Settings (“Everything + video”).",
+    "playCta": "⚔ Start playing",
     "progressFiles": "{{done}}/{{total}} files",
     "prompt": "For the game to run fast, the core content needs to be downloaded:",
     "retry": "↻ Try again",

@@ -27,6 +27,7 @@
     "failedN": "nepavyko: {{count}}",
     "filesBytes": "{{count}} failų{{size}}",
     "onceNote": "Siunčiama vieną kartą. Video intarpus vėliau rasi ⚙️ Nustatymuose („Viskas + video“).",
+    "playCta": "⚔ Pradėti žaisti",
     "progressFiles": "{{done}}/{{total}} failų",
     "prompt": "Kad žaidimas veiktų greitai, reikia atsisiųsti pagrindinį turinį:",
     "retry": "↻ Bandyti dar kartą",
