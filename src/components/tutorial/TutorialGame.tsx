@@ -1187,6 +1187,32 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const dragMovedRef = useRef(false)
+  // Tempimo ghost'as / rodyklė atnaujinami TIESIAI DOM'e (be React re-render'o
+  // kiekvienam pointermove) – desktope pelė generuoja 100+ įvykių/s, o
+  // TutorialGame re-render'as brangus → „clunky" pojūtis. React state keičiasi
+  // tik pradžioje, pabaigoje ir keičiantis režimui (card ↔ arrow).
+  const dragGhostRef = useRef<HTMLDivElement | null>(null)
+  const dragLineRef = useRef<SVGLineElement | null>(null)
+  const dragCrossRef = useRef<SVGImageElement | null>(null)
+  const applyDragDom = (d: DragState) => {
+    const g = dragGhostRef.current
+    if (g) g.style.transform = `translate3d(${d.x}px, ${d.y}px, 0) translate(-50%, -50%) rotate(-4deg)`
+    const l = dragLineRef.current
+    if (l) { l.setAttribute('x2', String(d.x)); l.setAttribute('y2', String(d.y)) }
+    const c = dragCrossRef.current
+    if (c) { c.setAttribute('x', String(d.x - 22)); c.setAttribute('y', String(d.y - 22)) }
+  }
+  const setBodyCursor = (v: string | null) => {
+    if (typeof document === 'undefined') return
+    if (v) document.body.dataset.rvnCursor = v; else delete document.body.dataset.rvnCursor
+  }
+  const dragCursorFor = (d: DragState) => d.mode === 'arrow' ? (d.card.type === 'spell' || d.card.type === 'artifact' || d.card.type === 'reaction' ? 'spell' : 'attack') : 'grabbing'
+  const moveDrag = (nd: DragState) => {
+    const prev = dragRef.current
+    dragRef.current = nd
+    applyDragDom(nd)
+    if (!prev || prev.mode !== nd.mode || prev.targeted !== nd.targeted) { setDrag(nd); setBodyCursor(dragCursorFor(nd)) }
+  }
   const handRef = useRef<HTMLDivElement | null>(null)
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
@@ -3411,17 +3437,16 @@ doAction({ t: 'endTurn', actor: 'you' })
         if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null }
         setInspect(null)
         const d: DragState = { card: u.card, uid: u.uid, targeted: true, attackUid: u.uid, origin: liveOrigin(), x: ev.clientX, y: ev.clientY, mode: 'arrow' }
-        dragRef.current = d; setDrag(d)
+        dragRef.current = d; setDrag(d); setBodyCursor(dragCursorFor(d))
       }
       const d = dragRef.current; if (!d) return
-      const nd: DragState = { ...d, x: ev.clientX, y: ev.clientY }
-      dragRef.current = nd; setDrag(nd)
+      moveDrag({ ...d, x: ev.clientX, y: ev.clientY })
     }
     function up(ev: PointerEvent) {
       cleanup()
       if (!started) return  // palietimas – tegul suveikia onClick (pasirinkti puolėją)
       dragEndRef.current = Date.now()
-      const d = dragRef.current; dragRef.current = null; setDrag(null)
+      const d = dragRef.current; dragRef.current = null; setDrag(null); setBodyCursor(null)
       if (!d) return
       const tgt = elToTargetRef(document.elementFromPoint(ev.clientX, ev.clientY))
       if (!tgt || !game) return
@@ -3517,7 +3542,10 @@ doAction({ t: 'endTurn', actor: 'you' })
     function move(ev: PointerEvent) {
       const dx = ev.clientX - sx, dy = ev.clientY - sy
       if (!started) {
-        if (dy < -14 && Math.abs(dy) > Math.abs(dx)) {
+        // Pelė: tempimas prasideda po 6 px bet kuria kryptimi (be „tik aukštyn" ribojimo);
+        // lietimas: aukštyn ≥14 px (horizontalus judesys = rankos slinkimas).
+        const begin = isTouch ? (dy < -14 && Math.abs(dy) > Math.abs(dx)) : Math.hypot(dx, dy) >= 6
+        if (begin) {
           started = true; dragMovedRef.current = true
           if (lp) { clearTimeout(lp); lp = null }
           // Jei long-press jau atidare kortos perziura - tempiant i lenta ji
@@ -3526,17 +3554,16 @@ doAction({ t: 'endTurn', actor: 'you' })
           setInspectDocked(true)
           if (wasExpanded) setHandExpanded(false)
           const d: DragState = { card, uid: card.uid, targeted: !!game && cardNeedsTarget(game, card), origin: { x: sx, y: sy }, x: ev.clientX, y: ev.clientY, mode: 'card' }
-          dragRef.current = d; setDrag(d)
-        } else if (Math.abs(dx) > 10) { cleanup(); return } else return
+          dragRef.current = d; setDrag(d); setBodyCursor(dragCursorFor(d))
+        } else if (isTouch && Math.abs(dx) > 10) { cleanup(); return } else return
       }
       const d = dragRef.current; if (!d) return
       const onBoard = ev.clientY < handTop() - 10 || overOwnZone(ev.clientX, ev.clientY)
-      // Fazė 2: ghost'as vejasi žymeklį su nedidele inercija (arrow režime — ne,
-      // ten linija turi eiti tiksliai į taikinį).
+      // Lietimas: ghost'as vejasi pirštą su nedidele inercija; pelė – 1:1 (inercija
+      // desktope jaučiasi kaip vėlavimas). Arrow režime visada tiksliai į taikinį.
       const arrow = d.targeted && onBoard
-      const pos = arrow ? { x: ev.clientX, y: ev.clientY } : dragFollow({ x: d.x, y: d.y }, { x: ev.clientX, y: ev.clientY })
-      const nd: DragState = { ...d, x: pos.x, y: pos.y, mode: arrow ? 'arrow' : 'card' }
-      dragRef.current = nd; setDrag(nd)
+      const pos = (arrow || !isTouch) ? { x: ev.clientX, y: ev.clientY } : dragFollow({ x: d.x, y: d.y }, { x: ev.clientX, y: ev.clientY })
+      moveDrag({ ...d, x: pos.x, y: pos.y, mode: arrow ? 'arrow' : 'card' })
       updateSnapHighlight(arrow ? null : ev.clientX, arrow ? null : ev.clientY)
     }
     function up(ev: PointerEvent) {
@@ -3554,7 +3581,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         return
       }
       dragEndRef.current = Date.now()
-      const d = dragRef.current; dragRef.current = null; setDrag(null)
+      const d = dragRef.current; dragRef.current = null; setDrag(null); setBodyCursor(null)
       if (!d) return
       if (selKind === 'discard') { onHandCardClick(d.card); return }
       const onBoard = ev.clientY < handTop() - 10 || overOwnZone(ev.clientX, ev.clientY)
@@ -5533,14 +5560,14 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <path d="M0,0 L6,3 L0,6 Z" fill="#f0b429" />
               </marker>
             </defs>
-            <line x1={drag.origin.x} y1={drag.origin.y} x2={drag.x} y2={drag.y}
+            <line ref={dragLineRef} x1={drag.origin.x} y1={drag.origin.y} x2={(dragRef.current ?? drag).x} y2={(dragRef.current ?? drag).y}
               stroke="#f0b429" strokeWidth="4" strokeDasharray="3 9" strokeLinecap="round" markerEnd="url(#rvn-arrow)" opacity="0.95" />
-            <image href="/ravenof-ui/combat/targeting/icon-targeting.png" x={drag.x - 22} y={drag.y - 22} width="44" height="44" />
+            <image ref={dragCrossRef} href="/ravenof-ui/combat/targeting/icon-targeting.png" x={(dragRef.current ?? drag).x - 22} y={(dragRef.current ?? drag).y - 22} width="44" height="44" />
           </svg>
         ) : (
-          <div className="fixed z-[210] pointer-events-none" style={{ left: drag.x, top: drag.y, transform: 'translate(-50%, -50%) rotate(-4deg)' }}>
+          <div ref={dragGhostRef} className="fixed z-[210] pointer-events-none rvn-drag-pickup" style={{ left: 0, top: 0, willChange: 'transform', transform: `translate3d(${(dragRef.current ?? drag).x}px, ${(dragRef.current ?? drag).y}px, 0) translate(-50%, -50%) rotate(-4deg)` }}>
             <div style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.65))' }}>
-              <MiniCard c={drag.card} w={isTouch ? 96 : 120} />
+              <MiniCard c={drag.card} w={isTouch ? 96 : desktopLayout ? Math.round((deskSizes?.handW ?? 120) * 1.05) : 120} />
             </div>
           </div>
         ),

@@ -21,3 +21,7 @@
 .rvn-desk-hand-toggle[data-discard="true"] { color: #ffd166; border-color: rgba(255,209,102,0.7); background: rgba(120,80,10,0.5); }
 .rvn-desk-hand-card { transition: transform 0.16s ease, margin 0.18s ease, filter 0.16s ease; transform-origin: bottom center; will-change: transform; }
 .rvn-desk-hand-card:hover { z-index: 80 !important; }
+
+/* Tempimo ghost'o „pakėlimo" animacija (vidinis wrapper'is, kad neliestų transform'o) */
+.rvn-drag-pickup > div { animation: rvnDragPickup .14s ease-out; }
+@keyframes rvnDragPickup { from { transform: scale(.86); opacity: .6; } to { transform: scale(1); opacity: 1; } }
