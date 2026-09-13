@@ -21,6 +21,7 @@ import { playstyleFor } from '@/components/digital/StarterOnboarding'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { RavenofBannerButton } from '@/components/digital/ui/RavenofKit'
 import { useT } from '@/lib/i18n/react'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { loadTutorialState, isLessonUnlocked, type TutorialState } from '@/lib/tutorial2/lessonLoader'
 import type { LessonRow } from '@/lib/tutorial2/lessonTypes'
 import { CORE_LESSON_KEYS } from '@/data/tutorialLessons/lessonSeeds'
@@ -40,6 +41,8 @@ export function TutorialHub() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const autoLaunched = useRef(false)
+  // Desktop: turinys iki 1300 px, du stulpeliai (pagrindai + egzaminas | gilesnės), didesni tekstai/zonos
+  const { desktop } = useDesktopUi()
 
   const load = useCallback(async () => {
     const [s, ts] = await Promise.all([getStarterDecks(), loadTutorialState()])
@@ -118,16 +121,16 @@ export function TutorialHub() {
     return (
       <button key={l.id} disabled={!unlocked} onClick={() => { if (!unlocked) return; playUiClick(); setLesson(l) }}
         className="ravenof-press text-left flex items-center disabled:opacity-45"
-        style={{ gap: 12, padding: '12px 14px', width: '100%', cursor: unlocked ? 'pointer' : 'default',
+        style={{ gap: desktop ? 18 : 12, padding: desktop ? '18px 20px' : '12px 14px', minHeight: desktop ? 88 : undefined, width: '100%', cursor: unlocked ? 'pointer' : 'default',
           background: 'var(--ravenof-bg-surface)', border: '1px solid ' + (done ? 'var(--ravenof-gold)' : 'var(--ravenof-border-strong)') }}>
-        <span aria-hidden style={{ fontSize: 22, width: 30, textAlign: 'center', filter: unlocked ? undefined : 'grayscale(1)' }}>{l.icon ?? '📜'}</span>
-        <span className="flex-1 min-w-0 flex flex-col" style={{ gap: 2 }}>
-          <span style={{ font: '700 13.5px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{l.title}</span>
-          <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{l.subtitle ?? l.description}</span>
+        <span aria-hidden style={{ fontSize: desktop ? 32 : 22, width: desktop ? 44 : 30, textAlign: 'center', filter: unlocked ? undefined : 'grayscale(1)' }}>{l.icon ?? '📜'}</span>
+        <span className="flex-1 min-w-0 flex flex-col" style={{ gap: desktop ? 4 : 2 }}>
+          <span style={{ font: `700 ${desktop ? 19 : 13.5}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{l.title}</span>
+          <span style={{ font: `400 ${desktop ? 14.5 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{l.subtitle ?? l.description}</span>
         </span>
-        <span className="shrink-0 flex flex-col items-end" style={{ gap: 3 }}>
-          <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.minutesShort', { n: l.est_minutes ?? 5 })}</span>
-          <span style={{ font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: done ? 'var(--ravenof-gold)' : unlocked ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>
+        <span className="shrink-0 flex flex-col items-end" style={{ gap: desktop ? 5 : 3 }}>
+          <span style={{ font: `400 ${desktop ? 13 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.minutesShort', { n: l.est_minutes ?? 5 })}</span>
+          <span style={{ font: `700 ${desktop ? 13.5 : 10.5}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase', color: done ? 'var(--ravenof-gold)' : unlocked ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>
             {done ? '✓ ' + t('onboarding.tutorial.lessonReplay') : unlocked ? t('onboarding.tutorial.lessonStart') : '🔒 ' + t('onboarding.tutorial.lessonLocked')}
           </span>
         </span>
@@ -136,13 +139,13 @@ export function TutorialHub() {
   }
 
   return (
-    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: '4px 2px 12px' }}>
+    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: desktop ? '12px 0 20px' : '4px 2px 12px', ...(desktop ? { maxWidth: 1300, margin: '0 auto', width: '100%' } : {}) }}>
       {/* Antraštė: atgal + pavadinimas */}
-      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
-        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
+      <div className="flex items-center shrink-0" style={{ gap: desktop ? 14 : 10, paddingBottom: desktop ? 22 : 10 }}>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: desktop ? 22 : 16, ...(desktop ? { width: 40, height: 40 } : {}) }}>‹</button>
         <div>
-          <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('onboarding.tutorial.title')}</div>
-          <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.courseTitle')}</div>
+          <div style={{ font: `700 ${desktop ? 30 : 15}px var(--ravenof-font-display)`, letterSpacing: desktop ? 2 : 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('onboarding.tutorial.title')}</div>
+          <div style={{ font: `400 ${desktop ? 15 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.courseTitle')}</div>
         </div>
       </div>
       {msg && <p role="alert" className="shrink-0" style={{ font: '500 11.5px var(--ravenof-font-body)', color: '#c65563', margin: '0 0 8px' }}>{msg}</p>}
@@ -151,17 +154,18 @@ export function TutorialHub() {
         {(!starters || !state) && <div className="flex items-center justify-center py-12"><span className="ravenof-spinner" style={{ width: 40, height: 40 }} /></div>}
 
         {state && (
-          <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={desktop ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' } : { maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
             {lessons.length === 0 && (
               <p className="text-center py-6" style={{ font: '400 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.noLessons')}</p>
             )}
 
+            <div className={desktop ? 'flex flex-col' : 'contents'} style={desktop ? { gap: 24 } : undefined}>
             {/* ── PAGRINDAI ── */}
             {core.length > 0 && (
-              <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <section style={{ display: 'flex', flexDirection: 'column', gap: desktop ? 12 : 8 }}>
                 <div>
-                  <p style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>{t('onboarding.tutorial.coreGroup')}</p>
-                  <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>{t('onboarding.tutorial.coreGroupSub')}</p>
+                  <p style={{ font: `700 ${desktop ? 14 : 11}px var(--ravenof-font-display)`, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>{t('onboarding.tutorial.coreGroup')}</p>
+                  <p style={{ font: `400 ${desktop ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>{t('onboarding.tutorial.coreGroupSub')}</p>
                 </div>
                 {core.map((l, i) => lessonRow(l, isLessonUnlocked(core, progress, i)))}
               </section>
@@ -170,31 +174,33 @@ export function TutorialHub() {
             {/* ── EGZAMINAS (graduation) ── */}
             {coreDone && claimedDeck && (
               <section className="flex items-stretch" style={{ background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-gold)' }}>
-                <span className="relative shrink-0 overflow-hidden" style={{ width: 150 }}>
+                <span className="relative shrink-0 overflow-hidden" style={{ width: desktop ? 190 : 150 }}>
                   {claimedDeck.imageUrl
                     ? <SmartImg src={claimedDeck.imageUrl} width={360} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 25%' }} />
                     : <span className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: 'var(--ravenof-bg-elevated)' }}>🎴</span>}
                   <span aria-hidden className="absolute inset-y-0 right-0" style={{ width: 30, background: 'linear-gradient(90deg, transparent, var(--ravenof-bg-surface))' }} />
                 </span>
-                <div className="flex-1 min-w-0 flex flex-col" style={{ padding: '14px 16px' }}>
-                  <p style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>{t('onboarding.tutorial.graduationTitle')}</p>
-                  <p style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)', margin: '3px 0 0' }}>{claimedDeck.faction ?? claimedDeck.name}</p>
-                  <p style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.45, margin: '6px 0 12px' }}>{t('onboarding.tutorial.graduationSub')} {playstyleFor(claimedDeck)}</p>
-                  <RavenofBannerButton disabled={busy} onClick={() => { playUiClick(); launch(claimedDeck.deckId!, claimedDeck.name, claimedDeck) }} style={{ width: '100%', marginTop: 'auto' }}>
+                <div className="flex-1 min-w-0 flex flex-col" style={{ padding: desktop ? '20px 22px' : '14px 16px' }}>
+                  <p style={{ font: `500 ${desktop ? 12 : 9}px var(--ravenof-font-body)`, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>{t('onboarding.tutorial.graduationTitle')}</p>
+                  <p style={{ font: `700 ${desktop ? 22 : 17}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)', margin: '3px 0 0' }}>{claimedDeck.faction ?? claimedDeck.name}</p>
+                  <p style={{ font: `400 ${desktop ? 15 : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.45, margin: '6px 0 12px' }}>{t('onboarding.tutorial.graduationSub')} {playstyleFor(claimedDeck)}</p>
+                  <RavenofBannerButton disabled={busy} onClick={() => { playUiClick(); launch(claimedDeck.deckId!, claimedDeck.name, claimedDeck) }} style={{ width: '100%', marginTop: 'auto', ...(desktop ? { minHeight: 56, fontSize: 16, letterSpacing: 3 } : {}) }}>
                     {t('onboarding.tutorial.startShort')}
                   </RavenofBannerButton>
                 </div>
               </section>
             )}
+            </div>
 
+            <div className={desktop ? 'flex flex-col' : 'contents'} style={desktop ? { gap: 24 } : undefined}>
             {/* ── GILESNĖS PAMOKOS ── */}
             {extra.length > 0 && (
-              <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <section style={{ display: 'flex', flexDirection: 'column', gap: desktop ? 12 : 8 }}>
                 <div>
-                  <p style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>
+                  <p style={{ font: `700 ${desktop ? 14 : 11}px var(--ravenof-font-display)`, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>
                     {t('onboarding.tutorial.extraGroup')}
                   </p>
-                  <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>{t('onboarding.tutorial.extraGroupSub')}</p>
+                  <p style={{ font: `400 ${desktop ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>{t('onboarding.tutorial.extraGroupSub')}</p>
                 </div>
                 {extra.map((l, i) => lessonRow(l, extraSequential ? isLessonUnlocked(extra, progress, i) : coreDone))}
               </section>
@@ -207,14 +213,14 @@ export function TutorialHub() {
             {/* ── Kaladė dar nepasiimta → starter pasirinkimas ── */}
             {!claimedDeck && decks.length > 0 && (
               <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('onboarding.tutorial.subNoDeck')}</p>
+                <p style={{ font: `400 ${desktop ? 15 : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('onboarding.tutorial.subNoDeck')}</p>
                 <div className="grid" style={{ gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
                   {decks.map((d) => (
                     <button key={d.id} disabled={busy} onClick={() => choose(d)}
                       className="ravenof-press text-left flex flex-col disabled:opacity-50"
                       style={{ gap: 4, padding: '13px 15px', cursor: 'pointer', background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)' }}>
-                      <span style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{d.faction ?? d.name}</span>
-                      <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.4 }}>{playstyleFor(d)}</span>
+                      <span style={{ font: `700 ${desktop ? 18 : 14}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{d.faction ?? d.name}</span>
+                      <span style={{ font: `400 ${desktop ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.4 }}>{playstyleFor(d)}</span>
                       <span style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('decks.cardsShort', { count: d.cardCount })}</span>
                       <span style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-gold)', marginTop: 4 }}>{t('onboarding.tutorial.pickFree')} ›</span>
                     </button>
@@ -225,6 +231,7 @@ export function TutorialHub() {
             {starters && decks.length === 0 && (
               <p className="text-center py-4" style={{ font: '400 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.noStarters')}</p>
             )}
+            </div>
           </div>
         )}
       </div>
