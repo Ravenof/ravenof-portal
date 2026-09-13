@@ -199,7 +199,11 @@
     "zoneHand": "Ranka",
     "handExpand": "Išskleisti ranką ({{n}})",
     "handCollapse": "Suskleisti ranką ({{n}})",
-    "discardPick": "Parduoti: pasirink kortą ({{n}})"
+    "discardPick": "Parduoti: pasirink kortą ({{n}})",
+    "modePve": "Kova su DI",
+    "modePvp": "Draugiška kova",
+    "pvpVictoryText": "Įtikinama pergalė prieš draugą. Revanšas?",
+    "pvpDefeatText": "Draugas šįkart buvo stipresnis. Revanšas – čia pat."
   },
   "guided": {
     "discard-gold-tip": {

@@ -199,7 +199,11 @@
     "zoneHand": "Hand",
     "handExpand": "Expand hand ({{n}})",
     "handCollapse": "Collapse hand ({{n}})",
-    "discardPick": "Sell: pick a card ({{n}})"
+    "discardPick": "Sell: pick a card ({{n}})",
+    "modePve": "Battle vs AI",
+    "modePvp": "Friendly match",
+    "pvpVictoryText": "A convincing win over a friend. Rematch?",
+    "pvpDefeatText": "Your friend was stronger this time. A rematch is one tap away."
   },
   "guided": {
     "discard-gold-tip": {

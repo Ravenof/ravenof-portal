@@ -5936,6 +5936,17 @@ doAction({ t: 'endTurn', actor: 'you' })
           }
           const extraDelay = celebrationCtaDelay(endItems.length)
           const dk = desktopLayout ? 1 : 0   // desktop – didesni pagalbiniai blokai
+          // PvP: kovos statistika (sunaikinta/prarasta, žala, burtai) – kaip reitinge
+          const stYou = vsRemote ? collectMatchStats(game, 'you') : null
+          const stOpp = vsRemote ? collectMatchStats(game, 'ai') : null
+          const kicker = [vsRemote ? t('battle.game.modePvp') : t('battle.game.modePve'), opponentName ? t('battle.game.vsName', { name: opponentName }) : null].filter(Boolean).join(' · ')
+          const subText = vsRemote ? (won ? t('battle.game.pvpVictoryText') : t('battle.game.pvpDefeatText')) : (won ? t('battle.game.victoryText') : t('battle.game.defeatText'))
+          const statCell = (v: string | number, l: string, last = false) => (
+            <div key={l} className="flex flex-col items-center" style={{ gap: 3, padding: dk ? '10px 22px' : '7px 12px', borderRight: last ? 0 : '1px solid var(--ravenof-border-hairline)' }}>
+              <b style={{ font: `700 ${dk ? 18 : 14}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{v}</b>
+              <span style={{ font: `500 ${dk ? 10.5 : 8.5}px var(--ravenof-font-body)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{l}</span>
+            </div>
+          )
           return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="ravenof-body fixed inset-0 z-[140] flex items-center justify-center p-4 overflow-hidden"
@@ -5943,13 +5954,23 @@ doAction({ t: 'endTurn', actor: 'you' })
             <CelebrationStyles />
             <CelebrationFx tone={won ? 'gold' : 'red'} />
             <div className="rvn-cele-panel" style={{ maxWidth: 980, gap: dk ? 18 : 12 }}>
-              {opponentName && <div className="rvn-cele-kicker">{t('battle.game.vsName', { name: opponentName })}</div>}
+              <div className="rvn-cele-kicker">{kicker}</div>
               <h1 className={'rvn-cele-title' + (won ? '' : ' lose')}>{won ? t('battle.game.victory') : t('battle.game.defeat')}</h1>
               <div className="rvn-cele-rule" />
-              <p className="rvn-cele-sub">{won ? t('battle.game.victoryText') : t('battle.game.defeatText')}</p>
+              <p className="rvn-cele-sub">{subText}</p>
 
               {/* ── Atlygio plytelės (žiedai, kibirkštys, count-up) ── */}
               {endItems.length > 0 && <CelebrationTiles items={endItems} />}
+
+              {/* ── PvP statistikos juosta ── */}
+              {stYou && stOpp && (
+                <div className="rvn-cele-extra flex" style={{ ['--cta' as string]: extraDelay, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(0,0,0,0.35)' }}>
+                  {statCell(`${stYou.creaturesKilled} / ${stOpp.creaturesKilled}`, t('ranked.result.killsLost'))}
+                  {statCell(stYou.faceDamage, t('ranked.result.dmgDealt'))}
+                  {statCell(stYou.hpLost, t('ranked.result.dmgTaken'))}
+                  {statCell(stYou.spellsPlayed, t('ranked.result.spellsPlayed'), true)}
+                </div>
+              )}
 
               {/* ── Pasiekimų santrauka ── */}
               {matchAchievements.length > 0 && (
