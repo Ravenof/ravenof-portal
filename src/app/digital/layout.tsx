@@ -29,6 +29,8 @@ import { heartbeat } from '@/lib/social'
 import { rankDisplay } from '@/lib/ranked/rank'
 import { RavenofResourcePill, RavenofIconBtn, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
 import { HubStyles } from '@/components/digital/ui/HubKit'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import '@/components/digital/ui/desktop-ui.css'
 import { useT, I18nBoot, useLocale, setLocale } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
@@ -63,6 +65,7 @@ function NavGlyph({ navKey, active, fallback }: { navKey: string; active: boolea
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const { desktop: deskUi } = useDesktopUi()
   const t = useT()
   const locale = useLocale()
   const router = useRouter()
@@ -177,7 +180,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="ravenof-body fixed inset-0 z-40 flex flex-row select-none" style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
+    <div className={`ravenof-body fixed inset-0 z-40 flex flex-row select-none${deskUi ? ' rvn-desk-ui' : ''}`} style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
       {!MIGRATED_ROUTES.includes(pathname) && !pathname.startsWith('/digital/profile') && !pathname.startsWith('/digital/campaign/') && <Flames />}
       <HubStyles />
       <I18nBoot />
@@ -194,7 +197,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {/* ── Šoninis nav rail (patvirtintas dizainas: 92px, 24px ikonos, Cinzel etiketės) ── */}
       {!fullBleed && <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
         style={{
-          width: 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))',
+          width: deskUi ? 'calc(108px + max(18px, env(safe-area-inset-left, 0px)))' : 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))',
           paddingLeft: 'max(18px, env(safe-area-inset-left, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
           background: 'linear-gradient(90deg,#0a0810,#0F0D15)',
@@ -205,11 +208,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           const active = isActive(it)
           const Icon = it.icon
           const inner = (
-            <span className="flex flex-col items-center justify-center" style={{ gap: 3, padding: '8px 0', minHeight: 48 }}>
-              <span className="relative flex items-center justify-center" style={{ width: 24, height: 24 }}>
-                <NavGlyph navKey={it.key} active={active} fallback={<Icon className="w-[18px] h-[18px]" />} />
+            <span className="flex flex-col items-center justify-center" style={{ gap: deskUi ? 6 : 3, padding: deskUi ? '14px 0' : '8px 0', minHeight: deskUi ? 72 : 48 }}>
+              <span className="relative flex items-center justify-center" style={{ width: deskUi ? 36 : 24, height: deskUi ? 36 : 24 }}>
+                <NavGlyph navKey={it.key} active={active} fallback={<Icon className={deskUi ? 'w-[26px] h-[26px]' : 'w-[18px] h-[18px]'} />} />
               </span>
-              <span style={{ font: '600 8.5px var(--ravenof-font-display)', letterSpacing: '.4px', textAlign: 'center', lineHeight: 1.2, color: active ? '#F2C45A' : '#6b6474', textShadow: active ? '0 0 12px rgba(242,196,90,.6)' : 'none' }}>{t(it.labelKey)}</span>
+              <span style={{ font: `600 ${deskUi ? 11.5 : 8.5}px var(--ravenof-font-display)`, letterSpacing: '.4px', textAlign: 'center', lineHeight: 1.2, color: active ? '#F2C45A' : '#6b6474', textShadow: active ? '0 0 12px rgba(242,196,90,.6)' : 'none' }}>{t(it.labelKey)}</span>
             </span>
           )
           const style = { borderRight: `2px solid ${active ? '#F2C45A' : 'transparent'}` } as React.CSSProperties
@@ -223,10 +226,10 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
         {showHeader && (
           <header className="rvn-app-header relative z-10 flex items-center px-4"
-            style={{ gap: 'clamp(5px, 1.1vw, 9px)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
+            style={{ gap: deskUi ? 12 : 'clamp(5px, 1.1vw, 9px)', paddingTop: deskUi ? 18 : 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: deskUi ? 14 : 10, paddingLeft: deskUi ? 28 : undefined, paddingRight: deskUi ? 28 : undefined }}>
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
             <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
-              <span className="shrink-0" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
+              <span className="shrink-0" style={{ width: deskUi ? 52 : 38, height: deskUi ? 52 : 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
                 {!account.loaded ? (
                   /* Kol paskyra nepakrauta — skeleton (fiksuoti matmenys, be „Žaidėjas"/0) */
@@ -236,12 +239,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                   </>
                 ) : (
                   <>
-                    <span className="truncate" style={{ maxWidth: 'clamp(64px, 16vw, 140px)', font: '700 13px var(--ravenof-font-display)', letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
-                    <span className="flex items-center" style={{ gap: 5, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
+                    <span className="truncate" style={{ maxWidth: deskUi ? 260 : 'clamp(64px, 16vw, 140px)', font: `700 ${deskUi ? 18 : 13}px var(--ravenof-font-display)`, letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
+                    <span className="flex items-center" style={{ gap: 5, font: `500 ${deskUi ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
                       {rank ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={rank.badgeSrc ?? `${RAVENOF_ASSET}/ranks/rank-${rank.medalTier}.png`} alt="" style={{ width: 12, height: 14, objectFit: 'contain' }} />
+                          <img src={rank.badgeSrc ?? `${RAVENOF_ASSET}/ranks/rank-${rank.medalTier}.png`} alt="" style={{ width: deskUi ? 16 : 12, height: deskUi ? 18 : 14, objectFit: 'contain' }} />
                           {/* KANONINIS rango formatas — tas pats kaip Home/Ranked/profilyje */}
                           {rank.full}
                         </>
@@ -256,7 +259,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={balances ? formatNumber(balances.silver) : '—'} />
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={balances ? formatNumber(balances.rubies) : '—'} />
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png`} value={balances ? formatNumber(balances.essence) : '—'} />
-            <button onClick={toggleLang} className="ravenof-press" style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: '6px 8px', borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
+            <button onClick={toggleLang} className="ravenof-press" style={{ font: `700 ${deskUi ? 13 : 10}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: deskUi ? '10px 12px' : '6px 8px', borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
               {locale.toUpperCase()}
             </button>
             <RavenofIconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><Bell className="w-4 h-4" /></RavenofIconBtn>
@@ -267,8 +270,10 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
         <main className={`relative z-10 flex-1 min-h-0 overflow-y-auto ravenof-scroll ${fullBleed ? '' : 'px-4'}`}
           style={fullBleed
             ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' }
-            : { paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
-          <div className={fullBleed ? 'h-full' : 'max-w-screen-lg mx-auto h-full'}>{children}</div>
+            : deskUi
+              ? { paddingTop: showHeader ? 4 : 24, paddingBottom: 28, paddingLeft: 28, paddingRight: 28 }
+              : { paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
+          <div className={fullBleed ? 'h-full' : deskUi ? 'h-full' : 'max-w-screen-lg mx-auto h-full'}>{children}</div>
         </main>
       </div>
 

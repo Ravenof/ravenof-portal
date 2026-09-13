@@ -1,0 +1,7 @@
+/* ── Desktop meniu (pelė, ≥1024): didesni kit'o elementai; mobile nepaliečiamas ── */
+.rvn-desk-ui .ravenof-pill { font-size: 15px; padding: 9px 14px; gap: 8px; }
+.rvn-desk-ui .ravenof-pill img { width: 19px !important; height: 19px !important; }
+.rvn-desk-ui .ravenof-iconbtn { width: 42px; height: 42px; }
+.rvn-desk-ui .ravenof-iconbtn svg { width: 20px; height: 20px; }
+.rvn-desk-ui .ravenof-progress { height: 5px; }
+.rvn-desk-ui .ravenof-toast { font-size: 14px; padding: 12px 22px; }
