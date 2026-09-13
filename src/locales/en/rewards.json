@@ -1,4 +1,26 @@
 {
+  "celebrate": {
+    "continue": "Continue",
+    "hint": "Click anywhere to continue",
+    "claimed": "Reward",
+    "claimedAccent": "claimed",
+    "login": "Daily",
+    "loginAccent": "gift",
+    "chest": "Daily",
+    "chestAccent": "chest",
+    "card": "New",
+    "cardAccent": "card",
+    "booster": "Booster",
+    "boosterAccent": "opened",
+    "kickerLogin": "Login streak · day {{day}}",
+    "kickerQuest": "Quest completed",
+    "kickerChest": "All daily quests completed",
+    "kickerSeason": "Season path · level {{level}}",
+    "kickerSeasonAll": "Season path",
+    "kickerCard": "Chosen card",
+    "kickerBooster": "{{faction}} · {{count}} cards",
+    "boosterLabel": "{{count}} cards"
+  },
   "item": {
     "account_xp": {
       "desc": "Raises your account level — levels grant rewards.",

@@ -13,6 +13,7 @@ import { Flames } from '@/components/digital/Flames'
 import { SettingsModal } from '@/components/digital/SettingsModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
+import { RewardCelebrationHost } from '@/components/digital/progression/RewardCelebration'
 import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
 import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
@@ -278,6 +279,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       </div>
 
       <ContentDownloadGate />
+      <RewardCelebrationHost />
       <GlobalChatLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}

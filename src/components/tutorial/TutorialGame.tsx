@@ -1352,6 +1352,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Desktop režimas: pelė (hover+fine pointer) IR plotis ≥ 1024 – atskiras DesktopBattleLayout su
   // aukščio biudžeto dydžiais. Mažas desktop langas = „compact" dydžiai, NE telefono gestai.
   const { desktop: desktopLayout, sizes: deskSizes } = useDesktopLayout(useHLayout)
+  // Rezultato / level-up ekranų mastelis desktope (dydžiai projektuoti telefonui → zoom ~1.5–1.9)
+  const endK = desktopLayout && typeof window !== 'undefined' ? Math.max(1.5, Math.min(1.9, Math.min(window.innerWidth / 1000, window.innerHeight / 560))) : 1
   const hMobile = useHLayout && !desktopLayout && typeof window !== 'undefined' && window.innerHeight < 640  // landscape/žemas ekranas: kompaktiški dydžiai (nesiremiam isTouch – webview'e nepatikimas)
   const handW = deskSizes ? (handExpanded ? deskSizes.handWBig : deskSizes.handW) : hMobile ? 48 : isTouch ? 80 : 124
   const unitW = deskSizes ? deskSizes.unitW : hMobile ? 57 : isTouch ? 50 : 92
@@ -5930,7 +5932,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               ? 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, #07060A 70%)'
               : 'radial-gradient(120% 100% at 50% 40%, rgba(114,32,42,0.35) 0%, #0a0508 55%, #07060A 100%)' }}>
             {won && <div aria-hidden className="ravenof-rays" />}
-            <motion.div initial={{ scale: 0.85, y: 14 }} animate={{ scale: 1, y: 0 }} className="relative text-center w-[min(440px,94vw)]">
+            <motion.div initial={{ scale: 0.85, y: 14 }} animate={{ scale: 1, y: 0 }} className="relative text-center w-[min(440px,94vw)]" style={{ zoom: endK }}>
               <div className="ravenof-ornament" aria-hidden><i /></div>
               <p className="mt-2" style={{ font: '700 clamp(24px, 6vh, 30px) var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: won ? 'var(--ravenof-gold-bright)' : '#B4444F', textShadow: won ? '0 0 30px rgba(242,196,90,0.35)' : '0 0 26px rgba(180,68,79,0.4)', margin: 0 }}>
                 {won ? t('battle.game.victory') : t('battle.game.defeat')}
@@ -6038,7 +6040,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 role="dialog" aria-modal="true" aria-label={t('battle.game.newLevelEyebrow')}>
                 <div aria-hidden className="ravenof-rays" />
                 <motion.div initial={{ scale: 0.85, y: 12 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-                  className="relative text-center w-[min(430px,94vw)]">
+                  className="relative text-center w-[min(430px,94vw)]" style={{ zoom: endK }}>
                   <p style={{ font: '700 12px var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('battle.game.newLevelEyebrow')}</p>
                   <div className="mx-auto flex items-center justify-center" style={{ width: 104, height: 104, marginTop: 22, marginBottom: 22, border: '2px solid #D4A33B', outline: '1px solid #D4A33B55', outlineOffset: 6, transform: 'rotate(45deg)', background: 'linear-gradient(160deg, #171126, #0a0810)', boxShadow: '0 0 40px rgba(212,163,59,0.3)' }}>
                     <span style={{ transform: 'rotate(-45deg)', font: '700 44px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{prog.level}</span>

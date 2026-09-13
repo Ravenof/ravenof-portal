@@ -9,6 +9,7 @@ import {
   claimDailyChestV2, claimDailyQuest, getDailyQuests, isProgressionError,
   rerollDailyQuest, type DailyQuest, type DailyQuestsState,
 } from '@/lib/progression'
+import { celebrateRewards, rewardItems } from './RewardCelebration'
 import {
   ART, BODY, C, Cta, DISPLAY, ErrorState, isMissingRpc, Kicker, LoadingState, ResetChip,
   RewardChip, RewardIcon, rewardLabel, useCompact, useToast,
@@ -67,7 +68,7 @@ export function DailyQuestsScreen() {
     setBusy(null)
     if (!r || isProgressionError(r)) { toast.show(t('progression.quests.claimFailed'), 'err'); return }
     setState(r.snapshot as DailyQuestsState)
-    toast.show(t('progression.quests.claimOk'))
+    celebrateRewards({ kicker: `${t('rewards.celebrate.kickerQuest')} · ${t(q.titleKey, { target: q.target, count: q.target })}`, title: t('rewards.celebrate.claimed'), titleAccent: t('rewards.celebrate.claimedAccent'), items: rewardItems(r.grantedRewards) })
   }
 
   const openChest = async () => {
@@ -77,7 +78,7 @@ export function DailyQuestsScreen() {
     setBusy(null)
     if (!r || isProgressionError(r)) { toast.show(t('progression.quests.chestFailed'), 'err'); return }
     setState(r.snapshot as DailyQuestsState)
-    toast.show(t('progression.quests.chestOk'))
+    celebrateRewards({ kicker: t('rewards.celebrate.kickerChest'), title: t('rewards.celebrate.chest'), titleAccent: t('rewards.celebrate.chestAccent'), items: rewardItems(r.grantedRewards) })
   }
 
   const doReroll = async () => {

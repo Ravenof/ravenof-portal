@@ -11,6 +11,7 @@ import {
   cardOptions, factionOptions, resolveCardChoice, resolveFactionBoosterChoice,
   type CardChoiceOption, type FactionOption, type PendingRewardChoice,
 } from '@/lib/progression'
+import { celebrateRewards } from './RewardCelebration'
 import { ravenofFactionIcon } from '@/components/digital/ui/RavenofKit'
 import { BODY, C, Cta, DISPLAY, Kicker, ProgressionModal, RewardIcon } from './kit'
 
@@ -37,6 +38,14 @@ export function FactionBoosterChoiceModal({ choice, queue, onDone, onCancel }: {
     const r = await resolveFactionBoosterChoice(choice.choiceId, selected.factionId)
     setBusy(false)
     if (!r || 'error' in r) { setErr(t('progression.choice.failed')); return }
+    const count = r.booster?.cards?.length ?? 0
+    celebrateRewards({
+      kicker: t('rewards.celebrate.kickerBooster', { faction: selected.name, count }), title: t('rewards.celebrate.booster'), titleAccent: t('rewards.celebrate.boosterAccent'),
+      items: [
+        { kind: 'booster', count, label: t('rewards.celebrate.boosterLabel', { count }) },
+        ...(r.booster?.essenceCompensation ? [{ kind: 'reward' as const, reward: { type: 'essence' as const, amount: r.booster.essenceCompensation } }] : []),
+      ],
+    })
     onDone()
   }
 
@@ -127,6 +136,13 @@ export function CardChoiceModal({ choice, queue, onDone, onCancel }: {
     const r = await resolveCardChoice(choice.choiceId, selected.cardId)
     setBusy(false)
     if (!r || 'error' in r) { setErr(t('progression.choice.failed')); return }
+    // TIKRA korta celebration'e; jei copy limit'as – esencijos kompensacija
+    celebrateRewards({
+      kicker: t('rewards.celebrate.kickerCard'), title: t('rewards.celebrate.card'), titleAccent: t('rewards.celebrate.cardAccent'),
+      items: r.compensated && r.essence
+        ? [{ kind: 'reward', reward: { type: 'essence', amount: r.essence } }]
+        : [{ kind: 'card', name: locale === 'en' ? selected.nameEn : selected.nameLt, imageUrl: selected.imageUrl, rarity: selected.rarity, sub: `${t(`progression.rarity.${selected.rarity}`)} · ${selected.factionName}` }],
+    })
     onDone()
   }
 

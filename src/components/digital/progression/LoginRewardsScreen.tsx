@@ -9,6 +9,7 @@ import {
   claimLoginReward, getLoginRewards, isProgressionError,
   type LoginRewardDay, type LoginRewardState, type RewardDefinition,
 } from '@/lib/progression'
+import { celebrateRewards, rewardItems } from './RewardCelebration'
 import {
   ART, BODY, C, Cta, DISPLAY, Divider, ErrorState, isMissingRpc, Kicker, LoadingState,
   ProgressBar, ProgressionModal, ResetChip, RewardIcon, RewardRow, rewardLabel,
@@ -64,8 +65,9 @@ export function LoginRewardsScreen() {
     const r = await claimLoginReward()
     setBusy(false)
     if (!r || isProgressionError(r)) { toast.show(t('progression.login.claimFailed'), 'err'); return }
+    const day = state.claimableDay
     setState(r.snapshot as LoginRewardState)
-    if (r.status === 'completed') toast.show(t('progression.login.claimOk'))
+    celebrateRewards({ kicker: t('rewards.celebrate.kickerLogin', { day }), title: t('rewards.celebrate.login'), titleAccent: t('rewards.celebrate.loginAccent'), items: rewardItems(r.grantedRewards) })
   }
 
   const pending = state?.pendingChoices ?? []

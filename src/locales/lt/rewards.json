@@ -1,4 +1,26 @@
 {
+  "celebrate": {
+    "continue": "Tęsti",
+    "hint": "Spausk bet kur, kad tęstum",
+    "claimed": "Atlygis",
+    "claimedAccent": "atsiimtas",
+    "login": "Dienos",
+    "loginAccent": "dovana",
+    "chest": "Dienos",
+    "chestAccent": "skrynia",
+    "card": "Nauja",
+    "cardAccent": "korta",
+    "booster": "Boosteris",
+    "boosterAccent": "atidarytas",
+    "kickerLogin": "Prisijungimo serija · {{day}} diena",
+    "kickerQuest": "Užduotis įvykdyta",
+    "kickerChest": "Visos dienos užduotys įvykdytos",
+    "kickerSeason": "Sezono kelias · {{level}} lygis",
+    "kickerSeasonAll": "Sezono kelias",
+    "kickerCard": "Pasirinkta korta",
+    "kickerBooster": "{{faction}} · {{count}} kortų",
+    "boosterLabel": "{{count}} kortų"
+  },
   "item": {
     "account_xp": {
       "desc": "Kelia paskyros lygį — lygiai duoda atlygius.",

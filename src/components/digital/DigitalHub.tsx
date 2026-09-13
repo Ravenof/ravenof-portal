@@ -23,6 +23,7 @@ import { rankDisplay } from '@/lib/ranked/rank'
 import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
 import { useT } from '@/lib/i18n/react'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { celebrateRewards, rewardItems } from '@/components/digital/progression/RewardCelebration'
 
 const A = RAVENOF_ASSET
 
@@ -144,7 +145,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     const r = await claimDailyQuest(questId)
     if (!r || isProgressionError(r)) { router.push('/digital/quests'); return }
     if (r.status === 'choice_required') { refreshQuests(); router.push('/digital/quests'); return }
-    playSuccess(); setToast(t('progression.quests.claimOk'))
+    const q = quests?.quests.find((x) => x.id === questId)
+    celebrateRewards({ kicker: q ? `${t('rewards.celebrate.kickerQuest')} · ${t(q.titleKey, { target: q.target, count: q.target })}` : t('rewards.celebrate.kickerQuest'), title: t('rewards.celebrate.claimed'), titleAccent: t('rewards.celebrate.claimedAccent'), items: rewardItems(r.grantedRewards) })
     setQuests(r.snapshot); refreshQuests(); refreshBalances(); refreshWallet()
   }
 
@@ -153,7 +155,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     const r = await claimDailyChestV2()
     if (!r || isProgressionError(r)) { router.push('/digital/quests'); return }
     if (r.status === 'choice_required') { refreshQuests(); router.push('/digital/quests'); return }
-    playSuccess(); setToast(t('progression.quests.chestOk'))
+    celebrateRewards({ kicker: t('rewards.celebrate.kickerChest'), title: t('rewards.celebrate.chest'), titleAccent: t('rewards.celebrate.chestAccent'), items: rewardItems(r.grantedRewards) })
     setQuests(r.snapshot); refreshQuests(); refreshBalances(); refreshWallet()
   }
 

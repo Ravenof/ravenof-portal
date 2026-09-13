@@ -10,6 +10,7 @@ import {
   claimAllSeasonRewards, claimSeasonRewardV2, getSeasonPathV2, isProgressionError,
   unlockSeasonPassV2, type RewardDefinition, type SeasonLevelRow, type SeasonPathState,
 } from '@/lib/progression'
+import { celebrateRewards, rewardItems } from './RewardCelebration'
 import {
   ART, BODY, C, Cta, DISPLAY, Divider, ErrorState, isMissingRpc, Kicker, LoadingState,
   ProgressBar, RewardIcon, rewardLabel, useCompact, useToast,
@@ -53,7 +54,7 @@ export function SeasonPathScreen() {
     setBusy(null)
     if (!r || isProgressionError(r)) { toast.show(t('progression.season.claimFailed'), 'err'); return }
     setState(r.snapshot as SeasonPathState)
-    if (r.status === 'completed') toast.show(t('progression.season.claimOk'))
+    celebrateRewards({ kicker: t('rewards.celebrate.kickerSeason', { level }), title: t('rewards.celebrate.claimed'), titleAccent: t('rewards.celebrate.claimedAccent'), items: rewardItems(r.grantedRewards) })
   }
 
   const claimAll = async () => {
@@ -63,7 +64,7 @@ export function SeasonPathScreen() {
     setBusy(null)
     if (!r || isProgressionError(r)) { toast.show(t('progression.season.claimFailed'), 'err'); return }
     setState(r.snapshot as SeasonPathState)
-    if (r.status === 'completed') toast.show(t('progression.season.claimAllOk'))
+    celebrateRewards({ kicker: t('rewards.celebrate.kickerSeasonAll'), title: t('rewards.celebrate.claimed'), titleAccent: t('rewards.celebrate.claimedAccent'), items: rewardItems(r.grantedRewards) })
   }
 
   const unlock = async (currency: 'silver' | 'rubies') => {

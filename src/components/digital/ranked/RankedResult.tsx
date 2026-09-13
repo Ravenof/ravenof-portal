@@ -13,6 +13,7 @@ import { ACHIEVEMENT_BY_KEY } from '@/lib/ranked/achievements'
 import type { MatchReportResult, PlayerMatchStats } from '@/lib/ranked/types'
 import { playRanked } from '@/lib/ranked/sound'
 import { useT } from '@/lib/i18n/react'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 
 export function RankedResult({ result, opponentName, stats, onAgain, onHome, onLeaderboard, onRewards }: {
   result: MatchReportResult & { won: boolean }
@@ -46,13 +47,15 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
     </div>
   )
 
+  const { desktop } = useDesktopUi()
+  const endK = desktop ? Math.max(1.3, Math.min(1.6, Math.min(window.innerWidth / 1300, window.innerHeight / 560))) : 1
   return (
     <div className="ravenof-body fixed inset-0 z-[170] flex items-center justify-center p-4 overflow-hidden"
       style={{ background: won
         ? 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, #07060A 70%)'
         : 'radial-gradient(120% 100% at 50% 40%, rgba(114,32,42,0.35) 0%, #0a0508 55%, #07060A 100%)' }}>
       {won && <div aria-hidden className="ravenof-rays" />}
-      <div className="relative flex items-center w-[min(860px,96vw)]" style={{ gap: 24 }}>
+      <div className="relative flex items-center w-[min(860px,96vw)]" style={{ gap: 24, zoom: endK }}>
         {/* ── KAIRĖ: rezultatas ── */}
         <div className="flex-1 min-w-0 text-center">
           <div className="ravenof-ornament" aria-hidden><i style={{ background: won ? 'var(--ravenof-gold-bright)' : '#B4444F' }} /></div>
