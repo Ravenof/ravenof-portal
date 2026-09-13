@@ -139,6 +139,8 @@ export function resolveRewardVisualV2(r: { type?: string; amount?: number; quant
       return mkV2(type, `+${fmt(r?.amount ?? 0)}`)
     case 'season_xp':
       return mkV2('season_xp', `+${fmt(r?.amount ?? 0)}`)
+    case 'account_xp':
+      return mkV2('account_xp', `+${fmt(r?.amount ?? 0)} XP`)
     case 'faction_booster_choice': {
       const q = r?.quantity ?? 1
       return mkV2('faction_booster_choice', t('rewards.label.packs', { count: q }), V2_DEFS.faction_booster_choice)

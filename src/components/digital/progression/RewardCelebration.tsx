@@ -84,10 +84,46 @@ const CSS = `
 .rvn-cele-fly{position:fixed;width:26px;height:26px;z-index:530;pointer-events:none;filter:drop-shadow(0 0 6px rgba(242,196,90,.8));transition:transform .75s cubic-bezier(.3,.1,.3,1),opacity .2s ease .6s}
 .rvn-pill-bump{animation:rvnPillBump .5s ease}
 @keyframes rvnPillBump{0%{transform:scale(1)}30%{transform:scale(1.12);box-shadow:0 0 18px rgba(242,196,90,.6)}100%{transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){.rvn-cele *{animation-duration:.01ms!important;animation-delay:0s!important}}
+/* kovos rezultatas: raudonas tonas pralaimėjus */
+.rvn-cele-fx.red .rvn-cele-rays{background:repeating-conic-gradient(rgba(180,68,79,.06) 0 6deg,transparent 6deg 18deg)}
+.rvn-cele-fx.red .rvn-cele-glow{background:radial-gradient(circle,rgba(180,68,79,.26),rgba(180,68,79,.07) 40%,transparent 70%)}
+.rvn-cele-fx.red .rvn-cele-flash{background:radial-gradient(circle at 50% 45%,rgba(255,200,200,.35),transparent 55%)}
+.rvn-cele-fx.red .rvn-cele-ember{background:#c65563;box-shadow:0 0 8px 2px rgba(198,85,99,.6)}
+.rvn-cele-title.lose{color:#c65563;text-shadow:0 0 30px rgba(180,68,79,.4),0 2px 0 rgba(0,0,0,.6)}
+.rvn-cele-sub{font:italic 400 15px var(--ravenof-font-body);color:var(--ravenof-text-secondary);margin:-6px 0 0;max-width:560px;opacity:0;animation:rvnFadeUp .45s ease .6s forwards}
+.rvn-cele-extra{opacity:0;animation:rvnFadeUp .45s ease forwards;animation-delay:var(--cta)}
+@media (max-width:640px){.rvn-cele-tiles{gap:10px}.rvn-cele-tile{width:112px;padding:14px 8px 12px}.rvn-cele-ico{width:62px;height:62px;margin-bottom:6px}.rvn-cele-ico img{width:52px;height:52px}.rvn-cele-amt{font-size:22px}.rvn-cele-lbl{font-size:10px;letter-spacing:1.5px;margin-top:4px}.rvn-cele-panel{gap:14px;padding:14px}.rvn-cele-sub{font-size:13px}}
+@media (prefers-reduced-motion:reduce){.rvn-cele *,.rvn-cele-fx *{animation-duration:.01ms!important;animation-delay:0s!important}}
 `
 
 const CUR_ICON: Record<string, string> = { silver: 'cur-silver', rubies: 'cur-rubies', essence: 'cur-essence' }
+
+/** Celebration CSS (vieną kartą per ekraną). */
+export function CelebrationStyles() { return <style>{CSS}</style> }
+
+/** Fonas: spinduliai + švytėjimas + blyksnis + žarijos. Tėvas – position:fixed/relative su overflow:hidden. */
+export function CelebrationFx({ tone = 'gold' }: { tone?: 'gold' | 'red' }) {
+  const embers = Array.from({ length: 24 }, (_, i) => (
+    <i key={i} className="rvn-cele-ember" style={{ left: `${(i * 37) % 100}%`, ['--dx' as string]: `${((i * 53) % 120) - 60}px`, animationDuration: `${5 + (i % 6)}s`, animationDelay: `${(i % 8) * 0.5}s` }} />
+  ))
+  return (
+    <div className={`rvn-cele-fx ${tone}`} aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      <div className="rvn-cele-rays" /><div className="rvn-cele-glow" /><div className="rvn-cele-flash" />
+      {embers}
+    </div>
+  )
+}
+
+/** Atlygio plytelės su animacija (delay nuo baseDelay, po .18 s kiekvienai). */
+export function CelebrationTiles({ items, baseDelay = 0.75 }: { items: CelebrationItem[]; baseDelay?: number }) {
+  return (
+    <div className="rvn-cele-tiles">
+      {items.map((it, i) => <Tile key={i} item={it} delay={baseDelay + i * 0.18} />)}
+    </div>
+  )
+}
+/** Kada rodyti CTA po plytelių (s, kaip CSS reikšmė). */
+export function celebrationCtaDelay(n: number, baseDelay = 0.75): string { return (baseDelay + n * 0.18 + 0.55).toFixed(2) + 's' }
 
 export function RewardCelebrationHost() {
   const t = useT()
@@ -126,24 +162,17 @@ export function RewardCelebrationHost() {
   }, [req, out])
 
   if (!req || typeof document === 'undefined') return null
-  const n = req.items.length
-  const cta = (0.75 + n * 0.18 + 0.55).toFixed(2) + 's'
-  const embers = Array.from({ length: 24 }, (_, i) => (
-    <i key={i} className="rvn-cele-ember" style={{ left: `${(i * 37) % 100}%`, ['--dx' as string]: `${((i * 53) % 120) - 60}px`, animationDuration: `${5 + (i % 6)}s`, animationDelay: `${(i % 8) * 0.5}s` }} />
-  ))
+  const cta = celebrationCtaDelay(req.items.length)
 
   return createPortal(
     <div ref={rootRef} className={`rvn-cele ravenof-body${out ? ' out' : ''}`} role="dialog" aria-modal="true" onClick={close}>
-      <style>{CSS}</style>
-      <div className="rvn-cele-rays" /><div className="rvn-cele-glow" /><div className="rvn-cele-flash" />
-      {embers}
+      <CelebrationStyles />
+      <CelebrationFx />
       <div className="rvn-cele-panel">
         <div className="rvn-cele-kicker">{req.kicker}</div>
         <h1 className="rvn-cele-title">{req.title}{req.titleAccent ? <> <b>{req.titleAccent}</b></> : null}</h1>
         <div className="rvn-cele-rule" />
-        <div className="rvn-cele-tiles">
-          {req.items.map((it, i) => <Tile key={i} item={it} delay={0.75 + i * 0.18} />)}
-        </div>
+        <CelebrationTiles items={req.items} />
         <RavenofBannerButton className="rvn-cele-cta" style={{ ['--cta' as string]: cta }} onClick={(e) => { e.stopPropagation(); close() }}>
           {t('rewards.celebrate.continue')}
         </RavenofBannerButton>

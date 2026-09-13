@@ -51,6 +51,8 @@ import { resolveTargets, resolveMappingTargets, applyTargetFilters } from '@/lib
 import { playBattleSound } from '@/lib/game/soundManager'
 import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
 import { RewardChip, SafeRewardImage } from '@/components/digital/ui/RewardBits'
+import { CelebrationStyles, CelebrationFx, CelebrationTiles, celebrationCtaDelay, type CelebrationItem } from '@/components/digital/progression/RewardCelebration'
+import type { GrantedReward } from '@/lib/progression/types'
 import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
@@ -5925,65 +5927,47 @@ doAction({ t: 'endTurn', actor: 'you' })
           const prog = matchReward ? getLevelProgress(matchReward.after) : null
           const leveledUp = !!matchReward && matchReward.valid && !!prog && prog.level > lvlBefore
           const startPct = matchReward ? (leveledUp ? 0 : getLevelProgress(matchReward.before).progressPercent) : 0
+          // Atlygio plytelės celebration stiliumi (sidabras / XP / sezono XP)
+          const endItems: CelebrationItem[] = []
+          if (matchReward && matchReward.valid) {
+            if (matchReward.gold > 0) endItems.push({ kind: 'reward', reward: { type: 'silver', amount: matchReward.gold } as GrantedReward })
+            if (matchReward.xp > 0) endItems.push({ kind: 'reward', reward: { type: 'account_xp', amount: matchReward.xp } as unknown as GrantedReward })
+            if (matchReward.seasonXp > 0) endItems.push({ kind: 'reward', reward: { type: 'season_xp', amount: matchReward.seasonXp } as GrantedReward })
+          }
+          const extraDelay = celebrationCtaDelay(endItems.length)
+          const dk = desktopLayout ? 1 : 0   // desktop – didesni pagalbiniai blokai
           return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="ravenof-body fixed inset-0 z-[140] flex items-center justify-center p-4 overflow-hidden"
-            style={{ background: won
-              ? 'radial-gradient(120% 100% at 50% 45%, #14100a 0%, #07060A 70%)'
-              : 'radial-gradient(120% 100% at 50% 40%, rgba(114,32,42,0.35) 0%, #0a0508 55%, #07060A 100%)' }}>
-            {won && <div aria-hidden className="ravenof-rays" />}
-            <motion.div initial={{ scale: 0.85, y: 14 }} animate={{ scale: 1, y: 0 }} className="relative text-center w-[min(440px,94vw)]" style={{ zoom: endK }}>
-              <div className="ravenof-ornament" aria-hidden><i /></div>
-              <p className="mt-2" style={{ font: '700 clamp(24px, 6vh, 30px) var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: won ? 'var(--ravenof-gold-bright)' : '#B4444F', textShadow: won ? '0 0 30px rgba(242,196,90,0.35)' : '0 0 26px rgba(180,68,79,0.4)', margin: 0 }}>
-                {won ? t('battle.game.victory') : t('battle.game.defeat')}
-              </p>
-              {opponentName && <p style={{ font: '400 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '4px 0 0' }}>{t('battle.game.vsName', { name: opponentName })}</p>}
-              <p style={{ font: 'italic 400 12px var(--ravenof-font-body)', color: won ? 'var(--ravenof-text-secondary)' : '#c9a08f', margin: '6px 0 0' }}>
-                {won ? t('battle.game.victoryText') : t('battle.game.defeatText')}
-              </p>
+            style={{ background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
+            <CelebrationStyles />
+            <CelebrationFx tone={won ? 'gold' : 'red'} />
+            <div className="rvn-cele-panel" style={{ maxWidth: 980, gap: dk ? 18 : 12 }}>
+              {opponentName && <div className="rvn-cele-kicker">{t('battle.game.vsName', { name: opponentName })}</div>}
+              <h1 className={'rvn-cele-title' + (won ? '' : ' lose')}>{won ? t('battle.game.victory') : t('battle.game.defeat')}</h1>
+              <div className="rvn-cele-rule" />
+              <p className="rvn-cele-sub">{won ? t('battle.game.victoryText') : t('battle.game.defeatText')}</p>
 
-              {/* ── Atlygio chip'ai ── */}
-              {matchReward && matchReward.valid && (matchReward.gold > 0 || matchReward.xp > 0) && (
-                <div className="flex items-center justify-center gap-2.5" style={{ marginTop: 14 }}>
-                  {matchReward.gold > 0 && (
-                    <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
-                      className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px' }}>
-                      <RewardChip it={{ type: 'currency', currency: 'silver', amount: matchReward.gold }} size={16} textSize={13} color="#f3ead3" />
-                    </motion.div>
-                  )}
-                  {matchReward.xp > 0 && (
-                    <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}
-                      className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px' }}>
-                      <RewardChip it={{ type: 'account_xp', amount: matchReward.xp }} size={16} textSize={13} color="#cfe0ff" />
-                    </motion.div>
-                  )}
-                  {matchReward.seasonXp > 0 && (
-                    <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.24 }}
-                      className="flex items-center gap-1.5" style={{ background: '#15111C', border: '1px solid #3d3345', padding: '10px 16px' }}>
-                      <RewardChip it={{ type: 'season_xp', amount: matchReward.seasonXp }} size={16} textSize={13} color="#d6c8ff" />
-                    </motion.div>
-                  )}
-                </div>
-              )}
+              {/* ── Atlygio plytelės (žiedai, kibirkštys, count-up) ── */}
+              {endItems.length > 0 && <CelebrationTiles items={endItems} />}
 
-              {/* ── Pasiekimų santrauka (audit #11/#15: viena tvarkinga eilė) ── */}
+              {/* ── Pasiekimų santrauka ── */}
               {matchAchievements.length > 0 && (
-                <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-                  style={{ margin: '12px auto 0', maxWidth: 340 }}>
-                  <p style={{ font: '700 9.5px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 6px', textAlign: 'center' }}>
+                <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: '100%', maxWidth: dk ? 460 : 340 }}>
+                  <p style={{ font: `700 ${dk ? 12 : 9.5}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 6px', textAlign: 'center' }}>
                     🏆 {t('battle.game.achievementsDone')}
                   </p>
                   <div className="flex flex-col" style={{ gap: 5 }}>
                     {matchAchievements.map((a) => (
-                      <div key={a.code} className="flex items-center" style={{ gap: 8, background: '#15111C', border: '1px solid rgba(212,163,59,0.35)', padding: '7px 10px', textAlign: 'left' }}>
-                        <span className="flex-1 min-w-0 truncate" style={{ font: '700 11.5px var(--ravenof-font-body)', color: '#f3ead3' }}>{a.name}</span>
+                      <div key={a.code} className="flex items-center" style={{ gap: 8, background: 'rgba(21,17,28,0.9)', border: '1px solid rgba(212,163,59,0.35)', padding: dk ? '10px 14px' : '7px 10px', textAlign: 'left' }}>
+                        <span className="flex-1 min-w-0 truncate" style={{ font: `700 ${dk ? 14 : 11.5}px var(--ravenof-font-body)`, color: '#f3ead3' }}>{a.name}</span>
                         <span className="shrink-0 flex items-center" style={{ gap: 6 }}>
                           {(a.rewards ?? []).slice(0, 3).map((r, i) => {
                             const v = resolveRewardVisualV2(r as { type?: string; amount?: number })
                             return (
                               <span key={i} className="inline-flex items-center gap-1" title={v.name}>
-                                <SafeRewardImage src={v.asset} size={13} opticalScale={v.opticalScale} />
-                                {v.label && <b style={{ fontSize: 9.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1 }}>{v.label}</b>}
+                                <SafeRewardImage src={v.asset} size={dk ? 18 : 13} opticalScale={v.opticalScale} />
+                                {v.label && <b style={{ fontSize: dk ? 12 : 9.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1 }}>{v.label}</b>}
                               </span>
                             )
                           })}
@@ -5991,47 +5975,47 @@ doAction({ t: 'endTurn', actor: 'you' })
                       </div>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* ── Lygio progresas ── */}
               {matchReward && matchReward.valid && prog && (
-                <div style={{ margin: '12px auto 0', maxWidth: 300 }}>
-                  <div className="flex justify-between" style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginBottom: 3 }}>
+                <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: '100%', maxWidth: dk ? 420 : 300 }}>
+                  <div className="flex justify-between" style={{ font: `400 ${dk ? 13 : 9}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginBottom: 4 }}>
                     <span>{t('battle.game.levelN', { level: prog.level })}</span>
                     <span>{prog.isMaxLevel ? 'MAX' : `${prog.xpIntoLevel} / ${prog.nextLevelXp - prog.currentLevelXp}`}</span>
                   </div>
-                  <div style={{ height: 4, background: 'var(--ravenof-border-strong)', overflow: 'hidden' }}>
-                    <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: 0.35, duration: 0.9, ease: 'easeOut' }}
-                      style={{ height: '100%', background: 'var(--ravenof-grad-gold)' }} />
+                  <div style={{ height: dk ? 6 : 4, background: 'var(--ravenof-border-strong)', overflow: 'hidden' }}>
+                    <motion.div initial={{ width: `${startPct}%` }} animate={{ width: `${prog.progressPercent}%` }} transition={{ delay: parseFloat(extraDelay) + 0.2, duration: 0.9, ease: 'easeOut' }}
+                      style={{ height: '100%', background: 'var(--ravenof-grad-gold)', boxShadow: '0 0 10px rgba(242,196,90,0.5)' }} />
                   </div>
                 </div>
               )}
 
               {net?.opponentId && (
                 <button onClick={async () => { if (friendAdded !== 'idle') return; playUiClick(); const r = await friendRequestById(net.opponentId!); setFriendAdded(r.ok ? 'sent' : 'exists') }} disabled={friendAdded !== 'idle'}
-                  className="ravenof-press mt-3 disabled:opacity-60"
-                  style={{ font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1, background: 'none', border: '1px solid rgba(96,165,250,0.5)', color: '#93c5fd', padding: '7px 14px', cursor: 'pointer' }}>
+                  className="ravenof-press rvn-cele-extra disabled:opacity-60"
+                  style={{ ['--cta' as string]: extraDelay, font: `700 ${dk ? 13 : 10.5}px var(--ravenof-font-display)`, letterSpacing: 1, background: 'none', border: '1px solid rgba(96,165,250,0.5)', color: '#93c5fd', padding: dk ? '9px 18px' : '7px 14px', cursor: 'pointer' }}>
                   {friendAdded === 'sent' ? t('battle.game.friendSent') : friendAdded === 'exists' ? t('battle.game.friendExists') : t('battle.game.friendAdd', { name: opponentName ?? t('battle.game.opponent') })}
                 </button>
               )}
-              <div className="flex gap-3 justify-center" style={{ marginTop: 18 }}>
+              <div className="rvn-cele-extra flex gap-3 justify-center flex-wrap" style={{ ['--cta' as string]: extraDelay, marginTop: 6 }}>
                 <button onClick={() => { playUiClick(); if (deckCards) { shownTipsRef.current.clear(); setStepIdx(GUIDED_STEPS.length); setTipQueue([]); initGame(deckCards) } }}
                   className="ravenof-press"
-                  style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
-                    background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: '14px 26px',
+                  style={{ font: `800 ${dk ? 16 : 13}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
+                    background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: dk ? '18px 40px' : '14px 26px',
                     clipPath: 'polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)', cursor: 'pointer' }}>
                   {t('battle.game.playAgain')}
                 </button>
                 <button onClick={() => { playUiClick(); closeGame() }}
                   className="ravenof-press"
-                  style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: 2.5, textTransform: 'uppercase',
+                  style={{ font: `700 ${dk ? 16 : 13}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
                     background: 'none', border: 0, borderTop: '1px solid var(--ravenof-border-strong)', borderBottom: '1px solid var(--ravenof-border-strong)',
-                    color: 'var(--ravenof-text-primary)', padding: '14px 24px', cursor: 'pointer' }}>
+                    color: 'var(--ravenof-text-primary)', padding: dk ? '18px 34px' : '14px 24px', cursor: 'pointer' }}>
                   {t('battle.game.closeBtn')}
                 </button>
               </div>
-            </motion.div>
+            </div>
 
             {/* ── Level-up šventė (prototipo level-up-modal — virš rezultato) ── */}
             {leveledUp && prog && !luDismissed && (
