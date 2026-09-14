@@ -44,7 +44,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1200,
+      // Natyvus splash (logo) rodomas kol webview kraunasi; toliau perima in-app
+      // Splash.tsx (tas pats logo, fade-out) – perėjimas be „mirktelėjimo".
+      launchShowDuration: 800,
+      launchFadeOutDuration: 300,
       backgroundColor: '#0A0A0F',
       showSpinner: false,
       androidScaleType: 'CENTER_CROP',

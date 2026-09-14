@@ -56,7 +56,7 @@ else {
 function createWindow() {
   const win = new BrowserWindow({
     width: 1600, height: 900, minWidth: 1024, minHeight: 600,
-    backgroundColor: '#0b0a09', title: 'Ravenof', autoHideMenuBar: true,
+    backgroundColor: '#0b0a09', title: 'Ravenof', autoHideMenuBar: true, icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: false, nodeIntegration: false },
   })
   win.setMenuBarVisibility(false)
@@ -71,9 +71,13 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  protocol.handle(SCHEME, (req) => {
+  protocol.handle(SCHEME, async (req) => {
     const u = new URL(req.url)
-    return net.fetch(pathToFileURL(resolveFile(u.pathname)).toString())
+    const res = await net.fetch(pathToFileURL(resolveFile(u.pathname)).toString())
+    // Be kešo: failai jau diske (greita), o po atnaujinimo Chromium kitaip rodytų senus asset'us.
+    const headers = new Headers(res.headers)
+    headers.set('Cache-Control', 'no-store')
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
   })
   // Supabase auth cookies (@supabase/ssr) – app:// origin'e veikia kaip https.
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => cb({ responseHeaders: details.responseHeaders }))

@@ -13,10 +13,20 @@ import '@/styles/cursors.css'
 import App from './App'
 import { AppErrorBoundary } from './ErrorBoundary'
 import { installAppBundleRuntime } from './runtime'
+import { Splash } from './Splash'
 
-// Žaidimo žymekliai tik pelės aplinkoje (desktop); lietimui – nereikšminga.
-if (window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) document.documentElement.classList.add('rvn-cursors')
+// Žaidimo žymekliai tik pelės aplinkoje. Electron shell'e – visada; kitur – kai media
+// query sako „pelė" ARBA kai gaunam pirmą pelės pointer įvykį (jutikliniai nešiojamieji
+// dažnai praneša pointer:coarse, nors naudojama pelė). Lietimo įvykis – nuima.
+{
+  const root = document.documentElement
+  const on = () => root.classList.add('rvn-cursors')
+  const off = () => root.classList.remove('rvn-cursors')
+  if ((window as unknown as { ravenofDesktop?: unknown }).ravenofDesktop || window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) on()
+  window.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') on() }, { passive: true })
+  window.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') off() }, { passive: true })
+}
 
 installAppBundleRuntime().finally(() => {
-  createRoot(document.getElementById('root')!).render(<StrictMode><AppErrorBoundary><App /></AppErrorBoundary></StrictMode>)
+  createRoot(document.getElementById('root')!).render(<StrictMode><AppErrorBoundary><App /></AppErrorBoundary><Splash /></StrictMode>)
 })
