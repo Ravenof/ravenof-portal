@@ -2106,9 +2106,56 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           if (activated) {
             // Showcase: prakeiksmas atskrenda nuo kaladės, iš kurios ištrauktas (e.side = auka)
             const from = pileCenter(`[data-pile="deck-${e.side}"]`) ?? fxCenter()
-            spawnShowcase(card, from, 'curse', SETTLE + fxSeq)
+            const showAt = SETTLE + fxSeq
+            spawnShowcase(card, from, 'curse', showAt)
             showcaseHold = SETTLE + fxSeq + 2200
             fxSeq += 2250
+            // ── Prakeiksmo demonas ant TAIKINIO (juodi dūmai + besijuokiantis ugnies veidas) ──
+            // Zona pagal tai, ką prakeiksmas paveikė: tolesni šio paketo įvykiai su aukos
+            // padarais → korta / AoE; kitaip – pagal onCurseDrawn mapping'ų efektą (ranka /
+            // kaladė / kapinės), o be užuominų – aukos avataras.
+            {
+              const victim: Side = e.side
+              const idx = fresh.indexOf(e)
+              const unitUids: string[] = []
+              for (let j = idx + 1; j < fresh.length; j++) {
+                const ev = fresh[j]
+                if (ev.t === 'curse' || ev.t === 'play' || ev.t === 'spell' || ev.t === 'endTurn' || ev.t === 'startTurn') break
+                for (const ref of [ev.tgt, ev.src]) if (ref?.uid && ref.side === victim && !unitUids.includes(ref.uid)) unitUids.push(ref.uid)
+              }
+              const maps = (card?.mappings ?? []).filter((m) => m.trigger === 'onCurseDrawn')
+              const effs = new Set(maps.map((m) => String(m.effect)))
+              const tgs = new Set(maps.map((m) => String(m.target)))
+              const has = (set: Set<string>, ...ks: string[]) => ks.some((k) => set.has(k))
+              const zone: 'aoe' | 'unit' | 'hand' | 'deck' | 'grave' | 'avatar' =
+                unitUids.length >= 2 || has(tgs, 'allEnemyUnits', 'allUnits', 'allEnemyTargets') ? 'aoe'
+                : unitUids.length === 1 ? 'unit'
+                : has(effs, 'discard', 'discardHandAndDraw', 'returnToHand', 'tutorToHand', 'selfToEnemyHand') ? 'hand'
+                : has(effs, 'mill', 'arrangeEnemyDeckTop', 'revealEnemyDeck', 'revealOwnDeck', 'triggerCurse', 'returnGraveyardToDeck') ? 'deck'
+                : has(effs, 'moveToGraveyard', 'summonFromGraveyard', 'revive', 'peekDiscard') ? 'grave'
+                : 'avatar'
+              const demonAt = showAt + 1500
+              window.setTimeout(() => {
+                const els: Element[] = []
+                const q = (sel: string) => document.querySelector(sel)
+                if (zone === 'unit') { const el = q(`[data-unit-uid="${unitUids[0]}"]`); if (el) els.push(el) }
+                else if (zone === 'aoe') {
+                  const uids = unitUids.length >= 2 ? unitUids : P(game, victim).units.filter((u): u is NonNullable<typeof u> => !!u).map((u) => u.uid)
+                  for (const u of uids) { const el = q(`[data-unit-uid="${u}"]`); if (el) els.push(el) }
+                }
+                else if (zone === 'hand') { const el = victim === 'you' ? handRef.current : q('[data-pile="hand-ai"]'); if (el) els.push(el) }
+                else if (zone === 'deck') { const el = q(`[data-pile="deck-${victim}"]`); if (el) els.push(el) }
+                else if (zone === 'grave') { const el = q(`[data-pile="discard-${victim}"]`); if (el) els.push(el) }
+                if (!els.length) { const el = q(`[data-player="${victim}"]`); if (el) els.push(el) }
+                if (!els.length) return
+                let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity
+                for (const el of els) { const r = el.getBoundingClientRect(); x1 = Math.min(x1, r.left); y1 = Math.min(y1, r.top); x2 = Math.max(x2, r.right); y2 = Math.max(y2, r.bottom) }
+                const rect = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
+                if (zone !== 'hand') for (const el of els) { el.classList.remove('rvn-cursed'); void (el as HTMLElement).offsetWidth; el.classList.add('rvn-cursed'); window.setTimeout(() => el.classList.remove('rvn-cursed'), 2400) }
+                fxRef.current?.spawn({ kind: 'curseDemon', to: { x: x1 + rect.w / 2, y: y1 + rect.h / 2 }, rect, color: '#a855f7', duration: 2.5 })
+                window.setTimeout(() => fxRef.current?.shakeBoard('soft'), 900)
+              }, demonAt)
+            }
           } else {
             setCardFlash({ card, title: e.cardName ?? t('battle.game.curseTag'), tag: t('battle.game.curseMixed'), color: '#a78bfa' })
             if (flashTimerRef.current) clearTimeout(flashTimerRef.current)

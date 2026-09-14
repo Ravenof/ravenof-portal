@@ -13,6 +13,8 @@ export type FxKind =
   | 'dustPuff'
   /** Žiežirbos atakos smūgio taške (game-feel fazė 2c). */
   | 'sparkBurst'
+  /** Prakeiksmo demonas: juodi dūmai + besijuokiantis ugnies veidas ant taikinio (rect – taikinio zona). */
+  | 'curseDemon'
 
 export type FxIntensity = 'small' | 'normal' | 'big'
 

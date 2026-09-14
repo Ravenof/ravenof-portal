@@ -16,6 +16,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { FxKind, FxIntensity } from '@/lib/game/effectAnimations'
+import { drawCurseDemon } from '@/lib/game/curseDemonFx'
 
 export type AoeVariant = 'fire' | 'lightning' | 'ice' | 'poison' | 'arcane' | 'holy' | 'generic' | 'heal' | 'necrotic' | 'curse' | 'arrow'
 export type SpawnFx = {
@@ -465,6 +466,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
 
 // ── Efektų piešimas ───────────────────────────────────────────────────────────
 function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number, now: number) {
+  if (it.kind === 'curseDemon') { drawCurseDemon(ctx, it, p, D, now); ctx.globalCompositeOperation = 'source-over'; return }
   const { from, to, color, color2, im } = it
   const dx = to.x - from.x, dy = to.y - from.y
   const ang = Math.atan2(dy, dx)
@@ -1167,6 +1169,9 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 }
 
 const CSS = `
+.rvn-cursed{animation:rvnCursed 2.4s ease}
+@keyframes rvnCursed{0%{filter:none}20%,72%{filter:brightness(.45) saturate(.4) sepia(.5) hue-rotate(230deg)}100%{filter:none}}
+
 .rvn-fnum { position: absolute; transform: translate(-50%,-50%); font-weight: 800; font-family: Cinzel, Georgia, serif; pointer-events: none; animation: rvnFnum 1.1s cubic-bezier(.2,.8,.2,1) forwards; }
 @keyframes hpvCrit { 0%,100%{ box-shadow: 0 0 6px rgba(239,68,68,0.45); } 50%{ box-shadow: 0 0 14px rgba(239,68,68,0.95); } }
 .hpv2 { position:absolute; inset:0; background: rgba(16,12,24,0.5); overflow:hidden; }
