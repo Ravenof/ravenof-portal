@@ -94,6 +94,8 @@ const CSS = `
 .rvn-cele-sub{font:italic 400 15px var(--ravenof-font-body);color:var(--ravenof-text-secondary);margin:-6px 0 0;max-width:560px;opacity:0;animation:rvnFadeUp .45s ease .6s forwards}
 .rvn-cele-extra{opacity:0;animation:rvnFadeUp .45s ease forwards;animation-delay:var(--cta)}
 @media (max-width:640px){.rvn-cele-tiles{gap:10px}.rvn-cele-tile{width:112px;padding:14px 8px 12px}.rvn-cele-ico{width:62px;height:62px;margin-bottom:6px}.rvn-cele-ico img{width:52px;height:52px}.rvn-cele-amt{font-size:22px}.rvn-cele-lbl{font-size:10px;letter-spacing:1.5px;margin-top:4px}.rvn-cele-panel{gap:14px;padding:14px}.rvn-cele-sub{font-size:13px}}
+/* žemas ekranas (telefonas gulsčiai): viskas kompaktiška, kad mygtukai tilptų be slinkimo */
+@media (max-height:640px){.rvn-cele-panel{gap:8px!important;padding:6px 12px!important}.rvn-cele-kicker{font-size:10px;letter-spacing:3px}.rvn-cele-title{font-size:clamp(20px,7vh,34px);letter-spacing:2px}.rvn-cele-rule{display:none}.rvn-cele-sub{font-size:12px;margin:-4px 0 0;max-width:520px}.rvn-cele-tiles{gap:8px;margin-top:0}.rvn-cele-tile{width:104px;padding:8px 8px 7px}.rvn-cele-ico{width:46px;height:46px;margin-bottom:3px}.rvn-cele-ico img{width:40px;height:40px}.rvn-cele-amt{font-size:18px}.rvn-cele-lbl{font-size:8.5px;letter-spacing:1.2px;margin-top:3px}.rvn-cele-cardwrap{width:96px}.rvn-cele-cardname{font-size:12px;margin-top:6px;max-width:120px}.rvn-cele-cardsub{font-size:9px;margin-top:2px}.rvn-cele-cta{margin-top:2px;min-width:0}.rvn-cele-hint{font-size:11px}}
 @media (prefers-reduced-motion:reduce){.rvn-cele *,.rvn-cele-fx *{animation-duration:.01ms!important;animation-delay:0s!important}}
 `
 

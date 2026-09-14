@@ -32,6 +32,7 @@ const CER_CSS = `
 .rvn-rank-cer.red .txt .v{color:#e9d7c3}
 .rvn-rank-cer .txt .v.down{color:#c65563}
 .rvn-rank-cer .txt .w{font:500 12px var(--ravenof-font-body);color:#D4A33B;margin-top:2px}
+@media (max-height:640px){.rvn-rank-cer{gap:12px;padding:8px 16px}.rvn-rank-cer .txt .v{font-size:16px}.rvn-rank-cer .txt .k{font-size:9.5px;letter-spacing:2px}}
 @media (max-width:640px){.rvn-rank-cer{gap:14px;padding:14px 16px}.rvn-rank-cer .txt .v{font-size:16px}.rvn-rank-cer .txt{text-align:center;align-items:center;width:100%}}
 `
 
@@ -54,6 +55,9 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
 
   const { desktop } = useDesktopUi()
   const dk = desktop ? 1 : 0
+  const short = !desktop && typeof window !== 'undefined' && window.innerHeight < 640   // telefonas gulsčiai: kompaktiška, kad mygtukai tilptų
+  const btnPad = dk ? '18px 40px' : short ? '10px 20px' : '14px 24px'
+  const btnFont = dk ? 16 : short ? 12 : 13
   const lossWarn = !won && result.lossCounterAfter === 1 && result.rankChange === 'same'
   const changed = result.rankChange !== 'same'
   const rankLine = changed
@@ -68,15 +72,15 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
   const cta = celebrationCtaDelay(items.length, base)
 
   const statCell = (v: string | number, l: string, last = false) => (
-    <div key={l} className="flex flex-col items-center" style={{ gap: 3, padding: dk ? '10px 22px' : '7px 12px', borderRight: last ? 0 : '1px solid var(--ravenof-border-hairline)' }}>
-      <b style={{ font: `700 ${dk ? 18 : 14}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{v}</b>
+    <div key={l} className="flex flex-col items-center" style={{ gap: 3, padding: dk ? '10px 22px' : short ? '5px 10px' : '7px 12px', borderRight: last ? 0 : '1px solid var(--ravenof-border-hairline)' }}>
+      <b style={{ font: `700 ${dk ? 18 : short ? 13 : 14}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{v}</b>
       <span style={{ font: `500 ${dk ? 10.5 : 8.5}px var(--ravenof-font-body)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{l}</span>
     </div>
   )
 
   return (
-    <div className="ravenof-body fixed inset-0 z-[170] flex items-start justify-center p-4 overflow-y-auto ravenof-scroll"
-      style={{ background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
+    <div className="ravenof-body fixed inset-0 z-[170] flex items-start justify-center overflow-y-auto ravenof-scroll"
+      style={{ padding: short ? 8 : 16, touchAction: 'pan-y', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
       <CelebrationStyles />
       <style>{CER_CSS}</style>
       <CelebrationFx tone={won ? 'gold' : 'red'} />
@@ -86,15 +90,17 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
         <div className="rvn-cele-rule" />
         {!won && <p className="rvn-cele-sub">{t('ranked.result.encourage')}</p>}
 
+        {/* Ceremonija + plytelės + atrakinta + statistika: stulpeliu; gulsčiame telefone – eilute */}
+        <div style={{ display: 'flex', flexDirection: short ? 'row' : 'column', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: short ? 10 : dk ? 18 : 12, width: '100%' }}>
         {/* ── Rango ceremonija ── */}
         <div className={'rvn-rank-cer' + (won ? '' : ' red')} style={{ ['--d' as string]: '0.8s' }}>
           {changed && (<>
-            <div className="old"><RankBadge step={result.rankStepBefore} size={dk ? 64 : 48} /></div>
+            <div className="old"><RankBadge step={result.rankStepBefore} size={dk ? 64 : short ? 40 : 48} /></div>
             <span className="arrow" aria-hidden />
           </>)}
           <div className="new">
             <span className="rvn-cele-ring" style={{ ['--d' as string]: '0.8s' }} /><span className="rvn-cele-ring r2" style={{ ['--d' as string]: '0.8s' }} />
-            <div><RankBadge step={result.rankStepAfter} size={dk ? 112 : 84} animate={result.rankChange === 'up' ? 'up' : result.rankChange === 'down' ? 'down' : null} /></div>
+            <div><RankBadge step={result.rankStepAfter} size={dk ? 112 : short ? 64 : 84} animate={result.rankChange === 'up' ? 'up' : result.rankChange === 'down' ? 'down' : null} /></div>
           </div>
           <div className="txt">
             <span className="k">{t('ranked.result.seasonPath')}</span>
@@ -108,7 +114,7 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
 
         {/* ── Atrakinta / pasiekimai ── */}
         {(result.unlockedRewardKeys.length > 0 || result.completedAchievementKeys.length > 0) && (
-          <div className="rvn-cele-extra flex flex-col" style={{ ['--cta' as string]: cta, gap: 6, width: '100%', maxWidth: dk ? 460 : 340 }}>
+          <div className="rvn-cele-extra flex flex-col" style={{ ['--cta' as string]: cta, gap: short ? 4 : 6, width: short ? undefined : '100%', maxWidth: dk ? 460 : 340, flex: short ? '1 1 260px' : undefined }}>
             {result.unlockedRewardKeys.length > 0 && (<>
               <p style={{ font: `700 ${dk ? 12 : 9.5}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: 0 }}>{t('ranked.result.unlockedRewards')}</p>
               {result.unlockedRewardKeys.map((k) => (
@@ -136,16 +142,17 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
           {statCell(stats.damageTaken, t('ranked.result.dmgTaken'))}
           {statCell(stats.spellsPlayed, t('ranked.result.spellsPlayed'), true)}
         </div>
+        </div>
 
-        <div className="rvn-cele-extra flex gap-3 justify-center items-center flex-wrap" style={{ ['--cta' as string]: cta, marginTop: 6 }}>
-          <button onClick={onAgain} className="ravenof-press" style={{ font: `800 ${dk ? 16 : 13}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
-            background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: dk ? '18px 40px' : '14px 24px',
+        <div className="rvn-cele-extra flex gap-3 justify-center items-center flex-wrap" style={{ ['--cta' as string]: cta, marginTop: short ? 2 : 6 }}>
+          <button onClick={onAgain} className="ravenof-press" style={{ font: `800 ${btnFont}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
+            background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: btnPad,
             clipPath: 'polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)', cursor: 'pointer' }}>
             {t('ranked.result.playAgain')}
           </button>
-          <button onClick={onHome} className="ravenof-press" style={{ font: `700 ${dk ? 16 : 13}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
+          <button onClick={onHome} className="ravenof-press" style={{ font: `700 ${btnFont}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
             background: 'none', border: 0, borderTop: '1px solid var(--ravenof-border-strong)', borderBottom: '1px solid var(--ravenof-border-strong)',
-            color: 'var(--ravenof-text-primary)', padding: dk ? '18px 34px' : '14px 22px', cursor: 'pointer' }}>
+            color: 'var(--ravenof-text-primary)', padding: dk ? '18px 34px' : short ? '10px 18px' : '14px 22px', cursor: 'pointer' }}>
             {t('ranked.result.toHome')}
           </button>
         </div>

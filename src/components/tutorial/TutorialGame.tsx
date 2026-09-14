@@ -5983,21 +5983,25 @@ doAction({ t: 'endTurn', actor: 'you' })
           }
           const extraDelay = celebrationCtaDelay(endItems.length)
           const dk = desktopLayout ? 1 : 0   // desktop – didesni pagalbiniai blokai
+          const short = hMobile               // telefonas gulsčiai: kompaktiška, pagalbiniai blokai vienoje eilėje, kad mygtukai tilptų
           // PvP: kovos statistika (sunaikinta/prarasta, žala, burtai) – kaip reitinge
           const stYou = vsRemote ? collectMatchStats(game, 'you') : null
           const stOpp = vsRemote ? collectMatchStats(game, 'ai') : null
           const kicker = [vsRemote ? t('battle.game.modePvp') : t('battle.game.modePve'), opponentName ? t('battle.game.vsName', { name: opponentName }) : null].filter(Boolean).join(' · ')
           const subText = vsRemote ? (won ? t('battle.game.pvpVictoryText') : t('battle.game.pvpDefeatText')) : (won ? t('battle.game.victoryText') : t('battle.game.defeatText'))
           const statCell = (v: string | number, l: string, last = false) => (
-            <div key={l} className="flex flex-col items-center" style={{ gap: 3, padding: dk ? '10px 22px' : '7px 12px', borderRight: last ? 0 : '1px solid var(--ravenof-border-hairline)' }}>
-              <b style={{ font: `700 ${dk ? 18 : 14}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{v}</b>
+            <div key={l} className="flex flex-col items-center" style={{ gap: 3, padding: dk ? '10px 22px' : short ? '5px 10px' : '7px 12px', borderRight: last ? 0 : '1px solid var(--ravenof-border-hairline)' }}>
+              <b style={{ font: `700 ${dk ? 18 : short ? 13 : 14}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{v}</b>
               <span style={{ font: `500 ${dk ? 10.5 : 8.5}px var(--ravenof-font-body)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{l}</span>
             </div>
           )
+          const btnPad = dk ? '18px 40px' : short ? '10px 20px' : '14px 26px'
+          const btnFont = dk ? 16 : short ? 12 : 13
           return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="ravenof-body fixed inset-0 z-[140] flex items-start justify-center p-4 overflow-y-auto ravenof-scroll"
-            style={{ background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
+            className="ravenof-body fixed inset-0 z-[140] flex items-start justify-center overflow-y-auto ravenof-scroll"
+            style={{ padding: short ? 8 : 16, touchAction: 'pan-y', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
+              background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
             <CelebrationStyles />
             <CelebrationFx tone={won ? 'gold' : 'red'} />
             {/* margin:auto – centruota, kai telpa; slenkama, kai daug pasiekimų (mygtukai visada pasiekiami) */}
@@ -6010,6 +6014,8 @@ doAction({ t: 'endTurn', actor: 'you' })
               {/* ── Atlygio plytelės (žiedai, kibirkštys, count-up) ── */}
               {endItems.length > 0 && <CelebrationTiles items={endItems} />}
 
+              {/* Pagalbiniai blokai: stulpeliu; gulsčiame telefone – eilute vienas šalia kito (taupom aukštį) */}
+              <div style={{ display: 'flex', flexDirection: short ? 'row' : 'column', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: short ? 10 : dk ? 18 : 12, width: '100%' }}>
               {/* ── PvP statistikos juosta ── */}
               {stYou && stOpp && (
                 <div className="rvn-cele-extra flex" style={{ ['--cta' as string]: extraDelay, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(0,0,0,0.35)' }}>
@@ -6022,10 +6028,10 @@ doAction({ t: 'endTurn', actor: 'you' })
 
               {/* ── Pasiekimų santrauka: kompaktiški chip'ai (2 stulpeliai), max 6 + „+N" ── */}
               {matchAchievements.length > 0 && (() => {
-                const shown = matchAchievements.slice(0, 6), more = matchAchievements.length - shown.length
+                const shown = matchAchievements.slice(0, short ? 4 : 6), more = matchAchievements.length - shown.length
                 return (
-                  <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: '100%', maxWidth: dk ? 640 : 380 }}>
-                    <p style={{ font: `700 ${dk ? 12 : 9.5}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 8px', textAlign: 'center' }}>
+                  <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: short ? undefined : '100%', maxWidth: dk ? 640 : short ? 360 : 380, flex: short ? '1 1 300px' : undefined }}>
+                    <p style={{ font: `700 ${dk ? 12 : 9.5}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: short ? '0 0 5px' : '0 0 8px', textAlign: 'center' }}>
                       🏆 {t('battle.game.achievementsDone')} · {matchAchievements.length}
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: shown.length > 1 ? '1fr 1fr' : '1fr', gap: 6 }}>
@@ -6053,7 +6059,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
               {/* ── Lygio progresas ── */}
               {matchReward && matchReward.valid && prog && (
-                <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: '100%', maxWidth: dk ? 420 : 300 }}>
+                <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: short ? 240 : '100%', maxWidth: dk ? 420 : 300 }}>
                   <div className="flex justify-between" style={{ font: `400 ${dk ? 13 : 9}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginBottom: 4 }}>
                     <span>{t('battle.game.levelN', { level: prog.level })}</span>
                     <span>{prog.isMaxLevel ? 'MAX' : `${prog.xpIntoLevel} / ${prog.nextLevelXp - prog.currentLevelXp}`}</span>
@@ -6064,6 +6070,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   </div>
                 </div>
               )}
+              </div>
 
               {net?.opponentId && (
                 <button onClick={async () => { if (friendAdded !== 'idle') return; playUiClick(); const r = await friendRequestById(net.opponentId!); setFriendAdded(r.ok ? 'sent' : 'exists') }} disabled={friendAdded !== 'idle'}
@@ -6072,19 +6079,19 @@ doAction({ t: 'endTurn', actor: 'you' })
                   {friendAdded === 'sent' ? t('battle.game.friendSent') : friendAdded === 'exists' ? t('battle.game.friendExists') : t('battle.game.friendAdd', { name: opponentName ?? t('battle.game.opponent') })}
                 </button>
               )}
-              <div className="rvn-cele-extra flex gap-3 justify-center flex-wrap" style={{ ['--cta' as string]: extraDelay, marginTop: 6 }}>
+              <div className="rvn-cele-extra flex gap-3 justify-center flex-wrap" style={{ ['--cta' as string]: extraDelay, marginTop: short ? 2 : 6 }}>
                 <button onClick={() => { playUiClick(); if (deckCards) { shownTipsRef.current.clear(); setStepIdx(GUIDED_STEPS.length); setTipQueue([]); initGame(deckCards) } }}
                   className="ravenof-press"
-                  style={{ font: `800 ${dk ? 16 : 13}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
-                    background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: dk ? '18px 40px' : '14px 26px',
+                  style={{ font: `800 ${btnFont}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
+                    background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: btnPad,
                     clipPath: 'polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)', cursor: 'pointer' }}>
                   {t('battle.game.playAgain')}
                 </button>
                 <button onClick={() => { playUiClick(); closeGame() }}
                   className="ravenof-press"
-                  style={{ font: `700 ${dk ? 16 : 13}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
+                  style={{ font: `700 ${btnFont}px var(--ravenof-font-display)`, letterSpacing: dk ? 3 : 2.5, textTransform: 'uppercase',
                     background: 'none', border: 0, borderTop: '1px solid var(--ravenof-border-strong)', borderBottom: '1px solid var(--ravenof-border-strong)',
-                    color: 'var(--ravenof-text-primary)', padding: dk ? '18px 34px' : '14px 24px', cursor: 'pointer' }}>
+                    color: 'var(--ravenof-text-primary)', padding: dk ? '18px 34px' : short ? '10px 18px' : '14px 24px', cursor: 'pointer' }}>
                   {t('battle.game.closeBtn')}
                 </button>
               </div>
