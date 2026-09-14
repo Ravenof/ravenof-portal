@@ -5996,11 +5996,12 @@ doAction({ t: 'endTurn', actor: 'you' })
           )
           return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="ravenof-body fixed inset-0 z-[140] flex items-center justify-center p-4 overflow-hidden"
+            className="ravenof-body fixed inset-0 z-[140] flex items-start justify-center p-4 overflow-y-auto ravenof-scroll"
             style={{ background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
             <CelebrationStyles />
             <CelebrationFx tone={won ? 'gold' : 'red'} />
-            <div className="rvn-cele-panel" style={{ maxWidth: 980, gap: dk ? 18 : 12 }}>
+            {/* margin:auto – centruota, kai telpa; slenkama, kai daug pasiekimų (mygtukai visada pasiekiami) */}
+            <div className="rvn-cele-panel" style={{ maxWidth: 980, gap: dk ? 18 : 12, margin: 'auto' }}>
               <div className="rvn-cele-kicker">{kicker}</div>
               <h1 className={'rvn-cele-title' + (won ? '' : ' lose')}>{won ? t('battle.game.victory') : t('battle.game.defeat')}</h1>
               <div className="rvn-cele-rule" />
@@ -6019,32 +6020,36 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </div>
               )}
 
-              {/* ── Pasiekimų santrauka ── */}
-              {matchAchievements.length > 0 && (
-                <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: '100%', maxWidth: dk ? 460 : 340 }}>
-                  <p style={{ font: `700 ${dk ? 12 : 9.5}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 6px', textAlign: 'center' }}>
-                    🏆 {t('battle.game.achievementsDone')}
-                  </p>
-                  <div className="flex flex-col" style={{ gap: 5 }}>
-                    {matchAchievements.map((a) => (
-                      <div key={a.code} className="flex items-center" style={{ gap: 8, background: 'rgba(21,17,28,0.9)', border: '1px solid rgba(212,163,59,0.35)', padding: dk ? '10px 14px' : '7px 10px', textAlign: 'left' }}>
-                        <span className="flex-1 min-w-0 truncate" style={{ font: `700 ${dk ? 14 : 11.5}px var(--ravenof-font-body)`, color: '#f3ead3' }}>{a.name}</span>
-                        <span className="shrink-0 flex items-center" style={{ gap: 6 }}>
-                          {(a.rewards ?? []).slice(0, 3).map((r, i) => {
-                            const v = resolveRewardVisualV2(r as { type?: string; amount?: number })
-                            return (
-                              <span key={i} className="inline-flex items-center gap-1" title={v.name}>
-                                <SafeRewardImage src={v.asset} size={dk ? 18 : 13} opticalScale={v.opticalScale} />
-                                {v.label && <b style={{ fontSize: dk ? 12 : 9.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1 }}>{v.label}</b>}
-                              </span>
-                            )
-                          })}
-                        </span>
-                      </div>
-                    ))}
+              {/* ── Pasiekimų santrauka: kompaktiški chip'ai (2 stulpeliai), max 6 + „+N" ── */}
+              {matchAchievements.length > 0 && (() => {
+                const shown = matchAchievements.slice(0, 6), more = matchAchievements.length - shown.length
+                return (
+                  <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: '100%', maxWidth: dk ? 640 : 380 }}>
+                    <p style={{ font: `700 ${dk ? 12 : 9.5}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 8px', textAlign: 'center' }}>
+                      🏆 {t('battle.game.achievementsDone')} · {matchAchievements.length}
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: shown.length > 1 ? '1fr 1fr' : '1fr', gap: 6 }}>
+                      {shown.map((a) => (
+                        <div key={a.code} className="flex items-center" style={{ gap: 8, background: 'rgba(21,17,28,0.9)', border: '1px solid rgba(212,163,59,0.35)', padding: dk ? '8px 12px' : '6px 9px', textAlign: 'left', minWidth: 0 }}>
+                          <span className="flex-1 min-w-0 truncate" style={{ font: `700 ${dk ? 13 : 11}px var(--ravenof-font-body)`, color: '#f3ead3' }}>{a.name}</span>
+                          <span className="shrink-0 flex items-center" style={{ gap: 5 }}>
+                            {(a.rewards ?? []).slice(0, 2).map((r, i) => {
+                              const v = resolveRewardVisualV2(r as { type?: string; amount?: number })
+                              return (
+                                <span key={i} className="inline-flex items-center gap-1" title={v.name}>
+                                  <SafeRewardImage src={v.asset} size={dk ? 16 : 12} opticalScale={v.opticalScale} />
+                                  {v.label && <b style={{ fontSize: dk ? 11 : 9, color: 'var(--ravenof-text-secondary)', lineHeight: 1 }}>{v.label}</b>}
+                                </span>
+                              )
+                            })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {more > 0 && <p style={{ font: `500 ${dk ? 12 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: '6px 0 0', textAlign: 'center' }}>+{more} · {t('battle.game.moreInProfile')}</p>}
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* ── Lygio progresas ── */}
               {matchReward && matchReward.valid && prog && (

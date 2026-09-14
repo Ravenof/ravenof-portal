@@ -108,7 +108,7 @@ export function CelebrationFx({ tone = 'gold' }: { tone?: 'gold' | 'red' }) {
     <i key={i} className="rvn-cele-ember" style={{ left: `${(i * 37) % 100}%`, ['--dx' as string]: `${((i * 53) % 120) - 60}px`, animationDuration: `${5 + (i % 6)}s`, animationDelay: `${(i % 8) * 0.5}s` }} />
   ))
   return (
-    <div className={`rvn-cele-fx ${tone}`} aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+    <div className={`rvn-cele-fx ${tone}`} aria-hidden style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       <div className="rvn-cele-rays" /><div className="rvn-cele-glow" /><div className="rvn-cele-flash" />
       {embers}
     </div>

@@ -203,7 +203,8 @@
     "modePve": "Battle vs AI",
     "modePvp": "Friendly match",
     "pvpVictoryText": "A convincing win over a friend. Rematch?",
-    "pvpDefeatText": "Your friend was stronger this time. A rematch is one tap away."
+    "pvpDefeatText": "Your friend was stronger this time. A rematch is one tap away.",
+    "moreInProfile": "more – see profile"
   },
   "guided": {
     "discard-gold-tip": {

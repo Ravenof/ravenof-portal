@@ -75,12 +75,12 @@ export function RankedResult({ result, opponentName, stats, onAgain, onHome, onL
   )
 
   return (
-    <div className="ravenof-body fixed inset-0 z-[170] flex items-center justify-center p-4 overflow-hidden"
+    <div className="ravenof-body fixed inset-0 z-[170] flex items-start justify-center p-4 overflow-y-auto ravenof-scroll"
       style={{ background: won ? 'rgba(4,3,7,0.92)' : 'radial-gradient(120% 100% at 50% 40%, rgba(90,24,34,0.45) 0%, rgba(4,3,7,0.94) 60%)' }}>
       <CelebrationStyles />
       <style>{CER_CSS}</style>
       <CelebrationFx tone={won ? 'gold' : 'red'} />
-      <div className="rvn-cele-panel" style={{ maxWidth: 980, gap: dk ? 18 : 12 }}>
+      <div className="rvn-cele-panel" style={{ maxWidth: 980, gap: dk ? 18 : 12, margin: 'auto' }}>
         <div className="rvn-cele-kicker">{t('ranked.title')} · {t('ranked.result.vs', { name: opponentName })}</div>
         <h1 className={'rvn-cele-title' + (won ? '' : ' lose')}>{won ? t('ranked.result.win') : t('ranked.result.loss')}</h1>
         <div className="rvn-cele-rule" />

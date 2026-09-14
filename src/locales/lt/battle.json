@@ -203,7 +203,8 @@
     "modePve": "Kova su DI",
     "modePvp": "Draugiška kova",
     "pvpVictoryText": "Įtikinama pergalė prieš draugą. Revanšas?",
-    "pvpDefeatText": "Draugas šįkart buvo stipresnis. Revanšas – čia pat."
+    "pvpDefeatText": "Draugas šįkart buvo stipresnis. Revanšas – čia pat.",
+    "moreInProfile": "daugiau – profilyje"
   },
   "guided": {
     "discard-gold-tip": {
