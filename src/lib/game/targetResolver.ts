@@ -103,6 +103,20 @@ export function isMultiTarget(t: TargetType): boolean {
  * Deterministinis (be random), nebent allowRandom=true.
  * Žalai – mažiausio HP priešo padaras; gydymui – labiausiai sužeistas savas.
  */
+
+/**
+ * Auto-pick'ui: kandidatai tik iš „teisingos" pusės pagal intent'ą. 'harm' → priešų
+ * (žaidėjas, padarai, artefaktai), 'help' → savų. Būtina, kai mapping'as taiko
+ * anyUnit/anyPlayer/targetTypes sąjungą – kitaip AI (arba chooseAlt auto-taikymas)
+ * „žemiausio HP" logika rinkdavosi SAVO padarą (Elementų kamuoliai ir pan.).
+ * Jei tinkamos pusės kandidatų nėra – grąžinami visi (senas elgesys).
+ */
+function preferSide(g: GameState, casterSide: Side, candidates: ResolvedTarget[], intent: 'harm' | 'help'): ResolvedTarget[] {
+  const foes = new Set(enemies(g, casterSide)), allies = new Set(friendly(g, casterSide))
+  const ok = candidates.filter((t) => t.kind === 'field' || (intent === 'harm' ? foes.has(t.side) : allies.has(t.side)))
+  return ok.length > 0 ? ok : candidates
+}
+
 export function autoPickTarget(
   g: GameState,
   casterSide: Side,
@@ -111,6 +125,7 @@ export function autoPickTarget(
   allowRandom?: boolean,
 ): ResolvedTarget | null {
   if (candidates.length === 0) return null
+  candidates = preferSide(g, casterSide, candidates, intent)
   if (allowRandom) return candidates[Math.floor(rng() * candidates.length)]
   const score = (t: ResolvedTarget): number => {
     if (t.kind === 'player') return intent === 'harm' ? 1000 : 999
@@ -208,6 +223,7 @@ export function pickNBySelect(g: GameState, candidates: ResolvedTarget[], sel: T
 /** Parenka iki N taikinių automatiškai (pagal intent) arba atsitiktinai. */
 export function autoPickN(g: GameState, casterSide: Side, candidates: ResolvedTarget[], intent: 'harm' | 'help', n: number, allowRandom?: boolean): ResolvedTarget[] {
   if (candidates.length === 0) return []
+  candidates = preferSide(g, casterSide, candidates, intent)
   const k = Math.max(1, n)
   if (allowRandom) {
     const a = [...candidates]
