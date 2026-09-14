@@ -21,6 +21,7 @@ export type CelebrationItem =
   | { kind: 'reward'; reward: GrantedReward }
   | { kind: 'card'; name: string; imageUrl: string | null; rarity: string; sub?: string }
   | { kind: 'booster'; count: number; label: string }
+  | { kind: 'pack'; name: string; imageUrl: string | null; label: string }
 
 export type CelebrationRequest = { kicker: string; title: string; titleAccent?: string; items: CelebrationItem[] }
 
@@ -220,6 +221,23 @@ function Tile({ item, delay }: { item: CelebrationItem; delay: number }) {
     return <i key={j} className="rvn-cele-spark" style={{ ['--sx' as string]: `${Math.round(Math.cos(a) * r)}px`, ['--sy' as string]: `${Math.round(Math.sin(a) * r)}px` }} />
   })
   let asset: string, label: string, amount: number | null = null
+  if (item.kind === 'pack') {
+    const v = resolveRewardVisualV2({ type: 'faction_booster_choice', quantity: 1 })
+    asset = item.imageUrl ?? v.asset; label = item.label
+    return (
+      <div className="rvn-cele-tile" style={{ ['--d' as string]: d, width: 220 }} data-reward-type="pack">
+        {corners}
+        <div className="rvn-cele-ico" style={{ width: 150, height: 150 }}>
+          <span className="rvn-cele-ring" /><span className="rvn-cele-ring r2" />{sparks}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={asset} alt="" aria-hidden style={{ width: 140, height: 140 }} />
+        </div>
+        <div className="rvn-cele-amt" style={{ fontSize: 20 }}>{item.name}</div>
+        <div className="rvn-cele-lbl">{label}</div>
+        <div className="rvn-cele-shine" />
+      </div>
+    )
+  }
   if (item.kind === 'booster') {
     const v = resolveRewardVisualV2({ type: 'faction_booster_choice', quantity: item.count })
     asset = v.asset; label = item.label

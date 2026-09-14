@@ -17,6 +17,7 @@ import {
 } from './kit'
 import { ChoiceQueue } from './ChoiceModals'
 import { rewardRequiresChoice } from '@/lib/rewards/rewardVisuals'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 
 const WEEKS = [
   { roman: 'I', key: 'w1', from: 1, to: 7 },
@@ -43,6 +44,9 @@ const TONE: Record<DayState, { border: string; bg: string; label: string }> = {
 export function LoginRewardsScreen() {
   const t = useT()
   const compact = useCompact()
+  // Desktop: didesnės dienų plytelės ir tekstai (mobile/compact – kaip buvo)
+  const { desktop } = useDesktopUi()
+  const dk = desktop && !compact
   const toast = useToast()
   const [state, setState] = useState<LoginRewardState | null>(null)
   const [loading, setLoading] = useState(true)
@@ -100,29 +104,30 @@ export function LoginRewardsScreen() {
         className={'rvn-prog-clip' + (st === 'today' ? ' rvn-prog-glow' : '')}
         aria-label={`${d.day} ${t('progression.login.dayShort')}`}
         style={{
-          flex: grow, minWidth: 0, minHeight: 44, cursor: 'pointer', textAlign: 'left',
-          border: `1px solid ${tone.border}`, background: tone.bg, padding: '7px 8px',
-          display: 'flex', flexDirection: 'column', gap: 3,
+          flex: grow, minWidth: 0, minHeight: dk ? 118 : 44, cursor: 'pointer', textAlign: 'left',
+          border: `1px solid ${tone.border}`, background: tone.bg, padding: dk ? '12px 14px' : '7px 8px',
+          display: 'flex', flexDirection: 'column', gap: dk ? 6 : 3,
           animation: st === 'today' ? 'rvGlow 2.6s ease-in-out infinite' : undefined,
         }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-          <span style={{ font: `700 10px ${DISPLAY}`, color: st === 'future' ? C.muted : C.bone, whiteSpace: 'nowrap' }}>
+          <span style={{ font: `700 ${dk ? 16 : 10}px ${DISPLAY}`, color: st === 'future' ? C.muted : C.bone, whiteSpace: 'nowrap' }}>
             {d.day} {t('progression.login.dayShort')}
           </span>
-          {d.claimed && <span aria-hidden style={{ font: `400 10px ${BODY}`, color: C.greenFg }}>✓</span>}
+          {d.claimed && <span aria-hidden style={{ font: `400 ${dk ? 15 : 10}px ${BODY}`, color: C.greenFg }}>✓</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          {first && <RewardIcon reward={first} size={d.milestone ? 21 : 15} />}
+          {first && <RewardIcon reward={first} size={dk ? (d.milestone ? 44 : 34) : (d.milestone ? 21 : 15)} />}
         </div>
-        <div style={{ font: `700 11px ${BODY}`, color: st === 'future' ? C.muted : C.bone, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ font: `700 ${dk ? 18 : 11}px ${BODY}`, color: st === 'future' ? C.muted : C.bone, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {first ? rewardLabel(first) : '—'}
         </div>
         {d.rewards.length > 1 && (
-          <div style={{ font: `400 9px ${BODY}`, color: C.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ font: `400 ${dk ? 13 : 9}px ${BODY}`, color: C.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {rewardLabel(d.rewards[1])}
           </div>
         )}
-        <div style={{ font: `500 7px ${BODY}`, letterSpacing: 1, color: tone.label, textTransform: 'uppercase' }}>
+        {dk && <div style={{ flex: 1 }} />}
+        <div style={{ font: `500 ${dk ? 10 : 7}px ${BODY}`, letterSpacing: dk ? 1.5 : 1, color: tone.label, textTransform: 'uppercase' }}>
           {d.claimed ? t('progression.login.stClaimed')
             : st === 'today' ? t('progression.login.stReady')
             : d.rewards.some((r) => rewardRequiresChoice(r)) ? t('progression.login.stChoice')
@@ -132,23 +137,25 @@ export function LoginRewardsScreen() {
     )
   }
 
-  const finalDay = byDay.get(31)
+  // Paskutinė mėnesio diena (28–31) = ciklo finalas; savaitės rodo tik iki jos
+  const lastDay = state.cycleLength
+  const finalDay = byDay.get(lastDay)
   const finalSt = finalDay ? dayState(finalDay, state.claimableDay) : 'future'
 
   return (
-    <div className="rvn-prog-in" style={{ height: '100%', display: 'flex', gap: 14, padding: compact ? '10px 12px' : '14px 16px', minHeight: 0 }}>
+    <div className="rvn-prog-in" style={{ height: '100%', display: 'flex', gap: dk ? 20 : 14, padding: compact ? '10px 12px' : dk ? '18px 24px' : '14px 16px', minHeight: 0 }}>
       {/* ── Kairė: mėnesio santrauka ── */}
       {!compact && (
-        <aside style={{ width: 222, flex: 'none', position: 'relative', border: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.surface}, #0d0b12)`, padding: '18px 16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <aside style={{ width: dk ? 300 : 222, flex: 'none', position: 'relative', border: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.surface}, #0d0b12)`, padding: '18px 16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div aria-hidden style={{ position: 'absolute', inset: 0, background: `url('${ART.cathedral}') center/cover no-repeat`, opacity: 0.1, filter: 'grayscale(.5)' }} />
           <div style={{ position: 'relative' }}>
             <Kicker>{t('progression.login.cycleProgress')}</Kicker>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 6 }}>
-              <span style={{ font: `800 52px ${DISPLAY}`, lineHeight: 0.9, color: C.goldHi, textShadow: '0 4px 22px rgba(226,185,88,.28)' }}>{state.cyclePosition}</span>
-              <span style={{ font: `600 17px ${DISPLAY}`, color: C.label }}>/ {state.cycleLength}</span>
+              <span style={{ font: `800 ${dk ? 68 : 52}px ${DISPLAY}`, lineHeight: 0.9, color: C.goldHi, textShadow: '0 4px 22px rgba(226,185,88,.28)' }}>{state.cyclePosition}</span>
+              <span style={{ font: `600 ${dk ? 22 : 17}px ${DISPLAY}`, color: C.label }}>/ {state.cycleLength}</span>
             </div>
             <div style={{ marginTop: 14 }}><ProgressBar pct={monthPct} /></div>
-            <div style={{ font: `600 12px ${DISPLAY}`, letterSpacing: 0.6, color: statusColor, marginTop: 14 }}>{statusLine}</div>
+            <div style={{ font: `600 ${dk ? 15 : 12}px ${DISPLAY}`, letterSpacing: 0.6, color: statusColor, marginTop: 14 }}>{statusLine}</div>
             <div style={{ marginTop: 10 }}><ResetChip at={state.nextClaimAt ?? state.resetAt} /></div>
             <Divider margin={16} />
             <div style={{ display: 'flex', gap: 10 }}>
@@ -165,7 +172,7 @@ export function LoginRewardsScreen() {
             </div>
           </div>
           <div style={{ flex: 1 }} />
-          <p style={{ position: 'relative', font: `400 10px ${BODY}`, color: C.muted, lineHeight: 1.55, margin: 0 }}>
+          <p style={{ position: 'relative', font: `400 ${dk ? 13 : 10}px ${BODY}`, color: C.muted, lineHeight: 1.55, margin: 0 }}>
             {t('progression.login.rules')}
           </p>
         </aside>
@@ -175,17 +182,18 @@ export function LoginRewardsScreen() {
       <section className="rvn-prog-scroll" style={{ flex: 1, minWidth: 0, position: 'relative', border: `1px solid ${C.line}`, background: C.raised, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: `url('${ART.fortress}') center/cover no-repeat`, opacity: 0.14 }} />
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,6,10,.55), rgba(7,6,10,.9))' }} />
-        <div className="rvn-prog-scroll" style={{ position: 'relative', flex: 1, minHeight: 0, overflowY: 'auto', padding: compact ? 10 : 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="rvn-prog-scroll" style={{ position: 'relative', flex: 1, minHeight: 0, overflowY: 'auto', padding: compact ? 10 : dk ? 18 : 14, display: 'flex', flexDirection: 'column', gap: dk ? 12 : 8 }}>
           {WEEKS.map((w) => (
             <div key={w.key} style={{ display: 'flex', alignItems: 'stretch', gap: 8, flex: 1, minHeight: compact ? 74 : 0 }}>
-              <div style={{ width: 44, flex: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
-                <div style={{ font: `700 15px ${DISPLAY}`, color: C.gold }}>{w.roman}</div>
-                <div style={{ font: `500 7.5px ${BODY}`, letterSpacing: 1.2, color: C.label, textTransform: 'uppercase', lineHeight: 1.3 }}>
+              <div style={{ width: dk ? 64 : 44, flex: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ font: `700 ${dk ? 22 : 15}px ${DISPLAY}`, color: C.gold }}>{w.roman}</div>
+                <div style={{ font: `500 ${dk ? 10 : 7.5}px ${BODY}`, letterSpacing: 1.2, color: C.label, textTransform: 'uppercase', lineHeight: 1.3 }}>
                   {t(`progression.login.week.${w.key}`)}
                 </div>
               </div>
-              <div style={{ flex: 1, display: 'flex', gap: 6, minWidth: 0 }}>
+              <div style={{ flex: 1, display: 'flex', gap: dk ? 10 : 6, minWidth: 0 }}>
                 {Array.from({ length: 7 }, (_, i) => w.from + i)
+                  .filter((n) => n < lastDay)
                   .map((n) => byDay.get(n))
                   .filter((d): d is LoginRewardDay => !!d)
                   .map((d) => dayNode(d, d.milestone ? 1.65 : 1))}
@@ -195,26 +203,26 @@ export function LoginRewardsScreen() {
 
           {/* Finalo juosta: 29, 30 + 31 relikvijorius */}
           <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flex: 1, minHeight: compact ? 74 : 0 }}>
-            <div style={{ width: 44, flex: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
-              <div style={{ font: `700 15px ${DISPLAY}`, color: C.gold }}>V</div>
-              <div style={{ font: `500 7.5px ${BODY}`, letterSpacing: 1.2, color: C.label, textTransform: 'uppercase' }}>{t('progression.login.week.final')}</div>
+            <div style={{ width: dk ? 64 : 44, flex: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+              <div style={{ font: `700 ${dk ? 22 : 15}px ${DISPLAY}`, color: C.gold }}>V</div>
+              <div style={{ font: `500 ${dk ? 10 : 7.5}px ${BODY}`, letterSpacing: 1.2, color: C.label, textTransform: 'uppercase' }}>{t('progression.login.week.final')}</div>
             </div>
-            <div style={{ flex: 1, display: 'flex', gap: 6, minWidth: 0 }}>
-              {[29, 30].map((n) => byDay.get(n)).filter((d): d is LoginRewardDay => !!d).map((d) => dayNode(d, 1))}
+            <div style={{ flex: 1, display: 'flex', gap: dk ? 10 : 6, minWidth: 0 }}>
+              {[29, 30].filter((n) => n < lastDay).map((n) => byDay.get(n)).filter((d): d is LoginRewardDay => !!d).map((d) => dayNode(d, 1))}
               {finalDay && (
                 <button type="button" onClick={() => { playUiClick(); setDetail(finalDay) }}
                   className="rvn-prog-clip"
                   style={{
-                    flex: 2.4, minWidth: 0, minHeight: 44, cursor: 'pointer', textAlign: 'left',
+                    flex: 2.4, minWidth: 0, minHeight: dk ? 118 : 44, cursor: 'pointer', textAlign: 'left',
                     border: `1px solid ${TONE[finalSt].border}`, background: TONE[finalSt].bg,
-                    padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: dk ? '12px 18px' : '9px 12px', display: 'flex', alignItems: 'center', gap: dk ? 18 : 12,
                   }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={ART.chest} alt="" aria-hidden style={{ width: 44, height: 44, objectFit: 'contain', flex: 'none' }} />
+                  <img src={ART.chest} alt="" aria-hidden style={{ width: dk ? 76 : 44, height: dk ? 76 : 44, objectFit: 'contain', flex: 'none' }} />
                   <div style={{ minWidth: 0 }}>
-                    <Kicker color={C.gold}>{t('progression.login.finalKicker')}</Kicker>
-                    <div style={{ font: `700 15px ${DISPLAY}`, color: C.bone, marginTop: 1 }}>{t('progression.login.finalTitle')}</div>
-                    <div style={{ font: `400 10px ${BODY}`, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Kicker color={C.gold}>{lastDay} {t('progression.login.dayShort')} · {t('progression.login.finalKicker')}</Kicker>
+                    <div style={{ font: `700 ${dk ? 22 : 15}px ${DISPLAY}`, color: C.bone, marginTop: 1 }}>{t('progression.login.finalTitle')}</div>
+                    <div style={{ font: `400 ${dk ? 14 : 10}px ${BODY}`, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {finalDay.rewards.map((r) => rewardLabel(r)).join(' · ')}
                     </div>
                   </div>
@@ -226,9 +234,9 @@ export function LoginRewardsScreen() {
       </section>
 
       {/* ── Dešinė: šiandienos fokusas ── */}
-      <aside style={{ width: compact ? 210 : 274, flex: 'none', border: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.surface}, #0c0a11)`, padding: compact ? 12 : 16, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <aside style={{ width: compact ? 210 : dk ? 340 : 274, flex: 'none', border: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.surface}, #0c0a11)`, padding: compact ? 12 : 16, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Kicker color={C.gold}>{t('progression.login.todayKicker')}</Kicker>
-        <div style={{ font: `700 21px ${DISPLAY}`, color: C.bone, marginTop: 2 }}>
+        <div style={{ font: `700 ${dk ? 28 : 21}px ${DISPLAY}`, color: C.bone, marginTop: 2 }}>
           {state.claimableDay ? `${state.claimableDay} ${t('progression.login.dayShort')}` : t('progression.login.noRewardToday')}
         </div>
 
@@ -238,24 +246,24 @@ export function LoginRewardsScreen() {
           padding: compact ? '14px 12px' : '22px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         }}>
           {focus?.rewards[0]
-            ? <RewardIcon reward={focus.rewards[0]} size={compact ? 52 : 74} />
-            : <RewardIcon reward={{ type: 'silver', amount: 0 } as RewardDefinition} size={compact ? 52 : 74} />}
-          <div style={{ font: `800 ${compact ? 20 : 26}px ${DISPLAY}`, color: C.goldHi }}>
+            ? <RewardIcon reward={focus.rewards[0]} size={compact ? 52 : dk ? 110 : 74} />
+            : <RewardIcon reward={{ type: 'silver', amount: 0 } as RewardDefinition} size={compact ? 52 : dk ? 110 : 74} />}
+          <div style={{ font: `800 ${compact ? 20 : dk ? 32 : 26}px ${DISPLAY}`, color: C.goldHi }}>
             {focus?.rewards[0] ? rewardLabel(focus.rewards[0]) : '—'}
           </div>
           {focus && focus.rewards.length > 1 && <RewardRow rewards={focus.rewards.slice(1)} />}
         </div>
 
-        <div style={{ font: `600 11px ${DISPLAY}`, letterSpacing: 0.8, color: statusColor, marginTop: 12 }}>◆ {statusLine}</div>
+        <div style={{ font: `600 ${dk ? 14 : 11}px ${DISPLAY}`, letterSpacing: 0.8, color: statusColor, marginTop: 12 }}>◆ {statusLine}</div>
 
         {tomorrow && (
           <>
             <Kicker style={{ marginTop: 14 }}>{t('progression.login.tomorrow')}</Kicker>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: 10 }}>
-              {tomorrow.rewards[0] && <RewardIcon reward={tomorrow.rewards[0]} size={26} />}
+              {tomorrow.rewards[0] && <RewardIcon reward={tomorrow.rewards[0]} size={dk ? 40 : 26} />}
               <div style={{ minWidth: 0 }}>
-                <div style={{ font: `700 12px ${DISPLAY}`, color: C.bone }}>{tomorrow.day} {t('progression.login.dayShort')}</div>
-                <div style={{ font: `400 10px ${BODY}`, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ font: `700 ${dk ? 16 : 12}px ${DISPLAY}`, color: C.bone }}>{tomorrow.day} {t('progression.login.dayShort')}</div>
+                <div style={{ font: `400 ${dk ? 13 : 10}px ${BODY}`, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {tomorrow.rewards.map((r) => rewardLabel(r)).join(' · ')}
                 </div>
               </div>
@@ -264,7 +272,7 @@ export function LoginRewardsScreen() {
         )}
 
         <div style={{ flex: 1, minHeight: 8 }} />
-        <Cta onClick={claim} busy={busy} disabled={!state.claimableDay} minHeight={compact ? 44 : 52}>
+        <Cta onClick={claim} busy={busy} disabled={!state.claimableDay} minHeight={compact ? 44 : dk ? 62 : 52}>
           {state.claimableDay
             ? t('progression.login.claimCta', { day: state.claimableDay })
             : state.cycleCompleted ? t('progression.login.cycleDoneCta') : t('progression.login.claimedCta')}

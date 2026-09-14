@@ -38,6 +38,17 @@ export type FactionOption = {
   collectionProgressPct?: number
 }
 
+/** Boosterio pasirinkimo variantas = AKTYVI parduotuvės pakuotė (card_packs). */
+export type PackOption = {
+  packId: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  cardsPerPack: number
+  alignment: FactionAlignment
+  factions: { factionId: number; slug: string; name: string; alignment: FactionAlignment }[]
+}
+
 export type CardChoiceOption = {
   cardId: string
   nameLt: string
@@ -65,7 +76,7 @@ export type PendingRewardChoice = {
   sourceId: string
   seq: number
   rarity: CardRarityCode | null
-  options: FactionOption[] | CardChoiceOption[]
+  options: FactionOption[] | CardChoiceOption[] | PackOption[]
   createdAt: string
 }
 
@@ -74,7 +85,10 @@ export function cardOptions(c: PendingRewardChoice): CardChoiceOption[] {
   return c.choiceType === 'card' ? (c.options as CardChoiceOption[]) : []
 }
 export function factionOptions(c: PendingRewardChoice): FactionOption[] {
-  return c.choiceType === 'faction_booster' ? (c.options as FactionOption[]) : []
+  return c.choiceType === 'faction_booster' ? (c.options as FactionOption[]).filter((o) => 'factionId' in o) : []
+}
+export function packOptions(c: PendingRewardChoice): PackOption[] {
+  return c.choiceType === 'faction_booster' ? (c.options as PackOption[]).filter((o) => 'packId' in o) : []
 }
 
 // ── Daily Login ─────────────────────────────────────────────────────────────

@@ -19,7 +19,11 @@
     "kickerSeasonAll": "Season path",
     "kickerCard": "Chosen card",
     "kickerBooster": "{{faction}} · {{count}} cards",
-    "boosterLabel": "{{count}} cards"
+    "boosterLabel": "{{count}} cards",
+    "boosterPack": "Pack",
+    "boosterPackAccent": "received",
+    "kickerPack": "{{name}} · open it in Collection",
+    "packLabel": "Pack"
   },
   "item": {
     "account_xp": {

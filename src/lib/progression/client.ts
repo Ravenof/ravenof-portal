@@ -124,6 +124,13 @@ export function resolveFactionBoosterChoice(choiceId: string, factionId: number)
     { p_choice_id: choiceId, p_faction_id: factionId })
 }
 
+/** Boosterio pasirinkimas = parduotuvės pakuotė → user_pack_inventory (atidaroma Kolekcijoje). */
+export function resolvePackChoice(choiceId: string, packId: string) {
+  return mutate<{ status: 'completed'; pack: { packId: string; name: string; imageUrl: string | null }; pendingChoices: PendingRewardChoice[] }>(
+    `choice:${choiceId}`, 'rvn_resolve_pack_choice',
+    { p_choice_id: choiceId, p_pack_id: packId })
+}
+
 export function resolveCardChoice(choiceId: string, cardId: string) {
   return mutate<{ status: 'completed'; cardId: string; compensated: boolean; essence?: number; pendingChoices: PendingRewardChoice[] }>(
     `choice:${choiceId}`, 'rvn_resolve_card_choice',

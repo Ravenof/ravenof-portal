@@ -19,7 +19,11 @@
     "kickerSeasonAll": "Sezono kelias",
     "kickerCard": "Pasirinkta korta",
     "kickerBooster": "{{faction}} · {{count}} kortų",
-    "boosterLabel": "{{count}} kortų"
+    "boosterLabel": "{{count}} kortų",
+    "boosterPack": "Pakuotė",
+    "boosterPackAccent": "gauta",
+    "kickerPack": "{{name}} · atidaryk Kolekcijoje",
+    "packLabel": "Pakuotė"
   },
   "item": {
     "account_xp": {
