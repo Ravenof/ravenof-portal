@@ -1170,6 +1170,20 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 
 const CSS = `
 .rvn-cursed{animation:rvnCursed 2.4s ease}
+/* Atakos įkrovimas: tempiant taikinį nuo padaro – auganti aura + vibracija (translate/rotate – atskiros savybės, nesikerta su framer transform) */
+.rvn-charging{--rvn-p:0;z-index:5;box-shadow:0 0 0 1px rgba(255,190,90,calc(.9*var(--rvn-p))),0 0 calc(34px*var(--rvn-p)) calc(4px*var(--rvn-p)) rgba(255,150,60,calc(.65*var(--rvn-p)))!important;filter:brightness(calc(1 + .22*var(--rvn-p))) saturate(calc(1 + .25*var(--rvn-p)))}
+.rvn-charging::after{content:"";position:absolute;inset:-8px;border-radius:12px;pointer-events:none;opacity:var(--rvn-p);background:radial-gradient(circle,rgba(242,196,90,0) 30%,rgba(242,196,90,.28) 60%,rgba(255,120,60,0) 76%);filter:blur(6px)}
+.rvn-charge-spark{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffd27a;box-shadow:0 0 6px #ffb347;pointer-events:none;z-index:6;animation:rvnChargeSpark .7s ease-out forwards}
+@keyframes rvnChargeSpark{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+/* Reakcijos skrydis: nusileidimo žiedas + dulkės */
+.rvn-react-ring{position:fixed;border-radius:50%;border:2px solid #F2C45A;pointer-events:none;z-index:131;transform:translate(-50%,-50%) scale(.3);animation:rvnReactRing .6s ease-out forwards}
+@keyframes rvnReactRing{from{transform:translate(-50%,-50%) scale(.3);opacity:.9}to{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
+.rvn-react-dust{position:fixed;width:5px;height:5px;border-radius:50%;background:#F2C45A;box-shadow:0 0 6px #F2C45A;pointer-events:none;z-index:131;animation:rvnReactDust .55s ease-out forwards}
+@keyframes rvnReactDust{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+.rvn-react-trail{position:fixed;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,rgba(242,196,90,.9),rgba(242,196,90,0) 70%);pointer-events:none;z-index:130;animation:rvnReactTrail .5s ease-out forwards}
+@keyframes rvnReactTrail{to{transform:scale(.2);opacity:0}}
+.rvn-react-slot-target{box-shadow:0 0 0 1px rgba(242,196,90,.4),0 0 22px rgba(242,196,90,.45)!important;border-color:#F2C45A!important;animation:rvnSlotPulse .9s ease-in-out infinite}
+@keyframes rvnSlotPulse{50%{box-shadow:0 0 0 2px rgba(242,196,90,.6),0 0 32px rgba(242,196,90,.6)}}
 @keyframes rvnCursed{0%{filter:none}20%,72%{filter:brightness(.45) saturate(.4) sepia(.5) hue-rotate(230deg)}100%{filter:none}}
 
 .rvn-fnum { position: absolute; transform: translate(-50%,-50%); font-weight: 800; font-family: Cinzel, Georgia, serif; pointer-events: none; animation: rvnFnum 1.1s cubic-bezier(.2,.8,.2,1) forwards; }
