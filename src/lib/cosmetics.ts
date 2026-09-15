@@ -16,7 +16,11 @@ export type Cosmetic = {
   ownedByDefault?: boolean
   videos?: string[]
   portraitFit?: { x: number; y: number; zoom: number } | null
+  /** Avataro emocijų portretai (neutral = imageUrl). Kovoje keičiasi pagal įvykius. */
+  emotions?: AvatarEmotions | null
 }
+export type AvatarEmotion = 'neutral' | 'angry' | 'happy' | 'sad' | 'shock'
+export type AvatarEmotions = Partial<Record<Exclude<AvatarEmotion, 'neutral'>, string | null>>
 
 export type CosmeticsState = {
   items: Cosmetic[]

@@ -696,18 +696,33 @@ function AdminAvatarVideos({ avatarId, supabase, flash }: { avatarId: string; su
   )
 }
 
+const EMOTION_SLOTS: { key: 'angry' | 'happy' | 'sad' | 'shock'; label: string; hint: string }[] = [
+  { key: 'angry', label: '😠 Piktas', hint: 'gauna didelę žalą, puola, žemas HP' },
+  { key: 'happy', label: '😏 Patenkintas', hint: 'meta burtą, pagyja, laimi' },
+  { key: 'sad', label: '😞 Liūdnas', hint: 'praranda padarą' },
+  { key: 'shock', label: '😮 Nustebęs', hint: 'gauna žalos' },
+]
+
 function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: string; imageUrl: string; supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void }) {
   const [fit, setFit] = useState({ x: 50, y: 50, zoom: 100 })
   const [previewVid, setPreviewVid] = useState<string | null>(null)
   const [vids, setVids] = useState<string[]>([])
+  const [emotions, setEmotions] = useState<Record<string, string | null>>({})
   const boxRef = useRef<HTMLDivElement>(null)
+  const saveEmotion = async (key: string, url: string | null) => {
+    const next = { ...emotions, [key]: url }
+    const { error } = await supabase.from('cosmetics').update({ emotions: next, updated_at: new Date().toISOString() }).eq('id', avatarId)
+    if (error) { flash(error.message, true); return }
+    setEmotions(next); flash(url ? 'Emocija išsaugota' : 'Emocija pašalinta')
+  }
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const { data } = await supabase.from('cosmetics').select('portrait_fit, videos').eq('id', avatarId).single()
+      const { data } = await supabase.from('cosmetics').select('portrait_fit, videos, emotions').eq('id', avatarId).single()
       const pf = (data as any)?.portrait_fit
       if (alive && pf) setFit({ x: pf.x ?? 50, y: pf.y ?? 50, zoom: pf.zoom ?? 100 })
       if (alive) setVids(((data as any)?.videos as string[]) ?? [])
+      if (alive) setEmotions(((data as any)?.emotions as Record<string, string | null>) ?? {})
     })()
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -723,7 +738,7 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
     setFit((f) => ({ ...f, x: Math.round(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100))), y: Math.round(Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100))) }))
   }
   const win = { top: '24.5%', left: '24.5%', right: '24%', bottom: '29%' }
-  const fitStyle = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: 'center' } as React.CSSProperties
+  const fitStyle = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(0.5, fit.zoom / 100)})`, transformOrigin: 'center' } as React.CSSProperties
   return (
     <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
       <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎯 Portreto kadravimas (zoom + vieta)</p>
@@ -743,7 +758,7 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
         <div className="flex-1 space-y-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
           <label className="block">X: {fit.x}%<input type="range" min={0} max={100} value={fit.x} onChange={(e) => setFit((f) => ({ ...f, x: Number(e.target.value) }))} className="w-full" /></label>
           <label className="block">Y: {fit.y}%<input type="range" min={0} max={100} value={fit.y} onChange={(e) => setFit((f) => ({ ...f, y: Number(e.target.value) }))} className="w-full" /></label>
-          <label className="block">Zoom: {fit.zoom}%<input type="range" min={100} max={300} value={fit.zoom} onChange={(e) => setFit((f) => ({ ...f, zoom: Number(e.target.value) }))} className="w-full" /></label>
+          <label className="block">Zoom: {fit.zoom}% (100 = visas portretas lange; &lt;100 – atitraukta)<input type="range" min={50} max={300} value={fit.zoom} onChange={(e) => setFit((f) => ({ ...f, zoom: Number(e.target.value) }))} className="w-full" /></label>
           {vids.length > 0 && (
             <div className="flex flex-wrap gap-1 items-center">
               <span className="text-[10px]">Peržiūra:</span>
@@ -757,6 +772,23 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
             <button className={btn} style={{ background: 'var(--gold)', color: '#0a0a0f' }} onClick={save}>Išsaugoti kadravimą</button>
             <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }} onClick={() => setFit({ x: 50, y: 50, zoom: 100 })}>Centruoti</button>
           </div>
+        </div>
+      </div>
+      {/* ── Emocijų portretai (kovoje keičiasi pagal įvykius; neutralus = pagrindinis paveikslas) ── */}
+      <div className="pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
+        <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎭 Emocijos kovoje ({EMOTION_SLOTS.filter((e) => emotions[e.key]).length}/4)</p>
+        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Tas pats kadravimas kaip pagrindinio portreto – kelk tokio pat formato paveikslus. Trūkstama emocija → rodomas neutralus.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {EMOTION_SLOTS.map((e) => (
+            <div key={e.key} className="rounded-lg p-2 space-y-1" style={{ background: 'var(--bg-elevated)' }}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold" style={{ color: 'var(--text-primary)' }}>{e.label}</span>
+                {emotions[e.key] && <button className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5' }} onClick={() => void saveEmotion(e.key, null)}>✕</button>}
+              </div>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{e.hint}</p>
+              <ShopImageUpload currentUrl={emotions[e.key] ?? null} folder="avatars/emotions" onUpload={(u) => void saveEmotion(e.key, u)} />
+            </div>
+          ))}
         </div>
       </div>
       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Tempk ant peržiūros arba slankikliais. Taikoma ir nuotraukai, ir video.</p>

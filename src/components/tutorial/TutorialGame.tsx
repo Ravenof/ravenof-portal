@@ -34,6 +34,7 @@ import {
 } from '@/lib/tutorial/engine'
 import { eventText } from '@/lib/tutorial/logText'
 import { setBugGameContext } from '@/lib/digital/bugReport'
+import type { AvatarEmotion, AvatarEmotions } from '@/lib/cosmetics'
 import { BugReportModal } from '@/components/digital/BugReportModal'
 import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 import { useT } from '@/lib/i18n/react'
@@ -465,10 +466,20 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
   return <span style={{ display: 'inline-block', width: 46 * scale, height: 60 * scale, flex: '0 0 auto' }}><span style={{ display: 'inline-block', transformOrigin: 'top left', transform: `scale(${scale})` }}>{inner}</span></span>
 }
 
-export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null }
+export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null; emotions?: AvatarEmotions | null }
+/** Avataro nuotaika kovoje: veidas (emocija) + efektas ant rėmo. Žr. AVATAR_MOODS. */
+export type AvatarMood = 'dmg' | 'bigdmg' | 'cast' | 'attack' | 'loss' | 'win'
+const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow: string }> = {
+  dmg:    { face: 'shock', hold: 900,  glow: 'rgba(255,70,60,0.9)' },
+  bigdmg: { face: 'angry', hold: 1100, glow: 'rgba(255,70,60,0.95)' },
+  cast:   { face: 'happy', hold: 1100, glow: 'rgba(139,92,246,0.9)' },
+  attack: { face: 'angry', hold: 900,  glow: 'rgba(255,150,50,0.9)' },
+  loss:   { face: 'sad',   hold: 1600, glow: 'rgba(70,90,160,0.7)' },
+  win:    { face: 'happy', hold: 1200, glow: 'rgba(242,196,90,0.95)' },
+}
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
-export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false }: {
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null }: {
   avatar: BattleAvatar | null
   hp: number; maxHp: number
   owner: 'player' | 'enemy'
@@ -477,6 +488,8 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   onVid?: (v: string | null) => void
   /** Pralaimėjimo seka: portretas sprogsta ir subyra į šukes (žr. 'win' log įvykį). */
   dead?: boolean
+  /** Trumpalaikė nuotaika (veidas + efektas); null → neutralus (arba piktas, kai HP < 30 %). */
+  mood?: AvatarMood | null
 }) {
   // Combat UI Asset Pack v1.6: rėmas 120×140 (usagePx), portretas po permatomu rėmu
   const size = Math.round(120 * scale)
@@ -515,20 +528,39 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vid, vidReady])
   const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
-  const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(1, fit.zoom / 100)})`, transformOrigin: 'center' }
+  // Portretas talpinamas į rėmo LANGĄ (clip-path sritis ~64×56 % rėmo), ne į visą 120×140 dėžę –
+  // anksčiau cover per visą dėžę + langas duodavo ~1.8× „priartintą" veidą. zoom 100 = visas kvadratinis portretas lange.
+  const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(0.5, fit.zoom / 100)})`, transformOrigin: 'center' }
+  const winStyle: React.CSSProperties = { position: 'absolute', left: '17.8%', top: '12.9%', width: '64.4%', height: '56.1%', overflow: 'hidden' }
+  const lowHp = hp > 0 && hp <= maxHp * 0.3
+  const moodDef = mood ? AVATAR_MOODS[mood] : null
+  const face: AvatarEmotion = moodDef?.face ?? (lowHp ? 'angry' : 'neutral')
+  const faceUrl = face === 'neutral' ? null : (avatar?.emotions?.[face] ?? null)
+  const emotionKeys = Object.keys(avatar?.emotions ?? {}) as (keyof AvatarEmotions)[]
+  const moodGlow = moodDef ? moodDef.glow : lowHp ? 'rgba(255,60,60,0.75)' : glow
   return (
     <motion.div
       animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
       transition={{ duration: dead ? 0.55 : 0.34 }}
-      className="relative pointer-events-none"
-      style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 14px ${glow})` }}>
+      className={'relative pointer-events-none' + (mood ? ` rvn-avmood rvn-avmood-${mood}` : '') + (lowHp && !dead ? ' rvn-av-lowhp' : '')}
+      style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 ${mood ? 18 : 14}px ${moodGlow})`, transition: 'filter .25s ease' }}>
       {/* portretas / idle-video (po rėmu); žuvus — viskas subyra, lieka tuščia vieta */}
       {!dead && (
         <div className="combat-avatar-portrait" style={{ background: '#0a0810', zIndex: 1 }}>
           {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
           {avatar?.imageUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={fitStyle} />
+            ? (
+              <div className="rvn-av-zoom" style={winStyle}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatar.imageUrl} alt={avatar.name} draggable={false} style={{ ...fitStyle, position: 'absolute', inset: 0 }} />
+                {/* Emocijų sluoksniai: visi iš anksto įkelti (be mirktelėjimo), matomas tik aktyvus – crossfade 160 ms */}
+                {emotionKeys.map((k) => avatar.emotions?.[k] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={k} src={avatar.emotions[k]!} alt="" draggable={false} style={{ ...fitStyle, position: 'absolute', inset: 0, opacity: faceUrl && k === face ? 1 : 0, transition: 'opacity .16s ease' }} />
+                ) : null)}
+                <div className="rvn-av-tint" />
+              </div>
+            )
             : <span className="w-full h-full flex items-center justify-center" style={{ fontSize: Math.round(size * 0.22) }}>{avatar?.emoji ?? '\u{1F70F}'}</span>}
           {vid && (
             <video key={vid} src={vid} muted playsInline preload="auto" autoPlay
@@ -537,8 +569,8 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
               onPlaying={() => { setVidReady(true); onVid?.(vid) }}
               onEnded={onVidEnd}
               onError={onVidEnd}
-              className="absolute inset-0"
-              style={{ ...fitStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.18s ease' }} />
+              className="absolute"
+              style={{ ...fitStyle, ...winStyle, opacity: vidReady ? 1 : 0, transition: 'opacity 0.18s ease' }} />
           )}
           {flash && <div className="absolute inset-0" style={{ background: flash === 'hit' ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.45)', mixBlendMode: 'screen' }} />}
         </div>
@@ -1162,7 +1194,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       const botPick = (botPool.length ? botPool : items)
       const foe = (foeId ? items.find((c) => c.id === foeId) : null)
         ?? (botPick.length ? botPick[Math.floor(Math.random() * botPick.length)] : null)
-      const toAv = (c: typeof mine | null): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null } : null
+      const toAv = (c: typeof mine | null): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null, emotions: c.emotions ?? null } : null
       const me = toAv(mine), en = toAv(foe)
       setYouAvatar(me); setEnemyAvatar(en)
       youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null
@@ -1186,6 +1218,23 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     setAvatarFlash((f) => ({ ...f, [sd]: kind }))
     window.setTimeout(() => setAvatarFlash((f) => ({ ...f, [sd]: null })), 340)
   }, [])
+  // Avataro nuotaika (emocijos veidas + rėmo efektas). Prioritetas: žala/pergalė perima iškart; kiti – neperrašo aktyvios žalos.
+  const [avatarMood, setAvatarMood] = useState<Partial<Record<Side, AvatarMood | null>>>({})
+  const moodTimerRef = useRef<Partial<Record<Side, number>>>({})
+  const setMood = useCallback((sd: Side, m: AvatarMood, delay = 0) => {
+    const apply = () => {
+      const cur = avatarMoodRef.current[sd]
+      const strong = m === 'dmg' || m === 'bigdmg' || m === 'win'
+      if (cur && (cur === 'dmg' || cur === 'bigdmg' || cur === 'win') && !strong) return
+      if (moodTimerRef.current[sd]) window.clearTimeout(moodTimerRef.current[sd])
+      avatarMoodRef.current[sd] = m
+      setAvatarMood((s) => ({ ...s, [sd]: null }))
+      requestAnimationFrame(() => setAvatarMood((s) => ({ ...s, [sd]: m })))
+      moodTimerRef.current[sd] = window.setTimeout(() => { avatarMoodRef.current[sd] = null; setAvatarMood((s) => ({ ...s, [sd]: null })) }, AVATAR_MOODS[m].hold)
+    }
+    if (delay > 0) window.setTimeout(apply, delay); else apply()
+  }, [])
+  const avatarMoodRef = useRef<Partial<Record<Side, AvatarMood | null>>>({})
   const logScrollRef = useRef<HTMLDivElement | null>(null)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
@@ -2010,6 +2059,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'spell': case 'ability': {
           if (!e.sound) playBattleSound('spellCast')
           if (e.t === 'spell') playAvatarAudio(e.side === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'spellCast')
+          if (e.t === 'spell' || e.t === 'ability') setMood(e.side, 'cast')
           srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'
           // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
           if (e.t === 'ability' && typeof e.skillIndex === 'number') {
@@ -2064,6 +2114,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         case 'death': {
           const uid = e.src?.uid
           const card = e.cardName ? cardByName[e.cardName] : null
+          { const ds = e.side; setMood(ds, 'loss', SETTLE + fxSeq + 300); setMood(ds === 'you' ? 'ai' : 'you', 'attack', SETTLE + fxSeq) }
           const from = uid ? unitRectsRef.current.get(uid) : null
           const pileEl = document.querySelector(`[data-pile="discard-${e.side}"]`)
           const startFly = () => {
@@ -2135,6 +2186,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
           // (+explosion garsas + defeat frazė) → +2 s pabaigos ekranas (+victory frazė).
           const winSide = e.side
           const loser: Side = winSide === 'you' ? 'ai' : 'you'
+          setMood(winSide, 'win', SETTLE + fxSeq + 900)
           const winId = winSide === 'you' ? youAvIdRef.current : enemyAvIdRef.current
           const loseId = winSide === 'you' ? enemyAvIdRef.current : youAvIdRef.current
           const blowEnd = SETTLE + fxSeq + 800   // kada baigiasi šio batch smūgių FX
@@ -2361,6 +2413,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
             const aid = sd === 'you' ? youAvIdRef.current : enemyAvIdRef.current
             playAvatarAudio(aid, 'hit')
             flashAvatar(sd, 'hit')
+            { const big = (val ?? 0) >= 6 || (val ?? 0) >= P(game, sd).maxHp * 0.25; setMood(sd, big ? 'bigdmg' : 'dmg', SETTLE + fxSeq); const atk: Side = sd === 'you' ? 'ai' : 'you'; if (e.src?.uid || e.cardName) setMood(atk, 'attack', SETTLE + fxSeq) }
             const pat = rectFor({ side: sd })
             // Žala herojui — ta pati ImpactProfile dramaturgija kaip padarams.
             if (pat) {
@@ -2440,7 +2493,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         }
         case 'heal': {
           const tgt = e.tgt, val = e.value
-          if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) flashAvatar(e.side, 'heal')
+          if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) { flashAvatar(e.side, 'heal'); setMood(e.side, 'win') }
           if (tgt?.uid && tgt.side && val) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: Math.max(0, cur - val) })) } }
           const base = SETTLE + fxSeq; fxSeq += 120
           const sref = srcRef
@@ -4156,7 +4209,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
             className="absolute -top-2 -right-2 z-30 pointer-events-none select-none" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         )}
-        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} dead={avatarDead === side} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} dead={avatarDead === side} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
     )
   }

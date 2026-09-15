@@ -1175,6 +1175,29 @@ const CSS = `
 .rvn-charging::after{content:"";position:absolute;inset:-8px;border-radius:12px;pointer-events:none;opacity:var(--rvn-p);background:radial-gradient(circle,rgba(242,196,90,0) 30%,rgba(242,196,90,.28) 60%,rgba(255,120,60,0) 76%);filter:blur(6px)}
 .rvn-charge-spark{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffd27a;box-shadow:0 0 6px #ffb347;pointer-events:none;z-index:6;animation:rvnChargeSpark .7s ease-out forwards}
 @keyframes rvnChargeSpark{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+/* Avataro nuotaikos: veidas keičiasi crossfade (img opacity), o čia – purtymas/„punch", tonas ir žemo HP pulsas */
+.rvn-av-zoom{transform-origin:50% 45%}
+.rvn-av-tint{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen}
+.rvn-avmood-dmg .rvn-av-zoom,.rvn-avmood-bigdmg .rvn-av-zoom{animation:rvnAvShake .55s cubic-bezier(.36,.07,.19,.97)}
+.rvn-avmood-dmg .rvn-av-tint,.rvn-avmood-bigdmg .rvn-av-tint{background:radial-gradient(circle,rgba(255,60,60,0) 30%,rgba(255,40,40,.8) 100%);animation:rvnAvTint .7s ease-out}
+.rvn-avmood-bigdmg .rvn-av-zoom{animation-duration:.75s}
+@keyframes rvnAvShake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-6px,2px) rotate(-1.5deg)}40%,60%{transform:translate(6px,-1px) rotate(1.5deg)}}
+@keyframes rvnAvTint{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.rvn-avmood-cast .rvn-av-zoom,.rvn-avmood-win .rvn-av-zoom{animation:rvnAvPunch .5s cubic-bezier(.2,1.4,.4,1)}
+.rvn-avmood-cast .rvn-av-tint{background:radial-gradient(circle,rgba(139,92,246,.6),rgba(139,92,246,0) 70%);animation:rvnAvTint 1s ease-out}
+.rvn-avmood-win .rvn-av-tint{background:radial-gradient(circle,rgba(242,196,90,.5),rgba(242,196,90,0) 70%);animation:rvnAvTint 1.1s ease-out}
+@keyframes rvnAvPunch{40%{transform:scale(1.1)}100%{transform:scale(1)}}
+.rvn-avmood-attack .rvn-av-zoom{animation:rvnAvLunge .5s cubic-bezier(.2,1.2,.4,1)}
+.rvn-avmood-attack .rvn-av-tint{background:radial-gradient(circle,rgba(255,150,50,0) 35%,rgba(255,120,40,.65) 100%);animation:rvnAvTint .9s ease-out}
+@keyframes rvnAvLunge{30%{transform:translate(0,-5px) scale(1.12)}100%{transform:none}}
+.rvn-avmood-loss .rvn-av-zoom{animation:rvnAvGloom 1.6s ease}
+.rvn-avmood-loss .rvn-av-tint{background:linear-gradient(180deg,rgba(40,60,120,0),rgba(40,60,120,.6));animation:rvnAvTint 1.6s ease}
+@keyframes rvnAvGloom{20%,80%{filter:saturate(.35) brightness(.75)}100%{filter:none}}
+.rvn-avmood-cast::after{content:"";position:absolute;left:12%;top:8%;width:76%;height:66%;border-radius:50%;pointer-events:none;z-index:3;background:conic-gradient(from 0deg,rgba(139,92,246,0),rgba(167,139,250,.95),rgba(139,92,246,0) 40%,rgba(96,165,250,.85) 70%,rgba(139,92,246,0));-webkit-mask:radial-gradient(circle,transparent 60%,#000 64%,#000 74%,transparent 78%);mask:radial-gradient(circle,transparent 60%,#000 64%,#000 74%,transparent 78%);animation:rvnAvSpin 1.1s linear,rvnAvRing 1.1s ease-out forwards}
+@keyframes rvnAvSpin{to{transform:rotate(360deg)}}
+@keyframes rvnAvRing{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.rvn-av-lowhp:not(.rvn-avmood){animation:rvnAvHeart 1.1s ease-in-out infinite}
+@keyframes rvnAvHeart{0%,100%{filter:drop-shadow(0 0 10px rgba(255,60,60,.45))}50%{filter:drop-shadow(0 0 22px rgba(255,60,60,.95))}}
 /* Reakcijos skrydis: nusileidimo žiedas + dulkės */
 .rvn-react-ring{position:fixed;border-radius:50%;border:2px solid #F2C45A;pointer-events:none;z-index:131;transform:translate(-50%,-50%) scale(.3);animation:rvnReactRing .6s ease-out forwards}
 @keyframes rvnReactRing{from{transform:translate(-50%,-50%) scale(.3);opacity:.9}to{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
