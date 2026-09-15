@@ -1,5 +1,7 @@
 // ── Socialinis sluoksnis: draugai + iššūkiai (kliento RPC apvalkalai) ─────────
 import { createClient } from '@/lib/supabase/client'
+import { APP_VERSION } from '@/lib/version'
+import { currentPlatform } from '@/lib/digital/native'
 
 export type FriendPresence = 'online' | 'offline' | 'away' | 'dnd'
 export type Friend = {
@@ -11,7 +13,8 @@ export type SelfPresence = 'auto' | 'away' | 'dnd' | 'hidden'
 
 /** Presence širdies dūžis — profiles.last_seen_at=now(). Kviesti ~kas 60 s. */
 export async function heartbeat(): Promise<void> {
-  try { await createClient().rpc('rvn_heartbeat') } catch { /* senoje DB funkcijos gali nebūti */ }
+  // v2: kartu įrašom platformą (web/desktop/android) ir app versiją – matoma admin žaidėjo profilyje.
+  try { await createClient().rpc('rvn_heartbeat_v2', { p_platform: currentPlatform(), p_version: APP_VERSION }) } catch { /* senoje DB funkcijos gali nebūti */ }
 }
 export type Challenge = { id: string; code: string; challengerId: string; username: string; displayName: string | null }
 

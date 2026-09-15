@@ -1,0 +1,49 @@
+{
+  "title": "Pranešti apie klaidą",
+  "tabNew": "Nauja",
+  "tabMine": "Mano pranešimai",
+  "noneYet": "Pranešimų dar nėra.",
+  "category": "Kategorija",
+  "severity": "Rimtumas",
+  "titleField": "Trumpas pavadinimas",
+  "titlePh": "pvz. Burtas nepadarė žalos",
+  "description": "Kas nutiko",
+  "descriptionPh": "Aprašyk, ką darei ir kas įvyko. Kuo tiksliau, tuo greičiau pataisysim.",
+  "expected": "Ko tikėjaisi",
+  "expectedPh": "Kaip turėjo būti (nebūtina)",
+  "attach": "Pridėti nuotrauką",
+  "autoInfo": "Automatiškai pridedama: platforma, versija, ekranas ir kovos žurnalas.",
+  "tooShort": "Aprašymas per trumpas.",
+  "send": "Išsiųsti",
+  "sending": "Siunčiama…",
+  "sentTitle": "Pranešimas #{{id}} gautas",
+  "sentBody": "Ačiū! Būseną matysi skirtuke „Mano pranešimai“.",
+  "another": "Dar vienas",
+  "adminNote": "Atsakymas",
+  "ctxAttached": "Prisegtas kovos kontekstas: {{mode}}, {{turn}} ėjimas",
+  "cat": {
+    "battle": "Kova",
+    "cards": "Kortos / efektai",
+    "ui": "Meniu / vaizdas",
+    "auth": "Prisijungimas",
+    "shop": "Parduotuvė / atlygiai",
+    "other": "Kita"
+  },
+  "sev": {
+    "blocker": "Blokuoja",
+    "major": "Rimta",
+    "normal": "Įprasta",
+    "minor": "Smulkmena"
+  },
+  "status": {
+    "new": "Nauja",
+    "triaged": "Peržiūrėta",
+    "in_progress": "Taisoma",
+    "fixed": "Pataisyta",
+    "wontfix": "Netaisysim",
+    "duplicate": "Dublikatas"
+  },
+  "menuLabel": "Pranešti apie klaidą",
+  "menuSub": "Radai klaidą? Parašyk – gausim su visais duomenimis",
+  "navLabel": "Klaida"
+}

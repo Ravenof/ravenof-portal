@@ -33,6 +33,8 @@ import {
   consumeReactionSnapshot, type ReactionGate,
 } from '@/lib/tutorial/engine'
 import { eventText } from '@/lib/tutorial/logText'
+import { setBugGameContext } from '@/lib/digital/bugReport'
+import { BugReportModal } from '@/components/digital/BugReportModal'
 import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 import { useT } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
@@ -911,6 +913,21 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
 export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
+  // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
+  const [bugOpen, setBugOpen] = useState(false)
+  useEffect(() => {
+    if (!game) { setBugGameContext(null); return }
+    try {
+      setBugGameContext({
+        mode: ranked ? 'ranked' : net ? 'pvp' : practice ? 'practice' : 'pve',
+        matchId: net?.matchId ?? clientMatchIdRef.current ?? null,
+        turn: game.globalTurn, active: game.active, opponent: opponentName ?? null,
+        log: game.log.slice(-40).map((e) => { try { return `[${e.side}] ${eventText(e)}` } catch { return `[${e.side}] ${e.t}` } }),
+        extra: { winner: game.winner, youHp: game.you.hp, aiHp: game.ai.hp, youHand: game.you.hand.length, youGold: game.you.gold, field: game.field?.card?.name ?? null, pending: [game.pendingChoice && 'choice', game.pendingSummon && 'summon', game.pendingPeek && 'peek'].filter(Boolean) },
+      })
+    } catch { /* kontekstas – tik pagalbinis */ }
+  }, [game, ranked, practice, net, opponentName])
+  useEffect(() => () => setBugGameContext(null), [])
   // Server-authoritative PvP (NEXT_PUBLIC_PVP_SERVER_URL arba net.server): serveris = host'as,
   // abu klientai elgiasi kaip svečiai (siunčia veiksmus, gauna 'state').
   const serverMode = !!net && (!!net.server || !!pvpServerUrl())
@@ -4416,6 +4433,8 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="combat-round-icon"><img src={soundOn ? '/ravenof-ui/combat/icons/icon-sound-on.png' : '/ravenof-ui/combat/icons/icon-sound-off.png'} alt="" style={{ opacity: soundOn ? 1 : 0.55 }} /></button>
           <button onClick={() => { playUiClick(); setShowLog((v) => !v) }} title={t('battle.game.logTip')}
             className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-log.png" alt="" /></button>
+          <button onClick={() => { playUiClick(); setBugOpen(true) }} title={t('bug.title')} aria-label={t('bug.title')}
+            className="combat-round-icon" style={{ fontSize: 14, lineHeight: 1 }}>🐞</button>
           <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')}
             className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-close.png" alt="" /></button>
           {/* eslint-enable @next/next/no-img-element */}
@@ -4428,10 +4447,12 @@ doAction({ t: 'endTurn', actor: 'you' })
         <div className="fixed top-1 right-1 z-[130] flex items-center gap-1">
           {/* eslint-disable @next/next/no-img-element */}
           <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? t('battle.game.sound') : t('battle.game.soundMuted')} className="combat-round-icon"><img src={soundOn ? '/ravenof-ui/combat/icons/icon-sound-on.png' : '/ravenof-ui/combat/icons/icon-sound-off.png'} alt="" style={{ opacity: soundOn ? 1 : 0.55 }} /></button>
+          <button onClick={() => { playUiClick(); setBugOpen(true) }} title={t('bug.title')} aria-label={t('bug.title')} className="combat-round-icon" style={{ fontSize: 14, lineHeight: 1 }}>🐞</button>
           <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')} className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-close.png" alt="" /></button>
           {/* eslint-enable @next/next/no-img-element */}
         </div>
       )}
+      {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
 
       {loading && (
         <div className="flex-1 flex items-center justify-center">

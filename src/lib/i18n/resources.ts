@@ -32,7 +32,9 @@ import en_quests from '@/locales/en/quests.json'
 import lt_errors from '@/locales/lt/errors.json'
 import en_errors from '@/locales/en/errors.json'
 import lt_more from '@/locales/lt/more.json'
+import lt_bug from '@/locales/lt/bug.json'
 import en_more from '@/locales/en/more.json'
+import en_bug from '@/locales/en/bug.json'
 import lt_rewards from '@/locales/lt/rewards.json'
 import en_rewards from '@/locales/en/rewards.json'
 import lt_progression from '@/locales/lt/progression.json'
@@ -64,6 +66,7 @@ export const RESOURCES = {
     quests: lt_quests,
     errors: lt_errors,
     more: lt_more,
+    bug: lt_bug,
     rewards: lt_rewards,
     progression: lt_progression,
     battleLog: lt_battleLog,
@@ -88,6 +91,7 @@ export const RESOURCES = {
     quests: en_quests,
     errors: en_errors,
     more: en_more,
+    bug: en_bug,
     rewards: en_rewards,
     progression: en_progression,
     battleLog: en_battleLog,

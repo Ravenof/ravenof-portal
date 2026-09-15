@@ -11,6 +11,18 @@ export function isNativeApp(): boolean {
   return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform())
 }
 
+/** Platforma analitikai/klaidų pranešimams: 'android' | 'ios' | 'desktop' (Electron) | 'web'. */
+export function currentPlatform(): 'android' | 'ios' | 'desktop' | 'web' {
+  if (typeof window === 'undefined') return 'web'
+  if ((window as any).ravenofDesktop) return 'desktop'
+  const cap = (window as any).Capacitor
+  if (cap && typeof cap.getPlatform === 'function') {
+    const p = cap.getPlatform()
+    if (p === 'android' || p === 'ios') return p
+  }
+  return 'web'
+}
+
 /**
  * Bando uždaryti appą (tik native shell'e – App.exitApp()).
  * Grąžina true, jei bandymas pavyko; false – jei native plugin neprieinamas
@@ -61,7 +73,14 @@ export function onOpenStore(cb: () => void): () => void {
 export async function setNativeImmersive(on: boolean): Promise<void> {
   if (!isNativeApp()) return
   try {
-    const SB = (window as any).Capacitor?.Plugins?.StatusBar
+    const P = (window as any).Capacitor?.Plugins
+    // Capacitor 8: SystemBars slepia status bar + navigacijos mygtukus kartu (immersive).
+    const SYS = P?.SystemBars
+    if (SYS) {
+      if (on) await SYS.hide?.({})
+      else await SYS.show?.({})
+    }
+    const SB = P?.StatusBar
     if (!SB) return
     if (on) {
       await SB.setOverlaysWebView?.({ overlay: true })

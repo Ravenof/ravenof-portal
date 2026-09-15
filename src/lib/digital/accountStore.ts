@@ -14,11 +14,14 @@ import { getLevelProgress } from '@/lib/gamification/levels'
 import { ensureProfile } from '@/lib/ranked/client'
 import type { Balances } from '@/lib/economy'
 
+export type AccountRole = 'user' | 'tester' | 'event_moderator' | 'admin' | 'banned'
 export type AccountProfile = {
   name: string
   level: number
   pct: number
   avatarUrl: string | null
+  /** profiles.role – testeris/adminas gauna papildomas privilegijas (bet kokia kaladė, bug ikona). */
+  role: AccountRole
 }
 
 type AccountState = {
@@ -58,15 +61,15 @@ export const useAccount = create<AccountState>((set) => ({
         if (!user) { set({ loaded: true, loading: false, profile: null, balances: null, rankStep: null }); return }
         const [{ data: p }, rp] = await Promise.all([
           // VIENA užklausa profiliui + balansams (gold=Sidabras, žr. economy.ts)
-          supabase.from('profiles').select('username, display_name, avatar_url, xp_total, gold, rubies, essence').eq('id', user.id).maybeSingle(),
+          supabase.from('profiles').select('username, display_name, avatar_url, xp_total, gold, rubies, essence, role').eq('id', user.id).maybeSingle(),
           ensureProfile().catch(() => null),
         ])
-        const pr = p as { username?: string; display_name?: string; avatar_url?: string | null; xp_total?: number; gold?: number; rubies?: number; essence?: number } | null
+        const pr = p as { username?: string; display_name?: string; avatar_url?: string | null; xp_total?: number; gold?: number; rubies?: number; essence?: number; role?: string } | null
         if (pr) {
           const prog = getLevelProgress(pr.xp_total ?? 0)
           set({
             loaded: true, loading: false, error: false,
-            profile: { name: pr.display_name || pr.username || '', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null },
+            profile: { name: pr.display_name || pr.username || '', level: prog.level, pct: prog.progressPercent, avatarUrl: pr.avatar_url ?? null, role: (pr.role as AccountRole) ?? 'user' },
             balances: { silver: pr.gold ?? 0, rubies: pr.rubies ?? 0, essence: pr.essence ?? 0 },
             rankStep: rp ? rp.rank_step : null,
           })
@@ -84,3 +87,8 @@ export const useAccount = create<AccountState>((set) => ({
 
   applyBalances: (b) => set({ balances: b }),
 }))
+
+/** Ar dabartinis žaidėjas – testeris arba adminas (privilegijos: bet kokia kaladė, bug ikona nav juostoje). */
+export function isTesterRole(role: string | null | undefined): boolean {
+  return role === 'tester' || role === 'admin'
+}

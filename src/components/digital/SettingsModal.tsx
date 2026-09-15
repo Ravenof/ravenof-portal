@@ -23,11 +23,28 @@ import { isUiSoundEnabled, toggleUiSound, subscribeUiSound, playUiClick } from '
 import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION } from '@/lib/version'
+import { requestOpenBugReport } from '@/components/digital/BugReportModal'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
+
+// ── Diagnostika: CSS viewport, DPR ir WebView teksto mastelis (Android „Šrifto dydis")
+// Teksto mastelį matuojam zondu: 100px šriftas -> jei WebView pritaiko textZoom, aukštis > 100.
+function ViewportDiag() {
+  const [txt, setTxt] = useState('')
+  useEffect(() => {
+    const el = document.createElement('span')
+    el.textContent = 'H'
+    Object.assign(el.style, { position: 'absolute', visibility: 'hidden', font: '400 100px/1 Arial, sans-serif', whiteSpace: 'nowrap' })
+    document.body.appendChild(el)
+    const zoom = Math.round(el.getBoundingClientRect().height)
+    el.remove()
+    setTxt(` · ${window.innerWidth}×${window.innerHeight} @${Math.round(window.devicePixelRatio * 100) / 100}x · txt ${zoom}%`)
+  }, [])
+  return <>{txt}</>
+}
 
 // ── Patvirtinti UI elementai ─────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -173,7 +190,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
         <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
         <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('settings.title')}</div>
         <div className="flex-1" />
-        <div style={{ font: '400 9px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}{profile ? ` · ${profile.name}` : ''}</div>
+        <div style={{ font: '400 9px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}{profile ? ` · ${profile.name}` : ''}<ViewportDiag /></div>
       </div>
 
       <div className="flex-1 flex min-h-0" style={{ gap: 12 }}>
@@ -263,6 +280,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
             </div>
             <p className="shrink-0" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.5)', lineHeight: 1.4, textAlign: 'center' }}>{t('settings.autoSaved')}</p>
           </div>
+          <button onClick={() => { playUiClick(); requestOpenBugReport() }} className="ravenof-press shrink-0 w-full" style={{ textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5, color: '#7bd389', border: '1px solid rgba(123,211,137,.4)', background: 'none', padding: 11, cursor: 'pointer', textTransform: 'uppercase', marginBottom: 6 }}>🐞 {t('bug.menuLabel')}</button>
           <button onClick={doLogout} className="ravenof-press shrink-0 w-full" style={{ textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5, color: 'var(--ravenof-danger)', border: '1px solid #8D2D3855', background: 'none', padding: 11, cursor: 'pointer', textTransform: 'uppercase' }}>{t('more.logout')}</button>
         </div>
       </div>

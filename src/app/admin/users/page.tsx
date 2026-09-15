@@ -10,6 +10,7 @@ type SearchParams = Promise<{ q?: string; role?: string }>
 
 const ROLE_COLORS: Record<string, string> = {
   admin:           '#ef4444',
+  tester:          '#7bd389',
   event_moderator: '#a78bfa',
   user:            '#6b7280',
   banned:          '#ef4444',
@@ -31,7 +32,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
 
   let q = supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, role, created_at, xp_total, level, gold')
+    .select('id, username, display_name, avatar_url, role, created_at, xp_total, level, gold, last_seen_at, last_platform, last_app_version')
     .order('created_at', { ascending: false })
 
   if (params.role) q = q.eq('role', params.role)
@@ -41,7 +42,16 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const rows = (users ?? []) as {
     id: string; username: string; display_name: string | null
     role: string; created_at: string; xp_total: number; level: number; gold: number | null
+    last_seen_at: string | null; last_platform: string | null; last_app_version: string | null
   }[]
+  // Kovų aktyvumas vienu RPC (kovų sk., pergalės, paskutinė kova)
+  const { data: actData } = rows.length ? await supabase.rpc('rvn_admin_users_activity', { p_ids: rows.map((r) => r.id) }) : { data: null }
+  const act = (actData ?? {}) as Record<string, { n: number; wins: number; last: string | null }>
+  const fmtAgo = (d: string | null) => {
+    if (!d) return '—'
+    const h = Math.round((Date.now() - new Date(d).getTime()) / 3600000)
+    return h < 1 ? 'ką tik' : h < 48 ? `prieš ${h} val.` : `prieš ${Math.round(h / 24)} d.`
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
@@ -57,6 +67,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           </Link>
           <Link href="/admin/achievements" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
             Pasiekimai
+          </Link>
+          <Link href="/admin/bugs" className="text-xs hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+            🐞 Klaidos
           </Link>
           <span style={{ color: 'var(--bg-border)' }}>|</span>
           <span className="text-sm font-bold" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--gold)' }}>
@@ -97,7 +110,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           </form>
 
           <div className="flex gap-2">
-            {[['', 'Visi'], ['admin', 'Admin'], ['event_moderator', 'Moderatoriai'], ['user', 'Vartotojai'], ['banned', 'Užblokuoti']].map(([val, label]) => (
+            {[['', 'Visi'], ['admin', 'Admin'], ['tester', 'Testuotojai'], ['event_moderator', 'Moderatoriai'], ['user', 'Vartotojai'], ['banned', 'Užblokuoti']].map(([val, label]) => (
               <Link key={val} href={val ? `/admin/users?role=${val}` : '/admin/users'}
                 className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                 style={{
@@ -117,7 +130,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
-                {['Vartotojas', 'Rolė', 'Lygis / XP', 'Registracija', 'Auksas / pakuotės', 'Keisti rolę', 'Veiksmai'].map(h => (
+                {['Vartotojas', 'Rolė', 'Lygis / XP', 'Registracija', 'Kovos', 'Paskutinį kartą', 'Auksas / pakuotės', 'Keisti rolę', 'Veiksmai'].map(h => (
                   <th key={h} className="text-left px-3 py-2 text-xs font-semibold"
                     style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -129,9 +142,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                   style={{ background: i % 2 === 0 ? 'var(--bg-base)' : 'var(--bg-surface)', borderBottom: '1px solid var(--bg-border)' }}>
                   <td className="px-3 py-2">
                     <div>
-                      <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                      <Link href={`/admin/users/${u.id}`} className="font-medium text-sm hover:underline" style={{ color: 'var(--gold)' }}>
                         {u.display_name ?? u.username}
-                      </span>
+                      </Link>
                       <span className="ml-2 text-xs" style={{ color: 'var(--text-muted)' }}>@{u.username}</span>
                     </div>
                   </td>
@@ -147,6 +160,13 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                   </td>
                   <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     {formatDate(u.created_at)}
+                  </td>
+                  <td className="px-3 py-2 text-xs whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                    {act[u.id] ? <>{act[u.id].n} <span style={{ color: 'var(--text-muted)' }}>({act[u.id].wins} perg.)</span></> : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                  </td>
+                  <td className="px-3 py-2 text-xs whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                    <span title={act[u.id]?.last ?? ''}>{act[u.id]?.last ? `kova ${fmtAgo(act[u.id].last)}` : 'nežaidė'}</span>
+                    <span className="block" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>matytas {fmtAgo(u.last_seen_at)}{u.last_platform ? ` · ${u.last_platform} v${u.last_app_version ?? '?'}` : ''}</span>
                   </td>
                   <td className="px-3 py-2">
                     <UserGrantForm userId={u.id} gold={u.gold ?? 0} />

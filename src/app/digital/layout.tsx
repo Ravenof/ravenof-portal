@@ -15,6 +15,9 @@ import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
 import { RewardCelebrationHost } from '@/components/digital/progression/RewardCelebration'
 import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
+import { BugReportLayer, requestOpenBugReport } from '@/components/digital/BugReportModal'
+import { installBugConsoleCapture } from '@/lib/digital/bugReport'
+import { isTesterRole } from '@/lib/digital/accountStore'
 import { ShopModal } from '@/components/digital/ShopModal'
 import { startMenuMusic, stopMusic } from '@/lib/game/musicManager'
 import { playUiClick } from '@/lib/ui-sound'
@@ -90,7 +93,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const refreshWallet = useCallback(() => { void useAccount.getState().refresh({ force: true }) }, [])
 
   useEffect(() => {
-    loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true)
+    loadDigitalSettings(); startMenuMusic(); setNativeImmersive(true); installBugConsoleCapture()
     applyAccessibility() // prieinamumas: reduced-motion atributas + UI mastelis
     void scheduleReturnReminders()
     void lockLandscape()
@@ -221,6 +224,15 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" style={style}>{inner}</button>
             : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" style={style}>{inner}</Link>
         })}
+        {/* Testeriams/adminams: nuolat matoma „Klaida" ikona (bet kuriame ekrane, vienu paspaudimu) */}
+        {isTesterRole(profile?.role) && (
+          <button onClick={() => { playUiClick(); requestOpenBugReport() }} className="w-full ravenof-press" style={{ borderRight: '2px solid transparent', marginTop: 6 }} aria-label={t('bug.title')}>
+            <span className="flex flex-col items-center justify-center" style={{ gap: deskUi ? 6 : 3, padding: deskUi ? '10px 0' : '6px 0', minHeight: deskUi ? 56 : 40 }}>
+              <span style={{ fontSize: deskUi ? 22 : 16, lineHeight: 1, filter: 'grayscale(.2)' }}>🐞</span>
+              <span style={{ font: `600 ${deskUi ? 11.5 : 8.5}px var(--ravenof-font-display)`, letterSpacing: '.4px', color: '#7bd389' }}>{t('bug.navLabel')}</span>
+            </span>
+          </button>
+        )}
       </nav>}
 
       {/* ── Turinio stulpelis: header + main ── */}
@@ -250,6 +262,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                           {rank.full}
                         </>
                       ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
+                      {profile && (profile.role === 'tester' || profile.role === 'admin') && (
+                        <span title={profile.role} style={{ marginLeft: 4, padding: '1px 5px', border: '1px solid rgba(123,211,137,.6)', color: '#7bd389', font: `700 ${deskUi ? 9 : 7.5}px var(--ravenof-font-body)`, letterSpacing: 1.2, textTransform: 'uppercase', lineHeight: 1.3, borderRadius: 2 }}>
+                          {profile.role === 'admin' ? 'ADMIN' : t('common.testerBadge')}
+                        </span>
+                      )}
                     </span>
                   </>
                 )}
@@ -281,6 +298,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <ContentDownloadGate />
       <RewardCelebrationHost />
       <GlobalChatLayer />
+      <BugReportLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => {

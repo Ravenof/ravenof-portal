@@ -1,0 +1,49 @@
+{
+  "title": "Report a bug",
+  "tabNew": "New",
+  "tabMine": "My reports",
+  "noneYet": "No reports yet.",
+  "category": "Category",
+  "severity": "Severity",
+  "titleField": "Short title",
+  "titlePh": "e.g. Spell dealt no damage",
+  "description": "What happened",
+  "descriptionPh": "Describe what you did and what happened. The more precise, the faster we fix it.",
+  "expected": "What you expected",
+  "expectedPh": "How it should have worked (optional)",
+  "attach": "Add screenshot",
+  "autoInfo": "Added automatically: platform, version, screen and battle log.",
+  "tooShort": "Description is too short.",
+  "send": "Send",
+  "sending": "Sending…",
+  "sentTitle": "Report #{{id}} received",
+  "sentBody": "Thank you! You can follow its status under “My reports”.",
+  "another": "One more",
+  "adminNote": "Reply",
+  "ctxAttached": "Battle context attached: {{mode}}, turn {{turn}}",
+  "cat": {
+    "battle": "Battle",
+    "cards": "Cards / effects",
+    "ui": "Menus / visuals",
+    "auth": "Sign-in",
+    "shop": "Shop / rewards",
+    "other": "Other"
+  },
+  "sev": {
+    "blocker": "Blocker",
+    "major": "Major",
+    "normal": "Normal",
+    "minor": "Minor"
+  },
+  "status": {
+    "new": "New",
+    "triaged": "Triaged",
+    "in_progress": "In progress",
+    "fixed": "Fixed",
+    "wontfix": "Won't fix",
+    "duplicate": "Duplicate"
+  },
+  "menuLabel": "Report a bug",
+  "menuSub": "Found a bug? Tell us – we get it with all the details",
+  "navLabel": "Bug"
+}

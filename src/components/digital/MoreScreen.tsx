@@ -4,7 +4,8 @@
 //    kortelėmis (Žaidimas / Bendruomenė / Paskyra) — viskas telpa be scroll.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, ClipboardList, Award, Gift, Users, LogOut, Power, ChevronRight } from 'lucide-react'
+import { Settings, ClipboardList, Award, Gift, Users, LogOut, Power, ChevronRight, Bug } from 'lucide-react'
+import { requestOpenBugReport } from '@/components/digital/BugReportModal'
 import { playUiClick } from '@/lib/ui-sound'
 import { createClient } from '@/lib/supabase/client'
 import { exitNativeApp } from '@/lib/digital/native'
@@ -46,6 +47,7 @@ export function MoreScreen() {
         { key: 'level', label: t('more.level'), sub: t('more.levelSub'), icon: Award, img: 'fi-season', accent: '240,180,41', onClick: () => { playUiClick(); router.push('/digital/profile/levels') } },
         { key: 'achievements', label: t('more.achievements'), sub: t('more.achievementsSub'), icon: Award, img: 'fi-season', accent: '193,86,106', onClick: () => { playUiClick(); router.push('/digital/profile/achievements') } },
         { key: 'quests', label: t('more.quests'), sub: t('more.questsSub'), icon: ClipboardList, img: 'fi-quests', accent: '139,92,246', onClick: () => { playUiClick(); router.push('/digital/quests') } },
+        { key: 'bug', label: t('bug.menuLabel'), sub: t('bug.menuSub'), icon: Bug, accent: '123,211,137', onClick: () => { playUiClick(); requestOpenBugReport() } },
       ],
     },
     {
