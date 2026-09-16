@@ -57,7 +57,12 @@
     "selectedToast": "Selected: {{name}}",
     "tabAvatar": "Avatar",
     "tabCardBack": "Card back",
-    "title": "Edit profile"
+    "title": "Edit profile",
+    "tabDeckAvatars": "Deck avatars",
+    "deckAvatarsHint": "Each deck can have its own avatar – in battles with that deck it replaces the global one. Without an assignment the global avatar is used.",
+    "deckGlobal": "Global",
+    "deckNone": "No decks yet.",
+    "deckAvatarSet": "Avatar assigned to deck"
   },
   "level": {
     "actChoose": "Choose now",
@@ -167,6 +172,7 @@
     "win": "Win",
     "wins": "Wins",
     "winsShort": "wins",
-    "xpHidden": "XP progress is not shown publicly"
+    "xpHidden": "XP progress is not shown publicly",
+    "deckAvatars": "Deck avatars"
   }
 }

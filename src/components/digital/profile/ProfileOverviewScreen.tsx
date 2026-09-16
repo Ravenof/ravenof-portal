@@ -60,7 +60,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   const [featured, setFeatured] = useState<string[]>([])
   const [achSummary, setAchSummary] = useState<{ done: number; total: number } | null>(null)
   const [modeStats, setModeStats] = useState<MatchModeStats | null>(null)
-  const [editOpen, setEditOpen] = useState<false | 'avatar' | 'card_back'>(false)
+  const [editOpen, setEditOpen] = useState<false | 'avatar' | 'card_back' | 'deck_avatars'>(false)
   // Aktyvus kosmetinis avataras — vienas resolveris (cosmeticsStore); rodomas
   // pirmiau už įkeltą avatar_url nuotrauką (audit Part 4: pasirinktas avataras
   // matomas profilyje). Svetimame profilyje — jo equippedAvatar per katalogą.
@@ -151,9 +151,10 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
             <div style={{ flex: 1 }}><Cta disabled tone="ghost" minHeight={40}>{t('profile.overview.challenge')}</Cta></div>
           </div>
         ) : (
-          <Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); setEditOpen('avatar') }}>
-            {t('profile.overview.edit')}
-          </Cta>
+          <div style={{ display: 'flex', gap: 7 }}>
+            <div style={{ flex: 1 }}><Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); setEditOpen('avatar') }}>{t('profile.overview.edit')}</Cta></div>
+            <div style={{ flex: 1 }}><Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); setEditOpen('deck_avatars') }}>{t('profile.overview.deckAvatars')}</Cta></div>
+          </div>
         )}
       </div>
 

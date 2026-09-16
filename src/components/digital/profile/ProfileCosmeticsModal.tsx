@@ -26,11 +26,12 @@ import {
   DEFAULT_CARD_BACK_SRC, LEGACY_CARD_BACK_SRC,
 } from '@/lib/digital/cosmeticsStore'
 import { useAccount } from '@/lib/digital/accountStore'
+import { useActiveDeck } from '@/lib/digital/activeDeck'
 
 const GOLD = '240,180,41'
 const CARD_AR = '1044 / 1416' // kanoninis Ravenof kortos santykis (RavenofCardDetailModal)
 
-type Tab = 'avatar' | 'card_back'
+type Tab = 'avatar' | 'card_back' | 'deck_avatars'
 
 /** Kaip gaunamas užrakintas daiktas (be atsitiktinių spėjimų — žinomi šaltiniai). */
 function lockHintKey(c: Cosmetic): { key: string; params?: Record<string, string | number> } {
@@ -75,14 +76,25 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
   useEffect(() => { if (!toast) return; const h = setTimeout(() => setToast(null), 2200); return () => clearTimeout(h) }, [toast])
 
   const items = useMemo(() => {
-    const list = cos.items.filter((c) => c.kind === tab)
+    const list = cos.items.filter((c) => c.kind === (tab === 'deck_avatars' ? 'avatar' : tab))
     const ownedOf = (c: Cosmetic) => cos.owned.includes(c.id) || !!c.ownedByDefault
     // turimi pirmiau, tada užrakinti; abiejose grupėse — pagal sort/name (serverio tvarka)
     return [...list.filter(ownedOf), ...list.filter((c) => !ownedOf(c))]
   }, [cos.items, cos.owned, tab])
 
-  const activeId = tab === 'avatar' ? cos.active.avatar : cos.active.cardBack
-  const activeVis = tab === 'avatar' ? activeAvatarVisual(cos) : activeCardBackVisual(cos)
+  const activeId = tab === 'card_back' ? cos.active.cardBack : cos.active.avatar
+  const activeVis = tab === 'card_back' ? activeCardBackVisual(cos) : activeAvatarVisual(cos)
+  // Kaladžių avatarai: turimi avatarai + kaladės iš activeDeck store
+  const decks = useActiveDeck()
+  useEffect(() => { if (tab === 'deck_avatars' && !decks.loaded && !decks.loading) void decks.refresh() }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+  const ownedAvatars = useMemo(() => cos.items.filter((c) => c.kind === 'avatar' && (cos.owned.includes(c.id) || !!c.ownedByDefault)), [cos.items, cos.owned])
+  const [deckPick, setDeckPick] = useState<string | null>(null)
+  const assignDeckAvatar = async (deckId: string, avatarId: string | null) => {
+    playUiClick()
+    const r = await useActiveDeck.getState().setDeckAvatar(deckId, avatarId)
+    if (r.ok) { playSuccess(); setToast({ msg: t('profile.cosmetics.deckAvatarSet') }); setDeckPick(null) }
+    else { playError(); setToast({ msg: t('profile.cosmetics.failedToast'), err: true }) }
+  }
 
   const pick = async (c: Cosmetic) => {
     if (cos.busy || activeId === c.id) return
@@ -121,13 +133,13 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
         <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2" style={{ borderBottom: `1px solid rgba(${GOLD},0.18)` }}>
           <h2 style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 15, letterSpacing: '0.08em', margin: 0 }}>{t('profile.cosmetics.title')}</h2>
           <div className="flex ml-3" style={{ border: '1px solid rgba(255,255,255,0.14)' }}>
-            {(['avatar', 'card_back'] as const).map((k) => (
+            {(['avatar', 'card_back', 'deck_avatars'] as const).map((k) => (
               <button key={k} onClick={() => { playUiClick(); setTab(k) }} aria-pressed={tab === k}
                 style={{ minHeight: 36, padding: '0 14px', border: 0, cursor: 'pointer',
                   font: '700 11px var(--rvn-font-display)', letterSpacing: 1, textTransform: 'uppercase',
                   background: tab === k ? 'var(--ravenof-grad-gold, linear-gradient(180deg,#ffe28c,#f3b62c))' : 'transparent',
                   color: tab === k ? '#3a2406' : 'var(--text-muted)' }}>
-                {t(k === 'avatar' ? 'profile.cosmetics.tabAvatar' : 'profile.cosmetics.tabCardBack')}
+                {t(k === 'avatar' ? 'profile.cosmetics.tabAvatar' : k === 'card_back' ? 'profile.cosmetics.tabCardBack' : 'profile.cosmetics.tabDeckAvatars')}
               </button>
             ))}
           </div>
@@ -136,6 +148,56 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
             style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
         </div>
 
+        {tab === 'deck_avatars' ? (
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll p-3 flex flex-col" style={{ gap: 8 }}>
+            <p style={{ font: '400 11.5px var(--rvn-font-body, sans-serif)', color: 'var(--text-muted)', margin: 0 }}>{t('profile.cosmetics.deckAvatarsHint')}</p>
+            {!decks.loaded ? <div className="rvn-skeleton" style={{ height: 120, borderRadius: 10 }} />
+              : decks.decks.length === 0 ? <p className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>{t('profile.cosmetics.deckNone')}</p>
+              : decks.decks.map((d) => {
+                const bound = d.boundAvatar ? ownedAvatars.find((a) => a.id === d.boundAvatar) ?? cos.items.find((a) => a.id === d.boundAvatar) ?? null : null
+                const vis = bound ?? null
+                const globalVis = activeAvatarVisual(cos)
+                const open = deckPick === d.id
+                return (
+                  <div key={d.id} className="rounded-xl px-3 py-2" style={{ background: 'rgba(10,8,16,0.72)', border: `1px solid ${open ? `rgba(${GOLD},0.5)` : 'rgba(255,255,255,0.12)'}` }}>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="relative overflow-hidden shrink-0 flex items-center justify-center" style={{ width: 44, height: 44, borderRadius: 999, border: `2px solid ${bound ? `rgb(${GOLD})` : 'rgba(255,255,255,0.18)'}`, background: '#0a0810' }}>
+                        {(vis?.imageUrl ?? globalVis.url)
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={vis?.imageUrl ?? globalVis.url ?? ''} alt="" className="w-full h-full object-cover" draggable={false} />
+                          : <span style={{ fontSize: 20 }}>{vis?.emoji ?? globalVis.emoji ?? '☠'}</span>}
+                      </span>
+                      <div className="min-w-0 flex-1" style={{ minWidth: 160 }}>
+                        <p className="truncate" style={{ font: '700 13px var(--rvn-font-display)', color: d.factionColor ?? '#f3ead3', margin: 0 }}>{d.name}{d.id === decks.activeDeckId ? <span style={{ font: '700 8.5px var(--rvn-font-display)', letterSpacing: 1, color: 'var(--gold)', marginLeft: 8, textTransform: 'uppercase' }}>★ {t('decks.active.isActive')}</span> : null}</p>
+                        <p style={{ font: '400 11px var(--rvn-font-body, sans-serif)', color: 'var(--text-muted)', margin: 0 }}>
+                          {d.faction ?? '—'} · {bound ? tc('cosmetic', bound.id, 'name', bound.name) : `${t('profile.cosmetics.deckGlobal')} (${globalVis.id ? tc('cosmetic', globalVis.id, 'name', globalVis.name) : globalVis.name})`}
+                        </p>
+                      </div>
+                      <span className="flex gap-1.5 shrink-0">
+                        <button onClick={() => { playUiClick(); setDeckPick(open ? null : d.id) }} className="rvn-press px-3 py-1.5 rounded-lg" style={{ font: '700 10.5px var(--rvn-font-display)', letterSpacing: 1, textTransform: 'uppercase', background: open ? `rgb(${GOLD})` : `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.5)`, color: open ? '#3a2406' : 'var(--gold)', cursor: 'pointer' }}>
+                          {open ? t('common.close') : t('profile.cosmetics.selectCta')}
+                        </button>
+                        {d.boundAvatar && <button onClick={() => void assignDeckAvatar(d.id, null)} className="rvn-press px-3 py-1.5 rounded-lg" style={{ font: '600 10.5px var(--rvn-font-body, sans-serif)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#c9bfa8', cursor: 'pointer' }}>{t('decks.active.useGlobal')}</button>}
+                      </span>
+                    </div>
+                    {open && (
+                      <div className="mt-2 flex gap-2 flex-wrap">
+                        {ownedAvatars.map((a) => (
+                          <button key={a.id} title={tc('cosmetic', a.id, 'name', a.name)} onClick={() => void assignDeckAvatar(d.id, a.id)} className="rvn-press shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+                            style={{ width: 48, height: 48, border: `2px solid ${d.boundAvatar === a.id ? `rgb(${GOLD})` : 'rgba(255,255,255,0.15)'}`, background: '#0a0810', cursor: 'pointer' }}>
+                            {a.imageUrl
+                              // eslint-disable-next-line @next/next/no-img-element
+                              ? <img src={a.imageUrl} alt="" className="w-full h-full object-cover" draggable={false} />
+                              : <span style={{ fontSize: 20 }}>{a.emoji ?? '☠'}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+          </div>
+        ) : (
         <div className="flex-1 min-h-0 flex gap-3 p-3">
           {/* KAIRĖ: didelis aktyvaus preview */}
           <div className="shrink-0 flex flex-col items-center gap-2 overflow-y-auto" style={{ width: 220 }}>
@@ -214,6 +276,7 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
             )}
           </div>
         </div>
+        )}
 
         {toast && (
           <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: 14, padding: '7px 16px', borderRadius: 999, font: '600 11px var(--rvn-font-body, sans-serif)',
