@@ -140,7 +140,7 @@
     "sideEnemy": "priešo",
     "sideYours": "tavo",
     "skillDefault": "Gebėjimas",
-    "skillLocked": "🔒 (reikia {{phase}} fazės)",
+    "skillLocked": "(reikia {{phase}} fazės)",
     "skillUsed": "Šį ėjimą gebėjimas jau panaudotas.",
     "skipTutorial": "Praleisti mokymą",
     "sound": "Garsas",

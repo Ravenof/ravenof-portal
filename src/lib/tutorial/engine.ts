@@ -3628,7 +3628,7 @@ export function swapChampionPhase(g: GameState, s: Side, handUid: string, target
 }
 
 /** Grąžina čempiono skill sąrašą (su atrakinimu pagal fazę). */
-export function championSkills(ch: BoardUnit): { name: string; mappings: EffectMapping[]; unlocked: boolean; goldCost: number }[] {
+export function championSkills(ch: BoardUnit): { name: string; mappings: EffectMapping[]; unlocked: boolean; goldCost: number; icon: string | null }[] {
   const cfg = ch.card.gameplay?.championSkillConfig
   let raw = cfg?.skills
   if ((!raw || raw.length === 0) && (cfg?.mappings?.length || ch.card.mappings?.length)) {
@@ -3639,6 +3639,7 @@ export function championSkills(ch: BoardUnit): { name: string; mappings: EffectM
     mappings: sk.mappings ?? [],
     unlocked: ch.phase >= i + 1,
     goldCost: Math.max(0, sk.goldCost ?? 0),
+    icon: sk.icon ?? null,
   }))
 }
 

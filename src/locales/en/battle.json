@@ -140,7 +140,7 @@
     "sideEnemy": "enemy",
     "sideYours": "yours",
     "skillDefault": "Skill",
-    "skillLocked": "🔒 (phase {{phase}} required)",
+    "skillLocked": "(phase {{phase}} required)",
     "skillUsed": "The skill has already been used this turn.",
     "skipTutorial": "Skip the tutorial",
     "sound": "Sound",

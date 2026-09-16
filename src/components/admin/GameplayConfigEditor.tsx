@@ -131,6 +131,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         mappings: idx === activeSkill ? arr : (champSkills[idx]?.mappings ?? []),
         cinematic: champSkills[idx]?.cinematic,
         goldCost: champSkills[idx]?.goldCost,
+        icon: champSkills[idx]?.icon,
       }))
       update({ ...cfg, championSkillConfig: { skills } })
     } else {
@@ -143,6 +144,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
       goldCost: champSkills[j]?.goldCost,
+      icon: champSkills[j]?.icon,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -152,6 +154,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: j === idx ? (data as SkillCinematic | undefined) : champSkills[j]?.cinematic,
       goldCost: champSkills[j]?.goldCost,
+      icon: champSkills[j]?.icon,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -161,6 +164,17 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
       goldCost: j === idx ? goldCost : champSkills[j]?.goldCost,
+      icon: champSkills[j]?.icon,
+    }))
+    update({ ...cfg, championSkillConfig: { skills } })
+  }
+  const setSkillIcon = (idx: number, icon: string | null) => {
+    const skills = [0, 1, 2].map((j) => ({
+      name: champSkills[j]?.name ?? '',
+      mappings: champSkills[j]?.mappings ?? [],
+      cinematic: champSkills[j]?.cinematic,
+      goldCost: champSkills[j]?.goldCost,
+      icon: j === idx ? (icon || undefined) : champSkills[j]?.icon,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -174,7 +188,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
     if (isChampion && out.championSkillConfig?.skills) {
-      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, goldCost: sk.goldCost || undefined })) }
+      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, goldCost: sk.goldCost || undefined, icon: sk.icon || undefined })) }
     }
     return JSON.stringify(out)
   }, [cfg, needsMapping])
@@ -789,6 +803,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               </div>
               <input type="text" placeholder={`Skill ${activeSkill + 1} pavadinimas`} value={champSkills[activeSkill]?.name ?? ''}
                 onChange={(e) => setSkillName(activeSkill, e.target.value)} style={inputStyle} />
+              {/* Skill ikona – rodoma kovoje gebėjimo pasirinkimo lange (rėmelio kairysis langelis) */}
+              <div className="mt-2">
+                <p style={{ ...labelStyle, marginBottom: 4 }}>🔆 Skill {activeSkill + 1} ikona</p>
+                <SkillIconUpload key={`icon-${activeSkill}`} url={champSkills[activeSkill]?.icon ?? null} cardNumber={cardNumber} skillIdx={activeSkill}
+                  onChange={(u) => setSkillIcon(activeSkill, u)} />
+              </div>
               {/* Neprivaloma aukso kaina: kaip kortos sužaidimas — panaudojant nuskaitoma iš žaidėjo aukso */}
               <div className="flex flex-wrap items-center gap-2 text-[11px] mt-2" style={{ color: 'var(--text-secondary)' }}>
                 <label className="flex items-center gap-1" title="Panaudojant skill nuskaitomas auksas (kaip sužaidžiant kortą). Neužtenka aukso – skill negalimas.">
@@ -1934,6 +1954,46 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
   )
 }
 
+
+// ── Čempiono skill ikonos upload (card-images/skill-icons/) ──────────────────
+// Spec: kvadratas 256×256 (min 128), PNG su permatomu fonu, simbolis centre,
+// ~8 % paraštė. Kovoje rodoma ~34–48 px aukščio tamsiai violetiniame langelyje,
+// todėl – ryškus, paprastas siluetas (auksas / šviesi spalva), be smulkių detalių.
+function SkillIconUpload({ url, cardNumber, skillIdx, onChange }: { url: string | null; cardNumber?: string | number | null; skillIdx: number; onChange: (u: string | null) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const pick = async (file: File) => {
+    if (!['image/png', 'image/webp'].includes(file.type)) { setErr('Tik PNG/WEBP su permatomu fonu'); return }
+    if (file.size > 2 * 1024 * 1024) { setErr('Maks. 2 MB'); return }
+    setErr(null); setBusy(true)
+    try {
+      const supabase = createClient()
+      const { blob, ext, contentType } = await toWebp(file, { maxW: 256, quality: 0.9 })
+      const base = String(cardNumber || 'card').toLowerCase().replace(/[^a-z0-9]/g, '-')
+      const path = `skill-icons/${base}-skill-${skillIdx + 1}-${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('card-images').upload(path, blob, { upsert: true, contentType, cacheControl: LONG_CACHE })
+      if (error) { setErr(error.message); return }
+      const { data: { publicUrl } } = supabase.storage.from('card-images').getPublicUrl(path)
+      onChange(publicUrl)
+    } finally { setBusy(false) }
+  }
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {url
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={url} alt="" className="rounded-md object-contain" style={{ width: 48, height: 48, background: '#1b0e1c', border: '1px solid rgba(240,180,41,0.5)', padding: 3 }} />
+        : <span className="flex items-center justify-center rounded-md text-[10px]" style={{ width: 48, height: 48, background: 'var(--bg-elevated)', border: '1px dashed var(--bg-border)', color: 'var(--text-muted)' }}>Nėra</span>}
+      <label className="px-3 py-1.5 rounded-lg text-xs cursor-pointer" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', color: 'var(--text-secondary)' }}>
+        {busy ? 'Keliama…' : url ? 'Pakeisti' : 'Įkelti ikoną'}
+        <input type="file" accept="image/png,image/webp" className="hidden" disabled={busy}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = '' }} />
+      </label>
+      {url && <button type="button" onClick={() => onChange(null)} className="px-2 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}>Pašalinti</button>}
+      {err && <span className="text-xs" style={{ color: '#ef4444' }}>{err}</span>}
+      <span className="text-[10px] w-full" style={{ color: 'var(--text-muted)' }}>256×256 PNG, permatomas fonas, simbolis centre (~8 % paraštė), ryškus paprastas siluetas. Be ikonos rodomas fazės numeris (I / II / III).</span>
+    </div>
+  )
+}
 
 // ── Lauko kortos arenos fono upload (card-images/fields/) ────────────────────
 function FieldBgUpload({ url, onChange }: { url: string | null; onChange: (u: string | null) => void }) {

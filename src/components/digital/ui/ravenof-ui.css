@@ -268,8 +268,24 @@
   border-image: url('/ravenof-ui/combat/optional/timer-chip.png') 21 33 21 33 fill / 7px 11px;
 }
 .combat-skill-row {
-  border: 12px solid transparent; border-width: 12px 20px 12px 35px; background: transparent !important;
-  border-image: url('/ravenof-ui/combat/optional/skill-row-frame.png') 36 60 36 105 fill / 12px 20px 12px 35px;
+  /* Kairė slice (258px) apima ir ikonos langelį → jis nebetempiamas kartu su eilute.
+     Mastelis 1/2.4: langelis šaltinyje x140–254, y25–107 → ekrane ~58px/10px, 47×34px. */
+  position: relative; min-height: 55px; display: flex; align-items: center;
+  border: 15px solid transparent; border-width: 15px 25px 15px 108px; background: transparent !important;
+  border-image: url('/ravenof-ui/combat/optional/skill-row-frame.png') 36 60 36 258 fill / 15px 25px 15px 108px;
+}
+.combat-skill-icon {
+  position: absolute; left: -50px; top: -5px; width: 47px; height: 34px; /* nuo padding-box: 58-108, 10-15 */
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.combat-skill-icon > img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 4px rgba(240,180,41,.45)); }
+.combat-skill-icon > .rvn-skill-num {
+  font-family: var(--rvn-font-display); font-size: 18px; line-height: 1; font-weight: 700; color: var(--gold);
+  text-shadow: 0 0 6px rgba(240,180,41,.55), 0 1px 0 #000;
+}
+.combat-skill-row:disabled .combat-skill-icon > img { filter: grayscale(1) brightness(.7); }
+.combat-skill-icon > .rvn-skill-lock {
+  position: absolute; right: -4px; bottom: -4px; font-size: 12px; line-height: 1; filter: drop-shadow(0 1px 1px #000);
 }
 .combat-end-turn:active:not(:disabled), .combat-discard-gold:active, .combat-round-icon:active,
 .combat-send:active, .combat-emote-slot:active {

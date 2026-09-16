@@ -5301,8 +5301,16 @@ doAction({ t: 'endTurn', actor: 'you' })
                         }}
                         className="combat-skill-row w-full text-left transition-all disabled:opacity-40"
                         style={{ filter: sk.unlocked ? 'none' : 'saturate(0.45)' }}>
+                        {/* Ikonos langelis (rėmelio kairė): skill ikona iš admin arba fazės numeris */}
+                        <span className="combat-skill-icon">
+                          {sk.icon
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={sk.icon} alt="" draggable={false} />
+                            : <span className="rvn-skill-num">{['I', 'II', 'III'][i] ?? i + 1}</span>}
+                          {!sk.unlocked && <span className="rvn-skill-lock">🔒</span>}
+                        </span>
                         <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>
-                          {i + 1}. {sk.name}
+                          {sk.name}
                           {sk.goldCost > 0 && (
                             <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: cantAfford ? '#f87171' : 'var(--gold)' }}>
                               💰{sk.goldCost}
