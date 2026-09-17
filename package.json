@@ -55,7 +55,11 @@
     "server:build": "node apps/server/build.mjs",
     "server:start": "node apps/server/dist/index.mjs",
     "server:dev": "node apps/server/build.mjs && node apps/server/dist/index.mjs",
-    "typecheck:apps": "tsc -p apps/digital/tsconfig.json && tsc -p apps/server/tsconfig.json"
+    "typecheck:apps": "tsc -p apps/digital/tsconfig.json && tsc -p apps/server/tsconfig.json",
+    "release:publish": "node tools/publish-bundle.mjs",
+    "release:dry": "node tools/publish-bundle.mjs --skip-build --dry",
+    "release:baseline:android": "node tools/publish-bundle.mjs --skip-build --mark-baseline android",
+    "release:baseline:desktop": "node tools/publish-bundle.mjs --skip-build --mark-baseline desktop"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -67,6 +71,7 @@
     "@capacitor/screen-orientation": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
+    "@capgo/capacitor-updater": "^8.51.0",
     "@fontsource/cinzel": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@supabase/ssr": "^0.5.2",

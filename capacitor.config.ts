@@ -56,6 +56,31 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#0A0A0F',
     },
+    // Capacitor 8 SystemBars: nuo pat starto paslepia IR status bar, IR Android
+    // navigacijos mygtukus (immersive). insetsHandling 'disable' – webview'ui
+    // nepridedamos paraštės po sistemos juostomis (kitaip žaidimas „susispaudžia").
+    // Lipnų (sticky) režimą – kad juostos po brūkštelėjimo vėl pasislėptų – nustato MainActivity.
+    // OTA bundle'ai (tik LOCAL režime turi prasmę; remote režime žaidimas ir taip kraunamas iš tinklo).
+    // MANUAL režimas: ką ir kada siųsti sprendžia src/lib/updater (rvn_get_release → kanalai admin/tester/stable),
+    // Capgo debesis nenaudojamas – todėl visi jo URL'ai tušti.
+    CapacitorUpdater: {
+      autoUpdate: false,
+      statsUrl: '',
+      updateUrl: '',
+      channelUrl: '',
+      // Per tiek ms naujas bundle'as turi iškviesti notifyAppReady(), kitaip native pusė pati grąžina ankstesnį.
+      appReadyTimeout: 20000,
+      // Nepavykęs bundle'as paliekamas sąraše su status 'error' – pagal tai klientas praneša 'rolled_back' ir jo nebesiunčia.
+      autoDeleteFailed: false,
+      autoDeletePrevious: true,
+      // Įdiegus naują APK – seni OTA bundle'ai metami, naudojamas naujo APK builtin.
+      resetWhenUpdate: true,
+    },
+    SystemBars: {
+      hidden: true,
+      style: 'DARK',
+      insetsHandling: 'disable',
+    },
   },
 }
 

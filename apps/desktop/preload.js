@@ -13,4 +13,19 @@ contextBridge.exposeInMainWorld('ravenofDesktop', {
     ipcRenderer.on('auth:callback', h)
     return () => ipcRenderer.removeListener('auth:callback', h)
   },
+  // OTA bundle updater (logika main procese – apps/desktop/updater.js)
+  updater: {
+    info: () => ipcRenderer.invoke('updater:info'),
+    download: (o) => ipcRenderer.invoke('updater:download', o),
+    applyNext: (version) => ipcRenderer.invoke('updater:applyNext', version),
+    applyNow: (version) => ipcRenderer.invoke('updater:applyNow', version),
+    resetToBuiltin: () => ipcRenderer.invoke('updater:resetToBuiltin'),
+    markReady: () => ipcRenderer.invoke('updater:markReady'),
+    didFail: (version) => ipcRenderer.invoke('updater:didFail', version),
+    onProgress: (cb) => {
+      const h = (_e, pct) => cb(pct)
+      ipcRenderer.on('updater:progress', h)
+      return () => ipcRenderer.removeListener('updater:progress', h)
+    },
+  },
 })

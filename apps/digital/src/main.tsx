@@ -14,6 +14,7 @@ import App from './App'
 import { AppErrorBoundary } from './ErrorBoundary'
 import { installAppBundleRuntime } from './runtime'
 import { Splash } from './Splash'
+import { UpdateLayer } from './UpdateLayer'
 
 // Žaidimo žymekliai tik pelės aplinkoje. Electron shell'e – visada; kitur – kai media
 // query sako „pelė" ARBA kai gaunam pirmą pelės pointer įvykį (jutikliniai nešiojamieji
@@ -28,5 +29,5 @@ import { Splash } from './Splash'
 }
 
 installAppBundleRuntime().finally(() => {
-  createRoot(document.getElementById('root')!).render(<StrictMode><AppErrorBoundary><App /></AppErrorBoundary><Splash /></StrictMode>)
+  createRoot(document.getElementById('root')!).render(<StrictMode><AppErrorBoundary><App /></AppErrorBoundary><UpdateLayer /><Splash /></StrictMode>)
 })

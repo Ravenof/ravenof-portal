@@ -12,9 +12,14 @@ subst V: /d >nul 2>&1
 subst V: "%CD%"
 (
   echo CWD: %CD%
-  call npm run app:build
+  rem OTA updater pluginas capgo capacitor-updater - idiegiam, jei dar nera
+  if not exist node_modules\@capgo\capacitor-updater call npm install --no-audit --no-fund
+  rem Media PRIES build'a: vite kopijuoja apps/digital/media i dist tik build'o metu
   node tools\build-media.mjs
+  call npm run app:build
   call npx cap sync android
+  rem Isimenam, kas ikepta i si APK - publish-bundle.mjs tu failu nebekels i Storage
+  node tools\publish-bundle.mjs --skip-build --mark-baseline android
   cd /d V:\android
   call gradlew.bat assembleDebug
   if errorlevel 1 echo GRADLE FAILED

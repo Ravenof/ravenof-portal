@@ -68,3 +68,7 @@ build-apk-local.log
 /Ra00venof Digital Phase 5 continuation/
 /Raveknof Digital Phase 5 continuation/
 /tatusCUsersAdministratornode ravenof-apply.mjs
+
+# Release publikavimas (tools/publish-bundle.mjs)
+.env.publish.local
+tools/.publish-cache.json

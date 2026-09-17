@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/announcements', label: '📰 Skelbimai'     },
   { href: '/admin/users',         label: '👥 Naudotojai'    },
   { href: '/admin/bugs',          label: '🐞 Klaidos'       },
+  { href: '/admin/releases',      label: '🚀 Release'       },
   { href: '/admin/achievements',  label: '🏅 Pasiekimai'    },
   { href: '/admin/tutorial',      label: '🎓 Mokymai'       },
   { href: '/admin/playground',    label: '🧪 Poligonas'     },
@@ -262,6 +263,7 @@ export default async function AdminDashboard() {
               { href: '/admin/achievements',             label: '🏅 Pasiekimai', color: '#a78bfa'            },
               { href: '/admin/users',                    label: '👥 Naudotojai', color: 'var(--text-secondary)' },
               { href: '/admin/bugs',                     label: '🐞 Klaidos', color: '#7bd389' },
+              { href: '/admin/releases',                 label: '🚀 Release', color: '#c4b5fd' },
             ].map(({ href, label, color }) => (
               <Link
                 key={href}

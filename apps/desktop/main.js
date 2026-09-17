@@ -7,6 +7,7 @@ const path = require('node:path')
 const fs = require('node:fs')
 const { pathToFileURL } = require('node:url')
 const steam = require('./steam')
+const updater = require('./updater')   // OTA bundle'ai: userData/bundles/<versija> virš builtin (žr. updater.js)
 
 const APP_ROOT = app.isPackaged ? path.join(process.resourcesPath, 'app') : path.resolve(__dirname, '../digital/dist')
 const SCHEME = 'app'
@@ -19,10 +20,12 @@ app.commandLine.appendSwitch('disable-direct-composition')
 
 function resolveFile(urlPath) {
   const clean = decodeURIComponent(urlPath.split('?')[0].split('#')[0])
+  // 1) aktyvus OTA bundle'as (tik pasikeitę failai)  2) builtin (installeris)  3) SPA fallback į index.html (OTA → builtin)
+  const ota = updater.resolve(clean.replace(/^\/+/, ''))
+  if (ota) return ota
   const abs = path.normalize(path.join(APP_ROOT, clean))
-  if (!abs.startsWith(APP_ROOT)) return path.join(APP_ROOT, 'index.html')
-  if (fs.existsSync(abs) && fs.statSync(abs).isFile()) return abs
-  return path.join(APP_ROOT, 'index.html')   // SPA fallback
+  if (abs.startsWith(APP_ROOT) && fs.existsSync(abs) && fs.statSync(abs).isFile()) return abs
+  return updater.resolve('index.html') || path.join(APP_ROOT, 'index.html')
 }
 
 // ── Deep link `ravenof://auth/callback?code=…` (Google/Facebook prisijungimas) ─
@@ -66,11 +69,13 @@ function createWindow() {
   win.loadURL(`${SCHEME}://ravenof/digital`)
   mainWin = win
   win.on('closed', () => { if (mainWin === win) mainWin = null })
-  win.webContents.on('did-finish-load', () => { if (pendingDeepLink) { const u = pendingDeepLink; pendingDeepLink = null; setTimeout(() => deliverDeepLink(u), 300) } })
+  win.webContents.on('did-finish-load', () => { updater.armTrial(); if (pendingDeepLink) { const u = pendingDeepLink; pendingDeepLink = null; setTimeout(() => deliverDeepLink(u), 300) } })
   return win
 }
 
 app.whenReady().then(() => {
+  // OTA: atmesti nepatvirtintą bundle'ą / įjungti laukiantį – PRIEŠ kuriant langą. onRevert – perkrauti po automatinio grįžimo.
+  updater.init(APP_ROOT, { onRevert: () => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.reloadIgnoringCache() } })
   protocol.handle(SCHEME, async (req) => {
     const u = new URL(req.url)
     const res = await net.fetch(pathToFileURL(resolveFile(u.pathname)).toString())
@@ -85,6 +90,15 @@ app.whenReady().then(() => {
   ipcMain.handle('steam:player', () => steam.player())
   ipcMain.handle('steam:unlock', (_e, slug) => steam.unlock(String(slug)))
   ipcMain.handle('shell:openExternal', (_e, url) => { const u = String(url); if (/^https?:\/\//.test(u)) return shell.openExternal(u) })
+  // ── OTA updater IPC (renderer: src/lib/updater/electronAdapter.ts) ──
+  const reloadWin = () => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.reloadIgnoringCache() }
+  ipcMain.handle('updater:info', () => updater.info())
+  ipcMain.handle('updater:download', (e, o) => updater.download({ version: String(o?.version), manifestUrl: String(o?.manifestUrl) }, (pct) => { if (!e.sender.isDestroyed()) e.sender.send('updater:progress', pct) }))
+  ipcMain.handle('updater:applyNext', (_e, v) => updater.applyNext(v))
+  ipcMain.handle('updater:applyNow', (_e, v) => { if (updater.applyNow(v)) setTimeout(reloadWin, 50) })
+  ipcMain.handle('updater:resetToBuiltin', () => { if (updater.resetToBuiltin()) setTimeout(reloadWin, 50) })
+  ipcMain.handle('updater:markReady', () => updater.markReady())
+  ipcMain.handle('updater:didFail', (_e, v) => updater.didFail(v))
   pendingDeepLink = deepLinkFromArgv(process.argv)
   createWindow()
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })

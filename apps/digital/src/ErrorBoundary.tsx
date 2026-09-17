@@ -4,7 +4,12 @@ import { Component, type ReactNode } from 'react'
 export class AppErrorBoundary extends Component<{ children: ReactNode }, { err: Error | null }> {
   state = { err: null as Error | null }
   static getDerivedStateFromError(err: Error) { return { err } }
-  componentDidCatch(err: Error, info: { componentStack?: string }) { console.error('[ravenof] render klaida:', err, info.componentStack) }
+  componentDidCatch(err: Error, info: { componentStack?: string }) {
+    console.error('[ravenof] render klaida:', err, info.componentStack)
+    // Updater'is (src/lib/updater/core.ts) nepatvirtins šio bundle'o, jei medis nulūžo per pirmas 20 s po paleidimo
+    // → shell'as pats grąžins ankstesnį veikusį bundle'ą. Vėlesnės klaidos (žaidimo metu) rollback'o nesukelia.
+    if (performance.now() < 20_000) (window as unknown as { __RAVENOF_BOOT_FAILED__?: boolean }).__RAVENOF_BOOT_FAILED__ = true
+  }
   render() {
     if (!this.state.err) return this.props.children
     return (
