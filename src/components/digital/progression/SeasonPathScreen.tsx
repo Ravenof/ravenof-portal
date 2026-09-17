@@ -278,9 +278,7 @@ export function SeasonPathScreen() {
                 <p style={{ font: `400 10px ${BODY}`, color: C.muted, lineHeight: 1.5, margin: '6px 0 10px' }}>{t('progression.season.unlockNote')}</p>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {/* Aiškūs valiutų pavadinimai (audit #21) — ne pliki skaičiai */}
-                  <Cta onClick={() => void unlock('silver')} busy={busy === 'pass'} tone="ghost" minHeight={44}>
-                    {t('shop.buyGold', { price: formatNumber(state.passPrice.silver) })}
-                  </Cta>
+                  {/* Season Pass perkamas TIK už rubinus (migr. 20260919_shop_currency_rules) – sidabro mygtuko nebėra */}
                   <Cta onClick={() => void unlock('rubies')} busy={busy === 'pass'} tone="ghost" minHeight={44}>
                     {t('shop.buyRubies', { price: formatNumber(state.passPrice.rubies) })}
                   </Cta>

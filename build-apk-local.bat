@@ -8,10 +8,15 @@ rem pasiekiamas per virtualu diska V: (subst), kuriame kelias yra ASCII.
 chcp 65001 >nul
 cd /d "%~dp0"
 set RAVENOF_NATIVE=local
+rem Gradle 8.13 reikalauja Java 11+ (Capacitor 8 - JDK 21). Sistemoje PATH'e yra Java 8,
+rem todel imam Android Studio JBR, jei JAVA_HOME nenurodytas arba rodo i sena Java.
+if exist "%ProgramFiles%\Android\Android Studio\jbr\bin\java.exe" set "JAVA_HOME=%ProgramFiles%\Android\Android Studio\jbr"
+if exist "%LOCALAPPDATA%\Programs\Android Studio\jbr\bin\java.exe" set "JAVA_HOME=%LOCALAPPDATA%\Programs\Android Studio\jbr"
 subst V: /d >nul 2>&1
 subst V: "%CD%"
 (
   echo CWD: %CD%
+  echo JAVA_HOME: %JAVA_HOME%
   rem OTA updater pluginas capgo capacitor-updater - idiegiam, jei dar nera
   if not exist node_modules\@capgo\capacitor-updater call npm install --no-audit --no-fund
   rem Media PRIES build'a: vite kopijuoja apps/digital/media i dist tik build'o metu
