@@ -5453,13 +5453,8 @@ doAction({ t: 'endTurn', actor: 'you' })
                 if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onDeath') && !keys.includes('lastwish')) keys.push('lastwish')
                 if (typeof window !== 'undefined' && window.innerWidth < 560) return null
                 const icon: Record<string, string> = { taunt: 'taunt', shield: 'shield_magic', stealth: 'stealth', sprint: 'sprint' }
-                // Bazinių simbolių paaiškinimas (kaina / puolimas / gyvybės / tipas) – visada
+                // Tik kortos TIPAS + efektų raktažodžiai (kaina/puolimas/gyvybės – perteklinė info)
                 const base: { k: string; name: string; tip: string }[] = [
-                  { k: 'cost', name: t('battle.game.legend.costName'), tip: t('battle.game.legend.costTip') },
-                  ...(inspect.type === 'unit' || inspect.type === 'champion' ? [
-                    { k: 'atk', name: t('battle.game.legend.attackName'), tip: t('battle.game.legend.attackTip') },
-                    { k: 'hp', name: t('battle.game.legend.healthName'), tip: t('battle.game.legend.healthTip') },
-                  ] : []),
                   { k: 'type', name: t('battle.game.legend.typeName'), tip: t(`battle.game.legend.type.${inspect.type}`) },
                 ]
                 return (
