@@ -206,12 +206,6 @@
         "pvpDefeatText": "Draugas šįkart buvo stipresnis. Revanšas – čia pat.",
         "moreInProfile": "daugiau – profilyje",
         "legend": {
-            "costName": "Kaina (auksas)",
-            "costTip": "Tiek aukso sumoki sužaisdamas kortą. Auksas kas ėjimą: ėjimo numeris × 100, nepanaudotas pradingsta.",
-            "attackName": "Puolimas (raudona)",
-            "attackTip": "Bazinė žala priešui atakuojant. Prie jos pridedamas ŽMK modifikatorius.",
-            "healthName": "Gyvybės (žalia)",
-            "healthTip": "Kiek žalos padaras atlaiko. Pasiekus 0 – žūsta ir keliauja į kapinyną.",
             "typeName": "Tipas",
             "type": {
                 "unit": "Padaras – stovi lentoje, atakuoja ir ginasi.",
@@ -221,6 +215,132 @@
                 "field": "Laukas – keičia visą mūšio lauką; vienu metu tik vienas.",
                 "champion": "Čempionas – reikalauja aukos, turi fazes ir gebėjimus.",
                 "curse": "Prakeiksmas – įmaišomas į priešo kaladę, suveikia jam ištraukus."
+            },
+            "trigger": {
+                "onCast": "Panaudojus burtą",
+                "onAnyCast": "Kai panaudojamas bet kuris burtas",
+                "onAttack": "Atakuojant",
+                "onAfterAttack": "Po atakos",
+                "onAttacked": "Kai puolamas",
+                "onHpOne": "Kai lieka 1 gyvybė",
+                "onDamageDealt": "Padarius žalą",
+                "onDamageReceived": "Gavus žalą",
+                "onHeal": "Pagydžius",
+                "onDeath": "Žūstant",
+                "onDestroy": "Sunaikinus taikinį",
+                "onDraw": "Ištraukus kortą",
+                "onCurseDrawn": "Aukai ištraukus prakeiksmą",
+                "onDiscard": "Išmetus kortą",
+                "onTurnStart": "Ėjimo pradžioje",
+                "onTurnEnd": "Ėjimo pabaigoje",
+                "onFieldEnter": "Laukui atsiradus",
+                "onFieldLeave": "Laukui dingstant",
+                "onChampionSkill": "Čempiono gebėjimas",
+                "onArtifactActivated": "Artefakto aktyvacija",
+                "onSummon": "Iškvietus",
+                "onPlay": "Sužaidus",
+                "onAnyDeath": "Kai žūsta bet kuris padaras",
+                "onAnyAttack": "Kai puola bet kuris padaras",
+                "onAnySummon": "Kai iškviečiamas bet kuris padaras",
+                "onAnyPlay": "Kai sužaidžiama bet kuri korta",
+                "onAnyArtifact": "Kai padedamas artefaktas",
+                "onAnyChampion": "Kai iškviečiamas Čempionas",
+                "onAnyDamage": "Kai bet kas gauna žalą",
+                "onAnyHeal": "Kai bet kas pagydomas",
+                "onAnyDraw": "Kai bet kas traukia kortą",
+                "onAnyDiscard": "Kai bet kas išmeta kortą",
+                "onAnyStatus": "Kai uždedama būsena",
+                "onAnyGold": "Kai gaunama aukso",
+                "onAnyTurnStart": "Kiekvieno ėjimo pradžioje",
+                "onAnyTurnEnd": "Kiekvieno ėjimo pabaigoje",
+                "onAnyCurse": "Kai aktyvuojamas prakeiksmas",
+                "onOpponentGoldEmpty": "Kai priešas išnaudoja auksą"
+            },
+            "fx": {
+                "fire": {
+                    "name": "Ugnis",
+                    "tip": "Ugnies žala arba Degimo būsena (1 žala + ŽMK kas ėjimą)."
+                },
+                "ice": {
+                    "name": "Ledas",
+                    "tip": "Ledo žala arba Sušaldymas – padaras negali pulti ir nedaro atgalinės žalos."
+                },
+                "lightning": {
+                    "name": "Žaibas",
+                    "tip": "Elektros žala, greiti smūgiai, grandinių efektai."
+                },
+                "heal": {
+                    "name": "Gydymas",
+                    "tip": "Atkuria gyvybes (ne virš maksimumo) arba prikelia."
+                },
+                "buff": {
+                    "name": "Pastiprinimas",
+                    "tip": "Didina ATK, gyvybes arba suteikia raktažodį."
+                },
+                "necro": {
+                    "name": "Nekrotinis",
+                    "tip": "Sunaikinimas, kapinyno ir prakeiksmų efektai."
+                },
+                "debuff": {
+                    "name": "Susilpninimas",
+                    "tip": "Mažina ATK arba gyvybes."
+                },
+                "poison": {
+                    "name": "Nuodai",
+                    "tip": "Apnuodijimas – 1 žala + ŽMK kas ėjimą, padaras puola nepalankiai."
+                },
+                "artifact": {
+                    "name": "Artefaktas",
+                    "tip": "Sąveikauja su artefaktais."
+                },
+                "trigger": {
+                    "name": "Suaktyvinimas",
+                    "tip": "Efektas suveikia pats, kai įvyksta šis įvykis."
+                },
+                "synergy": {
+                    "name": "Sinergija",
+                    "tip": "Stipresnis, kai lauke yra partneris (nurodyta korta ar frakcija)."
+                },
+                "utility": {
+                    "name": "Pagalbinis",
+                    "tip": "Kortų traukimas, auksas, kaladė ar kiti pagalbiniai efektai."
+                },
+                "stun": {
+                    "name": "Apsvaiginimas",
+                    "tip": "Apsvaigintas padaras praleidžia ataką, bet daro atgalinę žalą."
+                },
+                "silence": {
+                    "name": "Nutildymas",
+                    "tip": "Nutildytas padaras praranda efektus ir raktažodžius."
+                },
+                "coinflip": {
+                    "name": "Monetos metimas",
+                    "tip": "Rizikos efektas: žalia – sėkmė, raudona – nesėkmė."
+                }
+            },
+            "aura": {
+                "name": "Aura",
+                "tip": "Kol ši korta lauke, nuolat veikia kitus padarus."
+            },
+            "multiAttack": {
+                "name": "Papildomos atakos",
+                "tip": "Tam tikromis sąlygomis gali pulti daugiau nei kartą per ėjimą."
+            },
+            "ignoreTaunt": {
+                "name": "Ignoruoja Provokaciją",
+                "tip": "Gali pulti bet kurį taikinį net kai priešas turi Provokaciją."
+            },
+            "retreat": {
+                "name": "Atsitraukimas",
+                "tip": "Likus {{hp}} ar mažiau gyvybių grįžta į savininko ranką."
+            },
+            "attackRestriction": {
+                "name": "Atakos apribojimas",
+                "unitsOnly": "Gali pulti tik padarus.",
+                "championsOnly": "Gali pulti tik Čempionus.",
+                "noPlayer": "Negali pulti žaidėjo.",
+                "playerOnly": "Gali pulti tik žaidėją.",
+                "artifactsOnly": "Gali pulti tik artefaktus."
             }
         }
     },

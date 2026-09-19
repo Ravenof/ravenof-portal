@@ -40,6 +40,7 @@ import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
 import { useT } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
 import { statusName, statusTooltip } from '@/lib/game/statusVfx'
+import { cardLegend } from '@/lib/cards/legend'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 
@@ -5444,35 +5445,21 @@ doAction({ t: 'endTurn', actor: 'you' })
               <GameCard glowColor={cardTypeColor(inspect)} intensity={12}>
                 <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * (window.innerWidth > 700 ? 0.5 : 0.84) : 320)} readable />
               </GameCard>
-              {/* Playtest 2026-09-19: simbolių paaiškinimai šalia padidintos kortos (raktažodžiai + efektų tipai) */}
+              {/* Playtest 2026-09-19/20: legenda šalia padidintos kortos – TIK tipas + raktažodžiai + trigger'iai + efektų tipai (be kainos/ATK/HP) */}
               {(() => {
-                const keys: string[] = []
-                for (const k of inspect.keywords) if (['taunt', 'shield', 'stealth', 'sprint', 'battlecry', 'lastwish'].includes(k) && !keys.includes(k)) keys.push(k)
-                const ms = inspect.mappings ?? []
-                if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay') && !keys.includes('battlecry')) keys.push('battlecry')
-                if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onDeath') && !keys.includes('lastwish')) keys.push('lastwish')
                 if (typeof window !== 'undefined' && window.innerWidth < 560) return null
-                const icon: Record<string, string> = { taunt: 'taunt', shield: 'shield_magic', stealth: 'stealth', sprint: 'sprint' }
-                // Tik kortos TIPAS + efektų raktažodžiai (kaina/puolimas/gyvybės – perteklinė info)
-                const base: { k: string; name: string; tip: string }[] = [
-                  { k: 'type', name: t('battle.game.legend.typeName'), tip: t(`battle.game.legend.type.${inspect.type}`) },
-                ]
+                const entries = cardLegend(inspect, t, statusName, statusTooltip, ICON_BASE)
                 return (
-                  <div className="ravenof-scroll" style={{ width: 'min(250px, 34vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {base.map((b) => (
-                      <div key={b.k} style={{ background: 'rgba(12,9,18,0.92)', border: '1px solid rgba(255,255,255,0.10)', padding: '7px 10px' }}>
-                        <div style={{ font: '700 12px var(--ravenof-font-display, Cinzel, serif)', color: '#e9dfcb' }}>{b.name}</div>
-                        <div style={{ font: '400 11px var(--ravenof-font-body, Inter, sans-serif)', color: '#b9ad98', marginTop: 2, lineHeight: 1.35 }}>{b.tip}</div>
-                      </div>
-                    ))}
-                    {keys.map((k) => (
-                      <div key={k} style={{ background: 'rgba(12,9,18,0.92)', border: '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
-                        <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: 'var(--gold, #d4a33b)' }}>
+                  <div className="ravenof-scroll" style={{ width: 'min(260px, 34vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {entries.map((e) => (
+                      <div key={e.k} style={{ background: 'rgba(12,9,18,0.92)', border: e.k === 'type' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
+                        <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: e.k === 'type' ? '#e9dfcb' : 'var(--gold, #d4a33b)' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          {icon[k] && <img src={ICON_BASE + icon[k] + '.webp'} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: 'contain' }} />}
-                          {statusName(k)}
+                          {(e.icon || e.img) ? <img src={e.icon ?? e.img} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: 'contain' }} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                            : e.emoji ? <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>{e.emoji}</span> : null}
+                          {e.name}
                         </div>
-                        <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', marginTop: 3, lineHeight: 1.35 }}>{statusTooltip(k)}</div>
+                        <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', marginTop: 3, lineHeight: 1.35 }}>{e.tip}</div>
                       </div>
                     ))}
                   </div>

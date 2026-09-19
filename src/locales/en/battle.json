@@ -206,12 +206,6 @@
         "pvpDefeatText": "Your friend was stronger this time. A rematch is one tap away.",
         "moreInProfile": "more – see profile",
         "legend": {
-            "costName": "Cost (gold)",
-            "costTip": "Gold you pay to play the card. Gold per turn: turn number × 100, unused gold is lost.",
-            "attackName": "Attack (red)",
-            "attackTip": "Base damage dealt when attacking. The ŽMK modifier is added on top.",
-            "healthName": "Health (green)",
-            "healthTip": "How much damage the creature can take. At 0 it dies and goes to the graveyard.",
             "typeName": "Type",
             "type": {
                 "unit": "Creature – stays on the board, attacks and defends.",
@@ -221,6 +215,132 @@
                 "field": "Field – changes the whole battlefield; only one at a time.",
                 "champion": "Champion – requires a tribute, has phases and abilities.",
                 "curse": "Curse – shuffled into the enemy deck, triggers when drawn."
+            },
+            "trigger": {
+                "onCast": "When a spell is cast",
+                "onAnyCast": "Whenever any spell is cast",
+                "onAttack": "When attacking",
+                "onAfterAttack": "After attacking",
+                "onAttacked": "When attacked",
+                "onHpOne": "When left at 1 health",
+                "onDamageDealt": "After dealing damage",
+                "onDamageReceived": "After taking damage",
+                "onHeal": "After healing",
+                "onDeath": "On death",
+                "onDestroy": "After destroying a target",
+                "onDraw": "When a card is drawn",
+                "onCurseDrawn": "When the victim draws the curse",
+                "onDiscard": "When a card is discarded",
+                "onTurnStart": "At turn start",
+                "onTurnEnd": "At turn end",
+                "onFieldEnter": "When the field appears",
+                "onFieldLeave": "When the field leaves",
+                "onChampionSkill": "Champion ability",
+                "onArtifactActivated": "Artifact activation",
+                "onSummon": "When summoned",
+                "onPlay": "When played",
+                "onAnyDeath": "Whenever any creature dies",
+                "onAnyAttack": "Whenever any creature attacks",
+                "onAnySummon": "Whenever any creature is summoned",
+                "onAnyPlay": "Whenever any card is played",
+                "onAnyArtifact": "Whenever an artifact is placed",
+                "onAnyChampion": "Whenever a Champion is summoned",
+                "onAnyDamage": "Whenever anything takes damage",
+                "onAnyHeal": "Whenever anything is healed",
+                "onAnyDraw": "Whenever anyone draws",
+                "onAnyDiscard": "Whenever anyone discards",
+                "onAnyStatus": "Whenever a status is applied",
+                "onAnyGold": "Whenever gold is gained",
+                "onAnyTurnStart": "At the start of every turn",
+                "onAnyTurnEnd": "At the end of every turn",
+                "onAnyCurse": "Whenever a curse activates",
+                "onOpponentGoldEmpty": "When the opponent runs out of gold"
+            },
+            "fx": {
+                "fire": {
+                    "name": "Fire",
+                    "tip": "Fire damage or the Burning status (1 damage + ŽMK each turn)."
+                },
+                "ice": {
+                    "name": "Ice",
+                    "tip": "Ice damage or Freeze – the creature can't attack and deals no counter-damage."
+                },
+                "lightning": {
+                    "name": "Lightning",
+                    "tip": "Electric damage, fast strikes, chain effects."
+                },
+                "heal": {
+                    "name": "Healing",
+                    "tip": "Restores health (not above max) or revives."
+                },
+                "buff": {
+                    "name": "Buff",
+                    "tip": "Raises ATK, health or grants a keyword."
+                },
+                "necro": {
+                    "name": "Necrotic",
+                    "tip": "Destruction, graveyard and curse effects."
+                },
+                "debuff": {
+                    "name": "Debuff",
+                    "tip": "Lowers ATK or health."
+                },
+                "poison": {
+                    "name": "Poison",
+                    "tip": "Poisoned – 1 damage + ŽMK each turn, attacks unfavorably."
+                },
+                "artifact": {
+                    "name": "Artifact",
+                    "tip": "Interacts with artifacts."
+                },
+                "trigger": {
+                    "name": "Trigger",
+                    "tip": "The effect fires on its own when this event happens."
+                },
+                "synergy": {
+                    "name": "Synergy",
+                    "tip": "Stronger while a partner (named card or faction) is on the board."
+                },
+                "utility": {
+                    "name": "Utility",
+                    "tip": "Card draw, gold, deck or other support effects."
+                },
+                "stun": {
+                    "name": "Stun",
+                    "tip": "A stunned creature skips its attack but still counter-attacks."
+                },
+                "silence": {
+                    "name": "Silence",
+                    "tip": "A silenced creature loses its effects and keywords."
+                },
+                "coinflip": {
+                    "name": "Coin flip",
+                    "tip": "Risk effect: green – success, red – failure."
+                }
+            },
+            "aura": {
+                "name": "Aura",
+                "tip": "While this card is on the board it constantly affects other creatures."
+            },
+            "multiAttack": {
+                "name": "Extra attacks",
+                "tip": "Under certain conditions it can attack more than once per turn."
+            },
+            "ignoreTaunt": {
+                "name": "Ignores Taunt",
+                "tip": "Can attack any target even when the enemy has Taunt."
+            },
+            "retreat": {
+                "name": "Retreat",
+                "tip": "At {{hp}} health or less it returns to its owner's hand."
+            },
+            "attackRestriction": {
+                "name": "Attack restriction",
+                "unitsOnly": "Can only attack creatures.",
+                "championsOnly": "Can only attack Champions.",
+                "noPlayer": "Cannot attack the player.",
+                "playerOnly": "Can only attack the player.",
+                "artifactsOnly": "Can only attack artifacts."
             }
         }
     },
