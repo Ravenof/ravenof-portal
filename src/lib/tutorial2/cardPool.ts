@@ -1,16 +1,14 @@
 // ════════════════════════════════════════════════════════════════════════════
-// Tutorial card pool — loads TUT-### cards (status='hidden') by name and maps
-// them to engine TutCards. Used by the director to build scripted hands/decks/
-// boards. Mirrors TutorialGame.mapDbCard using engine/game public helpers.
+// Tutorial card pool — TIKROS kolekcijos kortos (status='active') pagal vardą.
+// Director'ius iš jų renka scenarijaus rankas / kalades / lentas (žr. lessonSeeds.ts).
 //
-// 2026-09-19: TIKROS KORTOS VIETOJ TUT (Donato sprendimas – atskirų tutorial kortų
-// su savo art'u nedarom). Kiekvienai TUT kortai ieškom aktyvios kolekcijos kortos,
-// kuri MECHANIŠKAI IDENTIŠKA (tipas, kaina, ★/HP, raktažodžiai, efektų mapping'ai,
-// čempiono fazė) – frakcija nesvarbi. Radus, tutorial'e rodoma tikra korta (vardas,
-// paveikslėlis, frakcija, retumas), o pamokos scenarijus (kuris kortas vadina TUT
-// vardais) perrašomas per `rewriteLesson()` – žr. TutorialDirector. Neradus –
-// lieka TUT korta, kaip iki šiol. Parinkimas deterministinis (pagal card_number),
-// viena tikra korta – vienai TUT kortai.
+// 2026-09-19 (Donato sprendimas): atskirų TUT-### kortų NEBĖRA – pamokos naudoja tik
+// realias kortas, parinktas pagal status ir efektus. Todėl pool'as nieko „nepakeičia"
+// ir jokių slaptų kortų neskaito – užtenka įprastos cards RLS (status='active').
+//
+// Čempionai: visos fazės turi TĄ PATĮ vardą, todėl scenarijuje fazė nurodoma sufiksu
+// „Vardas|2" (1 fazė – ir be sufikso). Vardas be sufikso visur kitur (allow, complete,
+// highlight) tinka bet kuriai fazei, nes ten lyginamas card.name.
 // ════════════════════════════════════════════════════════════════════════════
 
 import { createClient } from '@/lib/supabase/client'
@@ -49,42 +47,17 @@ function mapRow(c: Row): Omit<TutCard, 'uid'> {
   })
 }
 
-// ── Mechaninis parašas: dvi kortos „tos pačios", jei parašai sutampa ─────────
-// Iš gameplay išmetam tik pateikimą (garsai, animacijos, balsai, admin pastabos, skill'ų
-// pavadinimai); viskas, kas keičia žaidimo eigą, lieka. Tuščios reikšmės normalizuojamos.
-const PRESENTATION_KEYS = new Set(['projectile', 'vfx', 'sfx', 'animation', 'animationType', 'sound', 'soundType', 'summonFx', 'voiceLines', 'needsEffectMapping', 'name', 'label', 'description', 'icon'])
-function strip(v: unknown): unknown {
-  if (Array.isArray(v)) return v.map(strip)
-  if (v && typeof v === 'object') {
-    const out: Record<string, unknown> = {}
-    for (const k of Object.keys(v as Record<string, unknown>).sort()) {
-      if (PRESENTATION_KEYS.has(k)) continue
-      const s = strip((v as Record<string, unknown>)[k])
-      if (s === undefined || s === null || (Array.isArray(s) && s.length === 0) || (typeof s === 'object' && Object.keys(s as object).length === 0)) continue
-      out[k] = s
-    }
-    return out
-  }
-  return v
-}
-function signature(c: Omit<TutCard, 'uid'>): string {
-  const gp = { ...(c.gameplay ?? {}) } as Record<string, unknown>
-  delete gp.keywords                          // raktažodžiai lyginami atskirai (sujungti su DB keyword lentele)
-  if (gp.virtualEnabled === undefined) gp.virtualEnabled = true
-  return JSON.stringify({
-    type: c.type, gold: c.gold, atk: c.attack ?? null, hp: c.health ?? null,
-    phase: c.type === 'champion' ? c.championPhase ?? 1 : null,
-    kw: [...c.keywords].sort(),
-    // LT teksto parserio rezultatas svarbus tik legacy kelyje (kai nėra mapping'ų) – tada variklis eina pagal tekstą
-    effect: c.mappings?.length ? null : strip(c.effect),
-    gp: strip(gp),
-  })
+/** „Vardas|2" → { name: 'Vardas', phase: 2 }; be sufikso – phase null. */
+function parseRef(ref: string): { name: string; phase: number | null } {
+  const i = ref.lastIndexOf('|')
+  if (i < 0) return { name: ref, phase: null }
+  const ph = Number(ref.slice(i + 1))
+  return Number.isFinite(ph) ? { name: ref.slice(0, i), phase: ph } : { name: ref, phase: null }
 }
 
 export class CardPool {
-  private byName = new Map<string, Omit<TutCard, 'uid'>>()
-  /** TUT vardas → tikros kortos vardas (kai rasta identiška kolekcijos korta) */
-  private alias = new Map<string, string>()
+  /** raktas: vardas (ne čempionams / 1 fazei) ir „vardas|fazė" (čempionams) */
+  private byKey = new Map<string, Omit<TutCard, 'uid'>>()
   private counter = 0
 
   static async load(): Promise<CardPool> {
@@ -92,87 +65,59 @@ export class CardPool {
     try {
       const supabase = createClient()
       await ensureCardTranslations()
-      const { data } = await supabase.from('cards').select(SEL).like('card_number', 'TUT-%').limit(200)
-      const tut = ((data as unknown as Row[] | null) ?? []).map((r) => ({ row: r, card: mapRow(r) }))
-      for (const t of tut) pool.byName.set(t.row.name, t.card)
-
-      // Tikros kortos su tuo pačiu mechaniniu parašu → pakeičia TUT kortą (vardas, art'as, frakcija, retumas).
-      try {
-        const { data: real } = await supabase.from('cards').select(SEL).eq('status', 'active').not('card_number', 'like', 'TUT-%').limit(2000)
-        const bySig = new Map<string, { row: Row; card: Omit<TutCard, 'uid'> }[]>()
-        for (const r of (real as unknown as Row[] | null) ?? []) {
-          const card = mapRow(r)
-          const sig = signature(card)
-          const arr = bySig.get(sig) ?? []
-          arr.push({ row: r, card }); bySig.set(sig, arr)
+      const { data } = await supabase.from('cards').select(SEL).eq('status', 'active').limit(2000)
+      const rows = ((data as unknown as Row[] | null) ?? [])
+        .filter((r) => !String(r.card_number ?? '').startsWith('TUT-'))
+        // deterministiškai: jei vardai kartotųsi, laimi mažesnis card_number
+        .sort((a, b) => String(a.card_number ?? '').localeCompare(String(b.card_number ?? '')))
+      for (const r of rows) {
+        const card = mapRow(r)
+        if (r.champion_phase != null) {
+          pool.byKey.set(`${r.name}|${r.champion_phase}`, card)
+          // be sufikso – 1 fazė (arba žemiausia rasta)
+          const cur = pool.byKey.get(r.name)
+          if (!cur || (cur.championPhase ?? 99) > r.champion_phase) pool.byKey.set(r.name, card)
+        } else if (!pool.byKey.has(r.name)) {
+          pool.byKey.set(r.name, card)
         }
-        const used = new Set<string>()
-        // deterministiškai: TUT kortos pagal numerį, kandidatai pagal card_number
-        for (const t of [...tut].sort((a, b) => String(a.row.card_number).localeCompare(String(b.row.card_number)))) {
-          const cands = (bySig.get(signature(t.card)) ?? [])
-            .filter((c) => !used.has(c.row.id) && c.row.name !== t.row.name && !!c.row.image_url)
-            .sort((a, b) => String(a.row.card_number ?? '').localeCompare(String(b.row.card_number ?? '')))
-          const pick = cands[0]
-          if (!pick) continue
-          used.add(pick.row.id)
-          pool.alias.set(t.row.name, pick.row.name)
-          pool.byName.set(pick.row.name, pick.card)
-        }
-        if (pool.alias.size) console.info(`[tutorial] tikros kortos vietoj TUT: ${pool.alias.size}/${tut.length}`, Object.fromEntries(pool.alias))
-      } catch (e) { console.warn('[tutorial] tikrų kortų pakeitimas nepavyko – liekam su TUT kortomis', e) }
+      }
     } catch { /* tuščias pool – director parodys klaidą */ }
     return pool
   }
 
-  /** Galutinis vardas (tikros kortos, jei pakeista). */
-  resolve(name: string): string { return this.alias.get(name) ?? name }
-  has(name: string) { return this.byName.has(this.resolve(name)) }
-
-  /**
-   * Pamokos config'e visus TUT kortų vardus (setup, enemyScript, complete.cardName, allow…,
-   * dialogų tekstus) pakeičia tikrų kortų vardais. Gilus, nekeičia originalo.
-   */
-  rewriteLesson<T>(cfg: T): T {
-    if (this.alias.size === 0) return cfg
-    const swap = (v: unknown): unknown => {
-      if (typeof v === 'string') {
-        const exact = this.alias.get(v)
-        if (exact) return exact
-        // dialogų / užuominų tekstuose – tik pilnas vardas (be linksniavimo)
-        let s = v
-        for (const [from, to] of this.alias) if (s.includes(from)) s = s.split(from).join(to)
-        return s
-      }
-      if (Array.isArray(v)) return v.map(swap)
-      if (v && typeof v === 'object') {
-        const out: Record<string, unknown> = {}
-        for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = swap(val)
-        return out
-      }
-      return v
-    }
-    return swap(cfg) as T
+  private lookup(ref: string): Omit<TutCard, 'uid'> | undefined {
+    const direct = this.byKey.get(ref)
+    if (direct) return direct
+    const { name, phase } = parseRef(ref)
+    return phase != null ? this.byKey.get(`${name}|${phase}`) ?? this.byKey.get(name) : this.byKey.get(name)
   }
 
-  /** Build a fresh TutCard instance (unique uid) by card name. */
-  card(name: string, suffix = 'x'): TutCard | null {
-    const base = this.byName.get(this.resolve(name))
+  /** Galutinis (rodomas) kortos vardas – be „|fazė" sufikso. */
+  resolve(ref: string): string { return this.lookup(ref)?.name ?? parseRef(ref).name }
+  has(ref: string) { return !!this.lookup(ref) }
+
+  /** Pamokos config'as naudojamas toks, koks yra (paliktas dėl director API suderinamumo). */
+  rewriteLesson<T>(cfg: T): T { return cfg }
+
+  /** Build a fresh TutCard instance (unique uid) by card name (or „name|phase"). */
+  card(ref: string, suffix = 'x'): TutCard | null {
+    const base = this.lookup(ref)
     if (!base) return null
     return { ...base, uid: `${base.id}-${suffix}-${this.counter++}` }
   }
 
-  cards(names: string[], suffix = 'x'): TutCard[] {
-    return names.map((n) => this.card(n, suffix)).filter((c): c is TutCard => !!c)
+  cards(refs: string[], suffix = 'x'): TutCard[] {
+    return refs.map((n) => this.card(n, suffix)).filter((c): c is TutCard => !!c)
   }
 
   /** Board unit (not summon-sick: can act this turn). */
-  unit(name: string, suffix = 'b'): BoardUnit | null {
-    const c = this.card(name, suffix)
+  unit(ref: string, suffix = 'b'): BoardUnit | null {
+    const c = this.card(ref, suffix)
     if (!c) return null
     return {
       uid: c.uid, card: c, atk: c.attack ?? 0, hp: c.health ?? 1, maxHp: c.health ?? 1,
       shield: false, stealth: false, statuses: {}, summonedOnTurn: -1, attacksUsed: 0,
-      isChampion: c.type === 'champion', phase: 1, abilityUsed: false,
+      isChampion: c.type === 'champion', phase: c.championPhase ?? 1, abilityUsed: false,
     }
   }
 }

@@ -389,7 +389,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       const sfx = side === 'you' ? 'y' : 'e'
       const warnMissing = (names: string[], where: string) => {
         const miss = names.filter((n) => !pool.has(n))
-        if (miss.length) console.warn(`[tutorial] setup.${side}.${where}: šių kortų NĖRA DB (card_number TUT-%):`, miss)
+        if (miss.length) console.warn(`[tutorial] setup.${side}.${where}: šių kortų NĖRA aktyvioje kolekcijoje (status='active'):`, miss)
       }
       warnMissing([...(sc.hand ?? []), ...(sc.deck ?? []), ...(sc.board ?? []), ...(sc.artifacts ?? []), ...(sc.reactions ?? []), ...(sc.curses ?? [])], 'kortos')
       if (sc.hand) p.hand = pool.cards(sc.hand, sfx + 'h')
