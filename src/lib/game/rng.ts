@@ -12,6 +12,9 @@ let current: Rng = Math.random
 /** Grąžina [0, 1) – kaip Math.random. */
 export function rng(): number { return current() }
 
+/** Dabartinis šaltinis (kad simuliacija galėtų laikinai pakeisti ir grąžinti). */
+export function getRng(): Rng { return current }
+
 /** Pakeičia šaltinį (null → atgal į Math.random). */
 export function setRng(fn: Rng | null): void { current = fn ?? Math.random }
 

@@ -13,6 +13,7 @@ import { planFocusFire } from './aiFocusFire'
 import { hasLethalThisTurn, evaluateSurvivalRisk, evaluateBoardThreat } from './aiThreatEvaluation'
 import { computeGuaranteedLethal } from './aiHardPlanner'
 import { analyzeCard } from './aiCardRole'
+import { planMasterTurn, logPlan } from './aiMaster'
 
 export type { AiAction, AiDifficulty }
 
@@ -66,6 +67,21 @@ export function findLethalSequence(g: GameState): boolean {
 export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty; weights?: AiWeightDelta }): AiAction {
   if (g.winner || g.active !== 'ai') return null
   const difficulty = resolveDifficulty(opts)
+  // HARD = Didmeistris: viso ėjimo planas per simuliaciją; vykdom PIRMĄ plano veiksmą
+  // (kitą taktą planuojam iš naujo – tikras ŽMK/reakcijos jau žinomos). Tuščias planas
+  // = geriausia baigti ėjimą. Klaida/limitas → žemiau esantis greedy.
+  if (difficulty === 'hard') {
+    const plan = planMasterTurn(g)
+    if (plan) {
+      logPlan(plan)
+      const d = plan.seq[0]
+      if (!d) return null
+      if (d.type === 'ability') { if (useChampionAbility(g, 'ai', d.skillIndex, { target: d.target, targets: d.targets }).ok) return { kind: 'ability' } }
+      else if (d.type === 'play') { if (playCard(g, 'ai', d.uid, d.opts).ok) return { kind: 'play', cardName: d.cardName } }
+      else if (d.type === 'attack') { if (attack(g, 'ai', d.uid, d.target).ok) return { kind: 'attack', cardName: d.cardName } }
+      else if (d.type === 'discardGold') { if (discardForGold(g, 'ai', d.uid).ok) return { kind: 'discardGold', cardName: d.cardName } }
+    }
+  }
   let ranked: ScoredAction[]
   try {
     ranked = decideAiTurn(g, { difficulty, weights: opts?.weights })

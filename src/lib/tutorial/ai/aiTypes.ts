@@ -26,14 +26,16 @@ export type AiWeights = {
   goodPlayer: boolean       // hard: „gero žaidėjo" euristikos (buff prieš ataką, freeze setup, hold'ai, sinergijos)
 }
 
-// 2026-08-15 rebalansas (user request): easy nekeistas (bet žaidžia TIK starter
-// kaladėmis – žr. PracticeButton), normal = SENAS hard, hard = normal svoriai
-// + goodPlayer euristikos (buff prieš ataką, freeze/stun setup, čempionų ir
-// continuous efektų prioritizacija, kombo hold'ai, draw-bausmių sinergijos).
+// 2026-09-19 rebalansas (Donato sprendimas): visa kopėčia pakelta per vieną laiptelį.
+//   easy   = buvęs normal (skaičiuoja trade'us, removal/AoE, saugosi lethal)
+//   normal = buvęs hard (goodPlayer euristikos: buff prieš ataką, freeze/stun setup, hold'ai)
+//   hard   = „Didmeistris": tie patys svoriai + beam search per simuliaciją su priešo
+//            atsaku (žr. aiMaster.ts). Greedy svoriai čia lieka kaip fallback ir kandidatų
+//            generavimui. Starter kaladės nebepriklauso nuo lygio (PvE „Naujokas/Patyręs").
 export const DIFFICULTY_WEIGHTS: Record<AiDifficulty, AiWeights> = {
-  easy:   { faceBias: 6,  jitter: 4,   tradeThreshold: 3, spellWasteGuard: 0.4, removalMinValue: 0, lookahead: false, goodPlayer: false },
-  normal: { faceBias: -2, jitter: 0.4, tradeThreshold: 0, spellWasteGuard: 1.4, removalMinValue: 5, lookahead: true,  goodPlayer: false },
-  hard:   { faceBias: -2, jitter: 0.2, tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
+  easy:   { faceBias: -2, jitter: 0.6, tradeThreshold: 0, spellWasteGuard: 1.4, removalMinValue: 5, lookahead: true,  goodPlayer: false },
+  normal: { faceBias: -2, jitter: 0.2, tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
+  hard:   { faceBias: -1, jitter: 0,   tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
 }
 
 /** Strategijos modifikatorius (per-bot): ADITYVŪS svorių pokyčiai ant difficulty bazės. */

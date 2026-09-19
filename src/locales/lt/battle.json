@@ -332,9 +332,9 @@
             "normal": "Vidutinis"
         },
         "diffDesc": {
-            "easy": "Paprasti trade’ai, retai combo, kartais silpni ėjimai.",
-            "hard": "Planuoja 2–3 ėjimus, skaičiuoja lethal, baudžia silpną lentą.",
-            "normal": "Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal."
+            "easy": "Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.",
+            "normal": "Gero žaidėjo taktika: buff prieš ataką, freeze/stun paruošimas, planuoja 2–3 ėjimus, skaičiuoja lethal.",
+            "hard": "Didmeistris: simuliuoja visą savo ėjimą ir tavo atsaką, renkasi geriausią seką. Įveikti labai sunku."
         },
         "difficulty": "Sudėtingumas",
         "enemy": "Priešas",

@@ -332,9 +332,9 @@
             "normal": "Medium"
         },
         "diffDesc": {
-            "easy": "Simple trades, rare combos, occasional weak moves.",
-            "hard": "Plans 2–3 turns ahead, calculates lethal, punishes a weak board.",
-            "normal": "Calculates trades, uses removal/AoE, plays around lethal."
+            "easy": "Calculates trades, uses removal/AoE, plays around lethal.",
+            "normal": "Good-player tactics: buff before attacking, freeze/stun setup, plans 2–3 turns ahead, calculates lethal.",
+            "hard": "Grandmaster: simulates its whole turn and your reply, picks the best line. Very hard to beat."
         },
         "difficulty": "Difficulty",
         "enemy": "Enemy",
