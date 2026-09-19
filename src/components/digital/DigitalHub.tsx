@@ -24,6 +24,7 @@ import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
 import { useT } from '@/lib/i18n/react'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { celebrateRewards, rewardItems } from '@/components/digital/progression/RewardCelebration'
+import { AdminOnlineBar } from '@/components/digital/AdminOnlineBar'
 
 const A = RAVENOF_ASSET
 
@@ -166,6 +167,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
   return (
     <div className="ravenof-body relative z-10 h-full flex ravenof-in" style={{ gap: desktop ? 22 : 10, minHeight: 0 }}>
+      {/* Admin: kas dabar prisijungęs – maža juostelė ekrano viršuje (tik role='admin') */}
+      {loggedIn && <AdminOnlineBar />}
       {/* ── KAIRĖ: Reitingo hero ── */}
       <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
         className="ravenof-press relative overflow-hidden text-left flex flex-col justify-between min-h-0"

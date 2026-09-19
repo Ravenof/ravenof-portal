@@ -32,6 +32,12 @@ type Deck = { id: string; name: string; faction: string | null; factionIcon: str
 type Faction = { id: number; name: string; icon_url: string | null; color_hex: string | null }
 type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number; cardCount: number }
 type Mode = 'random' | 'faction' | 'public'
+type PveLevel = 'rookie' | 'veteran'
+const LS_LEVEL = 'rvn.pve.level'
+const LS_ROOKIE_WINS = 'rvn.pve.rookieWins'
+const LS_SUGGEST_AT = 'rvn.pve.rookieSuggestAt'
+/** Po tiek naujoko pergalių (neperjungus) pasiūlom pereiti į „Patyręs". */
+const ROOKIE_SUGGEST_AFTER = 5
 
 export function DigitalPvE() {
   const gc = useGameContent()
@@ -46,7 +52,14 @@ export function DigitalPvE() {
   const [mode, setMode] = useState<Mode>('random')
   const [oppFaction, setOppFaction] = useState<number | ''>('')
   const [oppDeck, setOppDeck] = useState('')
-  const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
+  // Naujokas / Patyręs (2026-09-19). Naujokas: lengvas DI + varžovas žaidžia TIKRA
+  // starter kalade (atsitiktinė ar pasirinkta frakcija). Patyręs: sunkus DI + pilnas
+  // frakcijos kortų pool'as. Pasirinkimas ir naujoko pergalių skaitiklis – localStorage.
+  const [level, setLevel] = useState<PveLevel>('rookie')
+  const [starters, setStarters] = useState<Record<number, string>>({})   // factionId → starter_deck_id
+  const [rookieWins, setRookieWins] = useState(0)
+  const [suggestDismissed, setSuggestDismissed] = useState(false)
+  const difficulty: AiDifficulty = level === 'rookie' ? 'easy' : 'hard'
   const [query, setQuery] = useState('')
   const [filterFaction, setFilterFaction] = useState<number | ''>('')
   const [started, setStarted] = useState(false)
@@ -100,9 +113,19 @@ export function DigitalPvE() {
     void useCosmetics.getState().refresh().then(() => preloadActiveCosmetics())
     getStarterDecks().then((sd) => {
       const m: Record<number, string> = {}
-      for (const st of sd ?? []) if (st.factionId != null && st.imageUrl) m[st.factionId] = st.imageUrl
-      setCovers(m)
+      const ids: Record<number, string> = {}
+      for (const st of sd ?? []) {
+        if (st.factionId == null) continue
+        if (st.imageUrl) m[st.factionId] = st.imageUrl
+        if (!ids[st.factionId]) ids[st.factionId] = st.id
+      }
+      setCovers(m); setStarters(ids)
     })
+    try {
+      const lv = localStorage.getItem(LS_LEVEL); if (lv === 'rookie' || lv === 'veteran') setLevel(lv)
+      setRookieWins(Number(localStorage.getItem(LS_ROOKIE_WINS) ?? 0) || 0)
+      setSuggestDismissed(Number(localStorage.getItem(LS_SUGGEST_AT) ?? 0) >= ROOKIE_SUGGEST_AFTER)
+    } catch { /* privatus režimas */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -133,14 +156,35 @@ export function DigitalPvE() {
   const start = useCallback(() => {
     if (!canStart) return
     playUiClick()
-    if (mode === 'random' && factions.length && !oppFaction) setOppFaction(factions[Math.floor(Math.random() * factions.length)].id)
+    if (mode === 'random' && factions.length && !oppFaction) {
+      // Naujokui – tik frakcijos, turinčios starter kaladę (kad varžovas žaistų ja).
+      const pool = level === 'rookie' ? factions.filter((f) => !!starters[f.id]) : []
+      const src = pool.length ? pool : factions
+      setOppFaction(src[Math.floor(Math.random() * src.length)].id)
+    }
     setStarted(true)
-  }, [canStart, mode, factions, oppFaction])
+  }, [canStart, mode, factions, oppFaction, level, starters])
+  const pickLevel = useCallback((lv: PveLevel) => {
+    setLevel(lv)
+    try { localStorage.setItem(LS_LEVEL, lv) } catch { /* */ }
+    if (lv === 'veteran') setSuggestDismissed(true)
+  }, [])
+  const onPracticeResult = useCallback((won: boolean) => {
+    if (!won || level !== 'rookie') return
+    setRookieWins((w) => { const n = w + 1; try { localStorage.setItem(LS_ROOKIE_WINS, String(n)) } catch { /* */ } return n })
+  }, [level])
+  const dismissSuggest = useCallback(() => {
+    setSuggestDismissed(true)
+    try { localStorage.setItem(LS_SUGGEST_AT, String(rookieWins)) } catch { /* */ }
+  }, [rookieWins])
+  const showSuggest = level === 'rookie' && rookieWins >= ROOKIE_SUGGEST_AFTER && !suggestDismissed
 
   if (started && deck) {
     return <TutorialGame deckId={deck.id} deckName={deck.name} practice
       opponentDeckId={mode === 'public' ? oppDeck : null}
-      opponentFaction={mode !== 'public' && oppFaction ? Number(oppFaction) : null}
+      opponentStarterId={mode !== 'public' && level === 'rookie' && oppFaction ? (starters[Number(oppFaction)] ?? null) : null}
+      opponentFaction={mode !== 'public' && oppFaction && !(level === 'rookie' && starters[Number(oppFaction)]) ? Number(oppFaction) : null}
+      onPracticeResult={onPracticeResult}
       opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.pve.enemy')) : (selFactionObj?.name ?? t('battle.pve.enemy'))}
       difficulty={difficulty}
       onClose={() => setStarted(false)} />
@@ -215,21 +259,31 @@ export function DigitalPvE() {
             <p role="status" className="shrink-0" style={{ font: `400 ${desktop ? 14 : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)', margin: 0 }}>{t('battle.pve.activeDeckInvalid')}</p>
           )}
 
-          {label(t('battle.pve.difficulty'))}
+          {label(t('battle.pve.levelLabel'))}
           <div className="flex shrink-0" data-testid="ai-difficulty" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
-            {(['easy', 'normal', 'hard'] as AiDifficulty[]).map((d) => {
-              const s = difficulty === d
+            {(['rookie', 'veteran'] as PveLevel[]).map((lv) => {
+              const s = level === lv
               return (
-                <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} data-setup-tile={`diff-${d}`} aria-pressed={s}
-                  className="ravenof-press flex-1" title={t(`battle.pve.diffDesc.${d}`)} style={{
+                <button key={lv} onClick={() => { playUiClick(); pickLevel(lv) }} data-setup-tile={`level-${lv}`} aria-pressed={s}
+                  className="ravenof-press flex-1" title={t(`battle.pve.levelDesc.${lv}`)} style={{
                     padding: desktop ? '14px 4px' : '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
                     font: `700 ${desktop ? 15 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
                     background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
                     color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
-                  }}>{t(`battle.pve.diff.${d}`)}</button>
+                  }}>{t(`battle.pve.level.${lv}`)}</button>
               )
             })}
           </div>
+          <p className="shrink-0" style={{ font: `400 ${desktop ? 13 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t(`battle.pve.levelDesc.${level}`)}</p>
+          {showSuggest && (
+            <div role="status" className="shrink-0" style={{ border: '1px solid rgba(212,163,59,.55)', background: 'rgba(212,163,59,.10)', padding: desktop ? '12px 14px' : '9px 11px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ font: `500 ${desktop ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.rookieSuggest', { n: rookieWins })}</span>
+              <span className="flex" style={{ gap: 8 }}>
+                <button onClick={() => { playUiClick(); pickLevel('veteran') }} className="ravenof-press" style={{ font: `700 ${desktop ? 12 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: desktop ? '8px 14px' : '6px 10px', cursor: 'pointer', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)' }}>{t('battle.pve.rookieSuggestYes')}</button>
+                <button onClick={() => { playUiClick(); dismissSuggest() }} className="ravenof-press" style={{ font: `600 ${desktop ? 12 : 10}px var(--ravenof-font-body)`, background: 'none', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-secondary)', padding: desktop ? '8px 12px' : '6px 9px', cursor: 'pointer' }}>{t('battle.pve.rookieSuggestNo')}</button>
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between shrink-0" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: desktop ? '14px 16px' : '9px 12px' }}>
             <span style={{ font: `400 ${desktop ? 15 : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('battle.pve.expectedReward')}</span>

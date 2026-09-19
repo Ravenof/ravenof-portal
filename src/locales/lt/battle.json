@@ -362,7 +362,19 @@
       "tutorial": "Mokymai"
     },
     "you": "Tu:",
-    "yourDeck": "Tavo kaladė"
+    "yourDeck": "Tavo kaladė",
+    "levelLabel": "Lygis",
+    "level": {
+      "rookie": "Naujokas",
+      "veteran": "Patyręs"
+    },
+    "levelDesc": {
+      "rookie": "Lengvas DI. Varžovas žaidžia tikra starter kalade – atsitiktinės arba tavo pasirinktos frakcijos.",
+      "veteran": "Sunkus DI: planuoja kelis ėjimus, skaičiuoja lethal, žaidžia pilnu frakcijos kortų rinkiniu."
+    },
+    "rookieSuggest": "Jau {n} pergalių prieš naujoko DI. Laikas išbandyti „Patyręs\" – ten ir tikri iššūkiai, ir tikra kova.",
+    "rookieSuggestYes": "Perjungti į Patyręs",
+    "rookieSuggestNo": "Vėliau"
   },
   "pvp": {
     "cancelSearch": "Atšaukti paiešką",

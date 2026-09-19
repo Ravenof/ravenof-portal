@@ -135,7 +135,7 @@ export type SandboxHooks = {
   passiveAi?: boolean
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -984,7 +984,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
@@ -2915,6 +2915,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (deckId === DEMO_DECK_ID || ranked || onCampaignResult) return
     matchRewardRef.current = true
     const won = game.winner === 'you'
+    if (practice && !vsRemote) { try { onPracticeResult?.(won) } catch { /* callback niekada nelaužia kovos */ } }
     const mode: MatchMode = vsRemote ? 'unranked' : 'bot'
     const durationSeconds = Math.round((Date.now() - (matchStartRef.current || Date.now())) / 1000)
     const turns = game.globalTurn

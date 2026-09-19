@@ -362,7 +362,19 @@
       "tutorial": "Tutorials"
     },
     "you": "You:",
-    "yourDeck": "Your deck"
+    "yourDeck": "Your deck",
+    "levelLabel": "Level",
+    "level": {
+      "rookie": "Rookie",
+      "veteran": "Veteran"
+    },
+    "levelDesc": {
+      "rookie": "Easy AI. The opponent plays a real starter deck – a random faction or the one you pick.",
+      "veteran": "Hard AI: plans several turns ahead, calculates lethal, plays the full faction card pool."
+    },
+    "rookieSuggest": "{n} wins against the rookie AI already. Time to try Veteran – real challenge, real fights.",
+    "rookieSuggestYes": "Switch to Veteran",
+    "rookieSuggestNo": "Later"
   },
   "pvp": {
     "cancelSearch": "Cancel search",
