@@ -3758,10 +3758,16 @@ doAction({ t: 'endTurn', actor: 'you' })
     const overOwnZone = (x: number, y: number) => {
       if (typeof document === 'undefined') return false
       const hit = document.elementFromPoint(x, y)
-      if (hit?.closest?.('[data-drop-slot="you"], [data-tut="units-you"], [data-tut="artifacts"], [data-tut="reactions"], [data-tut="field"]')) return true
-      for (const sel of ['[data-tut="units-you"]', '[data-tut="artifacts"]', '[data-tut="reactions"]', '[data-tut="field"]']) {
-        const el = document.querySelector(sel)
-        if (!el) continue
+      if (hit?.closest?.('[data-drop-slot], [data-tut="units-you"], [data-tut="units-ai"], [data-tut="artifacts"], [data-tut="reactions"], [data-tut="field"]')) return true
+      // Bug #2 (tutorial, 2026-09-18): numetus ant VIDURINIO sloto korta grįždavo į ranką, nors ant
+      // pirmo – pasidėdavo. Dabar „ant lentos" = bet kuri lentos zona (sava IR priešo padarų eilė,
+      // kiekvienas tuščias slotas atskirai) su 28 px atsarga – padaras iškviečiamas numetus BET KUR lentoje.
+      const zones: Element[] = []
+      for (const sel of ['[data-tut="units-you"]', '[data-tut="units-ai"]', '[data-tut="artifacts"]', '[data-tut="reactions"]', '[data-tut="field"]']) {
+        const el = document.querySelector(sel); if (el) zones.push(el)
+      }
+      zones.push(...Array.from(document.querySelectorAll('[data-drop-slot]')))
+      for (const el of zones) {
         const r = el.getBoundingClientRect()
         if (r.width === 0 && r.height === 0) continue
         if (x >= r.left - 28 && x <= r.right + 28 && y >= r.top - 28 && y <= r.bottom + 28) return true
