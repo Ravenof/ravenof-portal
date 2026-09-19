@@ -204,7 +204,25 @@
         "modePvp": "Friendly match",
         "pvpVictoryText": "A convincing win over a friend. Rematch?",
         "pvpDefeatText": "Your friend was stronger this time. A rematch is one tap away.",
-        "moreInProfile": "more – see profile"
+        "moreInProfile": "more – see profile",
+        "legend": {
+            "costName": "Cost (gold)",
+            "costTip": "Gold you pay to play the card. Gold per turn: turn number × 100, unused gold is lost.",
+            "attackName": "Attack (red)",
+            "attackTip": "Base damage dealt when attacking. The ŽMK modifier is added on top.",
+            "healthName": "Health (green)",
+            "healthTip": "How much damage the creature can take. At 0 it dies and goes to the graveyard.",
+            "typeName": "Type",
+            "type": {
+                "unit": "Creature – stays on the board, attacks and defends.",
+                "spell": "Spell – resolves instantly and goes to the graveyard.",
+                "artifact": "Artifact – sits in its zone and works every turn; has health.",
+                "reaction": "Reaction – placed face down, triggers during the enemy turn.",
+                "field": "Field – changes the whole battlefield; only one at a time.",
+                "champion": "Champion – requires a tribute, has phases and abilities.",
+                "curse": "Curse – shuffled into the enemy deck, triggers when drawn."
+            }
+        }
     },
     "guided": {
         "discard-gold-tip": {

@@ -5451,10 +5451,25 @@ doAction({ t: 'endTurn', actor: 'you' })
                 const ms = inspect.mappings ?? []
                 if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay') && !keys.includes('battlecry')) keys.push('battlecry')
                 if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onDeath') && !keys.includes('lastwish')) keys.push('lastwish')
-                if (keys.length === 0 || (typeof window !== 'undefined' && window.innerWidth < 560)) return null
+                if (typeof window !== 'undefined' && window.innerWidth < 560) return null
                 const icon: Record<string, string> = { taunt: 'taunt', shield: 'shield_magic', stealth: 'stealth', sprint: 'sprint' }
+                // Bazinių simbolių paaiškinimas (kaina / puolimas / gyvybės / tipas) – visada
+                const base: { k: string; name: string; tip: string }[] = [
+                  { k: 'cost', name: t('battle.game.legend.costName'), tip: t('battle.game.legend.costTip') },
+                  ...(inspect.type === 'unit' || inspect.type === 'champion' ? [
+                    { k: 'atk', name: t('battle.game.legend.attackName'), tip: t('battle.game.legend.attackTip') },
+                    { k: 'hp', name: t('battle.game.legend.healthName'), tip: t('battle.game.legend.healthTip') },
+                  ] : []),
+                  { k: 'type', name: t('battle.game.legend.typeName'), tip: t(`battle.game.legend.type.${inspect.type}`) },
+                ]
                 return (
                   <div className="ravenof-scroll" style={{ width: 'min(250px, 34vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {base.map((b) => (
+                      <div key={b.k} style={{ background: 'rgba(12,9,18,0.92)', border: '1px solid rgba(255,255,255,0.10)', padding: '7px 10px' }}>
+                        <div style={{ font: '700 12px var(--ravenof-font-display, Cinzel, serif)', color: '#e9dfcb' }}>{b.name}</div>
+                        <div style={{ font: '400 11px var(--ravenof-font-body, Inter, sans-serif)', color: '#b9ad98', marginTop: 2, lineHeight: 1.35 }}>{b.tip}</div>
+                      </div>
+                    ))}
                     {keys.map((k) => (
                       <div key={k} style={{ background: 'rgba(12,9,18,0.92)', border: '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
                         <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: 'var(--gold, #d4a33b)' }}>

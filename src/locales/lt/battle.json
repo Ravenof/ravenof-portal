@@ -204,7 +204,25 @@
         "modePvp": "Draugiška kova",
         "pvpVictoryText": "Įtikinama pergalė prieš draugą. Revanšas?",
         "pvpDefeatText": "Draugas šįkart buvo stipresnis. Revanšas – čia pat.",
-        "moreInProfile": "daugiau – profilyje"
+        "moreInProfile": "daugiau – profilyje",
+        "legend": {
+            "costName": "Kaina (auksas)",
+            "costTip": "Tiek aukso sumoki sužaisdamas kortą. Auksas kas ėjimą: ėjimo numeris × 100, nepanaudotas pradingsta.",
+            "attackName": "Puolimas (raudona)",
+            "attackTip": "Bazinė žala priešui atakuojant. Prie jos pridedamas ŽMK modifikatorius.",
+            "healthName": "Gyvybės (žalia)",
+            "healthTip": "Kiek žalos padaras atlaiko. Pasiekus 0 – žūsta ir keliauja į kapinyną.",
+            "typeName": "Tipas",
+            "type": {
+                "unit": "Padaras – stovi lentoje, atakuoja ir ginasi.",
+                "spell": "Burtas – suveikia iškart ir keliauja į kapinyną.",
+                "artifact": "Artefaktas – guli savo zonoje ir veikia kas ėjimą; turi gyvybes.",
+                "reaction": "Reakcija – dedama užversta, suveikia priešo ėjime.",
+                "field": "Laukas – keičia visą mūšio lauką; vienu metu tik vienas.",
+                "champion": "Čempionas – reikalauja aukos, turi fazes ir gebėjimus.",
+                "curse": "Prakeiksmas – įmaišomas į priešo kaladę, suveikia jam ištraukus."
+            }
+        }
     },
     "guided": {
         "discard-gold-tip": {
