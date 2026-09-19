@@ -52,14 +52,15 @@ export function DigitalPvE() {
   const [mode, setMode] = useState<Mode>('random')
   const [oppFaction, setOppFaction] = useState<number | ''>('')
   const [oppDeck, setOppDeck] = useState('')
-  // Naujokas / Patyręs (2026-09-19). Naujokas: lengvas DI + varžovas žaidžia TIKRA
-  // starter kalade (atsitiktinė ar pasirinkta frakcija). Patyręs: sunkus DI + pilnas
-  // frakcijos kortų pool'as. Pasirinkimas ir naujoko pergalių skaitiklis – localStorage.
+  const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
+  // Naujokas / Patyręs (2026-09-19) – NEPRIKLAUSOMAI nuo sudėtingumo (tas lemia tik boto
+  // protą). Naujokas: varžovas žaidžia TIKRA starter kalade (atsitiktinė ar pasirinkta
+  // frakcija). Patyręs: kaladė iš viso frakcijos kortų pool'o. Pasirinkimas ir naujoko
+  // pergalių skaitiklis – localStorage.
   const [level, setLevel] = useState<PveLevel>('rookie')
   const [starters, setStarters] = useState<Record<number, string>>({})   // factionId → starter_deck_id
   const [rookieWins, setRookieWins] = useState(0)
   const [suggestDismissed, setSuggestDismissed] = useState(false)
-  const difficulty: AiDifficulty = level === 'rookie' ? 'easy' : 'hard'
   const [query, setQuery] = useState('')
   const [filterFaction, setFilterFaction] = useState<number | ''>('')
   const [started, setStarted] = useState(false)
@@ -259,8 +260,24 @@ export function DigitalPvE() {
             <p role="status" className="shrink-0" style={{ font: `400 ${desktop ? 14 : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)', margin: 0 }}>{t('battle.pve.activeDeckInvalid')}</p>
           )}
 
-          {label(t('battle.pve.levelLabel'))}
+          {label(t('battle.pve.difficulty'))}
           <div className="flex shrink-0" data-testid="ai-difficulty" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
+            {(['easy', 'normal', 'hard'] as AiDifficulty[]).map((d) => {
+              const s = difficulty === d
+              return (
+                <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} data-setup-tile={`diff-${d}`} aria-pressed={s}
+                  className="ravenof-press flex-1" title={t(`battle.pve.diffDesc.${d}`)} style={{
+                    padding: desktop ? '14px 4px' : '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                    font: `700 ${desktop ? 15 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
+                    background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
+                    color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                  }}>{t(`battle.pve.diff.${d}`)}</button>
+              )
+            })}
+          </div>
+
+          {label(t('battle.pve.levelLabel'))}
+          <div className="flex shrink-0" data-testid="pve-level" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
             {(['rookie', 'veteran'] as PveLevel[]).map((lv) => {
               const s = level === lv
               return (
