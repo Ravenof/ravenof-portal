@@ -54,5 +54,13 @@
   "keyword": {
     "battlecry": "Kovos šūksnis",
     "lastwish": "Paskutinis noras"
+  },
+  "battlecry": {
+    "name": "Kovos šūksnis",
+    "tooltip": "Efektas suveikia tą akimirką, kai padaras iškviečiamas iš rankos. Vieną kartą."
+  },
+  "lastwish": {
+    "name": "Paskutinis noras",
+    "tooltip": "Efektas suveikia, kai padaras žūsta."
   }
 }

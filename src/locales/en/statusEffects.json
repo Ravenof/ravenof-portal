@@ -54,5 +54,13 @@
   "keyword": {
     "battlecry": "Battlecry",
     "lastwish": "Last Wish"
+  },
+  "battlecry": {
+    "name": "Battlecry",
+    "tooltip": "The effect triggers the moment the creature is summoned from hand. Once."
+  },
+  "lastwish": {
+    "name": "Last wish",
+    "tooltip": "The effect triggers when the creature dies."
   }
 }

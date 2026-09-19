@@ -3325,7 +3325,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
   return { ok: true }
 }
 
-export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }): PlayResult {
+export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[]; slot?: number }): PlayResult {
   if (g.summonChain?.length) flushSummonChain(g)  // saugiklis: grandinė niekada nepasimeta
   const pp = P(g, s)
   const playedCard = pp.hand.find((c) => c.uid === uid)
@@ -3337,7 +3337,7 @@ export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: T
   return r
 }
 
-function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }): PlayResult {
+function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[]; slot?: number }): PlayResult {
   if (g.winner) return { ok: false, reason: 'battleLog.err.gameOver' }
   g.rollContext = null
   if (g.active !== s) return { ok: false, reason: 'battleLog.err.notYourTurn' }
@@ -3350,8 +3350,10 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
 
   switch (card.type) {
     case 'unit': {
-      const slot = freeUnitSlot(g, p)
+      let slot = freeUnitSlot(g, p)
       if (slot === -1) return { ok: false, reason: 'battleLog.err.unitZoneFull', reasonParams: { max: fieldEngine.creatureCap(g, s) } }
+      // Žaidėjo pasirinktas slotas (numetimo vieta lentoje) – jei jis tuščias ir egzistuoja.
+      if (opts?.slot != null && Number.isInteger(opts.slot) && opts.slot >= 0 && opts.slot < p.units.length && p.units[opts.slot] === null) slot = opts.slot
       // Rankinio taikinio validacija PRIEŠ bet kokį būsenos keitimą (auksas/ranka lieka nepaliesti)
       if (!chosenTargetsLegal(g, s, (card.mappings ?? []).filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay'), opts)) {
         return { ok: false, reason: 'battleLog.err.invalidTarget' }
@@ -4026,7 +4028,7 @@ export function resolveReturnUnit(g: GameState, uid: string): { ok: boolean; rea
 }
 
 export type NetAction =
-  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[] }
+  | { t: 'play'; actor: Side; uid: string; target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[]; slot?: number }
   | { t: 'attack'; actor: Side; uid: string; target: TargetRef }
   | { t: 'discardForGold'; actor: Side; uid: string }
   | { t: 'mulligan'; actor: Side; uids: string[] }
@@ -4048,7 +4050,7 @@ export type NetAction =
 /** Pritaiko struktūruotą veiksmą (host'o autoritetinei būsenai). */
 export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reason?: string } {
   switch (a.t) {
-    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, targets: a.targets, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid, tributeHandUids: a.tributeHandUids })
+    case 'play': return playCard(g, a.actor, a.uid, { target: a.target, targets: a.targets, sacrificeUid: a.sacrificeUid, tributeHandUid: a.tributeHandUid, tributeHandUids: a.tributeHandUids, slot: a.slot })
     case 'attack': return attack(g, a.actor, a.uid, a.target)
     case 'discardForGold': return discardForGold(g, a.actor, a.uid)
     case 'mulligan': return resolveMulligan(g, a.actor, a.uids)

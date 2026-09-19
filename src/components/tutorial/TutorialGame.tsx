@@ -135,7 +135,7 @@ export type SandboxHooks = {
   passiveAi?: boolean
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -984,7 +984,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
@@ -1118,9 +1118,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     if (!inspect) { inspectHeldRef.current = false; return }
     if (!inspectHeldRef.current) return
     const close = () => { inspectHeldRef.current = false; setInspect(null) }
+    // pointercancel (narsykle pereme gesta rankos slinkimui) - perziuros NEuzdarom iskart:
+    // ji lieka, kol zaidejas bakstels bet kur (playtest: pranyksta nors pirsto neatleidziu).
+    const onCancel = () => {
+      window.removeEventListener('pointerup', close, true)
+      window.setTimeout(() => window.addEventListener('pointerdown', close, true), 0)
+    }
     window.addEventListener('pointerup', close, true)
-    window.addEventListener('pointercancel', close, true)
-    return () => { window.removeEventListener('pointerup', close, true); window.removeEventListener('pointercancel', close, true) }
+    window.addEventListener('pointercancel', onCancel, true)
+    return () => { window.removeEventListener('pointerup', close, true); window.removeEventListener('pointercancel', onCancel, true); window.removeEventListener('pointerdown', close, true) }
   }, [inspect])
   // ── Popup kortos "palaikyk ir ziurek": pointer-down 350 ms → detali perziura,
   // atleidus pirsta perziura dingsta, o click ant tos pacios kortos NUryjamas
@@ -1366,6 +1372,25 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // Reakcijos skrydis: iš rankos (numetimo taško) užversta korta lanku į reakcijų vietą
   const [flyingReactions, setFlyingReactions] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number; w: number; h: number }; side: Side }[]>([])
   const lastPlayPointRef = useRef<{ x: number; y: number; uid: string; at: number } | null>(null)
+  // Playtest 2026-09-19: žaidėjas renkasi, į KURĮ slotą dedamas padaras – numetimo vieta
+  // (artimiausias tuščias savas slotas) perduodama varikliui kaip opts.slot.
+  const dropSlotRef = useRef<number | null>(null)
+  const nearestOwnEmptySlot = (x: number, y: number): number | null => {
+    if (typeof document === 'undefined') return null
+    let best: { idx: number; d: number } | null = null
+    for (const el of Array.from(document.querySelectorAll('[data-drop-slot="you"]'))) {
+      const r = el.getBoundingClientRect()
+      if (r.width === 0) continue
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2
+      const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+      const d = inside ? 0 : Math.hypot(x - cx, y - cy)
+      if (d > 90) continue
+      const idx = Number((el as HTMLElement).dataset.slotIndex)
+      if (!Number.isFinite(idx)) continue
+      if (!best || d < best.d) best = { idx, d }
+    }
+    return best ? best.idx : null
+  }
   const prevReactionUidsRef = useRef<Partial<Record<Side, string[]>>>({})
   const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
   const [flyingReturns, setFlyingReturns] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
@@ -2865,7 +2890,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // Botas „mąsto" 1–3 s tarp veiksmų (žmogiškas tempas — spėji pamatyti kas vyksta).
     // Kai rodomas kino pop-up — botas stabteli 5 s (kad spėtum pamatyti), tada žaidžia toliau.
     // Tutorial scripted ėjimai lieka greiti (1 s), kad pamokos nevilkintų.
-    const delay = cine.current ? 5000 : (tutorial?.active ? 1000 : (1000 + Math.floor(Math.random() * 2000)))
+    // Playtest 2026-09-19: nesimato, kas ka paveike - DI veiksmai retinami (1.8-3.2 s), kad spetum pamatyti.
+    const delay = cine.current ? 5000 : (tutorial?.active ? 1000 : (1800 + Math.floor(Math.random() * 1400)))
     const t = setTimeout(() => {
       setGame((prev) => {
         if (!prev || prev.winner || prev.active !== 'ai') return prev
@@ -2923,6 +2949,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       clientMatchId: clientMatchIdRef.current, mode, result: won ? 'win' : 'loss',
       durationSeconds, turns, playerActions: turns, opponentActions: turns,
       opponentId: net?.opponentId ?? null, opponentType: vsRemote ? 'human' : 'bot',
+      difficulty: practice && !vsRemote ? difficulty : undefined, opponentDeck: practice && !vsRemote ? opponentDeck : undefined,
     }).then((r) => {
       if (!r) return
       const before = r.accountXpBefore ?? 0
@@ -3400,7 +3427,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); return }
       // Jei mapping reikalauja taikinio, bet lauke nėra galimų taikinių – tiesiog sužaidžiam (auto).
       if (selMap && resolveTargets(game!, 'you', selMap.target).length === 0) {
-        doAction({ t: 'play', actor: 'you', uid: c.uid }); setSelect(null); return
+        doAction({ t: 'play', actor: 'you', uid: c.uid, slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined }); setSelect(null); return
       }
       const need = Math.max(1, selMap?.hitCount ?? 1)
       const avail = selMap ? spellTargetRefs(game!, 'you', selMap).length : 0
@@ -3414,7 +3441,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
       pushToast(t('battle.game.toastPickEffectTarget'))
       return
     }
-    doAction({ t: 'play', actor: 'you', uid: c.uid })
+    doAction({ t: 'play', actor: 'you', uid: c.uid, slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined })
     setSelect(null)
   }
 
@@ -3468,16 +3495,25 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
   // ── Burto taikinių pažymėjimas: bakstelk = pažymi (✓), dar kartą = atžymi; „Gerai" patvirtina ──
   const toggleSpellTarget = (tr: TargetRef) => {
     if (select?.kind === 'spell') {
-      const same = select.picked && targetRefKey(select.picked) === targetRefKey(tr)
-      playUiClick()
-      setSelect({ ...select, picked: same ? null : tr })
+      // VIENAS taikinys: bakstelejimas = suzaidimas (be papildomo Gerai; playtest 2026-09-19).
+      playSuccess()
+      doAction({ t: 'play', actor: 'you', uid: select.uid, target: tr })
+      setSelect(null)
     } else if (select?.kind === 'spellMulti' || select?.kind === 'lastwish') {
       const key = targetRefKey(tr)
       const exists = select.picked.some((p) => targetRefKey(p) === key)
       if (exists) { playUiClick(); setSelect({ ...select, picked: select.picked.filter((p) => targetRefKey(p) !== key) }); return }
       if (select.picked.length >= select.need) { pushToast(t('battle.game.toastAlreadyPicked', { need: select.need })); return }
+      const np = [...select.picked, tr]
+      // Keli taikiniai: surinkus visus N - patvirtinam automatiskai (Paskutinis noras lieka su Gerai).
+      if (select.kind === 'spellMulti' && np.length >= select.need) {
+        playSuccess()
+        doAction({ t: 'play', actor: 'you', uid: select.uid, targets: np })
+        setSelect(null)
+        return
+      }
       playUiClick()
-      setSelect({ ...select, picked: [...select.picked, tr] })
+      setSelect({ ...select, picked: np })
     }
   }
   const confirmSpellTargets = () => {
@@ -3781,10 +3817,13 @@ doAction({ t: 'endTurn', actor: 'you' })
       if (lp) { clearTimeout(lp); lp = null }
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
-      window.removeEventListener('pointercancel', up)
+      window.removeEventListener('pointercancel', cancel)
     }
     function move(ev: PointerEvent) {
       const dx = ev.clientX - sx, dy = ev.clientY - sy
+      // Po ilgo palaikymo (perziura atidaryta) pirstas gali kiek pajudeti - perziura LIEKA,
+      // tempimas prasideda tik ryztingu judesiu aukstyn (playtest: korta pranyksta nors pirsto neatleidziu).
+      if (inspected && !started && !(dy < -60 && Math.abs(dy) > Math.abs(dx))) return
       if (!started) {
         // Pelė: tempimas prasideda po 6 px bet kuria kryptimi (be „tik aukštyn" ribojimo);
         // lietimas: aukštyn ≥14 px (horizontalus judesys = rankos slinkimas).
@@ -3856,13 +3895,25 @@ doAction({ t: 'endTurn', actor: 'you' })
         onHandCardClick(d.card)
       } else {
         lastPlayPointRef.current = { x: ev.clientX, y: ev.clientY, uid: d.uid, at: Date.now() }
+        dropSlotRef.current = d.card.type === 'unit' ? nearestOwnEmptySlot(ev.clientX, ev.clientY) : null
         onHandCardClick(d.card)
+        dropSlotRef.current = null
       }
     }
-    lp = setTimeout(() => { if (!started) { inspected = true; openInspectHeld(card) } }, 480)
+    // Sistemos gestas (Android swipe-up nuo apacios) / narsykles pan -> pointercancel:
+    // korta NIEKADA nesuzaidziama, tik grazinama i ranka (playtest: issizaidzia korta).
+    function cancel() {
+      cleanup()
+      updateSnapHighlight(null, null)
+      if (!started) return
+      dragEndRef.current = Date.now()
+      const d = dragRef.current; dragRef.current = null; setDrag(null); setBodyCursor(null)
+      if (d) returnSpring(document.querySelector(`[data-hand-card="${CSS.escape(d.card.name)}"]`))
+    }
+    lp = setTimeout(() => { if (!started) { inspected = true; openInspectHeld(card) } }, 300)  // playtest: trumpesnis palaikymas
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', up)
+    window.addEventListener('pointercancel', cancel)
   }
 
   // ── Pilno ekrano kortų pasirinkimo scena (mulligan stiliaus; commit600) ─────
@@ -4059,7 +4110,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
             </motion.div>
           ) : (
-            <div key={side + '-slot-' + i} data-drop-slot={side}
+            <div key={side + '-slot-' + i} data-drop-slot={side} data-slot-index={i}
               className={'rounded-lg flex items-center justify-center' + (myDropGlow ? ' rvn-tac-slot-live' : '')}
               style={{
                 width: rowUnitW, height: Math.round(rowUnitW * 4 / 3),
@@ -5389,10 +5440,34 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="fixed inset-0 z-[180] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.75)' }}
             onClick={() => { playCardPlace(); setInspect(null) }}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()} className="flex items-center" style={{ gap: 14, maxWidth: '96vw' }}>
               <GameCard glowColor={cardTypeColor(inspect)} intensity={12}>
-                <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * 0.84 : 320)} readable />
+                <MiniCard c={inspect} w={Math.min(320, typeof window !== 'undefined' ? window.innerWidth * (window.innerWidth > 700 ? 0.5 : 0.84) : 320)} readable />
               </GameCard>
+              {/* Playtest 2026-09-19: simbolių paaiškinimai šalia padidintos kortos (raktažodžiai + efektų tipai) */}
+              {(() => {
+                const keys: string[] = []
+                for (const k of inspect.keywords) if (['taunt', 'shield', 'stealth', 'sprint', 'battlecry', 'lastwish'].includes(k) && !keys.includes(k)) keys.push(k)
+                const ms = inspect.mappings ?? []
+                if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay') && !keys.includes('battlecry')) keys.push('battlecry')
+                if (inspect.type === 'unit' && ms.some((m) => m.trigger === 'onDeath') && !keys.includes('lastwish')) keys.push('lastwish')
+                if (keys.length === 0 || (typeof window !== 'undefined' && window.innerWidth < 560)) return null
+                const icon: Record<string, string> = { taunt: 'taunt', shield: 'shield_magic', stealth: 'stealth', sprint: 'sprint' }
+                return (
+                  <div className="ravenof-scroll" style={{ width: 'min(250px, 34vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {keys.map((k) => (
+                      <div key={k} style={{ background: 'rgba(12,9,18,0.92)', border: '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
+                        <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: 'var(--gold, #d4a33b)' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          {icon[k] && <img src={ICON_BASE + icon[k] + '.webp'} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: 'contain' }} />}
+                          {statusName(k)}
+                        </div>
+                        <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', marginTop: 3, lineHeight: 1.35 }}>{statusTooltip(k)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
             </motion.div>
           </motion.div>
         )}

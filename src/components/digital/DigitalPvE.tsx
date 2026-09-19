@@ -68,12 +68,14 @@ export function DigitalPvE() {
   const [covers, setCovers] = useState<Record<number, string>>({})
   // „Numatomas atlygis" — iš SERVERIO konfigūracijos (economy_config.match_rewards),
   // ne iš klientinių konstantų (audit: rodyti tiesą; DI atlygis nepriklauso nuo sunkumo)
-  const [rewardSilver, setRewardSilver] = useState<number | null>(null)
+  const [rewardCfg, setRewardCfg] = useState<Awaited<ReturnType<typeof getMatchRewardPreview>>>(null)
   // Desktop išdėstymas: 3 fiksuoti stulpeliai (340 / ~520 / likutis), turinys iki 1680 px,
   // režimų 2×2 tinklelis NEtempiamas per visą aukštį – jo dydis pagal lango aukštį.
   const { desktop } = useDesktopUi()
   const centerW = desktop ? Math.max(400, Math.min(560, window.innerHeight - 260)) : 0
-  useEffect(() => { getMatchRewardPreview().then((r) => setRewardSilver(r?.bot?.win?.silver ?? null)) }, [])
+  useEffect(() => { getMatchRewardPreview().then((r) => setRewardCfg(r)) }, [])
+  // Numatomas atlygis: pagal varžovo kaladę × sudėtingumą (bot.silver_by_level), kitaip – bazinis bot.win.silver
+  const rewardSilver = rewardCfg ? (rewardCfg.bot?.silver_by_level?.[level]?.[difficulty] ?? rewardCfg.bot?.win?.silver ?? null) : null
 
   useEffect(() => {
     const supabase = createClient()
@@ -186,6 +188,7 @@ export function DigitalPvE() {
       opponentStarterId={mode !== 'public' && level === 'rookie' && oppFaction ? (starters[Number(oppFaction)] ?? null) : null}
       opponentFaction={mode !== 'public' && oppFaction && !(level === 'rookie' && starters[Number(oppFaction)]) ? Number(oppFaction) : null}
       onPracticeResult={onPracticeResult}
+      opponentDeck={level}
       opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.pve.enemy')) : (selFactionObj?.name ?? t('battle.pve.enemy'))}
       difficulty={difficulty}
       onClose={() => setStarted(false)} />
