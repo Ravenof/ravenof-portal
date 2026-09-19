@@ -1,6 +1,6 @@
 {
   "name": "ravenof-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Ravenof Digital – Steam / Windows / macOS / Linux shell (Electron + steamworks.js)",
   "main": "main.js",
@@ -30,7 +30,8 @@
       "steam.js",
       "updater.js",
       "steam_appid.txt",
-      "build/icon.png"
+      "build/icon.png",
+      "build/installer.nsh"
     ],
     "extraResources": [
       {
@@ -65,7 +66,11 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Ravenof"
+      "shortcutName": "Ravenof",
+      "perMachine": false,
+      "allowElevation": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "Ravenof-portable-${version}.${ext}"

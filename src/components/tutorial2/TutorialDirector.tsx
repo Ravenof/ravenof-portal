@@ -54,9 +54,11 @@ const RECHECK_MS = 1200
 
 export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit: (completed: boolean) => void }) {
   const t = useT()
-  const cfg = lesson.config
-  const steps = useMemo(() => cfg.steps ?? [], [cfg])
   const [pool, setPool] = useState<CardPool | null>(null)
+  // Kol pool'as kraunasi (phase='loading') – originalus config'as; užsikrovus – TUT kortų vardai
+  // perrašyti tikrų kolekcijos kortų vardais (žr. CardPool.rewriteLesson).
+  const cfg = useMemo(() => (pool ? pool.rewriteLesson(lesson.config) : lesson.config), [pool, lesson.config])
+  const steps = useMemo(() => cfg.steps ?? [], [cfg])
   const [stepIdx, setStepIdx] = useState(0)
   const [dialogueIdx, setDialogueIdx] = useState(0)
   const [phase, setPhase] = useState<'loading' | 'play' | 'reward'>('loading')

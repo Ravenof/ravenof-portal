@@ -1,0 +1,13 @@
+@echo off
+cd /d "%~dp0"
+set GIT_LITERAL_PATHSPECS=1
+taskkill /F /IM git.exe >nul 2>&1
+del /f /q ".git\index.lock" >nul 2>&1
+(
+echo CWD: %CD%
+git rev-parse --show-toplevel
+git add supabase/migrations/20260920_tutorial_cards_rls.sql src/lib/tutorial2/cardPool.ts src/components/tutorial2/TutorialDirector.tsx src/lib/version.ts apps/desktop/package.json apps/desktop/build/installer.nsh apps/digital/baselines git-commit695.bat
+git commit -m "695: tutorial - tikros kolekcijos kortos vietoj TUT (mechaninis parasas, rewriteLesson), TUT kortu RLS visiems zaidejams, Windows installeris per-user + uzdaro Ravenof.exe (0.1.1)"
+git push
+git log -1 --oneline
+) > commit695.log 2>&1
