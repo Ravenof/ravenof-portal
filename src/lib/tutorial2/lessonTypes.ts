@@ -185,6 +185,12 @@ export interface LessonConfig {
    * Visose kitose pamokose jis išjungtas (scriptuota: visada pradeda žaidėjas).
    */
   matchStartFlow?: boolean
+  /**
+   * V3 (L4+) — kai žingsnis NETURI enemyScript (laisva kova, pvz. „finish"), priešas
+   * žaidžia tikru DI (aiNextAction): iškviečia padarus, puola. Be šio – tik baigia ėjimą.
+   * true = 'easy'.
+   */
+  enemyAi?: boolean | 'easy' | 'normal' | 'hard'
   /** V3 — pamokos balso eilučių ID sąrašas (prefetch pamokos pradžioje). Auto-surenkamas, jei nenurodyta. */
   voiceIds?: string[]
   setup: LessonSetup

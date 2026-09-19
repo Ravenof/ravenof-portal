@@ -22,6 +22,7 @@ import { createPortal } from 'react-dom'
 import { TutorialGame, DEMO_DECK_ID, type TutorialHooks, type TutorialGameApi } from '@/components/tutorial/TutorialGame'
 import { applyNetAction, beginTurn, endTurn, recomputeAuras, P, PERMANENT, type GameState, type GameEvent, type NetAction, type TargetRef, type Side, type BoardArtifact, type TutCard, type TutStatus } from '@/lib/tutorial/engine'
 import { CardPool } from '@/lib/tutorial2/cardPool'
+import { aiNextAction } from '@/lib/tutorial/ai'
 import { TutorialAnalytics } from '@/lib/tutorial2/analytics'
 import { completeLesson } from '@/lib/tutorial2/lessonLoader'
 import { playTutorialVoice, prefetchLessonVoices, stopTutorialVoice, estimateReadMs } from '@/lib/tutorial2/tutorialVoice'
@@ -29,8 +30,8 @@ import { setAvatarVoiceMuted } from '@/lib/game/avatarAudio'
 import { setMusicScale } from '@/lib/game/musicManager'
 import type { LessonRow, LessonStep, HighlightTarget, AllowedAction, ScriptedAction, StepMutation, Dialogue } from '@/lib/tutorial2/lessonTypes'
 import { TutorialOverlay, type OverlayDialogue } from './TutorialOverlay'
-import { RewardChip, SafeRewardImage } from '@/components/digital/ui/RewardBits'
-import type { RewardPayloadItem } from '@/lib/rewards/rewardVisuals'
+import { CelebrationStyles, CelebrationFx, CelebrationTiles, celebrationCtaDelay, type CelebrationItem } from '@/components/digital/progression/RewardCelebration'
+import type { GrantedReward } from '@/lib/progression/types'
 import { WRONG_VOICE_IDS, GOOD_VOICE_IDS } from '@/data/tutorialLessons/systemVoice'
 import { useT } from '@/lib/i18n/react'
 
@@ -440,11 +441,17 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     enemyTurn: (g) => {
       const s = steps[stepIdxRef.current]
       const script = s?.enemyScript ?? []
-      if (enemyCursor.current < script.length) runScripted(g, script[enemyCursor.current++])
-      else { endTurn(g); if (!g.winner) beginTurn(g); enemyDone.current = true }
+      if (enemyCursor.current < script.length) { runScripted(g, script[enemyCursor.current++]); return }
+      // Laisva kova (žingsnis be scenarijaus) + config.enemyAi → tikras DI: iškviečia padarus,
+      // puola; po vieną veiksmą per tiką (kaip įprastoje kovoje), kol nebeturi ką daryti.
+      if (cfg.enemyAi && script.length === 0) {
+        const act = aiNextAction(g, { difficulty: cfg.enemyAi === true ? 'easy' : cfg.enemyAi })
+        if (act) return
+      }
+      endTurn(g); if (!g.winner) beginTurn(g); enemyDone.current = true
     },
     onEvents: (fresh, g) => { gameRef.current = g; checkComplete(fresh, g) },
-  }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, onInspectEnd, cfg.matchStartFlow, t])
+  }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, onInspectEnd, cfg.matchStartFlow, cfg.enemyAi, t])
 
   // ── overlay data ──
   const objective = useMemo(() => {
@@ -529,7 +536,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
           onExit={() => { stopTutorialVoice(); onExit(false) }}
         />
       )}
-      {phase === 'reward' && <RewardScreen title={lesson.title} reward={reward} onDone={() => onExit(true)} />}
+      {phase === 'reward' && <RewardScreen title={lesson.title} subtitle={lesson.subtitle} reward={reward} onDone={() => onExit(true)} />}
     </>
   )
 }
@@ -540,45 +547,43 @@ function collectVoiceIds(steps: LessonStep[]): string[] {
   return out
 }
 
-function RewardScreen({ title, reward, onDone }: { title: string; reward: LessonRow['reward_payload']; onDone: () => void }) {
+function RewardScreen({ title, subtitle, reward, onDone }: { title: string; subtitle?: string | null; reward: LessonRow['reward_payload']; onDone: () => void }) {
   const t = useT()
-  // Atlygiai — TIK kanoniniai registro asset'ai (emoji atlygių slotuose uždrausti,
-  // žr. [[ravenof-reward-visuals]]). Payload → RewardBits vizualai.
-  const items: RewardPayloadItem[] = []
-  if (reward.gold) items.push({ type: 'currency', currency: 'silver', amount: reward.gold })
-  if (reward.exp) items.push({ type: 'account_xp', amount: reward.exp })
-  if (reward.boosters) items.push({ type: 'item', item_type: 'pack', quantity: reward.boosters })
-  if (reward.cardMin) items.push({ type: 'item', item_type: 'card', item_id: t('onboarding.tutorial.rewardCard') })
-  if (reward.badge) items.push({ type: 'item', item_type: 'badge' })
+  // Tas pats „celebration" ekranas kaip po įprastos kovos (TutorialGame pabaigos modalas /
+  // RewardCelebration): spinduliai, žarijos, atlygio plytelės su count-up, auksinis CTA.
+  // Atlygiai – TIK kanoniniai registro asset'ai (žr. [[ravenof-reward-visuals]]).
+  const items: CelebrationItem[] = []
+  if (reward.gold) items.push({ kind: 'reward', reward: { type: 'silver', amount: reward.gold } as GrantedReward })
+  if (reward.exp) items.push({ kind: 'reward', reward: { type: 'account_xp', amount: reward.exp } as unknown as GrantedReward })
+  if (reward.boosters) items.push({ kind: 'booster', count: reward.boosters, label: t('onboarding.tutorial.rewardBooster') })
+  if (reward.cardMin) items.push({ kind: 'reward', reward: { type: 'item', item_type: 'card', item_id: t('onboarding.tutorial.rewardCard') } as unknown as GrantedReward })
+  if (reward.badge) items.push({ kind: 'reward', reward: { type: 'item', item_type: 'badge' } as unknown as GrantedReward })
+  const cta = celebrationCtaDelay(items.length)
+  const short = typeof window !== 'undefined' && window.innerHeight < 640
   if (typeof document === 'undefined') return null
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 360, display: 'grid', placeItems: 'center', background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(4px)' }}>
-      {/* combat-plate: tas pats geležies rėmas kaip visuose kovos dialoguose */}
-      <div className="combat-plate" style={{ width: 'min(460px, 92vw)', textAlign: 'center', padding: '22px 24px 24px' }}>
-        <SafeRewardImage src="/digital/icons/emblem-tutorial.png" size={54} alt="" />
-        <h2 style={{ fontFamily: 'var(--rvn-font-display, Cinzel, serif)', color: 'var(--gold)', fontSize: 22, margin: '6px 0 2px' }}>{t('onboarding.tutorial.lessonDone')}</h2>
-        <p style={{ color: 'var(--text-secondary, #c9c2d6)', fontSize: 13, marginBottom: 16 }}>{title}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-          {items.map((it, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '9px 14px', borderRadius: 12, background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.3)', color: '#f3ead3', fontWeight: 700 }}>
-              <RewardChip it={it} size={22} textSize={13.5} color="#f3ead3" />
-            </div>
-          ))}
-          {items.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('onboarding.tutorial.alreadyRewarded')}</div>}
+    <div className="ravenof-body ravenof-scroll" role="dialog" aria-modal="true" aria-label={t('onboarding.tutorial.lessonDone')}
+      style={{ position: 'fixed', inset: 0, zIndex: 360, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: short ? 8 : 16, background: 'rgba(4,3,7,0.92)', touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
+      <CelebrationStyles />
+      <CelebrationFx tone="gold" />
+      <div className="rvn-cele-panel" style={{ maxWidth: 980, margin: 'auto' }}>
+        <div className="rvn-cele-kicker">{t('onboarding.tutorial.title')} · {title}</div>
+        <h1 className="rvn-cele-title">{t('onboarding.tutorial.lessonDone')}</h1>
+        <div className="rvn-cele-rule" />
+        {subtitle && <p className="rvn-cele-sub">{subtitle}</p>}
+        {items.length > 0
+          ? <CelebrationTiles items={items} />
+          : <p className="rvn-cele-sub">{t('onboarding.tutorial.alreadyRewarded')}</p>}
+        <div className="rvn-cele-extra" style={{ ['--cta' as string]: cta, marginTop: short ? 2 : 6 }}>
+          <button onClick={onDone} className="ravenof-press"
+            style={{ font: `800 ${short ? 12 : 13}px var(--ravenof-font-display)`, letterSpacing: 2.5, textTransform: 'uppercase',
+              background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: short ? '10px 24px' : '14px 34px', minWidth: 220,
+              clipPath: 'polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)', cursor: 'pointer' }}>
+            {t('onboarding.tutorial.continue')}
+          </button>
         </div>
-        <button onClick={onDone} className="ravenof-press" style={REWARD_CTA}>{t('onboarding.tutorial.continue')}</button>
       </div>
     </div>,
     document.body,
   )
-}
-
-/** Asset CTA (kanonas commit630) — atlygio ekrano „Tęsti". */
-const REWARD_CTA: React.CSSProperties = {
-  width: 'auto', minWidth: 240, maxWidth: '86%', textAlign: 'center',
-  font: '800 13px var(--rvn-font-display, Cinzel, serif)', letterSpacing: 3, textTransform: 'uppercase',
-  color: '#f6e8c6', whiteSpace: 'nowrap',
-  background: "url('/ravenof-ui/buttons/button-primary-normal.png') center / 100% 100% no-repeat",
-  padding: '14px 38px', border: 0, cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,.8)',
-  transition: 'filter 0.18s ease',
 }
