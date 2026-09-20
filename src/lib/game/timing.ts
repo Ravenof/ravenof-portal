@@ -143,6 +143,41 @@ export const ZMK_PRESENT = {
   reshuffleMs: 700,
 } as const
 
+// ── ŽMK traukimas iš kaladės (peržiūra patvirtinta 2026-09-20) ───────────────
+// Anksčiau ŽMK korta tiesiog „iššokdavo" prie taikinio — nesimatė, kad ji
+// atkeliauja iš modifikatorių kaladės. Dabar: pakėlimas → skrydis lanku →
+// atvertimas ore → LAIKYMAS (0,5 s ilgiau nei senoji visa animacija) →
+// susigėrimas į taikinį. Bendra trukmė 2500 ms (buvo 2000 ms).
+export const ZMK_DRAW = {
+  liftMs: 220,
+  flyMs: 380,
+  flipMs: 260,
+  holdMs: 1300,
+  absorbMs: 340,
+  /** prefers-reduced-motion: be skrydžio, tik trumpas parodymas. */
+  reducedMs: 900,
+} as const
+
+/** Visa ŽMK sekos trukmė (klientas pagal ją valo zmkFlash). */
+export const ZMK_DRAW_TOTAL_MS =
+  ZMK_DRAW.liftMs + ZMK_DRAW.flyMs + ZMK_DRAW.flipMs + ZMK_DRAW.holdMs + ZMK_DRAW.absorbMs
+
+// ── Raktažodžių FX: Kovos šūksnis · Paskutinis noras · Trigeris ──────────────
+// Kokybės kartelė — reakcijų grandinė: anticipacija → veiksmas → ANTSPAUDAS
+// (raktažodis + kortos vardas) → nukreipimas į taikinį → efektas.
+// Pilnas antspaudas rodomas TIK pirmą kartą per kovą kiekvienam raktažodžiui;
+// vėliau — kompaktas (be pritemdymo), kad kovos tempas nenukentėtų.
+export const KEYWORD_FX = {
+  battlecry: { anticipateMs: 260, actMs: 420, sealMs: 900, directMs: 520, effectMs: 400 },
+  lastwish:  { anticipateMs: 300, actMs: 700, sealMs: 800, directMs: 500, effectMs: 0 },
+  trigger:   { anticipateMs: 300, actMs: 350, sealMs: 700, directMs: 450, effectMs: 350 },
+} as const
+
+/** Kompaktas (antras ir vėlesni tos pačios kovos kartai): antspaudas nerodomas. */
+export const KEYWORD_FX_COMPACT_SCALE = 0.55
+/** prefers-reduced-motion: vienas trumpas blyksnis vietoj visos sekos. */
+export const KEYWORD_FX_REDUCED_MS = 420
+
 // ── Ėjimo pradžios ritualas (game-feel fazė 10) ──────────────────────────────
 // Ėjimo pradžia yra ritmo taškas: „kvėptelėjimas" tarp dviejų veiksmo blokų.
 // SVARBU: ritualas NEUŽRAKINA įvesties — jis gali baigtis fone, kol žaidėjas

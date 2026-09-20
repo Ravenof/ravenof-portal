@@ -1,0 +1,448 @@
+<!DOCTYPE html><html lang="lt"><head><meta charset="utf-8">
+<title>Ravenof — ŽMK ir raktažodžių VFX (peržiūra)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{ --gold:#f0b429; --gold2:#ffd97a; --ink:#060409; --panel:#0b0912; --line:#2a2438; --txt:#f3ead3; --mut:#9d94b8; }
+  *{box-sizing:border-box}
+  body{background:var(--ink);margin:0;padding:20px 16px 40px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--txt)}
+  .wrap{max-width:940px;margin:0 auto}
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:19px;letter-spacing:.06em;margin:0 0 4px;color:var(--gold2)}
+  .sub{font-size:12px;color:var(--mut);margin:0 0 16px;line-height:1.5}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  canvas{display:block;width:100%;height:auto;background:radial-gradient(120% 90% at 50% 40%,#171026 0%,#0a0711 60%,#06050a 100%)}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 6px}
+  .tab{background:#171221;border:1px solid #342a4a;color:#bfb4dd;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-weight:600}
+  .tab.on{background:linear-gradient(135deg,#ffe9a8,#f0b429);border-color:#f0b429;color:#1a1206}
+  .bar{display:flex;gap:4px;padding:4px 12px}
+  .ph{flex:1;position:relative;height:20px;border-radius:5px;background:#171221;border:1px solid #2a2438;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .ph .fill{position:absolute;inset:0;background:rgba(240,180,41,.26);transform:scaleX(0);transform-origin:left}
+  .ph span{position:relative;font-size:9px;color:var(--mut);letter-spacing:.04em;white-space:nowrap}
+  .ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px 12px}
+  .ctl button,.ctl select{background:#2a2340;border:1px solid #4c3a6e;color:#d8ccff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700}
+  .ctl label{font-size:11px;color:#8e84ab;display:flex;align-items:center;gap:5px}
+  .ts{margin-left:auto;font-size:11px;color:#6f6590;font-variant-numeric:tabular-nums}
+  .note{padding:10px 14px 14px;border-top:1px solid var(--line);font-size:12px;line-height:1.55;color:var(--mut)}
+  .note b{color:var(--gold2);font-weight:700}
+  .note .now{color:#8e84ab}
+  .cmp{display:inline-block;font-size:10px;border:1px solid #4c3a6e;border-radius:5px;padding:1px 6px;margin-right:6px;color:#bfb4dd}
+</style></head><body>
+<div class="wrap">
+  <h1>ŽMK ir raktažodžių animacijos — peržiūra</h1>
+  <p class="sub">Siūlomos scenos. Kokybės kartelė — reakcijų grandinė ir prakeiksmų efektai: anticipacija → veiksmas → antspaudas (parodymas) → nukreipimas → efektas. Visos scenos piešiamos vienu canvas + vienu rAF, be shadowBlur (telefonui pigu).</p>
+
+  <div class="panel">
+    <div class="tabs" id="tabs"></div>
+    <canvas id="cv"></canvas>
+    <div class="bar" id="phasebar"></div>
+    <div class="ctl">
+      <button id="replay">▶ Kartoti</button>
+      <select id="spd"><option value="1">1× greitis</option><option value="0.5">0.5× (lėtai)</option><option value="0.25">0.25× (labai lėtai)</option></select>
+      <select id="dir"><option value="mine">Mano korta → priešo taikinys</option><option value="enemy">Priešo korta → mano taikinys</option></select>
+      <select id="zmkv"><option value="+2">ŽMK +2</option><option value="x2">ŽMK ×2</option><option value="-1">ŽMK −1</option><option value="+0">ŽMK +0</option></select>
+      <label><input type="checkbox" id="loop" checked> ciklas</label>
+      <label><input type="checkbox" id="old"> rodyti dabartinę</label>
+      <span class="ts" id="ts"></span>
+    </div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+<script>
+(function(){
+const W=900,H=440;
+const cv=document.getElementById('cv'),dpr=Math.min(2,window.devicePixelRatio||1);
+cv.width=W*dpr;cv.height=H*dpr;cv.style.aspectRatio=W+'/'+H;
+const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+
+// ── pagalbinės ─────────────────────────────────────────────────────────────
+const TAU=Math.PI*2, rnd=(a,b)=>a+Math.random()*(b-a), cl=t=>Math.max(0,Math.min(1,t));
+const eo=t=>1-Math.pow(1-t,3), ei=t=>t*t*t, eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const eb=t=>{const c=1.9;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2)};
+const lerp=(a,b,t)=>a+(b-a)*t;
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function glow(x,y,r,c,a){r=Math.max(.2,r||0);const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=a;ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();ctx.globalAlpha=1}
+function ringA(x,y,r,w,c,a,from,to){ctx.globalAlpha=a;ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.arc(x,y,Math.max(.5,r),from||0,to===undefined?TAU:to);ctx.stroke();ctx.globalAlpha=1}
+function bez(p0,p1,p2,t){const a=1-t;return{x:a*a*p0.x+2*a*t*p1.x+t*t*p2.x,y:a*a*p0.y+2*a*t*p1.y+t*t*p2.y}}
+
+// ── lentos makietas ────────────────────────────────────────────────────────
+const CW=64,CH=90;
+const ENE=[{x:330,y:96},{x:410,y:96},{x:490,y:96}];
+const PLA=[{x:330,y:344},{x:410,y:344},{x:490,y:344}];
+const ZMK={x:812,y:222};          // modifikatorių kaladė (dešinėje)
+const GRAVE={x:92,y:222};         // kapinynas
+function card(x,y,opt){
+  opt=opt||{};const w=opt.w||CW,h=opt.h||CH,s=opt.s===undefined?1:opt.s;
+  ctx.save();ctx.translate(x,y);ctx.rotate(opt.rot||0);ctx.scale(s*(opt.sx||1),s);
+  ctx.globalAlpha=opt.a===undefined?1:opt.a;
+  if(opt.shadow!==false){ctx.fillStyle='rgba(0,0,0,.5)';rr(-w/2+2,-h/2+5,w,h,7);ctx.fill()}
+  const g=ctx.createLinearGradient(-w/2,-h/2,w/2,h/2);
+  if(opt.back){g.addColorStop(0,'#241a3a');g.addColorStop(1,'#0d0915')}
+  else{g.addColorStop(0,opt.dead?'#1a161f':'#2a2039');g.addColorStop(1,opt.dead?'#0a0810':'#120c1c')}
+  ctx.fillStyle=g;rr(-w/2,-h/2,w,h,7);ctx.fill();
+  ctx.strokeStyle=opt.line||(opt.foe?'#6d3a3a':'#5a4a2a');ctx.lineWidth=opt.lw||1.6;rr(-w/2,-h/2,w,h,7);ctx.stroke();
+  if(opt.back){ctx.strokeStyle='rgba(240,180,41,.35)';ctx.lineWidth=1;rr(-w/2+6,-h/2+6,w-12,h-12,4);ctx.stroke();
+    ctx.fillStyle='rgba(240,180,41,.55)';ctx.beginPath();ctx.arc(0,0,Math.min(w,h)*0.17,0,TAU);ctx.fill()}
+  else{
+    ctx.fillStyle=opt.artC||'rgba(120,100,160,.35)';rr(-w/2+5,-h/2+5,w-10,h*0.52,4);ctx.fill();
+    if(opt.label){ctx.fillStyle=opt.labelC||'#f3ead3';ctx.font='700 '+(opt.fs||10)+'px Georgia,serif';ctx.textAlign='center';ctx.fillText(opt.label,0,h*0.22)}
+    if(opt.stats!==false){ctx.fillStyle='#e8c56a';ctx.font='700 9px system-ui';ctx.textAlign='left';ctx.fillText(opt.atk||'3',-w/2+6,h/2-6);ctx.textAlign='right';ctx.fillStyle='#f28b82';ctx.fillText(opt.hp||'4',w/2-6,h/2-6)}
+  }
+  ctx.restore();ctx.globalAlpha=1;
+}
+function pile(x,y,label,col){
+  for(let i=2;i>=0;i--) card(x+i*1.5,y-i*2.5,{back:true,w:48,h:68,shadow:i===2});
+  ctx.fillStyle=col||'rgba(240,180,41,.75)';ctx.font='700 9px system-ui';ctx.textAlign='center';ctx.fillText(label,x,y+48);
+}
+function board(){
+  // zonų linija
+  ctx.strokeStyle='rgba(240,180,41,.09)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(40,220);ctx.lineTo(W-40,220);ctx.stroke();
+  ENE.forEach((p,i)=>card(p.x,p.y,{foe:true,label:['VARNAS','SARGAS','ŽYNYS'][i],artC:'rgba(150,70,70,.3)'}));
+  PLA.forEach((p,i)=>card(p.x,p.y,{label:['ŠAULYS','KOVOTOJAS','MAGAS'][i]}));
+  pile(ZMK.x,ZMK.y,'ŽMK KALADĖ');
+  pile(GRAVE.x,GRAVE.y,'KAPINYNAS','rgba(140,160,140,.6)');
+}
+function dimBoard(a){ctx.fillStyle='rgba(5,3,10,'+a+')';ctx.fillRect(0,0,W,H)}
+
+// ── antspaudas (raktažodžio „parodymas") ───────────────────────────────────
+function seal(x,y,k,title,name,col,col2){
+  y=Math.max(58,Math.min(H-58,y));
+  // k 0..1 – atsiradimas ir dingimas jau apskaičiuotas iškviečiant
+  const w=250,h=74;
+  ctx.save();ctx.translate(x,y);ctx.scale(lerp(.82,1,eb(cl(k*1.6))),lerp(.82,1,eb(cl(k*1.6))));
+  ctx.globalAlpha=cl(k*2);
+  ctx.fillStyle='rgba(8,5,14,.92)';rr(-w/2,-h/2,w,h,6);ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=1.6;rr(-w/2,-h/2,w,h,6);ctx.stroke();
+  ctx.strokeStyle=col2;ctx.lineWidth=1;rr(-w/2+4,-h/2+4,w-8,h-8,4);ctx.stroke();
+  // kampų ornamentai
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{ctx.beginPath();ctx.moveTo(sx*(w/2-4),sy*(h/2-14));ctx.lineTo(sx*(w/2-4),sy*(h/2-4));ctx.lineTo(sx*(w/2-14),sy*(h/2-4));ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke()});
+  ctx.textAlign='center';
+  ctx.fillStyle=col;ctx.font='700 10px system-ui';ctx.letterSpacing='3px';
+  ctx.fillText(title,0,-8);ctx.letterSpacing='0px';
+  ctx.fillStyle='#f3ead3';ctx.font='700 17px Georgia,serif';ctx.fillText(name,0,16);
+  ctx.restore();ctx.globalAlpha=1;
+}
+// runų ratas
+function runeRing(x,y,r,rot,a,col,n){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.globalAlpha=a;
+  ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.stroke();
+  ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,r*.76,0,TAU);ctx.stroke();
+  for(let i=0;i<(n||8);i++){const A=i/(n||8)*TAU;ctx.save();ctx.rotate(A);ctx.beginPath();
+    ctx.moveTo(r*.82,-4);ctx.lineTo(r*.94,0);ctx.lineTo(r*.82,4);ctx.lineWidth=1.6;ctx.stroke();ctx.restore()}
+  ctx.restore();ctx.globalAlpha=1;
+}
+
+// ── dalelės ────────────────────────────────────────────────────────────────
+let P=[];
+function emit(x,y,n,o){o=o||{};for(let i=0;i<n;i++){const a=(o.a0||0)+rnd(-1,1)*(o.spread||Math.PI);const sp=(o.sp||2)*rnd(.4,1.4);
+  P.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(o.up||0),l:1,d:(o.d||.02)*rnd(.7,1.3),r:(o.r||2.4)*rnd(.5,1.4),c:o.c||'#ffd97a',g:o.g===undefined?.04:o.g,line:!!o.line})}}
+function stepP(k){ctx.globalCompositeOperation='lighter';
+  for(let i=P.length-1;i>=0;i--){const p=P[i];p.x+=p.vx*k;p.y+=p.vy*k;p.vy+=p.g*k;p.vx*=.985;p.l-=p.d*k;
+    if(p.l<=0){P.splice(i,1);continue}
+    ctx.globalAlpha=cl(p.l);
+    if(p.line){ctx.strokeStyle=p.c;ctx.lineWidth=p.r*.6;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*4,p.y-p.vy*4);ctx.stroke()}
+    else{glow(p.x,p.y,p.r*3.2,p.c,cl(p.l)*.9);ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.l,0,TAU);ctx.fill()}
+  }
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
+
+// ── scenos ─────────────────────────────────────────────────────────────────
+const ZMKC={'+2':'#4ade80','+1':'#4ade80','+0':'#c9c2d8','-1':'#f87171','-2':'#f87171','x2':'#ffd24a','x0':'#7a8391'};
+function zmkVal(){return document.getElementById('zmkv').value}
+function dirMine(){return document.getElementById('dir').value==='mine'}
+function SRC(){return dirMine()?PLA[1]:ENE[1]}
+function SL(){return dirMine()?'KOVOTOJAS':'SARGAS'}
+function TL(){return dirMine()?'SARGAS':'KOVOTOJAS'}
+function SF(){return !dirMine()}
+function TF(){return dirMine()}
+function ART(foe){return foe?'rgba(150,70,70,.3)':'rgba(120,100,160,.35)'}
+function TGT(){return dirMine()?ENE[1]:PLA[1]}
+
+const SC={};
+
+// 1) ŽMK — traukimas iš kaladės → skrydis → atvertimas → laikymas → pritaikymas
+SC.zmk={
+  name:'ŽMK traukimas',
+  phases:[{n:'Pakėlimas',d:220},{n:'Skrydis',d:380},{n:'Atvertimas',d:260},{n:'Laikymas',d:1300},{n:'Pritaikymas',d:340}],
+  note:'<b>Dabar:</b> <span class="now">ŽMK korta tiesiog „iššoka" prie taikinio (spring, 0.3→1) ir po 2 s dingsta — nematyti, kad ji atkeliavo iš modifikatorių kaladės.</span><br><b>Siūloma:</b> korta pakyla nuo ŽMK kaladės, nuskrieja lanku prie taikinio, apsiverčia ore ir <b>kabo 1,3 s</b> (iš viso 2,5 s — 0,5 s ilgiau nei dabar), tada susigeria į taikinį kartu su žalos skaičiumi. Prie ×2 / ×0 – papildomai jau esama „kritinio" prezentacija.',
+  draw(t,ph){
+    board();
+    const v=zmkVal(),col=ZMKC[v]||'#ffd97a',tg=TGT();
+    const P0=ZMK,C={x:(ZMK.x+tg.x)/2,y:Math.min(ZMK.y,tg.y)-110};
+    let pos={x:ZMK.x,y:ZMK.y-6},sc=.72,flip=1,alpha=1,face=false;
+    if(ph.i===0){ // pakėlimas
+      const k=eo(ph.k);pos={x:ZMK.x,y:ZMK.y-6-k*14};sc=.72+k*.06;
+      glow(ZMK.x,ZMK.y,60*k,'rgba(240,180,41,.5)',.55*k);
+      if(ph.first)emit(ZMK.x,ZMK.y,10,{sp:1.6,c:'#ffd97a',d:.03,up:.6});
+    } else if(ph.i===1){ // skrydis
+      const k=eio(ph.k);const p=bez(P0,C,tg,k);pos=p;sc=lerp(.78,1.02,k);
+      const pp=bez(P0,C,tg,Math.max(0,k-.05));
+      if(Math.random()<.9)emit(pp.x,pp.y,1,{sp:.5,c:'#ffd97a',d:.045,r:2,g:.01});
+      ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='rgba(240,180,41,.4)';ctx.lineWidth=1.2;
+      ctx.beginPath();for(let i=0;i<=24;i++){const q=bez(P0,C,tg,(i/24)*k);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)}ctx.stroke();ctx.restore();
+    } else if(ph.i===2){ // atvertimas
+      pos={x:tg.x,y:tg.y-64};sc=1.02;
+      const k=ph.k;flip=Math.abs(Math.cos(k*Math.PI));face=k>.5;
+      if(ph.first)emit(tg.x,tg.y-64,16,{sp:2.4,c:col,d:.03,r:2.2});
+      if(k>.5)ringA(tg.x,tg.y-64,lerp(10,46,eo((k-.5)*2)),2,col,1-(k-.5)*2,0,TAU);
+    } else if(ph.i===3){ // laikymas
+      pos={x:tg.x,y:tg.y-64};sc=1+Math.sin(ph.k*Math.PI*3)*.02;face=true;
+      glow(tg.x,tg.y-64,54,col,.22+Math.sin(ph.k*Math.PI*6)*.06);
+      // ryšys su taikiniu
+      ctx.globalAlpha=.5;ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([3,4]);
+      ctx.beginPath();ctx.moveTo(tg.x,tg.y-64+30);ctx.lineTo(tg.x,tg.y-CH/2);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+      if(ph.first)emit(tg.x,tg.y-64,8,{sp:1,c:col,d:.02,up:.4});
+    } else { // pritaikymas
+      const k=eo(ph.k);pos={x:tg.x,y:lerp(tg.y-64,tg.y,k)};sc=lerp(1,.5,k);alpha=1-k;face=true;
+      if(ph.first){emit(tg.x,tg.y,26,{sp:3.4,c:col,d:.025,line:true});}
+      ringA(tg.x,tg.y,lerp(6,62,k),3-k*2,col,1-k);
+      // žalos skaičius
+      ctx.globalAlpha=cl(1-ph.k*.6);ctx.fillStyle=col;ctx.font='900 26px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText((v==='x2'?'−6':v==='+2'?'−5':v==='-1'?'−2':'−3'),tg.x+34,tg.y-16-k*22);ctx.globalAlpha=1;
+    }
+    // pati ŽMK korta
+    ctx.save();ctx.globalAlpha=alpha;
+    if(face){
+      card(pos.x,pos.y,{w:46,h:64,s:sc,sx:flip,back:false,stats:false,line:col,lw:2,artC:'rgba(0,0,0,.35)'});
+      ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(flip*sc,sc);
+      ctx.fillStyle=col;ctx.font='900 20px Georgia,serif';ctx.textAlign='center';ctx.fillText(v.replace('x','×'),0,7);ctx.restore();
+    } else card(pos.x,pos.y,{w:46,h:64,s:sc,sx:flip,back:true});
+    ctx.restore();
+  }
+};
+
+// 2) Kovos šūksnis
+SC.battlecry={
+  name:'Kovos šūksnis',
+  phases:[{n:'Įkvėpimas',d:260},{n:'Šūksnis',d:420},{n:'Antspaudas',d:900},{n:'Nukreipimas',d:520},{n:'Efektas',d:400}],
+  note:'<b>Dabar:</b> <span class="now">kortos nusileidimas + 800 ms pauzė, efektas atskrenda kaip paprastas projektilis — raktažodis niekur neįvardijamas.</span><br><b>Siūloma:</b> korta įkvepia (susitraukia, aplink surenka auksą) → <b>kryptinės garso bangos</b> į taikinio pusę + lentos mikro-drebėjimas → antspaudas „KOVOS ŠŪKSNIS" su kortos vardu → energijos ietis nukeliauja į taikinį → impact žiedas. Viso 2,5 s; pakartotiniams tos pačios kovos šūksniams — kompaktas 1,5 s (kaip reakcijų grandinėje).',
+  draw(t,ph){
+    board();
+    const s=SRC(),tg=TGT(),col='#ffd97a',col2='#f0b429';
+    const ang=Math.atan2(tg.y-s.y,tg.x-s.x);
+    if(ph.i===0){
+      const k=eo(ph.k);
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),s:1-k*.06,line:col2,lw:1.6+k});
+      runeRing(s.x,s.y+CH/2-6,lerp(6,34,k),t/600,k*.75,col2,6);
+      if(Math.random()<.7){const a=rnd(0,TAU),r=rnd(40,70);emit(s.x+Math.cos(a)*r,s.y+Math.sin(a)*r,1,{sp:.1,c:col,d:.03,g:0});}
+      // dalelės traukiamos į kortą
+      P.forEach(p=>{const dx=s.x-p.x,dy=s.y-p.y,d=Math.hypot(dx,dy)||1;p.vx+=dx/d*.45;p.vy+=dy/d*.45});
+    } else if(ph.i===1){
+      const k=ph.k;card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),s:1+.05*Math.sin(k*Math.PI),line:col,lw:2.4});
+      glow(s.x,s.y,90,'rgba(255,217,122,.5)',.5*(1-k));
+      for(let w=0;w<3;w++){const kk=cl((k-w*.16)*1.7);if(kk<=0)continue;
+        const r=lerp(24,220,eo(kk));ctx.globalAlpha=(1-kk)*.85;ctx.strokeStyle=w?col2:'#fff6dd';ctx.lineWidth=3.2-w;
+        ctx.beginPath();ctx.arc(s.x,s.y,r,ang-.75,ang+.75);ctx.stroke();ctx.globalAlpha=1}
+      if(ph.first)emit(s.x,s.y,26,{a0:ang,spread:1.3,sp:5,c:col,d:.03,line:true});
+    } else if(ph.i===2){
+      dimBoard(.55*cl(ph.k*3));
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col,lw:2.4});
+      glow(s.x,s.y,110,'rgba(255,217,122,.45)',.4);
+      const k=ph.k<.85?ph.k/.85:1-(ph.k-.85)/.15;
+      seal(s.x,s.y-96,k,'KOVOS ŠŪKSNIS','Geležinis riksmas',col2,'rgba(240,180,41,.45)');
+      runeRing(s.x,s.y+CH/2-6,34,t/500,.55,col2,6);
+    } else if(ph.i===3){
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:2});
+      const k=eio(ph.k);const x=lerp(s.x,tg.x,k),y=lerp(s.y,tg.y,k);
+      // ietis
+      ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+      const grd=ctx.createLinearGradient(-70,0,26,0);grd.addColorStop(0,'rgba(240,180,41,0)');grd.addColorStop(.6,'rgba(255,217,122,.75)');grd.addColorStop(1,'#fff6dd');
+      ctx.fillStyle=grd;ctx.beginPath();ctx.moveTo(26,0);ctx.lineTo(-70,-7);ctx.lineTo(-70,7);ctx.closePath();ctx.fill();ctx.restore();
+      emit(x,y,2,{sp:1.2,c:col,d:.05,r:2});
+      if(k>.98&&ph.first!==undefined){}
+    } else {
+      const k=ph.k;
+      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.05*Math.sin(cl(k*3)*Math.PI)});
+      if(ph.first){emit(tg.x,tg.y,34,{sp:4.2,c:col,d:.025,line:true});emit(tg.x,tg.y,18,{sp:2,c:'#fff6dd',d:.02})}
+      ringA(tg.x,tg.y,lerp(8,80,eo(k)),4-k*3,col,1-k);
+      ctx.globalAlpha=1-k*.5;ctx.fillStyle='#f87171';ctx.font='900 30px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText('−3',tg.x+38,tg.y-14-k*26);ctx.globalAlpha=1;
+    }
+  }
+};
+
+// 3) Paskutinis noras
+SC.lastwish={
+  name:'Paskutinis noras',
+  phases:[{n:'Išsiskyrimas',d:300},{n:'Siela',d:700},{n:'Antspaudas',d:800},{n:'Įvykdymas',d:500}],
+  note:'<b>Dabar:</b> <span class="now">kortos „ghost-hold" + nuskridimas į kapinyną; pats paskutinio noro efektas atrodo kaip eilinis projektilis.</span><br><b>Siūloma:</b> nuo mirštančios kortos atsiskiria <b>vėlė</b> (šviesi siela su uodega), lieka pelenai → siela kyla ir lanku pasuka link taikinio → antspaudas „PASKUTINIS NORAS" → siela smigteli į taikinį žalsvai violetiniu blyksniu. Viso 2,3 s.',
+  draw(t,ph){
+    board();
+    const s=SRC(),tg=TGT(),col='#a78bfa',col2='#c4b5fd',green='#86efac';
+    const soul={x:s.x,y:s.y};
+    if(ph.i===0){
+      const k=eo(ph.k);
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),a:1-k*.75,dead:true,s:1-k*.08});
+      if(ph.first)emit(s.x,s.y+CH/2-8,20,{sp:1.4,c:'#6b7280',d:.03,up:.2,g:.02});
+      glow(s.x,s.y,50*k,'rgba(167,139,250,.6)',.5*k);
+      soul.y=s.y-k*10;
+      // pelenai
+      ctx.globalAlpha=k*.8;ctx.fillStyle='rgba(60,55,70,.8)';ctx.beginPath();ctx.ellipse(s.x,s.y+CH/2-4,26*k,5*k,0,0,TAU);ctx.fill();ctx.globalAlpha=1;
+    } else if(ph.i===1){
+      ctx.globalAlpha=.25;ctx.fillStyle='rgba(60,55,70,.8)';ctx.beginPath();ctx.ellipse(s.x,s.y+CH/2-4,26,5,0,0,TAU);ctx.fill();ctx.globalAlpha=1;
+      const k=eio(ph.k);const C={x:(s.x+tg.x)/2,y:Math.min(s.y,tg.y)-120};
+      const p=bez({x:s.x,y:s.y-10},C,{x:tg.x,y:tg.y-30},k);soul.x=p.x;soul.y=p.y;
+      if(Math.random()<.95)emit(p.x+rnd(-4,4),p.y+rnd(-4,4),1,{sp:.35,c:Math.random()<.5?col:green,d:.028,r:2.4,g:-.008});
+    } else if(ph.i===2){
+      dimBoard(.5*cl(ph.k*3));
+      const k=ph.k<.85?ph.k/.85:1-(ph.k-.85)/.15;
+      soul.x=tg.x;soul.y=tg.y-30;
+      seal(tg.x,tg.y-116,k,'PASKUTINIS NORAS','Sielos skola',col,'rgba(167,139,250,.45)');
+      glow(soul.x,soul.y,60,'rgba(167,139,250,.5)',.35+Math.sin(t/140)*.06);
+      if(Math.random()<.6)emit(soul.x+rnd(-6,6),soul.y+rnd(-6,6),1,{sp:.3,c:col2,d:.03,r:2,g:-.01});
+    } else {
+      const k=eo(ph.k);
+      soul.x=tg.x;soul.y=lerp(tg.y-30,tg.y,k);
+      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.06*Math.sin(cl(k*2)*Math.PI)});
+      if(ph.first){emit(tg.x,tg.y,30,{sp:3.6,c:col,d:.025,line:true});emit(tg.x,tg.y,16,{sp:1.8,c:green,d:.02})}
+      ringA(tg.x,tg.y,lerp(8,74,k),3.4-k*2.4,col2,1-k);
+      ctx.globalAlpha=1-k*.5;ctx.fillStyle=green;ctx.font='900 28px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText('−2',tg.x+36,tg.y-16-k*24);ctx.globalAlpha=1;
+    }
+    // vėlė
+    if(ph.i<3||ph.k<.9){
+      const pulse=1+Math.sin(t/120)*.12;
+      glow(soul.x,soul.y,26*pulse,'rgba(196,181,253,.9)',.75);
+      ctx.fillStyle='#e9e1ff';ctx.beginPath();ctx.arc(soul.x,soul.y,5.5*pulse,0,TAU);ctx.fill();
+      ctx.globalAlpha=.5;ctx.fillStyle=col2;
+      ctx.beginPath();ctx.moveTo(soul.x-4,soul.y);ctx.quadraticCurveTo(soul.x,soul.y+16,soul.x+4,soul.y);ctx.fill();ctx.globalAlpha=1;
+    }
+  }
+};
+
+// 4) Trigeris
+SC.trigger={
+  name:'Trigeris',
+  phases:[{n:'Sąlyga',d:300},{n:'Žybsnis',d:350},{n:'Antspaudas',d:700},{n:'Nukreipimas',d:450},{n:'Efektas',d:350}],
+  note:'<b>Dabar:</b> <span class="now">trigeriai (ėjimo pradžia, po atakos, prakeiksmo sąlyga) turi tik `fxSource` projektilį — žaidėjas nesupranta, KAS ir KODĖL suveikė.</span><br><b>Siūloma:</b> po kortos užsidega <b>runų ratas</b> ir pasisuka → iš jo iššoka runa → antspaudas „TRIGERIS · Ėjimo pradžia" su kortos vardu → runa nuskrieja lanku į taikinį → efektas. Viso 2,15 s. Tas pats šablonas tinka ir prakeiksmų trigeriams (tik kita paletė).',
+  draw(t,ph){
+    board();
+    const s=SRC(),tg=TGT(),col='#7dd3fc',col2='#38bdf8';
+    if(ph.i===0){
+      const k=eo(ph.k);
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:1.6+k*1.2});
+      runeRing(s.x,s.y+CH/2-4,lerp(8,40,k),t/700,k,col2,8);
+      glow(s.x,s.y+CH/2-4,50*k,'rgba(56,189,248,.45)',.45*k);
+    } else if(ph.i===1){
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col,lw:2.6});
+      runeRing(s.x,s.y+CH/2-4,40,t/240,1,col,8);
+      const k=eo(ph.k);
+      for(let i=0;i<3;i++){const a=-Math.PI/2+(i-1)*.55,r=lerp(10,70,k);
+        const x=s.x+Math.cos(a)*r,y=s.y+CH/2-4+Math.sin(a)*r;
+        ctx.globalAlpha=1-k;ctx.strokeStyle=col;ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(x,y-7);ctx.lineTo(x+5,y);ctx.lineTo(x,y+7);ctx.lineTo(x-5,y);ctx.closePath();ctx.stroke();ctx.globalAlpha=1}
+      if(ph.first)emit(s.x,s.y+CH/2-4,20,{sp:2.6,c:col,d:.03,up:1.2});
+    } else if(ph.i===2){
+      dimBoard(.45*cl(ph.k*3));
+      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col,lw:2.4});
+      runeRing(s.x,s.y+CH/2-4,40,t/400,.7,col2,8);
+      const k=ph.k<.85?ph.k/.85:1-(ph.k-.85)/.15;
+      seal(s.x,s.y-96,k,'TRIGERIS · ĖJIMO PRADŽIA','Sargybos žvilgsnis',col2,'rgba(56,189,248,.4)');
+    } else if(ph.i===3){
+      const k=eio(ph.k);const C={x:(s.x+tg.x)/2,y:Math.min(s.y,tg.y)-90};
+      const p=bez(s,C,tg,k);
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(t/160);
+      ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.beginPath();
+      ctx.moveTo(0,-9);ctx.lineTo(7,0);ctx.lineTo(0,9);ctx.lineTo(-7,0);ctx.closePath();ctx.stroke();
+      glow(0,0,22,'rgba(125,211,252,.8)',.6);ctx.restore();
+      emit(p.x,p.y,1,{sp:.5,c:col,d:.05,r:2});
+    } else {
+      const k=ph.k;
+      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.05*Math.sin(cl(k*3)*Math.PI)});
+      if(ph.first)emit(tg.x,tg.y,26,{sp:3.4,c:col,d:.026,line:true});
+      ringA(tg.x,tg.y,lerp(8,70,eo(k)),3.2-k*2.2,col,1-k);
+      ctx.globalAlpha=1-k*.5;ctx.fillStyle=col;ctx.font='900 26px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText('❄',tg.x+34,tg.y-14-k*22);ctx.globalAlpha=1;
+    }
+  }
+};
+
+// 5) Efektas (bendra kokybės kartelė)
+SC.effect={
+  name:'Efektas (žala / buff)',
+  phases:[{n:'Šaltinis',d:240},{n:'Kelionė',d:420},{n:'Smūgis',d:320},{n:'Atoveiksmis',d:420}],
+  note:'<b>Dabar:</b> <span class="now">projektilis + skaičius; smūgis beveik nesijaučia, atoveiksmio nėra.</span><br><b>Siūloma vienoda „efekto gramatika" visiems efektams:</b> šaltinis įsižiebia (0,24 s) → projektilis su uodega ir deformacija (0,42 s) → smūgis: žiedas + skeveldros + taikinio squash + ekrano mikro-drebėjimas (0,32 s) → atoveiksmis: dūmelis, skaičius pakyla ir išblunka (0,42 s). Ta pati struktūra su kita palete tinka gydymui, buff/debuff ir prakeiksmams.',
+  draw(t,ph){
+    board();
+    const s=SRC(),tg=TGT(),col='#ff9a3c',col2='#ffd97a';
+    if(ph.i===0){
+      const k=eo(ph.k);card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:1.6+k});
+      glow(s.x,s.y-10,46*k,'rgba(255,154,60,.6)',.5*k);
+      if(Math.random()<.8){const a=rnd(0,TAU);emit(s.x+Math.cos(a)*40,s.y+Math.sin(a)*40,1,{sp:.1,c:col,d:.035,g:0})}
+      P.forEach(p=>{const dx=s.x-p.x,dy=s.y-p.y,d=Math.hypot(dx,dy)||1;p.vx+=dx/d*.5;p.vy+=dy/d*.5});
+    } else if(ph.i===1){
+      const k=eio(ph.k),x=lerp(s.x,tg.x,k),y=lerp(s.y,tg.y,k)-Math.sin(k*Math.PI)*26;
+      const ang=Math.atan2(tg.y-s.y,tg.x-s.x);
+      ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.scale(1+.5*Math.sin(k*Math.PI),1-.2*Math.sin(k*Math.PI));
+      glow(0,0,26,'rgba(255,154,60,.9)',.85);ctx.fillStyle='#fff3d6';ctx.beginPath();ctx.arc(0,0,6,0,TAU);ctx.fill();ctx.restore();
+      emit(x,y,2,{sp:.7,c:col,d:.05,r:2.4,g:.01});
+    } else if(ph.i===2){
+      const k=ph.k;
+      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.09*Math.sin(cl(k*2)*Math.PI),rot:.03*Math.sin(k*18)});
+      if(ph.first){emit(tg.x,tg.y,40,{sp:5,c:col,d:.03,line:true});emit(tg.x,tg.y,20,{sp:2.4,c:'#fff3d6',d:.025})}
+      ringA(tg.x,tg.y,lerp(6,86,eo(k)),5-k*4,col2,1-k);
+      ringA(tg.x,tg.y,lerp(6,54,eo(cl(k*1.6))),3-k*2,'#fff3d6',(1-k)*.8);
+      ctx.fillStyle='rgba(255,243,214,'+(1-k)*.25+')';ctx.fillRect(0,0,W,H);
+    } else {
+      const k=ph.k;card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF())});
+      ctx.globalAlpha=(1-k)*.5;ctx.fillStyle='rgba(90,80,95,.9)';
+      ctx.beginPath();ctx.ellipse(tg.x,tg.y-10-k*26,20+k*14,10+k*8,0,0,TAU);ctx.fill();ctx.globalAlpha=1;
+      ctx.globalAlpha=cl(1.2-k);ctx.fillStyle='#f87171';ctx.font='900 32px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText('−4',tg.x+40,tg.y-18-k*30);ctx.globalAlpha=1;
+    }
+  }
+};
+
+// ── variklis ───────────────────────────────────────────────────────────────
+const ORDER=['zmk','battlecry','lastwish','trigger','effect'];
+let cur='zmk',start=performance.now(),spd=1,looping=true,lastPhase=-1;
+const tabs=document.getElementById('tabs'),bar=document.getElementById('phasebar'),note=document.getElementById('note'),tsEl=document.getElementById('ts');
+ORDER.forEach(k=>{const b=document.createElement('button');b.className='tab'+(k===cur?' on':'');b.textContent=SC[k].name;b.onclick=()=>{cur=k;reset();buildBar();syncTabs()};tabs.appendChild(b)});
+function syncTabs(){[...tabs.children].forEach((b,i)=>b.classList.toggle('on',ORDER[i]===cur))}
+function buildBar(){bar.innerHTML='';SC[cur].phases.forEach(p=>{const el=document.createElement('div');el.className='ph';
+  el.innerHTML='<div class="fill"></div><span>'+p.n+' ('+(p.d/1000).toFixed(2)+'s)</span>';bar.appendChild(el)});
+  note.innerHTML='<span class="cmp">viso '+(SC[cur].phases.reduce((a,p)=>a+p.d,0)/1000).toFixed(2)+' s</span>'+SC[cur].note}
+function reset(){start=performance.now();P=[];lastPhase=-1}
+document.getElementById('replay').onclick=reset;
+document.getElementById('spd').onchange=e=>{spd=parseFloat(e.target.value);reset()};
+document.getElementById('dir').onchange=reset;
+document.getElementById('zmkv').onchange=reset;
+document.getElementById('loop').onchange=e=>{looping=e.target.checked};
+document.getElementById('old').onchange=reset;
+buildBar();
+
+function frame(now){
+  requestAnimationFrame(frame);
+  const S=SC[cur],PH=S.phases,TOT=PH.reduce((a,p)=>a+p.d,0);
+  let el=(now-start)*spd;
+  const showOld=document.getElementById('old').checked;
+  if(el>TOT+700){ if(looping) reset(); else el=TOT+700 }
+  ctx.clearRect(0,0,W,H);
+  // fazė
+  let acc=0,i=0,k=0;
+  for(;i<PH.length;i++){ if(el<acc+PH[i].d){k=(el-acc)/PH[i].d;break} acc+=PH[i].d }
+  if(i>=PH.length){i=PH.length-1;k=1}
+  const first=i!==lastPhase; lastPhase=i;
+  if(showOld&&cur==='zmk'){
+    // DABARTINĖ ŽMK versija palyginimui: pop-in prie taikinio, be skrydžio
+    board();
+    const tg=TGT(),v=zmkVal(),col=ZMKC[v]||'#ffd97a';
+    const kk=cl(el/2000), pop=cl(el/260);
+    const s=lerp(.3,1,eb(pop)), a=el<1700?1:cl((2000-el)/300);
+    card(tg.x,tg.y-58,{w:42,h:58,s:s,a:a,back:false,stats:false,line:col,lw:2,artC:'rgba(0,0,0,.35)'});
+    ctx.save();ctx.globalAlpha=a;ctx.fillStyle=col;ctx.font='900 18px Georgia,serif';ctx.textAlign='center';
+    ctx.fillText(v.replace('x','×'),tg.x,tg.y-52);ctx.restore();
+    ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='600 11px system-ui';ctx.textAlign='left';
+    ctx.fillText('DABARTINĖ VERSIJA (2.0 s, be skrydžio iš kaladės)',18,26);
+    stepP(1);
+    [...bar.children].forEach((el2,idx)=>{el2.querySelector('.fill').style.transform='scaleX(0)'});
+    tsEl.textContent=(el/1000).toFixed(2)+' s / 2.00 s';
+    return
+  }
+  S.draw(el,{i,k,first});
+  stepP(spd<1?spd*1.6:1);
+  // fazių juosta
+  [...bar.children].forEach((el2,idx)=>{const f=el2.querySelector('.fill');
+    f.style.transform='scaleX('+(idx<i?1:idx===i?k:0)+')'});
+  tsEl.textContent=(Math.min(el,TOT)/1000).toFixed(2)+' s / '+(TOT/1000).toFixed(2)+' s';
+}
+requestAnimationFrame(frame);
+})();
+</script></body></html>
