@@ -27,7 +27,7 @@ export type RankedBot = {
   /** Stabilus identifikatorius (taip pat seed'inamas botId pamatui). */
   slug: string
   name: string
-  avatar: string // emoji vietos rezervas (vėliau gali būti paveikslėlis)
+  avatar: string // avataro paveikslėlio kelias (priskiriamas žemiau pagal rango eilę)
   /** Frakcijos slug DB; null = mišri/universali (kovai parenkama atsitiktinė frakcija). */
   factionSlug: string | null
   faction: string // rodomas vardas
@@ -110,9 +110,40 @@ export const RANKED_BOTS: RankedBot[] = [
     rankStep: R(5, 'gold'), difficultyModifier: 'hard', personality: 'Sweaty ranked grinder — stipriausias botas laiptuose.', deckName: 'Aukšto rango bosas' },
 ]
 
+// ── Avatarai ir sunkumas pagal rangą (2026-09-20) ───────────────────────────
+//  Botai neturi atrodyti kaip botai: vietoj emoji – tie patys avatarų
+//  kosmetikos paveikslėliai, kuriuos nešioja žaidėjai. Tikrasis avataras ir
+//  sunkumas ateina iš DB (`ranked_bots`, migr. 20260925) – čia VEIDRODIS, kad
+//  offline / fallback atveju matytųsi tas pats.
+//  Taisyklė (20 botų): top 10 pagal rangą – hard, viduriniai 5 – normal,
+//  žemiausi 5 – easy.
+export const BOT_AVATARS = [
+  '/card-backs/av-varnas.webp',
+  '/card-backs/av-kaukole.webp',
+  '/card-backs/av-drakonas.webp',
+  '/card-backs/av-inkvizitorius.webp',
+  '/card-backs/av-karuna.webp',
+  '/card-backs/av-rubino-varnas.webp',
+  '/card-backs/av-basic.webp',
+  '/card-backs/av-rare.webp',
+  '/card-backs/av-premium.webp',
+  '/card-backs/av-legendary.webp',
+]
+
+{
+  // ta pati tvarka kaip SQL'e: rank_step desc, slug asc
+  const order = [...RANKED_BOTS].sort((a, b) => (b.rankStep - a.rankStep) || a.slug.localeCompare(b.slug))
+  const n = order.length
+  order.forEach((b, i) => {
+    const r = i + 1
+    b.difficultyModifier = r <= Math.ceil(n / 2) ? 'hard' : r <= Math.ceil((n * 3) / 4) ? 'normal' : 'easy'
+    b.avatar = BOT_AVATARS[i % BOT_AVATARS.length]
+  })
+}
+
 export const RANKED_BOT_BY_SLUG = new Map(RANKED_BOTS.map((b) => [b.slug, b]))
 
-/** engine AI sunkumas pagal boto modifikatorių. */
+/** engine AI sunkumas pagal boto modifikatorių (iš rango eilės, žr. aukščiau). */
 export function botDifficulty(b: RankedBot): 'easy' | 'normal' | 'hard' {
   return b.difficultyModifier
 }

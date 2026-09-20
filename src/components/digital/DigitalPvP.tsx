@@ -18,6 +18,9 @@ import { useCosmetics, preloadActiveCosmetics } from '@/lib/digital/cosmeticsSto
 import { getStarterDecks } from '@/lib/starterDecks'
 import { friendsList, challengeCreate, type Friend } from '@/lib/social'
 import type { PvPNet } from '@/components/tutorial/TutorialGame'
+import { pickFriendlyBot } from '@/lib/ranked/client'
+import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
+import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { useT } from '@/lib/i18n/react'
 import { RavenofBannerButton, RavenofTextField } from '@/components/digital/ui/RavenofKit'
 
@@ -25,7 +28,16 @@ const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
 type Match = { id: string; code: string | null; guest_id: string | null; guest_deck_id: string | null; guest_name: string | null; host_id: string; host_name: string | null }
-type Launch = { net: PvPNet; deckId: string; opponentDeckId: string | null; opponentName: string }
+type Launch = {
+  net?: PvPNet; deckId: string; opponentDeckId?: string | null; opponentName: string
+  /** Užpildyta, kai po ilgo laukimo GREITOJE KOVOJE varžovu tapo botas. */
+  bot?: { slug: string; difficulty: 'easy' | 'normal' | 'hard'; factionId: number | null; avatar: string | null }
+}
+
+// Greita kova: jei per tiek laiko neatsiranda tikras žaidėjas – varžovu tampa
+// botas. Laikas atsitiktinis (ne fiksuotas), kaip ir reitingo eilėje.
+const BOT_WAIT_MIN_SEC = 50
+const BOT_WAIT_MAX_SEC = 110
 type Mode = 'random' | 'create' | 'code'
 const randCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
 
@@ -115,15 +127,35 @@ export function DigitalPvP() {
 
   const playable = (decks ?? []).filter((d) => d.missing === 0)
 
-  const waitForGuest = useCallback((matchId: string) => {
+  const waitForGuest = useCallback((matchId: string, withBot = false) => {
     const supabase = createClient()
     if (pollRef.current) clearInterval(pollRef.current)
+    const startedAt = Date.now()
+    const botWaitMs = (BOT_WAIT_MIN_SEC + Math.random() * (BOT_WAIT_MAX_SEC - BOT_WAIT_MIN_SEC)) * 1000
     pollRef.current = setInterval(async () => {
       const { data } = await supabase.from('pvp_matches').select('*').eq('id', matchId).single()
       const m = data as Match | null
       if (m && m.guest_id && m.guest_deck_id) {
         if (pollRef.current) clearInterval(pollRef.current)
         setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || t('battle.opponentFallback') })
+        return
+      }
+      // Niekas neprisijungė – leidžiam kovą prieš botą (tik greitoje kovoje).
+      // Kambarį trinam SĄLYGIŠKAI (guest_id vis dar null): jei kaip tik tuo metu
+      // kas nors prisijungė – trynimas nieko negrąžina ir laukiam toliau.
+      if (withBot && Date.now() - startedAt >= botWaitMs) {
+        const { data: del } = await supabase.from('pvp_matches').delete().eq('id', matchId).is('guest_id', null).select('id')
+        if (!del || del.length === 0) return
+        if (pollRef.current) clearInterval(pollRef.current)
+        const bot = await pickFriendlyBot()
+        setRoom(null); setStatus('')
+        if (!bot) return
+        let factionId: number | null = null
+        if (bot.faction_slug) {
+          const { data: f } = await supabase.from('factions').select('id').eq('slug', bot.faction_slug).maybeSingle()
+          factionId = (f as { id: number } | null)?.id ?? null
+        }
+        setLaunch({ deckId: battleDeckRef.current, opponentName: bot.name, bot: { slug: bot.slug, difficulty: bot.difficulty, factionId, avatar: bot.avatar ?? null } })
       }
     }, 2000)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,7 +182,7 @@ export function DigitalPvP() {
       if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback') }); return }
     }
     const created = await createPrivate(true, null)
-    if (created) { setRoom(created); setStatus(t('battle.pvp.status.waitingRandom')); waitForGuest(created.id) }
+    if (created) { setRoom(created); setStatus(t('battle.pvp.status.waitingRandom')); waitForGuest(created.id, true) }
   }
 
   const inviteFriend = async (f: Friend) => {
@@ -193,7 +225,16 @@ export function DigitalPvP() {
   }
 
   if (launch) {
-    return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')} opponentDeckId={launch.opponentDeckId} opponentName={launch.opponentName} net={launch.net} onClose={() => { setLaunch(null); setRoom(null); setStatus('') }} />
+    const close = () => { setLaunch(null); setRoom(null); setStatus('') }
+    if (launch.bot) {
+      const b = RANKED_BOT_BY_SLUG.get(launch.bot.slug)
+      // Atlygis kaip už unranked PvP – žaidėjui tai eilinė greita kova.
+      return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')}
+        opponentFaction={launch.bot.factionId} opponentName={launch.opponentName}
+        difficulty={launch.bot.difficulty} aiStrategy={b ? strategyWeights(b) : undefined}
+        botChat={{ name: launch.opponentName }} opponentAvatar={launch.bot.avatar} rewardMode="unranked" onClose={close} />
+    }
+    return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')} opponentDeckId={launch.opponentDeckId ?? null} opponentName={launch.opponentName} net={launch.net} onClose={close} />
   }
 
   // ── CTA būsena ──

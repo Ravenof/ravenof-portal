@@ -40,6 +40,14 @@ export type BotOpponent = {
   difficulty: 'easy' | 'normal' | 'hard'
 }
 
+/** Botas DRAUGIŠKAI kovai (be reitingo profilio; atsitiktinis iš aktyvių). */
+export async function pickFriendlyBot(): Promise<BotOpponent | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_pick_friendly_bot')
+  if (error) { console.warn('[pvp] pick_friendly_bot:', error.message); return null }
+  return (data as BotOpponent) ?? null
+}
+
 /** Parenka botą po matchmaking timeout'o (gerbia anti-repeat per last_opponent_ids). */
 export async function pickBot(): Promise<BotOpponent | null> {
   const supabase = createClient()

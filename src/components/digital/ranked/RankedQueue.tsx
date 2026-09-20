@@ -1,7 +1,9 @@
 'use client'
 
-// ── Matchmaking eilė — laipsniškai plečia paiešką; po 60 s krenta į botą. ────
-// 0–20 s: ±3 žingsniai · 20–40 s: ±10 · 40–60 s: bet koks · >60 s: botas.
+// ── Matchmaking eilė — laipsniškai plečia paiešką; krenta į botą. ───────────
+// 0–20 s: ±3 žingsniai · 20–40 s: ±10 · 40 s+: bet koks.
+// Bot fallback NE fiksuotas (buvo lygiai 60 s – žaidėjai pastebi šabloną),
+// o ATSITIKTINIS 50–110 s kiekvienai paieškai atskirai.
 import { useEffect, useRef, useState } from 'react'
 import { queueJoin, queueLeave, queuePoll, pickBot, getOpponentSummary, getRankedPvpMatch } from '@/lib/ranked/client'
 import { playRanked } from '@/lib/ranked/sound'
@@ -21,7 +23,9 @@ export type MatchedOpponent = {
   opponentDeckId?: string | null
 }
 
-const BOT_FALLBACK_SEC = 60
+const BOT_WAIT_MIN_SEC = 50
+const BOT_WAIT_MAX_SEC = 110
+const randomBotWait = () => BOT_WAIT_MIN_SEC + Math.random() * (BOT_WAIT_MAX_SEC - BOT_WAIT_MIN_SEC)
 
 // ── Matchmaking ratas: file-first asset (/ravenof-ui/ranked/queue-spinner.png,
 // spec — README-QUEUE-SPINNER.md) sukasi greitai su „motion blur" (2 vėluojančios
@@ -114,6 +118,7 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
   useEffect(() => {
     playRanked('ranked_queue_start')
     let alive = true
+    const botWaitSec = randomBotWait()
     queueJoin(deckId)
     const startedAt = Date.now()
 
@@ -142,8 +147,8 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
         })
         return
       }
-      // Bot fallback po 60 s
-      if (sec >= BOT_FALLBACK_SEC) {
+      // Bot fallback po atsitiktinio 50–110 s laukimo
+      if (sec >= botWaitSec) {
         doneRef.current = true
         const bot = await pickBot()
         await queueLeave()
@@ -164,8 +169,7 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
 
   const status = elapsed < 20 ? t('ranked.queue.similar')
     : elapsed < 40 ? t('ranked.queue.widening')
-    : elapsed < BOT_FALLBACK_SEC ? t('ranked.queue.any')
-    : t('ranked.queue.found')
+    : t('ranked.queue.any')
 
   const cancel = () => { doneRef.current = true; playRanked('ranked_queue_cancel'); queueLeave(); onCancel() }
 

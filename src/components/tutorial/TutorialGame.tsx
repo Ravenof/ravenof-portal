@@ -136,7 +136,7 @@ export type SandboxHooks = {
   passiveAi?: boolean
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; /** Botas, kuris kovoje elgiasi kaip žaidėjas: rodom pokalbio burbulą ir jis atrašo (labas/gl/gg). */ botChat?: { name: string }; /** Boto avataro paveikslėlis (tas pats, kurį žaidėjas matė „varžovas rastas" ekrane). */ opponentAvatar?: string | null; /** Atlygio režimo perrašymas (draugiška kova prieš botą = 'unranked'). */ rewardMode?: MatchMode; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -985,7 +985,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
@@ -1196,10 +1196,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
         try { const { data: op } = await createClient().from('profiles').select('equipped_avatar').eq('id', net.opponentId).maybeSingle(); foeId = (op as { equipped_avatar?: string } | null)?.equipped_avatar ?? null } catch { /* */ }
         if (!alive) return
       }
-      // Botai (treniruotė / ranked): random avataras kas kovą, ne visada default
+      // Botai: jei žinom boto avatarą (iš ranked_bots) – imam TĄ PATĮ, kurį žaidėjas
+      // matė „varžovas rastas" ekrane; kitaip – random, bet ne toks kaip mano.
+      const botByUrl = (!foeId && opponentAvatar && opponentAvatar.startsWith('/'))
+        ? items.find((c) => c.imageUrl === opponentAvatar) ?? null : null
       const botPool = items.filter((c) => c.id !== mine?.id)
       const botPick = (botPool.length ? botPool : items)
       const foe = (foeId ? items.find((c) => c.id === foeId) : null)
+        ?? botByUrl
         ?? (botPick.length ? botPick[Math.floor(Math.random() * botPick.length)] : null)
       const toAv = (c: typeof mine | null): BattleAvatar | null => c ? { id: c.id, name: c.name, imageUrl: c.imageUrl, emoji: c.emoji, videos: c.videos ?? [], fit: c.portraitFit ?? null, emotions: c.emotions ?? null } : null
       const me = toAv(mine), en = toAv(foe)
@@ -2943,7 +2947,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     matchRewardRef.current = true
     const won = game.winner === 'you'
     if (practice && !vsRemote) { try { onPracticeResult?.(won) } catch { /* callback niekada nelaužia kovos */ } }
-    const mode: MatchMode = vsRemote ? 'unranked' : 'bot'
+    const mode: MatchMode = rewardMode ?? (vsRemote ? 'unranked' : 'bot')
     const durationSeconds = Math.round((Date.now() - (matchStartRef.current || Date.now())) / 1000)
     const turns = game.globalTurn
     reportMatchV2({
@@ -3128,8 +3132,45 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, oppo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [net?.matchId])
 
+  // ── Boto „žmogiškas" pokalbis ────────────────────────────────────────────
+  //  Botas neturi realtime kanalo, tad žinutes generuojam vietoje: pasisveikina
+  //  kovos pradžioje, atsako į tavo žinutes (ne daugiau 4 kartus) ir pabaigoje
+  //  parašo „gg". Eilutės – iš i18n (battle.game.botChat_*).
+  const botChatRef = useRef({ greeted: false, gg: false, replies: 0 })
+  const botTimersRef = useRef<number[]>([])
+  useEffect(() => () => { botTimersRef.current.forEach((id) => window.clearTimeout(id)); botTimersRef.current = [] }, [])
+  const botSay = useCallback((grp: 'greet' | 'reply' | 'winGg' | 'lossGg', delayMs: number) => {
+    const counts: Record<string, number> = { greet: 4, reply: 5, winGg: 3, lossGg: 3 }
+    const i = 1 + Math.floor(Math.random() * (counts[grp] ?? 1))
+    const id = window.setTimeout(() => {
+      const txt = t(`battle.game.botChat_${grp}_${i}`)
+      if (txt) setChatLog((l) => [...l.slice(-40), { mine: false, text: txt }])
+    }, delayMs)
+    botTimersRef.current.push(id)
+  }, [t])
+
+  const botChatOn = !!botChat && !vsRemote
+  // pasisveikinimas kovos pradžioje
+  useEffect(() => {
+    if (!botChatOn || !game || botChatRef.current.greeted) return
+    botChatRef.current.greeted = true
+    botSay('greet', 3000 + Math.random() * 3000)
+  }, [botChatOn, game, botSay])
+  // „gg" pabaigoje (jei botas pralaimėjo – kuklesnė eilutė)
+  useEffect(() => {
+    if (!botChatOn || !game?.winner || botChatRef.current.gg) return
+    botChatRef.current.gg = true
+    botSay(game.winner === 'you' ? 'lossGg' : 'winGg', 1200 + Math.random() * 1300)
+  }, [botChatOn, game?.winner, botSay])
+
   const sendBattleChat = () => {
-    const txt = chatInput.trim(); if (!txt || !channelRef.current) return
+    const txt = chatInput.trim(); if (!txt) return
+    if (botChatOn) {
+      setChatLog((l) => [...l.slice(-40), { mine: true, text: txt }]); setChatInput('')
+      if (botChatRef.current.replies < 4) { botChatRef.current.replies++; botSay('reply', 1500 + Math.random() * 2500) }
+      return
+    }
+    if (!channelRef.current) return
     channelRef.current.send({ type: 'broadcast', event: 'chat', payload: { text: txt } })
     setChatLog((l) => [...l.slice(-40), { mine: true, text: txt }]); setChatInput('')
   }
@@ -6248,7 +6289,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── pergalės / pralaimėjimo modalas ── */}
       <AnimatePresence>
-        {vsRemote && (
+        {(vsRemote || botChatOn) && (
           <BattleChatHead chatLog={chatLog} chatInput={chatInput} setChatInput={setChatInput} sendBattleChat={sendBattleChat} open={chatOpen} setOpen={setChatOpen} />
         )}
         {game?.winner && endShown && (() => {

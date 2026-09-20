@@ -171,6 +171,8 @@ export function RankedClient() {
         opponentName={opp.name}
         difficulty={opp.difficulty}
         aiStrategy={opp.kind === 'bot' && opp.id ? (() => { const b = RANKED_BOT_BY_SLUG.get(opp.id!); return b ? strategyWeights(b) : undefined })() : undefined}
+        botChat={opp.kind === 'bot' ? { name: opp.name } : undefined}
+        opponentAvatar={opp.avatar}
         onRankedResult={handleResult}
         onClose={() => { if (flow === 'playing') { setFlow('idle'); load() } }}
       />
