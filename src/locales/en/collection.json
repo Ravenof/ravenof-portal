@@ -50,7 +50,9 @@
     "tapEnd": "Tap — finish",
     "tapNext": "Tap — next card",
     "toCollection": "To collection",
-    "yourCards": "Your cards"
+    "yourCards": "Your cards",
+    "newBadge": "New",
+    "newCount": "New cards: {{count}}"
   },
   "packsN": "Packs ({{count}})",
   "pickCard": "Pick a card.",
@@ -81,5 +83,8 @@
   "title": "Collection",
   "toShop": "To the shop",
   "type": "Type",
-  "whichPack": "🎁 Which pack to open?"
+  "whichPack": "🎁 Which pack to open?",
+  "newBadge": "New",
+  "newOnlyShort": "New ({{count}})",
+  "markAllSeen": "Mark all as seen"
 }

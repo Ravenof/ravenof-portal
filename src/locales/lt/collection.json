@@ -50,7 +50,9 @@
     "tapEnd": "Spustelėk – pabaiga",
     "tapNext": "Spustelėk – kita korta",
     "toCollection": "Į kolekciją",
-    "yourCards": "Tavo kortos"
+    "yourCards": "Tavo kortos",
+    "newBadge": "Nauja",
+    "newCount": "Naujų kortų: {{count}}"
   },
   "packsN": "Pakai ({{count}})",
   "pickCard": "Pasirink kortą.",
@@ -81,5 +83,8 @@
   "title": "Kolekcija",
   "toShop": "Į parduotuvę",
   "type": "Tipas",
-  "whichPack": "🎁 Kurį paką atplėšti?"
+  "whichPack": "🎁 Kurį paką atplėšti?",
+  "newBadge": "Nauja",
+  "newOnlyShort": "Naujos ({{count}})",
+  "markAllSeen": "Pažymėti visas kaip matytas"
 }

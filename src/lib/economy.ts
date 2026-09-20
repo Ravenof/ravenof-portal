@@ -146,6 +146,14 @@ export async function getPackInventory(): Promise<Record<string, number>> {
   return out
 }
 
+/** Nuima „nauja" žymą nuo kortų (null = nuo visų). Grąžina, kiek nuimta. */
+export async function markCollectionSeen(cardIds?: string[]): Promise<number> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_mark_collection_seen', { p_card_ids: cardIds ?? null })
+  if (error) { console.warn('[collection] mark_seen:', error.message); return 0 }
+  return (data as number) ?? 0
+}
+
 export type OpenedCard = {
   id: string
   name: string
@@ -154,6 +162,8 @@ export type OpenedCard = {
   rarity_color: string | null
   sort_order: number | null
   faction: string | null
+  /** true = šios kortos žaidėjas dar neturėjo (pirma kopija iš šios pakuotės). */
+  isNew?: boolean
 }
 
 /** Atplėšia pakuotę: RPC sunaudoja pakuotę ir grąžina kortų ID; detales paimam atskirai. */
@@ -163,11 +173,25 @@ export async function openPack(packId: string): Promise<OpenedCard[] | { error: 
   if (error) return { error: error.message }
   const ids = (data as string[]) ?? []
   if (ids.length === 0) return []
-  const { data: rows, error: e2 } = await supabase
-    .from('cards')
-    .select('id, name, image_url, faction:factions ( name ), rarity:rarities ( name, color_hex, sort_order )')
-    .in('id', ids)
+  const uniq = Array.from(new Set(ids))
+  const uid = (await supabase.auth.getUser()).data.user?.id ?? null
+  const [{ data: rows, error: e2 }, { data: colRows }] = await Promise.all([
+    supabase
+      .from('cards')
+      .select('id, name, image_url, faction:factions ( name ), rarity:rarities ( name, color_hex, sort_order )')
+      .in('id', uniq),
+    // Kiek kopijų turim PO atplėšimo: jei tiek pat, kiek iškrito – kortos anksčiau neturėjom.
+    uid
+      ? supabase.from('user_collections').select('card_id, quantity').eq('user_id', uid).in('card_id', uniq)
+      : Promise.resolve({ data: [] as { card_id: string; quantity: number }[] }),
+  ])
   if (e2) return { error: e2.message }
+  const dropped = new Map<string, number>()
+  for (const id of ids) dropped.set(id, (dropped.get(id) ?? 0) + 1)
+  const newIds = new Set<string>()
+  for (const r of ((colRows as { card_id: string; quantity: number }[]) ?? [])) {
+    if (r.quantity <= (dropped.get(r.card_id) ?? 0)) newIds.add(r.card_id)
+  }
   type Row = { id: string; name: string; image_url: string | null; faction: { name: string } | null; rarity: { name: string; color_hex: string; sort_order: number } | null }
   const byId = new Map<string, Row>()
   for (const r of ((rows as unknown as Row[]) ?? [])) byId.set(r.id, r)
@@ -181,6 +205,7 @@ export async function openPack(packId: string): Promise<OpenedCard[] | { error: 
       rarity_color: r?.rarity?.color_hex ?? null,
       sort_order: r?.rarity?.sort_order ?? null,
       faction: r?.faction?.name ?? null,
+      isNew: newIds.has(id),
     }
   })
   cards.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))  // dažnos pirma, rečiausios paskutinės

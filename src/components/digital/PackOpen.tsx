@@ -205,6 +205,20 @@ function CardArt({ card }: { card: OpenedCard }) {
   )
 }
 
+/** „NAUJA" ženklas – korta, kurios žaidėjas dar neturėjo. */
+function NewBadge({ label, small }: { label: string; small?: boolean }) {
+  return (
+    <span className="absolute pointer-events-none" style={{
+      top: small ? 4 : 6, left: small ? 4 : 6, zIndex: 4,
+      font: `800 ${small ? 8 : 10}px var(--ravenof-font-display)`, letterSpacing: small ? 0.8 : 1.4,
+      color: '#1a1206', background: 'linear-gradient(135deg,#ffe9a8,#f0b429)',
+      padding: small ? '2px 5px' : '3px 8px', borderRadius: 3,
+      boxShadow: '0 2px 8px rgba(240,180,41,.6), 0 0 0 1px rgba(255,255,255,.35) inset',
+      textTransform: 'uppercase',
+    }}>{label}</span>
+  )
+}
+
 /** Kortos nugarėlė (kol neatversta). */
 function CardBack({ w = CARD_W, h = CARD_H }: { w?: number; h?: number }) {
   return (
@@ -527,6 +541,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
               {/* veidas */}
               <div className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ backfaceVisibility: 'hidden', border: `${2 + Math.min(2, L)}px solid ${col}`, boxShadow: `0 0 ${18 + L * 10}px ${col}${L >= 2 ? 'cc' : '88'}` }}>
                 <CardArt card={current} />
+                {current.isNew && <NewBadge label={t('collection.pack.newBadge')} />}
                 <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,.92), rgba(0,0,0,.4) 70%, transparent)' }}>
                   <p className="text-[12px] font-bold leading-tight truncate" style={{ color: '#fff' }}>{cx.name(current.id, current.name)}</p>
                   <p className="text-[8.5px] font-bold uppercase" style={{ color: col, letterSpacing: 2 }}>{current.rarity ?? ''}</p>
@@ -558,8 +573,8 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
 const CAR_W = 108
 const CAR_H = Math.round(CAR_W * 1.4)
 
-function CarouselCard({ c, i, n, rot, radius, onTap }: {
-  c: OpenedCard; i: number; n: number; rot: MotionValue<number>; radius: number; onTap: () => void
+function CarouselCard({ c, i, n, rot, radius, onTap, newLabel }: {
+  c: OpenedCard; i: number; n: number; rot: MotionValue<number>; radius: number; onTap: () => void; newLabel: string
 }) {
   const ang = useTransform(rot, (r) => ((r + (i * 360) / n) * Math.PI) / 180)
   const x = useTransform(ang, (v) => Math.sin(v) * radius)
@@ -575,6 +590,7 @@ function CarouselCard({ c, i, n, rot, radius, onTap }: {
       <button onClick={onTap} className="relative block w-full rounded-md overflow-hidden"
         style={{ aspectRatio: '2.5 / 3.5', border: `2px solid ${cc}`, boxShadow: `0 10px 26px rgba(0,0,0,0.6), 0 0 14px ${cc}55` }}>
         <CardArt card={c} />
+        {c.isNew && <NewBadge label={newLabel} small />}
       </button>
     </motion.div>
   )
@@ -588,6 +604,7 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
   const dragRef = useRef<{ x: number; t: number; v: number; moved: boolean } | null>(null)
   const suppressRef = useRef(false)
   const n = cards.length
+  const newCount = cards.filter((c) => c.isNew).length
   const radius = Math.max(120, Math.min(190, n * 24))
 
   const onDown = (e: React.PointerEvent) => {
@@ -620,7 +637,11 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
 
   return (
     <div className="flex flex-col items-center gap-3 w-full max-w-[560px] select-none">
-      <div className="text-center"><div className="ravenof-ornament" aria-hidden><i /></div><p style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', letterSpacing: 3, textTransform: 'uppercase', margin: '6px 0 0' }}>{t('collection.pack.yourCards')}</p></div>
+      <div className="text-center">
+        <div className="ravenof-ornament" aria-hidden><i /></div>
+        <p style={{ font: '700 17px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', letterSpacing: 3, textTransform: 'uppercase', margin: '6px 0 0' }}>{t('collection.pack.yourCards')}</p>
+        {newCount > 0 && <p style={{ font: '700 11px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: 1.5, margin: '4px 0 0' }}>{t('collection.pack.newCount', { count: newCount })}</p>}
+      </div>
 
       {/* karuselė ore */}
       <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
@@ -630,7 +651,7 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
         <div aria-hidden className="absolute left-1/2 top-1/2 pointer-events-none" style={{ width: radius * 2.4, height: radius * 1.6, transform: 'translate(-50%, -50%)', background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(240,180,41,0.10), transparent 70%)', filter: 'blur(6px)' }} />
         <div className="absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
           {cards.map((c, i) => (
-            <CarouselCard key={c.id + '-' + i} c={c} i={i} n={n} rot={rot} radius={radius}
+            <CarouselCard key={c.id + '-' + i} c={c} i={i} n={n} rot={rot} radius={radius} newLabel={t('collection.pack.newBadge')}
               onTap={() => { if (suppressRef.current) return; playCardFlip(); setZoom(i) }} />
           ))}
         </div>
@@ -647,6 +668,7 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
           <motion.div initial={{ scale: 0.55, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}
             className="relative rounded-lg overflow-hidden" style={{ width: 'min(300px, 74vw, 60vh)', aspectRatio: '2.5 / 3.5', border: `3px solid ${rarityColor(cards[zoom].rarity)}`, boxShadow: `0 0 34px ${rarityColor(cards[zoom].rarity)}aa` }}>
             <CardArt card={cards[zoom]} />
+            {cards[zoom].isNew && <NewBadge label={t('collection.pack.newBadge')} />}
             <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
               <p className="text-[13px] leading-tight" style={{ color: '#fff' }}>{cx.name(cards[zoom].id, cards[zoom].name)}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rarityColor(cards[zoom].rarity) }}>{cards[zoom].rarity ?? ''}</p>

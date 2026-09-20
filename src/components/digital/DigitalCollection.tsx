@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick } from '@/lib/ui-sound'
 import { useT, useContent, useGameContent } from '@/lib/i18n/react'
-import { getActivePacks, getPackInventory, type Pack } from '@/lib/economy'
+import { getActivePacks, getPackInventory, markCollectionSeen, type Pack } from '@/lib/economy'
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
@@ -54,6 +54,9 @@ export function DigitalCollection() {
   const [type, setType] = useState('all')
   const [sort, setSort] = useState<SortKey>('cost-asc')
   const [ownedOnly, setOwnedOnly] = useState(false)
+  /** Kortos, kurių žaidėjas dar nematė kolekcijoje (user_collections.is_new). */
+  const [newIds, setNewIds] = useState<Set<string>>(new Set())
+  const [newOnly, setNewOnly] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [page, setPage] = useState(0)
@@ -70,10 +73,12 @@ export function DigitalCollection() {
         card_type:card_types ( name ),
         rarity:rarities ( name, copy_limit, sort_order )
       `).eq('status', 'active').order('gold_cost').order('name'),
-      supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
+      supabase.from('user_collections').select('card_id, quantity, is_new').eq('user_id', user.id),
     ])
     type R = { id: string; name: string; image_url: string | null; gold_cost: number; attack: number | null; health: number | null; description: string | null; effect_text: string | null; is_champion: boolean; faction: { name: string; slug: string } | null; card_type: { name: string } | null; rarity: { name: string; copy_limit: number; sort_order: number } | null }
-    const owned: Record<string, number> = Object.fromEntries(((colRows as { card_id: string; quantity: number }[]) ?? []).map((r) => [r.card_id, r.quantity]))
+    const colList = (colRows as { card_id: string; quantity: number; is_new?: boolean }[]) ?? []
+    const owned: Record<string, number> = Object.fromEntries(colList.map((r) => [r.card_id, r.quantity]))
+    setNewIds(new Set(colList.filter((r) => r.is_new).map((r) => r.card_id)))
     await ensureCardTranslations()   // kortų EN vertimai + EN vaizdai
     const list: Col[] = ((cardRows as unknown as R[]) ?? []).map((r) => ({
       id: r.id, name: cardText(r.id, 'name', r.name), image: cardImage(r.id, r.image_url),
@@ -109,6 +114,7 @@ export function DigitalCollection() {
     const needle = q.trim().toLowerCase()
     const list = (cards ?? []).filter((c) => {
       if (ownedOnly && c.owned <= 0) return false
+      if (newOnly && !newIds.has(c.id)) return false
       if (faction !== 'all' && (c.factionSlug ?? c.faction) !== faction) return false
       if (rarity !== 'all' && c.rarity !== rarity) return false
       if (type !== 'all' && c.type !== type) return false
@@ -123,20 +129,33 @@ export function DigitalCollection() {
       'owned':     (a, b) => (b.owned > 0 ? 1 : 0) - (a.owned > 0 ? 1 : 0) || b.owned - a.owned || a.gold - b.gold,
     }
     return [...list].sort(by[sort])
-  }, [cards, q, faction, rarity, type, ownedOnly, sort])
+  }, [cards, q, faction, rarity, type, ownedOnly, newOnly, newIds, sort])
 
   // Puslapiavimas (prototipas: 6 kortos puslapyje)
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const curPage = Math.min(page, pages - 1)
   const pageCards = filtered.slice(curPage * PAGE_SIZE, curPage * PAGE_SIZE + PAGE_SIZE)
-  useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, sort])
+  useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, newOnly, sort])
 
   const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? null, [filtered, selId])
   const selIdx = selected ? filtered.findIndex((c) => c.id === selected.id) : -1
 
   const ownedCount = (cards ?? []).filter((c) => c.owned > 0).length
-  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0) + (q.trim() ? 1 : 0)
-  const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(false); setQ('') }
+  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0) + (newOnly ? 1 : 0) + (q.trim() ? 1 : 0)
+  const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(false); setNewOnly(false); setQ('') }
+
+  // ── „Naujos" žymos ────────────────────────────────────────────────────────
+  //  Žymą nuimam, kai kortą atsidarai (pamatei), arba mygtuku – visoms iškart.
+  const clearNew = useCallback((ids?: string[]) => {
+    setNewIds((prev) => {
+      if (!ids) return new Set<string>()
+      const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next
+    })
+    void markCollectionSeen(ids)
+  }, [])
+  const openCard = (id: string) => { setSelId(id); setDetailOpen(true); if (newIds.has(id)) clearNew([id]) }
+  // filtras išsijungia pats, kai naujų nebelieka
+  useEffect(() => { if (newOnly && newIds.size === 0) setNewOnly(false) }, [newOnly, newIds])
 
   useEffect(() => {
     if (cards !== null) { setLoadSlow(false); return }
@@ -178,6 +197,16 @@ export function DigitalCollection() {
           style={{ font: '600 10.5px var(--ravenof-font-body)', color: ownedOnly ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)', background: 'none', border: `1px solid ${ownedOnly ? 'var(--ravenof-gold)' : 'var(--ravenof-border-strong)'}`, padding: '7px 10px', cursor: 'pointer' }}>
           {t('collection.ownedOnlyShort')}
         </button>
+        {newIds.size > 0 && (
+          <button onClick={() => { playUiClick(); setNewOnly((v) => !v) }} data-testid="new-toggle" className="ravenof-press shrink-0"
+            style={{ font: '700 10.5px var(--ravenof-font-body)', color: newOnly ? 'var(--ravenof-on-gold)' : 'var(--ravenof-gold-bright)', background: newOnly ? 'var(--ravenof-grad-gold)' : 'none', border: `1px solid var(--ravenof-gold)`, padding: '7px 10px', cursor: 'pointer' }}>
+            {t('collection.newOnlyShort', { count: newIds.size })}
+          </button>
+        )}
+        {newIds.size > 0 && newOnly && (
+          <button onClick={() => { playUiClick(); clearNew() }} title={t('collection.markAllSeen')} aria-label={t('collection.markAllSeen')} className="ravenof-press shrink-0"
+            style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: '7px 10px', cursor: 'pointer' }}>✓</button>
+        )}
         <button onClick={cycleSort} aria-label={t('collection.sortAria')} data-testid="sort-cycle" className="ravenof-press shrink-0"
           style={{ font: '600 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: '7px 10px', cursor: 'pointer' }}>
           ⇅ {t(SORT_LABEL[sort])}
@@ -251,7 +280,7 @@ export function DigitalCollection() {
           {/* Responsyvus kelių eilučių tinklelis su slinktimi — ekranas nebešvaisto vietos */}
           <div className="flex-1 grid min-h-0 overflow-y-auto ravenof-scroll" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8, alignContent: 'start' }} data-testid="card-browser">
             {pageCards.map((c) => (
-              <RavenofCardCell key={c.id} c={c} onClick={() => { playUiClick(); setSelId(c.id); setDetailOpen(true) }} notOwnedLabel={t('collection.notOwnedBadge')} />
+              <RavenofCardCell key={c.id} c={c} onClick={() => { playUiClick(); openCard(c.id) }} notOwnedLabel={t('collection.notOwnedBadge')} isNew={newIds.has(c.id)} newLabel={t('collection.newBadge')} />
             ))}
           </div>
           <div className="shrink-0 flex items-center justify-center" style={{ gap: 14, paddingTop: 8 }}>
@@ -303,7 +332,7 @@ export function DigitalCollection() {
 }
 
 // ── Kortos langelis (prototipo grid; GameCard = game-feel wrapper išsaugotas) ──
-function RavenofCardCell({ c, onClick, notOwnedLabel }: { c: Col; onClick: () => void; notOwnedLabel: string }) {
+function RavenofCardCell({ c, onClick, notOwnedLabel, isNew, newLabel }: { c: Col; onClick: () => void; notOwnedLabel: string; isNew?: boolean; newLabel?: string }) {
   const [bad, setBad] = useState(false)
   const owned = c.owned > 0
   return (
@@ -317,6 +346,9 @@ function RavenofCardCell({ c, onClick, notOwnedLabel }: { c: Col; onClick: () =>
             : <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1) brightness(0.7)' }}>
                 <span className="text-xl">🎴</span><span style={{ fontSize: 9, lineHeight: 1.1, color: '#fff' }}>{c.name}</span>
               </span>}
+          {isNew && (
+            <span className="absolute" style={{ top: 4, left: 4, zIndex: 2, font: '800 8px var(--ravenof-font-display)', letterSpacing: 0.8, textTransform: 'uppercase', color: '#1a1206', background: 'linear-gradient(135deg,#ffe9a8,#f0b429)', padding: '2px 5px', borderRadius: 3, boxShadow: '0 2px 8px rgba(240,180,41,.55)' }}>{newLabel}</span>
+          )}
           {owned ? (
             <span className="absolute" style={{ bottom: 4, right: 4, font: '700 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 6px' }}>×{c.owned}</span>
           ) : (
