@@ -1,94 +1,114 @@
 'use client'
 
-// ── Pakuotės atplėšimas — tempk į šoną / spustelėk, tada kortos verčiamos po vieną ─
-import { useEffect, useMemo, useRef, useState } from 'react'
+// ── Pakuotės atplėšimas v2 (2026-09-20, playtest): folija riečiasi 3D ir byra
+// kibirkštimis, atplėšus – blyksnis, smūginės bangos, ekrano drebėjimas, pakuotė
+// skyla į dvi puses, kortos iššauna vėduokle ir susirenka į kaladę; verčiant –
+// spinduliai/dalelės pagal retumą. Pabaigoje – ta pati karuselė ore.
+// Dalelės – vienas canvas (be DOM node'ų kiekvienai kibirkščiai).
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 import { openPack, type OpenedCard } from '@/lib/economy'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
-import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick } from '@/lib/ui-sound'
+import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick, playImpact } from '@/lib/ui-sound'
 import { useT, useCardI18n } from '@/lib/i18n/react'
 
 const PACK_W = 220
 const PACK_H = 300
-const STRIP_H = 56
-const LIFT_PAD = 48
+const STRIP_H = 58
+const LIFT_PAD = 70
 const THRESH = 0.42
+const CARD_W = 150
+const CARD_H = 210
 // „kandžiotas" plėšimo kraštas
-const JAG_OUT = 'polygon(0 0, 100% 0, 100% 70%, 94% 100%, 88% 72%, 81% 100%, 74% 70%, 67% 96%, 60% 68%, 53% 100%, 46% 72%, 39% 98%, 32% 70%, 25% 100%, 18% 72%, 11% 96%, 5% 70%, 0 88%)'
+const JAG_OUT = 'polygon(0 0, 100% 0, 100% 72%, 94% 100%, 88% 74%, 81% 100%, 74% 72%, 67% 96%, 60% 70%, 53% 100%, 46% 74%, 39% 98%, 32% 72%, 25% 100%, 18% 74%, 11% 96%, 5% 72%, 0 88%)'
 const JAG_IN  = 'polygon(0 0, 100% 0, 100% 78%, 95% 100%, 89% 76%, 82% 100%, 75% 74%, 68% 100%, 61% 72%, 54% 100%, 47% 76%, 40% 100%, 33% 74%, 26% 100%, 19% 76%, 12% 100%, 6% 74%, 0 94%)'
+const OCT = 'polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px)'
+const HALF_L = 'polygon(0 0,52% 0,47% 30%,54% 55%,46% 80%,50% 100%,0 100%)'
+const HALF_R = 'polygon(52% 0,100% 0,100% 100%,50% 100%,46% 80%,54% 55%,47% 30%)'
 
-// ── Retumo efektų pakopos: 1 žalios dalelės · 2 mėlyni žiedai · 3 violetiniai
-// dūmai · 4 raudoni dūmai + žaibai ────────────────────────────────────────────
-function RarityFx({ level, col, idx }: { level: number; col: string; idx: number }) {
-  const fx = useMemo(() => {
-    const rnd = (a: number, b: number) => a + Math.random() * (b - a)
-    const dots = Array.from({ length: 14 }, () => ({ x: rnd(-110, 110), y0: rnd(30, 130), y1: rnd(-140, -60), s: rnd(3, 6), dur: rnd(2, 3.4), delay: rnd(0, 2) }))
-    const smoke = Array.from({ length: level >= 4 ? 9 : 6 }, () => ({ x: rnd(-95, 95), drift: rnd(-45, 45), s: rnd(60, level >= 4 ? 150 : 110), dur: rnd(2.2, 3.6), delay: rnd(0, 2.4), o: rnd(0.35, level >= 4 ? 0.6 : 0.45) }))
-    const bolts = Array.from({ length: 4 }, (_, bi) => {
-      const side = bi % 2 === 0 ? -1 : 1
-      const sx = side * rnd(95, 130); let x = sx; let y = rnd(-170, -120)
-      const pts: string[] = [`${x},${y}`]
-      for (let k = 0; k < 6; k++) { x += rnd(-34, 34) + side * 6; y += rnd(38, 62); pts.push(`${x},${y}`) }
-      return { pts: pts.join(' '), delay: rnd(0, 1.4), rd: rnd(0.5, 1.5) }
-    })
-    return { dots, smoke, bolts }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, level])
+const CSS = `
+@keyframes rvnPackFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1deg)}}
+@keyframes rvnPackShimmer{0%{transform:translateX(-45%)}55%,100%{transform:translateX(45%)}}
+@keyframes rvnPackSeam{0%,100%{opacity:.25}50%{opacity:.95}}
+@keyframes rvnPackShake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-7px,3px)}40%,60%{transform:translate(7px,-3px)}}
+@keyframes rvnPackSpin{to{transform:rotate(360deg)}}
+@keyframes rvnPackArrow{0%,100%{transform:translateX(0);opacity:.4}50%{transform:translateX(10px);opacity:1}}
+.rvn-pack-shake{animation:rvnPackShake .45s cubic-bezier(.36,.07,.19,.97)}
+`
 
-  if (level <= 0) return null
-  return (
-    <div className="absolute pointer-events-none" style={{ inset: -70, zIndex: 0, overflow: 'visible' }}>
-      {/* 1 — dalelės, skraidančios aplink */}
-      {level === 1 && fx.dots.map((d, i) => (
-        <motion.span key={i} className="absolute left-1/2 top-1/2"
-          initial={{ x: d.x, y: d.y0, opacity: 0, scale: 0.6 }}
-          animate={{ y: [d.y0, d.y1], x: [d.x, d.x + (i % 2 ? 18 : -18)], opacity: [0, 0.9, 0], scale: [0.6, 1, 0.5] }}
-          transition={{ duration: d.dur, delay: d.delay, repeat: Infinity, ease: 'easeOut' }}
-          style={{ width: d.s, height: d.s, borderRadius: '50%', background: col, boxShadow: `0 0 8px ${col}` }} />
-      ))}
-      {/* 2 — nuvilnijantys žiedai */}
-      {level === 2 && [0, 1, 2].map((i) => (
-        <motion.span key={i} className="absolute left-1/2 top-1/2"
-          initial={{ opacity: 0, scale: 0.35 }}
-          animate={{ opacity: [0, 0.75, 0], scale: [0.35, 1.55] }}
-          transition={{ duration: 1.7, delay: i * 0.55, repeat: Infinity, ease: 'easeOut' }}
-          style={{ width: 260, height: 340, marginLeft: -130, marginTop: -170, borderRadius: 18, border: `2px solid ${col}`, boxShadow: `0 0 18px ${col}88, inset 0 0 18px ${col}55` }} />
-      ))}
-      {/* 3/4 — dūmai */}
-      {level >= 3 && fx.smoke.map((m, i) => (
-        <motion.span key={'s' + i} className="absolute left-1/2"
-          initial={{ x: m.x - m.s / 2, y: 150, opacity: 0, scale: 0.7 }}
-          animate={{ y: [150, -160], x: [m.x - m.s / 2, m.x - m.s / 2 + m.drift], opacity: [0, m.o, 0], scale: [0.7, 1.7] }}
-          transition={{ duration: m.dur, delay: m.delay, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ bottom: 0, width: m.s, height: m.s, borderRadius: '50%', filter: 'blur(16px)', background: `radial-gradient(circle, ${col}, transparent 68%)` }} />
-      ))}
-      {/* 4 — žaibai */}
-      {level >= 4 && (
-        <svg className="absolute left-1/2 top-1/2" width="380" height="480" viewBox="-190 -240 380 480" style={{ marginLeft: -190, marginTop: -240, overflow: 'visible' }}>
-          {fx.bolts.map((b, i) => (
-            <motion.polyline key={i} points={b.pts} fill="none" stroke="#ffe9a8" strokeWidth={2.4} strokeLinejoin="round"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 1, 0.15, 0.9, 0] }}
-              transition={{ duration: 0.34, delay: b.delay, repeat: Infinity, repeatDelay: b.rd, ease: 'linear' }}
-              style={{ filter: `drop-shadow(0 0 6px ${col}) drop-shadow(0 0 14px ${col})` }} />
-          ))}
-        </svg>
-      )}
-    </div>
-  )
+// ── Dalelių canvas ────────────────────────────────────────────────────────────
+type Particle = { x: number; y: number; vx: number; vy: number; life: number; dec: number; s: number; c: string; g: number; tw: boolean; streak: boolean }
+type EmitOpts = { a0?: number; spread?: number; sp?: number; up?: number; dec?: number; s?: number; c?: string; g?: number; tw?: boolean; streak?: boolean }
+type Emitter = (x: number, y: number, n: number, o: EmitOpts) => void
+
+function useParticles() {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const parts = useRef<Particle[]>([])
+  const emit = useCallback<Emitter>((x, y, n, o) => {
+    for (let i = 0; i < n; i++) {
+      const a = (o.a0 ?? 0) + (Math.random() - 0.5) * (o.spread ?? Math.PI * 2)
+      const sp = (o.sp ?? 2) * (0.4 + Math.random())
+      parts.current.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (o.up ?? 0), life: 1, dec: (o.dec ?? 0.02) * (0.6 + Math.random() * 0.8), s: (o.s ?? 3) * (0.5 + Math.random()), c: o.c ?? '#ffd97a', g: o.g ?? 0.03, tw: !!o.tw, streak: !!o.streak })
+    }
+    if (parts.current.length > 900) parts.current.splice(0, parts.current.length - 900)
+  }, [])
+  useEffect(() => {
+    const cv = ref.current
+    if (!cv) return
+    const ctx = cv.getContext('2d')
+    if (!ctx) return
+    let raf = 0
+    const resize = () => { const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = window.innerWidth * dpr; cv.height = window.innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0) }
+    resize(); window.addEventListener('resize', resize)
+    const loop = () => {
+      raf = requestAnimationFrame(loop)
+      const P = parts.current
+      if (P.length === 0) { ctx.clearRect(0, 0, window.innerWidth, window.innerHeight); return }
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+      ctx.globalCompositeOperation = 'lighter'
+      let w = 0
+      for (let i = 0; i < P.length; i++) {
+        const p = P[i]
+        p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= 0.985; p.life -= p.dec
+        if (p.life <= 0) continue
+        P[w++] = p
+        const al = p.tw ? p.life * (0.5 + 0.5 * Math.sin(p.life * 40)) : p.life
+        ctx.globalAlpha = Math.max(0, al); ctx.fillStyle = p.c; ctx.shadowBlur = 12; ctx.shadowColor = p.c
+        if (p.streak) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 4, p.y - p.vy * 4); ctx.lineWidth = p.s * 0.7; ctx.strokeStyle = p.c; ctx.stroke() }
+        else { ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.1, p.s * p.life), 0, 7); ctx.fill() }
+      }
+      P.length = w
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0
+    }
+    loop()
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize) }
+  }, [])
+  return { ref, emit }
 }
 
-// Folijos gabalo menas — pakuotės viršus (tas pats vaizdas, sulygiuotas)
-function FoilArt({ packImage, bad }: { packImage?: string | null; bad: boolean }) {
+// ── Pakuotės menas (viršus/apačia dalinasi tuo pačiu vaizdu) ─────────────────
+function PackArt({ packImage, packName, bad, onBad, offsetY = 0, showName }: { packImage?: string | null; packName: string; bad: boolean; onBad?: () => void; offsetY?: number; showName?: boolean }) {
   return (
-    <span className="absolute inset-0 block overflow-hidden" style={{ borderTop: '2px solid rgba(240,180,41,0.5)', background: 'linear-gradient(160deg, #2a1d44, #120c1e)' }}>
-      {packImage && !bad && (
+    <span className="absolute inset-0 block overflow-hidden" style={{ background: 'radial-gradient(60% 40% at 50% 38%, rgba(240,180,41,.3), transparent 70%), linear-gradient(160deg,#3a2560 0%,#1b1230 45%,#0d0915 100%)' }}>
+      {packImage && !bad ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={packImage} alt="" draggable={false} className="absolute left-0 top-0 object-cover" style={{ width: PACK_W, height: PACK_H }} />
+        <img src={packImage} alt={packName} onError={onBad} draggable={false} className="absolute left-0 object-cover" style={{ top: offsetY, width: PACK_W, height: PACK_H }} />
+      ) : (
+        <span className="absolute left-0 flex flex-col items-center justify-center gap-2" style={{ top: offsetY, width: PACK_W, height: PACK_H }}>
+          <span className="text-5xl" style={{ filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.5))' }}>🎴</span>
+          <span style={{ font: '900 15px var(--ravenof-font-display)', letterSpacing: 5, color: '#ffd97a', textShadow: '0 0 12px rgba(240,180,41,.6)' }}>RAVENOF</span>
+        </span>
       )}
-      <span aria-hidden className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent 60%)' }} />
+      {showName && (
+        <span className="absolute left-0 right-0 bottom-0 px-2 py-1.5 text-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}>
+          <span style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: '0.14em' }}>{packName}</span>
+        </span>
+      )}
+      {/* folijos blizgesys */}
+      <span aria-hidden className="absolute pointer-events-none" style={{ inset: '-40%', mixBlendMode: 'screen', background: 'linear-gradient(115deg,transparent 40%,rgba(255,255,255,.2) 48%,rgba(255,240,200,.42) 50%,rgba(255,255,255,.2) 52%,transparent 60%)', animation: 'rvnPackShimmer 4.2s ease-in-out infinite' }} />
+      <span aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 55%)' }} />
     </span>
   )
 }
@@ -112,6 +132,18 @@ function CardArt({ card }: { card: OpenedCard }) {
   )
 }
 
+/** Kortos nugarėlė (kol neatversta). */
+function CardBack({ w = CARD_W, h = CARD_H }: { w?: number; h?: number }) {
+  return (
+    <div className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ width: w, height: h, background: 'linear-gradient(160deg,#241a3a,#0d0915)', border: '2px solid rgba(240,180,41,.55)', boxShadow: '0 12px 30px rgba(0,0,0,.7)' }}>
+      <div className="absolute rounded-md" style={{ inset: 8, border: '1px solid rgba(240,180,41,.35)', background: 'repeating-linear-gradient(45deg,transparent 0 6px,rgba(240,180,41,.06) 6px 7px),repeating-linear-gradient(-45deg,transparent 0 6px,rgba(240,180,41,.06) 6px 7px)' }} />
+      <span className="absolute left-1/2 top-1/2 text-4xl" style={{ transform: 'translate(-50%,-50%)', color: 'var(--ravenof-gold)', filter: 'drop-shadow(0 0 8px rgba(240,180,41,.7))' }}>🐦‍⬛</span>
+    </div>
+  )
+}
+
+type Phase = 'sealed' | 'opening' | 'eject' | 'reveal' | 'done'
+
 export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
   packId: string; packName: string; packImage?: string | null; onClose: () => void; onOpened?: () => void
 }) {
@@ -119,30 +151,49 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
   const cx = useCardI18n()
   const [packImgBad, setPackImgBad] = useState(false)
   const [drag, setDrag] = useState<{ t: number; fx: number; dir: 1 | -1 }>({ t: 0, fx: 0, dir: 1 })
-  const [fired, setFired] = useState(false)
-  const [opening, setOpening] = useState(false)
+  const [phase, setPhase] = useState<Phase>('sealed')
+  const [burst, setBurst] = useState(false)      // blyksnis/skilimas jau įvyko
   const [cards, setCards] = useState<OpenedCard[] | null>(null)
   const [revealIdx, setRevealIdx] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [shake, setShake] = useState(0)
+  const [flash, setFlash] = useState(0)
+  const rootRef = useRef<HTMLDivElement>(null)
   const packRef = useRef<HTMLDivElement>(null)
+  const cardsRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const startXRef = useRef(0)
   const firedRef = useRef(false)
+  const lastSparkRef = useRef(0)
+  const { ref: fxRef, emit } = useParticles()
+
+  const packCenter = () => { const r = packRef.current?.getBoundingClientRect(); return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, top: r.top, left: r.left } : { x: window.innerWidth / 2, y: window.innerHeight / 2, top: window.innerHeight / 2 - PACK_H / 2, left: window.innerWidth / 2 - PACK_W / 2 } }
+  const doShake = () => setShake((s) => s + 1)
 
   const doOpen = async () => {
     if (firedRef.current) return
     firedRef.current = true
     dragging.current = false
-    setFired(true)
+    setPhase('opening')
     setDrag((d) => ({ t: 1, fx: d.dir > 0 ? PACK_W : 0, dir: d.dir }))
-    setOpening(true); playSuccess()
+    playSuccess()
+    const c = packCenter()
+    emit(c.x, c.top + STRIP_H, 40, { a0: -Math.PI / 2, spread: 2.4, sp: 5, s: 3, dec: 0.02, c: '#ffd97a', g: 0.06, streak: true })
+    // blyksnis + skilimas po 420 ms (nepriklausomai nuo RPC)
+    window.setTimeout(() => {
+      const cc = packCenter()
+      setFlash((f) => f + 1); doShake(); playImpact()
+      emit(cc.x, cc.y, 90, { sp: 7, s: 3, dec: 0.012, c: '#ffb347', g: 0.05, streak: true })
+      emit(cc.x, cc.y, 60, { sp: 3, s: 4, dec: 0.008, c: '#ffe9a8', g: -0.01, tw: true })
+      emit(cc.x, cc.y, 30, { sp: 9, s: 2, dec: 0.02, c: '#fff', g: 0.02, streak: true })
+      setBurst(true)
+    }, 420)
     const r = await openPack(packId)
-    setOpening(false)
     if ('error' in r) {
       const e = r.error || ''
       setError(/no pack to open/i.test(e) ? t('collection.pack.noPack') : t('collection.pack.errorPrefix', { msg: e }))
       firedRef.current = false
-      setFired(false)
+      setPhase('sealed'); setBurst(false)
       setDrag({ t: 0, fx: 0, dir: 1 })
       return
     }
@@ -151,8 +202,16 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
     onOpened?.()
   }
 
+  // Kortos iššauna, kai ir sprogimas įvyko, ir RPC grąžino kortas
+  useEffect(() => {
+    if (phase !== 'opening' || !burst || !cards) return
+    const t1 = window.setTimeout(() => setPhase('eject'), 120)
+    const t2 = window.setTimeout(() => { playCardPick(); setPhase('reveal') }, 120 + 1600)
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+  }, [phase, burst, cards])
+
   const onDown = (e: React.PointerEvent) => {
-    if (opening || firedRef.current) return
+    if (firedRef.current) return
     dragging.current = true; startXRef.current = e.clientX
     try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId) } catch { /* */ }
   }
@@ -161,10 +220,15 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
     const rect = packRef.current?.getBoundingClientRect()
     const dx = e.clientX - startXRef.current
     const dir: 1 | -1 = dx >= 0 ? 1 : -1
-    const t = Math.min(1, Math.abs(dx) / (PACK_W * 0.7))
+    const tt = Math.min(1, Math.abs(dx) / (PACK_W * 0.7))
     const fx = rect ? Math.min(PACK_W, Math.max(0, e.clientX - rect.left)) : 0
-    setDrag({ t, fx, dir })
-    if (t >= 1) { dragging.current = false; doOpen() }
+    setDrag({ t: tt, fx, dir })
+    const now = performance.now()
+    if (rect && tt > 0.02 && now - lastSparkRef.current > 28) {
+      lastSparkRef.current = now
+      emit(rect.left + fx, rect.top + STRIP_H, 3, { a0: -Math.PI / 2, spread: 1.6, sp: 2.2, s: 2.2, dec: 0.05, c: Math.random() < 0.5 ? '#ffd97a' : '#ff9a3c', g: 0.08, streak: true })
+    }
+    if (tt >= 1) { dragging.current = false; doOpen() }
   }
   const onUp = () => {
     if (!dragging.current) return
@@ -173,133 +237,180 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
     else setDrag((d) => ({ t: 0, fx: d.dir > 0 ? 0 : PACK_W, dir: d.dir }))
   }
 
-  // plėšimo regionas: nuo pradžios krašto iki piršto
   const regionClip = drag.dir > 0 ? `inset(0 ${PACK_W - drag.fx}px 0 0)` : `inset(0 0 0 ${drag.fx}px)`
-  const regionClipTall = regionClip
-
-  const revealing = !!cards && revealIdx < cards.length
-  const done = !!cards && revealIdx >= cards.length
+  const fired = phase !== 'sealed'
+  const revealing = phase === 'reveal' && !!cards && revealIdx < cards.length
   const current = cards && revealing ? cards[revealIdx] : null
 
-  // Garsas + lygis dabartinei kortai
+  // Garsas + dalelės dabartinei kortai
   useEffect(() => {
     if (!current) return
     playCardFlip()
     const L = rarityLevel(current.rarity)
+    const col = rarityColor(current.rarity)
     if (L === 2) playDiscovery()
     else if (L === 3) playSuccess()
-    else if (L >= 4) { playSuccess(); const t = setTimeout(() => playDiscovery(), 130); return () => clearTimeout(t) }
-  }, [current])
+    else if (L >= 4) { playSuccess(); window.setTimeout(() => playDiscovery(), 130) }
+    const tm = window.setTimeout(() => {
+      const r = cardsRef.current?.getBoundingClientRect()
+      const x = r ? r.left + r.width / 2 : window.innerWidth / 2, y = r ? r.top + r.height / 2 : window.innerHeight / 2
+      const n = [0, 10, 26, 46, 80][L] ?? 0
+      if (n) emit(x, y, n, { sp: 4 + L, s: 3, dec: 0.015, c: col, g: 0.02, tw: L >= 3 })
+      if (L >= 4) { doShake(); emit(x, y, 40, { sp: 9, s: 2, dec: 0.02, c: '#fff', streak: true }) }
+    }, 350)
+    return () => window.clearTimeout(tm)
+  }, [current]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ekrano drebėjimas (klasė pridedama iš naujo kiekvienam smūgiui)
+  useEffect(() => {
+    if (!shake || !rootRef.current) return
+    const el = rootRef.current
+    el.classList.remove('rvn-pack-shake'); void el.offsetWidth; el.classList.add('rvn-pack-shake')
+    const tm = window.setTimeout(() => el.classList.remove('rvn-pack-shake'), 500)
+    return () => window.clearTimeout(tm)
+  }, [shake])
 
   const L = rarityLevel(current?.rarity)
   const col = rarityColor(current?.rarity)
-  const sparks = useMemo(() => {
-    const n = [0, 5, 12, 20, 34][L] ?? 0
-    return Array.from({ length: n }, (_, i) => {
-      const a = (i / n) * Math.PI * 2 + Math.random() * 0.5
-      const d = 70 + Math.random() * (40 + L * 40)
-      return { x: Math.cos(a) * d, y: Math.sin(a) * d, s: 3 + Math.random() * (3 + L), delay: Math.random() * 0.12 }
-    })
-  }, [revealIdx, L]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const advance = () => { playUiClick(); setRevealIdx((i) => i + 1) }
+  useEffect(() => { if (cards && revealIdx >= cards.length && phase === 'reveal') setPhase('done') }, [revealIdx, cards, phase])
+
+  const jit = drag.t > 0.6 && !fired ? (Math.random() - 0.5) * drag.t * 3 : 0
 
   if (typeof document === 'undefined') return null
   return createPortal(
-    <div className="ravenof-body fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.93)' }}>
-      <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="ravenof-iconbtn absolute top-4 right-4" style={{ width: 34, height: 34, fontSize: 15 }}>✕</button>
+    <div ref={rootRef} className="ravenof-body fixed inset-0 z-[170] flex items-center justify-center p-4" style={{ background: 'radial-gradient(80% 60% at 50% 45%, #171026 0%, #0a0711 55%, #06050a 100%)' }}>
+      <style>{CSS}</style>
+      <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(60% 60% at 50% 50%, transparent 40%, rgba(0,0,0,.7))' }} />
+      <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="ravenof-iconbtn absolute top-4 right-4 z-[5]" style={{ width: 34, height: 34, fontSize: 15 }}>✕</button>
 
-      {/* SEALED — folija plyšta po pirštu */}
-      {!cards && (
+      {/* ── SEALED / OPENING – pakuotė ── */}
+      {(phase === 'sealed' || phase === 'opening') && (
         <div className="flex flex-col items-center gap-2.5 select-none">
-          <p className="text-center" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
-            {opening ? t('collection.pack.opening') : t('collection.pack.swipeToOpen')}
+          <p className="text-center" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: 2, textTransform: 'uppercase', margin: 0, opacity: drag.t > 0.05 || fired ? 0 : 1, transition: 'opacity .3s' }}>
+            {t('collection.pack.swipeToOpen')} <span aria-hidden style={{ display: 'inline-block', marginLeft: 6, animation: 'rvnPackArrow 1.2s ease-in-out infinite' }}>➜</span>
           </p>
           <div ref={packRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-            className="relative cursor-grab active:cursor-grabbing" style={{ width: PACK_W, height: PACK_H, touchAction: 'none' }}>
-            {/* švytėjimas iš vidaus */}
-            <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: 130, filter: 'blur(22px)', opacity: 0.12 + drag.t * 0.88, background: 'radial-gradient(70% 100% at 50% 0%, rgba(255,205,90,0.95), rgba(240,120,30,0.5) 50%, transparent 78%)', zIndex: 4 }} />
+            className="relative cursor-grab active:cursor-grabbing" style={{ width: PACK_W, height: PACK_H, touchAction: 'none', perspective: 900, animation: drag.t === 0 && !fired ? 'rvnPackFloat 3.6s ease-in-out infinite' : 'none' }}>
+            {/* švytėjimas iš vidaus virš pakuotės */}
+            <div className="absolute pointer-events-none" style={{ left: -40, right: -40, top: -60, height: 180, filter: 'blur(26px)', opacity: burst ? 0 : (fired ? 1 : drag.t * 0.9), transition: 'opacity .35s', background: 'radial-gradient(60% 70% at 50% 45%, rgba(255,215,110,1), rgba(240,120,30,.55) 50%, transparent 75%)' }} />
 
-            {/* pakuotė */}
-            <div className="absolute inset-0 overflow-hidden" style={{ clipPath: 'polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px)', background: 'linear-gradient(160deg, #2a1d44, #120c1e 60%, #0a0810)', border: '2px solid rgba(240,180,41,0.45)', boxShadow: 'inset 0 0 30px rgba(240,180,41,0.12)' }}>
-              {packImage && !packImgBad ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={packImage} alt={packName} onError={() => setPackImgBad(true)} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}>
-                    <span className="text-[10px] font-bold tracking-widest" style={{ color: 'var(--ravenof-gold)', fontFamily: 'var(--ravenof-font-display)', letterSpacing: '0.14em' }}>{packName}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                  <span className="text-5xl" style={{ filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.5))' }}>🎴</span>
-                  <span className="text-xs font-bold tracking-widest" style={{ color: 'var(--ravenof-gold)', fontFamily: 'var(--ravenof-font-display)', letterSpacing: '0.18em' }}>RAVENOF</span>
-                  <span className="text-[10px]" style={{ color: 'var(--ravenof-text-secondary)' }}>{packName}</span>
-                </div>
-              )}
-              {/* plėšimo linijos užuomina */}
-              <div className="absolute left-2 right-2 pointer-events-none" style={{ top: STRIP_H, borderTop: '1.5px dashed rgba(240,180,41,0.4)', opacity: Math.max(0, 1 - drag.t * 2.2) }} />
-            </div>
-
-            {/* VIDUS — atsiveria po nuplėšta folija (kandžiotas kraštas) */}
-            <div className="absolute left-0 right-0 pointer-events-none overflow-hidden" style={{ top: 0, height: STRIP_H, clipPath: regionClip, zIndex: 2 }}>
-              <div className="absolute inset-0" style={{ clipPath: JAG_IN, background: 'linear-gradient(180deg, #060409, #140e20 55%, #241a38)', boxShadow: 'inset 0 -8px 12px rgba(0,0,0,0.85)' }} />
-              <div className="absolute inset-0" style={{ clipPath: JAG_IN, opacity: 0.25 + drag.t * 0.75, background: 'linear-gradient(180deg, rgba(255,195,85,0.35), transparent 75%)' }} />
-            </div>
-
-            {/* NUPLĖŠAMA FOLIJA — pati pakuotės viršutinė juosta, kylanti ties pirštu */}
-            {!fired ? (
-              <div className="absolute left-0 right-0 pointer-events-none" style={{ top: -LIFT_PAD, height: STRIP_H + LIFT_PAD, clipPath: regionClipTall, zIndex: 3 }}>
-                <div className="absolute left-0 right-0 overflow-visible" style={{ top: LIFT_PAD, height: STRIP_H, clipPath: JAG_OUT,
-                  transform: `translateY(${-3 - drag.t * 16}px) translateX(${drag.dir * -3 * drag.t}px) rotate(${drag.dir * -7 * drag.t}deg)`,
-                  transformOrigin: drag.dir > 0 ? '100% 100%' : '0% 100%',
-                  transition: dragging.current ? 'none' : 'transform 0.25s ease',
-                  filter: `drop-shadow(0 ${3 + drag.t * 7}px ${4 + drag.t * 6}px rgba(0,0,0,0.6))` }}>
-                  <FoilArt packImage={packImage} bad={packImgBad} />
-                </div>
+            <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transition: fired ? 'transform .35s cubic-bezier(.3,1.6,.6,1)' : 'transform .12s ease-out', transform: fired ? 'scale(1.06)' : `rotateZ(${drag.dir * drag.t * 4}deg) rotateY(${drag.dir * drag.t * 10}deg) translateX(${jit}px)` }}>
+              {/* pakuotės korpusas */}
+              <div className="absolute inset-0 overflow-hidden" style={{ clipPath: OCT, opacity: burst ? 0 : 1, boxShadow: '0 22px 50px rgba(0,0,0,.75)' }}>
+                <PackArt packImage={packImage} packName={packName} bad={packImgBad} onBad={() => setPackImgBad(true)} showName />
+                {/* siūlė */}
+                <div className="absolute pointer-events-none" style={{ left: 10, right: 10, top: STRIP_H, height: 2, background: 'linear-gradient(90deg,transparent,rgba(240,180,41,.9),transparent)', boxShadow: '0 0 10px rgba(240,180,41,.8)', animation: 'rvnPackSeam 1.6s ease-in-out infinite', opacity: Math.max(0, 1 - drag.t * 2.2) }} />
               </div>
-            ) : (
-              <motion.div initial={{ x: 0, y: 0, rotate: 0, opacity: 1 }}
-                animate={{ x: drag.dir * 300, y: -140, rotate: drag.dir * 32, opacity: 0 }}
-                transition={{ duration: 0.55, ease: 'easeOut' }}
-                className="absolute left-0 right-0 pointer-events-none" style={{ top: 0, height: STRIP_H, clipPath: JAG_OUT, zIndex: 3 }}>
-                <FoilArt packImage={packImage} bad={packImgBad} />
-              </motion.div>
-            )}
+
+              {/* VIDUS – atsiveria po nuplėšta folija */}
+              <div className="absolute left-0 right-0 pointer-events-none overflow-hidden" style={{ top: 0, height: STRIP_H, clipPath: regionClip, zIndex: 2, opacity: burst ? 0 : 1 }}>
+                <div className="absolute inset-0" style={{ clipPath: JAG_IN, background: 'linear-gradient(180deg,#040308,#120c1c 60%,#22183a)', boxShadow: 'inset 0 -8px 12px rgba(0,0,0,0.85)' }} />
+                <div className="absolute inset-0" style={{ clipPath: JAG_IN, opacity: 0.2 + drag.t * 0.8, background: 'radial-gradient(70% 100% at 50% 100%, rgba(255,205,90,.9), rgba(240,120,30,.35) 55%, transparent 80%)' }} />
+              </div>
+
+              {/* NUPLĖŠAMA FOLIJA – kyla, riečiasi 3D ir sukasi nuo plėšimo krašto */}
+              {!fired ? (
+                <div className="absolute left-0 right-0 pointer-events-none" style={{ top: -LIFT_PAD, height: STRIP_H + LIFT_PAD, clipPath: regionClip, zIndex: 3 }}>
+                  <div className="absolute left-0 right-0" style={{ top: LIFT_PAD, height: STRIP_H, clipPath: JAG_OUT, transformStyle: 'preserve-3d',
+                    transformOrigin: drag.dir > 0 ? '100% 100%' : '0% 100%',
+                    transform: `translateY(${-4 - drag.t * 22}px) rotateX(${-drag.t * 55}deg) rotateZ(${drag.dir * -9 * drag.t}deg) translateX(${drag.dir * -4 * drag.t}px)`,
+                    transition: dragging.current ? 'none' : 'transform 0.25s ease',
+                    filter: `drop-shadow(0 ${3 + drag.t * 7}px ${4 + drag.t * 6}px rgba(0,0,0,0.6))` }}>
+                    <PackArt packImage={packImage} packName={packName} bad={packImgBad} />
+                  </div>
+                </div>
+              ) : (
+                <motion.div initial={{ x: 0, y: 0, rotateX: 0, rotateZ: 0, opacity: 1 }}
+                  animate={{ x: drag.dir * 320, y: -220, rotateX: -70, rotateZ: drag.dir * 60, opacity: 0 }}
+                  transition={{ duration: 0.55, ease: [0.2, 0.7, 0.3, 1] }}
+                  className="absolute left-0 right-0 pointer-events-none" style={{ top: 0, height: STRIP_H, clipPath: JAG_OUT, zIndex: 3 }}>
+                  <PackArt packImage={packImage} packName={packName} bad={packImgBad} />
+                </motion.div>
+              )}
+
+              {/* PUSĖS po sprogimo */}
+              {burst && ([[HALF_L, -1], [HALF_R, 1]] as const).map(([clip, s]) => (
+                <motion.div key={s} initial={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
+                  animate={{ x: s * 150, y: 140, rotate: s * 38, scale: 0.9, opacity: 0 }}
+                  transition={{ x: { duration: 0.9, ease: [0.2, 0.6, 0.3, 1] }, y: { duration: 0.9, ease: [0.2, 0.6, 0.3, 1] }, rotate: { duration: 0.9 }, scale: { duration: 0.9 }, opacity: { duration: 0.6, delay: 0.35 } }}
+                  className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: clip }}>
+                  <div className="absolute inset-0" style={{ clipPath: OCT }}><PackArt packImage={packImage} packName={packName} bad={packImgBad} /></div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* smūginės bangos */}
+            {burst && [0, 0.12].map((d, i) => (
+              <motion.div key={i} initial={{ scale: 0.6, opacity: 0.9 }} animate={{ scale: 2.4, opacity: 0 }} transition={{ duration: 0.7, delay: d, ease: [0.1, 0.8, 0.2, 1] }}
+                className="absolute pointer-events-none" style={{ left: '50%', top: '50%', width: 240, height: 320, marginLeft: -120, marginTop: -160, borderRadius: 24, border: '3px solid #ffd97a', boxShadow: '0 0 30px rgba(240,180,41,.9), inset 0 0 30px rgba(240,180,41,.6)' }} />
+            ))}
           </div>
-          {!opening && <button onClick={doOpen} className="ravenof-press px-7 py-3" style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, cursor: 'pointer', clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)' }}>{t('collection.pack.openCta')}</button>}
+          {!fired && <button onClick={doOpen} className="ravenof-press px-7 py-3" style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, clipPath: 'polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)' }}>{t('collection.pack.openCta')}</button>}
+          {fired && <p style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>{t('collection.pack.opening')}</p>}
           {error && <p className="text-xs text-center max-w-[260px]" style={{ color: '#fca5a5' }}>{error}</p>}
         </div>
       )}
 
-      {/* REVEAL one-by-one */}
-      {revealing && current && (
-        <div className="flex flex-col items-center gap-4" onClick={advance} style={{ cursor: 'pointer' }}>
+      {/* ── EJECT – kortos iššauna vėduokle ir susirenka į kaladę ── */}
+      {phase === 'eject' && cards && (
+        <div className="relative pointer-events-none" style={{ width: 0, height: 0 }}>
+          {cards.map((c, i) => {
+            const k = i - (cards.length - 1) / 2
+            return (
+              <motion.div key={c.id + '-' + i} className="absolute" style={{ left: -CARD_W / 2, top: -CARD_H / 2, width: CARD_W, height: CARD_H, zIndex: 10 - i }}
+                initial={{ x: 0, y: 40, scale: 0.3, rotate: 0, opacity: 0 }}
+                animate={{ x: [0, k * 62, k * 1.5], y: [40, -40, i * -2], scale: [0.3, 0.8, 1], rotate: [0, k * 16, k * 1.2], opacity: [0, 1, 1, 1] }}
+                transition={{ duration: 1.45, times: [0, 0.38, 1], delay: 0.06 + i * 0.045, ease: ['easeOut', 'easeInOut'] }}>
+                <CardBack />
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ── REVEAL – po vieną ── */}
+      {revealing && current && cards && (
+        <div className="flex flex-col items-center gap-4 relative" onClick={advance} style={{ cursor: 'pointer' }}>
           <p className="text-xs font-bold" style={{ color: 'var(--ravenof-text-secondary)', fontFamily: 'var(--ravenof-font-display)', letterSpacing: '0.1em' }}>{revealIdx + 1} / {cards.length}</p>
-          <div className="relative" style={{ width: 210, height: 294, perspective: 900 }}>
-            {/* fono švytėjimas pagal retumą */}
-            {L >= 1 && <motion.div key={'glow' + revealIdx} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: [0, 0.9, L >= 2 ? 0.65 : 0.45], scale: [0.6, L >= 3 ? 1.9 : 1.4, L >= 3 ? 1.6 : 1.2] }} transition={{ duration: 0.9 }} className="absolute -inset-10" style={{ borderRadius: '50%', filter: 'blur(30px)', background: `radial-gradient(circle, ${col}cc, transparent 70%)` }} />}
-            <RarityFx level={L} col={col} idx={revealIdx} />
-            {/* sparkles */}
-            {sparks.map((p, i) => (
-              <motion.span key={'sp' + revealIdx + '-' + i} initial={{ x: 0, y: 0, opacity: 0, scale: 0 }} animate={{ x: p.x, y: p.y, opacity: [0, 1, 0], scale: [0, 1, 0.4] }} transition={{ duration: 0.7 + L * 0.15, delay: p.delay }}
-                className="absolute top-1/2 left-1/2" style={{ width: p.s, height: p.s, borderRadius: '50%', background: col, boxShadow: `0 0 ${4 + L * 2}px ${col}`, marginLeft: -p.s / 2, marginTop: -p.s / 2 }} />
+          <div ref={cardsRef} className="relative" style={{ width: CARD_W * 1.25, height: CARD_H * 1.25, perspective: 900 }}>
+            {/* spinduliai + švytėjimas pagal retumą */}
+            <motion.div key={'rays' + revealIdx} initial={{ opacity: 0 }} animate={{ opacity: L >= 2 ? (L >= 4 ? 0.55 : 0.32) : 0 }} transition={{ duration: 0.5 }}
+              className="absolute pointer-events-none" style={{ left: '50%', top: '50%', width: 700, height: 700, marginLeft: -350, marginTop: -350, animation: 'rvnPackSpin 14s linear infinite',
+                background: `repeating-conic-gradient(from 0deg, ${col} 0deg 6deg, transparent 6deg 18deg)`,
+                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,.9) 0, rgba(0,0,0,.35) 30%, transparent 62%)', maskImage: 'radial-gradient(circle, rgba(0,0,0,.9) 0, rgba(0,0,0,.35) 30%, transparent 62%)' }} />
+            <motion.div key={'glow' + revealIdx} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: L >= 1 ? 0.5 + L * 0.1 : 0.15, scale: 1 }} transition={{ duration: 0.6 }}
+              className="absolute pointer-events-none" style={{ left: '50%', top: '50%', width: 360, height: 420, marginLeft: -180, marginTop: -210, borderRadius: '50%', filter: 'blur(40px)', background: `radial-gradient(circle, ${col}, transparent 70%)` }} />
+
+            {/* likusi kaladė už kortos */}
+            {cards.slice(revealIdx + 1).slice(0, 4).map((_, j) => (
+              <div key={'bk' + j} className="absolute" style={{ left: '50%', top: '50%', width: CARD_W, height: CARD_H, marginLeft: -CARD_W / 2 + (j + 1) * 1.5, marginTop: -CARD_H / 2 + (j + 1) * -2, transform: `rotate(${(j + 1) * 1.2}deg)`, zIndex: 0 }}><CardBack /></div>
             ))}
-            {/* korta (flip; legendarai dreba) */}
-            <motion.div key={'card' + revealIdx} initial={{ rotateY: 180, opacity: 0, scale: 0.85 }}
+            {/* atverstos – krūvelė kairėje */}
+            {cards.slice(0, revealIdx).map((c, j) => (
+              <motion.div key={'pv' + j} initial={{ x: 0, y: 0, scale: 1.25, opacity: 1 }} animate={{ x: -260 - j * 8, y: 0, scale: 0.55, opacity: 0.55 }} transition={{ duration: 0.45 }}
+                className="absolute rounded-lg overflow-hidden" style={{ left: '50%', top: '50%', width: CARD_W, height: CARD_H, marginLeft: -CARD_W / 2, marginTop: -CARD_H / 2, border: `2px solid ${rarityColor(c.rarity)}`, zIndex: 0 }}>
+                <CardArt card={c} />
+              </motion.div>
+            ))}
+
+            {/* dabartinė korta – verčiasi ir padidėja; legendarai dreba */}
+            <motion.div key={'card' + revealIdx} initial={{ rotateY: 180, scale: 1 }}
               animate={L >= 4
-                ? { rotateY: 0, opacity: 1, scale: 1, rotate: [0, -0.8, 0.9, -0.5, 0], x: [0, 1.5, -1.5, 1, 0] }
-                : { rotateY: 0, opacity: 1, scale: 1 }}
+                ? { rotateY: 0, scale: 1.25, rotate: [0, -0.9, 0.9, -0.5, 0], x: [0, 1.5, -1.5, 1, 0] }
+                : { rotateY: 0, scale: 1.25 }}
               transition={L >= 4
-                ? { rotateY: { type: 'spring', damping: 13 }, rotate: { duration: 0.5, repeat: Infinity, delay: 0.6 }, x: { duration: 0.5, repeat: Infinity, delay: 0.6 } }
-                : { type: 'spring', damping: 13 }}
-              style={{ transformStyle: 'preserve-3d', zIndex: 1 }}
-              className="relative w-full h-full rounded-lg overflow-hidden" >
-              <div className="absolute inset-0 rounded-lg overflow-hidden" style={{ border: `${2 + Math.min(2, L)}px solid ${col}`, boxShadow: `0 0 ${14 + L * 10}px ${col}${L >= 2 ? 'cc' : '88'}` }}>
+                ? { rotateY: { duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }, scale: { duration: 0.7 }, rotate: { duration: 0.5, repeat: Infinity, delay: 0.7 }, x: { duration: 0.5, repeat: Infinity, delay: 0.7 } }
+                : { duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+              className="absolute" style={{ left: '50%', top: '50%', width: CARD_W, height: CARD_H, marginLeft: -CARD_W / 2, marginTop: -CARD_H / 2, transformStyle: 'preserve-3d', zIndex: 2 }}>
+              {/* nugarėlė */}
+              <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}><CardBack /></div>
+              {/* veidas */}
+              <div className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ backfaceVisibility: 'hidden', border: `${2 + Math.min(2, L)}px solid ${col}`, boxShadow: `0 0 ${18 + L * 10}px ${col}${L >= 2 ? 'cc' : '88'}` }}>
                 <CardArt card={current} />
-                <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-center" style={{ background: 'rgba(0,0,0,0.78)' }}>
-                  <p className="text-[11px] leading-tight truncate" style={{ color: '#fff' }}>{cx.name(current.id, current.name)}</p>
-                  <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: col }}>{current.rarity ?? ''}</p>
+                <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,.92), rgba(0,0,0,.4) 70%, transparent)' }}>
+                  <p className="text-[12px] font-bold leading-tight truncate" style={{ color: '#fff' }}>{cx.name(current.id, current.name)}</p>
+                  <p className="text-[8.5px] font-bold uppercase" style={{ color: col, letterSpacing: 2 }}>{current.rarity ?? ''}</p>
                 </div>
               </div>
             </motion.div>
@@ -309,10 +420,14 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
         </div>
       )}
 
-      {/* DONE — kortos ore, sukasi ratu */}
-      {done && cards && (
+      {/* ── DONE – kortos ore, sukasi ratu ── */}
+      {phase === 'done' && cards && (
         <CardCarousel cards={cards} onClose={() => { playUiClick(); onClose() }} />
       )}
+
+      {/* dalelės + blyksnis (virš visko) */}
+      <canvas ref={fxRef} className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', zIndex: 4 }} />
+      {flash > 0 && <motion.div key={'fl' + flash} initial={{ opacity: 0.95 }} animate={{ opacity: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }} className="absolute inset-0 pointer-events-none" style={{ background: '#fff3d6', zIndex: 6 }} />}
     </div>,
     document.body,
   )
