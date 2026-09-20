@@ -2040,6 +2040,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const to = nextTargetBox(ei)
       const compact = keywordSeenRef.current.has(kind)
       keywordSeenRef.current.add(kind)
+      // Raktažodžio FX = šio paketo projektilas. Senojo NEBEŠAUNAM, kad
+      // neskristų du daiktai vienas paskui kitą (žala vis tiek eina po jo).
+      if (to) projFired = true
       const title = kind === 'battlecry' ? t('battle.game.kwBattlecry')
         : kind === 'lastwish' ? t('battle.game.kwLastwish') : t('battle.game.kwTrigger')
       const cardName = e.cardName ?? ''
@@ -2532,7 +2535,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               }, d)
             }
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
-            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction) {
+            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !projFired) {
               const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
               window.setTimeout(() => {
                 const fr = rectOf(sref2)

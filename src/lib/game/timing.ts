@@ -148,14 +148,14 @@ export const ZMK_PRESENT = {
 // paslaptis) → ties taikiniu apsiverčia ir atskleidžia kortą → rezultatas
 // laikomas 1,5 s → TIK TADA skaičiuojama žala ir krenta taikinio gyvybės.
 export const ZMK_DRAW = {
-  /** Nugarėlė skrenda lanku nuo kaladės prie taikinio. */
-  flyMs: 420,
+  /** Nugarėlė skrenda lanku nuo kaladės prie taikinio (matomas kelias). */
+  flyMs: 1500,
   /** 3D atvertimas ties taikiniu. */
   flipMs: 300,
   /** Rezultatas laikomas ekrane (žala dar NEtaikoma vizualiai). */
   holdMs: 1500,
   /** Korta susigeria į taikinį – kartu paleidžiamas žalos smūgis. */
-  absorbMs: 400,
+  absorbMs: 300,
   /** prefers-reduced-motion: be skrydžio, tik trumpas parodymas. */
   reducedMs: 900,
 } as const
