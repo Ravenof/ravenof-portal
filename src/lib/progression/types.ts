@@ -195,7 +195,7 @@ export type DailyQuestsState = {
   allCompleted: boolean
   chest: { rewards: RewardDefinition[]; claimable: boolean; claimed: boolean }
   reroll: { used: number; max: number; freeRemaining: number; nextCostSilver: number | null }
-  dailyMax: { silver: number; essence: number; season_xp: number }
+  dailyMax: { silver: number; essence: number; season_xp: number; rubies?: number }
   pendingChoices: PendingRewardChoice[]
   balances: Balances
   serverTime: string

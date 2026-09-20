@@ -149,7 +149,7 @@ function CosmeticsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } 
 
 // ───────────────────────────── PAKUOTĖS ─────────────────────────────
 function PacksTab({ items, supabase, flash, reload }: { items: Pack[] } & Common) {
-  const blank: Pack = { id: '', name: '', description: '', price_gold: 200, is_active: true, sort_order: 0, image_url: '', cards_per_pack: 10 }
+  const blank: Pack = { id: '', name: '', description: '', price_gold: 600, is_active: true, sort_order: 0, image_url: '', cards_per_pack: 10 }
   const [form, setForm] = useState<Pack>(blank)
   const [editing, setEditing] = useState(false)
   const set = (k: keyof Pack, v: any) => setForm((f) => ({ ...f, [k]: v }))

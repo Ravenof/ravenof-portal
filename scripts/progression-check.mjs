@@ -24,13 +24,13 @@ const ok = (msg) => console.log('  ✓ ' + msg)
 
 // ── 1) Daily Login: patvirtinta 31 dienos lentelė ──────────────────────────
 const LOGIN_EXPECTED = {
-  1: 'silver:100', 2: 'essence:25', 3: 'silver:150', 4: 'silver:150', 5: 'essence:50',
-  6: 'silver:200', 7: 'booster:1', 8: 'silver:200', 9: 'essence:50', 10: 'silver:250',
-  11: 'silver:250', 12: 'essence:75', 13: 'silver:300', 14: 'booster:1+silver:100',
-  15: 'silver:300', 16: 'essence:75', 17: 'silver:350', 18: 'essence:100', 19: 'silver:400',
-  20: 'silver:500', 21: 'card:rare', 22: 'silver:450', 23: 'essence:100', 24: 'silver:500',
-  25: 'essence:125', 26: 'silver:600', 27: 'silver:750', 28: 'booster:1+essence:150',
-  29: 'silver:1000', 30: 'rubies:25', 31: 'booster:2+essence:200',
+  1: 'silver:200', 2: 'essence:50', 3: 'silver:250', 4: 'silver:300', 5: 'essence:75',
+  6: 'silver:350', 7: 'booster:1+silver:200', 8: 'silver:400', 9: 'essence:100', 10: 'silver:450',
+  11: 'silver:500', 12: 'essence:125', 13: 'silver:550', 14: 'booster:1+rubies:10',
+  15: 'silver:600', 16: 'essence:150', 17: 'silver:650', 18: 'essence:175', 19: 'silver:700',
+  20: 'silver:800', 21: 'card:rare+silver:300', 22: 'silver:850', 23: 'essence:200', 24: 'silver:900',
+  25: 'essence:225', 26: 'silver:1000', 27: 'silver:1200', 28: 'booster:1+essence:250+rubies:15',
+  29: 'silver:1500', 30: 'rubies:25+silver:500', 31: 'booster:2+silver:2000+essence:300+rubies:25',
 }
 const fmt = (rewards) => rewards.map((r) => {
   if (r.type === 'faction_booster_choice') return `booster:${r.quantity}`
@@ -41,8 +41,8 @@ const fmt = (rewards) => rewards.map((r) => {
 
 console.log('── 1) Daily Login (31 dienos ciklas) ──')
 {
-  const sql = read('20260842_login_cycle_v2.sql')
-  const rows = [...sql.matchAll(/\(2,\s*(\d+),\s*'(\[[^']*\])'/g)]
+  const sql = read('20260924_rewards_boost_v3.sql')
+  const rows = [...sql.matchAll(/\(3,\s*(\d+),\s*'(\[[^']*\])'/g)]
   if (rows.length !== 31) fail(`rasta ${rows.length} dienų, laukta 31`)
   else {
     let bad = 0
@@ -85,9 +85,13 @@ console.log('── 2) Season Path (20 lygių) ──')
   if (!m) fail('nerasta season_path_v2 konfigūracija')
   else {
     const cfg = JSON.parse(m[1])
-    if (cfg.xp_per_level !== 1000) fail(`xp_per_level = ${cfg.xp_per_level}, laukta 1000`)
+    // v3 (20260924) perrašo xp_per_level / total_xp per jsonb_set
+    const v3 = read('20260924_rewards_boost_v3.sql')
+    const xpPer = Number(v3.match(/'\{xp_per_level\}',\s*'(\d+)'/)?.[1] ?? cfg.xp_per_level)
+    const totalXp = Number(v3.match(/'\{total_xp\}',\s*'(\d+)'/)?.[1] ?? cfg.total_xp)
+    if (xpPer !== 1500) fail(`xp_per_level = ${xpPer}, laukta 1500`)
     if (cfg.levels !== 20) fail(`levels = ${cfg.levels}, laukta 20`)
-    if (cfg.total_xp !== 20000) fail(`total_xp = ${cfg.total_xp}, laukta 20000`)
+    if (totalXp !== 30000) fail(`total_xp = ${totalXp}, laukta 30000`)
     let bad = 0
     for (const [lvl, [expFree, expPass]] of Object.entries(SEASON_EXPECTED)) {
       const r = cfg.rewards[lvl]
@@ -108,29 +112,47 @@ console.log('── 2) Season Path (20 lygių) ──')
 console.log('── 3) Daily Quests ──')
 {
   const sql = read('20260844_daily_quests_v2.sql')
+  const v3sql = read('20260924_rewards_boost_v3.sql')
   const m = sql.match(/'daily_quests_v2',\s*\$j\$([\s\S]*?)\$j\$/)
   if (!m) fail('nerasta daily_quests_v2 konfigūracija')
   else {
     const cfg = JSON.parse(m[1])
-    const exp = { easy: 'silver:100+season_xp:80', medium: 'silver:150+season_xp:100', hard: 'silver:200+season_xp:120' }
+    // v3 (20260924) perrašo rewards / chest / daily_max / reroll.paid_cost_silver
+    const blocks = [...v3sql.matchAll(/'\{(rewards|chest|daily_max)\}',\s*(?:\$j\$([\s\S]*?)\$j\$|'([^']*)')/g)]
+    for (const [, key, dollar, quoted] of blocks) cfg[key] = JSON.parse(dollar ?? quoted)
+    const rerollV3 = v3sql.match(/'\{reroll,paid_cost_silver\}',\s*'(\d+)'/)
+    if (rerollV3) cfg.reroll.paid_cost_silver = Number(rerollV3[1])
+
+    const exp = {
+      easy:   'silver:150+season_xp:100',
+      medium: 'silver:275+essence:20+season_xp:150',
+      hard:   'silver:450+essence:40+season_xp:200',
+    }
     let bad = 0
     for (const [d, e] of Object.entries(exp)) {
       const got = fmt(cfg.rewards[d] ?? [])
       if (got !== e) { fail(`${d}: laukta "${e}", gauta "${got}"`); bad++ }
     }
-    if (fmt(cfg.chest) !== 'essence:50+season_xp:100') { fail(`skrynia: gauta "${fmt(cfg.chest)}"`); bad++ }
+    const expChest = 'silver:700+essence:100+rubies:2+season_xp:250'
+    if (fmt(cfg.chest) !== expChest) { fail(`skrynia: laukta "${expChest}", gauta "${fmt(cfg.chest)}"`); bad++ }
+    // skrynia privalo būti vertingesnė už sunkią užduotį
+    const silverOf = (arr) => arr.find((r) => r.type === 'silver')?.amount ?? 0
+    if (silverOf(cfg.chest) <= silverOf(cfg.rewards.hard)) { fail('skrynios sidabras turi viršyti sunkios užduoties'); bad++ }
     const max = cfg.daily_max
-    if (max.silver !== 450 || max.essence !== 50 || max.season_xp !== 400) { fail(`dienos maksimumas: ${JSON.stringify(max)}`); bad++ }
-    // reroll: 1 nemokamas + 2 po 100, viso 3
+    if (max.silver !== 1575 || max.essence !== 160 || max.rubies !== 2 || max.season_xp !== 700) {
+      fail(`dienos maksimumas: ${JSON.stringify(max)}`); bad++
+    }
+    // reroll: 1 nemokamas + 2 po 150, viso 3
     if (cfg.reroll.free !== 1) { fail(`reroll.free = ${cfg.reroll.free}, laukta 1`); bad++ }
-    if (cfg.reroll.paid_cost_silver !== 100) { fail(`reroll kaina = ${cfg.reroll.paid_cost_silver}, laukta 100`); bad++ }
+    if (cfg.reroll.paid_cost_silver !== 150) { fail(`reroll kaina = ${cfg.reroll.paid_cost_silver}, laukta 150`); bad++ }
     if (cfg.reroll.max_total !== 3) { fail(`reroll max = ${cfg.reroll.max_total}, laukta 3`); bad++ }
-    // suma turi sutapti su dienos maksimumu
-    const sumSilver = ['easy', 'medium', 'hard'].reduce((a, d) => a + cfg.rewards[d].find((r) => r.type === 'silver').amount, 0)
-    const sumXp = ['easy', 'medium', 'hard'].reduce((a, d) => a + cfg.rewards[d].find((r) => r.type === 'season_xp').amount, 0)
-      + cfg.chest.find((r) => r.type === 'season_xp').amount
-    if (sumSilver !== max.silver) { fail(`sidabro suma ${sumSilver} ≠ dienos maksimumas ${max.silver}`); bad++ }
-    if (sumXp !== max.season_xp) { fail(`Season XP suma ${sumXp} ≠ dienos maksimumas ${max.season_xp}`); bad++ }
+    // sumos (užduotys + skrynia) turi sutapti su dienos maksimumu
+    const sumOf = (type) => ['easy', 'medium', 'hard'].reduce((a, d) => a + (cfg.rewards[d].find((r) => r.type === type)?.amount ?? 0), 0)
+      + (cfg.chest.find((r) => r.type === type)?.amount ?? 0)
+    if (sumOf('silver') !== max.silver) { fail(`sidabro suma ${sumOf('silver')} ≠ dienos maksimumas ${max.silver}`); bad++ }
+    if (sumOf('essence') !== max.essence) { fail(`esencijos suma ${sumOf('essence')} ≠ dienos maksimumas ${max.essence}`); bad++ }
+    if (sumOf('rubies') !== max.rubies) { fail(`rubinų suma ${sumOf('rubies')} ≠ dienos maksimumas ${max.rubies}`); bad++ }
+    if (sumOf('season_xp') !== max.season_xp) { fail(`Season XP suma ${sumOf('season_xp')} ≠ dienos maksimumas ${max.season_xp}`); bad++ }
     if (!bad) ok('atlygiai, skrynia, reroll kainos ir dienos maksimumas sutampa')
   }
   if (!/win_streak/.test(sql)) ok('win-streak questų nėra')
@@ -210,6 +232,9 @@ console.log('── 6) Reward sumų hardcode patikra ──')
     for (const re of REWARD_CTX) {
       for (const m of src.matchAll(re)) {
         const n = Number(m[1])
+        // ikonos placeholder'is (RewardIcon / resolveRewardVisualV2) – ne ekonomika
+        const line = src.slice(src.lastIndexOf('\n', m.index) + 1, src.indexOf('\n', m.index))
+        if (/RewardIcon|resolveRewardVisualV2/.test(line)) continue
         // 0 leidžiama (placeholder / tuščias balansas)
         if (n > 0) hits.add(n)
       }
