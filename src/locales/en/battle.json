@@ -357,10 +357,7 @@
     "botChat_winGg_3": "well played",
     "botChat_lossGg_1": "gg",
     "botChat_lossGg_2": "gg wp",
-    "botChat_lossGg_3": "ok gg",
-    "kwBattlecry": "Battlecry",
-    "kwLastwish": "Last Wish",
-    "kwTrigger": "Trigger"
+    "botChat_lossGg_3": "ok gg"
   },
   "guided": {
     "discard-gold-tip": {

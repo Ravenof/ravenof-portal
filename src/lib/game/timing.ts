@@ -143,53 +143,18 @@ export const ZMK_PRESENT = {
   reshuffleMs: 700,
 } as const
 
-// ── ŽMK traukimas iš kaladės (peržiūra patvirtinta 2026-09-20) ───────────────
-// Seka: iš ŽMK kaladės prie taikinio atskrenda NUGARĖLĖ (kas ištraukta – dar
-// paslaptis) → ties taikiniu apsiverčia ir atskleidžia kortą → rezultatas
-// laikomas 1,5 s → TIK TADA skaičiuojama žala ir krenta taikinio gyvybės.
-export const ZMK_DRAW = {
-  /** Nugarėlė skrenda lanku nuo kaladės prie taikinio (matomas kelias). */
-  flyMs: 1500,
-  /** 3D atvertimas ties taikiniu. */
-  flipMs: 300,
-  /** Rezultatas laikomas ekrane (žala dar NEtaikoma vizualiai). */
-  holdMs: 1500,
-  /** Korta susigeria į taikinį – kartu paleidžiamas žalos smūgis. */
-  absorbMs: 300,
-  /** prefers-reduced-motion: be skrydžio, tik trumpas parodymas. */
-  reducedMs: 900,
-} as const
-
-/** Visa ŽMK sekos trukmė (klientas pagal ją valo zmkFlash). */
-export const ZMK_DRAW_TOTAL_MS =
-  ZMK_DRAW.flyMs + ZMK_DRAW.flipMs + ZMK_DRAW.holdMs + ZMK_DRAW.absorbMs
-
-/** Kiek laiko žala turi PALAUKTI po ŽMK traukimo (iki susigėrimo momento). */
-export const ZMK_DRAW_REVEAL_MS = ZMK_DRAW.flyMs + ZMK_DRAW.flipMs + ZMK_DRAW.holdMs
-
-// ── Raktažodžių FX: Kovos šūksnis · Paskutinis noras · Trigeris ──────────────
-// VIENODA chronologija visiems (peržiūra patvirtinta 2026-09-20):
-//   1) Šaltinis – kas sukėlė (trumpai)
-//   2) Nukreipimas – energija keliauja iš šaltinio į taikinį
-//   3) Pavadinimas PRIE TAIKINIO 2 s (ne prie kasterio!) – plokštelė su
-//      raktažodžiu ir kortos vardu; gyvybės dar nepasikeitusios
-//   4) Efektas – tik dabar žala ir gyvybių kritimas
-// Pilna seka – tik PIRMAM to raktažodžio kartui per kovą; vėliau kompaktas
-// (be plokštelės), kad ėjimas neužsitęstų.
+// ── Raktažodžių FX konstantos (NENAUDOJAMOS kovoje) ─────────────────────────
+// 705–707 bandymas atšauktas (žr. FX-ROLLBACK-IR-EFEKTU-SISTEMOS.md): bendra
+// delsa ant `SETTLE` suardė paketo chronologiją. `KeywordFxLayer.tsx` ir
+// `/dev/keyword-fx` palikti kaip medžiaga BŪSIMAM bandymui su tikru sekvenceriu;
+// kovos kode jie NEĮJUNGTI. Trinant sluoksnį – trinti ir šias konstantas.
 export const KEYWORD_FX = {
   sourceMs: 300,
   directMs: 450,
   sealMs: 2000,
   effectMs: 400,
 } as const
-
-/** Kompaktas (antras ir vėlesni kartai): plokštelės nėra, kita seka trumpesnė. */
 export const KEYWORD_FX_COMPACT_SCALE = 0.55
-/** Kiek žala laukia: šaltinis + nukreipimas + plokštelė. */
-export const KEYWORD_FX_REVEAL_MS = KEYWORD_FX.sourceMs + KEYWORD_FX.directMs + KEYWORD_FX.sealMs
-export const KEYWORD_FX_REVEAL_COMPACT_MS =
-  Math.round((KEYWORD_FX.sourceMs + KEYWORD_FX.directMs) * KEYWORD_FX_COMPACT_SCALE)
-/** prefers-reduced-motion: vienas trumpas blyksnis vietoj visos sekos. */
 export const KEYWORD_FX_REDUCED_MS = 420
 
 // ── Ėjimo pradžios ritualas (game-feel fazė 10) ──────────────────────────────

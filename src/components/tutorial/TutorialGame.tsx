@@ -77,7 +77,7 @@ import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
-import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, ZMK_DRAW, ZMK_DRAW_TOTAL_MS, ZMK_DRAW_REVEAL_MS, KEYWORD_FX_REVEAL_MS, KEYWORD_FX_REVEAL_COMPACT_MS, TURN_RITUAL, CARD_LANDING, COIN_TOSS } from '@/lib/game/timing'
+import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING, COIN_TOSS } from '@/lib/game/timing'
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
 import { emitCampaignEvents, type CampaignEventHandler } from '@/lib/campaign/battleBridge'
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
@@ -88,8 +88,6 @@ import { duckMusic } from '@/lib/game/musicManager'
 import { TactileStyles, pressPulse, invalidPulse, snapSettle, returnSpring, dragFollow, withinSnap } from '@/components/tutorial/CardTactile'
 import { useHpGhost } from '@/components/tutorial/HpGhostBar'
 import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components/tutorial/ZmkSpecial'
-import { KeywordFxLayer, type KeywordFxHandle, type KeywordFxKind } from '@/components/tutorial/KeywordFxLayer'
-import { prefersReducedMotion } from '@/lib/game/tactile'
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 
@@ -385,15 +383,6 @@ function OppHandFan({ count, big }: { count: number; big?: boolean }) {
 }
 
 // ── ŽMK pranašumo/nepalankumo traukimas: 2 kortos, nepanaudota subyra į gabalus ──
-/** Zonos (kaladės/kapinyno) centras viewport px – naudoja ir render'is, ir FX. */
-function pileCenterOf(sel: string): { x: number; y: number } | null {
-  if (typeof document === 'undefined') return null
-  const el = document.querySelector(sel)
-  if (!el) return null
-  const r = el.getBoundingClientRect()
-  return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-}
-
 const zmkCol = (v: string) => (v.startsWith('+') && v !== '+0') ? '#4ade80' : v.startsWith('-') ? '#f87171' : '#f0b429'
 function ZmkRollCard({ v, game }: { v: ZmkValue; game: GameState | null }) {
   const img = zmkImg(game, v)
@@ -1064,9 +1053,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const fxRef = useRef<BattleFxHandle>(null)
   /** Reakcijos grandinės sluoksnis + vartų būsena (žr. „Reakcijos grandinės vartai"). */
   const chainRef = useRef<ReactionChainHandle>(null)
-  const keywordFxRef = useRef<KeywordFxHandle>(null)
-  /** Kurie raktažodžiai jau turėjo pilną „antspaudo" parodymą ŠIOJE kovoje (vėliau – kompaktas). */
-  const keywordSeenRef = useRef<Set<string>>(new Set())
   const chainGateActiveRef = useRef(false)
   const arenaRef = useRef<ArenaKey>(randomArena())
   // Kosmetika kovoje: pasirinkta nugarėlė (modulio kintamasis) + lentos fonas
@@ -1970,25 +1956,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       }
     }
     const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
-    const PLAY_SETTLE = hasPlay ? 800 : 0
-    // ── PARODYMO delsa (2026-09-20) ──────────────────────────────────────────
-    //  Žala nebegali nukristi tuo pačiu metu kaip parodymas: pirma matai ŽMK
-    //  kortą (nugarėlė → flip → rezultatas 1,5 s) arba raktažodžio plokštelę
-    //  prie TAIKINIO (2 s), ir tik tada – atimtis bei gyvybių kritimas.
-    //  Visa likusi FX dramaturgija (mirtys, statusai, buff'ai) juda kartu,
-    //  todėl delsa pridedama prie SETTLE – vieno bendro takto.
-    const kwKindsInBatch = new Set<KeywordFxKind>()
-    for (const ev of fresh) {
-      if (ev.t === 'battlecry' && !/awaitTarget/i.test(ev.key ?? '')) kwKindsInBatch.add('battlecry')
-      else if (ev.t === 'lastwish' && !/chooseTarget/i.test(ev.key ?? '')) kwKindsInBatch.add('lastwish')
-      else if (ev.t === 'fxSource' && ev.src) kwKindsInBatch.add('trigger')
-    }
-    let presentDelay = fresh.some((ev) => ev.t === 'zmk' && ev.zmk) ? ZMK_DRAW_REVEAL_MS : 0
-    for (const kk of kwKindsInBatch) {
-      presentDelay = Math.max(presentDelay, keywordSeenRef.current.has(kk) ? KEYWORD_FX_REVEAL_COMPACT_MS : KEYWORD_FX_REVEAL_MS)
-    }
-    if (prefersReducedMotion()) presentDelay = Math.min(presentDelay, 300)
-    const SETTLE = PLAY_SETTLE + presentDelay
+    const SETTLE = hasPlay ? 800 : 0
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 žalos taikiniai
     // Tikras AoE (engine markeris fxSource.aoe – mapping'as taiko VISĄ zoną): zoninis efektas, be projektilų.
     // Visais kitais atvejais (rankinis pasirinkimas / hitCount auto) – PO PROJEKTILĄ kiekvienam taikiniui.
@@ -2021,41 +1989,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const r = el.getBoundingClientRect()
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
     }
-    // ── Raktažodžių FX (Kovos šūksnis / Paskutinis noras / Trigeris) ─────────
-    //  Dekoratyvus sluoksnis (NE vartai): kovos eilė jame niekada neužstringa.
-    //  Pirmas kiekvieno raktažodžio kartas per kovą gauna pilną „antspaudą“,
-    //  vėliau – kompaktas be pritemdymo (kaip reakcijų grandinėje).
-    const kwFiredThisBatch = new Set<string>()
-    const nextTargetBox = (from: number) => {
-      for (let j = from + 1; j < Math.min(fresh.length, from + 8); j++) {
-        const ev = fresh[j]
-        if (ev.tgt) { const b = rectOf(ev.tgt); if (b) return { x: b.x, y: b.y } }
-      }
-      return null
-    }
-    const fireKeywordFx = (kind: KeywordFxKind, e: GameEvent, ei: number) => {
-      if (kwFiredThisBatch.has(kind)) return
-      kwFiredThisBatch.add(kind)
-      const src = e.src ?? srcRef
-      const to = nextTargetBox(ei)
-      const compact = keywordSeenRef.current.has(kind)
-      keywordSeenRef.current.add(kind)
-      // Raktažodžio FX = šio paketo projektilas. Senojo NEBEŠAUNAM, kad
-      // neskristų du daiktai vienas paskui kitą (žala vis tiek eina po jo).
-      if (to) projFired = true
-      const title = kind === 'battlecry' ? t('battle.game.kwBattlecry')
-        : kind === 'lastwish' ? t('battle.game.kwLastwish') : t('battle.game.kwTrigger')
-      const cardName = e.cardName ?? ''
-      const delay = (showcaseHold > 0 ? showcaseHold : 0) + (kind === 'battlecry' ? PLAY_SETTLE : 0)
-      window.setTimeout(() => {
-        // poziciją matuojam TIK paleidimo momentu – korta iki tol dar krenta/juda
-        const from = rectOf(src) ?? fxCenter()
-        if (!from) return
-        keywordFxRef.current?.play({ kind, from: { x: from.x, y: from.y }, to, cardName, title, compact })
-      }, delay)
-    }
-
-    for (const [ei, e] of fresh.entries()) {
+    for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą.
       // Sinchronizacija su vizualu: 'death' garsą groja pats death FX (smūgio momentu);
       // per showcase delsą visi kiti atidedami, IŠSKYRUS burto cast / summon (jų vizualas iškart).
@@ -2070,7 +2004,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
-        case 'fxSource': { if (e.src) { srcRef = e.src; srcKind = 'ability' } srcCard = findCard(e.cardName) ?? srcCard; if (e.src) fireKeywordFx('trigger', e, ei); break }
+        case 'fxSource': { if (e.src) { srcRef = e.src; srcKind = 'ability' } srcCard = findCard(e.cardName) ?? srcCard; break }
         case 'reactionSet': {
           // Reakcija padėta: užversta korta nuskrenda iš rankos (numetimo taško) į savo reakcijų vietą.
           const sd = e.side
@@ -2200,7 +2134,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             // lieka toks pat greitas kaip buvo (spectacle budget).
             const sk: ZmkSpecialKind = e.zmk === 'x2' ? 'x2' : 'x0'
             const sside = e.side
-            const dz = showcaseHold > 0 ? showcaseHold : PLAY_SETTLE
+            const dz = showcaseHold > 0 ? showcaseHold : SETTLE
             window.setTimeout(() => setZmkSpecial({ id: ++flyIdRef.current, kind: sk, side: sside }), dz)
             // Mechanikos komunikacija: po ×2/×0 kaladė TIKRAI permaišoma (zmkSpecialReshuffle).
             window.setTimeout(() => setZmkReshuffle({ id: ++flyIdRef.current, side: sside }),
@@ -2305,17 +2239,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           window.setTimeout(() => playAvatarAudio(winId, 'victory'), tBoom + 2400)
           break
         }
-        case 'lastwish': {
-          queueTip('lastwish')
-          // „pasirink taikinį" NĖRA įvykdymas – FX laukia tikro suveikimo
-          if (!/chooseTarget/i.test(e.key ?? '')) fireKeywordFx('lastwish', e, ei)
-          break
-        }
-        case 'battlecry': {
-          queueTip('battlecry')
-          if (!/awaitTarget/i.test(e.key ?? '')) fireKeywordFx('battlecry', e, ei)
-          break
-        }
+        case 'lastwish': queueTip('lastwish'); break
+        case 'battlecry': queueTip('battlecry'); break
         case 'reactionTrigger': {
           // Reakcijos seka (aprobuota 2026-07-25):
           //   P0 aptikimas → P1 grandinė → P2 apsivijimas → P3 kortos parodymas → P4 efektas.
@@ -2535,7 +2460,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               }, d)
             }
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
-            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !projFired) {
+            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction) {
               const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
               window.setTimeout(() => {
                 const fr = rectOf(sref2)
@@ -2746,7 +2671,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // ŽMK flash dingsta
   useEffect(() => {
     if (!zmkFlash) return
-    const t = setTimeout(() => setZmkFlash(null), ZMK_DRAW_TOTAL_MS + 120)
+    const t = setTimeout(() => setZmkFlash(null), 2000)
     return () => clearTimeout(t)
   }, [zmkFlash])
   useEffect(() => { if (!zmkRoll) return; const t = setTimeout(() => setZmkRoll(null), 1900); return () => clearTimeout(t) }, [zmkRoll])
@@ -4898,7 +4823,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <OppHandFan count={game.ai.hand.length} />
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
-                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { pileKey: 'zmk-ai', back: 'zmk' })}
+                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk' })}
               </div>
             </div>
             <div className="mt-1 pl-[50px] pr-[38px]">{renderSideZones('ai')}</div>
@@ -4941,7 +4866,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <div className="flex items-end gap-1.5">
                   {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
                   {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
-                  {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', pileKey: 'zmk-you', back: 'zmk' })}
+                  {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
                 </div>
               </div>
             </div>
@@ -5002,7 +4927,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 66 })}
-                {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', pileKey: 'zmk-you', back: 'zmk', w: 66 })}
+                {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66 })}
                 {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>
@@ -5041,7 +4966,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 66 })}
-                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { pileKey: 'zmk-ai', back: 'zmk', w: 66 })}
+                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 66 })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex-1 min-h-0 flex flex-col" style={RAIL_PANEL}>
@@ -5612,7 +5537,6 @@ doAction({ t: 'endTurn', actor: 'you' })
       <TactileStyles />
       <BattleFxLayer ref={fxRef} />
       <ReactionChainLayer ref={chainRef} />
-      <KeywordFxLayer ref={keywordFxRef} />
 
       {/* ── pilno lauko summon efektas ── */}
       {boardFx && <SummonBurst type={boardFx.type} x={boardFx.x} y={boardFx.y} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}
@@ -5794,11 +5718,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         </AnimatePresence>
       </div>
 
-      {/* ── ŽMK traukimas (aprobuota peržiūra 2026-09-20) ───────────────────
-             1) nuo ŽMK kaladės prie taikinio atskrenda NUGARĖLĖ (kas ištraukta –
-                dar paslaptis) → 2) ties taikiniu apsiverčia ir atskleidžia kortą
-             → 3) rezultatas laikomas 1,5 s → 4) susigeria į taikinį; žala ir
-             gyvybių kritimas ateina PO to (žr. presentDelay ciklo viršuje). ── */}
+      {/* ── ŽMK auto-traukimo miniatiūros PRIE TAIKINIO (mažos, švarios; vietoj didelių centre) ── */}
       <AnimatePresence>
         {zmkFlash && (() => {
           // Grupuojam pagal taikinio poziciją – kiekvienas ŽMK rodomas PRIE savo taikinio (AoE/multi → prie visų).
@@ -5809,93 +5729,31 @@ doAction({ t: 'endTurn', actor: 'you' })
             g.cards.push({ v: p.v, side: p.side })
             groups.set(key, g)
           }
-          const D = ZMK_DRAW
-          const T = ZMK_DRAW_TOTAL_MS / 1000
-          const t1 = D.flyMs / ZMK_DRAW_TOTAL_MS                                   // atvertimo pradžia
-          const t2 = (D.flyMs + D.flipMs) / ZMK_DRAW_TOTAL_MS                      // rezultato pradžia
-          const t3 = (D.flyMs + D.flipMs + D.holdMs) / ZMK_DRAW_TOTAL_MS           // susigėrimo pradžia
-          const reduced = prefersReducedMotion()
-          const CW = 44, CH = 62
           return (
             <motion.div key={zmkFlash.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[130] pointer-events-none">
               {Array.from(groups.values()).map((grp, gi) => (
-                <div key={gi}>
-                  {grp.cards.map((zc, idx) => {
-                    const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
-                    const sideCol = zc.side === 'you' ? '#4ade80' : '#f87171'
-                    const n = grp.cards.length
-                    const tx = grp.x + (idx - (n - 1) / 2) * 48
-                    const ty = grp.y - 66
-                    const from = pileCenterOf(`[data-pile="zmk-${zc.side}"]`) ?? { x: tx, y: ty - 130 }
-                    const midX = (from.x + tx) / 2, midY = Math.min(from.y, ty) - 80
-                    const box: React.CSSProperties = { width: CW, height: CH, borderRadius: 6, overflow: 'hidden', backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }
-                    const cardSides = (
-                      <div style={{ position: 'relative', width: CW, height: CH, transformStyle: 'preserve-3d' }}>
-                        {/* VEIDAS – matomas tik po atvertimo */}
-                        <div style={{ ...box, border: '2px solid ' + sideCol, boxShadow: '0 0 12px ' + sideCol + '99', background: 'rgba(10,8,16,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {zmkImg(game, zc.v) ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                          ) : (
-                            <span className="font-black text-[16px]" style={{ color: col, fontFamily: 'var(--rvn-font-display)' }}>{zc.v.replace('x', '×')}</span>
-                          )}
-                        </div>
-                        {/* NUGARĖLĖ – skrydžio metu */}
-                        <div style={{ ...box, transform: 'rotateY(180deg)', border: '2px solid rgba(240,180,41,.55)', background: '#0d0a14' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={CARD_BACK_SRC.zmk} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                        </div>
-                      </div>
-                    )
-                    const valueChip = (
-                      <span className="px-1.5 rounded font-black text-[11px]"
-                        style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + col, color: col, fontFamily: 'var(--rvn-font-display)', marginTop: 3 }}>
-                        {zc.v.replace('x', '×')}
-                      </span>
-                    )
-                    if (reduced) {
+                <div key={gi} className="absolute" style={{ left: grp.x, top: grp.y - 60, transform: 'translateX(-50%)' }}>
+                  <div className="flex items-end justify-center gap-1">
+                    {grp.cards.map((zc, idx) => {
+                      const col = zc.v.startsWith('+') && zc.v !== '+0' ? '#4ade80' : zc.v.startsWith('-') ? '#f87171' : 'var(--gold)'
+                      const sideCol = zc.side === 'you' ? '#4ade80' : '#f87171'
                       return (
-                        <motion.div key={idx} className="absolute flex flex-col items-center" style={{ left: tx, top: ty, transform: 'translate(-50%,-50%)' }}
-                          initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} exit={{ opacity: 0 }}
-                          transition={{ duration: D.reducedMs / 1000, times: [0, 0.15, 0.8, 1] }}>
-                          <div style={{ position: 'relative', width: CW, height: CH }}>
-                            <div style={{ ...box, border: '2px solid ' + sideCol, background: 'rgba(10,8,16,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span className="font-black text-[16px]" style={{ color: col, fontFamily: 'var(--rvn-font-display)' }}>{zc.v.replace('x', '×')}</span>
+                        <motion.div key={idx} initial={{ scale: 0.3, opacity: 0, y: 10, rotateY: 80 }} animate={{ scale: 1, opacity: 1, y: 0, rotateY: 0 }} exit={{ scale: 0.6, opacity: 0, y: -12 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 18, delay: idx * 0.07 }}
+                          className="flex flex-col items-center gap-0.5" style={{ transformStyle: 'preserve-3d' }}>
+                          {zmkImg(game, zc.v) ? (
+                            <div className="rounded-md overflow-hidden" style={{ width: 36, aspectRatio: '2.5 / 3.5', border: '2px solid ' + sideCol, boxShadow: '0 0 11px ' + sideCol + '99' }}>
+                              <img src={zmkImg(game, zc.v)!} alt={`ŽMK ${zc.v}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                             </div>
-                          </div>
-                          {valueChip}
+                          ) : null}
+                          <span className="px-1.5 rounded font-black text-[11px]"
+                            style={{ background: 'rgba(8,6,12,0.92)', border: '1px solid ' + col, color: col, fontFamily: 'var(--rvn-font-display)' }}>
+                            {zc.v.replace('x', '×')}
+                          </span>
                         </motion.div>
                       )
-                    }
-                    return (
-                      <motion.div key={idx} className="absolute" style={{ left: 0, top: 0 }}
-                        initial={{ x: from.x, y: from.y, scale: 0.72, opacity: 0 }}
-                        animate={{
-                          x: [from.x, midX, tx, tx, tx],
-                          y: [from.y, midY, ty, ty, ty + 62],
-                          scale: [0.72, 0.9, 1, 1, 0.45],
-                          opacity: [0, 1, 1, 1, 0],
-                        }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: T, times: [0, t1 * 0.55, t1, t3, 1], ease: 'easeInOut', delay: idx * 0.06 }}>
-                        <div style={{ transform: 'translate(-50%,-50%)', perspective: 700 }}>
-                          {/* atvertimas ties taikiniu: nugarėlė (180°) → veidas (0°) */}
-                          <motion.div style={{ transformStyle: 'preserve-3d' }}
-                            initial={{ rotateY: 180 }}
-                            animate={{ rotateY: [180, 180, 0, 0, 0] }}
-                            transition={{ duration: T, times: [0, t1, t2, t3, 1], ease: 'easeOut', delay: idx * 0.06 }}>
-                            {cardSides}
-                          </motion.div>
-                          {/* reikšmė po korta – tik po atvertimo */}
-                          <motion.div className="flex justify-center"
-                            initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 1, 1, 0] }}
-                            transition={{ duration: T, times: [0, t1 + (t2 - t1) * 0.6, t2, t3, 1], delay: idx * 0.06 }}>
-                            {valueChip}
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
+                    })}
+                  </div>
                 </div>
               ))}
             </motion.div>

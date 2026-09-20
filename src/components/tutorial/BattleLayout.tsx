@@ -174,7 +174,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
           <RailCard style={railPanel} className="px-0.5 py-2 flex justify-center gap-0.5 shrink-0 w-full">
             {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 40 })}
             {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 40 })}
-            {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { pileKey: 'zmk-ai', back: 'zmk', w: 42 })}
+            {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 42 })}
           </RailCard>
           {/* apvalus BAIGTI ĖJIMĄ (su mana + laikmačio žiedu) + discard */}
           <div className="flex flex-col items-center gap-1.5">
@@ -190,7 +190,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
           <RailCard style={railPanel} className="px-0.5 py-2 flex justify-center gap-0.5 shrink-0 w-full">
             {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 40 })}
             {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 40 })}
-            {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', pileKey: 'zmk-you', back: 'zmk', w: 40 })}
+            {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 40 })}
           </RailCard>
         </aside>
 
