@@ -1,16 +1,19 @@
 'use client'
 
 // ── Raktažodžių FX sluoksnis (Kovos šūksnis · Paskutinis noras · Trigeris) ───
-// Aprobuotas vizualas: ravenof-fx-preview-keywords.html (2026-09-20).
+// Aprobuotas vizualas: ravenof-fx-preview-keywords.html (2026-09-20, v2).
 //
-// Kokybės kartelė — reakcijų grandinė (ReactionChainLayer): anticipacija →
-// veiksmas → ANTSPAUDAS (raktažodis + kortos vardas) → nukreipimas į taikinį →
-// efektas. Skirtumas nuo reakcijų: šis sluoksnis NEVARTOJA gameplay vartų —
-// jis dekoratyvus, tad kovos eilė niekada negali jame užstrigti.
+// VIENODA CHRONOLOGIJA visiems trims (kad kovoje nebūtų padrikumo):
+//   1) Šaltinis  (0,30 s) – trumpai pažymima korta, kuri sukėlė
+//   2) Nukreipimas (0,45 s) – energija keliauja IŠ ŠALTINIO Į TAIKINĮ
+//   3) Pavadinimas PRIE TAIKINIO (2,00 s) – plokštelė su raktažodžiu ir kortos
+//      vardu prie TAIKINIO (ne prie kasterio), punktyras rodo šaltinį;
+//      gyvybės dar nepasikeitusios (žalos delsa – TutorialGame pusėje)
+//   4) Efektas (0,40 s) – smūgio žiedas; skaičius ir HP krenta per esamą FX
 //
-// Technika kaip SummonBurst/ReactionChainLayer: VIENAS <canvas> + VIENAS rAF,
-// radialiniai gradientai, BE ctx.shadowBlur (telefone brangu). Pozicijos —
-// viewport CSS px, perduodamos iš TutorialGame (getBoundingClientRect).
+// Pilna seka – tik PIRMAM to raktažodžio kartui per kovą; vėliau kompaktas
+// (be plokštelės). Sluoksnis DEKORATYVUS – jokių gameplay vartų, kovos eilė
+// jame užstrigti negali. Technika: vienas <canvas> + vienas rAF, be shadowBlur.
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import { KEYWORD_FX, KEYWORD_FX_COMPACT_SCALE, KEYWORD_FX_REDUCED_MS } from '@/lib/game/timing'
@@ -22,13 +25,13 @@ export type KeywordFxPlayOpts = {
   kind: KeywordFxKind
   /** Šaltinio kortos centras (viewport CSS px). */
   from: { x: number; y: number }
-  /** Taikinys (jei žinomas) – į jį eina „nukreipimo" fazė. */
+  /** Taikinys – prie jo rodoma plokštelė ir į jį eina nukreipimas. */
   to?: { x: number; y: number } | null
-  /** Kortos vardas antspaudui. */
+  /** Kortos vardas plokštelėje. */
   cardName?: string
-  /** Antraštė antspaude (jau išversta). */
+  /** Antraštė plokštelėje (jau išversta). */
   title?: string
-  /** Kompaktas: antras ir vėlesni tos pačios kovos kartai – be antspaudo. */
+  /** Kompaktas: antras ir vėlesni tos pačios kovos kartai – be plokštelės. */
   compact?: boolean
 }
 
@@ -45,6 +48,11 @@ const eio = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3
 const eb = (t: number) => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2) }
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
+const bez = (p0: P2, p1: P2, p2: P2, t: number) => {
+  const a = 1 - t
+  return { x: a * a * p0.x + 2 * a * t * p1.x + t * t * p2.x, y: a * a * p0.y + 2 * a * t * p1.y + t * t * p2.y }
+}
+type P2 = { x: number; y: number }
 
 type Palette = { main: string; soft: string; hot: string }
 const PAL: Record<KeywordFxKind, Palette> = {
@@ -54,7 +62,7 @@ const PAL: Record<KeywordFxKind, Palette> = {
 }
 
 type Particle = { x: number; y: number; vx: number; vy: number; l: number; d: number; r: number; c: string; g: number; line: boolean }
-type Job = KeywordFxPlayOpts & { t0: number; ph: { n: string; d: number }[]; total: number; lastPhase: number }
+type Job = KeywordFxPlayOpts & { t0: number; ph: { n: string; d: number }[]; lastPhase: number }
 
 /** Dalelių biudžetas pagal įrenginį (tas pats principas kaip PackOpen). */
 function fxBudget(): number {
@@ -68,18 +76,15 @@ function fxBudget(): number {
   return 1
 }
 
-function phasesFor(kind: KeywordFxKind, compact: boolean) {
-  const k = KEYWORD_FX[kind]
+function phasesFor(compact: boolean) {
+  const k = KEYWORD_FX
   const s = compact ? KEYWORD_FX_COMPACT_SCALE : 1
-  const out: { n: string; d: number }[] = [
-    { n: 'anticipate', d: Math.round(k.anticipateMs * s) },
-    { n: 'act', d: Math.round(k.actMs * s) },
-    // kompakte antspaudo NĖRA (tik pirmas kartas per kovą gauna „parodymą")
-    { n: 'seal', d: compact ? 0 : k.sealMs },
+  return [
+    { n: 'source', d: Math.round(k.sourceMs * s) },
     { n: 'direct', d: Math.round(k.directMs * s) },
-  ]
-  if (k.effectMs > 0) out.push({ n: 'effect', d: Math.round(k.effectMs * s) })
-  return out.filter((p) => p.d > 0)
+    { n: 'seal', d: compact ? 0 : k.sealMs },   // kompakte plokštelės NĖRA
+    { n: 'effect', d: Math.round(k.effectMs * s) },
+  ].filter((p) => p.d > 0)
 }
 
 export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLayer(_props, ref) {
@@ -94,11 +99,9 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
     if (typeof window === 'undefined') return
     const reduced = prefersReducedMotion()
     const compact = !!o.compact || reduced
-    const ph = reduced ? [{ n: 'act', d: KEYWORD_FX_REDUCED_MS }] : phasesFor(o.kind, compact)
-    const total = ph.reduce((a, p) => a + p.d, 0)
-    // daugiausiai 2 vienu metu – chaoso prevencija (kaip status VFX eilėje)
+    const ph = reduced ? [{ n: 'direct', d: KEYWORD_FX_REDUCED_MS }] : phasesFor(compact)
     if (jobs.current.length >= 2) jobs.current.shift()
-    jobs.current.push({ ...o, compact, t0: performance.now(), ph, total, lastPhase: -1 })
+    jobs.current.push({ ...o, compact, t0: performance.now(), ph, lastPhase: -1 })
     if (!rafRef.current && tickRef.current) rafRef.current = requestAnimationFrame(tickRef.current)
   }, [])
 
@@ -132,7 +135,7 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
         if (sc) {
           const g = sc.createRadialGradient(12, 12, 0, 12, 12, 12)
           g.addColorStop(0, c); g.addColorStop(0.45, c); g.addColorStop(1, 'rgba(0,0,0,0)')
-          sc.globalAlpha = 1; sc.fillStyle = g; sc.fillRect(0, 0, 24, 24)
+          sc.fillStyle = g; sc.fillRect(0, 0, 24, 24)
         }
         sprites.set(c, sp)
       }
@@ -156,11 +159,11 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
     }
 
     const glow = (x: number, y: number, r: number, c: string, a: number) => {
-      const rr = Math.max(0.2, r)
-      const g = ctx.createRadialGradient(x, y, 0, x, y, rr)
+      const rr2 = Math.max(0.2, r)
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rr2)
       g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.globalAlpha = a; ctx.fillStyle = g
-      ctx.beginPath(); ctx.arc(x, y, rr, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
+      ctx.beginPath(); ctx.arc(x, y, rr2, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
     }
     const ring = (x: number, y: number, r: number, w: number, c: string, a: number, from?: number, to?: number) => {
       ctx.globalAlpha = a; ctx.strokeStyle = c; ctx.lineWidth = Math.max(0.4, w)
@@ -183,30 +186,33 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
       ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r)
       ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath()
     }
-    /** Antspaudas – „parodymo" fazė: raktažodis + kortos vardas gotiškame rėme. */
-    const seal = (x0: number, y0: number, k: number, title: string, name: string, p: Palette) => {
-      const w = Math.min(280, vw - 40), h = 74
-      const x = Math.max(w / 2 + 12, Math.min(vw - w / 2 - 12, x0))
-      const y = Math.max(58, Math.min(vh - 58, y0))
-      const s = lerp(0.82, 1, eb(cl(k * 1.6)))
+
+    /** Plokštelė PRIE TAIKINIO. Niekada neuždengia paties taikinio:
+     *  viršutinėje ekrano pusėje piešiama PO juo, apatinėje – VIRŠ. */
+    const plate = (tgt: P2, k: number, title: string, name: string, p: Palette) => {
+      const w = Math.min(280, vw - 32), h = 70
+      const below = tgt.y < vh / 2
+      const y0 = below ? tgt.y + 96 : tgt.y - 96
+      const x = Math.max(w / 2 + 10, Math.min(vw - w / 2 - 10, tgt.x))
+      const y = Math.max(h / 2 + 8, Math.min(vh - h / 2 - 8, y0))
+      const s = lerp(0.84, 1, eb(cl(k * 1.6)))
       ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.globalAlpha = cl(k * 2)
-      ctx.fillStyle = 'rgba(8,5,14,.92)'; rr(-w / 2, -h / 2, w, h, 6); ctx.fill()
+      ctx.fillStyle = 'rgba(8,5,14,.93)'; rr(-w / 2, -h / 2, w, h, 6); ctx.fill()
       ctx.strokeStyle = p.main; ctx.lineWidth = 1.6; rr(-w / 2, -h / 2, w, h, 6); ctx.stroke()
       ctx.strokeStyle = p.soft; ctx.lineWidth = 1; rr(-w / 2 + 4, -h / 2 + 4, w - 8, h - 8, 4); ctx.stroke()
       for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-        ctx.beginPath(); ctx.moveTo(sx * (w / 2 - 4), sy * (h / 2 - 14))
-        ctx.lineTo(sx * (w / 2 - 4), sy * (h / 2 - 4)); ctx.lineTo(sx * (w / 2 - 14), sy * (h / 2 - 4))
+        ctx.beginPath(); ctx.moveTo(sx * (w / 2 - 4), sy * (h / 2 - 13))
+        ctx.lineTo(sx * (w / 2 - 4), sy * (h / 2 - 4)); ctx.lineTo(sx * (w / 2 - 13), sy * (h / 2 - 4))
         ctx.strokeStyle = p.main; ctx.lineWidth = 2; ctx.stroke()
       }
       ctx.textAlign = 'center'
-      ctx.fillStyle = p.main; ctx.font = '700 10px var(--rvn-font-display), Georgia, serif'
+      ctx.fillStyle = p.main; ctx.font = '700 10px Georgia, serif'
       ctx.fillText(title.toUpperCase(), 0, -8)
-      ctx.fillStyle = '#f3ead3'; ctx.font = '700 17px Georgia, serif'
-      ctx.fillText(name, 0, 16)
+      ctx.fillStyle = '#f3ead3'; ctx.font = '700 16px Georgia, serif'
+      ctx.fillText(name, 0, 15)
       ctx.restore(); ctx.globalAlpha = 1
     }
 
-    // ── scenų piešimas ─────────────────────────────────────────────────────
     const drawJob = (j: Job, now: number) => {
       const el = now - j.t0
       let acc = 0, i = 0, k = 0
@@ -214,84 +220,66 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
       if (i >= j.ph.length) return false
       const first = i !== j.lastPhase; j.lastPhase = i
       const p = PAL[j.kind]
-      const s = j.from, tg = j.to ?? { x: s.x, y: s.y - 120 }
+      const s = j.from
+      const tg = j.to ?? { x: s.x, y: s.y - 110 }
       const ang = Math.atan2(tg.y - s.y, tg.x - s.x)
       const name = j.ph[i].n
 
-      if (name === 'anticipate') {
+      if (name === 'source') {
         const kk = eo(k)
-        glow(s.x, s.y, 56 * kk, p.soft, 0.32 * kk)
-        runeRing(s.x, s.y + 34, lerp(8, 34, kk), now / 700, kk * 0.7, p.main, j.kind === 'trigger' ? 8 : 6)
-        if (Math.random() < 0.6) { const a = rnd(0, TAU), r = rnd(38, 68); emit(s.x + Math.cos(a) * r, s.y + Math.sin(a) * r, 1, { sp: 0.1, c: p.soft, d: 0.035, g: 0 }) }
-        for (const q of parts.current) { const dx = s.x - q.x, dy = s.y - q.y, d = Math.hypot(dx, dy) || 1; q.vx += (dx / d) * 0.45; q.vy += (dy / d) * 0.45 }
-      } else if (name === 'act') {
-        if (j.kind === 'battlecry') {
-          glow(s.x, s.y, 90, p.soft, 0.42 * (1 - k))
-          for (let w = 0; w < 3; w++) {
-            const kk = cl((k - w * 0.16) * 1.7); if (kk <= 0) continue
-            ring(s.x, s.y, lerp(24, 210, eo(kk)), 3.2 - w, w ? p.main : p.hot, (1 - kk) * 0.85, ang - 0.75, ang + 0.75)
-          }
-          if (first) emit(s.x, s.y, 22, { a0: ang, spread: 1.3, sp: 5, c: p.soft, d: 0.03, line: true })
-        } else if (j.kind === 'lastwish') {
-          // vėlė kyla nuo mirusios kortos
-          const kk = eio(k)
-          const sx = lerp(s.x, (s.x + tg.x) / 2, kk), sy = lerp(s.y, Math.min(s.y, tg.y) - 70, kk)
-          glow(sx, sy, 26, p.soft, 0.7)
-          ctx.fillStyle = p.hot; ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, TAU); ctx.fill()
-          if (Math.random() < 0.9) emit(sx + rnd(-4, 4), sy + rnd(-4, 4), 1, { sp: 0.35, c: p.soft, d: 0.028, r: 2.4, g: -0.008 })
-          if (first) emit(s.x, s.y + 30, 16, { sp: 1.4, c: '#6b7280', d: 0.03, up: 0.2, g: 0.02 })
-        } else {
-          runeRing(s.x, s.y + 34, 38, now / 240, 1, p.soft, 8)
-          const kk = eo(k)
-          for (let i2 = 0; i2 < 3; i2++) {
-            const a = -Math.PI / 2 + (i2 - 1) * 0.55, r = lerp(10, 66, kk)
-            const x = s.x + Math.cos(a) * r, y = s.y + 34 + Math.sin(a) * r
-            ctx.globalAlpha = 1 - kk; ctx.strokeStyle = p.soft; ctx.lineWidth = 2
-            ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 5, y); ctx.lineTo(x, y + 7); ctx.lineTo(x - 5, y); ctx.closePath(); ctx.stroke(); ctx.globalAlpha = 1
-          }
-          if (first) emit(s.x, s.y + 34, 16, { sp: 2.6, c: p.soft, d: 0.03, up: 1.2 })
-        }
-      } else if (name === 'seal') {
-        // pritemdymas tik antspaudo fazėje (ir tik pirmą kartą per kovą)
-        ctx.fillStyle = 'rgba(5,3,10,' + 0.5 * cl(k * 3) * (k > 0.85 ? (1 - k) / 0.15 : 1) + ')'
-        ctx.fillRect(0, 0, vw, vh)
-        glow(s.x, s.y, 110, p.soft, 0.34)
-        runeRing(s.x, s.y + 34, 34, now / 500, 0.5, p.main, j.kind === 'trigger' ? 8 : 6)
-        const kk = k < 0.85 ? k / 0.85 : 1 - (k - 0.85) / 0.15
-        seal(s.x, s.y - 96, kk, j.title ?? '', j.cardName ?? '', p)
+        glow(s.x, s.y, 56 * kk, p.soft, 0.3 * kk)
+        runeRing(s.x, s.y + 34, lerp(8, 34, kk), now / 700, kk * 0.8, p.main, j.kind === 'trigger' ? 8 : 6)
+        if (first) emit(s.x, s.y, j.kind === 'lastwish' ? 14 : 10, { sp: 1.5, c: j.kind === 'lastwish' ? '#6b7280' : p.soft, d: 0.03, up: 0.4 })
       } else if (name === 'direct') {
         const kk = eio(k)
         if (j.kind === 'battlecry') {
+          for (let w = 0; w < 2; w++) {
+            const k2 = cl((k - w * 0.2) * 1.8)
+            if (k2 > 0 && k2 < 1) ring(s.x, s.y, lerp(24, 180, eo(k2)), 3 - w, w ? p.main : p.hot, (1 - k2) * 0.7, ang - 0.7, ang + 0.7)
+          }
           const x = lerp(s.x, tg.x, kk), y = lerp(s.y, tg.y, kk)
           ctx.save(); ctx.translate(x, y); ctx.rotate(ang)
-          const grd = ctx.createLinearGradient(-70, 0, 26, 0)
+          const grd = ctx.createLinearGradient(-64, 0, 24, 0)
           grd.addColorStop(0, 'rgba(240,180,41,0)'); grd.addColorStop(0.6, p.soft); grd.addColorStop(1, p.hot)
-          ctx.globalAlpha = 0.9; ctx.fillStyle = grd
-          ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(-70, -7); ctx.lineTo(-70, 7); ctx.closePath(); ctx.fill()
-          ctx.globalAlpha = 1; ctx.restore()
-          emit(x, y, 2, { sp: 1.2, c: p.soft, d: 0.05, r: 2 })
+          ctx.fillStyle = grd
+          ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(-64, -7); ctx.lineTo(-64, 7); ctx.closePath(); ctx.fill()
+          ctx.restore()
+          emit(x, y, 2, { sp: 1, c: p.soft, d: 0.05, r: 2 })
         } else if (j.kind === 'lastwish') {
-          const c = { x: (s.x + tg.x) / 2, y: Math.min(s.y, tg.y) - 70 }
-          const a = 1 - kk
-          const x = a * a * c.x + 2 * a * kk * c.x + kk * kk * tg.x
-          const y = a * a * c.y + 2 * a * kk * c.y + kk * kk * tg.y
-          glow(x, y, 26, p.soft, 0.75)
-          ctx.fillStyle = p.hot; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, TAU); ctx.fill()
-          emit(x, y, 1, { sp: 0.4, c: p.soft, d: 0.04, r: 2.2, g: -0.005 })
+          const c = { x: (s.x + tg.x) / 2, y: Math.min(s.y, tg.y) - 90 }
+          const q = bez({ x: s.x, y: s.y - 10 }, c, { x: tg.x, y: tg.y - 30 }, kk)
+          const pulse = 1 + Math.sin(now / 120) * 0.12
+          glow(q.x, q.y, 26 * pulse, p.soft, 0.78)
+          ctx.fillStyle = p.hot; ctx.beginPath(); ctx.arc(q.x, q.y, 5.5 * pulse, 0, TAU); ctx.fill()
+          ctx.globalAlpha = 0.5; ctx.fillStyle = p.soft
+          ctx.beginPath(); ctx.moveTo(q.x - 4, q.y); ctx.quadraticCurveTo(q.x, q.y + 16, q.x + 4, q.y); ctx.fill(); ctx.globalAlpha = 1
+          if (Math.random() < 0.9) emit(q.x + rnd(-4, 4), q.y + rnd(-4, 4), 1, { sp: 0.35, c: p.soft, d: 0.028, r: 2.4, g: -0.008 })
         } else {
-          const c = { x: (s.x + tg.x) / 2, y: Math.min(s.y, tg.y) - 60 }
-          const a = 1 - kk
-          const x = a * a * s.x + 2 * a * kk * c.x + kk * kk * tg.x
-          const y = a * a * s.y + 2 * a * kk * c.y + kk * kk * tg.y
-          ctx.save(); ctx.translate(x, y); ctx.rotate(now / 160)
+          runeRing(s.x, s.y + 34, 38, now / 240, 0.8, p.soft, 8)
+          const c = { x: (s.x + tg.x) / 2, y: Math.min(s.y, tg.y) - 70 }
+          const q = bez(s, c, tg, kk)
+          ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(now / 160)
           ctx.strokeStyle = p.soft; ctx.lineWidth = 2.4
           ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(7, 0); ctx.lineTo(0, 9); ctx.lineTo(-7, 0); ctx.closePath(); ctx.stroke()
           glow(0, 0, 22, p.soft, 0.6); ctx.restore()
-          emit(x, y, 1, { sp: 0.5, c: p.soft, d: 0.05, r: 2 })
+          emit(q.x, q.y, 1, { sp: 0.5, c: p.soft, d: 0.05, r: 2 })
         }
+      } else if (name === 'seal') {
+        // lengvas pritemdymas tik plokštelės metu (įeina/išeina)
+        const dim = 0.42 * cl(k * 4) * (k > 0.9 ? (1 - k) / 0.1 : 1)
+        ctx.fillStyle = 'rgba(5,3,10,' + dim + ')'; ctx.fillRect(0, 0, vw, vh)
+        // taikinys pažymimas, punktyras rodo KAS tai padarė
+        glow(tg.x, tg.y, 86, p.main, 0.28)
+        runeRing(tg.x, tg.y + 34, 32, now / 600, 0.45, p.soft, j.kind === 'trigger' ? 8 : 6)
+        ctx.globalAlpha = 0.32; ctx.strokeStyle = p.soft; ctx.lineWidth = 1
+        ctx.setLineDash([4, 5]); ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(tg.x, tg.y); ctx.stroke()
+        ctx.setLineDash([]); ctx.globalAlpha = 1
+        if (Math.random() < 0.25) emit(tg.x + rnd(-30, 30), tg.y + rnd(-40, 40), 1, { sp: 0.25, c: p.soft, d: 0.03, r: 2, g: -0.005 })
+        const kk = k < 0.12 ? k / 0.12 : k > 0.9 ? 1 - (k - 0.9) / 0.1 : 1
+        plate(tg, kk, j.title ?? '', j.cardName ?? '', p)
       } else { // effect
-        if (first) { emit(tg.x, tg.y, 26, { sp: 4, c: p.main, d: 0.026, line: true }); emit(tg.x, tg.y, 12, { sp: 2, c: p.hot, d: 0.02 }) }
-        ring(tg.x, tg.y, lerp(8, 78, eo(k)), 4 - k * 3, p.soft, 1 - k)
+        if (first) { emit(tg.x, tg.y, 30, { sp: 4.2, c: p.main, d: 0.026, line: true }); emit(tg.x, tg.y, 14, { sp: 2, c: p.hot, d: 0.02 }) }
+        ring(tg.x, tg.y, lerp(8, 80, eo(k)), 4 - k * 3, p.soft, 1 - k)
       }
       return true
     }
@@ -300,7 +288,6 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
       const now = performance.now()
       ctx.clearRect(0, 0, vw, vh)
       jobs.current = jobs.current.filter((j) => drawJob(j, now))
-      // dalelės
       ctx.globalCompositeOperation = 'lighter'
       const P = parts.current
       let w2 = 0
@@ -320,7 +307,6 @@ export const KeywordFxLayer = forwardRef<KeywordFxHandle>(function KeywordFxLaye
       }
       P.length = w2
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'
-
       if (jobs.current.length === 0 && P.length === 0) { rafRef.current = 0; return }
       rafRef.current = requestAnimationFrame(tick)
     }

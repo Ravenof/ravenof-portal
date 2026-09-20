@@ -157,202 +157,160 @@ function TGT(){return dirMine()?ENE[1]:PLA[1]}
 
 const SC={};
 
-// 1) ŽMK — traukimas iš kaladės → skrydis → atvertimas → laikymas → pritaikymas
+// 1) ŽMK — nugarėlė atskrenda iš ŽMK kaladės → flip → rezultatas 1,5 s → TIK TADA žala
 SC.zmk={
   name:'ŽMK traukimas',
-  phases:[{n:'Pakėlimas',d:220},{n:'Skrydis',d:380},{n:'Atvertimas',d:260},{n:'Laikymas',d:1300},{n:'Pritaikymas',d:340}],
-  note:'<b>Dabar:</b> <span class="now">ŽMK korta tiesiog „iššoka" prie taikinio (spring, 0.3→1) ir po 2 s dingsta — nematyti, kad ji atkeliavo iš modifikatorių kaladės.</span><br><b>Siūloma:</b> korta pakyla nuo ŽMK kaladės, nuskrieja lanku prie taikinio, apsiverčia ore ir <b>kabo 1,3 s</b> (iš viso 2,5 s — 0,5 s ilgiau nei dabar), tada susigeria į taikinį kartu su žalos skaičiumi. Prie ×2 / ×0 – papildomai jau esama „kritinio" prezentacija.',
+  phases:[{n:'Skrydis (nugarėlė)',d:420},{n:'Atvertimas',d:300},{n:'Rezultatas',d:1500},{n:'Žala',d:400}],
+  note:'<b>Dabar:</b> <span class="now">ŽMK korta „iššoka" prie taikinio jau atversta, o žala nukrenta tuo pačiu metu — nesimato nei iš kur korta, nei kad žala priklauso nuo jos.</span><br><b>Siūloma seka:</b> 1) iš ŽMK kaladės prie taikinio atskrenda <b>nugarėlė</b> (kas ištraukta – dar paslaptis) → 2) ties taikiniu <b>apsiverčia</b> ir atskleidžia kortą → 3) rezultatas laikomas <b>1,5 s</b> → 4) <b>tik tada</b> skaičiuojama žala: korta susigeria, pasirodo atimtis ir taikinio gyvybės krenta (7 → 2).',
   draw(t,ph){
+    const v=zmkVal(),col=ZMKC[v]||'#ffd97a',tg=TGT(),s=SRC();
+    const BASE=3, mod=(v==='x2'?BASE:v==='x0'?-BASE:v==='+2'?2:v==='-1'?-1:0), dmg=Math.max(0,BASE+mod);
+    const HP0=7;
+    // žala krenta TIK paskutinėje fazėje
+    let hp=HP0, dmgK=0;
+    if(ph.i===3){ dmgK=ph.k; if(ph.k>0.12) hp=HP0-dmg }
+    // lenta (taikinio korta perpiešiama su dabartiniu HP)
     board();
-    const v=zmkVal(),col=ZMKC[v]||'#ffd97a',tg=TGT();
+    card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),hp:String(hp),atk:'3',
+      s:ph.i===3?1-0.07*Math.sin(cl(ph.k*3)*Math.PI):1});
+    // puolėjas
+    card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF())});
+
     const P0=ZMK,C={x:(ZMK.x+tg.x)/2,y:Math.min(ZMK.y,tg.y)-110};
-    let pos={x:ZMK.x,y:ZMK.y-6},sc=.72,flip=1,alpha=1,face=false;
-    if(ph.i===0){ // pakėlimas
-      const k=eo(ph.k);pos={x:ZMK.x,y:ZMK.y-6-k*14};sc=.72+k*.06;
-      glow(ZMK.x,ZMK.y,60*k,'rgba(240,180,41,.5)',.55*k);
-      if(ph.first)emit(ZMK.x,ZMK.y,10,{sp:1.6,c:'#ffd97a',d:.03,up:.6});
-    } else if(ph.i===1){ // skrydis
-      const k=eio(ph.k);const p=bez(P0,C,tg,k);pos=p;sc=lerp(.78,1.02,k);
-      const pp=bez(P0,C,tg,Math.max(0,k-.05));
+    const HOLD={x:tg.x,y:tg.y-66};
+    let pos=HOLD,sc=1,flip=1,alpha=1,face=false;
+
+    if(ph.i===0){                         // ── nugarėlė skrenda iš kaladės
+      const k=eio(ph.k);pos=bez(P0,C,HOLD,k);sc=lerp(.72,1,k);
+      const pp=bez(P0,C,HOLD,Math.max(0,k-.06));
       if(Math.random()<.9)emit(pp.x,pp.y,1,{sp:.5,c:'#ffd97a',d:.045,r:2,g:.01});
-      ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='rgba(240,180,41,.4)';ctx.lineWidth=1.2;
-      ctx.beginPath();for(let i=0;i<=24;i++){const q=bez(P0,C,tg,(i/24)*k);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)}ctx.stroke();ctx.restore();
-    } else if(ph.i===2){ // atvertimas
-      pos={x:tg.x,y:tg.y-64};sc=1.02;
+      ctx.save();ctx.globalAlpha=.45;ctx.strokeStyle='rgba(240,180,41,.45)';ctx.lineWidth=1.2;
+      ctx.beginPath();for(let i=0;i<=24;i++){const q=bez(P0,C,HOLD,(i/24)*k);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)}ctx.stroke();ctx.restore();
+      if(ph.first){glow(ZMK.x,ZMK.y,70,'rgba(240,180,41,.55)',.5);emit(ZMK.x,ZMK.y,12,{sp:1.8,c:'#ffd97a',d:.03,up:.5})}
+    } else if(ph.i===1){                  // ── atvertimas ties taikiniu
       const k=ph.k;flip=Math.abs(Math.cos(k*Math.PI));face=k>.5;
-      if(ph.first)emit(tg.x,tg.y-64,16,{sp:2.4,c:col,d:.03,r:2.2});
-      if(k>.5)ringA(tg.x,tg.y-64,lerp(10,46,eo((k-.5)*2)),2,col,1-(k-.5)*2,0,TAU);
-    } else if(ph.i===3){ // laikymas
-      pos={x:tg.x,y:tg.y-64};sc=1+Math.sin(ph.k*Math.PI*3)*.02;face=true;
-      glow(tg.x,tg.y-64,54,col,.22+Math.sin(ph.k*Math.PI*6)*.06);
-      // ryšys su taikiniu
-      ctx.globalAlpha=.5;ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([3,4]);
-      ctx.beginPath();ctx.moveTo(tg.x,tg.y-64+30);ctx.lineTo(tg.x,tg.y-CH/2);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
-      if(ph.first)emit(tg.x,tg.y-64,8,{sp:1,c:col,d:.02,up:.4});
-    } else { // pritaikymas
-      const k=eo(ph.k);pos={x:tg.x,y:lerp(tg.y-64,tg.y,k)};sc=lerp(1,.5,k);alpha=1-k;face=true;
-      if(ph.first){emit(tg.x,tg.y,26,{sp:3.4,c:col,d:.025,line:true});}
-      ringA(tg.x,tg.y,lerp(6,62,k),3-k*2,col,1-k);
-      // žalos skaičius
-      ctx.globalAlpha=cl(1-ph.k*.6);ctx.fillStyle=col;ctx.font='900 26px Georgia,serif';ctx.textAlign='center';
-      ctx.fillText((v==='x2'?'−6':v==='+2'?'−5':v==='-1'?'−2':'−3'),tg.x+34,tg.y-16-k*22);ctx.globalAlpha=1;
+      if(ph.first)emit(HOLD.x,HOLD.y,14,{sp:2.2,c:'#ffd97a',d:.03,r:2.2});
+      if(k>.5){ringA(HOLD.x,HOLD.y,lerp(10,50,eo((k-.5)*2)),2.4,col,1-(k-.5)*2);
+        if(Math.abs(k-.52)<.03)emit(HOLD.x,HOLD.y,18,{sp:3,c:col,d:.03,line:true})}
+    } else if(ph.i===2){                  // ── rezultatas laikomas 1,5 s
+      face=true;sc=1+Math.sin(ph.k*Math.PI*2)*.02;
+      glow(HOLD.x,HOLD.y,56,col,.2+Math.sin(ph.k*Math.PI*5)*.05);
+      ctx.globalAlpha=.55;ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([3,4]);
+      ctx.beginPath();ctx.moveTo(HOLD.x,HOLD.y+32);ctx.lineTo(tg.x,tg.y-CH/2);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+      // matematika po korta: bazė + modifikatorius
+      const mtxt=(v==='x2'?BASE+' × 2':v==='x0'?BASE+' × 0':BASE+' '+(mod>=0?'+':'−')+' '+Math.abs(mod))+'  =  '+dmg;
+      ctx.font='700 11px system-ui';const mw=ctx.measureText(mtxt).width+14;
+      ctx.fillStyle='rgba(8,6,12,.92)';rr(HOLD.x-mw/2,HOLD.y+34,mw,18,4);ctx.fill();
+      ctx.strokeStyle='rgba(240,180,41,.45)';ctx.lineWidth=1;rr(HOLD.x-mw/2,HOLD.y+34,mw,18,4);ctx.stroke();
+      ctx.textAlign='center';ctx.fillStyle='#f3ead3';ctx.fillText(mtxt,HOLD.x,HOLD.y+47);
+      if(ph.first)emit(HOLD.x,HOLD.y,10,{sp:1,c:col,d:.02,up:.4});
+    } else {                              // ── TIK DABAR žala
+      face=true;const k=eo(ph.k);
+      pos={x:lerp(HOLD.x,tg.x,k),y:lerp(HOLD.y,tg.y,k)};sc=lerp(1,.45,k);alpha=1-k;
+      if(ph.first){emit(tg.x,tg.y,30,{sp:4,c:col,d:.026,line:true});emit(tg.x,tg.y,14,{sp:2,c:'#fff3d6',d:.02})}
+      ringA(tg.x,tg.y,lerp(6,74,k),4-k*3,col,1-k);
+      ctx.globalAlpha=cl(1.15-ph.k);ctx.fillStyle='#f87171';ctx.font='900 30px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText('−'+dmg,tg.x+42,tg.y-10-k*18);ctx.globalAlpha=1;
     }
-    // pati ŽMK korta
+
+    // ŽMK korta: nugarėlė iki flip'o, po jo – reikšmė
     ctx.save();ctx.globalAlpha=alpha;
     if(face){
-      card(pos.x,pos.y,{w:46,h:64,s:sc,sx:flip,back:false,stats:false,line:col,lw:2,artC:'rgba(0,0,0,.35)'});
+      card(pos.x,pos.y,{w:46,h:64,s:sc,sx:flip,back:false,stats:false,line:col,lw:2,artC:'rgba(0,0,0,.4)'});
       ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(flip*sc,sc);
-      ctx.fillStyle=col;ctx.font='900 20px Georgia,serif';ctx.textAlign='center';ctx.fillText(v.replace('x','×'),0,7);ctx.restore();
+      ctx.fillStyle=col;ctx.font='900 21px Georgia,serif';ctx.textAlign='center';ctx.fillText(v.replace('x','×'),0,8);
+      ctx.fillStyle='rgba(240,180,41,.75)';ctx.font='700 7px system-ui';ctx.fillText('ŽMK',0,-18);ctx.restore();
     } else card(pos.x,pos.y,{w:46,h:64,s:sc,sx:flip,back:true});
     ctx.restore();
   }
 };
 
-// 2) Kovos šūksnis
-SC.battlecry={
-  name:'Kovos šūksnis',
-  phases:[{n:'Įkvėpimas',d:260},{n:'Šūksnis',d:420},{n:'Antspaudas',d:900},{n:'Nukreipimas',d:520},{n:'Efektas',d:400}],
-  note:'<b>Dabar:</b> <span class="now">kortos nusileidimas + 800 ms pauzė, efektas atskrenda kaip paprastas projektilis — raktažodis niekur neįvardijamas.</span><br><b>Siūloma:</b> korta įkvepia (susitraukia, aplink surenka auksą) → <b>kryptinės garso bangos</b> į taikinio pusę + lentos mikro-drebėjimas → antspaudas „KOVOS ŠŪKSNIS" su kortos vardu → energijos ietis nukeliauja į taikinį → impact žiedas. Viso 2,5 s; pakartotiniams tos pačios kovos šūksniams — kompaktas 1,5 s (kaip reakcijų grandinėje).',
-  draw(t,ph){
-    board();
-    const s=SRC(),tg=TGT(),col='#ffd97a',col2='#f0b429';
-    const ang=Math.atan2(tg.y-s.y,tg.x-s.x);
-    if(ph.i===0){
-      const k=eo(ph.k);
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),s:1-k*.06,line:col2,lw:1.6+k});
-      runeRing(s.x,s.y+CH/2-6,lerp(6,34,k),t/600,k*.75,col2,6);
-      if(Math.random()<.7){const a=rnd(0,TAU),r=rnd(40,70);emit(s.x+Math.cos(a)*r,s.y+Math.sin(a)*r,1,{sp:.1,c:col,d:.03,g:0});}
-      // dalelės traukiamos į kortą
-      P.forEach(p=>{const dx=s.x-p.x,dy=s.y-p.y,d=Math.hypot(dx,dy)||1;p.vx+=dx/d*.45;p.vy+=dy/d*.45});
-    } else if(ph.i===1){
-      const k=ph.k;card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),s:1+.05*Math.sin(k*Math.PI),line:col,lw:2.4});
-      glow(s.x,s.y,90,'rgba(255,217,122,.5)',.5*(1-k));
-      for(let w=0;w<3;w++){const kk=cl((k-w*.16)*1.7);if(kk<=0)continue;
-        const r=lerp(24,220,eo(kk));ctx.globalAlpha=(1-kk)*.85;ctx.strokeStyle=w?col2:'#fff6dd';ctx.lineWidth=3.2-w;
-        ctx.beginPath();ctx.arc(s.x,s.y,r,ang-.75,ang+.75);ctx.stroke();ctx.globalAlpha=1}
-      if(ph.first)emit(s.x,s.y,26,{a0:ang,spread:1.3,sp:5,c:col,d:.03,line:true});
-    } else if(ph.i===2){
-      dimBoard(.55*cl(ph.k*3));
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col,lw:2.4});
-      glow(s.x,s.y,110,'rgba(255,217,122,.45)',.4);
-      const k=ph.k<.85?ph.k/.85:1-(ph.k-.85)/.15;
-      seal(s.x,s.y-96,k,'KOVOS ŠŪKSNIS','Geležinis riksmas',col2,'rgba(240,180,41,.45)');
-      runeRing(s.x,s.y+CH/2-6,34,t/500,.55,col2,6);
-    } else if(ph.i===3){
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:2});
-      const k=eio(ph.k);const x=lerp(s.x,tg.x,k),y=lerp(s.y,tg.y,k);
-      // ietis
-      ctx.save();ctx.translate(x,y);ctx.rotate(ang);
-      const grd=ctx.createLinearGradient(-70,0,26,0);grd.addColorStop(0,'rgba(240,180,41,0)');grd.addColorStop(.6,'rgba(255,217,122,.75)');grd.addColorStop(1,'#fff6dd');
-      ctx.fillStyle=grd;ctx.beginPath();ctx.moveTo(26,0);ctx.lineTo(-70,-7);ctx.lineTo(-70,7);ctx.closePath();ctx.fill();ctx.restore();
-      emit(x,y,2,{sp:1.2,c:col,d:.05,r:2});
-      if(k>.98&&ph.first!==undefined){}
-    } else {
-      const k=ph.k;
-      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.05*Math.sin(cl(k*3)*Math.PI)});
-      if(ph.first){emit(tg.x,tg.y,34,{sp:4.2,c:col,d:.025,line:true});emit(tg.x,tg.y,18,{sp:2,c:'#fff6dd',d:.02})}
-      ringA(tg.x,tg.y,lerp(8,80,eo(k)),4-k*3,col,1-k);
-      ctx.globalAlpha=1-k*.5;ctx.fillStyle='#f87171';ctx.font='900 30px Georgia,serif';ctx.textAlign='center';
-      ctx.fillText('−3',tg.x+38,tg.y-14-k*26);ctx.globalAlpha=1;
-    }
-  }
-};
+// 2–4) Raktažodžiai — VIENODA CHRONOLOGIJA visiems:
+//   Šaltinis (kas sukėlė) → Nukreipimas (kas į ką) → Pavadinimas PRIE TAIKINIO 2 s → Efektas (žala)
+//   Gyvybės krenta TIK paskutinėje fazėje.
+function keywordScene(cfg){
+  return {
+    name:cfg.name,
+    phases:[{n:'Šaltinis',d:300},{n:'Nukreipimas',d:450},{n:'Pavadinimas prie taikinio',d:2000},{n:'Efektas',d:400}],
+    note:cfg.note,
+    draw(t,ph){
+      const s=SRC(),tg=TGT(),col=cfg.col,col2=cfg.col2,hot=cfg.hot;
+      const ang=Math.atan2(tg.y-s.y,tg.x-s.x);
+      const HP0=7,dmg=cfg.dmg;
+      let hp=HP0;
+      if(ph.i===3&&ph.k>0.12) hp=HP0-dmg;
+      board();
+      // taikinys su dabartiniu HP
+      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),hp:String(hp),atk:'3',
+        s:ph.i===3?1-0.07*Math.sin(cl(ph.k*3)*Math.PI):(ph.i===2?1+0.015*Math.sin(t/260):1),
+        line:ph.i>=2?col:undefined,lw:ph.i>=2?2.2:undefined});
 
-// 3) Paskutinis noras
-SC.lastwish={
-  name:'Paskutinis noras',
-  phases:[{n:'Išsiskyrimas',d:300},{n:'Siela',d:700},{n:'Antspaudas',d:800},{n:'Įvykdymas',d:500}],
-  note:'<b>Dabar:</b> <span class="now">kortos „ghost-hold" + nuskridimas į kapinyną; pats paskutinio noro efektas atrodo kaip eilinis projektilis.</span><br><b>Siūloma:</b> nuo mirštančios kortos atsiskiria <b>vėlė</b> (šviesi siela su uodega), lieka pelenai → siela kyla ir lanku pasuka link taikinio → antspaudas „PASKUTINIS NORAS" → siela smigteli į taikinį žalsvai violetiniu blyksniu. Viso 2,3 s.',
-  draw(t,ph){
-    board();
-    const s=SRC(),tg=TGT(),col='#a78bfa',col2='#c4b5fd',green='#86efac';
-    const soul={x:s.x,y:s.y};
-    if(ph.i===0){
-      const k=eo(ph.k);
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),a:1-k*.75,dead:true,s:1-k*.08});
-      if(ph.first)emit(s.x,s.y+CH/2-8,20,{sp:1.4,c:'#6b7280',d:.03,up:.2,g:.02});
-      glow(s.x,s.y,50*k,'rgba(167,139,250,.6)',.5*k);
-      soul.y=s.y-k*10;
-      // pelenai
-      ctx.globalAlpha=k*.8;ctx.fillStyle='rgba(60,55,70,.8)';ctx.beginPath();ctx.ellipse(s.x,s.y+CH/2-4,26*k,5*k,0,0,TAU);ctx.fill();ctx.globalAlpha=1;
-    } else if(ph.i===1){
-      ctx.globalAlpha=.25;ctx.fillStyle='rgba(60,55,70,.8)';ctx.beginPath();ctx.ellipse(s.x,s.y+CH/2-4,26,5,0,0,TAU);ctx.fill();ctx.globalAlpha=1;
-      const k=eio(ph.k);const C={x:(s.x+tg.x)/2,y:Math.min(s.y,tg.y)-120};
-      const p=bez({x:s.x,y:s.y-10},C,{x:tg.x,y:tg.y-30},k);soul.x=p.x;soul.y=p.y;
-      if(Math.random()<.95)emit(p.x+rnd(-4,4),p.y+rnd(-4,4),1,{sp:.35,c:Math.random()<.5?col:green,d:.028,r:2.4,g:-.008});
-    } else if(ph.i===2){
-      dimBoard(.5*cl(ph.k*3));
-      const k=ph.k<.85?ph.k/.85:1-(ph.k-.85)/.15;
-      soul.x=tg.x;soul.y=tg.y-30;
-      seal(tg.x,tg.y-116,k,'PASKUTINIS NORAS','Sielos skola',col,'rgba(167,139,250,.45)');
-      glow(soul.x,soul.y,60,'rgba(167,139,250,.5)',.35+Math.sin(t/140)*.06);
-      if(Math.random()<.6)emit(soul.x+rnd(-6,6),soul.y+rnd(-6,6),1,{sp:.3,c:col2,d:.03,r:2,g:-.01});
-    } else {
-      const k=eo(ph.k);
-      soul.x=tg.x;soul.y=lerp(tg.y-30,tg.y,k);
-      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.06*Math.sin(cl(k*2)*Math.PI)});
-      if(ph.first){emit(tg.x,tg.y,30,{sp:3.6,c:col,d:.025,line:true});emit(tg.x,tg.y,16,{sp:1.8,c:green,d:.02})}
-      ringA(tg.x,tg.y,lerp(8,74,k),3.4-k*2.4,col2,1-k);
-      ctx.globalAlpha=1-k*.5;ctx.fillStyle=green;ctx.font='900 28px Georgia,serif';ctx.textAlign='center';
-      ctx.fillText('−2',tg.x+36,tg.y-16-k*24);ctx.globalAlpha=1;
-    }
-    // vėlė
-    if(ph.i<3||ph.k<.9){
-      const pulse=1+Math.sin(t/120)*.12;
-      glow(soul.x,soul.y,26*pulse,'rgba(196,181,253,.9)',.75);
-      ctx.fillStyle='#e9e1ff';ctx.beginPath();ctx.arc(soul.x,soul.y,5.5*pulse,0,TAU);ctx.fill();
-      ctx.globalAlpha=.5;ctx.fillStyle=col2;
-      ctx.beginPath();ctx.moveTo(soul.x-4,soul.y);ctx.quadraticCurveTo(soul.x,soul.y+16,soul.x+4,soul.y);ctx.fill();ctx.globalAlpha=1;
+      if(ph.i===0){                    // ── ŠALTINIS: kas sukėlė
+        const k=eo(ph.k);
+        card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:1.6+k*1.2,s:cfg.kind==='lastwish'?1-k*.08:1,a:cfg.kind==='lastwish'?1-k*.5:1,dead:cfg.kind==='lastwish'});
+        runeRing(s.x,s.y+CH/2-6,lerp(8,34,k),t/700,k*.8,col2,cfg.kind==='trigger'?8:6);
+        glow(s.x,s.y,56*k,col,.3*k);
+        if(ph.first)emit(s.x,s.y,cfg.kind==='lastwish'?14:10,{sp:1.5,c:cfg.kind==='lastwish'?'#6b7280':col2,d:.03,up:.4});
+      } else if(ph.i===1){             // ── NUKREIPIMAS: kas į ką
+        card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:2,a:cfg.kind==='lastwish'?.45:1,dead:cfg.kind==='lastwish'});
+        const k=eio(ph.k);
+        if(cfg.kind==='battlecry'){
+          // garso bangos + ietis
+          for(let w=0;w<2;w++){const kk=cl((ph.k-w*.2)*1.8);if(kk>0&&kk<1)
+            ringA(s.x,s.y,lerp(24,180,eo(kk)),3-w,w?col:hot,(1-kk)*.7,ang-.7,ang+.7)}
+          const x=lerp(s.x,tg.x,k),y=lerp(s.y,tg.y,k);
+          ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+          const grd=ctx.createLinearGradient(-64,0,24,0);grd.addColorStop(0,'rgba(240,180,41,0)');grd.addColorStop(.6,col2);grd.addColorStop(1,hot);
+          ctx.fillStyle=grd;ctx.beginPath();ctx.moveTo(24,0);ctx.lineTo(-64,-7);ctx.lineTo(-64,7);ctx.closePath();ctx.fill();ctx.restore();
+          emit(x,y,2,{sp:1,c:col2,d:.05,r:2});
+        } else if(cfg.kind==='lastwish'){
+          const C={x:(s.x+tg.x)/2,y:Math.min(s.y,tg.y)-110};const p=bez({x:s.x,y:s.y-10},C,{x:tg.x,y:tg.y-34},k);
+          const pulse=1+Math.sin(t/120)*.12;
+          glow(p.x,p.y,26*pulse,col2,.8);ctx.fillStyle=hot;ctx.beginPath();ctx.arc(p.x,p.y,5.5*pulse,0,TAU);ctx.fill();
+          ctx.globalAlpha=.5;ctx.fillStyle=col2;ctx.beginPath();ctx.moveTo(p.x-4,p.y);ctx.quadraticCurveTo(p.x,p.y+16,p.x+4,p.y);ctx.fill();ctx.globalAlpha=1;
+          if(Math.random()<.9)emit(p.x+rnd(-4,4),p.y+rnd(-4,4),1,{sp:.35,c:Math.random()<.5?col:'#86efac',d:.028,r:2.4,g:-.008});
+        } else {
+          runeRing(s.x,s.y+CH/2-6,38,t/240,.8,col2,8);
+          const C={x:(s.x+tg.x)/2,y:Math.min(s.y,tg.y)-80};const p=bez(s,C,tg,k);
+          ctx.save();ctx.translate(p.x,p.y);ctx.rotate(t/160);ctx.strokeStyle=col2;ctx.lineWidth=2.4;
+          ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,0);ctx.lineTo(0,9);ctx.lineTo(-7,0);ctx.closePath();ctx.stroke();
+          glow(0,0,22,col2,.6);ctx.restore();emit(p.x,p.y,1,{sp:.5,c:col2,d:.05,r:2});
+        }
+      } else if(ph.i===2){             // ── PAVADINIMAS PRIE TAIKINIO (2 s)
+        dimBoard(.42*cl(ph.k*4)*(ph.k>.9?(1-ph.k)/.1:1));
+        card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),hp:String(hp),atk:'3',line:col,lw:2.4,s:1+0.015*Math.sin(t/260)});
+        glow(tg.x,tg.y,86,col,.3);
+        runeRing(tg.x,tg.y+CH/2-6,32,t/600,.45,col2,cfg.kind==='trigger'?8:6);
+        // jungtis su šaltiniu – kad matytųsi, KAS tai padarė
+        ctx.globalAlpha=.35;ctx.strokeStyle=col2;ctx.lineWidth=1;ctx.setLineDash([4,5]);
+        ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(tg.x,tg.y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+        const k=ph.k<.12?ph.k/.12:ph.k>.9?1-(ph.k-.9)/.1:1;
+        // plokštelė NIEKADA neuždengia taikinio: viršutinei eilei – po korta, apatinei – virš
+        const sy=tg.y<H/2 ? tg.y+CH/2+52 : tg.y-CH/2-52;
+        seal(tg.x,sy,k,cfg.title,cfg.card,col,col2);
+        if(Math.random()<.25)emit(tg.x+rnd(-30,30),tg.y+rnd(-40,40),1,{sp:.25,c:col2,d:.03,r:2,g:-.005});
+      } else {                          // ── EFEKTAS: tik dabar žala
+        const k=ph.k;
+        if(ph.first){emit(tg.x,tg.y,32,{sp:4.2,c:col,d:.026,line:true});emit(tg.x,tg.y,16,{sp:2,c:hot,d:.02})}
+        ringA(tg.x,tg.y,lerp(8,80,eo(k)),4-k*3,col2,1-k);
+        ctx.globalAlpha=cl(1.15-k);ctx.fillStyle='#f87171';ctx.font='900 30px Georgia,serif';ctx.textAlign='center';
+        ctx.fillText('−'+dmg,tg.x+42,tg.y-10-k*18);ctx.globalAlpha=1;
+      }
     }
   }
-};
+}
 
-// 4) Trigeris
-SC.trigger={
-  name:'Trigeris',
-  phases:[{n:'Sąlyga',d:300},{n:'Žybsnis',d:350},{n:'Antspaudas',d:700},{n:'Nukreipimas',d:450},{n:'Efektas',d:350}],
-  note:'<b>Dabar:</b> <span class="now">trigeriai (ėjimo pradžia, po atakos, prakeiksmo sąlyga) turi tik `fxSource` projektilį — žaidėjas nesupranta, KAS ir KODĖL suveikė.</span><br><b>Siūloma:</b> po kortos užsidega <b>runų ratas</b> ir pasisuka → iš jo iššoka runa → antspaudas „TRIGERIS · Ėjimo pradžia" su kortos vardu → runa nuskrieja lanku į taikinį → efektas. Viso 2,15 s. Tas pats šablonas tinka ir prakeiksmų trigeriams (tik kita paletė).',
-  draw(t,ph){
-    board();
-    const s=SRC(),tg=TGT(),col='#7dd3fc',col2='#38bdf8';
-    if(ph.i===0){
-      const k=eo(ph.k);
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col2,lw:1.6+k*1.2});
-      runeRing(s.x,s.y+CH/2-4,lerp(8,40,k),t/700,k,col2,8);
-      glow(s.x,s.y+CH/2-4,50*k,'rgba(56,189,248,.45)',.45*k);
-    } else if(ph.i===1){
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col,lw:2.6});
-      runeRing(s.x,s.y+CH/2-4,40,t/240,1,col,8);
-      const k=eo(ph.k);
-      for(let i=0;i<3;i++){const a=-Math.PI/2+(i-1)*.55,r=lerp(10,70,k);
-        const x=s.x+Math.cos(a)*r,y=s.y+CH/2-4+Math.sin(a)*r;
-        ctx.globalAlpha=1-k;ctx.strokeStyle=col;ctx.lineWidth=2;
-        ctx.beginPath();ctx.moveTo(x,y-7);ctx.lineTo(x+5,y);ctx.lineTo(x,y+7);ctx.lineTo(x-5,y);ctx.closePath();ctx.stroke();ctx.globalAlpha=1}
-      if(ph.first)emit(s.x,s.y+CH/2-4,20,{sp:2.6,c:col,d:.03,up:1.2});
-    } else if(ph.i===2){
-      dimBoard(.45*cl(ph.k*3));
-      card(s.x,s.y,{label:SL(),foe:SF(),artC:ART(SF()),line:col,lw:2.4});
-      runeRing(s.x,s.y+CH/2-4,40,t/400,.7,col2,8);
-      const k=ph.k<.85?ph.k/.85:1-(ph.k-.85)/.15;
-      seal(s.x,s.y-96,k,'TRIGERIS · ĖJIMO PRADŽIA','Sargybos žvilgsnis',col2,'rgba(56,189,248,.4)');
-    } else if(ph.i===3){
-      const k=eio(ph.k);const C={x:(s.x+tg.x)/2,y:Math.min(s.y,tg.y)-90};
-      const p=bez(s,C,tg,k);
-      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(t/160);
-      ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.beginPath();
-      ctx.moveTo(0,-9);ctx.lineTo(7,0);ctx.lineTo(0,9);ctx.lineTo(-7,0);ctx.closePath();ctx.stroke();
-      glow(0,0,22,'rgba(125,211,252,.8)',.6);ctx.restore();
-      emit(p.x,p.y,1,{sp:.5,c:col,d:.05,r:2});
-    } else {
-      const k=ph.k;
-      card(tg.x,tg.y,{foe:TF(),label:TL(),artC:ART(TF()),s:1-.05*Math.sin(cl(k*3)*Math.PI)});
-      if(ph.first)emit(tg.x,tg.y,26,{sp:3.4,c:col,d:.026,line:true});
-      ringA(tg.x,tg.y,lerp(8,70,eo(k)),3.2-k*2.2,col,1-k);
-      ctx.globalAlpha=1-k*.5;ctx.fillStyle=col;ctx.font='900 26px Georgia,serif';ctx.textAlign='center';
-      ctx.fillText('❄',tg.x+34,tg.y-14-k*22);ctx.globalAlpha=1;
-    }
-  }
-};
+SC.battlecry=keywordScene({kind:'battlecry',name:'Kovos šūksnis',title:'Kovos šūksnis',card:'Geležinis riksmas',
+  col:'#f0b429',col2:'#ffd97a',hot:'#fff6dd',dmg:3,
+  note:'<b>Dabar:</b> <span class="now">viskas vyksta prie kortos-šaltinio ir beveik vienu metu su žala — nesimato nei kas suveikė, nei į ką.</span><br><b>Nauja chronologija:</b> 1) trumpai pažymimas <b>šaltinis</b> → 2) <b>nukreipimas</b> (garso bangos + ietis) → 3) <b>pavadinimas prie TAIKINIO 2 s</b> (punktyras rodo, kas tai padarė) → 4) <b>tik tada žala</b>: atimtis ir gyvybės 7 → 4.'});
+
+SC.lastwish=keywordScene({kind:'lastwish',name:'Paskutinis noras',title:'Paskutinis noras',card:'Sielos skola',
+  col:'#a78bfa',col2:'#c4b5fd',hot:'#e9e1ff',dmg:2,
+  note:'<b>Dabar:</b> <span class="now">mirusi korta nuskrenda į kapinyną, o efektas atrodo kaip atskiras, niekuo nesusijęs projektilis.</span><br><b>Nauja chronologija:</b> 1) nuo mirštančios kortos atsiskiria <b>vėlė</b> → 2) siela lanku nukeliauja iki taikinio → 3) <b>pavadinimas prie taikinio 2 s</b> → 4) žala: gyvybės 7 → 5.'});
+
+SC.trigger=keywordScene({kind:'trigger',name:'Trigeris',title:'Trigeris · Ėjimo pradžia',card:'Sargybos žvilgsnis',
+  col:'#38bdf8',col2:'#7dd3fc',hot:'#e0f2fe',dmg:2,
+  note:'<b>Dabar:</b> <span class="now">trigeris tiesiog „atsitinka" — žaidėjas nespėja suprasti, kas ir kodėl suveikė.</span><br><b>Nauja chronologija:</b> 1) po šaltiniu užsidega <b>runų ratas</b> → 2) runa nuskrieja į taikinį → 3) <b>pavadinimas su sąlyga prie taikinio 2 s</b> → 4) žala: gyvybės 7 → 5.'});
 
 // 5) Efektas (bendra kokybės kartelė)
 SC.effect={
@@ -430,7 +388,7 @@ function frame(now){
     ctx.save();ctx.globalAlpha=a;ctx.fillStyle=col;ctx.font='900 18px Georgia,serif';ctx.textAlign='center';
     ctx.fillText(v.replace('x','×'),tg.x,tg.y-52);ctx.restore();
     ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='600 11px system-ui';ctx.textAlign='left';
-    ctx.fillText('DABARTINĖ VERSIJA (2.0 s, be skrydžio iš kaladės)',18,26);
+    ctx.fillText('DABARTINĖ VERSIJA: korta iššoka jau atversta, žala tuo pačiu metu',18,26);
     stepP(1);
     [...bar.children].forEach((el2,idx)=>{el2.querySelector('.fill').style.transform='scaleX(0)'});
     tsEl.textContent=(el/1000).toFixed(2)+' s / 2.00 s';
