@@ -418,6 +418,7 @@
     "adv": "Palankiai: ŽMK {{a}} ir {{b}} – imama geresnė.",
     "dis": "Nepalankiai: ŽMK {{a}} ir {{b}} – imama blogesnė."
   },
+  "zmkDisabled": "ŽMK neveikia – žala lieka bazinė: {{dmg}}.",
   "zmkDraw": "ŽMK traukimas: {{zmk}}.",
   "zmkNoneRemoved": "ŽMK kaladėje nebėra „{{card}}\" kortų – nieko nepašalinta.",
   "zmkRemap": "ŽMK {{from}} nuo šiol veikia kaip {{to}} ({{src}})",

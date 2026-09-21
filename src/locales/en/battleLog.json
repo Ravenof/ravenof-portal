@@ -418,6 +418,7 @@
     "adv": "Advantage: ZMK {{a}} and {{b}} – the better one is used.",
     "dis": "Disadvantage: ZMK {{a}} and {{b}} – the worse one is used."
   },
+  "zmkDisabled": "ZMK is disabled – damage stays at base: {{dmg}}.",
   "zmkDraw": "ZMK draw: {{zmk}}.",
   "zmkNoneRemoved": "No \"{{card}}\" cards left in the ZMK deck – nothing removed.",
   "zmkRemap": "ZMK {{from}} now acts as {{to}} ({{src}})",

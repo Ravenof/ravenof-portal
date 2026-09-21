@@ -1921,6 +1921,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   ['unitsGuardPlayer', '🛡 Negalima pulti žaidėjo, kol jis turi padarų'],
                   ['globalSilence', '🔇 Globalus nutildymas – visi padarai nutildyti'],
                   ['returnUnitAtTurnStart', '↩ Ėjimo pradžioje žaidėjas grąžina vieną padarą (savo ar priešo) savininkui į ranką'],
+                  ['noZmk', '🚫🎴 ŽMK traukimo nėra – žala lygi bazinei'],
                 ] as const).map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                     <input type="checkbox" checked={!!cfg.fieldEffectConfig?.passive?.[key]} className="w-3.5 h-3.5 accent-blue-400"

@@ -72,6 +72,8 @@ export function unitsGuardPlayer(g: GameState, s: Side): boolean { return !!pass
 export function globalSilence(g: GameState, s: Side): boolean { return !!passive(g, s)?.globalSilence }
 /** Ėjimo pradžioje žaidėjas grąžina vieną savo padarą į ranką. */
 export function returnUnitAtTurnStart(g: GameState, s: Side): boolean { return !!passive(g, s)?.returnUnitAtTurnStart }
+/** ŽMK traukimo nėra – žala lygi bazinei (Ramybės laukas). */
+export function noZmk(g: GameState, s: Side): boolean { return !!passive(g, s)?.noZmk }
 
 /** Lauko trigger'iai pagal trigger tipą. */
 export function fieldTriggers(g: GameState, trigger: string): EffectMapping[] {

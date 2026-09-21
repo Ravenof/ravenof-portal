@@ -449,6 +449,7 @@ export type FieldPassiveConfig = {
   unitsGuardPlayer?: boolean     // negalima pulti žaidėjo, kol jo pusėje yra bent vienas padaras
   globalSilence?: boolean        // visi padarai nutildyti, kol laukas aktyvus
   returnUnitAtTurnStart?: boolean // ėjimo pradžioje žaidėjas grąžina vieną SAVO padarą į ranką
+  noZmk?: boolean                // ŽMK traukimo nėra: žala lygi bazinei (be modifikatoriaus)
 }
 
 export type FieldEffectConfig = {

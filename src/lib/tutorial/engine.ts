@@ -160,6 +160,9 @@ export type PlayerState = {
   summonedFactionsThisTurn: number[]
   /** ŽMK reikšmių pakeitimai iki ėjimo pabaigos (remapZmkValue): '+1' -> '+2' ir pan. */
   zmkRemap?: Partial<Record<ZmkValue, ZmkValue>>
+  /** Tyli nesėkmių apsauga: praeitas ŽMK traukimas buvo neigiamas (-1/-2/×0),
+   *  todėl sekantis PRIVALO būti +0 arba geresnis. Žaidėjui nerodoma. */
+  zmkPity?: boolean
   /** Sekančios kortos kainos modifikatoriai (cardCostMod). Kiekvienas suvartojamas, kai sužaidžiama atitinkama korta. */
   nextCardCostMods: { delta: number; cardType: string | null }[]
   /** Šio ėjimo visų kortų nuolaida (turnCostDiscount): kaina −amount, bet ne žemiau floor. Nuimama ėjimo pabaigoje. */
@@ -639,14 +642,38 @@ function drawCards(g: GameState, s: Side, n: number, silent = false) {
 
 // ── ŽMK ───────────────────────────────────────────────────────────────────────
 
-function drawZmkCard(g: GameState, s: Side): ZmkValue {
+/** Ar ŽMK reikšmė neigiama (blogina žalą). */
+function isNegZmk(v: ZmkValue): boolean {
+  return v === '-1' || v === '-2' || v === 'x0'
+}
+
+/**
+ * ŽMK traukimas.
+ * `pity=true` įjungia TYLIĄ nesėkmių apsaugą: jei praeitas šios pusės traukimas
+ * buvo neigiamas, dabar neigiamos kortos praleidžiamos — grąžinamos į kaladės
+ * APAČIĄ (sudėtis nekinta, kortų skaičiavimas lieka teisingas) ir traukiama
+ * toliau, kol pasitaiko +0 ar geresnė. Žaidėjui apie tai nepranešama.
+ */
+function drawZmkCard(g: GameState, s: Side, pity = false): ZmkValue {
   const p = P(g, s)
-  if (p.zmk.length === 0) {
-    p.zmk = shuffle(p.zmkGrave)
-    p.zmkGrave = []
-    log(g, { t: 'zmkReshuffle', side: s, key: `battleLog.zmkReshuffle.${SK(s)}` })
+  const refill = () => {
+    if (p.zmk.length === 0) {
+      p.zmk = shuffle(p.zmkGrave)
+      p.zmkGrave = []
+      log(g, { t: 'zmkReshuffle', side: s, key: `battleLog.zmkReshuffle.${SK(s)}` })
+    }
   }
-  const v = p.zmk.pop() as ZmkValue
+  refill()
+  let v = p.zmk.pop() as ZmkValue
+  if (pity && p.zmkPity) {
+    // Saugiklis nuo begalinio ciklo, jei kaladėje liko VIEN neigiamos kortos.
+    let hops = p.zmk.length + p.zmkGrave.length + 1
+    while (isNegZmk(v) && hops-- > 0) {
+      p.zmk.unshift(v)
+      refill()
+      v = p.zmk.pop() as ZmkValue
+    }
+  }
   p.zmkGrave.push(v)
   return v
 }
@@ -700,7 +727,13 @@ function remapZmk(g: GameState, s: Side, v: ZmkValue): ZmkValue {
 }
 
 function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'normal'): number {
-  const v = remapZmk(g, actor, drawZmkCard(g, actor))
+  // Laukas su `noZmk` visiškai panaikina ŽMK traukimą — žala lygi bazinei.
+  if (fieldEngine.noZmk(g, actor)) {
+    const flat = Math.max(0, base + auraZmkDeltaFor(g, actor))
+    log(g, { t: 'zmk', side: actor, value: flat, key: 'battleLog.zmkDisabled', params: { base, dmg: flat } })
+    return flat
+  }
+  const v = remapZmk(g, actor, drawZmkCard(g, actor, true))
   if (bias !== 'normal') {
     const v2 = remapZmk(g, actor, drawZmkCard(g, actor))
     const a = applyZmk(base, v)
@@ -709,11 +742,13 @@ function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'n
     const pick = adv ? (a >= b ? v : v2) : (a <= b ? v : v2)
     const val = Math.max(0, (adv ? Math.max(a, b) : Math.min(a, b)) + auraZmkDeltaFor(g, actor))
     log(g, { t: 'zmk', side: actor, zmk: pick, value: val, zmkPair: [v, v2], zmkPicked: pick, bias, key: `battleLog.zmkBias.${adv ? 'adv' : 'dis'}`, params: { a: v, b: v2 } })
+    P(g, actor).zmkPity = isNegZmk(pick)
     zmkAfter(g, actor, v); zmkAfter(g, actor, v2)
     return val
   }
   const dmg = Math.max(0, applyZmk(base, v) + auraZmkDeltaFor(g, actor))
   log(g, { t: 'zmk', side: actor, zmk: v, value: dmg, key: 'battleLog.zmkRoll', params: { zmk: v, base, dmg } })
+  P(g, actor).zmkPity = isNegZmk(v)
   zmkAfter(g, actor, v)
   return dmg
 }
@@ -2745,8 +2780,9 @@ function counterCurrentSpellPrim(g: GameState, srcName: string) {
 }
 
 function drawZmkVisualPrim(g: GameState, s: Side) {
-  const v = drawZmkCard(g, s)
+  const v = drawZmkCard(g, s, true)
   log(g, { t: 'zmk', side: s, zmk: v, key: 'battleLog.zmkDraw', params: { zmk: v }, sound: 'zmkFlip' })
+  P(g, s).zmkPity = isNegZmk(v)
   zmkAfter(g, s, v)
 }
 
