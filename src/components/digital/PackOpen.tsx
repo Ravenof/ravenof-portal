@@ -14,6 +14,7 @@ import { rarityColor, rarityLevel } from '@/lib/digital/rarity'
 import { playUiClick, playSuccess, playCardFlip, playDiscovery, playCardPick, playImpact } from '@/lib/ui-sound'
 import { useT, useCardI18n } from '@/lib/i18n/react'
 import { isReducedMotionEnabled, isSummonFxEnabled } from '@/lib/settings'
+import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
 
 const PACK_W = 220
 const PACK_H = 300
@@ -219,8 +220,26 @@ function NewBadge({ label, small }: { label: string; small?: boolean }) {
   )
 }
 
-/** Kortos nugarėlė (kol neatversta). */
+// Užsidėta (equipped) nugarėlė — modulio kintamasis, kad visi <CardBack/>
+// egzemplioriai piešiniuose gautų ją be prop drilling'o per animacijų medį.
+let PACK_BACK: SkinVisual | null = null
+
+/** Kortos nugarėlė (kol neatversta) — TAVO užsidėta kosmetika, fallback: generinė. */
 function CardBack({ w = CARD_W, h = CARD_H }: { w?: number; h?: number }) {
+  const [bad, setBad] = useState(false)
+  const skin = bad ? null : PACK_BACK
+  if (skin?.url) {
+    return (
+      <div className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ width: w, height: h, border: '2px solid rgba(240,180,41,.55)', boxShadow: '0 12px 30px rgba(0,0,0,.7)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={skin.url} alt="" draggable={false} onError={() => setBad(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
+    )
+  }
+  if (skin?.css) {
+    return <div className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ width: w, height: h, background: skin.css, border: '2px solid rgba(240,180,41,.55)', boxShadow: '0 12px 30px rgba(0,0,0,.7)' }} />
+  }
   return (
     <div className="absolute inset-0 rounded-[10px] overflow-hidden" style={{ width: w, height: h, background: 'linear-gradient(160deg,#241a3a,#0d0915)', border: '2px solid rgba(240,180,41,.55)', boxShadow: '0 12px 30px rgba(0,0,0,.7)' }}>
       <div className="absolute rounded-md" style={{ inset: 8, border: '1px solid rgba(240,180,41,.35)', background: 'repeating-linear-gradient(45deg,transparent 0 6px,rgba(240,180,41,.06) 6px 7px),repeating-linear-gradient(-45deg,transparent 0 6px,rgba(240,180,41,.06) 6px 7px)' }} />
@@ -236,6 +255,17 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
 }) {
   const t = useT()
   const cx = useCardI18n()
+  // Užsidėta nugarėlė: iškart iš sessionStorage kešo, po to patikslinama RPC.
+  const [, setBackTick] = useState(0)
+  useEffect(() => {
+    const apply = (sk: { cardBack: SkinVisual | null } | null) => {
+      if (!sk?.cardBack) return
+      PACK_BACK = sk.cardBack
+      setBackTick((v) => v + 1)
+    }
+    apply(cachedBattleSkins())
+    getEquippedBattleSkins().then(apply).catch(() => {})
+  }, [])
   const [packImgBad, setPackImgBad] = useState(false)
   const [drag, setDrag] = useState<{ t: number; fx: number; dir: 1 | -1 }>({ t: 0, fx: 0, dir: 1 })
   const [phase, setPhase] = useState<Phase>('sealed')

@@ -1094,8 +1094,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // Tutorial pagalbos auksas suteiktas tik kartą
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
-  /** Apžiūros šoninio stulpelio skirtukas: legenda ar kortos žurnalas. */
-  const [inspectTab, setInspectTab] = useState<'legend' | 'log'>('legend')
   // V3 mokymai: hook'ai per ref — kad callback'ai (openInspectHeld) nepersikurtų
   // ir kad mokymų pranešimai niekada nedalyvautų kovos priklausomybėse.
   const tutorialRef = useRef<TutorialHooks | undefined>(tutorial)
@@ -4395,12 +4393,6 @@ doAction({ t: 'endTurn', actor: 'you' })
     return out
   }, [inspectBoard, game, inspect, CARD_LOG_TYPES])
 
-  // Atidarant kortą: jei žurnale kažkas yra – atveriam jį iškart, kitaip legendą.
-  useEffect(() => {
-    if (!inspect) return
-    setInspectTab(inspectLog.length > 0 ? 'log' : 'legend')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspect])
 
   // ── Horizontal (landscape) layout render helper'iai (perduodami BattleLayout'ui; state lieka čia) ──
   const renderHandFanH = () => {
@@ -5563,42 +5555,35 @@ doAction({ t: 'endTurn', actor: 'you' })
                 const baseAtk = inspect.attack ?? 0
                 const dAtk = u ? effectiveAtk(game!, u) - baseAtk : 0
                 const kicker = { font: '600 9.5px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: '#9a8f7d' }
-                const tabBtn = (id: 'legend' | 'log', label: string) => (
-                  <button key={id} type="button" onClick={() => { playUiClick(); setInspectTab(id) }}
-                    style={{ flex: 1, font: '700 10px var(--ravenof-font-display, Cinzel, serif)', letterSpacing: '0.12em', textTransform: 'uppercase',
-                      padding: '8px 4px', border: 0, cursor: 'pointer', background: inspectTab === id ? 'rgba(212,163,59,0.16)' : 'transparent',
-                      color: inspectTab === id ? '#e9c76a' : '#9a8f7d' }}>
-                    {label}{id === 'log' && inspectLog.length > 0 ? ` · ${inspectLog.length}` : ''}
-                  </button>
+                const emptyBox = { font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#9a8f7d', fontStyle: 'italic' as const, padding: '12px 10px', background: 'rgba(10,8,15,0.6)', border: '1px dashed rgba(255,255,255,0.10)', textAlign: 'center' as const }
+                // „Laikai – matai" režime slinkti negalima, tad viskas rodoma vienu
+                // stulpeliu BE skirtukų: pirmiausia žurnalas (nauja info), po juo legenda.
+                // Žurnale – paskutiniai įrašai, kad svarbiausia tilptų be slinkimo.
+                const LOG_MAX = 7
+                const shown = inspectLog.slice(-LOG_MAX)
+                const hidden = inspectLog.length - shown.length
+                const legendBlocks = entries.map((e) => (
+                  <div key={e.k} style={{ background: 'rgba(12,9,18,0.92)', border: e.k === 'type' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
+                    <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: e.k === 'type' ? '#e9dfcb' : 'var(--gold, #d4a33b)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {(e.icon || e.img) ? <img src={e.icon ?? e.img} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: 'contain' }} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                        : e.emoji ? <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>{e.emoji}</span> : null}
+                      {e.name}
+                    </div>
+                    <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', marginTop: 3, lineHeight: 1.35 }}>{e.tip}</div>
+                  </div>
+                ))
+                const sectionTitle = (label: string, badge?: string) => (
+                  <div className="flex items-center" style={{ gap: 8, ...kicker, letterSpacing: '0.16em', color: 'var(--gold, #d4a33b)', padding: '2px 2px 0' }}>
+                    {label}
+                    {badge ? <span style={{ marginLeft: 'auto', font: '600 9.5px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.06em', color: '#9a8f7d', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, padding: '1px 6px' }}>{badge}</span> : null}
+                  </div>
                 )
                 return (
                   <div className="ravenof-scroll" style={{ width: 'min(272px, 35vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {/* Skirtukai: legenda / šios kortos žurnalas */}
-                    <div style={{ display: 'flex', border: '1px solid rgba(212,163,59,0.35)', background: 'rgba(8,6,12,0.8)', position: 'sticky', top: 0, zIndex: 2 }}>
-                      {tabBtn('legend', t('battle.game.cardLog.tabLegend'))}
-                      {tabBtn('log', t('battle.game.cardLog.tabLog'))}
-                    </div>
-
-                    {inspectTab === 'legend' && entries.map((e) => (
-                      <div key={e.k} style={{ background: 'rgba(12,9,18,0.92)', border: e.k === 'type' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
-                        <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: e.k === 'type' ? '#e9dfcb' : 'var(--gold, #d4a33b)' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          {(e.icon || e.img) ? <img src={e.icon ?? e.img} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: 'contain' }} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                            : e.emoji ? <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>{e.emoji}</span> : null}
-                          {e.name}
-                        </div>
-                        <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', marginTop: 3, lineHeight: 1.35 }}>{e.tip}</div>
-                      </div>
-                    ))}
-
-                    {inspectTab === 'log' && !inspectBoard && (
-                      <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#9a8f7d', fontStyle: 'italic', padding: '12px 10px', background: 'rgba(10,8,15,0.6)', border: '1px dashed rgba(255,255,255,0.10)', textAlign: 'center' }}>
-                        {t('battle.game.cardLog.handOnly')}
-                      </div>
-                    )}
-
-                    {inspectTab === 'log' && inspectBoard && (
+                    {inspectBoard && (
                       <>
+                        {sectionTitle(t('battle.game.cardLog.stateTitle'), inspectLog.length ? String(inspectLog.length) : undefined)}
                         {/* BŪSENA — skaitoma tiesiai iš lentos, tad visada tiksli */}
                         <div style={{ background: 'rgba(18,13,26,0.95)', border: '1px solid rgba(255,255,255,0.10)', padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 7 }}>
                           {u && (
@@ -5643,20 +5628,30 @@ doAction({ t: 'endTurn', actor: 'you' })
 
                         {/* KAS NUTIKO — tik įvykiai apie šią kortą */}
                         {inspectLog.length === 0 ? (
-                          <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#9a8f7d', fontStyle: 'italic', padding: '12px 10px', background: 'rgba(10,8,15,0.6)', border: '1px dashed rgba(255,255,255,0.10)', textAlign: 'center' }}>
-                            {t('battle.game.cardLog.empty')}
-                          </div>
-                        ) : inspectLog.map(({ e, turn }, i) => (
-                          <div key={i} className="flex" style={{ gap: 8, padding: '7px 9px', background: 'rgba(10,8,15,0.75)', alignItems: 'flex-start',
-                            borderLeft: `2px solid ${e.t === 'damage' ? '#c65563' : e.t === 'heal' || e.t === 'buff' ? '#5fae84' : e.t === 'status' ? '#7ea4d8' : e.t === 'death' ? '#7a5a8f' : 'rgba(255,255,255,0.10)'}` }}>
-                            <span style={{ flex: 'none', font: '700 9px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.06em', color: '#9a8f7d', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, padding: '1px 5px', marginTop: 1, minWidth: 30, textAlign: 'center' }}>
-                              {t('battle.game.cardLog.turnShort', { n: turn })}
-                            </span>
-                            <span style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', lineHeight: 1.42, minWidth: 0 }}>{eventText(e, t)}</span>
-                          </div>
-                        ))}
+                          <div style={emptyBox}>{t('battle.game.cardLog.empty')}</div>
+                        ) : (
+                          <>
+                            {hidden > 0 && (
+                              <div style={{ font: '400 10px var(--ravenof-font-body, Inter, sans-serif)', color: '#6f6759', textAlign: 'center', letterSpacing: '0.08em' }}>
+                                ··· {t('battle.game.cardLog.older', { n: hidden })} ···
+                              </div>
+                            )}
+                            {shown.map(({ e, turn }, i) => (
+                              <div key={i} className="flex" style={{ gap: 8, padding: '7px 9px', background: 'rgba(10,8,15,0.75)', alignItems: 'flex-start',
+                                borderLeft: `2px solid ${e.t === 'damage' ? '#c65563' : e.t === 'heal' || e.t === 'buff' ? '#5fae84' : e.t === 'status' ? '#7ea4d8' : e.t === 'death' ? '#7a5a8f' : 'rgba(255,255,255,0.10)'}` }}>
+                                <span style={{ flex: 'none', font: '700 9px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.06em', color: '#9a8f7d', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, padding: '1px 5px', marginTop: 1, minWidth: 30, textAlign: 'center' }}>
+                                  {t('battle.game.cardLog.turnShort', { n: turn })}
+                                </span>
+                                <span style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', lineHeight: 1.42, minWidth: 0 }}>{eventText(e, t)}</span>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        <div style={{ height: 2 }} />
+                        {sectionTitle(t('battle.game.cardLog.tabLegend'))}
                       </>
                     )}
+                    {legendBlocks}
                   </div>
                 )
               })()}

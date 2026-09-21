@@ -126,3 +126,34 @@ export async function getAvatarAudio(ids: (string | null | undefined)[]): Promis
   if (error) { console.warn('[avatar audio] get:', error.message); return {} }
   return (data as AvatarAudioMap) ?? {}
 }
+
+// ── Botų / nežinomo varžovo kortų nugarėlės ──────────────────────────────────
+// Botas NETURI naudoti tavo nugarėlės — kiekvienai kovai parenkama atsitiktinė
+// iš viešų (public/card-backs) nugarėlių. Sąrašas statinis: jokio RPC kovos
+// starte, veikia ir offline.
+export const BOT_CARD_BACKS: string[] = [
+  '/card-backs/cb-basic.webp',
+  '/card-backs/cb-rare.webp',
+  '/card-backs/cb-premium.webp',
+  '/card-backs/cb-legendary.webp',
+  '/card-backs/cb-prestige.webp',
+  '/card-backs/cb-ember.webp',
+  '/card-backs/cb-frost.webp',
+  '/card-backs/cb-gold.webp',
+  '/card-backs/cb-void.webp',
+  '/card-backs/cb-demonu-orda.webp',
+  '/card-backs/cb-inkvizicijos-legionas.webp',
+  '/card-backs/cb-karmazino-karuna.webp',
+  '/card-backs/cb-mirties-marsas.webp',
+  '/card-backs/cb-mistikos-melodija.webp',
+  '/card-backs/cb-plesiku-naktis.webp',
+  '/card-backs/cb-rubino-infernas.webp',
+  '/card-backs/cb-rytu-vejas.webp',
+  '/card-backs/cb-sviesos-pulkas.webp',
+  '/card-backs/cb-vryhioko-gauja.webp',
+]
+
+/** Atsitiktinė boto nugarėlė (nauja kiekvienai kovai). */
+export function randomBotCardBack(): SkinVisual {
+  return { url: BOT_CARD_BACKS[Math.floor(Math.random() * BOT_CARD_BACKS.length)], css: null }
+}

@@ -214,6 +214,7 @@
       "statuses": "Būsenos",
       "turnShort": "{{n}} ėj.",
       "empty": "Šiai kortai dar nieko nenutiko.",
+      "older": "dar {{n}} anksčiau",
       "handOnly": "Žurnalas rodomas tik kortoms mūšio lauke."
     },
     "legend": {

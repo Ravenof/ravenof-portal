@@ -214,6 +214,7 @@
       "statuses": "Statuses",
       "turnShort": "t{{n}}",
       "empty": "Nothing has happened to this card yet.",
+      "older": "{{n}} earlier",
       "handOnly": "The log is only shown for cards on the battlefield."
     },
     "legend": {
