@@ -114,11 +114,15 @@ export function cardLegend(c: TutCard, t: T, statusName: (k: string) => string, 
 
   // 3b) Efektų tipų ženkliukai
   const fx = new Set<FxGlyph>()
-  if (gp?.spellType && SPELL_FX[gp.spellType]) fx.add(SPELL_FX[gp.spellType]!)
+  // Burto tipo ženkliukas — TIK burtams. Anksčiau rodytas bet kuriai kortai, tad
+  // admin'e padarui paliktas `spellType` nutekėdavo į legendą (ugnis/ledas ant padaro).
+  if (c.type === 'spell' && gp?.spellType && SPELL_FX[gp.spellType]) fx.add(SPELL_FX[gp.spellType]!)
   for (const m of all) { const g = effectFx(m.effect); if (g) fx.add(g) }
   if (gp?.synergy && (gp.synergy.withNames || gp.synergy.withFaction)) fx.add('synergy')
   if (c.type === 'unit' && all.some((m) => m.trigger === 'onAnyArtifact' || m.trigger === 'onArtifactActivated')) fx.add('artifact')
-  fx.delete('trigger') // trigger'iai jau surašyti atskirai
+  fx.delete('trigger')  // trigger'iai jau surašyti atskirai
+  fx.delete('utility')  // „Pagalbinis" — bendrinė šiukšliadėžė (traukimas/auksas/kaladė);
+                        // nieko nepasako, o kortos tekste tai jau parašyta. Nerodom niekur.
   for (const g of fx) push({ k: `fx:${g}`, name: t(`battle.game.legend.fx.${g}.name`), tip: t(`battle.game.legend.fx.${g}.tip`), img: FX_IMG[g] ? `/rules/effects/${FX_IMG[g]}.png` : undefined, emoji: FX_EMOJI[g] })
 
   // 4) Pasyvai (aura / papildomos atakos / kiti nuolatiniai)

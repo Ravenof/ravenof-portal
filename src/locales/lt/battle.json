@@ -205,6 +205,17 @@
     "pvpVictoryText": "Įtikinama pergalė prieš draugą. Revanšas?",
     "pvpDefeatText": "Draugas šįkart buvo stipresnis. Revanšas – čia pat.",
     "moreInProfile": "daugiau – profilyje",
+    "cardLog": {
+      "tabLegend": "Legenda",
+      "tabLog": "Žurnalas",
+      "stateTitle": "Būsena",
+      "atk": "Puolimas",
+      "hp": "Gyvybės",
+      "statuses": "Būsenos",
+      "turnShort": "{{n}} ėj.",
+      "empty": "Šiai kortai dar nieko nenutiko.",
+      "handOnly": "Žurnalas rodomas tik kortoms mūšio lauke."
+    },
     "legend": {
       "typeName": "Tipas",
       "type": {

@@ -23,7 +23,7 @@ import {
   isUiSoundEnabled, toggleUiSound, subscribeUiSound,
 } from '@/lib/ui-sound'
 import {
-  GameState, GameEvent, TutCard, BoardUnit, TargetRef, Side,
+  GameState, GameEvent, type GameEventType, TutCard, BoardUnit, TargetRef, Side,
   createGame, beginTurn, endTurn,
   championSkills, canUnitAttack, legalTargets, cloneState, P,
   swapPerspective, applyNetAction, swapAction, type NetAction,
@@ -59,7 +59,7 @@ import { CelebrationStyles, CelebrationFx, CelebrationTiles, celebrationCtaDelay
 import type { GrantedReward } from '@/lib/progression/types'
 import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
-import { cachedBattleSkins, getEquippedBattleSkins, type SkinVisual } from '@/lib/cosmetics'
+import { cachedBattleSkins, getEquippedBattleSkins, randomBotCardBack, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { avatarMapFor, cardVoiceUrls, loadVoices } from '@/lib/game/audioI18n'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
@@ -277,8 +277,9 @@ export function setOppBack(v: SkinVisual | null, known = false) { OPP_BACK = v; 
 export function PileBack({ kind, owner = 'me' }: { kind: 'plain' | 'curse' | 'zmk'; owner?: 'me' | 'opp' }) {
   const [ok, setOk] = useState(false)
   const [customFailed, setCustomFailed] = useState(false)
-  // opp: žinomas skin (arba žinomas „neturi" -> default); nežinoma (botai/senas klientas) -> tavo skin
-  const skin = owner === 'me' ? EQUIPPED_BACK : (OPP_BACK_KNOWN ? OPP_BACK : EQUIPPED_BACK)
+  // opp: žinomas skin (arba žinomas „neturi" -> default). NEŽINOMA -> default
+  // nugarėlė, o NE tavo: priešas niekada nerodo tavo kosmetikos.
+  const skin = owner === 'me' ? EQUIPPED_BACK : (OPP_BACK_KNOWN ? OPP_BACK : null)
   const custom = kind === 'plain' && !customFailed ? skin : null
   // css-only nugarėlė (gradientas) — be <img>
   if (custom && !custom.url && custom.css) {
@@ -1055,6 +1056,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const chainRef = useRef<ReactionChainHandle>(null)
   const chainGateActiveRef = useRef(false)
   const arenaRef = useRef<ArenaKey>(randomArena())
+  /** Boto nugarėlė – atsitiktinė kiekvienai kovai, nepriklausoma nuo tavosios. */
+  const botBackRef = useRef<SkinVisual>(randomBotCardBack())
   // Kosmetika kovoje: pasirinkta nugarėlė (modulio kintamasis) + lentos fonas
   const [boardSkinUrl, setBoardSkinUrl] = useState<string | null>(null)
   useEffect(() => {
@@ -1065,6 +1068,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       setSkinTick((t) => t + 1)
     }
     apply(cachedBattleSkins())
+    // Botas/DI: sava atsitiktinė nugarėlė šiai kovai (PvP – per broadcast 'skin').
+    if (!net) { setOppBack(botBackRef.current, true); setSkinTick((t) => t + 1) }
     getEquippedBattleSkins().then((sk) => {
       apply(sk)
       // jei PvP kanalas jau atidarytas — pranešam varžovui savo nugarėlę
@@ -1089,6 +1094,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // Tutorial pagalbos auksas suteiktas tik kartą
   const grantedGoldRef = useRef(false)
   const [inspect, setInspect] = useState<TutCard | null>(null)
+  /** Apžiūros šoninio stulpelio skirtukas: legenda ar kortos žurnalas. */
+  const [inspectTab, setInspectTab] = useState<'legend' | 'log'>('legend')
   // V3 mokymai: hook'ai per ref — kad callback'ai (openInspectHeld) nepersikurtų
   // ir kad mokymų pranešimai niekada nedalyvautų kovos priklausomybėse.
   const tutorialRef = useRef<TutorialHooks | undefined>(tutorial)
@@ -1731,6 +1738,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     setAvatarDead(null)      // rematch: avataras vėl sveikas
     setEndShown(false)       // rematch: pabaigos modalas paslėptas iki naujos defeat sekos
     resetAvatarAudio()       // rematch: fightStart/defeat/victory frazės vėl gali groti
+    // Nauja kova – botui nauja atsitiktinė nugarėlė (PvP ją atneša broadcast 'skin').
+    if (!net) { botBackRef.current = randomBotCardBack(); setOppBack(botBackRef.current, true); setSkinTick((t) => t + 1) }
     const aiSource = opp && opp.length > 0 ? opp : cards
     // Monetos metimas: pirmasis parenkamas atsitiktinai visur, isskyrus tutorial
     // (scriptintas — visada pradeda zaidejas). PvP: HOST'as autoritetingai
@@ -3118,7 +3127,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const st = ch.presenceState() as Record<string, { side?: Side }[]>
       let opp = false
       for (const arr of Object.values(st)) for (const meta of arr) { if (meta.side && meta.side !== net.mySide) opp = true }
-      if (opp) sawOppRef.current = true
+      if (opp) {
+        sawOppRef.current = true
+        // Varžovas ką tik pasirodė – pakartojam savo nugarėlę (pirmas siuntimas
+        // galėjo įvykti dar jam neprisijungus, tad jis būtų rodęs default).
+        try { ch.send({ type: 'broadcast', event: 'skin', payload: { back: EQUIPPED_BACK } }) } catch { /* */ }
+      }
       setOppPresent(opp)
     })
     ch.subscribe(async (status) => {
@@ -4343,6 +4357,51 @@ doAction({ t: 'endTurn', actor: 'you' })
   const lastEvent = visibleLog[visibleLog.length - 1]
   const lastMsg = lastEvent ? eventText(lastEvent, t) : ''
 
+  // ── Kortos apžiūra: gyva lentos būsena + asmeninis žurnalas ─────────────────
+  // Lentos įrašas randamas pagal KORTOS OBJEKTO tapatybę: visi setInspect(u.card)
+  // perduoda tą patį objektą, tad nereikia keisti ~25 iškvietimo vietų.
+  const inspectBoard = useMemo(() => {
+    if (!inspect || !game) return null
+    for (const sd of ['you', 'ai'] as Side[]) {
+      const p = P(game, sd)
+      const u = p.units.find((x) => x && x.card === inspect)
+      if (u) return { kind: 'unit' as const, side: sd, uid: u.uid, unit: u }
+      const a = p.artifacts.find((x) => x && x.card === inspect)
+      if (a) return { kind: 'artifact' as const, side: sd, uid: a.uid, art: a }
+    }
+    return null
+  }, [inspect, game])
+
+  /** Įvykių tipai, kurie pasakoja, kas nutiko PAČIAI kortai (ne ką ji padarė kitiems). */
+  const CARD_LOG_TYPES = useMemo(() => new Set<GameEventType>(['damage', 'heal', 'status', 'buff', 'death', 'blocked', 'evolve']), [])
+
+  /** Kortos žurnalas + ėjimo numeris kiekvienam įrašui. */
+  const inspectLog = useMemo(() => {
+    if (!inspectBoard || !game) return []
+    const uid = inspectBoard.uid
+    const name = inspect?.name
+    const out: { e: GameEvent; turn: number }[] = []
+    let turn = 0
+    for (const e of game.log) {
+      if (e.t === 'startTurn') turn++
+      if (!CARD_LOG_TYPES.has(e.t)) continue
+      const sU = e.src?.uid, tU = e.tgt?.uid
+      // uid'as patikimiausias; jei įvykis jo neturi (dalis senų log eilučių) –
+      // krentam į kortos vardą. Dublikatai to paties pavadinimo susilietų, bet
+      // tik tose eilutėse, kurios uid'o iš viso neturi.
+      const mine = (sU && sU === uid) || (tU && tU === uid) || (!sU && !tU && !!name && e.cardName === name)
+      if (mine) out.push({ e, turn: Math.max(1, turn) })
+    }
+    return out
+  }, [inspectBoard, game, inspect, CARD_LOG_TYPES])
+
+  // Atidarant kortą: jei žurnale kažkas yra – atveriam jį iškart, kitaip legendą.
+  useEffect(() => {
+    if (!inspect) return
+    setInspectTab(inspectLog.length > 0 ? 'log' : 'legend')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inspect])
+
   // ── Horizontal (landscape) layout render helper'iai (perduodami BattleLayout'ui; state lieka čia) ──
   const renderHandFanH = () => {
     if (!game) return null
@@ -5499,9 +5558,28 @@ doAction({ t: 'endTurn', actor: 'you' })
               {(() => {
                 if (typeof window !== 'undefined' && window.innerWidth < 560) return null
                 const entries = cardLegend(inspect, t, statusName, statusTooltip, ICON_BASE)
+                const u = inspectBoard?.kind === 'unit' ? inspectBoard.unit : null
+                const art = inspectBoard?.kind === 'artifact' ? inspectBoard.art : null
+                const baseAtk = inspect.attack ?? 0
+                const dAtk = u ? effectiveAtk(game!, u) - baseAtk : 0
+                const kicker = { font: '600 9.5px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: '#9a8f7d' }
+                const tabBtn = (id: 'legend' | 'log', label: string) => (
+                  <button key={id} type="button" onClick={() => { playUiClick(); setInspectTab(id) }}
+                    style={{ flex: 1, font: '700 10px var(--ravenof-font-display, Cinzel, serif)', letterSpacing: '0.12em', textTransform: 'uppercase',
+                      padding: '8px 4px', border: 0, cursor: 'pointer', background: inspectTab === id ? 'rgba(212,163,59,0.16)' : 'transparent',
+                      color: inspectTab === id ? '#e9c76a' : '#9a8f7d' }}>
+                    {label}{id === 'log' && inspectLog.length > 0 ? ` · ${inspectLog.length}` : ''}
+                  </button>
+                )
                 return (
-                  <div className="ravenof-scroll" style={{ width: 'min(260px, 34vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {entries.map((e) => (
+                  <div className="ravenof-scroll" style={{ width: 'min(272px, 35vw)', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* Skirtukai: legenda / šios kortos žurnalas */}
+                    <div style={{ display: 'flex', border: '1px solid rgba(212,163,59,0.35)', background: 'rgba(8,6,12,0.8)', position: 'sticky', top: 0, zIndex: 2 }}>
+                      {tabBtn('legend', t('battle.game.cardLog.tabLegend'))}
+                      {tabBtn('log', t('battle.game.cardLog.tabLog'))}
+                    </div>
+
+                    {inspectTab === 'legend' && entries.map((e) => (
                       <div key={e.k} style={{ background: 'rgba(12,9,18,0.92)', border: e.k === 'type' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(212,163,59,0.35)', padding: '8px 10px' }}>
                         <div className="flex items-center" style={{ gap: 7, font: '700 12.5px var(--ravenof-font-display, Cinzel, serif)', color: e.k === 'type' ? '#e9dfcb' : 'var(--gold, #d4a33b)' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -5512,6 +5590,73 @@ doAction({ t: 'endTurn', actor: 'you' })
                         <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', marginTop: 3, lineHeight: 1.35 }}>{e.tip}</div>
                       </div>
                     ))}
+
+                    {inspectTab === 'log' && !inspectBoard && (
+                      <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#9a8f7d', fontStyle: 'italic', padding: '12px 10px', background: 'rgba(10,8,15,0.6)', border: '1px dashed rgba(255,255,255,0.10)', textAlign: 'center' }}>
+                        {t('battle.game.cardLog.handOnly')}
+                      </div>
+                    )}
+
+                    {inspectTab === 'log' && inspectBoard && (
+                      <>
+                        {/* BŪSENA — skaitoma tiesiai iš lentos, tad visada tiksli */}
+                        <div style={{ background: 'rgba(18,13,26,0.95)', border: '1px solid rgba(255,255,255,0.10)', padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                          {u && (
+                            <div className="flex items-center" style={{ gap: 8, fontSize: 11.5 }}>
+                              <span style={{ ...kicker, width: 62, flex: 'none' }}>{t('battle.game.cardLog.atk')}</span>
+                              <span style={{ color: '#e9dfcb', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                                {dAtk !== 0 && <span style={{ color: '#9a8f7d', fontWeight: 400, textDecoration: 'line-through', marginRight: 5 }}>{baseAtk}</span>}
+                                {effectiveAtk(game!, u)}
+                                {dAtk !== 0 && <span style={{ color: dAtk > 0 ? '#a8e8c4' : '#ffb8be', marginLeft: 5 }}>({dAtk > 0 ? '+' : ''}{dAtk})</span>}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center" style={{ gap: 8, fontSize: 11.5 }}>
+                            <span style={{ ...kicker, width: 62, flex: 'none' }}>{t('battle.game.cardLog.hp')}</span>
+                            <span style={{ color: '#e9dfcb', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                              {u ? `${Math.max(0, u.hp)} / ${u.maxHp}` : `${Math.max(0, art!.hp)} / ${art!.maxHp}`}
+                            </span>
+                          </div>
+                          {u && (() => {
+                            const chips: { k: string; icon: string; label: string }[] = []
+                            for (const [st, until] of Object.entries(u.statuses) as [TutStatus, number][]) {
+                              if (until === undefined || until === null) continue
+                              chips.push({ k: st, icon: STATUS_META[st].icon, label: statusName(st) })
+                            }
+                            if (u.shield) chips.push({ k: 'shield', icon: '✦★', label: statusName('shield') })
+                            if (u.stealth) chips.push({ k: 'stealth', icon: '◑', label: statusName('stealth') })
+                            if (!chips.length) return null
+                            return (
+                              <div className="flex" style={{ gap: 8, alignItems: 'flex-start', fontSize: 11.5 }}>
+                                <span style={{ ...kicker, width: 62, flex: 'none', paddingTop: 2 }}>{t('battle.game.cardLog.statuses')}</span>
+                                <span className="flex flex-wrap" style={{ gap: 4 }}>
+                                  {chips.map((c) => (
+                                    <span key={c.k} style={{ font: '600 9.5px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 7px', borderRadius: 9, border: '1px solid rgba(126,164,216,0.55)', background: 'rgba(126,164,216,0.14)', color: '#bcdcff', whiteSpace: 'nowrap' }}>
+                                      {c.icon} {c.label}
+                                    </span>
+                                  ))}
+                                </span>
+                              </div>
+                            )
+                          })()}
+                        </div>
+
+                        {/* KAS NUTIKO — tik įvykiai apie šią kortą */}
+                        {inspectLog.length === 0 ? (
+                          <div style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#9a8f7d', fontStyle: 'italic', padding: '12px 10px', background: 'rgba(10,8,15,0.6)', border: '1px dashed rgba(255,255,255,0.10)', textAlign: 'center' }}>
+                            {t('battle.game.cardLog.empty')}
+                          </div>
+                        ) : inspectLog.map(({ e, turn }, i) => (
+                          <div key={i} className="flex" style={{ gap: 8, padding: '7px 9px', background: 'rgba(10,8,15,0.75)', alignItems: 'flex-start',
+                            borderLeft: `2px solid ${e.t === 'damage' ? '#c65563' : e.t === 'heal' || e.t === 'buff' ? '#5fae84' : e.t === 'status' ? '#7ea4d8' : e.t === 'death' ? '#7a5a8f' : 'rgba(255,255,255,0.10)'}` }}>
+                            <span style={{ flex: 'none', font: '700 9px var(--ravenof-font-body, Inter, sans-serif)', letterSpacing: '0.06em', color: '#9a8f7d', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, padding: '1px 5px', marginTop: 1, minWidth: 30, textAlign: 'center' }}>
+                              {t('battle.game.cardLog.turnShort', { n: turn })}
+                            </span>
+                            <span style={{ font: '400 11.5px var(--ravenof-font-body, Inter, sans-serif)', color: '#cfc4ae', lineHeight: 1.42, minWidth: 0 }}>{eventText(e, t)}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                 )
               })()}

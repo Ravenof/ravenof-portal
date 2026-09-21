@@ -205,6 +205,17 @@
     "pvpVictoryText": "A convincing win over a friend. Rematch?",
     "pvpDefeatText": "Your friend was stronger this time. A rematch is one tap away.",
     "moreInProfile": "more – see profile",
+    "cardLog": {
+      "tabLegend": "Legend",
+      "tabLog": "Log",
+      "stateTitle": "State",
+      "atk": "Attack",
+      "hp": "Health",
+      "statuses": "Statuses",
+      "turnShort": "t{{n}}",
+      "empty": "Nothing has happened to this card yet.",
+      "handOnly": "The log is only shown for cards on the battlefield."
+    },
     "legend": {
       "typeName": "Type",
       "type": {
