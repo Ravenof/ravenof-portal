@@ -59,7 +59,9 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
     dFieldRow, renderOppHand, renderHand, renderLog, renderEndTurn, renderDiscardGold, onEmote, turnDeadline, renderEmoteBubble,
     handCount, handExpanded, discardMode, onToggleHand, onBoardPointerDown,
   } = props
-  const [emoteOpen, setEmoteOpen] = useState(false)
+  // Emocijų ratas: iš kairės juostos mygtuko arba bakstelėjus SAVO avatarą.
+  const [emoteOpen, setEmoteOpen] = useState<null | 'rail' | 'avatar'>(null)
+  const avTapRef = useRef(0)
   const logRef = useRef<HTMLDivElement>(null)
   useEffect(() => { const el = logRef.current; if (el) el.scrollTop = el.scrollHeight }, [game?.log?.length])
   const EMOTES = ['👋', '😎', '🔥', '😂', '😅', '🤝']
@@ -78,7 +80,7 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
         {/* ── KAIRĖ: emote · priešo artefaktai/reakcijos · žurnalas (ribotas, skaitomas) · tavo reakcijos/artefaktai ── */}
         <aside className="flex flex-col gap-2 min-h-0 overflow-hidden">
           <RailBox style={railPanel} className="shrink-0 flex items-center justify-between px-2 py-1.5">
-            <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="combat-round-icon text-[16px]" style={{ filter: emoteOpen ? 'brightness(1.25)' : undefined }}>😊</button>
+            <button onClick={() => setEmoteOpen((v) => (v ? null : 'rail'))} title="Emote" className="combat-round-icon text-[16px]" style={{ filter: emoteOpen === 'rail' ? 'brightness(1.25)' : undefined }}>😊</button>
             <span className="rvn-desk-rail-title" style={{ margin: 0 }}>{t('battle.layout.log')}</span>
           </RailBox>
           <RailBox style={railPanel} className="shrink-0 flex flex-col items-center gap-1 py-2">
@@ -123,7 +125,9 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
           </div>
 
           {/* Tavo avataras – apatinis dešinys kampas, rankos zonos aukštyje, su apsaugotu plotu (ranka centre siauresnė) */}
-          <div className="absolute z-[9] flex items-center gap-2" style={{ right: 12, bottom: 10 }}>
+          <div className="absolute z-[9] flex items-center gap-2" style={{ right: 12, bottom: 10 }}
+            onPointerDown={() => { avTapRef.current = Date.now() }}
+            onClick={() => { if (Date.now() - avTapRef.current < 400) setEmoteOpen((v) => (v ? null : 'avatar')) }}>
             {renderEmoteBubble?.('you')}
             {hpBar('you', s.compact ? 0.86 : 0.96)}
           </div>
@@ -164,13 +168,15 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
         {/* ── EMOTE ratas ── */}
         {emoteOpen && (
           <>
-            <div className="absolute inset-0 z-40" onClick={() => setEmoteOpen(false)} />
-            <div className="absolute z-50" style={{ left: s.railL + 24, top: 24, width: 150, height: 150 }}>
+            <div className="absolute inset-0 z-40" onClick={() => setEmoteOpen(null)} />
+            <div className="absolute z-50" style={emoteOpen === 'avatar'
+              ? { right: s.railR + 24, bottom: 96, width: 150, height: 150 }
+              : { left: s.railL + 24, top: 24, width: 150, height: 150 }}>
               {EMOTES.map((e, i) => {
                 const ang = (-90 + i * (360 / EMOTES.length)) * Math.PI / 180
                 const x = 75 + Math.cos(ang) * 58 - 22, y = 75 + Math.sin(ang) * 58 - 22
                 return (
-                  <button key={i} onClick={() => { onEmote?.(e); setEmoteOpen(false) }}
+                  <button key={i} onClick={() => { onEmote?.(e); setEmoteOpen(null) }}
                     className="combat-emote-slot absolute w-11 h-11 flex items-center justify-center text-xl transition-transform hover:scale-125 active:scale-95"
                     style={{ left: x, top: y, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))' }}>{e}</button>
                 )

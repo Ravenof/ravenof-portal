@@ -24,7 +24,9 @@ import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 import { RavenofTextField, RavenofBannerButton, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
 import { OAuthButtons } from './OAuthButtons'
 
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+// Slapyvardi galima rasyti su didziosiomis — registras islaikomas display_name,
+// o `username` (URL/unikalumas) visada mazosiomis.
+const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/
 
 // Validuotas vidinis next kelias — TIK /digital keliai (jokių išorinių/portalo redirect'ų)
 export function safeDigitalNext(raw: string | null): string | null {
@@ -52,6 +54,9 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
   // next iš URL — state'e, kad po hydration nuorodos persirenderintų (SSR window nėra)
   const [nextPath, setNextPath] = useState<string | null>(null)
   useEffect(() => { setNextPath(currentNext()) }, [])
+  // ?deleted=1 – po paskyros ištrynimo parodom padėką (žalias pranešimas)
+  const [deletedNote, setDeletedNote] = useState(false)
+  useEffect(() => { try { setDeletedNote(new URLSearchParams(window.location.search).get('deleted') === '1') } catch { /* */ } }, [])
   const withNext = (href: string) => (nextPath ? `${href}?next=${encodeURIComponent(nextPath)}` : href)
 
   const isReg = mode === 'register'
@@ -74,10 +79,10 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
       if (password.length < 8) { setError(t('auth.err.pwTooShort')); return }
       if (password !== confirm) { setError(t('auth.err.pwMismatch')); return }
       setLoading(true)
-      const { data: existing } = await supabase.from('profiles').select('id').eq('username', username).maybeSingle()
+      const { data: existing } = await supabase.from('profiles').select('id').eq('username', username.toLowerCase()).maybeSingle()
       if (existing) { setError(t('auth.err.usernameTaken')); setLoading(false); playError(); return }
       const { data, error: err } = await supabase.auth.signUp({
-        email, password, options: { data: { username, display_name: username } },
+        email, password, options: { data: { username: username.toLowerCase(), display_name: username } },
       })
       setLoading(false)
       if (err) {
@@ -159,6 +164,7 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
                   </button>
                 </div>
                 <div className="flex items-center" style={{ minHeight: 15 }}>
+                  {deletedNote && !error && <span role="status" style={{ font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-success, #7fbf7f)' }}>{t('auth.accountDeleted')}</span>}
                   {error && <span role="alert" style={{ font: '500 11px var(--ravenof-font-body)', color: '#c65563' }}>{error}</span>}
                   <div className="flex-1" />
                   <Link href="/digital/forgot-password" onClick={() => playUiClick()} className="ravenof-press" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('auth.forgotPassword')}</Link>
@@ -223,7 +229,7 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
             <form onSubmit={submit} className="flex flex-col" style={{ gap: 8, marginTop: 2 }} noValidate>
               <div>
                 <RavenofTextField id="rvn-user" type="text" placeholder={t('auth.username')} value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  onChange={(e) => setUsername(e.target.value.replace(/[^A-Za-z0-9_]/g, ''))}
                   required maxLength={20} autoComplete="username" aria-label={t('auth.username')}
                   aria-invalid={username.length > 0 && !USERNAME_RE.test(username)} aria-describedby="rvn-user-hint" />
                 {username.length > 0 && !USERNAME_RE.test(username) && (

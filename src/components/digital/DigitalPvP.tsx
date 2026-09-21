@@ -67,7 +67,7 @@ export function DigitalPvP() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { setDecks([]); return }
       setUserId(user.id)
-      setUserName((user.user_metadata?.username as string) || (user.user_metadata?.display_name as string) || (user.email?.split('@')[0]) || t('battle.player'))
+      setUserName((user.user_metadata?.display_name as string) || (user.user_metadata?.username as string) || (user.email?.split('@')[0]) || t('battle.player'))
       friendsList().then((r) => setFriends(r.friends)).catch(() => {})
       const [{ data }, { data: colRows }, { data: prof }] = await Promise.all([
         supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),

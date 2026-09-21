@@ -68,7 +68,10 @@ export default function BattleLayout(props: BattleLayoutProps) {
     hpBar, goldBar, renderPile, renderUnitsRow, renderArtifactRow, renderReactionRow,
     dFieldRow, renderOppHand, renderHand, renderLog, renderLogStrip, renderEndTurn, renderDiscardGold, onEmote, turnDeadline, renderEmoteBubble,
   } = props
-  const [emoteOpen, setEmoteOpen] = useState(false)
+  // Emocijų ratas: atidaromas arba iš kairės juostos mygtuko, arba bakstelėjus
+  // SAVO avatarą (intuityvu) — nuo to priklauso, kurioje vietoje ratas išnyra.
+  const [emoteOpen, setEmoteOpen] = useState<null | 'rail' | 'avatar'>(null)
+  const avTapRef = useRef(0)
   const [logExpanded, setLogExpanded] = useState(false)
   const logTouchX = useRef<number | null>(null)
   const logScrollRef = useRef<HTMLDivElement>(null)
@@ -98,7 +101,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
         {/* ── KAIRĖ: emote + AI/tavo artefaktai/reakcijos + suskleidžiamas žurnalas ── */}
         <aside className="flex flex-col gap-1 min-h-0 overflow-hidden">
           <RailCard style={railPanel} className="shrink-0 flex items-center justify-between p-1">
-            <button onClick={() => setEmoteOpen((v) => !v)} title="Emote" className="combat-round-icon text-[15px]" style={{ filter: emoteOpen ? 'brightness(1.25)' : undefined }}>😊</button>
+            <button onClick={() => setEmoteOpen((v) => (v ? null : 'rail'))} title="Emote" className="combat-round-icon text-[15px]" style={{ filter: emoteOpen === 'rail' ? 'brightness(1.25)' : undefined }}>😊</button>
             <button onClick={() => setLogExpanded((v) => !v)} title={t('battle.layout.log')} className="combat-round-icon" style={{ filter: logExpanded ? 'brightness(1.25)' : undefined }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-log.png" alt="" /></button>
           </RailCard>
           {/* Priešo artefaktai + reakcijos */}
@@ -161,7 +164,9 @@ export default function BattleLayout(props: BattleLayoutProps) {
             <div className="shrink-0">{renderUnitsRow('you', 'units-you')}</div>
           </div>
           {/* Tavo avataras — dešinys apatinis lentos kampas (fieldo pusėj, tuščioj erdvėj prie pile'ų) */}
-          <div className="absolute right-2 bottom-1 z-[9] flex items-center gap-1.5">
+          <div className="absolute right-2 bottom-1 z-[9] flex items-center gap-1.5"
+            onPointerDown={() => { avTapRef.current = Date.now() }}
+            onClick={() => { if (Date.now() - avTapRef.current < 400) setEmoteOpen((v) => (v ? null : 'avatar')) }}>
             {renderEmoteBubble?.('you')}
             {hpBar('you', 0.74)}
           </div>
@@ -197,8 +202,10 @@ export default function BattleLayout(props: BattleLayoutProps) {
         {/* ── EMOTE ratas (radialinis) – ne rail'o viduj, kad nekarpytu overflow ── */}
         {emoteOpen && (
           <>
-            <div className="absolute inset-0 z-40" onClick={() => setEmoteOpen(false)} />
-            <div className="absolute z-50" style={{ left: 'clamp(60px,8vw,120px)', bottom: 'clamp(120px,26vh,220px)', width: 150, height: 150 }}>
+            <div className="absolute inset-0 z-40" onClick={() => setEmoteOpen(null)} />
+            <div className="absolute z-50" style={emoteOpen === 'avatar'
+              ? { right: 'clamp(4px,1.5vw,18px)', bottom: 'clamp(78px,16vh,140px)', width: 150, height: 150 }
+              : { left: 'clamp(60px,8vw,120px)', bottom: 'clamp(120px,26vh,220px)', width: 150, height: 150 }}>
               {EMOTES.map((e, i) => {
                 const ang = (-90 + i * (360 / EMOTES.length)) * Math.PI / 180
                 const rad = 58
@@ -206,7 +213,7 @@ export default function BattleLayout(props: BattleLayoutProps) {
                 const y = 75 + Math.sin(ang) * rad - 22
                 return (
                   <button key={i}
-                    onClick={() => { onEmote?.(e); setEmoteOpen(false) }}
+                    onClick={() => { onEmote?.(e); setEmoteOpen(null) }}
                     className="combat-emote-slot absolute w-11 h-11 flex items-center justify-center text-xl transition-transform hover:scale-125 active:scale-95"
                     style={{ left: x, top: y, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))' }}>
                     {e}

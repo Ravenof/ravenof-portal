@@ -12,7 +12,7 @@ const RESERVED_WORDS = new Set([
   'life-tracker', 'offline', 'system', 'support', 'help',
 ])
 
-const USERNAME_REGEX = /^[a-z0-9_]+$/
+const USERNAME_REGEX = /^[a-z0-9_]+$/   // tikrinamas JAU normalizuotas (mazosiomis) vardas
 
 const USERNAME_COOLDOWN_DAYS = 30
 
@@ -31,7 +31,10 @@ export async function changeUsername(newUsername: string): Promise<ChangeUsernam
   if (!user) return { error: 'Nesate prisijungę.' }
 
   // 2. Normalize
-  const normalized = newUsername.trim().toLowerCase()
+  // Zaidejas gali rasyti su didziosiomis: registras islieka rodomame varde,
+  // o `username` (URL/unikalumas) visada mazosiomis.
+  const typed = newUsername.trim()
+  const normalized = typed.toLowerCase()
 
   // 3. Format validation
   if (normalized.length < 3) {
@@ -41,7 +44,7 @@ export async function changeUsername(newUsername: string): Promise<ChangeUsernam
     return { error: 'Vartotojo vardas negali būti ilgesnis nei 24 simboliai.' }
   }
   if (!USERNAME_REGEX.test(normalized)) {
-    return { error: 'Vartotojo vardas gali turėti tik raides (a-z), skaičius ir pabraukimą (_).' }
+    return { error: 'Vartotojo vardas gali turėti tik raides, skaičius ir pabraukimą (_).' }
   }
 
   // 4. Reserved word check
@@ -103,7 +106,7 @@ export async function changeUsername(newUsername: string): Promise<ChangeUsernam
       previous_username_visible_until: visibleUntil,
       username_changed_at:             now,
       updated_at:                      now,
-      ...(shouldUpdateDisplayName ? { display_name: normalized } : {}),
+      ...(shouldUpdateDisplayName ? { display_name: typed } : {}),
     })
     .eq('id', user.id)
 

@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+// Slapyvardi galima rasyti su didziosiomis — raidziu registras islaikomas
+// rodomame varde (display_name), o `username` (URL/unikalumas) visada mazosiomis.
+const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -21,12 +23,12 @@ export default function RegisterPage() {
   const [needsConfirm, setNeedsConfirm] = useState(false)
 
   const handleUsernameChange = (v: string) => {
-    setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+    setUsername(v.replace(/[^A-Za-z0-9_]/g, ''))
   }
 
   const validate = (): string | null => {
     if (!USERNAME_RE.test(username))
-      return 'Slapyvardis: 3–20 simbolių, tik a–z, 0–9, _'
+      return 'Slapyvardis: 3–20 simbolių: raidės, skaičiai, _'
     if (password.length < 8)
       return 'Slaptažodis turi būti bent 8 simbolių'
     if (password !== confirm)
@@ -44,7 +46,7 @@ export default function RegisterPage() {
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
-      .eq('username', username)
+      .eq('username', username.toLowerCase())
       .maybeSingle()
 
     if (existing) {
@@ -56,7 +58,7 @@ export default function RegisterPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username, display_name: username } },
+      options: { data: { username: username.toLowerCase(), display_name: username } },
     })
 
     setLoading(false)

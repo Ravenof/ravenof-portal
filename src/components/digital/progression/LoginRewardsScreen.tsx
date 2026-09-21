@@ -94,13 +94,20 @@ export function LoginRewardsScreen() {
     : t('progression.login.statusReady')
   const statusColor = state.claimedToday ? C.greenFg : state.cycleCompleted ? C.muted : C.goldHi
 
+  // Bakstelejus dienos plytele: jei tai SIANDIENOS atsiimama diena — atsiimam iskart
+  // (intuityvu: spaudi prizo plytele, o ne atskira mygtuka). Kitos dienos — detales.
+  const tapDay = (d: LoginRewardDay) => {
+    if (state.claimableDay === d.day && !d.claimed) { void claim(); return }
+    playUiClick(); setDetail(d)
+  }
+
   // ── dienos mazgas ─────────────────────────────────────────────────────────
   const dayNode = (d: LoginRewardDay, grow: number) => {
     const st = dayState(d, state.claimableDay)
     const tone = TONE[st]
     const first = d.rewards[0]
     return (
-      <button key={d.day} type="button" onClick={() => { playUiClick(); setDetail(d) }}
+      <button key={d.day} type="button" onClick={() => tapDay(d)} disabled={busy && st === 'today'}
         className={'rvn-prog-clip' + (st === 'today' ? ' rvn-prog-glow' : '')}
         aria-label={`${d.day} ${t('progression.login.dayShort')}`}
         style={{
@@ -210,7 +217,7 @@ export function LoginRewardsScreen() {
             <div style={{ flex: 1, display: 'flex', gap: dk ? 10 : 6, minWidth: 0 }}>
               {[29, 30].filter((n) => n < lastDay).map((n) => byDay.get(n)).filter((d): d is LoginRewardDay => !!d).map((d) => dayNode(d, 1))}
               {finalDay && (
-                <button type="button" onClick={() => { playUiClick(); setDetail(finalDay) }}
+                <button type="button" onClick={() => tapDay(finalDay)} disabled={busy && finalSt === 'today'}
                   className="rvn-prog-clip"
                   style={{
                     flex: 2.4, minWidth: 0, minHeight: dk ? 118 : 44, cursor: 'pointer', textAlign: 'left',

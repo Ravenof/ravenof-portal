@@ -1480,6 +1480,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coinToss?.phase])
 
+  // Saugiklis: monetos metimo uzdanga slepia mulligana, tad ji NIEKADA negali likti
+  // pakibusi (pvz. jei praleidziamas fazes perjungimas). Po pilnos trukmes +1s
+  // uzdanga nuimama priverstinai.
+  useEffect(() => {
+    if (!coinToss) return
+    const t = window.setTimeout(() => setCoinToss(null), COIN_TOSS.spinMs + COIN_TOSS.holdMs + 1000)
+    return () => window.clearTimeout(t)
+  }, [coinToss])
+
   // Pop-up be reikalaujamo veiksmo (arba patarimas) – pristabdo AI ir veiksmus.
   // Sutrauktas popup nebeblokuoja. ŽMK 'draw' eilė irgi pristabdo AI.
   const popupBlocks = ((!!step && !step.require) || !!activeTip) && !popupCollapsed
