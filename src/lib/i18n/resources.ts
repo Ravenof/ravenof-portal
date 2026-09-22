@@ -41,6 +41,8 @@ import lt_progression from '@/locales/lt/progression.json'
 import en_progression from '@/locales/en/progression.json'
 import lt_battleLog from '@/locales/lt/battleLog.json'
 import en_battleLog from '@/locales/en/battleLog.json'
+import lt_battleLogShort from '@/locales/lt/battleLogShort.json'
+import en_battleLogShort from '@/locales/en/battleLogShort.json'
 import lt_statusEffects from '@/locales/lt/statusEffects.json'
 import en_statusEffects from '@/locales/en/statusEffects.json'
 import lt_profile from '@/locales/lt/profile.json'
@@ -70,6 +72,7 @@ export const RESOURCES = {
     rewards: lt_rewards,
     progression: lt_progression,
     battleLog: lt_battleLog,
+    battleLogShort: lt_battleLogShort,
     statusEffects: lt_statusEffects,
     accessibility: lt_accessibility,
     profile: lt_profile,
@@ -95,6 +98,7 @@ export const RESOURCES = {
     rewards: en_rewards,
     progression: en_progression,
     battleLog: en_battleLog,
+    battleLogShort: en_battleLogShort,
     statusEffects: en_statusEffects,
     accessibility: en_accessibility,
     profile: en_profile,

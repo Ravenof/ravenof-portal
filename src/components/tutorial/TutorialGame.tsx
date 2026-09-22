@@ -69,6 +69,7 @@ import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio }
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled } from '@/lib/settings'
 import { SceneFxLayer, preloadSceneImages, type SceneFxHandle, type SceneBox, type SceneKeywordKind } from '@/components/tutorial/SceneFxLayer'
+import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogList'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
 import { useCinematicQueue } from '@/lib/game/cinematicQueue'
@@ -1167,6 +1168,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     }
   }
   const [showLog, setShowLog] = useState(false)
+  // Kovos žurnalas v2: filtras „Svarbu" numatytas (naujokams), pasirinkimas – localStorage.
+  const [logFilter, setLogFilterState] = useState<LogFilter>(() => {
+    if (typeof window === 'undefined') return 'important'
+    try { const v = window.localStorage.getItem('rvn-log-filter'); return v === 'all' ? 'all' : 'important' } catch { return 'important' }
+  })
+  const setLogFilter = useCallback((f: LogFilter) => { setLogFilterState(f); try { window.localStorage.setItem('rvn-log-filter', f) } catch { /* */ } }, [])
   // ── Avatarai (mūšio HP taikiniai + balsai) ─────────────────────────────────
   const [youAvatar, setYouAvatar] = useState<BattleAvatar | null>(null)
   const [enemyAvatar, setEnemyAvatar] = useState<BattleAvatar | null>(null)
@@ -4581,52 +4588,18 @@ doAction({ t: 'endTurn', actor: 'you' })
       </div>
     )
   }
+  // ── Kovos žurnalas v2 (BattleLogList): 1 kortelė = 1 veiksmas ──
+  const logMini = (c: TutCard, w: number) => <MiniCard c={c} w={w} />
+  const logInspect = (c: TutCard) => { playCardFlip(); setInspect(c) }
+  const logHover = (c: TutCard | null, x: number, y: number) => { if (isTouch) return; setHoverCard(c ? { card: c, x, y } : null) }
+  const logFindCard = (name?: string) => findCard(name)
   const renderLogH = () => {
     if (!game) return null
-    return visibleLog.slice(-26).map((e, i) => {
-      const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
-      const col = e.side === 'you' ? '#4ade80' : '#f87171'
-      return (
-        <div key={i} className="flex items-center gap-1.5 text-[11px] leading-tight">
-          <span style={{ width: 3, alignSelf: 'stretch', background: col, borderRadius: 2, flexShrink: 0 }} />
-          {card && (
-            <div className="shrink-0 rounded overflow-hidden cursor-pointer" style={{ width: 26, outline: '1px solid ' + col }}
-              onClick={() => { playCardFlip(); setInspect(card) }}
-              onMouseEnter={!isTouch ? (ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY }) : undefined}
-              onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}>
-              <MiniCard c={card} w={26} />
-            </div>
-          )}
-          <span style={{ color: e.side === 'you' ? 'rgba(190,240,200,0.85)' : 'rgba(240,190,190,0.85)' }}>{eventText(e, t)}</span>
-        </div>
-      )
-    })
+    return <BattleLogList log={visibleLog} mode={desktopLayout ? 'panel' : 'drawer'} t={t} findCard={logFindCard} renderMini={logMini} onInspect={logInspect} onHover={logHover} filter={logFilter} onFilter={setLogFilter} />
   }
   const renderLogStripH = () => {
     if (!game) return null
-    // Paskutiniai įvykiai su TEKSTU: kortos thumbnail kairėje + skaitomas aprašymas šalia
-    const IGNORE = new Set(['fxSource', 'zmk', 'gold'])
-    const items = game.log
-      .map((e, idx) => (e.key && !IGNORE.has(e.t) && !(e.t === 'draw' && e.side !== 'you') ? { e, idx, card: findCard(e.cardName) } : null))
-      .filter((x): x is NonNullable<{ e: typeof game.log[number]; idx: number; card: TutCard | null }> => !!x)
-      .slice(-4)
-    if (items.length === 0) return <span className="text-[8px] text-center" style={{ color: 'var(--text-muted)' }}>—</span>
-    return items.map(({ e, idx, card }, i) => {
-      const col = e.side === 'you' ? '#4ade80' : '#f87171'
-      const last = i === items.length - 1
-      return (
-        <div key={idx} onClick={() => { if (card) { playCardFlip(); setInspect(card) } }}
-          className="shrink-0 w-full flex items-center gap-1 rounded-md px-0.5 py-0.5"
-          style={{ cursor: card ? 'pointer' : 'default', background: last ? 'rgba(255,255,255,0.06)' : 'transparent', opacity: last ? 1 : 0.75 }}>
-          <span className="shrink-0 rounded overflow-hidden" style={{ width: 24, outline: '1.5px solid ' + col }}>
-            {card ? <MiniCard c={card} w={24} /> : <span className="flex items-center justify-center" style={{ width: 24, height: 32, background: 'rgba(10,8,16,0.8)', color: col, fontSize: 11 }}>⚔</span>}
-          </span>
-          <span className="min-w-0 flex-1 leading-tight" style={{ fontSize: 8.5, color: '#d8cfc0', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {eventText(e, t)}
-          </span>
-        </div>
-      )
-    })
+    return <BattleLogList log={visibleLog} mode="strip" t={t} findCard={logFindCard} renderMini={logMini} onInspect={logInspect} filter={logFilter} />
   }
   const renderEndTurnH = () => {
     if (!game) return null
@@ -5108,24 +5081,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="rounded-xl p-2 flex-1 min-h-0 flex flex-col" style={RAIL_PANEL}>
                 <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>{t('battle.game.actionLog')}</span>
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 pr-1">
-                  {visibleLog.slice(-26).map((e, i) => {
-                    const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
-                    const col = e.side === 'you' ? '#4ade80' : '#f87171'
-                    return (
-                      <div key={i} className="flex items-center gap-1.5 text-[10px] leading-tight">
-                        <span style={{ width: 3, alignSelf: 'stretch', background: col, borderRadius: 2, flexShrink: 0 }} />
-                        {card && (
-                          <div className="shrink-0 rounded overflow-hidden cursor-pointer" style={{ width: 18, outline: '1px solid ' + col }}
-                            onClick={() => { playCardFlip(); setInspect(card) }}
-                            onMouseEnter={!isTouch ? (ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY }) : undefined}
-                            onMouseLeave={!isTouch ? () => setHoverCard(null) : undefined}>
-                            <MiniCard c={card} w={18} />
-                          </div>
-                        )}
-                        <span className="truncate" style={{ color: e.side === 'you' ? 'rgba(190,240,200,0.85)' : 'rgba(240,190,190,0.85)' }}>{eventText(e, t)}</span>
-                      </div>
-                    )
-                  })}
+                  <BattleLogList log={visibleLog} mode="panel" t={t} findCard={logFindCard} renderMini={logMini} onInspect={logInspect} onHover={logHover} filter={logFilter} onFilter={setLogFilter} />
                 </div>
               </div>
             </aside>
@@ -5419,43 +5375,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <button onClick={() => { playUiClick(); setShowLog(false) }} aria-label={t('battle.game.close')} className="combat-round-icon" style={{ width: 28, height: 28 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/icons/icon-close.png" alt="" style={{ width: 14, height: 14 }} /></button>
             </div>
             <div className="space-y-1">
-              {visibleLog.slice(-80).map((e, i) => {
-                // Traukimo įvykiai: korta matoma TIK savininkui ('you'). Priešo (po swapPerspective – 'ai') traukimas lieka užverstas.
-                const card = e.t === 'draw' && e.side !== 'you' ? null : findCard(e.cardName)
-                const zImg = e.t === 'zmk' && e.zmk ? zmkImg(game, e.zmk) : null
-                const sideColor = e.side === 'you' ? 'rgba(96,165,250,0.7)' : 'rgba(167,139,250,0.7)'
-                return (
-                  <div key={i} className="flex items-start gap-1.5">
-                    {card ? (
-                      <div
-                        onClick={() => { playCardFlip(); setInspect(card) }}
-                        onMouseEnter={(ev) => setHoverCard({ card, x: ev.clientX, y: ev.clientY })}
-                        onMouseMove={(ev) => setHoverCard((h) => h ? { ...h, x: ev.clientX, y: ev.clientY } : h)}
-                        onMouseLeave={() => setHoverCard(null)}
-                        onTouchStart={() => { lpRef.current = setTimeout(() => { playCardFlip(); openInspectHeld(card) }, 450) }}
-                        onTouchEnd={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
-                        onTouchMove={() => { if (lpRef.current) { clearTimeout(lpRef.current); lpRef.current = null } }}
-                        className="shrink-0 cursor-pointer rounded overflow-hidden"
-                        style={{ outline: '1.5px solid ' + sideColor }}
-                        title={t('battle.game.inspectTip', { card: card.name })}>
-                        <MiniCard c={card} w={28} />
-                      </div>
-                    ) : zImg ? (
-                      <div className="shrink-0 rounded overflow-hidden" style={{ width: 20, aspectRatio: '2.5 / 3.5', border: '1px solid var(--gold)' }}>
-                        <img src={zImg} alt={e.zmk ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                      </div>
-                    ) : null}
-                    <p className="text-[10px] leading-snug" style={{
-                      color: e.side === 'you' ? 'var(--text-secondary)' : '#a78bfa',
-                      opacity: e.t === 'startTurn' ? 1 : 0.9,
-                      fontWeight: e.t === 'startTurn' ? 700 : 400,
-                      paddingTop: (card || zImg) ? 2 : 0,
-                    }}>
-                      {eventText(e, t)}
-                    </p>
-                  </div>
-                )
-              })}
+              <BattleLogList log={visibleLog} mode="drawer" t={t} findCard={logFindCard} renderMini={logMini} onInspect={logInspect} onHover={logHover} filter={logFilter} onFilter={setLogFilter} />
             </div>
           </motion.div>
         )}

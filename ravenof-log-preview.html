@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="lt"><head><meta charset="utf-8">
+<title>Ravenof — Kovos žurnalas v2 (peržiūra)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--gold:#d4a33b;--you:#4ade80;--ai:#f87171;--bg:#0b0912;--panel:#110d1a;--line:#2a2438;--text:#e8dcb5;--muted:#8e84ab}
+body{background:#060409;margin:0;padding:20px;color:#bfb4dd;font-family:system-ui,sans-serif}
+h1{font:700 16px Georgia,serif;color:#ffd97a;margin:0 0 4px}
+.sub{font-size:12px;color:var(--muted);margin-bottom:16px;max-width:900px;line-height:1.5}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.col h2{font:700 11px system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.panel{background:linear-gradient(160deg,rgba(17,13,26,.98),rgba(8,6,12,.99));border:1px solid rgba(240,180,41,.35);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px;border-bottom:1px solid rgba(240,180,41,.2)}
+.hdr b{font:700 10px Georgia,serif;letter-spacing:.2em;color:var(--gold)}
+.tabs{display:flex;gap:4px}
+.tab{font-size:9px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted);cursor:pointer;user-select:none}
+.tab.on{background:rgba(240,180,41,.15);border-color:rgba(240,180,41,.5);color:#ffd97a}
+.body{overflow-y:auto;padding:6px 8px;display:flex;flex-direction:column;gap:4px}
+/* ── DABAR ── */
+.old{display:flex;align-items:center;gap:6px;font-size:11px;line-height:1.25}
+.old .bar{width:3px;align-self:stretch;border-radius:2px;flex-shrink:0}
+.old .mini{width:26px;height:35px;border-radius:3px;flex-shrink:0;outline:1px solid}
+.old.y{color:rgba(190,240,200,.85)}.old.a{color:rgba(240,190,190,.85)}
+/* ── SIŪLOMA ── */
+.turn{position:sticky;top:-7px;z-index:2;margin:4px -8px 2px;padding:5px 10px;background:rgba(8,6,12,.96);border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font:700 9.5px system-ui;letter-spacing:.14em;text-transform:uppercase}
+.turn .who{color:var(--gold)}.turn .who.a{color:var(--ai)}.turn .who.y{color:var(--you)}
+.turn .meta{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-size:9.5px}
+.act{position:relative;display:grid;grid-template-columns:3px 1fr;gap:0 7px;border-radius:9px;padding:4px 6px 4px 4px;background:rgba(255,255,255,.025);cursor:pointer}
+.act:hover{background:rgba(255,255,255,.05)}
+.act .rail{border-radius:2px;align-self:stretch}
+.act.y .rail{background:var(--you)}.act.a .rail{background:var(--ai)}
+.act .main{display:flex;flex-direction:column;gap:3px;min-width:0}
+.line{display:flex;align-items:center;gap:5px;min-width:0}
+.th{width:22px;height:30px;border-radius:3px;flex-shrink:0;outline:1.5px solid rgba(255,255,255,.18);background:#1a1426 center/cover;position:relative}
+.th.dead::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.55);border-radius:3px}
+.th.dead::before{content:'☠';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffb0a0;font-size:13px;z-index:1}
+.av{width:22px;height:22px;border-radius:50%;flex-shrink:0;outline:1.5px solid rgba(255,255,255,.2);background:#3a1a22 center/cover;display:flex;align-items:center;justify-content:center;font-size:11px}
+.ico{width:16px;text-align:center;flex-shrink:0;font-size:12px;line-height:1}
+.name{font:700 11px Georgia,serif;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.name small{font:600 9.5px system-ui;color:var(--muted)}
+.arrow{color:var(--muted);font-size:11px;flex-shrink:0}
+.chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:3px;font:800 10.5px system-ui;padding:1px 6px;border-radius:5px;background:rgba(8,6,12,.9);border:1px solid var(--line);color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip.dmg{color:#ff8a7a;border-color:rgba(255,90,74,.5)}
+.chip.heal{color:#5ef0c0;border-color:rgba(94,240,192,.5)}
+.chip.gold{color:#ffd97a;border-color:rgba(240,180,41,.5)}
+.chip.dead{color:#ffb0a0;border-color:rgba(255,120,90,.6);background:rgba(120,20,10,.35)}
+.chip.zero{color:#9aa0ad}
+.chip .z{font-size:8px;letter-spacing:-.01em;font-weight:700;color:var(--muted);padding-left:3px;border-left:1px solid var(--line)}
+.chip .z.crit{color:#ff6a3d}.chip .z.fiz{color:#9aa0ad}
+.chip .z.p{color:#4ade80}.chip .z.m{color:#f87171}
+.kw{font:800 8.5px system-ui;letter-spacing:.12em;padding:1px 5px;border-radius:4px;border:1px solid;align-self:flex-start}
+.kw.bc{color:#ffd97a;border-color:rgba(240,180,41,.55)}.kw.lw{color:#c4b5fd;border-color:rgba(167,139,250,.55)}.kw.tr{color:#7dd3fc;border-color:rgba(56,189,248,.55)}
+.hit{display:flex;align-items:center;gap:5px;padding-left:2px}
+.hit .name{font-weight:600;font-size:10.5px}
+.detail{display:none;margin-top:3px;padding:5px 6px;border-radius:6px;background:rgba(0,0,0,.35);font-size:10px;line-height:1.35;color:#bfb4dd}
+.act.open .detail{display:block}
+.detail div::before{content:'· ';color:var(--muted)}
+.newpill{position:sticky;bottom:0;align-self:center;font:700 9.5px system-ui;padding:3px 9px;border-radius:99px;background:rgba(240,180,41,.18);border:1px solid rgba(240,180,41,.5);color:#ffd97a;margin-top:4px}
+.strip{display:flex;flex-direction:column;gap:4px;padding:6px}
+.sact{display:flex;align-items:center;gap:4px;padding:3px 4px;border-radius:7px;background:rgba(255,255,255,.04);border-left:3px solid}
+.sact.y{border-color:var(--you)}.sact.a{border-color:var(--ai)}
+.sact .th{width:20px;height:27px}
+.legend{font-size:11px;color:var(--muted);line-height:1.6;max-width:900px;margin-top:18px}
+.legend b{color:var(--text)}
+.note{font-size:10px;color:var(--muted);margin-top:6px}
+</style></head><body>
+<h1>Kovos žurnalas v2 — peržiūra</h1>
+<div class="sub">Tie patys įvykiai iš tikros kovos (2026-09-23, PvE, 4–5 ėjimai). Kairėje — kaip yra dabar (11 px sakiniai, 1 eilutė = 1 variklio įvykis). Dešinėje — siūlymas: <b>1 eilutė = 1 veiksmas</b>, rezultatai — skaičių žetonai, ŽMK — žymė ant žalos, kortos — miniatiūros, ėjimas — lipnus antraštės skirtukas. Spustelėk veiksmą — išsiskleidžia senieji sakiniai (nieko neprarandama). Skirtukai „Viskas / Svarbu" filtruoja. Plotis 215 px = tikras desktop šoninis skydelis.</div>
+
+<div class="row">
+  <div class="col"><h2>Dabar (215 px)</h2>
+    <div class="panel" style="width:215px;height:560px"><div class="hdr"><b>MŪŠIO ŽURNALAS</b></div>
+      <div class="body" id="oldBody"></div></div></div>
+
+  <div class="col"><h2>Siūloma — desktop skydelis (215 px)</h2>
+    <div class="panel" style="width:215px;height:560px"><div class="hdr"><b>ŽURNALAS</b><div class="tabs"><span class="tab on" data-f="all">Viskas</span><span class="tab" data-f="imp">Svarbu</span></div></div>
+      <div class="body" id="newBody"></div></div></div>
+
+  <div class="col"><h2>Siūloma — mobilus drawer (340 px)</h2>
+    <div class="panel" style="width:340px;height:560px"><div class="hdr"><b>ŽURNALAS</b><div class="tabs"><span class="tab on" data-f="all">Viskas</span><span class="tab" data-f="imp">Svarbu</span></div></div>
+      <div class="body" id="newBodyWide"></div></div>
+    <div class="note">Mobilus rail'o „strip" (vietoj 4 sakinių 8,5 px šriftu) — paskutiniai 3 veiksmai be teksto:</div>
+    <div class="panel" style="width:124px;margin-top:6px"><div class="strip" id="strip"></div></div>
+  </div>
+</div>
+
+<div class="legend">
+<b>Skaitymo taisyklės:</b> kairysis brūkšnys = kieno veiksmas (žalia tu / raudona priešas). Miniatiūra = korta (bakstelėjus – apžiūra). Antraštė = veiksmažodis: <b>puola · iškviečia · burtas · šūksnis · noras · trigeris · reakcija · prakeiksmas</b>. Žetonai: <span class="chip dmg">−4<span class="z">ŽMK +0</span></span> žala su ŽMK žyme (žalia +, raudona −, <span class="chip dmg">−8<span class="z crit">×2</span></span> kritinis, <span class="chip zero">0<span class="z fiz">×0</span></span> nesėkmė), <span class="chip heal">+3</span> gydymas, <span class="chip">+2 ATK</span> stiprinimas, <span class="chip dead">☠</span> žūtis, <span class="chip gold">+500 🪙</span> auksas ėjimo antraštėje. Traukimai, auksas ir „ėjimo pabaiga" sutraukti į ėjimo antraštę — jie nebeužima eilučių.
+</div>
+
+<script>
+(function(){
+const ART={g:'public/cards/mirties-marsas/CHARACTER_1-1.webp',s:'public/cards/demonu-orda/Demonu_Orda_10.webp'};
+const card=(n,a)=>({n,a});
+const C={sad:card('Sadakumo','s'),gra:card('Grafas Liuteris','s'),ugn:card('Ugnikalnio sargybinis','s'),gor:card('Gorgonė','g')};
+// ── įvykiai kaip variklio log'e (supaprastinta) ──
+const OLD=[
+ ['a','— Priešininkas pradeda 4-ą ėjimą —'],['a','Priešininkas traukia kortą.'],['a','Priešininkas gauna 500 aukso (4 ėjimas, +100 iš lauko).'],
+ ['a','Priešininkas iškviečia „Grafas Liuteris" (500 aukso).','gra'],['a','⚔ „Sadakumo" atakuoja tave tiesiogiai!','sad'],['a','ŽMK: +1 → 4 bazinė žala tampa 5.'],['a','Tu gauni 5 žalos. Liko 35 HP.'],['a','Priešininkas baigia ėjimą. Nepanaudotas auksas dingsta.'],
+ ['y','— Tu pradedi 4-ą ėjimą —'],['y','Tu trauki kortą.','gor'],['y','Tu gauni 500 aukso (4 ėjimas, +100 iš lauko).'],['y','Tu iškvieti „Gorgonė" (400 aukso).','gor'],['y','Tu baigi ėjimą. Nepanaudotas auksas dingsta.'],
+ ['a','— Priešininkas pradeda 5-ą ėjimą —'],['a','Priešininkas traukia kortą.'],['a','Priešininkas gauna 600 aukso (5 ėjimas, +100 iš lauko).'],
+ ['a','Priešininkas iškviečia „Ugnikalnio sargybinis" (600 aukso).','ugn'],['a','📣 „Ugnikalnio sargybinis" Kovos šūksnis!','ugn'],['a','ŽMK: +1 → 1 bazinė žala tampa 2.'],['a','„Sadakumo" gauna 2 žalos (3/5).','sad'],['a','ŽMK: +1 → 1 bazinė žala tampa 2.'],['a','„Grafas Liuteris" gauna 2 žalos (2/4).','gra'],['a','ŽMK: +0 → 1 bazinė žala tampa 1.'],['a','„Ugnikalnio sargybinis" gauna 1 žalos (8/7).','ugn'],['a','ŽMK: ×0 → 1 bazinė žala tampa 0.'],['a','Ištraukta ×0 – ŽMK permaišoma iš naujo.'],['a','„Gorgonė" žalos negauna (0).','gor'],
+ ['a','⚔ „Sadakumo" (4 ATK) atakuoja „Gorgonė" – abu traukia po ŽMK!','sad'],['a','ŽMK: +0 → 4 bazinė žala tampa 4.'],['a','„Gorgonė" gauna 4 žalos (0/4).','gor'],['a','ŽMK: −1 → 5 bazinė žala tampa 4.'],['a','Atgalinė žala: „Sadakumo" gauna 4 (0/5).','sad'],['a','„Gorgonė" žūsta ir keliauja į kapinyną.','gor'],['a','„Sadakumo" žūsta ir keliauja į kapinyną.','sad'],
+ ['a','⚔ „Grafas Liuteris" atakuoja tave tiesiogiai!','gra'],['a','ŽMK: +1 → 5 bazinė žala tampa 6.'],['a','Tu gauni 6 žalos. Liko 29 HP.'],['a','Priešininkas baigia ėjimą. Nepanaudotas auksas dingsta.'],
+ ['y','— Tu pradedi 5-ą ėjimą —'],['y','Tu trauki kortą.'],['y','Tu gauni 600 aukso (5 ėjimas, +100 iš lauko).'],
+];
+const ob=document.getElementById('oldBody');
+for(const [s,txt,c] of OLD){const d=document.createElement('div');d.className='old '+s;const col=s==='y'?'#4ade80':'#f87171';
+ d.innerHTML=`<span class="bar" style="background:${col}"></span>${c?`<span class="mini" style="outline-color:${col};background:url(${ART[C[c].a]}) center/cover"></span>`:''}<span>${txt}</span>`;ob.appendChild(d)}
+ob.scrollTop=ob.scrollHeight;
+
+// ── veiksmai (sugrupuota) ──
+const th=(c,dead)=>`<span class="th${dead?' dead':''}" style="background-image:url(${ART[c.a]})" title="${c.n}"></span>`;
+const AV_Y='<span class="av" style="outline-color:#4ade80">🧑</span>',AV_A='<span class="av" style="outline-color:#f87171">👹</span>';
+const chip=(cls,txt,z,zc)=>`<span class="chip ${cls}">${txt}${z!=null?`<span class="z ${zc||''}">${z}</span>`:''}</span>`;
+const zmk=v=>v==='x2'?['×2','crit']:v==='x0'?['×0','fiz']:[('ŽMK '+v).replace('-','−'),v.startsWith('+')&&v!=='+0'?'p':v.startsWith('-')?'m':''];
+const dmg=(n,v,dead)=>{const [t,c]=zmk(v);return chip(n===0?'zero':'dmg',n===0?'0':'−'+n,t,c)+(dead?chip('dead','☠'):'')};
+const ACTS=[
+ {turn:{n:4,side:'a',meta:'+500 🪙 · 1 korta'}},
+ {side:'a',imp:false,ico:'✦',head:`${AV_A}<span class="arrow">▸</span>${th(C.gra)}<span class="name">Grafas Liuteris <small>500 🪙</small></span>`,chips:'',det:['Priešininkas iškviečia „Grafas Liuteris" (500 aukso).']},
+ {side:'a',imp:true,ico:'⚔',head:`${th(C.sad)}<span class="name">Sadakumo</span><span class="arrow">→</span>${AV_Y}<span class="name">Tu</span>`,chips:dmg(5,'+1')+chip('','35 HP'),det:['⚔ „Sadakumo" atakuoja tave tiesiogiai!','ŽMK: +1 → 4 bazinė žala tampa 5.','Tu gauni 5 žalos. Liko 35 HP.']},
+ {turn:{n:4,side:'y',meta:'+500 🪙 · 1 korta'}},
+ {side:'y',imp:false,ico:'✦',head:`${AV_Y}<span class="arrow">▸</span>${th(C.gor)}<span class="name">Gorgonė <small>400 🪙</small></span>`,chips:'',det:['Tu iškvieti „Gorgonė" (400 aukso).']},
+ {turn:{n:5,side:'a',meta:'+600 🪙 · 1 korta'}},
+ {side:'a',imp:true,ico:'✦',head:`${AV_A}<span class="arrow">▸</span>${th(C.ugn)}<span class="name">Ugnikalnio sargybinis <small>600 🪙</small></span>`,kw:['bc','KOVOS ŠŪKSNIS'],
+  hits:[[th(C.sad),'Sadakumo',dmg(2,'+1')+chip('','3/5')],[th(C.gra),'Grafas Liuteris',dmg(2,'+1')+chip('','2/4')],[th(C.ugn),'Ugnikalnio sargybinis',dmg(1,'+0')+chip('','8/7')],[th(C.gor),'Gorgonė',dmg(0,'x0')]],
+  det:['Priešininkas iškviečia „Ugnikalnio sargybinis" (600 aukso).','📣 „Ugnikalnio sargybinis" Kovos šūksnis!','ŽMK: +1 → 1 bazinė žala tampa 2. „Sadakumo" gauna 2 žalos (3/5).','ŽMK: +1 → 1 bazinė žala tampa 2. „Grafas Liuteris" gauna 2 žalos (2/4).','ŽMK: +0 → 1 bazinė žala tampa 1. „Ugnikalnio sargybinis" gauna 1 žalos (8/7).','ŽMK: ×0 → 1 bazinė žala tampa 0. „Gorgonė" žalos negauna (0). ŽMK permaišoma.']},
+ {side:'a',imp:true,ico:'⚔',head:`${th(C.sad,true)}<span class="name">Sadakumo</span><span class="arrow">⇄</span>${th(C.gor,true)}<span class="name">Gorgonė</span>`,
+  hits:[['','Gorgonė gauna',dmg(4,'+0',true)],['','Sadakumo atgal',dmg(4,'-1',true)]],
+  det:['⚔ „Sadakumo" (4 ATK) atakuoja „Gorgonė" – abu traukia po ŽMK!','ŽMK: +0 → 4 bazinė žala tampa 4. „Gorgonė" gauna 4 žalos (0/4).','ŽMK: −1 → 5 bazinė žala tampa 4. Atgalinė žala: „Sadakumo" gauna 4 (0/5).','„Gorgonė" žūsta ir keliauja į kapinyną. „Sadakumo" žūsta ir keliauja į kapinyną.']},
+ {side:'a',imp:true,ico:'⚔',head:`${th(C.gra)}<span class="name">Grafas Liuteris</span><span class="arrow">→</span>${AV_Y}<span class="name">Tu</span>`,chips:dmg(6,'+1')+chip('','29 HP'),det:['⚔ „Grafas Liuteris" atakuoja tave tiesiogiai!','ŽMK: +1 → 5 bazinė žala tampa 6.','Tu gauni 6 žalos. Liko 29 HP.']},
+ {turn:{n:5,side:'y',meta:'+600 🪙 · 1 korta'}},
+];
+function render(body,filter){
+ body.innerHTML='';
+ for(const a of ACTS){
+  if(a.turn){const t=a.turn;const d=document.createElement('div');d.className='turn';const narrow=body.closest('.panel').offsetWidth<260;d.innerHTML=`<span class="who ${t.side}">${t.n} ėj. · ${t.side==='y'?'TU':(narrow?'DI':'PRIEŠAS')}</span><span class="meta">${t.meta}</span>`;body.appendChild(d);continue}
+  if(filter==='imp'&&!a.imp)continue;
+  const d=document.createElement('div');d.className='act '+a.side;
+  d.innerHTML=`<span class="rail"></span><div class="main"><div class="line"><span class="ico">${a.ico}</span>${a.head}</div>${a.kw?`<span class="kw ${a.kw[0]}">${a.kw[1]}</span>`:''}${a.hits?a.hits.map(h=>`<div class="hit">${h[0]}<span class="name">${h[1]}</span><span class="chips">${h[2]}</span></div>`).join(''):''}${a.chips?`<div class="chips">${a.chips}</div>`:''}<div class="detail">${a.det.map(x=>`<div>${x}</div>`).join('')}</div></div>`;
+  d.onclick=()=>d.classList.toggle('open');body.appendChild(d)}
+ const p=document.createElement('div');p.className='newpill';p.textContent='↓ 2 nauji';body.appendChild(p);
+ body.scrollTop=body.scrollHeight}
+const nb=document.getElementById('newBody'),nw=document.getElementById('newBodyWide');
+render(nb,'all');render(nw,'all');
+document.querySelectorAll('.tabs').forEach(tabs=>{tabs.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{tabs.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');const body=tabs.closest('.panel').querySelector('.body');render(body,t.dataset.f)})});
+// strip
+const st=document.getElementById('strip');
+[[ 'a',th(C.ugn),'📣',chip('dmg','−2')+chip('dmg','−2')],['a',th(C.sad,true)+th(C.gor,true),'⚔',chip('dead','☠☠')],['a',th(C.gra),'⚔',dmg(6,'+1')]].forEach(([s,t,i,c])=>{const d=document.createElement('div');d.className='sact '+s;d.innerHTML=`${t}<span class="ico">${i}</span><span class="chips">${c}</span>`;st.appendChild(d)});
+})();
+</script>
+</body></html>

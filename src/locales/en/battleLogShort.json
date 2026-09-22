@@ -1,0 +1,41 @@
+{
+  "turn": "Turn {{n}}",
+  "you": "YOU",
+  "foe": "ENEMY",
+  "youShort": "You",
+  "foeShort": "Enemy",
+  "draws": "{{n}} c.",
+  "kw": {
+    "battlecry": "BATTLECRY",
+    "lastwish": "LAST WISH",
+    "trigger": "TRIGGER",
+    "reaction": "REACTION",
+    "curse": "CURSE"
+  },
+  "verb": {
+    "attack": "attacks",
+    "play": "summons",
+    "spell": "spell",
+    "artifact": "artifact",
+    "field": "field",
+    "champion": "champion",
+    "skill": "skill",
+    "curse": "curse"
+  },
+  "hit": {
+    "block": "blocked",
+    "death": "dies",
+    "summon": "summoned",
+    "return": "to hand",
+    "atk": "ATK",
+    "hp": "HP"
+  },
+  "filter": {
+    "all": "All",
+    "important": "Key"
+  },
+  "newItems": "↓ {{n}} new",
+  "showOlder": "Show older ({{n}})",
+  "empty": "Battle not started yet",
+  "detailsHint": "Tap for details"
+}

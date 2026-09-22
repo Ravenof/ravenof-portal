@@ -1,0 +1,41 @@
+{
+  "turn": "{{n}} ėj.",
+  "you": "TU",
+  "foe": "PRIEŠAS",
+  "youShort": "Tu",
+  "foeShort": "Priešas",
+  "draws": "{{n}} k.",
+  "kw": {
+    "battlecry": "KOVOS ŠŪKSNIS",
+    "lastwish": "PASKUTINIS NORAS",
+    "trigger": "TRIGERIS",
+    "reaction": "REAKCIJA",
+    "curse": "PRAKEIKSMAS"
+  },
+  "verb": {
+    "attack": "puola",
+    "play": "iškviečia",
+    "spell": "burtas",
+    "artifact": "artefaktas",
+    "field": "laukas",
+    "champion": "čempionas",
+    "skill": "gebėjimas",
+    "curse": "prakeiksmas"
+  },
+  "hit": {
+    "block": "blokas",
+    "death": "žūsta",
+    "summon": "iškviesta",
+    "return": "į ranką",
+    "atk": "ATK",
+    "hp": "HP"
+  },
+  "filter": {
+    "all": "Viskas",
+    "important": "Svarbu"
+  },
+  "newItems": "↓ {{n}} nauji",
+  "showOlder": "Rodyti senesnius ({{n}})",
+  "empty": "Kova dar neprasidėjo",
+  "detailsHint": "Bakstelėk – detalės"
+}
