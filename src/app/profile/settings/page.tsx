@@ -4,6 +4,7 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { ProfilePrivacyForm } from '@/components/profile/ProfilePrivacyForm'
 import { AvatarUpload } from '@/components/profile/AvatarUpload'
 import { UsernameChangeForm } from '@/components/profile/UsernameChangeForm'
+import { DeleteAccountSection } from '@/components/profile/DeleteAccountSection'
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient()
@@ -88,6 +89,8 @@ export default async function ProfileSettingsPage() {
             Keisti slaptažodį →
           </Link>
         </div>
+
+        <DeleteAccountSection />
       </div>
     </div>
   )
