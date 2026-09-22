@@ -31,6 +31,7 @@ import {
   effectiveCost, auraSpellDamageBonus,
   STATUS_META, TutStatus, boardCreatureCap, type ZmkValue,
   consumeReactionSnapshot, type ReactionGate,
+  setSceneGatesEnabled,
 } from '@/lib/tutorial/engine'
 import { eventText } from '@/lib/tutorial/logText'
 import { setBugGameContext } from '@/lib/digital/bugReport'
@@ -66,7 +67,8 @@ import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCa
 import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
-import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled } from '@/lib/settings'
+import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled } from '@/lib/settings'
+import { SceneFxLayer, preloadSceneImages, type SceneFxHandle, type SceneBox, type SceneKeywordKind } from '@/components/tutorial/SceneFxLayer'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
 import { useCinematicQueue } from '@/lib/game/cinematicQueue'
@@ -81,7 +83,7 @@ import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION
 import { collectMatchStats, dominantFactionId } from '@/lib/game/matchStats'
 import { emitCampaignEvents, type CampaignEventHandler } from '@/lib/campaign/battleBridge'
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
-import { resetReactionPacing, nextReactionIsCompact } from '@/lib/game/reactionPacing'
+import { resetReactionPacing, nextReactionIsCompact, nextKeywordIsCompact } from '@/lib/game/reactionPacing'
 import { impactProfile, severityAtLeast, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { deathStyleFor } from '@/lib/game/deathStyles'
 import { duckMusic } from '@/lib/game/musicManager'
@@ -1054,6 +1056,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const fxRef = useRef<BattleFxHandle>(null)
   /** Reakcijos grandinės sluoksnis + vartų būsena (žr. „Reakcijos grandinės vartai"). */
   const chainRef = useRef<ReactionChainHandle>(null)
+  const sceneRef = useRef<SceneFxHandle>(null)   // ŽMK skrydis + raktažodžių scenos (vartai kaip reakcijų)
   const chainGateActiveRef = useRef(false)
   const arenaRef = useRef<ArenaKey>(randomArena())
   /** Boto nugarėlė – atsitiktinė kiekvienai kovai, nepriklausoma nuo tavosios. */
@@ -1727,6 +1730,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // Game-feel telemetrija: kiekviena kova matuojama iš naujo (modulinė būsena).
     resetFeelTelemetry({ summonCinematics: isSummonCinematicsEnabled(), skillCinematics: isChampionSkillCinematicsEnabled() })
     resetReactionPacing()   // pirma kovos reakcija visada pilna, vėlesnės — kompaktiškos
+    // Scenų FX vartai (ŽMK skrydis + Kovos šūksnis/Paskutinis noras/Trigeris): variklis
+    // daro snapshot'us tik įjungus. Mokymuose (scripted žingsniai) — išjungta.
+    setSceneGatesEnabled(isSceneFxEnabled() && !tutorial?.active)
+    preloadSceneImages([CARD_BACK_SRC.zmk, ...Object.values(ZMK_IMG)])
     landedAtRef.current.clear()   // nauja kova — visi padarai vėl „nusileidžia" iš naujo
     clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     matchRewardRef.current = false
@@ -1980,7 +1987,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // Reakcijos efektai: taikymą jau parodė grandinės animacija – krypties projektilų
     // (ir zoninių bangų) NEBEKARTOJAM, rodom tik rezultatą (skaičiai, statusai, žūtys).
     const hitEvents = fresh.filter((ev) => ev.t === 'damage' || ev.t === 'heal')
-    const reactionOnlyBatch = hitEvents.length > 0 && hitEvents.every((ev) => !!ev.viaReaction)
+    const reactionOnlyBatch = hitEvents.length > 0 && hitEvents.every((ev) => !!ev.viaReaction || !!ev.viaScene)
     const chosenMulti = chosenTargetsRef.current
     chosenTargetsRef.current = null
     const multiProj = aoeMode && !!chosenMulti && chosenMulti.length >= 2
@@ -2131,11 +2138,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         case 'zmk':
           zmkN += 1
           if (showcaseHold > 0) fxSeq += 800  // žalos FX ateina PO ŽMK traukimo animacijos
-          if (e.zmkPair) {
+          if (e.zmkPair && !e.viaScene) {
             const [za, zb] = e.zmkPair
             const payload = { id: ++flyIdRef.current, side: e.side, a: za, b: zb, picked: e.zmkPicked ?? e.zmk ?? za, adv: e.bias === 'advantage' }
             if (showcaseHold > 0) { const hh = showcaseHold; window.setTimeout(() => setZmkRoll(payload), hh) }
             else setZmkRoll(payload)
+          } else if (e.viaScene) {
+            // Scenos FX: kortą jau parodė skrydis iš kaladės (SceneFxLayer) — miniatiūros nereikia
           } else if (game.zmkMode === 'draw') {
             const item = { v: e.zmk ?? '?', side: e.side, revealed: false }
             if (showcaseHold > 0) { const hh = showcaseHold; window.setTimeout(() => setZmkPending((q) => [...q, item]), hh) }
@@ -2143,14 +2152,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           } else {
             pendingZmk.push({ v: e.zmk ?? '?', side: e.side })
           }
-          if (!e.sound) playBattleSound('zmkFlip')
+          if (!e.sound && !e.viaScene) playBattleSound('zmkFlip')   // scenoje flip'as jau nuskambėjo
           if (e.zmk === 'x2' || e.zmk === 'x0') {
             queueTip('zmk-special')
             // Fazė 7: kraštinės ŽMK reikšmės gauna savo momentą; „+0" kelias
             // lieka toks pat greitas kaip buvo (spectacle budget).
             const sk: ZmkSpecialKind = e.zmk === 'x2' ? 'x2' : 'x0'
             const sside = e.side
-            const dz = showcaseHold > 0 ? showcaseHold : SETTLE
+            const dz = e.viaScene ? 0 : showcaseHold > 0 ? showcaseHold : SETTLE
             window.setTimeout(() => setZmkSpecial({ id: ++flyIdRef.current, kind: sk, side: sside }), dz)
             // Mechanikos komunikacija: po ×2/×0 kaladė TIKRAI permaišoma (zmkSpecialReshuffle).
             window.setTimeout(() => setZmkReshuffle({ id: ++flyIdRef.current, side: sside }),
@@ -2463,7 +2472,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             const pat = rectFor({ side: sd })
             // Žala herojui — ta pati ImpactProfile dramaturgija kaip padarams.
             if (pat) {
-              const d = SETTLE + fxSeq; fxSeq += 80
+              const d = e.viaScene ? fxSeq : SETTLE + fxSeq; fxSeq += 80
               const hp = impactProfile(e.severity)
               window.setTimeout(() => {
                 void (async () => {
@@ -2476,7 +2485,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               }, d)
             }
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
-            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction) {
+            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !e.viaScene) {
               const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
               window.setTimeout(() => {
                 const fr = rectOf(sref2)
@@ -2496,7 +2505,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           if (tgt && val) {
             if (tgt.uid) projVictims.add(tgt.uid)
             if (tgt.uid && tgt.side) { const cur = P(game, tgt.side).units.find((u) => u?.uid === tgt.uid)?.hp; if (cur != null) { const uid = tgt.uid; setHpHold((h) => ({ ...h, [uid]: cur + val })) } }
-            const base = SETTLE + fxSeq; fxSeq += 120
+            // Scenos FX (ŽMK skrydis jau parodė taikymą ir laiką): smūgis IŠ KARTO, be projektilo
+            const viaScene = !!e.viaScene
+            const base = viaScene ? fxSeq : SETTLE + fxSeq; fxSeq += viaScene ? 40 : 120
             // elemento spalva: batch e.projectile > source kortos projectileType > frakcijos paletė
             const srcProj = srcCard?.gameplay?.projectileType
             const elemCol = fxElemColor ?? (srcProj && srcProj !== 'none' ? (PROJECTILE_COLOR[srcProj] ?? null) : null)
@@ -2512,7 +2523,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               const from = sref ? rectOf(sref) : null
               // KIEKVIENAS žalos taikinys gauna projektilą (žuvęs ar išgyvenęs);
               // zona (tikras AoE) – be projektilų; pf blokuoja tik ability/attack dublius
-              const fireProj = !am && !!from && !pf && !e.viaReaction
+              const fireProj = !am && !!from && !pf && !e.viaReaction && !viaScene
               if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
               // ── Smūgio kadras (game-feel fazės 4–5) ────────────────────────
               // Visa dramaturgija ateina iš ImpactProfile: hit-stop, purtymo
@@ -2532,7 +2543,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                   if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
                   fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, prof.damageNumberStyle)
                 })()
-              }, fireProj ? 600 : 220)
+              }, viaScene ? 0 : fireProj ? 600 : 220)
             }, base)
           }
           break
@@ -2576,7 +2587,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       if (e.t === 'artifact') queueTip('artifact')
       if (e.t === 'play' && (e.key ?? '').startsWith('battleLog.playUnitSprint')) queueTip('sprint')
       // efekto projektilas/kirtis nuo source kortos (spell / ability / attack)
-      if (e.src && e.tgt && (e.t === 'ability' || e.t === 'attack') && !e.viaReaction) {
+      if (e.src && e.tgt && (e.t === 'ability' || e.t === 'attack') && !e.viaReaction && !e.viaScene) {
         // BURTAI projektilų čia NEšauna – jų projektilus (po vieną KIEKVIENAM žalos
         // taikiniui, nepriklausomai ar taikinys žūsta) paleidžia damage įvykiai žemiau.
         const isAtk = e.t === 'attack'
@@ -2810,6 +2821,71 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         // leidžiam atvaizduoti – pozicijos imamos iš tikrų DOM rect'ų
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
         if (run.cancelled) break
+        // ── Scenų vartai (ŽMK / raktažodžiai): tas pats mechanizmas, kitas sluoksnis ──
+        if (gate.kind && gate.kind !== 'reaction') {
+          if (!sceneRef.current || !isSceneFxEnabled()) continue   // sluoksnio nėra / išjungta → be animacijos
+          const trackBox = (tr: { side?: Side; uid?: string; kind?: string }): SceneBox | null => {
+            const b = boxFor(tr)
+            if (b) return { ...b, track: () => boxFor(tr) }
+            // sunaikinta korta — pozicija iš cache (kortos dydis iš etalono)
+            const c = tr.uid ? unitRectsRef.current.get(tr.uid) : null
+            return c ? { x: c.x, y: c.y, w: 72, h: 96 } : null
+          }
+          try {
+            if (gate.kind === 'zmk') {
+              const draws = gate.draws ?? []
+              // Svečio pusėje snapshot'o nėra (jis gyvena variklio pusėje) → HP prilaikom
+              // rankiniu būdu, kol skrydis nenusileido.
+              const holdUids: string[] = []
+              if (!snap) {
+                for (const d of draws) {
+                  const tr = d.target
+                  if (tr.kind !== 'unit') continue
+                  const cur = P(next, tr.side).units.find((u) => u?.uid === tr.uid)?.hp
+                  if (cur != null) { const uid = tr.uid, hv = cur + d.dmg; holdUids.push(uid); setHpHold((h) => ({ ...h, [uid]: hv })) }
+                }
+              }
+              const zmkDraws = draws.map((d) => {
+                const pileBox = selBox(`[data-pile="zmk-${d.side}"]`) ?? selBox(`[data-pile="deck-${d.side}"]`)
+                const pile: SceneBox = pileBox ?? { ...fxCenter(), w: 40, h: 54 }
+                const target = trackBox(d.target) ?? (d.target.kind === 'player' ? trackBox({ side: d.target.side }) : null)
+                if (!target) return null
+                return { pile, target, value: d.value, pair: d.pair, picked: d.picked, faceUrl: (v: string) => zmkImg(next, v) }
+              }).filter((x): x is NonNullable<typeof x> => !!x)
+              if (zmkDraws.length > 0) {
+                if (process.env.NODE_ENV !== 'production') console.debug(`[SceneFx] zmk draws=${zmkDraws.length}`)
+                await sceneRef.current.playZmk({ draws: zmkDraws, backUrl: CARD_BACK_SRC.zmk, reduced })
+              }
+              if (holdUids.length) setHpHold((h) => { const n = { ...h }; for (const u of holdUids) delete n[u]; return n })
+            } else {
+              const kind: SceneKeywordKind = gate.kind
+              const from = trackBox({ side: gate.side, uid: gate.sourceUid }) ?? trackBox({ side: gate.side })
+              if (!from) continue
+              // Taikiniai: šio kadro efektų įvykiai žurnale (iki kito kadro) su tgt/src nuoroda
+              const gi = gates.indexOf(gate)
+              const endLog = gi >= 0 && gi + 1 < gates.length ? gates[gi + 1].atLog : next.log.length
+              const seen = new Set<string>()
+              const targets: SceneBox[] = []
+              for (const ev of next.log.slice(gate.atLog, endLog)) {
+                if (ev.t !== 'damage' && ev.t !== 'heal' && ev.t !== 'buff' && ev.t !== 'status' && ev.t !== 'death' && ev.t !== 'curse') continue
+                const ref: TargetRef | { side: Side; uid?: string } | undefined = ev.tgt?.kind === 'unit' || ev.tgt?.kind === 'artifact' ? ev.tgt as TargetRef : ev.tgt?.kind === 'player' ? { side: ev.tgt.side ?? ev.side } : ev.src
+                if (!ref) continue
+                const key = ('uid' in ref && ref.uid) ? ref.uid : `p:${ref.side}`
+                if (seen.has(key) || key === gate.sourceUid) continue
+                seen.add(key)
+                const b = trackBox(ref)
+                if (b) targets.push(b)
+                if (targets.length >= 6) break
+              }
+              const title = t(kind === 'battlecry' ? 'battle.game.kwBattlecry' : kind === 'lastwish' ? 'battle.game.kwLastwish' : 'battle.game.kwTrigger')
+              if (process.env.NODE_ENV !== 'production') console.debug(`[SceneFx] ${kind} src=${gate.sourceName} targets=${targets.length}`)
+              await sceneRef.current.playKeyword({ kind, from, targets, title, cardName: gate.sourceName ?? '', compact: nextKeywordIsCompact(kind), reduced })
+            }
+          } catch (err) {
+            console.error('[SceneFx] scene failed – continuing:', err)
+          }
+          continue
+        }
         // 2) pozicijos dinamiškai; KIEKVIENAM paveiktam taikiniui – SAVA grandinė
         //    (padarai, artefaktai, žaidėjo avataras). Taikinio nematant – dokumentuotas
         //    fallback į zonos indikatorių, bet KORTOS dydžio (ne zonos), kad kilpos
@@ -2860,7 +2936,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     } finally {
       finishGateRun()   // 4) galutinė autoritetinė būsena → efektų rezultatai matomi
     }
-  }, [boxFor, selBox, fxCenter, cardByName, finishGateRun])
+  }, [boxFor, selBox, fxCenter, cardByName, finishGateRun, t])
 
   /** Būsenos „commit" su vartais: jei variklis paliko reakcijų kadrų – atskleidžiam per animaciją. */
   const gateCommit = useCallback((next: GameState, prev: GameState): GameState => {
@@ -2872,7 +2948,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   }, [startGateRun])
 
   // Išėjus iš kovos / išmontavus – vartai niekada nelieka užrakinti.
-  useEffect(() => () => { const r = gateRunRef.current; if (r) { r.cancelled = true; chainRef.current?.cancel() } }, [])
+  useEffect(() => () => { const r = gateRunRef.current; if (r) { r.cancelled = true; chainRef.current?.cancel(); sceneRef.current?.cancel() }; setSceneGatesEnabled(false) }, [])
 
   // ── V3 mokymai: imperatyvus API direktoriui ───────────────────────────────
   // Leidžia pamokos žingsniui deklaratyviai pakeisti būseną (scripted statusų
@@ -4883,7 +4959,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <OppHandFan count={game.ai.hand.length} />
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
-                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk' })}
+                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', pileKey: 'zmk-ai' })}
               </div>
             </div>
             <div className="mt-1 pl-[50px] pr-[38px]">{renderSideZones('ai')}</div>
@@ -4926,7 +5002,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <div className="flex items-end gap-1.5">
                   {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
                   {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
-                  {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk' })}
+                  {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', pileKey: 'zmk-you' })}
                 </div>
               </div>
             </div>
@@ -4987,7 +5063,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 66 })}
-                {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66 })}
+                {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66, pileKey: 'zmk-you' })}
                 {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>
@@ -5026,7 +5102,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 66 })}
-                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 66 })}
+                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 66, pileKey: 'zmk-ai' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex-1 min-h-0 flex flex-col" style={RAIL_PANEL}>
@@ -5686,6 +5762,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <TactileStyles />
       <BattleFxLayer ref={fxRef} />
       <ReactionChainLayer ref={chainRef} />
+      <SceneFxLayer ref={sceneRef} />
 
       {/* ── pilno lauko summon efektas ── */}
       {boardFx && <SummonBurst type={boardFx.type} x={boardFx.x} y={boardFx.y} effectKey={boardFx.key} onDone={() => setBoardFx(null)} />}

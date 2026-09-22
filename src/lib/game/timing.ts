@@ -143,17 +143,33 @@ export const ZMK_PRESENT = {
   reshuffleMs: 700,
 } as const
 
-// ── Raktažodžių FX konstantos (NENAUDOJAMOS kovoje) ─────────────────────────
-// 705–707 bandymas atšauktas (žr. FX-ROLLBACK-IR-EFEKTU-SISTEMOS.md): bendra
-// delsa ant `SETTLE` suardė paketo chronologiją. `KeywordFxLayer.tsx` ir
-// `/dev/keyword-fx` palikti kaip medžiaga BŪSIMAM bandymui su tikru sekvenceriu;
-// kovos kode jie NEĮJUNGTI. Trinant sluoksnį – trinti ir šias konstantas.
-export const KEYWORD_FX = {
-  sourceMs: 300,
-  directMs: 450,
-  sealMs: 2000,
-  effectMs: 400,
+// ── Scenų FX (ŽMK skrydis + Kovos šūksnis / Paskutinis noras / Trigeris) ─────
+// Suderinta peržiūroje ravenof-fx-preview-zmk-keywords.html (2026-09-22), planas
+// ZMK-IR-RAKTAZODZIU-FX-PLANAS.md. Scenos eina per TUOS PAČIUS vartus kaip
+// reakcijos (reactionGates → snapshot → await play() → būsena) — jokių delsų
+// ant SETTLE (705–707 pamoka). Įjungiama nustatymu `rvn-scene-fx`.
+export const BATTLE_TEMPO_DEFAULT = 1.0
+
+/** ŽMK traukimas: kaladė → taikinys → flip → SMŪGIS (vartai atsidaro čia) → rezultatas kabo be vartų. */
+export const ZMK_DRAW = {
+  liftMs: 200,          // nugarėlė pakyla nuo ŽMK kaladės
+  flightMs: 550,        // lankas kaladė → virš taikinio
+  flipMs: 300,          // apsivertimas prie taikinio
+  impactDelayMs: 250,   // po flip'o iki smūgio — Promise išsisprendžia ČIA
+  holdMs: 2500,         // rezultatas prie taikinio (buvo 2000 → +500), dekoratyvu
+  fadeMs: 250,
+  fanStaggerMs: 80,     // kelios kortos iš kaladės (AoE / atgalinė žala) viena po kitos
+  reducedMs: 420,       // reduced-motion: flip vietoje, be skrydžio
 } as const
+
+/** Raktažodžių scenos: paskelbimas PRIE ŠALTINIO → kelias → antspaudas ANT TAIKINIO (dar be žalos). */
+export const KEYWORD_FX = {
+  announceMs: 650,
+  travelMs: 450,
+  sealMs: 350,
+  ribbonLingerMs: 600,  // juostelė prie šaltinio gęsta po antspaudo
+} as const
+/** 2-as ir vėlesni tos pačios kovos to paties raktažodžio kartai: ×0.55, be juostelės. */
 export const KEYWORD_FX_COMPACT_SCALE = 0.55
 export const KEYWORD_FX_REDUCED_MS = 420
 

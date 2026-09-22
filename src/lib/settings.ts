@@ -14,6 +14,7 @@ const K_CINE_SUMMON = 'rvn-cinematics-summon'
 const K_CINE_SKILL = 'rvn-cinematics-skill'
 const K_REDUCED_MOTION = 'rvn-reduced-motion'  // prieinamumas: mažiau judesio
 const K_UI_SCALE = 'rvn-ui-scale'              // prieinamumas: UI mastelis (1 | 1.1 | 1.25)
+const K_SCENE_FX = 'rvn-scene-fx'              // kovos scenos: ŽMK skrydis + raktažodžių scenos su vartais
 
 export const DEFAULT_MUSIC_VOLUME = 0.32 // muzika tylesnė už SFX (kaip anksčiau)
 export const DEFAULT_SFX_VOLUME = 1.0
@@ -21,6 +22,7 @@ export const DEFAULT_SUMMON_FX = true
 export const DEFAULT_PREMIUM_CINEMATICS = true
 export const DEFAULT_SUMMON_CINEMATICS = true
 export const DEFAULT_SKILL_CINEMATICS = true
+export const DEFAULT_SCENE_FX = true
 
 export type VoiceLocaleSetting = 'auto' | 'lt' | 'en'
 
@@ -35,6 +37,7 @@ export type DigitalSettings = {
   championSkillCinematicsEnabled: boolean // Čempiono skill kino
   reducedMotion: boolean                  // prieinamumas: sumažinti animacijas (be OS vėliavos)
   uiScale: number                         // prieinamumas: 1 | 1.1 | 1.25
+  sceneFxEnabled: boolean                 // kovos scenos (ŽMK skrydis, Kovos šūksnis/Paskutinis noras/Trigeris)
 }
 
 let _music: number | null = null
@@ -47,6 +50,7 @@ let _cineSummon: boolean | null = null
 let _cineSkill: boolean | null = null
 let _reducedMotion: boolean | null = null
 let _uiScale: number | null = null
+let _sceneFx: boolean | null = null
 const listeners = new Set<(s: DigitalSettings) => void>()
 
 function clamp01(n: number): number {
@@ -99,6 +103,16 @@ export function setVoiceFallbackLt(on: boolean): void {
 export function isSummonFxEnabled(): boolean {
   if (_summon === null) _summon = readBool(K_SUMMON, DEFAULT_SUMMON_FX)
   return _summon
+}
+/** Kovos scenos su vartais (ŽMK skrydis + raktažodžių scenos). Vėliava — rollback be revert'o. */
+export function isSceneFxEnabled(): boolean {
+  if (_sceneFx === null) _sceneFx = readBool(K_SCENE_FX, DEFAULT_SCENE_FX)
+  return _sceneFx
+}
+export function setSceneFxEnabled(v: boolean): void {
+  _sceneFx = !!v
+  try { window.localStorage.setItem(K_SCENE_FX, _sceneFx ? '1' : '0') } catch { /* */ }
+  notify()
 }
 export function isPremiumCinematicsEnabled(): boolean {
   if (_cine === null) _cine = readBool(K_CINE, DEFAULT_PREMIUM_CINEMATICS)
@@ -165,6 +179,7 @@ export function getSettings(): DigitalSettings {
     championSkillCinematicsEnabled: _cineSkill ?? DEFAULT_SKILL_CINEMATICS,
     reducedMotion: _reducedMotion ?? readBool(K_REDUCED_MOTION, false),
     uiScale: getUiScale(),
+    sceneFxEnabled: isSceneFxEnabled(),
   }
 }
 
@@ -216,6 +231,7 @@ export function hydrateSettings(s: Partial<DigitalSettings> | null | undefined):
   if (typeof s.voiceFallbackLt === 'boolean') { _voiceFallback = s.voiceFallbackLt; try { window.localStorage.setItem(K_VOICE_FALLBACK, s.voiceFallbackLt ? '1' : '0') } catch { /* */ } }
   if (typeof s.championSkillCinematicsEnabled === 'boolean') { _cineSkill = s.championSkillCinematicsEnabled; try { window.localStorage.setItem(K_CINE_SKILL, _cineSkill ? '1' : '0') } catch { /* */ } }
   if (typeof s.reducedMotion === 'boolean') { _reducedMotion = s.reducedMotion; try { window.localStorage.setItem(K_REDUCED_MOTION, s.reducedMotion ? '1' : '0') } catch { /* */ } }
+  if (typeof s.sceneFxEnabled === 'boolean') { _sceneFx = s.sceneFxEnabled; try { window.localStorage.setItem(K_SCENE_FX, _sceneFx ? '1' : '0') } catch { /* */ } }
   if (typeof s.uiScale === 'number' && [1, 1.1, 1.25].includes(s.uiScale)) { _uiScale = s.uiScale; try { window.localStorage.setItem(K_UI_SCALE, String(s.uiScale)) } catch { /* */ } }
   applyAccessibility()
   notify()

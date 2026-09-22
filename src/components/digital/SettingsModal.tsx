@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { getMediaManifest, diffMissing, downloadMedia, cachedMediaInfo, clearMediaCache, fmtMB, type ManifestEntry, type DlProgress, type DlHandle } from '@/lib/digital/mediaDownloader'
 import {
-  getMusicVolume, getSfxVolume, isSummonFxEnabled,
+  getMusicVolume, getSfxVolume, isSummonFxEnabled, isSceneFxEnabled, setSceneFxEnabled,
   setMusicVolume, setSfxVolume, setSummonFxEnabled,
   isBgFxEnabled, setBgFxEnabled,
   isPremiumCinematicsEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled,
@@ -24,27 +24,13 @@ import { remindersEnabled, setRemindersEnabled, isNativeApp } from '@/lib/digita
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION } from '@/lib/version'
 import { requestOpenBugReport } from '@/components/digital/BugReportModal'
+import { DeleteAccountModal } from '@/components/digital/DeleteAccountModal'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 
 type Profile = { name: string; level: number; pct: number; avatarUrl: string | null }
 
-// ── Diagnostika: CSS viewport, DPR ir WebView teksto mastelis (Android „Šrifto dydis")
-// Teksto mastelį matuojam zondu: 100px šriftas -> jei WebView pritaiko textZoom, aukštis > 100.
-function ViewportDiag() {
-  const [txt, setTxt] = useState('')
-  useEffect(() => {
-    const el = document.createElement('span')
-    el.textContent = 'H'
-    Object.assign(el.style, { position: 'absolute', visibility: 'hidden', font: '400 100px/1 Arial, sans-serif', whiteSpace: 'nowrap' })
-    document.body.appendChild(el)
-    const zoom = Math.round(el.getBoundingClientRect().height)
-    el.remove()
-    setTxt(` · ${window.innerWidth}×${window.innerHeight} @${Math.round(window.devicePixelRatio * 100) / 100}x · txt ${zoom}%`)
-  }, [])
-  return <>{txt}</>
-}
 
 // ── Patvirtinti UI elementai ─────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -111,6 +97,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const [redMotion, setRedMotion] = useState(false)
   const [scale, setScale] = useState(1)
   const [voiceFb, setVoiceFb] = useState(true)
+  const [sceneFx, setSceneFx] = useState(true)
   const [email, setEmail] = useState<string | null>(null)
   const [emailVerified, setEmailVerified] = useState(false)
 
@@ -119,7 +106,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     setCine(isPremiumCinematicsEnabled()); setCineSummon(isSummonCinematicsEnabled()); setCineSkill(isChampionSkillCinematicsEnabled())
     setReminders(remindersEnabled()); setNative(isNativeApp()); setBgFx(isBgFxEnabled())
     setVoiceLoc(getVoiceLocale()); setVoiceFb(isVoiceFallbackLtEnabled())
-    setRedMotion(getSettings().reducedMotion); setScale(getUiScale())
+    setRedMotion(getSettings().reducedMotion); setScale(getUiScale()); setSceneFx(isSceneFxEnabled())
     createClient().auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null)
       setEmailVerified(!!data.user?.email_confirmed_at)
@@ -132,6 +119,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const onMusic = (v: number) => { setMusic(v); setMusicVolume(v); saveDigitalSettings() }
   const onSfx = (v: number) => { setSfx(v); setSfxVolume(v); saveDigitalSettings() }
   const onSummon = (v: boolean) => { playUiClick(); setSummon(v); setSummonFxEnabled(v); saveDigitalSettings() }
+  const onSceneFx = (v: boolean) => { playUiClick(); setSceneFx(v); setSceneFxEnabled(v); saveDigitalSettings() }
   const onCine = (v: boolean) => { playUiClick(); setCine(v); setPremiumCinematicsEnabled(v); saveDigitalSettings() }
   const onCineSummon = (v: boolean) => { playUiClick(); setCineSummon(v); setSummonCinematicsEnabled(v); saveDigitalSettings() }
   const onCineSkill = (v: boolean) => { playUiClick(); setCineSkill(v); setChampionSkillCinematicsEnabled(v); saveDigitalSettings() }
@@ -144,6 +132,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     playUiClick()
     onMusic(0.32); onSfx(1)
     setSummon(true); setSummonFxEnabled(true)
+    setSceneFx(true); setSceneFxEnabled(true)
     setCine(true); setPremiumCinematicsEnabled(true)
     setCineSummon(DEFAULT_SUMMON_CINEMATICS); setSummonCinematicsEnabled(DEFAULT_SUMMON_CINEMATICS)
     setCineSkill(DEFAULT_SKILL_CINEMATICS); setChampionSkillCinematicsEnabled(DEFAULT_SKILL_CINEMATICS)
@@ -152,6 +141,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     saveDigitalSettings()
   }
 
+  const [delOpen, setDelOpen] = useState(false)
   const doLogout = async () => {
     playUiClick()
     try { await createClient().auth.signOut() } catch { /* ignore */ }
@@ -190,7 +180,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
         <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
         <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('settings.title')}</div>
         <div className="flex-1" />
-        <div style={{ font: '400 9px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}{profile ? ` · ${profile.name}` : ''}<ViewportDiag /></div>
+        <div style={{ font: '400 9px var(--ravenof-font-body)', color: 'rgba(150,160,185,0.4)' }}>Ravenof v{APP_VERSION}{profile ? ` · ${profile.name}` : ''}</div>
       </div>
 
       <div className="flex-1 flex min-h-0" style={{ gap: 12 }}>
@@ -207,6 +197,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
           <div style={{ height: 4 }} />
           <SectionLabel>{t('settings.cat.visual')}</SectionLabel>
           <ToggleRow label={t('settings.summonFx')} on={summon} onToggle={onSummon} />
+          <ToggleRow label={t('settings.sceneFx')} on={sceneFx} onToggle={onSceneFx} hint={t('settings.sceneFxHint')} />
           <ToggleRow label={t('settings.bgFx')} on={bgFx} onToggle={onBgFx} />
           <ToggleRow label={t('settings.cinematics')} on={cine} onToggle={onCine} hint={t('settings.cinematicsHint')} />
           <div className={cine ? 'flex flex-col' : 'flex flex-col opacity-40 pointer-events-none'} style={{ gap: 6 }}>
@@ -242,6 +233,10 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
               <span className="flex-1 truncate" style={{ font: '500 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{email ?? (profile?.name || '—')}</span>
               {emailVerified && <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-success)' }}>{t('settings.verified')}</span>}
             </div>
+            {/* Paskyros ištrynimas – Google Play „Account deletion" reikalavimas */}
+            <button onClick={() => { playUiClick(); setDelOpen(true) }} className="ravenof-btn ravenof-btn-destructive shrink-0" style={{ marginTop: 6, minHeight: 34, fontSize: 10, padding: '7px 10px', alignSelf: 'flex-start' }}>{t('settings.deleteAccount.button')}</button>
+            <p style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{t('settings.deleteAccount.buttonHint')}</p>
+            {delOpen && <DeleteAccountModal onClose={() => setDelOpen(false)} />}
 
             <div style={{ height: 4 }} />
             <SectionLabel>{t('settings.cat.content')}</SectionLabel>

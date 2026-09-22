@@ -8,10 +8,20 @@
 // promise, o ne bendros trukmės tarp klientų.
 
 let seenThisMatch = 0
+const seenKeywords: Record<string, number> = {}
 
 /** Kovos pradžia (kviečiama kartu su resetFeelTelemetry). */
 export function resetReactionPacing(): void {
   seenThisMatch = 0
+  for (const k of Object.keys(seenKeywords)) delete seenKeywords[k]
+}
+
+/** Raktažodžių scenos (Kovos šūksnis / Paskutinis noras / Trigeris): pirmas to
+ *  raktažodžio kartas kovoje — pilna scena su juostele, vėlesni — kompaktas. */
+export function nextKeywordIsCompact(kind: string): boolean {
+  const n = seenKeywords[kind] ?? 0
+  seenKeywords[kind] = n + 1
+  return n > 0
 }
 
 /**

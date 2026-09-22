@@ -208,6 +208,11 @@ export type GameEvent = {
   /** Įvykis kilo iš REAKCIJOS efekto. UI tokiems nekartoja krypties projektilo –
    *  taikymą jau parodė grandinės animacija (rodomas tik rezultatas). */
   viaReaction?: boolean
+  /** Įvykis kilo iš ŽMK/raktažodžio SCENOS su vartais (scene FX): UI nešauna
+   *  projektilo ir nedelsia — skrydį/antspaudą jau parodė scena, rodomas tik rezultatas. */
+  viaScene?: boolean
+  /** Scenų FX: šis fxSource yra TRIGERIO (onTurnStart/onCast/...) paskelbimas → trigerio scena. */
+  kw?: 'trigger'
   /**
    * Smūgio svoris (game-feel fazė 4). Skaičiuojamas PO ŽMK, iš galutinės žalos
    * ir taikinio maxHP. UI iš jo paima hit-stop, purtymo lygį, garsą ir skaičiaus
@@ -354,6 +359,46 @@ let reactionFxDepth = 0
 function log(g: GameState, e: GameEvent) {
   if (reactionFxDepth > 0 && e.viaReaction === undefined) e.viaReaction = true
   g.log.push(e)
+  if (sceneGates && reactionFxDepth === 0) maybeSceneGate(g, e)
+}
+
+// ── Scenų FX vartai (ŽMK skrydis + Kovos šūksnis / Paskutinis noras / Trigeris) ──
+// Įjungus, variklis ties raktažodžio paskelbimu ir ties kiekvienu ŽMK traukimu
+// daro snapshot'ą PRIEŠ efektą ir deda kadrą į `g.reactionGates` (tas pats
+// mechanizmas kaip reakcijų grandinė). UI rodo snapshot'ą, groja sceną, tada
+// commit'ina tikrą būseną. Išjungus (testai, 2v2, senas klientas) — elgsena 704.
+let sceneGates = false
+export function setSceneGatesEnabled(on: boolean) { sceneGates = !!on }
+export function isSceneGatesEnabled(): boolean { return sceneGates }
+/** Paskutinio ŽMK traukimo duomenys (rollDamage → zmkGate). */
+let lastRoll: { value: ZmkValue; pair?: [ZmkValue, ZmkValue]; picked?: ZmkValue } | null = null
+/** Ar žalos/ŽMK įvykis eina per sceną (reakcijų viduje — ne: ten grandinė). */
+const vs = () => (sceneGates && reactionFxDepth === 0 ? true : undefined)
+
+function maybeSceneGate(g: GameState, e: GameEvent) {
+  let kind: SceneGateKind | null = null
+  if (e.t === 'battlecry' && e.src?.uid && (e.key === 'battleLog.battlecry' || e.key === 'battleLog.battlecryRepeat' || e.key === 'battleLog.killEffect')) kind = 'battlecry'
+  else if (e.t === 'lastwish' && e.key === 'battleLog.lastWish') kind = 'lastwish'
+  else if (e.kw === 'trigger') kind = 'trigger'
+  if (!kind) return
+  const id = storeReactionSnapshot(g)
+  ;(g.reactionGates ??= []).push({
+    id, snapshotId: id, atLog: g.log.length, side: e.side, kind,
+    sourceUid: e.src?.uid, sourceName: e.cardName,
+    reactionUid: e.src?.uid ?? '', reactionCardName: e.cardName ?? '',
+  })
+}
+
+/** ŽMK traukimo vartai: gretimi traukimai (AoE, atgalinė žala) jungiami į VIENĄ
+ *  kadrą (viena vėduoklė iš kaladės, vienas snapshot'as prieš pirmą žalą). */
+function zmkGate(g: GameState, actor: Side, target: TargetRef, dmg: number) {
+  if (!sceneGates || !lastRoll || reactionFxDepth > 0) { lastRoll = null; return }
+  const draw: ZmkDraw = { side: actor, target, value: lastRoll.value, pair: lastRoll.pair, picked: lastRoll.picked, dmg }
+  lastRoll = null
+  const last = g.reactionGates?.[g.reactionGates.length - 1]
+  if (last && last.kind === 'zmk' && last.draws) { last.draws.push(draw); return }
+  const id = storeReactionSnapshot(g)
+  ;(g.reactionGates ??= []).push({ id, snapshotId: id, atLog: g.log.length, side: actor, kind: 'zmk', draws: [draw], reactionUid: '', reactionCardName: '' })
 }
 /** Rakto šoninis sufiksas: 2v2 seat'ai suvedami į „tu" / „priešininkas". */
 const SK = (s: Side) => (s === 'you' || s === 'ally' ? 'you' : 'ai')
@@ -730,6 +775,7 @@ function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'n
   // Laukas su `noZmk` visiškai panaikina ŽMK traukimą — žala lygi bazinei.
   if (fieldEngine.noZmk(g, actor)) {
     const flat = Math.max(0, base + auraZmkDeltaFor(g, actor))
+    lastRoll = null
     log(g, { t: 'zmk', side: actor, value: flat, key: 'battleLog.zmkDisabled', params: { base, dmg: flat } })
     return flat
   }
@@ -741,13 +787,15 @@ function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'n
     const adv = bias === 'advantage'
     const pick = adv ? (a >= b ? v : v2) : (a <= b ? v : v2)
     const val = Math.max(0, (adv ? Math.max(a, b) : Math.min(a, b)) + auraZmkDeltaFor(g, actor))
-    log(g, { t: 'zmk', side: actor, zmk: pick, value: val, zmkPair: [v, v2], zmkPicked: pick, bias, key: `battleLog.zmkBias.${adv ? 'adv' : 'dis'}`, params: { a: v, b: v2 } })
+    lastRoll = { value: pick, pair: [v, v2], picked: pick }
+    log(g, { t: 'zmk', side: actor, zmk: pick, value: val, zmkPair: [v, v2], zmkPicked: pick, bias, viaScene: vs(), key: `battleLog.zmkBias.${adv ? 'adv' : 'dis'}`, params: { a: v, b: v2 } })
     P(g, actor).zmkPity = isNegZmk(pick)
     zmkAfter(g, actor, v); zmkAfter(g, actor, v2)
     return val
   }
   const dmg = Math.max(0, applyZmk(base, v) + auraZmkDeltaFor(g, actor))
-  log(g, { t: 'zmk', side: actor, zmk: v, value: dmg, key: 'battleLog.zmkRoll', params: { zmk: v, base, dmg } })
+  lastRoll = { value: v }
+  log(g, { t: 'zmk', side: actor, zmk: v, value: dmg, viaScene: vs(), key: 'battleLog.zmkRoll', params: { zmk: v, base, dmg } })
   P(g, actor).zmkPity = isNegZmk(v)
   zmkAfter(g, actor, v)
   return dmg
@@ -947,6 +995,7 @@ function heroDamageDoubleActive(g: GameState): boolean {
 function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, useZmk = true) {
   const base2 = base + spellAuraBonusFor(g, actor)
   let dmg = useZmk ? rollDamage(g, actor, base2, ctxBias(g, actor)) : base2
+  if (useZmk) zmkGate(g, actor, { kind: 'player', side: target }, dmg)
   const fr = fieldEngine.applyFirstDamageReduction(g, target, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: target, key: 'battleLog.fieldReduceFirst', params: { dmg } }) }
   if (dmg <= 0) return
@@ -957,7 +1006,7 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
   }
   const hpBeforePlayer = playerHpOf(g, target)
   const left = applyPlayerDamage(g, target, dmg)
-  log(g, { t: 'damage', side: target, value: dmg, severity: resolveSeverity(dmg, Math.max(1, playerMaxHpOf(g, target)), hpBeforePlayer - dmg <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, key: `battleLog.playerDamage.${SK(target)}`, params: { dmg, left } })
+  log(g, { t: 'damage', side: target, value: dmg, severity: resolveSeverity(dmg, Math.max(1, playerMaxHpOf(g, target)), hpBeforePlayer - dmg <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, viaScene: vs(), key: `battleLog.playerDamage.${SK(target)}`, params: { dmg, left } })
   applySpellLifesteal(g, dmg)
   fireGlobalListeners(g, 'onAnyDamage', { side: target })
   checkWin(g)
@@ -993,6 +1042,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   const base2 = base + spellAuraBonusFor(g, actor)
   let dmg = useZmk ? rollDamage(g, actor, base2, ctxBias(g, actor)) : base2
+  if (useZmk) zmkGate(g, actor, { kind: 'unit', side: owner, uid: target.uid }, dmg)
   const fr = fieldEngine.applyFirstDamageReduction(g, owner, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: owner, key: 'battleLog.fieldReduceFirst', params: { dmg } }) }
   const redPct = auraDamageReductionPctFor(g, owner, target.uid)
@@ -1007,7 +1057,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   const overHpBefore = target.hp
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, severity: resolveSeverity(dmg, target.maxHp, target.hp <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, tgt: { kind: 'unit', side: owner, uid: target.uid }, key: 'battleLog.unitDamage', params: { card: target.card.name, dmg, hp: Math.max(0, target.hp), maxHp: target.maxHp } })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, severity: resolveSeverity(dmg, target.maxHp, target.hp <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, viaScene: vs(), tgt: { kind: 'unit', side: owner, uid: target.uid }, key: 'battleLog.unitDamage', params: { card: target.card.name, dmg, hp: Math.max(0, target.hp), maxHp: target.maxHp } })
   applyEnemyDamageLeech(g, owner, dmg)
   if (overflow) {
     const excess = Math.max(0, dmg - Math.max(0, overHpBefore))
@@ -1201,10 +1251,11 @@ function applyEnemyDamageLeech(g: GameState, damagedOwner: Side, dmg: number) {
 
 function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: number, actor: Side) {
   const dmg = rollDamage(g, actor, base + spellAuraBonusFor(g, actor), ctxBias(g, actor))
+  zmkGate(g, actor, { kind: 'artifact', side: owner, uid: target.uid }, dmg)
   if (dmg <= 0) return
   applySpellLifesteal(g, dmg)
   target.hp -= dmg
-  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, severity: resolveSeverity(dmg, target.maxHp, target.hp - dmg <= 0), tgt: { kind: 'artifact', side: owner, uid: target.uid }, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
+  log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, severity: resolveSeverity(dmg, target.maxHp, target.hp - dmg <= 0), viaScene: vs(), tgt: { kind: 'artifact', side: owner, uid: target.uid }, key: 'battleLog.artifactDamage', params: { card: target.card.name, dmg } })
   fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'artifact', side: owner, uid: target.uid }, srcName: target.card.name })
   if (target.hp <= 0) {
     const p = P(g, owner)
@@ -2257,8 +2308,18 @@ let firingGlobal = false
 // būsenos snapshot'as PRIEŠ jos efektą – UI jį parodo, pagroja grandinės
 // animaciją ir tik tada atskleidžia kitą būseną. Snapshot'ai laikomi MODULYJE
 // (ne GameState viduje), kad nedidintų PvP broadcast payload'o ir nesirekursuotų.
+export type SceneGateKind = 'reaction' | 'battlecry' | 'lastwish' | 'trigger' | 'zmk'
+/** Vienas ŽMK traukimas scenoje: iš kurios kaladės (side), į kurį taikinį, kokia korta. */
+export type ZmkDraw = { side: Side; target: TargetRef; value: ZmkValue; pair?: [ZmkValue, ZmkValue]; picked?: ZmkValue; dmg: number }
 export type ReactionGate = {
   id: number
+  /** Vartų rūšis. `undefined` = reaction (seni kadrai / senas klientas). */
+  kind?: SceneGateKind
+  /** battlecry/lastwish/trigger: scenos šaltinis (padaras/artefaktas). */
+  sourceUid?: string
+  sourceName?: string
+  /** zmk: visi šio kadro traukimai (vėduoklė). */
+  draws?: ZmkDraw[]
   /** Būsena PRIEŠ šios reakcijos efektą (rodoma, kol groja grandinė). */
   snapshotId: number
   atLog: number
@@ -2275,7 +2336,7 @@ export type ReactionGate = {
 
 const reactionSnapshots = new Map<number, GameState>()
 let reactionGateSeq = 0
-const MAX_SNAPSHOTS = 12
+const MAX_SNAPSHOTS = 24
 
 function storeReactionSnapshot(g: GameState): number {
   const id = ++reactionGateSeq
@@ -3924,8 +3985,9 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       log(g, { t: 'damage', side: foe, cardName: def.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: foe, uid: def.uid }, key: 'battleLog.shieldNullify', params: { card: def.card.name } })
     } else {
       const dmg = rollDamage(g, s, atk, ctxBias(g, s))
+      zmkGate(g, s, { kind: 'unit', side: foe, uid: def.uid }, dmg)
       def.hp -= dmg
-      log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, severity: resolveSeverity(dmg, def.maxHp, def.hp <= 0), key: 'battleLog.unitDamage', params: { card: def.card.name, dmg, hp: Math.max(0, def.hp), maxHp: def.maxHp } })
+      log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, severity: resolveSeverity(dmg, def.maxHp, def.hp <= 0), viaScene: vs(), key: 'battleLog.unitDamage', params: { card: def.card.name, dmg, hp: Math.max(0, def.hp), maxHp: def.maxHp } })
     }
     if (frozenBlockedRetaliation) {
       log(g, {
@@ -3942,8 +4004,9 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
         log(g, { t: 'damage', side: s, cardName: u.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: s, uid: u.uid }, key: 'battleLog.shieldNullifyBack', params: { card: u.card.name } })
       } else {
         const back = rollDamage(g, foe, defAtk, ctxBias(g, foe))
+        zmkGate(g, foe, { kind: 'unit', side: s, uid: u.uid }, back)
         u.hp -= back
-        log(g, { t: 'damage', side: s, cardName: u.card.name, value: back, key: 'battleLog.counterDamage', params: { card: u.card.name, dmg: back, hp: Math.max(0, u.hp), maxHp: u.maxHp } })
+        log(g, { t: 'damage', side: s, cardName: u.card.name, value: back, viaScene: vs(), key: 'battleLog.counterDamage', params: { card: u.card.name, dmg: back, hp: Math.max(0, u.hp), maxHp: u.maxHp } })
       }
     } else if (def.statuses.frozen) {
       log(g, { t: 'status', side: foe, cardName: def.card.name, status: 'frozen', key: 'battleLog.frozenNoCounter', params: { card: def.card.name } })
@@ -3969,7 +4032,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     dealToArtifact(g, a, foe, atk, s)
   } else {
     log(g, { t: 'attack', side: s, cardName: u.card.name, key: `battleLog.attackPlayer.${SK(foe)}`, params: { card: u.card.name }, src: { side: s, uid: u.uid }, tgt: { kind: 'player', side: foe }, sound: 'attack' })
-    if (unfav) { const dmg = rollDamage(g, s, atk, ctxBias(g, s)); if (dmg > 0) { const left = applyPlayerDamage(g, foe, dmg); log(g, { t: 'damage', side: foe, value: dmg, key: `battleLog.playerDamage.${SK(foe)}`, params: { dmg, left } }); checkWin(g) } }
+    if (unfav) { const dmg = rollDamage(g, s, atk, ctxBias(g, s)); zmkGate(g, s, { kind: 'player', side: foe }, dmg); if (dmg > 0) { const left = applyPlayerDamage(g, foe, dmg); log(g, { t: 'damage', side: foe, value: dmg, viaScene: vs(), key: `battleLog.playerDamage.${SK(foe)}`, params: { dmg, left } }); checkWin(g) } }
     else dealToPlayer(g, foe, atk, s)
   }
   clearThisAttack()
@@ -4040,6 +4103,7 @@ export function swapPerspective(g: GameState): GameState {
     rg.side = other(rg.side)
     if (rg.target) rg.target = { ...rg.target, side: other(rg.target.side) } as TargetRef
     if (rg.targets) rg.targets = rg.targets.map((t) => ({ ...t, side: other(t.side) }) as TargetRef)
+    if (rg.draws) rg.draws = rg.draws.map((d) => ({ ...d, side: other(d.side), target: { ...d.target, side: other(d.target.side) } as TargetRef }))
   })
   // takeControl: perimtų padarų „kam grąžinti" pusė irgi apverčiama
   for (const p of [c.you, c.ai]) for (const u of p.units) { if (u?.control) u.control.from = other(u.control.from) }
