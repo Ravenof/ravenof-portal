@@ -295,7 +295,7 @@ export function PileBack({ kind, owner = 'me' }: { kind: 'plain' | 'curse' | 'zm
 }
 
 // ── Reakcijos skrydis: rAF Bézier lankas, apsivertimas per pirmus 35 %, nusileidimas su bounce + pėdsakas ─
-function ReactionFlyer({ card, from, to, side }: { card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number; w: number; h: number }; side: Side }) {
+function ReactionFlyer({ card, from, to, side, faceUp }: { card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number; w: number; h: number }; side: Side; faceUp?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -309,7 +309,7 @@ function ReactionFlyer({ card, from, to, side }: { card: TutCard | null; from: {
       const t = Math.min(1, (now - t0) / T), e = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
       const x = (1 - e) * (1 - e) * x0 + 2 * (1 - e) * e * cx + e * e * x1
       const y = (1 - e) * (1 - e) * y0 + 2 * (1 - e) * e * cy + e * e * y1
-      const flip = (card ? Math.min(1, t / 0.35) : 1) * 180
+      const flip = faceUp ? 0 : (card ? Math.min(1, t / 0.35) : 1) * 180
       const sc = 1 - (1 - scEnd) * e
       const bounce = t > 0.86 ? 1 + 0.06 * Math.sin((t - 0.86) / 0.14 * Math.PI) : 1
       el.style.transform = `translate(${x}px,${y}px) scale(${sc * bounce}) rotate(${(1 - e) * (side === 'you' ? -8 : 8)}deg)`
@@ -319,7 +319,7 @@ function ReactionFlyer({ card, from, to, side }: { card: TutCard | null; from: {
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [card, from, to, side])
+  }, [card, from, to, side, faceUp])
   const W = 92, H = Math.round(W * 4 / 3)
   return (
     <div ref={ref} className="absolute left-0 top-0" style={{ width: W, height: H, willChange: 'transform', transformOrigin: '50% 50%', filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.65))', perspective: 600 }}>
@@ -1390,7 +1390,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const handPanelRef = useRef<HTMLDivElement | null>(null)
   const [flyingCards, setFlyingCards] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   // Reakcijos skrydis: iš rankos (numetimo taško) užversta korta lanku į reakcijų vietą
-  const [flyingReactions, setFlyingReactions] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number; w: number; h: number }; side: Side }[]>([])
+  const [flyingReactions, setFlyingReactions] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number; w: number; h: number }; side: Side; faceUp?: boolean }[]>([])
   const lastPlayPointRef = useRef<{ x: number; y: number; uid: string; at: number } | null>(null)
   // Playtest 2026-09-19: žaidėjas renkasi, į KURĮ slotą dedamas padaras – numetimo vieta
   // (artimiausias tuščias savas slotas) perduodama varikliui kaip opts.slot.
@@ -1412,6 +1412,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     return best ? best.idx : null
   }
   const prevReactionUidsRef = useRef<Partial<Record<Side, string[]>>>({})
+  const prevArtifactUidsRef = useRef<Record<string, string[]>>({})   // artefakto padėjimo skrydis (kaip reakcijos)
   const [flyingDraws, setFlyingDraws] = useState<{ id: number; card: TutCard | null; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
   const [flyingReturns, setFlyingReturns] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number }; side: Side }[]>([])
   const [flyingShatters, setFlyingShatters] = useState<{ id: number; card: TutCard; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
@@ -2109,6 +2110,39 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           if (SUMMON_BY_EFFECT_KEYS.has(e.key ?? '') && e.cardName) {
             const nm = e.cardName, sd = e.side, pcol = palOf(findCard(nm)), grave = e.fromZone === 'graveyard'
             window.setTimeout(() => { const uid = P(game, sd).units.find((u) => u?.card.name === nm)?.uid; const at = uid ? rectOf({ uid }) : null; if (at) fxRef.current?.spawn({ kind: grave ? 'graveRise' : 'summonPortal', to: at, color: grave ? '#5ef0c0' : pcol.primary, color2: pcol.secondary, duration: grave ? 1.6 : 1.3 }) }, 60)
+          }
+          // Artefaktas padėtas: korta nuskrenda iš rankos (numetimo taško) į savo artefaktų vietą —
+          // ta pati ReactionFlyer animacija kaip reakcijai, tik atversta (faceUp) + žiedas/dulkės nusileidus.
+          if (e.t === 'artifact' && (e.key ?? '').startsWith('battleLog.playArtifact')) {
+            const sd = e.side
+            const nowA = P(game, sd).artifacts
+            const prevA = prevArtifactUidsRef.current[sd] ?? []
+            const na = nowA.find((a) => a && !prevA.includes(a.uid)) ?? null
+            prevArtifactUidsRef.current[sd] = nowA.filter((a): a is NonNullable<typeof a> => !!a).map((a) => a.uid)
+            const slotEl = na ? (document.querySelector(`[data-artifact-uid="${na.uid}"]`) as HTMLElement | null) : null
+            if (na && slotEl) {
+              const sr = slotEl.getBoundingClientRect()
+              const to = { x: sr.left + sr.width / 2, y: sr.top + sr.height / 2, w: sr.width, h: sr.height }
+              const lp = lastPlayPointRef.current
+              let from: { x: number; y: number } | null = null
+              if (sd === 'you' && lp && Date.now() - lp.at < 1500) from = { x: lp.x, y: lp.y }
+              if (!from) from = pileCenter(sd === 'you' ? '[data-tut="hand"]' : '[data-pile="hand-ai"]') ?? (handRef.current ? (() => { const hr = handRef.current!.getBoundingClientRect(); return { x: hr.left + hr.width / 2, y: hr.top + 20 } })() : null)
+              if (from) {
+                const rid = ++flyIdRef.current
+                setFlyingReactions((f) => [...f, { id: rid, card: na.card, from, to, side: sd, faceUp: true }])
+                slotEl.classList.add('rvn-react-slot-target')
+                const prevOpacity = slotEl.style.opacity
+                slotEl.style.opacity = '0'   // vieta tuščia, kol korta skrenda
+                window.setTimeout(() => {
+                  setFlyingReactions((f) => f.filter((x) => x.id !== rid))
+                  slotEl.classList.remove('rvn-react-slot-target')
+                  slotEl.style.opacity = prevOpacity
+                  const ring = document.createElement('div'); ring.className = 'rvn-react-ring'; ring.style.cssText = `left:${to.x}px;top:${to.y}px;width:${Math.round(to.w * 1.6)}px;height:${Math.round(to.w * 1.6)}px`; document.body.appendChild(ring); window.setTimeout(() => ring.remove(), 700)
+                  for (let k = 0; k < 9; k++) { const d = document.createElement('div'); d.className = 'rvn-react-dust'; const a = Math.random() * Math.PI * 2, dist = 18 + Math.random() * 24; d.style.cssText = `left:${to.x}px;top:${to.y + to.h * 0.3}px;--dx:${Math.round(Math.cos(a) * dist)}px;--dy:${Math.round(Math.sin(a) * dist * 0.5 - 6)}px`; document.body.appendChild(d); window.setTimeout(() => d.remove(), 650) }
+                  playBattleSound('impact', 0.18)
+                }, 560)
+              }
+            }
           }
           if (e.t === 'champion' && (e.key ?? '').startsWith('battleLog.playChampion') && e.cardName) {
             const nm = e.cardName, sd = e.side
