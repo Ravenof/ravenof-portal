@@ -3943,7 +3943,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   for (const m of (u.card.mappings ?? [])) {
     if (m.trigger !== 'onAttack') continue
     const ct = m.useAttackTarget ? toResolved(target) : undefined
-    applyMapping(gameApi, g, s, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: ct, depth: 1, allMappings: u.card.mappings ?? [] })
+    applyMapping(gameApi, g, s, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: ct, combatTarget: toResolved(target), depth: 1, allMappings: u.card.mappings ?? [] })
     if (g.winner) break
   }
   fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype, faction: u.card.factionId, srcRef: { kind: 'unit', side: s, uid: u.uid }, srcName: u.card.name })
@@ -3967,7 +3967,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       for (const m of (def.card.mappings ?? [])) {
         if (m.trigger !== 'onAttacked') continue
         const ct = m.useAttackTarget ? attackerRef : undefined
-        applyMapping(gameApi, g, foe, m, { sourceName: def.card.name, sourceUid: def.uid, chosenTarget: ct, depth: 1, allMappings: def.card.mappings ?? [] })
+        applyMapping(gameApi, g, foe, m, { sourceName: def.card.name, sourceUid: def.uid, chosenTarget: ct, combatTarget: attackerRef, depth: 1, allMappings: def.card.mappings ?? [] })
         if (g.winner) break
       }
       if (!p.units.some((x) => x?.uid === u.uid)) { clearThisAttack(); return { ok: true } }
@@ -4045,7 +4045,7 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       for (const m of (uEnd.card.mappings ?? [])) {
         if (m.trigger !== 'onAfterAttack') continue
         const ct = m.useAttackTarget ? toResolved(target) : undefined
-        applyMapping(gameApi, g, s, m, { sourceName: uEnd.card.name, sourceUid: uEnd.uid, chosenTarget: ct, depth: 1, allMappings: uEnd.card.mappings ?? [] })
+        applyMapping(gameApi, g, s, m, { sourceName: uEnd.card.name, sourceUid: uEnd.uid, chosenTarget: ct, combatTarget: toResolved(target), depth: 1, allMappings: uEnd.card.mappings ?? [] })
         if (g.winner) break
       }
     }

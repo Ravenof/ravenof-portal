@@ -64,6 +64,13 @@ export type ApplyCtx = {
   sourceUid?: string
   chosenTarget?: ResolvedTarget
   chosenTargets?: ResolvedTarget[]   // rankinis kelių taikinių parinkimas (1/N)
+  /** KOVOS KANONAS (onAttack / onAttacked / onAfterAttack): kovos taikinys — atakuotas
+   *  padaras (puolėjo mapping'ams) arba atakuotojas (gynėjo). VIENO taikinio efektas be
+   *  rankinio pasirinkimo, targetSelect ir allowRandomTarget pirmiausia taikomas JAM, jei
+   *  jis priklauso mapping'o taikinių aibei po filtrų — kitaip auto-pick. Anksčiau be
+   *  `useAttackTarget`+`requiresSelection` taikinys būdavo parenkamas atsitiktinai
+   *  („atakuoju, o nuodai/stun krenta kitam padarui"). */
+  combatTarget?: ResolvedTarget
   depth: number          // rekursijos apsauga follow-up trigger'iams
   chainDamage?: number       // #3: padaryta žala ankstesniame grandinės efekte
   chainDestroyedHp?: number  // #4: sunaikintų taikinių HP suma ankstesniame efekte
@@ -330,8 +337,12 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       // užpildomas TIK reakcijų kelyje (fireGlobalListeners), tad padarų
       // globalūs onAny* mapping'ai lieka kaip buvę.
       const trigSrc = ctx.triggerSource
+      const combat = ctx.combatTarget
       if (trigSrc && n === 1 && !m.targetSelect && !m.allowRandomTarget && triggerSourceStillValid(g, trigSrc) && inAll(trigSrc)) {
         targets = [trigSrc]
+      } else if (combat && n === 1 && !m.targetSelect && !m.allowRandomTarget && (combat.kind === 'player' || triggerSourceStillValid(g, combat)) && inAll(combat)) {
+        // Kovos kanonas: onAttack/onAttacked/onAfterAttack efektas → kovos taikinys (žr. ApplyCtx.combatTarget)
+        targets = [combat]
       } else if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
       else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
     }
