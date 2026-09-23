@@ -1113,12 +1113,18 @@ export function recomputeAuras(g: GameState) {
   if (recomputingAuras) return
   recomputingAuras = true
   try {
-  // 1) Nuimam dabartinį auros priedą nuo visų padarų
+  // 1) Nuimam dabartinį auros priedą nuo visų padarų.
+  // HP čia NELIEČIAMAS: dabartinis HP perskaičiuojamas vieną kartą po visų aurų/sinergijų
+  // (žr. 3a½). Anksčiau buvo nuimamas tik maxHp, o pritaikant vėl darytas `hp += aura` —
+  // todėl SUŽEISTAS padaras kiekvieno perskaičiavimo metu būdavo „pagydomas" auros dydžiu
+  // (Eldoras sielų meistras: +2 HP po kiekvienos žalos).
+  const hpSnap = new Map<BoardUnit, { hp: number; aura: number }>()
   for (const sd of allSeats(g)) {
     for (const u of P(g, sd).units) {
       if (!u) continue
+      hpSnap.set(u, { hp: u.hp, aura: u.auraHp ?? 0 })
       if (u.auraAtk) { u.atk = Math.max(0, u.atk - u.auraAtk) }
-      if (u.auraHp) { u.maxHp = Math.max(1, u.maxHp - u.auraHp); if (u.hp > u.maxHp) u.hp = u.maxHp }
+      if (u.auraHp) { u.maxHp = Math.max(1, u.maxHp - u.auraHp) }
       if (u.auraSilence) { delete u.statuses.silenced; u.auraSilence = false }
       if (u.auraShield) { u.shield = false; u.auraShield = false }
       if (u.auraStealth) { u.stealth = false; u.auraStealth = false }
@@ -1175,7 +1181,7 @@ export function recomputeAuras(g: GameState) {
         // Tikrinama pagal spausdintus raktažodžius + jau pritaikytas auras (šaltiniai eina iš eilės).
         if (cfg.auraRequiresKeyword && !unitHasKw(u, cfg.auraRequiresKeyword)) continue
         if (aAtk) { u.atk = Math.max(0, u.atk + aAtk); u.auraAtk = (u.auraAtk ?? 0) + aAtk }
-        if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.hp += aHp; u.auraHp = (u.auraHp ?? 0) + aHp }
+        if (aHp) { u.maxHp = Math.max(1, u.maxHp + aHp); u.auraHp = (u.auraHp ?? 0) + aHp }
         if (cfg.auraSilence && !u.statuses.silenced) { u.statuses.silenced = PERMANENT; u.auraSilence = true }
         if (cfg.auraCantAttack) u.auraCantAttack = true
         if (cfg.auraIgnoreTaunt) u.auraIgnoreTaunt = true
@@ -1211,13 +1217,26 @@ export function recomputeAuras(g: GameState) {
       ))
       if (!hasPartner) continue
       if (syn.buffAttack) { u.atk = Math.max(0, u.atk + syn.buffAttack); u.auraAtk = (u.auraAtk ?? 0) + syn.buffAttack }
-      if (syn.buffHealth) { u.maxHp = Math.max(1, u.maxHp + syn.buffHealth); u.hp += syn.buffHealth; u.auraHp = (u.auraHp ?? 0) + syn.buffHealth }
+      if (syn.buffHealth) { u.maxHp = Math.max(1, u.maxHp + syn.buffHealth); u.auraHp = (u.auraHp ?? 0) + syn.buffHealth }
       for (const kw of (syn.keywords ?? [])) {
         if (kw === 'shield') { if (!u.shield) { u.shield = true; u.auraShield = true } }
         else if (kw === 'stealth') { if (!u.stealth) { u.stealth = true; u.auraStealth = true } }
         else { (u.auraKw ??= []).push(kw) }
       }
     }
+  }
+  // 3a½) Dabartinis HP pagal auros pokytį (Hearthstone semantika):
+  //  - gautas +HP buff'as (ar jo padidėjimas) → HP didėja tiek pat;
+  //  - prarastas +HP buff'as → HP tik apkarpomas iki naujo maxHp (žala „nusėda" į buff'ą);
+  //  - −HP debuff'as veikia tiesiogiai (gali nužudyti, žr. 4), nuimtas – grąžina HP.
+  //  Nepasikeitus aurai HP nesikeičia — perskaičiavimas nebegydo.
+  for (const [u, snap] of hpSnap) {
+    const now = u.auraHp ?? 0
+    const posOld = Math.max(0, snap.aura), posNew = Math.max(0, now)
+    const negOld = Math.min(0, snap.aura), negNew = Math.min(0, now)
+    let hp = snap.hp + (negNew - negOld)
+    if (posNew > posOld) hp += posNew - posOld
+    u.hp = Math.min(hp, u.maxHp)
   }
   // 3c) Įsiūtis: kol padaras SUŽEISTAS (hp < maxHp) — +ATK (maxHp jau po aurų)
   for (const sd of allSeats(g)) {
