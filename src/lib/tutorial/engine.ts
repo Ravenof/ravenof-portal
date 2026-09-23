@@ -1008,7 +1008,10 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
   const left = applyPlayerDamage(g, target, dmg)
   log(g, { t: 'damage', side: target, value: dmg, severity: resolveSeverity(dmg, Math.max(1, playerMaxHpOf(g, target)), hpBeforePlayer - dmg <= 0), projectile: (g as unknown as { __fxProjectile?: ProjectileType }).__fxProjectile, viaScene: vs(), key: `battleLog.playerDamage.${SK(target)}`, params: { dmg, left } })
   applySpellLifesteal(g, dmg)
-  fireGlobalListeners(g, 'onAnyDamage', { side: target })
+  // Reakcijų kanonas: žala žaidėjui iš atakos → trigerio šaltinis = puolėjas (jei dar lentoje)
+  const atkRef: TargetRef | undefined = combatAttacker && P(g, combatAttacker.side).units.some((x) => x?.uid === combatAttacker!.uid)
+    ? { kind: 'unit', side: combatAttacker.side, uid: combatAttacker.uid } : undefined
+  fireGlobalListeners(g, 'onAnyDamage', { side: target, srcRef: atkRef, srcName: atkRef ? unitNameOf(g, atkRef) : undefined })
   checkWin(g)
 }
 
@@ -1363,7 +1366,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
           key: timing === 'endOfTurn' ? 'battleLog.resurrectPendingEndOfTurn' : 'battleLog.resurrectPendingNextTurn',
           params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid },
         })
-        fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
+        fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId, srcRef: killerRef(g), srcName: unitNameOf(g, killerRef(g)) })
         fireOnDestroyCredit(g, u.card.name)
         return
       }
@@ -1384,7 +1387,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
       p.units[idx] = nu
       for (const st of ((m.resurrectStatuses ?? []) as TutStatus[])) applyStatus(g, owner, nu, st)
       log(g, { t: 'lastwish', side: owner, cardName: u.card.name, key: `battleLog.lastWishResurrect${m.resurrectHp1 ? 'Hp1' : ''}${m.oncePerGame ? 'Once' : ''}`, params: { card: u.card.name }, sound: 'summon', src: { side: owner, uid: nu.uid } })
-      fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
+      fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId, srcRef: killerRef(g), srcName: unitNameOf(g, killerRef(g)) })
       afterSummon(g, owner, u.card, 'graveyard')
       fireOnDestroyCredit(g, u.card.name)
       return
@@ -1413,7 +1416,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
     graveOwner.discard.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, key: 'battleLog.deathGrave', params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid } })
   }
-  fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId })
+  fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId, srcRef: killerRef(g), srcName: unitNameOf(g, killerRef(g)) })
   recomputeAuras(g)
   fireOnDestroyCredit(g, u.card.name)
 }
@@ -1574,7 +1577,7 @@ function healUnitPrim(g: GameState, owner: Side, u: BoardUnit, n: number) {
   u.hp = Math.min(u.maxHp, u.hp + n)
   if (u.hp > b) {
     log(g, { t: 'heal', side: owner, cardName: u.card.name, value: u.hp - b, key: 'battleLog.unitHealed', params: { card: u.card.name, hp: u.hp - b }, sound: 'heal' })
-    fireGlobalListeners(g, 'onAnyHeal', { side: owner })
+    fireGlobalListeners(g, 'onAnyHeal', { side: owner, srcRef: { kind: 'unit', side: owner, uid: u.uid }, srcName: u.card.name })
     if ((u.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // pagijus iki pilno – Įsiūtis dingsta
   }
 }
@@ -2372,6 +2375,14 @@ function unitNameOf(g: GameState, t?: TargetRef): string | undefined {
   return undefined
 }
 
+/** Vykstančios atakos puolėjas (reakcijų kanonui: „kai gaunu žalos → žala TAM, kas puolė"). */
+let combatAttacker: { side: Side; uid: string } | null = null
+/** Žudiko nuoroda reakcijoms (onAnyDeath): __killCredit padaras, jei jis dar lentoje. */
+function killerRef(g: GameState): TargetRef | undefined {
+  const kc = (g as unknown as { __killCredit?: { side: Side; uid?: string } }).__killCredit
+  if (!kc?.uid) return undefined
+  return P(g, kc.side).units.some((x) => x?.uid === kc.uid) ? { kind: 'unit', side: kc.side, uid: kc.uid } : undefined
+}
 /** Trigerio šaltinis, kai jis neperduotas aiškiai: iškvietimo/sužaidimo atveju –
  *  paskutinis į lentą patekęs padaras (jei jis vis dar ten). */
 function autoTriggerSource(g: GameState, trigger: string): TargetRef | undefined {
@@ -3313,6 +3324,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
 }
 
 export function endTurn(g: GameState): GameState {
+  combatAttacker = null
   if (g.winner) return g
   g.rollContext = null
   seatEndTurn(g, g.active)
@@ -3423,6 +3435,7 @@ export function discardForGold(g: GameState, s: Side, uid: string): PlayResult {
 }
 
 export function playCard(g: GameState, s: Side, uid: string, opts?: { target?: TargetRef; targets?: TargetRef[]; sacrificeUid?: string; tributeHandUid?: string; tributeHandUids?: string[]; slot?: number }): PlayResult {
+  combatAttacker = null
   if (g.summonChain?.length) flushSummonChain(g)  // saugiklis: grandinė niekada nepasimeta
   const pp = P(g, s)
   const playedCard = pp.hand.find((c) => c.uid === uid)
@@ -3949,7 +3962,8 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   fireGlobalListeners(g, 'onAnyAttack', { side: s, subtype: u.card.subtype, faction: u.card.factionId, srcRef: { kind: 'unit', side: s, uid: u.uid }, srcName: u.card.name })
   const atk = effectiveAtk(g, u)
   // „Tik šios atakos metu" buff'ų nuėmimas – kviečiama prie kiekvieno atakos pabaigos taško.
-  const clearThisAttack = () => { const uu = p.units.find((x) => x?.uid === u.uid); if (uu) expireThisAttackBuffs(g, s, uu) }
+  const clearThisAttack = () => { combatAttacker = null; const uu = p.units.find((x) => x?.uid === u.uid); if (uu) expireThisAttackBuffs(g, s, uu) }
+  combatAttacker = { side: s, uid: u.uid }
 
   // Gynėjo reakcija (jei turi) – „paskutinis aktyvavęsis sprendžiamas pirmas"
   maybeTriggerReaction(g, foe, u, s)

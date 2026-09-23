@@ -105,6 +105,61 @@ console.log('\n── 6. allowRandomTarget → kanonas netaikomas (lieka atsitik
   check('per 40 kartų nuodai kliuvo abiem (atsitiktinumas išlaikytas)', seen.size === 2, [...seen].join(','))
 }
 
+
+// ── Reakcijų kanonas: taikinys = tai, kas trigerino (spragos, rastos 2026-09-23) ──
+const reactCard = (name: string, uid: string, m: Partial<EffectMapping>) => mkCard({ name, uid, type: 'reaction', mappings: [{ effect: 'damage', target: 'enemyUnit', value: 2, requiresSelection: false, triggersZmk: false, ...m } as EffectMapping] })
+
+console.log('\n── 7. Reakcija „kai gaunu žalos" (ataka į žaidėją) → žala PUOLĖJUI, ne kitam ──')
+{
+  let ok = 0
+  for (let r = 0; r < REP; r++) {
+    const g = freshGame()
+    P(g, 'you').reactions[0] = { uid: 'r1', card: reactCard('Kersytojas', 'r1', { trigger: 'onAnyDamage', triggerSide: 'own' }), paid: 0 } as never
+    P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Puolikas', uid: 'p1', attack: 2 })) as never
+    P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Kitas', uid: 'k1', attack: 0 })) as never
+    g.active = 'ai'
+    attack(g, 'ai', 'p1', { kind: 'player', side: 'you' })
+    if (unit(g, 'ai', 'p1')!.hp === 7 && unit(g, 'ai', 'k1')!.hp === 9) ok++
+  }
+  check(`žala puolėjui (${ok}/${REP})`, ok === REP)
+}
+
+console.log('\n── 8. Reakcija „kai mano padaras žūsta" → žala ŽUDIKUI ──')
+{
+  let ok = 0
+  for (let r = 0; r < REP; r++) {
+    const g = freshGame()
+    P(g, 'you').reactions[0] = { uid: 'r2', card: reactCard('Kraujo skola', 'r2', { trigger: 'onAnyDeath', triggerSide: 'own' }), paid: 0 } as never
+    P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Auka', uid: 'v1', attack: 0 }), 1) as never
+    P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Zudikas', uid: 'z1', attack: 3 })) as never
+    P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Kitas', uid: 'k1', attack: 0 })) as never
+    g.active = 'ai'
+    attack(g, 'ai', 'z1', { kind: 'unit', side: 'you', uid: 'v1' })
+    if (unit(g, 'ai', 'z1')!.hp === 7 && unit(g, 'ai', 'k1')!.hp === 9) ok++
+  }
+  check(`žala žudikui (${ok}/${REP})`, ok === REP)
+}
+
+console.log('\n── 9. Reakcija „kai priešas gydo padarą" → žala PAGYDYTAM ──')
+{
+  let ok = 0
+  for (let r = 0; r < REP; r++) {
+    const g = freshGame()
+    P(g, 'you').reactions[0] = { uid: 'r3', card: reactCard('Nuodinga zaizda', 'r3', { trigger: 'onAnyHeal', triggerSide: 'enemy' }), paid: 0 } as never
+    const w = mkUnit(mkCard({ name: 'Gydomas', uid: 'g1', attack: 0 })); w.hp = 4
+    P(g, 'ai').units[0] = w as never
+    P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Kitas', uid: 'k1', attack: 0 })) as never
+    g.you.hand.length = 0
+    P(g, 'ai').units[2] = mkUnit(mkCard({ name: 'Gydytojas', uid: 'h1', attack: 1, mappings: [{ trigger: 'onAttack', effect: 'heal', target: 'ownUnit', value: 3, requiresSelection: false } as EffectMapping] })) as never
+    P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Manas', uid: 'm1', attack: 0 })) as never
+    g.active = 'ai'
+    attack(g, 'ai', 'h1', { kind: 'unit', side: 'you', uid: 'm1' })
+    // gydomas 4→7, reakcija −2 → 5; kitas nepaliestas
+    if (unit(g, 'ai', 'g1')!.hp === 5 && unit(g, 'ai', 'k1')!.hp === 9) ok++
+  }
+  check(`žala pagydytam (${ok}/${REP})`, ok === REP)
+}
+
 console.log('\n──────────────')
 console.log(`  PASS: ${pass}   FAIL: ${fail}`)
 console.log('──────────────')
