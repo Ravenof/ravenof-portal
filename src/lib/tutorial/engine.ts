@@ -3479,6 +3479,10 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
         isChampion: false, phase: 0, abilityUsed: false, summonedFrom: 'play',
       }
       p.units[slot] = u
+      // Trigerio šaltinis reakcijoms (onAnySummon/onAnyPlay „→ žala IŠKVIESTAM padarui"):
+      // anksčiau iš rankos sužaistas padaras šio žymeklio negaudavo (tik efektų
+      // iškvietimai), tad reakcija taikinį rinkdavosi auto-pick'u (pirmą priešo padarą).
+      ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = u.uid
       log(g, { t: 'play', side: s, cardName: card.name, value: cost, key: `battleLog.${card.keywords.includes('sprint') ? 'playUnitSprint' : 'playUnit'}.${SK(s)}`, params: { card: card.name, cost }, src: { side: s, uid: u.uid }, sound: 'summon' })
       afterSummon(g, s, card, 'play')
       afterPlay(g, s, card)
@@ -3694,6 +3698,7 @@ function playCardInner(g: GameState, s: Side, uid: string, opts?: { target?: Tar
         summonedOnTurn: g.globalTurn, attacksUsed: 0,
         isChampion: true, phase: 1, abilityUsed: false,
       }
+      ;(g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid = card.uid   // reakcijų trigerio šaltinis
       log(g, { t: 'champion', side: s, cardName: card.name, value: card.gold, key: `battleLog.playChampion.${SK(s)}`, params: { card: card.name } })
       afterSummon(g, s, card, 'play')
       afterPlay(g, s, card)

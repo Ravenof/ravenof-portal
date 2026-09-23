@@ -5,7 +5,7 @@
 // Kanonas: vieno taikinio efektas be rankinio pasirinkimo / targetSelect /
 // allowRandomTarget → kovos taikinys, jei jis patenka į mapping'o aibę.
 
-import { createGame, beginTurn, attack, P, setSceneGatesEnabled, type TutCard, type GameState } from '../src/lib/tutorial/engine'
+import { createGame, beginTurn, attack, playCard, P, setSceneGatesEnabled, type TutCard, type GameState } from '../src/lib/tutorial/engine'
 import type { EffectMapping } from '../src/lib/game/types'
 
 let pass = 0, fail = 0
@@ -158,6 +158,22 @@ console.log('\n── 9. Reakcija „kai priešas gydo padarą" → žala PAGYDY
     if (unit(g, 'ai', 'g1')!.hp === 5 && unit(g, 'ai', 'k1')!.hp === 9) ok++
   }
   check(`žala pagydytam (${ok}/${REP})`, ok === REP)
+}
+
+
+console.log('\n── 10. Reakcija „kai priešas iškviečia padarą" (Liepsnos liežuviai) → žala IŠKVIESTAM (sužaistam iš rankos) ──')
+{
+  let ok = 0
+  for (let r = 0; r < REP; r++) {
+    const g = createGame(filler(30, 'X'), filler(30, 'A'), 'ai', { zmkDefs: ZMK0 }); beginTurn(g); g.reactionGates = null; g.ai.gold = 1000
+    P(g, 'you').reactions[0] = { uid: 'll', card: mkCard({ name: 'Liepsnos liezuviai', uid: 'll', type: 'reaction', mappings: [{ effect: 'damage', value: 6, target: 'enemyUnit', trigger: 'onAnySummon', triggerSide: 'enemy', overflowToPlayer: true, requiresSelection: true, triggersZmk: false } as EffectMapping] }), paid: 0 } as never
+    P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'Senas1', uid: 's1' })) as never
+    P(g, 'ai').units[1] = mkUnit(mkCard({ name: 'Senas2', uid: 's2' })) as never
+    g.ai.hand.push(mkCard({ name: 'Naujokas', uid: 'n1', health: 9 }))
+    playCard(g, 'ai', 'n1')
+    if (unit(g, 'ai', 'n1')!.hp === 3 && unit(g, 'ai', 's1')!.hp === 9 && unit(g, 'ai', 's2')!.hp === 9) ok++
+  }
+  check(`žala iškviestam iš rankos (${ok}/${REP})`, ok === REP)
 }
 
 console.log('\n──────────────')
