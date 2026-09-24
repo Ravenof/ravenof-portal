@@ -668,19 +668,21 @@ function AlbumTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, o
 // ── Plaukiojantis kortos paveikslo preview (desktop hover) ────────────────────
 function HoverCardPreview({ card, x, y }: { card: CardWithRelations; x: number; y: number }) {
   if (typeof window === 'undefined') return null
-  const W = 210
+  // Didelis, iskaitomas preview: iki 380px plocio / ~62% ekrano auksčio (kad tilptų tekstas)
+  const W = Math.max(240, Math.min(380, Math.floor((window.innerHeight * 0.62) / 1.4)))
   const H = Math.round(W * 1.4)
-  const left = Math.min(Math.max(8, x + 18), window.innerWidth - W - 8)
+  // rodyti tai pusei, kur daugiau vietos (kad neuždengtų pačios plytelės)
+  const left = x + 24 + W <= window.innerWidth - 8 ? x + 24 : Math.max(8, x - 24 - W)
   const top = Math.min(Math.max(8, y - H / 2), window.innerHeight - H - 8)
   const col = rarityColor(card.rarity?.name)
   return (
-    <div className="fixed z-[220] pointer-events-none rounded-xl overflow-hidden" style={{ left, top, width: W, height: H, border: `2px solid ${col}`, boxShadow: `0 14px 40px rgba(0,0,0,0.75), 0 0 22px ${col}55`, background: '#0d0a14' }}>
+    <div className="fixed z-[220] pointer-events-none rounded-xl overflow-hidden" style={{ left, top, width: W, height: H, border: `2px solid ${col}`, boxShadow: `0 18px 50px rgba(0,0,0,0.8), 0 0 28px ${col}66`, background: '#0d0a14' }}>
       {card.image_url
-        ? <SmartImg src={card.image_url} width={420} className="absolute inset-0 w-full h-full object-cover" />
+        ? <SmartImg src={card.image_url} width={800} className="absolute inset-0 w-full h-full object-cover" />
         : <span className="absolute inset-0 flex items-center justify-center text-4xl">🎴</span>}
       <span className="absolute bottom-0 left-0 right-0 px-2 py-1 text-center" style={{ background: 'rgba(0,0,0,0.82)' }}>
-        <span className="block font-bold truncate" style={{ fontSize: 11.5, color: '#fff' }}>{card.name}</span>
-        <span className="block" style={{ fontSize: 9, color: col }}>{card.rarity?.name ?? ''}{card.card_type?.name ? ' · ' + card.card_type.name : ''}</span>
+        <span className="block font-bold truncate" style={{ fontSize: 14, color: '#fff' }}>{card.name}</span>
+        <span className="block" style={{ fontSize: 11, color: col }}>{card.rarity?.name ?? ''}{card.card_type?.name ? ' · ' + card.card_type.name : ''}</span>
       </span>
     </div>
   )
