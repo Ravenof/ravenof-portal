@@ -289,7 +289,7 @@ console.log('\n── F7b ×2 padvigubinta žala natūraliai duoda sunkų smūg�
   // be ×2 ta pati bazė būtų tik HEAVY
   check('be ×2 ta pati bazė tik HEAVY', resolveSeverity(5, 40, false) === 'HIT' || resolveSeverity(5, 40, false) === 'HEAVY')
   // ×0 → žalos nėra, severity net neskaičiuojamas (variklis grįžta anksčiau)
-  check('×0 duoda 0 žalos → CHIP kraštinis atvejis', resolveSeverity(0, 40, false) === 'CHIP')
+  check('×0 duoda 0 žalos → ZERO (dūmų puff, ne žiežirbos)', resolveSeverity(0, 40, false) === 'ZERO')
 }
 
 console.log('\n── F9 Mirties stilius pagal žalos šaltinį ──')
@@ -657,13 +657,25 @@ console.log('\n── F16 Atakos šuolis: tempimas, blur, žiežirbos ──')
   check('sunkesnis smūgis → daugiau žiežirbų',
     SEVERITY_ORDER.every((s, i) => i === 0 || IMPACT_PROFILES[s].sparkMul >= IMPACT_PROFILES[SEVERITY_ORDER[i - 1]].sparkMul),
     SEVERITY_ORDER.map((s) => `${s}:${IMPACT_PROFILES[s].sparkMul}`).join(' '))
-  check('sparkBurst naudoja profilio daugiklį', /const mul = prof\.sparkMul/.test(fx))
+  check('sparkBurst piešia pagal IMPACT_FX pakopą (svoris → vizualas)', /IMPACT_FX\[it\.sev \?\? 'HIT'\]/.test(fx))
   check('žiežirbos lekia į VISAS puses (pilnas apskritimas)', /const a = rnd\(0, TAU\)/.test(fx))
   check('yra polinkis atgal nuo smūgio (atsimušimas, ne sprogimas)',
-    fx.includes('ux * S.backBias') && ATTACK_SPARKS.backBias > 0)
+    fx.includes('ux * A.backBias') && ATTACK_SPARKS.backBias > 0)
   check('žiežirba piešiama brūkšniu nuo praėjusios pozicijos',
     /ctx\.moveTo\(ox, oy\); ctx\.lineTo\(q\.x, q\.y\)/.test(fx))
-  check('žiežirbos turi gravitaciją', ATTACK_SPARKS.gravity > 0 && /const g = \(S\.gravity \/ 3600\)/.test(fx))
+  check('žiežirbos turi gravitaciją', ATTACK_SPARKS.gravity > 0 && /const g = \(A\.gravity \/ 3600\)/.test(fx))
+  // ── Fazė 10: smūgio vizualas pagal svorį ──
+  const { IMPACT_FX } = await import('../src/lib/game/timing')
+  check('ZERO – be žiežirbų, be blyksnio, su dūmais/dulkėmis', IMPACT_FX.ZERO.sparks === 0 && IMPACT_FX.ZERO.flash === 0 && IMPACT_FX.ZERO.smoke > 0 && IMPACT_FX.ZERO.dust > 0)
+  check('žiežirbų kiekis auga su svoriu', IMPACT_FX.CHIP.sparks < IMPACT_FX.HIT.sparks && IMPACT_FX.HIT.sparks < IMPACT_FX.HEAVY.sparks && IMPACT_FX.HEAVY.sparks < IMPACT_FX.DEVASTATING.sparks)
+  check('ugnies kamuolys tik HEAVY+', IMPACT_FX.HIT.coreR === 0 && IMPACT_FX.HEAVY.coreR > 0 && IMPACT_FX.DEVASTATING.coreR > IMPACT_FX.HEAVY.coreR)
+  check('šoko žiedas, skeveldros ir ekrano blyksnis tik DEVASTATING/LETHAL', !IMPACT_FX.HEAVY.shock && IMPACT_FX.DEVASTATING.shock && IMPACT_FX.LETHAL.shock && IMPACT_FX.HEAVY.debris === 0 && IMPACT_FX.DEVASTATING.debris > 0 && IMPACT_FX.HEAVY.coverAlpha === 0 && IMPACT_FX.DEVASTATING.coverAlpha > 0)
+  check('ekrano blyksnis subtilus (≤ 12 proc.)', IMPACT_FX.DEVASTATING.coverAlpha <= 0.12 && IMPACT_FX.LETHAL.coverAlpha <= 0.12)
+  check('LETHAL – karmazino paletė (skiriasi nuo DEVASTATING)', IMPACT_FX.LETHAL.color !== IMPACT_FX.DEVASTATING.color)
+  check('medium kokybė: be skeveldrų/spindulių/šoko (lite)', /if \(!lite\) \{[\s\S]{0,600}S\.debris/.test(fx) && /S\.shock && !lite/.test(fx))
+  check('impactBurst API burtams (ne tik šuoliui)', /impactBurst: \(x, y, severity, dir\)/.test(fx))
+  check('žaidime: atakos 0 žalos → ZERO', /\(nx2\.value \?\? 0\) > 0 \? nx2\.severity : 'ZERO'/.test(tg))
+  check('žaidime: burtų žala gauna impactBurst (ne atakos)', /if \(srcKind !== 'attack'\) fxRef\.current\?\.impactBurst\(to\.x, to\.y, prof\.severity/.test(tg))
 
   // Prieinamumas ir kokybė.
   check('prefers-reduced-motion → jokio šuolio', /if \(reduced\) \{ burst\(\); return \}/.test(fx))

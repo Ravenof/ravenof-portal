@@ -2505,6 +2505,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             }, d)
             break
           }
+          // 0 žalos padarui iš burto/efekto (battleLog.noDamage): dūmų puff'as,
+          // kad matytųsi, jog efektas ĮVYKO, tik nieko nepadarė. Atakų 0 žalą
+          // rodo šuolio smūgis (ZERO), skydo anuliavimą — skydo FX aukščiau.
+          if (val === 0 && e.cardName && srcKind !== 'attack' && e.key === 'battleLog.noDamage') {
+            const pp0 = P(game, e.side); const cn = e.cardName
+            const u0 = pp0.units.find((x) => x?.card.name === cn)
+            const at0 = u0 ? rectOf({ uid: u0.uid }) : null
+            if (at0) { const d0 = SETTLE + fxSeq; fxSeq += 90; window.setTimeout(() => { fxRef.current?.impactBurst(at0.x, at0.y, 'ZERO'); fxRef.current?.floatNumber(at0.x, at0.y - 12, '0', '#9a9aa8', 'small') }, d0) }
+          }
           // Žaidėjo (avataro) žala: hit balsas + float skaičius + flash + lowHp
           if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) {
             const sd = e.side
@@ -2520,6 +2529,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               window.setTimeout(() => {
                 void (async () => {
                   fxRef.current?.hitFlash(pat.x, pat.y, '#ff5a4a')
+                  if (srcKind !== 'attack') fxRef.current?.impactBurst(pat.x, pat.y, hp.severity)
                   if (hp.audioDuckDb !== 0) duckMusic(hp.audioDuckDb)
                   if (hp.screenShake !== 'none') fxRef.current?.shakeBoard(hp.screenShake)
                   await (fxRef.current?.impactFrame(hp.severity) ?? Promise.resolve())
@@ -2577,6 +2587,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               window.setTimeout(() => {
                 void (async () => {
                   fxRef.current?.hitFlash(to.x, to.y, numCol)
+                  // Smūgio sprogimas pagal svorį (fazė 10). Atakoms jį jau paleido
+                  // šuolis kontakto taške — čia tik burtai/reakcijos/statusai.
+                  if (srcKind !== 'attack') fxRef.current?.impactBurst(to.x, to.y, prof.severity, from ? { x: to.x - from.x, y: to.y - from.y } : undefined)
                   if (prof.audioDuckDb !== 0) duckMusic(prof.audioDuckDb)
                   playBattleSound(prof.impactSound, prof.impactVolume)
                   if (prof.screenShake !== 'none') fxRef.current?.shakeBoard(prof.screenShake)
@@ -2650,7 +2663,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           const ai = fresh.indexOf(e)
           for (let k = ai + 1; k < Math.min(fresh.length, ai + 5); k++) {
             const nx2 = fresh[k]
-            if (nx2.t === 'damage' && (nx2.value ?? 0) > 0) { sev = nx2.severity; break }
+            // 0 žalos (skydas / imunitetas / ŽMK ×0) → ZERO: dūmų puff'as, ne žiežirbos
+            if (nx2.t === 'damage') { sev = (nx2.value ?? 0) > 0 ? nx2.severity : 'ZERO'; break }
           }
           if (to0) fxRef.current?.lungeUnit(src.uid, to0, { targetUid: tgt.uid, severity: sev })
         }

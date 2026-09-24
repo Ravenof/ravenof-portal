@@ -59,6 +59,12 @@ export type BattleFxHandle = {
   lungeUnit: (uid: string, target: { x: number; y: number }, opts?: { targetUid?: string; severity?: ImpactSeverity }) => void
   hitFlash: (x: number, y: number, color: string) => void
   /**
+   * Smūgio sprogimas pagal žalos svorį (game-feel fazė 10) — tas pats
+   * `sparkBurst`, kurį atakos šuolis paleidžia kontakto taške, bet be šuolio:
+   * burtams/reakcijoms/statusams. `dir` — smūgio kryptis (nebūtina).
+   */
+  impactBurst: (x: number, y: number, severity: ImpactSeverity, dir?: { x: number; y: number }) => void
+  /**
    * Kortos nusileidimas ant lentos (game-feel fazė 2b): dulkės iš po kortos,
    * kortos suplojimas ir lengvas viso lauko krestelėjimas — vienu kvietimu.
    * `rect` — kortos ribos VIRŠUTINIO-KAIRIO kampo koordinatėmis (kaip DOMRect:
@@ -71,7 +77,7 @@ export type BattleFxHandle = {
 
 import { IMPACT_PROFILES, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { getVfxQuality, prefersReducedMotion as prefersReduced } from '@/lib/game/statusVfx'
-import { HIT_STOP, CARD_LANDING, ATTACK_LUNGE, ATTACK_SPARKS } from '@/lib/game/timing'
+import { HIT_STOP, CARD_LANDING, ATTACK_LUNGE, ATTACK_SPARKS, IMPACT_FX } from '@/lib/game/timing'
 
 /**
  * Realus hit-stop pagal prieinamumo/kokybės nustatymus:
@@ -126,12 +132,17 @@ const intMul = (i?: FxIntensity) => (i === 'big' ? 1.5 : i === 'small' ? 0.7 : 1
 export type DamageNumberStyle = 'small' | 'normal' | 'big' | 'critical'
 const NUM_SIZE: Record<DamageNumberStyle, number> = { small: 17, normal: 22, big: 30, critical: 40 }
 
-type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; rot: number; vr: number; hot?: boolean }
+type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; rot: number; vr: number; hot?: boolean; k?: 's' | 'e' | 'm' | 'd' | 'b' }
 type Item = {
   id: number; kind: FxKind; from: { x: number; y: number }; to: { x: number; y: number }
   color: string; color2: string; im: number; dur: number; t0: number; parts: P[]; seeded: boolean; variant?: AoeVariant
   rect?: { x: number; y: number; w: number; h: number }
   bolts?: { pts: { x: number; y: number }[]; t0f: number }[]
+  /** sparkBurst: smūgio svoris → IMPACT_FX pakopa; `rays` — spindulių kampai. */
+  sev?: ImpactSeverity
+  rays?: { a: number; len: number }[]
+  /** sparkBurst medium kokybė: be skeveldrų/spindulių/šoko žiedo. */
+  lite?: boolean
 }
 
 function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
@@ -185,6 +196,25 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
   const [nums, setNums] = useState<{ id: number; x: number; y: number; text: string; color: string; style: DamageNumberStyle }[]>([])
 
   const ensureLoop = () => { if (!running.current) { running.current = true; raf.current = requestAnimationFrame(loop) } }
+
+  /** sparkBurst pagal žalos svorį (IMPACT_FX). `nx,ny` — smūgio normalė. */
+  const pushImpactBurst = (x: number, y: number, sev: ImpactSeverity, nx = 0, ny = -1) => {
+    const q = getVfxQuality()
+    if (prefersReduced() || q === 'low') return
+    const D = dprRef.current
+    const S = IMPACT_FX[sev] ?? IMPACT_FX.HIT
+    items.current.push({
+      id: ++idc.current, kind: 'sparkBurst',
+      from: { x: x * D, y: y * D },
+      // `to` neša tik KRYPTĮ (smūgio normalę) — atskiro lauko Item tipe nereikia.
+      to: { x: (x + nx * 100) * D, y: (y + ny * 100) * D },
+      color: S.color, color2: S.hotColor,
+      im: q === 'medium' ? 0.6 : 1, dur: S.totalMs,
+      t0: performance.now() - timeShift.current, parts: [], seeded: false,
+      sev, lite: q === 'medium',
+    })
+    ensureLoop()
+  }
 
   useImperativeHandle(ref, () => ({
     spawn: (fx) => {
@@ -247,18 +277,7 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
 
       const burst = () => {
         if (reduced || q === 'low') return
-        const D = dprRef.current
-        const mul = prof.sparkMul * (q === 'medium' ? 0.6 : 1)
-        items.current.push({
-          id: ++idc.current, kind: 'sparkBurst',
-          from: { x: ix * D, y: iy * D },
-          // `to` neša tik KRYPTĮ (smūgio normalę) — atskiro lauko Item tipe nereikia.
-          to: { x: (ix + nx * 100) * D, y: (iy + ny * 100) * D },
-          color: ATTACK_SPARKS.color, color2: ATTACK_SPARKS.hotColor,
-          im: mul, dur: ATTACK_SPARKS.totalMs,
-          t0: performance.now() - timeShift.current, parts: [], seeded: false,
-        })
-        ensureLoop()
+        pushImpactBurst(ix, iy, prof.severity, nx, ny)
       }
 
       if (reduced) { burst(); return }
@@ -394,6 +413,10 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
       const next = hsQueue.current.then(run, run)
       hsQueue.current = next
       return next
+    },
+    impactBurst: (x, y, severity, dir) => {
+      const l = dir ? Math.hypot(dir.x, dir.y) || 1 : 1
+      pushImpactBurst(x, y, severity, dir ? dir.x / l : 0, dir ? dir.y / l : -1)
     },
     hitFlash: (x, y, color) => {
       const D = dprRef.current
@@ -1084,67 +1107,173 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
     // visas puses, krenta, o brūkšnys piešiamas nuo praėjusios pozicijos iki
     // dabartinės — todėl greita žiežirba atrodo kaip linija, ne kaip taškas.
     case 'sparkBurst': {
+      // ── Smūgis pagal žalos svorį (IMPACT_FX; game-feel fazė 10) ──────────
+      // Vienas item'as, viena dalelių sistema; kas piešiama — sprendžia pakopa.
       ctx.globalCompositeOperation = 'lighter'
       const ux = dx / (Math.hypot(dx, dy) || 1), uy = dy / (Math.hypot(dx, dy) || 1)
-      const S = ATTACK_SPARKS
+      const S = IMPACT_FX[it.sev ?? 'HIT'] ?? IMPACT_FX.HIT
+      const A = ATTACK_SPARKS
+      const lite = !!it.lite
+      const e = now - it.t0
       if (!it.seeded) {
         it.seeded = true
-        const n = Math.round(S.count * im)
+        const n = Math.round(S.sparks * im)
         for (let k = 0; k < n; k++) {
           const a = rnd(0, TAU)
           // Tolygiai per 360°, bet su polinkiu ATGAL nuo smūgio — metalas
           // atsimuša, o ne sprogsta simetriškai.
-          let ex = Math.cos(a) - ux * S.backBias
-          let ey = Math.sin(a) - uy * S.backBias
+          let ex = Math.cos(a) - ux * A.backBias
+          let ey = Math.sin(a) - uy * A.backBias
           const l = Math.hypot(ex, ey) || 1; ex /= l; ey /= l
-          const sp = (S.speedPxPerSec / 60) * D * rnd(0.35, 1.3)
-          it.parts.push({
-            x: from.x, y: from.y, vx: ex * sp, vy: ey * sp,
-            life: now, max: S.lifeMs * rnd(0.55, 1.3),
-            size: rnd(1, 2.8) * D, rot: 0, vr: 0, hot: Math.random() < S.hotChance,
-          })
+          const sp = (A.speedPxPerSec / 60) * D * rnd(0.35, 1.3) * S.speedMul
+          it.parts.push({ k: 's', x: from.x, y: from.y, vx: ex * sp, vy: ey * sp, life: now, max: A.lifeMs * rnd(0.55, 1.3), size: rnd(1, 2.8) * D, rot: 0, vr: 0, hot: Math.random() < A.hotChance })
         }
         const m = Math.round(S.embers * im)
         for (let k = 0; k < m; k++) {
           const a = rnd(0, TAU)
-          const sp = (S.speedPxPerSec / 60) * D * 0.18 * rnd(0.5, 1.5)
-          it.parts.push({
-            x: from.x, y: from.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-            life: now, max: S.lifeMs * 2.1, size: rnd(1.4, 3) * D, rot: 1, vr: 0,
-          })
+          const sp = (A.speedPxPerSec / 60) * D * 0.18 * rnd(0.5, 1.5)
+          it.parts.push({ k: 'e', x: from.x, y: from.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: now, max: A.lifeMs * 2.1, size: rnd(1.4, 3) * D, rot: 1, vr: 0 })
+        }
+        // Dūmai: ZERO — iš karto, pilki; HEAVY+ — po sprogimo (delsa), tamsūs
+        const sm = Math.round(S.smoke * (lite ? 0.6 : 1))
+        for (let k = 0; k < sm; k++) {
+          const a = rnd(0, TAU), sp = (S.sparks ? 1.6 : 0.9) * D * rnd(0.5, 1.2)
+          it.parts.push({ k: 'm', x: from.x + rnd(-8, 8) * D, y: from.y + rnd(-8, 8) * D, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.35 * D, life: now + (S.sparks ? 120 : 0), max: rnd(700, 1100), size: rnd(18, 34) * D, rot: 0, vr: 0 })
+        }
+        for (let k = 0; k < S.dust; k++) {
+          const a = rnd(0, TAU), sp = (300 / 60) * D * rnd(0.3, 1)
+          it.parts.push({ k: 'd', x: from.x, y: from.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: now, max: rnd(380, 620), size: rnd(1, 2.2) * D, rot: 0, vr: 0 })
+        }
+        if (!lite) {
+          for (let k = 0; k < S.debris; k++) {
+            const a = rnd(0, TAU), sp = (480 / 60) * D * rnd(0.5, 1.2)
+            it.parts.push({ k: 'b', x: from.x, y: from.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2 * D, life: now, max: rnd(600, 900), size: rnd(3, 7) * D, rot: rnd(0, TAU), vr: rnd(-0.3, 0.3) })
+          }
+          it.rays = []
+          for (let k = 0; k < S.rays; k++) it.rays.push({ a: (k / S.rays) * TAU + rnd(-0.2, 0.2), len: rnd(0.6, 1.3) })
+        }
+      }
+      // Viso ekrano blyksnis (DEVASTATING/LETHAL) — labai trumpas, kad nevargintų
+      if (S.coverAlpha > 0 && !lite) {
+        const cp = e / 90
+        if (cp < 1) {
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.globalAlpha = S.coverAlpha * (1 - cp); ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalAlpha = 1
+          ctx.globalCompositeOperation = 'lighter'
         }
       }
       // Blyksnis smūgio taške
-      const fp = (now - it.t0) / S.flashMs
-      if (fp < 1) {
-        glow(ctx, from.x, from.y, 96 * D * (0.6 + im * 0.4), color2, (1 - fp) * 0.75)
-        glow(ctx, from.x, from.y, 34 * D, '#ffffff', (1 - fp) * 0.55)
+      if (S.flash > 0) {
+        const fp = e / S.flashMs
+        if (fp < 1) {
+          glow(ctx, from.x, from.y, 96 * D * (0.6 + S.flash * 0.5), color, (1 - fp) * 0.75 * S.flash)
+          glow(ctx, from.x, from.y, 34 * D * S.flash, '#ffffff', (1 - fp) * 0.6)
+        }
       }
-      // Smūgio bangos žiedas
-      const rp = (now - it.t0) / S.ringMs
-      if (rp < 1) {
-        const e = 1 - Math.pow(1 - rp, 3)
-        softRing(ctx, from.x, from.y, (8 + (S.ringRadiusPx * im - 8) * e) * D, (3 * (1 - rp) + 0.6) * D, color2, (1 - rp) * 0.6)
+      // Ugnies kamuolys (HEAVY+): greitai išauga, lėtai gęsta, centre baltas
+      if (S.coreR > 0) {
+        const cp = e / (S.flashMs * 1.6)
+        if (cp < 1) {
+          const grow = 1 - Math.pow(1 - Math.min(1, cp * 2.5), 3)
+          const r = S.coreR * D * grow * (1 + cp * 0.35) * (lite ? 0.75 : 1)
+          const a = (1 - cp) * (1 - cp)
+          glow(ctx, from.x, from.y, r, color, a * 0.9)
+          glow(ctx, from.x, from.y, r * 0.55, color2, a * 0.8)
+          glow(ctx, from.x, from.y, r * 0.22, '#ffffff', a)
+        }
       }
-      const g = (S.gravity / 3600) * D
+      // Smūgio bangos žiedas (+ vidinis, HEAVY+)
+      if (S.ringR > 0) {
+        const rp = e / S.ringMs
+        if (rp < 1) {
+          const q = 1 - Math.pow(1 - rp, 3)
+          softRing(ctx, from.x, from.y, (8 + (S.ringR * im - 8) * q) * D, (3 * (1 - rp) + 0.6) * D, color2, (1 - rp) * (S.flash > 0 ? 0.6 : 0.35))
+        }
+        if (S.ring2) {
+          const rp2 = (e - 90) / S.ringMs
+          if (rp2 > 0 && rp2 < 1) {
+            const q2 = 1 - Math.pow(1 - rp2, 3)
+            softRing(ctx, from.x, from.y, (8 + (S.ringR * 0.7 - 8) * q2) * D, (2 * (1 - rp2) + 0.5) * D, color, (1 - rp2) * 0.5)
+          }
+        }
+      }
+      // Tamsus šoko žiedas — „oras išstumtas" (source-over, kad tamsintų)
+      if (S.shock && !lite) {
+        const sp = e / 600
+        if (sp < 1) {
+          ctx.globalCompositeOperation = 'source-over'
+          const q = 1 - Math.pow(1 - sp, 2)
+          softRing(ctx, from.x, from.y, (20 + 220 * q) * D, (14 * (1 - sp) + 2) * D, '#000000', (1 - sp) * 0.35)
+          ctx.globalCompositeOperation = 'lighter'
+        }
+      }
+      // Šviesos spinduliai iš smūgio taško
+      if (it.rays && it.rays.length) {
+        const rp = e / 260
+        if (rp < 1) {
+          ctx.lineCap = 'round'
+          ctx.globalAlpha = (1 - rp) * 0.9; ctx.strokeStyle = color; ctx.lineWidth = (6 * (1 - rp) + 1) * D
+          ctx.shadowColor = color2; ctx.shadowBlur = 8 * D
+          for (const r of it.rays) {
+            const L = S.ringR * 1.5 * r.len * D * (1 - Math.pow(1 - rp, 2))
+            ctx.beginPath()
+            ctx.moveTo(from.x + Math.cos(r.a) * 10 * D, from.y + Math.sin(r.a) * 10 * D)
+            ctx.lineTo(from.x + Math.cos(r.a) * L, from.y + Math.sin(r.a) * L)
+            ctx.stroke()
+          }
+          ctx.shadowBlur = 0; ctx.globalAlpha = 1
+        }
+      }
+      const g = (A.gravity / 3600) * D
       for (let k = it.parts.length - 1; k >= 0; k--) {
         const q = it.parts[k]
-        const e = (now - q.life) / q.max
-        if (e >= 1) { it.parts.splice(k, 1); continue }
+        if (now < q.life) continue                                 // dūmai po sprogimo — delsa
+        const pe = (now - q.life) / q.max
+        if (pe >= 1) { it.parts.splice(k, 1); continue }
         const ox = q.x, oy = q.y
         q.x += q.vx; q.y += q.vy
-        q.vy += q.rot === 1 ? g * 0.25 : g                       // rot === 1 → žarija (lengvesnė)
-        q.vx *= 0.985; q.vy *= 0.985
-        const a = (1 - e) * (1 - e)
-        if (q.rot === 1) {
-          glow(ctx, q.x, q.y, q.size * 5, color, a * 0.85)
-        } else {
-          ctx.strokeStyle = q.hot ? color2 : color
-          ctx.globalAlpha = a
-          ctx.lineWidth = q.size * (0.4 + a * 0.9); ctx.lineCap = 'round'
-          ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(q.x, q.y); ctx.stroke()
-          ctx.globalAlpha = 1
-          if (q.hot) glow(ctx, q.x, q.y, q.size * 1.6 * a, '#ffffff', a * 0.9)
+        const a = (1 - pe) * (1 - pe)
+        switch (q.k) {
+          case 'e':
+            q.vy += g * 0.25; q.vx *= 0.985; q.vy *= 0.985
+            glow(ctx, q.x, q.y, q.size * 5, color, a * 0.85)
+            break
+          case 'd':
+            q.vy += g * 0.5; q.vx *= 0.97; q.vy *= 0.97
+            ctx.globalCompositeOperation = 'source-over'
+            ctx.globalAlpha = a * 0.7; ctx.fillStyle = '#b9b6c4'
+            ctx.beginPath(); ctx.arc(q.x, q.y, q.size, 0, TAU); ctx.fill()
+            ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
+            break
+          case 'm': {
+            q.vx *= 0.97; q.vy *= 0.97; q.vy -= 0.02 * D
+            ctx.globalCompositeOperation = 'source-over'
+            const sz = q.size * (0.6 + pe * 1.1)
+            const gg = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, sz)
+            gg.addColorStop(0, `rgba(${S.smokeRgb},${(1 - pe) * 0.55})`); gg.addColorStop(1, `rgba(${S.smokeRgb},0)`)
+            ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(q.x, q.y, sz, 0, TAU); ctx.fill()
+            ctx.globalCompositeOperation = 'lighter'
+            break
+          }
+          case 'b':
+            q.vy += g * 1.2; q.vx *= 0.99; q.rot += q.vr
+            ctx.globalCompositeOperation = 'source-over'
+            ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot)
+            ctx.globalAlpha = Math.min(1, a * 1.5); ctx.fillStyle = '#2a1c14'
+            ctx.fillRect(-q.size / 2, -q.size / 3, q.size, q.size * 0.66)
+            ctx.fillStyle = color; ctx.globalAlpha = a * 0.9
+            ctx.fillRect(-q.size / 2, -q.size / 3, q.size * 0.5, q.size * 0.3)
+            ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'
+            break
+          default:                                                   // 's' — streak žiežirba
+            q.vy += g; q.vx *= 0.985; q.vy *= 0.985
+            ctx.strokeStyle = q.hot ? color2 : color
+            ctx.globalAlpha = a
+            ctx.lineWidth = q.size * (0.4 + a * 0.9); ctx.lineCap = 'round'
+            ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(q.x, q.y); ctx.stroke()
+            ctx.globalAlpha = 1
+            if (q.hot) glow(ctx, q.x, q.y, q.size * 1.6 * a, '#ffffff', a * 0.9)
         }
       }
       break

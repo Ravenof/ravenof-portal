@@ -2,6 +2,8 @@
 // Šios konstantos naudojamos ir gameplay eilėje (engine tick'ai), ir animacijose.
 // NIEKADA nedubliuoti skaičių komponentuose — importuoti iš čia.
 
+import type { ImpactSeverity } from './impactProfiles'
+
 /** Pauzė tarp Kovos šūksnio (battlecry) iškviečiamų padarų. Kiekvienas padaras
  *  į mūšio būseną įrašomas atskirai, praėjus šiam laikui (ne vien vizualiai). */
 export const BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS = 700
@@ -290,3 +292,63 @@ export const ATTACK_SPARKS = {
   color: '#ffb654',
   hotColor: '#fff6d6',
 } as const
+
+/**
+ * Smūgio VIZUALINĖ pakopa pagal žalos svorį (game-feel fazė 10).
+ * Iki šiol severity keitė tik žiežirbų KIEKĮ (sparkMul) — 0 žalos ir 12 žalos
+ * buvo ta pati žiežirbų saujelė. Dabar kiekviena pakopa turi savo smūgį:
+ *   ZERO        → dūmų/dulkių puff'as (pilkas, be blyksnio) — „nieko neįvyko"
+ *   CHIP        → kelios trumpos žiežirbos, mažas šiltas blyksnis
+ *   HIT         → žiežirbos + žarijos, baltas blyksnis, bangos žiedas
+ *   HEAVY       → ugnies kamuolys, dvigubas žiedas, šviesos spinduliai
+ *   DEVASTATING → sprogimas: kamuolys, ekrano blyksnis, šoko žiedas, skeveldros, dūmai
+ *   LETHAL      → tas pats sprogimas karmazino palete (mirties stilius – deathStyles)
+ * Piešia BattleFxLayer `sparkBurst`. Visi skaičiai — tiuningui, gyvena ČIA.
+ * medium VFX kokybė: kiekiai ×0.6, be skeveldrų/spindulių/šoko žiedo; low: nieko.
+ */
+export type ImpactFxSpec = {
+  /** Streak žiežirbų kiekis. */
+  sparks: number
+  /** Lėtų žarijų kiekis. */
+  embers: number
+  /** Dūmų kamuolių kiekis (pilki – ZERO; tamsūs po sprogimo – HEAVY+). */
+  smoke: number
+  /** Dulkių taškelių kiekis (tik ZERO). */
+  dust: number
+  /** Skeveldrų (besisukančių nuolaužų) kiekis. */
+  debris: number
+  /** Šviesos spindulių iš smūgio taško kiekis. */
+  rays: number
+  /** Blyksnio stiprumas (0 = be blyksnio; 1 = HIT bazinis). */
+  flash: number
+  /** Blyksnio trukmė. */
+  flashMs: number
+  /** Ugnies kamuolio spindulys px (0 = nėra). */
+  coreR: number
+  /** Bangos žiedo galutinis spindulys px (0 = nėra) ir trukmė. */
+  ringR: number
+  ringMs: number
+  /** Antras (vidinis) žiedas. */
+  ring2: boolean
+  /** Tamsus šoko žiedas (source-over). */
+  shock: boolean
+  /** Viso ekrano balto blyksnio alpha (0 = nėra). */
+  coverAlpha: number
+  /** Žiežirbų greičio daugiklis. */
+  speedMul: number
+  /** Bendra elemento trukmė. */
+  totalMs: number
+  color: string
+  hotColor: string
+  /** Dūmų RGB (be alpha). */
+  smokeRgb: string
+}
+
+export const IMPACT_FX: Record<ImpactSeverity, ImpactFxSpec> = {
+  ZERO:        { sparks: 0,  embers: 0,  smoke: 5, dust: 14, debris: 0,  rays: 0,  flash: 0,   flashMs: 0,   coreR: 0,   ringR: 34,  ringMs: 260, ring2: false, shock: false, coverAlpha: 0,    speedMul: 1,    totalMs: 1000, color: '#9a9aa8', hotColor: '#c9c9d4', smokeRgb: '120,118,130' },
+  CHIP:        { sparks: 12, embers: 0,  smoke: 0, dust: 0,  debris: 0,  rays: 0,  flash: 0.5, flashMs: 170, coreR: 0,   ringR: 0,   ringMs: 0,   ring2: false, shock: false, coverAlpha: 0,    speedMul: 1,    totalMs: 800,  color: '#ffb654', hotColor: '#fff6d6', smokeRgb: '70,60,60' },
+  HIT:         { sparks: 26, embers: 4,  smoke: 0, dust: 0,  debris: 0,  rays: 0,  flash: 0.8, flashMs: 170, coreR: 0,   ringR: 78,  ringMs: 340, ring2: false, shock: false, coverAlpha: 0,    speedMul: 1,    totalMs: 1200, color: '#ffb654', hotColor: '#fff6d6', smokeRgb: '70,60,60' },
+  HEAVY:       { sparks: 44, embers: 8,  smoke: 2, dust: 0,  debris: 0,  rays: 6,  flash: 1,   flashMs: 240, coreR: 60,  ringR: 110, ringMs: 420, ring2: true,  shock: false, coverAlpha: 0,    speedMul: 1.1,  totalMs: 1400, color: '#ff9a3c', hotColor: '#fff2d0', smokeRgb: '70,60,60' },
+  DEVASTATING: { sparks: 70, embers: 14, smoke: 7, dust: 0,  debris: 10, rays: 12, flash: 1.4, flashMs: 380, coreR: 140, ringR: 170, ringMs: 520, ring2: true,  shock: true,  coverAlpha: 0.08, speedMul: 1.25, totalMs: 2000, color: '#ff5a2a', hotColor: '#ffe6b0', smokeRgb: '70,60,60' },
+  LETHAL:      { sparks: 70, embers: 14, smoke: 7, dust: 0,  debris: 10, rays: 12, flash: 1.4, flashMs: 380, coreR: 140, ringR: 170, ringMs: 520, ring2: true,  shock: true,  coverAlpha: 0.1,  speedMul: 1.25, totalMs: 2000, color: '#ff2d3a', hotColor: '#ffd0d0', smokeRgb: '60,20,24' },
+}

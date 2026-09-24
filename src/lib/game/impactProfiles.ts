@@ -12,10 +12,12 @@
 
 import type { BattleSoundType } from './types'
 
-export type ImpactSeverity = 'CHIP' | 'HIT' | 'HEAVY' | 'DEVASTATING' | 'LETHAL'
+// ZERO (fazė 10): žala 0 — skydas, imunitetas, ŽMK ×0. Vizualiai tai NE „mažas
+// smūgis", o „nieko neįvyko": dūmų puff'as vietoj žiežirbų (žr. timing.ts IMPACT_FX).
+export type ImpactSeverity = 'ZERO' | 'CHIP' | 'HIT' | 'HEAVY' | 'DEVASTATING' | 'LETHAL'
 
 /** Pakopos didėjimo tvarka (naudinga palyginimams ir testams). */
-export const SEVERITY_ORDER: ImpactSeverity[] = ['CHIP', 'HIT', 'HEAVY', 'DEVASTATING', 'LETHAL']
+export const SEVERITY_ORDER: ImpactSeverity[] = ['ZERO', 'CHIP', 'HIT', 'HEAVY', 'DEVASTATING', 'LETHAL']
 
 export type ImpactProfile = {
   severity: ImpactSeverity
@@ -45,6 +47,19 @@ export type ImpactProfile = {
 }
 
 export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
+  ZERO: {
+    severity: 'ZERO',
+    hitStopMs: 0,
+    targetReaction: 'soft',
+    screenShake: 'none',
+    impactSound: 'impact',
+    impactVolume: 0.14,
+    audioDuckDb: 0,
+    flash: false,
+    damageNumberStyle: 'small',
+    deathStyle: 'quiet',
+    sparkMul: 0,
+  },
   CHIP: {
     severity: 'CHIP',
     hitStopMs: 0,
@@ -141,6 +156,7 @@ export const SEVERITY_THRESHOLDS = {
 export function resolveSeverity(dmg: number, targetMaxHp: number, lethal: boolean): ImpactSeverity {
   if (lethal) return 'LETHAL'
   const d = Math.max(0, dmg)
+  if (d <= 0) return 'ZERO'
   const ratio = targetMaxHp > 0 ? d / targetMaxHp : 0
   const T = SEVERITY_THRESHOLDS
   if (d >= T.devastatingAbs || ratio >= T.devastatingRatio) return 'DEVASTATING'
