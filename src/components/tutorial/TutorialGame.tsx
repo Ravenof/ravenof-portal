@@ -905,7 +905,9 @@ function cardDropZoneOf(c: TutCard): 'unit' | 'spell' | 'artifact' | 'field' | '
 /** Ar kortai (sužaidžiant) reikia rankiniu būdu rinktis taikinį? */
 function cardNeedsTarget(game: GameState, c: TutCard): boolean {
   const sm = selectionMappingFor(c)
-  if (sm) return spellTargetRefs(game, 'you', sm).length > 0
+  // Vienintelis galimas taikinys (pvz. „pagydyk savo žaidėją") → rinktis nėra ko:
+  // korta sužaidžiama kaip netaikoma, o taikinį įstato onHandCardClick (auto).
+  if (sm) return spellTargetRefs(game, 'you', sm).length > 1
   return (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
 }
 
@@ -3462,11 +3464,25 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (!m) return
     const avail = spellTargetRefs(game!, 'you', m)
     if (avail.length === 0) { doAction({ t: 'resolveLastwish', targets: [] }); return }
+    if (avail.length === 1) { doAction({ t: 'resolveLastwish', targets: [avail[0]] }); return }  // vienintelis taikinys → auto
     const need = Math.min(Math.max(1, m.hitCount ?? 1), avail.length)
     setSelect({ kind: 'lastwish', need, picked: [] })
     pushToast(t('battle.game.toastLastwishTarget', { card: pl.cardName, need }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.pendingLastwish, game?.winner])
+
+  // Kovos šūksnis laukia taikinio (pendingBattlecry): jei galimas tik VIENAS taikinys –
+  // išsprendžiam automatiškai, nelaukdami paspaudimo.
+  useEffect(() => {
+    const pb = game?.pendingBattlecry
+    if (!pb || pb.side !== 'you' || game?.winner) return
+    const un = game!.you.units.find((x) => x?.uid === pb.uid)
+    const m = un ? (un.card.mappings ?? [])[pb.idx[0]] : null
+    if (!m) return
+    const refs = spellTargetRefs(game!, 'you', m)
+    if (refs.length === 1) { doAction({ t: 'resolveBattlecry', target: refs[0] }); setSelect(null) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.pendingBattlecry, game?.winner])
 
   // PvP: užkraunam varžovo viešą profilį + viešas kalades
   useEffect(() => {
@@ -3610,7 +3626,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         doAction({ t: 'play', actor: 'you', uid: c.uid, slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined }); setSelect(null); return
       }
       const need = Math.max(1, selMap?.hitCount ?? 1)
-      const avail = selMap ? spellTargetRefs(game!, 'you', selMap).length : 0
+      const availRefs = selMap ? spellTargetRefs(game!, 'you', selMap) : []
+      const avail = availRefs.length
+      // Tik VIENAS galimas taikinys → auto-taikymas, be pasirinkimo režimo.
+      if (selMap && avail === 1) {
+        doAction({ t: 'play', actor: 'you', uid: c.uid, target: availRefs[0], slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined })
+        setSelect(null)
+        return
+      }
       playUiClick()
       if (selMap && need > 1 && avail > 1) {
         setSelect({ kind: 'spellMulti', uid: c.uid, need: Math.min(need, avail), picked: [] })
@@ -5480,6 +5503,12 @@ doAction({ t: 'endTurn', actor: 'you' })
                           // visose fazėse); „nėra taikinių" atveju paliekam auto (kaip anksčiau).
                           const sm = sk.mappings.find((m) => mappingNeedsSelection(m))
                           const avail = sm ? spellTargetRefs(game!, 'you', sm).length : 0
+                          if (sm && avail === 1) {
+                            // vienintelis galimas taikinys → auto (rinktis nėra ko)
+                            playUiClick()
+                            doAction({ t: 'champ', actor: 'you', skillIndex: i, target: spellTargetRefs(game!, 'you', sm)[0] })
+                            return
+                          }
                           if (sm && avail > 0) {
                             const need = Math.min(Math.max(1, sm.hitCount ?? 1), avail)
                             playUiClick()
