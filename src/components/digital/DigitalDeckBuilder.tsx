@@ -20,6 +20,7 @@ import { ravenofRarityColor as rarityColor } from '@/components/digital/ui/Raven
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { GameCard } from '@/components/ui/GameCard'
 import { useT, useContent, useCardI18n } from '@/lib/i18n/react'
 
 const GOLD = '212,163,59'
@@ -443,15 +444,16 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                 </button>
               </div>
 
-              {/* Kortų VARDŲ sąrašas (Hearthstone-stiliaus retumo plytelės):
-                  hover (pelė) = plaukiojantis kortos pav.; tap = didelė peržiūra su Pridėti;
+              {/* Kortų albumo GRID (tokios pat plytelės kaip Kolekcijoje: kortos pav.,
+                  retumo švytėjimas, ×turima; papildomai — kaina, ×kaladėje ir [+]):
+                  hover (pelė) = plaukiojantis didelis pav.; tap = peržiūra su Pridėti;
                   palaikyk+tempk = drag į kaladę; [+] = greitas pridėjimas. */}
               {pool.length === 0 ? (
                 <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--ravenof-text-secondary)' }}>{t('deckBuilder.noCards')}</p>
               ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-0.5">
+                <div className="flex-1 min-h-0 overflow-y-auto grid pr-0.5 ravenof-scroll" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 8, alignContent: 'start' }} data-testid="album-grid">
                   {pool.map((c) => (
-                    <NameRow key={c.id} c={c} owned={ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
+                    <AlbumTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
                       dragProps={dragProps(c)}
                       onAdd={() => tryAdd(c)}
                       onPreview={() => { playUiClick(); setPreview(c) }}
@@ -612,36 +614,53 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
 type DragHandlers = { onPointerDown: (e: React.PointerEvent) => void; onClickCapture: (e: React.MouseEvent) => void }
 
-// ── Hearthstone-stiliaus kortos vardo plytelė (fonas/rėmas pagal retumą) ──────
-function NameRow({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onHover, onHoverEnd }: {
+// ── Albumo plytelė (Kolekcijos RavenofCardCell išvaizda + deck builder valdikliai) ──
+function AlbumTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onHover, onHoverEnd }: {
   c: CardWithRelations; owned: number; deckQty: number; dragging: boolean; dragProps: DragHandlers
   onAdd: () => void; onPreview: () => void; onHover: (x: number, y: number) => void; onHoverEnd: () => void
 }) {
   const t = useT()
+  const [bad, setBad] = useState(false)
   const col = rarityColor(c.rarity?.name)
   const limit = getCopyLimit(c)
-  const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
+  const has = owned > 0
+  const inDeck = deckQty > 0
+  const addDisabled = !has || deckQty >= owned || deckQty >= limit
   return (
-    <div className="flex items-center gap-1.5 shrink-0 rounded-lg overflow-hidden select-none touch-pan-y" {...dragProps}
+    <div className="relative select-none touch-pan-y" {...dragProps}
       onMouseEnter={HOVER_OK ? (e) => onHover(e.clientX, e.clientY) : undefined}
       onMouseMove={HOVER_OK ? (e) => onHover(e.clientX, e.clientY) : undefined}
       onMouseLeave={HOVER_OK ? onHoverEnd : undefined}
-      style={{
-        minHeight: 30, paddingLeft: 6, paddingRight: 4,
-        background: `linear-gradient(90deg, ${col}2e 0%, rgba(10,8,16,0.85) 55%)`,
-        border: `1px solid ${deckQty > 0 ? `rgba(${GOLD},0.55)` : col + '55'}`,
-        borderLeft: `3px solid ${col}`,
-        opacity: dragging ? 0.35 : owned > 0 ? 1 : 0.5,
-        transition: 'opacity .15s',
-      }}>
-      <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 18, height: 18, fontSize: 9.5, fontWeight: 800, background: `rgba(${GOLD},0.92)`, color: '#1a0f04' }}>{c.gold_cost}</span>
-      <button onClick={onPreview} className="flex-1 min-w-0 text-left py-1">
-        <span className="block truncate font-bold" style={{ fontSize: 11, color: owned > 0 ? '#f3ead3' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>{c.is_champion ? '★ ' : ''}{c.name}</span>
-      </button>
-      {owned <= 0 && <Lock className="w-3 h-3 shrink-0" style={{ color: 'rgba(255,255,255,0.45)' }} />}
-      {deckQty > 0 && <span className="shrink-0 font-bold tabular-nums" style={{ fontSize: 10, color: 'var(--ravenof-gold)' }}>×{deckQty}</span>}
-      <button onClick={onAdd} disabled={addDisabled} className="rvn-press flex items-center justify-center rounded-md shrink-0 disabled:opacity-25"
-        style={{ width: 24, height: 24, background: 'rgba(79,158,82,0.16)', border: '1px solid rgba(79,158,82,0.45)', color: '#7fbf82' }} aria-label={t('deckBuilder.add')}><Plus className="w-3.5 h-3.5" /></button>
+      style={{ opacity: dragging ? 0.35 : 1, transition: 'opacity .15s', minWidth: 0 }}>
+      <GameCard glowColor={has ? col + '88' : 'rgba(120,120,140,0.3)'} sounds={has}>
+        <button onClick={onPreview} className="ravenof-press w-full block" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', minWidth: 0 }}>
+          <span role="img" aria-label={c.name} className="relative block w-full" style={{ aspectRatio: '1044 / 1416', borderRadius: 5, border: inDeck ? `1.5px solid rgba(${GOLD},0.85)` : `1px solid ${has ? 'var(--ravenof-border-strong)' : '#221e29'}`, boxShadow: inDeck ? `0 0 0 1px rgba(${GOLD},0.35), 0 0 12px rgba(${GOLD},0.35)` : undefined, overflow: 'hidden' }}>
+            {c.image_url && !bad
+              ? <SmartImg src={c.image_url} width={240} alt={c.name} onFail={() => setBad(true)}
+                  className="absolute inset-0 w-full h-full"
+                  style={{ objectFit: 'contain', filter: has ? undefined : 'grayscale(1) brightness(0.55)' }} />
+              : <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: has ? undefined : 'grayscale(1) brightness(0.7)' }}>
+                  <span className="text-xl">🎴</span><span style={{ fontSize: 9, lineHeight: 1.1, color: '#fff' }}>{c.name}</span>
+                </span>}
+            {/* kaina (viršuje kairėje) */}
+            <span className="absolute flex items-center justify-center rounded-full tabular-nums" style={{ top: 4, left: 4, zIndex: 2, width: 18, height: 18, fontSize: 9.5, fontWeight: 800, background: `rgba(${GOLD},0.95)`, color: '#1a0f04', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>{c.gold_cost}</span>
+            {/* kiek kaladėje (viršuje dešinėje) */}
+            {inDeck && (
+              <span className="absolute tabular-nums" style={{ top: 4, right: 4, zIndex: 2, font: '800 9.5px var(--ravenof-font-display)', color: '#1a0f04', background: 'linear-gradient(135deg,#ffe9a8,#f0b429)', padding: '2px 5px', borderRadius: 3, boxShadow: '0 2px 8px rgba(240,180,41,.55)' }}>{deckQty}/{Math.min(limit, owned)}</span>
+            )}
+            {has ? (
+              <span className="absolute" style={{ bottom: 4, right: 4, font: '700 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 6px' }}>×{owned}</span>
+            ) : (
+              <span className="absolute whitespace-nowrap flex items-center gap-1" style={{ bottom: 4, left: '50%', transform: 'translateX(-50%)', font: '600 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 7px' }}><Lock className="w-2.5 h-2.5" />{t('collection.notOwnedBadge')}</span>
+            )}
+          </span>
+        </button>
+      </GameCard>
+      {/* greitas [+] (apačioje kairėje, virš plytelės) */}
+      {has && (
+        <button onClick={(e) => { e.stopPropagation(); onAdd() }} disabled={addDisabled} className="rvn-press absolute flex items-center justify-center rounded-md disabled:opacity-25"
+          style={{ left: 4, bottom: 4, zIndex: 3, width: 24, height: 24, background: 'rgba(20,40,22,0.92)', border: '1px solid rgba(79,158,82,0.6)', color: '#7fbf82', boxShadow: '0 2px 6px rgba(0,0,0,.6)' }} aria-label={t('deckBuilder.add')}><Plus className="w-3.5 h-3.5" /></button>
+      )}
     </div>
   )
 }

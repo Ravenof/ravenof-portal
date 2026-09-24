@@ -14,6 +14,7 @@
     "src/app/profile/settings/page.tsx",
     "src/components/admin/GameplayConfigEditor.tsx",
     "src/components/digital/DeleteAccountModal.tsx",
+    "src/components/digital/DigitalDeckBuilder.tsx",
     "src/components/digital/SettingsModal.tsx",
     "src/components/digital/Team2v2Game.tsx",
     "src/components/profile/DeleteAccountSection.tsx",
