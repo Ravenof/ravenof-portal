@@ -227,24 +227,27 @@ export function StarterDeckOnboarding() {
   // Dėžutės plotis iš REALAUS karuselės konteinerio aukščio: fokusuota dėžutė
   // (×1.14 + pakilimas) turi tilpti tarp antraštės ir info bloko, kad nenusikirptų viršus.
   const areaRef = useRef<HTMLDivElement | null>(null)
-  const [areaW, setAreaW] = useState(1200)
+  const [portrait, setPortrait] = useState(false)   // siauras ekranas (portrait): karuselė ir info – vienas po kito
   const [shortVp, setShortVp] = useState(false)   // žemas landscape ekranas (telefonas): kompaktiška antraštė/info
   useEffect(() => {
     const el = areaRef.current
     if (!el) return
+    const stage = stageRef.current
     const f = () => {
-      const h = el.clientHeight, w = el.clientWidth
-      setAreaW(w)
+      const sw = stage?.clientWidth ?? window.innerWidth, sh = stage?.clientHeight ?? window.innerHeight
+      const port = sw < 640
+      setPortrait(port); setShortVp(sh < 480)
+      const w = el.clientWidth
+      // portrete karuselės aukštį skiriam ~48 proc. ekrano; landscape – visą kairės zonos aukštį
+      const h = port ? Math.max(160, sh * 0.48) : el.clientHeight
       const fitH = (h - 50) / (1.14 * 1.53)          // 50 px: pakilimas + diskas + tarpas
-      const fitW = w < 600 ? (w - 40) / 2.2 : (w - 140) / 3.4   // portrait: fokusas + kaimynų kraštai; landscape: 3 dėžutės + strėlės
-      setBoxW(Math.round(Math.max(84, Math.min(260, fitH, fitW))))
-      setShortVp(window.innerHeight < 480)
+      const fitW = port ? (w - 40) / 2.2 : (w - 100) / 2.6   // portrait: fokusas + kaimynų kraštai; landscape: fokusas + 2 kaimynai + strėlės
+      setBoxW(Math.round(Math.max(84, Math.min(sw >= 1600 ? 320 : 260, fitH, fitW))))
     }
     f()
-    const ro = new ResizeObserver(f); ro.observe(el)
+    const ro = new ResizeObserver(f); ro.observe(el); if (stage) ro.observe(stage)
     return () => ro.disconnect()
   }, [step])
-  const showKeyFan = areaW >= 1000 && !shortVp   // siauruose/žemuose ekranuose vėduoklė slepiama (netelpa šalia karuselės)
 
   const list = useMemo(() => (Array.isArray(starters) ? starters : []), [starters])
   const avatarOwned = useCallback((c: Cosmetic) => (cos?.owned ?? []).includes(c.id) || !!c.ownedByDefault, [cos])
@@ -460,33 +463,33 @@ export function StarterDeckOnboarding() {
       <canvas ref={cv} aria-hidden className="absolute inset-0 pointer-events-none" style={{ zIndex: 7 }} />
       <div ref={flyRef} aria-hidden className="absolute inset-0 pointer-events-none" style={{ zIndex: 7 }} />
 
-      {/* ── Antraštė: wordmark + kalba + žingsnis ── */}
-      <div className="relative shrink-0 flex items-center justify-between" style={{ padding: `calc(env(safe-area-inset-top, 0px) + 12px) max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px))`, zIndex: 5 }}>
+      {/* ── Viršutinė juosta: wordmark · pavadinimas · kalba + žingsnis (viena eilutė, kad tilptų žemuose ekranuose) ── */}
+      <div className="relative shrink-0 grid items-center" style={{ gridTemplateColumns: '1fr auto 1fr', gap: 8, padding: `calc(env(safe-area-inset-top, 0px) + ${shortVp ? 6 : 10}px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px))`, zIndex: 5 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${RAVENOF_ASSET}/logos/ravenof-wordmark.png`} alt="Ravenof" style={{ width: 92, height: 'auto', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.6))' }} />
-        <div className="flex items-center gap-3">
+        <img src={`${RAVENOF_ASSET}/logos/ravenof-wordmark.png`} alt="Ravenof" style={{ width: shortVp ? 66 : 84, height: 'auto', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.6))', justifySelf: 'start' }} />
+        <div className="text-center min-w-0">
+          <h1 className="truncate" style={{ font: `700 ${shortVp ? '15px' : 'clamp(17px, 4vh, 24px)'} var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', margin: 0, textShadow: '0 2px 12px #000' }}>
+            {onDeck ? t('onboarding.ob.deckTitle') : t('onboarding.ob.avatarTitle2')}
+          </h1>
+          {!shortVp && (
+            <p className="truncate" style={{ font: '400 clamp(10px, 2vh, 12px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>
+              {onDeck ? t('onboarding.ob.deckSub2') : t('onboarding.ob.avatarSub2')}
+            </p>
+          )}
+          {claimErr && <p role="alert" style={{ font: '500 11px var(--ravenof-font-body)', color: '#c65563', margin: 0 }}>{claimErr}</p>}
+        </div>
+        <div className="flex items-center gap-2" style={{ justifySelf: 'end' }}>
           <button onClick={toggleLang} aria-label="Kalba / Language" className="ravenof-press" style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', background: 'rgba(11,9,16,0.6)', padding: '3px 8px', cursor: 'pointer', letterSpacing: 1 }}>{locale.toUpperCase()}</button>
-          <span style={{ font: '700 12px var(--ravenof-font-display)', letterSpacing: 2, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{t('onboarding.ob.stepOf', { step: onDeck ? 1 : 2, total: 2 })}</span>
+          <span style={{ font: `700 ${shortVp ? 10 : 12}px var(--ravenof-font-display)`, letterSpacing: 2, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{t('onboarding.ob.stepOf', { step: onDeck ? 1 : 2, total: 2 })}</span>
         </div>
       </div>
 
-      {/* ── Pavadinimas ── */}
-      <div className="relative shrink-0 text-center" style={{ marginTop: 2, zIndex: 5 }}>
-        <h1 style={{ font: '700 clamp(19px, 4.6vh, 26px) var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', margin: 0, textShadow: '0 2px 12px #000' }}>
-          {onDeck ? t('onboarding.ob.deckTitle') : t('onboarding.ob.avatarTitle2')}
-        </h1>
-        {!(shortVp && onDeck) && (
-          <p style={{ font: '400 clamp(10px, 2vh, 12.5px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>
-            {onDeck ? t('onboarding.ob.deckSub2') : t('onboarding.ob.avatarSub2')}
-          </p>
-        )}
-        {claimErr && <p role="alert" style={{ font: '500 11px var(--ravenof-font-body)', color: '#c65563', margin: '3px 0 0' }}>{claimErr}</p>}
-      </div>
-
       {onDeck ? (
-        <>
-          {/* ── Dėžučių karuselė (3D) ── */}
-          <div ref={areaRef} className="relative flex-1" style={{ zIndex: 3, touchAction: 'pan-y', minHeight: Math.round(boxH * 1.14) + 50, overflow: 'hidden' }} {...railPointer}>
+        /* ── 1 žingsnis: KAIRĖ karuselė · DEŠINĖ info skydelis su CTA (portrete – viena po kito) ── */
+        <div className="relative flex-1 min-h-0 flex" style={{ flexDirection: portrait ? 'column' : 'row', zIndex: 3 }}>
+          {/* karuselė */}
+          <div ref={areaRef} className="relative" {...railPointer}
+            style={{ flex: portrait ? '0 0 auto' : '1 1 60%', minWidth: 0, height: portrait ? Math.round(boxH * 1.14) + 50 : undefined, minHeight: Math.round(boxH * 1.14) + 50, overflow: 'hidden', touchAction: 'pan-y' }}>
             <div ref={railRef} className="absolute" role="listbox" aria-label={t('onboarding.starterDecksAria')}
               style={{ left: '50%', top: '50%', marginTop: -Math.round(boxH / 2) + 10, height: boxH, width: 0,
                 transform: `translateX(${-(idx * stepW + boxW / 2) + dragDx}px)`, transition: drag.current?.moved ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1)' }}>
@@ -521,44 +524,46 @@ export function StarterDeckOnboarding() {
             </div>
             <ObArrow dir={-1} onClick={() => goIdx(idx - 1)} disabled={idx === 0 || opening} label={t('onboarding.prevDeck')} />
             <ObArrow dir={1} onClick={() => goIdx(idx + 1)} disabled={idx >= list.length - 1 || opening} label={t('onboarding.nextDeck')} />
-
-            {/* Raktinės kortos (vėduoklė) — dešinėje apačioje */}
-            {showKeyFan && keyCards.length >= 3 && !opening && (
-              <div className="absolute" style={{ right: 'max(24px, 3vw)', bottom: 'max(8px, 2vh)', width: 150, height: 96, zIndex: 4 }} aria-label={t('onboarding.ob.keyCards')}>
-                <span className="absolute left-0 right-0 text-center" style={{ top: -14, font: '700 9px var(--ravenof-font-body)', letterSpacing: '0.2em', color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.ob.keyCards')}</span>
-                {[keyCards[1], keyCards[0], keyCards[2]].map((c, j) => (
-                  <button key={c.cardId} onClick={() => { playUiClick(); setPreview(c) }} className="ravenof-press absolute" aria-label={c.name}
-                    style={{ left: j * 42, bottom: 0, width: 56, aspectRatio: '1044 / 1416', padding: 0, border: `1px solid ${j === 1 ? 'rgba(255,226,140,0.9)' : 'rgba(212,163,59,0.5)'}`, borderRadius: 4, overflow: 'hidden', background: '#0d0a14', cursor: 'pointer',
-                      boxShadow: '0 8px 20px #000', zIndex: j === 1 ? 2 : 1, transform: j === 0 ? 'rotate(-14deg) translateY(8px)' : j === 2 ? 'rotate(14deg) translateY(8px)' : 'translateY(-4px)' }}>
-                    {c.imageUrl && <SmartImg src={c.imageUrl} width={120} alt="" className="w-full h-full" style={{ objectFit: 'contain' }} />}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* ── Info po dėžute ── */}
-          <div className="relative shrink-0 text-center" style={{ minHeight: shortVp ? 44 : 64, zIndex: 5, padding: '0 16px' }}>
+          {/* info skydelis */}
+          <div className="relative flex flex-col justify-center min-w-0" style={{ flex: portrait ? '1 1 auto' : '0 0 38%', padding: portrait ? '4px 16px 6px' : '8px max(16px, env(safe-area-inset-right, 0px)) 8px 8px', textAlign: portrait ? 'center' : 'left', gap: shortVp ? 4 : 6 }}>
             {cur && curMeta && (
               <>
-                <div style={{ font: '700 11px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: accent }}>{cur.faction ?? ''}</div>
-                <div style={{ font: '700 clamp(15px, 3.4vh, 20px) var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px #000' }}>{cur.name}</div>
-                <div className="flex items-center justify-center flex-wrap gap-1.5" style={{ margin: '4px 0 2px' }}>
-                  {chips.map((s) => <span key={s} style={{ font: '700 9px var(--ravenof-font-body)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, border: `1px solid ${accent}`, color: accent, background: 'rgba(0,0,0,0.5)' }}>{s}</span>)}
-                  <span className="inline-flex items-center gap-1" style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginLeft: 6 }} aria-label={t('onboarding.complexityAria', { label: complexityLabel(curMeta.complexity) })}>
+                <div style={{ font: '700 10.5px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: accent }}>{cur.faction ?? ''}</div>
+                <div style={{ font: `700 ${shortVp ? '16px' : 'clamp(16px, 3.6vh, 22px)'} var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px #000', lineHeight: 1.15 }}>{cur.name}</div>
+                <div className="flex items-center flex-wrap gap-1.5" style={{ justifyContent: portrait ? 'center' : 'flex-start' }}>
+                  {chips.map((c) => <span key={c} style={{ font: '700 9px var(--ravenof-font-body)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, border: `1px solid ${accent}`, color: accent, background: 'rgba(0,0,0,0.5)' }}>{c}</span>)}
+                </div>
+                <div className="flex items-center gap-2" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', justifyContent: portrait ? 'center' : 'flex-start' }} aria-label={t('onboarding.complexityAria', { label: complexityLabel(curMeta.complexity) })}>
+                  <span className="inline-flex items-center gap-1">
                     {[1, 2, 3].map((n) => <i key={n} className="rounded-full" style={{ width: 6, height: 6, display: 'inline-block', background: n <= curMeta.complexity ? accent : 'rgba(255,255,255,0.18)' }} />)}
                     <span style={{ marginLeft: 3 }}>{complexityLabel(curMeta.complexity)}</span>
                   </span>
-                  <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>· {t('onboarding.cardsShort', { count: cur.cardCount })}</span>
+                  <span>· {t('onboarding.cardsShort', { count: cur.cardCount })}</span>
                 </div>
-                <p style={{ font: '400 clamp(10px, 2vh, 12px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0, maxWidth: 560, marginInline: 'auto' }}>
-                  {!shortVp && <>{curMeta.intro}{' '}</>}
-                  <button onClick={() => { playUiClick(); setDetailOpen(true) }} className="ravenof-press" style={{ font: 'inherit', color: 'var(--ravenof-gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' }}>{t('onboarding.inspectDeck')}</button>
-                </p>
+                {!shortVp && <p style={{ font: '400 clamp(10.5px, 2vh, 12px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0, lineHeight: 1.4 }}>{curMeta.intro}</p>}
+                {!shortVp && keyCards.length >= 3 && !opening && (
+                  <div className="flex items-end" style={{ gap: 6, justifyContent: portrait ? 'center' : 'flex-start', marginTop: 2 }} aria-label={t('onboarding.ob.keyCards')}>
+                    {[keyCards[1], keyCards[0], keyCards[2]].map((c, j) => (
+                      <button key={c.cardId} onClick={() => { playUiClick(); setPreview(c) }} className="ravenof-press" aria-label={c.name}
+                        style={{ width: j === 1 ? 62 : 52, aspectRatio: '1044 / 1416', padding: 0, border: `1px solid ${j === 1 ? 'rgba(255,226,140,0.9)' : 'rgba(212,163,59,0.5)'}`, borderRadius: 4, overflow: 'hidden', background: '#0d0a14', cursor: 'pointer', boxShadow: '0 8px 20px #000' }}>
+                        {c.imageUrl && <SmartImg src={c.imageUrl} width={120} alt="" className="w-full h-full" style={{ objectFit: 'contain' }} />}
+                      </button>
+                    ))}
+                    <span style={{ font: '700 9px var(--ravenof-font-body)', letterSpacing: '0.18em', color: 'var(--ravenof-text-secondary)', alignSelf: 'center', marginLeft: 4 }}>{t('onboarding.ob.keyCards')}</span>
+                  </div>
+                )}
+                <div className="flex items-center flex-wrap" style={{ gap: 10, justifyContent: portrait ? 'center' : 'flex-start', marginTop: shortVp ? 2 : 4 }}>
+                  <RavenofBannerButton onClick={nextFromDeck} disabled={!cur || busy || opening} style={{ width: portrait ? 'min(260px, 80vw)' : 'clamp(170px, 20vw, 240px)', padding: shortVp ? '9px 12px' : '11px 14px' }}>
+                    {busy ? t('onboarding.saving') : opening ? '…' : t('onboarding.ob.pickDeck')}
+                  </RavenofBannerButton>
+                  <button onClick={() => { playUiClick(); setDetailOpen(true) }} className="ravenof-press" style={{ font: '600 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' }}>{t('onboarding.inspectDeck')}</button>
+                </div>
               </>
             )}
           </div>
-        </>
+        </div>
       ) : (
         <>
           {/* ── Avatarai: tik atrakinti (iki 2), dvikovos išdėstymas ── */}
@@ -602,7 +607,7 @@ export function StarterDeckOnboarding() {
       )}
 
       {/* ── Apačia: ATGAL · taškai · CTA ── */}
-      <div className="relative shrink-0 flex items-center justify-between" style={{ padding: `6px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 10px) max(20px, env(safe-area-inset-left, 0px))`, zIndex: 6 }}>
+      <div className="relative shrink-0 flex items-center justify-between" style={{ padding: `${shortVp ? 2 : 6}px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + ${shortVp ? 4 : 10}px) max(20px, env(safe-area-inset-left, 0px))`, zIndex: 6 }}>
         <button onClick={() => { playUiClick(); setStep('deck') }} disabled={onDeck || busy}
           className="ravenof-press" style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', background: 'none', border: 'none', cursor: onDeck ? 'default' : 'pointer', opacity: onDeck ? 0.3 : 1 }}>
           ‹ {t('onboarding.ob.back')}
@@ -613,9 +618,7 @@ export function StarterDeckOnboarding() {
           ))}
         </span>
         {onDeck ? (
-          <RavenofBannerButton onClick={nextFromDeck} disabled={!cur || busy || opening} style={{ width: 'clamp(180px, 24vw, 252px)', padding: '12px 16px' }}>
-            {busy ? t('onboarding.saving') : opening ? '…' : t('onboarding.ob.pickDeck')}
-          </RavenofBannerButton>
+          <span style={{ width: 92 }} aria-hidden />
         ) : (
           <RavenofBannerButton onClick={finish} disabled={busy || (pickable.length > 0 && !chosenAv)} style={{ width: 'clamp(200px, 26vw, 268px)', padding: '12px 16px' }}>
             {busy ? t('onboarding.saving') : t('onboarding.ob.toTutorial')}
