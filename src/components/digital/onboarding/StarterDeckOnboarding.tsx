@@ -150,16 +150,13 @@ function ObArrow({ dir, onClick, disabled, label }: { dir: -1 | 1; onClick: () =
 
 // Komponento CSS (scoped .rvn-ob) — 3D dėžutė, plūduriavimas, dangčio nulėkimas, medalionas.
 const CSS = `
-.rvn-ob .ob-box{position:absolute;bottom:0;cursor:pointer;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s,opacity .45s;will-change:transform}
-.rvn-ob .ob-b3d{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
-.rvn-ob .ob-front{position:absolute;inset:0;border-radius:6px;overflow:hidden;border:2px solid rgba(212,163,59,.55);background:#0d0a14;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 20px 40px rgba(0,0,0,.7);transform:translateZ(15px)}
+.rvn-ob .ob-box{position:absolute;bottom:0;cursor:pointer;transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s,opacity .45s;will-change:transform}
+.rvn-ob .ob-b3d{position:absolute;inset:0;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.rvn-ob .ob-front{position:absolute;inset:0;border-radius:6px;overflow:hidden;border:2px solid rgba(212,163,59,.55);background:#0d0a14;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),6px 6px 0 -1px #1a120a,10px 10px 0 -2px #120c08,0 20px 40px rgba(0,0,0,.7)}
 .rvn-ob .ob-front:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 70%,rgba(0,0,0,.7))}
-.rvn-ob .ob-side{position:absolute;right:0;top:0;width:30px;height:100%;background:linear-gradient(90deg,#3a2818,#150e08);border:1px solid rgba(212,163,59,.35);transform:rotateY(90deg) translateZ(calc(var(--bw) - 15px)) translateX(15px);border-radius:0 4px 4px 0}
-.rvn-ob .ob-top{position:absolute;left:0;top:0;width:100%;height:30px;background:linear-gradient(180deg,#4a3620,#1a120a);border:1px solid rgba(212,163,59,.45);transform:rotateX(90deg) translateZ(15px) translateY(-15px)}
-.rvn-ob .ob-lid{position:absolute;inset:0;border-radius:6px;overflow:hidden;opacity:0;transform:translateZ(16px);pointer-events:none}
+.rvn-ob .ob-lid{position:absolute;inset:0;border-radius:6px;overflow:hidden;opacity:0;pointer-events:none}
 .rvn-ob .ob-disc{position:absolute;left:-30px;right:-30px;bottom:-22px;height:44px;border-radius:50%;background:radial-gradient(ellipse,var(--c) 0%,transparent 70%);opacity:0;filter:blur(6px);transition:opacity .45s}
 .rvn-ob .ob-box.foc{z-index:3;animation:ob-float 3.2s ease-in-out infinite}
-.rvn-ob .ob-box.foc .ob-b3d{transform:rotateY(-16deg) rotateX(4deg)}
 .rvn-ob .ob-box.foc .ob-front{border-color:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 30px 50px rgba(0,0,0,.75),0 0 40px color-mix(in srgb,var(--c) 55%,transparent)}
 .rvn-ob .ob-box.foc .ob-disc{opacity:.9}
 .rvn-ob .ob-box.n1{filter:brightness(.55)}
@@ -169,7 +166,7 @@ const CSS = `
 .rvn-ob .ob-box.burst .ob-front img{filter:brightness(2.2)}
 @keyframes ob-float{0%,100%{transform:translate(var(--tx),-26px) scale(1.14)}50%{transform:translate(var(--tx),-32px) scale(1.14)}}
 @keyframes ob-shake{0%,100%{transform:translate(var(--tx),-26px) scale(1.14) rotate(0)}25%{transform:translate(var(--tx),-26px) scale(1.14) rotate(-2deg)}75%{transform:translate(var(--tx),-26px) scale(1.14) rotate(2deg)}}
-@keyframes ob-lid{to{transform:translateZ(60px) translateY(-260px) rotateX(70deg);opacity:0}}
+@keyframes ob-lid{to{transform:translateY(-260px) rotateX(70deg);opacity:0}}
 @keyframes ob-ring{0%{opacity:.9;width:20px;height:20px}100%{opacity:0;width:560px;height:560px;border-width:1px}}
 .rvn-ob .ob-ring{position:absolute;border-radius:50%;border:3px solid var(--c);transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:7;animation:ob-ring .7s ease-out forwards}
 .rvn-ob .ob-fly{position:absolute;aspect-ratio:1044/1416;border-radius:5px;overflow:hidden;border:1.5px solid rgba(212,163,59,.8);box-shadow:0 12px 30px #000,0 0 18px color-mix(in srgb,var(--c) 50%,transparent);opacity:0;z-index:7;pointer-events:none;background:#0d0a14}
@@ -230,18 +227,24 @@ export function StarterDeckOnboarding() {
   // Dėžutės plotis iš REALAUS karuselės konteinerio aukščio: fokusuota dėžutė
   // (×1.14 + pakilimas) turi tilpti tarp antraštės ir info bloko, kad nenusikirptų viršus.
   const areaRef = useRef<HTMLDivElement | null>(null)
+  const [areaW, setAreaW] = useState(1200)
+  const [shortVp, setShortVp] = useState(false)   // žemas landscape ekranas (telefonas): kompaktiška antraštė/info
   useEffect(() => {
     const el = areaRef.current
     if (!el) return
     const f = () => {
-      const h = el.clientHeight
-      const fit = (h - 70) / (1.14 * 1.53)          // 70 px: pakilimas + diskas + tarpas
-      setBoxW(Math.round(Math.max(92, Math.min(170, fit))))
+      const h = el.clientHeight, w = el.clientWidth
+      setAreaW(w)
+      const fitH = (h - 50) / (1.14 * 1.53)          // 50 px: pakilimas + diskas + tarpas
+      const fitW = w < 600 ? (w - 40) / 2.2 : (w - 140) / 3.4   // portrait: fokusas + kaimynų kraštai; landscape: 3 dėžutės + strėlės
+      setBoxW(Math.round(Math.max(84, Math.min(260, fitH, fitW))))
+      setShortVp(window.innerHeight < 480)
     }
     f()
     const ro = new ResizeObserver(f); ro.observe(el)
     return () => ro.disconnect()
   }, [step])
+  const showKeyFan = areaW >= 1000 && !shortVp   // siauruose/žemuose ekranuose vėduoklė slepiama (netelpa šalia karuselės)
 
   const list = useMemo(() => (Array.isArray(starters) ? starters : []), [starters])
   const avatarOwned = useCallback((c: Cosmetic) => (cos?.owned ?? []).includes(c.id) || !!c.ownedByDefault, [cos])
@@ -446,8 +449,8 @@ export function StarterDeckOnboarding() {
   const chosenAv = pickable.find((c) => c.id === avSel) ?? null
 
   return (
-    <div ref={stageRef} className="rvn-ob ravenof-body ravenof-in h-full w-full flex flex-col outline-none relative overflow-hidden" tabIndex={0} onKeyDown={onKey}
-      style={{ background: 'var(--ravenof-bg-base)' }}>
+    <div ref={stageRef} className="rvn-ob ravenof-body ravenof-in h-full w-full flex flex-col outline-none relative" tabIndex={0} onKeyDown={onKey}
+      style={{ background: 'var(--ravenof-bg-base)', overflowX: 'hidden', overflowY: 'auto' }}>
       <style>{CSS}</style>
       {/* fonas — katedros griuvėsiai + frakcijos nuotaika */}
       <div aria-hidden className="absolute inset-0" style={{ background: `url('${RAVENOF_ASSET}/backgrounds/background-cathedral-ruins.webp') center / cover no-repeat`, opacity: 0.22 }} />
@@ -472,18 +475,20 @@ export function StarterDeckOnboarding() {
         <h1 style={{ font: '700 clamp(19px, 4.6vh, 26px) var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-primary)', margin: 0, textShadow: '0 2px 12px #000' }}>
           {onDeck ? t('onboarding.ob.deckTitle') : t('onboarding.ob.avatarTitle2')}
         </h1>
-        <p style={{ font: '400 clamp(10px, 2vh, 12.5px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>
-          {onDeck ? t('onboarding.ob.deckSub2') : t('onboarding.ob.avatarSub2')}
-        </p>
+        {!(shortVp && onDeck) && (
+          <p style={{ font: '400 clamp(10px, 2vh, 12.5px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '2px 0 0' }}>
+            {onDeck ? t('onboarding.ob.deckSub2') : t('onboarding.ob.avatarSub2')}
+          </p>
+        )}
         {claimErr && <p role="alert" style={{ font: '500 11px var(--ravenof-font-body)', color: '#c65563', margin: '3px 0 0' }}>{claimErr}</p>}
       </div>
 
       {onDeck ? (
         <>
           {/* ── Dėžučių karuselė (3D) ── */}
-          <div ref={areaRef} className="relative flex-1 min-h-0" style={{ zIndex: 3, touchAction: 'pan-y' }} {...railPointer}>
+          <div ref={areaRef} className="relative flex-1" style={{ zIndex: 3, touchAction: 'pan-y', minHeight: Math.round(boxH * 1.14) + 50, overflow: 'hidden' }} {...railPointer}>
             <div ref={railRef} className="absolute" role="listbox" aria-label={t('onboarding.starterDecksAria')}
-              style={{ left: '50%', bottom: 26, height: boxH, width: 0, perspective: 1100,
+              style={{ left: '50%', top: '50%', marginTop: -Math.round(boxH / 2) + 10, height: boxH, width: 0,
                 transform: `translateX(${-(idx * stepW + boxW / 2) + dragDx}px)`, transition: drag.current?.moved ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1)' }}>
               {list.map((d, i) => {
                 const fac = d.factionId != null ? factions[d.factionId] : undefined
@@ -496,7 +501,7 @@ export function StarterDeckOnboarding() {
                   <div key={d.id} role="option" aria-selected={i === idx} className={cls}
                     onClick={() => { if (drag.current?.moved || opening) return; if (i === idx) { playUiClick(); setDetailOpen(true) } else goIdx(i) }}
                     style={{ width: boxW, height: boxH, ['--c' as string]: col, ['--bw' as string]: `${boxW}px`, ['--tx' as string]: tx, transform: base }}>
-                    <div className="ob-b3d" style={dist !== 0 ? { transform: `rotateY(${i < idx ? 28 : -28}deg)` } : undefined}>
+                    <div className="ob-b3d">
                       <div className="ob-front">
                         {d.imageUrl
                           ? <SmartImg src={d.imageUrl} width={440} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />
@@ -507,7 +512,6 @@ export function StarterDeckOnboarding() {
                         </span>
                         {(d.claimed || claimedId === d.id) && <span className="absolute left-0 right-0 text-center" style={{ bottom: 10, zIndex: 2, font: '800 8px var(--ravenof-font-body)', letterSpacing: '0.2em', color: '#7bd389' }}>{t('shop.owned')}</span>}
                       </div>
-                      <div className="ob-side" /><div className="ob-top" />
                       <div className="ob-lid">{d.imageUrl && <SmartImg src={d.imageUrl} width={440} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />}</div>
                     </div>
                     <div className="ob-disc" />
@@ -519,7 +523,7 @@ export function StarterDeckOnboarding() {
             <ObArrow dir={1} onClick={() => goIdx(idx + 1)} disabled={idx >= list.length - 1 || opening} label={t('onboarding.nextDeck')} />
 
             {/* Raktinės kortos (vėduoklė) — dešinėje apačioje */}
-            {keyCards.length >= 3 && !opening && (
+            {showKeyFan && keyCards.length >= 3 && !opening && (
               <div className="absolute" style={{ right: 'max(24px, 3vw)', bottom: 'max(8px, 2vh)', width: 150, height: 96, zIndex: 4 }} aria-label={t('onboarding.ob.keyCards')}>
                 <span className="absolute left-0 right-0 text-center" style={{ top: -14, font: '700 9px var(--ravenof-font-body)', letterSpacing: '0.2em', color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.ob.keyCards')}</span>
                 {[keyCards[1], keyCards[0], keyCards[2]].map((c, j) => (
@@ -534,7 +538,7 @@ export function StarterDeckOnboarding() {
           </div>
 
           {/* ── Info po dėžute ── */}
-          <div className="relative shrink-0 text-center" style={{ minHeight: 64, zIndex: 5, padding: '0 16px' }}>
+          <div className="relative shrink-0 text-center" style={{ minHeight: shortVp ? 44 : 64, zIndex: 5, padding: '0 16px' }}>
             {cur && curMeta && (
               <>
                 <div style={{ font: '700 11px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: accent }}>{cur.faction ?? ''}</div>
@@ -548,7 +552,7 @@ export function StarterDeckOnboarding() {
                   <span style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>· {t('onboarding.cardsShort', { count: cur.cardCount })}</span>
                 </div>
                 <p style={{ font: '400 clamp(10px, 2vh, 12px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0, maxWidth: 560, marginInline: 'auto' }}>
-                  {curMeta.intro}{' '}
+                  {!shortVp && <>{curMeta.intro}{' '}</>}
                   <button onClick={() => { playUiClick(); setDetailOpen(true) }} className="ravenof-press" style={{ font: 'inherit', color: 'var(--ravenof-gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' }}>{t('onboarding.inspectDeck')}</button>
                 </p>
               </>
