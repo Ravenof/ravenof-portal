@@ -1988,6 +1988,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         default: return 'generic'
       }
     }
+    // Kada projektilas PASIEKIA taikinį (ms nuo spawn): smūgio FX (impactBurst,
+    // blyksnis, skaičius) turi eiti PO projektilo, ne vietoj jo. Frakcijos =
+    // BattleFxLayer kontakto taškai (projectile tp 0.62, beam pilnas ~0.25, slash ~0.5).
+    const projLandMs = (kind: 'projectile' | 'slash' | 'beam', durS: number) => Math.round(durS * 1000 * (kind === 'beam' ? 0.25 : kind === 'slash' ? 0.5 : 0.62))
+    let projLandAt = 0   // ability bloko projektilo nusileidimo laikas (ms nuo batch pradžios); 0 = nepaleistas
     const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
     const SETTLE = hasPlay ? 800 : 0
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 žalos taikiniai
@@ -2522,9 +2527,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             flashAvatar(sd, 'hit')
             { const big = (val ?? 0) >= 6 || (val ?? 0) >= P(game, sd).maxHp * 0.25; setMood(sd, big ? 'bigdmg' : 'dmg', SETTLE + fxSeq); const atk: Side = sd === 'you' ? 'ai' : 'you'; if (e.src?.uid || e.cardName) setMood(atk, 'attack', SETTLE + fxSeq) }
             const pat = rectFor({ side: sd })
+            // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui),
+            // o smūgio FX — tik projektilui NUSILEIDUS (ne vietoj jo).
+            const willProj = !!(srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !e.viaScene)
+            const pKind = factionDirectionalKind(srcCard?.factionName)
+            if (pat && willProj && srcRef) {
+              const sref2 = srcRef, base2 = SETTLE + fxSeq
+              window.setTimeout(() => {
+                const fr = rectOf(sref2)
+                if (fr) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: pKind, from: fr, to: pat, color: fxElemColor ?? palOf(srcCard).primary, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
+              }, base2)
+            }
             // Žala herojui — ta pati ImpactProfile dramaturgija kaip padarams.
             if (pat) {
-              const d = e.viaScene ? fxSeq : SETTLE + fxSeq; fxSeq += 80
+              const d = (e.viaScene ? fxSeq : SETTLE + fxSeq) + (willProj ? projLandMs(pKind, 1.0) : 0); fxSeq += willProj ? 100 : 80
               const hp = impactProfile(e.severity)
               window.setTimeout(() => {
                 void (async () => {
@@ -2536,14 +2552,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                   fxRef.current?.floatNumber(pat.x, pat.y - 14, '-' + val, '#ff5a4a', hp.damageNumberStyle)
                 })()
               }, d)
-            }
-            // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui)
-            if (srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !e.viaScene) {
-              const sref2 = srcRef, base2 = SETTLE + fxSeq; fxSeq += 100
-              window.setTimeout(() => {
-                const fr = rectOf(sref2)
-                if (fr) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: fr, to: pat, color: fxElemColor ?? palOf(srcCard).primary, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
-              }, base2)
             }
             const pp2 = P(game, sd)
             if (pp2.hp > 0 && pp2.hp <= pp2.maxHp * 0.25) playAvatarAudio(aid, 'lowHp')
@@ -2568,7 +2576,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             const sref = srcRef, col = elemCol ?? palOf(srcCard).primary, pf = projFired, am = zoneAoe
             // rect'as fiksuojamas SINCHRONIŠKAI (dar prieš showcase/ŽMK delsas) – jei taikinys
             // per tą laiką žus ir dings iš DOM, projektilas vis tiek skries į jo vietą
-            const sev = e.severity
+            const sev = e.severity, landAt = projLandAt
             if (sev) lastSeverityRef = sev
             const toEarly = rectOf(tgt)
             window.setTimeout(() => {
@@ -2599,7 +2607,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                   if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
                   fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, prof.damageNumberStyle)
                 })()
-              }, viaScene ? 0 : fireProj ? 600 : 220)
+              }, viaScene ? 0
+                : fireProj ? projLandMs(factionDirectionalKind(srcCard?.factionName), 1.0)
+                : (pf && srcKind === 'ability' && landAt > 0) ? Math.max(220, landAt - base)   // ability bloko projektilas dar skrenda
+                : 220)
             }, base)
           }
           break
@@ -2668,6 +2679,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           }
           if (to0) fxRef.current?.lungeUnit(src.uid, to0, { targetUid: tgt.uid, severity: sev })
         }
+        if (!isAtk) projLandAt = 200 + hold + projLandMs(factionDirectionalKind(srcCard?.factionName), 1.2)
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
           if (from && to) {

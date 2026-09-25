@@ -143,6 +143,8 @@ type Item = {
   rays?: { a: number; len: number }[]
   /** sparkBurst medium kokybė: be skeveldrų/spindulių/šoko žiedo. */
   lite?: boolean
+  /** sparkBurst: kiek smūgių aktyvūs paleidimo metu (dalelių kiekio dalyba). */
+  __active?: number
 }
 
 function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
@@ -152,6 +154,35 @@ function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, co
   ctx.globalAlpha = a; ctx.fillStyle = g
   ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
 }
+/**
+ * Sprite'inis glow dalelėms (našumas): radialinis gradientas piešiamas VIENĄ kartą
+ * į offscreen canvas pagal spalvą, toliau — drawImage su mastelio keitimu.
+ * `createRadialGradient` kiekvienai dalelei kiekviename kadre (70 žiežirbų × 60 fps)
+ * buvo pagrindinė smūgio lag'o priežastis; drawImage yra ~10× pigesnis.
+ */
+const SPRITE_R = 32
+const spriteCache = new Map<string, HTMLCanvasElement>()
+function glowSprite(color: string): HTMLCanvasElement | null {
+  let c = spriteCache.get(color)
+  if (c) return c
+  if (typeof document === 'undefined') return null
+  c = document.createElement('canvas'); c.width = c.height = SPRITE_R * 2
+  const g2 = c.getContext('2d'); if (!g2) return null
+  const gr = g2.createRadialGradient(SPRITE_R, SPRITE_R, 0, SPRITE_R, SPRITE_R, SPRITE_R)
+  gr.addColorStop(0, color); gr.addColorStop(1, 'transparent')
+  g2.fillStyle = gr; g2.beginPath(); g2.arc(SPRITE_R, SPRITE_R, SPRITE_R, 0, TAU); g2.fill()
+  spriteCache.set(color, c)
+  return c
+}
+function glowFast(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
+  if (r <= 0 || a <= 0) return
+  const sp = glowSprite(color)
+  if (!sp) { glow(ctx, x, y, r, color, a); return }
+  ctx.globalAlpha = Math.min(1, a)
+  ctx.drawImage(sp, x - r, y - r, r * 2, r * 2)
+  ctx.globalAlpha = 1
+}
+
 /** Fizinė strėlė: kotas + plieno antgalis + plunksnos (piešiama source-over, kad nešvytėtų). */
 function drawArrow(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, len: number, D: number, a: number) {
   const prevOp = ctx.globalCompositeOperation
@@ -203,8 +234,10 @@ export const BattleFxLayer = forwardRef<BattleFxHandle>(function BattleFxLayer(_
     if (prefersReduced() || q === 'low') return
     const D = dprRef.current
     const S = IMPACT_FX[sev] ?? IMPACT_FX.HIT
+    let active = 1
+    for (const o of items.current) if (o.kind === 'sparkBurst') active++
     items.current.push({
-      id: ++idc.current, kind: 'sparkBurst',
+      id: ++idc.current, kind: 'sparkBurst', __active: active,
       from: { x: x * D, y: y * D },
       // `to` neša tik KRYPTĮ (smūgio normalę) — atskiro lauko Item tipe nereikia.
       to: { x: (x + nx * 100) * D, y: (y + ny * 100) * D },
@@ -1117,7 +1150,11 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       const e = now - it.t0
       if (!it.seeded) {
         it.seeded = true
-        const n = Math.round(S.sparks * im)
+        // Keli smūgiai vienu metu (AoE / grandinė): dalelių kiekis dalinamas, kad
+        // 5 taikiniai × 70 žiežirbų netaptų 350 dalelių ir kadras neužstrigtų.
+        const active = it.__active ?? 1
+        const cm = active > 1 ? Math.max(0.35, 1 / Math.sqrt(active)) : 1
+        const n = Math.round(S.sparks * im * cm)
         for (let k = 0; k < n; k++) {
           const a = rnd(0, TAU)
           // Tolygiai per 360°, bet su polinkiu ATGAL nuo smūgio — metalas
@@ -1128,14 +1165,14 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
           const sp = (A.speedPxPerSec / 60) * D * rnd(0.35, 1.3) * S.speedMul
           it.parts.push({ k: 's', x: from.x, y: from.y, vx: ex * sp, vy: ey * sp, life: now, max: A.lifeMs * rnd(0.55, 1.3), size: rnd(1, 2.8) * D, rot: 0, vr: 0, hot: Math.random() < A.hotChance })
         }
-        const m = Math.round(S.embers * im)
+        const m = Math.round(S.embers * im * cm)
         for (let k = 0; k < m; k++) {
           const a = rnd(0, TAU)
           const sp = (A.speedPxPerSec / 60) * D * 0.18 * rnd(0.5, 1.5)
           it.parts.push({ k: 'e', x: from.x, y: from.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: now, max: A.lifeMs * 2.1, size: rnd(1.4, 3) * D, rot: 1, vr: 0 })
         }
         // Dūmai: ZERO — iš karto, pilki; HEAVY+ — po sprogimo (delsa), tamsūs
-        const sm = Math.round(S.smoke * (lite ? 0.6 : 1))
+        const sm = Math.round(S.smoke * (lite ? 0.6 : 1) * cm)
         for (let k = 0; k < sm; k++) {
           const a = rnd(0, TAU), sp = (S.sparks ? 1.6 : 0.9) * D * rnd(0.5, 1.2)
           it.parts.push({ k: 'm', x: from.x + rnd(-8, 8) * D, y: from.y + rnd(-8, 8) * D, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.35 * D, life: now + (S.sparks ? 120 : 0), max: rnd(700, 1100), size: rnd(18, 34) * D, rot: 0, vr: 0 })
@@ -1212,17 +1249,23 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
       if (it.rays && it.rays.length) {
         const rp = e / 260
         if (rp < 1) {
+          // Be shadowBlur (canvas'e tai brangiausia operacija): du stroke'ai —
+          // platus blankus (halo) + plonas ryškus (šerdis) duoda tą patį vaizdą.
           ctx.lineCap = 'round'
-          ctx.globalAlpha = (1 - rp) * 0.9; ctx.strokeStyle = color; ctx.lineWidth = (6 * (1 - rp) + 1) * D
-          ctx.shadowColor = color2; ctx.shadowBlur = 8 * D
-          for (const r of it.rays) {
-            const L = S.ringR * 1.5 * r.len * D * (1 - Math.pow(1 - rp, 2))
+          const rayLen = it.rays.map((r) => S.ringR * 1.5 * r.len * D * (1 - Math.pow(1 - rp, 2)))
+          for (let pass = 0; pass < 2; pass++) {
+            ctx.globalAlpha = (1 - rp) * (pass === 0 ? 0.35 : 0.9)
+            ctx.strokeStyle = pass === 0 ? color : color2
+            ctx.lineWidth = (pass === 0 ? 14 : 4) * (1 - rp) * D + 1 * D
             ctx.beginPath()
-            ctx.moveTo(from.x + Math.cos(r.a) * 10 * D, from.y + Math.sin(r.a) * 10 * D)
-            ctx.lineTo(from.x + Math.cos(r.a) * L, from.y + Math.sin(r.a) * L)
+            for (let k = 0; k < it.rays.length; k++) {
+              const r = it.rays[k], L = rayLen[k]
+              ctx.moveTo(from.x + Math.cos(r.a) * 10 * D, from.y + Math.sin(r.a) * 10 * D)
+              ctx.lineTo(from.x + Math.cos(r.a) * L, from.y + Math.sin(r.a) * L)
+            }
             ctx.stroke()
           }
-          ctx.shadowBlur = 0; ctx.globalAlpha = 1
+          ctx.globalAlpha = 1
         }
       }
       const g = (A.gravity / 3600) * D
@@ -1237,7 +1280,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
         switch (q.k) {
           case 'e':
             q.vy += g * 0.25; q.vx *= 0.985; q.vy *= 0.985
-            glow(ctx, q.x, q.y, q.size * 5, color, a * 0.85)
+            glowFast(ctx, q.x, q.y, q.size * 5, color, a * 0.85)
             break
           case 'd':
             q.vy += g * 0.5; q.vx *= 0.97; q.vy *= 0.97
@@ -1249,10 +1292,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
           case 'm': {
             q.vx *= 0.97; q.vy *= 0.97; q.vy -= 0.02 * D
             ctx.globalCompositeOperation = 'source-over'
-            const sz = q.size * (0.6 + pe * 1.1)
-            const gg = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, sz)
-            gg.addColorStop(0, `rgba(${S.smokeRgb},${(1 - pe) * 0.55})`); gg.addColorStop(1, `rgba(${S.smokeRgb},0)`)
-            ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(q.x, q.y, sz, 0, TAU); ctx.fill()
+            glowFast(ctx, q.x, q.y, q.size * (0.6 + pe * 1.1), `rgb(${S.smokeRgb})`, (1 - pe) * 0.55)
             ctx.globalCompositeOperation = 'lighter'
             break
           }
@@ -1273,7 +1313,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: Item, p: number, D: number,
             ctx.lineWidth = q.size * (0.4 + a * 0.9); ctx.lineCap = 'round'
             ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(q.x, q.y); ctx.stroke()
             ctx.globalAlpha = 1
-            if (q.hot) glow(ctx, q.x, q.y, q.size * 1.6 * a, '#ffffff', a * 0.9)
+            if (q.hot) glowFast(ctx, q.x, q.y, q.size * 1.6 * a, '#ffffff', a * 0.9)
         }
       }
       break
