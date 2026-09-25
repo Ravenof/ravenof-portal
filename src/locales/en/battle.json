@@ -372,7 +372,9 @@
     "botChat_winGg_3": "well played",
     "botChat_lossGg_1": "gg",
     "botChat_lossGg_2": "gg wp",
-    "botChat_lossGg_3": "ok gg"
+    "botChat_lossGg_3": "ok gg",
+    "classicBadge": "CLASSIC · NO ŽMK",
+    "classicHint": "Classic format: damage equals card values, no ŽMK draw"
   },
   "guided": {
     "discard-gold-tip": {

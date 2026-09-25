@@ -372,7 +372,9 @@
     "botChat_winGg_3": "gerai sužaista",
     "botChat_lossGg_1": "gg",
     "botChat_lossGg_2": "gg wp",
-    "botChat_lossGg_3": "na gg"
+    "botChat_lossGg_3": "na gg",
+    "classicBadge": "KLASIKA · BE ŽMK",
+    "classicHint": "Klasikos formatas: žala lygi kortų vertėms, ŽMK netraukiamas"
   },
   "guided": {
     "discard-gold-tip": {

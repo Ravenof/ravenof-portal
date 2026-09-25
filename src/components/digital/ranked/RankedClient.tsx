@@ -32,6 +32,8 @@ import { SeasonHistory } from './SeasonHistory'
 import { useT } from '@/lib/i18n/react'
 import { RAVENOF_ASSET } from '../ui/RavenofKit'
 import { getStarterDecks } from '@/lib/starterDecks'
+import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
+import { useBattleFormat } from '@/lib/game/format'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -64,6 +66,13 @@ export function RankedClient() {
     const [s, p] = await Promise.all([getActiveSeason(), ensureProfile()])
     setSeason(s); setProfile(p)
   }, [])
+  // Formato perjungimas (ŽMK ⇄ Klasika): sezonas, profilis ir top'as persikrauna — Klasika turi atskirą sezoną.
+  const fmt = useBattleFormat()
+  useEffect(() => {
+    setProfile(null); setLeaders(null)
+    load()
+    getLeaderboard(3, 0).then((rows) => setLeaders(rows.slice(0, 3)))
+  }, [fmt, load])
 
   useEffect(() => {
     const supabase = createClient()
@@ -153,6 +162,7 @@ export function RankedClient() {
           deckId={selDeckObj.id}
           deckName={selDeckObj.name}
           ranked
+          format={fmt}
           net={opp.net}
           opponentDeckId={opp.opponentDeckId ?? null}
           opponentName={opp.name}
@@ -166,6 +176,7 @@ export function RankedClient() {
         deckId={selDeckObj.id}
         deckName={selDeckObj.name}
         ranked
+        format={fmt}
         practice
         opponentFaction={opponentFactionId(opp)}
         opponentName={opp.name}
@@ -207,7 +218,8 @@ export function RankedClient() {
           {/* Antraštė: atgal + pavadinimas + sezonas + sub-view nav */}
           <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
             <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('ranked.backHome')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
-            <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</div>
+            <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}{fmt === 'classic' ? ` · ${t('home.format.classic')}` : ''}</div>
+            <FormatSwitch variant="chip" />
             <div className="flex-1" />
             {([['leaderboard', '🏆'], ['history', '📜'], ['achievements', '🏅'], ['season', '📅'], ['rewards', '🎁']] as [View, string][]).map(([v, ic]) => (
               <button key={v} onClick={() => { playUiClick(); setView(v) }} className="ravenof-press" style={{ width: 26, height: 26, fontSize: 12, background: 'none', border: '1px solid var(--ravenof-border-hairline)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{ic}</button>

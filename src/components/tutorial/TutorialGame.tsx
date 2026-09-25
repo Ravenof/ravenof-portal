@@ -86,6 +86,7 @@ import { emitCampaignEvents, type CampaignEventHandler } from '@/lib/campaign/ba
 import { resetFeelTelemetry, noteLockState, noteInputStart, noteFirstFeedback, cancelInputMeasure, debugLogFeelTelemetry } from '@/lib/game/feelTelemetry'
 import { resetReactionPacing, nextReactionIsCompact, nextKeywordIsCompact } from '@/lib/game/reactionPacing'
 import { impactProfile, severityAtLeast, type ImpactSeverity } from '@/lib/game/impactProfiles'
+import { CLASSIC_ACCENT, type BattleFormat } from '@/lib/game/format'
 import { deathStyleFor } from '@/lib/game/deathStyles'
 import { duckMusic } from '@/lib/game/musicManager'
 import { TactileStyles, pressPulse, invalidPulse, snapSettle, returnSpring, dragFollow, withinSnap } from '@/components/tutorial/CardTactile'
@@ -139,7 +140,7 @@ export type SandboxHooks = {
   passiveAi?: boolean
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; /** Botas, kuris kovoje elgiasi kaip žaidėjas: rodom pokalbio burbulą ir jis atrašo (labas/gl/gg). */ botChat?: { name: string }; /** Boto avataro paveikslėlis (tas pats, kurį žaidėjas matė „varžovas rastas" ekrane). */ opponentAvatar?: string | null; /** Atlygio režimo perrašymas (draugiška kova prieš botą = 'unranked'). */ rewardMode?: MatchMode; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; /** Botas, kuris kovoje elgiasi kaip žaidėjas: rodom pokalbio burbulą ir jis atrašo (labas/gl/gg). */ botChat?: { name: string }; /** Boto avataro paveikslėlis (tas pats, kurį žaidėjas matė „varžovas rastas" ekrane). */ opponentAvatar?: string | null; /** Atlygio režimo perrašymas (draugiška kova prieš botą = 'unranked'). */ rewardMode?: MatchMode; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks; /** Kovos formatas: 'classic' = be ŽMK (žala = kortų vertės). Numatyta 'zmk'. */ format?: BattleFormat }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -991,7 +992,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox, format = 'zmk' }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
@@ -1766,7 +1767,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       first,
-      { zmkDefs, curseCards, curseCardsAi: oppCurseCards ?? undefined, mulligan: tossEnabled, mulliganBothManual: !!net },
+      { zmkDefs, curseCards, curseCardsAi: oppCurseCards ?? undefined, mulligan: tossEnabled, mulliganBothManual: !!net, format },
     )
     if (tossEnabled) setCoinToss({ first, phase: 'spin', spun: false })
     else setCoinToss(null)
@@ -1776,7 +1777,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     seenRef.current = g.log.length
     setGame(g)
     playShuffle()
-  }, [zmkDefs, curseCards, oppCurseCards, tutorial, net, sandbox])
+  }, [zmkDefs, curseCards, oppCurseCards, tutorial, net, sandbox, format])
 
   // Praktika / PvP host: priešo (svečio) kaladė
   useEffect(() => {
@@ -4883,6 +4884,12 @@ doAction({ t: 'endTurn', actor: 'you' })
               <span className="text-xs sm:text-sm font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--text-primary)' }}>
                 {ranked ? t('battle.game.titleRanked', { name: opponentName ?? t('battle.game.opponent') }) : practice ? t('battle.game.titlePractice', { name: opponentName ?? t('battle.game.opponent') }) : t('battle.game.titleTutorial', { deck: deckName })}
               </span>
+              {game?.format === 'classic' && (
+                <span className="shrink-0 font-bold rounded" title={t('battle.game.classicHint')}
+                  style={{ fontSize: 8.5, letterSpacing: '0.14em', padding: '2px 6px', border: `1px solid rgba(${CLASSIC_ACCENT},0.8)`, color: '#e9f1ff', background: 'rgba(10,15,24,0.85)', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)' }}>
+                  {t('battle.game.classicBadge')}
+                </span>
+              )}
               {ranked && !game?.winner && (
                 <TurnTimer deadline={turnDeadline} variant="chip" />
               )}
@@ -5015,7 +5022,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <OppHandFan count={game.ai.hand.length} />
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
-                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', pileKey: 'zmk-ai' })}
+                {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', pileKey: 'zmk-ai' })}
               </div>
             </div>
             <div className="mt-1 pl-[50px] pr-[38px]">{renderSideZones('ai')}</div>
@@ -5058,7 +5065,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <div className="flex items-end gap-1.5">
                   {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
                   {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
-                  {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', pileKey: 'zmk-you' })}
+                  {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', pileKey: 'zmk-you' })}
                 </div>
               </div>
             </div>
@@ -5119,7 +5126,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 66 })}
-                {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66, pileKey: 'zmk-you' })}
+                {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66, pileKey: 'zmk-you' })}
                 {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>
@@ -5158,7 +5165,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               </div>
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 66 })}
-                {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 66, pileKey: 'zmk-ai' })}
+                {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 66, pileKey: 'zmk-ai' })}
                 {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex-1 min-h-0 flex flex-col" style={RAIL_PANEL}>

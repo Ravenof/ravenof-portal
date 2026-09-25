@@ -59,5 +59,14 @@
   "tier": "Pakopa {{n}}",
   "view": "PERŽIŪRĖTI",
   "viewCollection": "Peržiūrėti kolekciją →",
-  "viewTrack": "PERŽIŪRĖTI TAKĄ"
+  "viewTrack": "PERŽIŪRĖTI TAKĄ",
+  "format": {
+    "aria": "Kovos formatas",
+    "classic": "Klasika",
+    "classicHint": "Klasika: žala visada lygi kortų vertėms – be ŽMK traukimo, ×2 ir ×0. Atskiras reitingas ir eilės.",
+    "classicTag": "BE ŽMK",
+    "modeSubClassic": "Be modifikatorių",
+    "zmk": "ŽMK kovos",
+    "zmkTag": "ŽMK"
+  }
 }

@@ -4,28 +4,31 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n/core'
+import { getBattleFormat } from '@/lib/game/format'
 import type {
   RankedSeason, RankedProfile, RankedMatchRow, LeaderboardRow,
   MatchReportResult, PlayerMatchStats,
 } from './types'
 
+// Visi ranked RPC'ai gauna AKTYVŲ kovos formatą (ŽMK / Klasika): Klasika turi
+// atskirą sezoną, tad profilis, eilė, lyderių lentelė ir atlygiai — atskiri.
 export async function getActiveSeason(): Promise<RankedSeason | null> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_active_season')
+  const { data, error } = await supabase.rpc('rvn_active_season', { p_format: getBattleFormat() })
   if (error) { console.warn('[ranked] active_season:', error.message); return null }
   return (data as RankedSeason) ?? null
 }
 
 export async function ensureProfile(): Promise<RankedProfile | null> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_ensure_ranked_profile')
+  const { data, error } = await supabase.rpc('rvn_ensure_ranked_profile', { p_format: getBattleFormat() })
   if (error) { console.warn('[ranked] ensure_profile:', error.message); return null }
   return (data as RankedProfile) ?? null
 }
 
 export async function lockDeck(deckId: string): Promise<boolean> {
   const supabase = createClient()
-  const { error } = await supabase.rpc('rvn_lock_ranked_deck', { p_deck_id: deckId })
+  const { error } = await supabase.rpc('rvn_lock_ranked_deck', { p_deck_id: deckId, p_format: getBattleFormat() })
   if (error) { console.warn('[ranked] lock_deck:', error.message); return false }
   return true
 }
@@ -51,7 +54,7 @@ export async function pickFriendlyBot(): Promise<BotOpponent | null> {
 /** Parenka botą po matchmaking timeout'o (gerbia anti-repeat per last_opponent_ids). */
 export async function pickBot(): Promise<BotOpponent | null> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_pick_bot')
+  const { data, error } = await supabase.rpc('rvn_pick_bot', { p_format: getBattleFormat() })
   if (error) { console.warn('[ranked] pick_bot:', error.message); return null }
   return (data as BotOpponent) ?? null
 }
@@ -73,21 +76,21 @@ export type ReportMatchInput = {
 
 export async function reportMatch(input: ReportMatchInput): Promise<MatchReportResult | { error: string }> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_report_ranked_match', { p_payload: input })
+  const { data, error } = await supabase.rpc('rvn_report_ranked_match', { p_payload: { ...input, format: getBattleFormat() } })
   if (error) return { error: error.message }
   return data as MatchReportResult
 }
 
 export async function claimReward(key: string): Promise<{ ok: true } | { error: string }> {
   const supabase = createClient()
-  const { error } = await supabase.rpc('rvn_claim_ranked_reward', { p_key: key })
+  const { error } = await supabase.rpc('rvn_claim_ranked_reward', { p_key: key, p_format: getBattleFormat() })
   if (error) return { error: error.message }
   return { ok: true }
 }
 
 export async function claimAchievement(key: string): Promise<{ ok: true } | { error: string }> {
   const supabase = createClient()
-  const { error } = await supabase.rpc('rvn_claim_ranked_achievement', { p_key: key })
+  const { error } = await supabase.rpc('rvn_claim_ranked_achievement', { p_key: key, p_format: getBattleFormat() })
   if (error) return { error: error.message }
   return { ok: true }
 }
@@ -116,18 +119,16 @@ export async function getRecentMatches(limit = 10): Promise<RankedMatchRow[]> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
-  const { data } = await supabase
-    .from('ranked_matches')
-    .select('*')
-    .eq('player_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  const season = await getActiveSeason()
+  let q = supabase.from('ranked_matches').select('*').eq('player_id', user.id)
+  if (season) q = q.eq('season_id', season.id)          // Klasika ir ŽMK — atskiri sezonai
+  const { data } = await q.order('created_at', { ascending: false }).limit(limit)
   return (data as RankedMatchRow[]) ?? []
 }
 
 export async function getLeaderboard(limit = 100, offset = 0): Promise<LeaderboardRow[]> {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('rvn_leaderboard', { p_limit: limit, p_offset: offset })
+  const { data, error } = await supabase.rpc('rvn_leaderboard', { p_limit: limit, p_offset: offset, p_format: getBattleFormat() })
   if (error) { console.warn('[ranked] leaderboard:', error.message); return [] }
   return (data as LeaderboardRow[]) ?? []
 }
@@ -177,7 +178,7 @@ export async function getRankedDecks(): Promise<{ id: string; name: string; fact
 // ── Matchmaking eilė ──────────────────────────────────────────────────────────
 export async function queueJoin(deckId: string): Promise<boolean> {
   const supabase = createClient()
-  const { error } = await supabase.rpc('rvn_queue_join', { p_deck_id: deckId })
+  const { error } = await supabase.rpc('rvn_queue_join', { p_deck_id: deckId, p_format: getBattleFormat() })
   if (error) { console.warn('[ranked] queue_join:', error.message); return false }
   return true
 }

@@ -58,5 +58,14 @@
   "tier": "Tier {{n}}",
   "view": "VIEW",
   "viewCollection": "View collection →",
-  "viewTrack": "VIEW TRACK"
+  "viewTrack": "VIEW TRACK",
+  "format": {
+    "aria": "Battle format",
+    "classic": "Classic",
+    "classicHint": "Classic: damage always equals card values – no ŽMK draw, ×2 or ×0. Separate rating and queues.",
+    "classicTag": "NO ŽMK",
+    "modeSubClassic": "No modifiers",
+    "zmk": "ŽMK battles",
+    "zmkTag": "ŽMK"
+  }
 }

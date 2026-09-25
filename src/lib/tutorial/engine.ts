@@ -9,6 +9,7 @@ import { buildZmkDeck } from '@/lib/game/zmkEngine'
 import { applyMappings, applyMapping, mappingNeedsSelection, beginTargetCapture, endTargetCapture, type GameApi } from '@/lib/game/effectEngine'
 import { activateCurses as curseActivate, buildCurseDeck } from '@/lib/game/curseEngine'
 import * as fieldEngine from '@/lib/game/fieldEngine'
+import type { BattleFormat } from '@/lib/game/format'
 import { resolveSeverity, type ImpactSeverity } from '@/lib/game/impactProfiles'
 import { fireTrigger } from '@/lib/game/triggerSystem'
 import type { ResolvedTarget } from '@/lib/game/targetResolver'
@@ -250,6 +251,8 @@ export type GameState = {
   globalTurn: number
   winner: Side | null
   log: GameEvent[]
+  /** Kovos formatas (fazė „Klasika"): 'classic' = be ŽMK. Nenurodyta = 'zmk' (seni snapshot'ai). */
+  format?: BattleFormat
   /** ŽMK režimas: 'auto' – automatinis, 'draw' – žaidėjas atverčia pats */
   zmkMode: ZmkMode
   /** ŽMK kortų definicijos (value -> pavadinimas/aprašymas, iš zmk_cards) */
@@ -534,23 +537,28 @@ export type CreateGameOpts = {
   mulligan?: boolean
   /** PvP: mulligan abiem pusem RANKINIS (aiMulligan nekvieciamas; laukiama NetAction) */
   mulliganBothManual?: boolean
+  /** Kovos formatas: 'classic' = be ŽMK (žala = kortų vertės, ŽMK kaladė tuščia). Numatyta 'zmk'. */
+  format?: BattleFormat
 }
 
 /** Sukuria žaidimą: tu prieš AI su ta pačia (veidrodine) kalade. */
 export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, opts?: CreateGameOpts): GameState {
   clearReactionSnapshots()
+  const classic = opts?.format === 'classic'
   const zmkYou = buildZmkDeck(opts?.zmkDefs)
   const zmkAi = buildZmkDeck(opts?.zmkDefs)
   const curseCards = opts?.curseCards ?? []
   const g: GameState = {
-    you: mkPlayer('you', deckYou, zmkYou.pile, buildCurseDeck(curseCards, 'y')),
-    ai: mkPlayer('ai', deckAi, zmkAi.pile, buildCurseDeck(opts?.curseCardsAi ?? curseCards, 'a')),
+    // KLASIKA: ŽMK kaladės tuščios — rollDamage grąžina bazinę žalą dar prieš traukimą.
+    you: mkPlayer('you', deckYou, classic ? [] : zmkYou.pile, buildCurseDeck(curseCards, 'y')),
+    ai: mkPlayer('ai', deckAi, classic ? [] : zmkAi.pile, buildCurseDeck(opts?.curseCardsAi ?? curseCards, 'a')),
     active: first,
     field: null,
     globalTurn: 0,
     winner: null,
     log: [],
-    zmkMode: zmkYou.mode,
+    format: classic ? 'classic' : 'zmk',
+    zmkMode: classic ? 'auto' : zmkYou.mode,
     zmkDefs: zmkYou.defs,
     pendingPeek: null,
     pendingArrange: null,
@@ -771,7 +779,14 @@ function remapZmk(g: GameState, s: Side, v: ZmkValue): ZmkValue {
   return P(g, s).zmkRemap?.[v] ?? v
 }
 
+export const isClassicGame = (g: GameState): boolean => g.format === 'classic'
+
 function rollDamage(g: GameState, actor: Side, base: number, bias: RollBias = 'normal'): number {
+  // KLASIKA (be modifikatorių): žala visada lygi bazinei, be ŽMK įrašų žurnale.
+  if (isClassicGame(g)) {
+    lastRoll = null
+    return Math.max(0, base + auraZmkDeltaFor(g, actor))
+  }
   // Laukas su `noZmk` visiškai panaikina ŽMK traukimą — žala lygi bazinei.
   if (fieldEngine.noZmk(g, actor)) {
     const flat = Math.max(0, base + auraZmkDeltaFor(g, actor))
@@ -2871,6 +2886,7 @@ function counterCurrentSpellPrim(g: GameState, srcName: string) {
 }
 
 function drawZmkVisualPrim(g: GameState, s: Side) {
+  if (isClassicGame(g)) return                     // Klasikoje ŽMK efektai — tuščia operacija
   const v = drawZmkCard(g, s, true)
   log(g, { t: 'zmk', side: s, zmk: v, key: 'battleLog.zmkDraw', params: { zmk: v }, sound: 'zmkFlip' })
   P(g, s).zmkPity = isNegZmk(v)

@@ -25,6 +25,8 @@ import { useT } from '@/lib/i18n/react'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { celebrateRewards, rewardItems } from '@/components/digital/progression/RewardCelebration'
 import { AdminOnlineBar } from '@/components/digital/AdminOnlineBar'
+import { FormatSwitch, ClassicBadge } from '@/components/digital/ui/FormatSwitch'
+import { useBattleFormat, CLASSIC_ACCENT } from '@/lib/game/format'
 
 const A = RAVENOF_ASSET
 
@@ -126,6 +128,19 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     })
   }, [loggedIn, refreshWallet, refreshQuests, refreshBalances, router])
 
+  // Kovos formatas (ŽMK / Klasika): perjungus — reitingo profilis ir sezonas persikraunami (atskiras Klasikos sezonas)
+  const fmt = useBattleFormat()
+  const classic = fmt === 'classic'
+  useEffect(() => {
+    if (!loggedIn) return
+    ensureProfile().then((rp) => { if (rp) setRankInfo({ step: rp.rank_step }) })
+    getActiveSeason().then((s) => {
+      if (!s) return
+      const days = Math.max(0, Math.ceil((new Date(s.end_date).getTime() - Date.now()) / 86_400_000))
+      setSeasonMeta({ name: s.name, daysLeft: days })
+    })
+  }, [fmt, loggedIn])
+
   if (!loggedIn) {
     return (
       <div className="rounded-2xl p-6 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
@@ -166,21 +181,28 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   ]
 
   return (
-    <div className="ravenof-body relative z-10 h-full flex ravenof-in" style={{ gap: desktop ? 22 : 10, minHeight: 0 }}>
+    <div className="ravenof-body relative z-10 h-full flex flex-col ravenof-in" style={{ gap: desktop ? 12 : 8, minHeight: 0 }}>
       {/* Admin: kas dabar prisijungęs – maža juostelė ekrano viršuje (tik role='admin') */}
       {loggedIn && <AdminOnlineBar />}
+      {/* ── Kovos formato tab'ai: ŽMK KOVOS / KLASIKA (be modifikatorių) ── */}
+      <div className="shrink-0 flex flex-col items-center" style={{ gap: 4 }}>
+        <FormatSwitch variant="tabs" />
+        {classic && <span style={{ font: `400 ${fs(10)}px var(--ravenof-font-body)`, color: '#b9cbe6' }}>{t('home.format.classicHint')}</span>}
+      </div>
+      <div className="flex-1 min-h-0 flex" style={{ gap: desktop ? 22 : 10 }}>
       {/* ── KAIRĖ: Reitingo hero ── */}
       <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
         className="ravenof-press relative overflow-hidden text-left flex flex-col justify-between min-h-0"
         style={{ flex: 1.25, border: '1px solid #3d3345', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)', cursor: 'pointer', background: 'none', padding: 0 }}>
-        <div className="absolute inset-0" style={{ background: `url('${A}/modes/mode-ranked.webp') no-repeat`, backgroundSize: 'cover', backgroundPosition: desktop ? '50% 30%' : '50% 22%' }} />
+        <div className="absolute inset-0" style={{ background: `url('${A}/modes/mode-ranked.webp') no-repeat`, backgroundSize: 'cover', backgroundPosition: desktop ? '50% 30%' : '50% 22%', filter: classic ? 'saturate(.55) hue-rotate(190deg)' : undefined, transition: 'filter .4s' }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(7,6,10,.55) 0%, rgba(7,6,10,.15) 40%, rgba(7,6,10,.92) 100%)' }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ border: '1px solid rgba(212,163,59,.35)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ border: `1px solid rgba(${classic ? CLASSIC_ACCENT : '212,163,59'},.35)`, clipPath: 'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)' }} />
+        <ClassicBadge style={{ position: 'absolute', top: px(10), right: px(12), zIndex: 2 }} />
         <div className="relative" style={{ padding: `${px(12)}px ${px(14)}px` }}>
           <div style={{ font: `500 ${fs(10)}px var(--ravenof-font-body)`, letterSpacing: 2.5, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>
             {seasonMeta ? <>{/^\s*(sezonas|season)\b/i.test(seasonMeta.name) ? seasonMeta.name : `${t('home.season')} ${seasonMeta.name}`} · {seasonMeta.daysLeft} {t('home.daysShort')}</> : t('home.seasonProgress')}
           </div>
-          <div style={{ font: `700 ${fs(19)}px var(--ravenof-font-display)`, letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px rgba(0,0,0,.9)', marginTop: 2 }}>{t('home.rankedTitle')}</div>
+          <div style={{ font: `700 ${fs(19)}px var(--ravenof-font-display)`, letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px rgba(0,0,0,.9)', marginTop: 2 }}>{t('home.rankedTitle')}{classic ? ` · ${t('home.format.classic')}` : ''}</div>
         </div>
         <div className="relative flex items-center" style={{ padding: `${px(12)}px ${px(14)}px`, gap: px(10) }}>
           <span style={{ font: `700 ${fs(12)}px var(--ravenof-font-display)`, color: 'var(--ravenof-gold-bright)', border: '1px solid rgba(212,163,59,.5)', padding: `${px(7)}px ${px(16)}px`, background: 'rgba(7,6,10,.6)', clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)' }}>{t('home.play')}</span>
@@ -194,12 +216,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           <button key={m.key} onClick={() => { playUiClick(); router.push(m.href) }}
             className="ravenof-press relative overflow-hidden text-left min-h-0"
             style={{ flex: 1, clipPath: m.clip, cursor: 'pointer', background: 'none', border: 0, padding: 0 }}>
-            <div className="absolute inset-0" style={{ background: `url('${m.art}') no-repeat`, backgroundSize: 'cover', backgroundPosition: m.artPos }} />
+            <div className="absolute inset-0" style={{ background: `url('${m.art}') no-repeat`, backgroundSize: 'cover', backgroundPosition: m.artPos, filter: classic ? 'saturate(.55) hue-rotate(190deg)' : undefined, transition: 'filter .4s' }} />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(7,6,10,.88) 20%, rgba(7,6,10,.25) 100%)' }} />
             <div className="absolute inset-0 pointer-events-none" style={{ border: `1px solid ${m.border}`, clipPath: m.clip }} />
+            <ClassicBadge style={{ position: 'absolute', top: px(8), right: px(10), zIndex: 2 }} />
             <div className="absolute" style={{ left: px(12), top: '50%', transform: 'translateY(-50%)', right: px(8) }}>
               <div style={{ font: `700 ${fs(14)}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{m.title}</div>
-              <div style={{ font: `400 ${fs(10.5)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{m.sub}</div>
+              <div style={{ font: `400 ${fs(10.5)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{classic ? t('home.format.modeSubClassic') : m.sub}</div>
             </div>
           </button>
         ))}
@@ -299,6 +322,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             </div>
           )}
         </div>
+      </div>
+
       </div>
 
       {/* ── Modalai (visi išsaugoti) ── */}

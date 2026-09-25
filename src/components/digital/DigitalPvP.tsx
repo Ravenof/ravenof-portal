@@ -23,13 +23,17 @@ import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { useT } from '@/lib/i18n/react'
 import { RavenofBannerButton, RavenofTextField } from '@/components/digital/ui/RavenofKit'
+import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
+import { useBattleFormat, type BattleFormat } from '@/lib/game/format'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
-type Match = { id: string; code: string | null; guest_id: string | null; guest_deck_id: string | null; guest_name: string | null; host_id: string; host_name: string | null }
+type Match = { id: string; code: string | null; guest_id: string | null; guest_deck_id: string | null; guest_name: string | null; host_id: string; host_name: string | null; format?: BattleFormat | null }
 type Launch = {
   net?: PvPNet; deckId: string; opponentDeckId?: string | null; opponentName: string
+  /** Kovos formatas (iš kambario eilutės — abi pusės žaidžia tą patį). */
+  format?: BattleFormat
   /** Užpildyta, kai po ilgo laukimo GREITOJE KOVOJE varžovu tapo botas. */
   bot?: { slug: string; difficulty: 'easy' | 'normal' | 'hard'; factionId: number | null; avatar: string | null }
 }
@@ -57,6 +61,7 @@ export function DigitalPvP() {
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
+  const fmt = useBattleFormat()   // ŽMK / Klasika — kambariai ir greita kova filtruojami pagal formatą
   const [toast, setToast] = useState('')
   const [deckSelOpen, setDeckSelOpen] = useState(false)
   const [covers, setCovers] = useState<Record<number, string>>({})
@@ -137,7 +142,7 @@ export function DigitalPvP() {
       const m = data as Match | null
       if (m && m.guest_id && m.guest_deck_id) {
         if (pollRef.current) clearInterval(pollRef.current)
-        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || t('battle.opponentFallback') })
+        setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || t('battle.opponentFallback'), format: m.format ?? 'zmk' })
         return
       }
       // Niekas neprisijungė – leidžiam kovą prieš botą (tik greitoje kovoje).
@@ -155,7 +160,7 @@ export function DigitalPvP() {
           const { data: f } = await supabase.from('factions').select('id').eq('slug', bot.faction_slug).maybeSingle()
           factionId = (f as { id: number } | null)?.id ?? null
         }
-        setLaunch({ deckId: battleDeckRef.current, opponentName: bot.name, bot: { slug: bot.slug, difficulty: bot.difficulty, factionId, avatar: bot.avatar ?? null } })
+        setLaunch({ deckId: battleDeckRef.current, opponentName: bot.name, bot: { slug: bot.slug, difficulty: bot.difficulty, factionId, avatar: bot.avatar ?? null }, format: fmt })
       }
     }, 2000)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +170,7 @@ export function DigitalPvP() {
     if (!userId) return null
     setBusy(true)
     const supabase = createClient()
-    const { data, error } = await supabase.from('pvp_matches').insert({ code, is_public: isPublic, status: 'waiting', host_id: userId, host_deck_id: battleDeckRef.current, host_name: userName }).select('*').single()
+    const { data, error } = await supabase.from('pvp_matches').insert({ code, is_public: isPublic, status: 'waiting', host_id: userId, host_deck_id: battleDeckRef.current, host_name: userName, format: fmt }).select('*').single()
     setBusy(false)
     if (error || !data) { playError(); setStatus(t('battle.pvp.err.createRoom')); return null }
     return data as Match
@@ -175,11 +180,11 @@ export function DigitalPvP() {
     if (!userId) return
     playUiClick(); setBusy(true); setStatus(t('battle.pvp.status.searching'))
     const supabase = createClient()
-    const { data: open } = await supabase.from('pvp_matches').select('*').eq('is_public', true).eq('status', 'waiting').is('guest_id', null).neq('host_id', userId).order('created_at', { ascending: true }).limit(1)
+    const { data: open } = await supabase.from('pvp_matches').select('*').eq('is_public', true).eq('status', 'waiting').eq('format', fmt).is('guest_id', null).neq('host_id', userId).order('created_at', { ascending: true }).limit(1)
     const m = (open as Match[] | null)?.[0]
     if (m) {
       const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
-      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback') }); return }
+      if (!error) { setBusy(false); setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback'), format: m.format ?? 'zmk' }); return }
     }
     const created = await createPrivate(true, null)
     if (created) { setRoom(created); setStatus(t('battle.pvp.status.waitingRandom')); waitForGuest(created.id, true) }
@@ -215,7 +220,7 @@ export function DigitalPvP() {
     const { error } = await supabase.from('pvp_matches').update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' }).eq('id', m.id).is('guest_id', null)
     setBusy(false)
     if (error) { playError(); setStatus(t('battle.pvp.err.joinFailed')); return }
-    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback') })
+    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback'), format: m.format ?? 'zmk' })
   }
 
   const cancelRoom = async () => {
@@ -232,9 +237,9 @@ export function DigitalPvP() {
       return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')}
         opponentFaction={launch.bot.factionId} opponentName={launch.opponentName}
         difficulty={launch.bot.difficulty} aiStrategy={b ? strategyWeights(b) : undefined}
-        botChat={{ name: launch.opponentName }} opponentAvatar={launch.bot.avatar} rewardMode="unranked" onClose={close} />
+        botChat={{ name: launch.opponentName }} opponentAvatar={launch.bot.avatar} rewardMode="unranked" format={launch.format ?? 'zmk'} onClose={close} />
     }
-    return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')} opponentDeckId={launch.opponentDeckId ?? null} opponentName={launch.opponentName} net={launch.net} onClose={close} />
+    return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')} opponentDeckId={launch.opponentDeckId ?? null} opponentName={launch.opponentName} net={launch.net} format={launch.format ?? 'zmk'} onClose={close} />
   }
 
   // ── CTA būsena ──
@@ -264,6 +269,8 @@ export function DigitalPvP() {
       <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
         <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
         <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.screenTitle')}</div>
+        <div className="flex-1" />
+        <FormatSwitch variant="chip" />
       </div>
 
       <div className="flex-1 flex min-h-0" style={{ gap: 14 }}>

@@ -24,6 +24,8 @@ import { getStarterDecks } from '@/lib/starterDecks'
 import { useT, useContent, useGameContent, useLocale } from '@/lib/i18n/react'
 import { RavenofBannerButton, battleModeAsset, type BattleMode } from '@/components/digital/ui/RavenofKit'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
+import { useBattleFormat } from '@/lib/game/format'
 
 // i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -139,6 +141,7 @@ export function DigitalPvE() {
   }, [locale])
 
   const adState = useActiveDeck()
+  const fmt = useBattleFormat()   // ŽMK / Klasika
   const globalDeck = activeDeckOf(adState)
   // VIENINTELIS šaltinis — globali aktyvi kaladė. JOKIO tylaus fallback į kitą
   // kaladę (kova privalo vykti su ta, kurią žaidėjas pasirinko). Jei netinkama —
@@ -183,7 +186,7 @@ export function DigitalPvE() {
   const showSuggest = level === 'rookie' && rookieWins >= ROOKIE_SUGGEST_AFTER && !suggestDismissed
 
   if (started && deck) {
-    return <TutorialGame deckId={deck.id} deckName={deck.name} practice
+    return <TutorialGame deckId={deck.id} deckName={deck.name} practice format={fmt}
       opponentDeckId={mode === 'public' ? oppDeck : null}
       opponentStarterId={mode !== 'public' && level === 'rookie' && oppFaction ? (starters[Number(oppFaction)] ?? null) : null}
       opponentFaction={mode !== 'public' && oppFaction && !(level === 'rookie' && starters[Number(oppFaction)]) ? Number(oppFaction) : null}
@@ -244,6 +247,7 @@ export function DigitalPvE() {
       {/* Antraštė: atgal + pavadinimas */}
       <div className="flex items-center shrink-0" style={{ gap: desktop ? 14 : 10, paddingBottom: desktop ? 22 : 10 }}>
         <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: desktop ? 22 : 16, ...(desktop ? { width: 40, height: 40 } : {}) }}>‹</button>
+        <FormatSwitch variant="chip" />
         <div style={{ font: `700 ${desktop ? 30 : 15}px var(--ravenof-font-display)`, letterSpacing: desktop ? 2 : 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.screenTitle')}</div>
       </div>
 

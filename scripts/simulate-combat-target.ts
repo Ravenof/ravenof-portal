@@ -177,6 +177,25 @@ console.log('\n── 10. Reakcija „kai priešas iškviečia padarą" (Liepsno
 }
 
 console.log('\n──────────────')
+console.log('\n── 11. KLASIKA (format: classic) — be ŽMK: žala = bazinė, kaladės tuščios, jokių zmk įrašų ──')
+{
+  const ZMK2 = [{ id: 'z2', name: '×2', description: null, value: 'x2' as const, count: 20, mode: 'auto' as const, image_url: null, active: true, sort_order: 1 }]
+  let ok = 0
+  for (let r = 0; r < REP; r++) {
+    const g = createGame(filler(30, 'X'), filler(30, 'A'), 'you', { zmkDefs: ZMK2, format: 'classic' }); beginTurn(g); g.reactionGates = null
+    P(g, 'you').units[0] = mkUnit(mkCard({ name: 'Puolikas', uid: 'p1', attack: 3 })) as never
+    P(g, 'ai').units[0] = mkUnit(mkCard({ name: 'A', uid: 'a1', attack: 0 })) as never
+    const before = g.log.length
+    attack(g, 'you', 'p1', { kind: 'unit', side: 'ai', uid: 'a1' })
+    const a = unit(g, 'ai', 'a1')
+    const zmkEvents = g.log.slice(before).filter((e) => e.t === 'zmk' || e.t === 'zmkReshuffle').length
+    if (a && a.hp === 6 && zmkEvents === 0 && P(g, 'you').zmk.length === 0 && g.format === 'classic') ok++
+  }
+  check(`ataka 3 → 3 žalos (ne ×2), be zmk įvykių (${ok}/${REP})`, ok === REP)
+  const g0 = createGame(filler(30, 'X'), filler(30, 'A'), 'you', { zmkDefs: ZMK2 })
+  check('numatytas formatas — zmk, ŽMK kaladė pilna', g0.format === 'zmk' && P(g0, 'you').zmk.length > 0)
+}
+
 console.log(`  PASS: ${pass}   FAIL: ${fail}`)
 console.log('──────────────')
 if (fail > 0) process.exit(1)
