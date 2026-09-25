@@ -717,5 +717,13 @@
   "tutorial": {
     "button": "🎓 Išmokyk mane žaisti",
     "buttonHint": "Mokomoji kova prieš DI: kovos laukas, auksas, ŽMK, žetonai ir patarimai žingsnis po žingsnio"
+  },
+  "crossFormat": {
+    "title": "Rastas žaidėjas kitame formate",
+    "body": "{{format}} formate laukia priešininkas ({{count}}). Tavo formate šiuo metu nieko nėra.",
+    "switchNote": "Sutikus formatas bus perjungtas į „{{format}}“ – grįžti gali viršuje esančiu jungikliu.",
+    "play": "Žaisti: {{format}}",
+    "wait": "Laukti toliau",
+    "gone": "Priešininkas jau rado kovą – laukiame toliau tavo formate."
   }
 }

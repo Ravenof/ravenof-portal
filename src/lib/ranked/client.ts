@@ -186,11 +186,23 @@ export async function queueLeave(): Promise<void> {
   const supabase = createClient()
   await supabase.rpc('rvn_queue_leave')
 }
-export type QueuePoll = { status: 'waiting' | 'matched' | 'left'; opponent?: string; matchId?: string; isHost?: boolean }
+export type QueuePoll = {
+  status: 'waiting' | 'matched' | 'left' | 'gone' | 'same'; opponent?: string; matchId?: string; isHost?: boolean; format?: 'zmk' | 'classic'
+  /** Laukiant: kitame formate laukia žaidėjas (-ai) mano tenykščio rango spindulyje → kryžminis pasiūlymas. */
+  otherFormat?: { format: 'zmk' | 'classic'; waiting: number } | null
+}
 export async function queuePoll(range: number): Promise<QueuePoll> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('rvn_queue_poll', { p_range: range })
   if (error) { console.warn('[ranked] queue_poll:', error.message); return { status: 'waiting' } }
+  return (data as QueuePoll) ?? { status: 'waiting' }
+}
+
+/** Kryžminis perėjimas: atomiškai persikelia į kito formato eilę ir suporuoja su konkrečiu laukiančiuoju. */
+export async function queueSwitch(toFormat: 'zmk' | 'classic', range: number): Promise<QueuePoll> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('rvn_queue_switch', { p_to_format: toFormat, p_range: range })
+  if (error) { console.warn('[ranked] queue_switch:', error.message); return { status: 'gone' } }
   return data as QueuePoll
 }
 

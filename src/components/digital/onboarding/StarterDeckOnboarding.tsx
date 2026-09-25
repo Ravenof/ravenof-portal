@@ -28,7 +28,7 @@ import { useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 import { playUiClick, playSuccess, playError, playCardPick, playImpact, playDiscovery } from '@/lib/ui-sound'
 import { SmartImg } from '@/components/ui/SmartImg'
-import { RavenofBannerButton, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
+import { RavenofBannerButton, RAVENOF_ASSET, ravenofFactionIcon } from '@/components/digital/ui/RavenofKit'
 
 const TYPE_ORDER = ['čempion', 'padar', 'būtyb', 'burt', 'kerai', 'reakcij', 'artefakt', 'lauk']
 const GOLD = '#D4A33B'
@@ -153,7 +153,7 @@ const CSS = `
 .rvn-ob .ob-box{position:absolute;bottom:0;cursor:pointer;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s,opacity .45s;will-change:transform}
 .rvn-ob .ob-b3d{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .rvn-ob .ob-front{position:absolute;inset:0;border-radius:6px;overflow:hidden;border:2px solid rgba(212,163,59,.55);background:#0d0a14;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 20px 40px rgba(0,0,0,.7);transform:translateZ(15px)}
-.rvn-ob .ob-front:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.85))}
+.rvn-ob .ob-front:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 70%,rgba(0,0,0,.7))}
 .rvn-ob .ob-side{position:absolute;right:0;top:0;width:30px;height:100%;background:linear-gradient(90deg,#3a2818,#150e08);border:1px solid rgba(212,163,59,.35);transform:rotateY(90deg) translateZ(calc(var(--bw) - 15px)) translateX(15px);border-radius:0 4px 4px 0}
 .rvn-ob .ob-top{position:absolute;left:0;top:0;width:100%;height:30px;background:linear-gradient(180deg,#4a3620,#1a120a);border:1px solid rgba(212,163,59,.45);transform:rotateX(90deg) translateZ(15px) translateY(-15px)}
 .rvn-ob .ob-lid{position:absolute;inset:0;border-radius:6px;overflow:hidden;opacity:0;transform:translateZ(16px);pointer-events:none}
@@ -167,8 +167,8 @@ const CSS = `
 .rvn-ob .ob-box.shake{animation:ob-shake .35s linear 2}
 .rvn-ob .ob-box.burst .ob-lid{opacity:1;animation:ob-lid .7s cubic-bezier(.2,.7,.2,1) forwards}
 .rvn-ob .ob-box.burst .ob-front img{filter:brightness(2.2)}
-@keyframes ob-float{0%,100%{transform:translate(var(--tx),-34px) scale(1.18)}50%{transform:translate(var(--tx),-42px) scale(1.18)}}
-@keyframes ob-shake{0%,100%{transform:translate(var(--tx),-34px) scale(1.18) rotate(0)}25%{transform:translate(var(--tx),-34px) scale(1.18) rotate(-2deg)}75%{transform:translate(var(--tx),-34px) scale(1.18) rotate(2deg)}}
+@keyframes ob-float{0%,100%{transform:translate(var(--tx),-26px) scale(1.14)}50%{transform:translate(var(--tx),-32px) scale(1.14)}}
+@keyframes ob-shake{0%,100%{transform:translate(var(--tx),-26px) scale(1.14) rotate(0)}25%{transform:translate(var(--tx),-26px) scale(1.14) rotate(-2deg)}75%{transform:translate(var(--tx),-26px) scale(1.14) rotate(2deg)}}
 @keyframes ob-lid{to{transform:translateZ(60px) translateY(-260px) rotateX(70deg);opacity:0}}
 @keyframes ob-ring{0%{opacity:.9;width:20px;height:20px}100%{opacity:0;width:560px;height:560px;border-width:1px}}
 .rvn-ob .ob-ring{position:absolute;border-radius:50%;border:3px solid var(--c);transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:7;animation:ob-ring .7s ease-out forwards}
@@ -227,12 +227,21 @@ export function StarterDeckOnboarding() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  // dėžutės plotis pagal ekrano aukštį (landscape telefonas → mažesnė)
+  // Dėžutės plotis iš REALAUS karuselės konteinerio aukščio: fokusuota dėžutė
+  // (×1.14 + pakilimas) turi tilpti tarp antraštės ir info bloko, kad nenusikirptų viršus.
+  const areaRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
-    const f = () => setBoxW(Math.round(Math.max(112, Math.min(160, window.innerHeight * 0.30))))
-    f(); window.addEventListener('resize', f)
-    return () => window.removeEventListener('resize', f)
-  }, [])
+    const el = areaRef.current
+    if (!el) return
+    const f = () => {
+      const h = el.clientHeight
+      const fit = (h - 70) / (1.14 * 1.53)          // 70 px: pakilimas + diskas + tarpas
+      setBoxW(Math.round(Math.max(92, Math.min(170, fit))))
+    }
+    f()
+    const ro = new ResizeObserver(f); ro.observe(el)
+    return () => ro.disconnect()
+  }, [step])
 
   const list = useMemo(() => (Array.isArray(starters) ? starters : []), [starters])
   const avatarOwned = useCallback((c: Cosmetic) => (cos?.owned ?? []).includes(c.id) || !!c.ownedByDefault, [cos])
@@ -472,9 +481,9 @@ export function StarterDeckOnboarding() {
       {onDeck ? (
         <>
           {/* ── Dėžučių karuselė (3D) ── */}
-          <div className="relative flex-1 min-h-0" style={{ zIndex: 3, touchAction: 'pan-y' }} {...railPointer}>
+          <div ref={areaRef} className="relative flex-1 min-h-0" style={{ zIndex: 3, touchAction: 'pan-y' }} {...railPointer}>
             <div ref={railRef} className="absolute" role="listbox" aria-label={t('onboarding.starterDecksAria')}
-              style={{ left: '50%', bottom: 'max(56px, 12vh)', height: boxH, width: 0, perspective: 1100,
+              style={{ left: '50%', bottom: 26, height: boxH, width: 0, perspective: 1100,
                 transform: `translateX(${-(idx * stepW + boxW / 2) + dragDx}px)`, transition: drag.current?.moved ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1)' }}>
               {list.map((d, i) => {
                 const fac = d.factionId != null ? factions[d.factionId] : undefined
@@ -482,7 +491,7 @@ export function StarterDeckOnboarding() {
                 const dist = Math.abs(i - idx)
                 const cls = 'ob-box' + (dist === 0 ? ' foc' : dist === 1 ? ' n1' : ' n2')
                 const tx = `${i * stepW}px`
-                const base = dist === 0 ? `translate(${tx},-34px) scale(1.18)` : `translate(${tx},0) scale(${dist === 1 ? 0.92 : 0.8})`
+                const base = dist === 0 ? `translate(${tx},-26px) scale(1.14)` : `translate(${tx},0) scale(${dist === 1 ? 0.92 : 0.8})`
                 return (
                   <div key={d.id} role="option" aria-selected={i === idx} className={cls}
                     onClick={() => { if (drag.current?.moved || opening) return; if (i === idx) { playUiClick(); setDetailOpen(true) } else goIdx(i) }}
@@ -492,10 +501,11 @@ export function StarterDeckOnboarding() {
                         {d.imageUrl
                           ? <SmartImg src={d.imageUrl} width={440} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />
                           : <span className="absolute inset-0 flex items-center justify-center text-4xl" aria-hidden>🎴</span>}
-                        <span className="absolute flex items-center justify-center rounded-full" style={{ left: '50%', bottom: 34, transform: 'translateX(-50%)', width: 48, height: 48, zIndex: 2, background: 'radial-gradient(circle,#1a1325,#0a0810)', border: `2px solid ${col}`, boxShadow: `0 0 16px ${col}` }}>
-                          {fac?.iconUrl ? <SmartImg src={fac.iconUrl} width={80} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /> : <span style={{ fontSize: 20 }}>🛡️</span>}
+                        <span className="absolute flex items-center justify-center rounded-full" style={{ left: '50%', bottom: 12, transform: 'translateX(-50%)', width: 44, height: 44, zIndex: 2, background: 'radial-gradient(circle,#1a1325,#0a0810)', border: `2px solid ${col}`, boxShadow: `0 0 16px ${col}` }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={fac?.slug ? ravenofFactionIcon(fac.slug) : (fac?.iconUrl ?? ravenofFactionIcon(null))} alt="" draggable={false} style={{ width: 34, height: 34, objectFit: 'contain', filter: 'drop-shadow(0 0 4px rgba(0,0,0,.8))' }} />
                         </span>
-                        <span className="absolute left-0 right-0 text-center" style={{ bottom: 10, zIndex: 2, font: '800 8px var(--ravenof-font-body)', letterSpacing: '0.2em', color: 'var(--ravenof-gold)' }}>{d.claimed || claimedId === d.id ? t('onboarding.starter.claimedBadge') : t('onboarding.ob.starterRibbon')}</span>
+                        {(d.claimed || claimedId === d.id) && <span className="absolute left-0 right-0 text-center" style={{ bottom: 10, zIndex: 2, font: '800 8px var(--ravenof-font-body)', letterSpacing: '0.2em', color: '#7bd389' }}>{t('shop.owned')}</span>}
                       </div>
                       <div className="ob-side" /><div className="ob-top" />
                       <div className="ob-lid">{d.imageUrl && <SmartImg src={d.imageUrl} width={440} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />}</div>
@@ -539,7 +549,7 @@ export function StarterDeckOnboarding() {
                 </div>
                 <p style={{ font: '400 clamp(10px, 2vh, 12px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0, maxWidth: 560, marginInline: 'auto' }}>
                   {curMeta.intro}{' '}
-                  <button onClick={() => { playUiClick(); setDetailOpen(true) }} className="ravenof-press" style={{ font: 'inherit', color: 'var(--ravenof-gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' }}>{t('onboarding.viewDeck')}</button>
+                  <button onClick={() => { playUiClick(); setDetailOpen(true) }} className="ravenof-press" style={{ font: 'inherit', color: 'var(--ravenof-gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' }}>{t('onboarding.inspectDeck')}</button>
                 </p>
               </>
             )}

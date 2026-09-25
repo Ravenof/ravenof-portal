@@ -5,7 +5,9 @@
 // Bot fallback NE fiksuotas (buvo lygiai 60 s – žaidėjai pastebi šabloną),
 // o ATSITIKTINIS 50–110 s kiekvienai paieškai atskirai.
 import { useEffect, useRef, useState } from 'react'
-import { queueJoin, queueLeave, queuePoll, pickBot, getOpponentSummary, getRankedPvpMatch } from '@/lib/ranked/client'
+import { queueJoin, queueLeave, queuePoll, queueSwitch, pickBot, getOpponentSummary, getRankedPvpMatch, type QueuePoll } from '@/lib/ranked/client'
+import { CrossFormatOffer } from '@/components/digital/ui/CrossFormatOffer'
+import { setBattleFormat, type BattleFormat } from '@/lib/game/format'
 import { playRanked } from '@/lib/ranked/sound'
 import { useT } from '@/lib/i18n/react'
 
@@ -93,6 +95,14 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
   const t = useT()
   const [elapsed, setElapsed] = useState(0)
   const doneRef = useRef(false)
+  // Kryžminis pasiūlymas (kitame formate laukia žaidėjas). Kol atidarytas — boto
+  // fallback'as pristabdytas; atmetus — tam formatui 30 s nebesiūloma.
+  const [offer, setOffer] = useState<{ format: BattleFormat; waiting: number } | null>(null)
+  const [offerBusy, setOfferBusy] = useState(false)
+  const [offerNote, setOfferNote] = useState<string | null>(null)
+  const offerRef = useRef<{ format: BattleFormat; waiting: number } | null>(null)
+  const dismissedUntilRef = useRef<Record<string, number>>({})
+  const rangeRef = useRef(3)
 
   // Ekranas NEužmiega kol ieškom varžovo: Screen Wake Lock API (palaikoma
   // Chrome/Android WebView/Safari 16.4+). Tab'ui grįžus iš fono — atnaujinama
@@ -115,6 +125,49 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
     return () => { disposed = true; document.removeEventListener('visibilitychange', onVis); void lock?.release(); lock = null }
   }, [])
 
+  const launchMatched = async (r: QueuePoll) => {
+    if (!r.opponent || !r.matchId) return
+    doneRef.current = true
+    offerRef.current = null; setOffer(null)
+    const [summ, pm] = await Promise.all([getOpponentSummary(r.opponent), getRankedPvpMatch(r.matchId)])
+    await queueLeave()
+    const isHost = !!r.isHost
+    onMatch({
+      kind: 'real', id: r.opponent,
+      name: summ?.name ?? t('battle.player'), avatar: '🛡️',
+      faction: summ?.faction ?? t('ranked.queue.unknown'), factionSlug: null,
+      rankStep: summ?.rankStep ?? 0, difficulty: 'normal',
+      net: { isHost, mySide: isHost ? 'you' : 'ai', matchId: r.matchId, opponentId: r.opponent },
+      // host'as įkrauna svečio kaladę; svečias gauna būseną per sync
+      opponentDeckId: isHost ? (pm?.guest_deck_id ?? null) : null,
+    })
+  }
+
+  // Sutikimas: atomiškas perėjimas į kito formato eilę + poravimas su TUO žaidėju.
+  const acceptOffer = async () => {
+    const of = offerRef.current
+    if (!of || offerBusy || doneRef.current) return
+    setOfferBusy(true)
+    const r = await queueSwitch(of.format, rangeRef.current)
+    setOfferBusy(false)
+    if (doneRef.current) return
+    if (r.status === 'matched' && r.opponent && r.matchId) {
+      // Formatas perjungiamas VISAM klientui (rezultatas/rangas eina į to formato sezoną; matosi chip'e)
+      setBattleFormat(r.format ?? of.format)
+      await launchMatched(r)
+      return
+    }
+    // kandidatas dingo / mane jau suporavo mano eilėje — liekam laukti savo formate
+    offerRef.current = null; setOffer(null)
+    setOfferNote(t('battle.crossFormat.gone'))
+    dismissedUntilRef.current[of.format] = Date.now() + 15_000
+  }
+  const declineOffer = () => {
+    const of = offerRef.current
+    if (of) dismissedUntilRef.current[of.format] = Date.now() + 30_000
+    offerRef.current = null; setOffer(null)
+  }
+
   useEffect(() => {
     playRanked('ranked_queue_start')
     let alive = true
@@ -129,26 +182,21 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
       const sec = (Date.now() - startedAt) / 1000
       const range = sec < 20 ? 3 : sec < 40 ? 10 : 999
       // Realių žaidėjų paieška
+      rangeRef.current = range
       const r = await queuePoll(range)
       if (doneRef.current) return
-      if (r.status === 'matched' && r.opponent && r.matchId) {
-        doneRef.current = true
-        const [summ, pm] = await Promise.all([getOpponentSummary(r.opponent), getRankedPvpMatch(r.matchId)])
-        await queueLeave()
-        const isHost = !!r.isHost
-        onMatch({
-          kind: 'real', id: r.opponent,
-          name: summ?.name ?? t('battle.player'), avatar: '🛡️',
-          faction: summ?.faction ?? t('ranked.queue.unknown'), factionSlug: null,
-          rankStep: summ?.rankStep ?? 0, difficulty: 'normal',
-          net: { isHost, mySide: isHost ? 'you' : 'ai', matchId: r.matchId, opponentId: r.opponent },
-          // host'as įkrauna svečio kaladę; svečias gauna būseną per sync
-          opponentDeckId: isHost ? (pm?.guest_deck_id ?? null) : null,
-        })
-        return
+      if (r.status === 'matched' && r.opponent && r.matchId) { await launchMatched(r); return }
+      // Kitame formate laukia žaidėjas → pasiūlymas (jei neatmestas neseniai)
+      if (r.status === 'waiting') {
+        const of = r.otherFormat
+        if (of && of.waiting > 0 && (dismissedUntilRef.current[of.format] ?? 0) < Date.now()) {
+          if (!offerRef.current) { offerRef.current = of; setOffer(of); setOfferNote(null) }
+        } else if (offerRef.current && !(of && of.waiting > 0)) {
+          offerRef.current = null; setOffer(null)   // laukiantysis dingo — pasiūlymas užsidaro
+        }
       }
-      // Bot fallback po atsitiktinio 50–110 s laukimo
-      if (sec >= botWaitSec) {
+      // Bot fallback po atsitiktinio 50–110 s laukimo (ne kol atidarytas pasiūlymas)
+      if (sec >= botWaitSec && !offerRef.current) {
         doneRef.current = true
         const bot = await pickBot()
         await queueLeave()
@@ -165,6 +213,7 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
     }, 2500)
 
     return () => { alive = false; clearInterval(tick); clearInterval(poll); if (!doneRef.current) queueLeave() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId, onMatch, onCancel])
 
   const status = elapsed < 20 ? t('ranked.queue.similar')
@@ -181,10 +230,12 @@ export function RankedQueue({ deckId, onMatch, onCancel }: {
         </div>
         <p style={{ font: '700 14px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)', margin: '0 0 3px' }}>{status}</p>
         <p className="tabular-nums" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '0 0 22px' }}>{t('ranked.queue.waitingFor', { sec: elapsed })}</p>
+        {offerNote && <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '-12px 0 14px' }}>{offerNote}</p>}
         <button onClick={cancel} className="ravenof-btn ravenof-btn-secondary mx-auto" style={{ minHeight: 40, minWidth: 150 }}>
           {t('common.cancel')}
         </button>
       </div>
+      {offer && <CrossFormatOffer format={offer.format} waiting={offer.waiting} busy={offerBusy} onAccept={() => void acceptOffer()} onDecline={declineOffer} />}
     </div>
   )
 }

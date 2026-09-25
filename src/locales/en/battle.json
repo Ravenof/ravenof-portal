@@ -717,5 +717,13 @@
   "tutorial": {
     "button": "🎓 Teach me to play",
     "buttonHint": "Tutorial battle vs AI: the board, gold, ZMK, tokens and step-by-step tips"
+  },
+  "crossFormat": {
+    "title": "Player found in the other format",
+    "body": "An opponent is waiting in {{format}} ({{count}}). Nobody is waiting in your format right now.",
+    "switchNote": "Accepting switches your format to “{{format}}” – you can switch back with the toggle above.",
+    "play": "Play: {{format}}",
+    "wait": "Keep waiting",
+    "gone": "That opponent already found a match – still waiting in your format."
   }
 }

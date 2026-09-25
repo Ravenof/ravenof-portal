@@ -38,14 +38,14 @@ export async function getStarterDeckCards(starterId: string): Promise<StarterCar
   return ((data as { cards: StarterCard[] })?.cards) ?? []
 }
 
-export type FactionInfo = { id: number; name: string; colorHex: string | null; iconUrl: string | null }
+export type FactionInfo = { id: number; name: string; slug: string | null; colorHex: string | null; iconUrl: string | null }
 
 export async function getFactions(): Promise<Record<number, FactionInfo>> {
   const supabase = createClient()
-  const { data } = await supabase.from('factions').select('id, name, color_hex, icon_url')
+  const { data } = await supabase.from('factions').select('id, name, slug, color_hex, icon_url')
   const out: Record<number, FactionInfo> = {}
-  for (const f of (data as { id: number; name: string; color_hex: string | null; icon_url: string | null }[] | null) ?? []) {
-    out[f.id] = { id: f.id, name: f.name, colorHex: f.color_hex, iconUrl: f.icon_url }
+  for (const f of (data as { id: number; name: string; slug: string | null; color_hex: string | null; icon_url: string | null }[] | null) ?? []) {
+    out[f.id] = { id: f.id, name: f.name, slug: f.slug, colorHex: f.color_hex, iconUrl: f.icon_url }
   }
   return out
 }

@@ -97,7 +97,22 @@ export async function reportMatchV2(a: ReportMatchArgs): Promise<MatchRewardResu
     p_opponent_id: a.opponentId ?? null, p_opponent_type: a.opponentType ?? 'human',
     p_difficulty: a.difficulty ?? null, p_opponent_deck: a.opponentDeck ?? null, p_format: a.format ?? 'zmk',
   })
-  if (error) { console.warn('[economy] reportMatchV2:', error.message); return null }
+  if (error) {
+    // Saugiklis: jei DB dar be migracijos 20261001 (nėra p_format signatūros) — kviečiam seną,
+    // kad kova ir DIENOS UŽDUOTYS vis tiek užsiskaitytų (formatas tada = 'zmk').
+    if (/p_format|Could not find the function|42883|PGRST202/i.test(error.message)) {
+      const { data: d2, error: e2 } = await supabase.rpc('rvn_report_match_v2', {
+        p_client_match_id: a.clientMatchId, p_mode: a.mode, p_result: a.result,
+        p_duration_seconds: a.durationSeconds ?? 0, p_turns: a.turns ?? 0,
+        p_player_actions: a.playerActions ?? 0, p_opponent_actions: a.opponentActions ?? 0,
+        p_opponent_id: a.opponentId ?? null, p_opponent_type: a.opponentType ?? 'human',
+        p_difficulty: a.difficulty ?? null, p_opponent_deck: a.opponentDeck ?? null,
+      })
+      if (!e2) return (d2 ?? null) as MatchRewardResult | null
+      console.warn('[economy] reportMatchV2 (fallback):', e2.message); return null
+    }
+    console.warn('[economy] reportMatchV2:', error.message); return null
+  }
   return (data ?? null) as MatchRewardResult | null
 }
 

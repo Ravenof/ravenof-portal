@@ -24,7 +24,8 @@ import { strategyWeights } from '@/lib/ranked/aiStrategy'
 import { useT } from '@/lib/i18n/react'
 import { RavenofBannerButton, RavenofTextField } from '@/components/digital/ui/RavenofKit'
 import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
-import { useBattleFormat, type BattleFormat } from '@/lib/game/format'
+import { useBattleFormat, setBattleFormat, type BattleFormat } from '@/lib/game/format'
+import { CrossFormatOffer } from '@/components/digital/ui/CrossFormatOffer'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -62,10 +63,18 @@ export function DigitalPvP() {
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
   const fmt = useBattleFormat()   // ŽMK / Klasika — kambariai ir greita kova filtruojami pagal formatą
+  const fmtRef = useRef(fmt); useEffect(() => { fmtRef.current = fmt }, [fmt])
+  const userIdRef = useRef<string | null>(null); useEffect(() => { userIdRef.current = userId }, [userId])
   const [toast, setToast] = useState('')
   const [deckSelOpen, setDeckSelOpen] = useState(false)
   const [covers, setCovers] = useState<Record<number, string>>({})
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Kryžminis pasiūlymas GREITOJE kovoje: mano formate niekas nelaukia, o kitame yra
+  // viešas laukiantis kambarys. Kol atidarytas — boto fallback'as pristabdytas.
+  const [offer, setOffer] = useState<{ room: Match; format: BattleFormat } | null>(null)
+  const [offerBusy, setOfferBusy] = useState(false)
+  const offerRef = useRef<Match | null>(null)
+  const dismissedRoomsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
@@ -145,10 +154,22 @@ export function DigitalPvP() {
         setLaunch({ net: { isHost: true, mySide: 'you', matchId: m.id, opponentId: m.guest_id || undefined }, deckId: battleDeckRef.current, opponentDeckId: m.guest_deck_id, opponentName: m.guest_name || t('battle.opponentFallback'), format: m.format ?? 'zmk' })
         return
       }
+      // Kitame formate laukia viešas kambarys? → pasiūlymas (tik greitoje kovoje)
+      if (withBot && !offerRef.current) {
+        const other: BattleFormat = fmtRef.current === 'classic' ? 'zmk' : 'classic'
+        const { data: xs } = await supabase.from('pvp_matches').select('*').eq('is_public', true).eq('status', 'waiting').eq('format', other)
+          .is('guest_id', null).neq('host_id', userIdRef.current ?? '').order('created_at', { ascending: true }).limit(5)
+        const cand = ((xs as Match[] | null) ?? []).find((x) => !dismissedRoomsRef.current.has(x.id))
+        if (cand && !offerRef.current) { offerRef.current = cand; setOffer({ room: cand, format: other }) }
+      } else if (offerRef.current) {
+        // pasiūlytas kambarys dingo (kažkas prisijungė / host atšaukė) → uždarom
+        const { data: still } = await supabase.from('pvp_matches').select('id').eq('id', offerRef.current.id).eq('status', 'waiting').is('guest_id', null).maybeSingle()
+        if (!still) { offerRef.current = null; setOffer(null) }
+      }
       // Niekas neprisijungė – leidžiam kovą prieš botą (tik greitoje kovoje).
       // Kambarį trinam SĄLYGIŠKAI (guest_id vis dar null): jei kaip tik tuo metu
       // kas nors prisijungė – trynimas nieko negrąžina ir laukiam toliau.
-      if (withBot && Date.now() - startedAt >= botWaitMs) {
+      if (withBot && !offerRef.current && Date.now() - startedAt >= botWaitMs) {
         const { data: del } = await supabase.from('pvp_matches').delete().eq('id', matchId).is('guest_id', null).select('id')
         if (!del || del.length === 0) return
         if (pollRef.current) clearInterval(pollRef.current)
@@ -223,7 +244,42 @@ export function DigitalPvP() {
     setLaunch({ net: { isHost: false, mySide: 'ai', matchId: m.id, opponentId: m.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: m.host_name || t('battle.opponentFallback'), format: m.format ?? 'zmk' })
   }
 
+  // Sutikimas: prisijungiam prie TO kambario (sąlyginis update), tada sąlygiškai triname savąjį.
+  // Jei į mano kambarį tuo metu kažkas prisijungė — atšaukiam prisijungimą ir liekam host'u.
+  const acceptOffer = async () => {
+    const target = offerRef.current
+    if (!target || !userId || offerBusy) return
+    setOfferBusy(true)
+    const supabase = createClient()
+    const { data: joined } = await supabase.from('pvp_matches')
+      .update({ guest_id: userId, guest_deck_id: battleDeckRef.current, guest_name: userName, status: 'ready' })
+      .eq('id', target.id).is('guest_id', null).select('id')
+    if (!joined || joined.length === 0) {
+      setOfferBusy(false); offerRef.current = null; setOffer(null); dismissedRoomsRef.current.add(target.id)
+      setStatus(t('battle.crossFormat.gone')); return
+    }
+    let stillHost = false
+    if (room) {
+      const { data: del } = await supabase.from('pvp_matches').delete().eq('id', room.id).is('guest_id', null).select('id')
+      stillHost = !del || del.length === 0     // mano kambarys jau turi svečią — pirmenybė jam
+    }
+    if (stillHost) {
+      await supabase.from('pvp_matches').update({ guest_id: null, guest_deck_id: null, guest_name: null, status: 'waiting' }).eq('id', target.id).eq('guest_id', userId)
+      setOfferBusy(false); offerRef.current = null; setOffer(null)
+      return   // waitForGuest poll'as tuoj paleis kovą kaip host'ui
+    }
+    if (pollRef.current) clearInterval(pollRef.current)
+    setOfferBusy(false); offerRef.current = null; setOffer(null); setRoom(null); setStatus('')
+    setBattleFormat(target.format ?? 'zmk')     // formatas visam klientui — matosi chip'e, grįžti vienu paspaudimu
+    setLaunch({ net: { isHost: false, mySide: 'ai', matchId: target.id, opponentId: target.host_id }, deckId: battleDeckRef.current, opponentDeckId: null, opponentName: target.host_name || t('battle.opponentFallback'), format: target.format ?? 'zmk' })
+  }
+  const declineOffer = () => {
+    if (offerRef.current) dismissedRoomsRef.current.add(offerRef.current.id)
+    offerRef.current = null; setOffer(null)
+  }
+
   const cancelRoom = async () => {
+    offerRef.current = null; setOffer(null)
     if (pollRef.current) clearInterval(pollRef.current)
     if (room) { const supabase = createClient(); await supabase.from('pvp_matches').delete().eq('id', room.id) }
     setRoom(null); setStatus('')
@@ -369,6 +425,7 @@ export function DigitalPvP() {
 
       {toast && <div className="ravenof-toast" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom,0px))', zIndex: 200 }}>{toast}</div>}
       {deckSelOpen && <ActiveDeckSelectorModal onClose={() => setDeckSelOpen(false)} />}
+      {offer && <CrossFormatOffer format={offer.format} busy={offerBusy} onAccept={() => void acceptOffer()} onDecline={declineOffer} />}
     </div>
   )
 }
