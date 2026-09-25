@@ -38,6 +38,7 @@ import '@/components/digital/ui/desktop-ui.css'
 import { useT, I18nBoot, useLocale, setLocale } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
+import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
 
 type NavItem = { key: string; labelKey: string; icon: React.ComponentType<{ className?: string }>; href?: string; action?: 'store' }
 const NAV: NavItem[] = [
@@ -272,7 +273,10 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                 )}
               </span>
             </button>
-            <div className="flex-1" />
+            {/* Kovos formatas (ŽMK / Klasika) — tarp žaidėjo ir valiutų, tik pradžios ekrane */}
+            <div className="flex-1 flex items-center justify-center min-w-0" style={{ padding: '0 6px' }}>
+              {pathname === '/digital' && <FormatSwitch variant={deskUi ? 'tabs' : 'chip'} />}
+            </div>
             {/* Balansai: kol nežinomi — „—" (niekada ne 0). Fiksuoti matmenys — be layout shift. */}
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={balances ? formatNumber(balances.silver) : '—'} />
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={balances ? formatNumber(balances.rubies) : '—'} />

@@ -25,7 +25,7 @@ import { useT } from '@/lib/i18n/react'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { celebrateRewards, rewardItems } from '@/components/digital/progression/RewardCelebration'
 import { AdminOnlineBar } from '@/components/digital/AdminOnlineBar'
-import { FormatSwitch, ClassicBadge } from '@/components/digital/ui/FormatSwitch'
+import { ClassicBadge } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat, CLASSIC_ACCENT } from '@/lib/game/format'
 
 const A = RAVENOF_ASSET
@@ -181,14 +181,10 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   ]
 
   return (
-    <div className="ravenof-body relative z-10 h-full flex flex-col ravenof-in" style={{ gap: desktop ? 12 : 8, minHeight: 0 }}>
+    <div className="ravenof-body relative z-10 h-full flex flex-col ravenof-in" style={{ minHeight: 0 }}>
       {/* Admin: kas dabar prisijungęs – maža juostelė ekrano viršuje (tik role='admin') */}
       {loggedIn && <AdminOnlineBar />}
-      {/* ── Kovos formato tab'ai: ŽMK KOVOS / KLASIKA (be modifikatorių) ── */}
-      <div className="shrink-0 flex flex-col items-center" style={{ gap: 4 }}>
-        <FormatSwitch variant="tabs" />
-        {classic && <span style={{ font: `400 ${fs(10)}px var(--ravenof-font-body)`, color: '#b9cbe6' }}>{t('home.format.classicHint')}</span>}
-      </div>
+      {/* Kovos formato tab'ai (ŽMK / Klasika) gyvena viršutinėje juostoje (layout.tsx) */}
       <div className="flex-1 min-h-0 flex" style={{ gap: desktop ? 22 : 10 }}>
       {/* ── KAIRĖ: Reitingo hero ── */}
       <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}

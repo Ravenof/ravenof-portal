@@ -15,6 +15,7 @@
     "src/components/admin/GameplayConfigEditor.tsx",
     "src/components/digital/DeleteAccountModal.tsx",
     "src/components/digital/DigitalDeckBuilder.tsx",
+    "src/app/digital/layout.tsx",
     "src/components/digital/ui/CrossFormatOffer.tsx",
     "src/components/digital/ranked/RankedQueue.tsx",
     "src/lib/economy.ts",
