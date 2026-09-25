@@ -74,6 +74,8 @@ export type ReportMatchArgs = {
   opponentId?: string | null; opponentType?: 'human' | 'bot'
   /** PvE: DI sudėtingumas ir varžovo kaladė (Naujokas/Patyręs) – atlygiui pagal lygį (bot.silver_by_level). */
   difficulty?: 'easy' | 'normal' | 'hard'; opponentDeck?: 'rookie' | 'veteran'
+  /** Kovos formatas: 'zmk' (numatytas) | 'classic' (be ŽMK) – admin statistikai pagal formatą. */
+  format?: 'zmk' | 'classic'
 }
 export type LevelRewardEntry = { level: number; payload: Array<Record<string, unknown>> }
 export type MatchRewardResult = {
@@ -93,7 +95,7 @@ export async function reportMatchV2(a: ReportMatchArgs): Promise<MatchRewardResu
     p_duration_seconds: a.durationSeconds ?? 0, p_turns: a.turns ?? 0,
     p_player_actions: a.playerActions ?? 0, p_opponent_actions: a.opponentActions ?? 0,
     p_opponent_id: a.opponentId ?? null, p_opponent_type: a.opponentType ?? 'human',
-    p_difficulty: a.difficulty ?? null, p_opponent_deck: a.opponentDeck ?? null,
+    p_difficulty: a.difficulty ?? null, p_opponent_deck: a.opponentDeck ?? null, p_format: a.format ?? 'zmk',
   })
   if (error) { console.warn('[economy] reportMatchV2:', error.message); return null }
   return (data ?? null) as MatchRewardResult | null

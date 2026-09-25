@@ -3117,6 +3117,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       durationSeconds, turns, playerActions: turns, opponentActions: turns,
       opponentId: net?.opponentId ?? null, opponentType: vsRemote ? 'human' : 'bot',
       difficulty: practice && !vsRemote ? difficulty : undefined, opponentDeck: practice && !vsRemote ? opponentDeck : undefined,
+      format,
     }).then((r) => {
       if (!r) return
       const before = r.accountXpBefore ?? 0

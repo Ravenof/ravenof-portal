@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
-import { AdminPlayerProfile, type PlayerOverview, type PlayerMatch, type PlayerCard } from '@/components/admin/AdminPlayerProfile'
+import { AdminPlayerProfile, type PlayerOverview, type PlayerMatch, type PlayerCard, type PlayerStats } from '@/components/admin/AdminPlayerProfile'
+import type { GrantOptions, GrantLogRow } from '@/components/admin/AdminGrantPanel'
 
 // ── Admin: vieno žaidėjo profilis (statistika, kovos, kolekcija, ekonomika, klaidos) ──
 // Duomenys: rvn_admin_player_overview / _matches / _collection (SECURITY DEFINER, tikrina is_admin()).
@@ -14,10 +15,13 @@ export default async function AdminPlayerPage({ params }: { params: Promise<{ id
   const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (me?.role !== 'admin') redirect('/admin/events')
 
-  const [ov, ms, col, bugs] = await Promise.all([
+  const [ov, ms, col, st, go, gl, bugs] = await Promise.all([
     supabase.rpc('rvn_admin_player_overview', { p_user: id }),
     supabase.rpc('rvn_admin_player_matches', { p_user: id, p_limit: 100, p_offset: 0 }),
     supabase.rpc('rvn_admin_player_collection', { p_user: id }),
+    supabase.rpc('rvn_admin_player_stats', { p_user: id }),
+    supabase.rpc('rvn_admin_grant_options'),
+    supabase.rpc('rvn_admin_grant_log', { p_user: id, p_limit: 50 }),
     supabase.from('bug_reports').select('id, created_at, category, severity, title, status, platform, app_version').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
   ])
   const overview = ov.data as PlayerOverview | null
@@ -46,6 +50,9 @@ export default async function AdminPlayerPage({ params }: { params: Promise<{ id
           collection={(col.data as PlayerCard[] | null) ?? []}
           bugs={(bugs.data as { id: number; created_at: string; category: string; severity: string; title: string; status: string; platform: string | null; app_version: string | null }[] | null) ?? []}
           isSelf={id === user.id}
+          stats={(st.data as PlayerStats | null) ?? null}
+          grantOptions={(go.data as GrantOptions | null) ?? null}
+          grantLog={(gl.data as GrantLogRow[] | null) ?? []}
         />
       </div>
     </div>

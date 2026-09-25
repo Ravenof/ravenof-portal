@@ -105,3 +105,21 @@ export async function adminGivePacks(targetUserId: string, qty: number): Promise
   revalidatePath('/admin/users')
   return {}
 }
+
+/** Universalus grantas (v2): valiuta (± suma), korta, pakuotė, kosmetika ar bet koks parduotuvės daiktas. */
+export type GrantKind = 'silver' | 'rubies' | 'essence' | 'card' | 'pack' | 'cosmetic' | 'shop_item'
+export async function adminGrantV2(targetUserId: string, kind: GrantKind, ref: string | null, amount: number, note: string | null)
+  : Promise<{ error?: string; name?: string; balances?: { silver: number; rubies: number; essence: number } }> {
+  const supabase = await createClient()
+  const user = await getCachedUser()
+  if (!user) return { error: 'Neprisijungęs' }
+  const { data: ap } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (ap?.role !== 'admin') return { error: 'Neturi admin teisių' }
+  if (!Number.isFinite(amount)) return { error: 'Nurodyk kiekį' }
+  const { data, error } = await supabase.rpc('rvn_admin_grant_v2', { p_target: targetUserId, p_kind: kind, p_ref: ref, p_amount: Math.trunc(amount), p_note: note })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${targetUserId}`)
+  const d = data as { name?: string; balances?: { silver: number; rubies: number; essence: number } } | null
+  return { name: d?.name, balances: d?.balances }
+}

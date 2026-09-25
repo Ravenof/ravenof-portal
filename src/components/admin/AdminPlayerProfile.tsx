@@ -4,7 +4,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { UserRoleForm } from '@/components/admin/UserRoleForm'
-import { UserGrantForm } from '@/components/admin/UserGrantForm'
+import { AdminGrantPanel, type GrantOptions, type GrantLogRow } from '@/components/admin/AdminGrantPanel'
 import { UserDangerButtons } from '@/components/admin/UserDangerButtons'
 import { getLevelTitleForXp } from '@/lib/gamification/levels'
 import { formatRank } from '@/lib/ranked/rank'
@@ -54,6 +54,17 @@ export type PlayerMatch = {
 }
 export type PlayerCard = { id: string; card_number: string | null; name: string; faction: string | null; faction_color: string | null; rarity: string | null; rarity_color: string | null; is_champion: boolean; qty: number }
 type Bug = { id: number; created_at: string; category: string; severity: string; title: string; status: string; platform: string | null; app_version: string | null }
+type Agg = { n: number; wins: number; seconds: number; avg_s: number | null; last_at?: string | null; vs_human?: number; vs_bot?: number }
+export type PlayerStats = {
+  total: { n: number; wins: number; losses: number; seconds: number; avg_s: number | null; max_s: number | null; avg_turns: number | null; first_at: string | null; last_at: string | null; active_days: number }
+  by_format: Record<string, Agg>
+  by_mode: Record<string, Agg>
+  matrix: { format: string; mode: string; n: number; wins: number; seconds: number }[]
+  weekly: { week: string; n: number; seconds: number }[]
+  by_difficulty: Record<string, { n: number; wins: number }>
+  ranked: Record<string, { season: string; rank_step: number; best_step: number; wins: number; losses: number; streak: number; vs_real: number }>
+}
+const FORMAT_LABEL: Record<string, string> = { zmk: 'ŽMK kovos', classic: 'Klasika (be ŽMK)' }
 
 const TABS = ['Apžvalga', 'Kovos', 'Kolekcija', 'Kaladės', 'Ekonomika', 'Klaidos'] as const
 const MODE_LABEL: Record<string, string> = { bot: 'Kova su DI', ranked: 'Reitingas', unranked: 'Draugiška', coop: '2v2' }
@@ -93,7 +104,7 @@ function Bar({ a, b, color }: { a: number; b: number; color?: string | null }) {
   return <div className="h-1.5 rounded overflow-hidden" style={{ background: 'var(--bg-elevated)' }}><div style={{ width: `${b > 0 ? Math.min(100, (a / b) * 100) : 0}%`, height: '100%', background: color ?? 'var(--gold)' }} /></div>
 }
 
-export function AdminPlayerProfile({ overview: o, matches, collection, bugs, isSelf }: { overview: PlayerOverview; matches: PlayerMatch[]; collection: PlayerCard[]; bugs: Bug[]; isSelf: boolean }) {
+export function AdminPlayerProfile({ overview: o, matches, collection, bugs, isSelf, stats, grantOptions, grantLog }: { overview: PlayerOverview; matches: PlayerMatch[]; collection: PlayerCard[]; bugs: Bug[]; isSelf: boolean; stats?: PlayerStats | null; grantOptions?: GrantOptions | null; grantLog?: GrantLogRow[] }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Apžvalga')
   const p = o.profile, m = o.matches
   const daysSinceReg = Math.max(1, Math.round((Date.now() - new Date(p.created_at).getTime()) / 86400000))
@@ -150,6 +161,60 @@ export function AdminPlayerProfile({ overview: o, matches, collection, bugs, isS
 
       {tab === 'Apžvalga' && (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {stats && (
+            <Card title="Žaidimo laikas ir formatai" className="md:col-span-2 xl:col-span-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <Stat label="Iš viso žaista" value={dur(stats.total.seconds)} sub={`${n(stats.total.n)} kovos · vid. ${dur(stats.total.avg_s)} · ilgiausia ${dur(stats.total.max_s)}`} />
+                <Stat label="ŽMK kovos" value={n(stats.by_format.zmk?.n ?? 0)} sub={`${pct(stats.by_format.zmk?.wins ?? 0, stats.by_format.zmk?.n ?? 0)} perg. · ${dur(stats.by_format.zmk?.seconds ?? 0)}`} />
+                <Stat label="Klasika (be ŽMK)" value={n(stats.by_format.classic?.n ?? 0)} sub={`${pct(stats.by_format.classic?.wins ?? 0, stats.by_format.classic?.n ?? 0)} perg. · ${dur(stats.by_format.classic?.seconds ?? 0)}`} />
+                <Stat label="Vid. ėjimų / kova" value={stats.total.avg_turns ?? '—'} sub={`${n(stats.total.active_days)} aktyvios d.`} />
+              </div>
+              <table className="w-full text-xs">
+                <thead><tr style={{ color: 'var(--text-muted)' }}><th className="text-left font-normal pb-1">Režimas</th><th className="text-right font-normal">Kovos</th><th className="text-right font-normal">Perg.</th><th className="text-right font-normal">Žmonės / DI</th><th className="text-right font-normal">Laikas</th><th className="text-right font-normal">Vid.</th><th className="text-right font-normal">ŽMK / Klasika</th><th className="text-right font-normal">Paskutinė</th></tr></thead>
+                <tbody>
+                  {Object.entries(stats.by_mode).sort((a, b) => b[1].n - a[1].n).map(([mode, a]) => {
+                    const z = stats.matrix.find((x) => x.mode === mode && x.format === 'zmk')?.n ?? 0
+                    const c = stats.matrix.find((x) => x.mode === mode && x.format === 'classic')?.n ?? 0
+                    return (
+                      <tr key={mode} style={{ borderTop: '1px solid var(--bg-border)' }}>
+                        <td className="py-1">{MODE_LABEL[mode] ?? mode}</td>
+                        <td className="text-right">{n(a.n)}</td>
+                        <td className="text-right">{n(a.wins)} <span style={{ color: 'var(--text-muted)' }}>({pct(a.wins, a.n)})</span></td>
+                        <td className="text-right">{n(a.vs_human)} / {n(a.vs_bot)}</td>
+                        <td className="text-right">{dur(a.seconds)}</td>
+                        <td className="text-right">{dur(a.avg_s)}</td>
+                        <td className="text-right">{n(z)} / {n(c)}</td>
+                        <td className="text-right" style={{ color: 'var(--text-muted)' }}>{fmtD(a.last_at)}</td>
+                      </tr>
+                    )
+                  })}
+                  {Object.keys(stats.by_mode).length === 0 && <tr><td colSpan={8} className="py-2 text-center" style={{ color: 'var(--text-muted)' }}>Kovų dar nėra</td></tr>}
+                </tbody>
+              </table>
+              <div className="grid md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <div className="text-[11px] mb-1" style={{ color: 'var(--text-muted)' }}>Reitingas pagal formatą</div>
+                  {Object.keys(stats.ranked).length === 0 ? <div className="text-xs" style={{ color: 'var(--text-muted)' }}>—</div> : Object.entries(stats.ranked).map(([f, r]) => (
+                    <div key={f} className="text-xs flex justify-between" style={{ borderTop: '1px solid var(--bg-border)', padding: '3px 0' }}>
+                      <span>{FORMAT_LABEL[f] ?? f} <span style={{ color: 'var(--text-muted)' }}>· {r.season}</span></span>
+                      <span>{formatRank(r.rank_step)} <span style={{ color: 'var(--text-muted)' }}>(geriausias {formatRank(r.best_step)}) · {r.wins}P/{r.losses}Pr · serija {r.streak}</span></span>
+                    </div>
+                  ))}
+                  {Object.keys(stats.by_difficulty).length > 0 && (
+                    <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>DI sudėtingumas: {Object.entries(stats.by_difficulty).map(([d, x]) => `${d} ${x.wins}/${x.n}`).join(' · ')}</div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-[11px] mb-1" style={{ color: 'var(--text-muted)' }}>Žaidimo laikas per savaitę (12 sav.)</div>
+                  <div className="flex items-end gap-1" style={{ height: 56 }}>
+                    {stats.weekly.length === 0 ? <span className="text-xs" style={{ color: 'var(--text-muted)' }}>—</span> : (() => { const mx = Math.max(1, ...stats.weekly.map((w) => w.seconds)); return stats.weekly.map((w) => (
+                      <div key={w.week} title={`${w.week}: ${w.n} kovos · ${dur(w.seconds)}`} className="flex-1 rounded-t" style={{ height: `${Math.max(3, Math.round((w.seconds / mx) * 100))}%`, background: 'var(--gold)', opacity: 0.85 }} />
+                    )) })()}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
           <Card title="Kovos">
             <div className="grid grid-cols-2 gap-3">
               <Stat label="Iš viso" value={n(m.total)} sub={`${n(m.wins)} perg. · ${n(m.losses)} pral. · ${pct(m.wins, m.total)}`} />
@@ -266,12 +331,14 @@ export function AdminPlayerProfile({ overview: o, matches, collection, bugs, isS
 
       {tab === 'Ekonomika' && (
         <div className="grid md:grid-cols-2 gap-4">
-          <Card title="Balansai ir grantai">
+          <Card title="Balansai ir grantai" className="md:col-span-2 xl:col-span-1">
             <div className="flex gap-4 text-sm font-bold mb-3">
               <span style={{ color: 'var(--gold)' }}>🪙 {n(p.gold)}</span><span style={{ color: '#fca5a5' }}>◆ {n(p.rubies)}</span><span style={{ color: '#c4b5fd' }}>✦ {n(p.essence)}</span>
             </div>
             <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Pakuotės: {o.packs.length ? o.packs.map((x) => `${x.name} ×${x.qty}`).join(', ') : 'nėra'}</div>
-            <UserGrantForm userId={p.id} gold={p.gold} />
+            <AdminGrantPanel userId={p.id} options={grantOptions ?? null} log={grantLog ?? []}
+              balances={{ silver: p.gold, rubies: p.rubies, essence: p.essence }}
+              cards={collection.map((c) => ({ id: c.id, name: c.name, card_number: c.card_number, faction: c.faction, rarity: c.rarity, owned: c.qty }))} />
           </Card>
           <Card title="Paskutiniai atlygiai (60)">
             <div className="max-h-[480px] overflow-y-auto">
