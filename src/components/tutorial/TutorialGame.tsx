@@ -1586,7 +1586,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         if (nav.wakeLock && !dead) wakeLock = await nav.wakeLock.request('screen')
       } catch { /* nesvarbu */ }
     }
+    const isDesktopApp = typeof window !== 'undefined' && !!(window as unknown as { ravenofDesktop?: unknown }).ravenofDesktop
     const reqFs = async () => {
+      if (isDesktopApp) return   // Electron langas visada pilname ekrane (main.js) – HTML5 fullscreen tik išmestų iš jo
       try {
         const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }
         if (document.fullscreenElement) return
@@ -1606,7 +1608,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       window.removeEventListener('pointerdown', onFirstTap)
       document.removeEventListener('visibilitychange', onVis)
       try { wakeLock?.release?.() } catch { /* */ }
-      try { if (document.fullscreenElement) document.exitFullscreen() } catch { /* */ }
+      try { if (!isDesktopApp && document.fullscreenElement) document.exitFullscreen() } catch { /* */ }
     }
   }, [])
 

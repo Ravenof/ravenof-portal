@@ -1,6 +1,6 @@
 {
   "name": "ravenof-desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Ravenof Digital – Steam / Windows / macOS / Linux shell (Electron + steamworks.js)",
   "main": "main.js",

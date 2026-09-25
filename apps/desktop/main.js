@@ -38,6 +38,10 @@ if (!app.isPackaged) app.setPath('userData', app.getPath('userData') + '-dev')
 
 const DEEP_SCHEME = 'ravenof'
 let mainWin = null
+let userToggled = false
+function windowPrefsPath() { try { return path.join(app.getPath('userData'), 'window.json') } catch { return null } }
+function readWindowPrefs() { try { const p = windowPrefsPath(); return p && fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : {} } catch { return {} } }
+function writeWindowPrefs(o) { userToggled = true; try { const p = windowPrefsPath(); if (p) fs.writeFileSync(p, JSON.stringify({ ...readWindowPrefs(), ...o })) } catch { /* */ } }
 let pendingDeepLink = null
 function deepLinkFromArgv(argv) { return (argv || []).find((a) => typeof a === 'string' && a.startsWith(`${DEEP_SCHEME}://`)) || null }
 function deliverDeepLink(url) {
@@ -57,12 +61,25 @@ else {
 }
 
 function createWindow() {
+  // Pilnas ekranas VISADA (ne tik kovoje) – kaip žaidime. F11 / Alt+Enter perjungia į langą ir atgal,
+  // pasirinkimas įsimenamas userData/window.json. Pirmas paleidimas – pilnas ekranas.
+  const prefs = readWindowPrefs()
   const win = new BrowserWindow({
     width: 1600, height: 900, minWidth: 1024, minHeight: 600,
+    fullscreen: prefs.fullscreen !== false,
     backgroundColor: '#0b0a09', title: 'Ravenof', autoHideMenuBar: true, icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: false, nodeIntegration: false },
   })
   win.setMenuBarVisibility(false)
+  win.webContents.on('before-input-event', (e, input) => {
+    if (input.type !== 'keyDown') return
+    const f11 = input.key === 'F11'
+    const altEnter = input.alt && (input.key === 'Enter' || input.code === 'Enter')
+    if (f11 || altEnter) { e.preventDefault(); win.setFullScreen(!win.isFullScreen()); writeWindowPrefs({ fullscreen: win.isFullScreen() }) }
+  })
+  // HTML5 fullscreen (kovos requestFullscreen/exitFullscreen) neturi išmesti lango iš pilno ekrano
+  win.on('leave-full-screen', () => { if (prefs.fullscreen !== false && !userToggled) setTimeout(() => { if (!win.isDestroyed() && !win.isFullScreen()) win.setFullScreen(true) }, 50) })
+  win.on('enter-full-screen', () => { userToggled = false })
   // Išorinės nuorodos – sistemos naršyklėje; viduje lieka tik app:// ir Supabase auth redirect'ai.
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' } })
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(`${SCHEME}://`)) { e.preventDefault(); shell.openExternal(url) } })
