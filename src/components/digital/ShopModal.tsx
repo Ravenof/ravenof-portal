@@ -24,6 +24,10 @@ import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/start
 import { RAVENOF_ASSET, ravenofRarityColor } from './ui/RavenofKit'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { getStarterDeckCards, getPackFactions, type StarterCard, type PackFaction } from '@/lib/shopDetails'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
+import { useDialogFocus } from '@/components/digital/ui/DeskKit'
+import { X } from 'lucide-react'
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; labelKey: string }
@@ -38,7 +42,13 @@ const ALL_SECTIONS: Section[] = [
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
   const t = useT()
   const tc = useContent()
-  useEscClose(onClose)
+  // Desktop: semantiniai dydžiai (deskTokens). Mobile reikšmės nekeičiamos.
+  const { desktop } = useDesktopUi()
+  const D = desktop
+  const f = (m: number, d: number) => (D ? d : m)
+  // Escape: atidaryta prekės peržiūra → uždaro tik ją (desktop dialogas tai daro pats), kitaip – visą parduotuvę
+  const [selOpenForEsc, setSelOpenForEsc] = useState(false)
+  useEscClose(useCallback(() => { if (!selOpenForEsc) onClose() }, [selOpenForEsc, onClose]))
   const [items, setItems] = useState<ShopItem[]>([])
   const [deal, setDeal] = useState<DealCard[]>([])
   const [starters, setStarters] = useState<StarterDeck[]>([])
@@ -66,6 +76,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const [packInv, setPackInv] = useState(0)
   const [section, setSection] = useState('packs')
   const [sel, setSel] = useState<Sel | null>(null)
+  useEffect(() => { setSelOpenForEsc(!!sel) }, [sel])
+  const dlgRef = useDialogFocus<HTMLDivElement>(sel ? () => { playUiClick(); setSel(null) } : undefined, !!sel)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [countdown, setCountdown] = useState('')
@@ -200,16 +212,26 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     </>
   )
   const priceRow = (silver?: number | null, rubies?: number | null, state?: { label: string; color: string } | null) => (
-    <div className="shrink-0 flex items-center justify-center" style={{ gap: 5, padding: '6px 4px', borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
-      {state ? <span style={{ font: '700 11px var(--ravenof-font-body)', color: state.color }}>{state.label}</span> : <>
-        {silver != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} /><span style={{ font: '700 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{silver}</span></>}
-        {silver != null && rubies != null && <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: 9 }}>/</span>}
-        {rubies != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} /><span style={{ font: '700 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{rubies}</span></>}
+    <div className="shrink-0 flex items-center justify-center" style={{ gap: f(5, 8), padding: D ? '0 10px' : '6px 4px', height: D ? 44 : undefined, borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
+      {state ? <span style={{ font: `700 ${f(11, 14)}px var(--ravenof-font-body)`, color: state.color }}>{state.label}</span> : <>
+        {silver != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: f(14, 18), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(silver) : silver}</span></>}
+        {silver != null && rubies != null && <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: f(9, 13) }}>/</span>}
+        {rubies != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: f(13, 16), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(rubies) : rubies}</span></>}
       </>}
     </div>
   )
 
-  const tileFrame = (key: string | number, onOpen: () => void, art: React.ReactNode, name: string, sub: string | null, price: React.ReactNode, dim = false) => (
+  const tileFrame = (key: string | number, onOpen: () => void, art: React.ReactNode, name: string, sub: string | null, price: React.ReactNode, dim = false, aspect = '3 / 4') => D ? (
+    // Desktop: vaizdas (fiksuota proporcija, nekarpomas) · pavadinimas iki 2 eil. · aprašas · kaina VISADA apačioje
+    <button key={key} onClick={onOpen} title={name} className="ravenof-press relative flex flex-col overflow-hidden text-left" style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: dim ? 0.62 : 1, padding: 0, height: '100%' }}>
+      <span className="relative block w-full overflow-hidden" style={{ aspectRatio: aspect }}>{art}</span>
+      <span className="flex flex-col flex-1" style={{ padding: '10px 12px 12px', gap: 4, minHeight: 0 }}>
+        <span className="rvn-clamp2" style={{ font: '700 15px/1.25 var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)', letterSpacing: '.02em' }}>{name}</span>
+        {sub && <span className="rvn-clamp2" style={{ font: '400 13.5px/1.35 var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{sub}</span>}
+      </span>
+      {price}
+    </button>
+  ) : (
     <button key={key} onClick={onOpen} className="ravenof-press relative flex flex-col overflow-hidden text-left" style={{ minHeight: 0, border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: dim ? 0.6 : 1, padding: 0 }}>
       <span className="relative block w-full" style={{ aspectRatio: '3 / 4', minHeight: 90 }}>
         {art}
@@ -237,23 +259,23 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     let qtyRow: React.ReactNode = null
 
     const sectionTitle = (txt: string) => (
-      <div style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)', marginBottom: 5 }}>{txt}</div>
+      <div style={{ font: `600 ${f(9.5, 12)}px var(--ravenof-font-body)`, letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--ravenof-gold)', marginBottom: f(5, 8) }}>{txt}</div>
     )
     const buyBtn = (key: string, label: string, enoughRaw: boolean, onClick: () => void, danger = false) => {
       // Kol balansai nepakrauti — pirkti negalima (ne "neuztenka", o "kraunasi")
       const enough = balLoaded && enoughRaw
       return (
       <button key={key} onClick={() => { if (balLoaded) onClick() }} disabled={busy || !enough} aria-busy={!balLoaded || busy}
-        style={{ flex: 1, minWidth: 120, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1,
+        style={{ flex: D ? '0 0 auto' : 1, minWidth: f(120, 180), minHeight: D ? DT.cta : undefined, textAlign: 'center', font: `700 ${f(11, 14)}px var(--ravenof-font-display)`, letterSpacing: 1,
           color: enough ? (danger ? 'var(--ravenof-text-primary)' : 'var(--ravenof-on-gold)') : '#5e5868',
           background: enough ? (danger ? 'linear-gradient(180deg,#a53a47,var(--ravenof-danger))' : 'var(--ravenof-grad-gold)') : 'var(--ravenof-bg-elevated)',
-          padding: 11, border: 0, cursor: enough ? 'pointer' : 'default',
+          padding: D ? '0 24px' : 11, border: 0, cursor: enough ? 'pointer' : 'default',
           clipPath: 'polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)', textTransform: 'uppercase' }}>
         {busy || !balLoaded ? '…' : label}
       </button>
     ) }
     const stateBox = (key: string, txt: string, color: string, border: string) => (
-      <div key={key} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', color, border: `1px solid ${border}`, padding: 11 }}>{txt}</div>
+      <div key={key} style={{ flex: D ? '0 0 auto' : 1, textAlign: 'center', font: `700 ${f(11, 14)}px var(--ravenof-font-display)`, color, border: `1px solid ${border}`, padding: D ? '0 24px' : 11, minHeight: D ? DT.cta : undefined, minWidth: D ? 180 : undefined, display: D ? 'flex' : undefined, alignItems: 'center', justifyContent: 'center' }}>{txt}</div>
     )
 
     if (selShop) {
@@ -266,14 +288,14 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
             {sectionTitle(t('shop.detail.contents'))}
             <div className="flex flex-col" style={{ gap: 4 }}>
               {selShop.payload.map((pl, pi) => (
-                <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)' }}><RewardChip it={pl} size={15} textSize={10.5} /></span>
+                <span key={pi} className="px-2 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ravenof-border-hairline)', padding: D ? '8px 12px' : undefined }}><RewardChip it={pl} size={f(15, 20)} textSize={f(10.5, 15)} /></span>
               ))}
             </div>
           </div>
           {selShop.itemType === 'pack' && (
             <div style={{ marginTop: 12 }}>
               {sectionTitle(t('shop.detail.packRules'))}
-              <ul style={{ margin: 0, padding: '0 0 0 16px', font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', lineHeight: 1.6 }}>
+              <ul style={{ margin: 0, padding: '0 0 0 16px', font: `400 ${f(10.5, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.6 }}>
                 <li>{t('progression.choice.rule1')}</li>
                 <li>{t('progression.choice.rule2')}</li>
                 <li>{t('progression.choice.rule3')}</li>
@@ -285,12 +307,12 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
             <div style={{ marginTop: 12 }}>
               {sectionTitle(t('shop.detail.packFactions'))}
               {detailFactions === null
-                ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{detailBusy ? t('shop.detail.loading') : ''}</div>
+                ? <div style={{ font: `400 ${f(11, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{detailBusy ? t('shop.detail.loading') : ''}</div>
                 : detailFactions.length === 0
-                  ? <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.allFactions')}</div>
+                  ? <div style={{ font: `400 ${f(11, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.allFactions')}</div>
                   : <div className="flex flex-wrap" style={{ gap: 5 }}>
                       {detailFactions.map((f) => (
-                        <span key={f.id} className="px-2 py-1" style={{ font: '600 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--ravenof-border-hairline)' }}>
+                        <span key={f.id} className="px-2 py-1" style={{ font: `600 ${D ? 13.5 : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--ravenof-border-hairline)' }}>
                           {tc('faction', String(f.id), 'name', f.name)}
                         </span>
                       ))}
@@ -302,14 +324,14 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       if (stack) {
         qtyRow = (
           <div className="flex items-center" style={{ gap: 6 }}>
-            <span style={{ font: '600 9.5px var(--ravenof-font-body)', letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{t('shop.detail.quantity')}</span>
+            <span style={{ font: `600 ${f(9.5, 12)}px var(--ravenof-font-body)`, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', marginRight: D ? 4 : 0 }}>{t('shop.detail.quantity')}</span>
             {[1, 5, 10].map((n) => {
               const on = qty === n
               return (
                 <button key={n} onClick={() => { playUiClick(); setQty(n) }} className="ravenof-press"
-                  style={{ font: `700 11px var(--ravenof-font-display)`, color: on ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                  style={{ font: `700 ${f(11, 14)}px var(--ravenof-font-display)`, color: on ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
                     background: on ? 'var(--ravenof-grad-gold)' : 'transparent', border: `1px solid ${on ? 'transparent' : 'var(--ravenof-border-strong)'}`,
-                    padding: '5px 12px', cursor: 'pointer' }}>×{n}</button>
+                    padding: D ? '0 16px' : '5px 12px', minHeight: D ? DT.ctlSm : undefined, minWidth: D ? 56 : undefined, cursor: 'pointer' }} aria-pressed={on}>×{n}</button>
               )
             })}
           </div>
@@ -351,7 +373,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       details = selDeal.rarity ? (
         <div>
           {sectionTitle(t('shop.detail.rarity'))}
-          <span className="px-2 py-1 inline-block" style={{ font: '600 10.5px var(--ravenof-font-body)', color: ravenofRarityColor(selDeal.rarity), border: `1px solid ${ravenofRarityColor(selDeal.rarity)}55` }}>{selDeal.rarity}</span>
+          <span className="px-2 py-1 inline-block" style={{ font: `600 ${f(10.5, 14)}px var(--ravenof-font-body)`, color: ravenofRarityColor(selDeal.rarity), border: `1px solid ${ravenofRarityColor(selDeal.rarity)}55` }}>{selDeal.rarity}</span>
         </div>
       ) : null
       if (selDeal.bought) actions.push(stateBox('b', t('shop.purchasedShort'), 'var(--ravenof-success-bright)', '#6F856255'))
@@ -366,20 +388,20 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
           <div className="flex items-center" style={{ gap: 8 }}>
             {sectionTitle(t('shop.detail.deckContents'))}
             <div className="flex-1" />
-            <div style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginBottom: 5 }}>{t('shop.detail.cards', { count: total, target: total })}</div>
+            <div style={{ font: `400 ${f(10.5, 13.5)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginBottom: f(5, 8) }}>{t('shop.detail.cards', { count: total, target: total })}</div>
           </div>
           <div style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.5)' }}>
             {detailCards === null
-              ? <div className="text-center" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: 10 }}>{t('shop.detail.loading')}</div>
+              ? <div className="text-center" style={{ font: `400 ${f(11, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', padding: f(10, 16) }}>{t('shop.detail.loading')}</div>
               : detailCards.length === 0
-                ? <div className="text-center" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', padding: 10 }}>{t('shop.detail.empty')}</div>
+                ? <div className="text-center" style={{ font: `400 ${f(11, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', padding: f(10, 16) }}>{t('shop.detail.empty')}</div>
                 : detailCards.map((c) => (
-                    <div key={c.id} className="flex items-center" style={{ gap: 8, padding: '4px 8px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
-                      <span style={{ width: 22, textAlign: 'right', font: '700 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>{c.quantity}×</span>
-                      <span className="flex-1 truncate" style={{ font: '500 11px var(--ravenof-font-body)', color: c.rarityColor ?? 'var(--ravenof-text-primary)' }}>{c.name}</span>
-                      {c.gold != null && <span className="flex items-center" style={{ gap: 3, font: '600 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
+                    <div key={c.id} className="flex items-center" style={{ gap: 8, padding: D ? '7px 12px' : '4px 8px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+                      <span style={{ width: f(22, 30), textAlign: 'right', font: `700 ${f(10.5, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-gold)' }}>{c.quantity}×</span>
+                      <span className="flex-1 truncate" style={{ font: `500 ${f(11, 14.5)}px var(--ravenof-font-body)`, color: c.rarityColor ?? 'var(--ravenof-text-primary)' }}>{c.name}</span>
+                      {c.gold != null && <span className="flex items-center" style={{ gap: 4, font: `600 ${f(10, 13)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 11, height: 11, objectFit: 'contain' }} />{c.gold}
+                        <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: f(11, 14), height: f(11, 14), objectFit: 'contain' }} />{c.gold}
                       </span>}
                     </div>
                   ))}
@@ -396,6 +418,46 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     const insufficient = balLoaded && ((selShop && !ownedShopItem(selShop) && selShop.prices.silver != null && bal.silver < selShop.prices.silver * nQty && (selShop.prices.rubies == null || bal.rubies < selShop.prices.rubies * nQty))
       || (selDeal && !selDeal.bought && bal.silver < selDeal.priceGold)
       || (selStarter && !selStarter.claimed && selStarter.priceGold > 0 && bal.silver < selStarter.priceGold))
+
+    if (D) {
+      // Desktop: centruotas dialogas — header (pavadinimas + ×) · body (vaizdas | detalės) · footer (veiksmai pagal turinį)
+      const heroAspect = selShop?.itemType === 'player_avatar' ? '1 / 1' : '3 / 4'
+      return (
+        <>
+          <div className="rvn-dlg-backdrop" style={{ zIndex: 85, position: 'absolute' }} onClick={close} />
+          <div ref={dlgRef} role="dialog" aria-modal="true" aria-label={name} tabIndex={-1} className="rvn-dlg" style={{ position: 'absolute', zIndex: 86, width: 'min(920px, calc(100% - 48px))', maxHeight: 'calc(100% - 48px)' }}>
+            <div className="rvn-dlg-head">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2 className="rvn-dlg-title">{name}</h2>
+                {sub && <div className="rvn-dlg-sub">{sub}</div>}
+              </div>
+              <button type="button" data-dlg-close="1" className="rvn-dlg-close" onClick={close} aria-label={t('common.close')}><X size={20} /></button>
+            </div>
+            <div className="rvn-dlg-body ravenof-scroll" style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+              <div className="relative shrink-0 overflow-hidden" style={{ width: 300, aspectRatio: heroAspect, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)', borderRadius: heroAspect === '1 / 1' ? '50%' : 0 }}>
+                {heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {selShop?.itemType === 'rubies_bundle' ? <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 96, height: 96, objectFit: 'contain' }} /> : <span style={{ fontSize: 56 }}>🛒</span>}
+                </span>}
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col" style={{ gap: 16 }}>
+                {details}
+                {qtyRow}
+              </div>
+            </div>
+            <div className="rvn-dlg-foot" style={{ justifyContent: 'space-between' }}>
+              <div className="min-w-0" style={{ font: '400 14px var(--ravenof-font-body)', color: insufficient ? 'var(--ravenof-danger-bright)' : 'var(--ravenof-gold)' }} role="status">
+                {insufficient ? t('shop.notEnoughSilver') : toast ?? ''}
+              </div>
+              <div className="flex items-center flex-wrap" style={{ gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={close} className="rvn-d-btn rvn-d-btn-ghost">{t('common.cancel')}</button>
+                {actions}
+              </div>
+            </div>
+          </div>
+        </>
+      )
+    }
 
     return (
       <>
@@ -431,75 +493,78 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   if (typeof document === 'undefined') return null
 
   return createPortal(
-    <div className="ravenof-body" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))', zIndex: 60, background: 'var(--ravenof-bg-base)', display: 'flex', flexDirection: 'column', padding: '10px 20px 12px 16px', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
+    <div className="ravenof-body" role={D ? 'dialog' : undefined} aria-label={D ? t('shop.title') : undefined} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, background: 'var(--ravenof-bg-base)', display: 'flex', flexDirection: 'column', padding: D ? '0 var(--rvn-page-px) 24px' : '10px 20px 12px 16px', paddingRight: D ? 'var(--rvn-page-px)' : 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
+      <div className={D ? 'rvn-d-page flex flex-col' : 'contents'} style={D ? { flex: 1, minHeight: 0 } : undefined}>
       {/* ── Antraštė ── */}
-      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 8, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('shop.title')}</div>
+      <div className="flex items-center shrink-0" style={{ gap: f(10, 16), paddingBottom: f(8, 0), paddingTop: D ? 0 : 'env(safe-area-inset-top, 0px)', height: D ? 'var(--rvn-header-h)' : undefined }}>
+        <div className={D ? 'rvn-d-h1' : undefined} style={D ? { textTransform: 'uppercase' } : { font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('shop.title')}</div>
         <div className="flex-1" />
-        <div className="flex items-center" style={{ gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
+        <div className={D ? 'ravenof-pill' : 'flex items-center'} style={D ? undefined : { gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.silver) : '—'}
         </div>
-        <div className="flex items-center" style={{ gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
+        <div className={D ? 'ravenof-pill' : 'flex items-center'} style={D ? undefined : { gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.rubies) : '—'}
         </div>
+        {D && <button type="button" className="rvn-dlg-close ravenof-press" style={{ width: 42, height: 42 }} onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')}><X size={20} /></button>}
       </div>
 
-      <div className="flex-1 flex min-h-0" style={{ gap: 12 }}>
+      <div className="flex-1 flex min-h-0" style={{ gap: f(12, 24) }}>
         {/* ── KAIRĖ: kategorijos ── */}
-        <div className="flex flex-col shrink-0" style={{ width: 128, gap: 4 }}>
-          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 4 }}>
+        <div className="flex flex-col shrink-0" style={{ width: f(128, 220), gap: f(4, 8) }}>
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: f(4, 6) }}>
             {ALL_SECTIONS.map((sc) => {
               const active = section === sc.key
               return (
                 <button key={sc.key} onClick={() => { playUiClick(); setSection(sc.key); setSel(null); setToast(null) }}
-                  className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: 8, padding: '9px 10px', minHeight: 36,
+                  aria-pressed={active}
+                  className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: 8, padding: D ? '0 14px' : '9px 10px', minHeight: f(36, 46),
                     border: `1px solid ${active ? 'var(--ravenof-border-strong)' : 'var(--ravenof-border-hairline)'}`,
                     borderLeft: `2px solid ${SEC_ACCENT[sc.key] ?? 'var(--ravenof-border-strong)'}`,
                     background: active ? 'var(--ravenof-bg-surface)' : 'transparent', cursor: 'pointer' }}>
-                  <span style={{ font: '600 11px var(--ravenof-font-body)', color: active ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>{t(sc.labelKey).replace(/^[^\p{L}]+\s*/u, '')}</span>
+                  <span style={{ font: `600 ${f(11, 15)}px var(--ravenof-font-body)`, color: active ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>{t(sc.labelKey).replace(/^[^\p{L}]+\s*/u, '')}</span>
                 </button>
               )
             })}
           </div>
           {packInv > 0 && (
             <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
-              className="ravenof-press shrink-0 block w-full text-center" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '8px 6px', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
+              className="ravenof-press shrink-0 block w-full text-center" style={{ font: `700 ${f(10, 13)}px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: D ? '14px 8px' : '8px 6px', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
               {t('shop.openPacks', { count: packInv })}
             </Link>
           )}
         </div>
 
         {/* ── CENTRAS ── */}
-        <div className="flex-1 flex flex-col min-w-0" style={{ gap: 8 }}>
+        <div className="flex-1 flex flex-col min-w-0" style={{ gap: f(8, 16) }}>
           {/* Dienos pasiūlymo juosta → Dienos kortos */}
-          <button onClick={() => { playUiClick(); setSection('daily'); setSel(null) }} className="ravenof-press relative shrink-0 overflow-hidden text-left" style={{ height: 56, border: '1px solid rgba(212,163,59,.35)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)', cursor: 'pointer', background: 'none', padding: 0, width: '100%' }}>
+          <button onClick={() => { playUiClick(); setSection('daily'); setSel(null) }} className="ravenof-press relative shrink-0 overflow-hidden text-left" style={{ height: f(56, 76), border: '1px solid rgba(212,163,59,.35)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)', cursor: 'pointer', background: 'none', padding: 0, width: '100%' }}>
             <span className="absolute inset-0" style={{ background: `url('${RAVENOF_ASSET}/modes/mode-ranked.webp') no-repeat 50% 30% / cover` }} />
             <span className="absolute inset-0" style={{ background: 'linear-gradient(90deg,rgba(7,6,10,.94) 30%,rgba(7,6,10,.4))' }} />
-            <span className="relative h-full flex items-center" style={{ gap: 12, padding: '0 14px' }}>
+            <span className="relative h-full flex items-center" style={{ gap: 12, padding: D ? '0 24px' : '0 14px' }}>
               <span>
-                <span className="block" style={{ font: '500 8.5px var(--ravenof-font-body)', letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('shop.dailyOffer')}</span>
-                <span className="block" style={{ font: '700 13px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{t('shop.sections.daily').replace(/^[^\p{L}]+\s*/u, '')}</span>
+                <span className="block" style={{ font: `500 ${f(8.5, 12)}px var(--ravenof-font-body)`, letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('shop.dailyOffer')}</span>
+                <span className="block" style={{ font: `700 ${f(13, 20)}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{t('shop.sections.daily').replace(/^[^\p{L}]+\s*/u, '')}</span>
               </span>
               <span className="flex-1" />
-              <span style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.endsIn')} {countdown}</span>
+              <span style={{ font: `400 ${f(10.5, 14)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('shop.endsIn')} {countdown}</span>
             </span>
           </button>
 
           {/* Prekės */}
           <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll">
             {section === 'daily' ? (
-              deal.length === 0 ? <p className="text-center py-8" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.dealLoading')}</p> : (
-                <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8 }}>
+              deal.length === 0 ? <p className="text-center py-8" style={{ font: `400 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('shop.dealLoading')}</p> : (
+                <div className={D ? 'rvn-d-grid' : 'grid content-start'} style={D ? { '--min': `${DT.card.collection[0]}px`, '--max': `${DT.card.collection[1]}px`, justifyContent: 'start' } as React.CSSProperties : { gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8 }}>
                   {deal.map((c) => tileFrame(c.id, () => { playUiClick(); setSel({ t: 'deal', id: c.id }); setToast(null) },
                     c.imageUrl ? artFull(c.imageUrl, 300) : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🎴</span>,
                     tc('cosmetic', c.id, 'name', c.name), gcRarity(c.rarity),
-                    priceRow(c.bought ? null : c.priceGold, null, c.bought ? { label: t('shop.purchasedShort'), color: 'var(--ravenof-success-bright)' } : null), c.bought))}
+                    priceRow(c.bought ? null : c.priceGold, null, c.bought ? { label: t('shop.purchasedShort'), color: 'var(--ravenof-success-bright)' } : null), c.bought, '1044 / 1416'))}
                 </div>
               )
             ) : section === 'starter' ? (
-              <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+              <div className={D ? 'rvn-d-grid' : 'grid content-start'} style={D ? { '--min': `${DT.card.product[0]}px`, '--max': `${DT.card.product[1]}px`, justifyContent: 'start' } as React.CSSProperties : { gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
                 {starters.map((st) => tileFrame(st.id, () => { playUiClick(); setSel({ t: 'starter', id: st.id }); setToast(null) },
                   st.imageUrl ? artFull(st.imageUrl, 320) : <span className="absolute inset-0 flex items-center justify-center text-3xl" style={{ background: 'var(--ravenof-bg-surface)' }}>🃏</span>,
                   tc('starter_deck', st.id, 'name', st.name), st.faction ?? null,
@@ -507,8 +572,10 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               </div>
             ) : (
               <>
-                {shopShown.length === 0 && <p className="text-center py-8" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('shop.categoryEmpty')}</p>}
-                <div className="grid content-start" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+                {shopShown.length === 0 && <p className="text-center py-8" style={{ font: `400 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('shop.categoryEmpty')}</p>}
+                <div className={D ? 'rvn-d-grid' : 'grid content-start'} style={D
+                  ? { '--min': `${section === 'avatars' ? DT.card.avatar[0] + 30 : section === 'rubies' ? 200 : DT.card.product[0]}px`, '--max': `${section === 'avatars' ? DT.card.avatar[1] + 40 : section === 'rubies' ? 240 : DT.card.product[1]}px`, justifyContent: 'start' } as React.CSSProperties
+                  : { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
                   {shopShown.map((it) => {
                     const vis = visOf(it)
                     const packImg = packImgOf(it)
@@ -525,13 +592,20 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                               <span aria-hidden className="absolute" style={{ inset: 8, border: '1px solid rgba(240,180,41,0.35)', borderRadius: 6 }} />
                               <span aria-hidden className="absolute" style={{ left: '50%', top: '50%', width: '32%', aspectRatio: '1', borderRadius: 999, border: '1.5px solid rgba(240,180,41,0.5)', transform: 'translate(-50%,-50%) rotate(45deg)' }} />
                             </span>
-                          : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>
+                          : D && it.itemType === 'rubies_bundle'
+                            // Desktop rubinų pasiūlymas: kompaktiškas – rubino ženklas vietoj tuščios panelės su krepšeliu
+                            ? <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'radial-gradient(circle at 50% 45%, rgba(180,68,79,.28), transparent 62%), linear-gradient(160deg,#1a1325,#0a0810)' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 64, height: 64, objectFit: 'contain', filter: 'drop-shadow(0 0 14px rgba(180,68,79,.55))' }} />
+                              </span>
+                            : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>
+                    const aspect = it.itemType === 'player_avatar' ? '1 / 1' : it.itemType === 'rubies_bundle' ? '16 / 9' : it.itemType === 'card_back' ? '1044 / 1416' : '3 / 4'
                     return tileFrame(it.id, () => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }, art,
                       shopName(it), shopDesc(it),
                       priceRow(owned ? null : it.prices.silver, owned ? null : it.prices.rubies,
                         equipped ? { label: `★ ${t('profile.cosmetics.selectedBadge')}`, color: 'var(--ravenof-gold-bright)' }
                         : owned ? { label: t('shop.owned'), color: 'var(--ravenof-success-bright)' }
-                        : (it.prices.silver == null && it.prices.rubies == null && it.prices.real_money != null ? { label: `€${it.prices.real_money.toFixed(2)}`, color: 'var(--ravenof-text-secondary)' } : null)), owned)
+                        : (it.prices.silver == null && it.prices.rubies == null && it.prices.real_money != null ? { label: `€${it.prices.real_money.toFixed(2)}`, color: 'var(--ravenof-text-secondary)' } : null)), owned, aspect)
                   })}
                 </div>
               </>
@@ -540,6 +614,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
         </div>
       </div>
 
+      </div>
       {confirmDialog}
       {toast && !sel && (
         <div className="ravenof-toast" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))', zIndex: 160 }}>{toast}</div>

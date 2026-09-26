@@ -9,6 +9,9 @@ import { DigitalMyDecks } from './DigitalMyDecks'
 import { DigitalCommunityDecks } from './DigitalCommunityDecks'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { useT } from '@/lib/i18n/react'
+import { Plus } from 'lucide-react'
+import { useDesktopUi } from './ui/useDesktopUi'
+import { DT } from './ui/deskTokens'
 
 type Tab = 'builder' | 'my' | 'community'
 type InitialDeck = {
@@ -31,6 +34,7 @@ const TAB_DEFS: { key: Tab; labelKey: string }[] = [
 export function DigitalDecks({ userId, cards, factions, collection, initialTab, initialDeck }: Props) {
   const router = useRouter()
   const t = useT()
+  const { desktop } = useDesktopUi()
   // URL yra KANONINĖ navigacijos būsena: ?tab= visada atitinka matomą ekraną,
   // ?deck= egzistuoja TIK builder'yje. Vietinė būsena — tik optimistinis atspindys,
   // kad tab'as persijungtų iškart (server roundtrip'as atnaujina initialTab).
@@ -48,7 +52,7 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
   return (
     <div className="ravenof-body h-full flex flex-col min-h-0 ravenof-in">
       {/* Antraštė + segmentuoti tabai (patvirtintas UI; builder'yje slepiam: kiekvienas px kortoms) */}
-      {tab !== 'builder' && <div className="flex items-center shrink-0" style={{ gap: 12, paddingBottom: 10 }}>
+      {tab !== 'builder' && !desktop && <div className="flex items-center shrink-0" style={{ gap: 12, paddingBottom: 10 }}>
         <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('decks.title')}</div>
         <div className="flex-1" />
         <div className="flex" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
@@ -64,6 +68,29 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
             )
           })}
         </div>
+      </div>}
+      {/* DESKTOP antraštė: H1 · tabai (42px) · „Nauja kaladė" (pirminis veiksmas) */}
+      {tab !== 'builder' && desktop && <div className="flex items-center shrink-0 flex-wrap" style={{ gap: DT.sp.lg, paddingBottom: DT.sp.lg, paddingTop: DT.sp.sm }}>
+        <h1 className="rvn-d-h1" style={{ textTransform: 'uppercase' }}>{t('decks.title')}</h1>
+        <div className="flex-1" />
+        <div className="flex" role="tablist" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
+          {TAB_DEFS.map((tb, i) => {
+            const active = tab === tb.key
+            return (
+              <button key={tb.key} role="tab" aria-selected={active} onClick={() => { playUiClick(); goTab(tb.key) }}
+                className="ravenof-press"
+                style={{ minHeight: DT.ctl, padding: '0 22px', font: '700 13px var(--ravenof-font-display)', letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  color: active ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
+                  background: active ? 'var(--ravenof-grad-gold)' : 'transparent', border: 0,
+                  borderRight: i < TAB_DEFS.length - 1 ? '1px solid var(--ravenof-border-strong)' : 0, cursor: 'pointer' }}>{t(tb.labelKey)}</button>
+            )
+          })}
+        </div>
+        {tab === 'my' && (
+          <button onClick={() => { playUiClick(); router.push('/digital/decks?tab=builder') }} className="rvn-d-btn rvn-d-btn-primary">
+            <Plus size={18} /> {t('decks.my.newDeck')}
+          </button>
+        )}
       </div>}
 
       <div className="flex-1 min-h-0" style={{ overflowY: tab === 'builder' ? 'hidden' : 'auto' }}>

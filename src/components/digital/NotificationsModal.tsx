@@ -14,6 +14,9 @@ import { RvnIcon } from './ui/RvnIcon'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
+import { DeskDialog } from '@/components/digital/ui/DeskKit'
 
 type Notif = { id: string; type: string; title: string; message: string | null; link: string | null; read: boolean; created_at: string }
 
@@ -37,6 +40,7 @@ function timeAgo(ts: string): string {
 
 export function NotificationsModal({ onClose, onRead }: { onClose: () => void; onRead?: () => void }) {
   const t = useT()
+  const { desktop } = useDesktopUi()
   useEscClose(onClose)
   const router = useRouter()
   const [items, setItems] = useState<Notif[] | null>(null)
@@ -82,6 +86,56 @@ export function NotificationsModal({ onClose, onRead }: { onClose: () => void; o
   }, [items, filter])
 
   const unreadCount = (items ?? []).filter((n) => !n.read).length
+
+  // ── Desktop: DeskDialog (header/body, ×, Escape, fokusas), ~680 px pločio, turinio aukščio
+  if (desktop) {
+    return (
+      <DeskDialog onClose={onClose} width={680} zIndex={160} closeLabel={t('common.close')}
+        title={<span className="inline-flex items-center" style={{ gap: 10, color: 'var(--ravenof-gold-bright)' }}><RvnIcon name="fi-bell" size={26} fallback={<span>🔔</span>} />{t('common.notif.title')}</span>}
+        ariaLabel={t('common.notif.title')}
+        headerExtra={unreadCount > 0 ? (
+          <button onClick={() => void markAllRead()} className="rvn-d-btn rvn-d-btn-ghost" style={{ minWidth: 0, padding: '0 14px', color: 'var(--ravenof-gold-bright)', borderColor: 'rgba(240,180,41,0.45)' }}>
+            <CheckCheck style={{ width: 18, height: 18 }} /> {t('common.notif.markAllRead')}
+          </button>
+        ) : undefined}
+        bodyStyle={{ padding: 0 }}>
+        <div role="tablist" className="flex flex-wrap" style={{ gap: DT.sp.sm, padding: `${DT.sp.md}px 20px`, borderBottom: '1px solid var(--ravenof-border-hairline)', position: 'sticky', top: 0, zIndex: 1, background: 'var(--ravenof-bg-surface)' }}>
+          {FILTERS.map((f) => {
+            const active = filter === f.key
+            return (
+              <button key={f.key} role="tab" aria-selected={active} onClick={() => { playUiClick(); setFilter(f.key) }}
+                style={{ minHeight: DT.ctlSm, padding: '0 16px', font: `600 ${DT.fs.help}px var(--ravenof-font-body)`, cursor: 'pointer', background: active ? 'rgba(240,180,41,0.16)' : 'rgba(10,8,16,0.7)', border: `1px solid ${active ? 'rgba(240,180,41,0.55)' : 'var(--ravenof-border-strong)'}`, color: active ? 'var(--ravenof-gold-bright)' : 'var(--ravenof-text-secondary)' }}>
+                {t(`common.notif.filter.${f.key}`)}
+              </button>
+            )
+          })}
+        </div>
+        {shown === null && <p className="rvn-d-body text-center" style={{ padding: '48px 0', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('common.loading')}</p>}
+        {shown?.length === 0 && (
+          <div className="flex flex-col items-center" style={{ gap: DT.sp.md, padding: '56px 0' }}>
+            <BellOff style={{ width: 36, height: 36, color: 'rgba(240,180,41,0.4)' }} />
+            <p className="rvn-d-body" style={{ margin: 0, color: 'var(--ravenof-text-secondary)' }}>{t('common.notif.empty')}</p>
+          </div>
+        )}
+        {shown?.map((n) => (
+          <button key={n.id} onClick={() => open(n)} disabled={!n.link && n.read}
+            className="w-full flex items-start text-left transition-colors hover:bg-white/5"
+            style={{ gap: DT.sp.lg, padding: `${DT.sp.md + 2}px 20px`, borderBottom: '1px solid var(--ravenof-border-hairline)', opacity: n.read ? 0.75 : 1, minHeight: 64, cursor: n.link || !n.read ? 'pointer' : 'default' }}>
+            <span className="relative shrink-0 flex items-center justify-center" style={{ width: 44, height: 44, background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.28)', fontSize: 21 }}>
+              {ICON[n.type] ?? '📣'}
+              {!n.read && <span className="absolute rounded-full" style={{ top: -4, right: -4, width: 11, height: 11, background: '#ef4444', border: '2px solid #0a0810' }} />}
+            </span>
+            <span className="flex-1 min-w-0 flex flex-col" style={{ gap: 3 }}>
+              <span className="rvn-clamp2" style={{ font: `700 ${DT.fs.h3}px/1.3 var(--ravenof-font-display)`, color: '#f3ead3' }}>{n.title}</span>
+              {n.message && <span className="rvn-d-help" style={{ color: 'var(--ravenof-text-secondary)' }}>{n.message}</span>}
+              <span style={{ font: `400 ${DT.fs.label}px var(--ravenof-font-body)`, color: 'rgba(150,160,185,0.75)' }}>{timeAgo(n.created_at)}</span>
+            </span>
+            {n.link && <span className="shrink-0 self-center" style={{ color: 'rgba(240,180,41,0.7)', fontSize: 18 }}>→</span>}
+          </button>
+        ))}
+      </DeskDialog>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-[160] flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }} onClick={onClose}>

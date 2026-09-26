@@ -12,7 +12,7 @@
 // block, mute) išlaikyta.
 // ══════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Check, X, MoreVertical } from 'lucide-react'
 import { friendRequest, friendRespond, friendRemove, friendsList, challengeCreate, challengeIncoming, challengeAccept, challengeCancel, randMatchCode, setPresence, blockUser, type Friend, type Challenge, type SelfPresence } from '@/lib/social'
 import { tradeCreate, tradeIncoming, tradeAccept, type TradeIncoming } from '@/lib/trade'
@@ -22,6 +22,9 @@ import { getLevelProgress } from '@/lib/gamification/levels'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { useT } from '@/lib/i18n/react'
 import { RavenofTextField } from '@/components/digital/ui/RavenofKit'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
+import { DeskDialog } from '@/components/digital/ui/DeskKit'
 
 type PresenceFilter = 'all' | 'online' | 'offline'
 
@@ -35,6 +38,9 @@ const SELF_STATUS: { v: SelfPresence; labelKey: string; color: string; hintKey: 
 export function FriendsClient() {
   const t = useT()
   const router = useRouter()
+  // Desktop dydžiai TIK /digital/friends (tas pats komponentas naudojamas ir /friends — ten nekeičiam)
+  const pathname = usePathname()
+  const D = useDesktopUi().desktop && (pathname ?? '').startsWith('/digital')
   const chat = useChatStore()
   const [friends, setFriends] = useState<Friend[]>([])
   const [pending, setPending] = useState<Friend[]>([])
@@ -143,54 +149,54 @@ export function FriendsClient() {
   const presMeta = (f: Friend) => { const p = f.presence ?? (f.online ? 'online' : 'offline'); return { p, m: PRESENCE_META[p] ?? PRESENCE_META.offline } }
 
   return (
-    <div className="ravenof-body ravenof-in h-full min-h-0 flex flex-col" style={{ gap: 8, padding: '12px 18px 12px 18px' }} onClick={() => setMenuOpen(false)}>
+    <div className="ravenof-body ravenof-in h-full min-h-0 flex flex-col" style={D ? { gap: DT.sp.md, padding: `0 0 ${DT.sp.sm}px` } : { gap: 8, padding: '12px 18px 12px 18px' }} onClick={() => setMenuOpen(false)}>
       {/* ── Antraštė: atgal + pavadinimas + presence ── */}
-      <div className="shrink-0 flex items-center" style={{ gap: 10 }}>
-        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
-        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('social.title')}</div>
-        <div style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.onlineN', { count: onlineCount })}</div>
+      <div className="shrink-0 flex items-center" style={{ gap: D ? DT.sp.md : 10, flexWrap: D ? 'wrap' : undefined, minHeight: D ? 48 : undefined }}>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: D ? 22 : 16 }}>‹</button>
+        <div style={{ font: `700 ${D ? DT.fs.h1 : 15}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('social.title')}</div>
+        <div style={{ font: `400 ${D ? DT.fs.help : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('social.onlineN', { count: onlineCount })}</div>
         <div className="flex-1" />
         {SELF_STATUS.map((o) => (
           <button key={o.v} onClick={() => changeSelf(o.v)} title={t(o.hintKey)} data-testid={`presence-${o.v}`} aria-label={t(o.labelKey)}
-            className="ravenof-press flex items-center gap-1.5" style={{ font: '700 9.5px var(--ravenof-font-body)', padding: '5px 8px', cursor: 'pointer',
+            className="ravenof-press flex items-center gap-1.5" style={{ font: `700 ${D ? 13 : 9.5}px var(--ravenof-font-body)`, padding: D ? '0 14px' : '5px 8px', minHeight: D ? DT.ctlSm : undefined, gap: D ? 8 : undefined, cursor: 'pointer',
               background: selfStatus === o.v ? 'var(--ravenof-bg-surface-2)' : 'transparent',
               border: `1px solid ${selfStatus === o.v ? o.color : 'var(--ravenof-border-hairline)'}`,
               color: selfStatus === o.v ? o.color : 'var(--ravenof-text-secondary)' }}>
-            <span className="rounded-full" style={{ width: 7, height: 7, background: o.color }} />{t(o.labelKey)}
+            <span className="rounded-full" style={{ width: D ? 9 : 7, height: D ? 9 : 7, background: o.color }} />{t(o.labelKey)}
           </button>
         ))}
       </div>
-      {msg && <p role="status" className="shrink-0" style={{ font: '400 11px var(--ravenof-font-body)', color: msg.startsWith('✓') ? 'var(--ravenof-success)' : '#c65563', margin: 0 }}>{msg}</p>}
+      {msg && <p role="status" className="shrink-0" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: msg.startsWith('✓') ? 'var(--ravenof-success)' : '#c65563', margin: 0 }}>{msg}</p>}
 
-      <div className="flex-1 min-h-0 flex" style={{ gap: 12 }}>
+      <div className="flex-1 min-h-0 flex" style={{ gap: D ? DT.sp.lg : 12 }}>
         {/* ── KAIRĖ: draugų sąrašas ── */}
-        <div className="flex flex-col min-h-0 shrink-0" style={{ width: 232, gap: 6 }}>
-          <div className="flex shrink-0" style={{ gap: 6 }}>
+        <div className="flex flex-col min-h-0 shrink-0" style={{ width: D ? DT.side.list : 232, gap: D ? DT.sp.sm : 6 }}>
+          <div className="flex shrink-0" style={{ gap: D ? DT.sp.sm : 6 }}>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('social.searchPlaceholder')} aria-label={t('social.searchAria')}
-              className="flex-1 min-w-0" style={{ minHeight: 30, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '0 8px', font: '400 11px var(--ravenof-font-body)', outline: 'none' }} />
+              className="flex-1 min-w-0" style={{ minHeight: D ? DT.ctl : 30, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: D ? '0 12px' : '0 8px', font: `400 ${D ? DT.fs.body : 11}px var(--ravenof-font-body)`, outline: 'none' }} />
             <select value={filter} onChange={(e) => setFilter(e.target.value as PresenceFilter)} aria-label={t('social.filterAria')}
-              style={{ minHeight: 30, maxWidth: 82, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', font: '400 10.5px var(--ravenof-font-body)' }}>
+              style={{ minHeight: D ? DT.ctl : 30, maxWidth: D ? 116 : 82, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', font: `400 ${D ? 14 : 10.5}px var(--ravenof-font-body)`, padding: D ? '0 6px' : undefined, cursor: D ? 'pointer' : undefined }}>
               <option value="all">{t('social.filterAll')}</option><option value="online">{t('social.filterOnline')}</option><option value="offline">{t('social.filterOffline')}</option>
             </select>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 7 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: D ? DT.sp.sm : 7 }}>
             {pending.length > 0 && (
               <div className="shrink-0">
-                <p style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: '0 0 4px' }}>{t('social.requests')} ({pending.length})</p>
+                <p style={{ font: `600 ${D ? DT.fs.label : 9}px var(--ravenof-font-body)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', margin: D ? '4px 0 6px' : '0 0 4px' }}>{t('social.requests')} ({pending.length})</p>
                 {pending.map((f) => (
-                  <div key={f.id} className="flex items-center mb-1" style={{ gap: 6, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-gold)', padding: '6px 8px' }}>
-                    <span className="flex-1 min-w-0 truncate" title={f.displayName || f.username} style={{ font: '500 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
-                    <button onClick={() => respond(f.id, true)} aria-label={t('social.accept')} className="ravenof-press" style={{ color: 'var(--ravenof-success)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: 3, cursor: 'pointer', display: 'inline-flex' }}><Check className="w-3 h-3" /></button>
-                    <button onClick={() => respond(f.id, false)} aria-label={t('common.cancel')} className="ravenof-press" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: 3, cursor: 'pointer', display: 'inline-flex' }}><X className="w-3 h-3" /></button>
+                  <div key={f.id} className="flex items-center mb-1" style={{ gap: D ? DT.sp.sm : 6, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-gold)', padding: D ? '8px 10px 8px 12px' : '6px 8px', minHeight: D ? 52 : undefined }}>
+                    <span className={D ? 'flex-1 min-w-0 rvn-clamp2' : 'flex-1 min-w-0 truncate'} title={f.displayName || f.username} style={{ font: `500 ${D ? DT.fs.body : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
+                    <button onClick={() => respond(f.id, true)} aria-label={t('social.accept')} className="ravenof-press" style={{ color: 'var(--ravenof-success)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: D ? 0 : 3, width: D ? DT.ctlSm : undefined, height: D ? DT.ctlSm : undefined, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', display: 'inline-flex' }}><Check className={D ? 'w-4 h-4' : 'w-3 h-3'} /></button>
+                    <button onClick={() => respond(f.id, false)} aria-label={t('common.cancel')} className="ravenof-press" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: D ? 0 : 3, width: D ? DT.ctlSm : undefined, height: D ? DT.ctlSm : undefined, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', display: 'inline-flex' }}><X className={D ? 'w-4 h-4' : 'w-3 h-3'} /></button>
                   </div>
                 ))}
               </div>
             )}
             {friends.length === 0 ? (
-              <p className="text-center py-6" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.noFriendsTitle')}</p>
+              <p className="text-center py-6" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('social.noFriendsTitle')}</p>
             ) : shown.length === 0 ? (
-              <p className="text-center py-6" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.noneFound')}</p>
+              <p className="text-center py-6" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('social.noneFound')}</p>
             ) : shown.map((f) => {
               const { p, m } = presMeta(f)
               const sel = f.userId === selId
@@ -200,21 +206,21 @@ export function FriendsClient() {
                   onClick={(e) => { e.stopPropagation(); playUiClick(); setSelId(sel ? null : f.userId); setMenuOpen(false) }}
                   className="ravenof-press w-full flex items-center text-left shrink-0"
                   title={`${f.displayName || f.username} (@${f.username}) · ${t('social.lvl', { lvl })}`}
-                  style={{ gap: 9, padding: '9px 10px', cursor: 'pointer', background: sel ? 'var(--ravenof-bg-surface-2)' : 'var(--ravenof-bg-surface)', border: sel ? '1px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-strong)' }}>
+                  style={{ gap: D ? DT.sp.md : 9, padding: D ? '10px 12px' : '9px 10px', minHeight: D ? 60 : undefined, cursor: 'pointer', background: sel ? 'var(--ravenof-bg-surface-2)' : 'var(--ravenof-bg-surface)', border: sel ? '1px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-strong)' }}>
                   {/* Draugo avataras (avatar_url) + presence taškas ant jo krašto */}
-                  <span className="shrink-0 relative rounded-full overflow-visible" style={{ width: 30, height: 30 }}>
+                  <span className="shrink-0 relative rounded-full overflow-visible" style={{ width: D ? 40 : 30, height: D ? 40 : 30 }}>
                     <span className="absolute inset-0 rounded-full overflow-hidden flex items-center justify-center"
                       style={{ border: '1.5px solid var(--ravenof-border-gold)', background: f.avatar ? `center/cover url(${f.avatar})` : 'linear-gradient(160deg,#241a35,#0f0a18)' }}>
-                      {!f.avatar && <span style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold)' }}>{(f.displayName || f.username).charAt(0).toUpperCase()}</span>}
+                      {!f.avatar && <span style={{ font: `700 ${D ? 16 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-gold)' }}>{(f.displayName || f.username).charAt(0).toUpperCase()}</span>}
                     </span>
-                    <span className="absolute rounded-full" title={m.name} style={{ right: -1, bottom: -1, width: 9, height: 9, background: m.color, border: '1.5px solid var(--ravenof-bg-surface)' }} />
+                    <span className="absolute rounded-full" title={m.name} style={{ right: -1, bottom: -1, width: D ? 12 : 9, height: D ? 12 : 9, background: m.color, border: '1.5px solid var(--ravenof-bg-surface)' }} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate" style={{ font: '700 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
-                    <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(f) : m.name}{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
+                    <span className="block truncate" style={{ font: `700 ${D ? DT.fs.body : 12.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
+                    <span className="block truncate" style={{ font: `400 ${D ? DT.fs.help : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: D ? 2 : undefined }}>{p === 'offline' ? lastSeenTxt(f) : m.name}{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
                   </span>
                   {(f.unread ?? 0) > 0 && (
-                    <span className="shrink-0 flex items-center justify-center rounded-full" style={{ minWidth: 17, height: 17, padding: '0 4px', font: '800 9.5px var(--ravenof-font-body)', background: 'var(--ravenof-danger)', color: '#fff' }}>{f.unread}</span>
+                    <span className="shrink-0 flex items-center justify-center rounded-full" style={{ minWidth: D ? 22 : 17, height: D ? 22 : 17, padding: '0 4px', font: `800 ${D ? 12 : 9.5}px var(--ravenof-font-body)`, background: 'var(--ravenof-danger)', color: '#fff' }}>{f.unread}</span>
                   )}
                 </button>
               )
@@ -222,10 +228,10 @@ export function FriendsClient() {
           </div>
 
           {/* pridėti draugą */}
-          <div className="shrink-0 flex" style={{ gap: 6 }}>
+          <div className="shrink-0 flex" style={{ gap: D ? DT.sp.sm : 6 }}>
             <input id="friend-uname-input" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={t('social.usernamePlaceholder')}
-              className="flex-1 min-w-0" style={{ minHeight: 32, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '0 8px', font: '400 11px var(--ravenof-font-body)', outline: 'none' }} />
-            <button onClick={add} disabled={busy} className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: '0 12px', cursor: 'pointer', clipPath: 'polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%)' }}>+ {t('social.add')}</button>
+              className="flex-1 min-w-0" style={{ minHeight: D ? DT.ctl : 32, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: D ? '0 12px' : '0 8px', font: `400 ${D ? DT.fs.body : 11}px var(--ravenof-font-body)`, outline: 'none' }} />
+            <button onClick={add} disabled={busy} className="ravenof-press shrink-0" style={{ font: `700 ${D ? 13 : 10}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: D ? '0 16px' : '0 12px', minHeight: D ? DT.ctl : undefined, cursor: 'pointer', clipPath: 'polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%)' }}>+ {t('social.add')}</button>
           </div>
         </div>
 
@@ -233,27 +239,27 @@ export function FriendsClient() {
         <div className="flex-1 min-w-0 flex flex-col min-h-0" style={{ border: '1px solid var(--ravenof-border-strong)', background: 'var(--ravenof-bg-surface)' }}>
           {/* iššūkiai + mainai — matomi visada, kai jų yra */}
           {(challenges.length > 0 || trades.length > 0) && (
-            <div className="shrink-0 flex flex-col" style={{ gap: 6, padding: '10px 12px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+            <div className="shrink-0 flex flex-col" style={{ gap: D ? DT.sp.sm : 6, padding: D ? '12px 20px' : '10px 12px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
               {challenges.map((c) => (
                 <div key={c.id} className="flex items-center" style={{ gap: 8 }}>
-                  <span className="flex-1 min-w-0 truncate" style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('social.invitesToBattle', { name: c.displayName || c.username })}</span>
-                  <button onClick={() => void accept(c)} className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: '5px 9px', cursor: 'pointer' }}>{t('social.accept')}</button>
-                  <button onClick={async () => { playUiClick(); await challengeCancel(c.id); void reload() }} aria-label={t('common.cancel')} className="ravenof-press shrink-0" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: 4, cursor: 'pointer', display: 'inline-flex' }}><X className="w-3 h-3" /></button>
+                  <span className="flex-1 min-w-0 truncate" style={{ font: `400 ${D ? DT.fs.body : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{t('social.invitesToBattle', { name: c.displayName || c.username })}</span>
+                  <button onClick={() => void accept(c)} className="ravenof-press shrink-0" style={{ font: `700 ${D ? 12.5 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: D ? '0 16px' : '5px 9px', minHeight: D ? DT.ctlSm : undefined, cursor: 'pointer' }}>{t('social.accept')}</button>
+                  <button onClick={async () => { playUiClick(); await challengeCancel(c.id); void reload() }} aria-label={t('common.cancel')} className="ravenof-press shrink-0" style={{ color: 'var(--ravenof-text-secondary)', background: 'none', border: '1px solid var(--ravenof-border-strong)', padding: D ? 0 : 4, width: D ? DT.ctlSm : undefined, height: D ? DT.ctlSm : undefined, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', display: 'inline-flex' }}><X className={D ? 'w-4 h-4' : 'w-3 h-3'} /></button>
                 </div>
               ))}
               {trades.map((tr) => (
                 <div key={tr.id} className="flex items-center" style={{ gap: 8 }}>
-                  <span className="flex-1 min-w-0 truncate" style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{t('social.wantsToTrade', { name: tr.displayName || tr.username })}</span>
-                  <button onClick={async () => { playUiClick(); await tradeAccept(tr.id); setTradeId(tr.id); void reload() }} className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', color: '#93c5fd', background: 'none', border: '1px solid rgba(96,165,250,0.5)', padding: '5px 9px', cursor: 'pointer' }}>{t('social.open')}</button>
+                  <span className="flex-1 min-w-0 truncate" style={{ font: `400 ${D ? DT.fs.body : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{t('social.wantsToTrade', { name: tr.displayName || tr.username })}</span>
+                  <button onClick={async () => { playUiClick(); await tradeAccept(tr.id); setTradeId(tr.id); void reload() }} className="ravenof-press shrink-0" style={{ font: `700 ${D ? 12.5 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', color: '#93c5fd', background: 'none', border: '1px solid rgba(96,165,250,0.5)', padding: D ? '0 16px' : '5px 9px', minHeight: D ? DT.ctlSm : undefined, cursor: 'pointer' }}>{t('social.open')}</button>
                 </div>
               ))}
             </div>
           )}
 
           {!selFriend ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: 6, padding: 20 }}>
-              <span style={{ fontSize: 26 }}>🕯</span>
-              <p style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', maxWidth: 320, lineHeight: 1.5, margin: 0 }}>
+            <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: D ? DT.sp.md : 6, padding: 20 }}>
+              <span style={{ fontSize: D ? 36 : 26 }}>🕯</span>
+              <p style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', maxWidth: D ? 440 : 320, lineHeight: 1.5, margin: 0 }}>
                 {friends.length === 0 ? t('social.noFriendsSub') : t('social.pickFriendHint')}
               </p>
             </div>
@@ -262,17 +268,17 @@ export function FriendsClient() {
             return (
               <>
                 {/* pokalbio antraštė */}
-                <div className="shrink-0 relative flex items-center" style={{ gap: 10, padding: '11px 14px', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
-                  <span className="shrink-0 rounded-full" style={{ width: 9, height: 9, background: m.color }} />
-                  <span style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 0.5, color: 'var(--ravenof-text-primary)' }}>{selFriend.displayName || selFriend.username}</span>
-                  <span style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(selFriend) : m.name}</span>
+                <div className="shrink-0 relative flex items-center" style={{ gap: D ? DT.sp.md : 10, padding: D ? '12px 20px' : '11px 14px', minHeight: D ? 66 : undefined, borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+                  <span className="shrink-0 rounded-full" style={{ width: D ? 11 : 9, height: D ? 11 : 9, background: m.color }} />
+                  <span className={D ? 'min-w-0 truncate' : undefined} style={{ font: `700 ${D ? DT.fs.h2 : 15}px var(--ravenof-font-display)`, letterSpacing: 0.5, color: 'var(--ravenof-text-primary)' }}>{selFriend.displayName || selFriend.username}</span>
+                  <span className={D ? 'shrink-0' : undefined} style={{ font: `400 ${D ? DT.fs.help : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(selFriend) : m.name}</span>
                   <div className="flex-1" />
-                  <button onClick={() => void challenge(selFriend)} className="ravenof-press shrink-0" style={{ font: '700 11px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: '9px 13px', cursor: 'pointer' }}>{t('battle.pvp.challengeCta')}</button>
+                  <button onClick={() => void challenge(selFriend)} className="ravenof-press shrink-0" style={{ font: `700 ${D ? 13 : 11}px var(--ravenof-font-display)`, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: D ? '0 18px' : '9px 13px', minHeight: D ? DT.ctl : undefined, cursor: 'pointer' }}>{t('battle.pvp.challengeCta')}</button>
                   <button aria-label={t('social.moreActions')} onClick={(e) => { e.stopPropagation(); playUiClick(); setMenuOpen((v) => !v) }}
-                    className="ravenof-iconbtn shrink-0" style={{ width: 30, height: 30 }}><MoreVertical className="w-3.5 h-3.5" /></button>
+                    className="ravenof-iconbtn shrink-0" style={{ width: D ? DT.ctl : 30, height: D ? DT.ctl : 30 }}><MoreVertical className={D ? 'w-5 h-5' : 'w-3.5 h-3.5'} /></button>
                   {menuOpen && (
                     <div className="absolute right-3 top-full mt-1 z-30 overflow-hidden py-1" onClick={(e) => e.stopPropagation()}
-                      style={{ minWidth: 170, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-gold)', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
+                      style={{ minWidth: D ? 230 : 170, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-gold)', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
                       {[
                         { l: t('social.menu.trade'), fn: () => startTrade(selFriend) },
                         { l: chat.prefs.muted.includes(selFriend.userId) ? t('social.menu.unmute') : t('social.menu.mute'), fn: () => chat.toggleMute(selFriend.userId) },
@@ -280,28 +286,28 @@ export function FriendsClient() {
                         { l: t('social.menu.remove'), fn: () => setConfirmAct({ kind: 'remove', f: selFriend }) },
                       ].map((it) => (
                         <button key={it.l} onClick={() => { playUiClick(); setMenuOpen(false); void it.fn() }}
-                          className="block w-full text-left px-3 py-1.5 hover:bg-white/5" style={{ font: '400 11.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'none', border: 0, cursor: 'pointer' }}>{it.l}</button>
+                          className="block w-full text-left px-3 py-1.5 hover:bg-white/5" style={{ font: `400 ${D ? DT.fs.body : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', background: 'none', border: 0, cursor: 'pointer', minHeight: D ? DT.ctl : undefined, padding: D ? '0 16px' : undefined }}>{it.l}</button>
                       ))}
                     </div>
                   )}
                 </div>
 
                 {/* žinutės */}
-                <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 8, padding: '12px 14px' }}>
+                <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: D ? DT.sp.sm + 2 : 8, padding: D ? '16px 20px' : '12px 14px' }}>
                   {conv?.msgs == null ? (
-                    <p className="text-center py-4" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('common.loading')}</p>
+                    <p className="text-center py-4" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('common.loading')}</p>
                   ) : conv.msgs.length === 0 ? (
-                    <p className="text-center py-4" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('social.chat.firstMessage')}</p>
+                    <p className="text-center py-4" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('social.chat.firstMessage')}</p>
                   ) : conv.msgs.map((mm) => (
                     <div key={mm.clientId ?? mm.id} className={mm.fromMe ? 'self-end' : 'self-start'} style={{
-                      maxWidth: '72%', padding: '9px 13px', font: '400 12.5px var(--ravenof-font-body)', lineHeight: 1.4,
+                      maxWidth: D ? 'min(64%, 640px)' : '72%', padding: D ? '10px 14px' : '9px 13px', font: `400 ${D ? DT.fs.body : 12.5}px var(--ravenof-font-body)`, lineHeight: D ? 1.45 : 1.4, overflowWrap: D ? 'anywhere' : undefined,
                       background: mm.fromMe ? 'rgba(212,163,59,0.13)' : 'var(--ravenof-bg-surface-2)',
                       border: mm.fromMe ? '1px solid var(--ravenof-border-gold)' : '1px solid var(--ravenof-border-strong)',
                       color: 'var(--ravenof-text-primary)', opacity: mm.status === 'sending' ? 0.65 : 1,
                     }}>
                       {mm.body}
                       {mm.status === 'failed' && (
-                        <button onClick={() => mm.clientId && void chat.retry(selFriend.userId, mm.clientId)} className="block mt-1" style={{ font: '400 10px var(--ravenof-font-body)', color: '#c65563', background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>{t('social.chat.sendFailed')}</button>
+                        <button onClick={() => mm.clientId && void chat.retry(selFriend.userId, mm.clientId)} className="block mt-1" style={{ font: `400 ${D ? DT.fs.label : 10}px var(--ravenof-font-body)`, color: '#c65563', background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>{t('social.chat.sendFailed')}</button>
                       )}
                     </div>
                   ))}
@@ -309,12 +315,12 @@ export function FriendsClient() {
                 </div>
 
                 {/* įvestis */}
-                <div className="shrink-0 flex items-stretch" style={{ gap: 8, padding: '10px 14px', borderTop: '1px solid var(--ravenof-border-hairline)' }}>
+                <div className="shrink-0 flex items-stretch" style={{ gap: D ? DT.sp.md : 8, padding: D ? '12px 20px' : '10px 14px', borderTop: '1px solid var(--ravenof-border-hairline)' }}>
                   <RavenofTextField value={conv?.draft ?? ''} onChange={(e) => chat.setDraft(selFriend.userId, e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendMsg() } }}
                     placeholder={t('social.messagePlaceholder')} aria-label={t('social.messagePlaceholder')} className="flex-1" />
                   <button onClick={() => void sendMsg()} disabled={!(conv?.draft ?? '').trim()}
-                    className="ravenof-press shrink-0" style={{ font: '800 12px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase',
+                    className="ravenof-press shrink-0" style={{ font: `800 ${D ? 13 : 12}px var(--ravenof-font-display)`, letterSpacing: 2, textTransform: 'uppercase', minHeight: D ? DT.ctl : undefined, minWidth: D ? 120 : undefined,
                       background: (conv?.draft ?? '').trim() ? 'var(--ravenof-grad-gold)' : 'var(--ravenof-bg-elevated)',
                       color: (conv?.draft ?? '').trim() ? 'var(--ravenof-on-gold)' : '#5e5868',
                       border: 0, padding: '0 20px', cursor: 'pointer', clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)' }}>
@@ -328,7 +334,27 @@ export function FriendsClient() {
       </div>
 
       {/* ── Patvirtinimai ── */}
-      {confirmAct && (
+      {confirmAct && D && (() => {
+        const name = confirmAct.f.displayName || confirmAct.f.username
+        const doIt = async () => {
+          const a = confirmAct; setConfirmAct(null); playUiClick()
+          if (a.kind === 'remove') { await friendRemove(a.f.id); if (a.f.userId === selId) setSelId(null) }
+          else await blockUser(a.f.userId, true)
+          void reload()
+        }
+        return (
+          <DeskDialog width={480} zIndex={320} onClose={() => setConfirmAct(null)} closeLabel={t('common.close')}
+            title={<span style={{ color: '#c65563' }}>{confirmAct.kind === 'remove' ? t('social.confirmRemove', { name }) : t('social.confirmBlock', { name })}</span>}
+            ariaLabel={confirmAct.kind === 'remove' ? t('social.confirmRemove', { name }) : t('social.confirmBlock', { name })}
+            footer={<>
+              <button onClick={() => setConfirmAct(null)} className="rvn-d-btn rvn-d-btn-ghost">{t('common.cancel')}</button>
+              <button data-testid="confirm-danger" onClick={doIt} className="rvn-d-btn rvn-d-btn-danger">{confirmAct.kind === 'remove' ? t('social.remove') : t('social.block')}</button>
+            </>}>
+            <p className="rvn-d-body" style={{ margin: 0, color: 'var(--ravenof-text-secondary)' }}>{confirmAct.kind === 'remove' ? t('social.removeBody') : t('social.blockBody')}</p>
+          </DeskDialog>
+        )
+      })()}
+      {confirmAct && !D && (
         <div className="fixed inset-0 z-[320] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.85)' }} onClick={() => setConfirmAct(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-[min(360px,92vw)] p-4 text-center" style={{ background: 'var(--ravenof-bg-surface)', border: '1.5px solid rgba(180,68,79,0.6)' }}>
             <p style={{ font: '700 14px var(--ravenof-font-display)', color: '#c65563', margin: 0 }}>

@@ -13,12 +13,16 @@ import { SettingsModal } from './SettingsModal'
 import { RvnIcon } from './ui/RvnIcon'
 import { useT } from '@/lib/i18n/react'
 import { LanguageSelector } from '@/components/digital/ui/LanguageSelector'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
+import { DeskDialog } from '@/components/digital/ui/DeskKit'
 
 type Row = { key: string; label: string; sub?: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; img?: string; accent: string; onClick: () => void }
 
 export function MoreScreen() {
   const router = useRouter()
   const t = useT()
+  const { desktop } = useDesktopUi()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
   const [exitMsg, setExitMsg] = useState<string | null>(null)
@@ -65,6 +69,20 @@ export function MoreScreen() {
 
   const tile = (r: Row, danger = false) => {
     const Icon = r.icon
+    if (desktop) return (
+      <button key={r.key} onClick={r.onClick}
+        className="ravenof-press w-full flex items-center text-left"
+        style={{ gap: DT.sp.md, padding: `${DT.sp.sm + 2}px ${DT.sp.lg}px ${DT.sp.sm + 2}px ${DT.sp.md}px`, minHeight: 60, cursor: 'pointer', background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', borderLeft: `3px solid rgb(${r.accent})` }}>
+        <span className="flex items-center justify-center shrink-0" style={{ width: 44, height: 44, background: 'var(--ravenof-bg-elevated)', border: `1px solid rgba(${r.accent},0.45)` }}>
+          {r.img ? <RvnIcon name={r.img} size={32} fallback={<Icon style={{ width: 22, height: 22, color: `rgb(${r.accent})` }} />} /> : <Icon style={{ width: 22, height: 22, color: `rgb(${r.accent})` }} />}
+        </span>
+        <span className="flex-1 min-w-0 flex flex-col" style={{ gap: 2 }}>
+          <span className="rvn-clamp2" style={{ font: `700 ${DT.fs.h3}px/1.25 var(--ravenof-font-display)`, letterSpacing: '.02em', color: danger ? '#c65563' : 'var(--ravenof-text-primary)' }}>{r.label}</span>
+          {r.sub && <span className="rvn-d-help rvn-clamp2">{r.sub}</span>}
+        </span>
+        <ChevronRight className="shrink-0" style={{ width: 20, height: 20, color: 'var(--ravenof-text-secondary)' }} />
+      </button>
+    )
     return (
       <button key={r.key} onClick={r.onClick}
         className="ravenof-press w-full flex items-center gap-3 px-3 py-3 text-left"
@@ -83,6 +101,54 @@ export function MoreScreen() {
 
   const PANEL: React.CSSProperties = { background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)' }
 
+  const allSections = [...sections, { title: t('more.sections.account'), rows: accountRows }]
+
+  // ── Desktop: turinio dydžio grupės (7 punktų grupė kairėje, 1 + 2 punktų – dešinėje viena po kita),
+  //    max ~1100 px centre; panelės natūralaus aukščio (ne ištemptos iki ekrano apačios).
+  if (desktop) {
+    const panel = (sec: { title: string; rows: Row[] }) => (
+      <section key={sec.title} className="flex flex-col" style={{ ...PANEL, padding: DT.sp.lg, gap: DT.sp.md }}>
+        <h2 className="rvn-d-label" style={{ margin: 0 }}>{sec.title}</h2>
+        <div className="flex flex-col" style={{ gap: DT.sp.sm }}>
+          {sec.rows.map((r) => tile(r, r.key === 'exit'))}
+        </div>
+      </section>
+    )
+    const [first, ...rest] = allSections
+    return (
+      <div className="ravenof-body ravenof-in" style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: DT.sp.xl }}>
+        <div className="flex items-end" style={{ gap: DT.sp.lg, marginBottom: DT.sp.xl }}>
+          <div className="flex-1 min-w-0">
+            <h1 className="rvn-d-h1" style={{ textTransform: 'uppercase' }}>{t('more.title')}</h1>
+            <p className="rvn-d-help" style={{ margin: '4px 0 0' }}>{t('more.subtitle')}</p>
+          </div>
+          <div className="shrink-0"><LanguageSelector size="md" /></div>
+        </div>
+        <div className="grid items-start" style={{ gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,1fr)', gap: DT.sp.lg }}>
+          {panel(first)}
+          <div className="flex flex-col min-w-0" style={{ gap: DT.sp.lg }}>{rest.map(panel)}</div>
+        </div>
+
+        {confirmExit && (
+          <DeskDialog width={460} onClose={() => setConfirmExit(false)} title={t('more.confirmExitTitle')} closeLabel={t('common.close')}
+            footer={<>
+              <button onClick={() => { playUiClick(); setConfirmExit(false) }} className="rvn-d-btn rvn-d-btn-ghost">{t('common.cancel')}</button>
+              <button onClick={doExit} className="rvn-d-btn rvn-d-btn-danger">{t('more.exit')}</button>
+            </>}>
+            <p className="rvn-d-body" style={{ margin: 0, color: 'var(--ravenof-text-secondary)' }}>{t('more.confirmExitBody')}</p>
+          </DeskDialog>
+        )}
+        {exitMsg && (
+          <DeskDialog width={460} onClose={() => setExitMsg(null)} closeLabel={t('common.close')}
+            footer={<button onClick={() => { playUiClick(); setExitMsg(null) }} className="rvn-d-btn rvn-d-btn-ghost">{t('more.gotIt')}</button>}>
+            <p className="rvn-d-body" style={{ margin: 0 }}>{exitMsg}</p>
+          </DeskDialog>
+        )}
+        {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      </div>
+    )
+  }
+
   return (
     <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ gap: 'clamp(4px,1vh,10px)', padding: '0 2px' }}>
       <div className="relative text-center shrink-0">
@@ -92,7 +158,7 @@ export function MoreScreen() {
       </div>
 
       <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
-        {[...sections, { title: t('more.sections.account'), rows: accountRows }].map((sec) => (
+        {allSections.map((sec) => (
           <section key={sec.title} className="flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
             <p className="shrink-0 mb-2" style={{ font: '500 clamp(9px,1.4vh,10px) var(--ravenof-font-body)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{sec.title}</p>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">

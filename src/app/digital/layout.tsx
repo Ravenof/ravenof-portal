@@ -56,27 +56,37 @@ const NO_HEADER_ROUTES = ['/digital/collection', '/digital/friends']
 const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends', '/digital/more', '/digital/tutorial', '/digital/rewards', '/digital/season', '/digital/quests', '/digital/profile']
 // Pilno ekrano režimų ekranai (prototipas: be rail ir be header; atgal — ekrano ‹ mygtukas)
 const FULL_BLEED_ROUTES = ['/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign']
+// Desktop: katalogai/builderis naudoja platesnį turinio biudžetą (--rvn-wide-max), kiti – --rvn-content-max
+const WIDE_ROUTES = ['/digital/collection', '/digital/decks']
 
-function NavGlyph({ navKey, active, fallback }: { navKey: string; active: boolean; fallback: React.ReactNode }) {
+function NavGlyph({ navKey, active, fallback, size = 24 }: { navKey: string; active: boolean; fallback: React.ReactNode; size?: number }) {
   const [failed, setFailed] = useState(false)
   if (failed) return <span style={{ color: active ? '#F2C45A' : '#6b6474' }}>{fallback}</span>
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={`${RAVENOF_ASSET}/nav/nav-${navKey}.png`} alt="" width={24} height={24}
+    <img src={`${RAVENOF_ASSET}/nav/nav-${navKey}.png`} alt="" width={size} height={size}
       onError={() => setFailed(true)}
-      style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', filter: active ? 'drop-shadow(0 0 6px rgba(242,196,90,.55))' : 'grayscale(.9) brightness(.72)' }} />
+      style={{ width: size, height: size, objectFit: 'contain', display: 'block', filter: active ? 'drop-shadow(0 0 6px rgba(242,196,90,.55))' : 'grayscale(.9) brightness(.72)' }} />
   )
 }
 
 export default function DigitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { desktop: deskUi } = useDesktopUi()
+  const { desktop: deskUi, compact: deskCompact } = useDesktopUi()
   const t = useT()
   const locale = useLocale()
   const router = useRouter()
   const bare = BARE_ROUTES.includes(pathname)
   const fullBleed = FULL_BLEED_ROUTES.includes(pathname)
   const showHeader = !NO_HEADER_ROUTES.includes(pathname) && !fullBleed
+  const wide = WIDE_ROUTES.some((r) => pathname.startsWith(r))
+  // Desktop režimo žymė ant <html> — kad desktop-ui.css tokenai veiktų ir portaluose (document.body)
+  useEffect(() => {
+    const el = document.documentElement
+    if (deskUi) el.setAttribute('data-rvn-desk', '1'); else el.removeAttribute('data-rvn-desk')
+    if (deskUi && deskCompact) el.setAttribute('data-rvn-desk-compact', '1'); else el.removeAttribute('data-rvn-desk-compact')
+  }, [deskUi, deskCompact])
+  useEffect(() => () => { document.documentElement.removeAttribute('data-rvn-desk'); document.documentElement.removeAttribute('data-rvn-desk-compact') }, [])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -106,7 +116,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }, [])
 
   useEffect(() => {
-    const check = () => { void lockLandscape(); setShowRotate(!isNativeApp() && isPortraitNow()) }
+    // „Pasuk telefoną" – tik lietimo įrenginiams. Siauras kompiuterio langas (pelė) jo NErodo.
+    const check = () => {
+      void lockLandscape()
+      const touchOnly = window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia?.('(any-pointer: fine)').matches
+      setShowRotate(!isNativeApp() && !!touchOnly && isPortraitNow())
+    }
     check()
     window.addEventListener('resize', check)
     window.addEventListener('orientationchange', check)
@@ -202,8 +217,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       {/* ── Šoninis nav rail (patvirtintas dizainas: 92px, 24px ikonos, Cinzel etiketės) ── */}
       {!fullBleed && <nav className="rvn-nav-rail relative z-20 flex flex-col items-stretch justify-center shrink-0"
         style={{
-          width: deskUi ? 'calc(108px + max(18px, env(safe-area-inset-left, 0px)))' : 'calc(74px + max(18px, env(safe-area-inset-left, 0px)))',
-          paddingLeft: 'max(18px, env(safe-area-inset-left, 0px))',
+          width: 'var(--rvn-rail-w)',
+          paddingLeft: deskUi ? 0 : 'max(18px, env(safe-area-inset-left, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
           background: 'linear-gradient(90deg,#0a0810,#0F0D15)',
           borderRight: '1px solid rgba(212,163,59,0.18)',
@@ -213,24 +228,24 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           const active = isActive(it)
           const Icon = it.icon
           const inner = (
-            <span className="flex flex-col items-center justify-center" style={{ gap: deskUi ? 6 : 3, padding: deskUi ? '14px 0' : '8px 0', minHeight: deskUi ? 72 : 48 }}>
-              <span className="relative flex items-center justify-center" style={{ width: deskUi ? 36 : 24, height: deskUi ? 36 : 24 }}>
-                <NavGlyph navKey={it.key} active={active} fallback={<Icon className={deskUi ? 'w-[26px] h-[26px]' : 'w-[18px] h-[18px]'} />} />
+            <span className="flex flex-col items-center justify-center" style={{ gap: deskUi ? 6 : 3, padding: deskUi ? '10px 4px' : '8px 0', minHeight: deskUi ? 76 : 48 }}>
+              <span className="relative flex items-center justify-center" style={{ width: deskUi ? 32 : 24, height: deskUi ? 32 : 24 }}>
+                <NavGlyph navKey={it.key} active={active} size={deskUi ? 30 : 24} fallback={<Icon className={deskUi ? 'w-[24px] h-[24px]' : 'w-[18px] h-[18px]'} />} />
               </span>
-              <span style={{ font: `600 ${deskUi ? 11.5 : 8.5}px var(--ravenof-font-display)`, letterSpacing: '.4px', textAlign: 'center', lineHeight: 1.2, color: active ? '#F2C45A' : '#6b6474', textShadow: active ? '0 0 12px rgba(242,196,90,.6)' : 'none' }}>{t(it.labelKey)}</span>
+              <span style={{ font: `600 ${deskUi ? 12 : 8.5}px/1.2 var(--ravenof-font-display)`, letterSpacing: '.4px', textAlign: 'center', color: active ? '#F2C45A' : '#6b6474', textShadow: active ? '0 0 12px rgba(242,196,90,.6)' : 'none' }}>{t(it.labelKey)}</span>
             </span>
           )
           const style = { borderRight: `2px solid ${active ? '#F2C45A' : 'transparent'}` } as React.CSSProperties
           return it.action === 'store'
-            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" style={style}>{inner}</button>
-            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" style={style}>{inner}</Link>
+            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" style={style} aria-current={active ? 'page' : undefined}>{inner}</button>
+            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" style={style} aria-current={active ? 'page' : undefined}>{inner}</Link>
         })}
         {/* Testeriams/adminams: nuolat matoma „Klaida" ikona (bet kuriame ekrane, vienu paspaudimu) */}
         {isTesterRole(profile?.role) && (
           <button onClick={() => { playUiClick(); requestOpenBugReport() }} className="w-full ravenof-press" style={{ borderRight: '2px solid transparent', marginTop: 6 }} aria-label={t('bug.title')}>
             <span className="flex flex-col items-center justify-center" style={{ gap: deskUi ? 6 : 3, padding: deskUi ? '10px 0' : '6px 0', minHeight: deskUi ? 56 : 40 }}>
               <span style={{ fontSize: deskUi ? 22 : 16, lineHeight: 1, filter: 'grayscale(.2)' }}>🐞</span>
-              <span style={{ font: `600 ${deskUi ? 11.5 : 8.5}px var(--ravenof-font-display)`, letterSpacing: '.4px', color: '#7bd389' }}>{t('bug.navLabel')}</span>
+              <span style={{ font: `600 ${deskUi ? 12 : 8.5}px var(--ravenof-font-display)`, letterSpacing: '.4px', color: '#7bd389' }}>{t('bug.navLabel')}</span>
             </span>
           </button>
         )}
@@ -240,10 +255,13 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
         {showHeader && (
           <header className="rvn-app-header relative z-10 flex items-center px-4"
-            style={{ gap: deskUi ? 12 : 'clamp(5px, 1.1vw, 9px)', paddingTop: deskUi ? 18 : 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: deskUi ? 14 : 10, paddingLeft: deskUi ? 28 : undefined, paddingRight: deskUi ? 28 : undefined }}>
+            style={deskUi
+              ? { height: 'var(--rvn-header-h)', paddingLeft: 'var(--rvn-page-px)', paddingRight: 'var(--rvn-page-px)', flex: 'none' }
+              : { gap: 'clamp(5px, 1.1vw, 9px)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 10 }}>
+            <div className={deskUi ? (wide ? 'rvn-d-page-wide' : 'rvn-d-page') : 'contents'} style={deskUi ? { display: 'flex', alignItems: 'center', gap: 12 } : undefined}>
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
             <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
-              <span className="shrink-0" style={{ width: deskUi ? 52 : 38, height: deskUi ? 52 : 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
+              <span className="shrink-0" style={{ width: deskUi ? 46 : 38, height: deskUi ? 46 : 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
                 {!account.loaded ? (
                   /* Kol paskyra nepakrauta — skeleton (fiksuoti matmenys, be „Žaidėjas"/0) */
@@ -253,8 +271,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                   </>
                 ) : (
                   <>
-                    <span className="truncate" style={{ maxWidth: deskUi ? 260 : 'clamp(64px, 16vw, 140px)', font: `700 ${deskUi ? 18 : 13}px var(--ravenof-font-display)`, letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', lineHeight: 1.15 }}>{profile?.name || t('common.player')}</span>
-                    <span className="flex items-center" style={{ gap: 5, font: `500 ${deskUi ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.15 }}>
+                    <span className="truncate" style={{ maxWidth: deskUi ? 280 : 'clamp(64px, 16vw, 140px)', font: `700 ${deskUi ? 17 : 13}px/1.15 var(--ravenof-font-display)`, letterSpacing: '.5px', color: 'var(--ravenof-text-primary)' }}>{profile?.name || t('common.player')}</span>
+                    <span className="flex items-center" style={{ gap: 5, font: `500 ${deskUi ? 13.5 : 11}px/${deskUi ? 1.25 : 1.15} var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>
                       {rank ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -264,7 +282,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                         </>
                       ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
                       {profile && (profile.role === 'tester' || profile.role === 'admin') && (
-                        <span title={profile.role} style={{ marginLeft: 4, padding: '1px 5px', border: '1px solid rgba(123,211,137,.6)', color: '#7bd389', font: `700 ${deskUi ? 9 : 7.5}px var(--ravenof-font-body)`, letterSpacing: 1.2, textTransform: 'uppercase', lineHeight: 1.3, borderRadius: 2 }}>
+                        <span title={profile.role} style={{ marginLeft: 4, padding: '1px 5px', border: '1px solid rgba(123,211,137,.6)', color: '#7bd389', font: `700 ${deskUi ? 12 : 7.5}px/1.3 var(--ravenof-font-body)`, letterSpacing: 1.2, textTransform: 'uppercase', borderRadius: 2 }}>
                           {profile.role === 'admin' ? 'ADMIN' : t('common.testerBadge')}
                         </span>
                       )}
@@ -281,11 +299,12 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={balances ? formatNumber(balances.silver) : '—'} />
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={balances ? formatNumber(balances.rubies) : '—'} />
             <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png`} value={balances ? formatNumber(balances.essence) : '—'} />
-            <button onClick={toggleLang} className="ravenof-press" style={{ font: `700 ${deskUi ? 13 : 10}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: deskUi ? '10px 12px' : '6px 8px', borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
+            <button onClick={toggleLang} className="ravenof-press" style={{ font: `700 ${deskUi ? 13 : 10}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: deskUi ? '0 12px' : '6px 8px', height: deskUi ? 42 : undefined, minWidth: deskUi ? 42 : undefined, borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
               {locale.toUpperCase()}
             </button>
             <RavenofIconBtn label={t('navigation.notifications')} badge={unread || null} onClick={() => { playUiClick(); setNotifOpen(true) }}><Bell className="w-4 h-4" /></RavenofIconBtn>
             <RavenofIconBtn label={t('navigation.settings')} onClick={() => { playUiClick(); setSettingsOpen(true) }}><Settings className="w-4 h-4" /></RavenofIconBtn>
+            </div>
           </header>
         )}
 
@@ -293,9 +312,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           style={fullBleed
             ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' }
             : deskUi
-              ? { paddingTop: showHeader ? 4 : 24, paddingBottom: 28, paddingLeft: 28, paddingRight: 28 }
+              ? { paddingTop: showHeader ? 8 : 24, paddingBottom: 24, paddingLeft: 'var(--rvn-page-px)', paddingRight: 'var(--rvn-page-px)', overflowX: 'hidden' }
               : { paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
-          <div className={fullBleed ? 'h-full' : deskUi ? 'h-full' : 'max-w-screen-lg mx-auto h-full'}>{children}</div>
+          <div className={fullBleed ? 'h-full' : deskUi ? `${wide ? 'rvn-d-page-wide' : 'rvn-d-page'} h-full` : 'max-w-screen-lg mx-auto h-full'}>{children}</div>
         </main>
       </div>
 

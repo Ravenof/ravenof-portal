@@ -34,6 +34,8 @@ import { RAVENOF_ASSET } from '../ui/RavenofKit'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat } from '@/lib/game/format'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -45,6 +47,7 @@ type Deck = { id: string; name: string; faction: string | null; factionIcon: str
 
 export function RankedClient() {
   const t = useT()
+  const { desktop: D } = useDesktopUi()
   const [season, setSeason] = useState<RankedSeason | null>(null)
   const [profile, setProfile] = useState<RankedProfile | null>(null)
   const [decks, setDecks] = useState<Deck[] | null>(null)
@@ -205,12 +208,138 @@ export function RankedClient() {
 
   // ── Panelės ────────────────────────────────────────────────────────────────
 
-  const Back = () => (
+  const Back = () => D ? (
+    <button onClick={() => { playUiClick(); setView('home') }} className="rvn-d-btn rvn-d-btn-ghost" style={{ minWidth: 0 }}>{t('ranked.backToRanked')}</button>
+  ) : (
     <button onClick={() => { playUiClick(); setView('home') }} className="text-xs mb-3 inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>{t('ranked.backToRanked')}</button>
   )
 
+  // Desktop: sub-view navigacija su tekstu (ne 26 px ikonėlės be pavadinimų)
+  const NAV: [View, string, string][] = [['leaderboard', '🏆', t('ranked.sections.top')], ['history', '📜', t('ranked.sections.history')], ['achievements', '🏅', t('ranked.sections.achievements')], ['season', '📅', t('ranked.sections.seasonHistory')], ['rewards', '🎁', t('ranked.sections.rewards')]]
+  const seasonLabel = `${season?.name ? (/sezonas|season/i.test(season.name) ? season.name : `${t('home.season')} ${season.name}`) : t('ranked.season')}${timer ? ` · ${formatTimeLeft(timer)}` : ''}`
+  const statBox = (val: React.ReactNode, color: string, label: string) => (
+    <div style={{ flex: 1, minWidth: 0, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '12px 8px', textAlign: 'center' }}>
+      <div style={{ font: `700 20px var(--ravenof-font-display)`, color }}>{val}</div>
+      <div style={{ font: `400 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{label}</div>
+    </div>
+  )
+
+  // ── Desktop lobby (tik 'home' vaizdas; srautas/kova nekeičiami) ────────────
+  if (D && view === 'home') {
+    return (
+      <div className="h-full min-h-0 overflow-y-auto ravenof-scroll">
+        {rv && profile && (
+          <div className="ravenof-body ravenof-in flex flex-col" style={{ minHeight: '100%', maxWidth: DT.contentMax, margin: '0 auto', padding: `${DT.sp.xl}px ${DT.pagePadX}px`, gap: DT.sp.xl }}>
+            <div className="flex items-center flex-wrap" style={{ gap: DT.sp.lg }}>
+              <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('ranked.backHome')} className="rvn-dlg-close ravenof-press" style={{ width: DT.ctl, height: DT.ctl, fontSize: 22 }}>‹</button>
+              <div className="min-w-0">
+                <h1 className="rvn-d-h1" style={{ textTransform: 'uppercase' }}>{t('home.rankedTitle')}{fmt === 'classic' ? ` · ${t('home.format.classic')}` : ''}</h1>
+                <div className="rvn-d-help" style={{ marginTop: 4 }}>{seasonLabel}</div>
+              </div>
+              <FormatSwitch variant="chip" />
+              <div className="flex-1" />
+              <nav className="flex items-center flex-wrap" style={{ gap: DT.sp.sm }} aria-label={t('home.rankedTitle')}>
+                {NAV.map(([v, ic, label]) => (
+                  <button key={v} onClick={() => { playUiClick(); setView(v) }} className="ravenof-press inline-flex items-center"
+                    style={{ gap: 8, minHeight: DT.ctl, padding: '0 14px', font: `600 14px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-strong)', cursor: 'pointer' }}>
+                    <span aria-hidden style={{ fontSize: 16 }}>{ic}</span>{label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr)', gap: DT.sp.xl - 4, alignItems: 'stretch', margin: 'auto 0' }}>
+              {/* Rango herbas */}
+              <div className="relative flex flex-col justify-center text-center overflow-hidden" style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'linear-gradient(180deg,var(--ravenof-bg-surface),var(--ravenof-bg-surface-2))', padding: DT.sp.xl }}>
+                <div className="absolute inset-0" style={{ background: `url('${RAVENOF_ASSET}/backgrounds/background-cathedral-ruins.webp') no-repeat center / cover`, opacity: .3 }} />
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`${RAVENOF_ASSET}/ranks/rank-${rv.medalTier}.png`} alt="" style={{ width: 112, height: 'auto', display: 'block', margin: '0 auto', filter: 'drop-shadow(0 0 18px rgba(200,205,214,.35))' }} />
+                  <div style={{ font: `700 22px var(--ravenof-font-display)`, marginTop: 14, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{rankDisplay(profile.rank_step).label}</div>
+                  <div style={{ font: `400 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: 4 }}>{rankDisplay(profile.rank_step).name} · {t('ranked.stepOf', { n: rv.rankNumber })}</div>
+                  <div style={{ height: 6, background: 'var(--ravenof-border-strong)', margin: '16px 8px 0', position: 'relative' }}>
+                    <span style={{ position: 'absolute', inset: 0, width: `${Math.round((profile.rank_step / 149) * 100)}%`, background: 'linear-gradient(90deg,#7d8494,#dfe3ea)' }} />
+                  </div>
+                  <div className="flex justify-between" style={{ margin: '8px 8px 0', font: `400 13px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>
+                    <span style={{ color: rv.medalTier === 'bronze' ? 'var(--ravenof-text-primary)' : undefined }}>{medalLabel('bronze')}</span>
+                    <span style={{ color: rv.medalTier === 'silver' ? '#dfe3ea' : undefined }}>{medalLabel('silver')}</span>
+                    <span style={{ color: rv.medalTier === 'gold' ? 'var(--ravenof-gold-bright)' : undefined }}>{medalLabel('gold')}</span>
+                  </div>
+                  <div style={{ font: `600 14px var(--ravenof-font-body)`, color: profile.loss_counter > 0 ? '#fbbf24' : 'var(--ravenof-text-secondary)', marginTop: 14 }}>
+                    {profile.wins}W · {profile.losses}L{profile.loss_counter > 0 ? ` · ${t('ranked.lossWarning', { count: 2 - profile.loss_counter })}` : ''}
+                  </div>
+                </div>
+              </div>
+
+              {/* Taisyklės + kaladė + ŽAISTI */}
+              <div className="flex flex-col min-w-0" style={{ gap: DT.sp.md }}>
+                <div className="flex" style={{ gap: DT.sp.sm }}>
+                  {statBox('+1', 'var(--ravenof-success)', t('ranked.perWin'))}
+                  {statBox('−1 / 2', 'var(--ravenof-danger)', t('ranked.perLosses'))}
+                  {statBox(`${seasonMonths ?? 3} ${t('ranked.monthsShort')}`, 'var(--ravenof-text-primary)', t('ranked.seasonLen'))}
+                </div>
+                <div className="rvn-d-label" style={{ marginTop: DT.sp.sm }}>{t('ranked.yourDeck')}</div>
+                <button onClick={() => { playUiClick(); setDeckSelOpen(true) }} data-testid="active-deck-summary" className="ravenof-press flex items-center text-left" style={{ gap: DT.sp.md, minHeight: 80, background: 'var(--ravenof-bg-surface)', border: '1px solid #3d3345', padding: '10px 14px', cursor: 'pointer' }}>
+                  <span className="shrink-0 overflow-hidden relative" style={{ width: 48, height: 64, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
+                  <span className="flex-1 min-w-0 flex flex-col" style={{ gap: 3 }}>
+                    <span className="rvn-clamp2" style={{ font: `700 ${DT.fs.h3}px/1.25 var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
+                    {globalDeck && <span className="truncate" style={{ font: `400 ${DT.fs.help}px var(--ravenof-font-body)`, color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {t('decks.cardsShort', { count: globalDeck.cardCount })}</span>}
+                  </span>
+                  {globalDeck && (rankedEligible
+                    ? <span className="shrink-0" style={{ font: `700 ${DT.fs.label}px var(--ravenof-font-body)`, color: 'var(--ravenof-success)', border: '1px solid #6F856255', padding: '4px 9px' }}>{t('ranked.validChip')}</span>
+                    : <span className="shrink-0" style={{ font: `700 ${DT.fs.label}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger)', border: '1px solid #8D2D3855', padding: '4px 9px' }}>{t('ranked.invalidChip')}</span>)}
+                  <span aria-hidden style={{ color: 'var(--ravenof-text-secondary)', fontSize: 20 }}>›</span>
+                </button>
+                <div className="flex-1" style={{ minHeight: DT.sp.sm }} />
+                {!rankedEligible && (
+                  <p role="status" className="text-center" style={{ font: `400 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)', margin: 0 }}>
+                    {!globalDeck ? t('ranked.pickActiveDeck') : !globalOk ? deckValidity(globalDeck).reason : t('ranked.deckNotEligible')}
+                  </p>
+                )}
+                {decks && decks.length === 0 ? (
+                  <Link href="/digital/decks?tab=builder" onClick={() => playUiClick()} className="ravenof-btn ravenof-btn-secondary w-full">{t('ranked.createDeck')}</Link>
+                ) : (
+                  <button onClick={startQueue} disabled={!battleDeck} className="ravenof-press w-full" style={{
+                    textAlign: 'center', font: '800 17px var(--ravenof-font-display)', letterSpacing: 3, textTransform: 'uppercase', minHeight: 56,
+                    color: battleDeck ? '#f6e8c6' : '#5e5868',
+                    background: battleDeck ? `url('${RAVENOF_ASSET}/buttons/button-primary-normal.png') center / 100% 100% no-repeat` : 'var(--ravenof-bg-elevated)',
+                    padding: '0 16px', border: 0, cursor: battleDeck ? 'pointer' : 'default', textShadow: battleDeck ? '0 1px 4px rgba(0,0,0,.8)' : 'none',
+                  }}>{t('home.play')}</button>
+                )}
+              </div>
+
+              {/* Lyderiai */}
+              <div className="flex flex-col min-w-0" style={{ gap: DT.sp.sm }}>
+                <div className="flex items-center justify-between" style={{ minHeight: DT.ctl }}>
+                  <h2 className="rvn-d-h2" style={{ textTransform: 'uppercase', fontSize: 17 }}>{t('ranked.leaders')}</h2>
+                  <button onClick={() => { playUiClick(); setView('leaderboard') }} className="ravenof-press" style={{ font: `600 14px var(--ravenof-font-body)`, color: 'var(--ravenof-gold)', background: 'none', border: 0, cursor: 'pointer', minHeight: DT.ctl, padding: '0 4px' }}>{t('ranked.viewAll')} ›</button>
+                </div>
+                {(leaders ?? []).map((l, i) => (
+                  <div key={l.entity_id} className="flex items-center" style={{ gap: DT.sp.md, minHeight: 60, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '8px 14px' }}>
+                    <span style={{ font: `700 17px var(--ravenof-font-display)`, color: i === 0 ? 'var(--ravenof-gold)' : i === 1 ? '#c7d0db' : '#b3793f', width: 28 }}>{toRoman(l.position)}</span>
+                    <span className="flex-1 min-w-0 flex flex-col" style={{ gap: 2 }}>
+                      <span className="truncate" style={{ font: `600 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{l.name}</span>
+                      <span className="truncate" style={{ font: `400 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{medalLabel(l.medal_tier)} {toRoman(l.rank_number)} · {l.rank_step} {t('ranked.ptsShort')}</span>
+                    </span>
+                  </div>
+                ))}
+                {leaders === null && <div className="flex-1 flex items-center justify-center rvn-d-help" style={{ minHeight: 120 }}>{t('common.loading')}</div>}
+                {leaders !== null && leaders.length === 0 && <div className="flex-1 flex items-center justify-center rvn-d-help" style={{ minHeight: 120 }}>{t('ranked.leaderboardEmpty')}</div>}
+              </div>
+            </div>
+
+            {deckSelOpen && <ActiveDeckSelectorModal onClose={() => setDeckSelOpen(false)} />}
+          </div>
+        )}
+        {toast && (
+          <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-5 py-3 rounded-full" style={{ bottom: 32, font: '600 14px var(--ravenof-font-body)', background: 'rgba(10,8,16,0.95)', border: '1px solid rgba(240,180,41,0.5)', color: 'var(--gold)' }}>{toast}</div>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className={view === 'home' ? 'h-full min-h-0' : 'space-y-5 pb-4'}>
+    <div className={view === 'home' ? 'h-full min-h-0' : D ? 'space-y-5 pb-6' : 'space-y-5 pb-4'} style={D && view !== 'home' ? { maxWidth: DT.contentMax, margin: '0 auto', padding: `${DT.sp.xl}px ${DT.pagePadX}px` } : undefined}>
       {view !== 'home' && <Back />}
 
       {view === 'home' && rv && profile && (

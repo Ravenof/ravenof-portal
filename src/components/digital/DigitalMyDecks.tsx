@@ -24,6 +24,9 @@ import { SmartImg } from '@/components/ui/SmartImg'
 import { useT, useGameContent } from '@/lib/i18n/react'
 import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
 import { useActiveDeck } from '@/lib/digital/activeDeck'
+import { useDesktopUi } from './ui/useDesktopUi'
+import { DT, deskGrid } from './ui/deskTokens'
+import { DeskDialog, useDialogFocus } from './ui/DeskKit'
 
 const GOLD = '240,180,41'
 
@@ -42,6 +45,7 @@ type DeckCard = {
 export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; onEdit: (id: string) => void; onCreate: () => void }) {
   const t = useT()
   const gc = useGameContent()
+  const { desktop } = useDesktopUi()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [covers, setCovers] = useState<Record<number, string>>({})
   const [openDeck, setOpenDeck] = useState<Deck | null>(null)
@@ -111,6 +115,8 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   }, [])
 
   const closeDrawer = () => { playUiClick(); setOpenDeck(null); setDeckCards(null); setCardView(null) }
+  // Desktop: Escape + fokuso gaudyklė šoniniam meniu (kai atidaryta kortos peržiūra ar trynimo patvirtinimas — jie patys valdo fokusą)
+  const drawerRef = useDialogFocus<HTMLElement>(closeDrawer, desktop && !!openDeck && !cardView && !confirmDel)
 
   const duplicate = async (id: string) => {
     setBusy(id); playUiClick()
@@ -156,10 +162,10 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
           <div className="absolute inset-0 flex items-center justify-center" style={{ border: '1px solid var(--ravenof-border-strong)', borderRadius: 6, background: 'var(--ravenof-bg-surface)', font: '300 30px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>+</div>
         </div>
         <div>
-          <p style={{ font: '700 15px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{t('decks.my.emptyTitle')}</p>
-          <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 3 }}>{t('decks.my.emptySub')}</p>
+          <p style={{ font: `700 ${desktop ? DT.fs.h2 : 15}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{t('decks.my.emptyTitle')}</p>
+          <p style={{ font: `400 ${desktop ? DT.fs.body : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: desktop ? 6 : 3 }}>{t('decks.my.emptySub')}</p>
         </div>
-        <button onClick={() => { playUiClick(); onCreate() }} className="ravenof-btn ravenof-btn-primary" style={{ fontSize: 12, padding: '11px 26px', minHeight: 0 }}>{t('decks.my.createCta')}</button>
+        <button onClick={() => { playUiClick(); onCreate() }} className={desktop ? 'rvn-d-btn rvn-d-btn-primary' : 'ravenof-btn ravenof-btn-primary'} style={desktop ? undefined : { fontSize: 12, padding: '11px 26px', minHeight: 0 }}>{t('decks.my.createCta')}</button>
       </div>
     )
   }
@@ -174,6 +180,24 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
   return (
     <div className="ravenof-body h-full flex flex-col min-h-0">
+      {desktop ? (
+        /* DESKTOP: kelių eilučių adaptyvus grid (180–220px), „Nauja kaladė" – pirma plytelė; be horizontalaus scroll */
+        <div style={{ ...deskGrid(DT.card.deck, DT.sp.lg), justifyContent: 'start', paddingBottom: DT.sp.xl }} data-testid="my-decks-grid">
+          <button onClick={() => { playUiClick(); onCreate() }} className="ravenof-press flex flex-col items-center justify-center"
+            style={{ minHeight: 320, gap: DT.sp.md, border: '1.5px dashed rgba(212,163,59,0.45)', background: 'rgba(212,163,59,0.04)', cursor: 'pointer', padding: DT.sp.lg }}>
+            <span className="flex items-center justify-center" style={{ width: 64, height: 64, border: '1px solid rgba(212,163,59,0.55)', font: '300 40px/1 var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>+</span>
+            <span style={{ font: `700 ${DT.fs.h3}px var(--ravenof-font-display)`, letterSpacing: '.08em', color: 'var(--ravenof-gold-bright, var(--ravenof-gold))', textAlign: 'center', textTransform: 'uppercase' }}>{t('decks.my.newDeck')}</span>
+            <span className="rvn-d-help" style={{ textAlign: 'center' }}>{t('decks.my.emptySub')}</span>
+          </button>
+          {decks.map((d) => (
+            <DeskDeckCard key={d.id} d={d} cover={d.factionId != null ? covers[d.factionId] ?? null : null}
+              isActive={adState.activeDeckId === d.id} busy={busy === d.id}
+              factionLabel={gc.faction(d.faction) || t('decks.my.noFaction')}
+              onOpen={() => openDrawer(d)} onActivate={() => void setActiveDeck(d.id)} onEdit={() => { playUiClick(); onEdit(d.id) }}
+              onCopy={() => duplicate(d.id)} onDelete={() => { playUiClick(); setConfirmDel(d.id) }} />
+          ))}
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 flex overflow-x-auto ravenof-scroll" style={{ gap: 10 }}>
         {decks.map((d) => {
           const valid = d.faction !== null && isDeckSizeValid(d.cardCount) && (d.missing ?? 0) === 0
@@ -210,6 +234,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
           <span style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1, color: 'var(--ravenof-text-secondary)', textAlign: 'center', padding: '0 8px', textTransform: 'uppercase' }}>{t('decks.my.newDeck')}</span>
         </button>
       </div>
+      )}
 
       {/* ── ŠONINIS MENIU (drawer) ── */}
       <AnimatePresence>
@@ -217,26 +242,26 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
           <>
             <motion.div className="fixed inset-0 z-[150]" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(3px)' }}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDrawer} />
-            <motion.aside className="fixed top-0 right-0 bottom-0 z-[155] flex flex-col"
+            <motion.aside ref={drawerRef} role="dialog" aria-modal="true" aria-label={openDeck.name} tabIndex={-1} className="fixed top-0 right-0 bottom-0 z-[155] flex flex-col outline-none"
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.28, ease: [0.3, 0.7, 0.3, 1] }}
-              style={{ width: 'min(410px, 94vw)', background: 'linear-gradient(200deg, #171021, #0a0810)', borderLeft: `1px solid rgba(${GOLD},0.4)`, boxShadow: '-16px 0 50px rgba(0,0,0,0.75)' }}>
+              style={{ width: desktop ? 'min(480px, 40vw)' : 'min(410px, 94vw)', background: 'linear-gradient(200deg, #171021, #0a0810)', borderLeft: `1px solid rgba(${GOLD},0.4)`, boxShadow: '-16px 0 50px rgba(0,0,0,0.75)' }}>
 
               {/* Antraštė */}
               <div className="flex items-center gap-3 px-4 pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)', borderBottom: `1px solid rgba(${GOLD},0.2)` }}>
-                <CoverThumb cover={openDeck.factionId != null ? covers[openDeck.factionId] ?? null : null} color={openDeck.factionColor} size={46} />
+                <CoverThumb cover={openDeck.factionId != null ? covers[openDeck.factionId] ?? null : null} color={openDeck.factionColor} size={desktop ? 56 : 46} />
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-[15px] font-bold leading-tight truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{openDeck.name}</h2>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[10.5px]" style={{ color: 'var(--text-muted)' }}>
+                  <h2 className={desktop ? 'font-bold leading-tight rvn-clamp2' : 'text-[15px] font-bold leading-tight truncate'} style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: desktop ? DT.fs.h2 : undefined }}>{openDeck.name}</h2>
+                  <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 ${desktop ? '' : 'text-[10.5px]'}`} style={{ color: 'var(--text-muted)', fontSize: desktop ? DT.fs.help : undefined }}>
                     <span className="px-1.5 rounded" style={{ background: openDeck.factionColor + '22', color: openDeck.factionColor }}>{openDeck.faction ?? t('decks.my.noFaction')}</span>
                     <span className="inline-flex items-center gap-0.5">{openDeck.visibility === 'public' ? <><Globe className="w-3 h-3" /> {t('decks.my.public')}</> : <><Lock className="w-3 h-3" /> {t('decks.my.private')}</>}</span>
                   </div>
                 </div>
-                <button onClick={closeDrawer} aria-label={t('common.close')} className="flex items-center justify-center rounded-full shrink-0" style={{ width: 34, height: 34, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+                <button onClick={closeDrawer} aria-label={t('common.close')} data-dlg-close="1" className="flex items-center justify-center rounded-full shrink-0" style={{ width: desktop ? DT.ctl : 34, height: desktop ? DT.ctl : 34, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
               </div>
 
               {/* Turinys */}
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
-                <DrawerBody deck={openDeck} cards={deckCards} onCard={(c) => { playUiClick(); setCardView(c) }} />
+                <DrawerBody desktop={desktop} deck={openDeck} cards={deckCards} onCard={(c) => { playUiClick(); setCardView(c) }} />
 
                 {/* Veiksmai */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
@@ -252,9 +277,20 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       </AnimatePresence>
 
       {/* Kortos detali peržiūra */}
-      {cardView && <CardDetail c={cardView} onClose={() => setCardView(null)} />}
+      {cardView && <CardDetail desktop={desktop} c={cardView} onClose={() => setCardView(null)} />}
 
-      {confirmDel && (
+      {confirmDel && desktop && (
+        <DeskDialog onClose={() => setConfirmDel(null)} title={t('decks.my.confirmDeleteTitle')} width={DT.modal.sm} zIndex={170} closeLabel={t('common.close')}
+          footer={<>
+            <button onClick={() => { playUiClick(); setConfirmDel(null) }} className="rvn-d-btn rvn-d-btn-ghost">{t('common.cancel')}</button>
+            <button onClick={() => del(confirmDel)} disabled={busy === confirmDel} className="rvn-d-btn rvn-d-btn-danger"><Trash2 size={16} /> {t('decks.my.delete')}</button>
+          </>}>
+          <p className="rvn-d-body" style={{ color: 'var(--ravenof-text-secondary)', margin: 0 }}>
+            <b style={{ color: 'var(--ravenof-text-primary)' }}>{decks.find((x) => x.id === confirmDel)?.name}</b> — {t('decks.my.confirmDeleteBody')}
+          </p>
+        </DeskDialog>
+      )}
+      {confirmDel && !desktop && (
         <div className="fixed inset-0 z-[170] flex items-center justify-center p-6" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setConfirmDel(null)}>
           <div className="w-[min(330px,92vw)] rounded-2xl p-5 text-center" style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'linear-gradient(160deg,#17111f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
             <p className="text-base font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: '#fca5a5' }}>{t('decks.my.confirmDeleteTitle')}</p>
@@ -267,7 +303,47 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
         </div>
       )}
 
-      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
+      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[180] px-4 py-2 rounded-full text-xs font-semibold" style={{ fontSize: desktop ? 14 : undefined, bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{toast}</div>}
+    </div>
+  )
+}
+
+// ── DESKTOP kaladės kortelė: viršelis (fiksuotas santykis, contain) · info · veiksmai ──
+function DeskDeckCard({ d, cover, isActive, busy, factionLabel, onOpen, onActivate, onEdit, onCopy, onDelete }: {
+  d: Deck; cover: string | null; isActive: boolean; busy: boolean; factionLabel: string
+  onOpen: () => void; onActivate: () => void; onEdit: () => void; onCopy: () => void; onDelete: () => void
+}) {
+  const t = useT()
+  const valid = d.faction !== null && isDeckSizeValid(d.cardCount) && (d.missing ?? 0) === 0
+  const act: React.CSSProperties = { minHeight: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 6px', font: `600 13px var(--ravenof-font-body)`, background: 'none', border: 0, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }
+  return (
+    <div className="relative flex flex-col" style={{ minWidth: 0, border: `1px solid ${isActive ? 'var(--ravenof-gold)' : 'var(--ravenof-border-strong)'}`, background: 'var(--ravenof-bg-surface-2)', boxShadow: isActive ? '0 0 16px rgba(212,163,59,0.28)' : 'none' }}>
+      {/* Viršelis — fiksuotas 4:5 santykis, visas paveikslas (contain), niekada netempiamas iki ekrano aukščio */}
+      <button onClick={onOpen} className="ravenof-press relative block w-full overflow-hidden text-left" aria-label={d.name}
+        style={{ aspectRatio: '4 / 5', padding: 0, border: 0, cursor: 'pointer', background: `radial-gradient(120% 90% at 50% 25%, ${d.factionColor}33, rgba(10,8,16,0.98) 72%), linear-gradient(160deg,#1a1325,#0a0810)` }}>
+        {cover
+          ? <SmartImg src={cover} width={440} loading="eager" className="absolute inset-0 w-full h-full" style={{ objectFit: 'contain' }} />
+          : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 44 }}>🎴</span>}
+        {isActive && <span className="absolute" style={{ top: 8, left: 8, font: `700 ${DT.fs.label}px var(--ravenof-font-display)`, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '4px 10px', letterSpacing: 1 }}>★ {t('decks.my.activeBadge')}</span>}
+        {!valid && <span className="absolute" style={{ top: 8, right: 8, font: `700 ${DT.fs.label}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)', background: 'rgba(7,6,10,.9)', border: '1px solid #8D2D3888', padding: '3px 8px' }}>{t('decks.my.invalidBadge')}</span>}
+      </button>
+      {/* Info */}
+      <div className="flex flex-col flex-1" style={{ padding: '10px 12px 12px', gap: 4, borderTop: `2px solid ${d.factionColor}` }}>
+        <button onClick={onOpen} className="rvn-clamp2 text-left" title={d.name}
+          style={{ font: `700 ${DT.fs.h3}px/1.25 var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)', letterSpacing: '.02em', background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>{d.name}</button>
+        <span style={{ font: `600 ${DT.fs.help}px var(--ravenof-font-body)`, color: d.factionColor }}>{factionLabel}</span>
+        <span style={{ font: `400 ${DT.fs.label + 0.5}px/1.35 var(--ravenof-font-body)`, color: isDeckSizeValid(d.cardCount) ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-danger-bright)' }}>{formatDeckCount(d.cardCount)}</span>
+        {(d.missing ?? 0) > 0 && <span style={{ font: `400 ${DT.fs.label + 0.5}px/1.35 var(--ravenof-font-body)`, color: 'rgba(240,180,41,0.9)' }}>{t('decks.my.missingCards', { count: d.missing ?? 0 })}</span>}
+      </div>
+      {/* Veiksmai (≥40px, 13px etiketės) */}
+      <div className="grid grid-cols-2" style={{ borderTop: '1px solid var(--ravenof-border-hairline)' }}>
+        {isActive
+          ? <span aria-current="true" style={{ ...act, cursor: 'default', font: `700 12.5px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', borderRight: '1px solid var(--ravenof-border-hairline)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>★ {t('decks.my.activeBadge')}</span>
+          : <button onClick={onActivate} disabled={!valid} title={valid ? undefined : t('decks.invalidSizeHint')} className="ravenof-press" style={{ ...act, color: valid ? 'var(--ravenof-gold)' : 'rgba(150,160,185,0.4)', cursor: valid ? 'pointer' : 'not-allowed', borderRight: '1px solid var(--ravenof-border-hairline)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}>★ {t('decks.my.setActive')}</button>}
+        <button onClick={onEdit} className="ravenof-press" style={{ ...act, color: 'var(--ravenof-text-primary)', borderBottom: '1px solid var(--ravenof-border-hairline)' }}><Edit2 size={15} /> {t('decks.my.edit')}</button>
+        <button onClick={onCopy} disabled={busy} className="ravenof-press disabled:opacity-40" style={{ ...act, color: 'var(--ravenof-text-secondary)', borderRight: '1px solid var(--ravenof-border-hairline)' }}><Copy size={15} /> {t('decks.my.copyShort')}</button>
+        <button onClick={onDelete} className="ravenof-press" style={{ ...act, color: 'var(--ravenof-danger-bright, #fca5a5)' }}><Trash2 size={15} /> {t('decks.my.deleteShort')}</button>
+      </div>
     </div>
   )
 }
@@ -283,7 +359,7 @@ function CoverThumb({ cover, color, size }: { cover: string | null; color: strin
 }
 
 // ── Drawer turinys: statistika + kortų sąrašas ────────────────────────────────
-function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | null; onCard: (c: DeckCard) => void }) {
+function DrawerBody({ deck, cards, onCard, desktop = false }: { deck: Deck; cards: DeckCard[] | null; onCard: (c: DeckCard) => void; desktop?: boolean }) {
   const t = useT()
   const stats = useMemo(() => {
     if (!cards) return null
@@ -313,30 +389,30 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
     <>
       {/* Suvestinė */}
       <div className="grid grid-cols-3 gap-2">
-        <StatBox label={t('decks.my.statCards')} value={String(stats.total)} accent={valid ? '74,222,128' : '252,165,165'} />
-        <StatBox label={t('decks.my.statAvgGold')} value={displayAvgCost(stats.avg).toFixed(1)} accent={GOLD} />
-        <StatBox label={t('decks.my.statChampions')} value={String(stats.champions)} accent="139,92,246" />
+        <StatBox desktop={desktop} label={t('decks.my.statCards')} value={String(stats.total)} accent={valid ? '74,222,128' : '252,165,165'} />
+        <StatBox desktop={desktop} label={t('decks.my.statAvgGold')} value={displayAvgCost(stats.avg).toFixed(1)} accent={GOLD} />
+        <StatBox desktop={desktop} label={t('decks.my.statChampions')} value={String(stats.champions)} accent="139,92,246" />
       </div>
-      <p className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: valid ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.08)', color: valid ? 'rgba(74,222,128,0.9)' : '#fca5a5', border: `1px solid ${valid ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.3)'}` }}>
+      <p className={`${desktop ? '' : 'text-[11px] '}px-3 py-1.5 rounded-lg`} style={{ fontSize: desktop ? DT.fs.help : undefined, background: valid ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.08)', color: valid ? 'rgba(74,222,128,0.9)' : '#fca5a5', border: `1px solid ${valid ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.3)'}` }}>
         {formatDeckCount(stats.total)}{!valid && !isDeckSizeValid(stats.total) ? ` · ${t('decks.invalidBadge')}` : ''}
       </p>
       {deck.missing != null && deck.missing > 0 && (
-        <p className="text-[11px] px-3 py-2 rounded-lg" style={{ background: 'rgba(240,180,41,0.08)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.25)' }}>
+        <p className={`${desktop ? '' : 'text-[11px] '}px-3 py-2 rounded-lg`} style={{ fontSize: desktop ? DT.fs.help : undefined, background: 'rgba(240,180,41,0.08)', color: 'rgba(240,180,41,0.9)', border: '1px solid rgba(240,180,41,0.25)' }}>
           {t('decks.my.missingCards', { count: deck.missing })}
         </p>
       )}
 
       {/* Aukso kreivė */}
       <div>
-        <SectionLabel>{t('decks.my.goldCurve')}</SectionLabel>
-        <div className="flex items-end gap-1" style={{ height: 84 }}>
+        <SectionLabel desktop={desktop}>{t('decks.my.goldCurve')}</SectionLabel>
+        <div className="flex items-end gap-1" style={{ height: desktop ? 104 : 84 }}>
           {stats.curve.map((n, i) => (
             <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5" style={{ height: '100%' }}>
-              <span className="text-[9px] tabular-nums" style={{ color: n > 0 ? 'var(--gold)' : 'rgba(150,160,185,0.35)' }}>{n > 0 ? n : ''}</span>
+              <span className={`${desktop ? '' : 'text-[9px] '}tabular-nums`} style={{ fontSize: desktop ? DT.fs.label : undefined, color: n > 0 ? 'var(--gold)' : 'rgba(150,160,185,0.35)' }}>{n > 0 ? n : ''}</span>
               <div className="w-full rounded-t" style={{ height: `${Math.max(n > 0 ? 8 : 2, (n / curveMax) * 58)}px`,
                 background: n > 0 ? `linear-gradient(180deg, rgb(${GOLD}), rgba(${GOLD},0.45))` : 'rgba(255,255,255,0.06)',
                 boxShadow: n > 0 ? `0 0 6px rgba(${GOLD},0.35)` : 'none' }} />
-              <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{COST_CURVE_LABELS[i]}</span>
+              <span className={`${desktop ? '' : 'text-[9px] '}tabular-nums`} style={{ fontSize: desktop ? DT.fs.label : undefined, color: 'var(--text-muted)' }}>{COST_CURVE_LABELS[i]}</span>
             </div>
           ))}
         </div>
@@ -345,25 +421,25 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
       {/* Tipai + retumai */}
       <div className="flex flex-wrap gap-1.5">
         {stats.types.map(([t, n]) => (
-          <span key={t} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>{t} <b style={{ color: '#f3ead3' }}>{n}</b></span>
+          <span key={t} className={`${desktop ? '' : 'text-[10px] '}px-2 py-0.5 rounded-full`} style={{ fontSize: desktop ? DT.fs.label : undefined, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>{t} <b style={{ color: '#f3ead3' }}>{n}</b></span>
         ))}
         {stats.rars.map(([r, n]) => (
-          <span key={r} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: rarityColor(r) + '14', border: `1px solid ${rarityColor(r)}55`, color: rarityColor(r) }}>{r} <b>{n}</b></span>
+          <span key={r} className={`${desktop ? '' : 'text-[10px] '}px-2 py-0.5 rounded-full`} style={{ fontSize: desktop ? DT.fs.label : undefined, background: rarityColor(r) + '14', border: `1px solid ${rarityColor(r)}55`, color: rarityColor(r) }}>{r} <b>{n}</b></span>
         ))}
       </div>
 
       {/* Kortų sąrašas */}
       <div>
-        <SectionLabel>Pagrindinė kaladė · {stats.total}</SectionLabel>
+        <SectionLabel desktop={desktop}>Pagrindinė kaladė · {stats.total}</SectionLabel>
         <div className="space-y-1">
-          {stats.main.map((c) => <CardRow key={c.id} c={c} onClick={() => onCard(c)} />)}
+          {stats.main.map((c) => <CardRow desktop={desktop} key={c.id} c={c} onClick={() => onCard(c)} />)}
         </div>
       </div>
       {stats.side.length > 0 && (
         <div>
-          <SectionLabel>Šalutinė kaladė · {stats.side.reduce((a, c) => a + c.qty, 0)}</SectionLabel>
+          <SectionLabel desktop={desktop}>Šalutinė kaladė · {stats.side.reduce((a, c) => a + c.qty, 0)}</SectionLabel>
           <div className="space-y-1">
-            {stats.side.map((c) => <CardRow key={c.id} c={c} onClick={() => onCard(c)} />)}
+            {stats.side.map((c) => <CardRow desktop={desktop} key={c.id} c={c} onClick={() => onCard(c)} />)}
           </div>
         </div>
       )}
@@ -371,21 +447,33 @@ function DrawerBody({ deck, cards, onCard }: { deck: Deck; cards: DeckCard[] | n
   )
 }
 
-function StatBox({ label, value, accent }: { label: string; value: string; accent: string }) {
+function StatBox({ label, value, accent, desktop = false }: { label: string; value: string; accent: string; desktop?: boolean }) {
   return (
     <div className="rounded-xl px-2 py-2 text-center" style={{ background: `rgba(${accent},0.08)`, border: `1px solid rgba(${accent},0.3)` }}>
-      <p className="rvn-disp tabular-nums" style={{ fontSize: 15, fontWeight: 800, color: `rgb(${accent})`, lineHeight: 1.1 }}>{value}</p>
-      <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
+      <p className="rvn-disp tabular-nums" style={{ fontSize: desktop ? DT.fs.stat : 15, fontWeight: 800, color: `rgb(${accent})`, lineHeight: 1.1 }}>{value}</p>
+      <p className={desktop ? 'mt-0.5' : 'text-[9px] mt-0.5'} style={{ fontSize: desktop ? DT.fs.label : undefined, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
     </div>
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-bold uppercase mb-1.5" style={{ color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{children}</p>
+function SectionLabel({ children, desktop = false }: { children: React.ReactNode; desktop?: boolean }) {
+  return <p className={desktop ? 'font-bold uppercase mb-2' : 'text-[10px] font-bold uppercase mb-1.5'} style={{ fontSize: desktop ? DT.fs.label : undefined, color: 'var(--text-muted)', letterSpacing: '0.14em' }}>{children}</p>
 }
 
-function CardRow({ c, onClick }: { c: DeckCard; onClick: () => void }) {
+function CardRow({ c, onClick, desktop = false }: { c: DeckCard; onClick: () => void; desktop?: boolean }) {
   const col = rarityColor(c.rarity)
+  if (desktop) return (
+    <button onClick={onClick} className="rvn-press w-full flex items-center gap-2.5 px-2.5 rounded-lg text-left"
+      style={{ minHeight: 44, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: 3, borderLeftColor: col }}>
+      <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 26, height: 26, fontSize: 12, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{c.gold}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block font-semibold truncate" style={{ fontSize: 14, color: '#f3ead3' }} title={c.name}>{c.isChampion ? '★ ' : ''}{c.name}</span>
+        <span className="block truncate" style={{ fontSize: DT.fs.label, color: 'var(--text-muted)' }}>{[c.type, c.rarity].filter(Boolean).join(' · ')}</span>
+      </span>
+      {(c.atk != null || c.hp != null) && <span className="tabular-nums shrink-0" style={{ fontSize: 13, color: 'var(--text-muted)' }}>{c.atk ?? '—'}/{c.hp ?? '—'}</span>}
+      <span className="font-bold tabular-nums shrink-0" style={{ fontSize: 14, color: col }}>×{c.qty}</span>
+    </button>
+  )
   return (
     <button onClick={onClick} className="rvn-press w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left"
       style={{ background: 'rgba(255,255,255,0.03)', borderLeft: `3px solid ${col}`, border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: 3, borderLeftColor: col }}>
@@ -400,15 +488,17 @@ function CardRow({ c, onClick }: { c: DeckCard; onClick: () => void }) {
   )
 }
 
-function CardDetail({ c, onClose }: { c: DeckCard; onClose: () => void }) {
+function CardDetail({ c, onClose, desktop = false }: { c: DeckCard; onClose: () => void; desktop?: boolean }) {
   const t = useT()
   const [bad, setBad] = useState(false)
   const col = rarityColor(c.rarity)
+  const ref = useDialogFocus<HTMLDivElement>(onClose, desktop)
   return (
     <div className="fixed inset-0 z-[165] flex items-center justify-center p-5" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
-      <div className="relative w-[min(340px,92vw)] rounded-2xl overflow-hidden" style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={() => { playUiClick(); onClose() }} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }} aria-label={t('common.close')}><X className="w-4 h-4" /></button>
-        <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5', maxHeight: '50vh' }}>
+      <div ref={ref} role={desktop ? 'dialog' : undefined} aria-modal={desktop ? true : undefined} aria-label={desktop ? c.name : undefined} tabIndex={desktop ? -1 : undefined}
+        className={`relative ${desktop ? 'w-[min(420px,92vw)] outline-none' : 'w-[min(340px,92vw)]'} rounded-2xl overflow-hidden`} style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
+        <button onClick={() => { playUiClick(); onClose() }} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: desktop ? 40 : 32, height: desktop ? 40 : 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }} aria-label={t('common.close')}><X className="w-4 h-4" /></button>
+        <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5', maxHeight: desktop ? '56vh' : '50vh' }}>
           {c.image && !bad
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={c.image} alt={c.name} onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full object-contain" />
@@ -416,17 +506,17 @@ function CardDetail({ c, onClose }: { c: DeckCard; onClose: () => void }) {
         </div>
         <div className="p-4 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-bold" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3' }}>{c.isChampion ? '★ ' : ''}{c.name}</h3>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ color: col, border: `1px solid ${col}` }}>{c.rarity ?? '—'}</span>
+            <h3 className={desktop ? 'font-bold' : 'text-base font-bold'} style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: desktop ? DT.fs.h2 : undefined }}>{c.isChampion ? '★ ' : ''}{c.name}</h3>
+            <span className={desktop ? 'font-bold px-2 py-0.5 rounded-full shrink-0' : 'text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0'} style={{ fontSize: desktop ? DT.fs.label : undefined, color: col, border: `1px solid ${col}` }}>{c.rarity ?? '—'}</span>
           </div>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <div className={desktop ? 'flex flex-wrap gap-x-3 gap-y-0.5' : 'flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]'} style={{ fontSize: desktop ? DT.fs.help : undefined, color: 'var(--text-muted)' }}>
             <span>🪙 {c.gold}</span>
             {c.atk != null && <span>⚔️ {c.atk}</span>}
             {c.hp != null && <span>❤️ {c.hp}</span>}
             {c.type && <span>· {c.type}</span>}
             <span>· kaladėje ×{c.qty}</span>
           </div>
-          {c.effect && <p className="text-xs leading-snug" style={{ color: 'var(--text-secondary)' }}>{c.effect}</p>}
+          {c.effect && <p className={desktop ? 'leading-snug' : 'text-xs leading-snug'} style={{ fontSize: desktop ? DT.fs.body : undefined, color: 'var(--text-secondary)' }}>{c.effect}</p>}
         </div>
       </div>
     </div>

@@ -15,35 +15,37 @@ import { playUiClick } from '@/lib/ui-sound'
 import { getAchievements, getMatchModeStats, getProfileOverview, type MatchModeStats, type ProfileOverview } from '@/lib/profile/client'
 import { ProfileCosmeticsModal } from './ProfileCosmeticsModal'
 import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
-import { rankLabel, rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
+import { rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
 import { medalTierFromStep, rankNumberFromStep, rankDisplay } from '@/lib/ranked/rank'
 import { AchievementBadge } from './AchievementBadge'
-import { BODY, C, Cta, DISPLAY, ErrorState, isMissingRpc, Kicker, LoadingState, useCompact, useToast } from '../progression/kit'
+import { BODY, C, Cta, DISPLAY, ErrorState, isMissingRpc, Kicker, LoadingState, useToast } from '../progression/kit'
+import { DT } from '../ui/deskTokens'
+import { useElementWidth, useProfileUi } from './profileDesk'
 
 type Tab = 'overview' | 'achievements' | 'stats' | 'decks' | 'collection' | 'history'
 const TABS: Tab[] = ['overview', 'achievements', 'stats', 'decks', 'collection', 'history']
 
 const HOLDER = 'polygon(50% 0,100% 22%,100% 78%,50% 100%,0 78%,0 22%)'
 
-function Panel({ title, extra, children }: { title: string; extra?: React.ReactNode; children: React.ReactNode }) {
+function Panel({ title, extra, children, desk = false }: { title: string; extra?: React.ReactNode; children: React.ReactNode; desk?: boolean }) {
   return (
-    <section className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: 12, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-        <Kicker>{title}</Kicker>
+    <section className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: desk ? DT.sp.lg : 12, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: desk ? 'center' : 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <Kicker style={desk ? { fontSize: DT.fs.label, letterSpacing: 1.8 } : undefined}>{title}</Kicker>
         {extra}
       </div>
-      <div style={{ marginTop: 9 }}>{children}</div>
+      <div style={{ marginTop: desk ? DT.sp.md : 9 }}>{children}</div>
     </section>
   )
 }
 
-function Tile({ label, value, sub, tone = C.bone }: { label: string; value: string; sub?: string; tone?: string }) {
+function Tile({ label, value, sub, tone = C.bone, desk = false }: { label: string; value: string; sub?: string; tone?: string; desk?: boolean }) {
   return (
-    <div className="rvn-prog-clip" style={{ flex: 1, minWidth: 128, border: `1px solid ${C.lineIn}`, background: C.raised, padding: '10px 12px' }}>
-      <div style={{ font: `500 8px ${BODY}`, letterSpacing: 2, color: C.label, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-        <span style={{ font: `800 20px ${DISPLAY}`, color: tone, lineHeight: 1 }}>{value}</span>
-        {sub && <span style={{ font: `400 10px ${BODY}`, color: C.muted }}>{sub}</span>}
+    <div className="rvn-prog-clip" style={{ flex: 1, minWidth: desk ? 0 : 128, border: `1px solid ${C.lineIn}`, background: C.raised, padding: desk ? '12px 14px' : '10px 12px' }}>
+      <div style={{ font: desk ? `600 ${DT.fs.label}px ${BODY}` : `500 8px ${BODY}`, letterSpacing: desk ? 1.4 : 2, color: C.label, textTransform: 'uppercase', lineHeight: desk ? 1.3 : undefined }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: desk ? 8 : 6, marginTop: desk ? 6 : 4, flexWrap: desk ? 'wrap' : undefined }}>
+        <span style={{ font: `800 ${desk ? DT.fs.stat : 20}px ${DISPLAY}`, color: tone, lineHeight: 1 }}>{value}</span>
+        {sub && <span style={{ font: `400 ${desk ? 13 : 10}px ${BODY}`, color: C.muted }}>{sub}</span>}
       </div>
     </div>
   )
@@ -52,7 +54,10 @@ function Tile({ label, value, sub, tone = C.bone }: { label: string; value: stri
 export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'public' }) {
   const t = useT()
   const router = useRouter()
-  const compact = useCompact()
+  const { desk, compact } = useProfileUi()
+  /** mobile / desktop reikšmė (mobile nekeičiama) */
+  const fz = <T,>(m: T, d: T): T => (desk ? d : m)
+  const [areaRef, areaW] = useElementWidth<HTMLDivElement>()
   const toast = useToast()
   const isPublic = mode === 'public'
 
@@ -99,6 +104,18 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   const lvlPct = level.xpForNextLevel && level.xpIntoLevel != null && level.xpForNextLevel > 0
     ? Math.min(100, (level.xpIntoLevel / level.xpForNextLevel) * 100) : 100
 
+  // ── Desktop stiliai / išdėstymas (mobile reikšmės nekeičiamos) ──────────
+  const kickS = desk ? { fontSize: DT.fs.label, letterSpacing: 1.8 } : undefined
+  const linkS: React.CSSProperties = desk
+    ? { border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 13px ${BODY}`, minHeight: 32, padding: '0 2px' }
+    : { border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 9.5px ${BODY}` }
+  const emptyS: React.CSSProperties = desk
+    ? { font: `400 ${DT.fs.help}px ${BODY}`, color: C.label, lineHeight: 1.45 }
+    : { font: `400 10.5px ${BODY}`, color: C.label }
+  // Profilio sritis (be pomeniu): ≥ 900 px → tapatybės stulpelis 300 px + turinys;
+  // siauriau → tapatybės blokai tinkleliu VIRŠ tab'ų (turiniui lieka visas plotis).
+  const identityTop = desk && areaW > 0 && areaW < 900
+
   const copyId = async () => {
     if (!identity.playerId) return
     playUiClick()
@@ -119,59 +136,63 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
 
   // ── Tapatybės kortelė ─────────────────────────────────────────────────────
   const identityCard = (
-    <div className="rvn-prog-scroll" style={{
+    <div className={desk ? undefined : 'rvn-prog-scroll'} style={desk ? {
+      // desktop: be vidinio scroll'o; siaurame plote blokai išsidėsto tinkleliu virš tab'ų
+      display: 'grid', gap: DT.sp.md, alignContent: 'start', minWidth: 0,
+      gridTemplateColumns: identityTop ? 'repeat(auto-fit, minmax(320px, 1fr))' : 'minmax(0, 1fr)',
+    } : {
       width: compact ? '100%' : 330, flex: 'none', minHeight: 0, overflowY: 'auto',
       display: 'flex', flexDirection: 'column', gap: 11,
     }}>
-      <div className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: fz(13, DT.sp.lg), display: 'flex', flexDirection: 'column', gap: fz(10, DT.sp.md) }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span aria-hidden style={{
-            width: 76, height: 86, flex: 'none', clipPath: HOLDER,
+            width: fz(76, 88), height: fz(86, 100), flex: 'none', clipPath: HOLDER,
             background: avatarBg,
             border: `1px solid ${C.gold}`,
           }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ font: `800 19px ${DISPLAY}`, color: C.bone, lineHeight: 1.15, wordBreak: 'break-word' }}>
+            <div style={{ font: `800 ${fz(19, 21)}px ${DISPLAY}`, color: C.bone, lineHeight: 1.15, wordBreak: 'break-word' }}>
               {identity.name ?? t('common.player')}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5 }}>
-              <span style={{ font: `400 10px ${BODY}`, color: C.muted }}>{t('profile.overview.playerId')}</span>
-              <span style={{ font: `700 10.5px ui-monospace, monospace`, color: C.goldHi }}>{identity.playerId ?? '—'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: fz(6, 8), marginTop: fz(5, 8), flexWrap: fz(undefined, 'wrap' as const) }}>
+              <span style={{ font: `400 ${fz(10, 13)}px ${BODY}`, color: C.muted }}>{t('profile.overview.playerId')}</span>
+              <span style={{ font: `700 ${fz(10.5, 13.5)}px ui-monospace, monospace`, color: C.goldHi }}>{identity.playerId ?? '—'}</span>
               {!isPublic && (
-                <button type="button" onClick={() => void copyId()} aria-label={t('profile.overview.copyId')}
-                  style={{ width: 26, height: 26, border: `1px solid ${C.lineIn}`, background: 'transparent', color: C.muted, cursor: 'pointer', font: `400 11px ${BODY}` }}>⧉</button>
+                <button type="button" onClick={() => void copyId()} aria-label={t('profile.overview.copyId')} title={fz(undefined, t('profile.overview.copyId'))}
+                  style={{ width: fz(26, 36), height: fz(26, 36), border: `1px solid ${C.lineIn}`, background: 'transparent', color: C.muted, cursor: 'pointer', font: `400 ${fz(11, 15)}px ${BODY}` }}>⧉</button>
               )}
             </div>
           </div>
         </div>
 
         {isPublic ? (
-          <div style={{ display: 'flex', gap: 7 }}>
-            <div style={{ flex: 1 }}><Cta disabled tone="ghost" minHeight={40}>{t('profile.overview.friend')}</Cta></div>
-            <div style={{ flex: 1 }}><Cta disabled tone="ghost" minHeight={40}>{t('profile.overview.challenge')}</Cta></div>
+          <div style={{ display: 'flex', gap: fz(7, DT.sp.sm), flexDirection: fz(undefined, 'column' as const) }}>
+            <div style={{ flex: 1 }}><Cta disabled tone="ghost" minHeight={fz(40, DT.ctl)}>{t('profile.overview.friend')}</Cta></div>
+            <div style={{ flex: 1 }}><Cta disabled tone="ghost" minHeight={fz(40, DT.ctl)}>{t('profile.overview.challenge')}</Cta></div>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: 7 }}>
-            <div style={{ flex: 1 }}><Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); setEditOpen('avatar') }}>{t('profile.overview.edit')}</Cta></div>
-            <div style={{ flex: 1 }}><Cta minHeight={40} tone="ghost" onClick={() => { playUiClick(); setEditOpen('deck_avatars') }}>{t('profile.overview.deckAvatars')}</Cta></div>
+          <div style={{ display: 'flex', gap: fz(7, DT.sp.sm), flexDirection: fz(undefined, 'column' as const) }}>
+            <div style={{ flex: 1 }}><Cta minHeight={fz(40, DT.ctl)} tone="ghost" onClick={() => { playUiClick(); setEditOpen('avatar') }}>{t('profile.overview.edit')}</Cta></div>
+            <div style={{ flex: 1 }}><Cta minHeight={fz(40, DT.ctl)} tone="ghost" onClick={() => { playUiClick(); setEditOpen('deck_avatars') }}>{t('profile.overview.deckAvatars')}</Cta></div>
           </div>
         )}
       </div>
 
       {/* Paskyros lygis */}
-      <div className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <Kicker>{t('profile.overview.accountLevel')}</Kicker>
+      <div className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: fz(12, DT.sp.lg) }}>
+        <div style={{ display: 'flex', alignItems: fz('baseline', 'center'), justifyContent: 'space-between' }}>
+          <Kicker style={kickS}>{t('profile.overview.accountLevel')}</Kicker>
           {!isPublic && (
             <button type="button" onClick={() => { playUiClick(); router.push('/digital/profile/levels') }}
-              style={{ border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 9.5px ${BODY}`, letterSpacing: 0.6 }}>
+              style={{ border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 ${fz(9.5, 13)}px ${BODY}`, letterSpacing: 0.6, minHeight: fz(undefined, 32) }}>
               {t('profile.overview.allLevels')} ›
             </button>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginTop: 5 }}>
           <span style={{ font: `800 28px ${DISPLAY}`, color: C.goldHi, lineHeight: 1 }}>{level.level}</span>
-          <span style={{ font: `400 10.5px ${BODY}`, color: C.muted }}>
+          <span style={{ font: `400 ${fz(10.5, 13.5)}px ${BODY}`, color: C.muted }}>
             {isPublic || level.xpIntoLevel == null
               ? t('profile.overview.xpHidden')
               : `${formatNumber(level.xpIntoLevel)} / ${formatNumber(level.xpForNextLevel ?? 0)} XP`}
@@ -187,9 +208,9 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
       {/* Ranked slotas — VIENAS kompaktiškas slotas (handoff: pilkas plienas, ne auksas) */}
       <button type="button" onClick={() => { playUiClick(); router.push('/digital/ranked') }}
         className="rvn-prog-clip"
-        style={{ display: 'flex', alignItems: 'center', gap: 11, textAlign: 'left', width: '100%', minHeight: 66,
-          border: `1px solid #4A4453`, background: C.raised, padding: 11, cursor: 'pointer' }}>
-        <span style={{ position: 'relative', width: 40, height: 46, flex: 'none' }}>
+        style={{ display: 'flex', alignItems: 'center', gap: fz(11, DT.sp.md), textAlign: 'left', width: '100%', minHeight: fz(66, 76),
+          border: `1px solid #4A4453`, background: C.raised, padding: fz(11, 14), cursor: 'pointer' }}>
+        <span style={{ position: 'relative', width: fz(40, 48), height: fz(46, 54), flex: 'none' }}>
           {rankNo != null && rankTier != null && rankBadgeSrc(rankNo) && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -200,43 +221,43 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
           )}
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', font: `500 8px ${BODY}`, letterSpacing: 2, color: '#8d94a3', textTransform: 'uppercase' }}>
+          <span style={{ display: 'block', font: `${fz(500, 600)} ${fz(8, DT.fs.label)}px ${BODY}`, letterSpacing: fz(2, 1.6), color: '#8d94a3', textTransform: 'uppercase' }}>
             {t('profile.overview.ranked')}{ranked.season ? ` · ${ranked.season}` : ''}
           </span>
-          <span style={{ display: 'block', font: `700 13px ${DISPLAY}`, color: '#D6DCE6', marginTop: 2 }}>
+          <span style={{ display: 'block', font: `700 ${fz(13, DT.fs.h3)}px ${DISPLAY}`, color: '#D6DCE6', marginTop: fz(2, 4) }}>
             {/* KANONINIS formatas — tas pats kaip header/Home/Ranked (rankDisplay.full) */}
             {step != null ? rankDisplay(step).full : t('profile.overview.noRank')}
           </span>
-          <span style={{ display: 'block', font: `400 9.5px ${BODY}`, color: C.label, marginTop: 1 }}>{t('profile.overview.seasonalBadge')}</span>
+          <span style={{ display: 'block', font: `400 ${fz(9.5, 13)}px ${BODY}`, color: C.label, marginTop: fz(1, 3) }}>{t('profile.overview.seasonalBadge')}</span>
         </span>
-        <span aria-hidden style={{ color: C.muted, font: `400 13px ${BODY}` }}>›</span>
+        <span aria-hidden style={{ color: C.muted, font: `400 ${fz(13, 20)}px ${BODY}` }}>›</span>
       </button>
 
       {/* Pasiekimai */}
-      <div className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <Kicker>{t('profile.nav.achievements')}</Kicker>
+      <div className="rvn-prog-clip" style={{ border: `1px solid ${C.lineIn}`, background: C.raised, padding: fz(12, DT.sp.lg) }}>
+        <div style={{ display: 'flex', alignItems: fz('baseline', 'center'), justifyContent: 'space-between' }}>
+          <Kicker style={kickS}>{t('profile.nav.achievements')}</Kicker>
           {!isPublic && (
             <button type="button" onClick={() => { playUiClick(); router.push('/digital/profile/achievements') }}
-              style={{ border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 9.5px ${BODY}` }}>
+              style={linkS}>
               {t('profile.overview.open')} ›
             </button>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 5 }}>
-          <span style={{ font: `800 20px ${DISPLAY}`, color: 'var(--rvn-burgundy-fg)', lineHeight: 1 }}>{achSummary?.done ?? 0}</span>
-          <span style={{ font: `600 11px ${DISPLAY}`, color: C.label }}>/ {achSummary?.total ?? 70}</span>
+          <span style={{ font: `800 ${fz(20, DT.fs.stat)}px ${DISPLAY}`, color: 'var(--rvn-burgundy-fg)', lineHeight: 1 }}>{achSummary?.done ?? 0}</span>
+          <span style={{ font: `600 ${fz(11, 14)}px ${DISPLAY}`, color: C.label }}>/ {achSummary?.total ?? 70}</span>
         </div>
         <div style={{ position: 'relative', height: 5, marginTop: 6, background: '#1a1420', border: `1px solid ${C.lineIn}` }}>
           <span style={{ position: 'absolute', inset: '0 auto 0 0', width: `${achSummary && achSummary.total ? (achSummary.done / achSummary.total) * 100 : 0}%`, background: 'linear-gradient(90deg,#6E2633,#C1566A)' }} />
         </div>
-        <Kicker style={{ marginTop: 11 }}>{t('profile.ach.featuredTitle')}</Kicker>
-        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+        <Kicker style={{ marginTop: fz(11, 14), ...kickS }}>{t('profile.ach.featuredTitle')}</Kicker>
+        <div style={{ display: 'flex', gap: 10, marginTop: fz(8, 10) }}>
           {Array.from({ length: 3 }, (_, i) => featured[i]).map((code, i) => (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               {code
-                ? <AchievementBadge code={code} size={46} />
-                : <span aria-hidden style={{ width: 46, height: 50, border: `1px dashed ${C.lineIn}` }} />}
+                ? <AchievementBadge code={code} size={fz(46, 54)} />
+                : <span aria-hidden style={{ width: fz(46, 54), height: fz(50, 58), border: `1px dashed ${C.lineIn}` }} />}
             </div>
           ))}
         </div>
@@ -289,30 +310,32 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   const modeTile = (key: 'bot' | 'unranked' | 'ranked', label: string) => {
     const st = bm?.[key]
     if (!st) return null
-    return <Tile key={key} label={label} value={`${st.winRate}%`} sub={t('profile.overview.modeRecord', { wins: st.wins, matches: st.matches })} />
+    return <Tile key={key} desk={desk} label={label} value={`${st.winRate}%`} sub={t('profile.overview.modeRecord', { wins: st.wins, matches: st.matches })} />
   }
   const tiles = (
-    <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-      <Tile label={t('profile.overview.matches')} value={formatNumber(stats.matches)} sub={t('profile.overview.allModesNote')} />
-      <Tile label={t('profile.overview.wins')} value={formatNumber(stats.wins)} sub={t('profile.overview.overallRate', { rate: stats.winRate })} tone={C.goldHi} />
+    <div style={desk
+      ? { display: 'grid', gap: DT.sp.md, gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))' }
+      : { display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+      <Tile desk={desk} label={t('profile.overview.matches')} value={formatNumber(stats.matches)} sub={t('profile.overview.allModesNote')} />
+      <Tile desk={desk} label={t('profile.overview.wins')} value={formatNumber(stats.wins)} sub={t('profile.overview.overallRate', { rate: stats.winRate })} tone={C.goldHi} />
       {modeTile('ranked', t('profile.overview.modeRanked'))}
       {modeTile('unranked', t('profile.overview.modeCasual'))}
       {modeTile('bot', t('profile.overview.modeAi'))}
-      <Tile label={t('profile.overview.rankedWins')} value={formatNumber(ranked.wins)} sub={ranked.season ?? ''} />
-      <Tile label={t('profile.overview.longestStreak')} value={formatNumber(stats.longestStreak)} sub={t('profile.overview.winsShort')} />
+      <Tile desk={desk} label={t('profile.overview.rankedWins')} value={formatNumber(ranked.wins)} sub={ranked.season ?? ''} />
+      <Tile desk={desk} label={t('profile.overview.longestStreak')} value={formatNumber(stats.longestStreak)} sub={t('profile.overview.winsShort')} />
     </div>
   )
 
   const collectionPanel = collection ? (
-    <Panel title={t('profile.overview.collection')}
+    <Panel desk={desk} title={t('profile.overview.collection')}
       extra={!isPublic ? (
         <button type="button" onClick={() => { playUiClick(); router.push('/digital/collection') }}
-          style={{ border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 9.5px ${BODY}` }}>
+          style={linkS}>
           {t('profile.overview.openCollection')} ›
         </button>) : undefined}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ font: `800 20px ${DISPLAY}`, color: C.bone }}>{collection.pct}%</span>
-        <span style={{ font: `400 10px ${BODY}`, color: C.muted }}>
+        <span style={{ font: `800 ${fz(20, DT.fs.stat)}px ${DISPLAY}`, color: C.bone }}>{collection.pct}%</span>
+        <span style={{ font: `400 ${fz(10, 13.5)}px ${BODY}`, color: C.muted }}>
           {t('profile.overview.uniqueCards', { owned: formatNumber(collection.owned), total: formatNumber(collection.total) })}
         </span>
       </div>
@@ -321,32 +344,32 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
       </div>
       <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
         {collection.byRarity.map((r) => (
-          <div key={r.rarity} style={{ flex: 1, minWidth: 84, border: `1px solid ${C.lineIn}`, padding: '7px 8px', textAlign: 'center' }}>
-            <div style={{ font: `800 15px ${DISPLAY}`, color: C.bone }}>{r.owned}</div>
-            <div style={{ font: `400 9px ${BODY}`, color: C.label }}>{r.rarity} · {r.total}</div>
+          <div key={r.rarity} style={{ flex: 1, minWidth: fz(84, 96), border: `1px solid ${C.lineIn}`, padding: fz('7px 8px', '10px 10px'), textAlign: 'center' }}>
+            <div style={{ font: `800 ${fz(15, 18)}px ${DISPLAY}`, color: C.bone }}>{r.owned}</div>
+            <div style={{ font: `400 ${fz(9, 12)}px ${BODY}`, color: C.label }}>{r.rarity} · {r.total}</div>
           </div>
         ))}
       </div>
     </Panel>
   ) : (
-    <Panel title={t('profile.overview.collection')}>
-      <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.hiddenByOwner')}</span>
+    <Panel desk={desk} title={t('profile.overview.collection')}>
+      <span style={emptyS}>{t('profile.overview.hiddenByOwner')}</span>
     </Panel>
   )
 
   const decksPanel = (
-    <Panel title={t('profile.overview.publicDecks')}>
-      {!publicDecks ? <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.hiddenByOwner')}</span>
-        : publicDecks.length === 0 ? <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.noDecks')}</span>
+    <Panel desk={desk} title={t('profile.overview.publicDecks')}>
+      {!publicDecks ? <span style={emptyS}>{t('profile.overview.hiddenByOwner')}</span>
+        : publicDecks.length === 0 ? <span style={emptyS}>{t('profile.overview.noDecks')}</span>
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {publicDecks.map((d) => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 9, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: '8px 10px' }}>
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 9, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: fz('8px 10px', '10px 12px') }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', font: `700 11.5px ${DISPLAY}`, color: C.bone }}>{d.name}</span>
-                  <span style={{ display: 'block', font: `400 9.5px ${BODY}`, color: C.label }}>{d.faction ?? '—'} · {d.cardCount}</span>
+                  <span className={fz(undefined, 'rvn-clamp2')} style={{ display: 'block', font: `700 ${fz(11.5, 15)}px ${DISPLAY}`, color: C.bone, lineHeight: fz(undefined, 1.3) }}>{d.name}</span>
+                  <span style={{ display: 'block', font: `400 ${fz(9.5, 13)}px ${BODY}`, color: C.label, marginTop: fz(0, 2) }}>{d.faction ?? '—'} · {d.cardCount}</span>
                 </span>
-                <span style={{ font: `700 11px ${DISPLAY}`, color: C.goldHi }}>{d.score > 0 ? `+${d.score}` : d.score}</span>
+                <span style={{ font: `700 ${fz(11, 14)}px ${DISPLAY}`, color: C.goldHi }}>{d.score > 0 ? `+${d.score}` : d.score}</span>
               </div>
             ))}
           </div>
@@ -355,23 +378,23 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   )
 
   const historyPanel = (
-    <Panel title={t('profile.overview.matchHistory')}>
-      {!matchHistory ? <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.hiddenByOwner')}</span>
-        : matchHistory.length === 0 ? <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.noMatches')}</span>
+    <Panel desk={desk} title={t('profile.overview.matchHistory')}>
+      {!matchHistory ? <span style={emptyS}>{t('profile.overview.hiddenByOwner')}</span>
+        : matchHistory.length === 0 ? <span style={emptyS}>{t('profile.overview.noMatches')}</span>
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {matchHistory.map((m, i) => {
               const win = m.result === 'win'
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, borderLeft: `2px solid ${win ? 'var(--rvn-green)' : '#8D2D38'}`, background: 'rgba(7,6,10,.5)', padding: '7px 10px' }}>
-                  <span style={{ font: `700 9px ${DISPLAY}`, letterSpacing: 1, color: win ? 'var(--rvn-green-fg)' : '#c0616c', textTransform: 'uppercase' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: fz(9, 12), borderLeft: `${fz(2, 3)}px solid ${win ? 'var(--rvn-green)' : '#8D2D38'}`, background: 'rgba(7,6,10,.5)', padding: fz('7px 10px', '10px 12px') }}>
+                  <span style={{ font: `700 ${fz(9, 12)}px ${DISPLAY}`, letterSpacing: 1, minWidth: fz(undefined, 64), color: win ? 'var(--rvn-green-fg)' : '#c0616c', textTransform: 'uppercase' }}>
                     {win ? t('profile.overview.win') : t('profile.overview.loss')}
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', font: `700 11px ${DISPLAY}`, color: C.bone }}>
+                    <span style={{ display: 'block', font: `700 ${fz(11, 15)}px ${DISPLAY}`, color: C.bone }}>
                       {m.opponent ?? t(`profile.overview.mode.${m.mode}`)}
                     </span>
-                    <span style={{ display: 'block', font: `400 9.5px ${BODY}`, color: C.label }}>
+                    <span style={{ display: 'block', font: `400 ${fz(9.5, 13)}px ${BODY}`, color: C.label }}>
                       {t(`profile.overview.mode.${m.mode}`)}{m.turns ? ` · ${t('profile.overview.turns', { n: m.turns })}` : ''}
                     </span>
                   </span>
@@ -384,20 +407,20 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   )
 
   const achPanel = (
-    <Panel title={t('profile.overview.recentAchievements')}
+    <Panel desk={desk} title={t('profile.overview.recentAchievements')}
       extra={!isPublic ? (
         <button type="button" onClick={() => { playUiClick(); router.push('/digital/profile/achievements') }}
-          style={{ border: 0, background: 'transparent', color: C.gold, cursor: 'pointer', font: `600 9.5px ${BODY}` }}>
+          style={linkS}>
           {t('profile.overview.all')} ›
         </button>) : undefined}>
-      {!recentAchievements ? <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.hiddenByOwner')}</span>
-        : recentAchievements.length === 0 ? <span style={{ font: `400 10.5px ${BODY}`, color: C.label }}>{t('profile.overview.noAchievements')}</span>
+      {!recentAchievements ? <span style={emptyS}>{t('profile.overview.hiddenByOwner')}</span>
+        : recentAchievements.length === 0 ? <span style={emptyS}>{t('profile.overview.noAchievements')}</span>
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {recentAchievements.map((a) => (
-              <div key={a.code} style={{ display: 'flex', alignItems: 'center', gap: 9, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: '7px 10px' }}>
-                <AchievementBadge code={a.code} size={30} />
-                <span style={{ font: `700 11px ${DISPLAY}`, color: C.bone }}>{a.nameLt}</span>
+              <div key={a.code} style={{ display: 'flex', alignItems: 'center', gap: fz(9, 12), border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: fz('7px 10px', '8px 12px') }}>
+                <AchievementBadge code={a.code} size={fz(30, 38)} />
+                <span className={fz(undefined, 'rvn-clamp2')} style={{ font: `700 ${fz(11, 15)}px ${DISPLAY}`, color: C.bone, lineHeight: fz(undefined, 1.3) }}>{a.nameLt}</span>
               </div>
             ))}
           </div>
@@ -406,8 +429,8 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   )
 
   const statsPanel = (
-    <Panel title={t('profile.overview.seasonRanked')}>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+    <Panel desk={desk} title={t('profile.overview.seasonRanked')}>
+      <div style={{ display: 'flex', gap: fz(16, DT.sp.xl), flexWrap: 'wrap' }}>
         {[
           [t('profile.overview.matches'), formatNumber(ranked.wins + ranked.losses)],
           [t('profile.overview.wins'), formatNumber(ranked.wins)],
@@ -415,27 +438,40 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
           [t('profile.overview.bestStreak'), formatNumber(ranked.bestWinStreak)],
         ].map(([l, v]) => (
           <div key={l}>
-            <div style={{ font: `800 19px ${DISPLAY}`, color: C.bone }}>{v}</div>
-            <div style={{ font: `400 9px ${BODY}`, letterSpacing: 1.2, color: C.label, textTransform: 'uppercase' }}>{l}</div>
+            <div style={{ font: `800 ${fz(19, DT.fs.stat)}px ${DISPLAY}`, color: C.bone }}>{v}</div>
+            <div style={{ font: `${fz(400, 600)} ${fz(9, DT.fs.label)}px ${BODY}`, letterSpacing: 1.2, color: C.label, textTransform: 'uppercase', marginTop: fz(0, 4) }}>{l}</div>
           </div>
         ))}
       </div>
       {topFaction && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: '8px 10px' }}>
-          <span style={{ font: `500 8px ${BODY}`, letterSpacing: 2, color: C.label, textTransform: 'uppercase' }}>{t('profile.overview.topFaction')}</span>
-          <span style={{ font: `700 12px ${DISPLAY}`, color: C.bone }}>{topFaction.faction}</span>
-          <span style={{ font: `400 10px ${BODY}`, color: C.muted }}>· {topFaction.pct}%</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: fz(9, 12), marginTop: fz(12, DT.sp.lg), border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.5)', padding: fz('8px 10px', '10px 12px'), flexWrap: fz(undefined, 'wrap' as const) }}>
+          <span style={{ font: `${fz(500, 600)} ${fz(8, DT.fs.label)}px ${BODY}`, letterSpacing: fz(2, 1.6), color: C.label, textTransform: 'uppercase' }}>{t('profile.overview.topFaction')}</span>
+          <span style={{ font: `700 ${fz(12, 15)}px ${DISPLAY}`, color: C.bone }}>{topFaction.faction}</span>
+          <span style={{ font: `400 ${fz(10, 13.5)}px ${BODY}`, color: C.muted }}>· {topFaction.pct}%</span>
         </div>
       )}
     </Panel>
   )
 
   const body = () => {
-    if (tab === 'achievements') return <div style={{ display: 'grid', gap: 10 }}>{achPanel}</div>
-    if (tab === 'stats') return <div style={{ display: 'grid', gap: 10 }}>{tiles}{statsPanel}</div>
-    if (tab === 'decks') return <div style={{ display: 'grid', gap: 10 }}>{decksPanel}</div>
-    if (tab === 'collection') return <div style={{ display: 'grid', gap: 10 }}>{collectionPanel}</div>
-    if (tab === 'history') return <div style={{ display: 'grid', gap: 10 }}>{historyPanel}</div>
+    const g = fz(10, DT.sp.md)
+    if (tab === 'achievements') return <div style={{ display: 'grid', gap: g }}>{achPanel}</div>
+    if (tab === 'stats') return <div style={{ display: 'grid', gap: g }}>{tiles}{statsPanel}</div>
+    if (tab === 'decks') return <div style={{ display: 'grid', gap: g }}>{decksPanel}</div>
+    if (tab === 'collection') return <div style={{ display: 'grid', gap: g }}>{collectionPanel}</div>
+    if (tab === 'history') return <div style={{ display: 'grid', gap: g }}>{historyPanel}</div>
+    if (desk) {
+      // desktop: vienas puslapio scroll'as; skydeliai adaptyviu tinkleliu (min 300 px),
+      // kad 3 stulpeliai nesispaustų — netelpant pereina į 2 / 1 stulpelį.
+      const grid: React.CSSProperties = { display: 'grid', gap: DT.sp.md, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', alignItems: 'start' }
+      return (
+        <div style={{ display: 'grid', gap: DT.sp.md }}>
+          {tiles}
+          <div style={grid}>{statsPanel}{collectionPanel}</div>
+          <div style={grid}>{decksPanel}{achPanel}{historyPanel}</div>
+        </div>
+      )
+    }
     if (compact) {
       // 390 px aukštyje vertikalus krovimas nuvaro turinį už ekrano ribų —
       // handoff numato horizontaliai slenkamą stulpelių rinkinį.
@@ -462,6 +498,51 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
           {achPanel}
           {historyPanel}
         </div>
+      </div>
+    )
+  }
+
+  const tabRow = (
+    TABS.map((k) => {
+      const on = tab === k
+      return (
+        <button key={k} type="button" onClick={() => { playUiClick(); setTab(k) }} aria-pressed={on}
+          style={{
+            minHeight: fz(44, DT.ctl), flex: 'none', padding: fz('0 13px', '0 16px'), cursor: 'pointer', whiteSpace: 'nowrap',
+            border: `1px solid ${on ? C.gold : C.lineIn}`, background: on ? 'rgba(198,161,79,.1)' : 'rgba(7,6,10,.6)',
+            color: on ? C.goldHi : C.muted, font: `600 ${fz(10.5, 13)}px ${DISPLAY}`, letterSpacing: 1, textTransform: 'uppercase',
+          }}>
+          {t(`profile.overview.tab.${k}`)}
+        </button>
+      )
+    })
+  )
+
+  if (desk) {
+    // ── DESKTOP: be height:100% ir vidinių scroll'ų — slenka layout <main> ──
+    return (
+      <div className="rvn-prog-in" style={{ display: 'flex', flexDirection: 'column', gap: DT.sp.lg, minWidth: 0 }}>
+        <div style={{ paddingBottom: DT.sp.md, borderBottom: `1px solid #1e1a26` }}>
+          <h1 style={{ font: `800 ${DT.fs.h1}px ${DISPLAY}`, color: C.bone, letterSpacing: 0.8, textTransform: 'uppercase', margin: 0, lineHeight: 1.15 }}>
+            {isPublic ? t('profile.overview.publicTitle') : t('profile.overview.title')}
+          </h1>
+          <div style={{ font: `400 ${DT.fs.help}px ${BODY}`, color: C.muted, marginTop: 4 }}>
+            {isPublic ? t('profile.overview.publicSubtitle') : t('profile.overview.subtitle')}
+          </div>
+        </div>
+        <div ref={areaRef} style={{
+          display: 'grid', gap: DT.sp.xl, alignItems: 'start',
+          gridTemplateColumns: identityTop ? 'minmax(0, 1fr)' : '300px minmax(0, 1fr)',
+        }}>
+          {identityCard}
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: DT.sp.md }}>
+            {/* tab'ai: desktop'e lūžta į kitą eilutę, ne horizontalus scroll */}
+            <div role="group" style={{ display: 'flex', flexWrap: 'wrap', gap: DT.sp.sm }}>{tabRow}</div>
+            <div>{body()}</div>
+          </div>
+        </div>
+        {editOpen && <ProfileCosmeticsModal initialTab={editOpen} onClose={() => { setEditOpen(false); void load() }} />}
+        {toast.node}
       </div>
     )
   }

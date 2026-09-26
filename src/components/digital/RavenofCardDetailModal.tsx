@@ -5,7 +5,7 @@
 // Vizualas: ravenof-ui-handoff card-detail-modal.png + prototipo CARD DETAIL
 // OVERLAY. Logika (craft/disenchant/essence/limitai) — esama, nekeičiama.
 // ════════════════════════════════════════════════════════════════════════════
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCraftConfig, disenchantCard, craftCard, type CraftConfig } from '@/lib/gamification/craft'
@@ -14,6 +14,9 @@ import {
   ravenofFactionColor, ravenofFactionIcon, ravenofRarityColor, ravenofRarityGem,
   ravenofCardTypeIcon, RavenofStatTile,
 } from './ui/RavenofKit'
+import { useDesktopUi } from './ui/useDesktopUi'
+import { DT } from './ui/deskTokens'
+import { DeskDialog } from './ui/DeskKit'
 
 export type RavenofCardDetail = {
   id: string; name: string; image: string | null
@@ -32,6 +35,7 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
 }) {
   const t = useT()
   const gc = useGameContent()
+  const { desktop } = useDesktopUi()
   const [bad, setBad] = useState(false)
   const [cfg, setCfg] = useState<CraftConfig | null>(null)
   const [essence, setEssence] = useState(0)
@@ -45,13 +49,14 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
   // Esc uždaro; ←/→ naršo (turi atitikti esamą klaviatūros elgseną + patvirtintas rodykles)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      // desktop: Escape tvarko DeskDialog (useDialogFocus) – kad nesikviestų du kartus
+      if (e.key === 'Escape') { if (!desktop) onClose() }
       else if (e.key === 'ArrowLeft') onPrev?.()
       else if (e.key === 'ArrowRight') onNext?.()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, onPrev, onNext])
+  }, [onClose, onPrev, onNext, desktop])
 
   // Esama craft/disenchant logika (nekeičiama)
   const tier = String((c.type && /champion|čempion/i.test(c.type)) ? 6 : Math.min(6, Math.max(1, c.raritySort || 1)))
@@ -66,6 +71,95 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
   const rarColor = ravenofRarityColor(c.rarity)
   const typeIcon = ravenofCardTypeIcon(c.type)
   const hasStats = c.atk != null && c.hp != null
+
+
+  // ══ DESKTOP: centruotas dialogas (DeskDialog: header/body/footer, ×, Escape, fokusas) ══
+  //  Kairėje – didelė kortos iliustracija (santykis 1044/1416, contain, niekada nekarpoma),
+  //  dešinėje – meta, statistika, aprašas 15px. Footer: naršymas ‹ › · esencija · veiksmai (pagal turinį).
+  if (desktop) {
+    const metaFont = `600 ${DT.fs.help}px var(--ravenof-font-body)`
+    const stat = (value: ReactNode, label: string, color = 'var(--ravenof-text-primary)', suffix?: ReactNode) => (
+      <div style={{ flex: '1 1 0', minWidth: 96, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px', textAlign: 'center' }}>
+        <div style={{ font: `700 ${DT.fs.stat}px/1.1 var(--ravenof-font-display)`, color }}>{value}{suffix}</div>
+        <div className="rvn-d-label" style={{ marginTop: 4 }}>{label}</div>
+      </div>
+    )
+    const header = (
+      <div className="flex items-center flex-wrap" style={{ gap: 12 }}>
+        {c.faction && (
+          <span className="inline-flex items-center" style={{ gap: 6, font: metaFont, color: facColor }}>
+            <span aria-hidden style={{ width: 18, height: 18, background: facColor, WebkitMask: `url('${ravenofFactionIcon(c.factionSlug)}') center / contain no-repeat`, mask: `url('${ravenofFactionIcon(c.factionSlug)}') center / contain no-repeat`, display: 'inline-block' }} />
+            {gc.faction(c.faction)}
+          </span>
+        )}
+        {c.type && (
+          <span className="inline-flex items-center" style={{ gap: 6, font: metaFont, color: 'var(--ravenof-text-secondary)' }}>
+            {typeIcon && <span aria-hidden style={{ width: 16, height: 16, background: 'var(--ravenof-text-secondary)', WebkitMask: `url('${typeIcon}') center / contain no-repeat`, mask: `url('${typeIcon}') center / contain no-repeat`, display: 'inline-block' }} />}
+            {gc.cardType(c.type)}
+          </span>
+        )}
+        {c.rarity && (
+          <span className="inline-flex items-center" style={{ gap: 6, font: `700 ${DT.fs.help}px var(--ravenof-font-body)`, color: rarColor, border: `1px solid ${rarColor}55`, padding: '2px 10px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={ravenofRarityGem(c.rarity)} alt="" style={{ width: 14, height: 18, objectFit: 'contain' }} />
+            {gc.rarity(c.rarity)}
+          </span>
+        )}
+      </div>
+    )
+    const actionFont = `700 13px var(--ravenof-font-display)`
+    const footer = (
+      <>
+        {onPrev && <button onClick={() => { playUiClick(); onPrev() }} className="rvn-d-btn rvn-d-btn-ghost" style={{ minWidth: 0 }} aria-keyshortcuts="ArrowLeft">‹ {t('collection.prevCard')}</button>}
+        {onNext && <button onClick={() => { playUiClick(); onNext() }} className="rvn-d-btn rvn-d-btn-ghost" style={{ minWidth: 0 }} aria-keyshortcuts="ArrowRight">{t('collection.nextCard')} ›</button>}
+        <span style={{ flex: 1 }} />
+        <span className="shrink-0" data-testid="card-essence" style={{ font: `700 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-essence)' }}>◈ {essence}</span>
+        {!cfg ? (
+          <span aria-busy="true" className="rvn-d-help" style={{ padding: '0 12px' }}>{t('common.loading')}</span>
+        ) : craftCost > 0 ? (
+          <button onClick={doCraft} disabled={busy || !canCraft} data-testid="card-craft" className="rvn-d-btn"
+            style={{ font: actionFont, letterSpacing: '.1em', minHeight: DT.cta, padding: '0 26px', color: canCraft ? '#07060A' : '#5e5868', background: canCraft ? 'linear-gradient(180deg,#a98ad6,#7650A4)' : 'var(--ravenof-bg-elevated)', cursor: canCraft ? 'pointer' : 'default', clipPath: 'polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)', filter: 'none' }}>
+            {t('collection.craftCta')} · {craftCost} ◈
+          </button>
+        ) : (
+          <span className="rvn-d-help" style={{ maxWidth: 360, textAlign: 'right' }}>{t('collection.notCraftable')}</span>
+        )}
+        {cfg && dustVal > 0 && (
+          <button onClick={doDust} disabled={busy || !canDust} data-testid="card-disenchant" className="rvn-d-btn rvn-d-btn-ghost"
+            style={{ font: actionFont, letterSpacing: '.1em', color: canDust ? 'var(--ravenof-text-secondary)' : '#4a4552', borderColor: canDust ? 'var(--ravenof-border-strong)' : '#221e29', filter: 'none' }}>
+            {t('collection.disenchantCta')} · +{dustVal} ◈
+          </button>
+        )}
+      </>
+    )
+    return (
+      <DeskDialog onClose={onClose} title={c.name} subtitle={header} ariaLabel={c.name} footer={footer} width={DT.modal.lg} zIndex={91} closeLabel={t('common.close')}
+        bodyStyle={{ padding: DT.sp.xl, background: `radial-gradient(circle at 22% 45%, ${facColor}1f, transparent 60%)` }}>
+        <div className="flex items-start" style={{ gap: DT.sp.xxl }}>
+          {/* Kortos iliustracija: plotis ribojamas ir lango aukščio (header+footer+paddingai ≈ 230px) */}
+          <div role="img" aria-label={c.name} className="shrink-0 relative"
+            style={{ width: 'min(420px, calc((100vh - 230px) * 1044 / 1416))', minWidth: 240, aspectRatio: '1044 / 1416', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--ravenof-border-strong)', boxShadow: '0 20px 60px rgba(0,0,0,.7)', background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>
+            {c.image && !bad
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={c.image} alt="" onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full" style={{ objectFit: 'contain' }} />
+              : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 56 }}>🎴</span>}
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col" style={{ gap: DT.sp.lg }}>
+            <div className="flex flex-wrap" style={{ gap: DT.sp.sm }}>
+              {stat(c.gold, t('collection.goldCost'), 'var(--ravenof-gold)')}
+              {hasStats && stat(c.atk ?? 0, t('collection.attack'))}
+              {hasStats && stat(c.hp ?? 0, t('collection.health'), 'var(--ravenof-danger-bright)')}
+              {stat(ownedNow, t('collection.ownedStat'), 'var(--ravenof-text-primary)', <span style={{ font: `400 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}> / {c.copyLimit}</span>)}
+            </div>
+            <div data-testid="card-effect" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '16px 18px', font: `400 ${DT.fs.body}px/1.6 var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', whiteSpace: 'pre-line' }}>
+              {c.effect || <span style={{ color: 'var(--ravenof-text-secondary)' }}>—</span>}
+            </div>
+            {msg && <p role="alert" style={{ margin: 0, font: `500 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)' }}>{msg}</p>}
+          </div>
+        </div>
+      </DeskDialog>
+    )
+  }
 
   if (typeof document === 'undefined') return null
   return createPortal(

@@ -22,6 +22,9 @@ import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '
 import { SmartImg } from '@/components/ui/SmartImg'
 import { GameCard } from '@/components/ui/GameCard'
 import { useT, useContent, useCardI18n } from '@/lib/i18n/react'
+import { useDesktopUi } from './ui/useDesktopUi'
+import { DT, deskGrid } from './ui/deskTokens'
+import { useDialogFocus } from './ui/DeskKit'
 
 const GOLD = '212,163,59'
 // hover preview tik įrenginiams su tikra pele (touch emuliuoja mouse eventus,
@@ -68,12 +71,13 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
     image_url: cx.image(c.id, c.image_url),
   })), [cardsRaw, cx])
   const store = useDeckBuilderStore()
+  const { desktop } = useDesktopUi()
   const [q, setQ] = useState('')
   const [showUniversal, setShowUniversal] = useState(true)
   const [preview, setPreview] = useState<CardWithRelations | null>(null)
   const [descOpen, setDescOpen] = useState(false)
   // desktop: pelės hover — plaukiojantis kortos paveikslo preview
-  const [hover, setHover] = useState<{ card: CardWithRelations; x: number; y: number } | null>(null)
+  const [hover, setHover] = useState<{ card: CardWithRelations; x: number; y: number; lim?: number; rect?: { left: number; right: number; top: number; bottom: number } } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [tester, setTester] = useState(false)
@@ -381,11 +385,25 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
     for (const e of store.entries) if (e.card.is_champion) champions += e.quantity
     return { avg, curve, champions }
   }, [store.entries])
-  // Builder'yje viršutinė profilio juosta slepiama — kortų sąrašui daugiau aukščio
+  // Builder'yje viršutinė profilio juosta (ir nav rail) slepiama — kortų sąrašui daugiau aukščio.
+  // TIK mobile: desktop'e vietos pakanka, rail ir antraštė lieka matomi (navigacija neišnyksta).
   useEffect(() => {
+    if (desktop) return
     document.body.dataset.rvnHideHeader = '1'
     return () => { delete document.body.dataset.rvnHideHeader }
-  }, [])
+  }, [desktop])
+  // Desktop: frakcijos pasirinkimo žingsnis su tuščia kalade — be dešinės panelės (kompaktiškas centruotas grid)
+  const deskPickOnly = desktop && store.factionId == null && store.entries.length === 0 && store.sideEntries.length === 0
+  // Hover preview dešinė riba — niekada neuždengia kaladės panelės (desktop)
+  const hoverLimit = () => {
+    const r = desktop ? dropRef.current?.getBoundingClientRect() : null
+    return r ? r.left - 12 : window.innerWidth - 8
+  }
+  const deckTitle = store.name.trim() || (store.deckId ? t('decks.title') : t('decks.my.newDeck'))
+  const backBtnD = (
+    <button onClick={() => { playUiClick(); onBack() }} className="rvn-dlg-close ravenof-press" style={{ width: DT.ctl, height: DT.ctl, color: 'var(--ravenof-gold)', borderColor: `rgba(${GOLD},0.4)` }} aria-label={t('deckBuilder.back')}><ChevronLeft size={22} /></button>
+  )
+  const testerBadge = tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: desktop ? 12 : 8, padding: desktop ? '1px 6px' : undefined, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>
 
   const curveMax = Math.max(1, ...stats.curve)
   const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => (a.card.gold_cost ?? 0) - (b.card.gold_cost ?? 0) || a.card.name.localeCompare(b.card.name)), [store.entries])
@@ -393,12 +411,51 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
   const shownEntries = mode === 'side' ? sortedSide : sortedEntries
 
   return (
-    <div className="ravenof-body ravenof-in h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: 'clamp(4px,1vh,8px)' }}>
-      <div className="flex-1 min-h-0 grid gap-2" style={{ gridTemplateColumns: 'minmax(0,2.55fr) minmax(220px,1.05fr)', gridTemplateRows: 'minmax(0, 1fr)' }}>
+    <div className="ravenof-body ravenof-in h-full max-h-full flex flex-col min-h-0 overflow-hidden" style={{ gap: desktop ? DT.sp.lg : 'clamp(4px,1vh,8px)' }}>
+      {/* DESKTOP antraštė: ‹ atgal · pavadinimas · frakcija */}
+      {desktop && (
+        <div className="shrink-0 flex items-center" style={{ gap: DT.sp.lg, minHeight: 48, paddingTop: DT.sp.xs }}>
+          {backBtnD}
+          <div className="flex-1 min-w-0">
+            <div className="rvn-d-label">{t('decks.title')} · {t('decks.tabs.builder')}</div>
+            <h1 className="rvn-d-h1 truncate" title={deckTitle} style={{ marginTop: 2 }}>{deckTitle}</h1>
+          </div>
+          {selFaction && (
+            <span className="shrink-0 inline-flex items-center" style={{ gap: 8, minHeight: 36, padding: '0 14px', font: `700 14px var(--ravenof-font-display)`, letterSpacing: '.04em', color: selFaction.color_hex ?? 'var(--ravenof-gold)', border: `1px solid ${selFaction.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.4)`}`, background: 'rgba(10,8,16,0.7)' }}>
+              <span style={{ fontSize: 18 }}>{identityFor(selFaction.name)?.icon ?? '🛡️'}</span>{tc('faction', selFaction.id, 'name', selFaction.name)}
+            </span>
+          )}
+          {testerBadge}
+        </div>
+      )}
+      <div className={`flex-1 min-h-0 grid ${desktop ? '' : 'gap-2'}`} style={{ gridTemplateColumns: desktop ? (deskPickOnly ? 'minmax(0,1fr)' : `minmax(0,1fr) ${DT.side.deck}px`) : 'minmax(0,2.55fr) minmax(220px,1.05fr)', gridTemplateRows: 'minmax(0, 1fr)', gap: desktop ? DT.sp.lg : undefined }}>
 
         {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
-        <section className="flex flex-col min-h-0 overflow-hidden p-2.5" style={PANEL}>
-          {store.factionId == null ? (
+        <section className={`flex flex-col min-h-0 overflow-hidden ${desktop ? '' : 'p-2.5'}`} style={desktop ? (deskPickOnly ? { padding: 0 } : { ...PANEL, padding: DT.sp.lg }) : PANEL}>
+          {store.factionId == null && desktop ? (
+            /* DESKTOP frakcijos pasirinkimas: kompaktiškas centruotas grid (≤1100px), 260–320px plytelės */
+            <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll">
+              <div className="flex flex-col" style={{ maxWidth: 1100, margin: '0 auto', padding: `${DT.sp.xl}px ${DT.sp.xl}px`, ...PANEL }}>
+                <h2 className="rvn-d-h2" style={{ textAlign: 'center', textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>{t('deckBuilder.pickDeckFaction')}</h2>
+                <div style={{ ...deskGrid([260, 320], DT.sp.lg), marginTop: DT.sp.xl }} data-testid="faction-grid">
+                  {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
+                    const id = identityFor(f.name)
+                    const on = f.id === store.factionId
+                    return (
+                      <button key={f.id} onClick={() => pickFaction(f)} className="ravenof-press flex items-center text-left"
+                        style={{ minHeight: 96, gap: DT.sp.lg, padding: `${DT.sp.lg}px ${DT.sp.lg}px`, cursor: 'pointer', background: on ? `rgba(${GOLD},0.1)` : 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '77' : `rgba(${GOLD},0.3)`}`, boxShadow: f.color_hex ? `inset 0 0 28px ${f.color_hex}14` : undefined }}>
+                        <span className="shrink-0 flex items-center justify-center" style={{ width: 52, height: 52, fontSize: 32, border: `1px solid ${f.color_hex ? f.color_hex + '55' : `rgba(${GOLD},0.3)`}`, background: 'rgba(0,0,0,0.35)' }}>{id?.icon ?? '🛡️'}</span>
+                        <span className="min-w-0 flex flex-col" style={{ gap: 4 }}>
+                          <span className="rvn-clamp2" style={{ font: `700 ${DT.fs.h3 + 1}px/1.2 var(--ravenof-font-display)`, color: f.color_hex ?? '#f3ead3', letterSpacing: '.03em' }}>{tc('faction', f.id, 'name', f.name)}</span>
+                          {id && <span className="rvn-d-help" style={{ lineHeight: 1.35 }}>{t(id.lineKey)}</span>}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : store.factionId == null ? (
             <div className="flex-1 min-h-0 flex flex-col">
               <div className="relative mb-2 shrink-0">
                 <button onClick={() => { playUiClick(); onBack() }} className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
@@ -423,23 +480,23 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           ) : (
             <>
               {/* Filtrų juosta (back čia — atskiros antraštės eilutės nebėra, plotas kortoms) */}
-              <div className="shrink-0 flex items-center gap-1.5 flex-wrap mb-2">
-                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
-                <div className="relative flex-1" style={{ minWidth: 120 }}>
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--ravenof-text-secondary)' }} />
+              <div className={`shrink-0 flex items-center flex-wrap ${desktop ? '' : 'gap-1.5 mb-2'}`} style={desktop ? { gap: DT.sp.sm, marginBottom: DT.sp.md } : undefined}>
+                {!desktop && <button onClick={() => { playUiClick(); onBack() }} className="rvn-press flex items-center justify-center rounded-lg shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>}
+                <div className="relative flex-1" style={{ minWidth: desktop ? 220 : 120 }}>
+                  <Search className={`absolute top-1/2 -translate-y-1/2 ${desktop ? 'left-3' : 'left-2.5'}`} style={{ width: desktop ? 17 : 13, height: desktop ? 17 : 13, color: 'var(--ravenof-text-secondary)' }} />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('deckBuilder.searchAlbum')} className="w-full outline-none rounded-lg"
-                    style={{ minHeight: 32, paddingLeft: 28, paddingRight: 8, fontSize: 11.5, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-text-primary)' }} />
+                    style={{ minHeight: desktop ? DT.ctl : 32, paddingLeft: desktop ? 38 : 28, paddingRight: 8, fontSize: desktop ? DT.fs.body : 11.5, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-text-primary)' }} />
                 </div>
                 <select value={store.factionId ?? ''} onChange={(e) => { const f = factions.find((x) => x.id === Number(e.target.value)); if (f) pickFaction(f) }}
-                  className="rounded-lg outline-none" style={{ minHeight: 32, maxWidth: 150, fontSize: 11, padding: '0 6px', background: 'rgba(10,8,16,0.9)', border: `1px solid ${selFaction?.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.3)`}`, color: selFaction?.color_hex ?? 'var(--text-primary)' }}>
+                  className="rounded-lg outline-none" style={{ minHeight: desktop ? DT.ctl : 32, maxWidth: desktop ? 260 : 150, fontSize: desktop ? DT.fs.body : 11, padding: desktop ? '0 10px' : '0 6px', background: 'rgba(10,8,16,0.9)', border: `1px solid ${selFaction?.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.3)`}`, color: selFaction?.color_hex ?? 'var(--text-primary)' }}>
                   {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
-                <button onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} className="rvn-press rounded-lg px-2 font-semibold"
-                  style={{ minHeight: 32, fontSize: 10, background: store.ownedOnly ? 'rgba(79,158,82,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${store.ownedOnly ? 'rgba(79,158,82,0.55)' : `rgba(${GOLD},0.25)`}`, color: store.ownedOnly ? '#7fbf82' : 'var(--text-muted)' }}>
+                <button onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} aria-pressed={store.ownedOnly} className={`rvn-press rounded-lg font-semibold ${desktop ? 'px-4' : 'px-2'}`}
+                  style={{ minHeight: desktop ? DT.ctl : 32, fontSize: desktop ? 13 : 10, background: store.ownedOnly ? 'rgba(79,158,82,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${store.ownedOnly ? 'rgba(79,158,82,0.55)' : `rgba(${GOLD},0.25)`}`, color: store.ownedOnly ? '#7fbf82' : 'var(--text-muted)' }}>
                   {t('deckBuilder.ownedOnly')}
                 </button>
-                <button onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} className="rvn-press rounded-lg px-2 font-semibold"
-                  style={{ minHeight: 32, fontSize: 10, background: showUniversal ? 'rgba(96,165,250,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${showUniversal ? 'rgba(96,165,250,0.55)' : `rgba(${GOLD},0.25)`}`, color: showUniversal ? '#93c5fd' : 'var(--text-muted)' }}>
+                <button onClick={() => { playUiClick(); setShowUniversal((v) => !v) }} aria-pressed={showUniversal} className={`rvn-press rounded-lg font-semibold ${desktop ? 'px-4' : 'px-2'}`}
+                  style={{ minHeight: desktop ? DT.ctl : 32, fontSize: desktop ? 13 : 10, background: showUniversal ? 'rgba(96,165,250,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${showUniversal ? 'rgba(96,165,250,0.55)' : `rgba(${GOLD},0.25)`}`, color: showUniversal ? '#93c5fd' : 'var(--text-muted)' }}>
                   {t('deckBuilder.universal')}
                 </button>
               </div>
@@ -449,15 +506,15 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                   hover (pelė) = plaukiojantis didelis pav.; tap = peržiūra su Pridėti;
                   palaikyk+tempk = drag į kaladę; [+] = greitas pridėjimas. */}
               {pool.length === 0 ? (
-                <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ color: 'var(--ravenof-text-secondary)' }}>{t('deckBuilder.noCards')}</p>
+                <p className="flex-1 flex items-center justify-center text-center text-sm" style={{ fontSize: desktop ? DT.fs.body : undefined, color: 'var(--ravenof-text-secondary)' }}>{t('deckBuilder.noCards')}</p>
               ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto grid pr-0.5 ravenof-scroll" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 8, alignContent: 'start' }} data-testid="album-grid">
+                <div className="flex-1 min-h-0 overflow-y-auto grid pr-0.5 ravenof-scroll" style={desktop ? { ...deskGrid(DT.card.builder, DT.sp.md), paddingRight: DT.sp.xs, paddingTop: 2 } : { gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 8, alignContent: 'start' }} data-testid="album-grid">
                   {pool.map((c) => (
-                    <AlbumTile key={c.id} c={c} owned={ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
+                    <AlbumTile key={c.id} desktop={desktop} c={c} owned={ownedOf(c.id)} deckQty={isCurseCard(c) ? sideQtyOf(c.id) : deckQtyOf(c.id)} dragging={dragCard?.id === c.id}
                       dragProps={dragProps(c)}
                       onAdd={() => tryAdd(c)}
                       onPreview={() => { playUiClick(); setPreview(c) }}
-                      onHover={(x, y) => setHover({ card: c, x, y })}
+                      onHover={(x, y, rect) => setHover((h) => (desktop && h?.card === c && h.rect ? h : { card: c, x, y, lim: hoverLimit(), rect }))}
                       onHoverEnd={() => setHover(null)} />
                   ))}
                 </div>
@@ -467,27 +524,28 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
         </section>
 
         {/* ── DEŠINĖ: kaladė (drop zona) + statistika + išsaugoti ── */}
-        <motion.section ref={dropRef} key={dropPulse}
+        {!deskPickOnly && <motion.section ref={dropRef} key={dropPulse}
           initial={dropPulse > 0 ? { scale: 1.02 } : false}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 380, damping: 16 }}
-          className="flex flex-col min-h-0 overflow-hidden p-2.5"
+          className={`flex flex-col min-h-0 overflow-hidden ${desktop ? '' : 'p-2.5'}`}
           style={{
             height: '100%', maxHeight: '100%',
             ...PANEL,
+            ...(desktop ? { padding: DT.sp.lg } : null),
             border: `1.5px solid rgba(${GOLD},${dragCard ? (overDrop ? 1 : 0.65) : 0.22})`,
             boxShadow: overDrop ? `0 0 26px rgba(${GOLD},0.5), inset 0 0 40px rgba(0,0,0,0.5)` : dragCard ? `0 0 14px rgba(${GOLD},0.3), inset 0 0 40px rgba(0,0,0,0.5)` : 'inset 0 0 40px rgba(0,0,0,0.5)',
             transition: 'box-shadow .15s ease, border-color .15s ease',
           }}>
-          <div className="flex items-center justify-between gap-2 mb-1.5 shrink-0">
+          <div className={`flex items-center justify-between gap-2 shrink-0 ${desktop ? 'flex-wrap mb-3' : 'mb-1.5'}`}>
             {canUseSide ? (
               /* Demonai: pagrindinė kaladė + prakeiksmų šoninė kaladė (iki 20) */
               <span className="flex items-center gap-1 min-w-0">
                 {([['main', t('deckBuilder.tabMain'), `${total}`], ['side', t('deckBuilder.tabSide'), `${sideTotal}`]] as const).map(([k, label, n]) => {
                   const on = mode === k
                   return (
-                    <button key={k} onClick={() => { playUiClick(); setMode(k as 'main' | 'side') }} className="rvn-press rounded-lg px-2 font-bold inline-flex items-center gap-1"
-                      style={{ minHeight: 26, fontSize: 10, letterSpacing: '.04em', textTransform: 'uppercase',
+                    <button key={k} onClick={() => { playUiClick(); setMode(k as 'main' | 'side') }} aria-pressed={on} className={`rvn-press rounded-lg font-bold inline-flex items-center ${desktop ? 'px-3 gap-1.5' : 'px-2 gap-1'}`}
+                      style={{ minHeight: desktop ? DT.ctlSm : 26, fontSize: desktop ? 12 : 10, letterSpacing: '.04em', textTransform: 'uppercase',
                         background: on ? `rgba(${GOLD},0.9)` : 'rgba(10,8,16,0.8)', color: on ? '#1a0f04' : 'var(--ravenof-text-secondary)',
                         border: `1px solid rgba(${GOLD},${on ? 0.9 : 0.25})`, fontFamily: 'var(--rvn-font-display)' }}>
                       {k === 'main' ? <Layers className="w-3 h-3" /> : <span style={{ fontSize: 11 }}>🕸</span>}{label}
@@ -495,35 +553,36 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                     </button>
                   )
                 })}
-                {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
+                {!desktop && testerBadge}
               </span>
             ) : (
-              <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: 'clamp(10px,1.5vh,13px)', color: 'var(--ravenof-gold)', letterSpacing: '0.06em' }}>
-                <Layers className="w-3.5 h-3.5" /> {t('deckBuilder.tabMain')}
-                {tester && <span className="font-bold px-1 rounded-full" style={{ fontSize: 8, background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.55)', color: '#c4b5fd' }}>TESTER</span>}
+              <span className="rvn-disp font-extrabold uppercase inline-flex items-center gap-1.5" style={{ fontSize: desktop ? 15 : 'clamp(10px,1.5vh,13px)', color: 'var(--ravenof-gold)', letterSpacing: '0.06em' }}>
+                <Layers className={desktop ? 'w-4 h-4' : 'w-3.5 h-3.5'} /> {t('deckBuilder.tabMain')}
+                {!desktop && testerBadge}
               </span>
             )}
             {mode === 'side'
-              ? <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: sideTotal > 0 && sideTotal <= SIDE_DECK_MAX ? '#c4b5fd' : 'var(--gold)' }}>{sideTotal}/{SIDE_DECK_MAX}</span>
-              : <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{formatDeckCount(total)} · 🪙 {displayAvgCost(stats.avg).toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>}
+              ? <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: desktop ? 14 : 11, color: sideTotal > 0 && sideTotal <= SIDE_DECK_MAX ? '#c4b5fd' : 'var(--gold)' }}>{sideTotal}/{SIDE_DECK_MAX}</span>
+              : <span className="tabular-nums rvn-disp font-bold" style={{ fontSize: desktop ? 13 : 11, color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : 'var(--gold)' }}>{formatDeckCount(total)} · 🪙 {displayAvgCost(stats.avg).toFixed(1)}{stats.champions > 0 ? ` · ★${stats.champions}` : ''}</span>}
           </div>
 
           {/* KOMPAKTU: vardas + matomumo ikona + ✎ vienoje eilėje — SĄRAŠUI maksimalus aukštis */}
-          <div className="flex items-center gap-1.5 shrink-0 mb-1.5">
-            <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder={t('deckBuilder.deckNamePlaceholder')}
-              className="flex-1 min-w-0 px-2.5 rounded-lg font-semibold outline-none" style={{ minHeight: 32, fontSize: 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(180,68,79,0.6)'}`, color: 'var(--ravenof-text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
+          <div className={`flex items-center shrink-0 ${desktop ? 'gap-2 mb-2' : 'gap-1.5 mb-1.5'}`}>
+            <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder={t('deckBuilder.deckNamePlaceholder')} aria-label={t('deckBuilder.deckNamePlaceholder')}
+              className={`flex-1 min-w-0 rounded-lg font-semibold outline-none ${desktop ? 'px-3' : 'px-2.5'}`} style={{ minHeight: desktop ? DT.ctl : 32, fontSize: desktop ? DT.fs.body : 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(180,68,79,0.6)'}`, color: 'var(--ravenof-text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
             <button onClick={() => { playUiClick(); store.setVisibility((store.visibility === 'private' ? 'public' : 'private') as DeckVisibility) }}
               title={store.visibility === 'private' ? t('deckBuilder.privateHint') : t('deckBuilder.publicHint')}
-              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 14, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
+              aria-label={store.visibility === 'private' ? t('deckBuilder.privateHint') : t('deckBuilder.publicHint')}
+              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: desktop ? DT.ctl : 32, height: desktop ? DT.ctl : 32, fontSize: desktop ? 18 : 14, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
               {store.visibility === 'private' ? '🔒' : '🌐'}
             </button>
-            <button onClick={() => { playUiClick(); setDescOpen((v) => !v) }} title={t('deckBuilder.description')}
-              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: 32, height: 32, fontSize: 13, background: descOpen || store.description ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }}>✎</button>
+            <button onClick={() => { playUiClick(); setDescOpen((v) => !v) }} title={t('deckBuilder.description')} aria-label={t('deckBuilder.description')} aria-expanded={descOpen}
+              className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: desktop ? DT.ctl : 32, height: desktop ? DT.ctl : 32, fontSize: desktop ? 17 : 13, background: descOpen || store.description ? `rgba(${GOLD},0.18)` : 'rgba(10,8,16,0.85)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }}>✎</button>
           </div>
 
           {descOpen && (
             <input value={store.description} onChange={(e) => store.setDescription(e.target.value)} placeholder={t('deckBuilder.descriptionPlaceholder')} autoFocus
-              className="w-full px-2.5 rounded-lg outline-none shrink-0 mb-1.5" style={{ minHeight: 28, fontSize: 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--ravenof-text-secondary)' }} />
+              className={`w-full rounded-lg outline-none shrink-0 ${desktop ? 'px-3 mb-2' : 'px-2.5 mb-1.5'}`} style={{ minHeight: desktop ? DT.ctl : 28, fontSize: desktop ? 14 : 10.5, background: 'rgba(10,8,16,0.75)', border: `1px solid rgba(${GOLD},0.18)`, color: 'var(--ravenof-text-secondary)' }} />
           )}
 
           {/* Kaladės sąrašas — min-h-0 LEIDŽIA trauktis (kitaip pilna kaladė išstumia
@@ -531,26 +590,26 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           <div className="flex-1 min-h-0 overflow-y-auto" style={{ minHeight: 56, overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}>
             {shownEntries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-1.5 text-center px-2" style={{ border: `1.5px dashed rgba(${GOLD},${dragCard ? 0.7 : 0.25})`, borderRadius: 10 }}>
-                <Layers className="w-5 h-5" style={{ color: `rgba(${GOLD},0.6)` }} />
-                <p style={{ fontSize: 10.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{dragCard ? t('deckBuilder.dropHere') : mode === 'side' ? t('deckBuilder.sideHint', { max: SIDE_DECK_MAX }) : t('deckBuilder.dragHint')}</p>
+                <Layers className={desktop ? 'w-7 h-7' : 'w-5 h-5'} style={{ color: `rgba(${GOLD},0.6)` }} />
+                <p style={{ fontSize: desktop ? DT.fs.help : 10.5, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{dragCard ? t('deckBuilder.dropHere') : mode === 'side' ? t('deckBuilder.sideHint', { max: SIDE_DECK_MAX }) : t('deckBuilder.dragHint')}</p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className={desktop ? 'space-y-1.5' : 'space-y-1'}>
                 <AnimatePresence initial={false}>
                   {shownEntries.map((e) => {
                     const col = rarityColor(e.card.rarity?.name)
                     return (
                       <motion.div key={e.card.id} layout initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14, height: 0, marginBottom: 0 }} transition={{ duration: 0.18 }}
                         {...dragPropsDeck(e.card)}
-                        className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg select-none touch-pan-y"
+                        className={`flex items-center rounded-lg select-none touch-pan-y ${desktop ? 'gap-2 px-2 py-1.5' : 'gap-1.5 px-1.5 py-1'}`}
                         style={{ background: `linear-gradient(90deg, ${col}26 0%, rgba(10,8,16,0.85) 55%)`, border: `1px solid ${col}44`, borderLeft: `3px solid ${col}`, opacity: dragCard?.id === e.card.id ? 0.35 : 1, transition: 'opacity .15s' }}>
-                        <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: 17, height: 17, fontSize: 9, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{e.card.gold_cost}</span>
+                        <span className="flex items-center justify-center rounded-full shrink-0 tabular-nums" style={{ width: desktop ? 24 : 17, height: desktop ? 24 : 17, fontSize: desktop ? 11.5 : 9, fontWeight: 800, background: `rgba(${GOLD},0.9)`, color: '#1a0f04' }}>{e.card.gold_cost}</span>
                         <button onClick={() => { playUiClick(); setPreview(e.card) }} className="flex-1 min-w-0 text-left">
-                          <span className="block font-semibold truncate" style={{ fontSize: 10.5, color: 'var(--ravenof-text-primary)' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
+                          <span className="block font-semibold truncate" title={desktop ? e.card.name : undefined} style={{ fontSize: desktop ? 14 : 10.5, color: 'var(--ravenof-text-primary)' }}>{e.card.is_champion ? '★ ' : ''}{e.card.name}</span>
                         </button>
-                        <button onClick={() => dec(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(180,68,79,0.14)', border: '1px solid rgba(180,68,79,0.4)', color: '#c65563' }} aria-label={t('deckBuilder.less')}><Minus className="w-3 h-3" /></button>
-                        <span className="font-bold tabular-nums text-center shrink-0" style={{ width: 18, fontSize: 10.5, color: 'var(--ravenof-gold)' }}>×{e.quantity}</span>
-                        <button onClick={() => tryAdd(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: 24, height: 24, background: 'rgba(79,158,82,0.14)', border: '1px solid rgba(79,158,82,0.45)', color: '#7fbf82' }} aria-label={t('deckBuilder.more')}><Plus className="w-3 h-3" /></button>
+                        <button onClick={() => dec(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: desktop ? 32 : 24, height: desktop ? 32 : 24, background: 'rgba(180,68,79,0.14)', border: '1px solid rgba(180,68,79,0.4)', color: '#c65563' }} aria-label={t('deckBuilder.less')}><Minus className={desktop ? 'w-4 h-4' : 'w-3 h-3'} /></button>
+                        <span className="font-bold tabular-nums text-center shrink-0" style={{ width: desktop ? 28 : 18, fontSize: desktop ? 14 : 10.5, color: 'var(--ravenof-gold)' }}>×{e.quantity}</span>
+                        <button onClick={() => tryAdd(e.card)} className="rvn-press flex items-center justify-center rounded-md shrink-0" style={{ width: desktop ? 32 : 24, height: desktop ? 32 : 24, background: 'rgba(79,158,82,0.14)', border: '1px solid rgba(79,158,82,0.45)', color: '#7fbf82' }} aria-label={t('deckBuilder.more')}><Plus className={desktop ? 'w-4 h-4' : 'w-3 h-3'} /></button>
                       </motion.div>
                     )
                   })}
@@ -560,17 +619,17 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           </div>
 
           {/* Statistika PO kaladės sąrašo: aukso kreivė + suvestinė */}
-          <div className="shrink-0 rounded-lg px-1.5 pt-1 pb-0.5 mt-1.5" style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
-            <div className="flex items-end gap-0.5" style={{ height: 'clamp(14px,3.4vh,34px)' }}>
+          <div className={`shrink-0 rounded-lg ${desktop ? 'px-2.5 pt-2 pb-1.5 mt-3' : 'px-1.5 pt-1 pb-0.5 mt-1.5'}`} style={{ background: 'rgba(10,8,16,0.6)', border: `1px solid rgba(${GOLD},0.15)` }}>
+            <div className={`flex items-end ${desktop ? 'gap-1' : 'gap-0.5'}`} style={{ height: desktop ? 64 : 'clamp(14px,3.4vh,34px)' }}>
               {stats.curve.map((n, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
-                  <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * 24) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                  <motion.div className="w-full rounded-t" animate={{ height: Math.max(n > 0 ? 4 : 1.5, (n / curveMax) * (desktop ? 42 : 24)) }} transition={{ type: 'spring', stiffness: 320, damping: 26 }}
                     style={{ background: n > 0 ? `linear-gradient(180deg, #ffe28c, rgb(${GOLD}) 40%, rgba(${GOLD},0.4))` : 'rgba(255,255,255,0.06)' }} />
-                  <span className="tabular-nums" style={{ fontSize: 7.5, color: 'var(--ravenof-text-secondary)' }}>{COST_CURVE_LABELS[i]}</span>
+                  <span className="tabular-nums" style={{ fontSize: desktop ? DT.fs.label : 7.5, color: 'var(--ravenof-text-secondary)' }}>{COST_CURVE_LABELS[i]}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-between px-0.5 pb-0.5" style={{ fontSize: 8.5, color: 'var(--ravenof-text-secondary)' }}>
+            <div className={`flex justify-between px-0.5 pb-0.5 ${desktop ? 'pt-1.5' : ''}`} style={{ fontSize: desktop ? 13 : 8.5, color: 'var(--ravenof-text-secondary)' }}>
               <span>{t('deckBuilder.avgShort')} <b style={{ color: 'var(--ravenof-gold)' }}>{displayAvgCost(stats.avg).toFixed(1)}</b></span>
               <span>{t('deckBuilder.championsShort')} <b style={{ color: '#c4b5fd' }}>{stats.champions}</b></span>
               <span>Σ <b style={{ color: total >= DECK_MIN && total <= DECK_MAX ? '#7fbf82' : '#f3ead3' }}>{total}</b></span>
@@ -578,19 +637,19 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           </div>
 
           {/* Validacija + išsaugoti — visada matomi (safe-area, niekada po nav) */}
-          <div className="shrink-0 pt-1.5 space-y-1.5 relative" data-testid="builder-actions"
+          <div className={`shrink-0 relative ${desktop ? 'pt-3 space-y-2' : 'pt-1.5 space-y-1.5'}`} data-testid="builder-actions"
             style={{ paddingBottom: 'max(2px, env(safe-area-inset-bottom))', zIndex: 2, minHeight: 56, background: 'linear-gradient(0deg, rgba(12,9,18,0.98) 75%, transparent)' }}>
-            <p className="truncate text-center" style={{ fontSize: 10, lineHeight: 1.2, color: reason ? '#c65563' : '#7fbf82' }}>{reason ?? t('deckBuilder.deckValid')}</p>
+            <p className={desktop ? 'text-center' : 'truncate text-center'} role="status" style={{ fontSize: desktop ? DT.fs.help : 10, lineHeight: desktop ? 1.35 : 1.2, color: reason ? (desktop ? '#e0707c' : '#c65563') : '#7fbf82' }}>{reason ?? t('deckBuilder.deckValid')}</p>
             <button onClick={save} disabled={!canSave} className="rvn-press w-full flex items-center justify-center gap-1.5 rounded-xl font-bold disabled:opacity-40"
-              style={{ minHeight: 'clamp(36px,6vh,44px)', fontSize: 12, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
+              style={{ minHeight: desktop ? DT.cta : 'clamp(36px,6vh,44px)', fontSize: desktop ? 14 : 12, letterSpacing: desktop ? '.08em' : undefined, background: canSave ? `rgba(${GOLD},0.92)` : 'rgba(255,255,255,0.06)', color: canSave ? '#1a0f04' : 'var(--text-muted)', fontFamily: 'var(--rvn-font-display)' }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('deckBuilder.save')}
             </button>
           </div>
-        </motion.section>
+        </motion.section>}
       </div>
 
       {/* Desktop hover kortos preview (tik tikra pelė; touch — niekada) */}
-      {HOVER_OK && hover && !dragCard && !preview && <HoverCardPreview card={hover.card} x={hover.x} y={hover.y} />}
+      {HOVER_OK && hover && !dragCard && !preview && <HoverCardPreview card={hover.card} x={hover.x} y={hover.y} rightLimit={hover.lim} rect={hover.rect} desktop={desktop} />}
 
       {/* ── Vilkimo „vaiduoklis" ── */}
       {dragCard && (
@@ -605,9 +664,9 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
         </motion.div>
       )}
 
-      {preview && <BuilderPreview c={preview} owned={ownedOf(preview.id)} deckQty={isCurseCard(preview) ? sideQtyOf(preview.id) : deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
+      {preview && <BuilderPreview desktop={desktop} c={preview} owned={ownedOf(preview.id)} deckQty={isCurseCard(preview) ? sideQtyOf(preview.id) : deckQtyOf(preview.id)} onAdd={() => tryAdd(preview)} onClose={() => setPreview(null)} />}
 
-      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--ravenof-gold)' }}>{toast}</div>}
+      {toast && <div className="fixed left-1/2 -translate-x-1/2 z-[210] px-4 py-2 rounded-full text-xs font-semibold" style={{ fontSize: desktop ? 14 : undefined, bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', background: 'rgba(10,8,16,0.96)', border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--ravenof-gold)' }}>{toast}</div>}
     </div>
   )
 }
@@ -615,9 +674,10 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 type DragHandlers = { onPointerDown: (e: React.PointerEvent) => void; onClickCapture: (e: React.MouseEvent) => void }
 
 // ── Albumo plytelė (Kolekcijos RavenofCardCell išvaizda + deck builder valdikliai) ──
-function AlbumTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onHover, onHoverEnd }: {
+function AlbumTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, onHover, onHoverEnd, desktop = false }: {
+  desktop?: boolean
   c: CardWithRelations; owned: number; deckQty: number; dragging: boolean; dragProps: DragHandlers
-  onAdd: () => void; onPreview: () => void; onHover: (x: number, y: number) => void; onHoverEnd: () => void
+  onAdd: () => void; onPreview: () => void; onHover: (x: number, y: number, rect?: { left: number; right: number; top: number; bottom: number }) => void; onHoverEnd: () => void
 }) {
   const t = useT()
   const [bad, setBad] = useState(false)
@@ -628,30 +688,30 @@ function AlbumTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, o
   const addDisabled = !has || deckQty >= owned || deckQty >= limit
   return (
     <div className="relative select-none touch-pan-y" {...dragProps}
-      onMouseEnter={HOVER_OK ? (e) => onHover(e.clientX, e.clientY) : undefined}
-      onMouseMove={HOVER_OK ? (e) => onHover(e.clientX, e.clientY) : undefined}
+      onMouseEnter={HOVER_OK ? (e) => { const r = e.currentTarget.getBoundingClientRect(); onHover(e.clientX, e.clientY, { left: r.left, right: r.right, top: r.top, bottom: r.bottom }) } : undefined}
+      onMouseMove={HOVER_OK && !desktop ? (e) => onHover(e.clientX, e.clientY) : undefined}
       onMouseLeave={HOVER_OK ? onHoverEnd : undefined}
       style={{ opacity: dragging ? 0.35 : 1, transition: 'opacity .15s', minWidth: 0 }}>
       <GameCard glowColor={has ? col + '88' : 'rgba(120,120,140,0.3)'} sounds={has}>
-        <button onClick={onPreview} className="ravenof-press w-full block" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', minWidth: 0 }}>
+        <button onClick={onPreview} aria-label={desktop ? c.name : undefined} className="ravenof-press w-full block" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', minWidth: 0 }}>
           <span role="img" aria-label={c.name} className="relative block w-full" style={{ aspectRatio: '1044 / 1416', borderRadius: 5, border: inDeck ? `1.5px solid rgba(${GOLD},0.85)` : `1px solid ${has ? 'var(--ravenof-border-strong)' : '#221e29'}`, boxShadow: inDeck ? `0 0 0 1px rgba(${GOLD},0.35), 0 0 12px rgba(${GOLD},0.35)` : undefined, overflow: 'hidden' }}>
             {c.image_url && !bad
               ? <SmartImg src={c.image_url} width={240} alt={c.name} onFail={() => setBad(true)}
                   className="absolute inset-0 w-full h-full"
                   style={{ objectFit: 'contain', filter: has ? undefined : 'grayscale(1) brightness(0.55)' }} />
               : <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: has ? undefined : 'grayscale(1) brightness(0.7)' }}>
-                  <span className="text-xl">🎴</span><span style={{ fontSize: 9, lineHeight: 1.1, color: '#fff' }}>{c.name}</span>
+                  <span className="text-xl">🎴</span><span style={{ fontSize: desktop ? 12 : 9, lineHeight: 1.1, color: '#fff' }}>{c.name}</span>
                 </span>}
             {/* kaina (viršuje kairėje) */}
-            <span className="absolute flex items-center justify-center rounded-full tabular-nums" style={{ top: 4, left: 4, zIndex: 2, width: 18, height: 18, fontSize: 9.5, fontWeight: 800, background: `rgba(${GOLD},0.95)`, color: '#1a0f04', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>{c.gold_cost}</span>
+            <span className="absolute flex items-center justify-center rounded-full tabular-nums" style={{ top: 4, left: 4, zIndex: 2, width: desktop ? 24 : 18, height: desktop ? 24 : 18, fontSize: desktop ? 12 : 9.5, fontWeight: 800, background: `rgba(${GOLD},0.95)`, color: '#1a0f04', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>{c.gold_cost}</span>
             {/* kiek kaladėje (viršuje dešinėje) */}
             {inDeck && (
-              <span className="absolute tabular-nums" style={{ top: 4, right: 4, zIndex: 2, font: '800 9.5px var(--ravenof-font-display)', color: '#1a0f04', background: 'linear-gradient(135deg,#ffe9a8,#f0b429)', padding: '2px 5px', borderRadius: 3, boxShadow: '0 2px 8px rgba(240,180,41,.55)' }}>{deckQty}/{Math.min(limit, owned)}</span>
+              <span className="absolute tabular-nums" style={{ top: 4, right: 4, zIndex: 2, font: `800 ${desktop ? 12 : 9.5}px var(--ravenof-font-display)`, color: '#1a0f04', background: 'linear-gradient(135deg,#ffe9a8,#f0b429)', padding: desktop ? '3px 7px' : '2px 5px', borderRadius: 3, boxShadow: '0 2px 8px rgba(240,180,41,.55)' }}>{deckQty}/{Math.min(limit, owned)}</span>
             )}
             {has ? (
-              <span className="absolute" style={{ bottom: 4, right: 4, font: '700 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 6px' }}>×{owned}</span>
+              <span className="absolute" style={{ bottom: 4, right: 4, font: `700 ${desktop ? 12 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: desktop ? '3px 8px' : '2px 6px' }}>×{owned}</span>
             ) : (
-              <span className="absolute whitespace-nowrap flex items-center gap-1" style={{ bottom: 4, left: '50%', transform: 'translateX(-50%)', font: '600 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: '2px 7px' }}><Lock className="w-2.5 h-2.5" />{t('collection.notOwnedBadge')}</span>
+              <span className="absolute whitespace-nowrap flex items-center gap-1" style={{ bottom: 4, left: '50%', transform: 'translateX(-50%)', font: `600 ${desktop ? 12 : 9}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', background: 'rgba(7,6,10,.85)', border: '1px solid var(--ravenof-border-strong)', padding: desktop ? '3px 8px' : '2px 7px' }}><Lock className={desktop ? 'w-3 h-3' : 'w-2.5 h-2.5'} />{t('collection.notOwnedBadge')}</span>
             )}
           </span>
         </button>
@@ -659,21 +719,38 @@ function AlbumTile({ c, owned, deckQty, dragging, dragProps, onAdd, onPreview, o
       {/* greitas [+] (apačioje kairėje, virš plytelės) */}
       {has && (
         <button onClick={(e) => { e.stopPropagation(); onAdd() }} disabled={addDisabled} className="rvn-press absolute flex items-center justify-center rounded-md disabled:opacity-25"
-          style={{ left: 4, bottom: 4, zIndex: 3, width: 24, height: 24, background: 'rgba(20,40,22,0.92)', border: '1px solid rgba(79,158,82,0.6)', color: '#7fbf82', boxShadow: '0 2px 6px rgba(0,0,0,.6)' }} aria-label={t('deckBuilder.add')}><Plus className="w-3.5 h-3.5" /></button>
+          style={{ left: 4, bottom: 4, zIndex: 3, width: desktop ? 34 : 24, height: desktop ? 34 : 24, background: 'rgba(20,40,22,0.92)', border: '1px solid rgba(79,158,82,0.6)', color: '#7fbf82', boxShadow: '0 2px 6px rgba(0,0,0,.6)' }} aria-label={t('deckBuilder.add')} title={desktop ? t('deckBuilder.addToDeck') : undefined}><Plus className={desktop ? 'w-5 h-5' : 'w-3.5 h-3.5'} /></button>
       )}
     </div>
   )
 }
 
 // ── Plaukiojantis kortos paveikslo preview (desktop hover) ────────────────────
-function HoverCardPreview({ card, x, y }: { card: CardWithRelations; x: number; y: number }) {
+function HoverCardPreview({ card, x, y, rightLimit, rect, desktop = false }: { card: CardWithRelations; x: number; y: number; rightLimit?: number; rect?: { left: number; right: number; top: number; bottom: number }; desktop?: boolean }) {
   if (typeof window === 'undefined') return null
   // Didelis, iskaitomas preview: iki 380px plocio / ~62% ekrano auksčio (kad tilptų tekstas)
-  const W = Math.max(240, Math.min(380, Math.floor((window.innerHeight * 0.62) / 1.4)))
+  const W = desktop ? Math.max(240, Math.min(320, Math.floor((window.innerHeight * 0.56) / 1.4))) : Math.max(240, Math.min(380, Math.floor((window.innerHeight * 0.62) / 1.4)))
   const H = Math.round(W * 1.4)
-  // rodyti tai pusei, kur daugiau vietos (kad neuždengtų pačios plytelės)
-  const left = x + 24 + W <= window.innerWidth - 8 ? x + 24 : Math.max(8, x - 24 - W)
+  if (desktop && rect) {
+    // Desktop: pririšta prie PLYTELĖS (ne žymeklio) — šalia jos, niekada neuždengia pačios plytelės
+    // (+ mygtuko), kaladės panelės ir nav rail; nejuda kartu su pele.
+    const maxR = rightLimit ?? window.innerWidth - 8
+    const minL = DT.railW + 8
+    const l = rect.right + 12 + W <= maxR ? rect.right + 12 : rect.left - 12 - W >= minL ? rect.left - 12 - W : Math.max(minL, Math.min(rect.right + 12, maxR - W))
+    const tp = Math.min(Math.max(8, (rect.top + rect.bottom) / 2 - H / 2), window.innerHeight - H - 8)
+    return <HoverCardPreviewBox card={card} left={l} top={tp} W={W} H={H} />
+  }
+  // rodyti tai pusei, kur daugiau vietos (kad neuždengtų pačios plytelės).
+  // Desktop: dešinė riba = kaladės panelės kairys kraštas (preview niekada neuždengia kaladės / Išsaugoti),
+  // kairė riba = už nav rail.
+  const maxRight = desktop && rightLimit != null ? rightLimit : window.innerWidth - 8
+  const minLeft = desktop ? DT.railW + 8 : 8
+  const left = x + 24 + W <= maxRight ? x + 24 : Math.max(minLeft, Math.min(x - 24 - W, maxRight - W))
   const top = Math.min(Math.max(8, y - H / 2), window.innerHeight - H - 8)
+  return <HoverCardPreviewBox card={card} left={left} top={top} W={W} H={H} />
+}
+
+function HoverCardPreviewBox({ card, left, top, W, H }: { card: CardWithRelations; left: number; top: number; W: number; H: number }) {
   const col = rarityColor(card.rarity?.name)
   return (
     <div className="fixed z-[220] pointer-events-none rounded-xl overflow-hidden" style={{ left, top, width: W, height: H, border: `2px solid ${col}`, boxShadow: `0 18px 50px rgba(0,0,0,0.8), 0 0 28px ${col}66`, background: '#0d0a14' }}>
@@ -688,34 +765,37 @@ function HoverCardPreview({ card, x, y }: { card: CardWithRelations; x: number; 
   )
 }
 
-function BuilderPreview({ c, owned, deckQty, onAdd, onClose }: { c: CardWithRelations; owned: number; deckQty: number; onAdd: () => boolean; onClose: () => void }) {
+function BuilderPreview({ c, owned, deckQty, onAdd, onClose, desktop = false }: { c: CardWithRelations; owned: number; deckQty: number; onAdd: () => boolean; onClose: () => void; desktop?: boolean }) {
   const t = useT()
   const [bad, setBad] = useState(false)
   const col = rarityColor(c.rarity?.name)
   const limit = getCopyLimit(c)
   const addDisabled = owned <= 0 || deckQty >= owned || deckQty >= limit
+  // Desktop: Escape + fokuso gaudyklė (mobile – kaip buvo)
+  const ref = useDialogFocus<HTMLDivElement>(onClose, desktop)
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-5" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
-      <div className="relative w-[min(560px,94vw)] max-h-[92vh] rounded-2xl overflow-hidden flex" style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={() => { playUiClick(); onClose() }} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }}><X className="w-4 h-4" /></button>
+      <div ref={ref} role={desktop ? 'dialog' : undefined} aria-modal={desktop ? true : undefined} aria-label={desktop ? c.name : undefined} tabIndex={desktop ? -1 : undefined}
+        className={`relative ${desktop ? 'w-[min(760px,94vw)] outline-none' : 'w-[min(560px,94vw)]'} max-h-[92vh] rounded-2xl overflow-hidden flex`} style={{ border: `2px solid ${col}`, background: 'linear-gradient(160deg,#15101f,#0a0810)' }} onClick={(e) => e.stopPropagation()}>
+        <button onClick={() => { playUiClick(); onClose() }} data-dlg-close="1" aria-label={t('common.close')} className="absolute top-2 right-2 z-10 flex items-center justify-center rounded-full" style={{ width: desktop ? 40 : 32, height: desktop ? 40 : 32, background: 'rgba(0,0,0,0.6)', color: '#fff' }}><X className={desktop ? 'w-5 h-5' : 'w-4 h-4'} /></button>
         <div className="relative shrink-0" style={{ width: '42%', aspectRatio: '2.5 / 3.5' }}>
           {c.image_url && !bad
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={c.image_url} alt={c.name} onError={() => setBad(true)} draggable={false} className="absolute inset-0 w-full h-full object-cover" style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.6)' }} />
+            ? <img src={c.image_url} alt={c.name} onError={() => setBad(true)} draggable={false} className={`absolute inset-0 w-full h-full ${desktop ? 'object-contain' : 'object-cover'}`} style={{ filter: owned > 0 ? undefined : 'grayscale(1) brightness(0.6)' }} />
             : <div className="absolute inset-0 flex items-center justify-center text-5xl">🎴</div>}
           {owned <= 0 && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-9 h-9" style={{ color: 'rgba(255,255,255,0.75)' }} /></span>}
         </div>
-        <div className="flex-1 min-w-0 p-4 flex flex-col gap-2 overflow-y-auto">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold truncate" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--ravenof-text-primary)' }}>{c.name}</h2>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ color: col, border: `1px solid ${col}` }}>{c.rarity?.name ?? '—'}</span>
+        <div className={`flex-1 min-w-0 flex flex-col overflow-y-auto ${desktop ? 'p-6 gap-3' : 'p-4 gap-2'}`} style={desktop ? { paddingRight: 56 } : undefined}>
+          <div className={desktop ? 'flex items-start justify-between gap-2 flex-wrap' : 'flex items-center justify-between gap-2'}>
+            <h2 className={desktop ? 'font-bold rvn-clamp2' : 'text-base font-bold truncate'} style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--ravenof-text-primary)', fontSize: desktop ? DT.fs.h2 : undefined }}>{c.name}</h2>
+            <span className={desktop ? 'font-bold px-2 py-0.5 rounded-full shrink-0' : 'text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0'} style={{ fontSize: desktop ? DT.fs.label : undefined, color: col, border: `1px solid ${col}` }}>{c.rarity?.name ?? '—'}</span>
           </div>
-          <div className="flex flex-wrap gap-x-3 text-[11px]" style={{ color: 'var(--ravenof-text-secondary)' }}>
+          <div className={desktop ? 'flex flex-wrap gap-x-3' : 'flex flex-wrap gap-x-3 text-[11px]'} style={{ fontSize: desktop ? DT.fs.help : undefined, color: 'var(--ravenof-text-secondary)' }}>
             <span>🪙 {c.gold_cost}</span>{c.attack != null && <span>⚔️ {c.attack}</span>}{c.health != null && <span>❤️ {c.health}</span>}{c.faction?.name && <span>· {c.faction.name}</span>}{c.card_type?.name && <span>· {c.card_type.name}</span>}
           </div>
-          {(c.effect_text || c.description) && <p className="text-xs leading-snug" style={{ color: 'var(--ravenof-text-secondary)' }}>{c.effect_text || c.description}</p>}
-          <p className="text-[11px] font-semibold mt-auto" style={{ color: owned > 0 ? '#7fbf82' : '#c65563' }}>{owned > 0 ? t('deckBuilder.ownedInDeck', { owned, qty: deckQty, max: Math.min(limit, owned) }) : t('deckBuilder.notOwnedYet')}</p>
-          <button onClick={() => { onAdd() }} disabled={addDisabled} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ minHeight: 42, background: 'rgba(79,158,82,0.18)', border: '1px solid rgba(79,158,82,0.5)', color: '#7fbf82', fontFamily: 'var(--rvn-font-display)' }}>{t('deckBuilder.addToDeck')}</button>
+          {(c.effect_text || c.description) && <p className={desktop ? 'leading-snug' : 'text-xs leading-snug'} style={{ fontSize: desktop ? DT.fs.body : undefined, color: 'var(--ravenof-text-secondary)' }}>{c.effect_text || c.description}</p>}
+          <p className={desktop ? 'font-semibold mt-auto' : 'text-[11px] font-semibold mt-auto'} style={{ fontSize: desktop ? DT.fs.help : undefined, color: owned > 0 ? '#7fbf82' : '#c65563' }}>{owned > 0 ? t('deckBuilder.ownedInDeck', { owned, qty: deckQty, max: Math.min(limit, owned) }) : t('deckBuilder.notOwnedYet')}</p>
+          <button onClick={() => { onAdd() }} disabled={addDisabled} className="w-full px-4 rounded-xl text-sm font-bold disabled:opacity-40" style={{ minHeight: desktop ? DT.cta : 42, background: 'rgba(79,158,82,0.18)', border: '1px solid rgba(79,158,82,0.5)', color: '#7fbf82', fontFamily: 'var(--rvn-font-display)' }}>{t('deckBuilder.addToDeck')}</button>
         </div>
       </div>
     </div>

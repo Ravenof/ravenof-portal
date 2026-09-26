@@ -1,7 +1,125 @@
-/* ── Desktop meniu (pelė, ≥1024): didesni kit'o elementai; mobile nepaliečiamas ── */
-.rvn-desk-ui .ravenof-pill { font-size: 15px; padding: 9px 14px; gap: 8px; }
-.rvn-desk-ui .ravenof-pill img { width: 19px !important; height: 19px !important; }
-.rvn-desk-ui .ravenof-iconbtn { width: 42px; height: 42px; }
-.rvn-desk-ui .ravenof-iconbtn svg { width: 20px; height: 20px; }
-.rvn-desk-ui .ravenof-progress { height: 5px; }
-.rvn-desk-ui .ravenof-toast { font-size: 14px; padding: 12px 22px; }
+/* ════════════════════════════════════════════════════════════════════════════
+   Ravenof Digital — DESKTOP UI sistema (meniu ekranai, NE kova)
+   Įsijungia, kai layout.tsx uždeda html[data-rvn-desk="1"] (useDesktopUi).
+   Kadangi atributas yra ant <html>, stiliai veikia ir portaluose į document.body.
+   Taisyklės: jokio zoom / transform: scale — tik semantiniai dydžiai (deskTokens.ts).
+   Mobile (be atributo) — niekas nesikeičia.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Rail plotis – vienas tokenas (Shop overlay ir kiti fiksuoti sluoksniai jį naudoja) */
+  --rvn-rail-w: calc(74px + max(18px, env(safe-area-inset-left, 0px)));
+}
+
+html[data-rvn-desk="1"] {
+  --rvn-rail-w: 112px;
+  --rvn-header-h: 72px;
+  --rvn-content-max: 1440px;
+  --rvn-wide-max: 1760px;
+  --rvn-page-px: 32px;
+  --d-fs-h1: 26px;
+  --d-fs-h2: 19px;
+  --d-fs-h3: 16px;
+  --d-fs-body: 15px;
+  --d-fs-help: 13.5px;
+  --d-fs-label: 12px;
+  --d-ctl: 42px;
+  --d-ctl-sm: 36px;
+  --d-cta: 46px;
+  --d-sp-1: 4px; --d-sp-2: 8px; --d-sp-3: 12px; --d-sp-4: 16px; --d-sp-5: 24px; --d-sp-6: 32px;
+}
+html[data-rvn-desk="1"][data-rvn-desk-compact="1"] {
+  --rvn-page-px: 24px;
+  --d-fs-h1: 24px;
+  --d-fs-h2: 18px;
+}
+
+/* ── Tipografijos pagalbinės klasės (desktop) ── */
+html[data-rvn-desk="1"] .rvn-d-h1 { font: 700 var(--d-fs-h1)/1.15 var(--ravenof-font-display); letter-spacing: .04em; color: var(--ravenof-text-primary); margin: 0; }
+html[data-rvn-desk="1"] .rvn-d-h2 { font: 700 var(--d-fs-h2)/1.2 var(--ravenof-font-display); letter-spacing: .03em; color: var(--ravenof-text-primary); margin: 0; }
+html[data-rvn-desk="1"] .rvn-d-body { font: 400 var(--d-fs-body)/1.5 var(--ravenof-font-body); }
+html[data-rvn-desk="1"] .rvn-d-help { font: 400 var(--d-fs-help)/1.45 var(--ravenof-font-body); color: var(--ravenof-text-secondary); }
+html[data-rvn-desk="1"] .rvn-d-label { font: 600 var(--d-fs-label)/1.3 var(--ravenof-font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--ravenof-text-secondary); }
+
+/* 2 eilučių pavadinimas be nukirpimo iki „…" vienoje eilutėje */
+.rvn-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+
+/* ── Kit elementai ── */
+html[data-rvn-desk="1"] .ravenof-pill { font-size: 15px; padding: 9px 14px; gap: 8px; min-height: 40px; }
+html[data-rvn-desk="1"] .ravenof-pill img { width: 19px !important; height: 19px !important; }
+html[data-rvn-desk="1"] .ravenof-iconbtn { width: 42px; height: 42px; }
+html[data-rvn-desk="1"] .ravenof-iconbtn svg { width: 20px; height: 20px; }
+html[data-rvn-desk="1"] .ravenof-progress { height: 5px; }
+html[data-rvn-desk="1"] .ravenof-toast { font-size: 15px; padding: 12px 24px; }
+html[data-rvn-desk="1"] .ravenof-field { font-size: 15px; min-height: var(--d-ctl); padding: 10px 14px; }
+html[data-rvn-desk="1"] select.ravenof-field { padding-right: 32px; }
+html[data-rvn-desk="1"] .ravenof-btn-primary { font-size: 14px; min-height: var(--d-cta); padding: 12px 26px; letter-spacing: 2px; }
+html[data-rvn-desk="1"] .ravenof-btn-secondary { font-size: 13px; min-height: var(--d-ctl); padding: 10px 18px; letter-spacing: 1.4px; }
+html[data-rvn-desk="1"] .ravenof-btn-destructive { font-size: 13px; min-height: var(--d-ctl); padding: 10px 18px; }
+html[data-rvn-desk="1"] .ravenof-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+
+/* Klaviatūros fokusas desktop'e visada matomas */
+html[data-rvn-desk="1"] .ravenof-body button:focus-visible,
+html[data-rvn-desk="1"] .ravenof-body a:focus-visible,
+html[data-rvn-desk="1"] .ravenof-body [role="tab"]:focus-visible { outline: 2px solid var(--ravenof-gold); outline-offset: 2px; }
+
+/* ── Puslapio karkasas ── */
+html[data-rvn-desk="1"] .rvn-d-page { width: 100%; max-width: var(--rvn-content-max); margin: 0 auto; }
+html[data-rvn-desk="1"] .rvn-d-page-wide { width: 100%; max-width: var(--rvn-wide-max); margin: 0 auto; }
+
+/* Adaptyvus kortelių grid: stulpelių skaičius iš konteinerio pločio (kiek telpa --min),
+   likutis paskirstomas tolygiai → kortelės neauga be ribos ir nelieka tuščių kraštų.
+   Naudojimas: style={{ '--min': '168px' }} className="rvn-d-grid" */
+.rvn-d-grid {
+  display: grid; gap: var(--gap, 16px); align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(var(--min, 168px), 1fr));
+}
+
+/* ── Bendras desktop dialogas (DeskDialog) ── */
+.rvn-dlg-backdrop { position: fixed; inset: 0; background: rgba(4,3,7,.82); backdrop-filter: blur(4px); animation: ravenofIn .2s ease; }
+.rvn-dlg {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; max-height: calc(100vh - 48px); max-width: calc(100vw - 48px);
+  background: var(--ravenof-grad-panel); border: 1px solid rgba(212,163,59,0.32);
+  box-shadow: var(--ravenof-shadow-panel), 0 24px 80px rgba(0,0,0,.6);
+  color: var(--ravenof-text-primary); font-family: var(--ravenof-font-body);
+  animation: ravenofIn .22s ease;
+}
+.rvn-dlg:focus { outline: none; }
+.rvn-dlg-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--ravenof-border-hairline); flex: none; }
+.rvn-dlg-title { flex: 1; min-width: 0; font: 700 20px/1.2 var(--ravenof-font-display); letter-spacing: .04em; margin: 0; }
+.rvn-dlg-sub { font: 400 13.5px/1.4 var(--ravenof-font-body); color: var(--ravenof-text-secondary); margin-top: 2px; }
+.rvn-dlg-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px; }
+.rvn-dlg-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--ravenof-border-hairline); flex: none; flex-wrap: wrap; }
+.rvn-dlg-close {
+  width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ravenof-border-strong); background: transparent; color: var(--ravenof-text-secondary); cursor: pointer;
+}
+.rvn-dlg-close:hover { color: var(--ravenof-text-primary); border-color: var(--ravenof-text-secondary); }
+
+/* Desktop mygtukai (vienodi dialoguose / veiksmų juostose) */
+.rvn-d-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 0 20px; min-width: 120px; cursor: pointer; border: 1px solid transparent;
+  font: 700 13px var(--ravenof-font-display); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+  transition: filter .15s ease, border-color .15s ease, color .15s ease, transform .12s ease;
+}
+.rvn-d-btn:active:not(:disabled) { transform: scale(.97); }
+.rvn-d-btn:disabled { cursor: default; filter: grayscale(.6) brightness(.7); }
+.rvn-d-btn-primary { background: var(--ravenof-grad-gold); color: var(--ravenof-on-gold); min-height: 46px; clip-path: polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%); padding: 0 26px; }
+.rvn-d-btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.rvn-d-btn-danger { background: linear-gradient(180deg,#a53a47,var(--ravenof-danger)); color: var(--ravenof-text-primary); clip-path: polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%); }
+.rvn-d-btn-ghost { background: transparent; color: var(--ravenof-text-secondary); border-color: var(--ravenof-border-strong); }
+.rvn-d-btn-ghost:hover:not(:disabled) { color: var(--ravenof-text-primary); border-color: var(--ravenof-text-secondary); }
+
+/* Horizontalaus kelio (lygiai / sezono kelias) valdikliai */
+.rvn-d-trackbtn {
+  width: 44px; height: 44px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(212,163,59,.45); background: rgba(15,13,21,.92); color: var(--ravenof-gold-bright); cursor: pointer;
+  font: 700 20px var(--ravenof-font-display);
+}
+.rvn-d-trackbtn:disabled { opacity: .35; cursor: default; }
+.rvn-d-trackbtn:hover:not(:disabled) { border-color: var(--ravenof-gold-bright); }
+
+/* Admin „Online" juostelė (tik adminams) – desktop'e ne mažiau 12 px */
+html[data-rvn-desk="1"] .rvn-admin-online { font-size: 12px !important; padding: 6px 14px !important; }

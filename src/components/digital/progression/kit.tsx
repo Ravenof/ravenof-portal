@@ -9,6 +9,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import type { RewardDefinition } from '@/lib/progression'
 import { useT } from '@/lib/i18n/react'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
 
 // ── Tokenai (CSS kintamieji apibrėžti ravenof-ui.css) ───────────────────────
 export const C = {
@@ -32,8 +34,11 @@ export const ART = {
 
 // ── Maži primityvai ─────────────────────────────────────────────────────────
 export function Kicker({ children, color = C.label, style }: { children: ReactNode; color?: string; style?: CSSProperties }) {
+  const { desktop } = useDesktopUi()
   return (
-    <div style={{ font: `500 8.5px ${BODY}`, letterSpacing: 2.2, color, textTransform: 'uppercase', ...style }}>
+    <div style={desktop
+      ? { font: `600 ${DT.fs.label}px/1.3 ${BODY}`, letterSpacing: 1.8, color, textTransform: 'uppercase', ...style }
+      : { font: `500 8.5px ${BODY}`, letterSpacing: 2.2, color, textTransform: 'uppercase', ...style }}>
       {children}
     </div>
   )
@@ -74,11 +79,12 @@ export function useCountdown(iso: string | null | undefined): string {
 export function ResetChip({ at }: { at: string | null | undefined }) {
   const t = useT()
   const left = useCountdown(at)
+  const { desktop } = useDesktopUi()
   if (!left) return null
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.7)', padding: '6px 9px' }}>
-      <span aria-hidden style={{ width: 6, height: 6, background: C.gold, transform: 'rotate(45deg)', flex: 'none' }} />
-      <span style={{ font: `400 10px ${BODY}`, color: C.muted }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: desktop ? 8 : 6, border: `1px solid ${C.lineIn}`, background: 'rgba(7,6,10,.7)', padding: desktop ? '0 12px' : '6px 9px', minHeight: desktop ? DT.ctlSm : undefined }}>
+      <span aria-hidden style={{ width: desktop ? 8 : 6, height: desktop ? 8 : 6, background: C.gold, transform: 'rotate(45deg)', flex: 'none' }} />
+      <span style={{ font: `400 ${desktop ? DT.fs.help : 10}px ${BODY}`, color: C.muted }}>
         {t('progression.common.resetsIn')} <span style={{ color: C.bone, fontWeight: 700 }}>{left}</span>
       </span>
     </div>
@@ -111,11 +117,12 @@ const CHIP_TONE: Record<string, { border: string; bg: string; fg: string }> = {
 
 export function RewardChip({ reward, iconSize = 12 }: { reward: RewardDefinition; iconSize?: number }) {
   const tone = CHIP_TONE[reward.type] ?? CHIP_TONE.default
+  const { desktop } = useDesktopUi()
   return (
     <div title={rewardName(reward)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: `1px solid ${tone.border}`, background: tone.bg, padding: '4px 8px' }}>
-      <RewardIcon reward={reward} size={iconSize} />
-      <span style={{ font: `700 10.5px ${BODY}`, color: tone.fg, whiteSpace: 'nowrap' }}>{rewardLabel(reward)}</span>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: desktop ? 7 : 5, border: `1px solid ${tone.border}`, background: tone.bg, padding: desktop ? '5px 10px' : '4px 8px', minHeight: desktop ? 32 : undefined }}>
+      <RewardIcon reward={reward} size={desktop ? Math.max(iconSize, 18) : iconSize} />
+      <span style={{ font: `700 ${desktop ? 13.5 : 10.5}px ${BODY}`, color: tone.fg, whiteSpace: 'nowrap' }}>{rewardLabel(reward)}</span>
     </div>
   )
 }
@@ -137,13 +144,16 @@ export function Cta({ children, onClick, disabled, busy, tone = 'gold', minHeigh
     : tone === 'gold' ? 'linear-gradient(180deg,#E2B958,#b98f38)'
     : tone === 'green' ? 'rgba(62,139,109,.18)' : 'transparent'
   const fg = disabled ? C.lineDis : tone === 'gold' ? '#1a1206' : tone === 'green' ? C.greenFg : C.bone
+  const { desktop } = useDesktopUi()
+  // Desktop: CTA ne žemesnis nei 42 (ghost/green) / 46 (gold) px, 13 px šriftas
+  const mh = desktop ? Math.max(minHeight, tone === 'gold' ? DT.cta : DT.ctl) : minHeight
   return (
     <button type="button" onClick={onClick} disabled={disabled || busy}
       className="rvn-prog-cta"
       style={{
-        minHeight, width: '100%', border: tone === 'gold' ? 0 : `1px solid ${disabled ? C.lineIn : C.gold}`,
+        minHeight: mh, width: '100%', border: tone === 'gold' ? 0 : `1px solid ${disabled ? C.lineIn : C.gold}`,
         background: bg, color: fg, cursor: disabled || busy ? 'default' : 'pointer',
-        font: `800 12px ${DISPLAY}`, letterSpacing: 1.8, textTransform: 'uppercase',
+        font: `800 ${desktop ? 13 : 12}px ${DISPLAY}`, letterSpacing: 1.8, textTransform: 'uppercase',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 14px',
         opacity: busy ? 0.7 : 1, ...style,
       }}>
@@ -160,6 +170,7 @@ export function ProgressionModal({ open, onClose, title, kicker, width = 560, ch
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const restore = useRef<HTMLElement | null>(null)
+  const { desktop } = useDesktopUi()
 
   useEffect(() => {
     if (!open) return
@@ -191,17 +202,17 @@ export function ProgressionModal({ open, onClose, title, kicker, width = 560, ch
       style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(4,3,7,.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div ref={ref} className="rvn-prog-clip"
-        style={{ width: 'min(96vw, ' + width + 'px)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: `linear-gradient(180deg, ${C.surface}, #0c0a11)`, border: `1px solid ${C.line}` }}>
-        <div style={{ flex: 'none', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.line}` }}>
+        style={{ width: 'min(96vw, ' + width + 'px)', maxHeight: desktop ? 'calc(100vh - 48px)' : '92vh', display: 'flex', flexDirection: 'column', background: `linear-gradient(180deg, ${C.surface}, #0c0a11)`, border: `1px solid ${C.line}` }}>
+        <div style={{ flex: 'none', display: 'flex', alignItems: desktop ? 'center' : 'flex-start', gap: 12, padding: desktop ? '16px 20px' : '14px 16px', borderBottom: `1px solid ${C.line}` }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {kicker && <Kicker color={C.gold}>{kicker}</Kicker>}
-            <div style={{ font: `700 17px ${DISPLAY}`, color: C.bone, marginTop: 2 }}>{title}</div>
+            <div style={{ font: `700 ${desktop ? 20 : 17}px ${DISPLAY}`, color: C.bone, marginTop: desktop ? 4 : 2 }}>{title}</div>
           </div>
           <button type="button" onClick={onClose} aria-label={closeLabel}
-            style={{ width: 44, height: 44, flex: 'none', border: `1px solid ${C.lineIn}`, background: 'transparent', color: C.muted, cursor: 'pointer', font: `400 16px ${BODY}` }}>✕</button>
+            style={{ width: desktop ? 42 : 44, height: desktop ? 42 : 44, flex: 'none', border: `1px solid ${C.lineIn}`, background: 'transparent', color: C.muted, cursor: 'pointer', font: `400 ${desktop ? 18 : 16}px ${BODY}` }}>✕</button>
         </div>
-        <div className="rvn-prog-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 16 }}>{children}</div>
-        {footer && <div style={{ flex: 'none', padding: '12px 16px', borderTop: `1px solid ${C.line}` }}>{footer}</div>}
+        <div className="rvn-prog-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: desktop ? 20 : 16 }}>{children}</div>
+        {footer && <div style={{ flex: 'none', padding: desktop ? '14px 20px' : '12px 16px', borderTop: `1px solid ${C.line}` }}>{footer}</div>}
       </div>
     </div>
   )
@@ -212,9 +223,14 @@ export function LoadingState({ label }: { label: string }) {
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 11 }}>
       <span aria-hidden style={{ width: 26, height: 26, border: `2px solid ${C.lineIn}`, borderTopColor: C.gold, borderRadius: '50%', animation: 'rvSpin 1s linear infinite' }} />
-      <span style={{ font: `600 11px ${DISPLAY}`, letterSpacing: 1.6, color: C.muted, textTransform: 'uppercase' }}>{label}</span>
+      <LoadingLabel label={label} />
     </div>
   )
+}
+
+function LoadingLabel({ label }: { label: string }) {
+  const { desktop } = useDesktopUi()
+  return <span style={{ font: `600 ${desktop ? 14 : 11}px ${DISPLAY}`, letterSpacing: 1.6, color: C.muted, textTransform: 'uppercase' }}>{label}</span>
 }
 
 export function ErrorState({ title, body, retryLabel, onRetry, detail, hint }: {
@@ -224,17 +240,18 @@ export function ErrorState({ title, body, retryLabel, onRetry, detail, hint }: {
   /** papildoma užuomina (pvz. „migracijos nepaleistos") */
   hint?: string | null
 }) {
+  const { desktop } = useDesktopUi()
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', padding: 24 }}>
-      <div style={{ font: `700 15px ${DISPLAY}`, color: C.muted }}>{title}</div>
-      <div style={{ font: `400 11px ${BODY}`, color: C.label, maxWidth: 380, lineHeight: 1.55 }}>{body}</div>
+      <div style={{ font: `700 ${desktop ? DT.fs.h2 : 15}px ${DISPLAY}`, color: C.muted }}>{title}</div>
+      <div style={{ font: `400 ${desktop ? DT.fs.body : 11}px ${BODY}`, color: C.label, maxWidth: desktop ? 480 : 380, lineHeight: 1.55 }}>{body}</div>
       {hint && (
-        <div role="alert" style={{ font: `600 11px ${DISPLAY}`, color: C.goldHi, maxWidth: 420, lineHeight: 1.5, border: `1px solid rgba(198,161,79,.4)`, background: 'rgba(198,161,79,.07)', padding: '9px 12px' }}>
+        <div role="alert" style={{ font: `600 ${desktop ? DT.fs.help : 11}px ${DISPLAY}`, color: C.goldHi, maxWidth: 420, lineHeight: 1.5, border: `1px solid rgba(198,161,79,.4)`, background: 'rgba(198,161,79,.07)', padding: '9px 12px' }}>
           {hint}
         </div>
       )}
       {detail && (
-        <code style={{ font: `400 10px ui-monospace, monospace`, color: C.label, maxWidth: 460, wordBreak: 'break-word', opacity: 0.85 }}>{detail}</code>
+        <code style={{ font: `400 ${desktop ? 12 : 10}px ui-monospace, monospace`, color: C.label, maxWidth: 460, wordBreak: 'break-word', opacity: 0.85 }}>{detail}</code>
       )}
       <div style={{ width: 220 }}><Cta onClick={onRetry} tone="ghost">{retryLabel}</Cta></div>
     </div>
@@ -267,9 +284,10 @@ export function useToast() {
     setMsg({ text, tone })
     window.setTimeout(() => setMsg(null), 3200)
   }, [])
+  const { desktop } = useDesktopUi()
   const node = msg ? (
     <div role="status" className="rvn-prog-in"
-      style={{ position: 'fixed', left: '50%', bottom: 22, transform: 'translateX(-50%)', zIndex: 320, border: `1px solid ${msg.tone === 'ok' ? C.gold : '#8D2D38'}`, background: 'rgba(7,6,10,.94)', padding: '10px 16px', font: `600 11px ${DISPLAY}`, letterSpacing: 1, color: msg.tone === 'ok' ? C.goldHi : '#e0707c' }}>
+      style={{ position: 'fixed', left: '50%', bottom: 22, transform: 'translateX(-50%)', zIndex: 320, border: `1px solid ${msg.tone === 'ok' ? C.gold : '#8D2D38'}`, background: 'rgba(7,6,10,.94)', padding: desktop ? '12px 20px' : '10px 16px', font: `600 ${desktop ? 14 : 11}px ${DISPLAY}`, letterSpacing: 1, color: msg.tone === 'ok' ? C.goldHi : '#e0707c' }}>
       {msg.text}
     </div>
   ) : null

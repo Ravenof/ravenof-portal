@@ -21,10 +21,13 @@ import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useGameContent } from '@/lib/i18n/react'
 import { formatDate } from '@/lib/i18n/core'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
+import { useDialogFocus } from '@/components/digital/ui/DeskKit'
 
 const GOLD = '240,180,41'
 
-function DeckTile({ d, active, focused, pending }: { d: ActiveDeckInfo; active: boolean; focused: boolean; pending: boolean }) {
+function DeckTile({ d, active, focused, pending, desk = false }: { d: ActiveDeckInfo; active: boolean; focused: boolean; pending: boolean; desk?: boolean }) {
   const t = useT()
   const gc = useGameContent()
   const v = deckValidity(d)
@@ -37,13 +40,13 @@ function DeckTile({ d, active, focused, pending }: { d: ActiveDeckInfo; active: 
       <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.5 }}>
         {d.factionIcon ? <SmartImg src={d.factionIcon} width={140} alt="" style={{ width: '52%', objectFit: 'contain' }} /> : <span style={{ fontSize: 40 }}>🎴</span>}
       </div>
-      {active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: 8.5, background: 'rgba(52,211,153,0.92)', color: '#06281c' }}>{t('decks.active.badge')}</span>}
-      {pending && !active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: 8.5, background: 'rgba(74,222,128,0.25)', border: '1px solid rgba(74,222,128,0.8)', color: '#4ade80' }}>{t('decks.active.picked')}</span>}
-      {d.boundAvatar && <span className="absolute top-1.5 right-1.5" title={t('home.deckHasAvatar')} style={{ fontSize: 12 }}>👤</span>}
-      <div className="absolute inset-x-0 bottom-0 px-2 pt-5 pb-1.5" style={{ background: 'linear-gradient(0deg, rgba(5,4,9,0.97) 55%, transparent)' }}>
-        <p className="font-extrabold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={d.name}>{d.name}</p>
-        <p className="truncate" style={{ fontSize: 9, color: col }}>{gc.faction(d.faction) || '—'} · {t('decks.cardsShort', { count: d.cardCount })}</p>
-        <p style={{ fontSize: 9, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
+      {active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: desk ? DT.fs.label : 8.5, background: 'rgba(52,211,153,0.92)', color: '#06281c' }}>{t('decks.active.badge')}</span>}
+      {pending && !active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: desk ? DT.fs.label : 8.5, background: 'rgba(74,222,128,0.25)', border: '1px solid rgba(74,222,128,0.8)', color: '#4ade80' }}>{t('decks.active.picked')}</span>}
+      {d.boundAvatar && <span className="absolute top-1.5 right-1.5" title={t('home.deckHasAvatar')} style={{ fontSize: desk ? 16 : 12 }}>👤</span>}
+      <div className="absolute inset-x-0 bottom-0 px-2 pt-5 pb-1.5" style={{ background: 'linear-gradient(0deg, rgba(5,4,9,0.97) 55%, transparent)', ...(desk ? { padding: '28px 10px 10px' } : {}) }}>
+        <p className="font-extrabold leading-tight" style={{ fontFamily: 'var(--rvn-font-display)', color: '#f3ead3', fontSize: desk ? 15 : 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={d.name}>{d.name}</p>
+        <p className="truncate" style={{ fontSize: desk ? DT.fs.label : 9, color: col, marginTop: desk ? 3 : undefined }}>{gc.faction(d.faction) || '—'} · {t('decks.cardsShort', { count: d.cardCount })}</p>
+        <p className={desk ? 'rvn-clamp2' : undefined} style={{ fontSize: desk ? DT.fs.label : 9, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
       </div>
     </div>
   )
@@ -61,6 +64,9 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
   const [avatarPick, setAvatarPick] = useState(false)
   const [busy, setBusy] = useState(false)
   useEscClose(onClose)
+  // Desktop: fokuso gaudyklė + Escape + fokuso grąžinimas; didesni valdikliai / tekstai
+  const { desktop: D } = useDesktopUi()
+  const dlgRef = useDialogFocus<HTMLDivElement>(onClose, D)
 
   useEffect(() => {
     void st.refresh()
@@ -93,80 +99,80 @@ export function ActiveDeckSelectorModal({ onClose }: { onClose: () => void }) {
   if (typeof document === 'undefined') return null
   return createPortal(
     <div className="fixed inset-0 z-[340] flex items-center justify-center p-2" style={{ background: 'rgba(4,3,8,0.92)', backdropFilter: 'blur(4px)' }} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('decks.active.modalAria')}>
-      <div onClick={(e) => e.stopPropagation()} className="flex flex-col" data-testid="active-deck-modal"
-        style={{ width: 'min(980px, 98vw)', height: 'min(560px, 96vh)', borderRadius: 20,
+      <div ref={dlgRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} className="flex flex-col" data-testid="active-deck-modal"
+        style={{ width: D ? `min(${DT.modal.lg}px, calc(100vw - 48px))` : 'min(980px, 98vw)', height: D ? undefined : 'min(560px, 96vh)', maxHeight: D ? 'calc(100vh - 48px)' : undefined, outline: 'none', borderRadius: 20,
           background: `radial-gradient(120% 60% at 50% 0%, rgba(${GOLD},0.1), transparent 55%), linear-gradient(160deg, rgba(22,16,33,0.99), rgba(9,7,15,0.99))`,
           border: `1.5px solid rgba(${GOLD},0.5)`, boxShadow: '0 18px 60px rgba(0,0,0,0.75)' }}>
-        <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-1.5">
-          <h2 style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 'clamp(13px,2.6vh,17px)', letterSpacing: '0.08em' }}>{t('decks.active.modalTitle')}</h2>
-          <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: 30, height: 30, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
+        <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-1.5" style={D ? { padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' } : undefined}>
+          <h2 style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: D ? 20 : 'clamp(13px,2.6vh,17px)', letterSpacing: '0.08em' }}>{t('decks.active.modalTitle')}</h2>
+          <button data-dlg-close="1" onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="rvn-press flex items-center justify-center rounded-full" style={{ width: D ? DT.ctl : 30, height: D ? DT.ctl : 30, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}><X className="w-4 h-4" /></button>
         </div>
 
         {!st.loaded ? (
-          <p className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
+          <p className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)', ...(D ? { fontSize: DT.fs.body, minHeight: 260 } : {}) }}>{t('common.loading')}</p>
         ) : st.decks.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center px-6">
-            <span style={{ fontSize: 30 }}>🎴</span>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{t('decks.active.noDecks')}</p>
-            <button onClick={() => { playUiClick(); onClose(); router.push('/digital/decks?tab=builder') }} className="rvn-press px-5 py-2 rounded-xl text-sm font-bold" style={{ background: `rgba(${GOLD},0.15)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{t('decks.active.createDeck')}</button>
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center px-6" style={D ? { minHeight: 260, gap: 12 } : undefined}>
+            <span style={{ fontSize: D ? 40 : 30 }}>🎴</span>
+            <p style={{ color: 'var(--text-secondary)', fontSize: D ? DT.fs.body : 13 }}>{t('decks.active.noDecks')}</p>
+            <button onClick={() => { playUiClick(); onClose(); router.push('/digital/decks?tab=builder') }} className="rvn-press px-5 py-2 rounded-xl text-sm font-bold" style={{ ...(D ? { minHeight: DT.ctl, fontSize: 14 } : {}), background: `rgba(${GOLD},0.15)`, border: `1px solid rgba(${GOLD},0.5)`, color: 'var(--gold)' }}>{t('decks.active.createDeck')}</button>
           </div>
         ) : (
           <>
             {/* karuselė */}
-            <div className="shrink-0">
+            <div className="shrink-0" style={D ? { paddingTop: 12 } : undefined}>
               <HorizontalFocusCarousel
                 items={st.decks} keyOf={(d) => d.id} focus={focus} onFocus={setFocus}
                 onPick={(d) => { setPendingId(d.id) }}
-                itemWidth={150} ariaLabel={t('decks.active.carouselAria')} edgePad="34%"
-                renderItem={(d, { focused }) => <DeckTile d={d} active={d.id === st.activeDeckId} focused={focused} pending={d.id === pendingId} />} />
+                itemWidth={D ? 190 : 150} gap={D ? 16 : undefined} ariaLabel={t('decks.active.carouselAria')} edgePad={D ? '40%' : '34%'}
+                renderItem={(d, { focused }) => <DeckTile d={d} active={d.id === st.activeDeckId} focused={focused} pending={d.id === pendingId} desk={D} />} />
             </div>
 
             {/* detalės + veiksmai */}
             {cur && (
-              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-3 pt-1.5">
-                <div className="flex items-start gap-3 flex-wrap">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-3 pt-1.5" style={D ? { padding: '12px 20px 20px' } : undefined}>
+                <div className="flex items-start gap-3 flex-wrap" style={D ? { gap: 16 } : undefined}>
                   <div className="min-w-0 flex-1" style={{ minWidth: 200 }}>
-                    <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: cur.factionColor ?? 'var(--gold)', fontSize: 15, lineHeight: 1.25 }}>{cur.name}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{gc.faction(cur.faction) || t('decks.active.noFaction')} · {formatDeckCount(cur.cardCount)}{cur.updatedAt ? ` · ${t('decks.active.edited', { date: formatDate(cur.updatedAt) })}` : ''}</p>
-                    <p data-testid="deck-validity" className="mt-0.5 font-bold" style={{ fontSize: 11.5, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
+                    <p className="font-black" style={{ fontFamily: 'var(--rvn-font-display)', color: cur.factionColor ?? 'var(--gold)', fontSize: D ? DT.fs.h2 : 15, lineHeight: 1.25 }}>{cur.name}</p>
+                    <p style={{ fontSize: D ? DT.fs.help : 11, color: 'var(--text-secondary)', marginTop: D ? 4 : undefined }}>{gc.faction(cur.faction) || t('decks.active.noFaction')} · {formatDeckCount(cur.cardCount)}{cur.updatedAt ? ` · ${t('decks.active.edited', { date: formatDate(cur.updatedAt) })}` : ''}</p>
+                    <p data-testid="deck-validity" className="mt-0.5 font-bold" style={{ fontSize: D ? 14 : 11.5, color: v.valid ? '#4ade80' : '#fbbf24' }}>{v.valid ? t('decks.active.readyBattle') : `⚠ ${v.reason}`}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button data-testid="set-active" onClick={() => void setActive()} disabled={busy || (pendingId ?? cur.id) === st.activeDeckId || !deckValidity(st.decks.find((d) => d.id === (pendingId ?? cur.id)) ?? cur).valid}
                       className="rvn-press px-4 rounded-xl font-extrabold disabled:opacity-50"
-                      style={{ height: 40, fontSize: 12.5, fontFamily: 'var(--rvn-font-display)',
+                      style={{ height: D ? DT.cta : 40, fontSize: D ? 14 : 12.5, padding: D ? '0 22px' : undefined, fontFamily: 'var(--rvn-font-display)',
                         background: isActive ? 'rgba(52,211,153,0.16)' : 'linear-gradient(180deg,#ffe28c,#f3b62c 46%,#c5841a)',
                         color: isActive ? '#4ade80' : '#3a2406', border: isActive ? '1px solid rgba(52,211,153,0.5)' : '1px solid #ffeaa6' }}>
                       {(pendingId ?? cur.id) === st.activeDeckId ? t('decks.active.isActive') : busy ? t('common.saving') : t('decks.active.setActive')}
                     </button>
                     <button onClick={() => { playUiClick(); onClose(); router.push('/digital/decks?tab=builder&deck=' + cur.id) }}
-                      className="rvn-press px-4 rounded-xl font-bold" style={{ height: 40, fontSize: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#e8dfc8' }}>
+                      className="rvn-press px-4 rounded-xl font-bold" style={{ height: D ? DT.cta : 40, fontSize: D ? 14 : 12, padding: D ? '0 20px' : undefined, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#e8dfc8' }}>
                       {t('decks.edit')}
                     </button>
                   </div>
                 </div>
 
                 {/* avataras šiai kaladei */}
-                <div className="mt-2.5 rounded-xl px-3 py-2" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold" style={{ fontSize: 10.5, color: 'var(--gold)', letterSpacing: '0.06em' }}>{t('decks.active.avatarForDeck')}</p>
-                    <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: '#c9bfa8' }}>
+                <div className="mt-2.5 rounded-xl px-3 py-2" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(255,255,255,0.1)', ...(D ? { marginTop: 16, padding: '12px 16px' } : {}) }}>
+                  <div className="flex items-center gap-2 flex-wrap" style={D ? { gap: 12 } : undefined}>
+                    <p className="font-bold" style={{ fontSize: D ? DT.fs.label : 10.5, color: 'var(--gold)', letterSpacing: '0.06em', textTransform: D ? 'uppercase' : undefined }}>{t('decks.active.avatarForDeck')}</p>
+                    <span className="flex items-center gap-1.5" style={{ fontSize: D ? 14 : 11, color: '#c9bfa8' }}>
                       {boundAvatarObj
-                        ? <>{boundAvatarObj.imageUrl ? <SmartImg src={boundAvatarObj.imageUrl} width={48} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} /> : <span>{boundAvatarObj.emoji ?? '👤'}</span>}{boundAvatarObj.name}</>
+                        ? <>{boundAvatarObj.imageUrl ? <SmartImg src={boundAvatarObj.imageUrl} width={48} alt="" style={{ width: D ? 28 : 22, height: D ? 28 : 22, borderRadius: '50%', objectFit: 'cover' }} /> : <span>{boundAvatarObj.emoji ?? '👤'}</span>}{boundAvatarObj.name}</>
                         : t('decks.active.globalAvatarUsed')}
                     </span>
                     <span className="ml-auto flex gap-1.5">
-                      <button data-testid="avatar-pick" onClick={() => { playUiClick(); setAvatarPick((x) => !x) }} className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold" style={{ background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>{avatarPick ? t('decks.active.collapse') : t('decks.active.pickAvatar')}</button>
+                      <button data-testid="avatar-pick" onClick={() => { playUiClick(); setAvatarPick((x) => !x) }} className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold" style={{ ...(D ? { fontSize: 13, minHeight: DT.ctlSm, padding: '0 14px' } : {}), background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)`, color: 'var(--gold)' }}>{avatarPick ? t('decks.active.collapse') : t('decks.active.pickAvatar')}</button>
                       {cur.boundAvatar && (
-                        <button onClick={async () => { playUiClick(); await st.setDeckAvatar(cur.id, null) }} className="px-2.5 py-1 rounded-lg text-[10.5px]" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#c9bfa8' }}>{t('decks.active.useGlobal')}</button>
+                        <button onClick={async () => { playUiClick(); await st.setDeckAvatar(cur.id, null) }} className="px-2.5 py-1 rounded-lg text-[10.5px]" style={{ ...(D ? { fontSize: 13, minHeight: DT.ctlSm, padding: '0 14px' } : {}), background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#c9bfa8' }}>{t('decks.active.useGlobal')}</button>
                       )}
                     </span>
                   </div>
                   {avatarPick && (
-                    <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
-                      {avatars.length === 0 && <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{t('decks.active.noAvatars')}</p>}
+                    <div className={D ? 'mt-3 flex flex-wrap gap-2' : 'mt-2 flex gap-1.5 overflow-x-auto pb-1'} style={{ scrollbarWidth: 'thin' }}>
+                      {avatars.length === 0 && <p style={{ fontSize: D ? DT.fs.help : 10.5, color: 'var(--text-muted)' }}>{t('decks.active.noAvatars')}</p>}
                       {avatars.map((a) => (
                         <button key={a.id} title={a.name} onClick={async () => { playUiClick(); const r = await st.setDeckAvatar(cur.id, a.id); if (r.ok) playSuccess() }}
-                          className="shrink-0 rounded-full overflow-hidden" style={{ width: 40, height: 40, border: `2px solid ${cur.boundAvatar === a.id ? 'var(--gold)' : 'rgba(255,255,255,0.15)'}` }}>
+                          className="shrink-0 rounded-full overflow-hidden" style={{ width: D ? 52 : 40, height: D ? 52 : 40, border: `2px solid ${cur.boundAvatar === a.id ? 'var(--gold)' : 'rgba(255,255,255,0.15)'}` }}>
                           {a.imageUrl ? <SmartImg src={a.imageUrl} width={80} alt={a.name} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center" style={{ background: a.css ?? '#241a35', fontSize: 18 }}>{a.emoji ?? '👤'}</span>}
                         </button>
                       ))}

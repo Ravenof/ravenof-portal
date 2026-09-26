@@ -73,8 +73,10 @@ export function DigitalPvE() {
   const [rewardCfg, setRewardCfg] = useState<Awaited<ReturnType<typeof getMatchRewardPreview>>>(null)
   // Desktop išdėstymas: 3 fiksuoti stulpeliai (340 / ~520 / likutis), turinys iki 1680 px,
   // režimų 2×2 tinklelis NEtempiamas per visą aukštį – jo dydis pagal lango aukštį.
-  const { desktop } = useDesktopUi()
-  const centerW = desktop ? Math.max(400, Math.min(560, window.innerHeight - 260)) : 0
+  // Stulpelių pločiai skaičiuojami ir iš lango PLOČIO (1024–1280 px lange dešinė kolona nesusitraukia iki nieko).
+  const { desktop, vw, vh } = useDesktopUi()
+  const leftW = desktop && vw < 1280 ? 300 : 340
+  const centerW = desktop ? Math.max(300, Math.min(560, vh - 260, vw - 64 - leftW - 56 - 380)) : 0
   useEffect(() => { getMatchRewardPreview().then((r) => setRewardCfg(r)) }, [])
   // Numatomas atlygis: pagal varžovo kaladę × sudėtingumą (bot.silver_by_level), kitaip – bazinis bot.win.silver
   const rewardSilver = rewardCfg ? (rewardCfg.bot?.silver_by_level?.[level]?.[difficulty] ?? rewardCfg.bot?.win?.silver ?? null) : null
@@ -206,7 +208,7 @@ export function DigitalPvE() {
   )
 
   const label = (txt: string) => (
-    <div className="shrink-0" style={{ font: `500 ${desktop ? 12 : 9}px var(--ravenof-font-body)`, letterSpacing: desktop ? 2 : 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{txt}</div>
+    <div className="shrink-0" style={{ font: `${desktop ? 600 : 500} ${desktop ? 12 : 9}px var(--ravenof-font-body)`, letterSpacing: desktop ? 2 : 1.5, color: 'var(--ravenof-text-secondary)', textTransform: 'uppercase' }}>{txt}</div>
   )
 
   // ── Varžovo plytelė = kovos režimo baneris (Combat UI Asset Pack v1.6) ──────
@@ -242,23 +244,23 @@ export function DigitalPvE() {
   const inputStyle: React.CSSProperties = { minHeight: desktop ? 42 : 34, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: desktop ? '0 14px' : '0 10px', font: `400 ${desktop ? 14 : 12}px var(--ravenof-font-body)`, outline: 'none' }
 
   return (
-    <div data-pve-v="447" className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (desktop ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: desktop ? '20px 32px 28px' : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
-      <div className={desktop ? 'w-full flex flex-col' : 'contents'} style={desktop ? { maxWidth: 1680, margin: '0 auto' } : undefined}>
+    <div data-pve-v="447" className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (desktop ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: desktop ? '24px 32px 28px' : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+      <div className={desktop ? 'w-full flex flex-col' : 'contents'} style={desktop ? { maxWidth: 'var(--rvn-content-max, 1440px)', margin: '0 auto' } : undefined}>
       {/* Antraštė: atgal + pavadinimas */}
       <div className="flex items-center shrink-0" style={{ gap: desktop ? 14 : 10, paddingBottom: desktop ? 22 : 10 }}>
-        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: desktop ? 22 : 16, ...(desktop ? { width: 40, height: 40 } : {}) }}>‹</button>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: desktop ? 22 : 16, ...(desktop ? { width: 42, height: 42 } : {}) }}>‹</button>
         <FormatSwitch variant="chip" />
-        <div style={{ font: `700 ${desktop ? 30 : 15}px var(--ravenof-font-display)`, letterSpacing: desktop ? 2 : 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.screenTitle')}</div>
+        <div style={{ font: `700 ${desktop ? 26 : 15}px var(--ravenof-font-display)`, letterSpacing: desktop ? 2 : 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.screenTitle')}</div>
       </div>
 
       <div className={desktop ? 'flex items-start' : 'flex-1 flex min-h-0'} style={{ gap: desktop ? 28 : 14 }}>
         {/* ── KAIRĖ: kaladė + sunkumas + atlygis + CTA ── */}
-        <div className="flex flex-col min-w-0" style={desktop ? { flex: '0 0 340px', gap: 12 } : { flex: 1.05, gap: 8 }}>
+        <div className="flex flex-col min-w-0" style={desktop ? { flex: `0 0 ${leftW}px`, gap: 12 } : { flex: 1.05, gap: 8 }}>
           {label(t('battle.pve.yourDeck'))}
           <button onClick={() => { playUiClick(); setDeckSelOpen(true) }} data-testid="active-deck-summary" className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: desktop ? 14 : 10, background: 'var(--ravenof-bg-surface)', border: '1px solid #3d3345', padding: desktop ? '12px 14px' : '7px 10px', cursor: 'pointer' }}>
             <span className="shrink-0 overflow-hidden relative" style={{ width: desktop ? 52 : 34, height: desktop ? 69 : 45, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
             <span className="flex-1 min-w-0">
-              <span className="block truncate" style={{ font: `700 ${desktop ? 19 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
+              <span className={desktop ? 'block rvn-clamp2' : 'block truncate'} style={{ font: `700 ${desktop ? 17 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)', lineHeight: desktop ? 1.25 : undefined }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
               {globalDeck && <span className="block truncate" style={{ font: `400 ${desktop ? 14 : 11}px var(--ravenof-font-body)`, color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {formatDeckCount(globalDeck.cardCount)}</span>}
             </span>
             <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: desktop ? 22 : undefined }}>›</span>
@@ -274,8 +276,8 @@ export function DigitalPvE() {
               return (
                 <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} data-setup-tile={`diff-${d}`} aria-pressed={s}
                   className="ravenof-press flex-1" title={t(`battle.pve.diffDesc.${d}`)} style={{
-                    padding: desktop ? '14px 4px' : '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
-                    font: `700 ${desktop ? 15 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
+                    padding: desktop ? '0 4px' : '10px 4px', minHeight: desktop ? 46 : undefined, border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                    font: `700 ${desktop ? 14 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
                     background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
                     color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
                   }}>{t(`battle.pve.diff.${d}`)}</button>
@@ -290,21 +292,21 @@ export function DigitalPvE() {
               return (
                 <button key={lv} onClick={() => { playUiClick(); pickLevel(lv) }} data-setup-tile={`level-${lv}`} aria-pressed={s}
                   className="ravenof-press flex-1" title={t(`battle.pve.levelDesc.${lv}`)} style={{
-                    padding: desktop ? '14px 4px' : '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
-                    font: `700 ${desktop ? 15 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
+                    padding: desktop ? '0 4px' : '10px 4px', minHeight: desktop ? 46 : undefined, border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                    font: `700 ${desktop ? 14 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
                     background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
                     color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
                   }}>{t(`battle.pve.level.${lv}`)}</button>
               )
             })}
           </div>
-          <p className="shrink-0" style={{ font: `400 ${desktop ? 13 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t(`battle.pve.levelDesc.${level}`)}</p>
+          <p className="shrink-0" style={{ font: `400 ${desktop ? 13.5 : 10}px var(--ravenof-font-body)`, lineHeight: desktop ? 1.45 : undefined, color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t(`battle.pve.levelDesc.${level}`)}</p>
           {showSuggest && (
             <div role="status" className="shrink-0" style={{ border: '1px solid rgba(212,163,59,.55)', background: 'rgba(212,163,59,.10)', padding: desktop ? '12px 14px' : '9px 11px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ font: `500 ${desktop ? 14 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{t('battle.pve.rookieSuggest', { n: rookieWins })}</span>
               <span className="flex" style={{ gap: 8 }}>
-                <button onClick={() => { playUiClick(); pickLevel('veteran') }} className="ravenof-press" style={{ font: `700 ${desktop ? 12 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: desktop ? '8px 14px' : '6px 10px', cursor: 'pointer', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)' }}>{t('battle.pve.rookieSuggestYes')}</button>
-                <button onClick={() => { playUiClick(); dismissSuggest() }} className="ravenof-press" style={{ font: `600 ${desktop ? 12 : 10}px var(--ravenof-font-body)`, background: 'none', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-secondary)', padding: desktop ? '8px 12px' : '6px 9px', cursor: 'pointer' }}>{t('battle.pve.rookieSuggestNo')}</button>
+                <button onClick={() => { playUiClick(); pickLevel('veteran') }} className="ravenof-press" style={{ font: `700 ${desktop ? 12 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, padding: desktop ? '0 16px' : '6px 10px', minHeight: desktop ? 40 : undefined, cursor: 'pointer', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)' }}>{t('battle.pve.rookieSuggestYes')}</button>
+                <button onClick={() => { playUiClick(); dismissSuggest() }} className="ravenof-press" style={{ font: `600 ${desktop ? 12 : 10}px var(--ravenof-font-body)`, background: 'none', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-secondary)', padding: desktop ? '0 14px' : '6px 9px', minHeight: desktop ? 40 : undefined, cursor: 'pointer' }}>{t('battle.pve.rookieSuggestNo')}</button>
               </span>
             </div>
           )}
@@ -315,7 +317,7 @@ export function DigitalPvE() {
           </div>
 
           {!desktop && <div className="flex-1" />}
-          <RavenofBannerButton onClick={start} disabled={!canStart} data-testid="pve-start" style={desktop ? { width: '100%', minHeight: 58, marginTop: 8, fontSize: 16, letterSpacing: 3, padding: '14px 20px' } : { width: '100%' }}>
+          <RavenofBannerButton onClick={start} disabled={!canStart} data-testid="pve-start" style={desktop ? { width: '100%', minHeight: 52, marginTop: 8, fontSize: 16, letterSpacing: 3, padding: '12px 20px' } : { width: '100%' }}>
             {canStart ? t('battle.pve.start') : !deck ? t('battle.pve.activeDeckInvalid') : mode === 'faction' ? t('battle.pve.pickFaction') : mode === 'public' ? t('battle.pve.pickDeck') : t('battle.pve.pickOpponent')}
           </RavenofBannerButton>
         </div>

@@ -43,7 +43,7 @@ export function AdminOnlineBar() {
   return (
     <div className="ravenof-body" style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
       <button type="button" onClick={() => { playUiClick(); setOpen((v) => !v); void refresh() }} title="Prisijungę žaidėjai (admin)"
-        className="ravenof-press" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 12px', border: '1px solid rgba(123,211,137,.55)', background: 'rgba(7,6,10,.82)', color: '#cfe9d4', font: '700 10.5px var(--ravenof-font-body)', letterSpacing: 1.2, textTransform: 'uppercase', cursor: 'pointer', backdropFilter: 'blur(4px)', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)' }}>
+        className="ravenof-press rvn-admin-online" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 12px', border: '1px solid rgba(123,211,137,.55)', background: 'rgba(7,6,10,.82)', color: '#cfe9d4', font: '700 10.5px var(--ravenof-font-body)', letterSpacing: 1.2, textTransform: 'uppercase', cursor: 'pointer', backdropFilter: 'blur(4px)', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)' }}>
         <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: '#7bd389', boxShadow: '0 0 8px #7bd389' }} />
         Online: <b style={{ color: '#fff' }}>{count}</b>
         <span aria-hidden style={{ opacity: .7 }}>{open ? '▴' : '▾'}</span>

@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { playUiClick, playSuccess } from '@/lib/ui-sound'
+import { playUiClick } from '@/lib/ui-sound'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { WelcomeReward } from './WelcomeReward'
@@ -29,6 +29,11 @@ import { ClassicBadge } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat, CLASSIC_ACCENT } from '@/lib/game/format'
 
 const A = RAVENOF_ASSET
+
+/** Mobile šrifto dydis → desktop tokenas (label 12 · help 13.5 · body 15 · h3 16–20 · h2/h1 24–28). */
+const HUB_FS_D: Record<number, number> = { 8: 12, 8.5: 12, 9.5: 13.5, 10: 13.5, 10.5: 14, 11: 15, 12: 15, 14: 20, 17: 24, 19: 28 }
+/** Mobile tarpas/dydis → desktop skalė (4/8/12/16/24/32 + ikonos). */
+const HUB_PX_D: Record<number, number> = { 4: 6, 6: 8, 7: 10, 8: 12, 9: 12, 10: 14, 11: 14, 12: 16, 14: 20, 16: 22, 20: 28, 30: 40, 34: 48 }
 
 /** Dienos užduočių akcentai pagal sudėtingumą (v2: easy/medium/hard). */
 const DIFF_ACCENT: Record<string, string> = { easy: '52,211,153', medium: '96,165,250', hard: '239,68,68' }
@@ -53,10 +58,11 @@ function timeToReset(resetAt?: string | null): string {
 export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter()
   const t = useT()
-  // Desktop (pelė, ≥1024): mastelis tekstui/tarpams; mobile k=1 – niekas nesikeičia.
-  const { desktop, k } = useDesktopUi()
-  const fs = (n: number) => Math.round(n * k)
-  const px = (n: number) => Math.round(n * (desktop ? Math.min(k, 1.5) : 1))
+  // Desktop: SEMANTINIAI dydžiai (deskTokens skalė), ne mastelio koeficientas.
+  // Mobile reikšmė → desktop tokenas; mobile niekas nesikeičia.
+  const { desktop } = useDesktopUi()
+  const fs = (n: number) => (desktop ? (HUB_FS_D[n] ?? n) : n)
+  const px = (n: number) => (desktop ? (HUB_PX_D[n] ?? n) : n)
   const [toast, setToast] = useState<string | null>(null)
   const [, setWallet] = useState<Wallet>({ gold: 0, packs: 0 })
   const [streak, setStreak] = useState(0)
@@ -185,7 +191,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {/* Admin: kas dabar prisijungęs – maža juostelė ekrano viršuje (tik role='admin') */}
       {loggedIn && <AdminOnlineBar />}
       {/* Kovos formato tab'ai (ŽMK / Klasika) gyvena viršutinėje juostoje (layout.tsx) */}
-      <div className="flex-1 min-h-0 flex" style={{ gap: desktop ? 22 : 10 }}>
+      <div className="flex-1 min-h-0 flex" style={{ gap: desktop ? 24 : 10, maxHeight: desktop ? 820 : undefined }}>
       {/* ── KAIRĖ: Reitingo hero ── */}
       <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
         className="ravenof-press relative overflow-hidden text-left flex flex-col justify-between min-h-0"
@@ -236,7 +242,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </span>
           <span className="flex-1 min-w-0">
             <span className="block" style={{ font: `500 ${fs(8)}px var(--ravenof-font-body)`, letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('home.nextUp')}</span>
-            <span className="block truncate" style={{ font: `700 ${fs(12)}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</span>
+            <span className="block truncate" style={{ font: `700 ${desktop ? 17 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</span>
             <span className="block truncate" style={{ font: `400 ${fs(9.5)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>
               {rd && !rd.isMax ? t('home.nextRankPts', { rank: rd.nextLabel ?? '', pts: rd.stepsToNextNumber }) : t('home.pickModeStart')}
             </span>
@@ -265,7 +271,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
         {/* Dienos užduotys */}
         <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex items-baseline justify-between shrink-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
-          <span style={{ font: `700 ${fs(11)}px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
+          <span style={{ font: `700 ${desktop ? 17 : 11}px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
           <span style={{ font: `400 ${fs(10)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('home.resetsIn')} {countdown ?? '–:––'}</span>
         </button>
         <div data-testid="hub-daily-quests" className={desktop ? 'flex flex-col min-h-0' : 'flex-1 flex flex-col min-h-0'} style={{ gap: desktop ? 10 : 6 }}>
@@ -273,7 +279,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ gap: 8, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '8px 10px' }}>
               <span style={{ font: `400 ${fs(11)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{!questsLoaded ? t('common.loading') : t('home.noQuestsToday')}</span>
               {questsLoaded && (
-                <button onClick={() => { playUiClick(); router.push('/digital/rewards') }} className="ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, padding: '7px 12px', fontSize: 10 }}>
+                <button onClick={() => { playUiClick(); router.push('/digital/rewards') }} className="ravenof-btn ravenof-btn-secondary" style={desktop ? undefined : { minHeight: 34, padding: '7px 12px', fontSize: 10 }}>
                   {loginClaimable ? t('home.monthlyReady') : t('home.monthlyGifts')}
                 </button>
               )}
@@ -283,7 +289,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             const pct = Math.min(100, Math.round((q.progress / Math.max(1, q.target)) * 100))
             const ready = q.completed && !q.claimed
             return (
-              <div key={q.id} className="flex items-center min-h-0" style={{ flex: desktop ? '0 0 auto' : 1, minHeight: desktop ? 84 : undefined, gap: px(9), background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: desktop ? '10px 16px' : '5px 10px' }}>
+              <div key={q.id} className="flex items-center min-h-0" style={{ flex: desktop ? '0 0 auto' : 1, minHeight: desktop ? 72 : undefined, gap: px(9), background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: desktop ? '10px 16px' : '5px 10px' }}>
                 <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="shrink-0" style={{ width: px(30), height: px(30), background: 'none', border: 0, padding: 0, cursor: 'pointer' }} aria-label={t('home.dailyQuests')}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -305,13 +311,13 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           {/* Dienos skrynia — matoma tik kai visi trys questai įvykdyti */}
           {quests && quests.allCompleted && (quests.chest?.claimable || quests.chest?.claimed) && (
             <div className="flex items-center shrink-0" style={{ gap: px(9), background: 'var(--ravenof-bg-surface-2)', border: '1px solid rgba(212,163,59,.45)', padding: desktop ? '10px 16px' : '5px 10px', minHeight: desktop ? 64 : undefined }}>
-              <span className="shrink-0" style={{ width: 24, height: 24, display: 'grid', placeItems: 'center' }} aria-hidden>
+              <span className="shrink-0" style={{ width: desktop ? 40 : 24, height: desktop ? 40 : 24, display: 'grid', placeItems: 'center' }} aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${A}/rewards/daily-quest-token.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: quests.chest?.claimed ? 'grayscale(1) opacity(.55)' : 'none' }} />
               </span>
               <span className="flex-1 min-w-0 truncate" style={{ font: `500 ${fs(11)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{t('progression.quests.chestTitle')}</span>
               {quests.chest?.claimable ? (
-                <button onClick={() => void claimChest()} className="shrink-0" style={{ font: `700 ${fs(9.5)}px var(--ravenof-font-display)`, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('progression.quests.chestOpen')}</button>
+                <button onClick={() => void claimChest()} className="shrink-0" style={{ font: `700 ${fs(9.5)}px var(--ravenof-font-display)`, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: desktop ? '10px 16px' : '6px 9px', border: 0, cursor: 'pointer', clipPath: 'polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)', animation: 'ravenofPulse 2.4s infinite' }}>{t('progression.quests.chestOpen')}</button>
               ) : (
                 <span className="shrink-0" style={{ font: `400 ${fs(10.5)}px var(--ravenof-font-body)`, color: 'var(--ravenof-success-bright)' }}>✓</span>
               )}

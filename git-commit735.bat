@@ -1,0 +1,13 @@
+@echo off
+cd /d "%~dp0"
+set GIT_LITERAL_PATHSPECS=1
+taskkill /F /IM git.exe >nul 2>&1
+del /f /q ".git\index.lock" >nul 2>&1
+(
+echo CWD: %CD%
+git rev-parse --show-toplevel
+git add src/app/digital/layout.tsx src/components/digital/ActiveDeckSelectorModal.tsx src/components/digital/AdminOnlineBar.tsx src/components/digital/DigitalCollection.tsx src/components/digital/DigitalCommunityDecks.tsx src/components/digital/DigitalDeckBuilder.tsx src/components/digital/DigitalDecks.tsx src/components/digital/DigitalHub.tsx src/components/digital/DigitalMyDecks.tsx src/components/digital/DigitalPvE.tsx src/components/digital/DigitalPvP.tsx src/components/digital/MoreScreen.tsx src/components/digital/NotificationsModal.tsx src/components/digital/RavenofCardDetailModal.tsx src/components/digital/SettingsModal.tsx src/components/digital/ShopModal.tsx src/components/digital/campaign/CampaignList.tsx src/components/digital/profile/AccountLevelScreen.tsx src/components/digital/profile/AchievementsScreen.tsx src/components/digital/profile/ProfileCosmeticsModal.tsx src/components/digital/profile/ProfileOverviewScreen.tsx src/components/digital/profile/ProfileShell.tsx src/components/digital/progression/ChoiceModals.tsx src/components/digital/progression/DailyQuestsScreen.tsx src/components/digital/progression/LoginRewardsScreen.tsx src/components/digital/progression/SeasonPathScreen.tsx src/components/digital/progression/kit.tsx src/components/digital/ranked/RankedClient.tsx src/components/digital/ui/FormatSwitch.tsx src/components/digital/ui/desktop-ui.css src/components/digital/ui/useDesktopUi.ts src/components/social/FriendsClient.tsx src/components/tutorial2/TutorialHub.tsx DESKTOP-UI-SISTEMA.md src/components/digital/profile/profileDesk.tsx src/components/digital/ui/DeskKit.tsx src/components/digital/ui/deskTokens.ts  git-commit735.bat
+git commit -m "735: Desktop UI sistema /digital meniu ekranams - useDesktopUi per useSyncExternalStore (hidratacijos klaida: desktop rezimas neisijungdavo), semantiniai tokenai vietoj k mastelio (deskTokens.ts + desktop-ui.css, html[data-rvn-desk]), DeskDialog (Escape/fokusas), rail tokenas --rvn-rail-w; Hub, Parduotuve, Kolekcija, kortos detale, Kalades, Builderis, Bendruomene, Profilis, Pasiekimai, Lygiai, Kosmetika, Daugiau, Nustatymai, Pranesimai, Draugai, Sezono kelias, Uzduotys, Dovanos, Ranked/PvE/PvP lobby, Kampanija, Mokymai; pasuk telefona tik lietimo irenginiams. Mobile nepakeistas." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01JoeKHRowQ9gPcXNEz1bqGE"
+git push
+git log -1 --oneline
+) > commit735.log 2>&1

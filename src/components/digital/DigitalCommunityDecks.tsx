@@ -19,6 +19,9 @@ import { SmartImg } from '@/components/ui/SmartImg'
 import { useT, useGameContent } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
 import { isDeckSizeValid, formatDeckCount } from '@/lib/deck-validation'
+import { useDesktopUi } from './ui/useDesktopUi'
+import { DT } from './ui/deskTokens'
+import { useDialogFocus } from './ui/DeskKit'
 
 type Entry = { cardId: string; name: string; image: string | null; gold: number; rarity: string | null; qty: number; owned: number }
 type CDeck = {
@@ -40,10 +43,14 @@ function timeAgo(ts: string): string {
 }
 
 const FIELD: React.CSSProperties = { minHeight: 34, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: '0 10px', font: '400 12px var(--ravenof-font-body)', outline: 'none' }
+// Desktop: 42px valdikliai, 15px tekstas
+const FIELD_D: React.CSSProperties = { ...FIELD, minHeight: DT.ctl, padding: '0 12px', font: `400 ${DT.fs.body}px var(--ravenof-font-body)` }
 
 export function DigitalCommunityDecks({ userId }: { userId: string }) {
   const gc = useGameContent()
   const t = useT()
+  const { desktop: D } = useDesktopUi()
+  const F = D ? FIELD_D : FIELD
   const [decks, setDecks] = useState<CDeck[] | null>(null)
   const [myVotes, setMyVotes] = useState<Record<string, number>>({})
   const [isAdmin, setIsAdmin] = useState(false)
@@ -149,24 +156,24 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
   if (decks === null) return <div className="ravenof-body flex items-center justify-center py-16"><span className="ravenof-spinner" style={{ width: 40, height: 40 }} /></div>
 
   return (
-    <div className="ravenof-body ravenof-in flex flex-col" style={{ gap: 8 }}>
+    <div className="ravenof-body ravenof-in flex flex-col" style={{ gap: D ? DT.sp.lg : 8, paddingBottom: D ? DT.sp.xl : undefined }}>
       {/* ── Įrankių juosta ── */}
-      <div className="flex items-center flex-wrap" style={{ gap: 6 }}>
-        <div className="relative flex-1" style={{ minWidth: 160 }}>
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ width: 13, height: 13, color: 'var(--ravenof-text-secondary)' }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('decks.community.searchPlaceholder')} className="w-full" style={{ ...FIELD, paddingLeft: 28 }} />
+      <div className="flex items-center flex-wrap" style={{ gap: D ? DT.sp.sm : 6 }}>
+        <div className="relative flex-1" style={{ minWidth: D ? 260 : 160 }}>
+          <Search className={`absolute top-1/2 -translate-y-1/2 ${D ? 'left-3' : 'left-2.5'}`} style={{ width: D ? 17 : 13, height: D ? 17 : 13, color: 'var(--ravenof-text-secondary)' }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('decks.community.searchPlaceholder')} aria-label={t('decks.community.searchPlaceholder')} className="w-full" style={{ ...F, paddingLeft: D ? 38 : 28 }} />
         </div>
-        <select value={faction} onChange={(e) => setFaction(e.target.value)} style={{ ...FIELD, maxWidth: 160 }}>
+        <select value={faction} onChange={(e) => setFaction(e.target.value)} style={{ ...F, maxWidth: D ? 240 : 160 }}>
           <option value="all">{t('decks.community.allFactions')}</option>
           {factions.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} style={{ ...FIELD, maxWidth: 140 }}>
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} style={{ ...F, maxWidth: D ? 240 : 140 }}>
           <option value="score">{t('decks.community.sortTop')}</option>
           <option value="new">{t('decks.community.sortNew')}</option>
           <option value="cards">{t('decks.community.sortCards')}</option>
         </select>
-        <button onClick={() => { playUiClick(); setCraftableOnly((v) => !v) }} className="ravenof-press inline-flex items-center gap-2 px-3"
-          style={{ minHeight: 34, cursor: 'pointer', font: '700 10.5px var(--ravenof-font-body)', textTransform: 'uppercase', letterSpacing: 1,
+        <button onClick={() => { playUiClick(); setCraftableOnly((v) => !v) }} aria-pressed={craftableOnly} className={`ravenof-press inline-flex items-center gap-2 ${D ? 'px-4' : 'px-3'}`}
+          style={{ minHeight: D ? DT.ctl : 34, cursor: 'pointer', font: `700 ${D ? 12.5 : 10.5}px var(--ravenof-font-body)`, textTransform: 'uppercase', letterSpacing: 1,
             background: craftableOnly ? 'rgba(79,158,82,0.14)' : 'var(--ravenof-bg-elevated)',
             border: `1px solid ${craftableOnly ? 'var(--ravenof-success)' : 'var(--ravenof-border-strong)'}`,
             color: craftableOnly ? 'var(--ravenof-success)' : 'var(--ravenof-text-secondary)' }}>
@@ -179,27 +186,30 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
 
       {/* ── Kaladžių grid ── */}
       {shown.length === 0 ? (
-        <p className="text-center py-12" style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('decks.community.noneFound')}</p>
+        <p className="text-center py-12" style={{ font: `400 ${D ? DT.fs.body : 13}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('decks.community.noneFound')}</p>
       ) : (
-        <div className="grid" style={{ gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))' }}>
+        <div className="grid" style={D
+          /* Desktop: adaptyvūs stulpeliai su min/max (kortelės neauga be ribos) */
+          ? { gap: DT.sp.lg, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 420px))', justifyContent: 'start', alignContent: 'start' }
+          : { gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))' }}>
           {shown.map((d, idx) => (
-            <div key={d.id} className="relative flex flex-col" style={{ background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)', borderTop: `2px solid ${d.factionColor}` }}>
-              <div className="flex items-start" style={{ gap: 10, padding: '10px 12px 0' }}>
-                <VoteBox score={d.score} my={myVotes[d.id] ?? 0} onUp={() => vote(d, 1)} onDown={() => vote(d, -1)} />
+            <div key={d.id} className="relative flex flex-col" style={{ background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-strong)', borderTop: `2px solid ${d.factionColor}`, minWidth: 0 }}>
+              <div className="flex items-start" style={{ gap: D ? 14 : 10, padding: D ? '14px 16px 0' : '10px 12px 0' }}>
+                <VoteBox desktop={D} score={d.score} my={myVotes[d.id] ?? 0} onUp={() => vote(d, 1)} onDown={() => vote(d, -1)} />
                 <div className="flex-1 min-w-0">
-                  <h2 className="truncate" style={{ font: '700 13.5px var(--ravenof-font-display)', letterSpacing: 0.5, color: 'var(--ravenof-text-primary)', margin: 0 }}>
+                  <h2 className={D ? 'rvn-clamp2' : 'truncate'} title={D ? d.name : undefined} style={{ font: D ? `700 ${DT.fs.h3}px/1.25 var(--ravenof-font-display)` : '700 13.5px var(--ravenof-font-display)', letterSpacing: 0.5, color: 'var(--ravenof-text-primary)', margin: 0 }}>
                     {sort === 'score' && idx < 3 && <span style={{ color: ['#F2C45A', '#c7d0db', '#b3793f'][idx], marginRight: 4 }}>{toRomanRank(idx + 1)}</span>}{d.name}
                   </h2>
-                  <p className="truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: '1px 0 0' }}>{t('decks.community.byAuthor', { name: d.author })}</p>
-                  <div className="flex flex-wrap items-center" style={{ gap: 6, marginTop: 6 }}>
-                    {d.faction && <span style={{ font: '400 10px var(--ravenof-font-body)', color: d.factionColor, border: `1px solid ${d.factionColor}55`, padding: '2px 7px' }}>{gc.faction(d.faction)}</span>}
+                  <p className="truncate" style={{ font: `400 ${D ? DT.fs.help : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: D ? '3px 0 0' : '1px 0 0' }}>{t('decks.community.byAuthor', { name: d.author })}</p>
+                  <div className="flex flex-wrap items-center" style={{ gap: 6, marginTop: D ? 10 : 6 }}>
+                    {d.faction && <span style={{ font: `400 ${D ? DT.fs.label : 10}px var(--ravenof-font-body)`, color: d.factionColor, border: `1px solid ${d.factionColor}55`, padding: D ? '3px 8px' : '2px 7px' }}>{gc.faction(d.faction)}</span>}
                     {/* Kortų kiekis — vienodu kanoniniu formatu; netinkamas dydis pažymimas */}
-                    <span title={isDeckSizeValid(d.total) ? undefined : t('decks.invalidSizeHint')} style={{ font: '700 10px var(--ravenof-font-body)', padding: '2px 7px',
+                    <span title={isDeckSizeValid(d.total) ? undefined : t('decks.invalidSizeHint')} style={{ font: `700 ${D ? DT.fs.label : 10}px var(--ravenof-font-body)`, padding: D ? '3px 8px' : '2px 7px',
                       color: isDeckSizeValid(d.total) ? 'var(--ravenof-text-secondary)' : 'var(--ravenof-danger-bright)',
                       border: `1px solid ${isDeckSizeValid(d.total) ? 'var(--ravenof-border-strong)' : '#8D2D3855'}` }}>
                       {formatDeckCount(d.total)}{isDeckSizeValid(d.total) ? '' : ` · ${t('decks.invalidBadge')}`}
                     </span>
-                    <span style={{ font: '700 10px var(--ravenof-font-body)', padding: '2px 7px',
+                    <span style={{ font: `700 ${D ? DT.fs.label : 10}px var(--ravenof-font-body)`, padding: D ? '3px 8px' : '2px 7px',
                       color: d.missing === 0 ? 'var(--ravenof-success)' : 'var(--ravenof-gold)',
                       border: `1px solid ${d.missing === 0 ? '#4F9E5255' : 'var(--ravenof-border-gold)'}` }}>
                       {d.missing === 0 ? `✓ ${t('decks.community.haveAllShort')}` : t('decks.community.haveOf', { have: d.have, total: d.total })}
@@ -207,13 +217,13 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
                   </div>
                 </div>
               </div>
-              <div className="flex" style={{ gap: 8, padding: '10px 12px 12px' }}>
+              <div className="flex" style={{ gap: 8, padding: D ? '14px 16px 16px' : '10px 12px 12px', marginTop: D ? 'auto' : undefined }}>
                 <button onClick={() => { playUiClick(); setDetail(d) }} className="ravenof-press flex-1 inline-flex items-center justify-center gap-1.5"
-                  style={{ minHeight: 34, cursor: 'pointer', font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', background: 'none', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)' }}>
+                  style={{ minHeight: D ? DT.ctl : 34, cursor: 'pointer', font: `700 ${D ? 13 : 10.5}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', background: 'none', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)' }}>
                   <Eye className="w-3.5 h-3.5" /> {t('decks.community.preview')}
                 </button>
                 <button onClick={() => copyDeck(d)} disabled={busy || !isDeckSizeValid(d.total)} title={isDeckSizeValid(d.total) ? undefined : t('decks.invalidSizeHint')} className="ravenof-press flex-1 inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  style={{ minHeight: 34, cursor: 'pointer', font: '700 10.5px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', background: 'none', border: '1px solid var(--ravenof-border-gold)', color: 'var(--ravenof-gold)' }}>
+                  style={{ minHeight: D ? DT.ctl : 34, cursor: 'pointer', font: `700 ${D ? 13 : 10.5}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', background: 'none', border: '1px solid var(--ravenof-border-gold)', color: 'var(--ravenof-gold)' }}>
                   <Copy className="w-3.5 h-3.5" /> {t('decks.community.copy')}
                 </button>
               </div>
@@ -223,7 +233,7 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
       )}
 
       {detail && (
-        <DeckDetail d={detail} userId={userId} isAdmin={isAdmin} busy={busy}
+        <DeckDetail desktop={D} d={detail} userId={userId} isAdmin={isAdmin} busy={busy}
           myVote={myVotes[detail.id] ?? 0}
           onVote={(v) => vote(detail, v)}
           onCopy={() => copyDeck(detail)}
@@ -231,7 +241,7 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
           flash={flash} />
       )}
 
-      {toast && <div className="ravenof-toast" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))', zIndex: 170 }}>{toast}</div>}
+      {toast && <div className="ravenof-toast" role="status" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))', zIndex: 170 }}>{toast}</div>}
     </div>
   )
 }
@@ -239,19 +249,21 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
 /** TOP-3 ženklinimas romėnišku numeriu (patvirtinta kalba — be emoji medalių). */
 function toRomanRank(n: number): string { return ['I', 'II', 'III'][n - 1] ?? String(n) }
 
-function VoteBox({ score, my, onUp, onDown }: { score: number; my: number; onUp: () => void; onDown: () => void }) {
+function VoteBox({ score, my, onUp, onDown, desktop = false }: { score: number; my: number; onUp: () => void; onDown: () => void; desktop?: boolean }) {
   const fl = useT()
+  const bw = desktop ? 40 : 32, bh = desktop ? 32 : 26, ic = desktop ? 20 : 16
   return (
     <div className="flex flex-col items-center shrink-0 overflow-hidden" style={{ border: '1px solid var(--ravenof-border-strong)', background: 'var(--ravenof-bg-elevated)' }}>
-      <button onClick={onUp} aria-label={fl('decks.community.voteUp')} className="ravenof-press flex items-center justify-center" style={{ width: 32, height: 26, cursor: 'pointer', background: my === 1 ? 'rgba(79,158,82,0.16)' : 'none', border: 0, color: my === 1 ? 'var(--ravenof-success)' : 'var(--ravenof-text-secondary)' }}><ChevronUp style={{ width: 16, height: 16 }} /></button>
-      <span className="tabular-nums" style={{ font: '700 12px var(--ravenof-font-display)', color: score > 0 ? 'var(--ravenof-gold)' : score < 0 ? '#c65563' : 'var(--ravenof-text-secondary)', padding: '1px 4px' }}>{score}</span>
-      <button onClick={onDown} aria-label={fl('decks.community.voteDown')} className="ravenof-press flex items-center justify-center" style={{ width: 32, height: 26, cursor: 'pointer', background: my === -1 ? 'rgba(180,68,79,0.14)' : 'none', border: 0, color: my === -1 ? '#c65563' : 'var(--ravenof-text-secondary)' }}><ChevronDown style={{ width: 16, height: 16 }} /></button>
+      <button onClick={onUp} aria-label={fl('decks.community.voteUp')} className="ravenof-press flex items-center justify-center" style={{ width: bw, height: bh, cursor: 'pointer', background: my === 1 ? 'rgba(79,158,82,0.16)' : 'none', border: 0, color: my === 1 ? 'var(--ravenof-success)' : 'var(--ravenof-text-secondary)' }}><ChevronUp style={{ width: ic, height: ic }} /></button>
+      <span className="tabular-nums" style={{ font: `700 ${desktop ? 15 : 12}px var(--ravenof-font-display)`, color: score > 0 ? 'var(--ravenof-gold)' : score < 0 ? '#c65563' : 'var(--ravenof-text-secondary)', padding: '1px 4px' }}>{score}</span>
+      <button onClick={onDown} aria-label={fl('decks.community.voteDown')} className="ravenof-press flex items-center justify-center" style={{ width: bw, height: bh, cursor: 'pointer', background: my === -1 ? 'rgba(180,68,79,0.14)' : 'none', border: 0, color: my === -1 ? '#c65563' : 'var(--ravenof-text-secondary)' }}><ChevronDown style={{ width: ic, height: ic }} /></button>
     </div>
   )
 }
 
 // ── Detali peržiūra: kortos + komentarai ─────────────────────────────────────
-function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose, flash }: {
+function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose, flash, desktop: D = false }: {
+  desktop?: boolean
   d: CDeck; userId: string; isAdmin: boolean; busy: boolean; myVote: number
   onVote: (v: 1 | -1) => void; onCopy: () => void; onClose: () => void
   flash: (m: string, err?: boolean) => void
@@ -261,6 +273,8 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  // Desktop: Escape + fokuso gaudyklė + fokuso grąžinimas
+  const dlgRef = useDialogFocus<HTMLDivElement>(onClose, D)
 
   const loadComments = useCallback(async () => {
     const supabase = createClient()
@@ -330,62 +344,65 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
 
   return (
     <div className="ravenof-body fixed inset-0 z-[160] flex items-end sm:items-center justify-center" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={onClose}>
-      <div className="w-full sm:w-[min(480px,94vw)] flex flex-col overflow-hidden" style={{ maxHeight: '90vh', border: `1px solid ${d.factionColor}`, background: 'var(--ravenof-bg-surface)', boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2.5 px-4 py-3 shrink-0" style={{ borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
-          <VoteBox score={d.score} my={myVote} onUp={() => onVote(1)} onDown={() => onVote(-1)} />
+      <div ref={dlgRef} role={D ? 'dialog' : undefined} aria-modal={D ? true : undefined} aria-label={D ? d.name : undefined} tabIndex={D ? -1 : undefined}
+        className={`w-full flex flex-col overflow-hidden ${D ? 'sm:w-[min(760px,94vw)] outline-none' : 'sm:w-[min(480px,94vw)]'}`} style={{ maxHeight: D ? 'min(86vh, 860px)' : '90vh', border: `1px solid ${d.factionColor}`, background: 'var(--ravenof-bg-surface)', boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }} onClick={(e) => e.stopPropagation()}>
+        <div className={`flex items-center shrink-0 ${D ? 'gap-3.5 px-5 py-4' : 'gap-2.5 px-4 py-3'}`} style={{ borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
+          <VoteBox desktop={D} score={d.score} my={myVote} onUp={() => onVote(1)} onDown={() => onVote(-1)} />
           <div className="min-w-0 flex-1">
-            <h2 className="truncate" style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', margin: 0 }}>{d.name}</h2>
-            <p style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{fl('decks.community.byAuthor', { name: d.author })} · {formatDeckCount(d.total)}</p>
+            <h2 className={D ? 'rvn-clamp2' : 'truncate'} style={{ font: D ? '700 20px/1.2 var(--ravenof-font-display)' : '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', margin: 0 }}>{d.name}</h2>
+            <p style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: D ? '4px 0 0' : 0 }}>{fl('decks.community.byAuthor', { name: d.author })} · {formatDeckCount(d.total)}</p>
           </div>
-          <button onClick={() => { playUiClick(); onClose() }} className="ravenof-iconbtn shrink-0" style={{ width: 30, height: 30 }} aria-label={fl('common.close')}><X className="w-4 h-4" /></button>
+          <button onClick={() => { playUiClick(); onClose() }} data-dlg-close="1" className="ravenof-iconbtn shrink-0" style={{ width: D ? DT.ctl : 30, height: D ? DT.ctl : 30 }} aria-label={fl('common.close')}><X className={D ? 'w-5 h-5' : 'w-4 h-4'} /></button>
         </div>
 
         {/* Tabai */}
         <div className="flex shrink-0" style={{ borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
           {([['cards', `${fl('decks.community.tabCards')} · ${d.total}`], ['comments', `${fl('decks.community.tabComments')}${comments ? ` · ${comments.length}` : ''}`]] as const).map(([k, label]) => (
-            <button key={k} onClick={() => { playUiClick(); setTab(k) }} className="ravenof-press flex-1" style={{ cursor: 'pointer', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', padding: '10px 4px', border: 0,
+            <button key={k} onClick={() => { playUiClick(); setTab(k) }} aria-pressed={tab === k} className="ravenof-press flex-1" style={{ cursor: 'pointer', font: `700 ${D ? 13 : 11}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase', padding: '10px 4px', minHeight: D ? DT.ctl : undefined, border: 0,
               background: tab === k ? 'var(--ravenof-bg-surface-2)' : 'transparent',
               color: tab === k ? 'var(--ravenof-gold)' : 'var(--ravenof-text-secondary)',
               boxShadow: tab === k ? 'inset 0 -2px 0 var(--ravenof-gold)' : 'none' }}>{label}</button>
           ))}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll px-4 py-3" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className={`flex-1 min-h-0 overflow-y-auto ravenof-scroll ${D ? 'px-5 py-4' : 'px-4 py-3'}`} style={D
+          ? { display: 'grid', gridTemplateColumns: tab === 'cards' ? 'repeat(auto-fill, minmax(300px, 1fr))' : 'minmax(0,1fr)', gap: 8, alignContent: 'start' }
+          : { display: 'flex', flexDirection: 'column', gap: 6 }}>
           {tab === 'cards' ? (
             d.entries.map((e) => {
               const have = Math.min(e.owned, e.qty); const ok = e.owned >= e.qty; const col = ravenofRarityColor(e.rarity)
               return (
-                <div key={e.cardId} className="flex items-center gap-2.5 shrink-0" style={{ padding: 6, background: 'var(--ravenof-bg-surface-2)', border: `1px solid ${ok ? col + '55' : 'var(--ravenof-border-hairline)'}`, borderLeft: `3px solid ${ok ? col : '#3d3345'}` }}>
-                  <span className="relative block overflow-hidden shrink-0" style={{ width: 34, height: 34, border: `1px solid ${ok ? col : 'var(--ravenof-border-strong)'}` }}>
+                <div key={e.cardId} className="flex items-center gap-2.5 shrink-0" style={{ padding: D ? 8 : 6, minWidth: 0, background: 'var(--ravenof-bg-surface-2)', border: `1px solid ${ok ? col + '55' : 'var(--ravenof-border-hairline)'}`, borderLeft: `3px solid ${ok ? col : '#3d3345'}` }}>
+                  <span className="relative block overflow-hidden shrink-0" style={{ width: D ? 40 : 34, height: D ? 40 : 34, border: `1px solid ${ok ? col : 'var(--ravenof-border-strong)'}` }}>
                     {e.image
                       ? <SmartImg src={e.image} width={96} className="absolute inset-0 w-full h-full object-cover" style={{ filter: ok ? undefined : 'grayscale(1) brightness(0.5)' }} />
                       : <span className="absolute inset-0 flex items-center justify-center text-xs" style={{ background: 'var(--ravenof-bg-elevated)' }}>🎴</span>}
                     {!ok && <span className="absolute inset-0 flex items-center justify-center"><Lock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.7)' }} /></span>}
                   </span>
-                  <span className="flex items-center justify-center shrink-0 tabular-nums" style={{ width: 20, height: 20, font: '800 9.5px var(--ravenof-font-body)', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)' }}>{e.gold}</span>
-                  <span className="flex-1 min-w-0 truncate" style={{ font: '600 12px var(--ravenof-font-body)', color: ok ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>{e.name}</span>
-                  <span className="tabular-nums shrink-0" style={{ font: '700 11px var(--ravenof-font-body)', color: ok ? 'var(--ravenof-success)' : '#c65563' }}>{have}/{e.qty}</span>
+                  <span className="flex items-center justify-center shrink-0 tabular-nums" style={{ width: D ? 26 : 20, height: D ? 26 : 20, font: `800 ${D ? 12 : 9.5}px var(--ravenof-font-body)`, background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)' }}>{e.gold}</span>
+                  <span className="flex-1 min-w-0 truncate" title={D ? e.name : undefined} style={{ font: `600 ${D ? 14 : 12}px var(--ravenof-font-body)`, color: ok ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>{e.name}</span>
+                  <span className="tabular-nums shrink-0" style={{ font: `700 ${D ? 13 : 11}px var(--ravenof-font-body)`, color: ok ? 'var(--ravenof-success)' : '#c65563' }}>{have}/{e.qty}</span>
                 </div>
               )
             })
           ) : (
             <>
-              {comments === null && <p className="text-center py-8" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{fl('common.loading')}</p>}
-              {comments?.length === 0 && <p className="text-center py-8" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{fl('decks.community.noComments')}</p>}
+              {comments === null && <p className="text-center py-8" style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{fl('common.loading')}</p>}
+              {comments?.length === 0 && <p className="text-center py-8" style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{fl('decks.community.noComments')}</p>}
               {comments?.map((c) => (
-                <div key={c.id} className="shrink-0" style={{ padding: '9px 11px', background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)' }}>
+                <div key={c.id} className="shrink-0" style={{ padding: D ? '12px 14px' : '9px 11px', background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)' }}>
                   <div className="flex items-center gap-2">
-                    <span className="truncate" style={{ font: '700 11.5px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{c.author}</span>
-                    <span className="shrink-0" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{timeAgo(c.created)}</span>
+                    <span className="truncate" style={{ font: `700 ${D ? 14 : 11.5}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{c.author}</span>
+                    <span className="shrink-0" style={{ font: `400 ${D ? DT.fs.label : 9.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{timeAgo(c.created)}</span>
                     <span className="flex-1" />
-                    {(isAdmin || c.userId === userId) && <button onClick={() => removeComment(c)} aria-label={fl('decks.community.remove')} className="ravenof-press flex items-center justify-center shrink-0" style={{ width: 26, height: 26, cursor: 'pointer', background: 'none', border: 0, color: '#c65563' }}><Trash2 className="w-3.5 h-3.5" /></button>}
-                    {c.userId !== userId && <button onClick={() => reportComment(c)} aria-label={fl('decks.community.report')} className="ravenof-press flex items-center justify-center shrink-0" style={{ width: 26, height: 26, cursor: 'pointer', background: 'none', border: 0, color: 'var(--ravenof-text-secondary)' }}><Flag className="w-3.5 h-3.5" /></button>}
+                    {(isAdmin || c.userId === userId) && <button onClick={() => removeComment(c)} aria-label={fl('decks.community.remove')} className="ravenof-press flex items-center justify-center shrink-0" style={{ width: D ? 36 : 26, height: D ? 36 : 26, cursor: 'pointer', background: 'none', border: 0, color: '#c65563' }}><Trash2 className="w-3.5 h-3.5" /></button>}
+                    {c.userId !== userId && <button onClick={() => reportComment(c)} aria-label={fl('decks.community.report')} className="ravenof-press flex items-center justify-center shrink-0" style={{ width: D ? 36 : 26, height: D ? 36 : 26, cursor: 'pointer', background: 'none', border: 0, color: 'var(--ravenof-text-secondary)' }}><Flag className="w-3.5 h-3.5" /></button>}
                   </div>
-                  <p style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', wordBreak: 'break-word', margin: '4px 0 0', lineHeight: 1.4 }}>{c.body}</p>
+                  <p style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', wordBreak: 'break-word', margin: '4px 0 0', lineHeight: 1.4 }}>{c.body}</p>
                   <div className="flex items-center gap-1" style={{ marginTop: 6 }}>
-                    <button onClick={() => voteComment(c, 1)} className="ravenof-press flex items-center justify-center" style={{ width: 26, height: 24, cursor: 'pointer', background: 'none', border: 0, color: c.myVote === 1 ? 'var(--ravenof-success)' : 'var(--ravenof-text-secondary)' }} aria-label={fl('decks.community.voteUp')}><ChevronUp className="w-4 h-4" /></button>
-                    <span className="tabular-nums" style={{ font: '700 11px var(--ravenof-font-body)', color: c.votes > 0 ? 'var(--ravenof-success)' : c.votes < 0 ? '#c65563' : 'var(--ravenof-text-secondary)', minWidth: 16, textAlign: 'center' }}>{c.votes}</span>
-                    <button onClick={() => voteComment(c, -1)} className="ravenof-press flex items-center justify-center" style={{ width: 26, height: 24, cursor: 'pointer', background: 'none', border: 0, color: c.myVote === -1 ? '#c65563' : 'var(--ravenof-text-secondary)' }} aria-label={fl('decks.community.voteDown')}><ChevronDown className="w-4 h-4" /></button>
+                    <button onClick={() => voteComment(c, 1)} className="ravenof-press flex items-center justify-center" style={{ width: D ? 36 : 26, height: D ? 32 : 24, cursor: 'pointer', background: 'none', border: 0, color: c.myVote === 1 ? 'var(--ravenof-success)' : 'var(--ravenof-text-secondary)' }} aria-label={fl('decks.community.voteUp')}><ChevronUp className="w-4 h-4" /></button>
+                    <span className="tabular-nums" style={{ font: `700 ${D ? 13 : 11}px var(--ravenof-font-body)`, color: c.votes > 0 ? 'var(--ravenof-success)' : c.votes < 0 ? '#c65563' : 'var(--ravenof-text-secondary)', minWidth: 16, textAlign: 'center' }}>{c.votes}</span>
+                    <button onClick={() => voteComment(c, -1)} className="ravenof-press flex items-center justify-center" style={{ width: D ? 36 : 26, height: D ? 32 : 24, cursor: 'pointer', background: 'none', border: 0, color: c.myVote === -1 ? '#c65563' : 'var(--ravenof-text-secondary)' }} aria-label={fl('decks.community.voteDown')}><ChevronDown className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
@@ -393,7 +410,7 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
           )}
         </div>
 
-        <div className="px-4 py-3 shrink-0" style={{ borderTop: '1px solid var(--ravenof-border-hairline)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className={`shrink-0 ${D ? 'px-5 py-4' : 'px-4 py-3'}`} style={{ borderTop: '1px solid var(--ravenof-border-hairline)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
           {tab === 'comments' ? (
             <div className="flex items-end gap-2">
               <textarea value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 1000))} placeholder={fl('decks.community.commentPlaceholder')} rows={1}
@@ -403,10 +420,10 @@ function DeckDetail({ d, userId, isAdmin, busy, myVote, onVote, onCopy, onClose,
             </div>
           ) : (
             <>
-              <p className="text-center" style={{ font: '600 11px var(--ravenof-font-body)', color: d.missing === 0 ? 'var(--ravenof-success)' : '#c65563', margin: '0 0 8px' }}>{d.missing === 0 ? fl('decks.community.haveAll') : fl('decks.community.missingInfo', { count: d.missing })}</p>
-              {!isDeckSizeValid(d.total) && <p className="text-center" style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)', margin: '0 0 8px' }}>{fl('decks.invalidSizeHint')}</p>}
+              <p className="text-center" style={{ font: `600 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: d.missing === 0 ? 'var(--ravenof-success)' : '#c65563', margin: '0 0 8px' }}>{d.missing === 0 ? fl('decks.community.haveAll') : fl('decks.community.missingInfo', { count: d.missing })}</p>
+              {!isDeckSizeValid(d.total) && <p className="text-center" style={{ font: `600 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)', margin: '0 0 8px' }}>{fl('decks.invalidSizeHint')}</p>}
               <button onClick={onCopy} disabled={busy || !isDeckSizeValid(d.total)} className="ravenof-press w-full inline-flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ minHeight: 44, cursor: 'pointer', font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)' }}>
+                style={{ minHeight: D ? DT.cta : 44, cursor: 'pointer', font: `800 ${D ? 14 : 13}px var(--ravenof-font-display)`, letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)' }}>
                 <Copy className="w-4 h-4" /> {fl('decks.community.copyFull')}
               </button>
             </>

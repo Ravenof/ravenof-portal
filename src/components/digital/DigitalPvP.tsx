@@ -26,6 +26,8 @@ import { RavenofBannerButton, RavenofTextField } from '@/components/digital/ui/R
 import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat, setBattleFormat, type BattleFormat } from '@/lib/game/format'
 import { CrossFormatOffer } from '@/components/digital/ui/CrossFormatOffer'
+import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { DT } from '@/components/digital/ui/deskTokens'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -50,6 +52,7 @@ const PRES_COLOR: Record<string, string> = { online: '#4F9E52', away: '#D4A33B',
 
 export function DigitalPvP() {
   const t = useT()
+  const { desktop: D } = useDesktopUi()
   const router = useRouter()
   const [decks, setDecks] = useState<Deck[] | null>(null)
   const [sel, setSel] = useState('')
@@ -320,25 +323,26 @@ export function DigitalPvP() {
   })
 
   return (
-    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+    <div className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (D ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: D ? `${DT.sp.xl}px ${DT.pagePadX}px` : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+      <div className={D ? 'w-full flex flex-col' : 'contents'} style={D ? { maxWidth: 1280, margin: '0 auto', gap: DT.sp.xl } : undefined}>
       {/* Antraštė: atgal + pavadinimas */}
-      <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 10 }}>
-        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
-        <div style={{ font: '700 15px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.screenTitle')}</div>
+      <div className="flex items-center shrink-0" style={{ gap: D ? DT.sp.lg : 10, paddingBottom: D ? 0 : 10 }}>
+        <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: D ? 22 : 16 }}>‹</button>
+        <div style={{ font: `700 ${D ? DT.fs.h1 : 15}px var(--ravenof-font-display)`, letterSpacing: D ? 2 : 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.screenTitle')}</div>
         <div className="flex-1" />
         <FormatSwitch variant="chip" />
       </div>
 
-      <div className="flex-1 flex min-h-0" style={{ gap: 14 }}>
+      <div className={D ? 'flex items-start' : 'flex-1 flex min-h-0'} style={{ gap: D ? DT.sp.xl + 4 : 14 }}>
         {/* ── KAIRĖ: kaladė + režimas + turinys + CTA ── */}
-        <div className="flex flex-col min-w-0" style={{ flex: 1.9, gap: 8 }}>
-          <button onClick={() => { playUiClick(); setDeckSelOpen(true) }} data-testid="active-deck-summary" className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: 10, background: 'var(--ravenof-bg-surface)', border: '1px solid #3d3345', padding: '7px 10px', cursor: 'pointer' }}>
-            <span className="shrink-0 overflow-hidden relative" style={{ width: 34, height: 45, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
+        <div className="flex flex-col min-w-0" style={{ flex: D ? '1 1 0' : 1.9, gap: D ? DT.sp.md : 8 }}>
+          <button onClick={() => { playUiClick(); setDeckSelOpen(true) }} data-testid="active-deck-summary" className="ravenof-press flex items-center shrink-0 text-left" style={{ gap: D ? 14 : 10, background: 'var(--ravenof-bg-surface)', border: '1px solid #3d3345', padding: D ? '12px 14px' : '7px 10px', cursor: 'pointer' }}>
+            <span className="shrink-0 overflow-hidden relative" style={{ width: D ? 52 : 34, height: D ? 69 : 45, borderRadius: 3, border: '1px solid var(--ravenof-border-strong)', background: globalDeck?.factionId != null && covers[globalDeck.factionId] ? `url('${covers[globalDeck.factionId]}') no-repeat top / cover` : 'linear-gradient(160deg,#1a1325,#0a0810)' }} />
             <span className="flex-1 min-w-0">
-              <span className="block truncate" style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
-              {globalDeck && <span className="block truncate" style={{ font: '400 11px var(--ravenof-font-body)', color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {t('decks.cardsShort', { count: globalDeck.cardCount })}</span>}
+              <span className={D ? 'block rvn-clamp2' : 'block truncate'} style={{ font: `700 ${D ? 17 : 12}px var(--ravenof-font-display)`, lineHeight: D ? 1.25 : undefined, color: 'var(--ravenof-text-primary)' }}>{!adState.loaded ? t('common.loading') : globalDeck ? globalDeck.name : t('ranked.pickActiveDeck')}</span>
+              {globalDeck && <span className="block truncate" style={{ font: `400 ${D ? 14 : 11}px var(--ravenof-font-body)`, marginTop: D ? 3 : undefined, color: globalDeck.factionColor ?? 'var(--ravenof-text-secondary)' }}>{globalDeck.faction ?? '—'} · {t('decks.cardsShort', { count: globalDeck.cardCount })}</span>}
             </span>
-            <span style={{ color: 'var(--ravenof-text-secondary)' }}>›</span>
+            <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: D ? 22 : undefined }}>›</span>
           </button>
 
           {/* Segmented režimai */}
@@ -348,8 +352,8 @@ export function DigitalPvP() {
               return (
                 <button key={m} onClick={() => { playUiClick(); setMode(m); setStatus('') }} aria-pressed={s} data-testid={`pvp-mode-${m}`}
                   className="ravenof-press flex-1" style={{
-                    padding: '10px 4px', border: 0, cursor: 'pointer', textTransform: 'uppercase',
-                    font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5,
+                    padding: D ? '0 6px' : '10px 4px', minHeight: D ? DT.cta : undefined, border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                    font: `700 ${D ? 14 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
                     background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
                     color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',
                   }}>{lbl}</button>
@@ -358,69 +362,70 @@ export function DigitalPvP() {
           </div>
 
           {/* Režimo turinys */}
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center" style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface)', padding: 16 }}>
+          <div className={D ? 'flex flex-col items-center justify-center text-center' : 'flex-1 min-h-0 flex flex-col items-center justify-center text-center'} style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface)', padding: D ? DT.sp.xl : 16, minHeight: D ? 150 : undefined }}>
             {room ? (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center" style={{ gap: D ? DT.sp.md : 8 }}>
                 {room.code && <>
-                  <span style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.roomCode')}</span>
-                  <span style={{ font: '700 26px var(--ravenof-font-display)', letterSpacing: 8, color: 'var(--ravenof-gold-bright)' }}>{room.code}</span>
-                  <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="ravenof-btn ravenof-btn-secondary" style={{ fontSize: 11, padding: '6px 12px', minHeight: 30 }}>{t('battle.pvp.copy')}</button>
+                  <span style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.roomCode')}</span>
+                  <span style={{ font: `700 ${D ? 36 : 26}px var(--ravenof-font-display)`, letterSpacing: 8, color: 'var(--ravenof-gold-bright)' }}>{room.code}</span>
+                  <button onClick={() => { navigator.clipboard?.writeText(room.code!); setToast(t('battle.pvp.codeCopied')) }} className="ravenof-btn ravenof-btn-secondary" style={D ? undefined : { fontSize: 11, padding: '6px 12px', minHeight: 30 }}>{t('battle.pvp.copy')}</button>
                 </>}
-                <span className="flex items-center gap-2 mt-1" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}><span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--ravenof-gold)' }} />{status}</span>
-                <button onClick={() => { playUiClick(); void cancelRoom() }} className="ravenof-btn ravenof-btn-secondary mt-1" style={{ fontSize: 11, padding: '6px 14px', minHeight: 30 }}>{t('common.cancel')}</button>
+                <span className="flex items-center gap-2 mt-1" style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}><span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--ravenof-gold)' }} />{status}</span>
+                <button onClick={() => { playUiClick(); void cancelRoom() }} className="ravenof-btn ravenof-btn-secondary mt-1" style={D ? undefined : { fontSize: 11, padding: '6px 14px', minHeight: 30 }}>{t('common.cancel')}</button>
               </div>
             ) : mode === 'random' ? (
-              <p style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', maxWidth: 420, lineHeight: 1.5 }}>{t('battle.pvp.quickInfo2')}</p>
+              <p style={{ font: `400 ${D ? DT.fs.body : 13}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', maxWidth: D ? 520 : 420, lineHeight: 1.5 }}>{t('battle.pvp.quickInfo2')}</p>
             ) : mode === 'create' ? (
-              <p style={{ font: '400 13px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', maxWidth: 420, lineHeight: 1.5 }}>{t('battle.pvp.createInfo')}</p>
+              <p style={{ font: `400 ${D ? DT.fs.body : 13}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', maxWidth: D ? 520 : 420, lineHeight: 1.5 }}>{t('battle.pvp.createInfo')}</p>
             ) : (
-              <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: 300 }}>
-                <p style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('battle.pvp.codeInfo')}</p>
+              <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: D ? 360 : 300 }}>
+                <p style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('battle.pvp.codeInfo')}</p>
                 <RavenofTextField value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={5}
                   placeholder={t('battle.pvp.codePlaceholder')} aria-label={t('battle.pvp.codePlaceholder')}
                   style={{ textAlign: 'center', letterSpacing: 10, font: '700 18px var(--ravenof-font-display)', textTransform: 'uppercase', height: 46 }} />
               </div>
             )}
-            {!room && status && <p role="status" className="mt-2" style={{ font: '400 11px var(--ravenof-font-body)', color: '#c65563' }}>{status}</p>}
+            {!room && status && <p role="status" className="mt-2" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: '#c65563' }}>{status}</p>}
           </div>
 
-          <RavenofBannerButton onClick={cta.action} disabled={cta.disabled} data-testid="pvp-cta" style={{ width: '100%' }}>
+          <RavenofBannerButton onClick={cta.action} disabled={cta.disabled} data-testid="pvp-cta" style={D ? { width: '100%', minHeight: 52, fontSize: 16, letterSpacing: 3, padding: '12px 20px', marginTop: 4 } : { width: '100%' }}>
             {cta.label}
           </RavenofBannerButton>
         </div>
 
         {/* ── DEŠINĖ: draugai ── */}
-        <div className="flex flex-col min-w-0" style={{ flex: 1, gap: 8 }}>
-          <div className="flex items-baseline justify-between shrink-0">
-            <div style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.friendsTitle')}</div>
-            <Link href="/digital/friends" onClick={() => playUiClick()} className="ravenof-press" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-gold)' }}>{t('battle.pvp.friendsAll')} ›</Link>
+        <div className="flex flex-col min-w-0" style={D ? { flex: '0 0 380px', gap: DT.sp.sm } : { flex: 1, gap: 8 }}>
+          <div className={D ? 'flex items-center justify-between shrink-0' : 'flex items-baseline justify-between shrink-0'} style={D ? { minHeight: DT.ctl } : undefined}>
+            <div style={{ font: `700 ${D ? 17 : 13}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)' }}>{t('battle.pvp.friendsTitle')}</div>
+            <Link href="/digital/friends" onClick={() => playUiClick()} className="ravenof-press" style={{ font: `${D ? 600 : 400} ${D ? 14 : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-gold)', ...(D ? { minHeight: DT.ctl, display: 'inline-flex', alignItems: 'center', padding: '0 4px' } : {}) }}>{t('battle.pvp.friendsAll')} ›</Link>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: 8 }} data-testid="friend-panel">
-            {onlineFirst.length === 0 && <p className="text-center py-4" style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.noFriends')}</p>}
+          <div className={D ? 'overflow-y-auto ravenof-scroll flex flex-col' : 'flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col'} style={{ gap: 8, maxHeight: D ? 'calc(100vh - 200px)' : undefined }} data-testid="friend-panel">
+            {onlineFirst.length === 0 && <p className="text-center py-4" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.noFriends')}</p>}
             {onlineFirst.map((f) => {
               const pres = f.presence ?? (f.online ? 'online' : 'offline')
               const pc = PRES_COLOR[pres] ?? PRES_COLOR.offline
               const pn = t(`battle.pvp.presence.${pres === 'online' ? 'online' : pres === 'away' ? 'away' : pres === 'dnd' ? 'dnd' : 'offline'}`)
               const canChallenge = pres !== 'offline' && !room && !!deck
               return (
-                <div key={f.id} className="flex items-center shrink-0" style={{ gap: 10, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px' }}>
-                  <span className="shrink-0 rounded-full" title={pn} style={{ width: 9, height: 9, background: pc }} />
+                <div key={f.id} className="flex items-center shrink-0" style={{ gap: D ? 12 : 10, background: 'var(--ravenof-bg-surface)', border: '1px solid var(--ravenof-border-hairline)', padding: D ? '10px 14px' : '10px 12px', minHeight: D ? 60 : undefined }}>
+                  <span className="shrink-0 rounded-full" title={pn} style={{ width: D ? 11 : 9, height: D ? 11 : 9, background: pc }} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate" style={{ font: '700 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
-                    <span className="block truncate" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{pn}</span>
+                    <span className="block truncate" style={{ font: `700 ${D ? DT.fs.body : 12.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
+                    <span className="block truncate" style={{ font: `400 ${D ? DT.fs.help : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{pn}</span>
                   </span>
                   {canChallenge && (
                     <button data-testid={`invite-friend-${f.username}`} onClick={() => void inviteFriend(f)} disabled={busy}
-                      className="ravenof-press shrink-0" style={{ font: '700 10px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: '7px 10px', cursor: 'pointer' }}>
+                      className="ravenof-press shrink-0" style={{ font: `700 ${D ? 12.5 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: D ? '0 14px' : '7px 10px', minHeight: D ? 38 : undefined, cursor: 'pointer' }}>
                       {t('battle.pvp.challengeCta')}
                     </button>
                   )}
                 </div>
               )
             })}
-            <p className="shrink-0 text-center" style={{ font: '400 9.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{t('battle.pvp.noRankReward')}</p>
+            <p className="shrink-0 text-center" style={{ font: `400 ${D ? DT.fs.label : 9.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: D ? 4 : undefined }}>{t('battle.pvp.noRankReward')}</p>
           </div>
         </div>
+      </div>
       </div>
 
       {toast && <div className="ravenof-toast" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom,0px))', zIndex: 200 }}>{toast}</div>}
