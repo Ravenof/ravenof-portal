@@ -28,6 +28,9 @@ import { useBattleFormat, setBattleFormat, type BattleFormat } from '@/lib/game/
 import { CrossFormatOffer } from '@/components/digital/ui/CrossFormatOffer'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { DT } from '@/components/digital/ui/deskTokens'
+import { TournamentBrowser } from '@/components/digital/tournament/TournamentBrowser'
+import { TournamentScreen } from '@/components/digital/tournament/TournamentScreen'
+import { myActiveTournament } from '@/lib/tournament/client'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -45,7 +48,7 @@ type Launch = {
 // botas. Laikas atsitiktinis (ne fiksuotas), kaip ir reitingo eilėje.
 const BOT_WAIT_MIN_SEC = 50
 const BOT_WAIT_MAX_SEC = 110
-type Mode = 'random' | 'create' | 'code'
+type Mode = 'random' | 'create' | 'code' | 'tournament'
 const randCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
 
 const PRES_COLOR: Record<string, string> = { online: '#4F9E52', away: '#D4A33B', dnd: '#B4444F', offline: '#5e5868' }
@@ -65,6 +68,8 @@ export function DigitalPvP() {
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [launch, setLaunch] = useState<Launch | null>(null)
+  // Turnyras: atidarytas turnyro ekranas (lobby / tinklelis)
+  const [tourneyId, setTourneyId] = useState<string | null>(null)
   const fmt = useBattleFormat()   // ŽMK / Klasika — kambariai ir greita kova filtruojami pagal formatą
   const fmtRef = useRef(fmt); useEffect(() => { fmtRef.current = fmt }, [fmt])
   const userIdRef = useRef<string | null>(null); useEffect(() => { userIdRef.current = userId }, [userId])
@@ -137,10 +142,21 @@ export function DigitalPvP() {
     if (autoRef.current || !userId || !deck || typeof window === 'undefined') return
     const sp = new URLSearchParams(window.location.search)
     const j = sp.get('join'); const h = sp.get('host')
+    const tq = sp.get('tournament')
+    if (tq) { autoRef.current = true; setMode('tournament'); setTourneyId(tq); return }
     if (j) { autoRef.current = true; setMode('code'); setJoinCode(j.toUpperCase()); void joinByCode(j) }
     else if (h) { autoRef.current = true; setMode('create'); void createPrivate(false, h.toUpperCase()).then((m) => { if (m) { setRoom(m); setStatus(t('battle.pvp.status.waitingFriendShare')); waitForGuest(m.id) } }) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, deck?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Aktyvus turnyras (lobby / vyksta) → grąžinam į jo ekraną (pvz. po puslapio perkrovimo)
+  const tourneyCheckedRef = useRef(false)
+  useEffect(() => {
+    if (!userId || tourneyCheckedRef.current) return
+    tourneyCheckedRef.current = true
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tournament')) return
+    void myActiveTournament(userId).then((tid) => { if (tid) { setMode('tournament'); setTourneyId((cur) => cur ?? tid) } })
+  }, [userId])
 
   const playable = (decks ?? []).filter((d) => d.missing === 0)
 
@@ -301,6 +317,13 @@ export function DigitalPvP() {
     return <TutorialGame deckId={launch.deckId} deckName={deck?.name ?? t('battle.pvp.deckFallback')} opponentDeckId={launch.opponentDeckId ?? null} opponentName={launch.opponentName} net={launch.net} format={launch.format ?? 'zmk'} onClose={close} />
   }
 
+  if (tourneyId && userId) {
+    return <TournamentScreen id={tourneyId} userId={userId} desktop={D} onExit={() => {
+      setTourneyId(null)
+      if (typeof window !== 'undefined' && window.location.search.includes('tournament=')) router.replace('/digital/pvp')
+    }} />
+  }
+
   // ── CTA būsena ──
   const cta: { label: string; disabled: boolean; action?: () => void } =
     !deck ? { label: t('battle.pvp.cta.pickValidDeck'), disabled: true }
@@ -347,7 +370,7 @@ export function DigitalPvP() {
 
           {/* Segmented režimai */}
           <div className="flex shrink-0" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
-            {([['random', t('battle.pvp.modeQuick')], ['create', t('battle.pvp.modeCreate')], ['code', t('battle.pvp.modeJoin')]] as [Mode, string][]).map(([m, lbl]) => {
+            {([['random', t('battle.pvp.modeQuick')], ['create', t('battle.pvp.modeCreate')], ['code', t('battle.pvp.modeJoin')], ['tournament', t('battle.tournament.mode')]] as [Mode, string][]).map(([m, lbl]) => {
               const s = mode === m
               return (
                 <button key={m} onClick={() => { playUiClick(); setMode(m); setStatus('') }} aria-pressed={s} data-testid={`pvp-mode-${m}`}
@@ -373,6 +396,8 @@ export function DigitalPvP() {
                 <span className="flex items-center gap-2 mt-1" style={{ font: `400 ${D ? DT.fs.body : 12}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}><span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--ravenof-gold)' }} />{status}</span>
                 <button onClick={() => { playUiClick(); void cancelRoom() }} className="ravenof-btn ravenof-btn-secondary mt-1" style={D ? undefined : { fontSize: 11, padding: '6px 14px', minHeight: 30 }}>{t('common.cancel')}</button>
               </div>
+            ) : mode === 'tournament' ? (
+              <TournamentBrowser deckId={deck?.id} format={fmt} desktop={D} onEnter={(id) => setTourneyId(id)} />
             ) : mode === 'random' ? (
               <p style={{ font: `400 ${D ? DT.fs.body : 13}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', maxWidth: D ? 520 : 420, lineHeight: 1.5 }}>{t('battle.pvp.quickInfo2')}</p>
             ) : mode === 'create' ? (
@@ -388,9 +413,9 @@ export function DigitalPvP() {
             {!room && status && <p role="status" className="mt-2" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: '#c65563' }}>{status}</p>}
           </div>
 
-          <RavenofBannerButton onClick={cta.action} disabled={cta.disabled} data-testid="pvp-cta" style={D ? { width: '100%', minHeight: 52, fontSize: 16, letterSpacing: 3, padding: '12px 20px', marginTop: 4 } : { width: '100%' }}>
+          {mode !== 'tournament' && <RavenofBannerButton onClick={cta.action} disabled={cta.disabled} data-testid="pvp-cta" style={D ? { width: '100%', minHeight: 52, fontSize: 16, letterSpacing: 3, padding: '12px 20px', marginTop: 4 } : { width: '100%' }}>
             {cta.label}
-          </RavenofBannerButton>
+          </RavenofBannerButton>}
         </div>
 
         {/* ── DEŠINĖ: draugai ── */}

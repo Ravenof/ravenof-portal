@@ -95,7 +95,9 @@ import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 
-export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean; /** server-authoritative: abu klientai – „svečiai“ prie apps/server (žr. lib/pvp/serverChannel) */ server?: boolean }
+export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean; /** server-authoritative: abu klientai – „svečiai“ prie apps/server (žr. lib/pvp/serverChannel) */ server?: boolean
+  /** Turnyro stebėjimas: tik skaito host'o būseną (A pusės perspektyva), jokių veiksmų, pokalbio, presence, atlygių. */
+  spectator?: { title: string } }
 const PVP_ACTIVE_KEY = 'rvn-pvp-active'
 const pvpStateKey = (id: string) => 'rvn-pvp-state-' + id
 type RankedResultPayload = { result: 'win' | 'loss'; turns: number; stats: import('@/lib/ranked/types').PlayerMatchStats }
@@ -140,7 +142,9 @@ export type SandboxHooks = {
   passiveAi?: boolean
 }
 
-type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; /** Botas, kuris kovoje elgiasi kaip žaidėjas: rodom pokalbio burbulą ir jis atrašo (labas/gl/gg). */ botChat?: { name: string }; /** Boto avataro paveikslėlis (tas pats, kurį žaidėjas matė „varžovas rastas" ekrane). */ opponentAvatar?: string | null; /** Atlygio režimo perrašymas (draugiška kova prieš botą = 'unranked'). */ rewardMode?: MatchMode; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks; /** Kovos formatas: 'classic' = be ŽMK (žala = kortų vertės). Numatyta 'zmk'. */ format?: BattleFormat }
+type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; /** Botas, kuris kovoje elgiasi kaip žaidėjas: rodom pokalbio burbulą ir jis atrašo (labas/gl/gg). */ botChat?: { name: string }; /** Boto avataro paveikslėlis (tas pats, kurį žaidėjas matė „varžovas rastas" ekrane). */ opponentAvatar?: string | null; /** Atlygio režimo perrašymas (draugiška kova prieš botą = 'unranked'). */ rewardMode?: MatchMode; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks; /** Kovos formatas: 'classic' = be ŽMK (žala = kortų vertės). Numatyta 'zmk'. */ format?: BattleFormat
+  /** Ėjimo laikmatis sekundėmis (turnyre 60). Nurodžius – įjungiamas ir prieš botą. Numatyta PvP/ranked 120. */ turnSeconds?: number
+  /** Kovai pasibaigus – vienkartinis rezultatas (turnyras). Stebėtojui nekviečiamas. */ onMatchEnd?: (won: boolean) => void }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -992,7 +996,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox, format = 'zmk' }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox, format = 'zmk', turnSeconds, onMatchEnd }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
@@ -1022,6 +1026,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   }, [])
   const isGuest = !!net && !isHost
   const vsRemote = !!net
+  const spectator = !!net?.spectator
   const loadOpp = practice || isHost || !!opponentDeckId || !!opponentStarterId || !!opponentFaction  // priešą kraunam ir kai nurodytas opponentDeckId/Faction (pvz. tutorial guided mūšis su GUIDED_STEPS)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -3107,7 +3112,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const matchRewardRef = useRef(false)
   useEffect(() => {
     if (!game?.winner || matchRewardRef.current) return
-    if (deckId === DEMO_DECK_ID || ranked || onCampaignResult) return
+    if (deckId === DEMO_DECK_ID || ranked || onCampaignResult || spectator) return
     matchRewardRef.current = true
     const won = game.winner === 'you'
     if (practice && !vsRemote) { try { onPracticeResult?.(won) } catch { /* callback niekada nelaužia kovos */ } }
@@ -3185,11 +3190,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner, endShown])
 
+  // Turnyras: vienkartinis kovos rezultatas tėvui (stebėtojui – ne)
+  const matchEndRef = useRef(false)
+  useEffect(() => {
+    if (!game?.winner || matchEndRef.current || spectator || !onMatchEnd) return
+    matchEndRef.current = true
+    try { onMatchEnd(game.winner === 'you') } catch { /* callback niekada nelaužia kovos */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.winner])
+
   // Dienos užduočių įvykiai (sužaista kova + pergalė) — ne tutorial/demo
   const questReportedRef = useRef(false)
   useEffect(() => {
     if (!game?.winner || questReportedRef.current) return
-    if (deckId === DEMO_DECK_ID) return
+    if (deckId === DEMO_DECK_ID || spectator) return
     questReportedRef.current = true
     reportQuestEvent('play_match')
     if (game.winner === 'you') reportQuestEvent((vsRemote || ranked) ? 'pvp_win' : 'pve_win')
@@ -3248,6 +3262,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         const cards = (payload as { cards?: TutCard[] }).cards
         if (cards && cards.length > 0) setOppCards(cards)
       })
+    } else if (spectator) {
+      // Stebėtojas: host'o būsena BE perspektyvos keitimo (A pusė = „tu")
+      ch.on('broadcast', { event: 'state' }, ({ payload }) => {
+        setGame((prev) => { const g = payload as GameState; return prev ? gateCommit(g, prev) : g })
+      })
     } else {
       ch.on('broadcast', { event: 'state' }, ({ payload }) => {
         setGame((prev) => { const g = swapPerspective(payload as GameState); return prev ? gateCommit(g, prev) : g })
@@ -3271,6 +3290,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     ch.on('broadcast', { event: 'chat' }, ({ payload }) => { const txt = (payload as { text?: string }).text; if (txt) setChatLog((l) => [...l.slice(-40), { mine: false, text: txt }]) })
     ch.on('broadcast', { event: 'emote' }, ({ payload }) => { const t = (payload as { text?: string }).text; if (!t) return; const id = Date.now(); setEmoteBubble({ side: 'ai', text: t, id }); window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000) })
     ch.on('presence', { event: 'sync' }, () => {
+      if (spectator) return
       const st = ch.presenceState() as Record<string, { side?: Side }[]>
       let opp = false
       for (const arr of Object.values(st)) for (const meta of arr) { if (meta.side && meta.side !== net.mySide) opp = true }
@@ -3283,6 +3303,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       setOppPresent(opp)
     })
     ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED' && spectator) {
+        // stebėtojas nesiregistruoja presence (host'as jo nelaiko varžovu) ir nieko nesiunčia, tik paprašo būsenos
+        setChReady(true)
+        ch.send({ type: 'broadcast', event: 'hello', payload: {} })
+        return
+      }
       if (status === 'SUBSCRIBED') {
         try { await ch.track({ side: net.mySide }) } catch { /* */ }
         setChReady(true)
@@ -3334,7 +3360,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   }, [botChatOn, game?.winner, botSay])
 
   const sendBattleChat = () => {
-    const txt = chatInput.trim(); if (!txt) return
+    const txt = chatInput.trim(); if (!txt || spectator) return
     if (botChatOn) {
       setChatLog((l) => [...l.slice(-40), { mine: true, text: txt }]); setChatInput('')
       if (botChatRef.current.replies < 4) { botChatRef.current.replies++; botSay('reply', 1500 + Math.random() * 2500) }
@@ -3374,7 +3400,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // Svečias: turėdamas savo kaladę ir paruoštą kanalą – atsiunčia ją host'ui (kad
   // host sukurtų AI pusę iš TIKROS svečio kaladės, o ne nukristų į savo kaladę).
   useEffect(() => {
-    if (!net || isHost || !chReady || !deckCards || deckCards.length === 0) return
+    if (!net || isHost || spectator || !chReady || !deckCards || deckCards.length === 0) return
     channelRef.current?.send({ type: 'broadcast', event: 'deck', payload: { cards: deckCards, curses: curseCards } })
   }, [net, chReady, deckCards, curseCards, isHost])
 
@@ -3387,7 +3413,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
 
   // PvP reconnect: išsaugom aktyvią partiją (kad galima grįžti); host saugo ir būseną
   useEffect(() => {
-    if (!net) return
+    if (!net || spectator) return
     try {
       localStorage.setItem(PVP_ACTIVE_KEY, JSON.stringify({
         matchId: net.matchId, isHost: net.isHost, mySide: net.mySide, opponentId: net.opponentId ?? null,
@@ -3406,7 +3432,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // PvP grace: varžovui atsijungus – 30s laukiam; neprisijungus – pergalė
   useEffect(() => {
     const stop = () => { if (graceRef.current) { clearInterval(graceRef.current); graceRef.current = null } }
-    if (!net || !game || game.winner || oppPresent || !sawOppRef.current) { stop(); setOppMissingLeft(null); return }
+    if (!net || spectator || !game || game.winner || oppPresent || !sawOppRef.current) { stop(); setOppMissingLeft(null); return }
     if (graceRef.current) return
     let left = 30
     setOppMissingLeft(left)
@@ -3425,6 +3451,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
 
   /** Struktūruotas veiksmas: svečias siunčia host'ui, host/lokalus – taiko vietoje. */
   const doAction = useCallback((a: NetAction) => {
+    if (net?.spectator) return
     if ((a.t === 'play' || a.t === 'resolveLastwish') && 'targets' in a && a.targets && a.targets.length > 1) chosenTargetsRef.current = a.targets
     if (isGuest) {
       channelRef.current?.send({ type: 'broadcast', event: 'action', payload: swapAction(a) })
@@ -3529,8 +3556,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // tiksintis skaičius renderinamas izoliuotame <TurnTimer/> — visas board
   // NEBE re-renderinamas kas 500 ms. Pabaigos tikrinimas čia — be setState.
   useEffect(() => {
-    if (!(vsRemote || ranked) || !game || game.winner) { setTurnDeadline(null); return }
-    const deadline = Date.now() + 120_000
+    if (!(vsRemote || ranked || turnSeconds) || spectator || !game || game.winner) { setTurnDeadline(null); return }
+    const deadline = Date.now() + (turnSeconds ?? 120) * 1000
     setTurnDeadline(deadline)
     const iv = setInterval(() => {
       if (Date.now() >= deadline) {
@@ -3540,7 +3567,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     }, 500)
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vsRemote, ranked, game?.globalTurn, game?.active, game?.winner])
+  }, [vsRemote, ranked, turnSeconds, spectator, game?.globalTurn, game?.active, game?.winner])
 
   // Savo profilio vardas (ėjimo juostai)
   useEffect(() => {
@@ -4704,7 +4731,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {!myTurn && !game.winner && (
           <span className="rvn-opp-dots" aria-hidden style={{ display: 'inline-flex', gap: 3, marginTop: 1, fontSize: 7, color: '#e0707c' }}><span>●</span><span>●</span><span>●</span></span>
         )}
-        {(vsRemote || ranked) && !game.winner && <TurnTimer deadline={turnDeadline} variant="chip" />}
+        {(vsRemote || ranked || !!turnSeconds) && !game.winner && <TurnTimer deadline={turnDeadline} variant="chip" />}
       </button>
     )
   }
@@ -4893,7 +4920,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   {t('battle.game.classicBadge')}
                 </span>
               )}
-              {ranked && !game?.winner && (
+              {(ranked || !!turnSeconds) && !game?.winner && (
                 <TurnTimer deadline={turnDeadline} variant="chip" />
               )}
             </>
@@ -4925,6 +4952,19 @@ doAction({ t: 'endTurn', actor: 'you' })
         </div>
       )}
       {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
+      {/* Turnyro stebėjimas: permatomas sluoksnis blokuoja bet kokią sąveiką su lenta; viršuje – juosta su grįžimu */}
+      {spectator && (
+        <div className="fixed inset-0 z-[400]" style={{ cursor: 'default' }}>
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)', background: 'rgba(7,6,10,.92)', border: '1px solid rgba(212,163,59,.55)', boxShadow: '0 8px 24px rgba(0,0,0,.6)', clipPath: 'polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)' }}>
+            <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: game?.winner ? '#928B9D' : '#e0707c', boxShadow: game?.winner ? 'none' : '0 0 8px #e0707c' }} />
+            <span style={{ font: '700 13px var(--ravenof-font-display)', letterSpacing: '.08em', color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>
+              {t('battle.tournament.spectating')} · {net?.spectator?.title}
+            </span>
+            {game?.winner && <span style={{ font: '600 13px var(--ravenof-font-body)', color: 'var(--ravenof-gold-bright)' }}>{t('battle.tournament.matchOver')}</span>}
+            <button onClick={() => { playUiClick(); closeGame() }} className="ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, padding: '6px 14px', fontSize: 11 }}>{t('battle.tournament.backToBracket')}</button>
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="flex-1 flex items-center justify-center">
@@ -6197,7 +6237,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* (senas handExpanded bottom-sheet overlay pašalintas – ranka dabar skleidžiasi inline) */}
 
       {/* ── paskutinės 20s: didelis raudonas laikrodis (PvP) — izoliuotas ── */}
-      {(vsRemote || ranked) && !game?.winner && <TurnTimer deadline={turnDeadline} variant="big" />}
+      {(vsRemote || ranked || !!turnSeconds) && !game?.winner && <TurnTimer deadline={turnDeadline} variant="big" />}
 
       {/* ── varžovas atsijungė: 30s grace ── */}
       {oppMissingLeft !== null && !game?.winner && (
