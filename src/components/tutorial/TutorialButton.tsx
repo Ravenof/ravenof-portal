@@ -46,7 +46,7 @@ export function TutorialButton({ deckId, deckName, variant = 'full' }: {
         {t('battle.tutorial.button')}
       </button>
       {open && (
-        <TutorialGame deckId={deckId} deckName={deckName} onClose={() => setOpen(false)} />
+        <TutorialGame deckId={deckId} deckName={deckName} guided onClose={() => setOpen(false)} />
       )}
     </>
   )

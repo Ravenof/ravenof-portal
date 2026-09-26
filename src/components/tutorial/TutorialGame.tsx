@@ -144,7 +144,8 @@ export type SandboxHooks = {
 
 type Props = { deckId: string; deckName: string; onClose: () => void; ranked?: boolean; onRankedResult?: (r: RankedResultPayload) => void; practice?: boolean; opponentDeckId?: string | null; opponentStarterId?: string | null; opponentFaction?: number | null; opponentName?: string; difficulty?: AiDifficulty; /** Praktika (PvE): kovos rezultatas – pvz. naujoko pergalių skaitikliui. */ onPracticeResult?: (won: boolean) => void; /** PvE: varžovo kaladė (Naujokas = starter, Patyręs = pilnas pool'as) – atlygiui. */ opponentDeck?: 'rookie' | 'veteran'; net?: PvPNet; aiStrategy?: AiWeightDelta; /** Botas, kuris kovoje elgiasi kaip žaidėjas: rodom pokalbio burbulą ir jis atrašo (labas/gl/gg). */ botChat?: { name: string }; /** Boto avataro paveikslėlis (tas pats, kurį žaidėjas matė „varžovas rastas" ekrane). */ opponentAvatar?: string | null; /** Atlygio režimo perrašymas (draugiška kova prieš botą = 'unranked'). */ rewardMode?: MatchMode; onCampaignResult?: (r: CampaignBattleResult) => void; onCampaignEvent?: CampaignEventHandler; campaignPaused?: boolean; onCampaignApi?: (api: TutorialGameApi) => void; tutorial?: TutorialHooks; sandbox?: SandboxHooks; /** Kovos formatas: 'classic' = be ŽMK (žala = kortų vertės). Numatyta 'zmk'. */ format?: BattleFormat
   /** Ėjimo laikmatis sekundėmis (turnyre 60). Nurodžius – įjungiamas ir prieš botą. Numatyta PvP/ranked 120. */ turnSeconds?: number
-  /** Kovai pasibaigus – vienkartinis rezultatas (turnyras). Stebėtojui nekviečiamas. */ onMatchEnd?: (won: boolean) => void }
+  /** Kovai pasibaigus – vienkartinis rezultatas (turnyras). Stebėtojui nekviečiamas. */ onMatchEnd?: (won: boolean) => void
+  /** SENAS vedamas mokymas (GUIDED_STEPS + „Nauja mechanika" patarimai). Tik portalo TutorialButton; visur kitur išjungta. */ guided?: boolean }
 
 // ── Duomenų užkrovimas ────────────────────────────────────────────────────────
 
@@ -996,7 +997,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
     </>, document.body)
 }
 
-export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox, format = 'zmk', turnSeconds, onMatchEnd }: Props) {
+export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox, format = 'zmk', turnSeconds, onMatchEnd, guided = false }: Props) {
   const t = useT()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
@@ -1038,7 +1039,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // bendras pool'as su žaidėju; [] = priešas prakeiksmų neturi).
   const [oppCurseCards, setOppCurseCards] = useState<TutCard[] | null>(null)
   const [extrasLoaded, setExtrasLoaded] = useState(false)
-  const [stepIdx, setStepIdx] = useState((practice || !!net || tutorial?.active) ? GUIDED_STEPS.length : 0)
+  const [stepIdx, setStepIdx] = useState((!guided || practice || !!net || tutorial?.active) ? GUIDED_STEPS.length : 0)
   const [tipQueue, setTipQueue] = useState<TipKey[]>([])
   const [select, setSelect] = useState<SelectMode>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -1944,11 +1945,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // V3 mokymuose (direktorius) SENO tutorial „Nauja mechanika" pop-up'ai
     // nerodomi — visą vedimą valdo pamokos scenarijus. GUIDED_STEPS jau
     // išjungti per stepIdx init, o patarimų eilė buvo likusi gyva.
-    if (practice || vsRemote || tutorialRef.current?.active) return
+    if (!guided || practice || vsRemote || tutorialRef.current?.active) return
     if (shownTipsRef.current.has(k)) return
     shownTipsRef.current.add(k)
     setTipQueue((q) => [...q, k])
-  }, [practice])
+  }, [practice, guided])
 
   // ── Naujų įvykių apdorojimas: garsai, ŽMK, patarimai, žingsnių progresas ──
   useEffect(() => {
