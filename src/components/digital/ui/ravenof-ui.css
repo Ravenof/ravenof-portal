@@ -435,3 +435,25 @@
    `components/tutorial/CardTactile.tsx` (TactileStyles). Priežastis: kovos ekranas
    atidaromas ir už /digital ribų (/rules, /my-decks, /community-decks), kur šis
    failas neįkeliamas — modalai liktų be rėmo. */
+
+/* ── Meniu fonas (visi /digital meniu ekranai + Parduotuvė / Nustatymai overlay) ──
+   Gotikinis miestas; ant viršaus patamsinimas, kad tekstas ir panelės liktų skaitomi.
+   Mobile – mažesnis failas (960px), desktop – pilnas (1672px). */
+.rvn-menu-bg {
+  background-color: var(--ravenof-bg-base);
+  background-image:
+    radial-gradient(ellipse at 50% 40%, rgba(7,6,10,0) 0%, rgba(7,6,10,.45) 100%),
+    linear-gradient(180deg, rgba(7,6,10,.32) 0%, rgba(7,6,10,.48) 55%, rgba(7,6,10,.74) 100%),
+    url('/ravenof-ui/backgrounds/menu-gothic-city-960.webp');
+  background-size: cover, cover, cover;
+  background-position: center, center, 50% 35%;
+  background-repeat: no-repeat;
+}
+@media (min-width: 1024px) and (min-height: 600px) {
+  .rvn-menu-bg {
+    background-image:
+      radial-gradient(ellipse at 50% 40%, rgba(7,6,10,0) 0%, rgba(7,6,10,.45) 100%),
+      linear-gradient(180deg, rgba(7,6,10,.32) 0%, rgba(7,6,10,.48) 55%, rgba(7,6,10,.74) 100%),
+      url('/ravenof-ui/backgrounds/menu-gothic-city.webp');
+  }
+}

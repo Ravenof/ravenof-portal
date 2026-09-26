@@ -200,7 +200,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className={`ravenof-body fixed inset-0 z-40 flex flex-row select-none${deskUi ? ' rvn-desk-ui' : ''}`} style={{ background: 'var(--ravenof-bg-base)', color: 'var(--ravenof-text-primary)' }}>
+    <div className={`ravenof-body rvn-menu-bg fixed inset-0 z-40 flex flex-row select-none${deskUi ? ' rvn-desk-ui' : ''}`} style={{ color: 'var(--ravenof-text-primary)' }}>
       {!MIGRATED_ROUTES.includes(pathname) && !pathname.startsWith('/digital/profile') && !pathname.startsWith('/digital/campaign/') && <Flames />}
       <HubStyles />
       <I18nBoot />

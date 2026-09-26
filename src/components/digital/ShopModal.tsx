@@ -493,7 +493,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   if (typeof document === 'undefined') return null
 
   return createPortal(
-    <div className="ravenof-body" role={D ? 'dialog' : undefined} aria-label={D ? t('shop.title') : undefined} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, background: 'var(--ravenof-bg-base)', display: 'flex', flexDirection: 'column', padding: D ? '0 var(--rvn-page-px) 24px' : '10px 20px 12px 16px', paddingRight: D ? 'var(--rvn-page-px)' : 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
+    <div className="ravenof-body rvn-menu-bg" role={D ? 'dialog' : undefined} aria-label={D ? t('shop.title') : undefined} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, display: 'flex', flexDirection: 'column', padding: D ? '0 var(--rvn-page-px) 24px' : '10px 20px 12px 16px', paddingRight: D ? 'var(--rvn-page-px)' : 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
       <div className={D ? 'rvn-d-page flex flex-col' : 'contents'} style={D ? { flex: 1, minHeight: 0 } : undefined}>
       {/* ── Antraštė ── */}
       <div className="flex items-center shrink-0" style={{ gap: f(10, 16), paddingBottom: f(8, 0), paddingTop: D ? 0 : 'env(safe-area-inset-top, 0px)', height: D ? 'var(--rvn-header-h)' : undefined }}>

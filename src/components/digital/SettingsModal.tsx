@@ -259,8 +259,8 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   if (desktop) {
     const panel: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: DT.sp.sm }
     return createPortal(
-      <div ref={deskRef} role="dialog" aria-modal="true" aria-label={t('settings.title')} tabIndex={-1} className="ravenof-body flex flex-col"
-        style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, background: 'var(--ravenof-bg-base)', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)', outline: 'none' }}>
+      <div ref={deskRef} role="dialog" aria-modal="true" aria-label={t('settings.title')} tabIndex={-1} className="ravenof-body rvn-menu-bg flex flex-col"
+        style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)', outline: 'none' }}>
         {/* Antraštė */}
         <div className="shrink-0" style={{ borderBottom: '1px solid var(--ravenof-border-hairline)', padding: `${DT.sp.lg}px var(--rvn-page-px)` }}>
           <div className="flex items-center" style={{ maxWidth: 820, margin: '0 auto', gap: DT.sp.lg }}>
@@ -345,7 +345,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   }
 
   return createPortal(
-    <div className="ravenof-body flex flex-col" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, background: 'var(--ravenof-bg-base)', padding: '10px 20px 12px 16px', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
+    <div className="ravenof-body rvn-menu-bg flex flex-col" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 'var(--rvn-rail-w)', zIndex: 60, padding: '10px 20px 12px 16px', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))', animation: 'ravenofIn .3s ease', borderLeft: '1px solid rgba(212,163,59,0.18)' }}>
       {/* ── Antraštė ── */}
       <div className="flex items-center shrink-0" style={{ gap: 10, paddingBottom: 8, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <button onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')} className="ravenof-iconbtn" style={{ fontSize: 16 }}>‹</button>
