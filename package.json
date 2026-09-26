@@ -35,6 +35,7 @@
     "game:test:targetcheck": "npx tsx scripts/simulate-target-validation.ts",
     "game:test:extraatk": "npx tsx scripts/simulate-extra-attacks.ts",
     "game:test:shieldatk": "npx tsx scripts/simulate-shield-attack.ts",
+    "game:test:valkyrie": "npx tsx scripts/simulate-valkyrie-revive.ts",
     "game:test:lastwishaoe": "npx tsx scripts/simulate-lastwish-aoe.ts",
     "game:test:castgrave": "npx tsx scripts/simulate-cast-from-grave.ts",
     "game:test:champswap": "npx tsx scripts/simulate-champ-swap.ts",

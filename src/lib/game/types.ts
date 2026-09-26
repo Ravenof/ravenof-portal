@@ -419,6 +419,8 @@ export type EffectMapping = {
   cleanseStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed' | 'shield' | 'taunt' | 'stealth' | 'sprint')[]  // cleanse: kurias būsenas/raktažodžius nuimti (shield/taunt/stealth/sprint = pozityvų dispel); TUŠČIA = visos NEIGIAMOS būsenos
   reviveDestroyedTarget?: boolean   // then po destroy/onDeath: prikelti BŪTENT sunaikintą taikinį (ne atsitiktinį)
   reviveToSide?: 'own' | 'enemy'    // kam atitenka prikeltas padaras (default own)
+  reviveAtk?: number                // reviveDestroyedTarget: prikelto padaro ATK (nenurodžius – kortos bazinė)
+  reviveHp?: number                 // reviveDestroyedTarget: prikelto padaro HP (nenurodžius – kortos bazinė)
   drawFromGraveyard?: boolean       // drawCards: traukti iš kapinyno (atsitiktinė), o ne iš kaladės
   drawCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // drawCards: tik šio tipo kortą
   drawKeep?: number                 // drawCards: traukti `value`, pasilikti `drawKeep` (pop-up), kitas išmesti

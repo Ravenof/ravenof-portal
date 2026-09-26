@@ -1533,7 +1533,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           Žaidėjas pasirenka kortą (popup)
                         </label>
                         {(m.effect === 'summonFromGraveyard' || m.effect === 'revive') && (
-                          <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Naudok then-grandinėje po Sunaikinti: prikelia BŪTENT sunaikintą taikinį">
+                          <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} title="Naudok then-grandinėje po Sunaikinti ARBA su trigeriu Sunaikinus taikinį (onDestroy): prikelia BŪTENT sunaikintą taikinį">
                             <input type="checkbox" checked={!!m.reviveDestroyedTarget} onChange={(e) => setMapping(i, { reviveDestroyedTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                             🦴 Prikelti sunaikintą taikinį
                           </label>
@@ -1545,6 +1545,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                               <option value="own">Tau</option>
                               <option value="enemy">Priešui</option>
                             </select>
+                          </label>
+                        )}
+                        {m.reviveDestroyedTarget && (
+                          <label className="flex items-center gap-1" title="Prikelto padaro statai (tuščia = kortos bazinė ATK / HP). Pvz. Valkirija: 1 / 1">
+                            ATK
+                            <input type="number" min={0} value={m.reviveAtk ?? ''} placeholder="baz." onChange={(e) => setMapping(i, { reviveAtk: e.target.value === '' ? undefined : Number(e.target.value) })} style={{ ...inputStyle, width: 52 }} />
+                            HP
+                            <input type="number" min={1} value={m.reviveHp ?? ''} placeholder="baz." onChange={(e) => setMapping(i, { reviveHp: e.target.value === '' ? undefined : Number(e.target.value) })} style={{ ...inputStyle, width: 52 }} />
                           </label>
                         )}
                         <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
@@ -1791,6 +1799,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                                 onChange={(e) => setThen({ reviveDestroyedTarget: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
                               🦴 Sunaikintą taikinį
                             </label>
+                          )}
+                          {fm.reviveDestroyedTarget && (
+                            <span className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Prikelto padaro statai (tuščia = kortos bazinė)">
+                              ATK
+                              <input type="number" min={0} value={fm.reviveAtk ?? ''} placeholder="baz." onChange={(e) => setThen({ reviveAtk: e.target.value === '' ? undefined : Number(e.target.value) })} style={{ ...inputStyle, width: 46 }} />
+                              HP
+                              <input type="number" min={1} value={fm.reviveHp ?? ''} placeholder="baz." onChange={(e) => setThen({ reviveHp: e.target.value === '' ? undefined : Number(e.target.value) })} style={{ ...inputStyle, width: 46 }} />
+                            </span>
                           )}
                           {fEffDef?.needsValue && (
                             <label className="flex items-center gap-1 text-[11px] pb-1" style={{ color: 'var(--text-secondary)' }} title="Reikšmė = bazė + perEach × metrika (pvz. padaryta žala)">

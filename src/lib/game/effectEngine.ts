@@ -18,7 +18,7 @@ export type GameApi = {
   healPlayer(g: GameState, s: Side, n: number): void
   drawCards(g: GameState, s: Side, n: number): void
   drawAdvanced(g: GameState, s: Side, opts: { count: number; fromGraveyard?: boolean; cardType?: string; keep?: number }): void
-  reviveCards(g: GameState, s: Side, cards: TutCard[]): void
+  reviveCards(g: GameState, s: Side, cards: TutCard[], stats?: { atk?: number; hp?: number }): void
   discardCards(g: GameState, s: Side, n: number, chooser?: 'caster' | 'opponent' | 'random'): void
   discardHandAndDraw(g: GameState, s: Side): void
   killUnit(g: GameState, owner: Side, u: BoardUnit): void
@@ -150,6 +150,8 @@ export function mappingNeedsSelection(m: EffectMapping): boolean {
   if (m.useTriggerSource) return false  // reakcijos taikinys nustatytas automatiškai (trigerio šaltinis)
   if (m.chooseAlt && m.chooseAlt.length > 0) return false  // ARBA: pirmiau pop-up pasirinkimas, taikiniai auto
   if (m.target === 'castSpell' || (m.targetTypes?.includes('castSpell') ?? false)) return false
+  // „Prikelti sunaikintą taikinį" – taikinys jau žinomas (ką tik sunaikinta korta), renkamasi nėra ko
+  if (m.reviveDestroyedTarget && (m.effect === 'revive' || m.effect === 'summonFromGraveyard')) return false
   // ── Pirma: atvejai, kuriuose RENKTIS NĖRA KO. Eina PRIEŠ aiškų „Žaidėjas
   //    renkasi", nes senose kortose užsilikęs `requiresSelection: true` kitaip
   //    priverstų UI prašyti taikinio ten, kur jo iš principo nėra.
@@ -266,7 +268,14 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
 
   // taikinių parinkimas
   let targets: ResolvedTarget[]
-  if (m.targetSummoned) {
+  // „Prikelti sunaikintą taikinį": taikinys = ką tik sunaikinta korta (ctx.chainDestroyedCards —
+  // then-grandinėje po Sunaikinti arba onDestroy kill-kreditas). Lentos taikinių nerenkame:
+  // anksčiau onDestroy + target enemyUnit ieškodavo KITO priešo padaro (jo dažnai nebūna →
+  // „nėra taikinio"), o prikeliamų kortų sąrašas būdavo tuščias → efektas niekada neveikė.
+  const reviveDestroyed = !!m.reviveDestroyedTarget && (m.effect === 'revive' || m.effect === 'summonFromGraveyard')
+  if (reviveDestroyed) {
+    targets = []
+  } else if (m.targetSummoned) {
     const uid = (g as unknown as { __lastSummonedUid?: string }).__lastSummonedUid
     let t: ResolvedTarget | null = null
     if (uid) for (const sd of ['you', 'ai'] as Side[]) { const pp = sd === 'you' ? g.you : g.ai; if (pp.units.some((x) => x?.uid === uid)) { t = { kind: 'unit', side: sd, uid }; break } }
@@ -347,7 +356,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
     }
   }
-  if (targets.length === 0 && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'castEffectFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
+  if (targets.length === 0 && !reviveDestroyed && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'castEffectFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
     // Fallback: „jei nėra taikinio – padaryk kitą efektą" (noTargetThen)
     if (m.noTargetThen && m.noTargetThen.length > 0) {
       api.log(g, { t: 'battlecry', side: caster, key: 'battleLog.noTargetFallback', params: { src: ctx.sourceName } })
@@ -500,7 +509,11 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'summonFromDeck': m.summonChoose ? api.summonAdvanced(g, caster, { zones: ['deck'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true }) : api.summonFromZone(g, caster, 'deck', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount }); break
     case 'summonFromGraveyard': case 'revive': {
       const reviveSide: Side = m.reviveToSide === 'enemy' ? foe : caster
-      if (m.reviveDestroyedTarget) api.reviveCards(g, reviveSide, ctx.chainDestroyedCards ?? [])
+      if (m.reviveDestroyedTarget) {
+        const cards = ctx.chainDestroyedCards ?? []
+        if (cards.length === 0) { api.log(g, { t: 'blocked', side: caster, key: 'battleLog.noValidTarget', params: { src: ctx.sourceName } }); applied = false; break }
+        api.reviveCards(g, reviveSide, cards, { atk: m.reviveAtk, hp: m.reviveHp })
+      }
       else if (m.summonChoose) api.summonAdvanced(g, caster, { zones: ['discard'], costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount, choose: true })
       else api.summonFromZone(g, caster, 'discard', { costMax: m.summonCostMax, subtype: m.summonSubtype, factionId: m.summonFaction, count: m.summonCount })
       break

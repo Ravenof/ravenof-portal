@@ -1309,7 +1309,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
 // killUnit pabaigoje iššaunami žudiko onDestroy mapping'ai. Padaras-šaltinis
 // privalo būti gyvas (hp>0) ir nenutildytas; burtas/artefaktas šauna visada.
 type KillCreditT = { side: Side; uid?: string; name: string; mappings: EffectMapping[]; depth: number }
-function fireOnDestroyCredit(g: GameState, victimName: string) {
+function fireOnDestroyCredit(g: GameState, victimName: string, victimCard?: TutCard) {
   const gk = g as unknown as { __killCredit?: KillCreditT }
   const kc = gk.__killCredit
   if (!kc || g.winner) return
@@ -1323,7 +1323,9 @@ function fireOnDestroyCredit(g: GameState, victimName: string) {
   }
   // Kreditas išvalomas PRIEŠ vykdymą, kad grandininės žūtys viduje nekartotų to paties kredito
   gk.__killCredit = undefined
-  applyMappings(gameApi, g, kc.side, kc.mappings, 'onDestroy', { sourceName: kc.name, sourceUid: kc.uid, depth: kc.depth + 1 })
+  // victimCard: sunaikinta korta (tik jei ji realiai nukeliavo į kapinyną) — „Prikelti sunaikintą
+  // taikinį" (Valkirija) prikelia BŪTENT ją. Prisikėlęs / į ranką / pašalintas iš žaidimo — nėra ką prikelti.
+  applyMappings(gameApi, g, kc.side, kc.mappings, 'onDestroy', { sourceName: kc.name, sourceUid: kc.uid, depth: kc.depth + 1, chainDestroyedCards: victimCard ? [victimCard] : undefined })
 }
 
 /**
@@ -1437,11 +1439,13 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
     }
   }
   p.units[idx] = null
+  let exiledOrRerouted = !!reroute
   if (reroute) {
     const rp = P(g, reroute)
     rp.hand.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, key: `battleLog.deathToHand.${reroute === owner ? 'self' : 'foe'}`, params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid } })
   } else if (fieldEngine.exileOnDeath(g, owner)) {
+    exiledOrRerouted = true
     // Lauko pasyvas: sunaikinta korta PAŠALINAMA iš žaidimo (ne į kapinyną)
     log(g, { t: 'death', side: owner, cardName: u.card.name, key: 'battleLog.deathExiled', params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid } })
   } else {
@@ -1452,7 +1456,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
   }
   fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId, srcRef: killerRef(g), srcName: unitNameOf(g, killerRef(g)) })
   recomputeAuras(g)
-  fireOnDestroyCredit(g, u.card.name)
+  fireOnDestroyCredit(g, u.card.name, exiledOrRerouted ? undefined : u.card)
 }
 
 /** Dabartinis žaidėjo (arba komandos) HP — severity skaičiavimui. */
@@ -2246,7 +2250,7 @@ function drawAdvancedPrim(g: GameState, s: Side, opts: { count: number; fromGrav
 }
 
 // ── #1: prikelti BŪTENT sunaikintas kortas (Kaulų rinkėjas) ──
-function reviveCardsPrim(g: GameState, s: Side, cards: TutCard[]) {
+function reviveCardsPrim(g: GameState, s: Side, cards: TutCard[], stats?: { atk?: number; hp?: number }) {
   const p = P(g, s)
   for (const card of cards) {
     if (card.type !== 'unit') continue
@@ -2254,7 +2258,15 @@ function reviveCardsPrim(g: GameState, s: Side, cards: TutCard[]) {
     if (slot === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullRaise' }); return }
     // pašalinam iš bet kurio kapinyno (mirus korta nukeliavo į savininko kapinyną)
     for (const sd of ['you', 'ai'] as Side[]) { const dp = P(g, sd); const j = dp.discard.findIndex((c) => c.uid === card.uid); if (j !== -1) { dp.discard.splice(j, 1); break } }
-    placeUnit(g, p, card, '-rev' + g.globalTurn, 'graveyard')
+    if (!placeUnit(g, p, card, '-rev' + g.globalTurn + '-' + slot, 'graveyard')) return
+    // Fiksuoti prikelto padaro statai (pvz. Valkirija: 1/1)
+    if (stats && (stats.atk != null || stats.hp != null)) {
+      const nu = p.units[slot]
+      if (nu) {
+        if (stats.atk != null) nu.atk = Math.max(0, stats.atk)
+        if (stats.hp != null) { nu.hp = Math.max(1, stats.hp); nu.maxHp = nu.hp }
+      }
+    }
     log(g, { t: 'play', side: s, cardName: card.name, key: 'battleLog.raiseFromGrave', params: { card: card.name }, sound: 'summon', fromZone: 'graveyard' })
     afterSummon(g, s, card, 'graveyard')
   }
