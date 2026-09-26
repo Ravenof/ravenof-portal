@@ -46,10 +46,10 @@ export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
   name:        'Nauja kaladė',
   description: '',
   factionId:   null,
-  visibility:  'private',
+  visibility:  'public',
   entries:     [],
   sideEntries: [],
-  ownedOnly:   false,
+  ownedOnly:   true,
   isDirty:     false,
   isSaving:    false,
 
@@ -65,12 +65,12 @@ export const useDeckBuilderStore = create<DeckBuilderStore>((set, get) => ({
 
   initNew: () => set({
     deckId: null, name: 'Nauja kaladė', description: '',
-    factionId: null, visibility: 'private',
-    entries: [], sideEntries: [], ownedOnly: false, isDirty: false, isSaving: false,
+    factionId: null, visibility: 'public',
+    entries: [], sideEntries: [], ownedOnly: true, isDirty: false, isSaving: false,
   }),
 
   loadExisting: (deckId, name, description, factionId, visibility, entries, sideEntries) =>
-    set({ deckId, name, description, factionId, visibility, entries, sideEntries, isDirty: false }),
+    set({ deckId, name, description, factionId, visibility, entries, sideEntries, ownedOnly: true, isDirty: false }),
 
   setName:        (name)       => set({ name, isDirty: true }),
   setDescription: (description)=> set({ description, isDirty: true }),

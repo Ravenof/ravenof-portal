@@ -58,7 +58,8 @@ export function DigitalCollection() {
   const [rarity, setRarity] = useState('all')
   const [type, setType] = useState('all')
   const [sort, setSort] = useState<SortKey>('cost-asc')
-  const [ownedOnly, setOwnedOnly] = useState(false)
+  // Numatytai rodomos TIK turimos kortos (vartotojo pageidavimas); išjungus – filtras skaičiuojamas kaip aktyvus
+  const [ownedOnly, setOwnedOnly] = useState(true)
   /** Kortos, kurių žaidėjas dar nematė kolekcijoje (user_collections.is_new). */
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [newOnly, setNewOnly] = useState(false)
@@ -146,8 +147,8 @@ export function DigitalCollection() {
   const selIdx = selected ? filtered.findIndex((c) => c.id === selected.id) : -1
 
   const ownedCount = (cards ?? []).filter((c) => c.owned > 0).length
-  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 1 : 0) + (newOnly ? 1 : 0) + (q.trim() ? 1 : 0)
-  const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(false); setNewOnly(false); setQ('') }
+  const activeFilters = (faction !== 'all' ? 1 : 0) + (rarity !== 'all' ? 1 : 0) + (type !== 'all' ? 1 : 0) + (ownedOnly ? 0 : 1) + (newOnly ? 1 : 0) + (q.trim() ? 1 : 0)
+  const resetFilters = () => { setFaction('all'); setRarity('all'); setType('all'); setSort('cost-asc'); setOwnedOnly(true); setNewOnly(false); setQ('') }
 
   // ── „Naujos" žymos ────────────────────────────────────────────────────────
   //  Žymą nuimam, kai kortą atsidarai (pamatei), arba mygtuku – visoms iškart.
@@ -253,7 +254,7 @@ export function DigitalCollection() {
       width: DT.ctl, height: DT.ctl, fontSize: 22, border: '1px solid var(--ravenof-border-strong)', background: 'none',
       cursor: enabled ? 'pointer' : 'default', color: enabled ? 'var(--ravenof-text-primary)' : '#4a4552',
     })
-    const emptyOwned = ownedOnly && activeFilters === 1
+    const emptyOwned = ownedOnly && activeFilters === 0
     return (
       <div className="ravenof-body h-full flex flex-col min-h-0 ravenof-in" data-desk="1">
         {/* ── Puslapio antraštė ── */}
@@ -473,10 +474,10 @@ export function DigitalCollection() {
             <div className="absolute inset-0" style={{ border: '1px solid var(--ravenof-border-strong)', borderRadius: 5, background: 'var(--ravenof-bg-surface)' }} />
           </div>
           <div className="text-center">
-            <div style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{ownedOnly && activeFilters === 1 ? t('collection.emptyTitle') : t('collection.nothingFound')}</div>
-            <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 3 }}>{ownedOnly && activeFilters === 1 ? t('collection.emptySub') : t('collection.nothingFoundSub')}</div>
+            <div style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-text-primary)' }}>{ownedOnly && activeFilters === 0 ? t('collection.emptyTitle') : t('collection.nothingFound')}</div>
+            <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 3 }}>{ownedOnly && activeFilters === 0 ? t('collection.emptySub') : t('collection.nothingFoundSub')}</div>
           </div>
-          {ownedOnly && activeFilters === 1 ? (
+          {ownedOnly && activeFilters === 0 ? (
             <button onClick={openPacks} className="ravenof-btn ravenof-btn-primary" style={{ fontSize: 11, letterSpacing: 1.5, padding: '9px 20px', minHeight: 0 }}>{t('collection.openPackCta')}</button>
           ) : (
             <button onClick={() => { playUiClick(); resetFilters() }} className="ravenof-btn ravenof-btn-primary" style={{ fontSize: 11, letterSpacing: 1.5, padding: '9px 20px', minHeight: 0 }}>{t('collection.clearFilters', { count: activeFilters })}</button>

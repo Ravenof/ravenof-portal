@@ -16,7 +16,7 @@ import { useDeckBuilderStore } from '@/stores/deckBuilderStore'
 import { createClient } from '@/lib/supabase/client'
 import { validateDeck, getCopyLimit, isCurseCard, canAddSideCard, NEUTRAL_FACTION_ID, DECK_MIN, DECK_MAX, SIDE_DECK_MAX, formatDeckCount } from '@/lib/deck-validation'
 import { costCurve, COST_CURVE_LABELS, displayAvgCost } from '@/lib/cards/cost'
-import { ravenofRarityColor as rarityColor } from '@/components/digital/ui/RavenofKit'
+import { ravenofRarityColor as rarityColor, ravenofFactionIcon } from '@/components/digital/ui/RavenofKit'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
@@ -45,17 +45,40 @@ type Props = {
   initialDeck: InitialDeck; onSaved: () => void; onBack: () => void
 }
 
-const IDENTITY: { re: RegExp; lineKey: string; icon: string }[] = [
-  { re: /mirt/i,            lineKey: 'deckBuilder.identity.death',       icon: '💀' },
-  { re: /plėšik|plesik/i,   lineKey: 'deckBuilder.identity.thieves',     icon: '🗡️' },
-  { re: /vryhiok/i,         lineKey: 'deckBuilder.identity.vryhiok',     icon: '🐺' },
-  { re: /demon/i,           lineKey: 'deckBuilder.identity.demons',      icon: '👹' },
-  { re: /inkvizic/i,        lineKey: 'deckBuilder.identity.inquisition', icon: '⚖️' },
-  { re: /švies|svies/i,     lineKey: 'deckBuilder.identity.light',       icon: '✨' },
-  { re: /mistik/i,          lineKey: 'deckBuilder.identity.mystic',      icon: '🔮' },
-  { re: /ryt/i,             lineKey: 'deckBuilder.identity.east',        icon: '🍃' },
+const IDENTITY: { re: RegExp; lineKey: string }[] = [
+  { re: /mirt/i,            lineKey: 'deckBuilder.identity.death' },
+  { re: /plėšik|plesik/i,   lineKey: 'deckBuilder.identity.thieves' },
+  { re: /vryhiok/i,         lineKey: 'deckBuilder.identity.vryhiok' },
+  { re: /demon/i,           lineKey: 'deckBuilder.identity.demons' },
+  { re: /inkvizic/i,        lineKey: 'deckBuilder.identity.inquisition' },
+  { re: /švies|svies/i,     lineKey: 'deckBuilder.identity.light' },
+  { re: /mistik/i,          lineKey: 'deckBuilder.identity.mystic' },
+  { re: /ryt/i,             lineKey: 'deckBuilder.identity.east' },
 ]
 const identityFor = (name: string) => IDENTITY.find((x) => x.re.test(name))
+
+/** Per tamsi frakcijos spalva (pvz. Mirties maršas) ikonai pašviesinama link kaulo spalvos, kad būtų matoma. */
+function glyphColor(hex?: string | null): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex ?? '')
+  if (!m) return '#E8DFCC'
+  const n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  if (lum >= 0.35) return `#${m[1]}`
+  const k = 0.5, mix = (c: number, t: number) => Math.round(c * (1 - k) + t * k)
+  return `rgb(${mix(r, 232)},${mix(g, 223)},${mix(b, 204)})`
+}
+
+/** Tikra frakcijos ikona (public/ravenof-ui/factions/<slug>.png), nuspalvinta frakcijos spalva — ne emoji. */
+function FactionGlyph({ f, size }: { f: Pick<Faction, 'slug' | 'color_hex'>; size: number }) {
+  const url = ravenofFactionIcon(f.slug)
+  return (
+    <span aria-hidden className="inline-block shrink-0" style={{
+      width: size, height: size, background: glyphColor(f.color_hex),
+      WebkitMask: `url('${url}') center / contain no-repeat`, mask: `url('${url}') center / contain no-repeat`,
+      filter: 'drop-shadow(0 0 6px rgba(0,0,0,.6))',
+    }} />
+  )
+}
 
 export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collection, initialDeck, onSaved, onBack }: Props) {
   const t = useT()
@@ -422,7 +445,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           </div>
           {selFaction && (
             <span className="shrink-0 inline-flex items-center" style={{ gap: 8, minHeight: 36, padding: '0 14px', font: `700 14px var(--ravenof-font-display)`, letterSpacing: '.04em', color: selFaction.color_hex ?? 'var(--ravenof-gold)', border: `1px solid ${selFaction.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.4)`}`, background: 'rgba(10,8,16,0.7)' }}>
-              <span style={{ fontSize: 18 }}>{identityFor(selFaction.name)?.icon ?? '🛡️'}</span>{tc('faction', selFaction.id, 'name', selFaction.name)}
+              <FactionGlyph f={selFaction} size={20} />{tc('faction', selFaction.id, 'name', selFaction.name)}
             </span>
           )}
           {testerBadge}
@@ -444,7 +467,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                     return (
                       <button key={f.id} onClick={() => pickFaction(f)} className="ravenof-press flex items-center text-left"
                         style={{ minHeight: 96, gap: DT.sp.lg, padding: `${DT.sp.lg}px ${DT.sp.lg}px`, cursor: 'pointer', background: on ? `rgba(${GOLD},0.1)` : 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '77' : `rgba(${GOLD},0.3)`}`, boxShadow: f.color_hex ? `inset 0 0 28px ${f.color_hex}14` : undefined }}>
-                        <span className="shrink-0 flex items-center justify-center" style={{ width: 52, height: 52, fontSize: 32, border: `1px solid ${f.color_hex ? f.color_hex + '55' : `rgba(${GOLD},0.3)`}`, background: 'rgba(0,0,0,0.35)' }}>{id?.icon ?? '🛡️'}</span>
+                        <span className="shrink-0 flex items-center justify-center" style={{ width: 52, height: 52, border: `1px solid ${f.color_hex ? f.color_hex + '55' : `rgba(${GOLD},0.3)`}`, background: 'rgba(0,0,0,0.35)' }}><FactionGlyph f={f} size={34} /></span>
                         <span className="min-w-0 flex flex-col" style={{ gap: 4 }}>
                           <span className="rvn-clamp2" style={{ font: `700 ${DT.fs.h3 + 1}px/1.2 var(--ravenof-font-display)`, color: f.color_hex ?? '#f3ead3', letterSpacing: '.03em' }}>{tc('faction', f.id, 'name', f.name)}</span>
                           {id && <span className="rvn-d-help" style={{ lineHeight: 1.35 }}>{t(id.lineKey)}</span>}
@@ -467,7 +490,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                   return (
                     <button key={f.id} onClick={() => pickFaction(f)} className="rvn-press flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left"
                       style={{ minHeight: 56, background: 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '66' : `rgba(${GOLD},0.25)`}` }}>
-                      <span className="text-2xl shrink-0">{id?.icon ?? '🛡️'}</span>
+                      <span className="shrink-0 flex items-center justify-center" style={{ width: 30, height: 30 }}><FactionGlyph f={f} size={26} /></span>
                       <span className="min-w-0">
                         <span className="block font-bold leading-tight truncate" style={{ fontSize: 13, color: f.color_hex ?? '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('faction', f.id, 'name', f.name)}</span>
                         <span className="block leading-tight truncate" style={{ fontSize: 10, color: 'var(--ravenof-text-secondary)' }}>{id ? t(id.lineKey) : ''}</span>
