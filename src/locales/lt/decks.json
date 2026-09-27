@@ -95,7 +95,14 @@
     "setActive": "Aktyvinti",
     "statAvgGold": "Aukso vid.",
     "statCards": "Kortų",
-    "statChampions": "Čempionai"
+    "statChampions": "Čempionai",
+    "keyCards": "Raktinės kortos",
+    "cardsList": "Kortos",
+    "validChip": "Tinkama",
+    "invalidCta": "Netinkama kovai",
+    "activeCta": "Aktyvi kaladė",
+    "missingShort": "Trūksta {{count}}",
+    "newDeckSub": "Pasirink frakciją ir surink 30–40 kortų"
   },
   "select": {
     "pairAvatar": "Poruoti avatarą",

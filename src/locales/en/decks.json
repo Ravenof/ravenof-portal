@@ -92,7 +92,14 @@
     "setActive": "Activate",
     "statAvgGold": "Avg. gold",
     "statCards": "Cards",
-    "statChampions": "Champions"
+    "statChampions": "Champions",
+    "keyCards": "Key cards",
+    "cardsList": "Cards",
+    "validChip": "Ready",
+    "invalidCta": "Not battle-ready",
+    "activeCta": "Active deck",
+    "missingShort": "Missing {{count}}",
+    "newDeckSub": "Pick a faction and gather 30–40 cards"
   },
   "select": {
     "pairAvatar": "Pair an avatar",
