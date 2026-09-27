@@ -176,5 +176,27 @@
     "winsShort": "pergalių",
     "xpHidden": "XP eiga nerodoma viešai",
     "deckAvatars": "Kaladžių avatarai"
+  },
+  "name": {
+    "title": "Keisti vardą",
+    "label": "Naujas vardas",
+    "save": "Keisti",
+    "confirm": "Patvirtinti keitimą",
+    "rules": "Vardą galima keisti kartą per 30 dienų. Po pakeitimo 60 dienų kitiems žaidėjams bus rodomas ir tavo ankstesnis vardas.",
+    "format": "3–20 simbolių: raidės (A–Z), skaičiai ir pabraukimas (_).",
+    "confirmText": "Tikrai keisti „{{old}}“ į „{{name}}“? Kitą kartą vardą galėsi keisti tik po 30 dienų.",
+    "lockedUntil": "Vardą jau keitei. Kitą kartą galėsi keisti {{date}}.",
+    "previousShown": "Ankstesnis vardas „{{name}}“ rodomas iki {{date}}.",
+    "formerly": "anksčiau: {{name}}",
+    "changed": "Vardas pakeistas",
+    "err": {
+      "generic": "Nepavyko pakeisti vardo. Bandyk dar kartą.",
+      "auth": "Reikia prisijungti.",
+      "format": "Vardas: 3–20 simbolių, tik raidės, skaičiai ir pabraukimas (_).",
+      "reserved": "Šis vardas rezervuotas.",
+      "same": "Tai tavo dabartinis vardas.",
+      "taken": "Šis vardas užimtas.",
+      "cooldown": "Vardą galima keisti kartą per 30 dienų. Kitą kartą: {{date}}."
+    }
   }
 }

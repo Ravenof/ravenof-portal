@@ -12,7 +12,8 @@ import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/i18n/react'
 import { formatNumber } from '@/lib/i18n/core'
 import { playUiClick } from '@/lib/ui-sound'
-import { getAchievements, getMatchModeStats, getProfileOverview, type MatchModeStats, type ProfileOverview } from '@/lib/profile/client'
+import { getAchievements, getMatchModeStats, getProfileOverview, getNameInfo, type MatchModeStats, type ProfileOverview, type NameInfo } from '@/lib/profile/client'
+import { ChangeNameDialog } from './ChangeNameDialog'
 import { ProfileCosmeticsModal } from './ProfileCosmeticsModal'
 import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
 import { rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
@@ -66,6 +67,9 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
   const [achSummary, setAchSummary] = useState<{ done: number; total: number } | null>(null)
   const [modeStats, setModeStats] = useState<MatchModeStats | null>(null)
   const [editOpen, setEditOpen] = useState<false | 'avatar' | 'card_back' | 'deck_avatars'>(false)
+  // Vardas: ankstesnis (rodomas 60 d.) + kada vėl galima keisti (kartą per 30 d.)
+  const [nameInfo, setNameInfo] = useState<NameInfo | null>(null)
+  const [nameOpen, setNameOpen] = useState(false)
   // Aktyvus kosmetinis avataras — vienas resolveris (cosmeticsStore); rodomas
   // pirmiau už įkeltą avatar_url nuotrauką (audit Part 4: pasirinktas avataras
   // matomas profilyje). Svetimame profilyje — jo equippedAvatar per katalogą.
@@ -77,7 +81,8 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [o, a, ms] = await Promise.all([getProfileOverview(), getAchievements(), getMatchModeStats()])
+    const [o, a, ms, ni] = await Promise.all([getProfileOverview(), getAchievements(), getMatchModeStats(), getNameInfo()])
+    setNameInfo(ni)
     setLoading(false)
     if (!o) { setFailed('no_response'); return }
     if ('error' in o) { setFailed(o.error); return }
@@ -152,9 +157,16 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
             border: `1px solid ${C.gold}`,
           }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ font: `800 ${fz(19, 21)}px ${DISPLAY}`, color: C.bone, lineHeight: 1.15, wordBreak: 'break-word' }}>
-              {identity.name ?? t('common.player')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, font: `800 ${fz(19, 21)}px ${DISPLAY}`, color: C.bone, lineHeight: 1.15, wordBreak: 'break-word' }}>
+              <span style={{ minWidth: 0 }}>{identity.name ?? t('common.player')}</span>
+              {!isPublic && (
+                <button type="button" data-testid="name-edit" onClick={() => { playUiClick(); setNameOpen(true) }} aria-label={t('profile.name.title')} title={t('profile.name.title')}
+                  style={{ flex: 'none', width: fz(26, 34), height: fz(26, 34), border: `1px solid ${C.lineIn}`, background: 'transparent', color: C.gold, cursor: 'pointer', font: `400 ${fz(12, 15)}px ${BODY}` }}>✎</button>
+              )}
             </div>
+            {nameInfo?.previousName && (
+              <div data-testid="name-previous" style={{ font: `400 ${fz(10.5, 13)}px ${BODY}`, color: C.muted, marginTop: 3 }}>{t('profile.name.formerly', { name: nameInfo.previousName })}</div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: fz(6, 8), marginTop: fz(5, 8), flexWrap: fz(undefined, 'wrap' as const) }}>
               <span style={{ font: `400 ${fz(10, 13)}px ${BODY}`, color: C.muted }}>{t('profile.overview.playerId')}</span>
               <span style={{ font: `700 ${fz(10.5, 13.5)}px ui-monospace, monospace`, color: C.goldHi }}>{identity.playerId ?? '—'}</span>
@@ -289,6 +301,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
       }} />
       <span style={{ minWidth: 0, flex: 'none' }}>
         <span style={{ display: 'block', font: `800 14px ${DISPLAY}`, color: C.bone, lineHeight: 1.15 }}>{identity.name ?? t('common.player')}</span>
+        {nameInfo?.previousName && <span style={{ display: 'block', font: `400 9px ${BODY}`, color: C.muted, marginTop: 1 }}>{t('profile.name.formerly', { name: nameInfo.previousName })}</span>}
         <span style={{ display: 'block', font: `700 9px ui-monospace, monospace`, color: C.goldHi, marginTop: 2 }}>{identity.playerId ?? '—'}</span>
       </span>
       {chip(t('profile.overview.accountLevel'), String(level.level), C.goldHi, isPublic ? undefined : () => { playUiClick(); router.push('/digital/profile/levels') })}
@@ -542,6 +555,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
           </div>
         </div>
         {editOpen && <ProfileCosmeticsModal initialTab={editOpen} onClose={() => { setEditOpen(false); void load() }} />}
+        {nameOpen && <ChangeNameDialog info={nameInfo} onClose={() => setNameOpen(false)} onChanged={() => { setNameOpen(false); toast.show(t('profile.name.changed')); void load() }} />}
         {toast.node}
       </div>
     )
@@ -586,6 +600,7 @@ export function ProfileOverviewScreen({ mode = 'owner' }: { mode?: 'owner' | 'pu
         </div>
       </div>
       {editOpen && <ProfileCosmeticsModal initialTab={editOpen} onClose={() => { setEditOpen(false); void load() }} />}
+      {nameOpen && <ChangeNameDialog info={nameInfo} onClose={() => setNameOpen(false)} onChanged={() => { setNameOpen(false); toast.show(t('profile.name.changed')); void load() }} />}
       {toast.node}
     </div>
   )

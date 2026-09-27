@@ -164,3 +164,37 @@ export async function getProfileOverview(userId?: string): Promise<ProfileOvervi
   if (d.error) return { error: d.error }
   return d
 }
+
+// ── Vardo keitimas (migr 20261004_name_change.sql) ──────────────────────────
+// Kartą per 30 d.; ankstesnis vardas rodomas 60 d. Visa logika – serveryje.
+export type NameInfo = {
+  name: string | null; username: string | null
+  previousName: string | null; previousUntil: string | null
+  /** tik savo profiliui */ changedAt: string | null; nextChangeAt: string | null
+}
+export const NAME_RE = /^[A-Za-z0-9_]{3,20}$/
+
+export async function getNameInfo(userId?: string): Promise<NameInfo | null> {
+  const { data, error } = await createClient().rpc('rvn_name_info', { p_user: userId ?? null })
+  if (error) return null
+  return (data as NameInfo | null) ?? null
+}
+
+/** Klaida → { key, until? } (i18n: profile.name.err.<key>). */
+export async function changeName(name: string): Promise<{ ok: true; name: string; nextChangeAt: string } | { err: string; until?: string }> {
+  const { data, error } = await createClient().rpc('rvn_change_name', { p_name: name })
+  if (error) {
+    const m = /name_(auth|format|reserved|same|taken|cooldown)(?::(\S+))?/.exec(error.message)
+    return m ? { err: m[1], until: m[2] } : { err: 'generic' }
+  }
+  const d = data as { name: string; nextChangeAt: string }
+  return { ok: true, name: d.name, nextChangeAt: d.nextChangeAt }
+}
+
+/** Ankstesni vardai (kol rodomi) keliems žaidėjams: userId → vardas. */
+export async function getPrevNames(ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {}
+  const { data, error } = await createClient().rpc('rvn_prev_names', { p_ids: ids.slice(0, 500) })
+  if (error) return {}
+  return (data as Record<string, string> | null) ?? {}
+}

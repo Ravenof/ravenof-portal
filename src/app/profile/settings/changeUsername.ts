@@ -25,114 +25,39 @@ export type ChangeUsernameResult =
 // ── Server action ─────────────────────────────────────────────────────────────
 
 export async function changeUsername(newUsername: string): Promise<ChangeUsernameResult> {
-  // 1. Auth check
+  // Visa logika serveryje: rvn_change_name (migr 20261004_name_change.sql) –
+  // kartą per 30 d., ankstesnis vardas rodomas 60 d., guard'as draudžia tiesioginį update.
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) return { error: 'Nesate prisijungę.' }
-
-  // 2. Normalize
-  // Zaidejas gali rasyti su didziosiomis: registras islieka rodomame varde,
-  // o `username` (URL/unikalumas) visada mazosiomis.
   const typed = newUsername.trim()
-  const normalized = typed.toLowerCase()
-
-  // 3. Format validation
-  if (normalized.length < 3) {
-    return { error: 'Vartotojo vardas turi būti bent 3 simbolių.' }
-  }
-  if (normalized.length > 24) {
-    return { error: 'Vartotojo vardas negali būti ilgesnis nei 24 simboliai.' }
-  }
-  if (!USERNAME_REGEX.test(normalized)) {
+  if (RESERVED_WORDS.has(typed.toLowerCase())) return { error: 'Šis vartotojo vardas rezervuotas.' }
+  if (!USERNAME_REGEX.test(typed.toLowerCase())) {
     return { error: 'Vartotojo vardas gali turėti tik raides, skaičius ir pabraukimą (_).' }
   }
 
-  // 4. Reserved word check
-  if (RESERVED_WORDS.has(normalized)) {
-    return { error: 'Šis vartotojo vardas rezervuotas.' }
-  }
-
-  // 5. Get current profile
-  const { data: profile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('username, display_name, username_changed_at')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (profileErr || !profile) return { error: 'Profilis nerastas.' }
-
-  // 6. Cooldown check (30 days)
-  if (profile.username_changed_at) {
-    const lastChange = new Date(profile.username_changed_at as string)
-    const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24)
-    if (daysSince < USERNAME_COOLDOWN_DAYS) {
-      const canChangeDate = new Date(lastChange)
-      canChangeDate.setDate(canChangeDate.getDate() + USERNAME_COOLDOWN_DAYS)
-      const dateStr = canChangeDate.toLocaleDateString('lt-LT', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-      })
-      return { error: `Vartotojo vardą galima keisti tik kartą per 30 dienų. Vėl galėsite keisti: ${dateStr}.` }
+  const { data: before } = await supabase.from('profiles').select('username').eq('id', user.id).maybeSingle()
+  const { data, error } = await supabase.rpc('rvn_change_name', { p_name: typed })
+  if (error) {
+    const m = /name_(auth|format|reserved|same|taken|cooldown)(?::(\S+))?/.exec(error.message)
+    switch (m?.[1]) {
+      case 'auth': return { error: 'Nesate prisijungę.' }
+      case 'format': return { error: 'Vardas: 3–20 simbolių, tik raidės, skaičiai ir pabraukimas (_).' }
+      case 'reserved': return { error: 'Šis vartotojo vardas rezervuotas.' }
+      case 'same': return { error: 'Naujas vartotojo vardas sutampa su dabartiniu.' }
+      case 'taken': return { error: 'Šis vartotojo vardas jau užimtas.' }
+      case 'cooldown': {
+        const d = m?.[2] ? new Date(m[2]).toLocaleDateString('lt-LT', { year: 'numeric', month: '2-digit', day: '2-digit' }) : ''
+        return { error: `Vartotojo vardą galima keisti tik kartą per ${USERNAME_COOLDOWN_DAYS} dienų. Vėl galėsite keisti: ${d}.` }
+      }
+      default: return { error: 'Nepavyko atnaujinti vartotojo vardo. Bandykite dar kartą.' }
     }
   }
+  const normalized = (data as { username: string }).username
 
-  // 7. Same username check
-  if ((profile.username as string) === normalized) {
-    return { error: 'Naujas vartotojo vardas sutampa su dabartiniu.' }
-  }
-
-  // 8. Uniqueness check
-  const { data: existing } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('username', normalized)
-    .maybeSingle()
-
-  if (existing) {
-    return { error: 'Šis vartotojo vardas jau užimtas.' }
-  }
-
-  const oldUsername = profile.username as string
-  const now = new Date().toISOString()
-  const visibleUntil = new Date(Date.now() + USERNAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString()
-
-  // 9. Update profiles (user can UPDATE their own row via standard RLS)
-  // Also update display_name if the user never customised it (it still matches the old username)
-  const shouldUpdateDisplayName = (profile.display_name as string | null) === oldUsername
-  const { error: updateErr } = await supabase
-    .from('profiles')
-    .update({
-      username:                        normalized,
-      previous_username:               oldUsername,
-      previous_username_visible_until: visibleUntil,
-      username_changed_at:             now,
-      updated_at:                      now,
-      ...(shouldUpdateDisplayName ? { display_name: typed } : {}),
-    })
-    .eq('id', user.id)
-
-  if (updateErr) {
-    if (updateErr.code === '23505') {
-      return { error: 'Šis vartotojo vardas jau užimtas.' }
-    }
-    return { error: 'Nepavyko atnaujinti vartotojo vardo. Bandykite dar kartą.' }
-  }
-
-  // 10. Insert history row (RLS: user can INSERT own rows)
-  await supabase
-    .from('profile_username_history')
-    .insert({
-      user_id:       user.id,
-      old_username:  oldUsername,
-      new_username:  normalized,
-      changed_at:    now,
-      visible_until: visibleUntil,
-    })
-
-  // 11. Revalidate
   revalidatePath('/me')
   revalidatePath('/profile/settings')
-  revalidatePath(`/users/${oldUsername}`)
+  if (before?.username) revalidatePath(`/users/${before.username}`)
   revalidatePath(`/users/${normalized}`)
-
   return { success: true, newUsername: normalized }
 }

@@ -61,7 +61,7 @@ export async function updatePrivacySettings(settings: PrivacySettings) {
 
   if (settings.is_public !== undefined) updatePayload.is_public = settings.is_public
   if (settings.bio       !== undefined) updatePayload.bio        = settings.bio
-  if (settings.display_name !== undefined) updatePayload.display_name = settings.display_name
+  // display_name keičiamas tik per rvn_change_name (kartą per 30 d.) – žr. changeUsername.ts
 
   const { error } = await supabase
     .from('profiles')

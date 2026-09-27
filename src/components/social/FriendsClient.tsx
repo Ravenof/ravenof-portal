@@ -25,6 +25,7 @@ import { RavenofTextField } from '@/components/digital/ui/RavenofKit'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { DT } from '@/components/digital/ui/deskTokens'
 import { DeskDialog } from '@/components/digital/ui/DeskKit'
+import { getPrevNames } from '@/lib/profile/client'
 
 type PresenceFilter = 'all' | 'online' | 'offline'
 
@@ -44,6 +45,8 @@ export function FriendsClient() {
   const chat = useChatStore()
   const [friends, setFriends] = useState<Friend[]>([])
   const [pending, setPending] = useState<Friend[]>([])
+  // Pasikeitusių vardų ankstesni vardai (rodomi 60 d.)
+  const [prevNames, setPrevNames] = useState<Record<string, string>>({})
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [trades, setTrades] = useState<TradeIncoming[]>([])
   const [tradeId, setTradeId] = useState<string | null>(null)
@@ -64,6 +67,7 @@ export function FriendsClient() {
   const reload = useCallback(async () => {
     const [fl, ch, tr] = await Promise.all([friendsList(), challengeIncoming(), tradeIncoming()])
     setFriends(fl.friends); setPending(fl.pending); setChallenges(ch); setTrades(tr)
+    void getPrevNames([...fl.friends, ...fl.pending].map((f) => f.userId)).then(setPrevNames)
     if (fl.me?.presenceStatus) setSelfStatusUi(fl.me.presenceStatus)
   }, [])
   useEffect(() => { void reload(); const t = setInterval(() => { void reload() }, 15_000); return () => clearInterval(t) }, [reload])
@@ -131,13 +135,13 @@ export function FriendsClient() {
     const qq = q.trim().toLowerCase()
     return friends
       .filter((f) => (filter === 'all' ? true : filter === 'online' ? f.presence !== 'offline' && f.presence != null || f.online : f.presence === 'offline' || !f.online))
-      .filter((f) => !qq || f.username.toLowerCase().includes(qq) || (f.displayName ?? '').toLowerCase().includes(qq))
+      .filter((f) => !qq || f.username.toLowerCase().includes(qq) || (f.displayName ?? '').toLowerCase().includes(qq) || (prevNames[f.userId] ?? '').toLowerCase().includes(qq))
       .sort((a, b) => {
         const ao = a.presence && a.presence !== 'offline' ? 0 : 1
         const bo = b.presence && b.presence !== 'offline' ? 0 : 1
         return ao - bo || (b.unread ?? 0) - (a.unread ?? 0) || a.username.localeCompare(b.username)
       })
-  }, [friends, q, filter])
+  }, [friends, q, filter, prevNames])
 
   const onlineCount = friends.filter((f) => f.presence && f.presence !== 'offline').length
 
@@ -217,7 +221,7 @@ export function FriendsClient() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate" style={{ font: `700 ${D ? DT.fs.body : 12.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{f.displayName || f.username}</span>
-                    <span className="block truncate" style={{ font: `400 ${D ? DT.fs.help : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: D ? 2 : undefined }}>{p === 'offline' ? lastSeenTxt(f) : m.name}{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
+                    <span className="block truncate" style={{ font: `400 ${D ? DT.fs.help : 10.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', marginTop: D ? 2 : undefined }}>{prevNames[f.userId] ? `${t('profile.name.formerly', { name: prevNames[f.userId] })} · ` : ''}{p === 'offline' ? lastSeenTxt(f) : m.name}{f.blockedByMe ? ` ${t('social.blockedTag')}` : ''}</span>
                   </span>
                   {(f.unread ?? 0) > 0 && (
                     <span className="shrink-0 flex items-center justify-center rounded-full" style={{ minWidth: D ? 22 : 17, height: D ? 22 : 17, padding: '0 4px', font: `800 ${D ? 12 : 9.5}px var(--ravenof-font-body)`, background: 'var(--ravenof-danger)', color: '#fff' }}>{f.unread}</span>
@@ -271,6 +275,7 @@ export function FriendsClient() {
                 <div className="shrink-0 relative flex items-center" style={{ gap: D ? DT.sp.md : 10, padding: D ? '12px 20px' : '11px 14px', minHeight: D ? 66 : undefined, borderBottom: '1px solid var(--ravenof-border-hairline)' }}>
                   <span className="shrink-0 rounded-full" style={{ width: D ? 11 : 9, height: D ? 11 : 9, background: m.color }} />
                   <span className={D ? 'min-w-0 truncate' : undefined} style={{ font: `700 ${D ? DT.fs.h2 : 15}px var(--ravenof-font-display)`, letterSpacing: 0.5, color: 'var(--ravenof-text-primary)' }}>{selFriend.displayName || selFriend.username}</span>
+                  {prevNames[selFriend.userId] && <span className="shrink-0" style={{ font: `400 ${D ? DT.fs.help : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>({t('profile.name.formerly', { name: prevNames[selFriend.userId] })})</span>}
                   <span className={D ? 'shrink-0' : undefined} style={{ font: `400 ${D ? DT.fs.help : 11.5}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{p === 'offline' ? lastSeenTxt(selFriend) : m.name}</span>
                   <div className="flex-1" />
                   <button onClick={() => void challenge(selFriend)} className="ravenof-press shrink-0" style={{ font: `700 ${D ? 13 : 11}px var(--ravenof-font-display)`, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ravenof-gold)', background: 'none', border: '1px solid var(--ravenof-border-gold)', padding: D ? '0 18px' : '9px 13px', minHeight: D ? DT.ctl : undefined, cursor: 'pointer' }}>{t('battle.pvp.challengeCta')}</button>

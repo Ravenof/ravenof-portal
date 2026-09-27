@@ -174,5 +174,27 @@
     "winsShort": "wins",
     "xpHidden": "XP progress is not shown publicly",
     "deckAvatars": "Deck avatars"
+  },
+  "name": {
+    "title": "Change name",
+    "label": "New name",
+    "save": "Change",
+    "confirm": "Confirm change",
+    "rules": "You can change your name once every 30 days. For 60 days after a change, other players will also see your previous name.",
+    "format": "3–20 characters: letters (A–Z), numbers and underscore (_).",
+    "confirmText": "Change “{{old}}” to “{{name}}”? You won't be able to change it again for 30 days.",
+    "lockedUntil": "You've already changed your name. You can change it again on {{date}}.",
+    "previousShown": "Your previous name “{{name}}” is shown until {{date}}.",
+    "formerly": "formerly: {{name}}",
+    "changed": "Name changed",
+    "err": {
+      "generic": "Couldn't change your name. Try again.",
+      "auth": "You need to sign in.",
+      "format": "Name: 3–20 characters, letters, numbers and underscore (_) only.",
+      "reserved": "This name is reserved.",
+      "same": "That's already your name.",
+      "taken": "This name is taken.",
+      "cooldown": "You can change your name once every 30 days. Next change: {{date}}."
+    }
   }
 }
