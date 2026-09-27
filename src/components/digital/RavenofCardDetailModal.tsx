@@ -42,8 +42,10 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
   const [ownedNow, setOwnedNow] = useState(c.owned)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  // Ne dublikato išardymas (kopijų ≤ limito) – reikia antro paspaudimo
+  const [confirmDust, setConfirmDust] = useState(false)
 
-  useEffect(() => { setOwnedNow(c.owned); setMsg(null); setBad(false) }, [c.id, c.owned])
+  useEffect(() => { setOwnedNow(c.owned); setMsg(null); setBad(false); setConfirmDust(false) }, [c.id, c.owned])
   useEffect(() => { getCraftConfig().then((r) => { if (r) { setCfg(r.config); setEssence(r.essence) } }) }, [])
 
   // Esc uždaro; ←/→ naršo (turi atitikti esamą klaviatūros elgseną + patvirtintas rodykles)
@@ -62,9 +64,11 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
   const tier = String((c.type && /champion|čempion/i.test(c.type)) ? 6 : Math.min(6, Math.max(1, c.raritySort || 1)))
   const dustVal = cfg ? (cfg.disenchant[tier] ?? 0) : 0
   const craftCost = cfg ? (cfg.craft[tier] ?? 0) : 0
-  const canDust = ownedNow > c.copyLimit
+  // Išardyti galima bet kurią turimą kopiją (ne tik dublikatus virš limito)
+  const canDust = ownedNow > 0
+  const dustNeedsConfirm = ownedNow <= c.copyLimit
   const canCraft = ownedNow < c.copyLimit && essence >= craftCost && !!cfg
-  const doDust = async () => { if (busy || !canDust) return; setBusy(true); playUiClick(); const r = await disenchantCard(c.id, 1); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n - 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
+  const doDust = async () => { if (busy || !canDust) return; if (dustNeedsConfirm && !confirmDust) { playUiClick(); setConfirmDust(true); setMsg(null); return } setConfirmDust(false); setBusy(true); playUiClick(); const r = await disenchantCard(c.id, 1); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n - 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
   const doCraft = async () => { if (busy || !canCraft) return; setBusy(true); playUiClick(); const r = await craftCard(c.id); if (r && 'ok' in r) { playSuccess(); setOwnedNow((n) => n + 1); setEssence(r.essence ?? essence); onChanged?.() } else if (r && 'error' in r) setMsg(t(`collection.craftErr.${r.error}`) === `collection.craftErr.${r.error}` ? t('collection.failed') : t(`collection.craftErr.${r.error}`)); setBusy(false) }
 
   const facColor = ravenofFactionColor(c.factionSlug)
@@ -127,7 +131,7 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
         {cfg && dustVal > 0 && (
           <button onClick={doDust} disabled={busy || !canDust} data-testid="card-disenchant" className="rvn-d-btn rvn-d-btn-ghost"
             style={{ font: actionFont, letterSpacing: '.1em', color: canDust ? 'var(--ravenof-text-secondary)' : '#4a4552', borderColor: canDust ? 'var(--ravenof-border-strong)' : '#221e29', filter: 'none' }}>
-            {t('collection.disenchantCta')} · +{dustVal} ◈
+            {confirmDust ? t('collection.disenchantConfirmCta') : t('collection.disenchantCta')} · +{dustVal} ◈
           </button>
         )}
       </>
@@ -154,6 +158,7 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
             <div data-testid="card-effect" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '16px 18px', font: `400 ${DT.fs.body}px/1.6 var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', whiteSpace: 'pre-line' }}>
               {c.effect || <span style={{ color: 'var(--ravenof-text-secondary)' }}>—</span>}
             </div>
+            {confirmDust && <p role="status" data-testid="disenchant-warn" style={{ margin: 0, font: `500 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-gold)', lineHeight: 1.45 }}>{t('collection.disenchantWarn', { left: ownedNow - 1, limit: c.copyLimit })}</p>}
             {msg && <p role="alert" style={{ margin: 0, font: `500 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-danger-bright)' }}>{msg}</p>}
           </div>
         </div>
@@ -218,6 +223,7 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
 
         <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" style={{ background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px', marginTop: 8, font: '400 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', lineHeight: 1.45 }}>
           {c.effect || <span style={{ color: 'var(--ravenof-text-secondary)' }}>—</span>}
+          {confirmDust && <p role="status" style={{ marginTop: 8, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold)', lineHeight: 1.4 }}>{t('collection.disenchantWarn', { left: ownedNow - 1, limit: c.copyLimit })}</p>}
           {msg && <p style={{ marginTop: 8, font: '500 11px var(--ravenof-font-body)', color: 'var(--ravenof-danger-bright)' }}>{msg}</p>}
         </div>
 
@@ -235,7 +241,7 @@ export function RavenofCardDetailModal({ c, onClose, onPrev, onNext, onChanged }
           )}
           {cfg && dustVal > 0 && (
             <button onClick={doDust} disabled={busy || !canDust} style={{ flex: 1, textAlign: 'center', font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, color: canDust ? 'var(--ravenof-text-secondary)' : '#4a4552', background: 'none', border: `1px solid ${canDust ? 'var(--ravenof-border-strong)' : '#221e29'}`, padding: '10px 6px', cursor: canDust ? 'pointer' : 'default', textTransform: 'uppercase', minHeight: 44 }}>
-              {t('collection.disenchantCta')} · +{dustVal} ◈
+              {confirmDust ? t('collection.disenchantConfirmCta') : t('collection.disenchantCta')} · +{dustVal} ◈
             </button>
           )}
           <span className="shrink-0" style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-essence)' }}>◈ {essence}</span>

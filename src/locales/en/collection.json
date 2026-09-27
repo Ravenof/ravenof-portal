@@ -86,5 +86,7 @@
   "whichPack": "🎁 Which pack to open?",
   "newBadge": "New",
   "newOnlyShort": "New ({{count}})",
-  "markAllSeen": "Mark all as seen"
+  "markAllSeen": "Mark all as seen",
+  "disenchantConfirmCta": "CONFIRM DISENCHANT",
+  "disenchantWarn": "This isn't a duplicate – you'll have {{left}}/{{limit}} copies left. Decks using this card may become incomplete. Press again to confirm."
 }

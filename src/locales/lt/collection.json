@@ -86,5 +86,7 @@
   "whichPack": "🎁 Kurį paką atplėšti?",
   "newBadge": "Nauja",
   "newOnlyShort": "Naujos ({{count}})",
-  "markAllSeen": "Pažymėti visas kaip matytas"
+  "markAllSeen": "Pažymėti visas kaip matytas",
+  "disenchantConfirmCta": "PATVIRTINTI IŠARDYMĄ",
+  "disenchantWarn": "Tai ne dublikatas – liks {{left}}/{{limit}} kopijų. Kaladės su šia korta gali tapti nepilnos. Spausk dar kartą, kad patvirtintum."
 }
