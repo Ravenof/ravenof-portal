@@ -82,12 +82,13 @@ function sprite(c: string): HTMLCanvasElement {
   spriteCache.set(c, s)
   return s
 }
-function useParticles(disabled: boolean, emberAt: () => { x: number; y: number; w: number; c: string } | null) {
+function useParticles(disabled: boolean, embers: boolean, emberAt: () => { x: number; y: number; w: number; c: string } | null) {
   const cv = useRef<HTMLCanvasElement>(null)
   const parts = useRef<Spark[]>([])
   const raf = useRef(0)
   const emberRef = useRef(emberAt); emberRef.current = emberAt
   const disabledRef = useRef(disabled); disabledRef.current = disabled
+  const embersRef = useRef(embers); embersRef.current = embers
   const loop = useCallback(() => {
     const c = cv.current; const ctx = c?.getContext('2d')
     if (!c || !ctx) { raf.current = 0; return }
@@ -96,7 +97,7 @@ function useParticles(disabled: boolean, emberAt: () => { x: number; y: number; 
     ctx.globalCompositeOperation = 'lighter'
     const ps = parts.current
     // žarijos — nuolatinis, retas srautas nuo altoriaus (tik kai tab'as matomas)
-    if (!disabledRef.current && !document.hidden && Math.random() < 0.3 && ps.length < 90) {
+    if (embersRef.current && !disabledRef.current && !document.hidden && Math.random() < 0.3 && ps.length < 90) {
       const e = emberRef.current()
       if (e) ps.push({ x: e.x + (Math.random() - 0.5) * e.w, y: e.y, vx: (Math.random() - 0.5) * 0.4, vy: -0.6 - Math.random() * 0.9, l: 1, d: 0.004 + Math.random() * 0.004, r: 1 + Math.random() * 1.6, g: 0, c: e.c })
     }
@@ -109,7 +110,8 @@ function useParticles(disabled: boolean, emberAt: () => { x: number; y: number; 
       ctx.drawImage(sprite(p.c), p.x - r, p.y - r, r * 2, r * 2)
     }
     ctx.globalAlpha = 1
-    raf.current = requestAnimationFrame(loop)
+    // RAF sukasi tik kol yra dalelių arba kol įjungtos žarijos (mobile – tik sprogimai)
+    raf.current = ps.length || embersRef.current ? requestAnimationFrame(loop) : 0
   }, [])
   const burst = useCallback((x: number, y: number, col: string, n: number, pw = 1) => {
     if (disabledRef.current) return
@@ -118,12 +120,13 @@ function useParticles(disabled: boolean, emberAt: () => { x: number; y: number; 
       const a = Math.random() * Math.PI * 2, sp = (2 + Math.random() * 8) * pw
       parts.current.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3, l: 1, d: 0.012 + Math.random() * 0.02, r: 2 + Math.random() * 4, g: 0.22, c: Math.random() < 0.4 ? '#fff6d6' : col })
     }
-  }, [])
+    if (!raf.current) raf.current = requestAnimationFrame(loop)
+  }, [loop])
   useEffect(() => {
-    if (disabled) return
-    raf.current = requestAnimationFrame(loop)
+    if (disabled || !embers) return
+    if (!raf.current) raf.current = requestAnimationFrame(loop)
     return () => { if (raf.current) cancelAnimationFrame(raf.current); raf.current = 0 }
-  }, [disabled, loop])
+  }, [disabled, embers, loop])
   return { cv, burst }
 }
 
@@ -261,6 +264,22 @@ const CSS = `
 .rvn-dk-acts button{flex:1;min-width:0;height:36px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(212,163,59,.35);background:rgba(0,0,0,.45);color:#f3ead3;font:800 10px var(--ravenof-font-body);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:background .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
 .rvn-dk-acts button:hover{background:rgba(212,163,59,.18)}.rvn-dk-acts button.del:hover{background:rgba(160,30,40,.35);color:#ffb0b8}.rvn-dk-acts button:disabled{opacity:.4;cursor:default}
 .rvn-dk[data-compact="1"] .rvn-dk-acts button{height:30px}
+.rvn-dk[data-port="1"] .rvn-dk-acts,.rvn-dk[data-compact="1"] .rvn-dk-acts{display:grid;grid-template-columns:1fr 1fr}
+.rvn-dk[data-port="1"] .rvn-dk-acts button{height:34px}
+/* LITE (mobile): be blend/blur/atspindžio/filtrų, mažiau šešėlių ir halo kortų */
+.rvn-dk[data-lite="1"] .rvn-dk-mood{mix-blend-mode:normal;opacity:.12}
+.rvn-dk[data-lite="1"] .rvn-dk-sig{filter:none;animation:none}
+.rvn-dk[data-lite="1"] .rvn-dk-refl{display:none}
+.rvn-dk[data-lite="1"] .rvn-dk-box{filter:none;opacity:var(--br);transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s}
+.rvn-dk[data-lite="1"] .rvn-dk-front,.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-front{box-shadow:0 14px 28px rgba(0,0,0,.7),6px 6px 0 -2px #1c130b}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-front{border-color:var(--c)}
+.rvn-dk[data-lite="1"] .rvn-dk-hc{box-shadow:0 6px 14px #000;animation:none!important}
+.rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(4),.rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(5){display:none}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.62);--hy:calc(var(--bw)*-.4);--hr:-18deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:0px;--hy:calc(var(--bw)*-.56);--hr:0deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:calc(var(--bw)*.62);--hy:calc(var(--bw)*-.4);--hr:18deg}
+.rvn-dk[data-lite="1"] .rvn-dk-cta{animation:none}
+.rvn-dk[data-lite="1"] .rvn-dk-panel>*{transition-duration:.3s}
 @media (prefers-reduced-motion: reduce){.rvn-dk-box.foc .rvn-dk-b3d,.rvn-dk-box.foc .rvn-dk-hc,.rvn-dk-sig,.rvn-dk-rune2,.rvn-dk-ribbon,.rvn-dk-cta,.rvn-dk-ghost .rvn-dk-plus{animation:none!important}.rvn-dk-box.enter{animation:none}}
 `
 
@@ -382,6 +401,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const [bw, setBw] = useState(160)
   const [portrait, setPortrait] = useState(false)
   const [compact, setCompact] = useState(false)
+  const [lite, setLite] = useState(false)      // mobile / silpnas įrenginys: be žarijų, blur, blend, atspindžio, filtrų
   const [cur, setCur] = useState<number | null>(null)
   const [entered, setEntered] = useState(false)
   const [popId, setPopId] = useState<string | null>(null)
@@ -408,6 +428,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       setPortrait(port)
       const w = st.clientWidth, h = st.clientHeight
       setCompact(!port && h < 330)
+      setLite(port || h < 330 || window.matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4)
       const fitH = (h - (port ? 36 : 64)) / 1.92    // dėžutė (1.36) + kortų halo virš jos (~.56)
       const fitW = w / (port ? 2.15 : 2.9)          // fokusas + kaimynų kraštai (+ strėlės)
       setBw(Math.round(Math.max(96, Math.min(fitH, fitW, 330))))
@@ -475,7 +496,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const curDeck: Deck | null = cur != null && cur < slots.length ? slots[cur] : null
   const isNewSlot = cur != null && cur === slots.length
   const moodColor = curDeck ? curDeck.factionColor : GOLD_HEX
-  const { cv, burst } = useParticles(rm, () => {
+  const { cv, burst } = useParticles(rm, !lite, () => {
     const fl = floorRef.current, st = stageRef.current
     if (!fl || !st) return null
     const r = fl.getBoundingClientRect(), s = st.getBoundingClientRect()
@@ -568,7 +589,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const fy = portrait ? '80%' : '76%'
 
   return (
-    <div ref={rootRef} className="rvn-dk ravenof-body h-full flex min-h-0" data-port={portrait ? '1' : '0'} data-compact={compact ? '1' : '0'} style={{ ['--mc' as string]: moodColor }}>
+    <div ref={rootRef} className="rvn-dk ravenof-body h-full flex min-h-0" data-port={portrait ? '1' : '0'} data-compact={compact ? '1' : '0'} data-lite={lite ? '1' : '0'} style={{ ['--mc' as string]: moodColor }}>
       <style>{CSS}</style>
       <div className="rvn-dk-mood" />
 
