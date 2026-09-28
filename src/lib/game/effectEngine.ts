@@ -315,6 +315,12 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     const aoe = hasTypes ? !!m.applyToAllTypes : isMultiTarget(m.target)  // union: AoE tik jei aiškiai pasirinkta, kitaip – 1 taikinys (ARBA)
     let all = hasTypes ? resolveMappingTargets(g, caster, m) : resolveTargets(g, caster, m.target)
     all = applyTargetFilters(g, m, all)
+    // Kovos šūksnis su rankiniu taikiniu negali taikyti PATS SAVĘS („kitam ZOMBIE padarui"):
+    // žaidėjas iš rankos savęs pasirinkti negali (dar ne lauke), tad ir auto-pick'as
+    // (AI / nėra kito taikinio) šaltinio neima – kitaip Dr. Krudžas pasistiprindavo pats.
+    if (ctx.sourceUid && mappingNeedsSelection(m) && (m.trigger === 'onSummon' || m.trigger === 'onPlay')) {
+      all = all.filter((t) => !(t.kind === 'unit' && t.uid === ctx.sourceUid))
+    }
     // Rankinis pasirinkimas galioja TIK jei šis mapping'as apskritai renkasi
     // taikinį IR pasirinktas ref'as priklauso ŠIO mapping'o taikinių aibei
     // (tipas + targetTypes + filtrai). Kitaip — pvz. kelių mapping'ų kortoje

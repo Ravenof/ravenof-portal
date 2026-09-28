@@ -52,7 +52,7 @@ import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType, type BattleSoundType } from '@/lib/game/types'
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
-import { resolveTargets, resolveMappingTargets, applyTargetFilters } from '@/lib/game/targetResolver'
+import { resolveMappingTargets, applyTargetFilters } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
 import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
 import { RewardChip, SafeRewardImage } from '@/components/digital/ui/RewardBits'
@@ -3679,13 +3679,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (selMap || legacyNeedsTarget) {
       const cNow = effectiveCost(game!, 'you', c)
       if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); return }
-      // Jei mapping reikalauja taikinio, bet lauke nėra galimų taikinių – tiesiog sužaidžiam (auto).
-      if (selMap && resolveTargets(game!, 'you', selMap.target).length === 0) {
-        doAction({ t: 'play', actor: 'you', uid: c.uid, slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined }); setSelect(null); return
-      }
       const need = Math.max(1, selMap?.hitCount ?? 1)
       const availRefs = selMap ? spellTargetRefs(game!, 'you', selMap) : []
       const avail = availRefs.length
+      // Mapping reikalauja taikinio, bet TINKAMŲ taikinių nėra (su filtrais: potipis, „kitas",
+      // frakcija, būsena...) – tiesiog sužaidžiam: padaras iškviečiamas, efektas praneša
+      // „nėra tinkamo taikinio". Anksčiau tikrinta be filtrų → pvz. Dr. Krudžas (+1/0 kitam
+      // ZOMBIE) be zombių lauke įstrigdavo taikinio pasirinkime ir nebuvo iškviečiamas.
+      if (selMap && avail === 0) {
+        doAction({ t: 'play', actor: 'you', uid: c.uid, slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined }); setSelect(null); return
+      }
       // Tik VIENAS galimas taikinys → auto-taikymas, be pasirinkimo režimo.
       if (selMap && avail === 1) {
         doAction({ t: 'play', actor: 'you', uid: c.uid, target: availRefs[0], slot: c.type === 'unit' ? dropSlotRef.current ?? undefined : undefined })

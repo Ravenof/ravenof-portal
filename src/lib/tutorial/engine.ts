@@ -2726,7 +2726,10 @@ function fireEntryMappings(g: GameState, s: Side, u: BoardUnit, entries?: { m: E
     }
     return
   }
-  const needSel = s === 'you' ? list.filter((x) => mappingNeedsSelection(x.m)) : []
+  // Rankinis pasirinkimas – tik jei yra BENT VIENAS tinkamas taikinys (su filtrais: potipis,
+  // „kitas", frakcija...). Kitaip laukimas niekada neišsispręstų – mapping'as vykdomas
+  // automatiškai ir tiesiog praneša „nėra tinkamo taikinio".
+  const needSel = s === 'you' ? list.filter((x) => mappingNeedsSelection(x.m) && selectableTargetCount(g, s, x.m, u.uid) > 0) : []
   const auto = list.filter((x) => !needSel.some((y) => y.i === x.i))
   if (auto.length > 0) {
     // rounds > 1 (lauko pasyvas „Kovos šūksniai 2x") – iškvietimų neskaidom, kad
@@ -2763,6 +2766,23 @@ function isLegalChosenTarget(g: GameState, s: Side, m: EffectMapping, ref: Targe
     if (u?.stealth) return false
   }
   return true
+}
+
+/** Kiek tinkamų RANKINIŲ taikinių turi mapping'as (tie patys filtrai kaip isLegalChosenTarget). */
+export function selectableTargetCount(g: GameState, s: Side, m: EffectMapping, sourceUid?: string): number {
+  const hasTypes = !!m.targetTypes && m.targetTypes.length > 0
+  const all = applyTargetFilters(g, m, hasTypes ? resolveMappingTargets(g, s, m) : resolveTargets(g, s, m.target))
+  let n = 0
+  for (const t of all) {
+    if (t.kind === 'field') continue
+    if (sourceUid && t.kind === 'unit' && t.uid === sourceUid) continue   // šūksnis netaiko pats savęs
+    if (t.kind === 'unit' && enemySeats(g, s).includes(t.side)) {
+      const u = P(g, t.side).units.find((x) => x?.uid === t.uid)
+      if (u?.stealth) continue
+    }
+    n++
+  }
+  return n
 }
 
 /** Validuoja žaidėjo perduotus taikinius prieš PIRMĄJĮ selection mapping'ą

@@ -65,7 +65,8 @@
     "release:dry": "node tools/publish-bundle.mjs --skip-build --dry",
     "release:baseline:android": "node tools/publish-bundle.mjs --skip-build --mark-baseline android",
     "release:baseline:desktop": "node tools/publish-bundle.mjs --skip-build --mark-baseline desktop",
-    "tourney:test": "npx tsx scripts/simulate-tournament-bracket.ts"
+    "tourney:test": "npx tsx scripts/simulate-tournament-bracket.ts",
+    "game:test:notarget": "npx tsx scripts/simulate-no-target-summon.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
