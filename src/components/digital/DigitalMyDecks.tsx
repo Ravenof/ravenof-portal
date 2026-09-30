@@ -275,9 +275,9 @@ const CSS = `
 .rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-front{border-color:var(--c)}
 .rvn-dk[data-lite="1"] .rvn-dk-hc{box-shadow:0 6px 14px #000;animation:none!important}
 .rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(4),.rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(5){display:none}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.74);--hy:calc(var(--bw)*-.52);--hr:-16deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.84);--hy:calc(var(--bw)*-.6);--hr:-14deg}
 .rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:0px;--hy:calc(var(--bw)*-.84);--hr:0deg}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:calc(var(--bw)*.74);--hy:calc(var(--bw)*-.52);--hr:16deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:calc(var(--bw)*.84);--hy:calc(var(--bw)*-.6);--hr:14deg}
 .rvn-dk[data-lite="1"] .rvn-dk-cta{animation:none}
 .rvn-dk[data-lite="1"] .rvn-dk-panel>*{transition-duration:.3s}
 @media (prefers-reduced-motion: reduce){.rvn-dk-box.foc .rvn-dk-b3d,.rvn-dk-box.foc .rvn-dk-hc,.rvn-dk-sig,.rvn-dk-rune2,.rvn-dk-ribbon,.rvn-dk-cta,.rvn-dk-ghost .rvn-dk-plus{animation:none!important}.rvn-dk-box.enter{animation:none}}
