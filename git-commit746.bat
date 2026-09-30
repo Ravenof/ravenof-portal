@@ -6,8 +6,8 @@ del /f /q ".git\index.lock" >nul 2>&1
 (
 echo CWD: %CD%
 git rev-parse --show-toplevel
-git add src/components/tutorial/TutorialGame.tsx src/lib/tutorial/engine.ts src/lib/game/effectEngine.ts scripts/simulate-no-target-summon.ts package.json src/lib/version.ts git-commit746.bat
-git commit -m "746: Engine fix - kovos sauksnis su rankiniu taikiniu, kai TINKAMO taikinio nera (filtrai: potipis/frakcija/busena), nebeblokuoja iskvietimo (pvz. Dr. Krudzas be zombiu lauke); pendingBattlecry tik kai yra tinkamu taikiniu; sauksnis nebetaiko paties saves auto-pick'e; test game:test:notarget; APP_VERSION 746" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01JoeKHRowQ9gPcXNEz1bqGE"
+git add src/components/digital/DigitalMyDecks.tsx src/locales/lt/decks.json src/locales/en/decks.json tsconfig.check.scene.json src/lib/version.ts git-commit746.bat
+git commit -m "746: Mano kalades - raktiniu kortu halo pakeltas virs dezutes lanku (nebepersidengia su pacia kalade), kortos kiek mazesnes, dezutes dydis perskaiciuotas su halo aukciu; APP_VERSION 746" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01JMitPggicCjMqQoG7n1BWv"
 git push
 git log -1 --oneline
 ) > commit746.log 2>&1

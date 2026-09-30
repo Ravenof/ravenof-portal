@@ -189,14 +189,14 @@ const CSS = `
 .rvn-dk-refl{position:absolute;left:0;top:100%;width:100%;height:60%;overflow:hidden;opacity:.22;transform:scaleY(-1);mask-image:linear-gradient(0deg,rgba(0,0,0,.9),transparent);-webkit-mask-image:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none;filter:blur(1px)}
 .rvn-dk-refl img{width:100%;height:166%;object-fit:cover;object-position:50% 18%;border-radius:6px}
 .rvn-dk-halo{position:absolute;left:50%;top:0;width:0;height:0;z-index:-1;pointer-events:none}
-.rvn-dk-hc{position:absolute;width:calc(var(--bw)*.36);aspect-ratio:1044/1416;border-radius:4px;border:1px solid rgba(212,163,59,.7);box-shadow:0 10px 26px #000,0 0 14px color-mix(in srgb,var(--c) 45%,transparent);left:calc(var(--bw)*-.18);top:calc(var(--bw)*.34);opacity:0;transform:translate(0,0) rotate(0) scale(.5);transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .4s;transition-delay:var(--hd,0s);background:#0d0a14;overflow:hidden}
+.rvn-dk-hc{position:absolute;width:calc(var(--bw)*.32);aspect-ratio:1044/1416;border-radius:4px;border:1px solid rgba(212,163,59,.7);box-shadow:0 10px 26px #000,0 0 14px color-mix(in srgb,var(--c) 45%,transparent);left:calc(var(--bw)*-.18);top:calc(var(--bw)*.34);opacity:0;transform:translate(0,0) rotate(0) scale(.5);transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .4s;transition-delay:var(--hd,0s);background:#0d0a14;overflow:hidden}
 .rvn-dk-hc img{width:100%;height:100%;object-fit:cover;display:block}
 .rvn-dk-box.foc .rvn-dk-hc{opacity:1;transform:translate(var(--hx),var(--hy)) rotate(var(--hr)) scale(1);animation:rvn-dk-hfloat 4s ease-in-out infinite;animation-delay:var(--hd)}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.92);--hy:calc(var(--bw)*-.18);--hr:-26deg;--hd:.05s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:calc(var(--bw)*-.52);--hy:calc(var(--bw)*-.46);--hr:-13deg;--hd:.12s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:0px;--hy:calc(var(--bw)*-.58);--hr:0deg;--hd:.19s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(4){--hx:calc(var(--bw)*.52);--hy:calc(var(--bw)*-.46);--hr:13deg;--hd:.26s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(5){--hx:calc(var(--bw)*.92);--hy:calc(var(--bw)*-.18);--hr:26deg;--hd:.33s}
+.rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-1.12);--hy:calc(var(--bw)*-.3);--hr:-24deg;--hd:.05s}
+.rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:calc(var(--bw)*-.8);--hy:calc(var(--bw)*-.64);--hr:-12deg;--hd:.12s}
+.rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:0px;--hy:calc(var(--bw)*-.84);--hr:0deg;--hd:.19s}
+.rvn-dk-box.foc .rvn-dk-hc:nth-child(4){--hx:calc(var(--bw)*.8);--hy:calc(var(--bw)*-.64);--hr:12deg;--hd:.26s}
+.rvn-dk-box.foc .rvn-dk-hc:nth-child(5){--hx:calc(var(--bw)*1.12);--hy:calc(var(--bw)*-.3);--hr:24deg;--hd:.33s}
 @keyframes rvn-dk-hfloat{50%{translate:0 -6px}}
 .rvn-dk-ghost{border:2px dashed rgba(212,163,59,.45);background:rgba(7,6,10,.55);box-shadow:none;display:grid;place-items:center;align-content:center;gap:4px}
 .rvn-dk-ghost:after{display:none}
@@ -275,9 +275,9 @@ const CSS = `
 .rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-front{border-color:var(--c)}
 .rvn-dk[data-lite="1"] .rvn-dk-hc{box-shadow:0 6px 14px #000;animation:none!important}
 .rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(4),.rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(5){display:none}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.62);--hy:calc(var(--bw)*-.4);--hr:-18deg}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:0px;--hy:calc(var(--bw)*-.56);--hr:0deg}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:calc(var(--bw)*.62);--hy:calc(var(--bw)*-.4);--hr:18deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.74);--hy:calc(var(--bw)*-.52);--hr:-16deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:0px;--hy:calc(var(--bw)*-.84);--hr:0deg}
+.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:calc(var(--bw)*.74);--hy:calc(var(--bw)*-.52);--hr:16deg}
 .rvn-dk[data-lite="1"] .rvn-dk-cta{animation:none}
 .rvn-dk[data-lite="1"] .rvn-dk-panel>*{transition-duration:.3s}
 @media (prefers-reduced-motion: reduce){.rvn-dk-box.foc .rvn-dk-b3d,.rvn-dk-box.foc .rvn-dk-hc,.rvn-dk-sig,.rvn-dk-rune2,.rvn-dk-ribbon,.rvn-dk-cta,.rvn-dk-ghost .rvn-dk-plus{animation:none!important}.rvn-dk-box.enter{animation:none}}
@@ -429,8 +429,8 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       const w = st.clientWidth, h = st.clientHeight
       setCompact(!port && h < 330)
       setLite(port || h < 330 || window.matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4)
-      const fitH = (h - (port ? 36 : 64)) / 1.92    // dėžutė (1.36) + kortų halo virš jos (~.56)
-      const fitW = w / (port ? 2.15 : 2.9)          // fokusas + kaimynų kraštai (+ strėlės)
+      const fitH = (h - (port ? 36 : 64)) / 2.4     // dėžutė (1.36) + kortų halo VIRŠ jos, nepersidengiant (~.84)
+      const fitW = w / (port ? 2.3 : 3.1)          // fokusas + kaimynų kraštai (+ strėlės)
       setBw(Math.round(Math.max(96, Math.min(fitH, fitW, 330))))
     }
     f()
