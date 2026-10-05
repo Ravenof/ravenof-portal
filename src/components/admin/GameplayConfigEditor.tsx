@@ -4,9 +4,11 @@
 // Dropdown'ais sudaromi EffectMapping'ai + field pasyvai + raw JSON režimas.
 // Rezultatas serializuojamas į hidden input name="gameplay" (saveCard parsina).
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SummonBurst } from '@/components/tutorial/SummonBurst'
+import { FxArena, type FxArenaHandle } from '@/components/tutorial/FxArena'
+import { SUMMON_FX, FX_IMPACTS, PROJECTILE_TO_FX, LEGACY_SUMMON_MAP, type SummonFxId, type FxProjId, type FxImpactId } from '@/lib/game/fxCatalog'
 import { createClient } from '@/lib/supabase/client'
 import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
@@ -106,6 +108,12 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
 
   const [cfg, setCfg] = useState<GameplayConfig>(initialCfg)
   const [fxPreview, setFxPreview] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
+  // ── FX peržiūra (v3): mini arena groja tą patį fxStage kodą kaip kova ──
+  type FxLab = { mode: 'summon'; id: SummonFxId } | { mode: 'effect'; proj: FxProjId; impact: FxImpactId; hostile: boolean }
+  const [fxLab, setFxLab] = useState<FxLab | null>(null)
+  const arenaRef = useRef<FxArenaHandle>(null)
+  const playLab = (lab: FxLab | null) => { if (!lab) return; if (lab.mode === 'summon') arenaRef.current?.summon(lab.id); else arenaRef.current?.effect(lab.proj, lab.impact, { hostile: lab.hostile }) }
+  useEffect(() => { if (!fxLab) return; const t = window.setTimeout(() => playLab(fxLab), 250); return () => window.clearTimeout(t) }, [fxLab]) // eslint-disable-line react-hooks/exhaustive-deps
   const [rawMode, setRawMode] = useState(false)
   const [rawText, setRawText] = useState('')
   const [rawError, setRawError] = useState<string | null>(null)
@@ -218,9 +226,31 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         />
       </div>
 
-      {/* Pilno lauko summon efektas */}
+      {/* Iškvietimo choreografija v3 – juda pati korta */}
       <div>
-        <label style={labelStyle}>Iškvietimo efektas (pilnas laukas, iki 5 s)</label>
+        <label style={labelStyle}>Iškvietimo choreografija (v3 – juda pati korta)</label>
+        <div className="flex gap-2">
+          <select
+            value={cfg.summonFx ?? ''}
+            onChange={(e) => update({ ...cfg, summonFx: (e.target.value || undefined) as SummonFxId | undefined })}
+            style={{ ...inputStyle, flex: 1 }}
+          >
+            <option value="">(numatytoji{cfg.summonEffect && LEGACY_SUMMON_MAP[cfg.summonEffect] ? ` – pagal seną efektą: ${SUMMON_FX.find((x) => x.value === LEGACY_SUMMON_MAP[cfg.summonEffect!])?.label}` : ' – Legendinėms/čempionams pagal frakciją, kitoms nėra'})</option>
+            {SUMMON_FX.map((fx) => <option key={fx.value} value={fx.value}>{fx.label} · {fx.group}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={() => { const id = cfg.summonFx ?? (cfg.summonEffect ? LEGACY_SUMMON_MAP[cfg.summonEffect] : undefined) ?? 'heroLanding'; setFxLab({ mode: 'summon', id }) }}
+            className="px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-80"
+            style={{ background: 'var(--gold)', color: '#0a0a0f', cursor: 'pointer' }}
+          >▶ Peržiūra</button>
+        </div>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Kortos efektai (Kovos šūksnis) prasideda kortai nusileidus. Jei įjungtas kino pop-up žemiau, choreografija negrojama.</p>
+      </div>
+
+      {/* Pilno lauko summon efektas (senas, v2) */}
+      <div>
+        <label style={labelStyle}>Senas iškvietimo efektas (v2 – naudojamas tik kai v3 negroja)</label>
         <div className="flex gap-2">
           <select
             value={cfg.summonEffect ?? ''}
@@ -253,6 +283,27 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         />
       </div>
 
+      {fxLab && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(2,1,6,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 16 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setFxLab(null) }}>
+          <div style={{ width: 'min(780px, 96vw)' }}>
+            <FxArena ref={arenaRef} cardW={typeof window !== 'undefined' && window.innerWidth < 640 ? 54 : 78} />
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+            {fxLab.mode === 'summon' && (
+              <select value={fxLab.id} onChange={(e) => setFxLab({ mode: 'summon', id: e.target.value as SummonFxId })} style={{ ...inputStyle, width: 'auto', minWidth: 220 }}>
+                {SUMMON_FX.map((fx) => <option key={fx.value} value={fx.value}>{fx.label} · {fx.group}</option>)}
+              </select>
+            )}
+            <button type="button" onClick={() => playLab(fxLab)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>↻ Dar kartą</button>
+            {fxLab.mode === 'summon' && fxLab.id !== cfg.summonFx && (
+              <button type="button" onClick={() => update({ ...cfg, summonFx: fxLab.id })} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'rgba(110,214,168,0.18)', color: '#6fd6a8', border: '1px solid rgba(110,214,168,0.5)' }}>✓ Priskirti šiai kortai</button>
+            )}
+            <button type="button" onClick={() => setFxLab(null)} className="px-4 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>✕ Uždaryti</button>
+          </div>
+        </div>,
+        document.body,
+      )}
       {fxPreview && typeof document !== 'undefined' && createPortal(
         <>
           <div onClick={() => setFxPreview(null)} style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(2,1,6,0.92)', cursor: 'pointer' }} />
@@ -1196,6 +1247,18 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                         <select value={m.projectile ?? 'none'} onChange={(e) => setMapping(i, { projectile: e.target.value as EffectMapping['projectile'] })} style={inputStyle}>
                           {PROJECTILE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
                         </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle} title="Kas įvyksta ant taikinio, kai skrydis jį pasiekia. Nenurodžius – parenkama pagal animacijos elementą / efekto tipą.">Smūgis ant taikinio (FX)</label>
+                        <div className="flex gap-1">
+                          <select value={m.fxImpact ?? ''} onChange={(e) => setMapping(i, { fxImpact: (e.target.value || undefined) as EffectMapping['fxImpact'] })} style={{ ...inputStyle, flex: 1 }}>
+                            <option value="">(numatytasis)</option>
+                            {FX_IMPACTS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                          <button type="button" title="Peržiūrėti skrydį + smūgį mini arenoje"
+                            onClick={() => { const pf = m.projectile && m.projectile !== 'none' ? PROJECTILE_TO_FX[m.projectile] : undefined; const friendly = /heal|buff|shield|grant|cleanse|bless/i.test(String(m.effect)); setFxLab({ mode: 'effect', proj: pf?.proj ?? (friendly ? 'goldMotes' : 'orb'), impact: m.fxImpact ?? pf?.impact ?? (friendly ? 'surge' : 'orbHit'), hostile: !friendly }) }}
+                            className="px-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>▶</button>
+                        </div>
                       </div>
                       <div>
                         <label style={labelStyle}>Garsas</label>

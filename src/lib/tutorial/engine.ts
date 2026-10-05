@@ -226,6 +226,8 @@ export type GameEvent = {
   /** Animacijoms: taikinys */
   tgt?: { kind: 'player' | 'unit' | 'artifact' | 'field'; side?: Side; uid?: string }
   projectile?: ProjectileType
+  /** Admin parinktas smūgio FX (EffectMapping.fxImpact) – keliauja žurnalu kaip `projectile`. */
+  fxImpact?: string
   sound?: BattleSoundType
   fromZone?: 'hand' | 'deck' | 'graveyard'
   /** Čempiono skill kino pop-up: kuris skill (0..2) panaudotas. */
@@ -361,6 +363,12 @@ export function teamConfig(g: GameState, t: TeamId): TeamConfig | undefined { re
 let reactionFxDepth = 0
 function log(g: GameState, e: GameEvent) {
   if (reactionFxDepth > 0 && e.viaReaction === undefined) e.viaReaction = true
+  // FX perdavimas: admin parinktas smūgis (EffectMapping.fxImpact) pasiekia žalos/gydymo/buff'o/statuso įvykius.
+  // Laukas atsiranda TIK kai mapping'e jis nustatytas – esami žurnalai ir fixtures nesikeičia.
+  if (e.fxImpact === undefined && (e.t === 'damage' || e.t === 'heal' || e.t === 'buff' || e.t === 'status')) {
+    const fi = (g as unknown as { __fxImpact?: string }).__fxImpact
+    if (fi) e.fxImpact = fi
+  }
   g.log.push(e)
   if (sceneGates && reactionFxDepth === 0) maybeSceneGate(g, e)
 }

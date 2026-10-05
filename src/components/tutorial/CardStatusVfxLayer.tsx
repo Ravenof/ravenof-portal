@@ -13,7 +13,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 import { memo, useEffect, useRef, useState } from 'react'
 import {
-  STATUS_VFX_REGISTRY, subscribeStatusVfx, getVfxQuality, prefersReducedMotion,
+  STATUS_VFX_REGISTRY, subscribeStatusVfx, getVfxQuality, prefersReducedMotion, isStatusIdleHeld, subscribeIdleHold,
   type VfxStatusId, type StatusAnimationEvent,
 } from '@/lib/game/statusVfx'
 
@@ -543,8 +543,11 @@ export const CardStatusVfxLayer = memo(function CardStatusVfxLayer({ uid, active
     })
   }), [uid])
 
+  // idle sulaikymas, kol FX skrydis dar nepasiekė kortos (žr. holdStatusIdle)
+  const [, bumpHold] = useState(0)
+  useEffect(() => subscribeIdleHold(uid, () => bumpHold((n) => n + 1)), [uid])
   const idle = active
-    .filter((s) => STATUS_VFX_REGISTRY[s])
+    .filter((s) => STATUS_VFX_REGISTRY[s] && !isStatusIdleHeld(uid, s))
     .sort((a, b) => STATUS_VFX_REGISTRY[b].priority - STATUS_VFX_REGISTRY[a].priority)
     .slice(0, IDLE_LIMIT)
 

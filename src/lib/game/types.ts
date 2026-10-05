@@ -1,3 +1,4 @@
+import type { FxImpactId, SummonFxId } from './fxCatalog'
 // ── Virtualaus žaidimo gameplay konfigūracijos modelis ────────────────────────
 // Šiuos tipus naudoja: admin mapping editorius, effect engine, target resolver,
 // trigger system, field/curse/zmk engine. Saugoma cards.gameplay JSONB stulpelyje.
@@ -353,6 +354,8 @@ export type EffectMapping = {
   animation?: string
   sound?: BattleSoundType
   projectile?: ProjectileType
+  /** Smūgio FX ant taikinio (fxStage). Nenurodžius – numatytasis pagal `projectile` / efekto tipą. */
+  fxImpact?: FxImpactId
   condition?: EffectCondition       // efektas vyksta tik jei sąlyga tenkinama
   dynamicValue?: DynamicValue       // value = base + perEach * metrika
   targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą
@@ -682,6 +685,8 @@ export type GameplayConfig = {
   voiceLines?: string[]            // iškvietimo balsai: keli mp3/ogg URL, grojami atsitiktinai per voiceManager
   summonCinematic?: SummonCinematic // Premium kino pop-up (Legendiniams/Čempionams) — žr. lib/game/cinematics.ts
   summonEffect?: SummonEffectType  // pilno lauko vizualus efektas iškviečiant kortą
+  /** Iškvietimo choreografija v3 (juda pati korta). Turi pirmenybę prieš seną `summonEffect`. */
+  summonFx?: SummonFxId
   projectileType?: ProjectileType
   tutorialTags?: string[]
 }

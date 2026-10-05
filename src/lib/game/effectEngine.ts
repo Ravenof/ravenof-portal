@@ -196,7 +196,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
     return false
   }
   // Globali kaskados apsauga (depth=0 reset'ai per killUnit→onDeath neapsaugo nuo ciklų).
-  const gg = g as unknown as { __fxCascade?: number; __fxProjectile?: string }
+  const gg = g as unknown as { __fxCascade?: number; __fxProjectile?: string; __fxImpact?: string }
   if ((gg.__fxCascade ?? 0) > MAX_CASCADE) {
     api.log(g, { t: 'blocked', side: caster, key: 'battleLog.chainTooLong', params: { src: ctx.sourceName } })
     return false
@@ -205,6 +205,8 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   // Elemento perdavimas FX'ui: žalos log'ai per šį efektą gaus m.projectile (battlecry/čempionas/burtas).
   const prevProj = gg.__fxProjectile
   if (m.projectile && m.projectile !== 'none') gg.__fxProjectile = m.projectile
+  const prevImp = gg.__fxImpact
+  gg.__fxImpact = m.fxImpact ?? undefined
   // onDestroy kreditas: jei šaltinio korta turi onDestroy mapping'ų, jos efektų sukeltos
   // žūtys (dealToUnit/killUnit viduje) kredituojamos šiam šaltiniui (žr. engine killUnit).
   const gk = g as unknown as { __killCredit?: KillCredit }
@@ -217,6 +219,7 @@ export function applyMapping(api: GameApi, g: GameState, caster: Side, m: Effect
   } finally {
     gg.__fxCascade = (gg.__fxCascade ?? 1) - 1
     gg.__fxProjectile = prevProj
+    gg.__fxImpact = prevImp
     gk.__killCredit = prevKc
   }
 }

@@ -158,5 +158,28 @@ export function publishStatusVfx(e: StatusAnimationEvent): void {
   listeners.get(e.cardId)?.forEach((cb) => { try { cb(e) } catch { /* */ } })
 }
 
+// ── Idle sulaikymas: statuso nuolatinis vaizdas pasirodo tik skrydžiui NUSILEIDUS ──
+// (fxStage skrydis iš šaltinio kortos; būsena variklyje jau pritaikyta, tad be šito
+// ledo rėmas atsirastų anksčiau nei atskrenda ledo šukė.)
+const idleHold = new Map<string, number>()          // `${cardId}|${statusId}` -> iki kada (ms, Date.now)
+const holdListeners = new Map<string, Set<() => void>>()
+export function holdStatusIdle(cardId: string, statusId: string, ms: number): void {
+  if (ms <= 0 || typeof window === 'undefined') return
+  const key = cardId + '|' + statusId
+  idleHold.set(key, Math.max(idleHold.get(key) ?? 0, Date.now() + ms))
+  holdListeners.get(cardId)?.forEach((cb) => cb())
+  window.setTimeout(() => {
+    if ((idleHold.get(key) ?? 0) <= Date.now() + 8) idleHold.delete(key)
+    holdListeners.get(cardId)?.forEach((cb) => cb())
+  }, ms + 10)
+}
+export function isStatusIdleHeld(cardId: string, statusId: string): boolean { return (idleHold.get(cardId + '|' + statusId) ?? 0) > Date.now() }
+export function subscribeIdleHold(cardId: string, cb: () => void): () => void {
+  let set = holdListeners.get(cardId)
+  if (!set) { set = new Set(); holdListeners.set(cardId, set) }
+  set.add(cb)
+  return () => { set!.delete(cb); if (set!.size === 0) holdListeners.delete(cardId) }
+}
+
 /** Testams/preview: leidžia pakartoti tą patį seq. */
 export function __resetStatusVfxSeen(): void { seenSeq.clear(); seenOrder = [] }

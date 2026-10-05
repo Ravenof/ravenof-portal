@@ -54,7 +54,7 @@ import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping,
 import { mappingNeedsSelection } from '@/lib/game/effectEngine'
 import { resolveMappingTargets, applyTargetFilters } from '@/lib/game/targetResolver'
 import { playBattleSound } from '@/lib/game/soundManager'
-import { publishStatusVfx, type VfxStatusId } from '@/lib/game/statusVfx'
+import { publishStatusVfx, holdStatusIdle, isStatusIdleHeld, subscribeIdleHold, type VfxStatusId } from '@/lib/game/statusVfx'
 import { RewardChip, SafeRewardImage } from '@/components/digital/ui/RewardBits'
 import { CelebrationStyles, CelebrationFx, CelebrationTiles, celebrationCtaDelay, type CelebrationItem } from '@/components/digital/progression/RewardCelebration'
 import type { GrantedReward } from '@/lib/progression/types'
@@ -78,6 +78,8 @@ import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
+import { fxStage, type FxHooks } from '@/lib/game/fxStage'
+import { PROJECTILE_TO_FX, STATUS_TO_FX, LEGACY_SUMMON_MAP, factionSummonFx, isSummonFxId, isFxImpactId, summonLandMs, type SummonFxId, type FxProjId, type FxImpactId } from '@/lib/game/fxCatalog'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING, COIN_TOSS } from '@/lib/game/timing'
@@ -276,6 +278,25 @@ const CARD_BACK_SRC: Record<'plain' | 'curse' | 'zmk', string> = {
 let EQUIPPED_BACK: SkinVisual | null = null
 let OPP_BACK: SkinVisual | null = null
 /** Log raktai, reiškiantys „iškviesta efektu" (ne iš rankos) – kino/FX atrankai. */
+/**
+ * Iškvietimo choreografija v3 šiai kortai (fxStage – juda pati korta).
+ * null → senas kelias (spyruoklė + dulkės), kad paprastos kortos nelėtintų tempo.
+ * Prioritetas: admin `summonFx` → senas `summonEffect` (artimiausias atitikmuo) →
+ * Legendinė / čempionas gauna frakcijos numatytąjį.
+ */
+function summonFxFor(c: TutCard | null | undefined): SummonFxId | null {
+  if (!c) return null
+  const g = c.gameplay
+  if (g?.summonCinematic?.enabled) return null   // kino pop-up uždengia lauką – nedubliuojam
+  if (g && isSummonFxId(g.summonFx)) return g.summonFx
+  if (g?.summonEffect && LEGACY_SUMMON_MAP[g.summonEffect]) return LEGACY_SUMMON_MAP[g.summonEffect]
+  if (c.type === 'champion' || /legend/i.test(c.rarityName ?? '')) return factionSummonFx(c.factionName)
+  return null
+}
+/** Skrydžio trukmė iki smūgio, kai efektas atėjo per sceną (Kovos šūksnis / ŽMK) – scena laiką jau parodė. */
+const SCENE_PROJ_MS = 440
+const isUnitSummonEvent = (ev: { t: string; key?: string }) => ev.t === 'play' || (ev.t === 'champion' && (ev.key ?? '').startsWith('battleLog.playChampion'))
+
 const SUMMON_BY_EFFECT_KEYS = new Set([
   'battleLog.summonByEffect', 'battleLog.summonChosen', 'battleLog.raiseFromGrave', 'battleLog.curseRaise',
 ])
@@ -751,7 +772,11 @@ export function UnitTile({ g, u, w, selected, targetable, picked, canAct, dimmed
   const hpDisp = hpShown ?? u.hp
   const atk = effectiveAtk(g, u)
   const ring = picked ? '#22c55e' : selected ? '#f0b429' : targetable ? '#ef4444' : canAct ? 'rgba(74,222,128,0.7)' : 'transparent'
-  const activeStatuses = Object.keys(u.statuses) as TutStatus[]
+  // Statusas, kurio FX skrydis dar nepasiekė kortos, lentoje dar nerodomas (rėmelis, ikona, idle VFX) –
+  // variklio būsena jau pritaikyta, bet žaidėjas turi pamatyti: skrydis → smūgis → statusas.
+  const [, holdTick] = useState(0)
+  useEffect(() => subscribeIdleHold(u.uid, () => holdTick((n) => n + 1)), [u.uid])
+  const activeStatuses = (Object.keys(u.statuses) as TutStatus[]).filter((st) => !isStatusIdleHeld(u.uid, st))
   const sGlow = activeStatuses.length ? STATUS_GLOW[activeStatuses[0]] : null
   // Status VFX idle sąrašas (statusai + kortos flag'ai)
   const vfxActive: VfxStatusId[] = [
@@ -1064,6 +1089,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // Pilno lauko summon efektas
   const [boardFx, setBoardFx] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   const fxRef = useRef<BattleFxHandle>(null)
+  // ── fxStage (v3): iškvietimo choreografijos + skrydis→smūgis. Lentos purtymas ir garsas eina per esamas sistemas. ──
+  const summonV3Ref = useRef<Set<string>>(new Set())   // uid'ai, kurių nusileidimą groja fxStage (cardLand dulkės praleidžiamos)
+  const summonBusyUntilRef = useRef(0)                  // performance.now() laikas, iki kurio lauke dar leidžiasi iškviesta korta
+  // Efekto ŠALTINIS tarp įvykių paketų: scenų vartai (Kovos šūksnis, ŽMK) efektą atneša ATSKIRU paketu,
+  // kuriame nebėra `play`/`spell` įvykio – be šito skrydis neturėtų iš kur prasidėti (likdavo tik smūgis).
+  const carrySrcRef = useRef<{ src: { side: Side; uid?: string }; card: TutCard | null; kind: 'attack' | 'ability'; at: number } | null>(null)
+  const fxHooksRef = useRef<FxHooks>({
+    shake: (m) => { if (m >= 3) fxRef.current?.shakeBoard(m >= 10 ? 'hard' : 'soft') },
+    land: (pw) => { playBattleSound('impact', Math.min(0.6, 0.2 + pw * 0.025)) },
+  })
+  useEffect(() => () => { fxStage.stop() }, [])
   /** Reakcijos grandinės sluoksnis + vartų būsena (žr. „Reakcijos grandinės vartai"). */
   const chainRef = useRef<ReactionChainHandle>(null)
   const sceneRef = useRef<SceneFxHandle>(null)   // ŽMK skrydis + raktažodžių scenos (vartai kaip reakcijų)
@@ -1729,6 +1765,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
    */
   const landedAtRef = useRef<Map<string, number>>(new Map())
   const onUnitLanded = useCallback((uid: string) => {
+    if (summonV3Ref.current.delete(uid)) return   // nusileidimą (dulkės, purtymas, garsas) groja iškvietimo choreografija
     const now = Date.now()
     const last = landedAtRef.current.get(uid)
     if (last !== undefined && now - last < 600) return
@@ -1958,11 +1995,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const fresh = game.log.slice(seenRef.current)
     seenRef.current = game.log.length
     // ── Status VFX: struktūrizuoti būsenų įvykiai → bus (seq = log indeksas, dedup) ──
-    fresh.forEach((e, i) => {
-      if (e.statusEvt && e.statusId && e.src?.uid) {
-        publishStatusVfx({ seq: seenStart + i, type: e.statusEvt, cardId: e.src.uid, statusId: e.statusId as VfxStatusId, value: e.value })
-      }
-    })
+    // (publikuojama PO ciklo žemiau: statusai, kuriems paleistas skrydis iš šaltinio,
+    //  savo „apply" animaciją gauna tik skrydžiui nusileidus – žr. deferredStatus)
+    const deferredStatus = new Set<number>()
     if (tutorial?.active && tutorial.onEvents && fresh.length) { try { tutorial.onEvents(fresh, game) } catch (e) { console.error('[tutorial] onEvents', e) } }
     // ── Kampanijos scenarijaus fanout (misijos trigeriai; prop nepaduotas ⇒ no-op) ──
     if (onCampaignEvent && fresh.length) { try { emitCampaignEvents(fresh, game, findCard, onCampaignEvent) } catch (e) { console.error('[campaign] onEvent', e) } }
@@ -1976,8 +2011,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     let srcRef: { side: Side; uid?: string } | undefined
     let srcCard: TutCard | null = null
     let srcKind: 'attack' | 'ability' | null = null  // mirties FX: 'attack' → kirtis (melee), kitaip → projektilas + sprogimas
+    // šaltinio perkėlimas iš ankstesnio paketo (žr. carrySrcRef); ėjimo riba jį išvalo (degimo/nuodų tikai šaltinio neturi)
+    if (fresh.some((ev) => ev.t === 'startTurn' || ev.t === 'endTurn')) carrySrcRef.current = null
+    { const cr = carrySrcRef.current; if (cr && performance.now() - cr.at < 6000) { srcRef = cr.src; srcCard = cr.card; srcKind = cr.kind } }
+    const keepSrc = () => { if (srcRef) carrySrcRef.current = { src: srcRef, card: srcCard, kind: srcKind ?? 'ability', at: performance.now() } }
     const projVictims = new Set<string>()  // uid taikinių, kuriems žala JAU paleido projektilą (kad mirtis nedubliuotų)
-    let fxSeq = 0
+    // Jei ankstesniu paketu iškviesta korta dar leidžiasi (v3 choreografija) – šio paketo FX palaukia nusileidimo.
+    let fxSeq = Math.max(0, Math.round(summonBusyUntilRef.current - performance.now()))
     let showcaseHold = 0   // showcase (burtas/prakeiksmas/reakcija) rodymo trukmė – ŽMK/projektilai/pop atidedami
     let projFired = false
     let aoeFired = false
@@ -2003,7 +2043,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const projLandMs = (kind: 'projectile' | 'slash' | 'beam', durS: number) => Math.round(durS * 1000 * (kind === 'beam' ? 0.25 : kind === 'slash' ? 0.5 : 0.62))
     let projLandAt = 0   // ability bloko projektilo nusileidimo laikas (ms nuo batch pradžios); 0 = nepaleistas
     const hasPlay = fresh.some((ev) => ev.t === 'play' || ev.t === 'champion' || ev.t === 'artifact')
-    const SETTLE = hasPlay ? 800 : 0
+    // Iškvietimo choreografija (v3) trunka ilgiau nei spyruoklė – kortos efektai (Kovos šūksnis)
+    // prasideda tik jai nusileidus. Kortoms be choreografijos lieka įprasti 800 ms.
+    const summonLand = (hasPlay && isSummonFxEnabled() && fxStage.available())
+      ? fresh.reduce((mx, ev) => isUnitSummonEvent(ev) ? Math.max(mx, summonLandMs(summonFxFor(findCard(ev.cardName)))) : mx, 0) : 0
+    const SETTLE = hasPlay ? Math.max(800, summonLand ? summonLand + 180 : 0) : 0
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 žalos taikiniai
     // Tikras AoE (engine markeris fxSource.aoe – mapping'as taiko VISĄ zoną): zoninis efektas, be projektilų.
     // Visais kitais atvejais (rankinis pasirinkimas / hitCount auto) – PO PROJEKTILĄ kiekvienam taikiniui.
@@ -2020,6 +2064,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const healAoe = aoeFlagBatch && fresh.filter((ev) => ev.t === 'heal' && (ev.value ?? 0) > 0 && ev.tgt?.uid).length >= 2
     const rectOf = (r?: { side?: Side; uid?: string }) => rectFor(r) ?? (r?.uid ? unitRectsRef.current.get(r.uid) ?? null : null)
     const palOf = (c?: TutCard | null) => factionPalette(c?.factionName, c?.rarityColor)
+    // ── fxStage (v3) skrydis: užtaisymas ant šaltinio → skrydis → smūgis ant taikinio ──
+    const unitEl = (uid?: string | null) => uid ? document.querySelector<HTMLElement>(`[data-unit-uid="${CSS.escape(uid)}"]`) : null
+    const castDone = new Set<string>()   // vienas užtaisymas šaltiniui per batch'ą (keli taikiniai – vienas užsimojimas)
+    const castOnce = (srcKey?: string | null) => { const k = srcKey ?? '?'; if (castDone.has(k)) return false; castDone.add(k); return true }
+    /** Grąžina true, jei skrydį nupiešė fxStage (kitaip kviečiantis kodas piešia seną BattleFxLayer spawn). */
+    const v3Fly = (kind: 'projectile' | 'slash' | 'beam', projType: string | null | undefined, from: { x: number; y: number }, to: { x: number; y: number },
+      tgtUid: string | undefined, color: string, hitAt: number, impactOverride?: string, srcUid?: string): boolean => {
+      if (!fxStage.available()) return false
+      let m: { proj: FxProjId; impact: FxImpactId } | undefined = projType && projType !== 'none' ? PROJECTILE_TO_FX[projType] : undefined
+      if (!m) { if (kind === 'slash') return false; m = kind === 'beam' ? { proj: 'holy', impact: 'holyFlare' } : { proj: 'orb', impact: 'orbHit' } }
+      return fxStage.fly(m.proj, from, to, {
+        hitAt, cast: castOnce(srcUid), sourceEl: unitEl(srcUid), targetEl: unitEl(tgtUid),
+        impact: isFxImpactId(impactOverride) ? impactOverride : m.impact, color: m.proj === 'orb' ? color : undefined, hooks: fxHooksRef.current,
+      }) > 0
+    }
     const spawnPop = (card: TutCard | null, at: { x: number; y: number }, color: string, tag?: string) => { const id = ++flyIdRef.current; setPopCards((pp) => [...pp, { id, card, x: at.x, y: at.y, color, tag }]); window.setTimeout(() => setPopCards((pp) => pp.filter((x) => x.id !== id)), 1300) }
     // Showcase: korta skrenda iš šaltinio į centrą, užauga, ~1 s palaikoma, dingsta.
     const spawnShowcase = (card: TutCard | null, from: { x: number; y: number }, kind: 'spell' | 'curse' | 'reaction', delay = 0) => {
@@ -2036,6 +2095,28 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const r = el.getBoundingClientRect()
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
     }
+    // ── v3: statusas / raktažodis, uždėtas KITOS kortos ar burto, atskrenda iš šaltinio (ne atsiranda iš niekur). ──
+    // Smūgis trumpas (`light`) – nuolatinį vaizdą ir „apply" animaciją piešia CardStatusVfxLayer,
+    // kuri įsijungia skrydžiui NUSILEIDUS (holdStatusIdle + atidėtas publish per deferredStatus).
+    const flyStatus = (e: (typeof fresh)[number], su: string, sid: string | undefined): boolean => {
+      const sfx = sid ? STATUS_TO_FX[sid] : undefined
+      const ssrc = srcRef
+      if (!sfx || !sid || !ssrc || ssrc.uid === su || srcKind === 'attack' || e.viaReaction || e.viaScene || !fxStage.available()) return false
+      const d = SETTLE + fxSeq; fxSeq += 100
+      const evI = fresh.indexOf(e), sImp: FxImpactId = isFxImpactId(e.fxImpact) ? e.fxImpact : sfx.impact
+      if (e.statusEvt && e.statusId) deferredStatus.add(evI)
+      holdStatusIdle(su, sid, d + 80)
+      window.setTimeout(() => {
+        const from = rectOf(ssrc), to = unitRectsRef.current.get(su) ?? rectFor({ uid: su })
+        const landed = () => {
+          fxRef.current?.shakeUnit(su, 'soft')
+          if (e.statusEvt && e.statusId) publishStatusVfx({ seq: seenStart + evI, type: e.statusEvt, cardId: su, statusId: e.statusId as VfxStatusId, value: e.value })
+        }
+        const hit = from && to ? fxStage.fly(sfx.proj, from, to, { cast: castOnce(ssrc.uid ?? 'side:' + ssrc.side), sourceEl: unitEl(ssrc.uid), targetEl: unitEl(su), impact: sImp, light: true, hooks: fxHooksRef.current }) : 0
+        if (hit > 0) { holdStatusIdle(su, sid, hit); window.setTimeout(landed, hit) } else landed()
+      }, d)
+      return true
+    }
     for (const e of fresh) {
       // garsai: engine pateiktas sound hint > numatytasis pagal tipą.
       // Sinchronizacija su vizualu: 'death' garsą groja pats death FX (smūgio momentu);
@@ -2051,7 +2132,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       if (e.projectile && e.projectile !== 'none') { if (!fxElemColor) fxElemColor = PROJECTILE_COLOR[e.projectile] ?? null; if (!fxElemType) fxElemType = e.projectile }
       switch (e.t) {
         case 'startTurn': if (e.side === 'you') skipYouDraw = true; break
-        case 'fxSource': { if (e.src) { srcRef = e.src; srcKind = 'ability' } srcCard = findCard(e.cardName) ?? srcCard; break }
+        case 'fxSource': { if (e.src) { srcRef = e.src; srcKind = 'ability' } srcCard = findCard(e.cardName) ?? srcCard; keepSrc(); break }
         case 'reactionSet': {
           // Reakcija padėta: užversta korta nuskrenda iš rankos (numetimo taško) į savo reakcijų vietą.
           const sd = e.side
@@ -2120,10 +2201,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               : 'playedFromHand'
             cine.enqueueSummonCinematic(toCineCard(sc), { source: csrc })
           }
-          if (sc?.gameplay?.summonEffect && isSummonFxEnabled()) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
-          srcRef = e.src; srcCard = sc; srcKind = 'ability'
-          window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
-          if (SUMMON_BY_EFFECT_KEYS.has(e.key ?? '') && e.cardName) {
+          // ── Iškvietimo choreografija v3: juda PATI korta (fxStage). Jei negrojama – senas kelias. ──
+          let v3Played = false
+          { const v3 = sc && isSummonFxEnabled() && isUnitSummonEvent(e) ? summonFxFor(sc) : null
+            if (v3) {
+              const uid3 = e.src?.uid ?? P(game, e.side).units.find((u) => u?.card.name === e.cardName)?.uid
+              const el3 = unitEl(uid3)
+              const land3 = uid3 && el3 ? fxStage.summon(v3, el3, { hooks: fxHooksRef.current }) : 0
+              if (uid3 && land3 > 0) { v3Played = true; summonV3Ref.current.add(uid3); summonBusyUntilRef.current = Math.max(summonBusyUntilRef.current, performance.now() + land3 + 180) }
+            } }
+          if (!v3Played && sc?.gameplay?.summonEffect && isSummonFxEnabled()) { const st = sc.gameplay.summonEffect, su = e.src; window.setTimeout(() => { const at = su ? rectOf(su) : null; if (at) { setBoardFx({ type: st, x: at.x, y: at.y, key: Date.now() }); fxRef.current?.shakeBoard(SUMMON_SHAKE.has(st) ? 'hard' : 'soft') } }, 150) }
+          srcRef = e.src; srcCard = sc; srcKind = 'ability'; keepSrc()
+          if (!v3Played) window.setTimeout(() => { playBattleSound('impact', 0.26); fxRef.current?.shakeBoard('soft') }, 330)
+          if (!v3Played && SUMMON_BY_EFFECT_KEYS.has(e.key ?? '') && e.cardName) {
             const nm = e.cardName, sd = e.side, pcol = palOf(findCard(nm)), grave = e.fromZone === 'graveyard'
             window.setTimeout(() => { const uid = P(game, sd).units.find((u) => u?.card.name === nm)?.uid; const at = uid ? rectOf({ uid }) : null; if (at) fxRef.current?.spawn({ kind: grave ? 'graveRise' : 'summonPortal', to: at, color: grave ? '#5ef0c0' : pcol.primary, color2: pcol.secondary, duration: grave ? 1.6 : 1.3 }) }, 60)
           }
@@ -2170,7 +2260,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           if (!e.sound) playBattleSound('spellCast')
           if (e.t === 'spell') playAvatarAudio(e.side === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'spellCast')
           if (e.t === 'spell' || e.t === 'ability') setMood(e.side, 'cast')
-          srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'
+          srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; keepSrc()
           // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
           if (e.t === 'ability' && typeof e.skillIndex === 'number') {
             const cc = findCard(e.cardName)
@@ -2191,7 +2281,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           }
           break
         }
-        case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'attack'; break }
+        case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'attack'; keepSrc(); break }
         case 'zmk':
           zmkN += 1
           if (showcaseHold > 0) fxSeq += 800  // žalos FX ateina PO ŽMK traukimo animacijos
@@ -2259,7 +2349,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               let gid = 0
               if (card) { gid = ++flyIdRef.current; const gc = card, gx = from.x, gy = from.y; setDeathGhosts((gs) => [...gs, { id: gid, card: gc, x: gx, y: gy }]) }
               // 1) projektilas/kirtis NUO šaltinio iki taikinio (praleidžiam, jei žala jau jį paleido)
-              if (!hadDmg) window.setTimeout(() => fxRef.current?.spawn({ kind: projKind, from: srcR, to: from, color: projCol, duration: melee ? 0.9 : 1.0, variant: melee ? undefined : projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }), base)
+              const dSrcUid = srcRef?.uid
+              if (!hadDmg) window.setTimeout(() => {
+                const pT = fxElemType ?? srcCard?.gameplay?.projectileType ?? null
+                if (melee || !v3Fly(projKind, pT, srcR, from, undefined, projCol, travel, undefined, dSrcUid))
+                  fxRef.current?.spawn({ kind: projKind, from: srcR, to: from, color: projCol, duration: melee ? 0.9 : 1.0, variant: melee ? undefined : projVariant(pT) })
+              }, base)
               // 2) smūgis: sunaikinimas → SPROGIMAS (korta ištaškoma į gabalus); melee → įprastas suirimas
               // ── Fazė 9: mirties stilius pagal žalos šaltinį ─────────────
               // Ne viskas sprogsta: necro/holy/poison mirtys yra TYLIOS (be
@@ -2321,8 +2416,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           window.setTimeout(() => playAvatarAudio(winId, 'victory'), tBoom + 2400)
           break
         }
-        case 'lastwish': queueTip('lastwish'); break
-        case 'battlecry': queueTip('battlecry'); break
+        case 'lastwish': queueTip('lastwish'); if (e.src?.uid) { srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; keepSrc() } break
+        case 'battlecry': queueTip('battlecry'); if (e.src?.uid) { srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; keepSrc() } break
         case 'reactionTrigger': {
           // Reakcijos seka (aprobuota 2026-07-25):
           //   P0 aptikimas → P1 grandinė → P2 apsivijimas → P3 kortos parodymas → P4 efektas.
@@ -2489,7 +2584,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               }
             }, d)
           }
-          if (su && stt && e.key !== 'battleLog.statusEnd') {
+          // v3: statusas, uždėtas KITOS kortos / burto, atskrenda iš šaltinio (žr. flyStatus)
+          const statusFlown = !!su && (e.statusEvt ? e.statusEvt === 'apply' : (!!stt && e.key !== 'battleLog.statusEnd')) && flyStatus(e, su, (e.statusId ?? stt) as string | undefined)
+          if (!statusFlown && su && stt && e.key !== 'battleLog.statusEnd') {
             const fxMap: Record<string, { kind: 'freeze' | 'burn' | 'poison' | 'debuffDrain'; col: string }> = {
               frozen: { kind: 'freeze', col: '#38bdf8' }, stunned: { kind: 'freeze', col: '#facc15' },
               burning: { kind: 'burn', col: '#fb923c' }, poisoned: { kind: 'poison', col: '#84cc16' },
@@ -2538,18 +2635,26 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             const pat = rectFor({ side: sd })
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui),
             // o smūgio FX — tik projektilui NUSILEIDUS (ne vietoj jo).
-            const willProj = !!(srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !e.viaScene)
-            const pKind = factionDirectionalKind(srcCard?.factionName)
+            // Per sceną (Kovos šūksnis / ŽMK) atėjusi žala: v3 skrydis iš šaltinio – trumpas, nes scena laiką jau parodė.
+            const sceneProj = !!(e.viaScene && srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && fxStage.available())
+            const willProj = sceneProj || !!(srcRef && srcKind === 'ability' && !zoneAoe && pat && !e.viaReaction && !e.viaScene)
+            const pKind = sceneProj ? 'projectile' : factionDirectionalKind(srcCard?.factionName)
+            const pLand = sceneProj ? SCENE_PROJ_MS : projLandMs(pKind, 1.0)
             if (pat && willProj && srcRef) {
-              const sref2 = srcRef, base2 = SETTLE + fxSeq
+              const sref2 = srcRef, base2 = e.viaScene ? fxSeq : SETTLE + fxSeq
               window.setTimeout(() => {
                 const fr = rectOf(sref2)
-                if (fr) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: pKind, from: fr, to: pat, color: fxElemColor ?? palOf(srcCard).primary, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
+                if (fr) {
+                  playBattleSound('spellCast', 0.3)
+                  const pT = fxElemType ?? srcCard?.gameplay?.projectileType ?? null, pc2 = fxElemColor ?? palOf(srcCard).primary
+                  if (!v3Fly(pKind, pT, fr, pat, undefined, pc2, pLand, e.fxImpact, sref2.uid))
+                    fxRef.current?.spawn({ kind: pKind, from: fr, to: pat, color: pc2, duration: 1.0, variant: projVariant(pT) })
+                }
               }, base2)
             }
             // Žala herojui — ta pati ImpactProfile dramaturgija kaip padarams.
             if (pat) {
-              const d = (e.viaScene ? fxSeq : SETTLE + fxSeq) + (willProj ? projLandMs(pKind, 1.0) : 0); fxSeq += willProj ? 100 : 80
+              const d = (e.viaScene ? fxSeq : SETTLE + fxSeq) + (willProj ? pLand : 0); fxSeq += willProj ? 100 : 80
               const hp = impactProfile(e.severity)
               window.setTimeout(() => {
                 void (async () => {
@@ -2593,8 +2698,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               const from = sref ? rectOf(sref) : null
               // KIEKVIENAS žalos taikinys gauna projektilą (žuvęs ar išgyvenęs);
               // zona (tikras AoE) – be projektilų; pf blokuoja tik ability/attack dublius
+              // Scenos kelias (Kovos šūksnis / ŽMK): anksčiau čia būdavo TIK smūgis. Dabar efekto žala
+              // (ne ataka – ta turi šuolį) gauna trumpą v3 skrydį iš šaltinio, smūgis – jam nusileidus.
+              const sceneProj = viaScene && !am && !!from && !pf && !e.viaReaction && srcKind === 'ability' && sref?.uid !== tgt.uid && fxStage.available()
               const fireProj = !am && !!from && !pf && !e.viaReaction && !viaScene
-              if (fireProj) { playBattleSound('spellCast', 0.3); fxRef.current?.spawn({ kind: factionDirectionalKind(srcCard?.factionName), from: from!, to, color: col, duration: 1.0, variant: projVariant(fxElemType ?? srcCard?.gameplay?.projectileType ?? null) }) }
+              let sceneFlew = false
+              if (fireProj || sceneProj) {
+                playBattleSound('spellCast', 0.3)
+                const dk = sceneProj ? 'projectile' : factionDirectionalKind(srcCard?.factionName), pT = fxElemType ?? srcCard?.gameplay?.projectileType ?? null
+                if (v3Fly(dk, pT, from!, to, tgt.uid, col, sceneProj ? SCENE_PROJ_MS : projLandMs(dk, 1.0), e.fxImpact, sref?.uid)) sceneFlew = sceneProj
+                else if (fireProj) fxRef.current?.spawn({ kind: dk, from: from!, to, color: col, duration: 1.0, variant: projVariant(pT) })
+              }
               // ── Smūgio kadras (game-feel fazės 4–5) ────────────────────────
               // Visa dramaturgija ateina iš ImpactProfile: hit-stop, purtymo
               // lygis, garsas, skaičiaus stilius, muzikos duck. Nebeliko
@@ -2616,7 +2730,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                   if (tgt.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) }
                   fxRef.current?.floatNumber(to.x, to.y - 12, '-' + val, numCol, prof.damageNumberStyle)
                 })()
-              }, viaScene ? 0
+              }, viaScene ? (sceneFlew ? SCENE_PROJ_MS : 0)
                 : fireProj ? projLandMs(factionDirectionalKind(srcCard?.factionName), 1.0)
                 : (pf && srcKind === 'ability' && landAt > 0) ? Math.max(220, landAt - base)   // ability bloko projektilas dar skrenda
                 : 220)
@@ -2633,22 +2747,45 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           window.setTimeout(() => {
             const to = tgt ? rectOf(tgt) : rectFor({ side: e.side }); if (!to) return
             const from = sref ? rectOf(sref) : null
-            if (from && !healAoe) fxRef.current?.spawn({ kind: 'healStream', from, to, color: '#5ef0c0', duration: 1.2 })
+            if (from && !healAoe) {
+              const hImp: FxImpactId = isFxImpactId(e.fxImpact) ? e.fxImpact : 'bloom'
+              const selfHeal = !!sref?.uid && sref.uid === tgt?.uid
+              if (selfHeal && fxStage.available()) fxStage.impact(hImp, to, { targetEl: unitEl(tgt?.uid), hooks: fxHooksRef.current })
+              else if (!(fxStage.available() && fxStage.fly('healWisp', from, to, { hitAt: 420, sourceEl: unitEl(sref?.uid), targetEl: unitEl(tgt?.uid), impact: hImp, hooks: fxHooksRef.current }) > 0))
+                fxRef.current?.spawn({ kind: 'healStream', from, to, color: '#5ef0c0', duration: 1.2 })
+            }
             window.setTimeout(() => { if (tgt?.uid) { const uid = tgt.uid; setHpHold((h) => { if (!(uid in h)) return h; const n = { ...h }; delete n[uid]; return n }) } if (val) fxRef.current?.floatNumber(to.x, to.y - 12, '+' + val, '#5ef0c0'); if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft') }, from ? 420 : 0)
           }, base)
           break
         }
         case 'buff': {
+          // raktažodžio suteikimas (skydas / sėlinimas / pasišaipymas / sprintas): taikinys ateina `src` lauke
+          if (e.statusEvt === 'apply' && e.statusId && e.src?.uid && !e.tgt && flyStatus(e, e.src.uid, e.statusId)) break
           const tgt = e.tgt, val = e.value ?? 0
           const base = SETTLE + fxSeq; fxSeq += 120
           const sref = srcRef
           window.setTimeout(() => {
             const to = tgt ? rectOf(tgt) : null; if (!to) return
             const up = val >= 0
-            const from = sref ? rectOf(sref) ?? to : to
-            fxRef.current?.spawn({ kind: up ? 'buffSurge' : 'debuffDrain', from, to, color: up ? '#ffd24a' : '#a855f7', duration: 1.2 })
-            if (val) fxRef.current?.floatNumber(to.x, to.y - 12, (up ? '+' : '') + val, up ? '#ffd24a' : '#a855f7')
-            if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft')
+            const srcAt = sref ? rectOf(sref) : null
+            const showNum = () => {
+              if (val) fxRef.current?.floatNumber(to.x, to.y - 12, (up ? '+' : '') + val, up ? '#ffd24a' : '#a855f7')
+              if (tgt?.uid) fxRef.current?.shakeUnit(tgt.uid, 'soft')
+            }
+            if (fxStage.available() && !e.viaReaction && !e.viaScene) {
+              // skrydis iš šaltinio → smūgis ant taikinio; skaičius pasirodo smūgio momentu
+              const bImp: FxImpactId = isFxImpactId(e.fxImpact) ? e.fxImpact : (up ? 'surge' : 'shadowImplode')
+              const selfBuff = !srcAt || (!!sref?.uid && sref.uid === tgt?.uid)
+              if (selfBuff) { fxStage.impact(bImp, to, { targetEl: unitEl(tgt?.uid), hooks: fxHooksRef.current }); showNum() }
+              else {
+                const hit = fxStage.fly(up ? 'goldMotes' : 'shadow', srcAt!, to, { cast: castOnce(sref?.uid ?? 'side:' + sref?.side), sourceEl: unitEl(sref?.uid), targetEl: unitEl(tgt?.uid), impact: bImp, hooks: fxHooksRef.current })
+                window.setTimeout(showNum, hit)
+              }
+            } else {
+              const from = srcAt ?? to
+              fxRef.current?.spawn({ kind: up ? 'buffSurge' : 'debuffDrain', from, to, color: up ? '#ffd24a' : '#a855f7', duration: 1.2 })
+              showNum()
+            }
           }, base)
           break
         }
@@ -2692,7 +2829,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         window.setTimeout(() => {
           const from = rectOf(src), to = rectOf(tgt)
           if (from && to) {
-            fxRef.current?.spawn({ kind: isAtk ? 'slash' : factionDirectionalKind(srcCard?.factionName), from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2, variant: isAtk ? undefined : projVariant(proj) })
+            const ak = factionDirectionalKind(srcCard?.factionName)
+            if (isAtk || !v3Fly(ak, proj, from, to, tgt.uid, col, projLandMs(ak, 1.2), e.fxImpact, src.uid))
+              fxRef.current?.spawn({ kind: isAtk ? 'slash' : ak, from, to, color: col, color2: col2, duration: isAtk ? 1.0 : 1.2, variant: isAtk ? undefined : projVariant(proj) })
             if (isAtk) { playBattleSound('impact', 0.45); fxRef.current?.hitFlash(to.x, to.y, '#ffffff'); fxRef.current?.shakeBoard('soft') }
           }
         }, (isAtk ? 220 : 200) + hold)
@@ -2701,6 +2840,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         void PROJ_EMOJI; void spawnProjectile
       }
     }
+    // ── Status VFX: struktūrizuoti būsenų įvykiai → bus (seq = log indeksas, dedup) ──
+    fresh.forEach((e, i) => {
+      if (deferredStatus.has(i)) return
+      if (e.statusEvt && e.statusId && e.src?.uid) {
+        publishStatusVfx({ seq: seenStart + i, type: e.statusEvt, cardId: e.src.uid, statusId: e.statusId as VfxStatusId, value: e.value })
+      }
+    })
     if (pendingZmk.length > 0) { const fb = (srcRef ? rectOf(srcRef) : null) ?? fxCenter(); for (const z of pendingZmk) zmkPlaced.push({ ...z, x: fb.x, y: fb.y }) }
     if (zmkPlaced.length > 0) {
       if (showcaseHold > 0) { const hh = showcaseHold, pl = zmkPlaced, nn = seenRef.current; window.setTimeout(() => setZmkFlash({ placed: pl, n: nn }), hh) }
