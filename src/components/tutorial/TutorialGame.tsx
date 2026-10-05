@@ -3462,6 +3462,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (isHost) {
       ch.on('broadcast', { event: 'action' }, ({ payload }) => {
         const a = payload as NetAction
+        // Pasirinkimo langai (iškvietimas / peržiūra / kopija / ARBA...) kol kas kuriami tik host'o
+        // pusei — svečias jų spręsti negali (anksčiau galėdavo išrinkti UŽ host'ą). (751)
+        if (a.t === 'clearReveal' || a.t.startsWith('resolve')) return
         setGame((prev) => { if (!prev) return prev; const g = cloneState(prev); applyNetAction(g, a); return gateCommit(g, prev) })
       })
       ch.on('broadcast', { event: 'hello' }, () => {
@@ -6366,7 +6369,18 @@ doAction({ t: 'endTurn', actor: 'you' })
           },
         })}
 
-        {game?.pendingSummon && renderPickScene({
+        {game && !game.winner && (
+          game.pendingSummon?.caster === 'ai' || game.pendingCopy?.caster === 'ai' || game.pendingPeek?.caster === 'ai'
+          || game.pendingArrange?.caster === 'ai' || game.pendingReveal?.caster === 'ai'
+          || (!!game.pendingChoice && (game.pendingChoice.chooser ?? game.pendingChoice.caster) === 'ai')
+        ) && (
+          <div className="fixed left-1/2 -translate-x-1/2 top-3 z-[130] px-4 py-2 rounded-full text-sm font-bold pointer-events-none"
+            style={{ background: 'rgba(20,14,30,0.94)', border: '1px solid rgba(240,180,41,0.55)', color: 'var(--gold)', boxShadow: '0 6px 18px rgba(0,0,0,0.7)' }}>
+            {t('battle.game.oppChoosing')}
+          </div>
+        )}
+
+        {game?.pendingSummon && game.pendingSummon.caster === 'you' && renderPickScene({
           key: 'summon',
           title: t('battle.game.summonPickTitle'),
           text: t('battle.game.summonPickMark', { choose: game.pendingSummon.choose, picked: summonSel.length }),
@@ -6385,7 +6399,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           },
         })}
 
-        {game?.pendingCopy && renderPickScene({
+        {game?.pendingCopy && game.pendingCopy.caster === 'you' && renderPickScene({
           key: 'copy',
           title: game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwTitle') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxTitle') : t('battle.game.copyTitle'),
           text: game.pendingCopy.mode === 'lastwish' ? t('battle.game.glwText') : game.pendingCopy.mode === 'cast' ? t('battle.game.castFxText') : t('battle.game.copyText'),
@@ -6533,7 +6547,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
       {/* ── kaladės viršaus peržiūra (tik skaitymui) ── */}
       <AnimatePresence>
-        {game?.pendingReveal && renderPickScene({
+        {game?.pendingReveal && (game.pendingReveal.caster ?? 'you') === 'you' && renderPickScene({
           key: 'reveal',
           title: game.pendingReveal.title,
           text: t('battle.game.deckTopText'),
@@ -6550,7 +6564,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <AnimatePresence>
         {/* Priešo kaladės viršaus pertvarkymas: rikiavimas rodyklėmis (patikimiau
             liečiamame ekrane nei tempimas). [0] – korta, kurią priešas trauks pirmą. */}
-        {game?.pendingArrange && (() => {
+        {game?.pendingArrange && game.pendingArrange.caster === 'you' && (() => {
           const cards = game.pendingArrange.cards
           const order = arrangeOrder.length === cards.length ? arrangeOrder : cards.map((c) => c.uid)
           const move = (idx: number, dir: -1 | 1) => {
@@ -6608,7 +6622,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           )
         })()}
 
-        {game?.pendingPeek && renderPickScene({
+        {game?.pendingPeek && game.pendingPeek.caster === 'you' && renderPickScene({
           key: 'peek',
           title: t('battle.game.peekTitle'),
           text: t('battle.game.peekMark', { choose: game.pendingPeek.choose, picked: peekSel.length }),

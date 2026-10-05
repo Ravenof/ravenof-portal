@@ -176,6 +176,7 @@
     "toastPickTargetFirst": "Pirma pasirink taikinį.",
     "toastTributeHand": "Tribute iš rankos: {{picked}}/2 (arba paspausk padarą lauke = 1 tšk).",
     "toastTributeHint": "Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje (0/2).",
+    "oppChoosing": "Priešininkas renkasi…",
     "toastWaitTurn": "Palauk savo ėjimo.",
     "tributeCancel": "Atšaukti auką",
     "turnLabel": "eilė",

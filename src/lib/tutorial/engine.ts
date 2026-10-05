@@ -307,7 +307,7 @@ export type PendingPeek = { caster: Side; victim: Side; choose: number; cards: T
 /** Laukiantis priešo kaladės viršaus pertvarkymas: žaidėjas nustato eilę. */
 export type PendingArrange = { caster: Side; victim: Side; cards: TutCard[] }
 /** title/titleParams = i18n raktas + parametrai (tekstas gimsta render'e per ltext()). */
-export type PendingReveal = { whoseDeck: Side; title: string; titleParams?: Record<string, string | number>; cards: TutCard[] }
+export type PendingReveal = { caster?: Side; whoseDeck: Side; title: string; titleParams?: Record<string, string | number>; cards: TutCard[] }
 export type PendingSummon = { caster: Side; choose: number; options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] }
 export type PendingChoice = {
   caster: Side
@@ -2350,7 +2350,7 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
   const title = whoseDeck === caster ? 'battleLog.revealTitleOwn' : 'battleLog.revealTitleOther'
   const titleParams = { owner: tref(`battleLog.sideGen.${SK(whoseDeck)}`) }
   if (caster === 'you') {
-    g.pendingReveal = { whoseDeck, title, titleParams, cards: top }
+    g.pendingReveal = { caster, whoseDeck, title, titleParams, cards: top }
   }
   log(g, { t: 'play', side: caster, key: whoseDeck === caster ? 'battleLog.revealOwn' : 'battleLog.revealOther', params: { caster: tref(`battleLog.side.${SK(caster)}`), owner: tref(`battleLog.sideGen.${SK(whoseDeck)}`), n } })
 }
@@ -4182,7 +4182,8 @@ export function swapPerspective(g: GameState): GameState {
     }
   }
   if (c.pendingPeek) { c.pendingPeek.caster = other(c.pendingPeek.caster); c.pendingPeek.victim = other(c.pendingPeek.victim) }
-  if (c.pendingReveal) c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck)
+  if (c.pendingReveal) { c.pendingReveal.whoseDeck = other(c.pendingReveal.whoseDeck); if (c.pendingReveal.caster) c.pendingReveal.caster = other(c.pendingReveal.caster) }
+  if (c.pendingArrange) { c.pendingArrange.caster = other(c.pendingArrange.caster); c.pendingArrange.victim = other(c.pendingArrange.victim) }
   if (c.pendingSummon) c.pendingSummon.caster = other(c.pendingSummon.caster)
   if (c.pendingChoice) { c.pendingChoice.caster = other(c.pendingChoice.caster); if (c.pendingChoice.chooser) c.pendingChoice.chooser = other(c.pendingChoice.chooser) }
   if (c.pendingCopy) { c.pendingCopy.caster = other(c.pendingCopy.caster); c.pendingCopy.options.forEach((o) => { o.side = other(o.side) }) }

@@ -176,6 +176,7 @@
     "toastPickTargetFirst": "Choose a target first.",
     "toastTributeHand": "Tribute from hand: {{picked}}/2 (or tap a creature on the board = 1 pt).",
     "toastTributeHint": "Tribute: a creature on the board (1 pt) OR 2 cards in hand (0/2).",
+    "oppChoosing": "Opponent is choosing…",
     "toastWaitTurn": "Wait for your turn.",
     "tributeCancel": "Cancel tribute",
     "turnLabel": "turn",
