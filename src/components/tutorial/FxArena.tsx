@@ -7,11 +7,13 @@
 // ═══════════════════════════════════════════════════════════
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import { fxStage, type FxHooks } from '@/lib/game/fxStage'
-import type { FxProjId, FxImpactId, SummonFxId } from '@/lib/game/fxCatalog'
+import type { FxProjId, FxImpactId, SummonFxId, SkillFxId } from '@/lib/game/fxCatalog'
 
 export type FxArenaHandle = {
   summon: (id: SummonFxId) => void
   effect: (proj: FxProjId, impact: FxImpactId | null, o?: { hostile?: boolean; targets?: 1 | 3; light?: boolean; color?: string }) => void
+  /** Čempiono gebėjimas: spektaklis ant vidurinės kortos + smūgiai į manekenus. */
+  skill: (id: SkillFxId) => void
 }
 
 type Dummy = { id: string; name: string; hue: number; atk: number; hp: number }
@@ -69,6 +71,23 @@ export const FxArena = forwardRef<FxArenaHandle, { cardW?: number; cardName?: st
         const el = q(id), to = center(el); if (!el || !to) return
         window.setTimeout(() => fxStage.fly(proj, { x: from.x, y: from.y - (hostile ? 20 : 0) }, to, { cast: i === 0, sourceEl: src, targetEl: el, impact, light: o.light, color: o.color, root: rootRef.current, hooks: hooks() }), i * 90)
       })
+    },
+    skill(id) {
+      fxStage.stop()
+      const champ = q('s'), root = rootRef.current; if (!champ || !root) return
+      const rr = root.getBoundingClientRect(), from = center(champ)!
+      const h = hooks()
+      const castMs = fxStage.skillCast(id, champ, { foe: { x: rr.left + rr.width / 2, y: rr.top + 14 }, me: { x: rr.left + rr.width / 2, y: rr.bottom - 14 }, root, hooks: h })
+      const kinds = fxStage.skillKinds(id)
+      const hostile = kinds.filter((k) => k === 'damage' || k === 'debuff'), friendly = kinds.filter((k) => k === 'heal' || k === 'buff')
+      const statusOnly = !hostile.length && !friendly.length && kinds.includes('status')
+      let n = 0
+      const strike = (kind: (typeof kinds)[number], ids: string[]) => ids.forEach((tid) => { const el = q(tid), to = center(el); if (!el || !to) return; window.setTimeout(() => fxStage.skillStrike(id, kind, from, to, { targetEl: el, root, hooks: h }), castMs + 60 + (n++) * 140) })
+      if (hostile.length) strike(hostile[0], ['e0', 'e1', 'e2'])
+      if (friendly.length) strike(friendly[0], ['a1', 'a2'])
+      if (statusOnly) strike('status', ['a1', 'a2'])
+      const sm = fxStage.skillSummonFx(id)
+      if (sm) window.setTimeout(() => { const a2 = q('a2'); if (a2) fxStage.summon(sm, a2, { root, hooks: h }) }, castMs)
     },
   }), [q, hooks])
 

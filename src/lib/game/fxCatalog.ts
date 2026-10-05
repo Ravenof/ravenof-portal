@@ -116,3 +116,58 @@ export const STATUS_TO_FX: Record<string, { proj: FxProjId; impact: FxImpactId }
   sprint: { proj: 'goldMotes', impact: 'surge' }, stealth: { proj: 'shadow', impact: 'shadowImplode' },
   cantAttack: { proj: 'shadow', impact: 'seal' }, immortal: { proj: 'holy', impact: 'holyFlare' },
 }
+
+// ── Čempionų gebėjimų FX (fxStage SKILLS) ────────────────────────────────────
+// Kiekvienas gebėjimas = užtaisymo spektaklis ant čempiono + savas „smūgis" kiekvienam
+// taikiniui (keičia įprastą skrydį). Gebėjimas tarp fazių tas pats – keičiasi tik skaičiai.
+export type SkillFxId =
+  | 'prazar1' | 'prazar2' | 'prazar3' | 'gald1' | 'gald2' | 'gald3' | 'zert1' | 'zert2' | 'zert3'
+  | 'lisa1' | 'lisa2' | 'lisa3' | 'juod1' | 'juod2' | 'juod3' | 'golem1' | 'golem2' | 'golem3'
+  | 'skrag1' | 'skrag2' | 'skrag3'
+
+/** `castMs` – po kiek ms nuo starto gali prasidėti gebėjimo efektai (smūgiai į taikinius). */
+export const SKILL_FX: { value: SkillFxId; label: string; champion: string; castMs: number }[] = [
+  { value: 'prazar1', label: 'Maro prakeiksmas', champion: 'Prazaras', castMs: 700 },
+  { value: 'prazar2', label: 'Prikėlimas', champion: 'Prazaras', castMs: 800 },
+  { value: 'prazar3', label: 'Zombių kariauna', champion: 'Prazaras', castMs: 1000 },
+  { value: 'gald1', label: 'Nefilimo teismas', champion: 'Galdrianas', castMs: 700 },
+  { value: 'gald2', label: 'Šventas skydas', champion: 'Galdrianas', castMs: 650 },
+  { value: 'gald3', label: 'Dangaus malonė', champion: 'Galdrianas', castMs: 1000 },
+  { value: 'zert1', label: 'Prakeiksmų paktas', champion: "Zertahul'as", castMs: 800 },
+  { value: 'zert2', label: 'Impų šauksmas', champion: "Zertahul'as", castMs: 700 },
+  { value: 'zert3', label: 'Sielų deginimas', champion: "Zertahul'as", castMs: 950 },
+  { value: 'lisa1', label: 'Tuštumos ietis', champion: 'Lisarijus', castMs: 750 },
+  { value: 'lisa2', label: 'Arkaninė apsauga', champion: 'Lisarijus', castMs: 650 },
+  { value: 'lisa3', label: 'Ledo audra', champion: 'Lisarijus', castMs: 1000 },
+  { value: 'juod1', label: 'Duoklė', champion: 'Juodasmakris', castMs: 850 },
+  { value: 'juod2', label: 'Pirmyn!', champion: 'Juodasmakris', castMs: 650 },
+  { value: 'juod3', label: 'Patrankų salvė', champion: 'Juodasmakris', castMs: 700 },
+  { value: 'golem1', label: 'Žemės drebėjimas', champion: 'Dorianos golemas', castMs: 620 },
+  { value: 'golem2', label: 'Akmens tvirtovė', champion: 'Dorianos golemas', castMs: 800 },
+  { value: 'golem3', label: 'Sutriuškinimas', champion: 'Dorianos golemas', castMs: 900 },
+  { value: 'skrag1', label: 'Liepsnosvaidis', champion: "Skrag'as", castMs: 700 },
+  { value: 'skrag2', label: 'Parakas visiems', champion: "Skrag'as", castMs: 650 },
+  { value: 'skrag3', label: 'Bombų lietus', champion: "Skrag'as", castMs: 900 },
+]
+const SKILL_CAST = new Map(SKILL_FX.map((s) => [s.value, s.castMs]))
+export function isSkillFxId(v: unknown): v is SkillFxId { return typeof v === 'string' && SKILL_CAST.has(v as SkillFxId) }
+export function skillCastMs(id: SkillFxId | null | undefined): number { return id ? SKILL_CAST.get(id) ?? 0 : 0 }
+
+const CHAMP_KEYS: [RegExp, string][] = [
+  [/prazar/i, 'prazar'], [/galdrian/i, 'gald'], [/zertahul/i, 'zert'], [/lisarij/i, 'lisa'],
+  [/juodasmakr/i, 'juod'], [/golem/i, 'golem'], [/skrag/i, 'skrag'],
+]
+/** Čempiono raktas FX sistemai (gebėjimai, fazės keitimo virsmas). Nežinomam – null. */
+export function championKey(championName: string | null | undefined): string | null {
+  if (!championName) return null
+  for (const [re, key] of CHAMP_KEYS) if (re.test(championName)) return key
+  return null
+}
+export const CHAMPION_FX_KEYS = CHAMP_KEYS.map(([, k]) => k)
+
+/** Numatytasis gebėjimo FX pagal čempiono vardą ir gebėjimo numerį (0..2). Nežinomam čempionui – null (įprasti efektai). */
+export function defaultSkillFx(championName: string | null | undefined, skillIndex: number): SkillFxId | null {
+  if (!championName || skillIndex < 0 || skillIndex > 2) return null
+  for (const [re, key] of CHAMP_KEYS) if (re.test(championName)) { const id = `${key}${skillIndex + 1}`; return isSkillFxId(id) ? id : null }
+  return null
+}

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SummonBurst } from '@/components/tutorial/SummonBurst'
 import { FxArena, type FxArenaHandle } from '@/components/tutorial/FxArena'
-import { SUMMON_FX, FX_IMPACTS, PROJECTILE_TO_FX, LEGACY_SUMMON_MAP, type SummonFxId, type FxProjId, type FxImpactId } from '@/lib/game/fxCatalog'
+import { SUMMON_FX, FX_IMPACTS, SKILL_FX, PROJECTILE_TO_FX, LEGACY_SUMMON_MAP, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
 import { createClient } from '@/lib/supabase/client'
 import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
@@ -109,10 +109,10 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
   const [cfg, setCfg] = useState<GameplayConfig>(initialCfg)
   const [fxPreview, setFxPreview] = useState<{ type: SummonEffectType; x: number; y: number; key: number } | null>(null)
   // ── FX peržiūra (v3): mini arena groja tą patį fxStage kodą kaip kova ──
-  type FxLab = { mode: 'summon'; id: SummonFxId } | { mode: 'effect'; proj: FxProjId; impact: FxImpactId; hostile: boolean }
+  type FxLab = { mode: 'summon'; id: SummonFxId } | { mode: 'effect'; proj: FxProjId; impact: FxImpactId; hostile: boolean } | { mode: 'skill'; id: SkillFxId; idx: number }
   const [fxLab, setFxLab] = useState<FxLab | null>(null)
   const arenaRef = useRef<FxArenaHandle>(null)
-  const playLab = (lab: FxLab | null) => { if (!lab) return; if (lab.mode === 'summon') arenaRef.current?.summon(lab.id); else arenaRef.current?.effect(lab.proj, lab.impact, { hostile: lab.hostile }) }
+  const playLab = (lab: FxLab | null) => { if (!lab) return; if (lab.mode === 'summon') arenaRef.current?.summon(lab.id); else if (lab.mode === 'skill') arenaRef.current?.skill(lab.id); else arenaRef.current?.effect(lab.proj, lab.impact, { hostile: lab.hostile }) }
   useEffect(() => { if (!fxLab) return; const t = window.setTimeout(() => playLab(fxLab), 250); return () => window.clearTimeout(t) }, [fxLab]) // eslint-disable-line react-hooks/exhaustive-deps
   const [rawMode, setRawMode] = useState(false)
   const [rawText, setRawText] = useState('')
@@ -140,11 +140,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         cinematic: champSkills[idx]?.cinematic,
         goldCost: champSkills[idx]?.goldCost,
         icon: champSkills[idx]?.icon,
+        fx: champSkills[idx]?.fx,
       }))
       update({ ...cfg, championSkillConfig: { skills } })
     } else {
       update({ ...cfg, effectMappings: arr })
     }
+  }
+  const setSkillFx = (idx: number, fx: SkillFxId | undefined) => {
+    const skills = [0, 1, 2].map((j) => ({
+      name: champSkills[j]?.name ?? '',
+      mappings: champSkills[j]?.mappings ?? [],
+      cinematic: champSkills[j]?.cinematic,
+      goldCost: champSkills[j]?.goldCost,
+      icon: champSkills[j]?.icon,
+      fx: j === idx ? fx : champSkills[j]?.fx,
+    }))
+    update({ ...cfg, championSkillConfig: { skills } })
   }
   const setSkillName = (idx: number, name: string) => {
     const skills = [0, 1, 2].map((j) => ({
@@ -153,6 +165,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       cinematic: champSkills[j]?.cinematic,
       goldCost: champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
+      fx: champSkills[j]?.fx,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -163,6 +176,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       cinematic: j === idx ? (data as SkillCinematic | undefined) : champSkills[j]?.cinematic,
       goldCost: champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
+      fx: champSkills[j]?.fx,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -173,6 +187,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       cinematic: champSkills[j]?.cinematic,
       goldCost: j === idx ? goldCost : champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
+      fx: champSkills[j]?.fx,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -183,6 +198,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       cinematic: champSkills[j]?.cinematic,
       goldCost: champSkills[j]?.goldCost,
       icon: j === idx ? (icon || undefined) : champSkills[j]?.icon,
+      fx: champSkills[j]?.fx,
     }))
     update({ ...cfg, championSkillConfig: { skills } })
   }
@@ -196,7 +212,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
     if (isChampion && out.championSkillConfig?.skills) {
-      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, goldCost: sk.goldCost || undefined, icon: sk.icon || undefined })) }
+      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, goldCost: sk.goldCost || undefined, icon: sk.icon || undefined, fx: sk.fx || undefined })) }
     }
     return JSON.stringify(out)
   }, [cfg, needsMapping])
@@ -296,6 +312,14 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               </select>
             )}
             <button type="button" onClick={() => playLab(fxLab)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>↻ Dar kartą</button>
+            {fxLab.mode === 'skill' && (
+              <select value={fxLab.id} onChange={(e) => setFxLab({ mode: 'skill', id: e.target.value as SkillFxId, idx: fxLab.idx })} style={{ ...inputStyle, width: 'auto', minWidth: 240 }}>
+                {SKILL_FX.map((fx) => <option key={fx.value} value={fx.value}>{fx.champion} {fx.value.slice(-1)} · {fx.label}</option>)}
+              </select>
+            )}
+            {fxLab.mode === 'skill' && fxLab.id !== champSkills[fxLab.idx]?.fx && (
+              <button type="button" onClick={() => setSkillFx(fxLab.idx, fxLab.id)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'rgba(110,214,168,0.18)', color: '#6fd6a8', border: '1px solid rgba(110,214,168,0.5)' }}>✓ Priskirti šiam gebėjimui</button>
+            )}
             {fxLab.mode === 'summon' && fxLab.id !== cfg.summonFx && (
               <button type="button" onClick={() => update({ ...cfg, summonFx: fxLab.id })} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'rgba(110,214,168,0.18)', color: '#6fd6a8', border: '1px solid rgba(110,214,168,0.5)' }}>✓ Priskirti šiai kortai</button>
             )}
@@ -854,6 +878,19 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               </div>
               <input type="text" placeholder={`Skill ${activeSkill + 1} pavadinimas`} value={champSkills[activeSkill]?.name ?? ''}
                 onChange={(e) => setSkillName(activeSkill, e.target.value)} style={inputStyle} />
+              {/* Gebėjimo FX – užtaisymo spektaklis ant čempiono + savas smūgis taikiniams */}
+              <div className="mt-2">
+                <p style={{ ...labelStyle, marginBottom: 4 }}>✨ Skill {activeSkill + 1} efektas (FX)</p>
+                <div className="flex gap-2">
+                  <select value={champSkills[activeSkill]?.fx ?? ''} onChange={(e) => setSkillFx(activeSkill, (e.target.value || undefined) as SkillFxId | undefined)} style={{ ...inputStyle, flex: 1 }}>
+                    <option value="">(numatytasis – pagal čempiono vardą ir gebėjimo numerį)</option>
+                    {SKILL_FX.map((fx) => <option key={fx.value} value={fx.value}>{fx.champion} {fx.value.slice(-1)} · {fx.label}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setFxLab({ mode: 'skill', id: champSkills[activeSkill]?.fx ?? SKILL_FX[activeSkill].value, idx: activeSkill })}
+                    className="px-3 rounded-lg text-xs font-semibold whitespace-nowrap" style={{ background: 'var(--gold)', color: '#0a0a0f' }}>▶ Peržiūra</button>
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Fazės keitimo virsmas parenkamas automatiškai pagal čempiono vardą. Jei gebėjimui įjungtas kino pop-up, FX negrojamas.</p>
+              </div>
               {/* Skill ikona – rodoma kovoje gebėjimo pasirinkimo lange (rėmelio kairysis langelis) */}
               <div className="mt-2">
                 <p style={{ ...labelStyle, marginBottom: 4 }}>🔆 Skill {activeSkill + 1} ikona</p>

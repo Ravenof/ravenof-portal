@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FxArena, type FxArenaHandle } from '@/components/tutorial/FxArena'
 import { fxStage } from '@/lib/game/fxStage'
-import { FX_PROJECTILES, FX_IMPACTS, SUMMON_FX, type FxProjId, type FxImpactId, type SummonFxId } from '@/lib/game/fxCatalog'
+import { FX_PROJECTILES, FX_IMPACTS, SUMMON_FX, SKILL_FX, type FxProjId, type FxImpactId, type SummonFxId, type SkillFxId } from '@/lib/game/fxCatalog'
 
 export default function FxDevPage() {
   const arena = useRef<FxArenaHandle>(null)
@@ -26,6 +26,7 @@ export default function FxDevPage() {
     ;(window as unknown as { __fxDev?: unknown }).__fxDev = {
       summon: (i: SummonFxId) => arena.current?.summon(i),
       effect: (p: FxProjId, m: FxImpactId | null, o?: { hostile?: boolean; targets?: 1 | 3; light?: boolean }) => arena.current?.effect(p, m, o),
+      skill: (i: SkillFxId) => arena.current?.skill(i),
       stats: () => fxStage.stats(),
     }
     return () => { window.clearInterval(id); if (allT.current) window.clearTimeout(allT.current) }
@@ -55,6 +56,17 @@ export default function FxDevPage() {
           <label><input type="checkbox" checked={targets === 3} onChange={(e) => setTargets(e.target.checked ? 3 : 1)} /> 3 taikiniai</label>
           <label><input type="checkbox" checked={light} onChange={(e) => setLight(e.target.checked)} /> statuso (trumpas) smūgis</label>
           <button style={btn} data-testid="fx-play" onClick={() => arena.current?.effect(proj, imp, { hostile, targets, light })}>▶ Efektas</button>
+        </section>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <b style={{ color: '#d8b25a' }}>Čempionų gebėjimai</b>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
+            {SKILL_FX.map((s) => (
+              <button key={s.value} data-testid={'sk-' + s.value} onClick={() => arena.current?.skill(s.value)}
+                style={{ textAlign: 'left', background: '#1e1a28', color: '#e9e2d3', border: '1px solid #2e2839', borderRadius: 4, padding: '8px 10px', cursor: 'pointer' }}>
+                <b>{s.label}</b><br /><span style={{ fontSize: 11, color: '#d8b25a', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.champion} · {s.value.slice(-1)}</span>
+              </button>
+            ))}
+          </div>
         </section>
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div><button style={{ ...btn, background: 'transparent', color: '#e9e2d3', border: '1px solid #2e2839' }} onClick={playAll}>▶ Groti visus {SUMMON_FX.length} iškvietimus iš eilės</button></div>

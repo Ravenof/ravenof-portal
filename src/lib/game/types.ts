@@ -1,4 +1,4 @@
-import type { FxImpactId, SummonFxId } from './fxCatalog'
+import type { FxImpactId, SummonFxId, SkillFxId } from './fxCatalog'
 // ── Virtualaus žaidimo gameplay konfigūracijos modelis ────────────────────────
 // Šiuos tipus naudoja: admin mapping editorius, effect engine, target resolver,
 // trigger system, field/curse/zmk engine. Saugoma cards.gameplay JSONB stulpelyje.
@@ -590,7 +590,7 @@ export type SkillCinematic = {
 }
 
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──
-export type ChampionSkill = { name?: string; mappings: EffectMapping[]; cinematic?: SkillCinematic; goldCost?: number /* kaina auksu; 0/nenurodyta = nemokamas */; icon?: string | null /* skill ikona (card-images/skill-icons/…), rodoma pasirinkimo lange */ }
+export type ChampionSkill = { name?: string; mappings: EffectMapping[]; cinematic?: SkillCinematic; /** Gebėjimo FX (fxStage). Nenurodžius – pagal čempiono vardą. */ fx?: SkillFxId; goldCost?: number /* kaina auksu; 0/nenurodyta = nemokamas */; icon?: string | null /* skill ikona (card-images/skill-icons/…), rodoma pasirinkimo lange */ }
 
 // ── Atakos taikinio apribojimas (statinis padaro nustatymas) ─────────────────
 export type AttackRestriction = 'unitsOnly' | 'championsOnly' | 'noPlayer' | 'playerOnly' | 'artifactsOnly'
