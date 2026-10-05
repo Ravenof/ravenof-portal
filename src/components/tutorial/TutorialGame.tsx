@@ -1586,6 +1586,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const chainBlocks = !!game?.summonChain?.length
   /** Reakcijos grandinės animacijos vartai – kol jie atviri, būsena dar neparodyta. */
   const [gateActive, setGateActive] = useState(false)
+  /** ŽMK skrydžiai, kuriuos ŠIS klientas sugrojo scenoje (laiko žymos) — log efektas
+   *  pagal juos sprendžia, ar „viaScene" ŽMK įvykiui dar reikia įprasto traukimo. */
+  const zmkSceneCreditRef = useRef<number[]>([])
   /** Kampanijos mid-battle cutscene/dialogas – užšaldo ir AI, ir žaidėjo įvestį. */
   const campBlocks = !!campaignPaused
   /** Bendras įvesties užraktas (pop-up'as, iškvietimų grandinė arba reakcijos vartai). */
@@ -2013,6 +2016,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     let drawSeq = 0
     let skipYouDraw = false
     const pendingZmk: { v: string; side: Side }[] = []
+    const takeZmkSceneCredit = (): boolean => {
+      const q = zmkSceneCreditRef.current, now = Date.now()
+      while (q.length && now - q[0] > 8000) q.shift()
+      return q.length > 0 ? (q.shift(), true) : false
+    }
     const zmkPlaced: { v: string; side: Side; x: number; y: number }[] = []
     let lastTgtRef: { kind?: string; side?: Side; uid?: string } | null = null
     // ── FX pacing kontekstas (efektai prasideda nuo source kortos, po nusėdimo) ──
@@ -2312,15 +2320,19 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           break
         }
         case 'attack': { if (!e.sound) playBattleSound('attack'); srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'attack'; srcSkill = null; keepSrc(); break }
-        case 'zmk':
+        case 'zmk': {
           zmkN += 1
           if (showcaseHold > 0) fxSeq += 800  // žalos FX ateina PO ŽMK traukimo animacijos
-          if (e.zmkPair && !e.viaScene) {
+          // PvP svečias / stebėtojas vartų (reactionGates) negauna — host'as transliuoja būseną
+          // jau be jų. Tad „viaScene" galioja tik jei ŠIS klientas tikrai sugrojo skrydį;
+          // kitaip rodom įprastą ŽMK traukimą (750).
+          const zmkScene = !!e.viaScene && takeZmkSceneCredit()
+          if (e.zmkPair && !zmkScene) {
             const [za, zb] = e.zmkPair
             const payload = { id: ++flyIdRef.current, side: e.side, a: za, b: zb, picked: e.zmkPicked ?? e.zmk ?? za, adv: e.bias === 'advantage' }
             if (showcaseHold > 0) { const hh = showcaseHold; window.setTimeout(() => setZmkRoll(payload), hh) }
             else setZmkRoll(payload)
-          } else if (e.viaScene) {
+          } else if (zmkScene) {
             // Scenos FX: kortą jau parodė skrydis iš kaladės (SceneFxLayer) — miniatiūros nereikia
           } else if (game.zmkMode === 'draw') {
             const item = { v: e.zmk ?? '?', side: e.side, revealed: false }
@@ -2329,20 +2341,21 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           } else {
             pendingZmk.push({ v: e.zmk ?? '?', side: e.side })
           }
-          if (!e.sound && !e.viaScene) playBattleSound('zmkFlip')   // scenoje flip'as jau nuskambėjo
+          if (!e.sound && !zmkScene) playBattleSound('zmkFlip')   // scenoje flip'as jau nuskambėjo
           if (e.zmk === 'x2' || e.zmk === 'x0') {
             queueTip('zmk-special')
             // Fazė 7: kraštinės ŽMK reikšmės gauna savo momentą; „+0" kelias
             // lieka toks pat greitas kaip buvo (spectacle budget).
             const sk: ZmkSpecialKind = e.zmk === 'x2' ? 'x2' : 'x0'
             const sside = e.side
-            const dz = e.viaScene ? 0 : showcaseHold > 0 ? showcaseHold : SETTLE
+            const dz = zmkScene ? 0 : showcaseHold > 0 ? showcaseHold : SETTLE
             window.setTimeout(() => setZmkSpecial({ id: ++flyIdRef.current, kind: sk, side: sside }), dz)
             // Mechanikos komunikacija: po ×2/×0 kaladė TIKRAI permaišoma (zmkSpecialReshuffle).
             window.setTimeout(() => setZmkReshuffle({ id: ++flyIdRef.current, side: sside }),
               dz + (sk === 'x2' ? ZMK_PRESENT.critAnticipationMs + ZMK_PRESENT.critSlamMs + ZMK_PRESENT.critHoldMs : ZMK_PRESENT.fizzleMs))
           }
           break
+        }
         case 'death': {
           const uid = e.src?.uid
           const card = e.cardName ? cardByName[e.cardName] : null
@@ -3128,6 +3141,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               }).filter((x): x is NonNullable<typeof x> => !!x)
               if (zmkDraws.length > 0) {
                 if (process.env.NODE_ENV !== 'production') console.debug(`[SceneFx] zmk draws=${zmkDraws.length}`)
+                { const now = Date.now(); for (let i = 0; i < draws.length; i++) zmkSceneCreditRef.current.push(now) }
                 await sceneRef.current.playZmk({ draws: zmkDraws, backUrl: CARD_BACK_SRC.zmk, reduced })
               }
               if (holdUids.length) setHpHold((h) => { const n = { ...h }; for (const u of holdUids) delete n[u]; return n })
