@@ -96,6 +96,7 @@
   "curseRaise": "⚰️→ „{{card}}\" prikeliamas iš kapinyno (prakeiksmo aktyvacija)!",
   "deathExiled": "„{{card}}\" žūsta ir PAŠALINAMA iš žaidimo (laukas)!",
   "deathGrave": "„{{card}}\" žūsta ir keliauja į kapinyną.",
+  "deathToDeck": "„{{card}}\" žūsta ir įmaišoma atgal į kaladę (Paskutinis noras).",
   "deathToHand": {
     "foe": "„{{card}}\" žūsta ir keliauja priešininkui į ranką (Paskutinis noras).",
     "self": "„{{card}}\" žūsta ir keliauja tau į ranką (Paskutinis noras)."

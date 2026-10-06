@@ -96,6 +96,7 @@
   "curseRaise": "⚰️→ \"{{card}}\" is raised from the graveyard (curse activation)!",
   "deathExiled": "\"{{card}}\" dies and is EXILED from the game (field)!",
   "deathGrave": "\"{{card}}\" dies and goes to the graveyard.",
+  "deathToDeck": "\"{{card}}\" dies and is shuffled back into the deck (Last Wish).",
   "deathToHand": {
     "foe": "\"{{card}}\" dies and goes to the opponent's hand (Last Wish).",
     "self": "\"{{card}}\" dies and returns to your hand (Last Wish)."

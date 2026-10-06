@@ -45,4 +45,14 @@ for (const pvp of [true,false]) {
   const rr=applyNetAction(g, swapAction({t:'resolveLastwish',targets:[{kind:'player',side:'ai'}]}))
   check('EK: -6 į veidą (host žaidėjas), padaras nepaliestas', rr.ok && g.you.hp===g.you.maxHp-6 && g.you.units[0]!.hp===9, `${g.you.hp}/${g.you.maxHp} u=${g.you.units[0]!.hp}`)
 }
+{ // Paskutinis noras: ši korta → savo kaladė (selfToOwnDeck)
+  const g = createGame(filler(20,'Y'), filler(20,'A'), 'you', { zmkDefs: ZMK0 as never })
+  beginTurn(g); g.you.gold=1000
+  const w=mkCard({name:'Wynsa',uid:'wyn',health:1,mappings:[{trigger:'onDeath',effect:'selfToOwnDeck',target:'self'} as EffectMapping]})
+  const boom=mkCard({name:'Boom',uid:'boom',type:'spell',mappings:[{trigger:'onCast',effect:'damage',target:'allEnemyUnits',value:5,triggersZmk:false,requiresSelection:false} as EffectMapping]})
+  g.ai.units[0]={ uid:'wyn', card:w, atk:1,hp:1,maxHp:1,shield:false,stealth:false,statuses:{},summonedOnTurn:0,attacksUsed:0,isChampion:false,phase:0,abilityUsed:false } as GameState['you']['units'][0]
+  const before=g.ai.deck.length
+  g.you.hand.push(boom); const r=playCard(g,'you','boom')
+  check('Wynsa žuvo ir grįžo į kaladę (ne kapinyną, ne ranką)', r.ok && !g.ai.units[0] && g.ai.deck.length===before+1 && g.ai.deck.some(c=>c.uid==='wyn') && !g.ai.discard.some(c=>c.uid==='wyn') && !g.ai.hand.some(c=>c.uid==='wyn'), JSON.stringify({r,d:g.ai.deck.length,before}))
+}
 console.log(`${ok} ✓ / ${bad} ✗`); if(bad) process.exit(1)

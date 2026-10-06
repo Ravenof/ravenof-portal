@@ -76,7 +76,7 @@ export type EffectType =
   | 'summonFromHand' | 'summonFromDeck' | 'summonFromGraveyard'
   | 'returnToHand' | 'moveToGraveyard' | 'revive'
   | 'gainGold' | 'loseGold'
-  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'summonAdvanced'
+  | 'triggerCurse' | 'triggerZmk' | 'removeZmkCard' | 'mill' | 'returnGraveyardToDeck' | 'peekDiscard' | 'revealOwnDeck' | 'revealEnemyDeck' | 'selfToEnemyHand' | 'selfToOwnHand' | 'selfToOwnDeck' | 'summonAdvanced'
   | 'spellDiscount' | 'buffSpellDamage' | 'cardCostMod'
   | 'chooseEffect' | 'tutorToHand'
   | 'coinFlip' | 'loseGoldNextTurn' | 'gainGoldNextTurn'
@@ -123,6 +123,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'returnToHand',        label: 'Grąžinti į ranką',           needsValue: false, group: 'Kortų traukimas ir ranka' },
   { value: 'tutorToHand',         label: 'Į ranką: burtas/korta pagal tipą (deck/kapinynas)', needsValue: false, group: 'Kortų traukimas ir ranka' },
   { value: 'selfToOwnHand',       label: 'Ši korta → tavo ranka (Paskutinis noras)', needsValue: false, group: 'Kortų traukimas ir ranka' },
+  { value: 'selfToOwnDeck',       label: 'Ši korta → tavo kaladė, įmaišoma (Paskutinis noras)', needsValue: false, group: 'Kortų traukimas ir ranka' },
   { value: 'selfToEnemyHand',     label: 'Ši korta → priešo ranka (Paskutinis noras)', needsValue: false, group: 'Kortų traukimas ir ranka' },
   // ── Iškvietimas ──
   { value: 'summonFromHand',      label: 'Iškviesti iš rankos',        needsValue: false, group: 'Iškvietimas' },

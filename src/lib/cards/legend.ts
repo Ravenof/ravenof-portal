@@ -53,7 +53,7 @@ function effectFx(e: EffectType): FxGlyph | null {
     case 'triggerCurse': case 'forceCurseActivation': return 'necro'
     case 'coinFlip': return 'coinflip'
     case 'drawCards': case 'drawUntilHand': case 'discard': case 'peekDiscard': case 'returnToHand': case 'tutorToHand':
-    case 'selfToOwnHand': case 'selfToEnemyHand': case 'summonFromHand': case 'summonFromDeck': case 'summonAdvanced':
+    case 'selfToOwnHand': case 'selfToOwnDeck': case 'selfToEnemyHand': case 'summonFromHand': case 'summonFromDeck': case 'summonAdvanced':
     case 'revealOwnDeck': case 'revealEnemyDeck': case 'triggerZmk': case 'removeZmkCard': case 'remapZmkValue':
     case 'discardHandAndDraw': case 'arrangeEnemyDeckTop': case 'gainGold': case 'loseGold': case 'loseGoldNextTurn':
     case 'gainGoldNextTurn': case 'spellDiscount': case 'cardCostMod': case 'turnCostDiscount': case 'chooseEffect':

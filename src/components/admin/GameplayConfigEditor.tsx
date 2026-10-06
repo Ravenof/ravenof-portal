@@ -939,7 +939,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
               const isSummon = ['summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive'].includes(eff)
               const isPlayerEff = ['discard', 'gainGold', 'loseGold', 'loseGoldNextTurn', 'gainGoldNextTurn', 'discardHandAndDraw', 'arrangeEnemyDeckTop'].includes(eff)
               const isDeckEff = ['mill', 'returnGraveyardToDeck', 'peekDiscard'].includes(eff)
-              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'resurrectSelf', 'revealOwnDeck', 'revealEnemyDeck', 'forceCurseActivation', 'remapZmkValue'].includes(eff)
+              const isFixedNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'selfToEnemyHand', 'selfToOwnHand', 'selfToOwnDeck', 'resurrectSelf', 'revealOwnDeck', 'revealEnemyDeck', 'forceCurseActivation', 'remapZmkValue'].includes(eff)
               const isTargeted = !isSummon && !isPlayerEff && !isDeckEff && !isFixedNoTarget
               const showTarget = isTargeted || isPlayerEff || isDeckEff
               const playerOnly = ['self', 'ownPlayer', 'enemyPlayer', 'anyPlayer']
@@ -1795,7 +1795,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                       }
                       const fEffDef = EFFECT_TYPES.find((e) => e.value === fm.effect)
                       const fPlayerOnly = ['discard', 'gainGold', 'loseGold'].includes(fm.effect)
-                      const fNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'chooseEffect'].includes(fm.effect)
+                      const fNoTarget = ['drawCards', 'triggerZmk', 'removeZmkCard', 'triggerCurse', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'summonAdvanced', 'revive', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'selfToOwnDeck', 'chooseEffect'].includes(fm.effect)
                       return (
                         <div key={kind + fi} className="flex flex-wrap items-end gap-2 mb-1"
                           style={kind === 'alt' ? { background: 'rgba(147,197,253,0.07)', border: '1px dashed rgba(147,197,253,0.45)', borderRadius: 6, padding: '4px 6px' }

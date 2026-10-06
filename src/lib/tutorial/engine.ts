@@ -1446,16 +1446,23 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
   }
   // Paskutinio noro „reroute": korta keliauja į ranką (priešo/savo), o ne į kapinyną
   let reroute: Side | null = null
+  let toDeck = false   // „Ši korta → tavo kaladė“ (752+): įmaišoma į šeimininko kaladę
   if (!u.statuses.silenced) {
     for (const m of (u.card.mappings ?? [])) {
       if (m.trigger !== 'onDeath') continue
       if (m.effect === 'selfToEnemyHand') reroute = other(owner)
       else if (m.effect === 'selfToOwnHand') reroute = owner
+      else if (m.effect === 'selfToOwnDeck') toDeck = true
     }
   }
   p.units[idx] = null
-  let exiledOrRerouted = !!reroute
-  if (reroute) {
+  let exiledOrRerouted = !!reroute || toDeck
+  if (toDeck && !reroute) {
+    // Laikinai perimtas padaras grįžta į TIKROJO šeimininko kaladę
+    const dp = u.control ? P(g, u.control.from) : p
+    dp.deck = shuffle([...dp.deck, u.card])
+    log(g, { t: 'death', side: owner, cardName: u.card.name, key: 'battleLog.deathToDeck', params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid } })
+  } else if (reroute) {
     const rp = P(g, reroute)
     rp.hand.push(u.card)
     log(g, { t: 'death', side: owner, cardName: u.card.name, key: `battleLog.deathToHand.${reroute === owner ? 'self' : 'foe'}`, params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid } })
@@ -2150,7 +2157,7 @@ export function resolveCopyEffect(g: GameState, chosenUid: string): { ok: boolea
 function castableMappingsOf(c: TutCard, filter?: 'battlecry' | 'lastwish'): EffectMapping[] {
   // Savireferentiniai / rekursiniai efektai praleidžiami (kaip lastwishMappingsOf)
   const maps = (c.mappings ?? []).filter((m) =>
-    m.effect !== 'resurrectSelf' && m.effect !== 'selfToEnemyHand' && m.effect !== 'selfToOwnHand'
+    m.effect !== 'resurrectSelf' && m.effect !== 'selfToEnemyHand' && m.effect !== 'selfToOwnHand' && m.effect !== 'selfToOwnDeck'
     && m.effect !== 'castEffectFromGraveyard')
   if (filter === 'battlecry') return maps.filter((m) => m.trigger === 'onSummon' || m.trigger === 'onPlay' || m.trigger === 'onCast')
   if (filter === 'lastwish') return maps.filter((m) => m.trigger === 'onDeath')
@@ -2184,7 +2191,7 @@ function applyCastGraveyardEffect(g: GameState, s: Side, sourceUid: string | und
 // aktyvuojamas iškart. Jei repeatOnDeath – tie patys mapping'ai prisegami šaltinio
 // kortai kaip onDeath, tad jos Paskutinis noras pakartos tą patį efektą.
 function lastwishMappingsOf(c: TutCard): EffectMapping[] {
-  return (c.mappings ?? []).filter((m) => m.trigger === 'onDeath' && m.effect !== 'resurrectSelf' && m.effect !== 'selfToEnemyHand' && m.effect !== 'selfToOwnHand')
+  return (c.mappings ?? []).filter((m) => m.trigger === 'onDeath' && m.effect !== 'resurrectSelf' && m.effect !== 'selfToEnemyHand' && m.effect !== 'selfToOwnHand' && m.effect !== 'selfToOwnDeck')
 }
 function activateGraveyardLastwishPrim(g: GameState, s: Side, sourceUid: string | undefined, sourceName: string, fromSide: 'own' | 'enemy' | 'any', repeatOnDeath: boolean, activateNow = true) {
   const sides: Side[] = fromSide === 'own' ? [s] : fromSide === 'enemy' ? [other(s)] : [s, other(s)]
