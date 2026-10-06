@@ -294,6 +294,8 @@ export type GameState = {
    *  būsenos snapshot'u PRIEŠ tą efektą. UI rodo snapshot'ą, groja grandinės animaciją ir
    *  tik po jos parodo kitą (jau pritaikytą) būseną. Gameplay skaičiavimas nepakinta. */
   reactionGates?: ReactionGate[] | null
+  /** PvP: 'ai' pusę valdo žmogus (svečias) – pasirinkimo langai kuriami ir jam (752). */
+  humanAi?: boolean
   spellCountered?: boolean
   // ── 2v2 komandinis sluoksnis (adityvus; 1v1 šių nenaudoja) ──
   mode?: '1v1' | '2v2'
@@ -348,6 +350,8 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+/** Ar šią pusę valdo ŽMOGUS (renkasi pop-up'uose / taikinius). 'you' – visada; 'ai' – tik PvP (g.humanAi). */
+export function human(g: GameState, s: Side): boolean { return s === 'you' || (s === 'ai' && !!g.humanAi) }
 export function other(s: Side): Side { return s === 'you' ? 'ai' : 'you' }
 export function P(g: GameState, s: Side): PlayerState { return g.extraSeats?.[s] ?? (s === 'you' ? g.you : g.ai) }
 
@@ -545,6 +549,8 @@ export type CreateGameOpts = {
   mulligan?: boolean
   /** PvP: mulligan abiem pusem RANKINIS (aiMulligan nekvieciamas; laukiama NetAction) */
   mulliganBothManual?: boolean
+  /** PvP: 'ai' pusę valdo žmogus – jam kuriami pasirinkimo langai (žr. GameState.humanAi). */
+  humanAi?: boolean
   /** Kovos formatas: 'classic' = be ŽMK (žala = kortų vertės, ŽMK kaladė tuščia). Numatyta 'zmk'. */
   format?: BattleFormat
 }
@@ -581,6 +587,7 @@ export function createGame(deckYou: TutCard[], deckAi: TutCard[], first: Side, o
   drawCards(g, first, 4, true)
   drawCards(g, other(first), 5, true)
   log(g, { t: 'start', side: first, key: `battleLog.start.${SK(first)}` })
+  if (opts?.humanAi) g.humanAi = true
   if (opts?.mulligan) g.pendingMulligan = { you: true, ai: true, auto: !opts?.mulliganBothManual }
   recomputeAuras(g)
   return g
@@ -1367,7 +1374,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
       log(g, { t: 'lastwish', side: owner, cardName: u.card.name, key: 'battleLog.lastWish', params: { card: u.card.name }, src: { side: owner, uid: u.uid } })
       // Paskutinis noras su rankiniu taikiniu: 'you' pusei atidedama į pendingLastwish
       // (žaidėjas renkasi taikinį/-ius, pvz. 2 taikiniai su hitCount=2); AI – auto.
-      const needSel = owner === 'you'
+      const needSel = human(g, owner)
         ? deathMappings.filter((m) => mappingNeedsSelection(m) && resolveMappingTargets(g, owner, m).length > 0)
         : []
       for (const m of deathMappings) {
@@ -1871,7 +1878,7 @@ function summonFromZonePrim(g: GameState, s: Side, zone: 'hand' | 'deck' | 'disc
 function summonAdvancedPrim(g: GameState, s: Side, opts: SummonAdvOpts) {
   const p = P(g, s)
   const count = Math.max(1, opts.count ?? 1)
-  if (opts.choose && s === 'you' && !g.pendingSummon) {
+  if (opts.choose && human(g, s) && !g.pendingSummon) {
     // (!g.pendingSummon: jei pasirinkimo langas jau uzimtas ankstesnio efekto,
     //  nauja NEperrasom - zemiau iskvieciam automatiskai, kad efektas nepraputu)
     const zones = (opts.zones && opts.zones.length ? opts.zones : ['hand', 'deck', 'discard']) as ('hand' | 'deck' | 'discard')[]
@@ -2099,7 +2106,7 @@ function copyEffectPrim(g: GameState, s: Side, sourceUid: string | undefined, so
   const options: { card: TutCard; side: Side }[] = []
   for (const sd of sides) for (const c of P(g, sd).discard) if (c.type === 'unit' && mappingCount(c) > 0) options.push({ card: c, side: sd })
   if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.copyNoGraveTarget', params: { src: sourceName } }); return }
-  if (s === 'you') {
+  if (human(g, s)) {
     g.pendingCopy = { caster: s, sourceUid, sourceName, options }
     log(g, { t: 'play', side: s, key: 'battleLog.copyChoose' })
     return
@@ -2154,7 +2161,7 @@ function castGraveyardEffectPrim(g: GameState, s: Side, sourceUid: string | unde
   const options: { card: TutCard; side: Side }[] = []
   for (const sd of sides) for (const c of P(g, sd).discard) if (c.type !== 'curse' && castableMappingsOf(c, filter).length > 0) options.push({ card: c, side: sd })
   if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.castFxNoGraveTarget', params: { src: sourceName } }); return }
-  if (s === 'you') {
+  if (human(g, s)) {
     g.pendingCopy = { caster: s, sourceUid: sourceUid ?? '', sourceName, options, mode: 'cast', castFilter: filter }
     log(g, { t: 'play', side: s, key: 'battleLog.castFxChoose' })
     return
@@ -2184,7 +2191,7 @@ function activateGraveyardLastwishPrim(g: GameState, s: Side, sourceUid: string 
   const options: { card: TutCard; side: Side }[] = []
   for (const sd of sides) for (const c of P(g, sd).discard) if (c.type === 'unit' && lastwishMappingsOf(c).length > 0) options.push({ card: c, side: sd })
   if (options.length === 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.glwNoGraveTarget', params: { src: sourceName } }); return }
-  if (s === 'you') {
+  if (human(g, s)) {
     g.pendingCopy = { caster: s, sourceUid: sourceUid ?? '', sourceName, options, mode: 'lastwish', repeatOnDeath, glwActivateNow: activateNow }
     log(g, { t: 'play', side: s, key: 'battleLog.glwChoose' })
     return
@@ -2239,7 +2246,7 @@ function drawAdvancedPrim(g: GameState, s: Side, opts: { count: number; fromGrav
   // traukti N → pasilikti K (pop-up); kitas išmesti
   if (opts.keep != null && opts.keep < drawn.length) {
     const discardN = drawn.length - opts.keep
-    if (s === 'you') {
+    if (human(g, s)) {
       g.pendingPeek = { caster: s, victim: s, choose: discardN, cards: drawn, toHand: true }
       log(g, { t: 'play', side: s, key: 'battleLog.drawChooseDiscard', params: { n: drawn.length, discard: discardN } })
     } else {
@@ -2316,7 +2323,7 @@ function peekDiscardPrim(g: GameState, victim: Side, peekCount: number, choose: 
   if (n === 0) { log(g, { t: 'blocked', side: caster, key: 'battleLog.deckEmptyPeek', params: { victim: tref(`battleLog.sideGen.${SK(victim)}`) } }); return }
   const peeked = vp.deck.splice(vp.deck.length - n, n) // viršutinės n (deck galas = viršus)
   const k = Math.min(choose, peeked.length)
-  if (caster === 'you') {
+  if (human(g, caster)) {
     g.pendingPeek = { caster, victim, choose: k, cards: peeked }
     log(g, { t: 'play', side: caster, key: 'battleLog.peekChoose', params: { victim: tref(`battleLog.sideGen.${SK(victim)}`), n, k } })
   } else {
@@ -2349,7 +2356,7 @@ function revealDeckPrim(g: GameState, whoseDeck: Side, count: number, caster: Si
   const top = vp.deck.slice(vp.deck.length - n).reverse() // viršus pirmas
   const title = whoseDeck === caster ? 'battleLog.revealTitleOwn' : 'battleLog.revealTitleOther'
   const titleParams = { owner: tref(`battleLog.sideGen.${SK(whoseDeck)}`) }
-  if (caster === 'you') {
+  if (human(g, caster)) {
     g.pendingReveal = { caster, whoseDeck, title, titleParams, cards: top }
   }
   log(g, { t: 'play', side: caster, key: whoseDeck === caster ? 'battleLog.revealOwn' : 'battleLog.revealOther', params: { caster: tref(`battleLog.side.${SK(caster)}`), owner: tref(`battleLog.sideGen.${SK(whoseDeck)}`), n } })
@@ -2737,7 +2744,7 @@ function fireEntryMappings(g: GameState, s: Side, u: BoardUnit, entries?: { m: E
   // Rankinis pasirinkimas – tik jei yra BENT VIENAS tinkamas taikinys (su filtrais: potipis,
   // „kitas", frakcija...). Kitaip laukimas niekada neišsispręstų – mapping'as vykdomas
   // automatiškai ir tiesiog praneša „nėra tinkamo taikinio".
-  const needSel = s === 'you' ? list.filter((x) => mappingNeedsSelection(x.m) && selectableTargetCount(g, s, x.m, u.uid) > 0) : []
+  const needSel = human(g, s) ? list.filter((x) => mappingNeedsSelection(x.m) && selectableTargetCount(g, s, x.m, u.uid) > 0) : []
   const auto = list.filter((x) => !needSel.some((y) => y.i === x.i))
   if (auto.length > 0) {
     // rounds > 1 (lauko pasyvas „Kovos šūksniai 2x") – iškvietimų neskaidom, kad
@@ -2854,7 +2861,7 @@ function arrangeDeckTopPrim(g: GameState, caster: Side, victim: Side, n: number)
   if (take <= 0) return
   const cards = vp.deck.splice(vp.deck.length - take, take).reverse()  // [0] = viršutinė
   log(g, { t: 'draw', side: caster, value: take, key: `battleLog.arrangeDeckTop.${SK(caster)}`, params: { count: take } })
-  if (caster === 'you') {
+  if (human(g, caster)) {
     g.pendingArrange = { caster, victim, cards }
     return
   }
@@ -3026,7 +3033,7 @@ function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'di
   const candidates: { card: TutCard; arr: TutCard[] }[] = []
   for (const z of fromZones) for (const c of z.arr) if (eligible(c)) candidates.push({ card: c, arr: z.arr })
   if (candidates.length === 0) { log(g, { t: 'blocked', side: caster, key: wantType ? 'battleLog.tutorNoneType' : 'battleLog.tutorNone', params: { type: wantType } }); return }
-  if (opts.choose && caster === 'you') {
+  if (opts.choose && human(g, caster)) {
     g.pendingChoice = {
       caster, sourceName: 'Tutor', kind: 'tutorHand',
       title: wantType ? 'battleLog.chooseCardToHandType' : 'battleLog.chooseCardToHand',
@@ -3049,10 +3056,10 @@ function tutorToHandPrim(g: GameState, caster: Side, opts: { zone?: 'deck' | 'di
 function chooseEffectPrim(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[], chooser?: Side) {
   if (branches.length === 0) return
   const who: Side = chooser ?? caster
-  if (who === 'you') {
+  if (human(g, who)) {
     // Pop-up rodomas tam, kas renkasi (chooser). Efektai vykdomi kerėtojo (caster) vardu.
     g.pendingChoice = {
-      caster, chooser: 'you', sourceName, kind: 'effect',
+      caster, chooser: who, sourceName, kind: 'effect',
       title: 'battleLog.chooseEffect',
       titleParams: { src: sourceName },
       options: branches.map((_, i) => ({ label: labels[i] || t('battleLog.variant', { n: i + 1 }) })),
@@ -3080,7 +3087,7 @@ export function resolveChoice(g: GameState, index: number): { ok: boolean; reaso
       // resolveLastwish NetAction; pvz. Elementų kamuoliai — 2 taikiniai po 4).
       // Anksčiau taikiniai būdavo parenkami AUTOMATIŠKAI net žaidėjui.
       // AI/svečiui (caster 'ai') — auto-pick, kaip ir pendingBattlecry kanone.
-      if (pc.caster === 'you' && mappingNeedsSelection(m)
+      if (human(g, pc.caster) && mappingNeedsSelection(m)
         && applyTargetFilters(g, m, resolveMappingTargets(g, pc.caster, m)).length > 0) { manual.push(m); continue }
       applyMapping(gameApi, g, pc.caster, m, { sourceName: pc.sourceName, depth: 1 })
       if (g.winner) break
@@ -3320,7 +3327,7 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
     const all: { side: Side; u: BoardUnit }[] = []
     for (const sd of allSeats(g)) for (const x of P(g, sd).units) if (x) all.push({ side: sd, u: x })
     if (all.length > 0) {
-      if (s === 'you') {
+      if (human(g, s)) {
         g.pendingReturn = { side: s }
         log(g, { t: 'field', side: s, cardName: g.field?.card.name, key: 'battleLog.fieldChooseReturn' })
       } else {
@@ -4278,6 +4285,7 @@ export function swapAction(a: NetAction): NetAction {
     case 'swapChampPhase': return { ...a, actor: other(a.actor) }
     case 'mulligan': return { ...a, actor: other(a.actor) }
     case 'resolveLastwish': return { ...a, targets: a.targets.map((x) => sw(x)) }
+    case 'resolveBattlecry': return { ...a, target: sw(a.target) }
     default: return a
   }
 }

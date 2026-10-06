@@ -1823,7 +1823,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       cards.map((c, i) => ({ ...c, uid: c.uid + '-y' + i })),
       aiSource.map((c, i) => ({ ...c, uid: c.uid + '-a' + i })),
       first,
-      { zmkDefs, curseCards, curseCardsAi: oppCurseCards ?? undefined, mulligan: tossEnabled, mulliganBothManual: !!net, format },
+      { zmkDefs, curseCards, curseCardsAi: oppCurseCards ?? undefined, mulligan: tossEnabled, mulliganBothManual: !!net, humanAi: !!net, format },
     )
     if (tossEnabled) setCoinToss({ first, phase: 'spin', spun: false })
     else setCoinToss(null)
@@ -3462,10 +3462,22 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (isHost) {
       ch.on('broadcast', { event: 'action' }, ({ payload }) => {
         const a = payload as NetAction
-        // Pasirinkimo langai (iškvietimas / peržiūra / kopija / ARBA...) kol kas kuriami tik host'o
-        // pusei — svečias jų spręsti negali (anksčiau galėdavo išrinkti UŽ host'ą). (751)
-        if (a.t === 'clearReveal' || a.t.startsWith('resolve')) return
-        setGame((prev) => { if (!prev) return prev; const g = cloneState(prev); applyNetAction(g, a); return gateCommit(g, prev) })
+        // Svečias gali spręsti TIK savo ('ai' pusės) pasirinkimus – ne host'o (751/752).
+        const guestOwns = (p: GameState): boolean => {
+          switch (a.t) {
+            case 'resolveSummon': return p.pendingSummon?.caster === 'ai'
+            case 'resolvePeek': return p.pendingPeek?.caster === 'ai'
+            case 'resolveArrange': return p.pendingArrange?.caster === 'ai'
+            case 'resolveChoice': return !!p.pendingChoice && (p.pendingChoice.chooser ?? p.pendingChoice.caster) === 'ai'
+            case 'resolveCopy': return p.pendingCopy?.caster === 'ai'
+            case 'resolveReturn': return p.pendingReturn?.side === 'ai'
+            case 'resolveBattlecry': return p.pendingBattlecry?.side === 'ai'
+            case 'resolveLastwish': return p.pendingLastwish?.side === 'ai'
+            case 'clearReveal': return p.pendingReveal?.caster === 'ai'
+            default: return true
+          }
+        }
+        setGame((prev) => { if (!prev) return prev; if (!guestOwns(prev)) return prev; const g = cloneState(prev); applyNetAction(g, a); return gateCommit(g, prev) })
       })
       ch.on('broadcast', { event: 'hello' }, () => {
         setGame((prev) => { if (prev) ch.send({ type: 'broadcast', event: 'state', payload: prev }); return prev })
