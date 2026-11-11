@@ -89,6 +89,7 @@ export type EffectType =
   | 'forceCurseActivation'
   | 'activateLastwishFromGraveyard'
   | 'turnCostDiscount'
+  | 'refreshAttacks'
 
 export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boolean; group: string }[] = [
   // ── Kova ──
@@ -154,6 +155,7 @@ export const EFFECT_TYPES: { value: EffectType; label: string; needsValue: boole
   { value: 'spellDiscount',       label: 'Kito burto nuolaida (auksas)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'cardCostMod',         label: 'Sekanti korta kainuoja +/− (auksas; gali pagal tipą)', needsValue: true, group: 'Auksas ir kainos' },
   { value: 'turnCostDiscount',    label: 'Šį ėjimą VISOS kortos kainuoja X pigiau (bet ne pigiau nei Y)', needsValue: true, group: 'Auksas ir kainos' },
+  { value: 'refreshAttacks',      label: 'Tavo padarai, kurie šį ėjimą jau puolė, gali pulti dar kartą (reikšmė = kiek kortų traukti už kiekvieną paveiktą; 0 – netraukti)', needsValue: true, group: 'Kova' },
   { value: 'buffSpellDamage',     label: 'Burtai daro +X žalos (kaupiasi)', needsValue: true,  group: 'Auksas ir kainos' },
   // ── Specialūs ──
   { value: 'chooseEffect',        label: 'Pasirink 1 iš kelių efektų (pop-up)', needsValue: false, group: 'Specialūs' },
@@ -266,6 +268,8 @@ export type BattleSoundType =
   | 'puff' | 'buff' | 'debuff' | 'gold' | 'turnStart' | 'turnStartEnemy' | 'turnEnd' | 'returnHand'
   | 'shieldUp' | 'shieldBreak' | 'statusBurn' | 'statusPoison' | 'statusStun' | 'statusSilence'
   | 'reactionSet' | 'battlecrySting' | 'lastwishSting' | 'triggerSting' | 'fatigue'
+  // 761: kovos pabaigos akcentai ir žemo HP širdies plakimas
+  | 'victory' | 'defeat' | 'heartbeat'
 
 // ── Curse trigger konfigūracija ───────────────────────────────────────────────
 export type CurseAppliesTo = 'caster' | 'opponent' | 'targetOwner' | 'chosenTarget' | 'random'
@@ -490,6 +494,9 @@ export type PassiveAuraConfig = {
   auraFromGraveyardOnly?: boolean      // aura veikia TIK padarus, iškviestus/prikeltus iš kapinyno
   /** ŽMK reikšmės pokytis paveiktai pusei (+/−). Taikoma PO ŽMK kortos, prieš žalą. */
   auraZmkDelta?: number
+  /** „Tavo žalos modifikatoriai A veikia kaip B“ (762): šeimininko ŽMK korta su reikšme From skaičiuojama kaip To. */
+  auraZmkRemapFrom?: string
+  auraZmkRemapTo?: string
   auraRequiresKeyword?: 'taunt' | 'shield' | 'stealth' | 'sprint'  // SĄLYGA: aura veikia tik padarus su šiuo raktažodžiu (pvz. +1/+1 tik taunt padarams)
   auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
   // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──
@@ -655,6 +662,15 @@ export type GameplayConfig = {
   keywords?: ('sprint' | 'taunt' | 'shield' | 'stealth')[]  // statiniai padaro raktažodžiai
   attackRestriction?: AttackRestriction  // padaras gali pulti tik tam tikrus taikinius
   ignoreTaunt?: boolean                  // gali pulti tiesiogiai – ignoruoja priešo Pasišaipymą (taunt)
+  // ── 762: atakos pasyvai (kortos be mapping'ų, auditas 2026-11-11) ──
+  /** „Puldamas visada turi Magišką skydą“: prieš kiekvieną savo ataką padaras gauna skydą (sugeria atgalinę žalą). */
+  attackWithShield?: boolean
+  /** „Puldamas visada turi Sėlinimą“: atakuodamas Sėlinimo nepraranda, o jei jo neturėjo – įgyja. */
+  attackKeepsStealth?: boolean
+  /** „Kai atakuoja, negauna atgalinės žalos“: gynėjas šiam puolėjui neatsikerta. */
+  noRetaliationDamage?: boolean
+  /** „Gali būti iškviestas vietoje X“: iškvietimo efektai, ieškantys kortos vardu X, priima ir šią kortą. Keli vardai – per kablelį. */
+  summonAlias?: string
   /**
    * Pasyvas: kai padaras po žalos lieka su TIEK arba mažiau HP (bet dar gyvas),
    * jis pasitraukia – grįžta į savininko ranką. 0 / nenustatyta = išjungta.

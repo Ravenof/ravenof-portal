@@ -309,3 +309,7 @@ export function synthStatusPoison(): void { swish(0.34, 2600, 900, 0.09); tone(2
 export function synthStatusStun(): void { tone(900, 300, 'square', 0.12, 0.05); tone(1300, 1300, 'triangle', 0.18, 0.04, 0.1) }
 export function synthStatusSilence(): void { swish(0.26, 3000, 250, 0.1) }
 export function synthFatigue(): void { tone(110, 60, 'sine', 0.22, 0.2); swish(0.1, 600, 200, 0.08) }
+// 761: kovos pabaiga ir žemas HP
+export function synthVictory(): void { tone(523, 523, 'triangle', 0.16, 0.1); tone(659, 659, 'triangle', 0.16, 0.1, 0.13); tone(784, 784, 'triangle', 0.18, 0.1, 0.26); tone(1047, 1047, 'triangle', 0.5, 0.12, 0.4); tone(523, 523, 'sine', 0.6, 0.06, 0.4) }
+export function synthDefeat(): void { tone(392, 370, 'triangle', 0.3, 0.09); tone(311, 294, 'triangle', 0.34, 0.09, 0.26); tone(196, 147, 'sine', 0.9, 0.12, 0.54) }
+export function synthHeartbeat(): void { tone(68, 46, 'sine', 0.13, 0.22); tone(60, 40, 'sine', 0.15, 0.16, 0.2) }

@@ -21,6 +21,8 @@ export type GameApi = {
   reviveCards(g: GameState, s: Side, cards: TutCard[], stats?: { atk?: number; hp?: number }): void
   discardCards(g: GameState, s: Side, n: number, chooser?: 'caster' | 'opponent' | 'random'): void
   discardHandAndDraw(g: GameState, s: Side): void
+  /** Atstato atakas pusės padarams, kurie šį ėjimą jau puolė; grąžina paveiktų skaičių. */
+  refreshAttacks(g: GameState, s: Side): number
   killUnit(g: GameState, owner: Side, u: BoardUnit): void
   destroyArtifact(g: GameState, owner: Side, uid: string): void
   applyStatus(g: GameState, owner: Side, u: BoardUnit, st: TutStatus): void
@@ -138,7 +140,7 @@ const NO_SELECT_EFFECTS = new Set<EffectType>([
   'summonFromGraveyard', 'revive', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage',
   'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw',
   'arrangeEnemyDeckTop', 'copyEffectFromGraveyard', 'castEffectFromGraveyard', 'forceCurseActivation',
-  'activateLastwishFromGraveyard', 'turnCostDiscount',
+  'activateLastwishFromGraveyard', 'turnCostDiscount', 'refreshAttacks',
 ])
 
 export function effectIntent(e: EffectType): 'harm' | 'help' {
@@ -365,7 +367,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       else targets = autoPickN(g, caster, all, intent, n, m.allowRandomTarget)
     }
   }
-  if (targets.length === 0 && !reviveDestroyed && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'selfToOwnDeck', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'castEffectFromGraveyard', 'turnCostDiscount'].includes(m.effect)) {
+  if (targets.length === 0 && !reviveDestroyed && !['drawCards', 'drawUntilHand', 'gainGold', 'loseGold', 'discard', 'triggerCurse', 'triggerZmk', 'removeZmkCard', 'mill', 'returnGraveyardToDeck', 'peekDiscard', 'revealOwnDeck', 'revealEnemyDeck', 'selfToEnemyHand', 'selfToOwnHand', 'selfToOwnDeck', 'resurrectSelf', 'summonAdvanced', 'summonFromHand', 'summonFromDeck', 'summonFromGraveyard', 'chooseEffect', 'tutorToHand', 'spellDiscount', 'cardCostMod', 'buffSpellDamage', 'coinFlip', 'loseGoldNextTurn', 'gainGoldNextTurn', 'remapZmkValue', 'discardHandAndDraw', 'arrangeEnemyDeckTop', 'reflectToAttacker', 'forceCurseActivation', 'activateLastwishFromGraveyard', 'castEffectFromGraveyard', 'turnCostDiscount', 'refreshAttacks'].includes(m.effect)) {
     // Fallback: „jei nėra taikinio – padaryk kitą efektą" (noTargetThen)
     if (m.noTargetThen && m.noTargetThen.length > 0) {
       api.log(g, { t: 'battlecry', side: caster, key: 'battleLog.noTargetFallback', params: { src: ctx.sourceName } })
@@ -589,6 +591,12 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     case 'copyEffectFromGraveyard': api.copyEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any'); break
     case 'castEffectFromGraveyard': api.castEffectFromGraveyard(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.castTriggerFilter); break
     case 'activateLastwishFromGraveyard': api.activateGraveyardLastwish(g, caster, ctx.sourceUid, ctx.sourceName, m.copyFromSide ?? 'any', m.glwRepeatOnDeath !== false, m.glwActivateNow !== false); break
+    case 'refreshAttacks': {
+      const n = api.refreshAttacks(g, caster)
+      const per = m.value ?? 0
+      if (n > 0 && per > 0) api.drawCards(g, caster, n * per)
+      break
+    }
     case 'turnCostDiscount': api.setTurnCostDiscount(g, m.costModAppliesTo === 'opponent' ? foe : caster, v, Math.max(0, m.costFloor ?? 0)); break
     case 'reflectToAttacker': {
       // onAttacked reakcijai (su „efektas į atakuotoją" / useAttackTarget): sunaikina puolantį padarą

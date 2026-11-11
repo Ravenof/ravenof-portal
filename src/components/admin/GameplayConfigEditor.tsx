@@ -409,7 +409,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       <div className="rounded-lg p-3" style={{ background: 'rgba(120,200,120,0.06)', border: '1px solid rgba(120,200,120,0.3)' }}>
         {(() => {
           const pa = cfg.passiveAura
-          const auraOn = !!pa && ((pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || !!pa.auraIgnoreTaunt || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || (pa.auraZmkDelta ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
+          const auraOn = !!pa && (!!pa.auraZmkRemapFrom || (pa.auraAttack ?? 0) !== 0 || (pa.auraHealth ?? 0) !== 0 || !!pa.auraSilence || !!pa.auraCantAttack || !!pa.auraIgnoreTaunt || (pa.auraKeywords?.length ?? 0) > 0 || (pa.auraStatuses?.length ?? 0) > 0 || !!pa.auraFromGraveyardOnly || (pa.auraCostReduction ?? 0) !== 0 || (pa.auraZmkDelta ?? 0) !== 0 || !!pa.auraImmortal || (pa.auraSpellDamage ?? 0) !== 0 || !!pa.auraSecondAttack || !!pa.auraStatusImmunity || !!pa.auraHeroDamageDouble || (pa.enrageAttack ?? 0) !== 0)
           const setPa = (patch: Partial<NonNullable<typeof pa>>) => update({ ...cfg, passiveAura: { ...cfg.passiveAura, ...patch } })
           const toggleKw = (kw: 'taunt' | 'shield' | 'stealth' | 'sprint') => {
             const cur = pa?.auraKeywords ?? []
@@ -450,6 +450,21 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   {/* taikoma PO ŽMK kortos, prieš žalą; galutinė žala niekada < 0 */}
                   <input type="number" min={-5} max={5} value={pa?.auraZmkDelta ?? 0}
                     onChange={(e) => setPa({ auraZmkDelta: Number(e.target.value) || undefined })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>ŽMK A veikia kaip B</label>
+                  {/* „tavo žalos modifikatoriai +2 veikia kaip ×2“ – tik šeimininko traukimams */}
+                  <div className="flex items-center gap-1">
+                    <select value={pa?.auraZmkRemapFrom ?? ''} onChange={(e) => setPa({ auraZmkRemapFrom: e.target.value || undefined })} style={inputStyle}>
+                      <option value="">–</option>
+                      {['+0', '+1', '-1', '+2', '-2', 'x2', 'x0'].map((z) => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                    <span style={{ color: 'var(--text-secondary)' }}>→</span>
+                    <select value={pa?.auraZmkRemapTo ?? ''} onChange={(e) => setPa({ auraZmkRemapTo: e.target.value || undefined })} style={inputStyle}>
+                      <option value="">–</option>
+                      {['+0', '+1', '-1', '+2', '-2', 'x2', 'x0'].map((z) => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Aura veikia kai</label>
@@ -722,6 +737,28 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
           <input type="checkbox" checked={!!cfg.ignoreTaunt} className="w-3.5 h-3.5 accent-yellow-400"
             onChange={(e) => update({ ...cfg, ignoreTaunt: e.target.checked || undefined })} />
           🥷 Gali pulti tiesiogiai (ignoruoja priešo Pasišaipymą)
+        </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={!!cfg.attackWithShield} className="w-3.5 h-3.5 accent-yellow-400"
+            onChange={(e) => update({ ...cfg, attackWithShield: e.target.checked || undefined })} />
+          Puldamas visada turi Magišką skydą (skydas uždedamas prieš kiekvieną jo ataką)
+        </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={!!cfg.attackKeepsStealth} className="w-3.5 h-3.5 accent-yellow-400"
+            onChange={(e) => update({ ...cfg, attackKeepsStealth: e.target.checked || undefined })} />
+          Puldamas visada turi Sėlinimą (atakuodamas jo nepraranda / įgyja)
+        </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={!!cfg.noRetaliationDamage} className="w-3.5 h-3.5 accent-yellow-400"
+            onChange={(e) => update({ ...cfg, noRetaliationDamage: e.target.checked || undefined })} />
+          Atakuodamas negauna atgalinės žalos
+        </label>
+        <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}
+          title="Iškvietimo efektai, kurie ieško kortos šiuo vardu (pvz. Zombis), galės iškviesti ir šią kortą. Keli vardai – per kablelį.">
+          Gali būti iškviestas vietoje
+          <input type="text" value={cfg.summonAlias ?? ''} placeholder="pvz. Zombis"
+            onChange={(e) => update({ ...cfg, summonAlias: e.target.value.trim() ? e.target.value : undefined })}
+            style={{ ...inputStyle, width: 150 }} />
         </label>
         <label className="flex items-center gap-2 text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}
           title='Kai po žalos padarui lieka tiek arba mažiau HP (bet jis dar gyvas), jis grįžta į savininko ranką. 0 = išjungta.'>

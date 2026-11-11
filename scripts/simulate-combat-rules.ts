@@ -185,4 +185,49 @@ console.log('\n── 14. Permapintos kortos: onAfterAttack susinaikinimas / gr�
   attack(g2, 'you', 'Att', { kind: 'unit', side: 'ai', uid: 'Vry' })
   check('sužeistas atakos: 9 ATK', U(g2, 'ai')?.atk === 9, String(U(g2, 'ai')?.atk))
 }
+console.log('\n── 15. Atakos pasyvai: skydas / sėlinimas / be atgalinės žalos (762) ──')
+{
+  const g = fresh()
+  g.you.units = row(B(mk({ name: 'Furu', attack: 3, health: 4, gameplay: { attackWithShield: true } })),
+    B(mk({ name: 'Harp', attack: 3, health: 2, gameplay: { noRetaliationDamage: true } })),
+    B(mk({ name: 'Kei', attack: 1, health: 1, gameplay: { attackKeepsStealth: true } })),
+    B(mk({ name: 'Tyl', attack: 3, health: 4, gameplay: { attackWithShield: true } }), { statuses: { silenced: PERM } }))
+  g.ai.units = row(B(mk({ name: 'Def', attack: 2, health: 30 })))
+  attack(g, 'you', 'Furu', { kind: 'unit', side: 'ai', uid: 'Def' })
+  check('„puldamas turi skydą": atgalinė žala sugerta (4 HP)', U(g, 'you', 0)?.hp === 4, String(U(g, 'you', 0)?.hp))
+  check('gynėjas žalą gavo (30 − 3)', U(g, 'ai')?.hp === 27, String(U(g, 'ai')?.hp))
+  attack(g, 'you', 'Harp', { kind: 'unit', side: 'ai', uid: 'Def' })
+  check('„negauna atgalinės žalos": 2 HP lieka', U(g, 'you', 1)?.hp === 2, String(U(g, 'you', 1)?.hp))
+  attack(g, 'you', 'Kei', { kind: 'player', side: 'ai' })
+  check('„puldamas turi Sėlinimą": po atakos stealth = true', (g.you.units[2] as unknown as { stealth: boolean }).stealth === true)
+  attack(g, 'you', 'Tyl', { kind: 'unit', side: 'ai', uid: 'Def' })
+  check('nutildytam pasyvas negalioja (4 − 2 = 2)', U(g, 'you', 3)?.hp === 2, String(U(g, 'you', 3)?.hp))
+}
+console.log('\n── 16. ŽMK „A veikia kaip B" aura ir iškvietimas „vietoje X" (762) ──')
+{
+  const ZP2 = [{ id: 'z', name: '+2', description: null, value: '+2' as const, count: 20, mode: 'auto' as const, image_url: null, active: true, sort_order: 1 }]
+  const g = createGame(filler(30, 'X'), filler(30, 'A'), 'you', { zmkDefs: ZP2 } as never); beginTurn(g)
+  g.you.units = row(B(mk({ name: 'Att', attack: 3, health: 9 })), B(mk({ name: 'Tomis', attack: 3, health: 1, gameplay: { passiveAura: { auraZmkRemapFrom: '+2', auraZmkRemapTo: 'x2' } } })))
+  g.ai.units = row(B(mk({ name: 'Def', attack: 0, health: 30 })))
+  attack(g, 'you', 'Att', { kind: 'unit', side: 'ai', uid: 'Def' })
+  check('+2 skaičiuojama kaip ×2: 3 × 2 = 6 (ne 5)', U(g, 'ai')?.hp === 24, String(U(g, 'ai')?.hp))
+  const g2 = fresh()
+  g2.you.deck = [mk({ name: 'Šauklys', uid: 'Sk', attack: 2, health: 2, gameplay: { summonAlias: 'Zombis' } }), mk({ name: 'Kitas', uid: 'Kt' })]
+  g2.you.hand.push(mk({ name: 'Kvietimas', type: 'spell', gold: 0, mappings: [{ trigger: 'onPlay', effect: 'summonAdvanced', target: 'self', requiresSelection: false, summonZones: ['deck'], summonNames: 'Zombis', summonCount: 1 }] }))
+  playCard(g2, 'you', 'Kvietimas')
+  check('„Zombio" iškvietimas paima kortą su alias „Zombis"', g2.you.units.some((x) => (x as unknown as { card: TutCard } | null)?.card.name === 'Šauklys'))
+}
+console.log('\n── 17. refreshAttacks: jau puolę padarai puola dar kartą + trauk už kiekvieną (762) ──')
+{
+  const g = fresh()
+  g.you.units = row(B(mk({ name: 'A1', attack: 1, health: 5 })), B(mk({ name: 'A2', attack: 1, health: 5 })), B(mk({ name: 'A3', attack: 1, health: 5 })))
+  g.ai.units = row(B(mk({ name: 'Def', attack: 0, health: 30 })))
+  attack(g, 'you', 'A1', { kind: 'unit', side: 'ai', uid: 'Def' }); attack(g, 'you', 'A2', { kind: 'unit', side: 'ai', uid: 'Def' })
+  g.you.hand.push(mk({ name: 'Taktikos', type: 'spell', gold: 0, mappings: [{ trigger: 'onPlay', effect: 'refreshAttacks', target: 'self', value: 1, requiresSelection: false }] }))
+  const hand0 = g.you.hand.length
+  playCard(g, 'you', 'Taktikos')
+  check('2 puolę padarai vėl gali pulti', attack(g, 'you', 'A1', { kind: 'unit', side: 'ai', uid: 'Def' }).ok && attack(g, 'you', 'A2', { kind: 'unit', side: 'ai', uid: 'Def' }).ok)
+  check('ištrauktos 2 kortos (ranka −1 burtas +2)', g.you.hand.length === hand0 - 1 + 2, `${hand0} -> ${g.you.hand.length}`)
+  check('nepuolęs A3 turi tik savo vieną ataką', attack(g, 'you', 'A3', { kind: 'unit', side: 'ai', uid: 'Def' }).ok && !attack(g, 'you', 'A3', { kind: 'unit', side: 'ai', uid: 'Def' }).ok)
+}
 console.log(`\n${pass} ✓ / ${fail} ✗`); if (fail) process.exit(1)

@@ -256,6 +256,7 @@
   },
   "noAttacker": "„{{src}}\": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją\").",
   "noDamage": "„{{card}}\" žalos negauna (0).",
+  "refreshAttacks": "Padarai, kurie jau puolė, gali pulti dar kartą: {{n}}.",
   "noDamagePlayer": {
     "ai": "Priešininkas žalos negauna (0).",
     "you": "Tu žalos negauni (0)."

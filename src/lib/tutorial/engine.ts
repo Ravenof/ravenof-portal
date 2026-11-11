@@ -793,7 +793,18 @@ function auraZmkDeltaFor(g: GameState, side: Side): number {
 
 /** ŽMK reikšmė po žaidėjo `remapZmkValue` pakeitimų. */
 function remapZmk(g: GameState, s: Side, v: ZmkValue): ZmkValue {
-  return P(g, s).zmkRemap?.[v] ?? v
+  const p = P(g, s)
+  let out = p.zmkRemap?.[v] ?? v
+  // Aura „tavo žalos modifikatoriai A veikia kaip B“ (762): šeimininko nenutildyti padarai ir artefaktai.
+  const srcs = [
+    ...p.units.filter((u): u is BoardUnit => !!u && !u.statuses.silenced),
+    ...p.artifacts.filter((a): a is BoardArtifact => !!a),
+  ]
+  for (const c of srcs) {
+    const pa = c.card.gameplay?.passiveAura
+    if (pa?.auraZmkRemapFrom && pa.auraZmkRemapTo && pa.auraZmkRemapFrom === out) { out = pa.auraZmkRemapTo as ZmkValue; break }
+  }
+  return out
 }
 
 export const isClassicGame = (g: GameState): boolean => g.format === 'classic'
@@ -1826,6 +1837,11 @@ function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
 }
 
 type SummonZoneOpts = { costMax?: number; subtype?: string; factionId?: number; count?: number }
+/** „Gali būti iškviestas vietoje X“ (gameplay.summonAlias): ar kortos alias'as yra ieškomų vardų sąraše. */
+function summonAliasMatches(c: TutCard, whitelist: string[]): boolean {
+  const al = (c.gameplay?.summonAlias ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+  return al.some((a) => whitelist.includes(a))
+}
 type SummonAdvOpts = { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }
 /** Vieno iškvietimo rezultatas: 'ok' – padaras įrašytas į būseną; kitaip – priežastis. */
 type SummonOnce = 'ok' | 'noSlot' | 'noCard'
@@ -1883,7 +1899,7 @@ function summonOneAdvanced(g: GameState, s: Side, opts: SummonAdvOpts): SummonOn
     (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
     (!want || (c.subtype ?? '').toLowerCase() === want) &&
     (!wantFacA || c.factionId === wantFacA) &&
-    (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
+    (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()) || summonAliasMatches(c, nameWhitelist))
   const slot = freeUnitSlot(g, p)
   if (slot === -1) { log(g, { t: 'blocked', side: s, key: 'battleLog.zoneFullSummon' }); return 'noSlot' }
   let src: TutCard[] | null = null
@@ -1936,7 +1952,7 @@ function summonAdvancedPrim(g: GameState, s: Side, opts: SummonAdvOpts) {
       (opts.costMin == null || (c.gold ?? 0) >= opts.costMin) &&
       (!want || (c.subtype ?? '').toLowerCase() === want) &&
       (!wantFacA || c.factionId === wantFacA) &&
-      (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()))
+      (nameWhitelist.length === 0 || nameWhitelist.includes(c.name.trim().toLowerCase()) || summonAliasMatches(c, nameWhitelist))
     const options: { card: TutCard; zone: 'hand' | 'deck' | 'discard' }[] = []
     for (const z of zones) {
       const arr = z === 'hand' ? p.hand : z === 'deck' ? p.deck : p.discard
@@ -3024,6 +3040,18 @@ function setSpellDiscountPrim(g: GameState, s: Side, n: number) {
   p.spellDiscountNext = Math.max(p.spellDiscountNext, n)
   log(g, { t: 'gold', side: s, value: -n, key: `battleLog.spellDiscount.${SK(s)}`, params: { gold: n } })
 }
+/** „Kurie šį ėjimą puolė – gali pulti dar kartą“ (762): atstato atakas; grąžina paveiktų padarų skaičių. */
+function refreshAttacksPrim(g: GameState, s: Side): number {
+  const p = P(g, s)
+  let n = 0
+  for (const u of p.units) {
+    if (!u || u.isChampion || u.attacksUsed <= 0) continue
+    u.attacksUsed = 0; n++
+  }
+  if (n > 0) p.attacksThisTurn = Math.max(0, p.attacksThisTurn - n)   // lauko atakų limitas neturi „suvalgyti“ grąžintų atakų
+  log(g, { t: 'buff', side: s, key: 'battleLog.refreshAttacks', params: { n } })
+  return n
+}
 function setTurnCostDiscountPrim(g: GameState, s: Side, amount: number, floor: number) {
   const p = P(g, s)
   const cur = p.turnCostDiscount
@@ -3193,6 +3221,7 @@ export const gameApi: GameApi = {
   scheduleGoldBonus: scheduleGoldBonusPrim,
   setZmkRemap: setZmkRemapPrim,
   discardHandAndDraw: discardHandAndDrawPrim,
+  refreshAttacks: refreshAttacksPrim,
   notifyStatusGained: notifyStatusGainedPrim,
   arrangeDeckTop: arrangeDeckTopPrim,
   counterCurrentSpell: counterCurrentSpellPrim,
@@ -4099,7 +4128,17 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   if (g.rollContext.poisonedSides) g.rollContext.poisonedSides[s] = !!u.statuses.poisoned
   if (g.rollContext.blessedSides) g.rollContext.blessedSides[s] = !!u.statuses.blessed
   if (u.statuses.blessed) { delete u.statuses.blessed; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'destroy', statusId: 'blessed', src: { side: s, uid: u.uid }, key: 'battleLog.blessedUsed', params: { card: u.card.name } }) }
-  if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'remove', statusId: 'stealth', src: { side: s, uid: u.uid }, key: 'battleLog.stealthEnd', params: { card: u.card.name } }) }
+  // Atakos pasyvai (762). Nutildytam padarui negalioja.
+  const atkGp = u.statuses.silenced ? undefined : u.card.gameplay
+  if (atkGp?.attackKeepsStealth) {
+    // „Puldamas visada turi Sėlinimą“: nepraranda, o jei neturėjo – įgyja.
+    if (!u.stealth) { u.stealth = true; log(g, { t: 'buff', side: s, cardName: u.card.name, statusEvt: 'apply', statusId: 'stealth', src: { side: s, uid: u.uid }, key: 'battleLog.keywordGained', params: { card: u.card.name, keyword: tref('statusEffects.stealth.name') } }) }
+  } else if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'remove', statusId: 'stealth', src: { side: s, uid: u.uid }, key: 'battleLog.stealthEnd', params: { card: u.card.name } }) }
+  if (atkGp?.attackWithShield && !u.shield) {
+    // „Puldamas visada turi Magišką skydą“: skydas uždedamas prieš smūgį ir sugeria atgalinę žalą.
+    u.shield = true
+    log(g, { t: 'buff', side: s, cardName: u.card.name, statusEvt: 'apply', statusId: 'shield', src: { side: s, uid: u.uid }, key: 'battleLog.keywordGained', params: { card: u.card.name, keyword: tref('statusEffects.shield.name') } })
+  }
   const foe: Side = ('side' in target) ? target.side : other(s)  // 2v2: gynėjas pagal taikinio seat'ą
   // onAttack mapping'ai (puolančiojo). useAttackTarget → efektas taikomas į atakuotą taikinį.
   // VYKDOMI PRIEŠ apskaičiuojant ATK, kad boost'ai (pvz. buffAttack su 'thisAttack') galiotų šiai atakai.
@@ -4138,7 +4177,8 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     }
     if (g.rollContext?.kind === 'attack' && g.rollContext.poisonedSides) g.rollContext.poisonedSides[foe] = !!def.statuses.poisoned
     const defAtk = def.isChampion ? 0 : effectiveAtk(g, def)
-    const defRetaliates = !def.statuses.frozen && defAtk > 0 // Sušaldytas nedaro atgalinės žalos
+    // Sušaldytas nedaro atgalinės žalos; „negauna atgalinės žalos“ pasyvas (762) – taip pat.
+    const defRetaliates = !def.statuses.frozen && defAtk > 0 && !atkGp?.noRetaliationDamage
     // Fazė 8: kodėl gynėjas neatsikirto? Anksčiau tai vykdavo TYLIAI ir atrodė
     // kaip klaida („kodėl aš negavau žalos atgal?"). Dabar tai matomas įvykis:
     // eina per tą patį statusEvt srautą, tad PvP svečias atkuria identiškai.

@@ -116,6 +116,7 @@ export function lintCardGameplay(card: LintCard): LintIssue[] {
   // ── Tekstas vs konfigūracija ──
   const hasAnyConfig = tops.length > 0 || hasPassiveAura || !!g.extraAttacks || !!(g.fieldEffectConfig as Loose | undefined)?.passive
     || !!g.attackRestriction || !!g.ignoreTaunt || !!g.retreatAtHp || !!g.secondAttackVsShield
+    || !!g.attackWithShield || !!g.attackKeepsStealth || !!g.noRetaliationDamage || !!g.summonAlias || !!g.secondAttackOnKill
   if (text && !hasAnyConfig && !KEYWORD_ONLY.test(text)) add('error', 'textNoConfig', 'Korta turi efekto tekstą, bet jokios konfigūracijos – žaidime ji be efekto')
   if (text && tops.length > 0) {
     if (/kovos šūksnis/i.test(text) && !triggers.has('onSummon') && !triggers.has('onPlay')) add('warn', 'battlecryNoTrigger', 'Tekste „Kovos šūksnis", bet nėra onSummon / onPlay efekto')

@@ -256,6 +256,7 @@
   },
   "noAttacker": "\"{{src}}\": there is no attacker (use onAttacked + \"effect on attacker\").",
   "noDamage": "\"{{card}}\" takes no damage (0).",
+  "refreshAttacks": "Units that already attacked can attack again: {{n}}.",
   "noDamagePlayer": {
     "ai": "The opponent takes no damage (0).",
     "you": "You take no damage (0)."

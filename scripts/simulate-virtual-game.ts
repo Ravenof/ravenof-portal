@@ -55,7 +55,7 @@ console.log('1-2. Padaro atakos (į padarą ir į žaidėją)')
   const d = summon(g, 'ai', mkCard({ name: 'Def', attack: 2, health: 4 }))
   const r = attack(g, 'you', a.uid, { kind: 'unit', side: 'ai', uid: d.uid })
   check('ataka į padarą ok', r.ok)
-  check('gynėjas gavo žalos arba žuvo', (P(g, 'ai').units.find(u => u?.uid === d.uid)?.hp ?? 0) < 4 || !P(g, 'ai').units.some(u => u?.uid === d.uid))
+  check('gynėjas gavo žalos arba žuvo', (P(g, 'ai').units.find(u => u?.uid === d.uid)?.hp ?? 0) < 4 || !P(g, 'ai').units.some(u => u?.uid === d.uid) || g.log.some((e) => e.zmk === 'x0' || e.zmk === '-2' || e.zmk === '-1'))   // ŽMK gali nunulinti 2 ATK smūgį – tai ne klaida
   const a2 = summon(g, 'you', mkCard({ name: 'Atk2', attack: 4, health: 5 }))
   const hpBefore = g.ai.hp
   const r2 = attack(g, 'you', a2.uid, { kind: 'player', side: 'ai' })

@@ -18,7 +18,7 @@ import {
   playZmkCrit, playZmkFizzle,
   synthBuff, synthDebuff, synthGold, synthPuff, synthTurnStart, synthTurnStartEnemy, synthTurnEnd,
   synthReturnHand, synthShieldUp, synthShieldBreak, synthStatusBurn, synthStatusPoison,
-  synthStatusStun, synthStatusSilence, synthFatigue,
+  synthStatusStun, synthStatusSilence, synthFatigue, synthVictory, synthDefeat, synthHeartbeat,
 } from '@/lib/ui-sound'
 import { isSfxDead, playSfxUrl, preloadSfx, sfxVariants } from '@/lib/sfxPlayer'
 import type { BattleSoundType } from './types'
@@ -65,6 +65,9 @@ const BASE: Record<BattleSoundType, string> = {
   lastwishSting:  'lastwish-sting',
   triggerSting:   'trigger-sting',
   fatigue:        'fatigue',
+  victory:        'victory',
+  defeat:         'defeat',
+  heartbeat:      'heartbeat',
 }
 
 /** Garsai, kurių failai guli `public/sounds/reaction/`, o ne `battle/`. */
@@ -127,10 +130,13 @@ const SYNTH_FALLBACK: Record<BattleSoundType, () => void> = {
   lastwishSting:  playError,
   triggerSting:   playCardFlip,
   fatigue:        synthFatigue,
+  victory:        synthVictory,
+  defeat:         synthDefeat,
+  heartbeat:      synthHeartbeat,
 }
 
 /** Raktai be aukščio variacijos (melodiniai / „signaliniai" – pitch pokytis skambėtų netiksliai). */
-const NO_PITCH = new Set<BattleSoundType>(['turnStart', 'turnStartEnemy', 'championSkill', 'battlecrySting', 'lastwishSting', 'zmkCrit'])
+const NO_PITCH = new Set<BattleSoundType>(['turnStart', 'turnStartEnemy', 'championSkill', 'battlecrySting', 'lastwishSting', 'zmkCrit', 'victory', 'defeat', 'heartbeat'])
 /** Min. tarpas tarp to paties rakto grojimų – kad AoE nesusilietų į vieną „sienos" garsą. */
 const MIN_GAP_MS = 45
 

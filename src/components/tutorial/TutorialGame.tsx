@@ -6,6 +6,8 @@
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
 import { StatGem, gemSize } from './StatGem'
+import { RollingNumber } from './RollingNumber'
+import { BugIcon, RotateIcon, EyeIcon } from './BattleIcons'
 import { createServerChannel, isServerChannel, pvpServerUrl } from '@/lib/pvp/serverChannel'
 import { netActionNotAllowed } from '@/lib/pvp/guard'
 import DesktopBattleLayout from './DesktopBattleLayout'
@@ -447,7 +449,7 @@ function ZmkRoll({ roll, game }: { roll: { side: Side; a: ZmkValue; b: ZmkValue;
         {/* Panaudota – lieka, padidėja, švyti */}
         <motion.div initial={{ scale: 0.4, rotateY: 90, opacity: 0 }} animate={{ scale: [0.4, 1, 1.14, 1.1], rotateY: 0, opacity: [0, 1, 1, 1] }} transition={{ duration: 0.7, times: [0, 0.5, 0.8, 1] }} style={{ transformStyle: 'preserve-3d' }}>
           <ZmkRollCard v={picked} game={game} />
-          <div className="text-center text-[10px] font-bold mt-1" style={{ color: zmkCol(picked) }}>✓ panaudota</div>
+          <div className="text-center text-[10px] font-bold mt-1" style={{ color: zmkCol(picked) }}>{tGlobal('battle.game.zmkUsed')}</div>
         </motion.div>
         {/* Nepanaudota – subyra į gabalus */}
         <div className="relative">
@@ -676,7 +678,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       {!dead && (
         <span className="absolute" style={{ left: '50%', top: '85.7%', transform: 'translate(-50%, -50%)', zIndex: 3,
           fontFamily: 'var(--rvn-font-display)', fontWeight: 800, fontSize: Math.round(size * 0.155), lineHeight: 1,
-          color: crit ? '#ff6b6b' : '#d7c7aa', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}>{Math.max(0, hp)}</span>
+          color: crit ? '#ff6b6b' : '#d7c7aa', textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)' }}><RollingNumber value={Math.max(0, hp)} /></span>
       )}
     </motion.div>
   )
@@ -1137,14 +1139,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const [, setSkinTick] = useState(0)
 
   // Projectile animacijos
-  const [projectiles, setProjectiles] = useState<{ id: number; emoji: string; from: { x: number; y: number }; to: { x: number; y: number } }[]>([])
   // projectileType → FX elemento variantas (heal/poison/necrotic/curse trail+impact)
   const projVariant = (proj?: string | null): AoeVariant | undefined =>
     proj === 'arrow' ? 'arrow' : proj === 'fireball' ? 'fire' : proj === 'lightning' ? 'lightning' : proj === 'freezeBurst' ? 'ice'
       : proj === 'stunBurst' ? 'lightning' : proj === 'poisonGlob' ? 'poison' : proj === 'darkCurse' ? 'curse'
       : proj === 'healingGlow' ? 'heal' : undefined
   const [impacts, setImpacts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
-  const projIdRef = useRef(0)
   // Rankos padidinimas
   const [handExpanded, setHandExpanded] = useState(false)
   // Sutrauktas tutorial popup
@@ -1233,6 +1233,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const [enemyAvatar, setEnemyAvatar] = useState<BattleAvatar | null>(null)
   const [avatarFlash, setAvatarFlash] = useState<Partial<Record<Side, 'hit' | 'heal' | null>>>({})
   const [avatarDead, setAvatarDead] = useState<Side | null>(null)   // pralaimėjusiojo avataras subyrėjęs
+  const [finalFocus, setFinalFocus] = useState<{ x: number; y: number } | null>(null)   // paskutinio smūgio „prožektorius"
   const [endShown, setEndShown] = useState(false)                    // pabaigos modalas rodomas tik po defeat sekos
   const [youVid, setYouVid] = useState<string | null>(null)
   const [enemyVid, setEnemyVid] = useState<string | null>(null)
@@ -1967,21 +1968,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     return { x: window.innerWidth / 2, y: window.innerHeight / 2 }
   }, [])
 
-  const PROJ_EMOJI: Record<string, string> = useMemo(() => ({
-    fireball: '🔥', darkCurse: '🟣', healingGlow: '✨', freezeBurst: '❄️',
-    stunBurst: '💫', destroyStrike: '⚔️', arrow: '🏹', lightning: '⚡', poisonGlob: '☣️',
-  }), [])
-
-  const spawnProjectile = useCallback((from: { x: number; y: number }, to: { x: number; y: number }, emoji: string) => {
-    const id = ++projIdRef.current
-    setProjectiles((ps) => [...ps, { id, emoji, from, to }])
-    setTimeout(() => {
-      setProjectiles((ps) => ps.filter((x) => x.id !== id))
-      setImpacts((im) => [...im, { id, x: to.x, y: to.y, emoji }])
-      playBattleSound('impact', 0.35)
-      setTimeout(() => setImpacts((im) => im.filter((x) => x.id !== id)), 500)
-    }, 420)
-  }, [])
 
   /** „Trūksta aukso": aukso skaitiklis trumpai sumirksi raudonai – matosi, KO trūksta, ne tik tekstas (759). */
   const flashGold = useCallback(() => {
@@ -2457,6 +2443,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           const loseId = winSide === 'you' ? enemyAvIdRef.current : youAvIdRef.current
           const blowEnd = SETTLE + fxSeq + 800   // kada baigiasi šio batch smūgių FX
           const tBoom = blowEnd + 1000           // +1 s po final blow
+          // Paskutinio smūgio dramaturgija (761): muzika nutyla, aplink pralaimėjusįjį sutemsta
+          // „prožektorius" – akis nuvedama ten, kur tuoj sprogs avataras. Be transformacijų
+          // (FX koordinatės lieka tikslios); reduced-motion – tik pritemdymas be judesio.
+          window.setTimeout(() => {
+            duckMusic(-14, 1000 + 2000 + 600)
+            const avEl0 = document.querySelector(`[data-player="${loser}"]`)
+            if (avEl0) { const r0 = avEl0.getBoundingClientRect(); setFinalFocus({ x: r0.left + r0.width / 2, y: r0.top + r0.height / 2 }) }
+          }, blowEnd)
+          window.setTimeout(() => setFinalFocus(null), tBoom + 1700)
           window.setTimeout(() => {
             setAvatarDead(loser)
             playBattleSound('explosion', 0.7)
@@ -2471,7 +2466,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             fxRef.current?.shakeBoard('hard')
           }, tBoom)
           window.setTimeout(() => playAvatarAudio(loseId, 'defeat'), tBoom + 800)
-          window.setTimeout(() => { setEndShown(true); if (winSide === 'you') playSuccess(); else playError() }, tBoom + 2000)
+          window.setTimeout(() => { setEndShown(true); playBattleSound(winSide === 'you' ? 'victory' : 'defeat', 0.6) }, tBoom + 2000)
           window.setTimeout(() => playAvatarAudio(winId, 'victory'), tBoom + 2400)
           break
         }
@@ -2644,14 +2639,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           // aišku, kodėl HP krito ėjimo pradžioje (o ne „iš niekur").
           if (su && e.statusEvt === 'trigger' && (stt === 'burning' || stt === 'poisoned' || stt === 'frozen')) {
             const uu = su
-            const tick = stt === 'burning' ? { icon: '🔥', col: '#fb923c', snd: 'impact' as const }
-              : stt === 'poisoned' ? { icon: '☠', col: '#84cc16', snd: 'curse' as const }
-              : { icon: '❄', col: '#7dd3fc', snd: 'freeze' as const }   // sušaldytas neatsikirto
+            // Ženklas – tos pačios FX sistemos dalelės (liepsna / nuodai / šerkšnas), ne emoji (761)
+            const tick = stt === 'burning' ? { kind: 'burn' as const, col: '#fb923c', snd: 'impact' as const }
+              : stt === 'poisoned' ? { kind: 'poison' as const, col: '#84cc16', snd: 'curse' as const }
+              : { kind: 'freeze' as const, col: '#7dd3fc', snd: 'freeze' as const }   // sušaldytas neatsikirto
             const d = SETTLE + fxSeq; fxSeq += 90
             window.setTimeout(() => {
               const at = unitRectsRef.current.get(uu) ?? rectFor({ uid: uu })
               if (at) {
-                fxRef.current?.floatNumber(at.x, at.y - 26, tick.icon, tick.col, 'small')
+                fxRef.current?.spawn({ kind: tick.kind, to: at, color: tick.col, duration: 0.75, intensity: 'small' })
                 playBattleSound(tick.snd, 0.24)
               }
             }, d)
@@ -2927,7 +2923,6 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         }, (isAtk ? 220 : 200) + hold)
         const popAt = rectOf(tgt)
         if (popAt) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col; window.setTimeout(() => spawnPop(pc, popAt, pcol, undefined), isAtk ? 260 : 220) }
-        void PROJ_EMOJI; void spawnProjectile
       }
     }
     // ── Status VFX: struktūrizuoti būsenų įvykiai → bus (seq = log indeksas, dedup) ──
@@ -3007,7 +3002,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         (step.require === 'any-play' && e.side === 'you' && ['play', 'spell', 'artifact'].includes(e.t)))
       if (done) setStepIdx((i) => i + 1)
     }
-  }, [game, step, queueTip, PROJ_EMOJI, rectFor, fxCenter, spawnProjectile, cardByName, findCard])
+  }, [game, step, queueTip, rectFor, fxCenter, cardByName, findCard])
 
   // ŽMK flash dingsta
   useEffect(() => {
@@ -3527,7 +3522,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       // Serveris atmetė veiksmą (server-authoritative): parodom priežastį (i18n raktas).
       ch.on('broadcast', { event: 'reject' }, ({ payload }) => {
         const { reason, params } = payload as { reason?: string; params?: Record<string, string | number> }
-        pushToast(reason ? t(reason, params) : 'Veiksmas negalimas')
+        pushToast(reason ? t(reason, params) : t('battle.game.actionNotAllowed'))
         if (reason && /notEnoughGold/.test(reason)) flashGold()
       })
       // Host prašo svečio kaladės – atsiunčiam pasirinktą kaladę
@@ -3725,7 +3720,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           reasonParams?: Record<string, string | number>
           reasonRefs?: { side: Side; uid: string }[]
         }
-        pushToast(rr.reason ? t(rr.reason, rr.reasonParams) : 'Veiksmas negalimas')
+        pushToast(rr.reason ? t(rr.reason, rr.reasonParams) : t('battle.game.actionNotAllowed'))
         if (rr.reason && /notEnoughGold/.test(rr.reason)) flashGold()
         // Status VFX: bandymas veikti su frozen/stunned → trigger animacija ant kortos
         const aid = (a as { uid?: string; attackerUid?: string }).attackerUid ?? (a as { uid?: string }).uid
@@ -3843,6 +3838,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     return () => window.clearTimeout(tm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.winner, endShown])
+
+  // Žemas HP (≤25 %): tylus širdies plakimas, kol kova vyksta (761). Sustoja pagijus, pasibaigus kovai ar paslėpus langą.
+  const lowHpNow = !!game && !game.winner && game.you.hp > 0 && game.you.hp <= Math.ceil(game.you.maxHp * 0.25)
+  useEffect(() => {
+    if (!lowHpNow) return
+    const beat = () => { if (typeof document === 'undefined' || !document.hidden) playBattleSound('heartbeat', 0.3) }
+    beat()
+    const iv = window.setInterval(beat, 1150)
+    return () => window.clearInterval(iv)
+  }, [lowHpNow])
 
   // Ėjimui pasikeitus – per vidurį ekrano parodom kieno eilė (nickas + „eilė")
   useEffect(() => {
@@ -4572,7 +4577,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           {topCard ? <MiniCard c={topCard} w={pw} /> : (opts?.back && count > 0 ? <PileBack kind={opts.back} owner={opts?.pileKey?.includes('-ai') ? 'opp' : 'me'} /> : null)}
           <span className={hasArt ? 'absolute bottom-0 right-0 px-1 rounded-tl-md text-[10px] font-bold' : 'text-[11px] font-bold'}
             style={{ color: 'var(--gold)', background: hasArt ? 'rgba(0,0,0,0.8)' : 'transparent', lineHeight: hasArt ? '1.3' : undefined }}>{count}</span>
-          {interactive && <span className="absolute -top-1.5 -right-1.5 text-[9px]">👁</span>}
+          {interactive && <span className="absolute -top-1.5 -right-1.5" style={{ color: '#c4b5fd', lineHeight: 0 }}><EyeIcon size={11} /></span>}
         </div>
         <span className="text-[8px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</span>
       </div>
@@ -4699,7 +4704,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 style={{ width: hMobile ? 42 : isTouch ? 40 : 60, height: hMobile ? 56 : isTouch ? 54 : 72, background: 'linear-gradient(145deg, #241a38, #0d0a14)', border: '1px solid rgba(139,92,246,0.7)' }}>
                 <span className="absolute inset-0 flex items-center justify-center text-sm opacity-70">⚡</span>
                 <PileBack kind="curse" />
-                <span className="absolute bottom-0 left-0 right-0 text-[7px] text-center" style={{ color: 'rgba(167,139,250,0.9)' }}>👁</span>
+                <span className="absolute bottom-0 left-0 right-0 flex justify-center" style={{ color: 'rgba(167,139,250,0.9)', lineHeight: 0 }}><EyeIcon size={9} /></span>
                 <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-full text-[11px] font-extrabold inline-flex items-center gap-0.5"
                   style={{ background: 'rgba(0,0,0,0.92)', color: 'var(--gold)', border: '1px solid rgba(240,180,41,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.65)' }}>{r.paid}{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} style={{ width: 11, height: 11, objectFit: 'contain' }} /></span>
               </button>
@@ -4792,6 +4797,24 @@ doAction({ t: 'endTurn', actor: 'you' })
     )
   }
 
+  /**
+   * Čempiono fazės reikalavimas (QA #8, 762): aukštesnės fazės korta, kurios dabar negalima nei
+   * evoliucionuoti (lauke nėra ankstesnės fazės), nei iškeisti į žemesnę (jos nėra kaladėje / kapinyne),
+   * rankoje rodoma pritemdyta IŠ ANKSTO – ne tik pranešimu po paspaudimo.
+   */
+  const champPhaseBlocked = (c: TutCard): boolean => {
+    if (!game || c.type !== 'champion') return false
+    const ph = c.championPhase ?? null
+    if (ph == null || ph <= 1) return false
+    const fam = c.championGroup ?? null
+    const onField = game.you.units.find((u) => u?.isChampion && (fam ? u.card.championGroup === fam : true))
+    if (onField && onField.phase === ph - 1) return false
+    for (let tp = 1; tp < ph; tp++) {
+      if (game.you.deck.some((d) => d.championGroup === fam && d.championPhase === tp)) return false
+      if (game.you.discard.some((d) => d.championGroup === fam && d.championPhase === tp)) return false
+    }
+    return true
+  }
   const goldBar = (side: Side) => {
     if (!game) return null
     const p = P(game, side)
@@ -4800,7 +4823,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(240,180,41,0.4)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" draggable={false} className="shrink-0" style={{ width: 22, height: 22, objectFit: 'contain' }} />
-        <span className="text-sm sm:text-lg font-bold tabular-nums" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{p.gold}</span>
+        <span className="text-sm sm:text-lg font-bold tabular-nums" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}><RollingNumber value={p.gold} minMs={160} maxMs={420} /></span>
       </div>
     )
   }
@@ -4865,7 +4888,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-0.5">
           {n === 0 ? <span className="text-[10px] self-center" style={{ color: 'var(--text-muted)' }}>{t('battle.game.handEmpty')}</span> : game.you.hand.map((c, i) => {
             const off = i - (n - 1) / 2
-            const afford = game.you.gold >= effectiveCost(game, 'you', c)
+            const afford = game.you.gold >= effectiveCost(game, 'you', c) && !champPhaseBlocked(c)
             const isDragging = drag?.uid === c.uid && dragMovedRef.current
             return (
               <div key={c.uid} data-hand-card={c.name}
@@ -4884,7 +4907,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-1" style={{ paddingTop: 28 }}>
         <AnimatePresence>
           {game.you.hand.map((c, i) => {
-            const afford = game.you.gold >= effectiveCost(game, 'you', c)
+            const afford = game.you.gold >= effectiveCost(game, 'you', c) && !champPhaseBlocked(c)
             const isDragging = drag?.uid === c.uid && dragMovedRef.current
             const n = game.you.hand.length
             const off = i - (n - 1) / 2
@@ -4935,7 +4958,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full">
         {n === 0 && <span className="text-sm self-center" style={{ color: 'var(--text-muted)' }}>{t('battle.game.handEmpty')}</span>}
         {game.you.hand.map((c, i) => {
-          const afford = game.you.gold >= effectiveCost(game, 'you', c)
+          const afford = game.you.gold >= effectiveCost(game, 'you', c) && !champPhaseBlocked(c)
           const isDragging = drag?.uid === c.uid && dragMovedRef.current
           const off = i - (n - 1) / 2
           const rot = big ? off * Math.min(2.2, 12 / Math.max(1, n)) : off * Math.min(3.6, 18 / Math.max(1, n))
@@ -5024,37 +5047,29 @@ doAction({ t: 'endTurn', actor: 'you' })
     </div>
   )
 
-  // Targeting kursorius: spell – projectile emoji, ataka – kardai
+  // Taikymo kursorius: paprastas kryžiukas (anksčiau – emoji paveikslėlis, kuris kiekvienoje OS atrodė kitaip).
   const targetingCursor = useMemo(() => {
     if (!select || select.kind === 'discard' || select.kind === 'sacrifice') return undefined
-    const emoji = select.kind === 'attacker'
-      ? '⚔️'
-      : PROJ_EMOJI[
-          (game?.you.hand.find((c) => select.kind === 'spell' && c.uid === select.uid)
-            ? projectileForCard(game.you.hand.find((c) => c.uid === (select as { uid: string }).uid)!)
-            : 'fireball')
-        ] ?? '🔥'
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text x='2' y='24' font-size='22'>${emoji}</text></svg>`
-    return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 16 16, crosshair`
-  }, [select, game, PROJ_EMOJI])
+    return 'crosshair'
+  }, [select])
 
   // Taikymo etiketė prie kursoriaus (desktop): koks efektas vyks
   const selectLabel = useMemo(() => {
     if (!select || !game) return ''
-    if (select.kind === 'attacker') { const u = game.you.units.find((x) => x?.uid === select.uid); return `⚔ Ataka${u ? ' ' + effectiveAtk(game, u) : ''}` }
+    if (select.kind === 'attacker') { const u = game.you.units.find((x) => x?.uid === select.uid); return `${t('battle.game.selAttack')}${u ? ' ' + effectiveAtk(game, u) : ''}` }
     if (select.kind === 'spell' || select.kind === 'spellMulti') {
       const card = game.you.hand.find((c) => c.uid === select.uid)
       const m = card ? selectionMappingFor(card) : null
-      const eff = m ? (EFFECT_TYPES.find((e) => e.value === m.effect)?.label ?? 'Efektas') : 'Burtas'
+      const eff = m ? (EFFECT_TYPES.find((e) => e.value === m.effect)?.label ?? t('battle.game.selEffect')) : t('battle.game.selSpell')
       const val = m && m.value != null ? ' ' + m.value : ''
       const cnt = select.kind === 'spellMulti' ? ` (${select.picked.length}/${select.need})` : ''
-      return `✨ ${eff}${val}${cnt}`
+      return `${eff}${val}${cnt}`
     }
-    if (select.kind === 'sacrifice') return `⚜ Tribute (${select.picked.length}/2)`
+    if (select.kind === 'sacrifice') return `${t('battle.game.selTribute')} (${select.picked.length}/2)`
     if (select.kind === 'lastwish') {
       const m = game.pendingLastwish?.mappings[0]
-      const eff = m ? (EFFECT_TYPES.find((e) => e.value === m.effect)?.label ?? 'Efektas') : 'Paskutinis noras'
-      return `🕯 ${eff} (${select.picked.length}/${select.need})`
+      const eff = m ? (EFFECT_TYPES.find((e) => e.value === m.effect)?.label ?? t('battle.game.selEffect')) : t('battle.game.selLastwish')
+      return `${eff} (${select.picked.length}/${select.need})`
     }
     return ''
   }, [select, game])
@@ -5193,7 +5208,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <button onClick={() => { playUiClick(); setShowLog((v) => !v) }} title={t('battle.game.logTip')}
             className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-log.png" alt="" /></button>
           <button onClick={() => { playUiClick(); setBugOpen(true) }} title={t('bug.title')} aria-label={t('bug.title')}
-            className="combat-round-icon" style={{ fontSize: 14, lineHeight: 1 }}>🐞</button>
+            className="combat-round-icon" style={{ lineHeight: 1, color: '#e8c873', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><BugIcon size={16} /></button>
           <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')}
             className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-close.png" alt="" /></button>
           {/* eslint-enable @next/next/no-img-element */}
@@ -5206,7 +5221,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         <div className="fixed top-1 right-1 z-[130] flex items-center gap-1">
           {/* eslint-disable @next/next/no-img-element */}
           <button onClick={() => { toggleUiSound(); playUiClick() }} title={soundOn ? t('battle.game.sound') : t('battle.game.soundMuted')} className="combat-round-icon"><img src={soundOn ? '/ravenof-ui/combat/icons/icon-sound-on.png' : '/ravenof-ui/combat/icons/icon-sound-off.png'} alt="" style={{ opacity: soundOn ? 1 : 0.55 }} /></button>
-          <button onClick={() => { playUiClick(); setBugOpen(true) }} title={t('bug.title')} aria-label={t('bug.title')} className="combat-round-icon" style={{ fontSize: 14, lineHeight: 1 }}>🐞</button>
+          <button onClick={() => { playUiClick(); setBugOpen(true) }} title={t('bug.title')} aria-label={t('bug.title')} className="combat-round-icon" style={{ lineHeight: 1, color: '#e8c873', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><BugIcon size={16} /></button>
           <button onClick={() => { playUiClick(); closeGame() }} title={t('battle.game.closeTip')} className="combat-round-icon"><img src="/ravenof-ui/combat/icons/icon-close.png" alt="" /></button>
           {/* eslint-enable @next/next/no-img-element */}
         </div>
@@ -5303,7 +5318,7 @@ doAction({ t: 'endTurn', actor: 'you' })
       {useHLayout && isTouch && showRotate && (
         <div className="fixed inset-0 z-[400] flex flex-col items-center justify-center gap-4 px-6 text-center"
           style={{ background: 'rgba(6,4,11,0.98)' }}>
-          <div className="text-6xl" style={{ animation: 'rvnRotateHint 1.6s ease-in-out infinite' }}>🔄</div>
+          <div style={{ animation: 'rvnRotateHint 1.6s ease-in-out infinite', color: '#e8c873', lineHeight: 0 }}><RotateIcon size={64} /></div>
           <p className="text-xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{t('battle.game.rotateTitle')}</p>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('battle.game.rotateText')}</p>
         </div>
@@ -5379,7 +5394,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                 {game.you.hand.map((c, i) => {
                   const n = game.you.hand.length
                   const off = i - (n - 1) / 2
-                  const afford = game.you.gold >= effectiveCost(game, 'you', c)
+                  const afford = game.you.gold >= effectiveCost(game, 'you', c) && !champPhaseBlocked(c)
                   const isDragging = drag?.uid === c.uid && dragMovedRef.current
                   const vw = typeof window !== 'undefined' ? window.innerWidth : 400
                   const step = Math.min(handW * 0.96, (vw - handW - 10) / Math.max(1, n - 1))  // tarpas tarp kortų – kad ~10 tilptų ekrane
@@ -5483,7 +5498,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div data-tut="hand" ref={handRef} className="flex justify-center items-end h-full pb-2" style={{ paddingTop: 40 }}>
                 <AnimatePresence>
                   {game.you.hand.map((c, i) => {
-                    const afford = game.you.gold >= effectiveCost(game, 'you', c)
+                    const afford = game.you.gold >= effectiveCost(game, 'you', c) && !champPhaseBlocked(c)
                     const isDragging = drag?.uid === c.uid && dragMovedRef.current
                     const n = game.you.hand.length
                     const off = i - (n - 1) / 2
@@ -5558,6 +5573,14 @@ doAction({ t: 'endTurn', actor: 'you' })
         )}
       </AnimatePresence>
 
+      {/* ── paskutinio smūgio prožektorius (761) ── */}
+      <AnimatePresence>
+        {finalFocus && (
+          <motion.div key="final-focus" aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.45 }}
+            className="fixed inset-0 pointer-events-none" style={{ zIndex: 45,
+              background: `radial-gradient(circle at ${Math.round(finalFocus.x)}px ${Math.round(finalFocus.y)}px, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 120px, rgba(6,3,10,0.62) 360px, rgba(6,3,10,0.78) 100%)` }} />
+        )}
+      </AnimatePresence>
       {/* ── klaidos toast ── */}
       <AnimatePresence>
         {toast && (
@@ -6096,16 +6119,6 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── projectile / impact sluoksnis ── */}
       <div className="fixed inset-0 z-[128] pointer-events-none">
         <AnimatePresence>
-          {projectiles.map((pr) => (
-            <motion.div key={pr.id}
-              initial={{ left: pr.from.x - 16, top: pr.from.y - 16, scale: 0.6, opacity: 0.9 }}
-              animate={{ left: pr.to.x - 16, top: pr.to.y - 16, scale: 1.15, opacity: 1 }}
-              transition={{ duration: 0.42, ease: 'easeIn' }}
-              className="absolute text-3xl"
-              style={{ textShadow: '0 0 14px rgba(240,180,41,0.8)' }}>
-              {pr.emoji}
-            </motion.div>
-          ))}
           {impacts.map((im) => (
             <motion.div key={'imp' + im.id}
               initial={{ scale: 0.4, opacity: 1 }}

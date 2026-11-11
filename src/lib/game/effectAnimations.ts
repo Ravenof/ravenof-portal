@@ -18,36 +18,6 @@ export type FxKind =
 
 export type FxIntensity = 'small' | 'normal' | 'big'
 
-export type FxOrigin = 'sourceCard' | 'target' | 'deck' | 'board'
-
-export type EffectAnim = {
-  animation: FxKind
-  duration: number          // sekundėmis (rekomendacijos: small 0.8-1.2, normal 1.3-2.0, big 2.0-2.8)
-  origin: FxOrigin
-  targetReaction: 'shakeFlash' | 'crackDissolve' | 'glow' | 'multiShake' | 'pop' | 'darken' | 'frost' | 'none'
-  sound?: string            // soundManager raktas
-}
-
-// Loginis efekto tipas → animacijos aprašas
-export const effectAnimationMap: Record<string, EffectAnim> = {
-  damage:     { animation: 'projectile', duration: 1.3, origin: 'sourceCard', targetReaction: 'shakeFlash',   sound: 'impact' },
-  burn:       { animation: 'projectile', duration: 1.4, origin: 'sourceCard', targetReaction: 'shakeFlash',   sound: 'impact' },
-  destroy:    { animation: 'slash',      duration: 1.6, origin: 'sourceCard', targetReaction: 'crackDissolve', sound: 'death' },
-  heal:       { animation: 'healStream', duration: 1.4, origin: 'sourceCard', targetReaction: 'glow',          sound: 'heal' },
-  cleanse:    { animation: 'healStream', duration: 1.2, origin: 'sourceCard', targetReaction: 'glow',          sound: 'heal' },
-  buff:       { animation: 'buffSurge',  duration: 1.2, origin: 'sourceCard', targetReaction: 'pop',           sound: 'heal' },
-  debuff:     { animation: 'debuffDrain',duration: 1.3, origin: 'sourceCard', targetReaction: 'darken',        sound: 'freeze' },
-  curse:      { animation: 'curseMark',  duration: 1.5, origin: 'sourceCard', targetReaction: 'darken',        sound: 'curse' },
-  aoeDamage:  { animation: 'aoeWave',    duration: 1.8, origin: 'sourceCard', targetReaction: 'multiShake',    sound: 'impact' },
-  attack:     { animation: 'slash',      duration: 1.0, origin: 'sourceCard', targetReaction: 'shakeFlash',    sound: 'attack' },
-  spell:      { animation: 'projectile', duration: 1.3, origin: 'sourceCard', targetReaction: 'shakeFlash',    sound: 'spellCast' },
-  shield:     { animation: 'shield',     duration: 1.2, origin: 'target',     targetReaction: 'glow',          sound: 'heal' },
-  freeze:     { animation: 'freeze',     duration: 1.4, origin: 'sourceCard', targetReaction: 'frost',         sound: 'freeze' },
-  draw:       { animation: 'drawStream', duration: 1.2, origin: 'deck',       targetReaction: 'none',          sound: 'draw' },
-  summon:     { animation: 'summonPortal',duration: 1.4, origin: 'board',     targetReaction: 'pop',           sound: 'summon' },
-  revive:     { animation: 'graveRise',  duration: 1.8, origin: 'board',      targetReaction: 'pop',           sound: 'summon' },
-}
-
 // ── Frakcijų vizualiniai stiliai ──────────────────────────────────────────────
 export type FactionPalette = { primary: string; secondary: string; particle: string }
 
