@@ -11,6 +11,7 @@
 // Koordinatės: kiekviena scena turi virtualią erdvę (korta 84×~116 ties X,Y), kuri
 // mastelio `k` pagalba atvaizduojama į tikrą kortos vietą ekrane.
 // ═══════════════════════════════════════════════════════════════════════════
+import { drawCurseDemon } from './curseDemonFx'
 import { summonLandMs, skillCastMs, type FxProjId, type FxImpactId, type SummonFxId, type SkillFxId } from './fxCatalog'
 
 type Pt = { x: number; y: number }
@@ -1060,6 +1061,8 @@ export const fxStage = {
   /** Skrydis iš `from` į `to` (ekrano px) + smūgis. Grąžina, po kiek ms įvyks smūgis. */
   fly(proj: FxProjId, from: Pt, to: Pt, o: FlyOpts = {}): number {
     const def = PROJ[proj]; if (!def || !this.available() || !ensureCanvas(o.root)) return 0
+    // v4: taikinys – korta → pilna smūgio choreografija (užtaisymas, skrydis, smūgis, pasekmės)
+    if (V4 && o.targetEl && PROJ_TO_STRIKE[proj]) { const h4 = playStrike(PROJ_TO_STRIKE[proj], from, o.targetEl, { sourceEl: o.cast === false ? null : o.sourceEl, light: o.light, color: proj === 'orb' ? o.color : undefined, hooks: o.hooks, root: o.root, hitAt: o.hitAt, impact: o.impact, onHit: o.onHit }); if (h4 > 0) return h4 }
     const host = cv!.parentElement ?? document
     const tm = o.targetEl ? measure(o.targetEl) : null
     const k = tm ? tm.w / CW : defaultK(host)
@@ -1178,4 +1181,358 @@ export const fxStage = {
   stop(): void { hardReset() },
   /** Testams / HUD. */
   stats(): { particles: number; scenes: number; running: boolean; low: boolean } { return { particles: pN, scenes: SCENES.length, running, low: LOW } },
+}
+// ══ AoE choreografijos (v4 peržiūra) ═════════════════════════════════════════
+export type FxAoeId = 'firestorm' | 'blizzard' | 'chain' | 'toxic' | 'void' | 'radiance' | 'bloom' | 'reap'
+type Zone = { T: VCard[]; x0: number; x1: number; w: number; cx: number; y: number; h: number }
+const hitT = (z: Zone, t: VCard, sweep: number) => sweep * cl((t.x - z.x0) / z.w)
+function lightWave(z: Zone, c1: string, c2: string, hot: string): number {
+  fx(1700, (p) => { const a = Math.min(1, p / 0.15, (1 - p) / 0.45); ctx.globalCompositeOperation = 'lighter'; glow(z.cx, z.y, z.w * 0.7, c1, 0.3 * a) }, 0)
+  fx(560, (p) => { const x = lerp(z.x0 - 80, z.x1 + 80, eo(p)), a = Math.min(1, p * 6, (1 - p) * 4); ctx.globalCompositeOperation = 'lighter'; softBeam(x, z.y - z.h * 0.9, x, z.y + z.h * 0.9, 90, c1, 0.5 * a); softBeam(x, z.y - z.h * 0.8, x, z.y + z.h * 0.8, 30, hot, 0.7 * a)
+    if (live) for (let i = 0; i < 2; i++) pt(x, z.y + rnd(-z.h * 0.6, z.h * 0.6), -rnd(0.5, 2), -rnd(0.3, 1.2), rnd(400, 800), rnd(2, 4), pick([c2, c1])) })
+  for (const t of z.T) at(hitT(z, t, 480) + 60, () => {
+    fx(1050, (p) => { const g = eo(cl(p / 0.18)), a = p > 0.55 ? (1 - p) / 0.45 : 1; ctx.globalCompositeOperation = 'lighter'
+      const y0 = Math.max(TOP, t.y - t.vh * 1.55); softBeam(t.x, y0, t.x, t.y + t.vh * 0.5, t.vw * 1.25 * g, c1, 0.4 * a); softBeam(t.x, y0, t.x, t.y + t.vh * 0.5, t.vw * 0.55 * g, hot, 0.55 * a)
+      glow(t.x, t.y + t.vh * 0.5, t.vw * 0.9, c1, 0.7 * a); glow(t.x, t.y, t.vh * 0.8, c2, 0.35 * a) }, 0)
+    pop(t.x, t.y, 110, c2, 380); tint(t, c2, 0.7, 1000); tw(t, { oy: -9, s: 1.06 }, 240); at(420, () => tw(t, { oy: 0, s: 1 }, 380, eob))
+    rise(t, 1000, [c2, c1, '#ffffff'], 0.7, [2, 4.5], [1, 2.6]) })
+  at(540, () => flash(c1, 0.12, 320)); return 540
+}
+const AOE: Record<FxAoeId, (z: Zone) => number> = {
+  firestorm(z) { const SW = 520; dim(0.5, 1700)
+    fx(1700, (p) => { const a = Math.min(1, p / 0.12, (1 - p) / 0.5); ctx.globalCompositeOperation = 'lighter'; glow(z.cx, z.y + z.h * 0.45, z.w * 0.62, '#ff5a1a', 0.5 * a); glow(z.cx, z.y + z.h * 0.5, z.w * 0.4, '#ffb347', 0.35 * a * (0.8 + 0.2 * Math.sin(time / 70))) }, 0)
+    fx(SW + 180, (p) => { const q = cl(p * (SW + 180) / SW), x = lerp(z.x0 - 30, z.x1 + 30, q * q * (3 - 2 * q)), a = p > 0.8 ? (1 - p) / 0.2 : Math.min(1, p * 8), H = z.h * 1.7, base = z.y + z.h * 0.55
+      ctx.globalCompositeOperation = 'lighter'
+      for (let i = 0; i < 9; i++) { const u = i / 8, w = (58 - u * 34) * (0.85 + 0.3 * Math.sin(time / 45 + i * 1.9)), yy = base - u * H, lean = -u * u * 46 + Math.sin(time / 90 + i) * 8
+        glow(x + lean, yy, w * 1.5, '#ff4a1a', 0.5 * a * (1 - u * 0.5)); glow(x + lean, yy, w, '#ffb347', 0.75 * a * (1 - u * 0.6)); if (u < 0.6) glow(x + lean * 0.6, yy, w * 0.5, '#fff3c8', 0.9 * a * (1 - u)) }
+      if (live) { for (let i = 0; i < 4; i++) pt(x + rnd(-20, 10), base - rnd(0, H * 0.8), -rnd(1, 4), -rnd(1.5, 5), rnd(350, 800), rnd(3, 8), pick(FIRE), 0, -0.03, 0.96)
+        pt(x - rnd(10, 50), base - rnd(0, H * 0.5), -rnd(0.2, 1), -rnd(0.6, 1.6), rnd(700, 1200), rnd(16, 30), '#1c1410', 2)
+        pt(x - rnd(0, 30), base + rnd(-6, 6), rnd(-0.5, 0.5), -rnd(0.3, 1.2), rnd(500, 900), rnd(8, 16), pick(['#ff7a1a', '#ff4a1a'])) } })
+    for (const t of z.T) at(hitT(z, t, SW), () => { pop(t.x, t.y, 120, '#ffb060', 300)
+      burst(t.x, t.y, 18, { v: [2, 8], life: [300, 700], size: [4, 10], colors: FIRE, dr: 0.92, up: -1.2 }); burst(t.x, t.y + t.vh * 0.3, 10, { v: [1, 3], life: [600, 1000], size: [2, 4], colors: ['#ffe2a8'], up: -2.5 })
+      fx(520, (p) => { ctx.globalCompositeOperation = 'lighter'; const a = 1 - p, r = t.vh * (0.5 + p * 0.9); for (let i = 0; i < 5; i++) { const u = i / 4; glow(t.x + Math.sin(time / 60 + i) * 6, t.y + t.vh * 0.4 - u * r, 40 - u * 22, i < 2 ? '#fff3c8' : '#ff7a1a', a * (1 - u * 0.5)) } })
+      tint(t, '#ff8a2a', 0.85, 700); knock(t, 5); cshake(t, 7); rise(t, 900, ['#ff7a1a', '#ffb347'], 0.6) })
+    at(SW, () => { flash('#ff9a3a', 0.22, 280); shake(9); hitstop(60) }); return SW },
+  blizzard(z) { dim(0.45, 1800)
+    fx(1800, (p) => { const a = Math.min(1, p / 0.15, (1 - p) / 0.45); ctx.globalCompositeOperation = 'lighter'; glow(z.cx, z.y, z.w * 0.7, '#3d8fd9', 0.35 * a); glow(z.cx, z.y + z.h * 0.45, z.w * 0.5, '#cfeeff', 0.25 * a) }, 0)
+    fx(900, (p) => { if (!live) return; const n = p < 0.7 ? 5 : 2; for (let i = 0; i < n; i++) { const x = rnd(z.x0 - 120, z.x1 + 40), y = z.y - z.h * rnd(0.9, 1.5); pt(x, y, rnd(5, 9), rnd(6, 10), rnd(260, 420), rnd(2, 4.5), pick(['#ffffff', '#cfeeff', '#9fdcff']), 0, 0, 1); if (i < 2) pt(x, y, rnd(4, 7), rnd(5, 8), rnd(300, 480), rnd(5, 9), '#e8f8ff', 1, 0, 1) } })
+    fx(620, (p) => { const e = eo(p), a = (1 - p) * 0.8; ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 26; i++) { const an = i / 26 * TAU + 0.3; glow(z.cx + Math.cos(an) * z.w * 0.62 * e, z.y + z.h * 0.4 + Math.sin(an) * z.h * 0.38 * e, 16 + 10 * Math.sin(i * 2.3), '#cfeeff', a) } }, 0)
+    z.T.forEach((t, i) => at(430 + i * 70, () => {
+      const SP = [...Array(5)].map((_, k) => ({ dx: (k - 2) * t.vw * 0.21 + rnd(-4, 4), h: t.vh * rnd(0.55, 1.05) * (k === 2 ? 1.15 : 1), w: rnd(9, 15), lean: (k - 2) * 0.09 + rnd(-0.04, 0.04) }))
+      fx(1250, (p) => { const g = eob(cl(p / 0.11)), a = p > 0.7 ? (1 - p) / 0.3 : 1, by = t.y + t.vh * 0.52
+        for (const s of SP) { const tx = t.x + s.dx + s.lean * s.h * g, ty = by - s.h * g
+          ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a * 0.92; ctx.fillStyle = '#9fdcff'
+          ctx.beginPath(); ctx.moveTo(t.x + s.dx - s.w, by); ctx.lineTo(tx, ty); ctx.lineTo(t.x + s.dx + s.w, by); ctx.fill()
+          ctx.globalAlpha = a * 0.55; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(t.x + s.dx - s.w * 0.25, by); ctx.lineTo(tx, ty); ctx.lineTo(t.x + s.dx + s.w * 0.15, by); ctx.fill()
+          ctx.globalCompositeOperation = 'lighter'; glow(tx, ty, 12, '#ffffff', a * 0.8) } })
+      pop(t.x, t.y, 110, '#dff4ff', 280); burst(t.x, t.y + t.vh * 0.3, 14, { v: [3, 8], life: [320, 640], size: [5, 9], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9, up: -2 }); burst(t.x, t.y, 12, { v: [1, 4], life: [400, 800], size: [1.5, 3.5], colors: ['#ffffff'] })
+      tint(t, '#bfe9ff', 0.8, 1300); knock(t, 4); cshake(t, 6)
+      at(900, () => burst(t.x, t.y + t.vh * 0.2, 10, { v: [1, 4], life: [400, 700], size: [4, 8], colors: ['#cfeeff', '#ffffff'], k: 1, g: 0.2, dr: 0.95 })) }))
+    at(620, () => { flash('#dff4ff', 0.2, 260); shake(7); hitstop(55) }); return 620 },
+  chain(z) { dim(0.6, 1500)
+    fx(1300, (p) => { const a = Math.min(1, p / 0.1, (1 - p) / 0.4); dark(z.cx, TOP + 40, z.w * 0.7, 0.6 * a); ctx.globalCompositeOperation = 'lighter'; glow(z.cx + Math.sin(time / 130) * 40, TOP + 50, z.w * 0.45, '#5b7cff', (0.25 + 0.2 * Math.random()) * a) }, 0)
+    const strike = (t: VCard, big: boolean) => { const sx = t.x + rnd(-60, 60); bolt(sx, TOP, t.x, t.y - t.vh * 0.2, big ? 320 : 200, '#9fc4ff', big ? 4 : 2.6, big ? 20 : 14); if (big) bolt(sx + rnd(-30, 30), TOP, t.x, t.y, 260, '#e8f0ff', 2, 26)
+      pop(t.x, t.y, big ? 150 : 90, '#cfe0ff', big ? 320 : 200); burst(t.x, t.y, big ? 18 : 8, { v: [3, 10], life: [150, 380], size: [2, 4], colors: ['#ffffff', '#9fc4ff', '#ffe89a'], dr: 0.9 }); tint(t, '#cfe0ff', big ? 0.9 : 0.5, big ? 600 : 250); cshake(t, big ? 8 : 4); if (big) knock(t, 5) }
+    z.T.forEach((t, i) => at(120 + i * 95, () => strike(t, false)))
+    const D = 120 + z.T.length * 95, H = Math.max(560, D + 60)
+    for (let i = 0; i + 1 < z.T.length; i++) at(D - 60 + i * 40, () => bolt(z.T[i].x, z.T[i].y, z.T[i + 1].x, z.T[i + 1].y, 380, '#9fc4ff', 2.2, 10))
+    at(H, () => { for (const t of z.T) strike(t, true); flash('#e8f0ff', 0.4, 240); shake(11); hitstop(75)
+      fx(700, () => { if (live && Math.random() < 0.6) { const t = pick(z.T), [x, y] = perim(t, 2); pt(x, y, rnd(-2, 2), rnd(-2, 2), rnd(120, 260), rnd(1.5, 3), pick(['#ffffff', '#9fc4ff'])) } }) }); return H },
+  toxic(z) { dim(0.4, 1900)
+    fx(1900, (p) => { const a = Math.min(1, p / 0.2, (1 - p) / 0.4), g = eo(cl(p / 0.3)); dark(z.cx, z.y + z.h * 0.4, z.w * 0.6 * g, 0.5 * a, '#0a1406'); ctx.globalCompositeOperation = 'lighter'; glow(z.cx, z.y + z.h * 0.4, z.w * 0.62 * g, '#4d7c0f', 0.6 * a); glow(z.cx, z.y + z.h * 0.3, z.w * 0.4 * g, '#bef264', 0.18 * a * (0.8 + 0.2 * Math.sin(time / 110))) }, 0)
+    fx(1100, (p) => { if (!live) return; const q = eo(p); for (const d of [-1, 1]) { const x = d < 0 ? lerp(z.x0 - 60, z.cx, q) : lerp(z.x1 + 60, z.cx, q); pt(x + rnd(-20, 20), z.y + rnd(-z.h * 0.3, z.h * 0.55), -d * rnd(0.3, 1.4), -rnd(0.1, 0.7), rnd(900, 1500), rnd(22, 40), pick(['#3f6212', '#4d7c0f', '#1a2e05']), 2); if (Math.random() < 0.5) pt(x, z.y + rnd(-z.h * 0.4, z.h * 0.5), rnd(-0.4, 0.4), -rnd(0.5, 1.5), rnd(500, 900), rnd(3, 6), '#bef264') } })
+    z.T.forEach((t, i) => at(520 + i * 60, () => { pop(t.x, t.y, 100, '#bef264', 300); burst(t.x, t.y + t.vh * 0.35, 16, { v: [2, 7], life: [400, 800], size: [3, 7], colors: ['#bef264', '#84cc16', '#4d7c0f'], a0: -Math.PI, spread: Math.PI, g: 0.25, dr: 0.96 }); tint(t, '#84cc16', 0.75, 1200); cshake(t, 5); knock(t, 3)
+      fx(1100, () => { if (live && Math.random() < 0.35) { const [x, y] = perim(t, -8); pt(x, y, rnd(-0.2, 0.2), rnd(0.4, 1.4), rnd(400, 700), rnd(3, 5), '#84cc16', 0, 0.12) } }) }))
+    at(600, () => { flash('#84cc16', 0.14, 300); shake(5) }); return 600 },
+  void(z) { dim(0.6, 1700)
+    fx(1700, (p) => { const a = Math.min(1, p / 0.15, (1 - p) / 0.35), g = eo(cl(p / 0.25)); dark(z.cx, z.y + z.h * 0.35, z.w * 0.66 * g, 0.85 * a); ctx.globalCompositeOperation = 'lighter'
+      for (let i = 0; i < 54; i++) { const an = i / 54 * TAU + time / 1400; glow(z.cx + Math.cos(an) * z.w * 0.6 * g, z.y + z.h * 0.35 + Math.sin(an) * z.h * 0.62 * g, 14 + 8 * Math.sin(i * 1.7 + time / 200), i % 3 ? '#7c3aed' : '#c4a5ff', 0.7 * a) } }, 0)
+    for (const t of z.T) { const TD = [...Array(4)].map((_, k) => ({ dx: (k - 1.5) * t.vw * 0.36, ph: rnd(0, TAU), h: t.vh * rnd(0.8, 1.15) }))
+      fx(1250, (p) => { const g = eo(cl(p / 0.45)), a = p > 0.75 ? (1 - p) / 0.25 : 1, by = t.y + t.vh * 0.6
+        for (const d of TD) { let px = t.x + d.dx, py = by; for (let s = 1; s <= 9; s++) { const u = s / 9; if (u > g) break; const x = t.x + d.dx * (1 - u * 0.75) + Math.sin(time / 170 + d.ph + u * 5) * 9 * u, y = by - d.h * u
+            ctx.globalCompositeOperation = 'source-over'; softBeam(px, py, x, y, 9 * (1 - u) + 2.5, '#07030c', a); ctx.globalCompositeOperation = 'lighter'; softBeam(px, py, x, y, 4 * (1 - u) + 1, '#7c3aed', a * 0.6); px = x; py = y } } }) }
+    fx(650, () => { if (!live) return; for (let i = 0; i < 2; i++) { const t = pick(z.T), an = rnd(0, TAU), r = rnd(90, 150); pt(t.x + Math.cos(an) * r, t.y + Math.sin(an) * r, -Math.cos(an) * r / 16, -Math.sin(an) * r / 16, 260, rnd(2, 4), pick(['#c4a5ff', '#ffffff']), 0, 0, 1) } })
+    z.T.forEach((t, i) => at(640 + i * 50, () => { fx(420, (p) => { dark(t.x, t.y, 90 * (1 - p * 0.5), 0.9 * (1 - p)); ctx.globalCompositeOperation = 'lighter'; glow(t.x, t.y, 120 * (1 - p), '#7c3aed', 0.8 * (1 - p)) })
+      burst(t.x, t.y, 14, { v: [2, 6], life: [300, 600], size: [2.5, 5], colors: ['#a855f7', '#c4a5ff', '#1c1026'] }); tint(t, '#3b0764', 0.85, 1100); knock(t, -4); cshake(t, 6) }))
+    at(700, () => { flash('#7c3aed', 0.2, 300); shake(7); hitstop(50) }); return 700 },
+  radiance: (z) => lightWave(z, '#ffe08a', '#fff4c2', '#fff8dc'),
+  bloom: (z) => lightWave(z, '#5ef0c0', '#d1fae5', '#f0fff8'),
+  reap(z) { dim(0.7, 1700)
+    fx(1500, (p) => { const a = Math.min(1, p / 0.12, (1 - p) / 0.4); dark(z.cx, z.y, z.w * 0.7, 0.6 * a); ctx.globalCompositeOperation = 'lighter'; glow(z.cx, z.y + z.h * 0.5, z.w * 0.5, '#3b0764', 0.6 * a) }, 0)
+    fx(380, (p) => { const q = eo(p), x = lerp(z.x0 - 60, z.x1 + 60, q), a = Math.min(1, p * 8, (1 - p) * 3), y = z.y - Math.sin(q * Math.PI) * 18; ctx.globalCompositeOperation = 'source-over'; softBeam(x - 150, y + 10, x, y, 26, '#000000', a); ctx.globalCompositeOperation = 'lighter'; softBeam(x - 120, y + 8, x, y, 10, '#c4a5ff', a); glow(x, y, 26, '#ffffff', a) })
+    for (const t of z.T) at(hitT(z, t, 330) + 40, () => { cshake(t, 8); knock(t, 6); tint(t, '#000000', 0.8, 900); pop(t.x, t.y, 90, '#c4a5ff', 220)
+      at(160, () => { const sway = rnd(0, TAU); fx(900, (p) => { const e = ei(p), y = t.y - e * (t.y - TOP) * 0.75, x = t.x + Math.sin(sway + p * 7) * 14 * (1 - p), a = p < 0.15 ? p / 0.15 : 1 - p * p; ctx.globalCompositeOperation = 'lighter'; softBeam(x, y + 70 * (0.4 + p), x, y, 16, '#a78bfa', 0.5 * a); glow(x, y, 20, '#e9d5ff', a); glow(x, y, 9, '#ffffff', a) })
+        burst(t.x, t.y, 10, { v: [0.5, 2.5], life: [500, 900], size: [2, 4], colors: ['#c4a5ff', '#e9d5ff'], up: -2 }) }) })
+    at(360, () => { flash('#1a0b2e', 0.45, 260); shake(9); hitstop(70) }); return 380 },
+}
+/** AoE choreografija per taikinių eilę. Grąžina, po kiek ms įvyksta pagrindinis smūgis (skaičiams / statusams). */
+export function playAoe(id: FxAoeId, els: HTMLElement[], o: { hooks?: FxHooks; root?: HTMLElement | null } = {}): number {
+  const def = AOE[id]; if (!def || !els.length || !fxStage.available() || !ensureCanvas(o.root)) return 0
+  const host = cv!.parentElement ?? document
+  const ms = els.map(measure), k = ms[0].w / CW
+  const xs = ms.map((m) => m.px), cy = ms.reduce((s, m) => s + m.py, 0) / ms.length
+  const sc = makeScene({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: cy }, k, null, o.hooks, true, host)
+  enter(sc)
+  const set = new Set<HTMLElement | null>(els), T = sc.cards.filter((c) => set.has(c.root)).sort((a, b) => a.x - b.x)
+  if (!T.length) return 0
+  const x0 = T[0].x - T[0].vw / 2 - 24, x1 = T[T.length - 1].x + T[T.length - 1].vw / 2 + 24
+  let hit = 0
+  try { hit = def({ T, x0, x1, w: x1 - x0, cx: (x0 + x1) / 2, y: Y, h: T[0].vh }) } catch (e) { console.error('[fxStage] aoe', id, e) }
+  kick(); return Math.round(hit)
+}
+
+// ══ Vieno taikinio smūgiai (v4 peržiūra): užtaisymas → skrydis → smūgis → pasekmės ═════════════
+export type FxStrikeId = 'fire' | 'ice' | 'lightning' | 'poison' | 'shadow' | 'holy' | 'arrow' | 'heal' | 'buff' | 'orb'
+// C4 – užtaisymo trukmė, TS – skrydžio laiko mastelis; playStrike juos trumpam pakeičia, kai smūgis turi įvykti anksčiau (hitAt).
+let C4 = 230, TS = 1
+function cast4(f: Pt, src: VCard | null, col: string, hot = '#ffffff', ms = C4) {
+  if (src) { tw(src, { oy: -8, s: 1.07 }, ms * 0.8); at(ms, () => { tw(src, { oy: 0, s: 1 }, 220, eob); knock(src, 4) }) }
+  for (let i = 0; i < 16; i++) { const a = rnd(0, TAU), r = rnd(40, 70), v = r / (ms / 16.67); pt(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r, -Math.cos(a) * v, -Math.sin(a) * v, ms * 0.9, rnd(3, 5.5), col, 0, 0, 1) }
+  fx(ms, (p) => { ctx.globalCompositeOperation = 'lighter'; glow(f.x, f.y, 30 * p + 6, col, 0.8 * p); glow(f.x, f.y, 11 * p, hot, 0.95) })
+  at(ms, () => pop(f.x, f.y, 46, col, 160))
+}
+const fly4 = (f: Pt, t: Pt, arc: number, T: number, ease: Ease, draw: (x: number, y: number, an: number, p: number) => void) => { let px = f.x, py = f.y; fx(T, (p) => { const [x, y] = bez(f, t, arc, ease(p)); const an = (x === px && y === py) ? Math.atan2(t.y - f.y, t.x - f.x) : Math.atan2(y - py, x - px); draw(x, y, an, p); px = x; py = y }) }
+const dotRing = (x: number, y: number, r: number, dur: number, col: string, n = 22) => fx(dur, (p) => { ctx.globalCompositeOperation = 'lighter'; const e = eo(p); for (let i = 0; i < n; i++) { const an = i / n * TAU; glow(x + Math.cos(an) * r * e, y + Math.sin(an) * r * e, 13 * (1 - p) + 3, col, (1 - p) * 0.8) } })
+function stream4(f: Pt, c: VCard, src: VCard | null, c1: string, c2: string, surge: boolean): number {
+  const T = 560 * TS, D = 180; cast4(f, src, c1, c2, D)
+  at(D, () => { const dx = c.x - f.x, dy = c.y - f.y, l = Math.hypot(dx, dy) || 1
+    fx(T, (p) => { ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 3; i++) for (let j = 0; j < 7; j++) { const q = cl(p * 1.35 - j * 0.03); if (q <= 0 || q >= 1) continue; let [x, y] = bez(f, c, -30, q); const w = Math.sin(q * TAU * 1.5 + i * TAU / 3) * 16 * Math.sin(q * Math.PI); x += -dy / l * w; y += dx / l * w; glow(x, y, 9 - j, j ? c1 : c2, 0.9 - j * 0.11) } }) })
+  const H = Math.round(D + T * 0.75)
+  at(H, () => { fx(900, (p) => { const a = p > 0.5 ? (1 - p) / 0.5 : 1, g = eo(cl(p / 0.3)); ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, c.vh * 0.9 * g, c1, 0.5 * a); glow(c.x, c.y + c.vh * 0.45, c.vw * 0.8, c2, 0.5 * a)
+      if (surge) { softBeam(c.x, c.y + c.vh * 0.55, c.x, c.y - c.vh * (0.4 + 0.9 * g), c.vw * 0.95, c1, 0.45 * a); softBeam(c.x, c.y + c.vh * 0.55, c.x, c.y - c.vh * (0.3 + 0.8 * g), c.vw * 0.4, '#ffffff', 0.5 * a) } }, 0)
+    pop(c.x, c.y, 100, c2, 360); tint(c, c1, 0.6, 800); tw(c, { oy: -7, s: surge ? 1.1 : 1.05 }, 220); at(360, () => tw(c, { oy: 0, s: 1 }, 340, eob)); rise(c, 1000, [c1, c2, '#ffffff'], 0.75, [2, 4.5], [1, 2.6]); if (surge) dotRing(c.x, c.y, 90, 420, c1, 18) })
+  return H
+}
+const STRIKE4: Record<FxStrikeId, (f: Pt, c: VCard, src: VCard | null, light: boolean, col?: string) => number> = {
+  fire(f, c, src, light) { const T = 400 * TS; cast4(f, src, '#ff7a1a', '#fff3c8')
+    at(C4, () => fly4(f, c, -54, T, (p) => p * (0.4 + 0.6 * p), (x, y, an) => { ctx.globalCompositeOperation = 'lighter'
+      for (let i = 0; i < 5; i++) { const d = i * 9; glow(x - Math.cos(an) * d, y - Math.sin(an) * d, 26 - i * 4, i ? '#ff4a1a' : '#ffb347', 0.8 - i * 0.14) } glow(x, y, 12, '#fff3c8', 1)
+      if (live) { pt(x, y, -Math.cos(an) * rnd(0.5, 2) + rnd(-0.6, 0.6), -Math.sin(an) * rnd(0.5, 2) + rnd(-0.6, 0.6), rnd(250, 500), rnd(4, 9), pick(FIRE), 0, -0.02, 0.95); if (Math.random() < 0.5) pt(x, y, rnd(-0.3, 0.3), -rnd(0.3, 0.9), rnd(500, 800), rnd(10, 18), '#1c1410', 2) } }))
+    at(C4 + T, () => { pop(c.x, c.y, 135, '#ffb060', 320); burst(c.x, c.y, 24, { v: [2, 9], life: [300, 700], size: [4, 11], colors: FIRE, dr: 0.92 }); burst(c.x, c.y, 6, { v: [0.5, 2], life: [600, 1000], size: [14, 22], colors: ['#1c1410'], k: 2, up: -0.7 })
+      fx(560, (p) => { ctx.globalCompositeOperation = 'lighter'; const a = 1 - p, r = c.vh * (0.5 + p); for (let i = 0; i < 6; i++) { const u = i / 5; glow(c.x + Math.sin(time / 55 + i) * 7, c.y + c.vh * 0.4 - u * r, 44 - u * 24, i < 2 ? '#fff3c8' : '#ff7a1a', a * (1 - u * 0.5)) } })
+      dotRing(c.x, c.y, 110, 380, '#ffb347'); tint(c, '#ff8a2a', 0.9, 650); knock(c, 6); cshake(c, light ? 4 : 8); if (!light) { shake(7); hitstop(55); rise(c, 1000, ['#ff7a1a', '#ffb347'], 0.65) } })
+    return C4 + T },
+  ice(f, c, src, light) { const T = 300 * TS; cast4(f, src, '#9fdcff')
+    at(C4, () => fly4(f, c, -10, T, (p) => p * p, (x, y, an) => { const cs = Math.cos(an), sn = Math.sin(an); ctx.globalCompositeOperation = 'lighter'; softBeam(x - cs * 70, y - sn * 70, x, y, 16, '#3d8fd9', 0.7); softBeam(x - cs * 44, y - sn * 44, x + cs * 10, y + sn * 10, 8, '#dff4ff', 1); glow(x + cs * 8, y + sn * 8, 10, '#ffffff', 1)
+      if (live) { pt(x, y, rnd(-0.8, 0.8), rnd(-0.8, 0.8), rnd(250, 450), rnd(1.5, 3.5), '#ffffff'); if (Math.random() < 0.4) pt(x, y, rnd(-1, 1), rnd(0.2, 1.2), rnd(300, 500), rnd(4, 7), '#cfeeff', 1, 0.08) } }))
+    at(C4 + T, () => { const SP = [...Array(9)].map((_, i) => ({ a: i / 9 * TAU + rnd(-0.2, 0.2), l: rnd(46, 92), w: rnd(6, 11) }))
+      fx(light ? 800 : 1300, (p) => { const g = eob(cl(p / 0.1)), a = p > 0.7 ? (1 - p) / 0.3 : 1
+        for (const s of SP) { const cs = Math.cos(s.a), sn = Math.sin(s.a), bx = c.x + cs * 14, by = c.y + sn * 14, tx = c.x + cs * (14 + s.l * g), ty = c.y + sn * (14 + s.l * g)
+          ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a * 0.9; ctx.fillStyle = '#9fdcff'
+          ctx.beginPath(); ctx.moveTo(bx - sn * s.w, by + cs * s.w); ctx.lineTo(tx, ty); ctx.lineTo(bx + sn * s.w, by - cs * s.w); ctx.fill(); ctx.globalCompositeOperation = 'lighter'; glow(tx, ty, 9, '#ffffff', a * 0.8) } })
+      pop(c.x, c.y, 120, '#dff4ff', 280); burst(c.x, c.y, 16, { v: [3, 9], life: [300, 620], size: [5, 10], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); burst(c.x, c.y, 14, { v: [1, 4], life: [400, 800], size: [1.5, 3.5], colors: ['#ffffff'] })
+      tint(c, '#bfe9ff', 0.85, light ? 700 : 1400); knock(c, 5); cshake(c, light ? 4 : 7); if (!light) { shake(5); hitstop(45) } })
+    return C4 + T },
+  lightning(f, c, src, light) { const D = 200; let lastArc = 0
+    if (src) { tw(src, { s: 1.06 }, D * 0.8); at(D, () => tw(src, { s: 1 }, 200, eob)) }
+    fx(D, () => { ctx.globalCompositeOperation = 'lighter'; glow(f.x, f.y, 26, '#5b7cff', 0.5 + 0.4 * Math.random()); glow(f.x, f.y, 9, '#ffffff', 0.9) })
+    for (let i = 0; i < 4; i++) at(i * 45, () => { const a = rnd(0, TAU); bolt(f.x, f.y, f.x + Math.cos(a) * rnd(24, 44), f.y + Math.sin(a) * rnd(24, 44), 70, '#9fc4ff', 1.4, 5) })
+    at(D, () => { bolt(f.x, f.y, c.x, c.y, 300, '#9fc4ff', 3.4, 16); bolt(f.x, f.y, c.x, c.y, 240, '#e8f0ff', 1.8, 26); bolt(c.x + rnd(-50, 50), TOP, c.x, c.y - c.vh * 0.3, 260, '#9fc4ff', 2.6, 18)
+      pop(c.x, c.y, 140, '#cfe0ff', 300); burst(c.x, c.y, 18, { v: [3, 11], life: [150, 380], size: [2, 4], colors: ['#ffffff', '#9fc4ff', '#ffe89a'], dr: 0.9 }); tint(c, '#cfe0ff', 0.95, 500); knock(c, 5); cshake(c, light ? 5 : 9)
+      if (!light) { flash('#e8f0ff', 0.25, 200); shake(8); hitstop(60) }
+      const n = light ? 5 : 9; for (let i = 0; i < n; i++) at(120 + i * 90 + rnd(0, 40), () => { const [x1, y1] = perim(c, 2); const a = rnd(0, TAU), r = rnd(20, 46); bolt(x1, y1, x1 + Math.cos(a) * r, y1 + Math.sin(a) * r, 90, '#9fc4ff', 1.3, 5); pt(x1, y1, rnd(-2, 2), rnd(-2, 2), 200, 2.5, '#ffffff') }); void lastArc; lastArc = 0 })
+    return D + 40 },
+  poison(f, c, src, light) { const T = 520 * TS; cast4(f, src, '#84cc16', '#eaffb0')
+    at(C4, () => fly4(f, c, -120, T, lin, (x, y) => { const wob = 1 + 0.18 * Math.sin(time / 40); ctx.globalCompositeOperation = 'lighter'; glow(x, y, 24 * wob, '#4d7c0f', 0.9); glow(x, y, 15 / wob, '#bef264', 0.95); glow(x - 4, y - 5, 5, '#ffffff', 0.8)
+      if (live && Math.random() < 0.7) pt(x + rnd(-6, 6), y, rnd(-0.3, 0.3), rnd(0.5, 2), rnd(350, 600), rnd(3, 6), pick(['#84cc16', '#bef264']), 0, 0.15) }))
+    at(C4 + T, () => { pop(c.x, c.y, 110, '#bef264', 300); burst(c.x, c.y, 22, { v: [2, 8], life: [400, 800], size: [3, 8], colors: ['#bef264', '#84cc16', '#4d7c0f'], a0: -Math.PI, spread: Math.PI, g: 0.3, dr: 0.96 }); burst(c.x, c.y, 8, { v: [0.5, 1.5], life: [800, 1300], size: [18, 30], colors: ['#3f6212', '#1a2e05'], k: 2, up: -0.4 })
+      pool(c.x, c.y + c.vh * 0.45, c.vw * 0.9, light ? 900 : 1500, '#4d7c0f', 0.6, 0.5); tint(c, '#84cc16', 0.8, light ? 700 : 1200); knock(c, 4); cshake(c, 5)
+      fx(light ? 700 : 1200, () => { if (live && Math.random() < 0.4) { const [x, y] = perim(c, -8); pt(x, y, rnd(-0.2, 0.2), rnd(0.4, 1.4), rnd(400, 700), rnd(3, 5), '#84cc16', 0, 0.12) } }); if (!light) shake(4) })
+    return C4 + T },
+  shadow(f, c, src, light) { const T = 440 * TS; cast4(f, src, '#7c3aed', '#c4a5ff')
+    at(C4, () => fly4(f, c, 60, T, (p) => p * p * (3 - 2 * p), (x, y, an, p) => { const sw = Math.sin(p * 14) * 12 * (1 - p), ox = -Math.sin(an) * sw, oy = Math.cos(an) * sw
+      dark(x + ox, y + oy, 30, 0.9); ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 6; i++) { const a2 = time / 90 + i / 6 * TAU; glow(x + ox + Math.cos(a2) * 17, y + oy + Math.sin(a2) * 17, 7, i % 2 ? '#a855f7' : '#c4a5ff', 0.9) } glow(x + ox, y + oy, 34, '#7c3aed', 0.45)
+      if (live) pt(x + ox, y + oy, rnd(-0.4, 0.4), rnd(-0.4, 0.4), rnd(400, 700), rnd(10, 18), '#12081f', 2) }))
+    at(C4 + T, () => { fx(460, (p) => { dark(c.x, c.y, 110 * (1 - p * 0.6), 0.95 * (1 - p)); ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, 140 * (1 - p), '#7c3aed', 0.8 * (1 - p)) })
+      for (let i = 0; i < 18; i++) { const a = rnd(0, TAU), r = rnd(80, 130); pt(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r, -Math.cos(a) * r / 15, -Math.sin(a) * r / 15, 250, rnd(2.5, 5), pick(['#c4a5ff', '#a855f7']), 0, 0, 1) }
+      at(240, () => burst(c.x, c.y, 16, { v: [2, 7], life: [300, 650], size: [2.5, 5.5], colors: ['#a855f7', '#c4a5ff', '#1c1026'] }))
+      tint(c, '#3b0764', 0.9, light ? 700 : 1200); knock(c, -5); cshake(c, light ? 4 : 7); if (!light) { shake(6); hitstop(50) } })
+    return C4 + T },
+  holy(f, c, src, light) { const D = 260; cast4(f, src, '#ffe08a', '#ffffff', D)
+    at(D, () => { fx(420, (p) => { const g = cl(p / 0.25), a = p > 0.5 ? (1 - p) / 0.5 : 1, x = lerp(f.x, c.x, g), y = lerp(f.y, c.y, g); ctx.globalCompositeOperation = 'lighter'; softBeam(f.x, f.y, x, y, 22 * a + 3, '#ffe08a', 0.7 * a); softBeam(f.x, f.y, x, y, 9 * a + 1, '#ffffff', a); glow(x, y, 30 * a, '#fff4c2', a) })
+      at(105, () => { fx(900, (p) => { const g = eo(cl(p / 0.15)), a = p > 0.5 ? (1 - p) / 0.5 : 1, y0 = Math.max(TOP, c.y - c.vh * 1.55); ctx.globalCompositeOperation = 'lighter'; softBeam(c.x, y0, c.x, c.y + c.vh * 0.5, c.vw * 1.2 * g, '#ffe08a', 0.45 * a); softBeam(c.x, y0, c.x, c.y + c.vh * 0.5, c.vw * 0.5 * g, '#fff8dc', 0.6 * a); glow(c.x, c.y, c.vh * 0.85, '#fff4c2', 0.4 * a) }, 0)
+        pop(c.x, c.y, 130, '#fff4c2', 380); burst(c.x, c.y, 16, { v: [1, 5], life: [400, 800], size: [2, 4.5], colors: ['#fff4c2', '#ffe08a', '#ffffff'] }); tint(c, '#fff4c2', 0.85, 800); cshake(c, light ? 2 : 5); rise(c, light ? 600 : 1000, ['#fff4c2', '#ffe08a'], 0.6); if (!light) flash('#ffe08a', 0.1, 260) }) })
+    return D + 105 },
+  arrow(f, c, src, light) { const D = 160, T = 190, an0 = Math.atan2(c.y - f.y, c.x - f.x)
+    if (src) { tw(src, { ox: -Math.cos(an0) * 7, oy: -Math.sin(an0) * 7 }, D); at(D, () => tw(src, { ox: 0, oy: 0 }, 160, eob)) }
+    at(D, () => fly4(f, c, -14, T, lin, (x, y, an) => { const cs = Math.cos(an), sn = Math.sin(an); ctx.globalCompositeOperation = 'lighter'; softBeam(x - cs * 90, y - sn * 90, x, y, 7, '#e8e0c8', 0.5); softBeam(x - cs * 34, y - sn * 34, x + cs * 6, y + sn * 6, 4, '#ffffff', 1); glow(x + cs * 6, y + sn * 6, 6, '#ffffff', 1) }))
+    at(D + T, () => { pop(c.x, c.y, 70, '#fff4d6', 180); burst(c.x, c.y, 14, { v: [3, 10], life: [160, 380], size: [1.5, 3.5], colors: ['#ffffff', '#ffe89a', '#e8e0c8'], a0: an0 + Math.PI - 0.7, spread: 1.4, dr: 0.9 }); burst(c.x, c.y, 5, { v: [0.5, 2], life: [400, 700], size: [10, 16], colors: ['#8a7b6a'], k: 2 })
+      tw(c, { ox: Math.cos(an0) * 9, oy: Math.sin(an0) * 9 }, 60); at(70, () => tw(c, { ox: 0, oy: 0 }, 260, eob)); tint(c, '#ffffff', 0.6, 220); cshake(c, light ? 3 : 6); if (!light) { shake(4); hitstop(40) } })
+    return D + T },
+  heal: (f, c, src) => stream4(f, c, src, '#5ef0c0', '#d1fae5', false),
+  buff: (f, c, src) => stream4(f, c, src, '#ffd24a', '#fff4c2', true),
+  orb(f, c, src, light, col = '#d4af37') { const T = 400 * TS; cast4(f, src, col)
+    at(C4, () => fly4(f, c, -40, T, (p) => p * (0.45 + 0.55 * p), (x, y, an) => { ctx.globalCompositeOperation = 'lighter'; softBeam(x - Math.cos(an) * 50, y - Math.sin(an) * 50, x, y, 12, col, 0.6); glow(x, y, 26, col, 0.7); glow(x, y, 11, '#ffffff', 1); for (let i = 0; i < 3; i++) { const a2 = time / 70 + i * TAU / 3; glow(x + Math.cos(a2) * 15, y + Math.sin(a2) * 15, 5, '#ffffff', 0.9) } if (live) pt(x, y, rnd(-0.5, 0.5), rnd(-0.5, 0.5), rnd(250, 450), rnd(3, 6), col) }))
+    at(C4 + T, () => { pop(c.x, c.y, 120, col, 300); pop(c.x, c.y, 60, '#ffffff', 200); burst(c.x, c.y, 20, { v: [2, 8], life: [300, 650], size: [3, 7], colors: [col, '#ffffff'], dr: 0.92 }); dotRing(c.x, c.y, 100, 360, col, 20)
+      tint(c, col, 0.8, 500); knock(c, 5); cshake(c, light ? 4 : 7); if (!light) { shake(5); hitstop(45) } })
+    return C4 + T },
+}
+const NOM4: Record<FxStrikeId, number> = { fire: 630, ice: 530, lightning: 240, poison: 750, shadow: 670, holy: 365, arrow: 350, heal: 600, buff: 600, orb: 630 }
+/** Senojo skrydžio id → v4 smūgis (fxStage.fly nukreipia čia, kai taikinys – korta). */
+const PROJ_TO_STRIKE: Record<FxProjId, FxStrikeId> = { fireball: 'fire', ice: 'ice', lightning: 'lightning', poison: 'poison', shadow: 'shadow', holy: 'holy', arrow: 'arrow', healWisp: 'heal', goldMotes: 'buff', orb: 'orb' }
+let V4 = true
+/** v4 efektų jungiklis (numatyta įjungta). Išjungus – grįžta v3 skrydžiai ir smūgiai. */
+export function fxV4(on?: boolean): boolean { if (on != null) V4 = on; return V4 }
+/**
+ * Pilnas vieno taikinio smūgis: užtaisymas → skrydis → smūgis → pasekmės. Grąžina, po kiek ms įvyksta smūgis.
+ * `hitAt` – kada smūgis TURI įvykti: jei vėliau nei įprasta, startas atidedamas; jei anksčiau – trumpinamas užtaisymas ir skrydis.
+ * `impact` – statuso ženklas po smūgio (tik freeze / seal / dome – kiti smūgiai jau įeina į choreografiją).
+ */
+export function playStrike(id: FxStrikeId, from: Pt, targetEl: HTMLElement, o: { sourceEl?: HTMLElement | null; light?: boolean; color?: string; hooks?: FxHooks; root?: HTMLElement | null; hitAt?: number; impact?: FxImpactId | null; onHit?: () => void } = {}): number {
+  const def = STRIKE4[id]; if (!def || !fxStage.available() || !ensureCanvas(o.root)) return 0
+  const host = cv!.parentElement ?? document, tm = measure(targetEl), k = tm.w / CW
+  const sc = makeScene({ x: tm.px, y: tm.py }, k, targetEl, o.hooks, false, host)
+  enter(sc)
+  const f = { x: X + (from.x - sc.cx) / k, y: Y + (from.y - sc.cy) / k }
+  let src: VCard | null = null
+  if (o.sourceEl && o.sourceEl !== targetEl) { src = mkCard(o.sourceEl, sc, false); sc.cards.push(src) }
+  const nom = NOM4[id]; let delay = 0, c4 = 230, ts = 1
+  if (o.hitAt != null) { if (o.hitAt >= nom) delay = o.hitAt - nom; else if (nom > 400) { c4 = Math.max(90, Math.min(230, o.hitAt * 0.35)); ts = Math.max(0.45, (o.hitAt - c4) / (nom - 230)) } }
+  let hit = nom
+  const run = () => {
+    C4 = c4; TS = ts
+    try { hit = def(f, sc.S, src, !!o.light, o.color) } catch (e) { console.error('[fxStage] strike', id, e) } finally { C4 = 230; TS = 1 }
+    at(hit, () => { const im = o.impact; if (im === 'freeze' || im === 'seal' || im === 'dome') { try { IMP[im](sc.S, true, o.color ?? '#d4af37') } catch { /* */ } } try { o.onHit?.() } catch (e) { console.error('[fxStage]', e) } })
+  }
+  if (delay > 0) at(delay, run); else run()
+  kick(); return Math.round(delay + hit)
+}
+
+// ══ Nuolatiniai statusai, reakcija, prakeiksmas (v4 peržiūra) ════════════════
+export type FxStatusId = 'burning' | 'frozen' | 'stunned' | 'poisoned' | 'silenced' | 'blessed' | 'shield' | 'taunt' | 'sprint' | 'stealth' | 'cantAttack' | 'immortal'
+/** Taškas kortos perimetre pagal t∈[0,1) + išorinė normalė. */
+function perimAt(c: VCard, t: number, pad = 0): [number, number, number, number] {
+  const w = c.vw + pad * 2, h = c.vh + pad * 2, P4 = (w + h) * 2; let d = ((t % 1) + 1) % 1 * P4
+  if (d < w) return [c.x - w / 2 + d, c.y - h / 2, 0, -1]; d -= w
+  if (d < h) return [c.x + w / 2, c.y - h / 2 + d, 1, 0]; d -= h
+  if (d < w) return [c.x + w / 2 - d, c.y + h / 2, 0, 1]; d -= w
+  return [c.x - w / 2, c.y + h / 2 - d, -1, 0]
+}
+const STATUS4: Record<FxStatusId, (c: VCard, a: number, sd: number[]) => void> = {
+  burning(c, a) { const by = c.y + c.vh * 0.5; ctx.globalCompositeOperation = 'lighter'
+    glow(c.x, by, c.vw * 0.85, '#ff5a1a', 0.3 * a * (0.8 + 0.2 * Math.sin(time / 70)))
+    for (let i = 0; i < 7; i++) { const u = i / 6, x = c.x + (u - 0.5) * c.vw, h = c.vh * (0.3 + 0.16 * Math.sin(time / 130 + i * 2.1) + 0.1 * Math.sin(time / 53 + i)); for (let j = 0; j < 4; j++) { const v = j / 3; glow(x + Math.sin(time / 90 + i + j) * 4 * v, by - h * v, 15 - v * 8, j < 1 ? '#fff3c8' : j < 2 ? '#ffb347' : '#ff4a1a', a * (0.75 - v * 0.45)) } }
+    if (live && Math.random() < 0.35 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), by - rnd(0, c.vh * 0.3), rnd(-0.3, 0.3), -rnd(0.8, 2.2), rnd(400, 800), rnd(2, 4.5), pick(FIRE)) },
+  frozen(c, a, sd) { const hs = (i: number, k: number) => { const v = Math.sin(i * 12.9898 + k * 78.233 + sd[0] * 37.7) * 43758.5453; return v - Math.floor(v) }
+    ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, c.vh * 0.78, '#3d8fd9', 0.24 * a)
+    // šerkšno pluta palei kraštus (tankesnė kampuose) – minkšti kristalų sankaupos, be pieštų smaigalių
+    for (let i = 0; i < 54; i++) { const corner = i < 20, t = corner ? (Math.floor(hs(i, 1) * 4) + (hs(i, 2) - 0.5) * 0.34 * (c.vw / (c.vw + c.vh))) / 4 + 0.0001 : hs(i, 1), [bx, by, nx, ny] = perimAt(c, t + (corner ? 0 : 0), -1), d = hs(i, 3) * hs(i, 3) * (corner ? 20 : 12)
+      glow(bx - nx * d, by - ny * d, 5 + hs(i, 4) * (corner ? 11 : 7), hs(i, 5) > 0.5 ? '#ffffff' : '#bfe6ff', a * (0.3 + 0.3 * hs(i, 6))) }
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const x = c.x + sx * c.vw / 2, y = c.y + sy * c.vh / 2; glow(x, y, 24, '#bfe6ff', 0.45 * a); glow(x, y, 11, '#ffffff', 0.5 * a) }
+    // žibantys kristalėliai
+    for (let i = 0; i < 9; i++) { const x = c.x + (hs(i, 7) - 0.5) * c.vw * 0.95, y = c.y + (hs(i, 8) - 0.5) * c.vh * 0.95, k = Math.pow(Math.max(0, Math.sin(time / 300 + i * 2.4)), 6); if (k < 0.02) continue
+      glow(x, y, 8 * k, '#ffffff', a * k); softBeam(x - 11 * k, y, x + 11 * k, y, 2.2, '#ffffff', a * k); softBeam(x, y - 11 * k, x, y + 11 * k, 2.2, '#ffffff', a * k) }
+    const gx = c.x - c.vw + ((time / 9) % (c.vw * 4)); if (gx < c.x + c.vw / 2 + 20) softBeam(gx - 14, c.y + c.vh / 2, gx + 14, c.y - c.vh / 2, 11, '#ffffff', 0.3 * a)
+    if (live && Math.random() < 0.12 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), c.y + c.vh / 2, rnd(-0.2, 0.2), rnd(0.2, 0.6), rnd(700, 1200), rnd(10, 18), '#cfeeff', 2)
+    if (live && Math.random() < 0.15 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), c.y - c.vh / 2, rnd(-0.2, 0.2), rnd(0.3, 0.9), rnd(600, 1000), rnd(1.5, 3), '#ffffff') },
+  stunned(c, a) { const oy = c.y - c.vh * 0.5 - 9; ctx.globalCompositeOperation = 'lighter'
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) { const an = time / 240 + i * TAU / 3 - j * 0.22, x = c.x + Math.cos(an) * c.vw * 0.38, y = oy + Math.sin(an) * 7; glow(x, y, 9 - j * 2, '#ffe89a', a * (1 - j * 0.24)); if (!j) glow(x, y, 4, '#ffffff', a) }
+    glow(c.x, oy, c.vw * 0.5, '#ffd24a', 0.18 * a)
+    if (live && Math.random() < 0.05 * a) { const [x, y] = perim(c, 2), an = rnd(0, TAU), r = rnd(12, 26); at(0, () => bolt(x, y, x + Math.cos(an) * r, y + Math.sin(an) * r, 90, '#ffe89a', 1.2, 4)) } },
+  poisoned(c, a) { const by = c.y + c.vh * 0.5; ctx.globalCompositeOperation = 'lighter'; glow(c.x, by, c.vw * 0.75, '#4d7c0f', 0.4 * a); glow(c.x, c.y, c.vh * 0.7, '#84cc16', 0.14 * a * (0.7 + 0.3 * Math.sin(time / 260)))
+    if (live && Math.random() < 0.22 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), by - 2, 0, rnd(0.3, 0.9), rnd(500, 800), rnd(3, 5), '#84cc16', 0, 0.1)
+    if (live && Math.random() < 0.18 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), by - rnd(4, c.vh * 0.5), rnd(-0.15, 0.15), -rnd(0.4, 1), rnd(500, 900), rnd(2.5, 5), '#bef264')
+    if (live && Math.random() < 0.06 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), by, rnd(-0.2, 0.2), -rnd(0.2, 0.5), rnd(900, 1400), rnd(14, 22), '#3f6212', 2) },
+  silenced(c, a) { const hw = c.vw / 2 + 7; ctx.globalCompositeOperation = 'source-over'; softBeam(c.x - hw, c.y, c.x + hw, c.y, 24, '#07030c', 0.9 * a)
+    ctx.globalCompositeOperation = 'lighter'; for (const d of [-10, 10]) softBeam(c.x - hw, c.y + d, c.x + hw, c.y + d, 3, '#a855f7', 0.7 * a)
+    const gx = c.x + Math.sin(time / 420) * hw * 0.9; glow(gx, c.y - 10, 9, '#c4a5ff', 0.9 * a); glow(c.x - (gx - c.x), c.y + 10, 9, '#c4a5ff', 0.9 * a); glow(c.x, c.y, c.vw * 0.7, '#3b0764', 0.3 * a)
+    if (live && Math.random() < 0.12 * a) { const an = rnd(0, TAU), r = rnd(50, 80); pt(c.x + Math.cos(an) * r, c.y + Math.sin(an) * r * 0.5, -Math.cos(an) * r / 30, -Math.sin(an) * r / 60, 480, rnd(2, 3.5), '#c4a5ff', 0, 0, 1) } },
+  blessed(c, a) { const oy = c.y - c.vh * 0.5 - 10; ctx.globalCompositeOperation = 'lighter'; softBeam(c.x, c.y - c.vh * 1.15, c.x, c.y - c.vh * 0.2, c.vw * 0.8, '#ffe08a', 0.16 * a)
+    for (let i = 0; i < 16; i++) { const an = i / 16 * TAU + time / 1500; glow(c.x + Math.cos(an) * c.vw * 0.33, oy + Math.sin(an) * 6, 6, '#fff4c2', a * (0.65 + 0.3 * Math.sin(time / 200 + i))) } glow(c.x, oy, c.vw * 0.45, '#ffe08a', 0.3 * a); glow(c.x, c.y, c.vh * 0.7, '#fff4c2', 0.1 * a)
+    if (live && Math.random() < 0.18 * a) pt(c.x + rnd(-c.vw / 2, c.vw / 2), c.y + rnd(-c.vh * 0.2, c.vh * 0.5), 0, -rnd(0.4, 1.1), rnd(700, 1100), rnd(2, 3.5), pick(['#fff4c2', '#ffe08a'])) },
+  shield(c, a) { ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, c.vh * 0.8, '#6ec3ff', 0.16 * a); glow(c.x - c.vw * 0.3, c.y - c.vh * 0.4, c.vw * 0.5, '#dff4ff', 0.16 * a)
+    for (const d of [1, -1]) for (let i = 0; i < 22; i++) { const an = i / 22 * TAU + d * time / 1300, tilt = d * 0.5, ex = Math.cos(an) * c.vw * 0.72, ey = Math.sin(an) * c.vh * 0.64, x = c.x + ex * Math.cos(tilt) - ey * Math.sin(tilt) * 0.25, y = c.y + ey + ex * Math.sin(tilt) * 0.2; glow(x, y, 6.5, i % 4 ? '#6ec3ff' : '#ffffff', a * (0.35 + 0.5 * Math.max(0, Math.sin(an * 2 + time / 500)))) } },
+  taunt(c, a) { const s = (time / 950) % 1; ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, c.vh * 0.75, '#b91c1c', 0.2 * a)
+    for (let i = 0; i < 26; i++) { const [x, y, nx, ny] = perimAt(c, i / 26, 3); glow(x, y, 7, i % 2 ? '#ff4a4a' : '#ffb347', 0.55 * a); glow(x + nx * s * 20, y + ny * s * 20, 9 * (1 - s) + 2, '#ff7a1a', (1 - s) * 0.8 * a) } },
+  sprint(c, a, sd) { ctx.globalCompositeOperation = 'lighter'
+    for (let i = 0; i < 5; i++) { const u = (time / (360 + sd[i] * 240) + sd[i + 5]) % 1, y = c.y + (sd[i] - 0.5) * c.vh * 0.95, x = c.x - c.vw + u * c.vw * 2, k = Math.sin(u * Math.PI); softBeam(x - 34, y, x, y, 3.5, '#dff4ff', 0.75 * a * k); glow(x, y, 4, '#ffffff', a * k) }
+    glow(c.x - c.vw * 0.5, c.y, c.vw * 0.5, '#9fdcff', 0.12 * a) },
+  stealth(c, a) { dark(c.x + Math.sin(time / 700) * c.vw * 0.4, c.y + Math.cos(time / 900) * c.vh * 0.3, 60, 0.4 * a); dark(c.x - Math.sin(time / 800) * c.vw * 0.4, c.y - Math.cos(time / 600) * c.vh * 0.3, 50, 0.35 * a)
+    ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, c.vh * 0.7, '#4c1d95', 0.14 * a)
+    if (live && Math.random() < 0.2 * a) { const [x, y] = perim(c, 0); pt(x, y, rnd(-0.4, 0.4), -rnd(0.1, 0.6), rnd(800, 1300), rnd(14, 24), pick(['#12081f', '#1c1026']), 2) } },
+  cantAttack(c, a) { const hw = c.vw / 2 + 5, hh = c.vh / 2 + 5
+    for (const d of [1, -1]) { ctx.globalCompositeOperation = 'source-over'; softBeam(c.x - hw, c.y - d * hh, c.x + hw, c.y + d * hh, 8, '#0c0c12', 0.9 * a)
+      ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 15; i++) { const u = i / 14, x = c.x + (u - 0.5) * hw * 2, y = c.y + d * (u - 0.5) * hh * 2; glow(x, y, i % 2 ? 6 : 4, i % 2 ? '#cfd6e4' : '#8a93a6', 0.85 * a) } }
+    ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, 13 + Math.sin(time / 300) * 2, '#ff7a1a', 0.8 * a); glow(c.x, c.y, 6, '#fff3c8', a) },
+  immortal(c, a) { ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, c.vh * 0.8, '#ffe08a', 0.22 * a)
+    for (let i = 0; i < 8; i++) { const an = i / 8 * TAU + time / 3000, L = c.vh * (0.85 + 0.12 * Math.sin(time / 400 + i * 2)); softBeam(c.x + Math.cos(an) * 20, c.y + Math.sin(an) * 20, c.x + Math.cos(an) * L, c.y + Math.sin(an) * L, 14, '#ffe08a', 0.16 * a) }
+    for (let i = 0; i < 5; i++) { const x = c.x + (i - 2) * c.vw * 0.17, y = c.y - c.vh * 0.5 - 9 - (i % 2 ? 0 : 7) - (i === 2 ? 4 : 0); glow(x, y, 6, '#ffe08a', a * (0.7 + 0.3 * Math.sin(time / 180 + i * 1.3))); glow(x, y, 2.5, '#ffffff', a) } },
+}
+const sceneOn = (targetEl: HTMLElement, o: { hooks?: FxHooks; root?: HTMLElement | null }): Scene | null => {
+  if (!fxStage.available() || !ensureCanvas(o.root)) return null
+  const host = cv!.parentElement ?? document, tm = measure(targetEl); const sc = makeScene({ x: tm.px, y: tm.py }, tm.w / CW, targetEl, o.hooks, false, host); enter(sc); return sc
+}
+/** Nuolatinis statuso vaizdas ant kortos (peržiūroje – `dur` ms; žaidime gyvuotų, kol statusas uždėtas). */
+export function playStatus(id: FxStatusId, el: HTMLElement, dur = 5000, o: { root?: HTMLElement | null } = {}): void {
+  const sc = sceneOn(el, o); if (!sc || !STATUS4[id]) return
+  const c = sc.S, sd = [...Array(12)].map(() => Math.random())
+  const TINT: Partial<Record<FxStatusId, [string, number]>> = { burning: ['#ff7a1a', 0.22], frozen: ['#8fd3ff', 0.5], poisoned: ['#84cc16', 0.25], silenced: ['#3b0764', 0.35], stunned: ['#ffe89a', 0.15], immortal: ['#ffe08a', 0.2] }
+  const tn = TINT[id]; if (tn) { c.tint = tn[0]; tw(c, { tintA: tn[1] }, 350); at(dur - 350, () => tw(c, { tintA: 0 }, 350)) }
+  if (id === 'stealth') { tw(c, { alpha: 0.45 }, 400); at(dur - 400, () => tw(c, { alpha: 1 }, 400)) }
+  fx(dur, (p) => STATUS4[id](c, Math.min(1, p * dur / 350, (1 - p) * dur / 350), sd), id === 'shield' || id === 'immortal' || id === 'blessed' ? 0 : 1)
+  kick()
+}
+
+// ══ Reakcija (grandinės) ir prakeiksmas (besijuokiantis demonas) – v4 ════════
+function link4(x: number, y: number, an: number, i: number, a: number, hot = 0) {
+  if (a <= 0) return
+  ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a > 1 ? 1 : a
+  ctx.lineWidth = 4.6; ctx.strokeStyle = '#07050c'; ctx.beginPath(); ctx.ellipse(0, 0, 7.5, i % 2 ? 2.4 : 4.4, 0, 0, TAU); ctx.stroke()
+  ctx.lineWidth = 2.1; ctx.strokeStyle = i % 2 ? '#b4bccd' : '#7f889c'; ctx.stroke(); ctx.restore()
+  if (hot > 0) { ctx.globalCompositeOperation = 'lighter'; glow(x, y, 8, '#c4a5ff', hot * a) }
+}
+/** Reakcija: grandinė su antgaliu išlekia iš reakcijos kortos, apsiveja taikinį, susiveržia ir sutrūksta. */
+export function playReaction(from: Pt, targetEl: HTMLElement, o: { sourceEl?: HTMLElement | null; hooks?: FxHooks; root?: HTMLElement | null } = {}): number {
+  const sc = sceneOn(targetEl, o); if (!sc) return 0
+  const c = sc.S, f = { x: X + (from.x - sc.cx) / sc.k, y: Y + (from.y - sc.cy) / sc.k }
+  let src: VCard | null = null; if (o.sourceEl && o.sourceEl !== targetEl) { src = mkCard(o.sourceEl, sc, false); sc.cards.push(src) }
+  const T0 = 200, T1 = 520, T2 = 480, HOLD = 260, H = T0 + T1 + T2 + HOLD
+  const len = Math.hypot(c.x - f.x, c.y - f.y) || 1, N = Math.max(8, Math.round(len / 12)), ARC = -Math.min(70, len * 0.22)
+  const pathPt = (q: number, arc: number, sway: number, i: number): [number, number] => { const [x, y] = bez(f, c, arc, q), w = Math.sin(time / 120 + i * 0.6) * 4 * sway * Math.sin(q * Math.PI); return [x - (c.y - f.y) / len * w, y + (c.x - f.x) / len * w] }
+  // P0 – aptikimas
+  dim(0.55, H + 500); hitstop(90); flash('#c4a5ff', 0.14, 180)
+  if (src) { const s = src; tw(s, { s: 1.16 }, 100); at(150, () => tw(s, { s: 1 }, 260, eob)); tint(s, '#c4a5ff', 0.85, 450) }
+  dotRing(f.x, f.y, 110, 360, '#a855f7', 22); dotRing(f.x, f.y, 60, 280, '#ffffff', 14); burst(f.x, f.y, 14, { v: [2, 8], life: [200, 450], size: [2, 4], colors: ['#ffffff', '#c4a5ff'], dr: 0.9 })
+  // P1–P3 – grandinė (skrydis → įtempta → sutrūksta)
+  fx(H - T0, (p) => { const t = p * (H - T0), head = t < T1 ? eo(t / T1) : 1, tight = eo(cl((t - T1 - 300) / 180)), arc = ARC * (1 - tight), sway = 1 - tight
+    for (let i = N; i >= 0; i--) { const q = head - i / N; if (q < 0) continue; const [x, y] = pathPt(q, arc, sway, i), [x2, y2] = pathPt(Math.min(1, q + 0.02), arc, sway, i); link4(x, y, Math.atan2(y2 - y, x2 - x), i, 1, t < T1 && i < 3 ? 0.9 : 0.15) }
+    if (t < T1) { const [x, y] = pathPt(head, arc, sway, 0), [xb, yb] = pathPt(Math.max(0, head - 0.03), arc, sway, 0), an = Math.atan2(y - yb, x - xb), cs = Math.cos(an), sn = Math.sin(an)
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#dfe6f0'; ctx.strokeStyle = '#07050c'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x + cs * 16, y + sn * 16); ctx.lineTo(x - cs * 6 - sn * 8, y - sn * 6 + cs * 8); ctx.lineTo(x - cs * 2, y - sn * 2); ctx.lineTo(x - cs * 6 + sn * 8, y - sn * 6 - cs * 8); ctx.closePath(); ctx.fill(); ctx.stroke()
+      ctx.globalCompositeOperation = 'lighter'; glow(x + cs * 8, y + sn * 8, 14, '#c4a5ff', 0.9); glow(x + cs * 12, y + sn * 12, 5, '#ffffff', 1); if (live) pt(x, y, rnd(-0.6, 0.6), rnd(-0.6, 0.6), rnd(200, 400), rnd(2, 4), pick(['#c4a5ff', '#ffffff'])) }
+    // apsivijimas: dvi kilpos aplink kortą
+    const g = eo(cl((t - T1) / 300)); if (g > 0) { const shr = 1 - 0.2 * tight
+      for (const L of [-1, 1]) for (let i = 0; i < 20; i++) { const u = i / 20; if (u > g) break; const an = -Math.PI / 2 + L * u * TAU, rx = (c.vw * 0.5 + 12) * shr, ex = Math.cos(an) * rx, ey = Math.sin(an) * 11, tl = L * 0.2
+        link4(c.x + ex * Math.cos(tl) - ey * Math.sin(tl), c.y + L * c.vh * 0.17 + ex * Math.sin(tl) + ey * Math.cos(tl), an + Math.PI / 2 + tl, i, Math.sin(an) > 0 ? 1 : 0.4, 0.2 + 0.5 * tight) } } })
+  at(T0 + T1, () => { pop(c.x, c.y, 80, '#c4a5ff', 200); cshake(c, 4); knock(c, 3) })
+  at(T0 + T1 + 300, () => { tw(c, { sx: 0.93, sy: 0.97 }, 180, eob); cshake(c, 6); shake(5); tint(c, '#3b0764', 0.5, 600) })
+  // P4 – sutrūksta + kontrsmūgis
+  at(H, () => { tw(c, { sx: 1, sy: 1 }, 220, eob)
+    for (let i = 0; i <= N; i += 1) { const [x, y] = pathPt(i / N, 0, 0, i); pt(x, y, rnd(-3, 3), rnd(-4, 1), rnd(350, 700), rnd(4, 7), pick(['#b4bccd', '#7f889c']), 1, 0.25, 0.96); if (i % 2) pt(x, y, rnd(-2, 2), rnd(-2, 2), rnd(200, 400), rnd(2, 4), '#c4a5ff') }
+    burst(c.x, c.y, 18, { v: [3, 9], life: [350, 700], size: [4, 8], colors: ['#b4bccd', '#7f889c', '#dfe6f0'], k: 1, g: 0.25, dr: 0.95 }); burst(c.x, c.y, 16, { v: [2, 9], life: [200, 450], size: [2, 4.5], colors: ['#ffffff', '#c4a5ff'], dr: 0.9 })
+    pop(c.x, c.y, 135, '#c4a5ff', 280); dotRing(c.x, c.y, 115, 360, '#a855f7'); flash('#c4a5ff', 0.2, 220); tint(c, '#ffffff', 0.85, 300); knock(c, 7); cshake(c, 9); shake(9); hitstop(65) })
+  kick(); return H
+}
+/** Prakeiksmas: plyšys ir nagai → iš dūmų išnyra besijuokiantis demonas → įspaudas. */
+export function playCurse(targetEl: HTMLElement, o: { hooks?: FxHooks; root?: HTMLElement | null } = {}): number {
+  const sc = sceneOn(targetEl, o); if (!sc) return 0
+  const c = sc.S, by = c.y + c.vh * 0.6, RISE = 650, DEM = 2500, END = RISE + DEM
+  dim(0.74, END + 300)
+  fx(END, (p) => { const a = Math.min(1, p / 0.1, (1 - p) / 0.2), g = eo(cl(p / 0.15)); dark(c.x, by, c.vw * 1.6 * g, 0.9 * a); ctx.globalCompositeOperation = 'lighter'; glow(c.x, by, c.vw * 1.1 * g, '#7a0010', 0.6 * a)
+    for (let i = 0; i < 38; i++) { const an = i / 38 * TAU - time / 1100; glow(c.x + Math.cos(an) * c.vw * 1.45 * g, by + Math.sin(an) * c.vh * 0.3 * g, 12 + 7 * Math.sin(i * 1.9 + time / 160), i % 3 ? '#b91c1c' : '#ff5a4a', 0.75 * a) } }, 0)
+  const TD = [...Array(5)].map((_, k) => ({ dx: (k - 2) * c.vw * 0.42, ph: rnd(0, TAU), h: c.vh * rnd(1.0, 1.25) }))
+  fx(END - 200, (p) => { const t = p * (END - 200), g = eo(cl(t / 500)), close = eo(cl((t - 450) / 260)), a = t > END - 600 ? Math.max(0, (END - 200 - t) / 400) : 1
+    for (const d of TD) { let px = c.x + d.dx, py = by; for (let s = 1; s <= 10; s++) { const u = s / 10; if (u > g) break; const x = c.x + d.dx * (1 - u * u * 0.85 * close) + Math.sin(time / 190 + d.ph + u * 4) * 7 * u * (1 - close * 0.6), y = by - d.h * u
+        ctx.globalCompositeOperation = 'source-over'; softBeam(px, py, x, y, 11 * (1 - u) + 3, '#0a0206', a); ctx.globalCompositeOperation = 'lighter'; softBeam(px, py, x, y, 4 * (1 - u) + 1, '#dc2626', a * 0.65); if (s === 10) glow(x, y, 7, '#ff5a4a', a); px = x; py = y } } }, 0)
+  fx(END - 300, () => { if (live && Math.random() < 0.5) pt(c.x + rnd(-c.vw, c.vw), by + rnd(-6, 6), rnd(-0.3, 0.3), -rnd(0.6, 2), rnd(500, 900), rnd(2, 4.5), pick(['#ff5a4a', '#b91c1c'])) })
+  at(300, () => cshake(c, 4)); at(520, () => { cshake(c, 6); tint(c, '#000000', 0.55, DEM) })
+  // besijuokiantis demonas (tas pats veidas kaip dabar žaidime), didesnis ir su juoko smūgiais
+  at(RISE, () => { flash('#3b0008', 0.4, 260); shake(8); hitstop(60)
+    const it = { to: { x: 0, y: 0 }, rect: { x: 0, y: 0, w: 0, h: 0 }, dur: DEM }
+    fx(DEM, (p) => { const k = BS * sc.k, px = BS * sc.cx + BX, py = BS * (sc.cy - c.vh * 0.12 * sc.k) + BY, w = c.vw * 1.7 * k, h = c.vh * 1.7 * k
+      it.to.x = px; it.to.y = py; it.rect.x = px - w / 2; it.rect.y = py - h / 2; it.rect.w = w; it.rect.h = h
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; try { drawCurseDemon(ctx, it, p, BS, performance.now()) } finally { ctx.restore() } })
+    for (const ms of [520, 800, 1080, 1360, 1640]) at(ms, () => { shake(4); cshake(c, 5); burst(c.x, c.y - c.vh * 0.1, 6, { v: [2, 6], life: [300, 600], size: [2, 4], colors: ['#ff7a1a', '#ff5a4a'], up: -1 }) }) })
+  at(END - 250, () => { fx(420, (p) => { dark(c.x, c.y, 120 * (1 - p * 0.5), 0.95 * (1 - p)); ctx.globalCompositeOperation = 'lighter'; glow(c.x, c.y, 150 * (1 - p), '#dc2626', 0.9 * (1 - p)) })
+    flash('#3b0008', 0.45, 300); shake(10); hitstop(80); burst(c.x, c.y, 22, { v: [2, 8], life: [400, 800], size: [3, 6], colors: ['#ff5a4a', '#b91c1c', '#1a0206'] }); tint(c, '#7a0010', 0.95, 1200); knock(c, -6); cshake(c, 9); rise(c, 1000, ['#ff5a4a', '#b91c1c'], 0.6) })
+  kick(); return END - 250
 }

@@ -81,7 +81,7 @@ import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
-import { fxStage, type FxHooks, type StrikeKind } from '@/lib/game/fxStage'
+import { fxStage, playAoe, playCurse, type FxHooks, type StrikeKind, type FxAoeId } from '@/lib/game/fxStage'
 import { PROJECTILE_TO_FX, STATUS_TO_FX, LEGACY_SUMMON_MAP, factionSummonFx, isSummonFxId, isFxImpactId, summonLandMs, isSkillFxId, defaultSkillFx, championKey, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
@@ -2611,7 +2611,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                 for (const el of els) { const r = el.getBoundingClientRect(); x1 = Math.min(x1, r.left); y1 = Math.min(y1, r.top); x2 = Math.max(x2, r.right); y2 = Math.max(y2, r.bottom) }
                 const rect = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
                 if (zone !== 'hand') for (const el of els) { el.classList.remove('rvn-cursed'); void (el as HTMLElement).offsetWidth; el.classList.add('rvn-cursed'); window.setTimeout(() => el.classList.remove('rvn-cursed'), 2400) }
-                fxRef.current?.spawn({ kind: 'curseDemon', to: { x: x1 + rect.w / 2, y: y1 + rect.h / 2 }, rect, color: '#a855f7', duration: 2.5 })
+                // v4: vienam padarui – plyšys, nagai ir didesnis demonas; kitoms zonoms (ranka, kaladė, avataras, AoE) – esamas demonas
+                if (!(zone === 'unit' && els.length === 1 && fxStage.available() && playCurse(els[0] as HTMLElement, { hooks: fxHooksRef.current }) > 0))
+                  fxRef.current?.spawn({ kind: 'curseDemon', to: { x: x1 + rect.w / 2, y: y1 + rect.h / 2 }, rect, color: '#a855f7', duration: 2.5 })
                 window.setTimeout(() => fxRef.current?.shakeBoard('soft'), 900)
               }, demonAt)
             }
@@ -2956,7 +2958,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const aDelay = showcaseHold > 0 ? showcaseHold : SETTLE
       const av = aoeVariant()
       const aSnd: BattleSoundType = av === 'ice' ? 'freeze' : av === 'heal' || av === 'holy' ? 'heal' : av === 'curse' || av === 'necrotic' ? 'curse' : 'impact'
-      window.setTimeout(() => { playBattleSound(aSnd, 0.55); fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, rect, color: aCol, duration: 1.7, variant: av }) }, aDelay)
+      // v4: zonos choreografija per paveiktų padarų eilę (kiekvienai pusei atskirai); be atitikmens / be padarų – senoji banga
+      const AOE4: Partial<Record<AoeVariant, FxAoeId>> = { fire: 'firestorm', ice: 'blizzard', lightning: 'chain', poison: 'toxic', curse: 'void', arcane: 'void', necrotic: 'reap', holy: 'radiance', heal: 'bloom' }
+      const a4 = AOE4[av], aTg = fresh.filter((ev) => ev.t === 'damage' && !!(ev.value ?? 0) && !!ev.tgt?.uid && !!ev.tgt.side).map((ev) => ({ uid: ev.tgt!.uid!, side: ev.tgt!.side! }))
+      window.setTimeout(() => { playBattleSound(aSnd, 0.55)
+        let played = false
+        if (a4 && fxStage.available()) for (const sd of [...hitSides]) { const els = [...new Set(aTg.filter((x) => x.side === sd).map((x) => x.uid))].map((u) => unitEl(u)).filter((x): x is HTMLElement => !!x); if (els.length && playAoe(a4, els, { hooks: fxHooksRef.current }) > 0) played = true }
+        if (!played) fxRef.current?.spawn({ kind: 'aoeWave', from: aFrom, rect, color: aCol, duration: 1.7, variant: av }) }, aDelay)
     }
 
     if (healAoe && !reactionOnlyBatch && !(srcSkill && fxStage.skillHasStrike(srcSkill, 'heal'))) {
@@ -2970,7 +2978,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const rect2 = zr2 && zr2.width > 40 ? { x: zr2.left - 10, y: zr2.top - 10, w: zr2.width + 20, h: zr2.height + 20 } : undefined
       const hFrom = rect2 ? { x: rect2.x + rect2.w / 2, y: rect2.y + rect2.h / 2 } : fxCenter()
       const hDelay = showcaseHold > 0 ? showcaseHold : SETTLE
-      window.setTimeout(() => { playBattleSound('heal', 0.5); fxRef.current?.spawn({ kind: 'aoeWave', from: hFrom, rect: rect2, color: '#5ef0c0', duration: 1.6, variant: 'heal' }) }, hDelay)
+      const hTg = fresh.filter((ev) => ev.t === 'heal' && (ev.value ?? 0) > 0 && !!ev.tgt?.uid && !!ev.tgt.side).map((ev) => ({ uid: ev.tgt!.uid!, side: ev.tgt!.side! }))
+      window.setTimeout(() => { playBattleSound('heal', 0.5)
+        let played = false
+        if (fxStage.available()) for (const sd of [...hs]) { const els = [...new Set(hTg.filter((x) => x.side === sd).map((x) => x.uid))].map((u) => unitEl(u)).filter((x): x is HTMLElement => !!x); if (els.length && playAoe('bloom', els, { hooks: fxHooksRef.current }) > 0) played = true }
+        if (!played) fxRef.current?.spawn({ kind: 'aoeWave', from: hFrom, rect: rect2, color: '#5ef0c0', duration: 1.6, variant: 'heal' }) }, hDelay)
     }
 
     // Log sinchronizacija su FX: kol vyksta showcase + ŽMK + smūgiai, nauji įrašai
