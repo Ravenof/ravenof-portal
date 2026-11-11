@@ -1,4 +1,4 @@
-import type { FxImpactId, SummonFxId, SkillFxId } from './fxCatalog'
+import type { FxImpactId, SummonFxId, SkillFxId, FxAoeId } from './fxCatalog'
 // ── Virtualaus žaidimo gameplay konfigūracijos modelis ────────────────────────
 // Šiuos tipus naudoja: admin mapping editorius, effect engine, target resolver,
 // trigger system, field/curse/zmk engine. Saugoma cards.gameplay JSONB stulpelyje.
@@ -365,6 +365,8 @@ export type EffectMapping = {
   projectile?: ProjectileType
   /** Smūgio FX ant taikinio (fxStage). Nenurodžius – numatytasis pagal `projectile` / efekto tipą. */
   fxImpact?: FxImpactId
+  /** AoE efektas, kai mapping'as taiko visą zoną. Nenurodžius – automatinis (pagal efektą / elementą); 'none' – be zonos efekto. */
+  fxAoe?: FxAoeId | 'none'
   condition?: EffectCondition       // efektas vyksta tik jei sąlyga tenkinama
   dynamicValue?: DynamicValue       // value = base + perEach * metrika
   targetSelect?: TargetSelect       // pavienio taikinio parinkimas pagal statą

@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SummonBurst } from '@/components/tutorial/SummonBurst'
 import { FxArena, type FxArenaHandle } from '@/components/tutorial/FxArena'
-import { SUMMON_FX, FX_IMPACTS, SKILL_FX, PROJECTILE_TO_FX, LEGACY_SUMMON_MAP, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
+import { FX_AOE, SUMMON_FX, FX_IMPACTS, SKILL_FX, PROJECTILE_TO_FX, LEGACY_SUMMON_MAP, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
 import { createClient } from '@/lib/supabase/client'
 import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
@@ -1356,6 +1356,16 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           {PROJECTILE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>)}
                         </select>
                       </div>
+                      {['allOwnUnits', 'allEnemyUnits', 'allUnits', 'allEnemyTargets', 'allOwnTargets'].includes(String(m.target)) && (
+                        <div>
+                          <label style={labelStyle} title="Zonos choreografija, kai efektas taiko visus. Automatinis: žalai ir gydymui – pagal animacijos elementą, kitiems efektams – pagal efekto tipą (sustiprinimas – Šviesos palaima, užšaldymas – Pūga ir t. t.).">AoE efektas</label>
+                          <select value={m.fxAoe ?? ''} onChange={(e) => setMapping(i, { fxAoe: (e.target.value || undefined) as EffectMapping['fxAoe'] })} style={inputStyle}>
+                            <option value="">Automatinis (pagal efektą / elementą)</option>
+                            <option value="none">Be AoE efekto</option>
+                            {FX_AOE.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                          </select>
+                        </div>
+                      )}
                       <div>
                         <label style={labelStyle} title="Kas įvyksta ant taikinio, kai skrydis jį pasiekia. Nenurodžius – parenkama pagal animacijos elementą / efekto tipą.">Smūgis ant taikinio (FX)</label>
                         <div className="flex gap-1">

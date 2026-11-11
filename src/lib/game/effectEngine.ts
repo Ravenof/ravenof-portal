@@ -3,6 +3,7 @@
 // per GameApi (dependency injection iš engine.ts) – jokių ciklinių importų.
 // Nežinomi / nesumapinti efektai praleidžiami su warning log'u (necrashina).
 
+import { AOE_FX_DEFAULT } from './fxCatalog'
 import { rng } from '@/lib/game/rng'
 import type { EffectMapping, EffectType, ZmkValue } from './types'
 import { EFFECT_TYPES } from './types'
@@ -397,13 +398,20 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
   let chainDestroyedHp = 0   // #4
   const chainDestroyedCards: TutCard[] = []  // #1
 
+  // FX: ne žalos efektas VISAI zonai (sustiprinti / užšaldyti / apsvaiginti visus ir pan.) → zonos choreografija vietoj
+  // atskirų skrydžių. Žala ir gydymas savo markerį rašo žemiau. Tik vaizdas – žaidimo būsenos neliečia.
+  if (m.effect !== 'damage' && m.effect !== 'heal' && m.fxAoe !== 'none' && targets.length >= 2 && !(m.targetTypes && m.targetTypes.length > 0) && isMultiTarget(m.target)) {
+    const fxA = m.fxAoe ?? AOE_FX_DEFAULT[m.effect]
+    const uids: string[] = []; for (const t of targets) if (t.kind === 'unit' && t.uid) uids.push(t.uid)
+    if (fxA && uids.length >= 2) api.log(g, { t: 'fxSource', side: caster, aoeKind: m.effect, aoeFx: fxA, aoeUids: uids, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
+  }
   switch (m.effect) {
     case 'damage': {
       const useZmk = m.triggersZmk !== false
       // FX: tikras AoE = mapping'as taiko VISĄ zoną (allEnemyUnits/allUnits/...) → zoninis efektas.
       // targetTypes rinkiniai, hitCount ir rankinis pasirinkimas markerio NEgauna – jiems po projektilą KIEKVIENAM.
       if (targets.length >= 2 && !(m.targetTypes && m.targetTypes.length > 0) && isMultiTarget(m.target)) {
-        api.log(g, { t: 'fxSource', side: caster, aoe: true, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
+        api.log(g, { t: 'fxSource', side: caster, aoe: true, aoeFx: m.fxAoe, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
       }
       // Burtų žalos priedas dabar TIK pasyvi aura (auraSpellDamage – kol kūrinys kovos lauke),
       // pridedama dealToUnit/dealToPlayer per spellAuraBonusFor. Jokio nuolatinio kaupiamo priedo.
@@ -423,7 +431,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     }
     case 'heal':
       if (targets.length >= 2 && !(m.targetTypes && m.targetTypes.length > 0) && isMultiTarget(m.target)) {
-        api.log(g, { t: 'fxSource', side: caster, aoe: true, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
+        api.log(g, { t: 'fxSource', side: caster, aoe: true, aoeFx: m.fxAoe, cardName: ctx.sourceName, src: ctx.sourceUid ? { side: caster, uid: ctx.sourceUid } : undefined })
       }
       for (const t of targets) {
         if (t.kind === 'player') api.healPlayer(g, t.side, v)

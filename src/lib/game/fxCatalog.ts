@@ -171,3 +171,20 @@ export function defaultSkillFx(championName: string | null | undefined, skillInd
   for (const [re, key] of CHAMP_KEYS) if (re.test(championName)) { const id = `${key}${skillIndex + 1}`; return isSkillFxId(id) ? id : null }
   return null
 }
+
+// ── AoE choreografijos (fxStage v4) ──────────────────────────────────────────
+export type FxAoeId = 'firestorm' | 'blizzard' | 'chain' | 'toxic' | 'void' | 'radiance' | 'bloom' | 'reap'
+export const FX_AOE: { value: FxAoeId; label: string }[] = [
+  { value: 'firestorm', label: 'Ugnies audra' }, { value: 'blizzard', label: 'Pūga' }, { value: 'chain', label: 'Grandininis žaibas' },
+  { value: 'toxic', label: 'Nuodų rūkas' }, { value: 'void', label: 'Tuštumos gniaužtai' }, { value: 'reap', label: 'Sielų pjūtis' },
+  { value: 'radiance', label: 'Šviesos palaima' }, { value: 'bloom', label: 'Gyvybės banga' },
+]
+export function isFxAoeId(v: unknown): v is FxAoeId { return typeof v === 'string' && FX_AOE.some((x) => x.value === v) }
+/** Numatytasis AoE efektas ne žalos efektams, kai mapping'as taiko visą zoną. Efektai be įrašo zonos efekto negauna. */
+export const AOE_FX_DEFAULT: Record<string, FxAoeId> = {
+  buffAttack: 'radiance', buffHealth: 'radiance', buffSpellDamage: 'radiance', shield: 'radiance', taunt: 'radiance', sprint: 'radiance', cleanse: 'radiance',
+  freeze: 'blizzard', stun: 'chain', poison: 'toxic', burn: 'firestorm',
+  silence: 'void', debuffAttack: 'void', debuffHealth: 'void', stealth: 'void', destroy: 'reap',
+}
+/** Kada (ms nuo starto) AoE choreografija smogia taikiniams – skaičiams ir statusų vaizdui sinchronizuoti. */
+export const AOE_FX_HIT_MS: Record<FxAoeId, number> = { firestorm: 520, blizzard: 620, chain: 560, toxic: 600, void: 700, radiance: 540, bloom: 540, reap: 380 }

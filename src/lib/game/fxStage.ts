@@ -12,7 +12,7 @@
 // mastelio `k` pagalba atvaizduojama į tikrą kortos vietą ekrane.
 // ═══════════════════════════════════════════════════════════════════════════
 import { drawCurseDemon } from './curseDemonFx'
-import { summonLandMs, skillCastMs, type FxProjId, type FxImpactId, type SummonFxId, type SkillFxId } from './fxCatalog'
+import { summonLandMs, skillCastMs, type FxProjId, type FxImpactId, type SummonFxId, type SkillFxId, type FxAoeId } from './fxCatalog'
 
 type Pt = { x: number; y: number }
 type Ease = (t: number) => number
@@ -1011,6 +1011,8 @@ export type FlyOpts = {
   cast?: boolean
   sourceEl?: HTMLElement | null
   targetEl?: HTMLElement | null
+  /** Taikinys be kortos (avataras): v4 smūgis grojamas ties šiuo elementu, bet jo DOM neliečiamas. */
+  anchorEl?: HTMLElement | null
   impact?: FxImpactId | null
   /** Statusams: smūgis be ilgos liekanos (nuolatinį vaizdą piešia CardStatusVfxLayer). */
   light?: boolean
@@ -1062,7 +1064,7 @@ export const fxStage = {
   fly(proj: FxProjId, from: Pt, to: Pt, o: FlyOpts = {}): number {
     const def = PROJ[proj]; if (!def || !this.available() || !ensureCanvas(o.root)) return 0
     // v4: taikinys – korta → pilna smūgio choreografija (užtaisymas, skrydis, smūgis, pasekmės)
-    if (V4 && o.targetEl && PROJ_TO_STRIKE[proj]) { const h4 = playStrike(PROJ_TO_STRIKE[proj], from, o.targetEl, { sourceEl: o.cast === false ? null : o.sourceEl, light: o.light, color: proj === 'orb' ? o.color : undefined, hooks: o.hooks, root: o.root, hitAt: o.hitAt, impact: o.impact, onHit: o.onHit }); if (h4 > 0) return h4 }
+    if (V4 && (o.targetEl || o.anchorEl) && PROJ_TO_STRIKE[proj]) { const h4 = playStrike(PROJ_TO_STRIKE[proj], from, (o.targetEl ?? o.anchorEl)!, { virtual: !o.targetEl, sourceEl: o.cast === false ? null : o.sourceEl, light: o.light, color: proj === 'orb' ? o.color : undefined, hooks: o.hooks, root: o.root, hitAt: o.hitAt, impact: o.impact, onHit: o.onHit }); if (h4 > 0) return h4 }
     const host = cv!.parentElement ?? document
     const tm = o.targetEl ? measure(o.targetEl) : null
     const k = tm ? tm.w / CW : defaultK(host)
@@ -1183,7 +1185,7 @@ export const fxStage = {
   stats(): { particles: number; scenes: number; running: boolean; low: boolean } { return { particles: pN, scenes: SCENES.length, running, low: LOW } },
 }
 // ══ AoE choreografijos (v4 peržiūra) ═════════════════════════════════════════
-export type FxAoeId = 'firestorm' | 'blizzard' | 'chain' | 'toxic' | 'void' | 'radiance' | 'bloom' | 'reap'
+export type { FxAoeId } from './fxCatalog'
 type Zone = { T: VCard[]; x0: number; x1: number; w: number; cx: number; y: number; h: number }
 const hitT = (z: Zone, t: VCard, sweep: number) => sweep * cl((t.x - z.x0) / z.w)
 function lightWave(z: Zone, c1: string, c2: string, hot: string): number {
@@ -1378,11 +1380,12 @@ export function fxV4(on?: boolean): boolean { if (on != null) V4 = on; return V4
  * `hitAt` – kada smūgis TURI įvykti: jei vėliau nei įprasta, startas atidedamas; jei anksčiau – trumpinamas užtaisymas ir skrydis.
  * `impact` – statuso ženklas po smūgio (tik freeze / seal / dome – kiti smūgiai jau įeina į choreografiją).
  */
-export function playStrike(id: FxStrikeId, from: Pt, targetEl: HTMLElement, o: { sourceEl?: HTMLElement | null; light?: boolean; color?: string; hooks?: FxHooks; root?: HTMLElement | null; hitAt?: number; impact?: FxImpactId | null; onHit?: () => void } = {}): number {
+export function playStrike(id: FxStrikeId, from: Pt, targetEl: HTMLElement, o: { sourceEl?: HTMLElement | null; light?: boolean; color?: string; hooks?: FxHooks; root?: HTMLElement | null; hitAt?: number; impact?: FxImpactId | null; onHit?: () => void; virtual?: boolean } = {}): number {
   const def = STRIKE4[id]; if (!def || !fxStage.available() || !ensureCanvas(o.root)) return 0
   const host = cv!.parentElement ?? document, tm = measure(targetEl), k = tm.w / CW
-  const sc = makeScene({ x: tm.px, y: tm.py }, k, targetEl, o.hooks, false, host)
+  const sc = makeScene({ x: tm.px, y: tm.py }, k, o.virtual ? null : targetEl, o.hooks, false, host)
   enter(sc)
+  if (o.virtual) { sc.S.vw = CW; sc.S.vh = tm.h / k }   // avataras ir pan.: virtuali korta – DOM neliečiamas
   const f = { x: X + (from.x - sc.cx) / k, y: Y + (from.y - sc.cy) / k }
   let src: VCard | null = null
   if (o.sourceEl && o.sourceEl !== targetEl) { src = mkCard(o.sourceEl, sc, false); sc.cards.push(src) }

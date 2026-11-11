@@ -185,6 +185,10 @@ export type GameEvent = {
   side: Side
   /** FX marker (fxSource): šis efektas – TIKRAS AoE (visa zona) → zoninis efektas be projektilų */
   aoe?: boolean
+  /** FX marker: ne žalos efektas visai zonai (efekto tipas), parinktas AoE efektas ir paveikti padarai. */
+  aoeKind?: string
+  aoeFx?: string
+  aoeUids?: string[]
   /**
    * i18n raktas (`battleLog.*`). Log'as saugomas STRUKTŪRIŠKAI – tekstas
    * sugeneruojamas render'e (eventText), tad pakeitus kalbą persirenderuoja
