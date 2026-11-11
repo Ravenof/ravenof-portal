@@ -23,10 +23,21 @@ import { generateLegalActions, type ActionDescriptor } from './aiActions'
 import { DIFFICULTY_WEIGHTS, aiLog } from './aiTypes'
 import { analyzeCard, keywordValue, unitThreatBonus } from './aiCardRole'
 
-const BEAM = 6            // kiek geriausių pozicijų nešam į kitą gylį
-const MAX_DEPTH = 7       // veiksmų per ėjimą (žaidimas retai turi daugiau)
-const REPLY_STEPS = 8     // priešo atsako greedy žingsniai
-const BUDGET_MS = 600
+/** Paieškos nustatymai pagal lygį. */
+export type MasterCfg = {
+  beam: number      // kiek geriausių pozicijų nešam į kitą gylį
+  depth: number     // veiksmų per ėjimą
+  reply: number     // priešo atsako greedy žingsniai
+  budget: number    // laiko biudžetas vienam sprendimui, ms
+  samples: number   // kiek skirtingų ŽMK eilių vertinam kiekvienam lapui (vidurkis – mažiau „pasisekė simuliacijoje")
+  synth: number     // kiek nežinomų priešo rankos kortų modeliuojam atsake
+}
+export const MASTER_CFG: Record<'normal' | 'hard', MasterCfg> = {
+  normal: { beam: 6, depth: 7, reply: 8, budget: 600, samples: 1, synth: 2 },
+  hard:   { beam: 10, depth: 10, reply: 10, budget: 900, samples: 2, synth: 3 },
+}
+// Priešo atsako ir mūsų kito ėjimo modelis: godus „gero žaidėjo" ėjimas be atsitiktinumo.
+const REPLY_W = { ...DIFFICULTY_WEIGHTS.normal, jitter: 0, goodPlayer: true }
 
 type Node = { g: GameState; seq: ActionDescriptor[]; h: number }
 
@@ -136,7 +147,7 @@ function candidates(g: GameState): ActionDescriptor[] {
 
 /** Godus ėjimas už `side`-ą duotoje būsenoje (būsena turi būti to side'o perspektyvoje: jis = 'ai'). */
 function greedyTurn(m: GameState, steps: number): void {
-  const w = DIFFICULTY_WEIGHTS.normal
+  const w = REPLY_W
   for (let i = 0; i < steps && !m.winner; i++) {
     const acts = generateLegalActions(m, w).sort((a, b) => b.score - a.score)
     let did = false
@@ -162,8 +173,16 @@ function syntheticHand(p: GameState['ai'], n: number): typeof p.hand {
  * ranka paslėpta – vietoj jos tipiniai padarai pagal auksą), (3) mes atsakom godžiai
  * (kad matytųsi paruoštas lethal / tempo), tada statinis vertinimas iš DI perspektyvos.
  */
-function leafValue(g: GameState): number {
+function leafValue(g: GameState, cfg: MasterCfg): number {
+  // Klasikoje (be ŽMK) žala deterministinė – keli scenarijai nieko neduoda, tik eikvoja laiką.
+  if (cfg.samples <= 1 || (g as { format?: string }).format === 'classic') return leafOnce(g, cfg, false)
+  let sum = 0
+  for (let i = 0; i < cfg.samples; i++) sum += leafOnce(g, cfg, i > 0)
+  return sum / cfg.samples
+}
+function leafOnce(g: GameState, cfg: MasterCfg, reshuffle: boolean): number {
   const c = cloneState(g)
+  if (reshuffle) { shuffleInPlace(c.you.zmk); shuffleInPlace(c.ai.zmk) }
   const me = P(c, 'ai')
   const affordable = me.hand.filter((x) => x.type !== 'curse' && canAfford(c, 'ai', x)).length
   const waste = affordable > 0 ? Math.min(3, affordable) * 1.2 : 0
@@ -174,8 +193,8 @@ function leafValue(g: GameState): number {
   const m = swapPerspective(c)           // m.ai = žaidėjas
   beginTurn(m)
   const hidden = m.ai.hand.length
-  m.ai.hand = syntheticHand(m.ai, Math.min(2, Math.max(1, hidden)))
-  greedyTurn(m, REPLY_STEPS)
+  m.ai.hand = syntheticHand(m.ai, Math.min(cfg.synth, Math.max(1, hidden)))
+  greedyTurn(m, cfg.reply)
   if (m.winner === 'ai') return -1_000_000 + 1
   if (m.winner === 'you') return 1_000_000 - 1
   // nežinomų kortų „burn" prognozė
@@ -185,7 +204,7 @@ function leafValue(g: GameState): number {
   endTurn(m)
   const m2 = swapPerspective(m)          // m2.ai = mes
   beginTurn(m2)
-  greedyTurn(m2, REPLY_STEPS)
+  greedyTurn(m2, cfg.reply)
   if (m2.winner === 'ai') return 500_000
   if (m2.winner === 'you') return -500_000
   const vAfterReply = evaluatePosition(m, 'you')
@@ -196,7 +215,9 @@ function leafValue(g: GameState): number {
 // ── Viešas planuotojas ───────────────────────────────────────────────────────
 export type MasterPlan = { seq: ActionDescriptor[]; value: number; explored: number; ms: number }
 
-export function planMasterTurn(g0: GameState, budgetMs = BUDGET_MS): MasterPlan | null {
+export function planMasterTurn(g0: GameState, cfgIn: MasterCfg | number = MASTER_CFG.normal): MasterPlan | null {
+  const cfg: MasterCfg = typeof cfgIn === 'number' ? { ...MASTER_CFG.normal, budget: cfgIn } : cfgIn
+  const budgetMs = cfg.budget, BEAM = cfg.beam, MAX_DEPTH = cfg.depth
   if (g0.winner || g0.active !== 'ai') return null
   const t0 = now()
   const realRng = getRng()
@@ -204,7 +225,7 @@ export function planMasterTurn(g0: GameState, budgetMs = BUDGET_MS): MasterPlan 
   try {
     const root = cloneState(g0)
     shuffleInPlace(root.you.zmk); shuffleInPlace(root.ai.zmk)   // ŽMK eilės nežinom
-    let best: { seq: ActionDescriptor[]; v: number } = { seq: [], v: leafValue(root) }
+    let best: { seq: ActionDescriptor[]; v: number } = { seq: [], v: leafValue(root, cfg) }
     let beam: Node[] = [{ g: root, seq: [], h: 0 }]
     const seen = new Set<string>([sig(root)])
     let explored = 0
@@ -230,7 +251,7 @@ export function planMasterTurn(g0: GameState, budgetMs = BUDGET_MS): MasterPlan 
       beam = next.slice(0, BEAM)
       for (const n of beam) {
         if (now() - t0 > budgetMs * 1.4) break
-        const v = leafValue(n.g)
+        const v = leafValue(n.g, cfg)
         if (v > best.v) best = { seq: n.seq, v }
       }
     }

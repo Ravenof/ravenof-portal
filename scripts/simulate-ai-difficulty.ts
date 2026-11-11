@@ -20,7 +20,8 @@ const ZMK0 = [{ id: 'z', name: '+0', description: null, value: '+0' as const, co
 const W_HARD = mergeWeights(DIFFICULTY_WEIGHTS.hard, { jitter: -1 })
 // 2026-09-19 kopėčia: goodPlayer euristikos = normal + hard; BE jų liko tik easy.
 // „norm" šiame faile istoriškai reiškia „lygis be goodPlayer" → dabar tai easy svoriai.
-const W_NORM = mergeWeights(DIFFICULTY_WEIGHTS.easy, { jitter: -1 })
+// 2026-11-12 kopėčia: goodPlayer turi VISI lygiai; palyginimui „be goodPlayer“ jis čia išjungiamas rankomis.
+const W_NORM = mergeWeights(DIFFICULTY_WEIGHTS.easy, { jitter: -1, goodPlayer: false })
 
 function mkCard(over: Partial<TutCard> & { name: string }): TutCard {
   return {
@@ -41,12 +42,12 @@ function freshGame(): GameState {
   return g
 }
 
-console.log('◆ Svoriai: normal = senas hard')
+console.log('◆ Svoriai: 2026-11-12 kopėčia')
 {
-  const n = DIFFICULTY_WEIGHTS.normal
-  check('normal faceBias -2 / tradeThreshold 0 / removalMinValue 5 / lookahead', n.faceBias === -2 && n.tradeThreshold === 0 && n.removalMinValue === 5 && n.lookahead === true)
-  check('easy BE goodPlayer; normal ir hard SU goodPlayer', !DIFFICULTY_WEIGHTS.easy.goodPlayer && n.goodPlayer === true && DIFFICULTY_WEIGHTS.hard.goodPlayer === true)
-  check('easy = buvęs normal (faceBias -2, su lookahead, jitter 0.6)', DIFFICULTY_WEIGHTS.easy.faceBias === -2 && DIFFICULTY_WEIGHTS.easy.lookahead === true && DIFFICULTY_WEIGHTS.easy.jitter === 0.6)
+  const e = DIFFICULTY_WEIGHTS.easy, n = DIFFICULTY_WEIGHTS.normal, h = DIFFICULTY_WEIGHTS.hard
+  check('visi lygiai su goodPlayer ir lookahead', e.goodPlayer && n.goodPlayer && h.goodPlayer && e.lookahead && n.lookahead && h.lookahead)
+  check('easy = buvęs normal (faceBias -2, jitter 0.2)', e.faceBias === -2 && e.jitter === 0.2 && e.removalMinValue === 5)
+  check('normal ir hard be atsitiktinumo (paieška)', n.jitter === 0 && h.jitter === 0)
 }
 
 console.log('◆ Buff PRIEŠ ataką (hard)')

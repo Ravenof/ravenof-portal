@@ -13,9 +13,11 @@ import { planFocusFire } from './aiFocusFire'
 import { hasLethalThisTurn, evaluateSurvivalRisk, evaluateBoardThreat } from './aiThreatEvaluation'
 import { computeGuaranteedLethal } from './aiHardPlanner'
 import { analyzeCard } from './aiCardRole'
-import { planMasterTurn, logPlan } from './aiMaster'
+import { planMasterTurn, logPlan, MASTER_CFG } from './aiMaster'
 
 export type { AiAction, AiDifficulty }
+
+const COARSE: boolean = (() => { try { return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches } catch { return false } })()
 
 function resolveDifficulty(opts?: { difficulty?: AiDifficulty }): AiDifficulty {
   if (opts?.difficulty) return opts.difficulty
@@ -67,11 +69,15 @@ export function findLethalSequence(g: GameState): boolean {
 export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty; weights?: AiWeightDelta }): AiAction {
   if (g.winner || g.active !== 'ai') return null
   const difficulty = resolveDifficulty(opts)
-  // HARD = Didmeistris: viso ėjimo planas per simuliaciją; vykdom PIRMĄ plano veiksmą
+  // NORMAL = Didmeistris, HARD = Legenda: viso ėjimo planas per simuliaciją; vykdom PIRMĄ plano veiksmą
   // (kitą taktą planuojam iš naujo – tikras ŽMK/reakcijos jau žinomos). Tuščias planas
   // = geriausia baigti ėjimą. Klaida/limitas → žemiau esantis greedy.
-  if (difficulty === 'hard') {
-    const plan = planMasterTurn(g)
+  // HARD: jei yra GARANTUOTAS lethal (blogiausias ŽMK scenarijus), paieškos nebereikia – jį įvykdo greedy su lethal boost'ais.
+  let sureLethal = false
+  if (difficulty === 'hard') { try { sureLethal = computeGuaranteedLethal(g).lethal } catch { /* */ } }
+  if (difficulty !== 'easy' && !sureLethal) {
+    // Telefonuose paieška stabdo vaizdą (vienas JS srautas) – ten biudžetas trumpesnis.
+    const plan = planMasterTurn(g, COARSE ? { ...MASTER_CFG[difficulty], budget: Math.round(MASTER_CFG[difficulty].budget * 0.55) } : MASTER_CFG[difficulty])
     if (plan) {
       logPlan(plan)
       const d = plan.seq[0]

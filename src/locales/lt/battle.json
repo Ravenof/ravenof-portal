@@ -473,17 +473,17 @@
     "difficulty": "Sunkumas",
     "easy": "Lengvas",
     "easyBtn": "😴 Lengvas",
-    "easyText": "Paprasti trade’ai, retai planuoja combo, kartais silpni ėjimai.",
+    "easyText": "Gero žaidėjo taktika: skaičiuoja mainus, stiprina prieš ataką, paruošia užšaldymą ar apsvaiginimą, nepraleidžia garantuoto lethal.",
     "enemy": "Priešas",
     "factionHint": "Pasirink priešininko frakciją — DI gaus tos frakcijos kaladę.",
     "hard": "Sunkus",
     "hardBtn": "💀 Sunkus",
-    "hardText": "Planuoja 2–3 ėjimus, skaičiuoja lethal, agresyviai baudžia silpną lentą.",
+    "hardText": "Legenda: gilesnė ir platesnė paieška, keli ŽMK scenarijai, garantuotas lethal visada pirmas. Be paruoštos kaladės pats susistato kaladę pagal strategiją ir sinergijas.",
     "noDecks": "Nerasta deck'ų. Pabandyk kitą paiešką.",
     "none": "—",
     "normal": "Vidutinis",
     "normalBtn": "⚔ Vidutinis",
-    "normalText": "Skaičiuoja trade’us, naudoja removal/AoE logiškai, saugosi lethal.",
+    "normalText": "Didmeistris: simuliuoja visą savo ėjimą ir tavo atsaką, renkasi geriausią seką.",
     "opponent": "Priešininkas",
     "pickOpponent": ". Pasirink priešininko tipą.",
     "randomText": "DI pasirinks atsitiktinę frakciją ir automatinę kaladę. Greičiausias būdas pradėti treniruotę.",
@@ -510,9 +510,9 @@
       "normal": "Vidutinis"
     },
     "diffDesc": {
-      "easy": "Skaičiuoja trade’us, naudoja removal/AoE, saugosi lethal.",
-      "normal": "Gero žaidėjo taktika: buff prieš ataką, freeze/stun paruošimas, planuoja 2–3 ėjimus, skaičiuoja lethal.",
-      "hard": "Didmeistris: simuliuoja visą savo ėjimą ir tavo atsaką, renkasi geriausią seką. Įveikti labai sunku."
+      "easy": "Gero žaidėjo taktika: skaičiuoja mainus, stiprina prieš ataką, paruošia užšaldymą ar apsvaiginimą, nepraleidžia garantuoto lethal.",
+      "normal": "Didmeistris: simuliuoja visą savo ėjimą ir tavo atsaką, renkasi geriausią seką.",
+      "hard": "Legenda: gilesnė ir platesnė paieška, keli ŽMK scenarijai, garantuotas lethal visada pirmas. Be paruoštos kaladės pats susistato kaladę pagal strategiją ir sinergijas."
     },
     "difficulty": "Sudėtingumas",
     "enemy": "Priešas",

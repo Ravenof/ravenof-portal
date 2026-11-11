@@ -5,6 +5,7 @@
 // žetonai, ŽMK, pop-up scenarijus ir dark fantasy ambient muzika.
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
+import { buildStrategicDeck } from '@/lib/tutorial/ai/aiDeckBuilder'
 import { StatGem, gemSize } from './StatGem'
 import { RollingNumber } from './RollingNumber'
 import { BugIcon, RotateIcon, EyeIcon } from './BattleIcons'
@@ -1876,14 +1877,15 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         if (!alive) return
         try {
           const mapped = ((data as unknown as NonNullable<DbRow['card']>[]) ?? []).map(mapDbCard)
-          setOppCards(buildDemoDeck(mapped))
+          // Sunkus DI pats susistato kaladę pagal strategiją (archetipas, sinergijos, kreivė); kiti lygiai – atsitiktinė frakcijos kaladė.
+          setOppCards(difficulty === 'hard' ? buildStrategicDeck(mapped) : buildDemoDeck(mapped))
         } catch { setOppCards([]) }
       }, () => { if (alive) setOppCards([]) })
     } else {
       setOppCards([])
     }
     return () => { alive = false }
-  }, [loadOpp, opponentDeckId, opponentStarterId, opponentFaction])
+  }, [loadOpp, opponentDeckId, opponentStarterId, opponentFaction, difficulty])
 
   const oppReady = !loadOpp || oppCards !== null
   useEffect(() => {

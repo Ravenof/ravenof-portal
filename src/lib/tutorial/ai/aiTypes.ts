@@ -26,15 +26,15 @@ export type AiWeights = {
   goodPlayer: boolean       // hard: „gero žaidėjo" euristikos (buff prieš ataką, freeze setup, hold'ai, sinergijos)
 }
 
-// 2026-09-19 rebalansas (Donato sprendimas): visa kopėčia pakelta per vieną laiptelį.
-//   easy   = buvęs normal (skaičiuoja trade'us, removal/AoE, saugosi lethal)
-//   normal = buvęs hard (goodPlayer euristikos: buff prieš ataką, freeze/stun setup, hold'ai)
-//   hard   = „Didmeistris": tie patys svoriai + beam search per simuliaciją su priešo
-//            atsaku (žr. aiMaster.ts). Greedy svoriai čia lieka kaip fallback ir kandidatų
-//            generavimui. Starter kaladės nebepriklauso nuo lygio (PvE „Naujokas/Patyręs").
+// 2026-11-12 rebalansas (Donato sprendimas): kopėčia dar kartą pakelta per vieną laiptelį.
+//   easy   = buvęs normal: „gero žaidėjo" euristikos (buff prieš ataką, freeze/stun setup, hold'ai, garantuotas lethal)
+//   normal = buvęs hard „Didmeistris": viso ėjimo beam search per simuliaciją su priešo atsaku (aiMaster.ts)
+//   hard   = „Legenda": ta pati paieška, bet platesnė ir gilesnė, keli ŽMK scenarijai, stipresnis priešo atsako
+//            modelis, garantuotas lethal visada pirmas; be paruoštos kaladės pats susistato kaladę (aiDeckBuilder.ts).
+// (2026-09-19: easy = senasis normal be goodPlayer, normal = goodPlayer, hard = Didmeistris.)
 export const DIFFICULTY_WEIGHTS: Record<AiDifficulty, AiWeights> = {
-  easy:   { faceBias: -2, jitter: 0.6, tradeThreshold: 0, spellWasteGuard: 1.4, removalMinValue: 5, lookahead: true,  goodPlayer: false },
-  normal: { faceBias: -2, jitter: 0.2, tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
+  easy:   { faceBias: -2, jitter: 0.2, tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
+  normal: { faceBias: -1, jitter: 0,   tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
   hard:   { faceBias: -1, jitter: 0,   tradeThreshold: 0, spellWasteGuard: 1.6, removalMinValue: 5, lookahead: true,  goodPlayer: true  },
 }
 
