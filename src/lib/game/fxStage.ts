@@ -156,6 +156,91 @@ function motes(f: Pt, t: Pt, c: string, T: number): number {
   return T * 0.77
 }
 /** `go` grąžina, po kiek ms skrydis PASIEKIA taikinį (≤ T). */
+// ── flipbook'ai ir tekstūrų sprite'ai ────────────────────────────────────────
+// Ugnies/dūmų kadrų juostos vietoj vien procedūrinių dalelių. Simuliuoti šaltiniai perdaryti į pieštą stilių
+// (tonų pakopos, kietas siluetas, sava paletė – žr. fx-src/stylize.py projekto aplanke). Šaltiniai CC0:
+// Unity Labs „VFX Image Sequences" ir Kenney „Particle Pack" – žr. public/digital/fx/README.md.
+// PILOTAS: kol `BOOKS_ON` išjungtas (numatyta), žaidime groja senieji efektai. Įjungiama /dev/fx.
+type Book = { c: number; r: number; im: HTMLImageElement | null; ok: boolean }
+const bk = (c = 1, r = 1): Book => ({ c, r, im: null, ok: false })
+const BK: Record<string, Book> = {
+  explosion: bk(5, 5), mist: bk(5, 5), flame: bk(16, 4),
+  scorch: bk(), star: bk(), halo: bk(), ray: bk(), shock: bk(),
+}
+let BOOKS_ON = false
+const tintC = new Map<string, HTMLCanvasElement>()
+function bkLoad(k: string) {
+  const b = BK[k]; if (!b || b.im || typeof Image === 'undefined') return
+  const im = new Image(); im.decoding = 'async'; im.onload = () => { b.ok = true }; im.src = `/digital/fx/${k}.webp`; b.im = im
+}
+/** Paveikslas (arba nuspalvinta jo kopija). null – dar neįkeltas. */
+function bkSrc(k: string, col?: string): CanvasImageSource | null {
+  const b = BK[k]; if (!b) return null
+  if (!b.im) bkLoad(k)
+  if (!b.ok || !b.im) return null
+  if (!col) return b.im
+  const key = k + col; let c = tintC.get(key); if (c) return c
+  c = document.createElement('canvas'); c.width = b.im.naturalWidth; c.height = b.im.naturalHeight
+  const g = c.getContext('2d')!
+  g.drawImage(b.im, 0, 0); g.globalCompositeOperation = 'multiply'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height)
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(b.im, 0, 0)
+  tintC.set(key, c); return c
+}
+type BkO = { tint?: string; add?: boolean; rot?: number; a?: number; h?: number; step?: number }
+/** `step` – rodyti tik kas N-tą kadrą („ant dvejetų“: judesys atrodo pieštas ranka, ne nufilmuotas). */
+/** Vienas kadras: `f` 0..1 per visą juostą, `w` – plotis scenos vienetais (aukštis pagal kadro proporcijas arba `h`). */
+function bkDraw(k: string, f: number, x: number, y: number, w: number, o: BkO = {}) {
+  const b = BK[k], src = bkSrc(k, o.tint), a = o.a ?? 1; if (!src || !b.im || a <= 0 || w <= 0) return
+  const n = b.c * b.r, st = o.step ?? 1, i = Math.min(n - 1, Math.max(0, (((f * n) / st) | 0) * st)), W = b.im.naturalWidth / b.c, H = b.im.naturalHeight / b.r, h = o.h ?? w * H / W
+  ctx.globalCompositeOperation = o.add ? 'lighter' : 'source-over'; ctx.globalAlpha = a > 1 ? 1 : a
+  if (o.rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot); ctx.drawImage(src, (i % b.c) * W, ((i / b.c) | 0) * H, W, H, -w / 2, -h / 2, w, h); ctx.restore() }
+  else ctx.drawImage(src, (i % b.c) * W, ((i / b.c) | 0) * H, W, H, x - w / 2, y - h / 2, w, h)
+}
+type BookO = BkO & { grow?: number; fade?: number; loop?: number; layer?: 0 | 1; rise?: number }
+/** Nugroja visą juostą per `dur` ms. grow – kiek paauga, fade – nuo kurios dalies gęsta, loop – kiek kartų prasukti. */
+const book = (k: string, x: number, y: number, w: number, dur: number, o: BookO = {}) => fx(dur, (p) => {
+  const a = (o.a ?? 1) * (o.fade != null && p > o.fade ? (1 - p) / (1 - o.fade) : 1)
+  bkDraw(k, o.loop ? (p * o.loop) % 1 : p, x, y - (o.rise ?? 0) * p, w * (1 + (o.grow ?? 0) * eo(p)), { ...o, a, h: o.h != null ? o.h * (1 + (o.grow ?? 0) * eo(p)) : undefined })
+}, o.layer ?? 1)
+/** Trumpas tekstūros žybsnis (auga ir gęsta). */
+const stamp = (k: string, x: number, y: number, w0: number, w1: number, dur: number, tint: string, a = 1, rot = 0, layer: 0 | 1 = 1) => fx(dur, (p) => bkDraw(k, 0, x, y, lerp(w0, w1, eo(p)), { tint, add: true, a: (1 - p) * a, rot }), layer)
+const booksReady = (...ks: string[]) => BOOKS_ON && ks.every((k) => !!bkSrc(k))
+
+// Naujos (flipbook) trijų efektų versijos – pilotas.
+function fireBurstB(c: VCard, light: boolean) {
+  stamp('scorch', c.x, c.y, 90, 250, 190, '#ffd9a0', 1, rnd(0, TAU))
+  pop(c.x, c.y, 120, '#ffb060', 220)
+  book('explosion', c.x, c.y - 8, light ? 170 : 230, light ? 520 : 680, { grow: 0.22, fade: 0.8, step: 2 })
+  stamp('shock', c.x, c.y, 40, 260, 320, '#ffcf8a', 0.7)
+  burst(c.x, c.y, light ? 10 : 20, { v: [3, 9], life: [300, 650], size: [2, 4.5], colors: ['#ffe2a8', '#ffb347', '#ff7a1a'], g: 0.16, dr: 0.94 })
+  tint(c, '#ff8a2a', 0.75, 560); cshake(c, light ? 3 : 6)
+  if (!light) { const y = c.y + c.vh * 0.2, h = c.vh * 1.15
+    for (const dx of [-0.26, 0.04, 0.3]) at(120 + (dx + 0.3) * 200, () => book('flame', c.x + dx * c.vw, y, h * 0.5, 950, { loop: 1.6, fade: 0.6, a: 0.95, h, step: 5 })) }
+}
+function iceShatterB(c: VCard) {
+  stamp('star', c.x, c.y, 80, 300, 240, '#e8f8ff', 1, 0.4)
+  stamp('shock', c.x, c.y, 30, 230, 360, '#bfe9ff', 0.8)
+  book('mist', c.x, c.y, 190, 600, { tint: '#cfeeff', grow: 0.3, fade: 0.45, a: 0.95, step: 2 })
+  burst(c.x, c.y, 14, { v: [3, 8.5], life: [320, 640], size: [5, 10], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9, g: 0.1 })
+  burst(c.x, c.y, 14, { v: [1, 4.5], life: [350, 700], size: [1.5, 3.5], colors: ['#ffffff', '#dff4ff'] })
+  fx(900, (p) => glow(c.x, c.y, 80, '#9fdcff', 0.3 * (1 - p)), 0)
+  tint(c, '#bfe9ff', 0.65, 900); cshake(c, 4)
+}
+function holyDescentB() {
+  S.hidden = true
+  const RY = [-0.62, -0.3, 0, 0.27, 0.58].map((d, i) => ({ d, w: 120 + (i % 2) * 50, ph: i * 1.7 }))
+  fx(1900, (p) => { const a = p < 0.15 ? p / 0.15 : p > 0.7 ? (1 - p) / 0.3 : 1; ctx.globalCompositeOperation = 'lighter'; glow(X, Y, 170, '#ffe08a', 0.28 * a)
+    bkDraw('halo', 0, X, Y, 300 + 20 * Math.sin(time / 400), { tint: '#ffe9a8', add: true, a: 0.5 * a, rot: time / 2400 })
+    for (const r of RY) bkDraw('ray', 0, X + r.d * CW * 1.5, Y - 150, r.w, { tint: '#fff1c0', add: true, a: a * (0.5 + 0.25 * Math.sin(time / 260 + r.ph)), h: 560 })
+    if (live && Math.random() < 0.5) { const an = rnd(0, TAU), r = rnd(20, 130); pt(X + Math.cos(an) * r, Y + Math.sin(an) * r, 0, -rnd(0.3, 1), rnd(500, 900), rnd(2, 4), '#fff4c2') } })
+  at(200, () => { show({ alpha: 0, s: 1.7 }); S.tint = '#fff4c2'; S.tintA = 0.9; tw(S, { alpha: 1 }, 320); tw(S, { s: 1 }, 900, eo); tw(S, { tintA: 0 }, 1100, ei) })
+  at(1080, () => { try { cur.hooks?.land?.(3) } catch { /* */ }
+    stamp('star', X, Y, 120, 420, 380, '#fff4c2', 1); stamp('shock', X, Y, 60, 420, 620, '#ffe08a', 0.8); stamp('halo', X, Y, 160, 380, 900, '#ffe08a', 0.6)
+    book('mist', X, Y + CH * 0.2, 230, 1000, { tint: '#ffdf8a', add: true, grow: 0.5, fade: 0.4, a: 0.6, rise: 30, step: 2 })
+    burst(X, Y, 22, { v: [1, 4], life: [500, 900], size: [2.5, 5], colors: ['#fff4c2', '#ffe08a'], jx: 40, jy: 56 })
+    for (const c of cur.row) at(140, () => { tint(c, '#ffe08a', 0.35, 900); knock(c, -2) }) })
+}
+
 const PROJ: Record<FxProjId, ProjDef> = {
   fireball: { col: '#ff7a1a', base: 380, go(f, t, T) { fx(T, (p) => { const e = p * (0.45 + 0.55 * p), [x, y] = bez(f, t, -46, e)
     if (live) { pt(x, y, rnd(-0.6, 0.6), rnd(-0.6, 0.6), rnd(200, 420), rnd(5, 10), pick(FIRE)); pt(x, y, rnd(-0.4, 0.4), rnd(-0.4, 0.4), rnd(150, 300), rnd(3, 6), '#ffd27a'); if (Math.random() < 0.3) pt(x, y, rnd(-0.3, 0.3), -0.4, 500, 9, '#1c1410', 2) }
@@ -190,10 +275,12 @@ function domeFx(c: VCard, light: boolean, dc: string) { const T = light ? 700 : 
     ctx.globalAlpha = 0.9 * a; ctx.strokeStyle = dc; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(c.x, y, Math.max(0, 56 * g), Math.max(0, 72 * g), 0, 0, TAU); ctx.stroke()
     const s = p * 9; ctx.globalAlpha = a; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.ellipse(c.x, y, Math.max(0, 56 * g), Math.max(0, 72 * g), 0, s, s + 0.7); ctx.stroke() }) }
 const IMP: Record<FxImpactId, (c: VCard, light: boolean, col: string) => void> = {
-  fireBurst(c, light) { burst(c.x, c.y, 26, { v: [2, 7.5], life: [250, 600], size: [5, 12], colors: FIRE, dr: 0.92 }); burst(c.x, c.y, 6, { v: [0.5, 2], life: [500, 900], size: [12, 20], colors: ['#1c1410'], k: 2, up: -0.6 })
+  fireBurst(c, light) { if (booksReady('explosion', 'scorch', 'shock', 'flame')) { fireBurstB(c, light); return }
+    burst(c.x, c.y, 26, { v: [2, 7.5], life: [250, 600], size: [5, 12], colors: FIRE, dr: 0.92 }); burst(c.x, c.y, 6, { v: [0.5, 2], life: [500, 900], size: [12, 20], colors: ['#1c1410'], k: 2, up: -0.6 })
     ring(c.x, c.y, 12, 86, 360, '#ff9a3a', 8); pop(c.x, c.y, 95, '#ffb060', 260); tint(c, '#ff8a2a', 0.7, 520)
     if (!light) fx(650, () => { if (live && Math.random() < 0.5) { const [x, y] = perim(c, -6); pt(x, y, rnd(-0.3, 0.3), -rnd(0.8, 2), rnd(300, 600), rnd(2, 4), '#ffb347') } }) },
-  iceShatter(c) { burst(c.x, c.y, 16, { v: [3, 8.5], life: [300, 620], size: [6, 11], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); burst(c.x, c.y, 12, { v: [1, 4], life: [300, 500], size: [2, 4], colors: ['#ffffff'] })
+  iceShatter(c) { if (booksReady('mist', 'star', 'shock')) { iceShatterB(c); return }
+    burst(c.x, c.y, 16, { v: [3, 8.5], life: [300, 620], size: [6, 11], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); burst(c.x, c.y, 12, { v: [1, 4], life: [300, 500], size: [2, 4], colors: ['#ffffff'] })
     ring(c.x, c.y, 10, 80, 380, '#cfeeff', 6); pop(c.x, c.y, 70, '#9fdcff', 240); tint(c, '#bfe9ff', 0.6, 900) },
   freeze(c, light) { burst(c.x, c.y, 10, { v: [2, 6], life: [300, 600], size: [5, 9], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); ring(c.x, c.y, 10, 74, 380, '#cfeeff', 5); tint(c, '#8fd3ff', 0.7, light ? 520 : 1700)
     if (light) return
@@ -271,7 +358,8 @@ const SUM: Record<SummonFxId, () => void> = {
     at(360, () => { show({ alpha: 0, s: 0.9 }); S.tint = '#07030c'; S.tintA = 1; tw(S, { alpha: 1 }, 360); tw(S, { s: 1 }, 420, eo); tw(S, { tintA: 0 }, 820, ei) })
     at(800, () => { shake(4); neighbors(4); ring(X, Y, 40, 150, 520, '#a855f7', 5, 0.7); pop(X, Y, 120, '#7c3aed', 380, 0.5)
       for (let i = 0; i < 16; i++) { const [x, y, nx, ny] = perim(S, 0); pt(x, y, nx * rnd(1, 3), ny * rnd(1, 3), rnd(500, 900), rnd(12, 20), '#120818', 2, 0, 0.95) } }) },
-  holyDescent() { S.hidden = true
+  holyDescent() { if (booksReady('mist', 'star', 'shock', 'halo', 'ray')) { holyDescentB(); return }
+    S.hidden = true
     fx(1900, (p) => { const a = p < 0.15 ? p / 0.15 : p > 0.7 ? (1 - p) / 0.3 : 1; glow(X, Y, 170, '#ffe08a', 0.3 * a); ctx.fillStyle = '#fff4c2'; for (let i = 0; i < 10; i++) { const an = i / 10 * TAU + time / 2600, w = 0.07 + 0.03 * Math.sin(i * 2.1), L = 180 + 30 * Math.sin(time / 300 + i)
       ctx.globalAlpha = a * 0.13; ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + Math.cos(an - w) * L, Y + Math.sin(an - w) * L); ctx.lineTo(X + Math.cos(an + w) * L, Y + Math.sin(an + w) * L); ctx.fill() }
       if (live && Math.random() < 0.5) { const an = rnd(0, TAU), r = rnd(20, 130); pt(X + Math.cos(an) * r, Y + Math.sin(an) * r, 0, -rnd(0.3, 1), rnd(500, 900), rnd(2, 4), '#fff4c2') } })
@@ -1078,6 +1166,14 @@ export const fxStage = {
   projColor(proj: FxProjId): string { return PROJ[proj]?.col ?? '#d4af37' },
   /** Įgyvendintų efektų sąrašai (testams: katalogas ir variklis privalo sutapti). */
   ids(): { summons: string[]; projectiles: string[]; impacts: string[]; skills: string[]; strikes: string[]; skillStrikeRefs: string[]; evolves: string[] } { return { evolves: Object.keys(EVOLVE), summons: Object.keys(SUM), projectiles: Object.keys(PROJ), impacts: Object.keys(IMP), skills: Object.keys(SKILL), strikes: Object.keys(STRIKE), skillStrikeRefs: Object.values(SKILL).flatMap((d) => Object.values(d.strikes ?? {})) } },
+  /**
+   * Flipbook efektų pilotas: įjungia/išjungia naujas (tekstūrines) fireBurst, iceShatter ir holyDescent versijas
+   * ir pradeda krauti tekstūras. Kol neįkelta, groja senoji versija. Grąžina būseną.
+   */
+  books(on?: boolean): { on: boolean; ready: boolean } {
+    if (on != null) { BOOKS_ON = on; if (on) for (const k in BK) bkLoad(k) }
+    return { on: BOOKS_ON, ready: Object.values(BK).every((b) => b.ok) }
+  },
   /** Viską sustabdo ir išvalo (kovos ekrano uždarymas). */
   stop(): void { hardReset() },
   /** Testams / HUD. */

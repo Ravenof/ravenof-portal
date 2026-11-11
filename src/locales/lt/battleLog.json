@@ -264,6 +264,7 @@
   "noSpellToCounter": "„{{src}}\": nėra žaidžiamo burto, kurį būtų galima nutildyti.",
   "noSummonTarget": "Nėra tinkamo padaro iškvietimui.",
   "noSummonTargetZone": "Nėra tinkamo padaro {{zone}} – iškvietimas neįvyksta.",
+  "thenTargetGone": "„{{src}}\": taikinys jau sunaikintas – likusi efekto dalis jam nebetaikoma.",
   "noTargetFallback": "„{{src}}\": taikinio nėra – vykdomas atsarginis efektas.",
   "noValidTarget": "„{{src}}\": nėra galiojančio taikinio – efekto dalis neįvyksta.",
   "overkill": {

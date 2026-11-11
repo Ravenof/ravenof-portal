@@ -305,7 +305,14 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     // šakos stun/heal kristų ant paties šaltinio, o ne tėvinio efekto taikinio).
     targets = (ctx.chosenTargets && ctx.chosenTargets.length > 0) ? ctx.chosenTargets : [ctx.chosenTarget!]
     // Taikinys galėjo žūti nuo tėvinio efekto — negyvi išfiltruojami.
+    const hadTargets = targets.length
     targets = targets.filter((t) => t.kind !== 'unit' || !!findUnit(g, t))
+    // QA #9 (763): jei „tada" dalies taikinys ką tik žuvo nuo pirmosios dalies – sakom BŪTENT tai,
+    // o ne bendrinį „nėra galiojančio taikinio" (atrodydavo kaip klaida, nors viskas suveikė).
+    if (hadTargets > 0 && targets.length === 0 && !(m.noTargetThen && m.noTargetThen.length > 0)) {
+      api.log(g, { t: 'blocked', side: caster, key: 'battleLog.thenTargetGone', params: { src: ctx.sourceName } })
+      return false
+    }
   } else if (m.target === 'selfUnit') {
     let t: ResolvedTarget | null = null
     if (ctx.sourceUid) {

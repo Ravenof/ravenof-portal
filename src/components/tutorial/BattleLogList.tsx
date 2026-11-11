@@ -41,8 +41,21 @@ export type BattleLogListProps = {
 
 const YOU = '#4ade80', AI = '#f87171'
 const KW_COLOR: Record<LogKeyword, string> = { battlecry: '#f0b429', lastwish: '#a78bfa', trigger: '#38bdf8', reaction: '#8b5cf6', curse: '#a855f7' }
-const KIND_ICON: Record<string, string> = { attack: '⚔', play: '✦', spell: '✧', artifact: '⛨', field: '⌂', champion: '⚜', skill: '⚜', battlecry: '📣', lastwish: '🕯', trigger: '⟳', reaction: '⚡', curse: '🕸', other: '·' }
-const STATUS_ICON: Record<string, string> = { shield: '✦★', stealth: '◑', taunt: '⊙', sprint: '▶', control: '🧠', cantAttack: '🔗', immortal: '♾', curse: '🕸' }
+// Ženklai – vienspalviai simboliai (\uFE0E priverčia tekstinį, ne spalvotą emoji variantą), kad žurnalas
+// visose sistemose atrodytų vienodai ir derėtų prie piešto UI (763). Raktažodžio prasmę neša spalvota juostelė.
+const KIND_ICON: Record<string, string> = { attack: '⚔\uFE0E', play: '✦', spell: '✧', artifact: '⛨', field: '⌂', champion: '⚜', skill: '⚜', battlecry: '◆', lastwish: '◇', trigger: '⟳', reaction: '⚡\uFE0E', curse: '✶', other: '·' }
+const STATUS_ICON: Record<string, string> = { shield: '✦★', stealth: '◑', taunt: '⊙', sprint: '▶', control: '⇄', cantAttack: '⊘', immortal: '∞', curse: '✶' }
+/** Pieštos statusų ikonos (tos pačios kaip ant kortų lentoje) – vietoj emoji. */
+const STATUS_IMG: Record<string, string> = {
+  frozen: 'frozen', stunned: 'stunned', burning: 'burning', poisoned: 'poison', silenced: 'silenced', blessed: 'light',
+  shield: 'shield_magic', stealth: 'stealth', taunt: 'taunt', sprint: 'sprint',
+}
+const SKULL = '☠\uFE0E'
+/** Aukso moneta – UI rinkinio paveikslėlis vietoj 🪙. */
+function Coin({ size = 11 }: { size?: number }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/ravenof-ui/combat/currency/coin-gold.png" alt="" aria-hidden draggable={false} style={{ width: size, height: size, objectFit: 'contain', display: 'inline-block', verticalAlign: '-1px' }} />
+}
 
 const zmkTag = (v: string): { text: string; color: string } => {
   if (v === 'x2') return { text: '×2', color: '#ff6a3d' }
@@ -85,15 +98,19 @@ function HitChips({ hits, t }: { hits: LogHit[]; t: TFn }) {
           )
         }
         if (h.t === 'heal') return <Chip key={i} kind="heal">+{h.value}</Chip>
-        if (h.t === 'death') return <Chip key={i} kind="dead" title={t('battleLogShort.hit.death')}>☠</Chip>
+        if (h.t === 'death') return <Chip key={i} kind="dead" title={t('battleLogShort.hit.death')}>{SKULL}</Chip>
         if (h.t === 'block') return <Chip key={i} kind="status" title={t('battleLogShort.hit.block')}>✦★ {t('battleLogShort.hit.block')}</Chip>
         if (h.t === 'buff') { const v = h.value ?? 0; return <Chip key={i} kind={v >= 0 ? 'buff' : 'debuff'}>{v >= 0 ? '+' : ''}{v}{h.label ? ' ' + h.label : ''}</Chip> }
-        if (h.t === 'gold') { const v = h.value ?? 0; return <Chip key={i} kind="gold">{v >= 0 ? '+' : ''}{v} 🪙</Chip> }
+        if (h.t === 'gold') { const v = h.value ?? 0; return <Chip key={i} kind="gold">{v >= 0 ? '+' : ''}{v} <Coin /></Chip> }
         if (h.t === 'summon') return <Chip key={i} kind="plain">✦ {t('battleLogShort.hit.summon')}</Chip>
         if (h.t === 'return') return <Chip key={i} kind="plain">↩ {t('battleLogShort.hit.return')}</Chip>
         if (h.t === 'status') {
           const id = h.statusId ?? ''
-          const icon = (STATUS_META as Record<string, { icon: string }>)[id]?.icon ?? STATUS_ICON[id] ?? '◈'
+          const img = STATUS_IMG[id]
+          const icon = img
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={`/icons/status/${img}.webp`} alt="" aria-hidden draggable={false} style={{ width: 12, height: 12, objectFit: 'contain' }} />
+            : (STATUS_ICON[id] ?? '◈')
           const name = h.label ?? ((STATUS_META as Record<string, { name: string }>)[id as TutStatus]?.name ?? id)
           const off = h.statusEvt === 'remove' || h.statusEvt === 'destroy'
           return <Chip key={i} kind="status" title={name}>{icon}{off ? ' ✕' : ''}</Chip>
@@ -148,7 +165,7 @@ export function BattleLogList(p: BattleLogListProps) {
         {card ? renderMini(card, w) : <span className="flex items-center justify-center" style={{ width: w, height: h, color: '#8e84ab', fontSize: 10 }}>?</span>}
         {dead && <>
           <span className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.55)' }} />
-          <span className="absolute inset-0 flex items-center justify-center" style={{ color: '#ffb0a0', fontSize: 13 }}>☠</span>
+          <span className="absolute inset-0 flex items-center justify-center" style={{ color: '#ffb0a0', fontSize: 13 }}>{SKULL}</span>
         </>}
       </span>
     )
@@ -218,7 +235,7 @@ export function BattleLogList(p: BattleLogListProps) {
             return (
               <div key={'t' + a.atLog} className="sticky top-0 z-10 flex items-center gap-2 -mx-0.5 px-2 py-1" style={{ background: 'rgba(8,6,12,0.96)', borderTop: '1px solid rgba(42,36,56,1)', borderBottom: '1px solid rgba(42,36,56,1)', font: '700 9.5px system-ui', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
                 <span style={{ color: me ? YOU : AI }}>{t('battleLogShort.turn', { n: a.turn.n })} · {t(me ? 'battleLogShort.you' : 'battleLogShort.foe')}</span>
-                <span className="ml-auto" style={{ color: '#8e84ab', fontWeight: 600, letterSpacing: 0, textTransform: 'none' }}>{a.turn.gold > 0 && <>+{a.turn.gold} 🪙</>}{a.turn.draws > 0 && <> · {t('battleLogShort.draws', { n: a.turn.draws })}</>}</span>
+                <span className="ml-auto" style={{ color: '#8e84ab', fontWeight: 600, letterSpacing: 0, textTransform: 'none' }}>{a.turn.gold > 0 && <>+{a.turn.gold} <Coin size={10} /></>}{a.turn.draws > 0 && <> · {t('battleLogShort.draws', { n: a.turn.draws })}</>}</span>
               </div>
             )
           }
@@ -234,7 +251,7 @@ export function BattleLogList(p: BattleLogListProps) {
             const srcT = others.find((x) => !x.player && (src.uid ? x.uid === src.uid : x.name === src.name))
             head = <>{thumb({ name: src.name, dead: !!srcT && isDead(srcT) })}{name({ children: src.name })}<span className="shrink-0" style={{ color: '#8e84ab', fontSize: 11 }}>{a.mutual ? '⇄' : '→'}</span>{tgt ? refEl({ r: tgt, dead: isDead(tgt) }) : null}</>
           } else if ((a.kind === 'play' || a.kind === 'spell' || a.kind === 'artifact' || a.kind === 'field' || a.kind === 'champion') && src) {
-            head = <>{avatar({ side: a.side })}<span className="shrink-0" style={{ color: '#8e84ab', fontSize: 11 }}>▸</span>{thumb({ name: src.name })}{name({ children: src.name, sub: a.cost ? <>{a.cost} 🪙</> : undefined })}</>
+            head = <>{avatar({ side: a.side })}<span className="shrink-0" style={{ color: '#8e84ab', fontSize: 11 }}>▸</span>{thumb({ name: src.name })}{name({ children: src.name, sub: a.cost ? <>{a.cost} <Coin size={10} /></> : undefined })}</>
           } else if (src?.name) {
             head = <>{thumb({ name: src.name, dead: a.kind === 'lastwish' })}{name({ children: src.name })}</>
           } else {

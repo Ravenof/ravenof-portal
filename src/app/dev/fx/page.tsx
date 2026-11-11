@@ -20,6 +20,20 @@ export default function FxDevPage() {
   const [cur, setCur] = useState<SummonFxId | null>(null)
   const [hud, setHud] = useState('')
   const allT = useRef<number | null>(null)
+  const [books, setBooks] = useState(false)
+  const abT = useRef<number | null>(null)
+  const setPilot = (on: boolean) => { fxStage.books(on); setBooks(on) }
+  // Pilotas: tas pats efektas senuoju ir nauju (flipbook) variantu iš eilės.
+  const PILOT: { id: string; label: string; gap: number; play: () => void }[] = [
+    { id: 'fire', label: 'Ugnies sprogimas', gap: 2200, play: () => arena.current?.effect('fireball', 'fireBurst', { hostile: true, targets: 1 }) },
+    { id: 'ice', label: 'Ledo skilimas', gap: 2200, play: () => arena.current?.effect('ice', 'iceShatter', { hostile: true, targets: 1 }) },
+    { id: 'holy', label: 'Šviesos nužengimas', gap: 3200, play: () => arena.current?.summon('holyDescent') },
+  ]
+  const ab = (x: (typeof PILOT)[number]) => {
+    if (abT.current) window.clearTimeout(abT.current)
+    setPilot(false); x.play()
+    abT.current = window.setTimeout(() => { setPilot(true); x.play(); abT.current = null }, x.gap)
+  }
 
   useEffect(() => {
     const id = window.setInterval(() => { const s = fxStage.stats(); setHud(`dalelės ${s.particles} · scenos ${s.scenes} · ${s.running ? 'rAF aktyvus' : 'rAF miega'}${s.low ? ' · LOW' : ''}`) }, 200)
@@ -28,8 +42,10 @@ export default function FxDevPage() {
       effect: (p: FxProjId, m: FxImpactId | null, o?: { hostile?: boolean; targets?: 1 | 3; light?: boolean }) => arena.current?.effect(p, m, o),
       skill: (i: SkillFxId) => arena.current?.skill(i),
       stats: () => fxStage.stats(),
+      books: (on?: boolean) => fxStage.books(on),
     }
-    return () => { window.clearInterval(id); if (allT.current) window.clearTimeout(allT.current) }
+    fxStage.books()   // būsena; tekstūros kraunamos tik įjungus
+    return () => { window.clearInterval(id); if (allT.current) window.clearTimeout(allT.current); if (abT.current) window.clearTimeout(abT.current); fxStage.books(false) }
   }, [])
 
   const playAll = () => {
@@ -49,6 +65,14 @@ export default function FxDevPage() {
           <FxArena ref={arena} cardW={84} />
           <div data-testid="fx-hud" style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, fontFamily: 'monospace', color: '#9a90a6', background: '#0009', padding: '2px 6px', borderRadius: 3 }}>{hud}</div>
         </div>
+        <section data-testid="fx-pilot" style={{ display: 'flex', flexDirection: 'column', gap: 8, border: '1px solid #d8b25a55', borderRadius: 6, padding: 10, background: '#17131f' }}>
+          <b style={{ color: '#d8b25a' }}>Pilotas: tikros ugnies ir dūmų tekstūros (flipbook)</b>
+          <span style={{ fontSize: 12, color: '#9a90a6' }}>Mygtukas nugroja efektą du kartus: pirma SENĄ, po pauzės NAUJĄ. Varnelė palieka naujus variantus įjungtus ir žemiau esantiems mygtukams. Žaidime kol kas groja senieji.</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {PILOT.map((x) => <button key={x.id} style={btn} data-testid={'ab-' + x.id} onClick={() => ab(x)}>▶ {x.label}: senas → naujas</button>)}
+            <label><input type="checkbox" data-testid="fx-books" checked={books} onChange={(e) => setPilot(e.target.checked)} /> nauji variantai įjungti</label>
+          </div>
+        </section>
         <section style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <select aria-label="Skrydis" style={sel} value={proj} onChange={(e) => setProj(e.target.value as FxProjId)}>{FX_PROJECTILES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select>
           <select aria-label="Smūgis" style={sel} value={imp} onChange={(e) => setImp(e.target.value as FxImpactId)}>{FX_IMPACTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select>
